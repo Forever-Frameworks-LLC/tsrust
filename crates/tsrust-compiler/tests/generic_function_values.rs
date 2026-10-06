@@ -129,3 +129,8 @@ fn main(){source_main();assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCs
 fn captured_result_only_generic_value_can_be_stored_before_invocation_context() {
     native("function main(){const label='retained';function empty<T>():T[]{console.log(label);return [];}const action=empty;}","");
 }
+
+#[test]
+fn deferred_generic_aliases_infer_result_only_types_without_sharing_methods() {
+    native(include_str!("fixtures/generic-function-values/result-context.tsr"),"11\n12\n3 x\n");
+}
