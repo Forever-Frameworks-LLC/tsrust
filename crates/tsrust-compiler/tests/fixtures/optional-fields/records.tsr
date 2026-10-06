@@ -10,9 +10,9 @@ function width(point: Point): int {
 
 function display(user: User): string {
     if (user.nickname !== undefined) {
-        return user.nickname;
+        return user.nickname.slice(0);
     }
-    return user.name;
+    return user.name.slice(0);
 }
 
 function make(name: string, nickname?: string): User {

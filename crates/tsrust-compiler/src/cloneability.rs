@@ -173,7 +173,7 @@ pub(crate) mod tests {
                         span,
                     },
                     ty: Some(ty),
-                    callable_declaration: None,
+                    callable_declaration: None, optional: false,
                 })
                 .collect(),
         }

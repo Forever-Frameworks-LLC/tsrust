@@ -1516,6 +1516,8 @@ pub struct RecordField {
     pub ty: Option<Type>,
     /// Source callable declaration, distinct from its canonical storage family.
     pub callable_declaration: Option<usize>,
+    /// Declared as `name?: Type`: a literal may omit it; its type includes `undefined`.
+    pub optional: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -1942,6 +1944,24 @@ impl Parser<'_> {
         Ok(())
     }
 
+    /// The type of `name?: Type`: the written type or `undefined`.
+    #[inline(never)]
+    fn optional_field_type(annotation: crate::type_syntax::ValueAnnotation) -> crate::type_syntax::ValueAnnotation {
+        use crate::type_syntax::{TypeName, ValueAnnotation, ValueAnnotationKind as Kind};
+        let span = annotation.span;
+        let absent = ValueAnnotation { kind: Kind::Named(TypeName { text: "undefined".into(), span }), span };
+        let members = match annotation.kind {
+            Kind::Union(mut members) => {
+                if !members.iter().any(|member| matches!(&member.kind, Kind::Named(name) if name.text == "undefined")) {
+                    members.push(absent);
+                }
+                members
+            }
+            kind => vec![ValueAnnotation { kind: Kind::Group(Box::new(ValueAnnotation { kind, span })), span }, absent],
+        };
+        ValueAnnotation { kind: Kind::Union(members), span }
+    }
+
     fn type_parameters(&mut self) -> Result<Vec<crate::type_syntax::TypeName>, Diagnostic> {
         let mut parameters: Vec<crate::type_syntax::TypeName> = Vec::new();
         if !self.accept("<") {
@@ -2043,13 +2063,16 @@ impl Parser<'_> {
                 let mut fields = Vec::new();
                 while !self.accept("}") {
                     let field = self.name()?;
+                    let optional = self.accept("?");
                     self.expect(":")?;
                     let annotation = self.value_annotation()?;
+                    let annotation = if optional { Self::optional_field_type(annotation) } else { annotation };
                     fields.push(RecordField {
                         name: field,
                         annotation,
                         ty: None,
                         callable_declaration: None,
+                        optional,
                     });
                     self.expect(";")?;
                 }

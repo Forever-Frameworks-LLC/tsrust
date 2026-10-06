@@ -273,7 +273,7 @@ impl Context<'_> {
                     let id = self.records.len();
                     let fields = positions.iter().enumerate().map(|(index, annotation)| RecordField {
                         name: Token { kind: TokenKind::Symbol, text: index.to_string(), span: annotation.span },
-                        annotation: annotation.clone(), ty: None, callable_declaration: None,
+                        annotation: annotation.clone(), ty: None, callable_declaration: None, optional: false,
                     }).collect();
                     self.records.push(Record { map_definition: None, set_definition: None, enum_definition: None, application: None, name: Token { kind: TokenKind::Symbol, text:label.clone(), span:value.span }, type_parameters: Vec::new(), fields });
                     self.names.insert(label.clone(), id);

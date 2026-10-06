@@ -8694,10 +8694,24 @@ impl Analyzer {
         }
     }
 
+    /// An omitted `name?: Type` field holds `undefined`. The record keeps
+    /// its fixed shape; omitted fields follow the written ones.
+    #[inline(never)]
+    fn fill_omitted_optional_fields(&self, index: usize, fields: &mut Vec<(Token, Expr)>, span: Span) {
+        for field in &self.program.records[index].fields {
+            if field.optional && !fields.iter().any(|(key, _)| key.text == field.name.text) {
+                fields.push((
+                    Token { text: field.name.text.clone(), span, kind: TokenKind::Name },
+                    Expr::new(ExprKind::Undefined, span),
+                ));
+            }
+        }
+    }
+
     fn record_literal(
         &mut self,
         context: &mut Context,
-        fields: &mut [(Token, Expr)],
+        fields: &mut Vec<(Token, Expr)>,
         loans: &Loans,
         expected: Option<Type>,
         span: Span,
@@ -8744,7 +8758,7 @@ impl Analyzer {
                         span: key.span,
                     },
                     ty: Some(actual),
-                    callable_declaration: None,
+                    callable_declaration: None, optional: false,
                 });
             }
             let id = self.program.records.len();
@@ -8772,6 +8786,7 @@ impl Analyzer {
                 ));
             }
         };
+        self.fill_omitted_optional_fields(index, fields, span);
         let mut seen = HashSet::new();
         for (key, value) in fields {
             if !seen.insert(key.text.clone()) {

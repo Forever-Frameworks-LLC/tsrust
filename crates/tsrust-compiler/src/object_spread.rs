@@ -31,7 +31,7 @@ impl Analyzer {
                 let overwritten=parts.iter().any(|(later,value)|later.text==key.text||(later.text=="record#spread"&&self.spread_overwrites(context,value,&key.text,0)));
                 let contextual=if !overwritten && let Some(Type::Record(id))=expected{self.fields[id].get(&key.text).copied()}else{None};
                 let ty=self.expression(context,&mut value,Mode::Consume,loans,contextual)?;
-                let field=RecordField{name:key.clone(),annotation:crate::type_syntax::ValueAnnotation{kind:crate::type_syntax::ValueAnnotationKind::Named(crate::type_syntax::TypeName{text:key.text.clone(),span:key.span}),span:key.span},ty:Some(ty),callable_declaration:None};
+                let field=RecordField{name:key.clone(),annotation:crate::type_syntax::ValueAnnotation{kind:crate::type_syntax::ValueAnnotationKind::Named(crate::type_syntax::TypeName{text:key.text.clone(),span:key.span}),span:key.span},ty:Some(ty),callable_declaration:None,optional:false};
                 let id=self.spread_record_shape(vec![field],key.span);
                 value=Expr::checked(ExprKind::Record(vec![(key.clone(),value)]),key.span,Some(Type::Record(id)));id
             };

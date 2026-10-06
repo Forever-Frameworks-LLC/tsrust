@@ -144,7 +144,7 @@ pub(crate) fn runtime_error_schema()->Record {
         .into_iter().map(|(name,ty)|RecordField {
             name:Token{text:name.to_owned(),span,kind:TokenKind::Name},
             annotation:ValueAnnotation{kind:ValueAnnotationKind::Named(TypeName{text:if ty==Type::String {"string"}else{"int"}.to_owned(),span}),span},
-            ty:Some(ty),callable_declaration:None,
+            ty:Some(ty),callable_declaration:None,optional:false,
         }).collect();
     Record{map_definition:None,set_definition:None,enum_definition:None,application:None,name:Token{text:"#RuntimeError".to_owned(),span,kind:TokenKind::Symbol},type_parameters:vec![],fields}
 }
