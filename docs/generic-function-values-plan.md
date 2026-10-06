@@ -215,3 +215,19 @@ Fixed-contract adaptation is now rejected explicitly until a real adapter exists
 Assigning the original generic declaration to a concrete contract still uses the
 verified contextual path. The guard is isolated outside shared recursive checking
 frames. It does not reject an unchanged origin through nullable admission.
+
+## Lexical source projection checkpoint
+
+Named capture contexts now expose source_context for an original declaration
+before any generic invocation is selected. It projects typed lexical binding
+identities and direct names without allocating generic instances, adding owner
+loans or transferring captures. Ordinary prepared contexts use the same projection
+helper while retaining instance-index requests; specialized copy names need not
+appear in the original declaration catalog. This is a preparatory boundary, not
+captured polymorphic invocation support or gate173 acceptance.
+
+Focused controls cover two transitive captures with different types, missing
+lexical readiness, capture-free declarations, specialized requests, sparse
+projection, shadow identity and discarded outer flow state. The next constructor
+must use this source context with explicit source metadata and infer access without
+choosing a dummy generic type. The five captured native witnesses remain open.

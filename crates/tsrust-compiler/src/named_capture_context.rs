@@ -173,12 +173,30 @@ impl Contexts {
         outer: &Context,
         program: &Program,
     ) -> Result<(), Diagnostic> {
-        let Some(request) = self.requests.get(&index) else {
+        let Some(&request) = self.requests.get(&index) else {
             return Ok(());
         };
         if self.prepared.contains_key(&index) {
             return Ok(());
         }
+        let Some((context, identities)) = self.project_request(request, outer, program)? else { return Ok(()); };
+        self.identities.insert(index, identities);
+        self.prepared.insert(index, context);
+        Ok(())
+    }
+    /// Project a generic declaration's lexical captures before selecting any
+    /// invocation types. This does not allocate instances or materialize loans.
+    #[allow(dead_code)] // Deferred captured origins will use this pre-instance boundary.
+    pub(super) fn source_context(
+        &self, declaration: &str, outer: &Context, program: &Program,
+    ) -> Result<Option<(Context, Vec<crate::local_capture_plan::BindingId>)>, Diagnostic> {
+        let Some(&request) = self.declared.get(declaration) else { return Ok(None); };
+        self.project_request(request, outer, program)
+    }
+
+    fn project_request(
+        &self, request: Request, outer: &Context, program: &Program,
+    ) -> Result<Option<(Context, Vec<crate::local_capture_plan::BindingId>)>, Diagnostic> {
         let plan = &program.local_capture_plans[request.plan];
         let captures = plan
             .requirements(request.node)
@@ -186,7 +204,7 @@ impl Contexts {
             .filter(|capture| self.encloses(capture.binding.owner, request.owner))
             .collect::<Vec<_>>();
         if captures.is_empty() {
-            return Ok(());
+            return Ok(None);
         }
         let mut slots = Vec::with_capacity(captures.len());
         for capture in &captures {
@@ -211,9 +229,8 @@ impl Contexts {
                 context.names.insert(capture.name.clone(), slot);
             }
         }
-        self.identities.insert(index, captures.iter().map(|capture| capture.binding).collect());
-        self.prepared.insert(index, context);
-        Ok(())
+        let identities = captures.iter().map(|capture| capture.binding).collect();
+        Ok(Some((context, identities)))
     }
     pub(super) fn access(
         &self, index: usize, checked: Option<&CheckedFunction>,
@@ -269,6 +286,37 @@ mod tests {
     use super::*;
 
     #[test]
+    fn generic_source_context_projects_lexical_identity_without_instances_or_loans() {
+        let source = "function main(){let count=0;const label='tag';function leaf<T>(value:T):T{count+=1;console.log(label);return value;}function forward<T>(value:T):T{return leaf(value);}}";
+        let analyzer = Analyzer::new(crate::syntax::parse(source).unwrap()).unwrap();
+        let main = analyzer.function_names["main"];
+        let mut outer = Context::new("main".into());
+        for (statement, ty) in analyzer.program.functions[main].body.iter().take(2).zip([Type::Int, Type::String]) {
+            let StmtKind::Let { name, rebindable, .. } = &statement.kind else { panic!("defining binding"); };
+            let slot = Analyzer::bind(&mut outer, name, ty, false).unwrap();
+            outer.bindings[slot].rebindable = *rebindable;
+        }
+        let declaration = analyzer.program.local_declarations.iter().find(|declaration| declaration.source_name.text == "forward").unwrap();
+        let before = analyzer.program.functions.len();
+        let (context, identities) = analyzer.named_captures.source_context(&declaration.emitted_name, &outer, &analyzer.program).unwrap().unwrap();
+        assert_eq!(context.bindings.len(), 2);
+        assert_eq!(identities.len(), 2);
+        assert!(context.names.is_empty(), "transitive captures must not introduce lexical names");
+        for identity in identities {
+            let original = outer.source_bindings[&identity.declaration_start];
+            let projected = context.source_bindings[&identity.declaration_start];
+            assert_eq!(context.bindings[projected].ty, outer.bindings[original].ty);
+        }
+        assert!(outer.capture_loans.is_empty());
+        assert!(outer.bindings.iter().all(|binding| binding.transferred.is_none() && binding.used.is_none()));
+        assert_eq!(analyzer.program.functions.len(), before);
+        assert!(analyzer.named_captures.prepared.is_empty());
+        let missing = Context::new("main".into());
+        assert!(analyzer.named_captures.source_context(&declaration.emitted_name, &missing, &analyzer.program).is_err());
+        assert!(analyzer.named_captures.source_context("main", &outer, &analyzer.program).unwrap().is_none());
+    }
+
+    #[test]
     fn forwarder_inherits_mutating_capture_access_without_adding_source_arguments() {
         let source = "function main(){let value=0;function leaf():int{value+=1;return value;}function forward():int{return leaf();}}";
         let mut analyzer = Analyzer::new(crate::syntax::parse(source).unwrap()).unwrap();
@@ -279,7 +327,13 @@ mod tests {
         outer.bindings[slot].rebindable = true;
         let declaration = analyzer.program.local_declarations.iter().find(|declaration| declaration.source_name.text == "forward").unwrap();
         let index = analyzer.function_names[&declaration.emitted_name];
+        // Specialized declarations retain their request even when the emitted
+        // copy name has no entry in the original lexical declaration catalog.
+        let copy = usize::MAX;
+        analyzer.named_captures.specialized(copy, index);
+        analyzer.named_captures.prepare(copy, &outer, &analyzer.program).unwrap();
         analyzer.named_captures.prepare(index, &outer, &analyzer.program).unwrap();
+        assert_eq!(analyzer.named_captures.identities[&copy], analyzer.named_captures.identities[&index]);
         analyzer.function(index).unwrap();
         let checked = analyzer.checked[index].as_ref().unwrap();
         assert_eq!(checked.parameter_count, 0);
