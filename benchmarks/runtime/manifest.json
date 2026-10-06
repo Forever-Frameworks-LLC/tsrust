@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "gate": 162,
+  "gate": 163,
   "seed": 7,
   "warmups": 8,
   "samples": 31,
@@ -19330,7 +19330,35 @@
       "specification": "Ordered receiver effects, comma-wrapped guards and mutated comparison sources.",
       "sourceSha256": "37cd2edf1f883925a0df2a7adbf2b386f13f2426b8aca85bec59dfa8cce78593",
       "counterpartSha256": "0829be02a753d11113d7acfd8d6bc01272338fec4836cdfe6bb19c7d92319df9"
-}
+},
+    {
+      "id": "type_aliases",
+      "family": "type-aliases",
+      "source": "workloads/type_aliases.tsr",
+      "counterpart": "workloads/type_aliases.ts",
+      "result": "string[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One complete type alias scenario",
+      "inputText": "dynamic \u00e9\ud83d\ude42 text",
+      "category": "other",
+      "implementationGate": 163,
+      "measurementStatus": "pending-language-milestone",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": true,
+      "measured": false,
+      "notes": "Gate 163: aliases of a union, arrays, a primitive and a tuple used in a parameter, bindings, destructuring and the result container. Five observed cells per scenario. Verified untimed; unmeasured, language milestone pending.",
+      "specification": "Declare union, array, primitive and tuple aliases; build an alias-typed union array and tuple, classify elements through an alias-typed parameter and retain five cells.",
+      "sourceSha256": "486b7a8fca81ed35bb5369d85f363fe00d6e0fe04464f5dec25f8fa7f83270be",
+      "counterpartSha256": "d171a28d33c27e03d0207df396144405d8ca9ebdd4b393e7fd445e7b961f4216"
+    }
   ],
   "semanticEpoch": "rust-native-utf8-v1",
   "stringContract": {
