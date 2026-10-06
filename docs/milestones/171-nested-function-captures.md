@@ -1,7 +1,10 @@
 # Gate 171: nonescaping nested function captures
 
-Status: typed named-body checkpoint; capture execution is not implemented or accepted. Gate 170 remains the accepted
-lexical foundation. Existing capture ownership is the settled language contract.
+Status: accepted. Nested named functions read and change the variables of their
+enclosing functions, natively and under the existing ownership rules. The sections
+below are the chronological record; where an early section says a part is pending,
+the acceptance section at the end is current. The [guide](../nested-functions.md)
+describes the language behavior.
 
 The focused nested_function_captures suite separates this stage from owned escape.
 Four executable fixtures cover a readonly owner initialized after its declaration,
@@ -443,19 +446,81 @@ array as `[i64; 1]` while the callee expected a growable array. The proof is now
 conservative: a body that calls a capturing function keeps ordinary storage for its
 arrays. A precise rule per captured slot is a later optimization.
 
-### Still pending in gate 171
+## Acceptance
 
-- A capturing function used as a value (`values.map(add)`, `const run = tick`). It is
-  rejected with a message that names the arrow form `(value) => add(value)`. The
-  wrapper must be created in the lexical resolver, before the escape pre-pass sees
-  the program; a rewrite during analysis would bypass escape checking and could let
-  a borrowing wrapper escape.
-- Type checking of unused capturing functions (above).
-- Capturing functions with rest parameters or type parameters keep the pending
-  diagnostic.
-- A capture that only a nested member of a recursive group owns can make an outer
-  member require it (group-level requirements). That shape keeps the pending
-  diagnostic; the layout module's invocation sources describe the precise rule.
-- Guide, editor examples and the matched benchmark workload for captures.
+### Completed after the lowering checkpoint
 
-Evidence for this checkpoint is recorded in the handoff.
+- **Function values.** `values.map(add)`, `const run = tick` and passing a nested
+  function to a callback parameter work. The lexical resolver marks a local function
+  name outside the callee position; once every capture is known,
+  `local_function_values` replaces a marked use of a capturing function with the
+  arrow `(parameters) => name(parameters)`. The escape pass and closure loan rules
+  then see ordinary closure syntax, so the value borrows its variables while it is
+  alive, and transfers them when it is handed to an owning callback parameter or
+  returned. Capture-free functions keep their direct function value.
+- **Variables without a visible name.** An arrow body can call a nested function
+  that needs a variable the arrow cannot name: a shadowed one, or one that only the
+  called function uses. Closures of programs with capture plans now project every
+  declared variable of the enclosing body, and names resolve as before.
+- **Uncalled functions.** A capturing function that no call reaches is checked
+  against the finished body of the function that declares it. A function declared
+  inside a nested function always receives the variables it needs from that
+  function, called or not (a declaration is a dependency edge in the plan).
+- **Signatures.** Rest parameters, callback parameters and type parameters receive
+  captures. A concrete copy of a callback-taking function, and every instance of a
+  generic function, inherits the capture request of its declaration.
+- **Recursive groups.** A variable owned by one member of a recursive group is passed
+  only to the functions lexically inside that member; each call of the member has its
+  own. The three-level shape that kept the pending diagnostic now runs.
+- **Diagnostics.** A function that takes ownership of a captured variable reports
+  that directly, also when nothing calls it. A generic function used as a value
+  reports the arrow form to write, with the source name of a local function. No
+  accepted path reports the internal pending message.
+
+### Limits recorded for later gates
+
+- A capturing function with optional or default parameters cannot be used as a value;
+  a generic function cannot be used as a value. Both report the arrow form.
+- A nested function cannot take ownership of a captured variable.
+- An omitted result annotation on a named declaration still means void (gate 173);
+  `nested_declarations_infer_nonrecursive_result_when_omitted` stays red.
+- A body that calls a capturing function keeps ordinary array storage for its arrays.
+  Precise fixed-shape storage per captured slot is an optimization.
+- The gate 172 witness
+  `nested_declarations_borrow_captures_and_transfer_escaping_environments` passes
+  through the arrow form. Gate 172 still owes its own acceptance: factory instances,
+  aggregate storage, disposal, callback failures and recursive group lifetime.
+
+### Defects repaired in passing
+
+- Benchmark manifest rows of gates 167 to 170 had been inserted at the front of the
+  workload list, which broke the append-only prefix guards of 20 harness tests. The
+  rows moved to the end in gate order; content is unchanged.
+- Two harness tests evaluated counterparts in sloppy mode, where a function declared
+  in a block replaces the outer one. Benchmark runs compile with `strict`, so the
+  tests now do too, and `nested_function_declarations` agrees with its oracle there.
+- A generic function used as a value reported `Unknown value` with the internal name.
+
+### Evidence
+
+- `nested_function_captures`: 17 of 17. Native fixtures: readonly later
+  initialization, mutable block release, recursive forwarding, fresh loop entries,
+  direct calls, function values, signatures (rest, callback, generic, three-level
+  recursion) and a two-module project. Every assertion fixture passes the pinned Node
+  reference.
+- Affected compiler batch with all eight depth canaries, formatting, exceptions and
+  function expressions: 435 pass, 1 known gate 173 witness fails. Compiler unit
+  tests 308 of 308.
+- Whole editor crate: 276 of 276, including hover, definition, references and
+  completion of captured variables inside a nested function, and hover and definition
+  of a nested function used as a value.
+- Matched `nested_function_captures` workload: source contract, independent oracle,
+  registration test, run, profile, oracle and report hooks, manifest row. Native and
+  Node-after-tsc agree with the oracle on all five untimed cases. No timing.
+- Benchmark harness: 398 of 398.
+- The three guide examples run natively; the two assertion examples pass the Node
+  reference.
+- Logs `target/editor/gate171-acceptance-{compiler,captures,editor,consumers,verify,harness}.log`
+  and results `benchmarks/runtime/results/2026-10-06T19-45-33-398Z-verify.json` and
+  `2026-10-06T19-45-34-468Z-verify.json` are in SQLite and were read back byte for
+  byte. Five consumers were refreshed from the accepted sources.

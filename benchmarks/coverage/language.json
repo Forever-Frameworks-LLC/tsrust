@@ -358,6 +358,7 @@
       "function.named",
       "function.nestedDeclaration",
       "function.declarationHoisting",
+      "function.nestedCapture",
       "function.declaredValue",
       "function.higherOrderValue",
       "function.arrow",

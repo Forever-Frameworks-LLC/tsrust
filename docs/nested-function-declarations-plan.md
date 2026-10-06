@@ -183,6 +183,10 @@ focused checks, complete benchmark support per implemented gate and SQLite recor
 with exact read-back. Refresh five executable consumers only after implementation.
 No archives, routine full regressions or timing during these foundation chunks.
 
-The next implementation stage is gate 171: capture planning and initialization
-flow, under the settled existing ownership model. Gate 170 does not complete this
-plan. Keep capture and inference red witnesses visible until their stages pass.
+Gate 171 is accepted: see milestones/171-nested-function-captures.md. Captures are
+hidden borrowed arguments of each call, and a nested function used as a value is the
+arrow that calls it. The next stage is gate 172. Its basic witness already passes
+through the arrow form; the stage still owes factory instances, aggregate storage,
+disposal, callback failures, recursive group lifetime and its own matched workload.
+Gate 173 keeps the omitted-result witness red, and adds function values of generic
+functions and of capturing functions with optional or default parameters.

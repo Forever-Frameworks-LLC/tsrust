@@ -13096,15 +13096,35 @@
       "implementation": "native variant",
       "comparison": "compound",
       "evidence": [
-        "./milestones/170-nested-function-foundation.md"
+        "./milestones/170-nested-function-foundation.md",
+        "./milestones/171-nested-function-captures.md"
       ],
       "workloads": [
         "local_closures",
         "recursive_callbacks",
         "recursive_factory",
-        "nested_function_declarations"
+        "nested_function_declarations",
+        "nested_function_captures"
       ],
-      "note": "Existing bounded callable/ownership contracts; broader TS signatures pending. Gate170 accepts capture-free nested declarations, lexical hoisting, self/mutual recursion, block shadowing and source/editor identity. The matched seven-observation scenario also covers typed variable and arrow-parameter shadowing with outer-binding restoration; five native/Node-after-tsc cases are verified untimed. Captures, owned escape and comprehensive signatures/result inference remain pending stages; this is not full named-function parity or measurement."
+      "note": "Existing bounded callable/ownership contracts; broader TS signatures pending. Gate171 accepts nested functions that use variables of enclosing functions (see function.nestedCapture). Gate170 accepts capture-free nested declarations, lexical hoisting, self/mutual recursion, block shadowing and source/editor identity. The matched seven-observation scenario also covers typed variable and arrow-parameter shadowing with outer-binding restoration; five native/Node-after-tsc cases are verified untimed. Captures, owned escape and comprehensive signatures/result inference remain pending stages; this is not full named-function parity or measurement."
+    },
+    {
+      "id": "function.nestedCapture",
+      "display": "function.nestedCapture",
+      "category": "Functions and classes",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/171-nested-function-captures.md",
+        "./nested-functions.md"
+      ],
+      "workloads": [
+        "nested_function_captures"
+      ],
+      "measured": false,
+      "note": "Gate171 accepts nested named functions that read and change variables of enclosing functions: per-call borrows, nested forwarding, recursive groups, later initialization, per-iteration captures, rest/callback/type parameters and use as a callable value through the arrow form. One matched seven-observation scenario is verified untimed on native and Node-after-tsc; no measurement. Function values with optional or default parameters, generic function values and comprehensive result inference remain pending."
     },
     {
       "id": "function.nestedDeclaration",
