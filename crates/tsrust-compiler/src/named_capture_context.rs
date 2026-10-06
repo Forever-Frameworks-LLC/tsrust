@@ -1,6 +1,7 @@
 //! Bind planned named captures to checked defining slots without materializing loans.
 use super::*;
 
+#[derive(Clone, Copy)]
 struct Request {
     plan: usize,
     node: usize,
@@ -11,10 +12,19 @@ pub(super) struct Contexts {
     requests: HashMap<usize, Request>,
     prepared: HashMap<usize, Context>,
     identities: HashMap<usize, Vec<crate::local_capture_plan::BindingId>>,
+    /// Lexical owner of each nested function owner.
+    enclosing: HashMap<usize, usize>,
+    /// Requests by emitted declaration name, for generic instances.
+    declared: HashMap<String, Request>,
 }
 impl Contexts {
     pub(super) fn new(program: &Program, functions: &HashMap<String, usize>) -> Self {
         let mut contexts = Self::default();
+        contexts.enclosing = program
+            .local_declarations
+            .iter()
+            .map(|declaration| (declaration.function_owner, declaration.enclosing_owner))
+            .collect();
         for (plan_id, plan) in program.local_capture_plans.iter().enumerate() {
             let requirements = plan.group_requirements();
             for declaration in &program.local_declarations {
@@ -26,24 +36,41 @@ impl Contexts {
                 let group = plan.group_of[declaration.id - plan.node_start];
                 if !requirements[group]
                     .iter()
-                    .any(|binding| binding.owner != declaration.function_owner)
+                    .any(|binding| contexts.encloses(binding.owner, declaration.function_owner))
                 {
                     continue;
                 }
-                let Some(&function) = functions.get(&declaration.emitted_name) else {
-                    continue;
+                let request = Request {
+                    plan: plan_id,
+                    node: declaration.id,
+                    owner: declaration.function_owner,
                 };
-                contexts.requests.insert(
-                    function,
-                    Request {
-                        plan: plan_id,
-                        node: declaration.id,
-                        owner: declaration.function_owner,
-                    },
-                );
+                contexts.declared.insert(declaration.emitted_name.clone(), request);
+                if let Some(&function) = functions.get(&declaration.emitted_name) {
+                    contexts.requests.insert(function, request);
+                }
+            }
+        }
+        for function in &program.functions {
+            if let Some(application) = &function.application
+                && let Some(&index) = functions.get(&function.name.text)
+            {
+                contexts.instance(index, &application.declaration.text);
             }
         }
         contexts
+    }
+    /// Whether `ancestor` lexically contains the nested function `owner`.
+    /// A recursive group can name a variable of one of its own members; only
+    /// the functions inside that member receive it, each call anew.
+    fn encloses(&self, ancestor: usize, mut owner: usize) -> bool {
+        while let Some(&parent) = self.enclosing.get(&owner) {
+            if parent == ancestor {
+                return true;
+            }
+            owner = parent;
+        }
+        false
     }
     /// The function whose body declares this capturing function. Checking
     /// it first lets its calls prepare the typed capture context.
@@ -52,6 +79,36 @@ impl Contexts {
         let declaration = program.local_declarations.iter().find(|declaration| declaration.id == request.node)?;
         let name = program.local_capture_plans[request.plan].owners.get(&declaration.enclosing_owner)?;
         functions.get(name).copied()
+    }
+    /// A concrete copy of a capturing function with callback parameters
+    /// receives the same captured variables as the declaration it copies.
+    pub(super) fn specialized(&mut self, copy: usize, declaration: usize) {
+        let Some(request) = self.requests.get(&declaration) else {
+            return;
+        };
+        self.requests.insert(copy, *request);
+        if let Some(context) = self.prepared.get(&declaration) {
+            let context = context.clone();
+            self.prepared.insert(copy, context);
+            self.identities.insert(copy, self.identities[&declaration].clone());
+        }
+    }
+    /// An instance of a generic nested function captures what its declaration does.
+    pub(super) fn instance(&mut self, copy: usize, declaration: &str) {
+        if let Some(&request) = self.declared.get(declaration) {
+            self.requests.insert(copy, request);
+        }
+    }
+    /// Capturing functions declared in `owner` that no call has prepared.
+    pub(super) fn unprepared_in(&self, owner: usize, program: &Program, functions: &HashMap<String, usize>) -> Vec<usize> {
+        let mut found = self
+            .requests
+            .keys()
+            .copied()
+            .filter(|index| !self.prepared.contains_key(index) && self.declaring_function(*index, program, functions) == Some(owner))
+            .collect::<Vec<_>>();
+        found.sort_unstable();
+        found
     }
     pub(super) fn needs_context(&self, index: usize) -> bool {
         self.requests.contains_key(&index)
@@ -75,7 +132,7 @@ impl Contexts {
         let captures = plan
             .requirements(request.node)
             .into_iter()
-            .filter(|capture| capture.binding.owner != request.owner)
+            .filter(|capture| self.encloses(capture.binding.owner, request.owner))
             .collect::<Vec<_>>();
         if captures.is_empty() {
             return Ok(());

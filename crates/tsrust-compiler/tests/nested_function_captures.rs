@@ -132,6 +132,11 @@ fn function_values_borrow_captures_like_arrows() {
 }
 
 #[test]
+fn rest_callback_generic_and_recursive_signatures_receive_captures() {
+    native(include_str!("fixtures/nested-function-captures/signatures.tsr"));
+}
+
+#[test]
 fn capture_borrows_follow_argument_and_view_rules() {
     for (source, code) in [
         // The function changes `counts` while an argument lends it too.
@@ -140,6 +145,9 @@ fn capture_borrows_follow_argument_and_view_rules() {
         ("function main(){const names=[\"a\"];function add():void{names.push(\"b\");}const first=names[0];add();console.log(first);}", "view-conflict"),
         // An arrow that calls the function holds the capture like any closure.
         ("function main(){const counts=[0];function tick():int{counts[0]+=1;return counts[0];}const run=():int=>tick();console.log(run(),counts);}", "capture-conflict"),
+        // These value forms have no arrow equivalent that the compiler can write.
+        ("function main(){const base=[10];function pick(value:int,extra:int=base[0]):int{return value+extra;}console.log([1].map(pick));}", "unsupported"),
+        ("function main(){const seen:int[]=[];function note<T>(value:T):T{seen.push(1);return value;}console.log([1].map(note));}", "unsupported"),
         // A const scalar cannot be changed through a nested function either.
         ("function main(){const total=0;function add():void{total+=1;}add();}", "unsupported"),
         // A function value holds the captures like the arrow that calls the function.
@@ -155,4 +163,30 @@ fn capture_borrows_follow_argument_and_view_rules() {
     ] {
         tsrust_compiler::check(source).unwrap_or_else(|error| panic!("{source}: {}", error.message));
     }
+}
+
+#[test]
+fn uncalled_capturing_functions_are_still_checked() {
+    for (source, code) in [
+        ("function main(){const base=[1];function unused():string{return base[0];}}", "type"),
+        ("function main(){const base=[1];function outer():void{function inner():int{return base.missing;}}outer();}", "type"),
+        ("function main(){const total=0;function unused():void{total+=1;}}", "unsupported"),
+        ("function main(){const names=[\"a\"];function unused():string[]{return names;}}", "unsupported"),
+    ] {
+        let error = tsrust_compiler::check(source).err().unwrap_or_else(|| panic!("must be rejected: {source}"));
+        assert_eq!(error.code, code, "{source}: {}", error.message);
+        assert!(!error.message.contains("pending"), "{source}: {}", error.message);
+    }
+    native("function main(){const base=[1];let later:int;function unused():int{return base[0]+later+other();}function other():int{return base.length;}later=2;}");
+}
+
+#[test]
+fn function_values_keep_their_captures_across_modules() {
+    let directory = support::TempDirectory::new();
+    std::fs::write(directory.0.join("helper.tsr"), include_str!("fixtures/nested-function-captures/modules/helper.tsr")).unwrap();
+    let main = directory.0.join("main.tsr");
+    std::fs::write(&main, include_str!("fixtures/nested-function-captures/modules/main.tsr")).unwrap();
+    let output = support::run(support::cli().arg("run").arg(main), 60);
+    support::success(&output);
+    assert!(output.stdout.is_empty());
 }

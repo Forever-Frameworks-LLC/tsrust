@@ -177,7 +177,8 @@ test('all current authored counterparts agree with independent results under the
   const driver=adaptTSDriver(fs.readFileSync(new URL('driver.ts',import.meta.url),'utf8'),row);
   // Compile Node imports for the isolated VM harness; require resolves the
   // actual runtime module, including assertions that must execute.
-  const code=ts.transpileModule(source+'\n'+driver,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
+  // Benchmark runs compile with strict, so block function declarations stay block scoped.
+  const code=ts.transpileModule(source+'\n'+driver,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,alwaysStrict:true}}).outputText;
   for(const [n,seed] of [[0,0],[1,7],[2,19],[17,3]]) {
    const printed=[];
    vm.runInNewContext(code,{TextEncoder,TextDecoder,exports:{},require:createRequire(import.meta.url),console:{log:value=>printed.push(JSON.parse(value))},process:{argv:['node','test',String(n),String(seed),'0','1',row.inputText??'']},performance:{now:()=>0}});

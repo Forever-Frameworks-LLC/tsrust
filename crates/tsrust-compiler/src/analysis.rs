@@ -190,6 +190,8 @@ impl CallbackContract {
     }
 }
 
+pub(crate) const CAPTURE_OWNERSHIP: &str = "A nested function cannot take ownership of a captured value yet. Read or change it in place, or pass it as an argument.";
+
 pub struct CheckedProgram {
     pub(crate) named_capture_layouts: Vec<named_capture_layout::Layout>,
     pub(crate) named_capture_access: HashMap<usize, Vec<named_capture_access::Access>>,
@@ -2405,7 +2407,7 @@ impl Analyzer {
             if mode == Mode::Consume {
                 return Err(Diagnostic::new(
                     "unsupported",
-                    "A nested function cannot take ownership of a captured value yet. Read or change it in place, or pass it as an argument.",
+                    CAPTURE_OWNERSHIP,
                     span,
                 ));
             }
@@ -2432,7 +2434,7 @@ impl Analyzer {
         if self.named_captures.needs_context(index) {
             return Err(Diagnostic::new(
                 "unsupported",
-                "A nested function that uses variables of its enclosing function cannot be used as a value yet. Call it from an arrow function, for example `(value) => name(value)`.",
+                "A nested function with optional, default or rest parameters that uses variables of its enclosing function cannot be used as a value yet. Call it from an arrow function, for example `(value) => name(value)`.",
                 span,
             ));
         }
@@ -3964,6 +3966,7 @@ impl Analyzer {
         {
             self.known_results.insert(index, result_type);
         }
+        let uncalled = self.prepare_uncalled_capturing_functions(index, &context)?;
         self.checked[index] = Some(CheckedFunction {
             template: context.template,
             specialization: index >= self.original_count,
@@ -3976,7 +3979,21 @@ impl Analyzer {
         self.visiting[index] = false;
         self.function_stack.pop();
         self.depth -= 1;
+        for nested in uncalled {
+            self.function(nested)?;
+        }
         Ok(())
+    }
+
+    /// A nested function that no call reached still has a body to check. Its
+    /// captured variables take their types from the finished enclosing body.
+    #[inline(never)]
+    fn prepare_uncalled_capturing_functions(&mut self, index: usize, context: &Context) -> Result<Vec<usize>, Diagnostic> {
+        let uncalled = self.named_captures.unprepared_in(index, &self.program, &self.function_names);
+        for &nested in &uncalled {
+            self.named_captures.prepare(nested, context, &self.program)?;
+        }
+        Ok(uncalled)
     }
 
     fn specialize(&mut self, index: usize, args: &[Expr], span: Span) -> Result<usize, Diagnostic> {
@@ -4043,6 +4060,7 @@ impl Analyzer {
             self.recursive_callbacks.insert(id);
         }
         self.specializations.insert(key, id);
+        self.named_captures.specialized(id, index);
         // Data results already have a complete declared type. Drain these
         // concrete bodies iteratively in run(), rather than unfolding native
         // type contexts on the compiler stack. Callable results still need
@@ -14701,6 +14719,16 @@ self.names_materialized_type(element.with_depth(0).ty())
             return Err(Diagnostic::new(
                 "unsupported",
                 format!("The global function {name:?} cannot be used as a value; call it inside an arrow function, for example (text) => {name}(text)."),
+                span,
+            ));
+        }
+        if !context.names.contains_key(name) && self.generic_functions.template(name).is_some() {
+            let written = self.program.local_declarations.iter()
+                .find(|declaration| declaration.emitted_name == *name)
+                .map_or(name.as_str(), |declaration| declaration.source_name.text.as_str());
+            return Err(Diagnostic::new(
+                "unsupported",
+                format!("The generic function {written:?} cannot be used as a value; call it inside an arrow function, for example (value) => {written}(value)."),
                 span,
             ));
         }

@@ -9,8 +9,11 @@
 //! declared after the function is borrowed only once it is initialized, and
 //! every block or loop entry borrows its own bindings.
 //!
-//! This module checks that every use of a capturing function is one the
-//! emitter can lower this way. Other uses keep the pending diagnostic.
+//! A use as a value is already an arrow function that calls the function
+//! (see `local_function_values`), and a generic or callback-taking function
+//! is lowered through its concrete copies. This module checks that every
+//! remaining use is a direct call the emitter can lower this way; anything
+//! else is a compiler gap and keeps the pending diagnostic.
 use crate::analysis::{CheckedFunction, CheckedProgram, ClosureForward, Mode};
 use crate::syntax::{CallTarget, ExprKind};
 use crate::Diagnostic;
@@ -61,15 +64,32 @@ pub(crate) fn prepare(checked: &mut CheckedProgram) -> Result<(), Diagnostic> {
             .iter()
             .enumerate()
             .all(|(position, access)| access.slot == target.parameter_count + position);
-        if target.template
-            || !contiguous
-            || target.bindings[..target.parameter_count].iter().any(|binding| binding.rest)
-            || accesses.iter().any(|access| access.mode == Mode::Consume)
-        {
+        // A declaration with callback parameters is lowered through its concrete copies.
+        if target.template {
+            continue;
+        }
+        if !contiguous {
             return Err(pending(checked));
         }
+        // A call reports this at the call. A function that nothing calls reports it here.
+        if let Some(access) = accesses.iter().find(|access| access.mode == Mode::Consume) {
+            let capture = checked
+                .local_capture_plans
+                .iter()
+                .flat_map(|plan| plan.groups.iter())
+                .flat_map(|group| group.captures.iter())
+                .filter(|capture| capture.binding == access.binding)
+                .min_by_key(|capture| capture.usage.start);
+            let mut error = pending(checked);
+            if let Some(capture) = capture {
+                error = Diagnostic::new("unsupported", crate::analysis::CAPTURE_OWNERSHIP, capture.usage)
+                    .related(capture.declaration, "Captured variable declared here.");
+            }
+            return Err(error);
+        }
     }
-    // A function value needs an environment value. That stays pending.
+    // A direct function value would need an environment value; the lexical
+    // resolver writes the arrow form instead, so none should reach this point.
     for closure in &checked.closures {
         if matches!(closure.forward, Some(ClosureForward::Function(target)) if capturing.contains(&target)) {
             return Err(pending(checked));

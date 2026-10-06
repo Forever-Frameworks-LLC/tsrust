@@ -7532,6 +7532,29 @@ fn nested_named_function_completion_is_hoisted_and_block_scoped() {
 }
 
 #[test]
+fn nested_function_captures_keep_types_navigation_and_function_values() {
+    let source = "function main(){\n const base=[10];\n let total=0;\n function add(amount:int):int{total+=amount;return total+base[0];}\n console.log(add(1));\n {const run=add;console.log(run(2));}\n console.log([1].map(add),total,base);\n}";
+    tsrust_compiler::check(source).unwrap();
+    let total=ask(source,"textDocument/hover","total+=amount",0);
+    assert!(total["contents"]["value"].as_str().unwrap().contains("int"),"{total}");
+    let base=ask(source,"textDocument/hover","base[0]",0);
+    assert!(base["contents"]["value"].as_str().unwrap().contains("int[]"),"{base}");
+    assert_eq!(ask(source,"textDocument/definition","base[0]",0)["range"]["start"],json!(at(source,"base=[10]",0)));
+    assert_eq!(ask(source,"textDocument/definition","total+base",0)["range"]["start"],json!(at(source,"total=0",0)));
+    assert_eq!(ask(source,"textDocument/references","total+=amount",0).as_array().unwrap().len(),4);
+    let inside=ask(source,"textDocument/completion","total+base",0);
+    for name in ["base","total","amount","add"] {
+        assert!(inside.as_array().unwrap().iter().any(|item|item["label"]==name),"{name}");
+    }
+    for needle in ["run=add","run(2)","add),total"] {
+        let hover=ask(source,"textDocument/hover",needle,0);
+        let text=hover["contents"]["value"].as_str().unwrap();
+        assert!(text.contains("int") && !text.contains('#'),"{needle}: {text}");
+    }
+    assert_eq!(ask(source,"textDocument/definition","add),total",0)["range"]["start"],json!(at(source,"add(amount",0)));
+}
+
+#[test]
 fn later_block_binding_masks_outer_named_function_for_navigation() {
     let source="function main(){function value():int{return 1;} {console.log(value); const value=2;}}";
     let definition=ask(source,"textDocument/definition","value);",0);

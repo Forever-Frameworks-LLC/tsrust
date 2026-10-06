@@ -51,7 +51,7 @@ test('prepared rankdrivers observe actualfullvalues aftertiming with readonlyinp
  for(const row of manifest.workloads.filter(isSliceResult)) {
   const printed=[],context=vm.createContext({TextEncoder,TextDecoder,require:createRequire(import.meta.url),console:{log:line=>printed.push(JSON.parse(line))},process:{argv:['node','test','17','7','0','1',row.inputText??'']},performance:{now:()=>1}});
   const source=fs.readFileSync(new URL(`./workloads/${row.id}.ts`,import.meta.url),'utf8'),driver=adaptTSDriver(fs.readFileSync(new URL('./driver.ts',import.meta.url),'utf8'),row);
-  vm.runInContext(ts.transpileModule(source+'\n'+driver,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText,context);
+  vm.runInContext(ts.transpileModule(source+'\n'+driver,{compilerOptions:{alwaysStrict:true,target:ts.ScriptTarget.ES2022}}).outputText,context);
   assert.equal(printed.length,1);
   const validate=isCopying(row)?validateCopyingObservation:isRange(row)?validateRangeObservation:isHigher(row)?validateHigherObservation:isDeclared(row)?validateDeclaredObservation:isConcat(row)?validateConcatObservation:validateExactObservation;
   try { validate(printed[0],expectedExactResult(row.id,17,7,row.inputText),row); } catch(error) { throw new Error(row.id+': '+error.message,{cause:error}); }

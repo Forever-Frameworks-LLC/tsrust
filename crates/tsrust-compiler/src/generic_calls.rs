@@ -351,6 +351,9 @@ impl Analyzer {
                 );
             }
             self.function_names.insert(function.name.text.clone(), id);
+            if let Some(application) = &function.application {
+                self.named_captures.instance(id, &application.declaration.text);
+            }
             let body_params = params.clone();
             for (ty, initializer) in params.iter_mut().zip(&function.parameter_initializers) {
                 if initializer.omission().is_omittable() { *ty = self.unions.intern([*ty,Type::Undefined], function.name.span)?; }

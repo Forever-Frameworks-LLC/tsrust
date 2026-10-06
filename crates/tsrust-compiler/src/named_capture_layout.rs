@@ -33,15 +33,17 @@ pub(super) fn build(program: &CheckedProgram) -> Result<Vec<Layout>, Diagnostic>
         .map(|(index, function)| (function.name.as_str(), index)).collect();
     let mut layouts = Vec::new();
     for (plan_id, plan) in program.local_capture_plans.iter().enumerate() {
-        for (group_id, group) in plan.groups.iter().enumerate() {
+        'groups: for (group_id, group) in plan.groups.iter().enumerate() {
             let owners: HashSet<usize> = group.members.iter()
                 .map(|&member| program.local_declarations[member].function_owner).collect();
             let mut fields: BTreeMap<BindingId, Field> = BTreeMap::new();
             let mut members = Vec::new();
             for &node in &group.members {
                 let declaration = &program.local_declarations[node];
+                // A generic declaration is checked only through its instances;
+                // each instance receives its captures as call arguments.
                 let Some(&function) = functions.get(declaration.emitted_name.as_str()) else {
-                    return Err(Diagnostic::new("capture-layout", "Named capture layout has no checked source function.", declaration.source_name.span));
+                    continue 'groups;
                 };
                 let accesses = program.named_capture_access.get(&function).map(Vec::as_slice).unwrap_or(&[]);
                 for access in accesses {

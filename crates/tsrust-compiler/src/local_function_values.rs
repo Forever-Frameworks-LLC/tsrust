@@ -44,14 +44,10 @@ fn header(function: &Function) -> Option<Header> {
 }
 
 fn wrapper(emitted: &str, header: &Header, id: usize, span: Span) -> Expr {
-    // Parameter names cannot be written in source, so they never hide a
-    // variable that the called function captures.
-    let names: Vec<String> = header
-        .params
-        .iter()
-        .enumerate()
-        .map(|(index, (name, _))| format!("{}#{index}", name.text))
-        .collect();
+    // A parameter can share its spelling with a variable that the called
+    // function captures. Captured variables are found by declaration, not
+    // by name, so the declared parameter names are kept for messages.
+    let names: Vec<String> = header.params.iter().map(|(name, _)| name.text.clone()).collect();
     let params = header
         .params
         .iter()
