@@ -250,3 +250,12 @@ and rest parameters. Four editor controls and the full editor suite pass; an
 additional control verifies unused-alias documentation. This
 does not accept gate173. Cross-module alias contracts, access presentation and
 callback/storage adaptation remain pending.
+
+## Project generic alias editor checkpoint
+
+Imported generic aliases and captured factory results retain source signatures
+and documentation across module boundaries. Concrete help preserves nominal
+aliases, unsaved parameter-name edits, default omission and checked ownership
+access. Deferred prototypes are excluded from project callable types. Mixed
+source signatures and conditional/optional alias contexts remain under audit;
+actual callback/storage adaptation and full gate173 acceptance remain open.

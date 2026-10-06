@@ -358,3 +358,9 @@ function main() {
 The result-context fixture also checks a captured factory with two calls. Result
 context does not relax parameter types or required argument counts. A result-only
 call with neither argument nor expected result information still needs type context.
+
+Generic function values retain their source generic signature in editor hover
+and completion, including values imported from another module or returned from
+a captured factory. Parameter help at a checked call shows concrete argument
+types and ownership access. For example, an identity call with a string reports
+`value: Owned<string>` because returning that value transfers its ownership.

@@ -180,6 +180,19 @@ impl SourceIndex {
         dependencies: &std::collections::BTreeMap<SourceId, SourceIndex>,
     ) {
         self.apply_project_generic_facts(graph, current, &facts.generic_calls, dependencies);
+        for (location, declaration) in facts.generic_values.iter().filter(|(location, _)| location.source == *current) {
+            if facts.generic_values.iter().any(|(other, target)| other == location && target != declaration) { continue; }
+            let source_index = if declaration.source == *current { &*self } else {
+                let Some(index) = dependencies.get(&declaration.source) else { continue; }; index
+            };
+            let Some(source) = source_index.symbols.iter().find(|symbol| symbol.span == declaration.span && symbol.kind == 12).cloned() else { continue; };
+            for symbol in self.symbols.iter_mut().filter(|symbol| symbol.span == location.span) {
+                symbol.kind = 12;
+                symbol.signature = source.signature.replacen(&format!("function {}", source.name), &format!("function {}", symbol.name), 1);
+                symbol.parameters = source.parameters.clone();
+                symbol.docs = source.docs.clone();
+            }
+        }
         let mut views = std::collections::BTreeMap::<(usize, usize), Option<String>>::new();
         let mut optional = std::collections::BTreeMap::<(usize, usize), Option<String>>::new();
         // Successful project metadata is authoritative, including suppressed

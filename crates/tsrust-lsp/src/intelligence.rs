@@ -536,6 +536,10 @@ impl SourceIndex {
                     } else {
                         ty.clone()
                     };
+                    let access = if parameter.rest || callable_annotation(&supplied).is_some() {
+                        tsrust_compiler::Mode::Copy
+                    } else { parameter.access };
+                    let supplied = tsrust_compiler::type_syntax::access_type_text(access, &self.display_type(&supplied));
                     format!(
                         "{}{}{}: {}",
                         if parameter.rest { "..." } else { "" },
@@ -548,7 +552,7 @@ impl SourceIndex {
                         } else {
                             ""
                         },
-                        self.display_type(&supplied)
+                        supplied
                     )
                 })
             })

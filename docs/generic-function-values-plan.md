@@ -305,3 +305,23 @@ contracts. An additional unused-alias control verifies source documentation in
 hover and completion. Cross-module alias metadata, explicit access presentation
 and richer documentation controls still need the wider editor audit.
 Callback/storage adaptation and full gate173 acceptance remain open.
+
+## Project generic alias contracts
+
+Project facts now preserve separate source locations for generic value bindings
+and their original declarations. Imported aliases and returned captured factory
+values reuse source generic signatures and documentation across module boundaries.
+Concrete invocation parameter help retains imported nominal aliases, default
+omission and checked ownership access. Unsaved dependency edits update source
+parameter names rather than retaining a stale signature.
+
+Project type projection now excludes deferred empty prototypes, matching the
+single-file guard. Concrete invocation metadata still comes from checked methods.
+Generic call parameter labels display Owned, ReadOnly or Mutable access where
+applicable; rest and callable contracts keep their existing representation.
+Two earlier editor assertions omitted owning access and now require the checked
+contracts instead. No runtime semantics change.
+
+Mixed generic signatures containing non-generic imported/private nominal types,
+conditional and optional aliases, and shared-span ambiguities still require the
+wider editor audit. Actual callback/storage adaptation and gate173 remain open.

@@ -63,6 +63,8 @@ pub struct ProjectExpressionTypeInfo {
 /// receiver facts describe successful hops; they do not authorize ordinary access.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ProjectCheckedTypeFacts {
+    /// Checked generic value binding and original declaration source locations.
+    pub generic_values: Vec<(SourceLocation, SourceLocation)>,
     pub parameter_types: Vec<ProjectExpressionTypeInfo>,
     pub projections: Vec<ProjectExpressionTypeInfo>,
     pub optional_receivers: Vec<ProjectExpressionTypeInfo>,
@@ -104,6 +106,8 @@ impl ProjectAnalysis {
             .map(|(id, record)| (record.name.text.as_str(), id))
             .collect();
         let facts = self.analysis.checked_type_facts();
+        let generic_values = facts.generic_values.iter().filter_map(|(span, declaration)|
+            Some((self.source_location(*span)?, self.source_location(*declaration)?))).collect();
         // Legacy display metadata may omit an abstract result specialization.
         // Keep its known sibling from authorizing project signature help.
         let unresolved_results = facts
@@ -150,6 +154,7 @@ impl ProjectAnalysis {
             })
             .collect();
         ProjectCheckedTypeFacts {
+            generic_values,
             parameter_types,
             projections,
             optional_receivers,
@@ -225,6 +230,7 @@ impl ProjectAnalysis {
             Type::Undefined => "undefined",
             Type::Void => "void",
             Type::Closure(id) => {
+                if self.analysis.program.deferred_generic_values.contains(&id) { return None; }
                 let closure = &self.analysis.program.closures[id];
                 if closure.function.template {
                     return None;

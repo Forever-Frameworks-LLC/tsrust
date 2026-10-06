@@ -426,3 +426,8 @@ Generic alias editor progress: local hover and completion retain generic source
 contracts and documentation; concrete invocation help retains default/rest
 contracts. Cross-module alias metadata and polymorphic storage/callback adaptation
 remain open under gate173. See handoff-2026-10-06-gate173-local-alias-help.md.
+
+Project generic alias progress: imported aliases and captured factory results
+retain generic signatures and docs. Concrete invocation help includes checked
+ownership and imported nominal aliases. The wider editor audit and real callable
+storage/callback adaptation remain open.

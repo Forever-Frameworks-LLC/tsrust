@@ -16,6 +16,49 @@ fn ask(index: &ProjectIndex, source: &str, needle: &str, method: &str) -> Value 
 }
 
 #[test]
+fn imported_generic_value_alias_keeps_source_contract_and_concrete_help() {
+    let entry="import {identity as choose} from './dep.tsr';function main(){const action=choose;const number=action(7);const text=action('x');}";
+    let dependency="/** Return the supplied value unchanged. */\nexport function identity<T>(value:T):T{return value;}";
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();
+    workspace.open(source_id(uri).unwrap(),1,entry.into());
+    workspace.open(source_id("file:///tsrust-intelligence/dep.tsr").unwrap(),1,dependency.into());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,entry,"action=","textDocument/hover");
+    let value=hover["contents"]["value"].as_str().unwrap();
+    assert!(value.contains("<T>") && value.contains("Return the supplied value unchanged."),"{hover}");
+    assert!(!value.contains("void"),"{hover}");
+    for (needle,ty) in [("7);","int"),("'x');","string")] {
+        let help=ask(&index,entry,needle,"textDocument/signatureHelp");
+        let label=help["signatures"][0]["label"].as_str().expect("imported generic alias help");
+        assert!(label.contains("value") && label.contains(ty),"{help}");
+    }
+}
+
+#[test]
+fn imported_generic_factory_alias_help_tracks_unsaved_contract_and_nominal_alias() {
+    let entry="import {User as Person,make} from './dep.tsr';function main(){const action=make(0);const person:Person={name:'Pat'};const chosen=action(person,undefined);}";
+    let dependency="export type User={name:string;};export function make(start:int){let calls=start;/** Select the supplied value. */function select<T>(value:T,index:int=0):T{calls+=1;return value;}return select;}";
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let dep=source_id("file:///tsrust-intelligence/dep.tsr").unwrap();
+    let mut workspace=Workspace::default();
+    workspace.open(source_id(uri).unwrap(),1,entry.into());
+    for (version,parameter) in [(1,"value"),(2,"recipient")] {
+        workspace.open(dep.clone(),version,dependency.replace("value:T",&format!("{parameter}:T")).replace("return value",&format!("return {parameter}")));
+        let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+        let index=ProjectIndex::checked(&checked);
+        let hover=ask(&index,entry,"action=","textDocument/hover");
+        let value=hover["contents"]["value"].as_str().unwrap();
+        assert!(value.contains("<T>") && value.contains(parameter) && value.contains("Select the supplied value."),"{hover}");
+        let help=ask(&index,entry,"undefined);","textDocument/signatureHelp");
+        let label=help["signatures"][0]["label"].as_str().expect("factory alias help");
+        assert!(label.contains("Owned<Person>") && label.contains(parameter) && label.contains("index?"),"{help}");
+        assert!(!label.contains("__"),"{help}");
+    }
+}
+
+#[test]
 fn checked_project_generic_callable_help_preserves_aliases_and_unsaved_names() {
     let entry = "import {User as Person,invoke as apply} from './dep.tsr';function main(){const action=(user:Person):Person=>{return user;};apply(action,{name:'Pat'});}";
     let dependency = "export type User={name:string;};export function invoke<T>(action:Function<T, [person:Owned<T>]>,value:T):T{return action(value);}";
@@ -719,7 +762,7 @@ fn checked_project_generic_aliases_preserve_nominal_identity_and_unsaved_updates
     let index=ProjectIndex::checked(&checked);
     let hover=ask(&index,entry,"make(user)","textDocument/hover");
     let value=hover["contents"]["value"].as_str().unwrap();
-    assert!(value.contains("make(value: Person): Package<Person>"),"{hover}");
+    assert!(value.contains("make(value: Owned<Person>): Package<Person>"),"{hover}");
     assert!(value.contains("Wrap the supplied value."));
     assert!(!value.contains("__tsrust_module_"));
     let number=ask(&index,entry,"keep(7)","textDocument/hover");
@@ -731,7 +774,7 @@ fn checked_project_generic_aliases_preserve_nominal_identity_and_unsaved_updates
     let references=ask(&index,entry,"name,n","textDocument/references");
     assert!(references.as_array().unwrap().iter().any(|location|location["uri"]==uri),"{references}");
     let help=ask(&index,entry,"user);const n","textDocument/signatureHelp");
-    assert_eq!(help["signatures"][0]["label"],"function make(value: Person): Package<Person>");
+    assert_eq!(help["signatures"][0]["label"],"function make(value: Owned<Person>): Package<Person>");
     let definition=ask(&index,entry,"make(user)","textDocument/definition");
     assert_eq!(definition["uri"],dep);
     workspace.change(&source_id(dep).unwrap(),2,dependency.replace("Keep the supplied value.","Return the supplied argument unchanged."));
@@ -759,7 +802,7 @@ fn checked_private_generic_results_cross_modules_without_local_name_capture() {
     let index=ProjectIndex::checked(&checked);
     let hover=ask(&index,entry,"build('Pat')","textDocument/hover");
     let display=hover["contents"]["value"].as_str().unwrap();
-    assert!(display.contains("build(value: string): Secret<string>"),"{hover}");
+    assert!(display.contains("build(value: Owned<string>): Secret<string>"),"{hover}");
     assert!(!display.contains("__tsrust_private_"));
     let field=ask(&index,entry,"value.trim","textDocument/hover");
     assert!(field["contents"]["value"].as_str().unwrap().contains("value: string"),"{field}");
@@ -795,7 +838,7 @@ fn checked_transitive_generic_results_keep_same_named_nominals_distinct() {
     }
     let hover=ask(&index,entry,"leftMake('Pat')","textDocument/hover");
     let display=hover["contents"]["value"].as_str().unwrap();
-    assert!(display.contains("leftMake(value: string): Secret<string>"),"{hover}");
+    assert!(display.contains("leftMake(value: Owned<string>): Secret<string>"),"{hover}");
     assert!(!display.contains("__tsrust_private_"));
     assert!(!ask(&index,entry,"trim()","textDocument/hover").is_null());
     assert!(!ask(&index,entry,"toLowerCase()","textDocument/hover").is_null());

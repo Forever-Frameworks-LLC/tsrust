@@ -5100,9 +5100,9 @@ fn checked_generic_calls_show_concrete_hover_help_and_result_chains() {
     let help=ask(source,"textDocument/signatureHelp","7)",0);
     assert_eq!(help["signatures"][0]["label"],"function identity(value: int): int");
     let explicit=ask(source,"textDocument/hover","identity<string>",0);
-    assert!(explicit["contents"]["value"].as_str().unwrap().contains("function identity(value: string): string"));
+    assert!(explicit["contents"]["value"].as_str().unwrap().contains("function identity(value: Owned<string>): string"));
     let explicit_help=ask(source,"textDocument/signatureHelp","'Pat')",0);
-    assert_eq!(explicit_help["signatures"][0]["label"],"function identity(value: string): string");
+    assert_eq!(explicit_help["signatures"][0]["label"],"function identity(value: Owned<string>): string");
     assert!(!ask(source,"textDocument/hover","trim()",0).is_null());
     assert!(!ask(source,"textDocument/hover","toLowerCase()",0).is_null());
 }
@@ -5430,11 +5430,11 @@ fn contextual_generic_array_calls_keep_checked_parameter_and_result_help() {
     let source="function identity<T>(value:T):T{return value;}function first<T>(left:T,right:T):T{return left;}function main(){const values:number[]=identity([1,2]);const selected=first(identity([]),identity([7]));console.log(values.length,selected.length);}";
     assert!(tsrust_compiler::check(source).is_ok());
     let hover=ask(source,"textDocument/hover","identity([1,2])",0);
-    assert!(hover["contents"]["value"].as_str().unwrap().contains("identity(value: number[]): number[]"),"{hover}");
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("identity(value: Owned<number[]>): number[]"),"{hover}");
     let deferred=ask(source,"textDocument/hover","identity([])",0);
-    assert!(deferred["contents"]["value"].as_str().unwrap().contains("identity(value: int[]): int[]"),"{deferred}");
+    assert!(deferred["contents"]["value"].as_str().unwrap().contains("identity(value: Owned<int[]>): int[]"),"{deferred}");
     let help=ask(source,"textDocument/signatureHelp","identity([])",0);
-    assert!(help["signatures"][0]["label"].as_str().unwrap().contains("first(left: int[], right: int[]): int[]"),"{help}");
+    assert!(help["signatures"][0]["label"].as_str().unwrap().contains("first(left: Owned<int[]>, right: ReadOnly<int[]>): int[]"),"{help}");
 }
 
 #[test]
@@ -7722,6 +7722,16 @@ fn unused_deferred_generic_alias_keeps_source_documentation() {
     let completion=ask(source,"textDocument/completion","action=",0);
     let item=completion.as_array().unwrap().iter().find(|item|item["label"]=="action").expect("generic alias completion");
     assert!(item["documentation"]["value"].as_str().unwrap().contains("Return the supplied value unchanged."),"{item}");
+}
+
+#[test]
+fn deferred_generic_alias_parameter_help_preserves_checked_access() {
+    let source="function identity<T>(value:T):T{return value;}function length<T>(values:ReadOnly<T[]>):int{return values.length;}function main(){const consume=identity;const read=length;const text=consume('x');const count=read([1,2]);}";
+    tsrust_compiler::check(source).unwrap();
+    for (needle,parameter) in [("'x');","value: Owned<string>"),("[1,2]);","values: ReadOnly<int[]>")] {
+        let help=ask(source,"textDocument/signatureHelp",needle,0);
+        assert_eq!(help["signatures"][0]["parameters"][0]["label"],parameter,"{help}");
+    }
 }
 
 #[test]
