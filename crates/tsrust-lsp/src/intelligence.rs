@@ -45,6 +45,8 @@ struct CheckedGenericCall {
     result: String,
 }
 pub struct SourceIndex {
+    /// `type Name = Type;` declarations: name to fully expanded type text.
+    type_aliases: std::collections::BTreeMap<String, String>,
     generic_display_names: std::collections::BTreeMap<String, String>,
     nominal_definitions: std::collections::BTreeMap<String, Value>,
     generic_parameters: std::collections::BTreeMap<String, Vec<String>>,
@@ -110,6 +112,7 @@ impl SourceIndex {
             templates: vec![],
             end_scope: 0,
             checked_control_labels: vec![],
+            type_aliases: Default::default(),
             checked_views: vec![],
             checked_method_results: vec![],
             checked_optional_receivers: vec![],
@@ -732,6 +735,42 @@ impl SourceIndex {
     fn text(&self, id: usize) -> &str {
         self.tokens.get(id).map_or("", |t| t.text.as_str())
     }
+    /// Canonical form of a written type, with type aliases expanded.
+    fn written_type(&self, text: &str) -> String {
+        canonical_data_type(&expand_type_aliases(text, &self.type_aliases))
+    }
+    /// Collects top-level `type Name = Type;` declarations that are not
+    /// record bodies and expands the aliases they mention.
+    fn collect_type_aliases(&mut self) {
+        let mut written = std::collections::BTreeMap::new();
+        for id in 0..self.tokens.len() {
+            if self.text(id) == "type"
+                && self.tokens[id].scope == 0
+                && name(self.text(id + 1))
+                && self.text(id + 2) == "="
+                && self.text(id + 3) != "{"
+                && (id == 0 || matches!(self.text(id - 1), ";" | "}" | "export"))
+            {
+                let end = self.end_type(id + 3);
+                written.insert(self.text(id + 1).to_owned(), self.snippet(id + 3, end));
+            }
+        }
+        // Bounded rounds also end a self-referential declaration, which the
+        // compiler reports.
+        for _ in 0..16 {
+            let mut changed = false;
+            let snapshot = written.clone();
+            for text in written.values_mut() {
+                let expanded = expand_type_aliases(text, &snapshot);
+                changed |= expanded != *text;
+                *text = expanded;
+            }
+            if !changed {
+                break;
+            }
+        }
+        self.type_aliases = written;
+    }
     fn snippet(&self, start: usize, end: usize) -> String {
         if start >= end || end > self.tokens.len() {
             return String::new();
@@ -894,7 +933,28 @@ impl SourceIndex {
                 token.scope = new_scope;
             }
         }
+        self.collect_type_aliases();
         for id in 0..self.tokens.len() {
+            if self.text(id) == "type"
+                && self.text(id + 2) == "="
+                && self.type_aliases.contains_key(self.text(id + 1))
+                && self.text(id + 3) != "{"
+            {
+                let end = self.end_type(id + 3);
+                let alias = self.text(id + 1).to_owned();
+                let signature = format!("type {alias} = {}", self.snippet(id + 3, end));
+                let expanded = canonical_data_type(&self.type_aliases[&alias]);
+                self.add(
+                    id + 1,
+                    26,
+                    expanded,
+                    signature,
+                    Span::new(self.tokens[id].span.start, self.tokens[end.saturating_sub(1)].span.end),
+                    self.tokens[id].span.start,
+                    self.tokens[id].scope,
+                );
+                continue;
+            }
             if matches!(self.text(id), "function" | "type" | "enum") && name(self.text(id + 1)) {
                 let name_id = id + 1;
                 let mut header = id + 2;
@@ -923,7 +983,7 @@ impl SourceIndex {
                         close + 1
                     };
                     let ty = if self.text(close + 1) == ":" {
-                        canonical_data_type(&self.snippet(close + 2, result_end))
+                        self.written_type(&self.snippet(close + 2, result_end))
                     } else {
                         String::new()
                     };
@@ -1006,7 +1066,7 @@ impl SourceIndex {
                     while n < end {
                         if name(self.text(n)) && self.text(n + 1) == ":" {
                             let end_type = self.end_type(n + 2).min(end);
-                            let ty = canonical_data_type(&self.snippet(n + 2, end_type));
+                            let ty = self.written_type(&self.snippet(n + 2, end_type));
                             let field = self.add(
                                 n,
                                 8,
@@ -1090,7 +1150,7 @@ impl SourceIndex {
                     n + 1
                 };
                 let mut ty = if self.text(n + 1) == ":" {
-                    canonical_data_type(&self.snippet(n + 2, end))
+                    self.written_type(&self.snippet(n + 2, end))
                 } else {
                     String::new()
                 };
@@ -1150,7 +1210,7 @@ impl SourceIndex {
                             self.symbols[symbol].kind = 12;
                             self.symbols[symbol].parameters = params;
                             self.symbols[symbol].ty = if self.text(close + 1) == ":" {
-                                canonical_data_type(&self.snippet(close + 2, tail))
+                                self.written_type(&self.snippet(close + 2, tail))
                             } else {
                                 String::new()
                             };
@@ -1189,7 +1249,7 @@ impl SourceIndex {
                             self.symbols[symbol].kind = 12;
                             self.symbols[symbol].parameters = params;
                             self.symbols[symbol].ty = if self.text(close + 1) == ":" {
-                                canonical_data_type(&self.snippet(close + 2, tail))
+                                self.written_type(&self.snippet(close + 2, tail))
                             } else {
                                 String::new()
                             };
@@ -1495,7 +1555,7 @@ impl SourceIndex {
             };
             if name(self.text(n)) {
                 let declared = if annotated {
-                    canonical_data_type(&self.snippet(colon + 1, type_end))
+                    self.written_type(&self.snippet(colon + 1, type_end))
                 } else {
                     String::new()
                 };
@@ -2589,7 +2649,7 @@ impl SourceIndex {
     }
     pub fn request(&self, method: &str, params: &Value, uri: &str) -> Result<Value, String> {
         if method == "textDocument/documentSymbol" {
-            return Ok(json!(self.symbols.iter().filter(|s|s.owner.is_none() && matches!(s.kind,12|23|13) && s.scope==0).map(|s|json!({"name":s.name,"detail":s.signature,"kind":s.kind,"range":self.range(s.extent),"selectionRange":self.range(s.span)})).collect::<Vec<_>>()));
+            return Ok(json!(self.symbols.iter().filter(|s|s.owner.is_none() && matches!(s.kind,12|23|13|26) && s.scope==0).map(|s|json!({"name":s.name,"detail":s.signature,"kind":s.kind,"range":self.range(s.extent),"selectionRange":self.range(s.span)})).collect::<Vec<_>>()));
         }
         if method == "textDocument/foldingRange" {
             let mut ranges = vec![];
@@ -3546,6 +3606,40 @@ fn nonnullable_assertion_type(ty: &str) -> String {
 }
 
 // Normalize only nullable data annotations. Callable parameter/result syntax stays intact.
+/// Replaces alias names in a written type with their expansions. A union
+/// or function expansion is parenthesized so a following `[]` applies to all
+/// of it.
+fn expand_type_aliases(ty: &str, aliases: &std::collections::BTreeMap<String, String>) -> String {
+    if aliases.is_empty() {
+        return ty.into();
+    }
+    let mut output = String::with_capacity(ty.len());
+    let mut rest = ty;
+    while !rest.is_empty() {
+        let word = rest
+            .char_indices()
+            .find(|(_, ch)| !(ch.is_alphanumeric() || *ch == '_' || *ch == '$'))
+            .map_or(rest.len(), |(index, _)| index);
+        if word == 0 {
+            let ch = rest.chars().next().unwrap();
+            output.push(ch);
+            rest = &rest[ch.len_utf8()..];
+            continue;
+        }
+        match aliases.get(&rest[..word]) {
+            Some(expansion) if expansion.contains('|') || expansion.contains("=>") => {
+                output.push('(');
+                output.push_str(expansion);
+                output.push(')');
+            }
+            Some(expansion) => output.push_str(expansion),
+            None => output.push_str(&rest[..word]),
+        }
+        rest = &rest[word..];
+    }
+    output
+}
+
 fn canonical_data_type(ty: &str) -> String {
     // A function type keeps its written spelling in either form.
     let callable = ty.contains("=>") || contains_callable_annotation(ty);
