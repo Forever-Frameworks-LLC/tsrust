@@ -19,9 +19,9 @@ function main() {
     strictEqual(text[text.length - 1], "t");
     strictEqual(initials(["type", "safe", "rust"]), "tsr");
     const maybe: string | undefined = "ok";
-    if (maybe !== undefined) {
-        strictEqual(maybe[1], "k");
-    }
+    strictEqual(maybe?.[1] === "k", true);
+    const absent: string | undefined = undefined;
+    strictEqual(absent?.[0] === undefined, true);
 }
 ```
 
@@ -51,5 +51,5 @@ Other ways to read a character differ only in the missing case: `charAt(position
 
 - The result is a `string`. It is a new value; the text is only read and stays usable.
 - A string cannot be changed through a position. `text[0] = "x"`, `text[0] += "x"` and `text[0]++` are `unsupported` errors. Build a new string instead.
-- A `string | undefined` value must be narrowed before it can be indexed. The optional form `text?.[position]` is `unsupported` for now; use `text?.at(position)`.
+- A `string | undefined` value must be narrowed, or indexed with the optional form, before it can be indexed. `text?.[position]` gives `undefined` when the text is absent; when the text is present, the position is checked as usual.
 - A position that is not an `int`, such as `text["0"]` or `text[1.5]`, is a `type` error.

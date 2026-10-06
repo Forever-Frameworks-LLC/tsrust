@@ -6283,6 +6283,6 @@
       "./string-indexing.md"
     ],
     "measured": false,
-    "note": "text[position] gives the character at a Unicode character position as a new string. A missing position is a catchable range error, like an array index; JavaScript gives undefined. Writes through a position and the optional form are rejected. One matched scenario verified untimed."
+    "note": "text[position] gives the character at a Unicode character position as a new string. A missing position is a catchable range error, like an array index; JavaScript gives undefined. Writes through a position are rejected; the optional form gives undefined for an absent text. One matched scenario verified untimed."
   }
 }

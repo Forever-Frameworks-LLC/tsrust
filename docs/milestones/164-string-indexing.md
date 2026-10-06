@@ -23,14 +23,17 @@ See docs/string-indexing.md.
   string. The failure uses `runtime_failure_exit("RangeError", "bounds", ...)`.
 - The receiver diagnostic now reads "Indexing requires an array, a tuple or a string."
 
-## Limit
+## Optional positions
 
-The optional form `text?.[position]` on a `string | undefined` value is rejected as
-`unsupported`, with advice to use `text?.at(position)` or to narrow first. The
-optional-chain machinery treats an index body as a borrowed view of the receiver; a
-string position is a new value. Supporting it needs the owned-result path that
-optional method calls use. This is the next step for this feature, not accepted
-final behavior.
+`text?.[position]` on a `string | undefined` or `string | null` value gives
+`undefined` when the text is absent and checks the position when it is present. It
+was rejected in the first acceptance of this gate and completed in the follow-up
+commit. Optional-chain analysis and emission classified every index body as a
+borrowed place of the receiver; a string position is a new value. `string_position`
+in the analyzer and the string arm of `borrowed_place_expression` in the emitter
+mark it as owned, so bindings, comparisons, fields, `??` and further optional hops
+use the owned-result path that optional method calls use. Evidence:
+target/editor/string-indexing-optional.log.
 
 ## Defects found and repaired
 

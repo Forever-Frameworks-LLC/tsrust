@@ -172,6 +172,9 @@ impl Analyzer {
         {
             return false;
         }
+        if self.string_position(context, body) {
+            return false;
+        }
         match &body.kind {
             ExprKind::Field(base, _) | ExprKind::Index(base, _) => {
                 self.optional_source_named(context, base)

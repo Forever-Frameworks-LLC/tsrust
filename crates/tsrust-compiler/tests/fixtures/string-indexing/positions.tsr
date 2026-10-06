@@ -15,7 +15,31 @@ function next(counter: int[]): int {
     return counter[0];
 }
 
+type Box = { label: string | undefined; };
+
+function show(text: string | undefined): string {
+    const first = text?.[0];
+    return first ?? "none";
+}
+
+function second(text: string | null): string | undefined {
+    return text?.[1];
+}
+
 function main() {
+    strictEqual(show("ab"), "a");
+    strictEqual(show(undefined), "none");
+    strictEqual(second("xy") === "y", true);
+    strictEqual(second(null) === undefined, true);
+    const maybe: string | undefined = "ok";
+    strictEqual(maybe?.[1] === "k", true);
+    const absent: string | undefined = undefined;
+    strictEqual(absent?.[0] === undefined, true);
+    const box: Box = { label: "tag" };
+    strictEqual(box.label?.[2] === "g", true);
+    strictEqual((box.label?.[0] ?? "") + "!", "t!");
+    const upper = maybe?.[0]?.toUpperCase();
+    strictEqual(upper === "O", true);
     const text = "abc";
     strictEqual(text[0], "a");
     strictEqual(text[2], "c");

@@ -41,7 +41,6 @@ fn string_indexing_keeps_static_contracts() {
         ("function main() { let text = \"abc\"; text[0] = \"x\"; }", "unsupported"),
         ("function main() { let text = \"abc\"; text[0] += \"x\"; }", "unsupported"),
         ("function main() { const n = 5; const a = n[0]; }", "type"),
-        ("function show(text: string | undefined): void { console.log(text?.[0]); } function main() { show(\"ab\"); }", "unsupported"),
         ("function pick(text: string | undefined): string { return text[0]; } function main() { pick(\"ab\"); }", "type"),
         ("function main() { let text = \"abc\"; text[0]++; }", "unsupported"),
         ("function main() { let text = \"abc\"; const a = (text[0] = \"x\"); }", "unsupported"),
@@ -58,6 +57,16 @@ fn absent_optional_selections_compare_with_undefined() {
     support::execute(
         "function main() { const values: string[] | undefined = undefined; const text: string | undefined = undefined; console.log(values?.[0] === undefined, text?.toUpperCase() === undefined); }",
         "true true\n",
+        None,
+    );
+}
+
+// With a present text, an optional position is checked like a plain one.
+#[test]
+fn optional_string_position_checks_bounds_when_present() {
+    support::execute(
+        "function pick(text: string | undefined, position: int): string { try { const found = text?.[position]; return found ?? \"absent\"; } catch (error) { return \"range\"; } } function main() { console.log(pick(\"ab\", 1), pick(undefined, 9), pick(\"ab\", 9), pick(\"ab\", -1)); }",
+        "b absent range range\n",
         None,
     );
 }

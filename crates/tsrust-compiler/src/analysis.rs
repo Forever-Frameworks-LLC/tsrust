@@ -5307,7 +5307,17 @@ impl Analyzer {
             && self.expression_type_hint(context, expr).is_some_and(|ty| !ty.is_copy())
     }
 
+    /// `text[position]`: a new string, never a view of the text.
+    #[inline(never)]
+    pub(crate) fn string_position(&self, context: &Context, expr: &Expr) -> bool {
+        matches!(&expr.kind, ExprKind::Index(base, _)
+            if self.expression_type_hint(context, base).is_some_and(|ty| self.unions.payload(ty).unwrap_or(ty) == Type::String))
+    }
+
     fn borrowed_place_hint(&mut self, context: &Context, expr: &Expr) -> bool {
+        if self.string_position(context, expr) {
+            return false;
+        }
         match &expr.kind {
             ExprKind::Sequence(values)=>values.last().is_some_and(|last|self.borrowed_place_hint(context,last) || self.indexed_element_hint(context,last)),
             ExprKind::TypeAssertion { value, .. } => self.borrowed_place_hint(context, value) || self.indexed_element_hint(context, value),
@@ -9799,14 +9809,8 @@ impl Analyzer {
 
     fn index_expression(&mut self,context:&mut Context,expr:&mut Expr,mode:Mode,loans:&Loans,expected:Option<Type>)->Result<Type,Diagnostic> {
         let ExprKind::Index(base,index)=&mut expr.kind else {unreachable!()};
-        let optional=Self::optional_hint_boundary(base) || matches!(base.kind,ExprKind::Selected{..});
-        if self.expression_type_hint(context,base).is_some_and(|ty|self.unions.payload(ty).unwrap_or(ty)==Type::String) {
-            if optional {
-                return Err(Diagnostic::new("unsupported","An optional string position is not supported yet. Use `text?.at(position)`, or narrow the text first.",expr.span));
-            }
-            if self.expression_type_hint(context,base)==Some(Type::String) {
-                return self.string_index(context,base,index,loans);
-            }
+        if !Self::optional_hint_boundary(base) && self.expression_type_hint(context,base)==Some(Type::String) {
+            return self.string_index(context,base,index,loans);
         }
         let result=if Self::named_storage(base) {self.array_index(context,base,index,mode,loans,expr.span)} else {self.temporary_array_index(context,base,index,mode,loans,expected)}?;
         if let Some((name,_))=self.checked_tuple_index(base.ty.expect("checked index receiver"),index)? {

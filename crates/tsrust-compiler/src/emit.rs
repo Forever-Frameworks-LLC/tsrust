@@ -3416,6 +3416,8 @@ impl Emitter<'_> {
             ExprKind::Name(_) => expr.binding.is_some_and(|id| {
                 fun.bindings[id].borrowed_place.is_some() || fun.bindings[id].borrowed_element.is_some()
             }),
+            // A string position is a new string, not a place in the text.
+            ExprKind::Index(base, _) if base.ty == Some(Type::String) => false,
             ExprKind::Field(base, _) | ExprKind::Index(base, _) => {
                 Self::borrowed_place_expression(fun, base)
             }
