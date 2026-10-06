@@ -46,16 +46,27 @@ Hover on an alias-typed value shows the expanded type.
   at 1.9 MB. The second margin is thin; `Analyzer::expression_kind` (7.7 KB) is the
   next frame to shrink.
 
-## Known failing editor tests, not caused by this gate
+## Baseline editor failures repaired after acceptance
 
-Six tests in the editor `intelligence` suite fail at the gate 162 commit and still
-fail: `array_literal_spread_editor_types_and_catalog_follow_checked_sources`,
-`array_of_docs_generic_calls_and_checked_constructor_results_are_consistent`,
-`destructuring_rest_names_show_array_types_and_definitions`,
-`nested_rest_names_have_types_and_definitions`,
-`every_catalog_entry_has_a_current_compiler_witness` and
-`documented_builtin_examples_match_native_output`. See the handoff for the diagnosis
-state. They are open defects, not accepted behavior.
+Six tests of the editor `intelligence` suite failed at the gate 162 commit. All are
+repaired in the commit that follows gate 163 (target/editor/editor-baseline-repair.log,
+138/138):
+
+- Destructured names had two checked types. Gate 162 publishes index and length
+  results, and the synthesized position expression of a pattern name shares the
+  name's span, so `remaining` in `const [first, ...remaining] = words` was reported
+  as both `int` and `string[]` and the editor dropped the conflicting fact. Fact
+  collection now keeps only the position type for a pattern name
+  (`projections.rs`, `pattern_names`). Rest names and nested rest names have their
+  types again.
+- Thirteen `Set` and `Map` catalog entries had examples in their `examples` array
+  but no fenced example in the hover text. Each now shows its verified example.
+- The catalog witness test had no rows for the `Set`, `Map` and `MapConstructor`
+  families or the `Set` and `Map` globals. Their documented examples are now
+  compiled as witnesses.
+- `Array.of`: the hover text states homogeneous `null[]` and `undefined[]` results
+  again; two assertions were updated to the current spread wording and to eight
+  examples.
 
 ## Focused evidence
 

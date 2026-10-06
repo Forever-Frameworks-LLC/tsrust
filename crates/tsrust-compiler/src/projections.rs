@@ -147,6 +147,10 @@ impl Analysis {
         }
         let mut views = BTreeMap::<(usize, usize), Vec<Type>>::new();
         let mut methods = BTreeMap::<(usize, usize), Vec<Type>>::new();
+        // Types of destructured names. The synthesized position expression of a
+        // name shares its span; its index and length results must not be
+        // reported as a second type of the name.
+        let mut pattern_names = BTreeMap::<(usize, usize), Vec<Type>>::new();
         let mut exact_views = std::collections::BTreeSet::new();
         let mut optional = BTreeMap::<(usize, usize), Vec<Option<Type>>>::new();
         let mut generic_calls = BTreeMap::<(usize, usize), Vec<GenericCallInfo>>::new();
@@ -199,7 +203,7 @@ impl Analysis {
                     StmtKind::Let { name, value, .. } if value.span == name.span => {
                         // A destructured name: report the type of its position.
                         if let Some(ty) = value.ty {
-                            let types = methods.entry((name.span.start, name.span.end)).or_default();
+                            let types = pattern_names.entry((name.span.start, name.span.end)).or_default();
                             if !types.contains(&ty) { types.push(ty); }
                         }
                         pending.push(Node::Expression(value));
@@ -479,6 +483,7 @@ impl Analysis {
                 }
             }
         }
+        methods.extend(pattern_names);
         let identities = CheckedTypeIdentities {
             parameter_types: parameter_types.clone(),
             projections: views

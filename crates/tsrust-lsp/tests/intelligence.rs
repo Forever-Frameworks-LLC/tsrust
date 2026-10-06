@@ -352,6 +352,17 @@ fn every_catalog_entry_has_a_current_compiler_witness() {
                 }
                 continue;
             }
+            // Collection families are witnessed by their documented examples,
+            // which construct their own receivers.
+            if matches!(family.as_str(), "Set" | "Map" | "MapConstructor") {
+                let examples = entry["examples"].as_array().unwrap();
+                assert!(!examples.is_empty(), "{family}.{method} needs a witness example");
+                for example in examples {
+                    let source = format!("function main(){{{}}}", example["source"].as_str().unwrap());
+                    assert!(tsrust_compiler::check(&source).is_ok(), "{family}.{method}: {source}");
+                }
+                continue;
+            }
             if family == "globals" {
                 // Built-in function and access types are witnessed in type position.
                 let type_witness = match method {
@@ -387,6 +398,8 @@ fn every_catalog_entry_has_a_current_compiler_witness() {
                     "isFinite" => "isFinite(1.5)",
                     "NaN" => "NaN",
                     "Infinity" => "Infinity",
+                    "Set" => "new Set<int>([1]).size",
+                    "Map" => "new Map<string, int>().size",
                     _ => panic!("unverified global {method}"),
                 };
                 assert!(
@@ -5001,8 +5014,9 @@ fn array_of_docs_generic_calls_and_checked_constructor_results_are_consistent() 
         expected.push_str(example["output"].as_str().unwrap());
     }
     let source = examples.finish();
-    assert_eq!(entry["examples"].as_array().unwrap().len(), 7);
-    assert_eq!(expected.lines().count(), 7);
+    // Seven constructor examples and one spread example.
+    assert_eq!(entry["examples"].as_array().unwrap().len(), 8);
+    assert_eq!(expected.lines().count(), 8);
     let analysis = tsrust_compiler::check(&source).unwrap();
     let directory = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../target/editor/array-of-doc-examples");
@@ -6492,7 +6506,7 @@ fn array_literal_spread_editor_types_and_catalog_follow_checked_sources() {
     assert!(hover["contents"]["value"].as_str().unwrap().contains("int[]"), "{hover}");
     let source = "function main(){const source=[1,2];const values=[...source];console.log(Array.of(...values).join());}";
     let hover = ask(source, "textDocument/hover", "of(...", 0);
-    assert!(hover["contents"]["value"].as_str().unwrap().contains("spread arguments are accepted"), "{hover}");
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("Spread arguments accept arrays, strings, Sets and Maps"), "{hover}");
     let partial = "function main(){const source=[1,2];const values=[...source";
     let hover = ask(partial, "textDocument/hover", "source", 1);
     assert!(hover["contents"]["value"].as_str().unwrap().contains("int[]"), "{hover}");
