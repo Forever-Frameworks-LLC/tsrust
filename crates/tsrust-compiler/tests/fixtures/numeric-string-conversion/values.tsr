@@ -1,0 +1,28 @@
+import { strictEqual } from "std:testing";
+enum Text { Hex = "0x10" }
+function union(value: string | null): number { return Number(value); }
+function enumValue(value: Text | undefined): number { return +value; }
+function main() {
+    strictEqual(Number("0x10"), 16.0);
+    strictEqual(+"0B101", 5.0);
+    strictEqual(Number("0o17"), 15.0);
+    strictEqual(Number("\uFEFF\u00A0 12 \u2029"), 12.0);
+    strictEqual(Number(".5"), 0.5);
+    strictEqual(Number("+1.e2"), 100.0);
+    strictEqual(Number("0012"), 12.0);
+    strictEqual(Number("Infinity"), Infinity);
+    strictEqual(Number("-Infinity"), -Infinity);
+    strictEqual(Number("0x20000000000001"), 9007199254740992.0);
+    strictEqual(Number("0x20000000000003"), 9007199254740996.0);
+    strictEqual(Number("0x10000000000000001"), 18446744073709551616.0);
+    strictEqual(Object.is(Number("-0e999"), -0.0), true);
+    strictEqual(Object.is(+"-1e-999", -0.0), true);
+    strictEqual(Number("1e999"), Infinity);
+    strictEqual(union("0x20"), 32.0);
+    strictEqual(enumValue(Text.Hex), 16.0);
+    const invalid = ["inf", "+inf", "infinity", "0x", "-0x1", "+0b1", "0o8", "0b2", "1_0", "1n", "1e", "1e+", ".", "+", "12tail", "\u008512", "12\u0085", "\u200B12", "１２"];
+    for (const text of invalid) {
+        strictEqual(Number.isNaN(Number(text)), true);
+        strictEqual(Number.isNaN(+text), true);
+    }
+}
