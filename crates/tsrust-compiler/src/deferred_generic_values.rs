@@ -106,6 +106,7 @@ impl Analyzer {
         let checked = self.checked[function].as_ref().ok_or_else(|| Self::pending_result(span))?;
         let method = self.closures[origin].methods.len();
         self.closures[origin].methods.push(CheckedClosureMethod {
+            invocation: Mode::Read,
             parameters: (0..checked.parameter_count).collect(),
             function: CheckedFunction {
                 template: checked.template, specialization: true, name: checked.name.clone(),

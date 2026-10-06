@@ -231,3 +231,21 @@ lexical readiness, capture-free declarations, specialized requests, sparse
 projection, shadow identity and discarded outer flow state. The next constructor
 must use this source context with explicit source metadata and infer access without
 choosing a dummy generic type. The five captured native witnesses remain open.
+
+## Method receiver emission checkpoint
+
+CheckedClosureMethod now retains its own invocation access. Native method
+signatures, captured-field preparation and materialized call receivers use that
+method access instead of the environment-wide summary. Existing callable replay
+still copies its uniform checked access; capture-free deferred methods remain
+read-only. This changes the backend contract without claiming captured generic
+source-flow support.
+
+A direct backend witness gives three methods of one empty origin distinct read,
+mutate and consume receivers. Generated native execution calls all three and
+verifies exact results. Existing higher-order witnesses retain callback kinds,
+factory methods, ownership rejection and disposal checks. Captured construction,
+per-method source-flow checking and method-specific capture representation still
+need integration before the five captured generic witnesses can pass. Do not
+infer that the backend witness proves ownership rejection after a source-level
+consuming specialization.

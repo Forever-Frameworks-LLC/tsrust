@@ -129,6 +129,8 @@ pub enum ClosureForward {
 }
 
 pub struct CheckedClosureMethod {
+    /// Receiver access belongs to this invocation body, not its environment.
+    pub invocation: Mode,
     pub parameters: Vec<usize>,
     pub function: CheckedFunction,
 }

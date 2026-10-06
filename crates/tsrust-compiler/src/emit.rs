@@ -566,7 +566,7 @@ impl Emitter<'_> {
         let native_result=error_name.as_ref().map_or_else(||self.native_type(checked.function.result),|name|format!("Result<{},{}>",self.native_type(checked.function.result),name));
         let (capture_lifetimes, _) = self.capture_layout(closure);
         let lifetime = lifetime_parameters(&capture_lifetimes);
-        let receiver = match closure.invocation {
+        let receiver = match checked.invocation {
             Mode::Read => "&self",
             Mode::Mutate => "&mut self",
             Mode::Consume => "self",
@@ -605,7 +605,7 @@ impl Emitter<'_> {
         );
         for capture in &closure.captures {
             let binding = &checked.function.bindings[capture.inner];
-            let reference = match (capture.storage, closure.invocation) {
+            let reference = match (capture.storage, checked.invocation) {
                 (Mode::Copy, Mode::Mutate) if capture.access == Mode::Mutate => "&mut ",
                 (Mode::Consume, Mode::Read) => "&",
                 (Mode::Consume, Mode::Mutate) => "&mut ",
@@ -743,13 +743,14 @@ impl Emitter<'_> {
             _ => (origin, false),
         };
         let checked = &self.program.closures[closure];
+        let method_invocation = checked.methods[method].invocation;
         let invocation = if once {
             Mode::Consume
         } else {
-            self.conditional_invocation(fun, callee, checked.invocation)
+            self.conditional_invocation(fun, callee, method_invocation)
         };
         let receiver = self.expr(fun, callee, invocation);
-        let mutable = if invocation == Mode::Consume && checked.invocation == Mode::Mutate && !once
+        let mutable = if invocation == Mode::Consume && method_invocation == Mode::Mutate && !once
         {
             "mut "
         } else {
@@ -757,7 +758,7 @@ impl Emitter<'_> {
         };
         let mut text = format!("{{ let {mutable}method_environment = {receiver}; ");
         if once {
-            let mutable = if checked.invocation == Mode::Mutate {
+            let mutable = if method_invocation == Mode::Mutate {
                 "mut "
             } else {
                 ""
@@ -8750,6 +8751,36 @@ impl Emitter<'_> {
 
 #[cfg(test)]
 mod exception_region_tests {
+    #[test]
+    fn materialized_methods_use_their_own_receiver_access() {
+        let mut checked = crate::check("function identity<T>(value:T):T{return value;}function main(){const action=identity;console.log(action(1));console.log(action(true));console.log(action('text'));}").unwrap();
+        let origin = *checked.program.deferred_generic_values.iter().next().unwrap();
+        checked.program.closures[origin].invocation = crate::Mode::Mutate;
+        checked.program.closures[origin].methods[0].invocation = crate::Mode::Read;
+        checked.program.closures[origin].methods[1].invocation = crate::Mode::Mutate;
+        checked.program.closures[origin].methods[2].invocation = crate::Mode::Consume;
+        for function in &mut checked.program.functions {
+            for binding in &mut function.bindings {
+                if binding.ty == crate::syntax::Type::Closure(origin) { binding.mutable = true; }
+            }
+        }
+        let rust = super::emit(&checked.program);
+        assert!(rust.contains("fn call0(&self,"), "read method must borrow its receiver");
+        assert!(rust.contains("fn call1(&mut self,"), "mutating method must borrow exclusively");
+        assert!(rust.contains("fn call2(self,"), "consuming method must own its receiver");
+        let directory = std::env::temp_dir().join(format!("tsrust-method-access-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        let source = directory.join("source.rs");
+        let binary = directory.join("source");
+        std::fs::write(&source, rust).unwrap();
+        let compiler = std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into());
+        let compiled = std::process::Command::new(compiler).arg("--edition=2024").arg(source).arg("-o").arg(&binary).output().unwrap();
+        assert!(compiled.status.success(), "{}", String::from_utf8_lossy(&compiled.stderr));
+        let output = std::process::Command::new(binary).output().unwrap();
+        assert!(output.status.success());
+        assert_eq!(output.stdout, b"1\ntrue\ntext\n");
+        std::fs::remove_dir_all(directory).unwrap();
+    }
     #[test]
     fn source_exception_pipeline_executes_catch_finally_and_propagation() {
         let source="function unused(action:Mutable<Function<void>>):void{action();}function risky():int{throw \"zero\";}function value():int{try{return risky();}catch(error){if(error===\"zero\"){return 4;}return 0;}finally{console.log(7);}}function main(){console.log(value());}";

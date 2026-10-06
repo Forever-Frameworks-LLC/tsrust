@@ -117,7 +117,9 @@ impl Analyzer {
             }
         }
         let method = self.closures[origin].methods.len();
+        let invocation = self.closures[origin].invocation;
         self.closures[origin].methods.push(CheckedClosureMethod {
+            invocation,
             parameters: source.parameters.clone(),
             function: CheckedFunction {
                 template: context.template,
