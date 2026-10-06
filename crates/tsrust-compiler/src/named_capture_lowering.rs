@@ -71,22 +71,7 @@ pub(crate) fn prepare(checked: &mut CheckedProgram) -> Result<(), Diagnostic> {
         if !contiguous {
             return Err(pending(checked));
         }
-        // A call reports this at the call. A function that nothing calls reports it here.
-        if let Some(access) = accesses.iter().find(|access| access.mode == Mode::Consume) {
-            let capture = checked
-                .local_capture_plans
-                .iter()
-                .flat_map(|plan| plan.groups.iter())
-                .flat_map(|group| group.captures.iter())
-                .filter(|capture| capture.binding == access.binding)
-                .min_by_key(|capture| capture.usage.start);
-            let mut error = pending(checked);
-            if let Some(capture) = capture {
-                error = Diagnostic::new("unsupported", crate::analysis::CAPTURE_OWNERSHIP, capture.usage)
-                    .related(capture.declaration, "Captured variable declared here.");
-            }
-            return Err(error);
-        }
+
     }
     // A direct function value would need an environment value; the lexical
     // resolver writes the arrow form instead, so none should reach this point.

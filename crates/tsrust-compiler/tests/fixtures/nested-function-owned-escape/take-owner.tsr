@@ -1,0 +1,14 @@
+import { strictEqual } from "std:testing";
+type User = { name: string; };
+function make(user: User): () => User {
+    function take(): User { return user; }
+    return take;
+}
+function main() {
+    const first = make({ name: "Pat" });
+    const second = make({ name: "Lee" });
+    const firstUser = first();
+    const secondUser = second();
+    strictEqual(firstUser.name, "Pat");
+    strictEqual(secondUser.name, "Lee");
+}

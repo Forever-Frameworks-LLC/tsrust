@@ -190,7 +190,6 @@ impl CallbackContract {
     }
 }
 
-pub(crate) const CAPTURE_OWNERSHIP: &str = "A nested function cannot take ownership of a captured value yet. Read or change it in place, or pass it as an argument.";
 
 pub struct CheckedProgram {
     pub(crate) named_capture_layouts: Vec<named_capture_layout::Layout>,
@@ -2404,13 +2403,6 @@ impl Analyzer {
             }
         }
         for &(slot, mode) in captures {
-            if mode == Mode::Consume {
-                return Err(Diagnostic::new(
-                    "unsupported",
-                    CAPTURE_OWNERSHIP,
-                    span,
-                ));
-            }
             Self::access(context, slot, mode, span, &active)?;
             if mode == Mode::Mutate {
                 context.bindings[slot].mutable = true;

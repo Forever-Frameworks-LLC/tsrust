@@ -75,9 +75,9 @@ ownership rules decide what a call may do:
   while `tick(counts.length)` is fine because the argument is only a copied number.
 - A view of an element, such as `const first = names[0]`, cannot stay in use across
   a call that changes `names`.
-- A function cannot take ownership of a captured variable, for example by returning
-  a captured array or pushing a captured string into another array. Copy it with
-  `clone()` or pass the value as a parameter.
+- A function can transfer a captured owner, for example by returning a captured
+  record or array. The original binding is unavailable after the call. A callable
+  value that consumes its captured owner can be invoked only once.
 
 A function declared in a loop body or block uses the variables of that iteration
 or block entry. Recursive and mutually recursive functions share the variables of
@@ -141,3 +141,27 @@ Inner block variables can shadow outer variables, and leaving the block restores
 the outer binding. Arrow parameters can shadow names in their enclosing scope.
 A local in a function's own body still cannot redeclare one of its parameters.
 These scope rules preserve each binding's identity and ownership independently.
+
+### Returning a captured owner
+
+Each factory invocation retains its own captured value. Calling the returned
+function transfers that value; calling the same consuming function again is an error.
+
+```tsr
+type User = { name: string; };
+function make(user: User): () => User {
+    function take(): User { return user; }
+    return take;
+}
+function main() {
+    const take = make({ name: "Pat" });
+    const user = take();
+    console.log(user.name); // Pat
+}
+```
+
+Transferring a capture cannot overlap a borrowed argument that uses the same value.
+Use `clone()` explicitly when two independently owned copies are intended. The
+focused factory fixture verifies independent returned owners. Full owned-escape
+coverage for storage, disposal, failures and recursive retained groups remains in
+progress.

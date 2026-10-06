@@ -167,11 +167,11 @@ fn capture_borrows_follow_argument_and_view_rules() {
 
 #[test]
 fn uncalled_capturing_functions_are_still_checked() {
+    tsrust_compiler::check("function main(){const names=[\"a\"];function unused():string[]{return names;}}").unwrap();
     for (source, code) in [
         ("function main(){const base=[1];function unused():string{return base[0];}}", "type"),
         ("function main(){const base=[1];function outer():void{function inner():int{return base.missing;}}outer();}", "type"),
         ("function main(){const total=0;function unused():void{total+=1;}}", "unsupported"),
-        ("function main(){const names=[\"a\"];function unused():string[]{return names;}}", "unsupported"),
     ] {
         let error = tsrust_compiler::check(source).err().unwrap_or_else(|| panic!("must be rejected: {source}"));
         assert_eq!(error.code, code, "{source}: {}", error.message);
