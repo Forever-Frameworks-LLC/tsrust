@@ -7546,6 +7546,8 @@ impl Emitter<'_> {
         }
     }
 
+    // Equality operands are bound by a match scrutinee: its temporaries live
+    // for the whole comparison, so a view of an owned call result stays valid.
     fn binary_expression_code(&self, fun: &CheckedFunction, expr: &Expr) -> Result<String, String> {
         let ExprKind::Binary { op, operator, left, right } = &expr.kind else {
             unreachable!("binary expression")
@@ -7593,7 +7595,7 @@ impl Emitter<'_> {
                 (left.ty == right.ty).to_string()
             };
             return Err(format!(
-                "{{ let equality_left = {}; let equality_right = {}; {} }}",
+                "match ({}, {}) {{ (equality_left, equality_right) => {{ let _ = (&equality_left, &equality_right); {} }} }}",
                 self.expr(fun, left, Mode::Read),
                 self.expr(fun, right, Mode::Read),
                 if *op == BinaryOp::Equal {
@@ -7608,7 +7610,7 @@ impl Emitter<'_> {
         {
             let equal = self.union_equality(left.ty.expect("checked operand"), right.ty.expect("checked operand"));
             return Err(format!(
-                "{{ let equality_left = {}; let equality_right = {}; {} }}",
+                "match ({}, {}) {{ (equality_left, equality_right) => {{ let _ = (&equality_left, &equality_right); {} }} }}",
                 self.expr(fun, left, Mode::Read),
                 self.expr(fun, right, Mode::Read),
                 if *op == BinaryOp::Equal { equal } else { format!("!({equal})") }

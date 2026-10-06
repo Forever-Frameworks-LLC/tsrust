@@ -1755,6 +1755,7 @@ fn parse_entry(source: &str, test_entry: bool) -> Result<Program, Diagnostic> {
         pending: Vec::new(),
         next_pattern: 0,
         parameter_patterns: Vec::new(),
+        aliases: Default::default(),
     }
     .program(test_entry)
 }
@@ -1788,6 +1789,8 @@ struct Parser<'a> {
     next_pattern: usize,
     /// Position bindings of destructured parameters; they open the body.
     parameter_patterns: Vec<Stmt>,
+    /// `type Name = Type;` declarations of the file, fully expanded.
+    aliases: std::collections::HashMap<String, crate::type_syntax::ValueAnnotation>,
 }
 
 impl Parser<'_> {
@@ -1849,10 +1852,80 @@ impl Parser<'_> {
         Ok(self.take())
     }
     fn value_annotation(&mut self) -> Result<crate::type_syntax::ValueAnnotation, Diagnostic> {
-        let (annotation, index) =
+        let (mut annotation, index) =
             crate::type_syntax::parse_prefix(&mut self.tokens, self.i, self.depth)?;
         self.i = index;
+        if !self.aliases.is_empty() {
+            crate::type_aliases::expand(&mut annotation, &self.aliases);
+        }
         Ok(annotation)
+    }
+
+    /// Reads every top-level `type Name = Type;` whose right side is not a
+    /// record body, before the declarations that use the names are parsed.
+    #[inline(never)]
+    fn collect_type_aliases(&mut self) -> Result<(), Diagnostic> {
+        let mut raw = Vec::new();
+        let mut depth = 0usize;
+        let mut index = 0;
+        while index + 3 < self.tokens.len() {
+            let token = &self.tokens[index];
+            if token.kind == TokenKind::Symbol {
+                match token.text.as_str() {
+                    "{" => depth += 1,
+                    "}" => depth = depth.saturating_sub(1),
+                    _ => {}
+                }
+            }
+            let declaration = depth == 0
+                && token.kind == TokenKind::Name
+                && token.text == "type"
+                && self.tokens[index + 1].kind == TokenKind::Name
+                && (index == 0 || matches!(self.tokens[index - 1].text.as_str(), ";" | "}"));
+            if !declaration {
+                index += 1;
+                continue;
+            }
+            let name = self.tokens[index + 1].clone();
+            let after = &self.tokens[index + 2];
+            if after.text == "<" {
+                // A generic declaration is a record unless its right side is not a body.
+                let mut close = index + 3;
+                while close < self.tokens.len() && self.tokens[close].text != "=" && self.tokens[close].text != ";" {
+                    close += 1;
+                }
+                if self.tokens.get(close).is_some_and(|token| token.text == "=")
+                    && self.tokens.get(close + 1).is_some_and(|token| token.text != "{")
+                {
+                    return Err(Diagnostic::new(
+                        "unsupported",
+                        "A type alias cannot have type parameters. Only record types can: `type Box<T> = { value: T; };`.",
+                        name.span,
+                    ));
+                }
+                index += 1;
+                continue;
+            }
+            if after.text != "=" || self.tokens[index + 3].text == "{" {
+                index += 1;
+                continue;
+            }
+            if matches!(
+                name.text.as_str(),
+                "int" | "number" | "boolean" | "string" | "null" | "undefined" | "void" | "Function" | "Mutable" | "ReadOnly" | "Once" | "Owned" | "Set" | "Map" | "Array"
+            ) {
+                return Err(Diagnostic::new(
+                    "duplicate",
+                    format!("Type name {:?} is built in and cannot be declared.", name.text),
+                    name.span,
+                ));
+            }
+            let (annotation, end) = crate::type_syntax::parse_prefix(&mut self.tokens, index + 3, self.depth)?;
+            raw.push((name, annotation));
+            index = end;
+        }
+        self.aliases = crate::type_aliases::resolve(raw)?;
+        Ok(())
     }
 
     fn type_parameters(&mut self) -> Result<Vec<crate::type_syntax::TypeName>, Diagnostic> {
@@ -1911,11 +1984,37 @@ impl Parser<'_> {
             records: Vec::new(),
             functions: Vec::new(),
         };
+        self.collect_type_aliases()?;
         while self.peek().kind != TokenKind::End {
             if self.accept("enum") {
                 program.records.push(self.enum_declaration(&program.records)?);
+            } else if self.is("type")
+                && self.tokens.get(self.i + 1).is_some_and(|token| self.aliases.contains_key(&token.text))
+                && self.tokens.get(self.i + 2).is_some_and(|token| token.text == "=")
+                && self.tokens.get(self.i + 3).is_some_and(|token| token.text != "{")
+            {
+                // Already collected; skip the declaration.
+                self.i += 3;
+                let name = self.tokens[self.i - 2].clone();
+                if program.records.iter().any(|record| record.name.text == name.text) {
+                    return Err(Diagnostic::new(
+                        "duplicate",
+                        format!("Type name {:?} is already declared.", name.text),
+                        name.span,
+                    ));
+                }
+                let (_, end) = crate::type_syntax::parse_prefix(&mut self.tokens, self.i, self.depth)?;
+                self.i = end;
+                self.expect(";")?;
             } else if self.accept("type") {
                 let name = self.name()?;
+                if self.aliases.contains_key(&name.text) {
+                    return Err(Diagnostic::new(
+                        "duplicate",
+                        format!("Type name {:?} is already declared.", name.text),
+                        name.span,
+                    ));
+                }
                 if matches!(name.text.as_str(), "Function" | "Mutable" | "ReadOnly" | "Once" | "Owned") {
                     return Err(Diagnostic::new(
                         "duplicate",

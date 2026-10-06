@@ -48,6 +48,7 @@ mod runtime;
 mod storage;
 mod syntax;
 pub mod type_syntax;
+mod type_aliases;
 mod type_substitution;
 
 pub use analysis::Mode;

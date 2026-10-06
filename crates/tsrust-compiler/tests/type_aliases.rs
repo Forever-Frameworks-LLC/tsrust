@@ -44,3 +44,23 @@ fn alias_diagnostics_point_at_the_use() {
     let error = tsrust_compiler::check(source).err().unwrap();
     assert!(error.span.start > source.find("function").unwrap(), "{error:?}");
 }
+
+// A view of an owned union call result stays valid while it is compared.
+#[test]
+fn owned_union_call_results_compare_in_place() {
+    let source = r#"import { strictEqual } from "std:testing";
+function first(ids: string[]): string | undefined { if (ids.length === 0) { return undefined; } return ids[0].slice(0); }
+function main() {
+    const ids = ["a"];
+    const none: string[] = [];
+    strictEqual(first(ids) === "a", true);
+    strictEqual(first(ids) !== "b", true);
+    strictEqual(first(none) === undefined, true);
+    strictEqual(first(ids) !== undefined, true);
+    strictEqual("a" === first(ids), true);
+    strictEqual(first(ids) === first(ids), true);
+}"#;
+    let directory = support::TempDirectory::new();
+    let path = directory.source(source);
+    support::success(&support::run(support::cli().arg("run").arg(path), 60));
+}

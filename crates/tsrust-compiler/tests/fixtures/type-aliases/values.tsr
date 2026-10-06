@@ -10,7 +10,7 @@ type Point = { x: Count; y: Count; };
 type Points = Point[];
 type Scores = Map<Label, Count>;
 type Seen = Set<Id>;
-type Measure = Function<Count, [Label]>;
+type Measure = Function<Count, [ReadOnly<Label>]>;
 type Grid = Count[][];
 
 function describe(id: Id): Label {
