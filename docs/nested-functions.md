@@ -244,3 +244,33 @@ Returned values retain independent captured state. Captures and supplied owned
 values follow the existing ownership rules; consuming a capture still permits only
 one invocation. No implicit clone is introduced. Generic declaration values remain
 pending.
+
+## Generic values with a concrete callable context
+
+A fixed callable annotation specializes a generic declaration when it becomes a
+value. The annotation supplies parameter and result types; the original template
+still checks their relationship. This works for captured declarations, returned
+values with an explicit callable result, and compatible array callback contexts.
+
+```tsr
+const base = 3;
+function choose<T>(value: T): T {
+    console.log(base);
+    return value;
+}
+const numberValue: (value: int) => int = choose;
+console.log(numberValue(7)); // prints 3, then 7
+const stringValue: (value: Owned<string>) => string = choose;
+console.log(stringValue("text")); // prints 3, then text
+```
+
+An owning return consumes its string argument, so its fixed contract states
+Owned<string>. A function that removes a scalar from an array mutates that array;
+its contract states Mutable<int[]> and the caller observes the shorter array.
+Result context can also infer a generic variable with no argument, such as an empty
+array factory assigned to () => int[]. Different typed values are separate callable
+values; captured local borrows keep the existing scope rules, while explicitly
+returned fixed values retain their independent owned factory environments.
+
+Unannotated polymorphic generic values remain unsupported. Assigning a concrete
+context does not provide a callable that accepts every future argument type.

@@ -145,8 +145,8 @@ fn capture_borrows_follow_argument_and_view_rules() {
         ("function main(){const names=[\"a\"];function add():void{names.push(\"b\");}const first=names[0];add();console.log(first);}", "view-conflict"),
         // An arrow that calls the function holds the capture like any closure.
         ("function main(){const counts=[0];function tick():int{counts[0]+=1;return counts[0];}const run=():int=>tick();console.log(run(),counts);}", "capture-conflict"),
-        // Generic value specialization remains pending.
-        ("function main(){const seen:int[]=[];function note<T>(value:T):T{seen.push(1);return value;}console.log([1].map(note));}", "unsupported"),
+        // Unannotated polymorphic generic values remain pending.
+        ("function main(){const seen:int[]=[];function note<T>(value:T):T{seen.push(1);return value;}const action=note;}", "unsupported"),
         // A const scalar cannot be changed through a nested function either.
         ("function main(){const total=0;function add():void{total+=1;}add();}", "unsupported"),
         // A function value holds the captures like the arrow that calls the function.

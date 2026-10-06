@@ -110,3 +110,22 @@ crate before acceptance. Persist original failed and repaired evidence in SQLite
 verify readback, remove loose copies and prune obsolete executable scratch at
 handoff. After generic values, continue the wider gate173 inference/context audit
 and the full named-declaration family milestone; these requirements remain intact.
+
+## Contextual construction checkpoint
+
+Concrete generic values now retain the original template call in a checked wrapper.
+Generic-dependent parameter annotations receive concrete callable context, while
+non-generic annotations and stated access remain intact. The original solver checks
+parameter/result relations, including result-only inference. Capturing declarations
+are wrapped during lexical resolution before escape analysis; capture-free values
+are constructed when their context is checked. A dedicated generic_function_values
+module owns parameter dependency detection and contextual value dispatch.
+
+The original fixed-context witness now passes, along with owning string/array,
+mutable array argument, empty generic array result, explicit returned factory,
+array callback and invalid type-relation controls. Two draft access annotations
+were invalid under existing rules: string return requires Owned<string>, while
+scalar removal borrows its array with Mutable<int[]>. Their corrected controls
+retain transfer/mutation observations. Unannotated polymorphism and inferred generic
+factory environments remain genuine red witnesses; this is an interim checkpoint,
+not full generic-value or gate173 acceptance.

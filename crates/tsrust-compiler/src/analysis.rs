@@ -28,6 +28,8 @@ mod object_values;
 mod array_entries;
 #[path = "logical_values.rs"]
 mod logical_values;
+#[path = "generic_function_values.rs"]
+pub(crate) mod generic_function_values;
 #[path = "generic_calls.rs"]
 mod generic_calls;
 #[path = "optional_chain.rs"]
@@ -1902,8 +1904,23 @@ impl Analyzer {
         loans: &Loans,
     ) -> Result<Type, Diagnostic> {
         let (origin, params, result) = syntax;
-        let inferred_result = matches!(result, ResultAnnotation::Inferred(_));
-        let mut result = if inferred_result { Type::Void } else { self.resolve_result(result)? };
+        let generic_wrapper = if let [statement] = body.as_slice()
+            && let StmtKind::Return(Some(call)) = &statement.kind
+            && let ExprKind::Call(callee, _) = &call.kind
+            && call.span == span && callee.span == span
+            && let ExprKind::Name(name) = &callee.kind
+            && self.generic_functions.template(name).is_some() { Some(name.as_str()) } else { None };
+        if let Some(name) = generic_wrapper
+            && contextual.is_none()
+            && params.iter().any(|parameter| matches!(parameter.ty, ParameterAnnotation::Inferred(_))) {
+            return Err(self.generic_value_pending(name, span));
+        }
+        let contextual_result = generic_wrapper.and_then(|_| contextual)
+            .and_then(|ty| self.checked_generic_callable_shape(self.unions.payload(ty).unwrap_or(ty)))
+            .map(|(_, result)| result);
+        let inferred_result = matches!(result, ResultAnnotation::Inferred(_)) && contextual_result.is_none();
+        let mut result = if let Some(result) = contextual_result { result }
+            else if inferred_result { Type::Void } else { self.resolve_result(result)? };
         let escapes = self.escaping.contains(&origin);
         let mut visible = outer.names.values().copied().collect::<Vec<_>>();
         // A nested function called in the body can need a variable that has no
@@ -14716,14 +14733,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             ));
         }
         if !context.names.contains_key(name) && self.generic_functions.template(name).is_some() {
-            let written = self.program.local_declarations.iter()
-                .find(|declaration| declaration.emitted_name == *name)
-                .map_or(name.as_str(), |declaration| declaration.source_name.text.as_str());
-            return Err(Diagnostic::new(
-                "unsupported",
-                format!("The generic function {written:?} cannot be used as a value; call it inside an arrow function, for example (value) => {written}(value)."),
-                span,
-            ));
+            return self.contextual_generic_value(context, expr, mode, loans, expected);
         }
         let index = *context
             .names

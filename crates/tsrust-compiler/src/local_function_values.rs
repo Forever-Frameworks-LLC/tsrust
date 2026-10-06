@@ -18,12 +18,8 @@ struct Header {
     rest: bool,
 }
 
-fn header(function: &Function) -> Option<Header> {
-    // These shapes keep the diagnostic of the direct function value.
-    if !function.type_parameters.is_empty() {
-        return None;
-    }
-    Some(Header {
+fn header(function: &Function) -> Header {
+    Header {
         params: function
             .params
             .iter()
@@ -32,13 +28,13 @@ fn header(function: &Function) -> Option<Header> {
                     Some(callback) => ParameterAnnotation::Callback(Box::new(callback.clone())),
                     None => ParameterAnnotation::Named(Box::new(annotation.clone())),
                 };
-                (name.clone(), annotation)
+                (name.clone(), crate::analysis::generic_function_values::parameter(name, annotation, &function.type_parameters))
             })
             .collect(),
         access: function.parameter_access.clone(),
         initializers: function.parameter_initializers.clone(),
         rest: function.rest_parameter,
-    })
+    }
 }
 
 fn wrapper(emitted: &str, header: &Header, id: usize, span: Span) -> Expr {
@@ -111,7 +107,7 @@ pub(crate) fn lower(
     let headers: HashMap<String, Header> = lifted
         .iter()
         .filter(|function| capturing(&function.name.text))
-        .filter_map(|function| Some((function.name.text.clone(), header(function)?)))
+        .map(|function| (function.name.text.clone(), header(function)))
         .collect();
     let mut next = 0;
     for function in functions.iter_mut().chain(lifted.iter_mut()) {
@@ -141,4 +137,9 @@ pub(crate) fn lower(
         })?;
     }
     Ok(())
+}
+
+/// Build a contextual value without evaluating its declared function.
+pub(crate) fn value(function: &Function, origin: usize, span: Span) -> Expr {
+    wrapper(&function.name.text, &header(function), origin, span)
 }

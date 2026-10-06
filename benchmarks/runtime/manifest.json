@@ -19694,6 +19694,34 @@
       "specification": "Retain seven independent observations from captured rest callable argument behavior.",
       "sourceSha256": "8db186ab01c3e2361de972e6637085441fc82549b1e0f95d50b4ee807e8c1458",
       "counterpartSha256": "9b13d9bd0d509d4fa50cd92e808ad2465391191c9167c1c98f68bc9cdceb7842"
+    },
+    {
+      "id": "generic_function_contexts",
+      "family": "generic-function-contexts",
+      "source": "workloads/generic_function_contexts.tsr",
+      "counterpart": "workloads/generic_function_contexts.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One contextual generic callable scenario",
+      "inputText": "context",
+      "category": "callbacks",
+      "implementationGate": 173,
+      "measurementStatus": "pending-language-milestone",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": false,
+      "measured": false,
+      "notes": "Contextual generic scalar/string/array values and mutable array arguments with exact captured call count. Untimed support; unannotated polymorphism and full gate173 acceptance pending.",
+      "specification": "Retain seven independent observations from concrete generic callable contexts and capture state.",
+      "sourceSha256": "6669043e65a703685adc6fcd16b263ee8a05fb06a9035c226b06f53810a35940",
+      "counterpartSha256": "261b294054f018bef319815d31b3082d35c94f54d4bd703825f1b38db75ea291"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

@@ -7613,3 +7613,16 @@ fn captured_rest_function_values_keep_signature_help() {
     let label=help["signatures"][0]["label"].as_str().expect("rest callable signature");
     assert!(label.contains("values") && label.contains("int") && label.contains("..."),"{help}");
 }
+
+#[test]
+fn contextual_generic_values_keep_help_hover_and_source_identity() {
+    let source="function main(){const base=2;function choose<T>(value:T):T{console.log(base);return value;}const action:(value:int)=>int=choose;const result=action(7);}";
+    tsrust_compiler::check(source).unwrap();
+    let help=ask(source,"textDocument/signatureHelp","7);",0);
+    let label=help["signatures"][0]["label"].as_str().expect("contextual generic signature");
+    assert!(label.contains("value") && label.contains("int"),"{help}");
+    let hover=ask(source,"textDocument/hover","result=",0).to_string();
+    assert!(hover.contains("int"),"{hover}");
+    let definition=ask(source,"textDocument/definition","choose;",0);
+    assert_eq!(definition["range"]["start"],json!(at(source,"choose<T>",0)),"{definition}");
+}

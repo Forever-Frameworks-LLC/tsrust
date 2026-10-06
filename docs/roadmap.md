@@ -398,3 +398,5 @@ Use this checklist when converting a workstream into an implementation task:
 Keep the original section IDs in task references so later scope changes remain traceable.
 
 Captured rest function values have a focused gate173 checkpoint. Generic values and the full signature/context audit remain pending; family measurements are still deferred.
+
+Gate173 now has contextual generic function values with checked type relations, captured callbacks and explicitly returned fixed factories. Unannotated polymorphic values and the full inference/context audit remain open.

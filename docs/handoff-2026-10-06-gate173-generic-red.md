@@ -1,3 +1,5 @@
+Current continuation: [contextual generic checkpoint](handoff-2026-10-06-gate173-generic-contexts.md).
+
 # Handoff: generic function value red witnesses
 
 Continue from 2f4ad5d and this source checkpoint. Read AGENTS.md,
