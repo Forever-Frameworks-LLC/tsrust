@@ -63,6 +63,8 @@ pub struct ProjectExpressionTypeInfo {
 /// receiver facts describe successful hops; they do not authorize ordinary access.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ProjectCheckedTypeFacts {
+    /// Fixed nominal annotation use and declaration locations in generic headers.
+    pub generic_nominals: Vec<(SourceLocation, SourceLocation)>,
     /// Checked generic value binding and original declaration source locations.
     pub generic_values: Vec<(SourceLocation, SourceLocation)>,
     pub parameter_types: Vec<ProjectExpressionTypeInfo>,
@@ -154,6 +156,8 @@ impl ProjectAnalysis {
             })
             .collect();
         ProjectCheckedTypeFacts {
+            generic_nominals: self.analysis.program.deferred_generic_nominals.iter().filter_map(|(span, declaration)|
+                Some((self.source_location(*span)?, self.source_location(*declaration)?))).collect(),
             generic_values,
             parameter_types,
             projections,

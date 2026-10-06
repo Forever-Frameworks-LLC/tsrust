@@ -325,3 +325,19 @@ contracts instead. No runtime semantics change.
 Mixed generic signatures containing non-generic imported/private nominal types,
 conditional and optional aliases, and shared-span ambiguities still require the
 wider editor audit. Actual callback/storage adaptation and gate173 remain open.
+
+## Fixed nominal annotations in generic alias headers
+
+A dedicated generic_value_metadata module walks original template annotations
+iteratively and retains nominal use/declaration pairs. It excludes the function's
+generic type parameters and visits nested array, tuple, union and callable syntax.
+Generic record template declarations supply identity before concrete application.
+Project facts preserve both source locations; editor signature edits target only
+those exact annotation spans. They do not rename parameter labels, default strings
+or generic placeholders.
+
+Focused controls verify imported aliases despite local name collisions, fixed
+generic record applications, unchanged parameter labels/defaults and private
+result types with dependency field navigation. Whole editor checks pass, with
+the additional private-result control verified separately. Conditional/optional
+contexts, ambiguous shared spans and real callback/storage adapters remain open.

@@ -431,3 +431,8 @@ Project generic alias progress: imported aliases and captured factory results
 retain generic signatures and docs. Concrete invocation help includes checked
 ownership and imported nominal aliases. The wider editor audit and real callable
 storage/callback adaptation remain open.
+
+Generic alias header progress: fixed nominal annotations now use source identities
+for imported aliases, applied records and private results. Labels and default
+literals stay intact. Conditional/optional aliases and callable adapters remain
+open under gate173.

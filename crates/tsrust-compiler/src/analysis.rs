@@ -32,6 +32,8 @@ mod logical_values;
 pub(crate) mod generic_function_values;
 #[path = "closure_methods.rs"]
 mod closure_methods;
+#[path = "generic_value_metadata.rs"]
+mod generic_value_metadata;
 #[path = "deferred_generic_values.rs"]
 mod deferred_generic_values;
 #[path = "generic_calls.rs"]
@@ -216,6 +218,7 @@ pub struct CheckedProgram {
     pub(crate) function_specializations: HashMap<usize,usize>,
     pub(crate) deferred_generic_values: HashSet<usize>,
     pub(crate) deferred_generic_sources: HashMap<usize, Token>,
+    pub(crate) deferred_generic_nominals: Vec<(Span, Span)>,
     pub generic_declarations: HashMap<usize, Token>,
     pub generic_parameter_types: HashMap<usize, Vec<Type>>,
     pub records: Vec<Record>,
@@ -3015,6 +3018,7 @@ impl Analyzer {
                 &self.program.functions,
             )?;
         }
+        let deferred_generic_nominals = self.deferred_generic_nominal_uses();
         let checked = CheckedProgram {
             named_capture_layouts: Vec::new(),
             named_capture_access: self.named_captures.summaries(&self.checked),
@@ -3035,6 +3039,7 @@ impl Analyzer {
                     Some((id, self.signatures[*declaration].params.clone()))
                 })
                 .collect(),
+            deferred_generic_nominals,
             deferred_generic_values: self.deferred_generic_values.keys().copied().collect(),
             deferred_generic_sources: self.deferred_generic_values.iter().map(|(origin, source)| (*origin, self.generic_functions.template(&source.declaration).expect("deferred generic source template").name.clone())).collect(),
             generic_declarations: self

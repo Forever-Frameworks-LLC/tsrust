@@ -12,6 +12,10 @@ pub(crate) struct Cache {
 }
 
 impl Cache {
+    pub(crate) fn declaration(&self, name: &str) -> Option<Span> {
+        self.templates.get(name).map(|record| record.name.span)
+    }
+
     pub(crate) fn materialize(
         &mut self,
         annotation: &mut ValueAnnotation,

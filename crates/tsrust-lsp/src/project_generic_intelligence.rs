@@ -185,7 +185,36 @@ impl SourceIndex {
             let source_index = if declaration.source == *current { &*self } else {
                 let Some(index) = dependencies.get(&declaration.source) else { continue; }; index
             };
-            let Some(source) = source_index.symbols.iter().find(|symbol| symbol.span == declaration.span && symbol.kind == 12).cloned() else { continue; };
+            let Some(mut source) = source_index.symbols.iter().find(|symbol| symbol.span == declaration.span && symbol.kind == 12).cloned() else { continue; };
+            let header_start = source_index.tokens.iter().position(|token| token.span == declaration.span)
+                .and_then(|id| id.checked_sub(1)).map(|id| source_index.tokens[id].span.start);
+            if let Some(header_start) = header_start {
+                let original = source.signature.clone();
+                let mut edits = Vec::new();
+                for (use_site, target) in &facts.generic_nominals {
+                    if use_site.source != declaration.source || use_site.span.start < header_start
+                        || use_site.span.end > header_start + original.len() { continue; }
+                    let name = graph.modules[&target.source].source.text[target.span.start..target.span.end].to_owned();
+                    let ty = ProjectType::Named { name, declaration: Some(target.clone()), arguments: Vec::new() };
+                    if let Some(spelling) = self.project_type_spelling(graph, current, &ty, dependencies) {
+                        edits.push((use_site.span.start - header_start, use_site.span.end - header_start, self.display_type(&spelling)));
+                    }
+                }
+                edits.sort_by_key(|edit| edit.0);
+                edits.dedup();
+                let mut parameter_start = 0;
+                for parameter in &mut source.parameters {
+                    if let Some(offset) = original[parameter_start..].find(parameter.as_str()) {
+                        let start = parameter_start + offset;
+                        let stop = start + parameter.len();
+                        parameter_start = stop;
+                        for (begin, end, spelling) in edits.iter().rev().filter(|(begin,end,_)| *begin >= start && *end <= stop) {
+                            parameter.replace_range(begin-start..end-start, spelling);
+                        }
+                    }
+                }
+                for (start,end,spelling) in edits.into_iter().rev() { source.signature.replace_range(start..end,&spelling); }
+            }
             for symbol in self.symbols.iter_mut().filter(|symbol| symbol.span == location.span) {
                 symbol.kind = 12;
                 symbol.signature = source.signature.replacen(&format!("function {}", source.name), &format!("function {}", symbol.name), 1);

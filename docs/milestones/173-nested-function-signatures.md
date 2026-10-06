@@ -259,3 +259,11 @@ aliases, unsaved parameter-name edits, default omission and checked ownership
 access. Deferred prototypes are excluded from project callable types. Mixed
 source signatures and conditional/optional alias contexts remain under audit;
 actual callback/storage adaptation and full gate173 acceptance remain open.
+
+## Fixed nominal generic alias headers
+
+Original template annotation uses now retain nominal declaration identities.
+Project hover and completion display visible imported aliases while preserving
+labels, literal defaults and generic placeholders. Applied and private nominal
+controls pass; conditional/optional contexts and actual callable adapters remain
+open. No gate173 or feature-family acceptance is claimed.

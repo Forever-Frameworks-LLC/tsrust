@@ -59,6 +59,58 @@ fn imported_generic_factory_alias_help_tracks_unsaved_contract_and_nominal_alias
 }
 
 #[test]
+fn generic_alias_source_signature_remaps_fixed_nominals_without_name_capture() {
+    let entry="import {User as Person,choose} from './dep.tsr';type User={wrong:int;};function main(){const action=choose;const person:Person={name:'Pat'};const chosen=action(person,7);}";
+    let dependency="export type User={name:string;};export function choose<T>(user:ReadOnly<User>,value:T):T{console.log(user.name);return value;}";
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();
+    workspace.open(source_id(uri).unwrap(),1,entry.into());
+    workspace.open(source_id("file:///tsrust-intelligence/dep.tsr").unwrap(),1,dependency.into());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,entry,"action=","textDocument/hover");
+    let value=hover["contents"]["value"].as_str().unwrap();
+    assert!(value.contains("<T>") && value.contains("ReadOnly<Person>"),"{hover}");
+    assert!(!value.contains("ReadOnly<User>"),"{hover}");
+    let help=ask(&index,entry,"person,7","textDocument/signatureHelp");
+    assert!(help["signatures"][0]["label"].as_str().unwrap().contains("ReadOnly<Person>"),"{help}");
+}
+
+#[test]
+fn generic_alias_source_signature_keeps_labels_defaults_and_applied_nominals() {
+    let entry="import {User as Person,Box as Package,choose} from './dep.tsr';function main(){const action=choose;const person:Person={name:'Pat'};const box:Package<int>={value:1};const chosen=action(person,box,'User',7);}";
+    let dependency="export type User={name:string;};export type Box<T>={value:T;};export function choose<T>(User:ReadOnly<User>,box:ReadOnly<Box<int>>,label:string='User',value:T):T{console.log(User.name,box.value,label);return value;}";
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();
+    workspace.open(source_id(uri).unwrap(),1,entry.into());
+    workspace.open(source_id("file:///tsrust-intelligence/dep.tsr").unwrap(),1,dependency.into());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,entry,"action=","textDocument/hover");
+    let value=hover["contents"]["value"].as_str().unwrap();
+    assert!(value.contains("User:ReadOnly<Person>") && value.contains("ReadOnly<Package<int>>"),"{hover}");
+    assert!(value.contains("label:string='User'") && value.contains("value:T"),"{hover}");
+}
+
+#[test]
+fn generic_alias_source_signature_keeps_private_result_nominal_identity() {
+    let entry="import {make} from './dep.tsr';type User={wrong:int;};type Box={wrong:boolean;};function main(){const action=make;const chosen=action(7);console.log(chosen.value.name);}";
+    let dependency="type User={name:string;};type Box<T>={value:T;};export function make<T>(value:T):Box<User>{console.log(value);return {value:{name:'Pat'}};}";
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();
+    workspace.open(source_id(uri).unwrap(),1,entry.into());
+    workspace.open(source_id("file:///tsrust-intelligence/dep.tsr").unwrap(),1,dependency.into());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,entry,"action=","textDocument/hover");
+    let value=hover["contents"]["value"].as_str().unwrap();
+    assert!(value.contains("<T>") && value.contains("Box<User>"),"{hover}");
+    assert!(!value.contains("__tsrust_private_"),"{hover}");
+    let definition=ask(&index,entry,"name);","textDocument/definition");
+    assert_eq!(definition["uri"],"file:///tsrust-intelligence/dep.tsr","{definition}");
+}
+
+#[test]
 fn checked_project_generic_callable_help_preserves_aliases_and_unsaved_names() {
     let entry = "import {User as Person,invoke as apply} from './dep.tsr';function main(){const action=(user:Person):Person=>{return user;};apply(action,{name:'Pat'});}";
     let dependency = "export type User={name:string;};export function invoke<T>(action:Function<T, [person:Owned<T>]>,value:T):T{return action(value);}";

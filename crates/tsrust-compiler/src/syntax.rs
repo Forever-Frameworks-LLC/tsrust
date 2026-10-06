@@ -1663,7 +1663,7 @@ fn structured_parameters(
 }
 
 impl ResultAnnotation {
-    fn value_annotation(&self) -> crate::type_syntax::ValueAnnotation {
+    pub(crate) fn value_annotation(&self) -> crate::type_syntax::ValueAnnotation {
         match self {
             Self::Inferred(span) => crate::type_syntax::ValueAnnotation { kind: crate::type_syntax::ValueAnnotationKind::Named(crate::type_syntax::TypeName { text: "__inferred_arrow_result".into(), span: *span }), span: *span },
             Self::Named(value) => (**value).clone(),
