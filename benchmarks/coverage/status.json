@@ -6297,5 +6297,18 @@
     ],
     "measured": false,
     "note": "Optional record fields: name?: Type has type Type | undefined and may be omitted from a literal, where it holds undefined. The record keeps its fixed shape, so an omitted field is still listed and printed; JavaScript omits the property. Optional parameters are covered separately. One matched scenario verified untimed."
+  },
+  "type.interface": {
+    "implementation": "native variant",
+    "comparison": "paired",
+    "workloads": [
+      "interfaces"
+    ],
+    "evidence": [
+      "./milestones/166-interfaces.md",
+      "./interfaces.md"
+    ],
+    "measured": false,
+    "note": "interface declarations are nominal record types with optional fields, type parameters and extends over record types, in any order and across modules. Record types stay distinct by name; method signatures, generic bases and declaration merging are rejected. One matched scenario verified untimed."
   }
 }

@@ -24818,9 +24818,17 @@
       "category": "TypeScript types",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
-      "comparison": "missing",
-      "evidence": []
+      "implementation": "native variant",
+      "comparison": "paired",
+      "evidence": [
+        "./milestones/166-interfaces.md",
+        "./interfaces.md"
+      ],
+      "workloads": [
+        "interfaces"
+      ],
+      "measured": false,
+      "note": "interface declarations are nominal record types with optional fields, type parameters and extends over record types, in any order and across modules. Record types stay distinct by name; method signatures, generic bases and declaration merging are rejected. One matched scenario verified untimed."
     },
     {
       "id": "type.intersection",

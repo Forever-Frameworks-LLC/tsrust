@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "gate": 165,
+  "gate": 166,
   "seed": 7,
   "warmups": 8,
   "samples": 31,
@@ -19414,6 +19414,34 @@
       "specification": "Build records that omit and supply an optional field, assign it later, read it with a fallback and through a destructuring default; retain five cells.",
       "sourceSha256": "f64bcafe5fd6b3ac8befb691b3f1163b4400f2fe09d13877f1ebe505c205b6f5",
       "counterpartSha256": "ae496d28b26fa79a2c5e16bd244822c822c1c1fbcfbd371a3f364bb848630a6e"
+    },
+    {
+      "id": "interfaces",
+      "family": "interfaces",
+      "source": "workloads/interfaces.tsr",
+      "counterpart": "workloads/interfaces.ts",
+      "result": "string[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One complete interface scenario",
+      "inputText": "dynamic \u00e9\ud83d\ude42 text",
+      "category": "other",
+      "implementationGate": 166,
+      "measurementStatus": "pending-language-milestone",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": true,
+      "measured": false,
+      "notes": "Gate 166: three interfaces, one extending two others with an optional inherited field; literals with and without that field read through a function. Five observed cells per scenario. Verified untimed; unmeasured, language milestone pending.",
+      "specification": "Declare interfaces with extends and an optional inherited field, build values of the derived and base types, and retain five cells.",
+      "sourceSha256": "13368c26b430d053379a27e21f39e0727f9e3686312c94b63320b2c1977cd1e4",
+      "counterpartSha256": "83097a2152ce50c5574830d2ac98a776d1d5534d7c912e8ffd9411e69feedd2d"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

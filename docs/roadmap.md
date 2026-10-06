@@ -1,3 +1,5 @@
+**Gate 166 accepted:** [Interfaces](./milestones/166-interfaces.md): `interface` record types with `extends` over record types in any order and across modules, optional fields and type parameters; editor symbols with inherited fields. Compiler 4 focused plus 310 affected, editor 264, grammar 1, harness 393, five matched cases verified untimed. No timing.
+
 **Gate 165 accepted:** [Optional record fields](./milestones/165-optional-fields.md): `name?: Type` fields that literals may omit, with fixed record shape, editor field types and completion. Compiler 3 focused plus 306 affected, editor 263, harness 392, five matched cases verified untimed. No timing.
 
 **Gate 164 accepted:** [String indexing](./milestones/164-string-indexing.md): `text[position]` by Unicode character position with array-consistent range errors, write rejection and editor types. Repairs: absent optional selections compared with `undefined`, hover type of comparison initializers, formatting-insensitive catalog fixture check. Compiler 5 focused plus 151 affected, editor 262, harness 391, five matched cases verified untimed. No timing. The optional form `text?.[position]` is supported.

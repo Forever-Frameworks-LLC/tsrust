@@ -45,7 +45,7 @@ Full compiler regression and accumulated performance comparisons run at complete
 | Serialization | 3 | 0 | 0 | 3 |
 | Strings | 77 | 67 | 0 | 10 |
 | Symbols | 25 | 0 | 0 | 25 |
-| TypeScript types | 53 | 9 | 2 | 42 |
+| TypeScript types | 53 | 10 | 2 | 41 |
 
 ## Arrays
 
@@ -2103,7 +2103,7 @@ Full compiler regression and accumulated performance comparisons run at complete
 | `type.genericDefault` | pending | missing |  |
 | `type.indexedAccess` | pending | missing |  |
 | `type.infer` | pending | missing |  |
-| `type.interface` | pending | missing |  |
+| `type.interface` | native variant | paired | interface declarations are nominal record types with optional fields, type parameters and extends over record types, in any order and across modules. Record types stay distinct by name; method signatures, generic bases and declaration merging are rejected. One matched scenario verified untimed.; [evidence](./milestones/166-interfaces.md) · [evidence](./interfaces.md) · [interfaces](../benchmarks/runtime/workloads/interfaces.tsr) |
 | `type.intersection` | pending | missing |  |
 | `type.keyof` | pending | missing |  |
 | `type.literal` | pending | missing |  |
