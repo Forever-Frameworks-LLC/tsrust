@@ -62,16 +62,92 @@
       "match": "\\b(?:if|else|while|do|for|of|in|return|break|continue|switch|case|default|try|catch|finally|throw)\\b"
     },
     {
-      "name": "meta.function.generic.tsrust",
-      "match": "\\b(function)(\\s+)([A-Za-z_][A-Za-z_0-9]*)(?=\\s*<)",
-      "captures": {
+      "name": "meta.binding.tsrust",
+      "begin": "\\b(const|let)\\s+([A-Za-z_][A-Za-z_0-9]*)",
+      "beginCaptures": {
+        "1": {
+          "name": "storage.type.tsrust"
+        }
+      },
+      "end": "(?=[=;])",
+      "patterns": [
+        {
+          "include": "#annotation"
+        }
+      ]
+    },
+    {
+      "name": "meta.type.alias.tsrust",
+      "begin": "\\b(type)\\s+([A-Za-z_][A-Za-z_0-9]*)",
+      "beginCaptures": {
         "1": {
           "name": "storage.type.tsrust"
         },
-        "3": {
+        "2": {
+          "name": "entity.name.type.tsrust"
+        }
+      },
+      "end": "(?=;)",
+      "patterns": [
+        {
+          "include": "#type"
+        },
+        {
+          "name": "keyword.operator.tsrust",
+          "match": "="
+        }
+      ]
+    },
+    {
+      "name": "meta.function.signature.tsrust",
+      "begin": "\\b(function)\\s+([A-Za-z_][A-Za-z_0-9]*)",
+      "beginCaptures": {
+        "1": {
+          "name": "storage.type.tsrust"
+        },
+        "2": {
           "name": "entity.name.function.tsrust"
         }
-      }
+      },
+      "end": "(?=\\{)",
+      "patterns": [
+        {
+          "include": "#parameters"
+        },
+        {
+          "begin": ":",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.separator.tsrust"
+            }
+          },
+          "end": "(?=\\{|;)",
+          "patterns": [
+            {
+              "include": "#type"
+            }
+          ]
+        },
+        {
+          "begin": "<",
+          "end": ">",
+          "beginCaptures": {
+            "0": {
+              "name": "keyword.operator.tsrust"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "keyword.operator.tsrust"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#type"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "meta.interface.tsrust",
@@ -84,8 +160,11 @@
           "name": "entity.name.type.interface.tsrust"
         }
       },
-      "end": "(?=\\{)",
+      "end": "(?<=\\})",
       "patterns": [
+        {
+          "include": "#record"
+        },
         {
           "begin": "<",
           "end": ">",
@@ -182,5 +261,232 @@
       "name": "punctuation.section.tsrust",
       "match": "[{}\\[\\]()]"
     }
-  ]
+  ],
+  "repository": {
+    "type": {
+      "patterns": [
+        {
+          "name": "support.type.primitive.tsrust",
+          "match": "\\b(?:int|number|string|boolean|void|never|unknown)\\b"
+        },
+        {
+          "name": "constant.language.tsrust",
+          "match": "\\b(?:null|undefined|true|false)\\b"
+        },
+        {
+          "name": "support.type.builtin.tsrust",
+          "match": "\\b(?:Function|Mutable|ReadOnly|Once|Owned|Set|Map)\\b"
+        },
+        {
+          "include": "#record"
+        },
+        {
+          "begin": "<",
+          "end": ">",
+          "beginCaptures": {
+            "0": {
+              "name": "keyword.operator.tsrust"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "keyword.operator.tsrust"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#type"
+            }
+          ]
+        },
+        {
+          "begin": "\\[",
+          "end": "\\]",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.section.tsrust"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.section.tsrust"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#annotation"
+            },
+            {
+              "include": "#type"
+            }
+          ]
+        },
+        {
+          "begin": "\\(",
+          "end": "\\)",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.section.tsrust"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.section.tsrust"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#annotation"
+            },
+            {
+              "include": "#type"
+            }
+          ]
+        },
+        {
+          "name": "entity.name.type.tsrust",
+          "match": "\\b[A-Za-z_][A-Za-z_0-9]*\\b"
+        },
+        {
+          "name": "keyword.operator.tsrust",
+          "match": "=>|[|&?]"
+        },
+        {
+          "name": "punctuation.separator.tsrust",
+          "match": "[,.:]"
+        },
+        {
+          "name": "comment.line.double-slash.tsrust",
+          "begin": "//",
+          "end": "$"
+        },
+        {
+          "name": "comment.block.tsrust",
+          "begin": "/\\*",
+          "end": "\\*/"
+        },
+        {
+          "name": "string.quoted.double.tsrust",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.tsrust",
+              "match": "\\\\(?:u\\{[0-9a-fA-F]+\\}|u[0-9a-fA-F]{4}|x[0-9a-fA-F]{2}|.)"
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.tsrust",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            {
+              "name": "constant.character.escape.tsrust",
+              "match": "\\\\(?:u\\{[0-9a-fA-F]+\\}|u[0-9a-fA-F]{4}|x[0-9a-fA-F]{2}|.)"
+            }
+          ]
+        }
+      ]
+    },
+    "annotation": {
+      "begin": ":",
+      "end": "(?=[,;)=}\\]])",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.separator.tsrust"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.separator.tsrust"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#type"
+        }
+      ],
+      "name": "meta.type.annotation.tsrust"
+    },
+    "record": {
+      "begin": "\\{",
+      "end": "\\}",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.section.tsrust"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.tsrust"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#annotation"
+        },
+        {
+          "name": "comment.line.double-slash.tsrust",
+          "begin": "//",
+          "end": "$"
+        },
+        {
+          "name": "comment.block.tsrust",
+          "begin": "/\\*",
+          "end": "\\*/"
+        },
+        {
+          "name": "string.quoted.double.tsrust",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.tsrust",
+              "match": "\\\\(?:u\\{[0-9a-fA-F]+\\}|u[0-9a-fA-F]{4}|x[0-9a-fA-F]{2}|.)"
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.tsrust",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            {
+              "name": "constant.character.escape.tsrust",
+              "match": "\\\\(?:u\\{[0-9a-fA-F]+\\}|u[0-9a-fA-F]{4}|x[0-9a-fA-F]{2}|.)"
+            }
+          ]
+        },
+        {
+          "name": "punctuation.separator.tsrust",
+          "match": "[;,?]"
+        }
+      ],
+      "name": "meta.type.record.tsrust"
+    },
+    "parameters": {
+      "begin": "\\(",
+      "end": "\\)",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.section.tsrust"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.tsrust"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#annotation"
+        },
+        {
+          "include": "$self"
+        }
+      ],
+      "name": "meta.parameters.tsrust"
+    }
+  }
 }

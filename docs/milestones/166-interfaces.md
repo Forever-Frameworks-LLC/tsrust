@@ -75,3 +75,20 @@ TextMate grammar tokenization pass. Compiler/LSP consumers are atomically refres
 No parser/analyzer dispatch, runtime semantics or benchmark sources changed, so no
 new timing or runtime workload is claimed. Original red and successful logs are
 retained in SQLite under target/editor/interface-* with byte-exact read-back.
+
+## Type-reference highlighting repair, 2026-10-06
+
+The grammar now recognizes type contexts in interface fields, named function
+parameters and results, typed variable bindings and type aliases. User-defined
+names and generic parameters receive type scopes, including array element types,
+nested generic arguments and multiline declarations. Built-in and primitive types
+retain their existing scopes. Ordinary value identifiers, object values and
+conditional branches do not acquire type scopes merely because their names begin
+with capitals. Function bodies leave the signature context.
+
+A real TextMate witness first failed on the field type T in Box<T>. The expanded
+scope checks and extension compile pass. The local VSIX was packaged and installed;
+its installed grammar matches source byte-for-byte. Developer: Reload Window loads
+the updated contribution. No compiler, formatter or runtime behavior changed.
+The verified record is in SQLite under
+ target/editor/type-reference-highlighting-2026-10-06.log. No timing was performed.

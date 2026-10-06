@@ -75,5 +75,34 @@ test('real TextMate tokenization covers lexer syntax and multiline state', async
     }
   }
   assert.ok(grammar.tokenizeLine('const interfaceName = 1;', interfaceState).tokens.every(t => !t.scopes.includes('meta.interface.tsrust')));
+  const referenceLines = [
+    'interface Box<T> { value: T; label?: string; }',
+    'interface Team { lead: Player; members: Player[]; }',
+    'type Scores = Map<string, int>;',
+    'interface Board extends Named { scores: Scores; }',
+    'function describe(player: Player): Scores { return player; }',
+    'const team: Box<Map<string, Player[]>> = source;',
+  ];
+  for (const line of referenceLines) {
+    const tokens = grammar.tokenizeLine(line).tokens;
+    for (const match of line.matchAll(/\b(?:Box|Team|Player|Scores|Board|T)\b/g)) {
+      const token = tokens.find(t => t.startIndex <= match.index && t.endIndex > match.index);
+      assert.ok(token?.scopes.some(s => s.startsWith('entity.name.type')), `${line}: ${match[0]} must be a type: ${JSON.stringify(tokens)}`);
+    }
+  }
+  for (const line of ['const Player = value; console.log(Player);', 'const obj = { lead: Player, scores: Scores };', 'const choice = ready ? Player : Scores;']) {
+    assert.ok(grammar.tokenizeLine(line).tokens.every(t => !t.scopes.some(s => s.startsWith('entity.name.type'))), `Value identifiers must stay values: ${line}`);
+  }
+  let typeState;
+  for (const line of ['interface Team {', '  members: Map<string,', '    Box<Player[]>>;', '}', 'function describe(', '  player: Player', '): Scores {', '  const Player = 1;', '  return Player;', '}']) {
+    const result = grammar.tokenizeLine(line, typeState);
+    typeState = result.ruleStack;
+    for (const match of line.matchAll(/\b(?:Team|Box|Player|Scores)\b/g)) {
+      const token = result.tokens.find(t => t.startIndex <= match.index && t.endIndex > match.index);
+      const isType = token?.scopes.some(s => s.startsWith('entity.name.type'));
+      assert.equal(isType, !line.includes('const') && !line.includes('return'), `Multiline context: ${line}`);
+    }
+  }
+  assert.ok(grammar.tokenizeLine('console.log(Player);', typeState).tokens.every(t => !t.scopes.some(s => s.startsWith('meta.type') || s.startsWith('entity.name.type'))));
   registry.dispose();
 });

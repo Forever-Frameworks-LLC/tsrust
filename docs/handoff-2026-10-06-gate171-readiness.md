@@ -27,3 +27,13 @@ drop order with native witnesses; a slot declared before a captured owner can ha
 an invalid drop lifetime even if initialized later. Do not eagerly create references
 before captures are ready. The retained statement/enclosing-owner anchors are needed
 for placement, and typed closure contexts should replace source-body copying.
+
+
+## Editor follow-up
+
+The interface type-reference highlighting repair is complete: annotations, aliases,
+array elements and nested generic arguments have type scopes. Real TextMate tests
+and extension compilation pass; the local VSIX is installed with exact source
+verification. Reload the VS Code window to activate it. See the gate 166 milestone
+for evidence. Resume the typed capture-context work described above; this editor
+repair does not accept gate 171. Preserve all four unrelated fixture edits.
