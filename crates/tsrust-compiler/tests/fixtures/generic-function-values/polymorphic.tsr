@@ -1,0 +1,25 @@
+import { strictEqual } from "std:testing";
+
+function identity<T>(value: T): T { return value; }
+
+function main() {
+    const plain = identity;
+    strictEqual(plain(7), 7);
+    strictEqual(plain("text"), "text");
+
+    let calls = 0;
+    function select<T>(value: T): T {
+        calls += 1;
+        return value;
+    }
+    {
+        const action = select;
+        strictEqual(action(3), 3);
+        strictEqual(action("value"), "value");
+        const values = [5, 6];
+        const returned = action(values);
+        strictEqual(returned[0], 5);
+        strictEqual(returned[1], 6);
+    }
+    strictEqual(calls, 3);
+}

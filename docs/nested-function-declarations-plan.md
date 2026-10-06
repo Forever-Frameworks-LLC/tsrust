@@ -227,3 +227,6 @@ callback tuple remains a type error for int[] rest. Matched nested_function_rest
 support is appended at manifest end, with seven independent observations, source
 mutation guards, registration, native ABI and all oracle/run/profile/report hooks.
 Gate 173 is still open for generic values and the final inference/context audit.
+
+Generic function value requirements now have four red native witnesses and passing
+strict TypeScript/Node references. See [the generic-value implementation plan](generic-function-values-plan.md). No generic-value implementation is accepted yet.

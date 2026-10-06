@@ -132,3 +132,6 @@ Gate 173 is still open for generic values and the final inference/context audit.
 
 Rest checkpoint evidence and the retained accidental timing record are documented in
 [the rest handoff](../handoff-2026-10-06-gate173-rest-values.md).
+
+Generic function value requirements now have four red native witnesses and passing
+strict TypeScript/Node references. See [the generic-value implementation plan](../generic-function-values-plan.md). No generic-value implementation is accepted yet.

@@ -1,3 +1,5 @@
+Current continuation: [generic value red checkpoint](handoff-2026-10-06-gate173-generic-red.md).
+
 # Handoff: captured rest function values
 
 Read AGENTS.md, docs/development-workflow.md, docs/nested-function-declarations-plan.md
