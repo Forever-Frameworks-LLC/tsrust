@@ -1,0 +1,48 @@
+mod support;
+
+// `text[position]` is the character at a position, as a new string. A
+// position outside the string is a catchable range error, like an array
+// index. The independent Node run of the fixture passes.
+#[test]
+fn string_indexing_selects_characters_and_checks_bounds() {
+    let directory = support::TempDirectory::new();
+    let path = directory.source(include_str!("fixtures/string-indexing/positions.tsr"));
+    let output = support::run(support::cli().arg("run").arg(path), 60);
+    support::success(&output);
+    assert!(output.stdout.is_empty());
+}
+
+// Positions count whole Unicode characters, as charAt, at and for...of do.
+#[test]
+fn string_indexing_counts_unicode_characters() {
+    support::execute(
+        "function main() { const text = \"a€😀b\"; console.log(text[0], text[1], text[2], text[3], text[2] === text.charAt(2)); }",
+        "a € 😀 b true\n",
+        None,
+    );
+}
+
+#[test]
+fn uncaught_string_index_reports_a_range_error() {
+    let directory = support::TempDirectory::new();
+    let path = directory.source("function main() { const text = \"abc\"; let position = 7; console.log(text[position]); }");
+    let output = support::run(support::cli().arg("run").arg(path), 60);
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("RangeError") && stderr.contains("string index out of range"), "{stderr}");
+    assert!(!stderr.contains("panicked"), "{stderr}");
+}
+
+#[test]
+fn string_indexing_keeps_static_contracts() {
+    for (source, code) in [
+        ("function main() { const text = \"abc\"; const a = text[\"0\"]; }", "type"),
+        ("function main() { const text = \"abc\"; const a = text[1.5]; }", "type"),
+        ("function main() { const text = \"abc\"; const a: int = text[0]; }", "type"),
+        ("function main() { let text = \"abc\"; text[0] = \"x\"; }", "unsupported"),
+        ("function main() { let text = \"abc\"; text[0] += \"x\"; }", "unsupported"),
+        ("function main() { const n = 5; const a = n[0]; }", "type"),
+    ] {
+        support::reject(source, code);
+    }
+}

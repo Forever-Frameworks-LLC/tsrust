@@ -11,5 +11,6 @@ fn map_group_by_has_static_help_and_checked_result_types(){
 }
 #[test]
 fn map_group_by_catalog_example_checks(){
- let catalog:serde_json::Value=serde_json::from_str(include_str!("../src/builtins.json")).unwrap();let entry=&catalog["MapConstructor"][0];let example=&entry["examples"][0];let fixture=include_str!("../../tsrust-compiler/tests/fixtures/map-group-by/documented.tsr");assert!(fixture.contains(example["source"].as_str().unwrap()));assert_eq!(example["output"].as_str().unwrap(),include_str!("../../tsrust-compiler/tests/fixtures/map-group-by/documented.stdout"));tsrust_compiler::check(fixture).unwrap();
+ let catalog:serde_json::Value=serde_json::from_str(include_str!("../src/builtins.json")).unwrap();let entry=&catalog["MapConstructor"][0];let example=&entry["examples"][0];let fixture=include_str!("../../tsrust-compiler/tests/fixtures/map-group-by/documented.tsr");// The fixture may be formatted; compare the example without whitespace.
+ let compact=|text:&str|text.chars().filter(|ch|!ch.is_whitespace()).collect::<String>();assert!(compact(fixture).contains(&compact(example["source"].as_str().unwrap())));assert_eq!(example["output"].as_str().unwrap(),include_str!("../../tsrust-compiler/tests/fixtures/map-group-by/documented.stdout"));tsrust_compiler::check(fixture).unwrap();
 }
