@@ -6196,7 +6196,7 @@ impl Emitter<'_> {
         let text = self.expr(fun, base, Mode::Read);
         let position = self.expr(fun, index, Mode::Copy);
         Self::access_wrapped(expr, mode, format!(
-            "(match ({text}, {position}) {{ (indexed_text, indexed_position) => {{ let indexed_text: &str = indexed_text.as_ref(); let indexed_position: i64 = indexed_position; match usize::try_from(indexed_position).ok().and_then(|position| indexed_text.chars().nth(position)) {{ Some(character) => String::Owned(character.to_string()), None => {failed} }} }} }})"
+            "(match ({text}, {position}) {{ (indexed_text, indexed_position) => {{ let indexed_text: &String = indexed_text; let indexed_text: &str = &**indexed_text; let indexed_position: i64 = indexed_position; match usize::try_from(indexed_position).ok().and_then(|position| indexed_text.chars().nth(position)) {{ Some(character) => String::Owned(character.to_string()), None => {failed} }} }} }})"
         ))
     }
 
@@ -6463,7 +6463,10 @@ impl Emitter<'_> {
                     let body = if matches!(ty, Type::Null | Type::Undefined) {
                         missing.clone()
                     } else if branch == crate::syntax::NullishBranch::Absent {
-                        "unreachable!(\"checked optional absence\")".into()
+                        // The selection follows the dead check so this arm still
+                        // has the selected type; a bare `unreachable!` leaves the
+                        // payload parameter of the result view uninferred.
+                        format!("if true {{ unreachable!(\"checked optional absence\") }} {selected}")
                     } else {
                         selected.clone()
                     };

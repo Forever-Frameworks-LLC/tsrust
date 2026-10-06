@@ -60,4 +60,8 @@ function main() {
         negative = "range";
     }
     strictEqual(negative, "range");
+    const present: string | undefined = "ok";
+    if (present !== undefined) {
+        strictEqual(present[1], "k");
+    }
 }

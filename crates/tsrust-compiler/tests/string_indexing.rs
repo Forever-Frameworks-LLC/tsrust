@@ -41,10 +41,23 @@ fn string_indexing_keeps_static_contracts() {
         ("function main() { let text = \"abc\"; text[0] = \"x\"; }", "unsupported"),
         ("function main() { let text = \"abc\"; text[0] += \"x\"; }", "unsupported"),
         ("function main() { const n = 5; const a = n[0]; }", "type"),
+        ("function show(text: string | undefined): void { console.log(text?.[0]); } function main() { show(\"ab\"); }", "unsupported"),
+        ("function pick(text: string | undefined): string { return text[0]; } function main() { pick(\"ab\"); }", "type"),
         ("function main() { let text = \"abc\"; text[0]++; }", "unsupported"),
         ("function main() { let text = \"abc\"; const a = (text[0] = \"x\"); }", "unsupported"),
         ("function main() { let text = \"abc\"; text[0] ||= \"x\"; }", "unsupported"),
     ] {
         support::reject(source, code);
     }
+}
+
+// A statically absent receiver: the selected arm is dead but must keep its
+// type so the result view can be inferred.
+#[test]
+fn absent_optional_selections_compare_with_undefined() {
+    support::execute(
+        "function main() { const values: string[] | undefined = undefined; const text: string | undefined = undefined; console.log(values?.[0] === undefined, text?.toUpperCase() === undefined); }",
+        "true true\n",
+        None,
+    );
 }
