@@ -240,11 +240,13 @@ generic_function_results workload is appended at manifest end with an independen
 six-value oracle, complete pair/guards/registration/ABI hooks and untimed verification
 support. Full generic alias help, callback/storage adaptation and the wider gate173
 audit remain open. No completed gate or family measurement is claimed.
-# Local generic alias editor checkpoint
+
+## Local generic alias editor checkpoint
 
 Deferred origin metadata now links local value bindings to their original generic
 declaration. Hover and completion retain the source type relation and documentation;
 parameter help uses each concrete checked invocation, including default omission
-and rest parameters. Four editor controls and the full editor suite pass. This
+and rest parameters. Four editor controls and the full editor suite pass; an
+additional control verifies unused-alias documentation. This
 does not accept gate173. Cross-module alias contracts, access presentation and
 callback/storage adaptation remain pending.

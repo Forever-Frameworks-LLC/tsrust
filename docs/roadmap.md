@@ -421,3 +421,8 @@ Gate173 now propagates expected result types through generic aliases and keeps
 zero-argument methods distinct by concrete result. Captured environments remain
 shared. Full alias help, callback/storage adaptation and the wider audit remain
 open; no family measurement is claimed.
+
+Generic alias editor progress: local hover and completion retain generic source
+contracts and documentation; concrete invocation help retains default/rest
+contracts. Cross-module alias metadata and polymorphic storage/callback adaptation
+remain open under gate173. See handoff-2026-10-06-gate173-local-alias-help.md.

@@ -301,6 +301,7 @@ at one source span are excluded rather than selecting an arbitrary specializatio
 
 Focused editor witnesses cover capture-free aliases, captured factory results,
 default/rest parameters, generic hover and completion, and int/string invocation
-contracts. Cross-module alias metadata, explicit access presentation, unused
-aliases and richer documentation controls still need the wider editor audit.
+contracts. An additional unused-alias control verifies source documentation in
+hover and completion. Cross-module alias metadata, explicit access presentation
+and richer documentation controls still need the wider editor audit.
 Callback/storage adaptation and full gate173 acceptance remain open.
