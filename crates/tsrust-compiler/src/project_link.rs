@@ -296,6 +296,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId]) -> Result<Projec
     let mut linked = Program {
         unresolved_local_function: None,
         local_declarations: Vec::new(),
+        local_capture_plans: Vec::new(),
         type_argument_checks: vec![],
         call_type_arguments: vec![],
         records: vec![],
@@ -345,13 +346,24 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId]) -> Result<Projec
             visitor.span(span);
             for argument in arguments { visitor.value_annotation(argument); }
         }
+        // Lifted bodies still refer to lexical captured bindings. Do not qualify
+        // those names as module globals before checked environments are formed.
+        let mut captured_names = BTreeMap::new();
+        for plan in &program.local_capture_plans {
+            for (node, direct) in plan.direct.iter().enumerate() {
+                let captures: BTreeSet<String> = direct.iter().map(|capture| capture.name.clone()).collect();
+                let declaration = &program.local_declarations[plan.node_start + node];
+                captured_names.insert(declaration.emitted_name.clone(), captures);
+            }
+        }
         for function in &mut program.functions {
             visitor.span(&mut function.scope_span);
             visitor.type_parameters = function.type_parameters.iter().map(|parameter| parameter.text.clone()).collect();
             for parameter in &mut function.type_parameters { visitor.span(&mut parameter.span); }
+            let captures = captured_names.remove(&function.name.text).unwrap_or_default();
             function.name.text = names[&function.name.text].clone();
             visitor.token_span(&mut function.name);
-            let mut locals = BTreeSet::new();
+            let mut locals = captures;
             for ((name, annotation, callback), initializer) in function.params.iter_mut().zip(&mut function.parameter_initializers) {
                 visitor.initializer(initializer, &locals);
                 parameter_pattern_names(name, &function.body, &mut locals);
@@ -371,14 +383,22 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId]) -> Result<Projec
         }
         let declaration_offset = linked.local_declarations.len();
         let scope_offset = linked.local_declarations.iter().map(|declaration| declaration.scope + 1).max().unwrap_or(0);
+        let owner_offset = linked.functions.len();
+        for plan in &mut program.local_capture_plans {
+            plan.rebase(declaration_offset, owner_offset, visitor.offset);
+        }
         for declaration in &mut program.local_declarations {
             declaration.id += declaration_offset;
+            declaration.function_owner += owner_offset;
+            declaration.enclosing_owner += owner_offset;
+            visitor.span(&mut declaration.statement_span);
             declaration.scope += scope_offset;
             visitor.token_span(&mut declaration.source_name);
             visitor.span(&mut declaration.function_scope);
             declaration.emitted_name = names[&declaration.emitted_name].clone();
         }
         linked.local_declarations.extend(program.local_declarations);
+        linked.local_capture_plans.extend(program.local_capture_plans);
         linked.call_type_arguments.extend(program.call_type_arguments);
         linked.records.extend(program.records);
         linked.functions.extend(program.functions);

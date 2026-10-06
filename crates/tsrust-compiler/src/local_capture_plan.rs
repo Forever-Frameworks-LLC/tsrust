@@ -19,14 +19,16 @@ pub(crate) struct Planner {
     captures: Vec<BTreeMap<BindingId, Capture>>,
     edges: Vec<Vec<usize>>,
 }
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub(crate) struct Group {
     pub members: Vec<usize>,
     pub captures: Vec<Capture>,
     pub dependencies: Vec<usize>,
 }
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub(crate) struct Plan {
+    pub node_start: usize,
+    pub direct: Vec<Vec<Capture>>,
     pub groups: Vec<Group>,
     pub group_of: Vec<usize>,
 }
@@ -53,6 +55,11 @@ impl Planner {
     }
     pub fn finish(mut self) -> Plan {
         // Iterative Kosaraju traversal keeps graph depth off the compiler stack.
+        let direct = self
+            .captures
+            .iter()
+            .map(|captures| captures.values().cloned().collect())
+            .collect();
         let count = self.edges.len();
         let mut reverse = vec![Vec::new(); count];
         for (source, edges) in self.edges.iter_mut().enumerate() {
@@ -133,12 +140,65 @@ impl Planner {
             dependencies.dedup();
             group.dependencies = dependencies;
         }
-        Plan { groups, group_of }
+        Plan {
+            node_start: 0,
+            direct,
+            groups,
+            group_of,
+        }
     }
 }
 impl Plan {
+    pub fn rebase(&mut self, declarations: usize, owners: usize, source: usize) {
+        self.node_start += declarations;
+        for captures in &mut self.direct {
+            for capture in captures {
+                capture.binding.owner += owners;
+                capture.binding.declaration_start += source;
+                capture.declaration.start += source;
+                capture.declaration.end += source;
+                capture.usage.start += source;
+                capture.usage.end += source;
+            }
+        }
+        for group in &mut self.groups {
+            for member in &mut group.members {
+                *member += declarations;
+            }
+            for capture in &mut group.captures {
+                capture.binding.owner += owners;
+                capture.binding.declaration_start += source;
+                capture.declaration.start += source;
+                capture.declaration.end += source;
+                capture.usage.start += source;
+                capture.usage.end += source;
+            }
+        }
+    }
+    pub fn pending_diagnostic(&self) -> Option<crate::Diagnostic> {
+        let group = self
+            .groups
+            .iter()
+            .find(|group| !group.captures.is_empty())?;
+        let capture = self
+            .requirements(group.members[0])
+            .into_iter()
+            .min_by_key(|capture| capture.usage.start)?;
+        Some(
+            crate::Diagnostic::new(
+                "unsupported",
+                format!(
+                    "Nested function capture of {:?} is pending capture-ownership implementation.",
+                    capture.name
+                ),
+                capture.usage,
+            )
+            .related(capture.declaration, "Captured binding declared here."),
+        )
+    }
+
     pub fn requirements(&self, function: usize) -> Vec<Capture> {
-        let mut pending = vec![self.group_of[function]];
+        let mut pending = vec![self.group_of[function - self.node_start]];
         let mut seen = vec![false; self.groups.len()];
         let mut result: BTreeMap<BindingId, Capture> = BTreeMap::new();
         while let Some(group) = pending.pop() {
@@ -217,5 +277,29 @@ mod tests {
         let plan = planner.finish();
         assert_eq!(plan.groups.len(), 4096);
         assert_eq!(plan.requirements(0).len(), 1);
+    }
+    #[test]
+    fn module_rebasing_preserves_group_queries_and_binding_locations() {
+        let mut planner = Planner::default();
+        planner.declaration();
+        planner.declaration();
+        planner.dependency(0, 1);
+        planner.capture(1, capture(2, 10, 30));
+        let mut plan = planner.finish();
+        plan.rebase(7, 12, 100);
+        let captures = plan.requirements(7);
+        assert_eq!(captures.len(), 1);
+        assert_eq!(captures[0].binding.owner, 14);
+        assert_eq!(plan.direct[1][0].binding.owner, 14);
+        assert_eq!(plan.direct[1][0].usage.start, 130);
+        assert_eq!(captures[0].binding.declaration_start, 110);
+        assert_eq!(captures[0].declaration, Span::new(110, 115));
+        assert_eq!(captures[0].usage, Span::new(130, 135));
+        assert!(
+            plan.groups
+                .iter()
+                .all(|group| group.members.iter().all(|&member| member >= 7))
+        );
+        assert_eq!(plan.pending_diagnostic().unwrap().span, Span::new(130, 135));
     }
 }

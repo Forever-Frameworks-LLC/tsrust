@@ -1633,3 +1633,23 @@ fn array_literal_spread_crosses_imported_generic_record_and_function_boundaries(
         .unwrap_or_else(|error| panic!("{}: {}", error.code, error.message));
     for level in ["0", "3"] { assert_eq!(native_stdout(&checked.emit_rust(), level), "7\n9\n11\n"); }
 }
+
+#[test]
+fn retained_capture_plans_map_diagnostics_after_prior_module_declarations() {
+    let free = "export function free():int{function one():int{return 1;}return one();}";
+    let captured = "export function run():int{function read():int{return data[0];}const data=[7];return read();}function data():int{return 9;}";
+    let memory = Memory::new(&[
+        ("main.tsr", "import { free } from './free.tsr';import { run } from './captured.tsr';function main(){console.log(free(),run());}"),
+        ("free.tsr", free),
+        ("captured.tsr", captured),
+    ]);
+    let graph = load_project(&memory, "main.tsr").unwrap();
+    let free_position = graph.order.iter().position(|id| id.0 == "free.tsr").unwrap();
+    let captured_position = graph.order.iter().position(|id| id.0 == "captured.tsr").unwrap();
+    assert!(free_position < captured_position, "witness needs earlier declaration offsets");
+    let error = tsrust_compiler::project::check_graph(graph).err().expect("checked capture execution still pending");
+    assert_eq!(error.code, "unsupported");
+    assert_eq!(error.location.source, SourceId("captured.tsr".into()));
+    assert_eq!(&captured[error.location.span.start..error.location.span.end], "data");
+    assert!(error.related.iter().any(|(location, _)| location.source == SourceId("captured.tsr".into()) && &captured[location.span.start..location.span.end] == "data"));
+}

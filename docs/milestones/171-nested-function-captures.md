@@ -107,3 +107,38 @@ The existing nested_function_declarations retained-result workload passes all fi
 native/node-tsc cases after the resolver change, untimed. Exact runtime-result
 benchmarks/runtime/results/2026-10-06T17-05-38-605Z-verify.json is retained in SQLite.
 No new runtime feature landed, so no new workload or measured claim is registered.
+
+## Retained-plan and phase-boundary checkpoint
+
+Captured declarations now survive parsing and lexical normalization. Program stores
+the capture plans and lifted bodies; declaration metadata retains logical function
+owner, enclosing owner and original statement span. Capture identities are logical
+source owners, not checked-function array positions. Checked analysis receives this
+representation and currently issues the explicit pending environment diagnostic
+before generic/type analysis. Capture execution and readiness are still unimplemented.
+
+Plans retain direct per-declaration captures as well as recursive group requirements.
+The linker protects direct captured names from global qualification, including a
+captured local spelling shared by a module function. It does not query every group's
+transitive requirements to link individual bodies. Module linking rebases declaration
+identities, logical owners, statement/capture spans and binding declaration starts;
+each module's condensed graph retains local group identity with a declaration offset.
+Original source locations remain available for diagnostics and later checked binding
+resolution. Captured bodies are never accepted as unbound global functions.
+
+A red-to-green phase-boundary witness checks that capture syntax parses, retains its
+body/plan/owner/anchor, and reaches the checking guard. A graph witness verifies
+rebased direct/transitive requirements and use/declaration locations. A multi-module
+witness checks the pending diagnostic after prior capture-free local declarations,
+with a captured local shadowing a module function. The next chunk should replace
+the checked guard with typed capture contexts, reachable-use readiness and finite
+borrowed environments. Do not mistake retained syntax for supported execution.
+
+Retention checkpoint checks pass: focused library16, module-location1, lexical5,
+all eight canary suites63 and whole editor272. Capture suite still has one passing
+existing reference and five pending feature failures. The existing lexical workload
+passes five matched native/node-tsc cases untimed. Canonical runtime-result is
+benchmarks/runtime/results/2026-10-06T17-16-47-102Z-verify.json; original red, build and
+successful logs are target/editor/nested-retain-* gate-log records. Every record is
+read back byte for byte before its loose copy is removed. Five consumers refreshed
+atomically and hash verified. No full compiler regression or timing was performed.

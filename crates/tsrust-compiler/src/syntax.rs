@@ -1738,6 +1738,7 @@ pub struct FunctionApplication {
 pub struct Program {
     pub(crate) unresolved_local_function: Option<Token>,
     pub(crate) local_declarations: Vec<crate::local_functions::Declaration>,
+    pub(crate) local_capture_plans: Vec<crate::local_capture_plan::Plan>,
     pub type_argument_checks: Vec<crate::type_syntax::ValueAnnotation>,
     pub call_type_arguments: Vec<(Span, Vec<crate::type_syntax::ValueAnnotation>)>,
     pub records: Vec<Record>,
@@ -2181,6 +2182,7 @@ impl Parser<'_> {
         let mut program = Program {
             unresolved_local_function: None,
             local_declarations: Vec::new(),
+            local_capture_plans: Vec::new(),
             type_argument_checks: Vec::new(),
             type_aliases: Default::default(),
             unresolved_bases: Vec::new(),

@@ -7,6 +7,9 @@ use std::collections::HashMap;
 pub(crate) struct Declaration {
     pub id: usize,
     pub scope: usize,
+    pub function_owner: usize,
+    pub enclosing_owner: usize,
+    pub statement_span: Span,
     pub source_name: Token,
     pub emitted_name: String,
     pub function_scope: Span,
@@ -42,25 +45,9 @@ pub(crate) fn resolve(program: &mut Program) -> Result<(), Diagnostic> {
         resolver.function(function, &Environment::new(), owner, false)?;
     }
     if resolver.capture_plan.has_captures() {
-        let plan = resolver.capture_plan.finish();
-        if let Some(group) = plan.groups.iter().find(|group| !group.captures.is_empty()) {
-            // Keep this staging diagnostic until checked capture environments land.
-            // The graph already separates callable edges from owner payloads.
-            let capture = plan
-                .requirements(group.members[0])
-                .into_iter()
-                .min_by_key(|capture| capture.usage.start)
-                .expect("captured group");
-            return Err(Diagnostic::new(
-                "unsupported",
-                format!(
-                    "Nested function capture of {:?} is pending capture-ownership implementation.",
-                    capture.name
-                ),
-                capture.usage,
-            )
-            .related(capture.declaration, "Captured binding declared here."));
-        }
+        program
+            .local_capture_plans
+            .push(resolver.capture_plan.finish());
     }
     program.functions.extend(resolver.lifted);
     program.local_declarations = resolver.declarations;
@@ -134,10 +121,16 @@ impl Resolver {
                     StmtKind::LocalFunction(function) => {
                         let id = self.capture_plan.declaration();
                         debug_assert_eq!(id, self.declarations.len());
+                        let function_owner = self.next_owner;
+                        self.next_owner += 1;
+                        self.local_owners.insert(function_owner, id);
                         let emitted = format!("local#{id}#{}", name.text);
                         self.declarations.push(Declaration {
                             id,
                             scope,
+                            function_owner,
+                            enclosing_owner: owner,
+                            statement_span: statement.span,
                             source_name: name.clone(),
                             emitted_name: emitted.clone(),
                             function_scope: function.scope_span,
@@ -168,9 +161,7 @@ impl Resolver {
                         unreachable!()
                     };
                     function.name.text = emitted.clone();
-                    let local_owner = self.next_owner;
-                    self.next_owner += 1;
-                    self.local_owners.insert(local_owner, *id);
+                    let local_owner = self.declarations[*id].function_owner;
                     self.function(&mut function, &env, local_owner, true)?;
                     self.lifted.push(*function);
                 }
@@ -431,5 +422,33 @@ mod tests {
         assert_eq!(error.related.len(), 1);
         let binding = error.related[0].0;
         assert_eq!(&source[binding.start..binding.end], "data");
+    }
+    #[test]
+    fn captured_declaration_syntax_reaches_the_checked_context_boundary() {
+        let source = "function main(){function read():int{return data[0];}const data=[1];console.log(read());}";
+        let parsed = crate::syntax::parse(source).expect("capture syntax must survive parsing");
+        assert_eq!(parsed.local_declarations.len(), 1);
+        assert_eq!(parsed.local_capture_plans.len(), 1);
+        let plan = &parsed.local_capture_plans[0];
+        assert_eq!(plan.requirements(0)[0].name, "data");
+        let declaration = &parsed.local_declarations[0];
+        assert_eq!(declaration.source_name.text, "read");
+        assert_eq!(declaration.enclosing_owner, 0);
+        assert_ne!(declaration.function_owner, declaration.enclosing_owner);
+        assert!(
+            source[declaration.statement_span.start..declaration.statement_span.end]
+                .starts_with("function read")
+        );
+        assert!(
+            parsed
+                .functions
+                .iter()
+                .any(|function| function.name.text == declaration.emitted_name)
+        );
+        let error = crate::analysis::analyze(parsed)
+            .err()
+            .expect("checked environment still pending");
+        assert_eq!(error.code, "unsupported");
+        assert_eq!(&source[error.span.start..error.span.end], "data");
     }
 }

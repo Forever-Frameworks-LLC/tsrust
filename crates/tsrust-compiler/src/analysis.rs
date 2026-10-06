@@ -1268,6 +1268,9 @@ fn remap_function_closures(
 
 impl Analyzer {
     fn new(mut program: Program) -> Result<Self, Diagnostic> {
+        if let Some(error) = program.local_capture_plans.iter().find_map(crate::local_capture_plan::Plan::pending_diagnostic) {
+            return Err(error);
+        }
         if let Some(base) = program.unresolved_bases.first() {
             return Err(Diagnostic::new(
                 "type",
