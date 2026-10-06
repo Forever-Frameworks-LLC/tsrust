@@ -104,3 +104,29 @@ fingerprints, oracle inputs and matched source hashes match this checkpoint.
 
 All 35 original checkpoint logs/results, including failed witnesses and
 repairs, were imported, read back byte-for-byte and removed from loose storage.
+
+## Dead-inner capture red witness
+
+The next source checkpoint retains a genuine failing native test named
+`dead_inner_declarations_do_not_require_outer_capture_initialization` in
+nested_function_owned_escape.rs. Its dead-inner.tsr fixture calls outer before
+initializing an array used only by an unused nested declaration. The call must
+return 7. Current checking instead reports unassigned at outer(), demanding later
+initialization. The independent Node reference passes. Exact original red and Node
+logs were imported and byte-verified in SQLite under target/editor/dead-inner-red.log
+and target/editor/dead-inner-node.log. No compiler implementation changed.
+
+The first rejection occurs in local_readiness::check, which constructs aliases
+from Plan::group_requirements. local_functions::body adds an enclosing-to-child
+dependency for every declaration. That same graph supplies Contexts::prepare,
+checked readiness, recursive layouts and native hidden argument requirements.
+Removing its declaration edge alone would lose the typed defining slots needed
+by prepare_uncalled_capturing_functions. Filtering only access summaries would
+also violate the contiguous parameter prefix assumed by emission and lowering.
+
+Introduce distinct live call/value dependencies and declaration-body typing
+requirements. Preserve checking of invalid unused bodies, including existing
+nested_function_captures::uncalled_capturing_functions_are_still_checked. Deferred
+checking must obtain types from the completed lexical owner, without making an
+uncalled declaration a runtime borrow or forcing an uninitialized native argument.
+Keep recursive groups and hidden slot mappings consistent across both phases.

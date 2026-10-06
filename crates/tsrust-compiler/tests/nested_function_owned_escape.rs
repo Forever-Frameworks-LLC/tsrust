@@ -106,3 +106,12 @@ fn borrowed_data_cannot_be_retained_by_an_owned_named_factory() {
     assert_eq!(error.code, "parameter-access", "{}: {}", error.code, error.message);
     assert!(error.message.contains("ReadOnly") && error.message.contains("takes ownership"));
 }
+
+#[test]
+fn dead_inner_declarations_do_not_require_outer_capture_initialization() {
+    let directory = support::TempDirectory::new();
+    let path = directory.source(include_str!("fixtures/nested-function-owned-escape/dead-inner.tsr"));
+    let output = support::run(support::cli().arg("run").arg(path), 60);
+    support::success(&output);
+    assert!(output.stdout.is_empty());
+}
