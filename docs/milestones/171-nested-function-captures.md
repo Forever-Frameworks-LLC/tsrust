@@ -186,3 +186,45 @@ benchmarks/runtime/results/2026-10-06T17-40-26-459Z-verify.json. Red/build/pass 
 target/editor/nested-readiness-* SQLite gate-log records, exact-readback verified
 before deleting loose copies. Five consumers refreshed and hash verified; generated
 examples/native outputs/test executables pruned. No timing/full compiler regression.
+
+## Typed lexical projection preparation
+
+capture_context.rs now owns the typed enclosing-context projection used by ordinary
+closure analysis. Defining contexts record source declaration starts separately
+from the active spelling map. Projection remaps those identities to capture slots,
+so a hidden outer binding remains distinguishable from a shadow with the same name.
+Source starts already share the linker's rebased source-location namespace; they are
+not checked-function array positions. Selected slots retain their checked types and
+callback metadata while enclosing argument defaults, omission ABI, transfer/use
+state and outer flow/loan state are excluded as before. Parameters and locals added
+after projection remain invocation-local through the existing capture boundary.
+
+View roots now use one outer-to-inner lookup table rather than searching the visible
+binding vector for every root. This changes compiler metadata handling, not runtime
+ownership: no owner data is implicitly cloned, no shared cells are introduced and
+no environment is materialized at a declaration. The two focused tests exercise
+shadow identities, sparse/reordered slots, scalar copy access, root remapping and
+separation from enclosing invocation state. They failed before projection was
+implemented and pass with the shared path.
+
+The next step is to resolve planned named captures against these typed defining
+contexts, check their bodies and access contracts, and build finite group layouts.
+The pending checked-environment guard remains. Typed call-failure readiness and all
+four native named-capture execution witnesses are still unfinished; this preparation
+does not accept gate 171 or add a benchmark workload.
+
+Projection preparation evidence: 18 planner/readiness library tests and two typed
+projection tests pass; all eight depth canaries pass 63 checks; the whole editor
+crate passes 273 checks. The lexical suite retains five accepted passes and two
+future-stage failures for captured escape and omitted-result inference. The capture
+suite retains four passes and five pending failures, unchanged from the previous
+checkpoint. No pending feature witness was weakened.
+
+Five matched lexical workload cases pass native/node-tsc untimed. Canonical result:
+benchmarks/runtime/results/2026-10-06T17-57-50-610Z-verify.json. Its startup,
+compilation and execution sample arrays are empty. Fifteen original log/result
+records, including the corrected red test-construction failure, are imported and
+read back exactly in SQLite under target/editor/capture-context-* and that result
+path. Five consumers were atomically refreshed and hash verified. Thirty-one
+example directories and 51 scratch executables were pruned; libraries and current
+consumers remain. No full compiler regression or timing was performed.

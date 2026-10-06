@@ -37,3 +37,27 @@ and extension compilation pass; the local VSIX is installed with exact source
 verification. Reload the VS Code window to activate it. See the gate 166 milestone
 for evidence. Resume the typed capture-context work described above; this editor
 repair does not accept gate 171. Preserve all four unrelated fixture edits.
+
+
+## Typed projection follow-up
+
+Ordinary arrow closure checking now calls analysis::capture_context::project.
+Context::source_bindings records declaration start to typed binding slot at bind;
+projection carries only selected identities into its inner slot numbering. This
+separates hidden source bindings from active lexical names without repurposing the
+supplied-slot declaration_span field. Capture view roots use a lookup map instead
+of repeated visible-vector searches. Existing outer call ABI and flow state are
+still discarded exactly as the former closure setup required.
+
+Use this seam when resolving named capture plans against typed defining contexts.
+Keep the pending guard until checked bodies, final typed readiness and finite
+borrowed layouts work. The current change does not execute captured declarations.
+Do not lower them to eager arrows or change current lexical loan lifetimes.
+
+Final typed projection checkpoint: library20, canaries63, editor273 and matched
+lexical cases5 pass. Captures remain4 passing/5 pending; lexical foundation remains
+5 passing with two pending future-stage tests. SQLite retains15 exact logs/results,
+including 2026-10-06T17-57-50-610Z-verify.json. Five consumers refreshed;31 example
+directories and51 scratch executables pruned. Gate171 remains incomplete. Continue
+by resolving planned named bodies against typed defining contexts, then final typed
+readiness and finite group environments. Preserve all four unrelated fixture edits.

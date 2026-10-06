@@ -1,3 +1,5 @@
+#[path = "capture_context.rs"]
+mod capture_context;
 #[path = "callable_expression.rs"]
 mod callable_expression;
 #[path = "exception_state.rs"]
@@ -312,6 +314,8 @@ struct Context {
     loops: Vec<LoopFrame>,
     template: bool,
     bindings: Vec<Binding>,
+    /// Source declaration starts resolve independently of current lexical spelling.
+    source_bindings: HashMap<usize, usize>,
     names: HashMap<String, usize>,
     capture_loans: Vec<(usize, Mode, Span)>,
     iteration_loans: Vec<(usize, Span)>,
@@ -350,6 +354,7 @@ impl Context {
             loops: Vec::new(),
             template: false,
             bindings: Vec::new(),
+            source_bindings: HashMap::new(),
             names: HashMap::new(),
             capture_loans: Vec::new(),
             iteration_loans: Vec::new(),
@@ -1882,52 +1887,13 @@ impl Analyzer {
         let inferred_result = matches!(result, ResultAnnotation::Inferred(_));
         let mut result = if inferred_result { Type::Void } else { self.resolve_result(result)? };
         let escapes = self.escaping.contains(&origin);
-        let mut context = Context::new(outer.function_name.clone());
+        let mut visible = outer.names.values().copied().collect::<Vec<_>>();
+        visible.sort_unstable();
+        let mut context = capture_context::project(outer, &visible);
         context.inferred_arrow_result = inferred_result;
         if self.discovering_results {
             context.pending_names = outer.pending_names.clone();
         }
-        context.lexical_scopes = outer.lexical_scopes.clone();
-        context.effects_only = outer.effects_only;
-        context.closure_depth = outer.closure_depth + 1;
-        context.template = outer.template;
-        let mut visible = outer.names.values().copied().collect::<Vec<_>>();
-        visible.sort_unstable();
-        for &id in &visible {
-            let mut binding = outer.bindings[id].clone();
-            // Captures carry the initialized value, never the enclosing callee's
-            // supplied-slot ABI or executable initializer.
-            binding.input_ty = None;
-            binding.initializer = None;
-            binding.rest = false;
-            binding.declaration_span = None;
-            binding.omission = crate::ParameterOmission::Required;
-            binding.parameter = true;
-            binding.mode = if binding.ty.is_copy() {
-                Mode::Copy
-            } else {
-                Mode::Read
-            };
-            binding.mutable = false;
-            binding.capture_reference = false;
-            binding.transferred = None;
-            binding.moved_fields.clear();
-            binding.used = None;
-            context
-                .names
-                .insert(binding.name.clone(), context.bindings.len());
-            context.bindings.push(binding);
-        }
-        for binding in &mut context.bindings {
-            binding.view_roots = binding
-                .view_roots
-                .iter()
-                .filter_map(|root| visible.iter().position(|outer| outer == root))
-                .collect();
-        }
-        // Bindings inherited from the enclosing body are potential captures;
-        // parameters and locals belong to this invocation instead.
-        context.capture_boundary = context.bindings.len();
         let contextual = contextual.and_then(|ty| match self.unions.payload(ty).unwrap_or(ty) {
             Type::Callback(id) => Some(self.callables.callbacks[id].params.clone()),
             Type::Callable(id) => Some(self.callables.results[id].params.clone()),
@@ -5846,6 +5812,7 @@ impl Analyzer {
         }
         let index = context.bindings.len();
         context.names.insert(token.text.clone(), index);
+        context.source_bindings.insert(token.span.start, index);
         context.bindings.push(Binding { rest: false,
             name: token.text.clone(),
             ty,
