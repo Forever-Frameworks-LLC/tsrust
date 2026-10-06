@@ -45,7 +45,7 @@ Full compiler regression and accumulated performance comparisons run at complete
 | Serialization | 3 | 0 | 0 | 3 |
 | Strings | 77 | 67 | 0 | 10 |
 | Symbols | 25 | 0 | 0 | 25 |
-| TypeScript types | 53 | 8 | 2 | 43 |
+| TypeScript types | 53 | 9 | 2 | 42 |
 
 ## Arrays
 
@@ -1975,7 +1975,7 @@ Full compiler regression and accumulated performance comparisons run at complete
 
 | Operation | Implementation | Comparison | Scope / evidence |
 | --- | --- | --- | --- |
-| `String.[index]` | native variant | paired | text[position] gives the character at a Unicode character position as a new string. A missing position is a catchable range error, like an array index; JavaScript gives undefined. Writes through a position and the optional form are rejected. One matched scenario verified untimed.; [evidence](./milestones/164-string-indexing.md) · [evidence](./string-indexing.md) · [string_indexing](../benchmarks/runtime/workloads/string_indexing.tsr) |
+| `String.[index]` | native variant | paired | text[position] gives the character at a Unicode character position as a new string. A missing position is a catchable range error, like an array index; JavaScript gives undefined. Writes through a position are rejected; the optional form gives undefined for an absent text. One matched scenario verified untimed.; [evidence](./milestones/164-string-indexing.md) · [evidence](./string-indexing.md) · [string_indexing](../benchmarks/runtime/workloads/string_indexing.tsr) |
 | `String.[Symbol.iterator]` | pending | missing |  |
 | `string.addAssign` | implemented | paired group | Matching String/String += reads an available mutable target before RHS evaluation, borrows both operands and commits a fresh independent owned result. Self-append, source order, existing loans and normal/unwind disposal pass. Separate ASCII/Unicode comparisons time cloning/repetition, target initialization, actual append and complete string[] retention. Native ownership costs differ from possible JavaScript immutable sharing; no allocation-parity claim.; [evidence](./milestones/63-compound-assignment.md) · [compound_string_add_ascii](../benchmarks/runtime/workloads/compound_string_add_ascii.tsr) · [compound_string_add_unicode](../benchmarks/runtime/workloads/compound_string_add_unicode.tsr) |
 | `String.anchor` | implemented | paired group | Legacy HTML wrapper with exact tag, raw UTF8 receiver and quote-only attributes where applicable. Strict signatures and independently owned output; complete IntelliSense/examples and focused O0/O3 native behavior/ownership/disposal accepted. Matched source comparison accepted; Checkpoint81 accepts matched execution comparisons and fully disposed allocation profiles.; [evidence](./milestones/81-string-html-wrappers.md) · [string_html_anchor](../benchmarks/runtime/workloads/string_html_anchor.tsr) |
@@ -2113,7 +2113,7 @@ Full compiler regression and accumulated performance comparisons run at complete
 | `type.never` | pending | missing |  |
 | `type.nominalRecord` | native variant | compile-only | Implemented strict subset; no standalone compile-time comparison for this item. |
 | `type.nonNullAssertion` | pending | missing |  |
-| `type.optional` | pending | missing |  |
+| `type.optional` | native variant | paired | Optional record fields: name?: Type has type Type \| undefined and may be omitted from a literal, where it holds undefined. The record keeps its fixed shape, so an omitted field is still listed and printed; JavaScript omits the property. Optional parameters are covered separately. One matched scenario verified untimed.; [evidence](./milestones/165-optional-fields.md) · [evidence](./optional-fields.md) · [optional_fields](../benchmarks/runtime/workloads/optional_fields.tsr) |
 | `type.primitive` | native variant | compile-only | Implemented strict subset; no standalone compile-time comparison for this item. |
 | `type.readonlyTuple` | pending | missing |  |
 | `type.satisfies` | native variant | paired | Checks compatibility while preserving the source type; literals receive required annotation context. Ownership and lexical borrows are preserved. Matched native/node-tsc verification passes five untimed cases per engine; unmeasured.; [evidence](./milestones/143-checked-type-assertions.md) · [evidence](./type-assertions.md) · [type_assertions](../benchmarks/runtime/workloads/type_assertions.tsr) |

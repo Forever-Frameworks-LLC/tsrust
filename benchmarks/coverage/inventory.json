@@ -23008,7 +23008,7 @@
         "string_indexing"
       ],
       "measured": false,
-      "note": "text[position] gives the character at a Unicode character position as a new string. A missing position is a catchable range error, like an array index; JavaScript gives undefined. Writes through a position and the optional form are rejected. One matched scenario verified untimed."
+      "note": "text[position] gives the character at a Unicode character position as a new string. A missing position is a catchable range error, like an array index; JavaScript gives undefined. Writes through a position are rejected; the optional form gives undefined for an absent text. One matched scenario verified untimed."
     },
     {
       "id": "String.[Symbol.iterator]",
@@ -24935,9 +24935,17 @@
       "category": "TypeScript types",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
-      "comparison": "missing",
-      "evidence": []
+      "implementation": "native variant",
+      "comparison": "paired",
+      "evidence": [
+        "./milestones/165-optional-fields.md",
+        "./optional-fields.md"
+      ],
+      "workloads": [
+        "optional_fields"
+      ],
+      "measured": false,
+      "note": "Optional record fields: name?: Type has type Type | undefined and may be omitted from a literal, where it holds undefined. The record keeps its fixed shape, so an omitted field is still listed and printed; JavaScript omits the property. Optional parameters are covered separately. One matched scenario verified untimed."
     },
     {
       "id": "type.primitive",

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "gate": 164,
+  "gate": 165,
   "seed": 7,
   "warmups": 8,
   "samples": 31,
@@ -19386,6 +19386,34 @@
       "specification": "Read characters of a ten-letter string by position, join two positions, catch an out-of-range position and retain five cells.",
       "sourceSha256": "2272fc5b3a5b8a228d697238d550bc447decfa7bbcc916a9c164654e7dd9280e",
       "counterpartSha256": "0d0f9d553040c3e3814027b56ee1d16deb606454d5dbf9b0ae0db777eb37c6d9"
+    },
+    {
+      "id": "optional_fields",
+      "family": "optional-fields",
+      "source": "workloads/optional_fields.tsr",
+      "counterpart": "workloads/optional_fields.ts",
+      "result": "string[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One complete optional field scenario",
+      "inputText": "dynamic \u00e9\ud83d\ude42 text",
+      "category": "other",
+      "implementationGate": 165,
+      "measurementStatus": "pending-language-milestone",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": true,
+      "measured": false,
+      "notes": "Gate 165: a record with an optional field built with and without it, a later assignment of the field, a fallback read and a destructuring default. Five observed cells per scenario. Verified untimed; unmeasured, language milestone pending.",
+      "specification": "Build records that omit and supply an optional field, assign it later, read it with a fallback and through a destructuring default; retain five cells.",
+      "sourceSha256": "f64bcafe5fd6b3ac8befb691b3f1163b4400f2fe09d13877f1ebe505c205b6f5",
+      "counterpartSha256": "ae496d28b26fa79a2c5e16bd244822c822c1c1fbcfbd371a3f364bb848630a6e"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",
