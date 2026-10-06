@@ -23030,13 +23030,15 @@
       "implementation": "implemented",
       "comparison": "paired group",
       "evidence": [
-        "./milestones/63-compound-assignment.md"
+        "./milestones/63-compound-assignment.md",
+        "./milestones/167-string-concatenation.md"
       ],
       "workloads": [
         "compound_string_add_ascii",
-        "compound_string_add_unicode"
+        "compound_string_add_unicode",
+        "string_concatenation"
       ],
-      "note": "Matching String/String += reads an available mutable target before RHS evaluation, borrows both operands and commits a fresh independent owned result. Self-append, source order, existing loans and normal/unwind disposal pass. Separate ASCII/Unicode comparisons time cloning/repetition, target initialization, actual append and complete string[] retention. Native ownership costs differ from possible JavaScript immutable sharing; no allocation-parity claim."
+      "note": "Matching String/String += reads an available mutable target before RHS evaluation, borrows both operands and commits a fresh independent owned result. Self-append, source order, existing loans and normal/unwind disposal pass. Separate ASCII/Unicode comparisons time cloning/repetition, target initialization, actual append and complete string[] retention. Native ownership costs differ from possible JavaScript immutable sharing; no allocation-parity claim. Gate167 accepts scalar operands (int, number, boolean, null, undefined and scalar unions) via String conversion, preserving source order and borrowing. Arrays, records and functions require explicit supported conversion. New matched scenario verified untimed; no new timing."
     },
     {
       "id": "String.anchor",
@@ -23230,15 +23232,17 @@
       "implementation": "implemented",
       "comparison": "paired group",
       "evidence": [
-        "./milestones/62-string-addition.md"
+        "./milestones/62-string-addition.md",
+        "./milestones/167-string-concatenation.md"
       ],
       "workloads": [
         "string_add_direct_ascii",
         "string_add_direct_unicode",
         "string_add_chained_ascii",
-        "string_add_chained_unicode"
+        "string_add_chained_unicode",
+        "string_concatenation"
       ],
-      "note": "String + String only: exact UTF8 contents, once left-to-right borrowed operands and fresh independent owned result using standard capacity/push_str. Chains construct real owned intermediates. One 605-group regression and four binary/chained ASCII/Unicode comparisons pass with complete result retention and normalized resources. Native copying differs from possible JavaScript immutable sharing. Mixed-type coercion remains unsupported. The separate String.concat method is accepted in Milestone 70. Matching String/String += has separate Milestone 63 acceptance and comparisons."
+      "note": "String addition: exact UTF8 contents, once left-to-right borrowed operands and fresh independent owned result using standard capacity/push_str. Chains construct real owned intermediates. One 605-group regression and four binary/chained ASCII/Unicode comparisons pass with complete result retention and normalized resources. Native copying differs from possible JavaScript immutable sharing. Scalar concatenation is defined conversion, not coercive comparison. The separate String.concat method is accepted in Milestone 70. Matching String/String += has separate Milestone 63 acceptance and comparisons. Gate167 accepts scalar operands (int, number, boolean, null, undefined and scalar unions) via String conversion, preserving source order and borrowing. Arrays, records and functions require explicit supported conversion. New matched scenario verified untimed; no new timing."
     },
     {
       "id": "String.concat",

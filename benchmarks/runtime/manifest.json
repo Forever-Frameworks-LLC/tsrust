@@ -9,6 +9,34 @@
   "compileSamples": 3,
   "workloads": [
     {
+      "id": "string_concatenation",
+      "family": "string-concatenation",
+      "source": "workloads/string_concatenation.tsr",
+      "counterpart": "workloads/string_concatenation.ts",
+      "result": "string[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One complete scalar concatenation scenario",
+      "inputText": "dynamic é🙂 text",
+      "category": "strings",
+      "implementationGate": 167,
+      "measurementStatus": "pending-language-milestone",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": true,
+      "measured": false,
+      "notes": "Scalar strings and compound addition, seven retained cells per scenario. Verified untimed; no timing.",
+      "specification": "Join scalar operands with strings in both operand orders and through compound assignment. Preserve seven result cells.",
+      "sourceSha256": "dbf5c74de19dfef897703f159db2568651ba7574514c7c7a4ea07d476bd216f1",
+      "counterpartSha256": "9fcb0cae6b2a6419785deca9ae70ded89d218de87c06edd8e2e05f10141f85cb"
+    },
+    {
       "id": "scalar_control",
       "iterations": 1000000,
       "specification": "For n iterations, update state = (state * 17 + 13) % 1009. Add state when even and greater than 100; otherwise subtract 1. Start state and checksum at seed.",

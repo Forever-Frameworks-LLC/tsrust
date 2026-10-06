@@ -7463,3 +7463,14 @@ fn callable_expression_signature_help_uses_the_expression_contract() {
  assert_eq!(iife["signatures"][0]["parameters"].as_array().map(Vec::len),Some(2),"{iife}");
  assert_eq!(iife["activeParameter"],1,"{iife}");
 }
+
+#[test]
+fn scalar_string_concatenation_has_string_hover_and_members() {
+    let source = "function main(){const count=7;const label=\"item \"+count;const reverse=count+\" items\";const mixed:int|string=3;const combined=\"x\"+mixed;console.log(label.trim(),reverse.length,combined);}";
+    tsrust_compiler::check(source).unwrap();
+    for needle in ["label=", "reverse=", "combined);"] {
+        let hover = ask(source, "textDocument/hover", needle, 0);
+        assert!(hover["contents"]["value"].as_str().unwrap().contains("string"), "{hover}");
+    }
+    assert!(!ask(source, "textDocument/hover", "trim()", 0).is_null());
+}

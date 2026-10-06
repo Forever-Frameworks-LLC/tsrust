@@ -1,3 +1,5 @@
+**Gate 167 accepted:** [Scalar string concatenation](./milestones/167-string-concatenation.md): scalar operands and scalar unions in string addition and compound addition, preserving source ordering and string editor results. Compiler 65, editor 265, registration 1 and five matched cases pass untimed. Five consumers refreshed; verification retained in SQLite. No timing.
+
 **Gate 166 accepted:** [Interfaces](./milestones/166-interfaces.md): `interface` record types with `extends` over record types in any order and across modules, optional fields and type parameters; editor symbols with inherited fields. Compiler 4 focused plus 310 affected, editor 264, grammar 1, harness 393, five matched cases verified untimed. No timing.
 
 **Gate 165 accepted:** [Optional record fields](./milestones/165-optional-fields.md): `name?: Type` fields that literals may omit, with fixed record shape, editor field types and completion. Compiler 3 focused plus 306 affected, editor 263, harness 392, five matched cases verified untimed. No timing.

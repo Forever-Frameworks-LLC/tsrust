@@ -301,7 +301,7 @@ impl Analysis {
                     ) || matches!(
                         expression.kind,
                         ExprKind::Binary {
-                            op: BinaryOp::Coalesce | BinaryOp::PatternDefault | BinaryOp::And | BinaryOp::Or,
+                            op: BinaryOp::Coalesce | BinaryOp::PatternDefault | BinaryOp::And | BinaryOp::Or | BinaryOp::Add,
                             ..
                         } | ExprKind::Unary {
                             op: UnaryOp::CoalesceSelected | UnaryOp::NonNull,

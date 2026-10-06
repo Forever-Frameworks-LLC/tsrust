@@ -5713,6 +5713,19 @@ impl Analyzer {
             .map(|_| ())
     }
 
+    #[inline(never)]
+    fn string_concatenation_operand(&self, context: &Context, value: &mut Expr) -> Result<(), Diagnostic> {
+        let Some(ty) = self.expression_type_hint(context, value) else { return Ok(()); };
+        let scalar = |ty| matches!(ty, Type::Int | Type::Number | Type::Boolean | Type::Null | Type::Undefined | Type::String);
+        let supported = ty.union().map_or_else(|| scalar(ty), |id| self.unions.members(id).iter().copied().all(scalar));
+        if ty == Type::String { return Ok(()); }
+        if !supported { return Err(Diagnostic::new("type", "String concatenation accepts only string or scalar data operands. Convert arrays or records explicitly with String() or a template literal; functions are unsupported.", value.span)); }
+        let span = value.span;
+        let original = std::mem::replace(value, Expr::new(ExprKind::Undefined, span));
+        *value = Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name("String".to_owned()), span)), vec![original]), span);
+        Ok(())
+    }
+
     fn compound_assignment_value(
         &mut self,
         context: &mut Context,
@@ -5772,6 +5785,7 @@ impl Analyzer {
                 .or_default()
                 .push((Mode::Read, target.span));
         }
+        if ty == Type::String { self.string_concatenation_operand(context, value)?; }
         let actual = self.expression(
             context,
             value,
@@ -14736,6 +14750,11 @@ self.names_materialized_type(element.with_depth(0).ty())
                 );
                 let comparison = equality || ordering;
                 let logical = matches!(op, BinaryOp::And | BinaryOp::Or);
+                if *op == BinaryOp::Add && (self.expression_type_hint(context, left) == Some(Type::String)
+                    || self.expression_type_hint(context, right) == Some(Type::String)) {
+                    self.string_concatenation_operand(context, left)?;
+                    self.string_concatenation_operand(context, right)?;
+                }
                 let string_addition = *op == BinaryOp::Add
                     && (expected == Some(Type::String)
                         || self.expression_type_hint(context, left) == Some(Type::String)
