@@ -362,6 +362,7 @@ fn plan_temporary_arrays(
         let next = depth + 1;
         match node {
             Node::Statement(statement) => match &statement.kind {
+                StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),
                 StmtKind::Try(_) => return BTreeMap::new(),
                 StmtKind::Throw(value) => pending.push((Node::Expression(value), next)),
                 StmtKind::Let { value, .. }
@@ -623,6 +624,7 @@ impl<'a> Proof<'a> {
         }
         self.depth += 1;
         let valid = body.iter().all(|stmt| match &stmt.kind {
+            StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),
             StmtKind::Try(_) => false,
             StmtKind::Throw(value) => self.expr(id,value,Mode::Consume),
             StmtKind::Let { value, .. } | StmtKind::Expr(value) => {

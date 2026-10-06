@@ -83,6 +83,7 @@ fn walk(
     while let Some(node) = work.pop() {
         match node {
             Work::Statement(statement) => match &mut statement.kind {
+                StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checked traversal"),
                     StmtKind::Try(region) => work.extend(region.statements_mut().map(Work::Statement)),
                     StmtKind::Throw(value) => work.push(Work::Expression(value)),
                 StmtKind::Let {
@@ -220,6 +221,7 @@ pub(crate) fn body_end(body: &[Stmt]) -> usize {
     while let Some(statement) = pending.pop() {
         end = end.max(statement.span.end);
         match &statement.kind {
+            StmtKind::LocalFunction(function) => end = end.max(function.scope_span.end),
             StmtKind::Try(region) => pending.extend(region.statements()),
             StmtKind::Throw(value) => end=end.max(value.span.end),
             StmtKind::Let { value, .. } | StmtKind::Expr(value) | StmtKind::Return(Some(value)) => {

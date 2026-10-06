@@ -19,6 +19,7 @@ impl OperationEffects {
                     if let Some((span,effect))=statement_operation_effect(statement) {output.insert(span,Some(effect));}
                     else if let StmtKind::Assign{operator:Some((_,span)),..}=&statement.kind {output.insert(*span,None);}
                     match &statement.kind {
+                        StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),
                         StmtKind::Try(region)=>pending.extend(region.statements().map(Node::Statement)),
                         StmtKind::Let{value,..}|StmtKind::Expr(value)|StmtKind::Throw(value)=>pending.push(Node::Expression(value)),
                         StmtKind::Return(value)=>pending.extend(value.iter().map(Node::Expression)),
@@ -377,6 +378,7 @@ pub(crate) fn checked_expressions(function:&CheckedFunction)->Vec<&Expr> {
             match node {
                 Node::Statement(statement)=>{
                     match &statement.kind {
+                        StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),
                         StmtKind::Try(region)=>pending.extend(region.statements().map(Node::Statement)),
                         StmtKind::Let{value,..}|StmtKind::Expr(value)|StmtKind::Throw(value)=>pending.push(Node::Expression(value)),
                         StmtKind::Return(value)=>pending.extend(value.iter().map(Node::Expression)),
@@ -571,6 +573,7 @@ fn body_effect(body:&mut [Stmt],effects:&ErrorEffects,depth:usize)->FailureSet {
     for statement in body {
         let operation_failure=statement_operation_effect(statement).is_some_and(|(_,fails)|fails);
         failure |= match &mut statement.kind {
+            StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),
             StmtKind::Throw(value)=>expression_effect(value,effects,depth+1)|FailureSet::thrown(value.ty),
             StmtKind::Try(region)=>{
                 let mut found=body_effect(&mut region.body,effects,depth+1);

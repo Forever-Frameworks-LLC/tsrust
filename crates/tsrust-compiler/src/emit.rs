@@ -3242,6 +3242,7 @@ impl Emitter<'_> {
                 continue;
             }
             let code = match &stmt.kind {
+                StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),
                 StmtKind::Try(region) => self.nested_completion(fun,stmt,region),
                 StmtKind::Throw(value) => {
                     let code=self.expr(fun,value,Mode::Consume);

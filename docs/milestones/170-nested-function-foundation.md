@@ -1,6 +1,6 @@
 # Gate 170: nested function declaration foundation
 
-Status: planned; red witnesses added. No implementation or acceptance yet.
+Status: implementation in progress; capture-free native foundation works. Not accepted.
 
 The complete scope and owner capture decision are in
 [nested function declarations plan](../nested-function-declarations-plan.md).
@@ -32,3 +32,15 @@ read-back. Five consumers are atomically refreshed and hash-verified. Generated
 example and scratch test executables are pruned; libraries remain cached and tests
 will relink. No timing or full compiler regression was performed. Nested declaration
 implementation and its matched benchmarks remain pending; gate 170 is not accepted.
+
+The current lexical implementation adds a real LocalFunction AST node and a dedicated
+local_functions resolver before checking and module linking. It registers declarations
+before uses, resolves shadowing, diagnoses conflicts, lifts capture-free functions for
+static execution and retains declaration identities and source spans through linking
+and checked program construction. Four focused checks pass: the hoisting/recursive
+fixture, generic/default/rest fixture, scope/conflict/local-main checks and closure
+parameter shadowing. The capture witness remains genuinely red at an explicit capture
+use/declaration diagnostic. A raw-parser depth witness exposed signature temporaries
+retained across recursive bodies; header parsing now ends before body recursion and
+the original 128-level source limit is preserved. See nested-functions.md for current
+behavior. Editor acceptance and matched benchmark support remain pending.

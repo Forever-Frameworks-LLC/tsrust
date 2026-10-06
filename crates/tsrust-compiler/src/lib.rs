@@ -47,6 +47,7 @@ mod record_runtime;
 mod runtime;
 mod storage;
 mod syntax;
+mod local_functions;
 pub mod type_syntax;
 mod type_aliases;
 mod type_substitution;

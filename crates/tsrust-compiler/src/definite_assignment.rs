@@ -89,6 +89,7 @@ fn flow(statements: &mut [Stmt], variable: Variable, assigned: bool) -> Result<F
         let failed_entry=crate::error_effects::statement_entry_may_fail(statement);
         let mut next=Flow{normal:Some(before),exits:Vec::new()};
         match &mut statement.kind {
+            StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),
             StmtKind::Try(region) => next=exception_assignment::region_flow(region,variable,before)?,
             StmtKind::Throw(value) => {
                 if !before {require_clear(value,variable)?;}

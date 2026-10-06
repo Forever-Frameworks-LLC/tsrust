@@ -294,6 +294,8 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId]) -> Result<Projec
         programs.insert(id.clone(), program);
     }
     let mut linked = Program {
+        unresolved_local_function: None,
+        local_declarations: Vec::new(),
         type_argument_checks: vec![],
         call_type_arguments: vec![],
         records: vec![],
@@ -367,6 +369,16 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId]) -> Result<Projec
             }
             visitor.body(&mut function.body, &mut locals);
         }
+        let declaration_offset = linked.local_declarations.len();
+        let scope_offset = linked.local_declarations.iter().map(|declaration| declaration.scope + 1).max().unwrap_or(0);
+        for declaration in &mut program.local_declarations {
+            declaration.id += declaration_offset;
+            declaration.scope += scope_offset;
+            visitor.token_span(&mut declaration.source_name);
+            visitor.span(&mut declaration.function_scope);
+            declaration.emitted_name = names[&declaration.emitted_name].clone();
+        }
+        linked.local_declarations.extend(program.local_declarations);
         linked.call_type_arguments.extend(program.call_type_arguments);
         linked.records.extend(program.records);
         linked.functions.extend(program.functions);
@@ -529,6 +541,7 @@ impl Linker<'_> {
             self.span(&mut stmt.span);
             for label in &mut stmt.labels {self.token_span(label);}
             match &mut stmt.kind {
+                StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),
                 StmtKind::Throw(value) => self.expr(value,locals),
                 StmtKind::Try(region) => {
                     self.body(&mut region.body,&mut locals.clone());

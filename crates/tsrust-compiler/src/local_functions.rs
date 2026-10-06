@@ -1,0 +1,380 @@
+//! Lexical named declarations resolve before template, module and ownership passes.
+use crate::syntax::*;
+use crate::{Diagnostic, Span};
+use std::collections::HashMap;
+
+#[derive(Clone, Debug)]
+pub(crate) struct Declaration {
+    pub id: usize,
+    pub scope: usize,
+    pub source_name: Token,
+    pub emitted_name: String,
+    pub function_scope: Span,
+}
+#[derive(Clone)]
+enum Symbol {
+    Function(String),
+    Variable { owner: usize, span: Span },
+}
+type Environment = HashMap<String, Symbol>;
+struct Resolver {
+    next_owner: usize,
+    next_scope: usize,
+    declarations: Vec<Declaration>,
+    lifted: Vec<Function>,
+}
+
+pub(crate) fn resolve(program: &mut Program) -> Result<(), Diagnostic> {
+    if program.unresolved_local_function.is_none() {
+        return Ok(());
+    }
+    let mut resolver = Resolver {
+        next_owner: program.functions.len(),
+        next_scope: 0,
+        declarations: Vec::new(),
+        lifted: Vec::new(),
+    };
+    for (owner, function) in program.functions.iter_mut().enumerate() {
+        resolver.function(function, &Environment::new(), owner, false)?;
+    }
+    program.functions.extend(resolver.lifted);
+    program.local_declarations = resolver.declarations;
+    program.unresolved_local_function = None;
+    Ok(())
+}
+impl Resolver {
+    fn function(
+        &mut self,
+        function: &mut Function,
+        outer: &Environment,
+        owner: usize,
+        captures_pending: bool,
+    ) -> Result<(), Diagnostic> {
+        let mut env = outer.clone();
+        for ((name, _, _), initializer) in function
+            .params
+            .iter()
+            .zip(&mut function.parameter_initializers)
+        {
+            self.initializer(initializer, &env, owner, captures_pending)?;
+            env.insert(
+                name.text.clone(),
+                Symbol::Variable {
+                    owner,
+                    span: name.span,
+                },
+            );
+        }
+        self.body(&mut function.body, &env, owner, captures_pending, true)
+    }
+    #[inline(never)]
+    fn body(
+        &mut self,
+        body: &mut [Stmt],
+        outer: &Environment,
+        owner: usize,
+        captures_pending: bool,
+        function_body: bool,
+    ) -> Result<(), Diagnostic> {
+        let scope = self.next_scope;
+        self.next_scope += 1;
+        let mut env = outer.clone();
+        let mut names: HashMap<String, Span> = HashMap::new();
+        for statement in body.iter() {
+            let name = match &statement.kind {
+                StmtKind::LocalFunction(function) => Some(&function.name),
+                StmtKind::Let { name, .. } => Some(name),
+                _ => None,
+            };
+            if let Some(name) = name {
+                if let Some(previous) = names.insert(name.text.clone(), name.span) {
+                    return Err(Diagnostic::new(
+                        "duplicate",
+                        format!("Name {:?} is already declared in this block.", name.text),
+                        name.span,
+                    )
+                    .related(previous, "Previous declaration here."));
+                }
+                if function_body
+                    && matches!(&statement.kind, StmtKind::LocalFunction(_))
+                    && matches!(outer.get(&name.text), Some(Symbol::Variable {owner: previous, ..}) if *previous == owner)
+                {
+                    return Err(Diagnostic::new(
+                        "duplicate",
+                        "A local function cannot redeclare a parameter.",
+                        name.span,
+                    ));
+                }
+                match &statement.kind {
+                    StmtKind::LocalFunction(function) => {
+                        let id = self.declarations.len();
+                        let emitted = format!("local#{id}#{}", name.text);
+                        self.declarations.push(Declaration {
+                            id,
+                            scope,
+                            source_name: name.clone(),
+                            emitted_name: emitted.clone(),
+                            function_scope: function.scope_span,
+                        });
+                        env.insert(name.text.clone(), Symbol::Function(emitted));
+                    }
+                    _ => {
+                        env.insert(
+                            name.text.clone(),
+                            Symbol::Variable {
+                                owner,
+                                span: name.span,
+                            },
+                        );
+                    }
+                }
+            }
+        }
+        for statement in body {
+            match &mut statement.kind {
+                StmtKind::LocalFunction(_) => {
+                    let StmtKind::LocalFunction(mut function) =
+                        std::mem::replace(&mut statement.kind, StmtKind::Block(Vec::new()))
+                    else {
+                        unreachable!()
+                    };
+                    let Symbol::Function(emitted) = &env[&function.name.text] else {
+                        unreachable!()
+                    };
+                    function.name.text = emitted.clone();
+                    let local_owner = self.next_owner;
+                    self.next_owner += 1;
+                    self.function(&mut function, &env, local_owner, true)?;
+                    self.lifted.push(*function);
+                }
+                StmtKind::Let { value, .. }
+                | StmtKind::Throw(value)
+                | StmtKind::Expr(value)
+                | StmtKind::Return(Some(value)) => {
+                    self.expression(value, &env, owner, captures_pending)?
+                }
+                StmtKind::Assign { target, value, .. } => {
+                    self.expression(target, &env, owner, captures_pending)?;
+                    self.expression(value, &env, owner, captures_pending)?;
+                }
+                StmtKind::Block(body) => self.body(body, &env, owner, captures_pending, false)?,
+                StmtKind::If {
+                    condition,
+                    then_body,
+                    else_body,
+                } => {
+                    self.expression(condition, &env, owner, captures_pending)?;
+                    self.body(then_body, &env, owner, captures_pending, false)?;
+                    self.body(else_body, &env, owner, captures_pending, false)?;
+                }
+                StmtKind::While { condition, body } => {
+                    self.expression(condition, &env, owner, captures_pending)?;
+                    self.body(body, &env, owner, captures_pending, false)?;
+                }
+                StmtKind::Loop {
+                    condition,
+                    body,
+                    update,
+                    ..
+                } => {
+                    if let Some(condition) = condition {
+                        self.expression(condition, &env, owner, captures_pending)?;
+                    }
+                    self.body(body, &env, owner, captures_pending, false)?;
+                    self.body(update, &env, owner, captures_pending, false)?;
+                }
+                StmtKind::ForOf {
+                    name,
+                    iterable,
+                    body,
+                    ..
+                } => {
+                    self.expression(iterable, &env, owner, captures_pending)?;
+                    let mut loop_env = env.clone();
+                    loop_env.insert(
+                        name.text.clone(),
+                        Symbol::Variable {
+                            owner,
+                            span: name.span,
+                        },
+                    );
+                    self.body(body, &loop_env, owner, captures_pending, false)?;
+                }
+                StmtKind::Try(region) => {
+                    self.body(&mut region.body, &env, owner, captures_pending, false)?;
+                    if let Some(catch) = &mut region.catch {
+                        let mut catch_env = env.clone();
+                        if let Some(name) = &catch.name {
+                            catch_env.insert(
+                                name.text.clone(),
+                                Symbol::Variable {
+                                    owner,
+                                    span: name.span,
+                                },
+                            );
+                        }
+                        self.body(&mut catch.body, &catch_env, owner, captures_pending, false)?;
+                    }
+                    if let Some(finally) = &mut region.finally {
+                        self.body(finally, &env, owner, captures_pending, false)?;
+                    }
+                }
+                StmtKind::Break | StmtKind::Continue | StmtKind::Return(None) => {}
+            }
+        }
+        Ok(())
+    }
+    fn initializer(
+        &mut self,
+        value: &mut ParameterInitializer,
+        env: &Environment,
+        owner: usize,
+        pending: bool,
+    ) -> Result<(), Diagnostic> {
+        if let ParameterInitializer::Default { value, .. } = value {
+            self.expression(value, env, owner, pending)?;
+        }
+        Ok(())
+    }
+    #[inline(never)]
+    fn expression(
+        &mut self,
+        expression: &mut Expr,
+        env: &Environment,
+        owner: usize,
+        pending: bool,
+    ) -> Result<(), Diagnostic> {
+        match &mut expression.kind {
+            ExprKind::Name(name) => match env.get(name) {
+                Some(Symbol::Function(emitted)) => *name = emitted.clone(),
+                Some(Symbol::Variable {
+                    owner: defining,
+                    span,
+                }) if pending && *defining != owner => {
+                    return Err(Diagnostic::new("unsupported", format!("Nested function capture of {name:?} is pending capture-ownership implementation."), expression.span)
+                        .related(*span, "Captured binding declared here."));
+                }
+                _ => {}
+            },
+            ExprKind::Closure { params, body, .. } => {
+                let mut nested = env.clone();
+                for parameter in params {
+                    self.initializer(&mut parameter.initializer, &nested, owner, pending)?;
+                    nested.insert(
+                        parameter.name.text.clone(),
+                        Symbol::Variable {
+                            owner,
+                            span: parameter.name.span,
+                        },
+                    );
+                }
+                self.body(body, &nested, owner, pending, true)?;
+            }
+            ExprKind::Conditional {
+                predicate,
+                consequent,
+                alternate,
+            } => {
+                self.expression(predicate, env, owner, pending)?;
+                self.expression(consequent, env, owner, pending)?;
+                self.expression(alternate, env, owner, pending)?;
+            }
+            ExprKind::Optional {
+                base: left,
+                body: right,
+                ..
+            }
+            | ExprKind::Binary { left, right, .. }
+            | ExprKind::Index(left, right)
+            | ExprKind::CompoundAssign {
+                target: left,
+                value: right,
+                ..
+            }
+            | ExprKind::Assign {
+                target: left,
+                value: right,
+                ..
+            }
+            | ExprKind::CoalesceAssign {
+                target: left,
+                value: right,
+                ..
+            }
+            | ExprKind::LogicalAssign {
+                target: left,
+                value: right,
+                ..
+            } => {
+                self.expression(left, env, owner, pending)?;
+                self.expression(right, env, owner, pending)?;
+            }
+            ExprKind::OptionalChain(value)
+            | ExprKind::Unary { value, .. }
+            | ExprKind::Update { target: value, .. }
+            | ExprKind::Field(value, _)
+            | ExprKind::Inject { value, .. }
+            | ExprKind::Project { value, .. }
+            | ExprKind::TypeAssertion { value, .. } => {
+                self.expression(value, env, owner, pending)?
+            }
+            ExprKind::Record(fields) => {
+                for (_, value) in fields {
+                    self.expression(value, env, owner, pending)?;
+                }
+            }
+            ExprKind::ArrayOf(values, _)
+            | ExprKind::SetConstructor(values, _)
+            | ExprKind::MapConstructor(values, _)
+            | ExprKind::Array(values)
+            | ExprKind::Template(values)
+            | ExprKind::Sequence(values) => {
+                for value in values {
+                    self.expression(value, env, owner, pending)?;
+                }
+            }
+            ExprKind::Call(callee, arguments) => {
+                self.expression(callee, env, owner, pending)?;
+                for value in arguments {
+                    self.expression(value, env, owner, pending)?;
+                }
+            }
+            ExprKind::SpreadCall(_) | ExprKind::SpreadValue(_) | ExprKind::Selected { .. } => {
+                unreachable!("local resolution precedes checked spread lowering")
+            }
+            ExprKind::String(_)
+            | ExprKind::Integer(_)
+            | ExprKind::EnumMember { .. }
+            | ExprKind::Number(_)
+            | ExprKind::Boolean(_)
+            | ExprKind::Null
+            | ExprKind::Undefined => {}
+        }
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn lexical_declaration_identity_survives_checked_projection() {
+        let source = "function main(){function value():int{return 1;} {function value():int{return 2;} console.log(value());} console.log(value());}";
+        let checked = crate::check(source).unwrap();
+        let declarations = &checked.program.local_declarations;
+        assert_eq!(declarations.len(), 2);
+        assert_ne!(declarations[0].id, declarations[1].id);
+        assert_ne!(declarations[0].scope, declarations[1].scope);
+        assert_ne!(declarations[0].emitted_name, declarations[1].emitted_name);
+        for declaration in declarations {
+            assert_eq!(declaration.source_name.text, "value");
+            assert_eq!(
+                &source[declaration.source_name.span.start..declaration.source_name.span.end],
+                "value"
+            );
+            assert!(
+                source[declaration.function_scope.start..declaration.function_scope.end]
+                    .starts_with("value():int")
+            );
+        }
+    }
+}

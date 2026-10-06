@@ -1403,6 +1403,8 @@ pub struct Stmt {
 
 #[derive(Clone, Debug)]
 pub enum StmtKind {
+    /// Lexical declaration, consumed by local-function resolution before checking.
+    LocalFunction(Box<Function>),
     Try(Box<ExceptionRegion>),
     Throw(Expr),
     Block(Vec<Stmt>),
@@ -1734,6 +1736,8 @@ pub struct FunctionApplication {
 
 #[derive(Clone, Debug)]
 pub struct Program {
+    pub(crate) unresolved_local_function: Option<Token>,
+    pub(crate) local_declarations: Vec<crate::local_functions::Declaration>,
     pub type_argument_checks: Vec<crate::type_syntax::ValueAnnotation>,
     pub call_type_arguments: Vec<(Span, Vec<crate::type_syntax::ValueAnnotation>)>,
     pub records: Vec<Record>,
@@ -1764,12 +1768,19 @@ fn parse_entry(source: &str, test_entry: bool, imported: crate::type_aliases::Al
 }
 
 fn parse_entry_with(source: &str, test_entry: bool, imported: crate::type_aliases::Aliases, records: crate::type_aliases::ImportedRecords) -> Result<Program, Diagnostic> {
+    let mut program = parse_raw(source, test_entry, imported, records)?;
+    crate::local_functions::resolve(&mut program)?;
+    Ok(program)
+}
+
+fn parse_raw(source: &str, test_entry: bool, imported: crate::type_aliases::Aliases, records: crate::type_aliases::ImportedRecords) -> Result<Program, Diagnostic> {
     Parser {
         source,
         tokens: lex(source)?,
         i: 0,
         depth: 0,
         next_closure: 0,
+        unresolved_local_function: None,
         call_type_arguments: Vec::new(),
         pending: Vec::new(),
         next_pattern: 0,
@@ -1798,6 +1809,7 @@ fn registration_return(body: &[Stmt]) -> Option<Span> {
 }
 
 struct Parser<'a> {
+    unresolved_local_function: Option<Token>,
     source: &'a str,
     tokens: Vec<Token>,
     i: usize,
@@ -2167,6 +2179,8 @@ impl Parser<'_> {
     fn program(mut self, test_entry: bool) -> Result<Program, Diagnostic> {
         let mut registration = Vec::new();
         let mut program = Program {
+            unresolved_local_function: None,
+            local_declarations: Vec::new(),
             type_argument_checks: Vec::new(),
             type_aliases: Default::default(),
             unresolved_bases: Vec::new(),
@@ -2277,6 +2291,7 @@ impl Parser<'_> {
                 parameter_access: Vec::new(), rest_parameter: false, result: None, body: registration,
             });
         }
+        program.unresolved_local_function = self.unresolved_local_function;
         program.call_type_arguments = self.call_type_arguments;
         program.unresolved_bases = Self::inherit_interface_fields(&mut program.records, interface_bases, &self.imported_records)?;
         program.type_aliases = self
@@ -2634,7 +2649,7 @@ impl Parser<'_> {
         if self.is(";") {
             return Err(Diagnostic::new("syntax", "An empty statement cannot be a body; write {} for an empty body.", self.peek().span));
         }
-        if self.is("const") || self.is("let") {
+        if self.is("const") || self.is("let") || self.is("function") {
             return Err(Diagnostic::new("syntax", "A declaration cannot be a body without braces; put it in a block.", self.peek().span));
         }
         self.depth += 1;
@@ -2649,7 +2664,9 @@ impl Parser<'_> {
         if self.peek().kind == TokenKind::Name && self.tokens.get(self.i+1).is_some_and(|token|token.text==":") {
             return self.labeled_statement();
         }
-        if self.is("try") {
+        if self.is("function") {
+            self.local_function_statement()
+        } else if self.is("try") {
             self.try_statement()
         } else if self.is("for") {
             if self.for_of_header() {

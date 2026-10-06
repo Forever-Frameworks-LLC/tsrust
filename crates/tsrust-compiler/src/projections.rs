@@ -158,6 +158,7 @@ impl Analysis {
         while let Some(node) = pending.pop() {
             match node {
                 Node::Statement(statement) => match &statement.kind {
+                    StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),
                     StmtKind::Try(region) => {
                         if let Some(handler)=&region.catch {
                             if handler.binding.is_some() {

@@ -96,6 +96,7 @@ fn expression<'a>(value: &'a Expr, names: &HashSet<&'a str>) -> Result<(), Diagn
 fn statements<'a>(body: &'a [Stmt], names: &mut HashSet<&'a str>) -> Result<(), Diagnostic> {
     for statement in body {
         match &statement.kind {
+            StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),
             StmtKind::Throw(value) => expression(value,names)?,
             StmtKind::Try(region) => {
                 statements(&region.body,&mut names.clone())?;

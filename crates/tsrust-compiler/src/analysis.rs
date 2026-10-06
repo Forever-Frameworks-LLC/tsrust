@@ -183,6 +183,7 @@ impl CallbackContract {
 }
 
 pub struct CheckedProgram {
+    pub(crate) local_declarations: Vec<crate::local_functions::Declaration>,
     pub(crate) error_effects: crate::error_effects::ErrorEffects,
     pub(crate) stored_contracts: crate::callable_storage::Registry,
     pub(crate) callable_shapes: crate::callable_contracts::Contracts,
@@ -815,6 +816,7 @@ fn callback_calls(
     while let Some(node) = nodes.pop() {
         match node {
             Node::Statement(stmt) => match &stmt.kind {
+                StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),
                 StmtKind::Let { value, .. }
                 | StmtKind::Expr(value)
                 | StmtKind::Return(Some(value)) | StmtKind::Throw(value) => nodes.push(Node::Expression(value)),
@@ -1128,6 +1130,7 @@ fn remap_function_closures(
     while let Some(node) = nodes.pop() {
         match node {
             Node::Statement(stmt) => match &mut stmt.kind {
+                StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),
                 StmtKind::Let { value, .. }
                 | StmtKind::Expr(value)
                 | StmtKind::Return(Some(value)) | StmtKind::Throw(value) => nodes.push(Node::Expression(value)),
@@ -2899,6 +2902,7 @@ impl Analyzer {
             )?;
         }
         let checked = CheckedProgram {
+            local_declarations: self.program.local_declarations,
             function_specializations:self.specializations.iter().map(|((origin,_),instance)|(*instance,*origin)).collect(),
             error_effects: Default::default(),
             stored_contracts: self.callables.storage,
@@ -3362,6 +3366,7 @@ impl Analyzer {
         let mut absent = None;
         for stmt in body {
             match &stmt.kind {
+                StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),
                 StmtKind::Try(region) => {
                     if let Some(ty)=self.discover_exception_result(context,region,result,stmt.span)? {
                         if self.absent_callable_type(ty) {absent=Some(ty);}else{return Ok(Some(ty));}
@@ -4812,6 +4817,7 @@ impl Analyzer {
                 ));
             }
             match &mut stmt.kind {
+                StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),
                 StmtKind::Throw(value) if context.completion_frame.is_some() => {
                     self.check_throw_value(context,value)?;
                     exited=true;

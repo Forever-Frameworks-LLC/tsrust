@@ -518,6 +518,7 @@ impl Context<'_> {
         while let Some(node) = work.pop() {
             match node {
                 Work::Statement(statement) => match &mut statement.kind {
+                    StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),
                     StmtKind::Try(region) => work.extend(region.statements_mut().map(Work::Statement)),
                     StmtKind::Throw(value) => work.push(Work::Expression(value)),
                     StmtKind::Let {
