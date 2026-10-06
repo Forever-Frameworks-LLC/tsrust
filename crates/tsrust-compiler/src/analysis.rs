@@ -191,6 +191,10 @@ impl CallbackContract {
 }
 
 pub struct CheckedProgram {
+    /// Source declaration start to binding slot for each checked named
+    /// function. A direct call of a capturing local function reads its
+    /// hidden arguments from these slots of the calling function.
+    pub(crate) function_source_bindings: HashMap<usize, HashMap<usize, usize>>,
     pub(crate) named_capture_layouts: Vec<named_capture_layout::Layout>,
     pub(crate) named_capture_access: HashMap<usize, Vec<named_capture_access::Access>>,
     pub(crate) local_capture_plans: Vec<crate::local_capture_plan::Plan>,
@@ -411,9 +415,7 @@ pub fn analyze(program: Program) -> Result<CheckedProgram, Diagnostic> {
 fn finish_analysis(mut checked: CheckedProgram) -> Result<CheckedProgram, Diagnostic> {
     definitely_assigned(&mut checked)?;
     checked.named_capture_layouts = named_capture_layout::build(&checked)?;
-    if let Some(error) = checked.local_capture_plans.iter().find_map(crate::local_capture_plan::Plan::pending_diagnostic) {
-        return Err(error);
-    }
+    crate::named_capture_lowering::prepare(&mut checked)?;
     Ok(checked)
 }
 
@@ -533,6 +535,7 @@ mod exception_escape_tests {
 
 struct Analyzer {
     named_captures: named_capture_context::Contexts,
+    function_source_bindings: HashMap<usize, HashMap<usize, usize>>,
     assumed_capture_access: named_capture_access::Lattice,
     program: Program,
     // Retained source specialization state for the checked-inference handoff.
@@ -1415,6 +1418,7 @@ impl Analyzer {
         let named_captures = named_capture_context::Contexts::new(&program, &function_names);
         let mut analyzer = Self {
             named_captures,
+            function_source_bindings: HashMap::new(),
             assumed_capture_access: Default::default(),
             generic_functions,
             generic_records,
@@ -2337,6 +2341,70 @@ impl Analyzer {
         Ok(Type::Closure(origin))
     }
 
+    /// A capturing nested function is checked when a call supplies its typed
+    /// defining context. Its declaring function is checked first, because a
+    /// linked program can order the lifted function before it. A function that
+    /// no call reaches then has no context: it is not emitted, and its body
+    /// is not type-checked yet.
+    #[inline(never)]
+    fn capturing_function_is_unused(&mut self, index: usize) -> Result<bool, Diagnostic> {
+        if !self.named_captures.needs_context(index) || self.named_captures.ready(index) {
+            return Ok(false);
+        }
+        if let Some(owner) = self.named_captures.declaring_function(index, &self.program, &self.function_names)
+            && owner != index
+            && self.checked[owner].is_none()
+            && !self.visiting[owner]
+        {
+            if !self.capturing_function_is_unused(owner)? {
+                self.function(owner)?;
+            }
+        }
+        if self.named_captures.ready(index) || self.checked[index].is_some() {
+            return Ok(false);
+        }
+        self.checked[index] = Some(CheckedFunction {
+            template: true,
+            specialization: false,
+            name: self.program.functions[index].name.text.clone(),
+            bindings: Vec::new(),
+            parameter_count: 0,
+            result: self.signatures[index].result,
+            body: Vec::new(),
+        });
+        Ok(true)
+    }
+
+    /// Checks one hidden capture argument of a direct local function call
+    /// and keeps its borrow active while the written arguments are checked.
+    #[inline(never)]
+    fn named_capture_argument(
+        &mut self,
+        context: &mut Context,
+        slot: usize,
+        mode: Mode,
+        span: Span,
+        loans: &Loans,
+        capture_loans: &mut Option<Loans>,
+    ) -> Result<(), Diagnostic> {
+        if mode == Mode::Consume {
+            return Err(Diagnostic::new(
+                "unsupported",
+                "A nested function cannot take ownership of a captured value yet. Read or change it in place, or pass it as an argument.",
+                span,
+            ));
+        }
+        let active = capture_loans.get_or_insert_with(|| loans.clone());
+        Self::access(context, slot, mode, span, active)?;
+        if mode == Mode::Mutate {
+            context.bindings[slot].mutable = true;
+        }
+        if !context.bindings[slot].ty.is_copy() || mode == Mode::Mutate {
+            active.entry(slot).or_default().push((mode, span));
+        }
+        Ok(())
+    }
+
     fn function_value(&mut self, name: &str, span: Span) -> Result<Type, Diagnostic> {
         let index = self.function_names[name];
         if name == "main" {
@@ -2832,6 +2900,10 @@ impl Analyzer {
         }
         let mut index = 0;
         while index < self.program.functions.len() {
+            if self.checked[index].is_none() && self.capturing_function_is_unused(index)? {
+                index += 1;
+                continue;
+            }
             self.function(index)?;
             index += 1;
         }
@@ -2908,6 +2980,7 @@ impl Analyzer {
             )?;
         }
         let checked = CheckedProgram {
+            function_source_bindings: self.function_source_bindings,
             named_capture_layouts: Vec::new(),
             named_capture_access: self.named_captures.summaries(&self.checked),
             local_capture_plans: self.program.local_capture_plans,
@@ -3873,6 +3946,7 @@ impl Analyzer {
         {
             self.known_results.insert(index, result_type);
         }
+        self.function_source_bindings.insert(index, std::mem::take(&mut context.source_bindings));
         self.checked[index] = Some(CheckedFunction {
             template: context.template,
             specialization: index >= self.original_count,
@@ -13677,14 +13751,22 @@ self.names_materialized_type(element.with_depth(0).ty())
         self.function(index)?;
         // Propagate body access through static named edges. Runtime loan formation
         // remains the separate environment-lowering stage behind the public guard.
+        // A direct call passes each captured binding as a hidden argument:
+        // a copy, or a borrow that lasts for the call. The same access and
+        // loan rules apply as for a written argument.
+        let mut capture_loans = None;
         for access in self.named_captures.access(index, self.checked[index].as_ref(), &self.assumed_capture_access, self.signatures[index].params.len()) {
-            let slot = context.source_bindings[&access.binding.declaration_start];
+            let Some(&slot) = context.source_bindings.get(&access.binding.declaration_start) else {
+                return Err(self.program.local_capture_plans.iter().find_map(crate::local_capture_plan::Plan::pending_diagnostic).expect("pending named capture"));
+            };
             let binding = &mut context.bindings[slot];
             binding.used.get_or_insert(callee.span);
             if binding.parameter && (!binding.ty.is_copy() || access.mode == Mode::Mutate) {
                 binding.mode = binding.mode.max(access.mode);
             }
+            self.named_capture_argument(context, slot, access.mode, callee.span, loans, &mut capture_loans)?;
         }
+        let loans = capture_loans.as_ref().unwrap_or(loans);
         let params = if let Some(target) = &self.checked[index] {
             target.bindings[..target.parameter_count]
                 .iter()

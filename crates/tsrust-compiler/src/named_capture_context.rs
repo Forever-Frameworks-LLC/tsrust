@@ -45,6 +45,14 @@ impl Contexts {
         }
         contexts
     }
+    /// The function whose body declares this capturing function. Checking
+    /// it first lets its calls prepare the typed capture context.
+    pub(super) fn declaring_function(&self, index: usize, program: &Program, functions: &HashMap<String, usize>) -> Option<usize> {
+        let request = self.requests.get(&index)?;
+        let declaration = program.local_declarations.iter().find(|declaration| declaration.id == request.node)?;
+        let name = program.local_capture_plans[request.plan].owners.get(&declaration.enclosing_owner)?;
+        functions.get(name).copied()
+    }
     pub(super) fn needs_context(&self, index: usize) -> bool {
         self.requests.contains_key(&index)
     }

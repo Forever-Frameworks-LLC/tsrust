@@ -1246,7 +1246,11 @@ impl<'a> Proof<'a> {
                         && args.iter().all(|v| self.expr(id, v, Mode::Consume))
                 }
                 CallTarget::Function(function) | CallTarget::ForwardFunction(function) => {
-                    (expr.target != Some(CallTarget::ForwardFunction(function))
+                    // A capturing nested function also receives bindings of
+                    // this body as hidden arguments. Their storage is not
+                    // proved here, so no binding keeps a fixed shape.
+                    self.program.named_capture_access.get(&function).is_none_or(Vec::is_empty)
+                        && (expr.target != Some(CallTarget::ForwardFunction(function))
                         || self.expr(id, callee, Mode::Read))
                         && args.iter().enumerate().all(|(param, arg)| {
                             let mode = self.program.functions[function].bindings[param].mode;

@@ -2360,10 +2360,13 @@ impl Emitter<'_> {
             let index = plan.function;
             let fun = &self.program.functions[index];
             self.active_plan.set(Some(plan_id));
+            // Hidden capture parameters of a nested function follow its
+            // source parameters and use the same access forms.
+            let hidden = self.program.named_capture_access.get(&index).map_or(0, Vec::len);
             let params = fun
                 .bindings
                 .iter()
-                .take(fun.parameter_count)
+                .take(fun.parameter_count + hidden)
                 .enumerate()
                 .map(|(index, b)| {
                     let input_ty = b.input_ty.unwrap_or(b.ty);
@@ -2382,7 +2385,7 @@ impl Emitter<'_> {
                     let parameter_type = if matches!(input_ty, Type::Callback(_)) {
                         format!("F{index}")
                     } else {
-                        plan.parameters[index].as_ref().map_or_else(
+                        plan.parameters.get(index).and_then(Option::as_ref).map_or_else(
                             || {
                                 if (b.omission.is_omittable() || self.multiple_data_union(input_ty)) && b.mode == Mode::Mutate {
                                     self.native_argument_type(ArgumentContract::from(b), "")
@@ -6749,6 +6752,42 @@ impl Emitter<'_> {
         }
     }
 
+    /// Hidden capture arguments for a direct call of a nested function, read
+    /// from the calling function's own bindings or forwarded from its own
+    /// hidden parameters.
+    #[inline(never)]
+    fn named_capture_arguments(&self, fun: &CheckedFunction, callee: usize, span: crate::Span) -> Vec<String> {
+        let Some(accesses) = self.program.named_capture_access.get(&callee).filter(|accesses| !accesses.is_empty()) else {
+            return Vec::new();
+        };
+        let caller = self
+            .program
+            .functions
+            .iter()
+            .position(|candidate| std::ptr::eq(candidate, fun))
+            .expect("capturing function called from a named function");
+        let slots = &self.program.function_source_bindings[&caller];
+        accesses
+            .iter()
+            .map(|access| {
+                let slot = slots[&access.binding.declaration_start];
+                let binding = &fun.bindings[slot];
+                if binding.ty.is_copy() && access.mode == Mode::Mutate {
+                    // A scalar the callee changes: lend the caller's slot.
+                    return if binding.capture_reference {
+                        format!("&mut *value{slot}")
+                    } else {
+                        format!("&mut value{slot}")
+                    };
+                }
+                let mut name = Expr::new(ExprKind::Name(binding.name.clone()), span);
+                name.ty = Some(binding.ty);
+                name.binding = Some(slot);
+                self.expr(fun, &name, if binding.ty.is_copy() { Mode::Copy } else { access.mode })
+            })
+            .collect()
+    }
+
     fn declared_function_call(
         &self,
         fun: &CheckedFunction,
@@ -6761,12 +6800,13 @@ impl Emitter<'_> {
         let native_name=self.native_call_name(index,args);
         let code = {
             let params = &self.program.functions[index].bindings;
-            let args = args
+            let mut args = args
                 .iter()
                 .zip(params)
                 .map(|(arg, param)| self.expr(fun, arg, param.mode))
-                .collect::<Vec<_>>()
-                .join(", ");
+                .collect::<Vec<_>>();
+            args.extend(self.named_capture_arguments(fun, index, expr.span));
+            let args = args.join(", ");
             let name=native_name;
             let call=format!("{name}({args})");
             if let Some((_,source_name))=&result_target {
