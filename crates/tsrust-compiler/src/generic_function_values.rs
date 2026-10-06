@@ -42,12 +42,29 @@ impl Analyzer {
     ) -> Result<Type, Diagnostic> {
         let ExprKind::Name(name) = &expression.kind else { unreachable!() };
         let template = self.generic_functions.template(name).expect("generic value template").clone();
-        if expected.and_then(|ty| self.checked_generic_callable_shape(self.unions.payload(ty).unwrap_or(ty))).is_none() {
+        let Some((parameters, result)) = expected.and_then(|ty| self.checked_generic_callable_shape(self.unions.payload(ty).unwrap_or(ty))) else {
             return Err(self.generic_value_pending(name, expression.span));
-        }
+        };
+        let hints = parameters.iter().copied().map(Some).collect::<Vec<_>>();
+        let types = crate::generic_inference::Types {
+            callable_shapes: None, inline_shapes: None, records: &self.program.records,
+            names: &self.record_names, unions: &self.unions,
+        };
+        let contract = self.generic_functions.value_signature(name, &hints, Some(result), &types, expression.span)?;
         // Capture-free template values need no lexical environment. Captured
         // templates are wrapped during lexical resolution, before escape analysis.
         *expression = crate::local_function_values::value(&template, usize::MAX - expression.span.start, expression.span);
+        if let ExprKind::Closure { params, result, .. } = &mut expression.kind {
+            debug_assert_eq!(contract.type_arguments.len(), template.type_parameters.len());
+            if let Some(solved) = contract.result { *result = solved; }
+            for (parameter, solved) in params.iter_mut().zip(contract.parameters) {
+                debug_assert_eq!(parameter.rest, solved.rest);
+                debug_assert_eq!(parameter.initializer.omission().is_omittable(), solved.omission.is_omittable());
+                if matches!(parameter.ty, ParameterAnnotation::Inferred(_)) {
+                    parameter.ty = ParameterAnnotation::Named(Box::new(solved.annotation));
+                }
+            }
+        }
         self.expression(context, expression, mode, loans, expected)
     }
 

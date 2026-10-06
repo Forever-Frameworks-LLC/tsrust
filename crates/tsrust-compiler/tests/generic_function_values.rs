@@ -66,3 +66,8 @@ fn contextual_owned_values_keep_argument_and_capture_transfers() {
 fn contextual_borrowed_and_owned_values_keep_distinct_capture_storage() {
     native("import {strictEqual} from 'std:testing';function main(){let calls=0;function select<T>(value:T):T{calls+=1;return value;}{const action:Mutable<Function<int,[value:int]>>=select;strictEqual(action(1),1);strictEqual(action(2),2);}strictEqual(calls,2);{const owned:(value:int)=>int=select;strictEqual(owned(3),3);strictEqual(owned(4),4);}strictEqual(calls,2);}", "");
 }
+
+#[test]
+fn capture_free_contexts_keep_defaults_and_rest_after_source_solving() {
+    native(include_str!("fixtures/generic-function-values/context-default-rest.tsr"), "");
+}

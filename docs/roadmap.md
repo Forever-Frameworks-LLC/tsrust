@@ -400,3 +400,7 @@ Keep the original section IDs in task references so later scope changes remain t
 Captured rest function values have a focused gate173 checkpoint. Generic values and the full signature/context audit remain pending; family measurements are still deferred.
 
 Gate173 now has contextual generic function values with checked type relations, captured callbacks and explicitly returned fixed factories. Unannotated polymorphic values and the full inference/context audit remain open.
+
+Gate173 now isolates concrete generic value signature solving before environment
+construction. Default forwarding removes only undefined from generic inference,
+preserving null checks. Deferred polymorphic values and the full audit remain open.

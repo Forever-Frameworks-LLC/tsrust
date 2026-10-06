@@ -274,3 +274,20 @@ returned fixed values retain their independent owned factory environments.
 
 Unannotated polymorphic generic values remain unsupported. Assigning a concrete
 context does not provide a callable that accepts every future argument type.
+
+Concrete contexts also retain default and rest arguments. A default runs in the
+original function when its argument is omitted or undefined. Null is a supplied
+value and must satisfy the declared type.
+
+```tsr
+function offset<T>(value: T, index: int = 0): T { return value; }
+function first<T>(...values: T[]): T { return values.remove(0); }
+const choose: (value: int, index?: int) => int = offset;
+const chosen = choose(7, undefined); // 7
+const pick: (...values: int[]) => int = first;
+const picked = pick(3, 4); // 3
+```
+
+The rest pack belongs to the invocation. It does not copy an existing caller
+array implicitly. These examples have an executable assertion counterpart in
+context-default-rest.tsr.

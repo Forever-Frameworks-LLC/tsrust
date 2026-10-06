@@ -7626,3 +7626,19 @@ fn contextual_generic_values_keep_help_hover_and_source_identity() {
     let definition=ask(source,"textDocument/definition","choose;",0);
     assert_eq!(definition["range"]["start"],json!(at(source,"choose<T>",0)),"{definition}");
 }
+
+#[test]
+fn contextual_generic_defaults_and_rest_keep_concrete_signature_help() {
+    let source="function offset<T>(value:T,index:int=0):T{return value;}function first<T>(...values:T[]):T{return values.remove(0);}function main(){const choose:(value:int,index?:int)=>int=offset;const chosen=choose(7,undefined);const pick:(...values:int[])=>int=first;const picked=pick(3,4);}";
+    tsrust_compiler::check(source).unwrap();
+    let optional=ask(source,"textDocument/signatureHelp","undefined);",0);
+    let label=optional["signatures"][0]["label"].as_str().expect("concrete optional signature");
+    assert!(label.contains("index") && label.contains("int") && label.contains('?'),"{optional}");
+    let rest=ask(source,"textDocument/signatureHelp","4);",0);
+    let label=rest["signatures"][0]["label"].as_str().expect("concrete rest signature");
+    assert!(label.contains("values") && label.contains("int") && label.contains("..."),"{rest}");
+    let hover=ask(source,"textDocument/hover","picked=",0).to_string();
+    assert!(hover.contains("int"),"{hover}");
+    let definition=ask(source,"textDocument/definition","offset;",0);
+    assert_eq!(definition["range"]["start"],json!(at(source,"offset<T>",0)),"{definition}");
+}

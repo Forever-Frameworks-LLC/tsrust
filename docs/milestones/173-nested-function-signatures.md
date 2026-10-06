@@ -156,3 +156,20 @@ factory environments remain genuine red witnesses; this is an interim checkpoint
 not full generic-value or gate173 acceptance.
 
 Contextual checkpoint evidence: [current handoff](../handoff-2026-10-06-gate173-generic-contexts.md). Full generic values and gate173 are still incomplete.
+
+## Solved source contract checkpoint
+
+The dedicated generic_value_signatures module solves the original declaration
+without allocating instances or environments. It returns substituted parameter
+and result annotations with source omission/rest metadata. Capture-free contextual
+values use this contract before forming their checked wrapper. Required parameters
+and same-type/result constraints retain normal checking; ordinary void is not
+a wildcard. Unannotated values and generic factory environments remain open.
+
+A default-forwarding defect was found and repaired: generic argument hints remove
+only undefined from omission-admitting slots. A forwarded int | undefined selects
+the declared default when absent; null remains a supplied type constraint. Solver
+controls cover conflicting types, missing arguments, result-only inference, array
+patterns, defaults/rest and no instance allocation. The paired executable
+context-default-rest fixture checks omitted/undefined defaults and a generic rest
+pack under a concrete callable context.

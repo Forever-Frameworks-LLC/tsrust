@@ -164,3 +164,20 @@ original bodies exactly, except for sibling-module visibility. It isolates the
 method cache, substitution, source replay and captured-layout checks before
 introducing deferred generic data metadata. It changes no supported behavior and
 does not close the five pending native witnesses or gate173.
+
+## Solved source contract checkpoint
+
+The dedicated generic_value_signatures module solves the original declaration
+without allocating instances or environments. It returns substituted parameter
+and result annotations with source omission/rest metadata. Capture-free contextual
+values use this contract before forming their checked wrapper. Required parameters
+and same-type/result constraints retain normal checking; ordinary void is not
+a wildcard. Unannotated values and generic factory environments remain open.
+
+A default-forwarding defect was found and repaired: generic argument hints remove
+only undefined from omission-admitting slots. A forwarded int | undefined selects
+the declared default when absent; null remains a supplied type constraint. Solver
+controls cover conflicting types, missing arguments, result-only inference, array
+patterns, defaults/rest and no instance allocation. The paired executable
+context-default-rest fixture checks omitted/undefined defaults and a generic rest
+pack under a concrete callable context.

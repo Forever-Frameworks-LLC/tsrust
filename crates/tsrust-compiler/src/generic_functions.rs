@@ -1,4 +1,6 @@
 //! Bounded explicit function-template materialization before ordinary ownership checking.
+#[path = "generic_value_signatures.rs"]
+mod value_signatures;
 use crate::syntax::*;
 use crate::type_syntax::{ValueAnnotation, ValueAnnotationKind as Kind};
 use crate::{Diagnostic, Span};
@@ -53,13 +55,19 @@ impl Cache {
         self.templates.get(name)
     }
 
-    fn argument_hints(&self,name:&str,hints:&[Option<Type>])->Result<Vec<Option<Type>>,Diagnostic> {
+    fn argument_hints(&self,name:&str,hints:&[Option<Type>],types:&crate::generic_inference::Types<'_>)->Result<Vec<Option<Type>>,Diagnostic> {
         let template=&self.templates[name];
         let minimum=crate::parameter_arity::minimum_arguments(&template.parameter_initializers[..template.params.len()-usize::from(template.rest_parameter)],|initializer|initializer.omission().is_omittable());
         if hints.len()<minimum||hints.len()>template.params.len(){return Err(Diagnostic::new("arity",format!("Expected {minimum}..={} arguments, found {}.",template.params.len(),hints.len()),template.name.span));}
         let mut result=hints.to_vec();result.resize(template.params.len(),None);
         for (hint,initializer) in result.iter_mut().zip(&template.parameter_initializers) {
-            if *hint==Some(Type::Undefined)&&initializer.omission().is_omittable(){*hint=None;}
+            // Undefined selects omission/default handling, not a type-variable
+            // constraint. Preserve null and every other supplied union member.
+            if initializer.omission().is_omittable() && let Some(actual) = *hint {
+                let members = actual.union().map(|id| types.unions.members(id)).unwrap_or_else(|| vec![actual]);
+                let supplied = members.into_iter().filter(|ty| *ty != Type::Undefined).collect::<Vec<_>>();
+                *hint = if supplied.is_empty() { None } else { Some(types.unions.intern(supplied, template.name.span)?) };
+            }
         }
         Ok(result)
     }
@@ -82,7 +90,7 @@ impl Cache {
         match types.solve(crate::generic_inference::Constraints {
             variables: &template.type_parameters,
             parameters: &parameters,
-            arguments: &self.argument_hints(name, hints.unwrap_or(&unknown))?,
+            arguments: &self.argument_hints(name, hints.unwrap_or(&unknown), types)?,
             result,
             expected,
             span: template.name.span,
@@ -111,7 +119,7 @@ impl Cache {
         types.solve(crate::generic_inference::Constraints {
             variables: &template.type_parameters,
             parameters: &parameters,
-            arguments: &self.argument_hints(name, hints)?,
+            arguments: &self.argument_hints(name, hints, types)?,
             result,
             expected,
             span,

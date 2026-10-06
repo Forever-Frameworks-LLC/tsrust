@@ -1,0 +1,17 @@
+import { strictEqual } from 'std:testing';
+
+function offset<T>(value: T, index: int = 0): T {
+    return value;
+}
+
+function first<T>(...values: T[]): T {
+    return values.remove(0);
+}
+
+function main() {
+    const choose: (value: int, index?: int) => int = offset;
+    strictEqual(choose(7), 7);
+    strictEqual(choose(8, undefined), 8);
+    const pick: (...values: int[]) => int = first;
+    strictEqual(pick(3, 4), 3);
+}
