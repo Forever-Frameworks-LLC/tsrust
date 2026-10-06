@@ -47,6 +47,20 @@ impl Analyzer {
                 parameter.ty = ParameterAnnotation::Named(Box::new(solved.annotation));
             }
         }
+        // Solving substitutes type arguments; nominal applications still need
+        // concrete record identities before the wrapper signature is checked.
+        let mut materialize = |annotation: &mut crate::type_syntax::ValueAnnotation| {
+            self.generic_records.materialize(annotation, &mut self.program.records,
+                &mut self.record_names, &self.unions)
+        };
+        crate::source_walk::result_annotation(result, &mut materialize)?;
+        for parameter in params.iter_mut() {
+            if let ParameterAnnotation::Named(annotation) = &mut parameter.ty {
+                materialize(annotation)?;
+            }
+        }
+        append_checked_record_fields(&mut self.program.records, &self.record_names,
+            &self.unions, &mut self.fields, &mut self.callables)?;
         // The source parameter may have the same name as the outer alias. A
         // private lexical name makes the call target the existing environment.
         let hidden = format!("#generic-adapter-{id}");

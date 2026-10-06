@@ -103,3 +103,11 @@ canaries and whole editor checks pass, including concrete parameter help and ali
 navigation. Adapter-specific matched benchmark support and the broader default,
 rest, pattern, nullable and other callback audit remain pending. This is a source
 implementation checkpoint, not gate173 or full adapter acceptance.
+
+The matched adapter workload now also exercises nominal generic results. Its first
+native check exposed unresolved Receipt<T> applications in solved wrapper
+signatures. Adapter construction now materializes substituted result and parameter
+annotations through the same record cache used by ordinary specialization, then
+registers concrete checked fields. A focused native witness confirms borrowed
+integer and direct string calls share one retained counter. Broader verification
+is tracked in the current benchmark handoff; this does not close the full plan.

@@ -19806,6 +19806,34 @@
       "specification": "Retain six independent observations of result inference, owning arrays and shared captured calls.",
       "sourceSha256": "ecfeb4959cd9c497055bc65b6f90aecc0b26176cab07c9e7e6dfd51c1e74e829",
       "counterpartSha256": "b03ad02bef4dbdc813e281b115006e2f115d6cf2500c1674d18333b0db126cf8"
+    },
+    {
+      "id": "generic_value_adapters",
+      "family": "generic-value-adapters",
+      "source": "workloads/generic_value_adapters.tsr",
+      "counterpart": "workloads/generic_value_adapters.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One existing generic environment adapter scenario",
+      "inputText": "adapters",
+      "category": "callbacks",
+      "implementationGate": 173,
+      "measurementStatus": "pending-language-milestone",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": false,
+      "measured": false,
+      "notes": "Concrete borrowed/owned views, generic calls, map callbacks and independent record/array storage environments. Untimed support; wider adapter acceptance pending.",
+      "specification": "Retain seventeen independent observations of values, ownership-preserving adapters and shared/independent captured counters.",
+      "sourceSha256": "cbf33608ebee903cefac09cfa0f0f540ff65d7a9da0884227852483b381af9bf",
+      "counterpartSha256": "dc7edbe7403ba0b3fd16e3b31bc50eecc9cdad3e8c4fddf13b29a7d1d1f23ce7"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

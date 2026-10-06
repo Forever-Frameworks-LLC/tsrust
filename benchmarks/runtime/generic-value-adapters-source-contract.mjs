@@ -1,0 +1,13 @@
+import {createHash} from 'node:crypto';
+
+export function assertGenericAdapterSource(source,row,kind) {
+    if(!['native','typescript'].includes(kind)||row.id!=='generic_value_adapters'||row.family!=='generic-value-adapters')throw Error('Generic adapter family');
+    if(createHash('sha256').update(source).digest('hex')!==(kind==='native'?row.sourceSha256:row.counterpartSha256))throw Error('Generic adapter fingerprint');
+    if(row.iterations!==2048||row.operationsPerIteration!==1||row.operationUnit!=='One existing generic environment adapter scenario'||row.resultEncoding!=='array-shape-scalar-v1'||row.inputText!=='adapters')throw Error('Generic adapter denominator');
+    const view=kind==='native'?'Mutable<Function<Receipt<int>, [value: int]>>':'(value: number) => Receipt<number>';
+    const owned=kind==='native'?'Function<Receipt<string>, [value: Owned<string>]>':'(value: string) => Receipt<string>';
+    const array=kind==='native'?'Function<Receipt<string>, [value: Owned<string>]>[]':'((value: string) => Receipt<string>)[]';
+    for(const text of ['function main() {}','calls += 1;','return { value: value, calls: calls };','const action = make(base);',`const view: ${view} = action;`,'const first = view(base);','firstValue = first.value;','firstCalls = first.calls;','const generic = action("generic");',`const owned: ${owned} = action;`,'const last = owned("owner");','const mapper = make(base + 10);','const mapped = [base, base + 1].map(mapper);','const after = mapper(true);','const recordAction = make(base + 20);','const holder: Holder = { run: recordAction };','const record = holder.run(base + 2);','const arrayAction = make(base + 30);',`const actions: ${array} = [arrayAction];`,'const stored = actions[0]("array");','output.push([firstValue, firstCalls, generic.value.length, generic.calls, last.value.length, last.calls,','mapped[0].value, mapped[1].value, mapped[0].calls, mapped[1].calls, after.value ? 1 : 0, after.calls,','record.value, record.calls, stored.value.length, stored.calls, input.length]);']) {
+        if(!source.includes(text))throw Error('Generic adapter scenario: '+text);
+    }
+}

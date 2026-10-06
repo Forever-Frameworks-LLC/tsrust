@@ -276,3 +276,21 @@ exclusive borrowing, consuming reuse and exact O0/O3 disposal controls pass. The
 original environment and state remain intact. Other callback and nullable contexts,
 default/rest/pattern audits and adapter-specific benchmark support remain pending.
 This source checkpoint does not accept gate173.
+
+## Nominal adapter results and matched benchmark support
+
+Adapter construction now materializes substituted nominal parameter and result
+applications before checking its wrapper signature. The retained Receipt<T>
+witness preserves one counter across a borrowed integer adapter and a direct
+string call. Seven adapter tests, 17 existing generic value tests, all eight depth
+canaries (63 tests), and the whole editor crate (298 tests) pass.
+
+The generic_value_adapters pair observes seventeen values per scenario across
+borrowed/owned views, map callbacks and separate record/array environments.
+Independent result oracle, fingerprint and semantic guards, registration, ABI,
+run/profile/report hooks are complete. Five native/Node-after-tsc correctness cases
+pass untimed. Exact evidence is stored in SQLite under
+benchmarks/runtime/results/2026-10-06T23-58-21-955Z-verify.json. Original failures
+and repaired checks are retained; loose copies were removed after exact readback.
+Five consumers were atomically refreshed and hash verified. Full adapter and
+Gate173 acceptance remain open. No performance measurement is claimed.
