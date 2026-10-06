@@ -1,4 +1,11 @@
 function workload(n: int, seed: int, input: string): int[][] {
+    function independent(): int {
+        function unused(): int { return later.length; }
+        return 7;
+    }
+    const independentResult = independent();
+    const later = [1, 2];
+    if (independentResult !== 7) { throw 99; }
     const output: int[][] = [];
     let i = 0;
     while (i < n) {

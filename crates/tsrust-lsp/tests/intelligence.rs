@@ -7572,3 +7572,13 @@ fn inferred_owned_callable_array_keeps_signature_help() {
     assert!(label.contains("int"), "{help}");
     assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(), 1);
 }
+
+#[test]
+fn unused_inner_capture_keeps_editor_symbols_without_outer_runtime_requirements() {
+    let source = "function main(){function outer():int{function unused():int{return later.length;}return 7;}const value=outer();const later=[1,2];}";
+    tsrust_compiler::check(source).unwrap();
+    let hover=ask(source,"textDocument/hover","unused",0);
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("function unused():int"), "{hover}");
+    let definition=ask(source,"textDocument/definition","outer();",0);
+    assert!(!definition.is_null());
+}

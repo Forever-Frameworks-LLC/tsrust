@@ -11,6 +11,8 @@ struct Request {
 pub(super) struct Contexts {
     requests: HashMap<usize, Request>,
     prepared: HashMap<usize, Context>,
+    completed: HashMap<usize, Context>,
+    lexical_owners: std::collections::HashSet<usize>,
     identities: HashMap<usize, Vec<crate::local_capture_plan::BindingId>>,
     /// Lexical owner of each nested function owner.
     enclosing: HashMap<usize, usize>,
@@ -58,6 +60,15 @@ impl Contexts {
                 contexts.instance(index, &application.declaration.text);
             }
         }
+        for &index in contexts.requests.keys() {
+            let mut current = index;
+            let mut visited = std::collections::HashSet::new();
+            while visited.insert(current) {
+                let Some(owner) = contexts.declaring_function(current, program, functions) else { break; };
+                contexts.lexical_owners.insert(owner);
+                current = owner;
+            }
+        }
         contexts
     }
     /// Whether `ancestor` lexically contains the nested function `owner`.
@@ -75,9 +86,11 @@ impl Contexts {
     /// The function whose body declares this capturing function. Checking
     /// it first lets its calls prepare the typed capture context.
     pub(super) fn declaring_function(&self, index: usize, program: &Program, functions: &HashMap<String, usize>) -> Option<usize> {
-        let request = self.requests.get(&index)?;
-        let declaration = program.local_declarations.iter().find(|declaration| declaration.id == request.node)?;
-        let name = program.local_capture_plans[request.plan].owners.get(&declaration.enclosing_owner)?;
+        let function = &program.functions[index];
+        let name = function.application.as_ref().map_or(function.name.text.as_str(), |application| application.declaration.text.as_str());
+        let declaration = program.local_declarations.iter().find(|declaration| declaration.emitted_name == name)?;
+        let plan = program.local_capture_plans.iter().find(|plan| plan.owners.contains_key(&declaration.enclosing_owner))?;
+        let name = plan.owners.get(&declaration.enclosing_owner)?;
         functions.get(name).copied()
     }
     /// A concrete copy of a capturing function with callback parameters
@@ -99,16 +112,51 @@ impl Contexts {
             self.requests.insert(copy, request);
         }
     }
-    /// Capturing functions declared in `owner` that no call has prepared.
-    pub(super) fn unprepared_in(&self, owner: usize, program: &Program, functions: &HashMap<String, usize>) -> Vec<usize> {
-        let mut found = self
-            .requests
-            .keys()
-            .copied()
-            .filter(|index| !self.prepared.contains_key(index) && self.declaring_function(*index, program, functions) == Some(owner))
-            .collect::<Vec<_>>();
-        found.sort_unstable();
-        found
+    /// Preserve lexical types for unused declaration checking without imposing
+    /// hidden runtime arguments on the function that declares them.
+    pub(super) fn complete(&mut self, index: usize, context: &Context) {
+        if self.lexical_owners.contains(&index) {
+            self.completed.insert(index, context.clone());
+        }
+    }
+    pub(super) fn prepare_completed(
+        &mut self, program: &Program, functions: &HashMap<String, usize>,
+    ) -> Result<Vec<usize>, Diagnostic> {
+        let mut pending = self.requests.keys().copied()
+            .filter(|index| !self.prepared.contains_key(index)).collect::<Vec<_>>();
+        pending.sort_unstable();
+        let mut ready = Vec::new();
+        for index in pending {
+            let Some(owner) = self.declaring_function(index, program, functions) else { continue; };
+            let Some(source) = self.completed.get(&owner) else { continue; };
+            let mut outer = source.clone();
+            let mut ancestor = owner;
+            let mut visited = std::collections::HashSet::new();
+            while visited.insert(ancestor) {
+                let Some(parent) = self.declaring_function(ancestor, program, functions) else { break; };
+                ancestor = parent;
+                let Some(source) = self.completed.get(&parent) else { continue; };
+                let start = outer.bindings.len();
+                for binding in &source.bindings {
+                    let mut binding = binding.clone();
+                    for root in &mut binding.view_roots { *root += start; }
+                    outer.bindings.push(binding);
+                }
+                for (&source, &slot) in &source.source_bindings {
+                    outer.source_bindings.entry(source).or_insert(slot + start);
+                }
+            }
+            let request = self.requests[&index];
+            let plan = &program.local_capture_plans[request.plan];
+            if plan.requirements(request.node).iter()
+                .filter(|capture| self.encloses(capture.binding.owner, request.owner))
+                .any(|capture| !outer.source_bindings.contains_key(&capture.binding.declaration_start)) {
+                continue;
+            }
+            self.prepare(index, &outer, program)?;
+            ready.push(index);
+        }
+        Ok(ready)
     }
     pub(super) fn needs_context(&self, index: usize) -> bool {
         self.requests.contains_key(&index)

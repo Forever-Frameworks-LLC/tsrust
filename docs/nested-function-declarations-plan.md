@@ -190,3 +190,9 @@ through the arrow form; the stage still owes factory instances, aggregate storag
 disposal, callback failures, recursive group lifetime and its own matched workload.
 Gate 173 keeps the omitted-result witness red, and adds function values of generic
 functions and of capturing functions with optional or default parameters.
+
+Gate172 is accepted. See milestones/172-nested-function-owned-escape.md for owned
+factory/storage/disposal/failure/recursion evidence and independent matched untimed
+verification. Runtime captures now follow live call/value edges; unused bodies use
+completed lexical contexts without adding outer-call borrows or readiness demands.
+Gate173 omitted-result inference and full signature/context coverage remain open.

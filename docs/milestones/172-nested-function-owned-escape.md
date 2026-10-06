@@ -1,6 +1,6 @@
 # Gate 172: owned escape of nested functions
 
-Status: in progress, not accepted. Gate 171 is accepted at 1c6dd58. Preserve the
+Status: accepted. Gate 171 is accepted at 1c6dd58. Preserve the
 four owner fixture edits and use the existing development workflow and full nested
 function plan. The settled model transfers owned escaping captures, preserves scalar
 copy semantics and uses existing loans for borrowed captures. No implicit clones or
@@ -130,3 +130,38 @@ nested_function_captures::uncalled_capturing_functions_are_still_checked. Deferr
 checking must obtain types from the completed lexical owner, without making an
 uncalled declaration a runtime borrow or forcing an uninitialized native argument.
 Keep recursive groups and hidden slot mappings consistent across both phases.
+
+## Final acceptance audit
+
+Gate172 is accepted for owned nested callable escape. Independent factories,
+record and array storage, inferred and explicitly typed callable arrays, consuming
+capture return, once invocation, borrowed-escape rejection, transfer conflicts,
+recursive retained owners, callback error payloads and exact debug/optimized
+disposal are covered by the eleven owned-escape tests. The seventeen capture tests
+preserve existing borrowed behavior and invalid unused-body diagnostics.
+
+The dead-inner witness now passes. Runtime capture dependencies include only
+actual calls and value uses. Completed lexical contexts supply types separately
+for unused body checking; deferred placeholders are replaced before real checking.
+Lexical contexts are retained only for ancestors that supply captured declarations.
+No hidden argument slot filtering or ABI remapping is required. Invalid unused
+bodies still report type errors; live calls and returned callable values still
+require initialized captures. The native fixture verifies that an unused inner
+declaration also cannot conflict with consuming an outer-call argument.
+
+All eight depth canaries pass (63 tests), the local compiler library selection
+passes 19 tests, and the complete editor crate passes 278 tests. The editor witness
+retains hover and navigation for unused declarations. Its initial spacing assertion
+was corrected to match the actual source signature; no hover defect was found.
+The expanded Node reference passes. Matched native/Node-after-tsc workload cases
+pass five untimed inputs with eight observations each and an additional dead-inner
+assertion. The independent oracle, source mutation guards, ABI, registrations and
+run/profile/report hooks are complete. Measurement remains deferred to the full
+named-declaration family milestone. Gate173 and the full plan remain incomplete.
+
+Canonical untimed record: benchmarks/runtime/results/2026-10-06T20-29-06-606Z-verify.json
+in benchmarks/records.sqlite. All 112 compiler inputs, all oracle inputs and matched
+source hashes match the accepted source. The manifest acceptance flag was promoted
+after this verification; the final registration test verifies that metadata.
+All 20 original logs/results from the final repair were imported, read back
+byte-for-byte and removed from loose storage. Earlier red evidence remains intact.

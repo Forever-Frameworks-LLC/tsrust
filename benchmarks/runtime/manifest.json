@@ -19604,12 +19604,12 @@
       "measurementStatus": "pending-language-milestone",
       "sourceAccepted": true,
       "nativeSourceAccepted": true,
-      "implementationAccepted": false,
+      "implementationAccepted": true,
       "measured": false,
-      "notes": "Independent retained factories, inferred callable arrays, consuming owner return, recursive retained dispatch and callback failure. Untimed support; full gate 172 acceptance pending.",
+      "notes": "Independent retained factories, inferred callable arrays, consuming owner return, recursive retained dispatch and callback failure. Gate 172 accepted with untimed native/Node verification; dead inner declarations add no runtime captures.",
       "specification": "Retain eight scalar observations from independently checked factory/storage/failure scenarios.",
-      "sourceSha256": "7e21058f3b97244acba75a7aed6278fb70d983de7fa6dff817fb7bc42b44afc4",
-      "counterpartSha256": "ae4cc76350fdb5966ed04bf3f9801633d6cd44b6e077e20f8d825e80c952917b"
+      "sourceSha256": "e201d1cbd340e80913183df11639c3f70c6d51fcafa0e6bb60317ac2b1c0d84a",
+      "counterpartSha256": "fa85ca3ebd82a6a9f92ee6269969251a8532aa13a38ce050565d2ad78496a4b2"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

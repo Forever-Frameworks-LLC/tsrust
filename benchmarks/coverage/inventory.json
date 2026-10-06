@@ -13118,13 +13118,15 @@
       "comparison": "paired group",
       "evidence": [
         "./milestones/171-nested-function-captures.md",
-        "./nested-functions.md"
+        "./nested-functions.md",
+        "./milestones/172-nested-function-owned-escape.md"
       ],
       "workloads": [
-        "nested_function_captures"
+        "nested_function_captures",
+        "nested_function_owned_escape"
       ],
       "measured": false,
-      "note": "Gate171 accepts nested named functions that read and change variables of enclosing functions: per-call borrows, nested forwarding, recursive groups, later initialization, per-iteration captures, rest/callback/type parameters and use as a callable value through the arrow form. One matched seven-observation scenario is verified untimed on native and Node-after-tsc; no measurement. Function values with optional or default parameters, generic function values and comprehensive result inference remain pending."
+      "note": "Gates171 and172 accept per-call captured borrows and owned nested callable escape: independent factories, record/array storage, inferred callable arrays, consuming captures, once invocation, recursive retained owners, callback failures and exact native disposal. Unused inner declarations are typechecked without runtime captures or outer-call readiness/borrow requirements. Matched capture and owned-escape scenarios pass native and Node-after-tsc untimed; no measurement. Generic/default/optional capturing function values and omitted-result inference remain gate173."
     },
     {
       "id": "function.nestedDeclaration",

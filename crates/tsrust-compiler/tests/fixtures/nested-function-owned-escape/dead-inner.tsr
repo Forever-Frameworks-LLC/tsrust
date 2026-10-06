@@ -6,4 +6,9 @@ function main() {
     }
     strictEqual(outer(), 7);
     const later = [1, 2];
+    function consume(values: int[]): int {
+        function unused(): int { return later.length; }
+        return values.length;
+    }
+    strictEqual(consume(later), 2);
 }

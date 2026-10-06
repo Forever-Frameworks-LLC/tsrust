@@ -115,3 +115,15 @@ fn dead_inner_declarations_do_not_require_outer_capture_initialization() {
     support::success(&output);
     assert!(output.stdout.is_empty());
 }
+
+#[test]
+fn dead_inner_declarations_still_check_invalid_bodies_and_live_calls() {
+    for (source, code) in [
+        ("function main(){function outer():int{function unused():int{return later.missing;}return 7;}outer();const later=[1];}", "type"),
+        ("function main(){function outer():int{function used():int{return later.length;}return used();}outer();const later=[1];}", "unassigned"),
+        ("function main(){function outer():()=>int{function used():int{return later.length;}return used;}const retained=outer();const later=[1];}", "unassigned"),
+    ] {
+        let error=tsrust_compiler::check(source).err().expect("invalid body or live capture");
+        assert_eq!(error.code, code, "{}: {}", error.code, error.message);
+    }
+}

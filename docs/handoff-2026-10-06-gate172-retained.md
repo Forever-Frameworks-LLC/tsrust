@@ -1,3 +1,5 @@
+Superseded by [the gate172 accepted handoff](./handoff-2026-10-06-gate172-accepted.md).
+
 # Handoff: retained owned nested callbacks
 
 Continue Tsrust from this checkpoint. Read AGENTS.md, docs/development-workflow.md,

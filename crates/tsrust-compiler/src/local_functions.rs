@@ -147,11 +147,9 @@ impl Resolver {
                         self.local_owners.insert(function_owner, id);
                         let emitted = format!("local#{id}#{}", name.text);
                         self.capture_plan.owner(function_owner, emitted.clone());
-                        // The enclosing function supplies the captured variables of
-                        // every function it declares, called or not.
-                        if let Some(&source) = self.local_owners.get(&owner) {
-                            self.capture_plan.dependency(source, id);
-                        }
+                        // Only calls and value uses create runtime dependencies.
+                        // Unused declaration bodies obtain their types separately
+                        // from completed lexical contexts.
                         self.declarations.push(Declaration {
                             id,
                             scope,

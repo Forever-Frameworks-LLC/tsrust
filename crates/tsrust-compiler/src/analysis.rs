@@ -2351,8 +2351,8 @@ impl Analyzer {
     /// A capturing nested function is checked when a call supplies its typed
     /// defining context. Its declaring function is checked first, because a
     /// linked program can order the lifted function before it. A function that
-    /// no call reaches then has no context: it is not emitted, and its body
-    /// is not type-checked yet.
+    /// no call reaches waits for its completed lexical types; the deferred
+    /// placeholder is replaced when that body can be checked.
     #[inline(never)]
     fn capturing_function_is_unused(&mut self, index: usize) -> Result<bool, Diagnostic> {
         if !self.named_captures.needs_context(index) || self.named_captures.ready(index) {
@@ -3983,11 +3983,14 @@ impl Analyzer {
     /// captured variables take their types from the finished enclosing body.
     #[inline(never)]
     fn prepare_uncalled_capturing_functions(&mut self, index: usize, context: &Context) -> Result<Vec<usize>, Diagnostic> {
-        let uncalled = self.named_captures.unprepared_in(index, &self.program, &self.function_names);
-        for &nested in &uncalled {
-            self.named_captures.prepare(nested, context, &self.program)?;
+        self.named_captures.complete(index, context);
+        let ready = self.named_captures.prepare_completed(&self.program, &self.function_names)?;
+        for &nested in &ready {
+            // A discovery pass can have deferred this body before its lexical
+            // owner had finished. Replace that placeholder with real checking.
+            self.checked[nested] = None;
         }
-        Ok(uncalled)
+        Ok(ready)
     }
 
     fn specialize(&mut self, index: usize, args: &[Expr], span: Span) -> Result<usize, Diagnostic> {

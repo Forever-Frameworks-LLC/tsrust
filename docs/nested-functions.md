@@ -163,7 +163,7 @@ function main() {
 Transferring a capture cannot overlap a borrowed argument that uses the same value.
 Use `clone()` explicitly when two independently owned copies are intended. The
 focused factory fixture verifies independent returned owners. Focused retained storage, disposal, failure and recursive owner cases are verified.
-Full owned-escape gate acceptance remains in progress.
+Owned-escape gate172 is accepted; full signature coverage remains gate173.
 
 ### Retained callback arrays
 
@@ -187,3 +187,9 @@ A callback that consumes its captures produces once-callable storage. Remove suc
 callback from its array to own and invoke it. Borrowing an indexed element does not
 transfer its environment. Empty arrays still require a type or call/return context.
 Borrowed callback environments cannot become owned merely by entering an array.
+
+Declaring an unused inner function does not capture its inputs for an outer call.
+The compiler still checks the unused body using the completed lexical scope.
+Calling or retaining that inner function makes its captures live and requires
+initialization before the call or value use. An unused declaration therefore adds
+no borrow to an outer call and cannot block ownership transfer of its argument.
