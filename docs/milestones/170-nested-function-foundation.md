@@ -1,46 +1,17 @@
 # Gate 170: nested function declaration foundation
 
-Status: implementation in progress; capture-free native foundation works. Not accepted.
+Status: accepted lexical and capture-free foundation. Captures, escape and comprehensive result inference remain subsequent gates in the [full plan](../nested-function-declarations-plan.md).
 
-The complete scope and owner capture decision are in
-[nested function declarations plan](../nested-function-declarations-plan.md).
-Gate 170 covers lexical declaration representation, hoisting, scope, capture-free
-recursion and synchronous first-class use. Subsequent capture, escape and signature
-gates are required to finish the full feature; their witnesses remain explicit.
+Nested named declarations are block scoped and hoisted. Capture-free forward calls, self and mutual recursion, inner shadowing and synchronous callable use execute natively. Basic generic, default and rest signatures reuse declared-call support. Real AST declarations retain stable source identities through lifting, specialization and project linking. Local main is an ordinary function.
 
-The hoisting fixture exercises forward use, factorial recursion, even/odd mutual
-recursion, inner block shadowing and use as an Array.map callback. Other fixtures
-cover later initialized captures, mutable borrowed state, returned counters and
-local generic/default/rest signatures. Pinned Node reference runs pass all three.
-The focused compiler run is expected red at the existing statement syntax diagnostic.
-See the plan for exact compiler/editor/benchmark acceptance gates and dependency
-seams. No timing, consumer refresh or broad regression is part of this red checkpoint.
+Checked single-file and project APIs expose local declarations with original names, source locations and checked result types. Completion, hover, definition, references, signature help and hierarchical document symbols preserve lexical visibility and imported nominal result identity. A future block binding masks an outer declaration without premature completion. This revealed and repaired virtual scope isolation for unbraced loops. Formatting preserves nested blocks and blank lines.
 
-A preparatory source chunk shares top-level named declaration parsing through the
-non-inlined named_function_syntax helper. Statement-consumer obligations are listed
-in the full plan. It does not yet add nested declaration syntax. A rest-call depth
-failure found during focused checking is repaired by separating generic and
-conditional preparation state from ordinary declared call frames, without changing
-worker-stack or source-depth limits. Feature acceptance remains pending.
+Public checking of 100 nested declarations passes on the original worker stack. The preceding parser chunk also verified the existing 128-level source bound and repaired retained parser header state; ordinary rest-call dispatch frames were reduced without increasing stack or source limits.
 
-Preparatory checks pass: 137 affected compiler checks, including all eight depth
-canaries and generic/optional/rest contracts, and all 267 editor checks. The direct
-declared-call dispatch frame is now 288 bytes versus its former 4,672 bytes. Detailed
-failure, LLDB, compiled-frame and successful check logs are retained in SQLite under
-target/editor/nested-function-parser-* as gate-log records, verified by exact
-read-back. Five consumers are atomically refreshed and hash-verified. Generated
-example and scratch test executables are pruned; libraries remain cached and tests
-will relink. No timing or full compiler regression was performed. Nested declaration
-implementation and its matched benchmarks remain pending; gate 170 is not accepted.
+Acceptance evidence: five focused compiler checks and all 16 formatting checks pass; the entire editor crate passes 271 tests, followed by a stronger project nominal-identity assertion checked separately. Harness and report checks pass 17 tests. The preceding lexical checkpoint retained 121 affected compiler checks including all eight depth canaries, plus three parser/metadata checks. No parser/analyzer dispatch changed in this editor chunk.
 
-The current lexical implementation adds a real LocalFunction AST node and a dedicated
-local_functions resolver before checking and module linking. It registers declarations
-before uses, resolves shadowing, diagnoses conflicts, lifts capture-free functions for
-static execution and retains declaration identities and source spans through linking
-and checked program construction. Four focused checks pass: the hoisting/recursive
-fixture, generic/default/rest fixture, scope/conflict/local-main checks and closure
-parameter shadowing. The capture witness remains genuinely red at an explicit capture
-use/declaration diagnostic. A raw-parser depth witness exposed signature temporaries
-retained across recursive bodies; header parsing now ends before body recursion and
-the original 128-level source limit is preserved. See nested-functions.md for current
-behavior. Editor acceptance and matched benchmark support remain pending.
+The matched nested_function_declarations workload retains six scalar observations per scenario for forward calls, recursion, shadowing and callbacks. Native and Node-after-tsc agree with the independent oracle on all five untimed verification cases. Source contracts, ABI registration, driver/profile/report hooks, manifest and coverage registrations are complete. No workload timing or full compiler regression was performed.
+
+The borrowed/escaping capture witness remains genuinely red for gate 171/172. A new independent Node-positive omitted-result witness is red because unannotated named declarations currently mean void; comprehensive inference remains gate 173. These are explicit staging boundaries, not accepted unsupported behavior or completion of the full nested-function plan.
+
+Detailed successful and failed logs are canonical SQLite gate-log records under target/editor/nested-function-editor-*, with earlier parser/lexical records retained. The exact runtime-result is benchmarks/runtime/results/2026-10-06T16-36-15-075Z-verify.json. Its provisional manifest snapshot predates acceptance flags; source hashes and verified behavior are unchanged. Every record was read back byte for byte before its loose copy was deleted. Five executable consumers are atomically refreshed and hash verified. Coverage contains 1,956 operations across 28 families; this family is implemented and verified, unmeasured.

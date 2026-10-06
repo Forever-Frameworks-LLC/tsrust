@@ -170,14 +170,12 @@ requires every stage, including captures and escape, rather than only gate 170.
 
 ## Current state and execution discipline
 
-Gate 169 is the latest accepted feature at 7ee12d6. The preparatory checkpoint
-18cf235 shares named parsing and repairs ordinary call-stack retention. The current
-lexical implementation adds real nested declaration syntax, hoisting, capture-free
-static execution and source identity retention before checking and module linking.
-Four focused checks pass, including basic generic/default/rest signatures. The
-borrowed/escaping capture witness remains red. Parser depth and declaration metadata
-checks pass. Gate 170 is not accepted: explicit local editor/formatting coverage,
-matched benchmarks, coverage records and remaining acceptance work are pending.
+Gate 170 is accepted for lexical capture-free declarations, native execution,
+editor navigation and formatting, with a complete matched untimed benchmark.
+See milestones/170-nested-function-foundation.md for evidence. Borrowed/escaping
+captures remain a genuine red witness for gates 171/172. A separate omitted-result
+native witness is red with a passing independent Node reference; the current
+unannotated named result is void, and inference is tracked in gate 173.
 
 One agent works in this tree. Preserve the three owner fixture edits. Use explicit
 Git paths and commits, one shared Cargo target with CARGO_INCREMENTAL=0, bounded
@@ -185,12 +183,6 @@ focused checks, complete benchmark support per implemented gate and SQLite recor
 with exact read-back. Refresh five executable consumers only after implementation.
 No archives, routine full regressions or timing during these foundation chunks.
 
-The lexical implementation chunk now parses a real LocalFunction node and resolves
-capture-free names in a dedicated module before ordinary statement transformations.
-Declaration records retain stable IDs, block IDs, original names and function source
-spans; linked modules qualify emitted identities and offset source coordinates.
-Four focused compiler/native checks pass, including basic local generic/default/rest
-signatures earlier than their comprehensive stage. The capture fixture remains red.
-Gate 170 still requires editor/formatting coverage, matched benchmark registration and
-untimed verification, acceptance records and coverage updates. This is implementation
-progress, not feature acceptance or completion of the full plan.
+The next implementation stage is gate 171: capture planning and initialization
+flow, under the settled existing ownership model. Gate 170 does not complete this
+plan. Keep capture and inference red witnesses visible until their stages pass.

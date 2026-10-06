@@ -5,7 +5,7 @@ use tsrust_compiler::project::{
 };
 
 impl SourceIndex {
-    fn project_type_spelling(
+    pub(super) fn project_type_spelling(
         &mut self,
         graph: &ProjectGraph,
         current: &SourceId,

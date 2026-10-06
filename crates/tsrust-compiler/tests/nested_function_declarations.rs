@@ -62,3 +62,15 @@ function main(){
 }"#,
     );
 }
+
+#[test]
+fn nested_declarations_infer_nonrecursive_result_when_omitted() {
+    native(include_str!("fixtures/nested-function-declarations/inferred-result.tsr"));
+}
+
+#[test]
+fn deep_nested_declarations_check_with_the_original_worker_stack() {
+    let source=format!("function main(){{{}return 1;{}{}}}",
+        "function next():int{".repeat(100), "}return 1;".repeat(99), "}");
+    tsrust_compiler::check(&source).unwrap();
+}

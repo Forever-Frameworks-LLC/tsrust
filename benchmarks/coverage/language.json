@@ -356,6 +356,8 @@
     "category": "Functions and classes",
     "operations": [
       "function.named",
+      "function.nestedDeclaration",
+      "function.declarationHoisting",
       "function.declaredValue",
       "function.higherOrderValue",
       "function.arrow",

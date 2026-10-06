@@ -1,5 +1,9 @@
 //! Tolerant source declarations for editing incomplete programs. This is not a
 //! second type checker: unknown types stay unknown and diagnostics use `check`.
+#[path="statement_extent.rs"]
+mod statement_extent;
+#[path="local_function_intelligence.rs"]
+mod local_function_intelligence;
 #[path = "project_generic_intelligence.rs"]
 mod project_generic_intelligence;
 
@@ -325,6 +329,15 @@ impl SourceIndex {
                 for span in [span,definition] {if span.end<=start {}else if span.start>=start+added && span.end<=original_end+added {span.start-=added;span.end-=added;}else{return false;}}
                 true
             });
+        }
+        for fact in analysis.checked_local_functions() {
+            let mut span = fact.declaration_span;
+            if let Some((start, added, original_end)) = inserted {
+                if span.end <= start {} else if span.start >= start + added && span.end <= original_end + added {
+                    span.start -= added; span.end -= added;
+                } else { continue; }
+            }
+            self.apply_local_function_result(span, &fact.name, fact.result);
         }
         let facts = analysis.checked_type_facts();
         for (owner,name,original_span,ty) in &facts.rest_record_fields {
@@ -911,26 +924,20 @@ impl SourceIndex {
             let Some(close) = self.pairs[id + 1] else {
                 continue;
             };
-            if self.text(close + 1) != "{" {
-                continue;
-            }
             let body = close + 1;
-            let end = self.pairs[body].map_or(self.source.len(), |n| self.tokens[n].span.end);
+            let last = self.source_statement_end(body, 0);
+            let end = self.tokens.get(last).map_or(self.source.len(), |token| token.span.end);
             let parent = self.tokens[id].scope;
             let new_scope = self.scopes.len();
-            self.scopes.push(Scope {
-                parent: Some(parent),
-                span: Span::new(self.tokens[id].span.start, end),
-            });
-            if let Some(scope) = self
-                .scopes
-                .iter_mut()
-                .find(|scope| scope.span.start == self.tokens[body].span.start)
-            {
-                scope.parent = Some(new_scope);
+            self.scopes.push(Scope { parent: Some(parent), span: Span::new(self.tokens[id].span.start, end) });
+            let start = self.tokens[id].span.start;
+            for scope in &mut self.scopes[..new_scope] {
+                if scope.parent == Some(parent) && start <= scope.span.start && scope.span.end <= end {
+                    scope.parent = Some(new_scope);
+                }
             }
-            for token in &mut self.tokens[id..=close] {
-                token.scope = new_scope;
+            for token in &mut self.tokens[id..=last] {
+                if token.scope == parent { token.scope = new_scope; }
             }
         }
         self.collect_type_aliases();
@@ -2182,10 +2189,7 @@ impl SourceIndex {
                 s.name == text
                     && s.owner.is_none()
                     && self.contains_scope(scope, s.scope)
-                    && (self.parameter_symbols.contains(id)
-                        || (matches!(s.kind, 10 | 23) || s.signature.starts_with("function "))
-                        || s.span.start <= offset
-                        || self.scopes[s.scope].span.start > s.span.start)
+
             })
             .max_by_key(|(_, s)| (self.scope_depth(s.scope), s.span.start))
             .and_then(|(id, _)| self.parameter_available(id, offset).then_some(id))
@@ -2730,7 +2734,7 @@ impl SourceIndex {
     }
     pub fn request(&self, method: &str, params: &Value, uri: &str) -> Result<Value, String> {
         if method == "textDocument/documentSymbol" {
-            return Ok(json!(self.symbols.iter().filter(|s|s.owner.is_none() && matches!(s.kind,12|23|13|26) && s.scope==0).map(|s|json!({"name":s.name,"detail":s.signature,"kind":s.kind,"range":self.range(s.extent),"selectionRange":self.range(s.span)})).collect::<Vec<_>>()));
+            return Ok(self.document_outline());
         }
         if method == "textDocument/foldingRange" {
             let mut ranges = vec![];
@@ -2988,10 +2992,7 @@ impl SourceIndex {
         for (id, s) in self.symbols.iter().enumerate() {
             if s.owner.is_none()
                 && self.contains_scope(scope, s.scope)
-                && (self.parameter_symbols.contains(&id)
-                    || matches!(s.kind, 10 | 23)
-                    || s.signature.starts_with("function ")
-                    || s.span.start <= offset)
+
             {
                 let key = (self.scope_depth(s.scope), s.span.start);
                 if visible
@@ -3007,6 +3008,12 @@ impl SourceIndex {
                 continue;
             }
             let s = &self.symbols[id];
+            // A later local binding masks an outer function without becoming
+            // an available completion before its initialization point.
+            if s.span.start > offset && !self.parameter_symbols.contains(&id)
+                && !matches!(s.kind, 10 | 23) && !s.signature.starts_with("function ") {
+                continue;
+            }
             if s.name.starts_with(prefix) {
                 items.push(json!({"label":s.name,"kind":match s.kind {12=>3,10=>13,23=>7,_=>6},"detail":s.signature,"documentation":{"kind":"markdown","value":s.docs},"textEdit":{"range":replace,"newText":s.name}}));
             }

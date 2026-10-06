@@ -7496,3 +7496,46 @@ fn numeric_string_conversion_help_explains_whole_radix_and_invalid_text() {
     let docs=hover["contents"]["value"].as_str().unwrap();
     for text in ["0b/0o/0x", "cannot have a sign", "U+0085", "16 3 15 true"] { assert!(docs.contains(text),"{text}: {docs}"); }
 }
+
+#[test]
+fn nested_named_functions_have_hoisted_navigation_signatures_and_outline() {
+    let source = "function main(){\n const result=double(3);\n /** Double a value. */\n function double(value:int):int{return value+value;}\n { function double(value:int):int{return value*3;} console.log(double(2)); }\n console.log(double(4));\n function main():int{return 7;}\n console.log(main());\n}";
+    tsrust_compiler::check(source).unwrap();
+    let hover=ask(source,"textDocument/hover","double(3)",0);
+    let text=hover["contents"]["value"].as_str().unwrap();
+    assert!(text.contains("Double a value."),"{text}");
+    assert!(text.contains("int"),"{text}");
+    assert_eq!(ask(source,"textDocument/definition","double(3)",0)["range"]["start"],json!(at(source,"double(value",0)));
+    assert_eq!(ask(source,"textDocument/definition","double(2)",0)["range"]["start"],json!(at(source,"double(value",1)));
+    let references=ask(source,"textDocument/references","double(3)",0);
+    assert_eq!(references.as_array().unwrap().len(),3);
+    let signature=ask(source,"textDocument/signatureHelp","3);",0);
+    assert!(signature["signatures"][0]["label"].as_str().unwrap().contains("int"));
+    let local_main=ask(source,"textDocument/hover","main());",0);
+    assert!(!local_main["contents"]["value"].as_str().unwrap().contains("Program entry point"));
+    let index=SourceIndex::new(source);
+    let outline=index.request("textDocument/documentSymbol",&json!({}),"file:///test.tsr").unwrap();
+    assert_eq!(outline.as_array().unwrap().len(),1);
+    assert_eq!(outline[0]["children"].as_array().unwrap().len(),3);
+}
+
+#[test]
+fn nested_named_function_completion_is_hoisted_and_block_scoped() {
+    let source="function main(){console.log(outer(1)); function outer(value:int):int{return value;} {function inner(value:int):int{return value;} console.log(inner(2));} console.log(outer(3)); function report(){console.log(1);} report();}";
+    tsrust_compiler::check(source).unwrap();
+    let before=ask(source,"textDocument/completion","outer(1)",0);
+    assert!(before.as_array().unwrap().iter().any(|item|item["label"]=="outer"));
+    let after=ask(source,"textDocument/completion","outer(3)",0);
+    assert!(!after.as_array().unwrap().iter().any(|item|item["label"]=="inner"));
+    let hover=ask(source,"textDocument/hover","report();",0);
+    assert!(hover["contents"]["value"].as_str().unwrap().contains(": void"));
+}
+
+#[test]
+fn later_block_binding_masks_outer_named_function_for_navigation() {
+    let source="function main(){function value():int{return 1;} {console.log(value); const value=2;}}";
+    let definition=ask(source,"textDocument/definition","value);",0);
+    assert_eq!(definition["range"]["start"],json!(at(source,"value=2",0)));
+    let completions=ask(source,"textDocument/completion","value);",0);
+    assert!(!completions.as_array().unwrap().iter().any(|item|item["label"]=="value"));
+}

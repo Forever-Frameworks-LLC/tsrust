@@ -7,6 +7,17 @@ use crate::syntax::{
 };
 use std::collections::{BTreeMap, HashMap};
 
+/// Checked lexical declaration identity in original UTF-8 source coordinates.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalFunctionInfo {
+    pub id: usize,
+    pub scope: usize,
+    pub name: String,
+    pub declaration_span: Span,
+    pub function_scope: Span,
+    pub result: Option<String>,
+}
+
 /// One checked use of a nullable place with a more precise value type.
 ///
 /// Spans use source UTF-8 byte offsets. The declared binding and its physical
@@ -92,6 +103,20 @@ impl Analysis {
     /// This does not run analysis again or retain editor strings in the syntax
     /// tree. Results are ordered by source span and identical views are deduped.
     /// Multiple distinct types at a shared source span remain explicit.
+    pub fn checked_local_functions(&self) -> Vec<LocalFunctionInfo> {
+        if self.program.local_declarations.is_empty() { return Vec::new(); }
+        let mut names = HashMap::new();
+        let functions = self.program.functions.iter().filter(|function| !function.template)
+            .map(|function| (function.name.as_str(), function)).collect::<HashMap<_, _>>();
+        self.program.local_declarations.iter().map(|declaration| {
+            let result = functions.get(declaration.emitted_name.as_str())
+                .and_then(|function| type_name(&self.program, function.result, &mut names));
+            LocalFunctionInfo { id: declaration.id, scope: declaration.scope,
+                name: declaration.source_name.text.clone(), declaration_span: declaration.source_name.span,
+                function_scope: declaration.function_scope, result }
+        }).collect()
+    }
+
     pub fn projections(&self) -> Vec<ProjectionInfo> {
         self.checked_type_facts().projections
     }

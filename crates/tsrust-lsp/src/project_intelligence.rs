@@ -16,10 +16,12 @@ impl ProjectIndex {
         let mut index = Self::build(&analysis.graph);
         let labels=analysis.checked_control_labels();
         let facts = analysis.checked_type_facts();
+        let local_functions = analysis.checked_local_functions();
         for id in &analysis.graph.order {
             let mut source = index.indices.remove(id).expect("indexed project source");
             source.checked_control_labels=labels.iter().filter(|(span,definition)|span.source==*id && definition.source==*id).map(|(span,definition)|(span.span,definition.span)).collect();
             source.apply_project_checked_facts(&analysis.graph, id, &facts, &index.indices);
+            source.apply_project_local_functions(&analysis.graph, id, &local_functions, &index.indices);
             index.indices.insert(id.clone(), source);
         }
         index.refresh_references();

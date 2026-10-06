@@ -834,9 +834,13 @@
     "workloads": [
       "local_closures",
       "recursive_callbacks",
-      "recursive_factory"
+      "recursive_factory",
+      "nested_function_declarations"
     ],
-    "note": "Existing bounded callable/ownership contracts; broader TS signatures pending."
+    "note": "Existing bounded callable/ownership contracts; broader TS signatures pending. Gate170 accepts capture-free nested declarations, lexical hoisting, self/mutual recursion, block shadowing and source/editor identity. The matched six-observation scenario passes five native/Node-after-tsc cases untimed. Captures, owned escape and comprehensive signatures/result inference remain pending stages; this is not full named-function parity or measurement.",
+    "evidence": [
+      "./milestones/170-nested-function-foundation.md"
+    ]
   },
   "function.arrow": {
     "implementation": "native variant",
@@ -862,9 +866,13 @@
     "workloads": [
       "local_closures",
       "recursive_callbacks",
-      "recursive_factory"
+      "recursive_factory",
+      "nested_function_declarations"
     ],
-    "note": "Existing bounded callable/ownership contracts; broader TS signatures pending."
+    "note": "Existing bounded callable/ownership contracts; broader TS signatures pending. Gate170 accepts capture-free nested declarations, lexical hoisting, self/mutual recursion, block shadowing and source/editor identity. The matched six-observation scenario passes five native/Node-after-tsc cases untimed. Captures, owned escape and comprehensive signatures/result inference remain pending stages; this is not full named-function parity or measurement.",
+    "evidence": [
+      "./milestones/170-nested-function-foundation.md"
+    ]
   },
   "function.mutualRecursion": {
     "implementation": "native variant",
@@ -872,9 +880,13 @@
     "workloads": [
       "local_closures",
       "recursive_callbacks",
-      "recursive_factory"
+      "recursive_factory",
+      "nested_function_declarations"
     ],
-    "note": "Existing bounded callable/ownership contracts; broader TS signatures pending."
+    "note": "Existing bounded callable/ownership contracts; broader TS signatures pending. Gate170 accepts capture-free nested declarations, lexical hoisting, self/mutual recursion, block shadowing and source/editor identity. The matched six-observation scenario passes five native/Node-after-tsc cases untimed. Captures, owned escape and comprehensive signatures/result inference remain pending stages; this is not full named-function parity or measurement.",
+    "evidence": [
+      "./milestones/170-nested-function-foundation.md"
+    ]
   },
   "function.closureBorrow": {
     "implementation": "native variant",
@@ -2413,12 +2425,14 @@
       "declared_value_factory_target",
       "declared_value_global_use",
       "declared_value_bound_capture",
-      "declared_value_owned_tree_move"
+      "declared_value_owned_tree_move",
+      "nested_function_declarations"
     ],
     "evidence": [
-      "./milestones/54-declared-function-values.md"
+      "./milestones/54-declared-function-values.md",
+      "./milestones/170-nested-function-foundation.md"
     ],
-    "note": "Declared functions bind, move, return and capture as zero-capture native callable values through exact existing data-argument contracts. One 571-group regression, actual O0/O3 complete output/order/IEEE checks, twelve matched comparisons and 36 zero-final-disposal profiles pass. Higher-order consumers remain separately scoped."
+    "note": "Declared functions bind, move, return and capture as zero-capture native callable values through exact existing data-argument contracts. One 571-group regression, actual O0/O3 complete output/order/IEEE checks, twelve matched comparisons and 36 zero-final-disposal profiles pass. Higher-order consumers remain separately scoped. Gate170 accepts capture-free nested declarations, lexical hoisting, self/mutual recursion, block shadowing and source/editor identity. The matched six-observation scenario passes five native/Node-after-tsc cases untimed. Captures, owned escape and comprehensive signatures/result inference remain pending stages; this is not full named-function parity or measurement."
   },
   "function.higherOrderValue": {
     "implementation": "implemented",
@@ -3761,7 +3775,7 @@
     "evidence": [
       "./milestones/73-integer-formatting.md"
     ],
-    "note": "All signed-i64 values, default decimal and strict optional radix 2–36. Lowercase signed digits and owned UTF-8 result; once-only operands and zero normal/unwind residue. Four JS-safe comparisons pass; Number formatting and coercion are separate."
+    "note": "All signed-i64 values, default decimal and strict optional radix 2\u201336. Lowercase signed digits and owned UTF-8 result; once-only operands and zero normal/unwind residue. Four JS-safe comparisons pass; Number formatting and coercion are separate."
   },
   "Number.toFixed": {
     "implementation": "native variant",
@@ -4765,7 +4779,7 @@
       "array_sort_compare_undefined",
       "array_callback_errors"
     ],
-    "note": "Stable in-place ordering returns void and holds exclusive receiver access; no element cloning. Defaults int numeric, Number total_cmp including signed zero/NaN bits, Boolean false<true, UTF8 String lexical and equal null/undefined. Nested/record elements require a reusable comparator even empty; zero–two readonly/Copy parameters, one concrete int or Number result, zero/NaN equal. Comparator visitation is standard-Rust-dependent; no coercion, sparse/mixed/nullable elements or consuming/once callbacks. Focused compiler/editor and six native catalog examples accepted; fourteen source comparisons registered, measurements accepted at checkpoint 91 against compiled Node. Gate 150 repairs checked callback error transport and readonly abstract invocation. Comparator failure retains source order. New error-transport comparison verifies untimed only.",
+    "note": "Stable in-place ordering returns void and holds exclusive receiver access; no element cloning. Defaults int numeric, Number total_cmp including signed zero/NaN bits, Boolean false<true, UTF8 String lexical and equal null/undefined. Nested/record elements require a reusable comparator even empty; zero\u2013two readonly/Copy parameters, one concrete int or Number result, zero/NaN equal. Comparator visitation is standard-Rust-dependent; no coercion, sparse/mixed/nullable elements or consuming/once callbacks. Focused compiler/editor and six native catalog examples accepted; fourteen source comparisons registered, measurements accepted at checkpoint 91 against compiled Node. Gate 150 repairs checked callback error transport and readonly abstract invocation. Comparator failure retains source order. New error-transport comparison verifies untimed only.",
     "evidence": [
       "./milestones/91-array-sorting.md",
       "./milestones/150-array-callback-errors.md"
@@ -4802,7 +4816,7 @@
       "array_to_sorted_compare_undefined",
       "array_callback_errors"
     ],
-    "note": "Stable independently mutable sorted copy uses Read source access and clones owned descendants; comparator may read source but cannot mutate/consume it. Defaults int numeric, Number total_cmp including signed zero/NaN bits, Boolean false<true, UTF8 String lexical and equal null/undefined. Nested/record elements require a reusable comparator even empty; zero–two readonly/Copy parameters, one concrete int or Number result, zero/NaN equal. Comparator visitation is standard-Rust-dependent; no coercion, sparse/mixed/nullable elements or consuming/once callbacks. Focused compiler/editor and six native catalog examples accepted; fourteen source comparisons registered, measurements accepted at checkpoint 91 against compiled Node. Gate 150 repairs checked callback error transport and readonly abstract invocation. Comparator failure retains source order. New error-transport comparison verifies untimed only.",
+    "note": "Stable independently mutable sorted copy uses Read source access and clones owned descendants; comparator may read source but cannot mutate/consume it. Defaults int numeric, Number total_cmp including signed zero/NaN bits, Boolean false<true, UTF8 String lexical and equal null/undefined. Nested/record elements require a reusable comparator even empty; zero\u2013two readonly/Copy parameters, one concrete int or Number result, zero/NaN equal. Comparator visitation is standard-Rust-dependent; no coercion, sparse/mixed/nullable elements or consuming/once callbacks. Focused compiler/editor and six native catalog examples accepted; fourteen source comparisons registered, measurements accepted at checkpoint 91 against compiled Node. Gate 150 repairs checked callback error transport and readonly abstract invocation. Comparator failure retains source order. New error-transport comparison verifies untimed only.",
     "evidence": [
       "./milestones/91-array-sorting.md",
       "./milestones/150-array-callback-errors.md"
@@ -5379,7 +5393,7 @@
       "./milestones/113-string-raw.md"
     ],
     "measured": false,
-    "note": "Joins a record’s raw string[] segments with String() conversions and optional string-array spread. Missing substitutions insert empty text; extra argument expressions still evaluate. Tagged templates and arbitrary array-like raw fields are unsupported. One scenario is registered and verified untimed; measurements wait for the string-methods milestone."
+    "note": "Joins a record\u2019s raw string[] segments with String() conversions and optional string-array spread. Missing substitutions insert empty text; extra argument expressions still evaluate. Tagged templates and arbitrary array-like raw fields are unsupported. One scenario is registered and verified untimed; measurements wait for the string-methods milestone."
   },
   "Number.toLocaleString": {
     "implementation": "native variant",
@@ -6322,5 +6336,27 @@
     ],
     "measured": false,
     "note": "interface declarations are nominal record types with optional fields, type parameters and extends over record types, in any order and across modules. Record types stay distinct by name; method signatures, generic bases and declaration merging are rejected. One matched scenario verified untimed."
+  },
+  "function.nestedDeclaration": {
+    "implementation": "native variant",
+    "comparison": "paired group",
+    "workloads": [
+      "nested_function_declarations"
+    ],
+    "evidence": [
+      "./milestones/170-nested-function-foundation.md"
+    ],
+    "note": "Gate170 accepts capture-free nested declarations, lexical hoisting, self/mutual recursion, block shadowing and source/editor identity. The matched six-observation scenario passes five native/Node-after-tsc cases untimed. Captures, owned escape and comprehensive signatures/result inference remain pending stages; this is not full named-function parity or measurement."
+  },
+  "function.declarationHoisting": {
+    "implementation": "native variant",
+    "comparison": "paired group",
+    "workloads": [
+      "nested_function_declarations"
+    ],
+    "evidence": [
+      "./milestones/170-nested-function-foundation.md"
+    ],
+    "note": "Gate170 accepts capture-free nested declarations, lexical hoisting, self/mutual recursion, block shadowing and source/editor identity. The matched six-observation scenario passes five native/Node-after-tsc cases untimed. Captures, owned escape and comprehensive signatures/result inference remain pending stages; this is not full named-function parity or measurement."
   }
 }

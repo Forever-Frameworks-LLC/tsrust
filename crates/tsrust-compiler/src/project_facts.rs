@@ -5,6 +5,16 @@ use crate::syntax::{CallbackKind, Type};
 use crate::type_syntax::{ValueAnnotation, ValueAnnotationKind as Kind};
 use std::collections::{HashMap, HashSet};
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProjectLocalFunctionInfo {
+    pub id: usize,
+    pub scope: usize,
+    pub name: String,
+    pub declaration: SourceLocation,
+    pub function_scope: SourceLocation,
+    pub result: Option<ProjectType>,
+}
+
 /// Concrete type with nominal declaration identity; no linked display-name parsing.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ProjectType {
@@ -61,6 +71,22 @@ pub struct ProjectCheckedTypeFacts {
 }
 
 impl ProjectAnalysis {
+    pub fn checked_local_functions(&self) -> Vec<ProjectLocalFunctionInfo> {
+        if self.analysis.program.local_declarations.is_empty() { return Vec::new(); }
+        let functions = self.analysis.program.functions.iter().filter(|function| !function.template)
+            .map(|function| (function.name.as_str(), function)).collect::<HashMap<_, _>>();
+        let names = self.analysis.program.records.iter().enumerate()
+            .map(|(id, record)| (record.name.text.as_str(), id)).collect();
+        self.analysis.program.local_declarations.iter().filter_map(|declaration| {
+            let result = functions.get(declaration.emitted_name.as_str())
+                .and_then(|function| self.project_type(function.result, &names));
+            Some(ProjectLocalFunctionInfo { id: declaration.id, scope: declaration.scope,
+                name: declaration.source_name.text.clone(),
+                declaration: self.source_location(declaration.source_name.span)?,
+                function_scope: self.source_location(declaration.function_scope)?, result })
+        }).collect()
+    }
+
     pub fn checked_control_labels(&self)->Vec<(SourceLocation,SourceLocation)>{
         self.analysis.checked_control_labels().into_iter().filter_map(|(span,definition)|Some((self.source_location(span)?,self.source_location(definition)?))).collect()
     }

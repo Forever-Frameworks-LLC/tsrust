@@ -9,6 +9,34 @@
   "compileSamples": 3,
   "workloads": [
     {
+      "id": "nested_function_declarations",
+      "family": "nested-function-declarations",
+      "source": "workloads/nested_function_declarations.tsr",
+      "counterpart": "workloads/nested_function_declarations.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One complete lexical declaration scenario",
+      "inputText": "nested",
+      "category": "recursion",
+      "implementationGate": 170,
+      "measurementStatus": "pending-language-milestone",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": true,
+      "measured": false,
+      "notes": "Capture-free hoisting, self/mutual recursion, block shadowing and declared callback use. Five matched cases verified untimed; no measurement.",
+      "specification": "Retain six independent scalar observations per scenario with deterministic seed and iteration inputs.",
+      "sourceSha256": "e81736c3386a9e04c52b3aa72bae4456afa1aa2d4d397cb7a629b1ca3e395a54",
+      "counterpartSha256": "77cd1210fe5818aa498e35b4608fbece0c9fec612364ae73d1b46438c5334d1b"
+    },
+    {
       "id": "numeric_string_conversion",
       "family": "numeric-string-conversion",
       "source": "workloads/numeric_string_conversion.tsr",

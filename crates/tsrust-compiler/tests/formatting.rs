@@ -231,3 +231,13 @@ fn labeled_control_formatting_keeps_targets_and_updates() {
  assert_eq!(check(source).unwrap().contracts(),check(&formatted).unwrap().contracts());
  assert!(formatted.contains("continue outer;"),"{formatted}");
 }
+
+#[test]
+fn formatting_nested_declarations_keeps_blocks_and_blank_lines() {
+    let source="function main(){\nconsole.log(twice(3));\n\nfunction twice(value:int):int{return value+value;}\n\n{function triple(value:int):int{return value*3;}console.log(triple(2));}\n}";
+    let formatted = format(source).unwrap();
+    assert!(formatted.contains("    function twice(value: int): int {"),"{formatted}");
+    assert!(formatted.contains("    }\n\n    {"),"{formatted}");
+    assert_eq!(format(&formatted).unwrap(),formatted);
+    check(&formatted).unwrap();
+}

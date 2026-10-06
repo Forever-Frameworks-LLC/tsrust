@@ -1087,3 +1087,27 @@ fn checked_project_labels_keep_local_definitions_after_linking() {
  let labels=ask(&index,entry,"outer;","textDocument/references");assert_eq!(labels.as_array().unwrap().len(),2,"{labels}");
  let values=ask(&index,entry,"outer);","textDocument/references");assert_eq!(values.as_array().unwrap().len(),2,"{values}");
 }
+
+#[test]
+fn checked_project_local_declarations_keep_source_names_and_imported_result_identity() {
+    let entry="import {User as Person} from './dep.tsr';function main(){function identity(user:Person):Person{return user;} function report(){console.log(1);} const user=identity({name:'Pat'});report();console.log(user.name);}";
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let dependency_uri="file:///tsrust-intelligence/dep.tsr";
+    let mut workspace=Workspace::default();
+    workspace.open(source_id(uri).unwrap(),1,entry.into());
+    workspace.open(source_id(dependency_uri).unwrap(),1,"export type User={name:string;};".into());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let facts=checked.checked_local_functions();
+    assert_eq!(facts.len(),2);
+    let identity=facts.iter().find(|fact|fact.name=="identity").unwrap();
+    assert_eq!(identity.declaration.source,source_id(uri).unwrap());
+    assert_eq!(&entry[identity.declaration.span.start..identity.declaration.span.end],"identity");
+    assert!(matches!(&identity.result, Some(tsrust_compiler::project::ProjectType::Named { declaration: Some(location), .. })
+        if location.source == source_id(dependency_uri).unwrap()));
+    let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,entry,"identity({name","textDocument/hover");
+    let text=hover["contents"]["value"].as_str().unwrap();
+    assert!(text.contains("Person"),"{text}");assert!(!text.contains("local#"),"{text}");
+    let report=ask(&index,entry,"report();","textDocument/hover");
+    assert!(report["contents"]["value"].as_str().unwrap().contains(": void"));
+}

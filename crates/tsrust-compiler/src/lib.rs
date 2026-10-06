@@ -35,7 +35,7 @@ mod native_emit;
 pub use stdlib::path::runtime as native_path;
 pub use formatting::format;
 mod projections;
-pub use projections::{CheckedTypeFacts, GenericCallInfo, GenericParameterInfo, MethodResultInfo, ProjectionInfo};
+pub use projections::{CheckedTypeFacts, LocalFunctionInfo, GenericCallInfo, GenericParameterInfo, MethodResultInfo, ProjectionInfo};
 pub mod project;
 pub mod project_cli;
 mod project_link;

@@ -19,6 +19,8 @@ function main() {
 Capture-free declarations support self recursion, mutual recursion and use as
 callable values. Parameter and result annotations use ordinary declaration syntax.
 Basic generic, default and rest signatures share the top-level implementation.
+Write the result annotation when returning a value: an omitted named-declaration
+result currently means void. Nonrecursive result inference remains planned.
 The native fixtures in tests/fixtures/nested-function-declarations verify forward
 calls, factorial, mutually recursive even/odd functions, block shadowing, Array.map
 callbacks and generic/default/rest signatures with assertions.
@@ -36,6 +38,13 @@ there is no implicit clone or shared capture cell. Use existing arrow or anonymo
 function expressions for currently supported capture behavior while this foundation
 is completed.
 
-This guide records current compiler behavior, not full feature acceptance. Lexical
-editor navigation/completion, formatting coverage, matched benchmark support and the
-capture/escape/signature gates remain required by nested-function-declarations-plan.md.
+Completion includes hoisted declarations throughout their block. Hover and signature
+help show source names and checked types, including imported nominal results.
+Definitions and references respect shadowing; the document outline nests local
+functions under their enclosing function. A later local binding masks an outer name
+without being offered before its declaration. Formatting retains block structure and
+blank lines. The capture-free retained-result benchmark is verified against an
+independent oracle for native and Node execution; it has not been measured.
+
+Gate 170 accepts this lexical foundation. The capture, escape and comprehensive
+signature stages in nested-function-declarations-plan.md remain open.
