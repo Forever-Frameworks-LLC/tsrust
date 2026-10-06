@@ -202,3 +202,10 @@ native witness now passes. Scalar, generic, captured and array returns infer fro
 checked bodies, and outer generic calls no longer constrain unknown results to
 void. Recursive value-returning inference requires an explicit boundary. Full
 function-value/signature/context coverage and the family audit remain incomplete.
+
+Gate173 also has a captured optional/default value checkpoint. Generated wrappers
+forward omission and the declared function evaluates defaults exactly once. Native
+checks cover supplied arguments, undefined, dependent defaults, consumption, array
+callback arguments and failure. Wrapper projection collisions are repaired, and
+editor signature help is verified. Generic/rest values and the wider context audit
+remain open; this is not full gate173 or full-plan acceptance.

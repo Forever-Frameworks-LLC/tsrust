@@ -7594,3 +7594,13 @@ fn inferred_named_results_drive_call_values_hover_and_signature_help() {
     let signature=ask(source,"textDocument/signatureHelp","3);",0);
     assert!(signature["signatures"][0]["label"].as_str().unwrap().ends_with(": int"),"{signature}");
 }
+
+#[test]
+fn captured_default_function_values_keep_signature_help_and_omission() {
+    let source="function main(){const base=2;function add(step:int=base):int{return base+step;}const action=add;const first=action();const second=action(undefined);}";
+    tsrust_compiler::check(source).unwrap();
+    let help=ask(source,"textDocument/signatureHelp","undefined);",0);
+    let label=help["signatures"][0]["label"].as_str().unwrap_or_else(||panic!("{help}; {}",ask(source,"textDocument/hover","action(undefined)",0)));
+    assert!(label.contains("step") && label.contains("int"),"{help}");
+    assert!(label.contains('=') || label.contains('?'),"{help}");
+}

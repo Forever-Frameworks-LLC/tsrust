@@ -19638,6 +19638,34 @@
       "specification": "Retain six independent observations from checked inferred named results.",
       "sourceSha256": "b25627a145d7bf1d9636be9e6ad9fcd2800f5aa6f7ae22c89200e05950678fae",
       "counterpartSha256": "b61ebede20e7b6ff680519e5bea851e75da2b0d985328111e57d7663fe629343"
+    },
+    {
+      "id": "nested_function_defaults",
+      "family": "nested-function-defaults",
+      "source": "workloads/nested_function_defaults.tsr",
+      "counterpart": "workloads/nested_function_defaults.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One captured optional/default callable scenario",
+      "inputText": "defaults",
+      "category": "callbacks",
+      "implementationGate": 173,
+      "measurementStatus": "pending-language-milestone",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": false,
+      "measured": false,
+      "notes": "Captured optional/default values, omitted/undefined/supplied arguments, exact default side effects and consuming defaults. Untimed support; full gate173 acceptance pending.",
+      "specification": "Retain eight independent observations from captured callable default and optional argument behavior.",
+      "sourceSha256": "b97d8496458ec3958bb6377f5b4928988059d46f28f42b3bee2e0e1069fe2951",
+      "counterpartSha256": "6d4fb9b4c78ec7abfcc77bd5ff3afba0c37becbd1957ed2c1eeebbda25032341"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

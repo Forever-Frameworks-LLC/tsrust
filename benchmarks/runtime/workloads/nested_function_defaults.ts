@@ -1,0 +1,30 @@
+function workload(n: number, seed: number, input: string): number[][] {
+    const output: number[][] = [];
+    let i = 0;
+    while (i < n) {
+        const value = i % 5 + seed % 5 + 1;
+        let hits = 0;
+        let total = value;
+        function defaultStep(): number { hits += 1; return 2; }
+        function next(step: number = defaultStep()): number { total += step; return total; }
+        let first = 0;
+        let second = 0;
+        let third = 0;
+        {
+            const action = next;
+            first = action();
+            second = action(3);
+            third = action(undefined);
+        }
+        function optional(delta?: number): number { return value + (delta ?? 4); }
+        const maybe = optional;
+        const saved = "owner";
+        function take(text: string = saved): string { return text; }
+        const once = take;
+        const text = once();
+        output.push([first, second, third, hits, maybe(), maybe(1), text.length, input.length]);
+        i += 1;
+    }
+    return output;
+}
+function main() {}

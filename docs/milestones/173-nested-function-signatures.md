@@ -38,7 +38,7 @@ measurement remains deferred. No measurement protocols or sample counts change.
 ## Remaining scope
 
 Implement function values of generic functions and capturing declarations with
-optional/default parameters. Preserve defaults/rest arity, invocation contracts,
+rest parameters. Optional/default captured values now have a verified checkpoint. Preserve defaults/rest arity, invocation contracts,
 ownership and original symbols across specialization. Verify parameter patterns,
 abstract callbacks, imported nominal types, catch/finally scopes, deep nesting and
 precise fixed-array caller storage against direct evidence. Audit inferred callable
@@ -61,3 +61,53 @@ byte-for-byte before removing loose copies. This includes the original red, buil
 errors and stale generic-hint failures, followed by verified repairs. Final checks
 are focused37, result2 plus canaries63, editor279 plus stronger signature1, exact
 native/Node fixture, registration1 and five matched native/Node cases.
+
+## Captured optional/default value checkpoint
+
+local_function_values now retains parameter omission in generated wrappers.
+Defaults become optional supplied slots in the wrapper and are evaluated only by
+the original function. Forwarding undefined preserves omission and avoids both
+duplicated side effects and transfer of the same owned capture twice. Supplied
+arguments bypass defaults. Optional values, dependent defaults using an earlier
+parameter, reusable borrowed defaults, consuming defaults, array callback index
+arguments, failure propagation, arity and type errors have focused native checks.
+
+A stale capture test that rejected defaulted values is replaced by positive native
+array assertions. Generic function values remain a genuine missing feature. No
+ownership restriction is relaxed; a borrowed closure releases its loan at its
+existing scope boundary, and consuming defaults retain once invocation.
+
+The editor witness exposed a projection collision: hidden wrapper calls have the
+same source span as their function value. Their scalar result could overwrite
+the callable type and remove signature help. The projection filter now identifies
+actual wrapper closure spans and excludes only their hidden call result. Numeric
+coercion, object spread and in-operator projections remain covered by the complete
+editor run. Optional/default signature help is verified.
+
+The new nested_function_defaults workload is appended at manifest end. Eight
+observations verify omitted/undefined/supplied calls, exact default side effects,
+optional argument fallback and consuming capture defaults. Independent oracle,
+matched sources, mutation guards, registration, ABI and all execution/profile/report
+hooks are present. Full gate173 implementation acceptance and measurement remain
+pending. Existing result registration now finds its own row rather than requiring
+it to stay the final manifest row after future appends.
+
+A returned-value factory witness also passes: two independently owned defaulted
+callbacks preserve separate scalar state, accepting omission, supplied values and
+undefined through the explicit optional callable result contract. Inferred callable
+factory results still require the remaining gate173 audit.
+
+## Durable checkpoint evidence
+
+Canonical final untimed record: benchmarks/runtime/results/2026-10-06T21-02-40-677Z-verify.json
+in benchmarks/records.sqlite. All 113 compiler source fingerprints, all oracle inputs
+and matched source hashes match this checkpoint. It records five correctness inputs
+and no timing samples. The earlier passed record is retained separately; its source
+fingerprint predates the narrowed projection repair.
+
+All 26 original logs/results and 3 actual scratch test inputs
+were imported and verified byte-for-byte before removing loose copies. This includes
+original unsupported/duplicate-transfer witnesses, loan and assertion drafts, the
+broad projection regressions and their repaired checks. The original scratch inputs
+are gate-source records captured-default-value.tsr, captured-owned-default.tsr and
+captured-default-reference.ts. They are inputs used by checks, not repository snapshots.

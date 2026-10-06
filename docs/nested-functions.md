@@ -130,8 +130,8 @@ function, or returned from the enclosing function, takes ownership of the variab
 it needs; they are no longer available afterwards.
 
 Two forms cannot be used as values yet and report a diagnostic that names the
-arrow form to write instead: a generic function, and a function with optional,
-default or rest parameters that uses variables of its enclosing function.
+arrow form to write instead: a generic function, and a function with rest parameters that uses variables of
+its enclosing function.
 
 Completion includes hoisted declarations throughout their block. Hover and signature
 help show source names and checked types, including imported nominal results.
@@ -197,3 +197,21 @@ The compiler still checks the unused body using the completed lexical scope.
 Calling or retaining that inner function makes its captures live and requires
 initialization before the call or value use. An unused declaration therefore adds
 no borrow to an outer call and cannot block ownership transfer of its argument.
+
+### Captured values with optional and default parameters
+
+A captured named function can be assigned, passed or returned with optional or
+default parameters. Omitting an argument or supplying undefined runs a default
+exactly once in the original function. A supplied argument skips that default,
+including its side effects and possible failure. Without a default, an optional
+parameter receives undefined. Existing arity and type checks remain in effect.
+
+The evaluation fixture creates a function value with a default that increments a
+counter. Calls with omission, a supplied 2 and undefined return 13, 15 and 18; the
+default counter reaches 2. Array callbacks supply their normal value/index/source
+arguments, so an index supplied to a second parameter overrides its default.
+
+The wrapper forwards omission instead of evaluating defaults itself. Borrowed
+captures retain their normal loan scope. A default that consumes a captured owner
+can make the value once-callable; a borrowed default may remain reusable. No
+implicit clone is introduced.

@@ -14,16 +14,13 @@ pub(crate) const VALUE_MARK: &str = "#value";
 struct Header {
     params: Vec<(Token, ParameterAnnotation)>,
     access: Vec<Option<(Mode, Span)>>,
+    initializers: Vec<ParameterInitializer>,
 }
 
 fn header(function: &Function) -> Option<Header> {
     // These shapes keep the diagnostic of the direct function value.
     if function.rest_parameter
         || !function.type_parameters.is_empty()
-        || function
-            .parameter_initializers
-            .iter()
-            .any(|initializer| !matches!(initializer, ParameterInitializer::Required))
     {
         return None;
     }
@@ -40,6 +37,7 @@ fn header(function: &Function) -> Option<Header> {
             })
             .collect(),
         access: function.parameter_access.clone(),
+        initializers: function.parameter_initializers.clone(),
     })
 }
 
@@ -62,7 +60,13 @@ fn wrapper(emitted: &str, header: &Header, id: usize, span: Span) -> Expr {
                 span,
                 kind: TokenKind::Name,
             }),
-            initializer: ParameterInitializer::Required,
+            // The declared function owns default evaluation. Forward omission
+            // as undefined instead of evaluating a second default expression in
+            // the wrapper (which could transfer an owned capture twice).
+            initializer: match &header.initializers[index] {
+                ParameterInitializer::Default { span, .. } => ParameterInitializer::Optional(*span),
+                initializer => initializer.clone(),
+            },
         })
         .collect();
     let arguments = names

@@ -1,3 +1,5 @@
+Superseded by [the captured-default value handoff](./handoff-2026-10-06-gate173-default-values.md).
+
 # Handoff: named result inference checkpoint
 
 Continue Tsrust from this checkpoint. Read AGENTS.md, docs/development-workflow.md,

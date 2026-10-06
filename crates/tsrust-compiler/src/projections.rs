@@ -153,6 +153,13 @@ impl Analysis {
     /// Conflicting specializations remain explicit; callers must not pick one.
     pub fn checked_type_facts(&self) -> CheckedTypeFacts {
         let program = &self.program;
+        let wrapper_spans = program.closures.iter().filter_map(|closure| {
+            let [statement] = closure.function.body.as_slice() else { return None; };
+            let StmtKind::Return(Some(call)) = &statement.kind else { return None; };
+            let ExprKind::Call(callee, _) = &call.kind else { return None; };
+            (call.span == closure.span && callee.span == closure.span)
+                .then_some((closure.span.start, closure.span.end))
+        }).collect::<std::collections::BTreeSet<_>>();
         let mut pending = Vec::new();
         let mut parameter_types = BTreeMap::<(usize, usize), Vec<Option<Type>>>::new();
         let functions = program.functions.iter().chain(program.closures.iter().flat_map(|closure| {
@@ -340,6 +347,11 @@ impl Analysis {
                                 ..
                             }
                     ))) && successful_span != Some(expression.span)
+                        // A generated named-value wrapper shares the source
+                        // identifier span with its hidden call. That call result
+                        // is not the type of the source function value.
+                        && !(wrapper_spans.contains(&(expression.span.start, expression.span.end))
+                            && matches!(&expression.kind, ExprKind::Call(callee, _) if callee.span == expression.span))
                         && let Some(ty) = expression.ty
                     {
                         let types = methods

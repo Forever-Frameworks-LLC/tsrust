@@ -8,7 +8,7 @@ import {expectedExactResult,expectedChecksum} from './oracle.mjs';
 import {assertABI} from './adapters.mjs';
 import {reportCategory} from './report.mjs';
 const read=p=>fs.readFileSync(new URL(p,import.meta.url),'utf8');
-const row=JSON.parse(read('./manifest.json')).workloads.at(-1);
+const row=JSON.parse(read('./manifest.json')).workloads.find(row=>row.id==='nested_function_results');
 test('Inferred named results retain matched sources and independent result evidence',()=>{
  assert.equal(row.id,'nested_function_results');
  assert.equal(row.implementationAccepted,false);assert.equal(row.measured,false);
