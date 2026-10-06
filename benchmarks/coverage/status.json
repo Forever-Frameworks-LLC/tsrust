@@ -817,8 +817,16 @@
   },
   "type.alias": {
     "implementation": "native variant",
-    "comparison": "compile-only",
-    "note": "Implemented strict subset; no standalone compile-time comparison for this item."
+    "comparison": "paired",
+    "workloads": [
+      "type_aliases"
+    ],
+    "evidence": [
+      "./milestones/163-type-aliases.md",
+      "./type-aliases.md"
+    ],
+    "measured": false,
+    "note": "type Name = Type; for any written non-generic type, in any declaration order and across modules; expanded where a written type is parsed. No type parameters or self-reference. One matched scenario verified untimed."
   },
   "function.named": {
     "implementation": "native variant",
@@ -3741,7 +3749,7 @@
     "evidence": [
       "./milestones/73-integer-formatting.md"
     ],
-    "note": "All signed-i64 values, default decimal and strict optional radix 2\u201336. Lowercase signed digits and owned UTF-8 result; once-only operands and zero normal/unwind residue. Four JS-safe comparisons pass; Number formatting and coercion are separate."
+    "note": "All signed-i64 values, default decimal and strict optional radix 2–36. Lowercase signed digits and owned UTF-8 result; once-only operands and zero normal/unwind residue. Four JS-safe comparisons pass; Number formatting and coercion are separate."
   },
   "Number.toFixed": {
     "implementation": "native variant",
@@ -4745,7 +4753,7 @@
       "array_sort_compare_undefined",
       "array_callback_errors"
     ],
-    "note": "Stable in-place ordering returns void and holds exclusive receiver access; no element cloning. Defaults int numeric, Number total_cmp including signed zero/NaN bits, Boolean false<true, UTF8 String lexical and equal null/undefined. Nested/record elements require a reusable comparator even empty; zero\u2013two readonly/Copy parameters, one concrete int or Number result, zero/NaN equal. Comparator visitation is standard-Rust-dependent; no coercion, sparse/mixed/nullable elements or consuming/once callbacks. Focused compiler/editor and six native catalog examples accepted; fourteen source comparisons registered, measurements accepted at checkpoint 91 against compiled Node. Gate 150 repairs checked callback error transport and readonly abstract invocation. Comparator failure retains source order. New error-transport comparison verifies untimed only.",
+    "note": "Stable in-place ordering returns void and holds exclusive receiver access; no element cloning. Defaults int numeric, Number total_cmp including signed zero/NaN bits, Boolean false<true, UTF8 String lexical and equal null/undefined. Nested/record elements require a reusable comparator even empty; zero–two readonly/Copy parameters, one concrete int or Number result, zero/NaN equal. Comparator visitation is standard-Rust-dependent; no coercion, sparse/mixed/nullable elements or consuming/once callbacks. Focused compiler/editor and six native catalog examples accepted; fourteen source comparisons registered, measurements accepted at checkpoint 91 against compiled Node. Gate 150 repairs checked callback error transport and readonly abstract invocation. Comparator failure retains source order. New error-transport comparison verifies untimed only.",
     "evidence": [
       "./milestones/91-array-sorting.md",
       "./milestones/150-array-callback-errors.md"
@@ -4782,7 +4790,7 @@
       "array_to_sorted_compare_undefined",
       "array_callback_errors"
     ],
-    "note": "Stable independently mutable sorted copy uses Read source access and clones owned descendants; comparator may read source but cannot mutate/consume it. Defaults int numeric, Number total_cmp including signed zero/NaN bits, Boolean false<true, UTF8 String lexical and equal null/undefined. Nested/record elements require a reusable comparator even empty; zero\u2013two readonly/Copy parameters, one concrete int or Number result, zero/NaN equal. Comparator visitation is standard-Rust-dependent; no coercion, sparse/mixed/nullable elements or consuming/once callbacks. Focused compiler/editor and six native catalog examples accepted; fourteen source comparisons registered, measurements accepted at checkpoint 91 against compiled Node. Gate 150 repairs checked callback error transport and readonly abstract invocation. Comparator failure retains source order. New error-transport comparison verifies untimed only.",
+    "note": "Stable independently mutable sorted copy uses Read source access and clones owned descendants; comparator may read source but cannot mutate/consume it. Defaults int numeric, Number total_cmp including signed zero/NaN bits, Boolean false<true, UTF8 String lexical and equal null/undefined. Nested/record elements require a reusable comparator even empty; zero–two readonly/Copy parameters, one concrete int or Number result, zero/NaN equal. Comparator visitation is standard-Rust-dependent; no coercion, sparse/mixed/nullable elements or consuming/once callbacks. Focused compiler/editor and six native catalog examples accepted; fourteen source comparisons registered, measurements accepted at checkpoint 91 against compiled Node. Gate 150 repairs checked callback error transport and readonly abstract invocation. Comparator failure retains source order. New error-transport comparison verifies untimed only.",
     "evidence": [
       "./milestones/91-array-sorting.md",
       "./milestones/150-array-callback-errors.md"
@@ -5359,7 +5367,7 @@
       "./milestones/113-string-raw.md"
     ],
     "measured": false,
-    "note": "Joins a record\u2019s raw string[] segments with String() conversions and optional string-array spread. Missing substitutions insert empty text; extra argument expressions still evaluate. Tagged templates and arbitrary array-like raw fields are unsupported. One scenario is registered and verified untimed; measurements wait for the string-methods milestone."
+    "note": "Joins a record’s raw string[] segments with String() conversions and optional string-array spread. Missing substitutions insert empty text; extra argument expressions still evaluate. Tagged templates and arbitrary array-like raw fields are unsupported. One scenario is registered and verified untimed; measurements wait for the string-methods milestone."
   },
   "Number.toLocaleString": {
     "implementation": "native variant",

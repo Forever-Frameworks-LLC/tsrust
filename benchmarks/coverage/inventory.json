@@ -24625,9 +24625,16 @@
       "kind": "language",
       "declarationSources": [],
       "implementation": "native variant",
-      "comparison": "compile-only",
-      "evidence": [],
-      "note": "Implemented strict subset; no standalone compile-time comparison for this item."
+      "comparison": "paired",
+      "evidence": [
+        "./milestones/163-type-aliases.md",
+        "./type-aliases.md"
+      ],
+      "workloads": [
+        "type_aliases"
+      ],
+      "measured": false,
+      "note": "type Name = Type; for any written non-generic type, in any declaration order and across modules; expanded where a written type is parsed. No type parameters or self-reference. One matched scenario verified untimed."
     },
     {
       "id": "type.ambient",

@@ -2087,7 +2087,7 @@ Full compiler regression and accumulated performance comparisons run at complete
 
 | Operation | Implementation | Comparison | Scope / evidence |
 | --- | --- | --- | --- |
-| `type.alias` | native variant | compile-only | Implemented strict subset; no standalone compile-time comparison for this item. |
+| `type.alias` | native variant | paired | type Name = Type; for any written non-generic type, in any declaration order and across modules; expanded where a written type is parsed. No type parameters or self-reference. One matched scenario verified untimed.; [evidence](./milestones/163-type-aliases.md) · [evidence](./type-aliases.md) · [type_aliases](../benchmarks/runtime/workloads/type_aliases.tsr) |
 | `type.ambient` | pending | missing |  |
 | `type.any` | policy | missing | Original vision rejects unrestricted escape hatches; track explicit policy instead of silently omitting. |
 | `type.array` | native variant | compile-only | Implemented strict subset; no standalone compile-time comparison for this item. |

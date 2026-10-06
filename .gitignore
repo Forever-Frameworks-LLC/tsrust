@@ -22,3 +22,6 @@ __pycache__/
 
 # Finder metadata is local.
 .DS_Store
+
+# Generated native build caches of test runs
+/crates/*/target/
