@@ -3189,7 +3189,16 @@ impl Parser<'_> {
         Ok(Expr::new(ExprKind::Binary{op:BinaryOp::PatternDefault,operator,left:Box::new(selected),right:Box::new(fallback)},span))
     }
 
+    // Nested loop bodies recurse through this frame; the header and the
+    // statement construction keep their temporaries in separate helpers.
     fn for_of_statement(&mut self) -> Result<Stmt, Diagnostic> {
+        let header = self.for_of_header_clause()?;
+        let body = self.body()?;
+        Ok(Self::for_of_loop(header, body))
+    }
+
+    #[inline(never)]
+    fn for_of_header_clause(&mut self) -> Result<Box<(Token, bool, Expr, Vec<Stmt>, Span)>, Diagnostic> {
         let span = self.expect("for")?.span;
         self.expect("(")?;
         if !self.is("const") && !self.is("let") {
@@ -3218,12 +3227,17 @@ impl Parser<'_> {
         let iterable = if keys{self.comma_expression()?}else{self.expression()?};
         let iterable = if keys { Self::object_key_call("keys#in", vec![iterable], span) } else { iterable };
         self.expect(")")?;
-        let mut body = self.body()?;
+        Ok(Box::new((name, rebindable, iterable, positions, span)))
+    }
+
+    #[inline(never)]
+    fn for_of_loop(header: Box<(Token, bool, Expr, Vec<Stmt>, Span)>, mut body: Vec<Stmt>) -> Stmt {
+        let (name, rebindable, iterable, mut positions, span) = *header;
         if !positions.is_empty() {
             positions.append(&mut body);
             body = positions;
         }
-        Ok(Stmt { labels: Vec::new(), control_target: None,
+        Stmt { labels: Vec::new(), control_target: None,
             kind: StmtKind::ForOf {
                 name,
                 rebindable,
@@ -3232,7 +3246,7 @@ impl Parser<'_> {
                 binding: None,
             },
             span,
-        })
+        }
     }
 
     /// The update clause: one or more assignments or expressions separated
@@ -4223,17 +4237,6 @@ impl Parser<'_> {
         }
     }
 
-    // Keep suffix construction outside the recursively retained dispatcher.
-    fn index_expression(&mut self, base: Expr) -> Result<Expr, Diagnostic> {
-        let index = self.comma_expression()?;
-        let end = self.expect("]")?;
-        let span = Span::new(base.span.start, end.span.end);
-        Ok(Expr::new(
-            ExprKind::Index(Box::new(base), Box::new(index)),
-            span,
-        ))
-    }
-
     fn field_expression(&mut self, base: Expr) -> Result<Expr, Diagnostic> {
         let name = self.name()?;
         let span = Span::new(base.span.start, name.span.end);
@@ -4283,10 +4286,20 @@ impl Parser<'_> {
         Ok(())
     }
 
+    // The nested index is parsed while the base stays in the caller's slot,
+    // so this retained frame holds one expression, not the base as well.
     #[inline(never)]
     fn index_step(&mut self, slot: &mut Option<Expr>) -> Result<(), Diagnostic> {
-        let expr = slot.take().expect("postfix operand");
-        *slot = Some(self.index_expression(expr)?);
+        let index = Box::new(self.comma_expression()?);
+        self.finish_index(slot, index)
+    }
+
+    #[inline(never)]
+    fn finish_index(&mut self, slot: &mut Option<Expr>, index: Box<Expr>) -> Result<(), Diagnostic> {
+        let end = self.expect("]")?;
+        let base = Box::new(slot.take().expect("postfix operand"));
+        let span = Span::new(base.span.start, end.span.end);
+        *slot = Some(Expr::new(ExprKind::Index(base, index), span));
         Ok(())
     }
 

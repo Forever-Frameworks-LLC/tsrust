@@ -9864,6 +9864,30 @@ impl Analyzer {
         loans: &Loans,
         span: Span,
     ) -> Result<Type, Diagnostic> {
+        // Nested indexes recurse through this frame. Receiver checks and the
+        // final access keep their temporaries in separate helpers.
+        let element = match self.array_index_receiver(context, base, index, mode, loans, span)? {
+            Ok(position) => return Ok(position),
+            Err(element) => element,
+        };
+        let active = Self::selection_loans(base, loans);
+        let actual = self.expression(context, index, Mode::Copy, &active, Some(Type::Int))?;
+        self.array_index_access(context, base, (actual, index.span), mode, loans, span)?;
+        Ok(element)
+    }
+
+    /// Checks the receiver. `Ok` is a tuple position, which is complete;
+    /// `Err` is the element type of an array whose index is checked next.
+    #[inline(never)]
+    fn array_index_receiver(
+        &mut self,
+        context: &mut Context,
+        base: &mut Expr,
+        index: &mut Expr,
+        mode: Mode,
+        loans: &Loans,
+        span: Span,
+    ) -> Result<Result<Type, Type>, Diagnostic> {
         if !matches!(
             base.kind,
             ExprKind::Name(_)
@@ -9883,7 +9907,7 @@ impl Analyzer {
         if let Some((_,field))=self.checked_tuple_index(ty,index)? {
             if mode==Mode::Consume && !field.is_copy() {return Err(Diagnostic::new("borrowed-element","Indexed tuple positions stay borrowed; bind the owner before transferring a position, or use clone().",span));}
             Self::storage_access(context,base,if mode==Mode::Mutate {Mode::Mutate}else{Mode::Read},span,loans)?;
-            return Ok(field);
+            return Ok(Ok(field));
         }
         let Type::Array(element) = ty else {
             return Err(Diagnostic::new(
@@ -9903,16 +9927,26 @@ impl Analyzer {
                 span,
             ));
         }
-        let active = Self::selection_loans(base, loans);
-        let actual = self.expression(context, index, Mode::Copy, &active, Some(Type::Int))?;
-        self.require(actual, Some(Type::Int), index.span)?;
+        Ok(Err(element.ty()))
+    }
+
+    #[inline(never)]
+    fn array_index_access(
+        &mut self,
+        context: &mut Context,
+        base: &mut Expr,
+        (actual, index_span): (Type, Span),
+        mode: Mode,
+        loans: &Loans,
+        span: Span,
+    ) -> Result<(), Diagnostic> {
+        self.require(actual, Some(Type::Int), index_span)?;
         let access = if mode == Mode::Mutate {
             Mode::Mutate
         } else {
             Mode::Read
         };
-        Self::storage_access(context, base, access, span, loans)?;
-        Ok(element.ty())
+        Self::storage_access(context, base, access, span, loans)
     }
 
     // Optional element views retain their selected receiver roots through aliases.
