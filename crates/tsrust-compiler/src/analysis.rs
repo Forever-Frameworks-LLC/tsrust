@@ -191,10 +191,6 @@ impl CallbackContract {
 }
 
 pub struct CheckedProgram {
-    /// Source declaration start to binding slot for each checked named
-    /// function. A direct call of a capturing local function reads its
-    /// hidden arguments from these slots of the calling function.
-    pub(crate) function_source_bindings: HashMap<usize, HashMap<usize, usize>>,
     pub(crate) named_capture_layouts: Vec<named_capture_layout::Layout>,
     pub(crate) named_capture_access: HashMap<usize, Vec<named_capture_access::Access>>,
     pub(crate) local_capture_plans: Vec<crate::local_capture_plan::Plan>,
@@ -535,7 +531,6 @@ mod exception_escape_tests {
 
 struct Analyzer {
     named_captures: named_capture_context::Contexts,
-    function_source_bindings: HashMap<usize, HashMap<usize, usize>>,
     assumed_capture_access: named_capture_access::Lattice,
     program: Program,
     // Retained source specialization state for the checked-inference handoff.
@@ -1418,7 +1413,6 @@ impl Analyzer {
         let named_captures = named_capture_context::Contexts::new(&program, &function_names);
         let mut analyzer = Self {
             named_captures,
-            function_source_bindings: HashMap::new(),
             assumed_capture_access: Default::default(),
             generic_functions,
             generic_records,
@@ -2426,7 +2420,11 @@ impl Analyzer {
             ));
         }
         if self.named_captures.needs_context(index) {
-            return Err(self.program.local_capture_plans.iter().find_map(crate::local_capture_plan::Plan::pending_diagnostic).expect("pending named capture"));
+            return Err(Diagnostic::new(
+                "unsupported",
+                "A nested function that uses variables of its enclosing function cannot be used as a value yet. Call it from an arrow function, for example `(value) => name(value)`.",
+                span,
+            ));
         }
         let higher = self.signatures[index]
             .params
@@ -2991,7 +2989,6 @@ impl Analyzer {
             )?;
         }
         let checked = CheckedProgram {
-            function_source_bindings: self.function_source_bindings,
             named_capture_layouts: Vec::new(),
             named_capture_access: self.named_captures.summaries(&self.checked),
             local_capture_plans: self.program.local_capture_plans,
@@ -3957,7 +3954,6 @@ impl Analyzer {
         {
             self.known_results.insert(index, result_type);
         }
-        self.function_source_bindings.insert(index, std::mem::take(&mut context.source_bindings));
         self.checked[index] = Some(CheckedFunction {
             template: context.template,
             specialization: index >= self.original_count,
@@ -13821,6 +13817,9 @@ self.names_materialized_type(element.with_depth(0).ty())
             }
         }
         expr.target = Some(CallTarget::Function(index));
+        if !capture_slots.is_empty() {
+            expr.capture_slots = Some(capture_slots.iter().map(|&(slot, _)| slot).collect());
+        }
         Ok(result)
     }
 

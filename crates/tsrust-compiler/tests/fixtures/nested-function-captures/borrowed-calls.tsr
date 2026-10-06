@@ -1,0 +1,127 @@
+import { strictEqual } from "std:testing";
+
+type Account = { total: int; names: string[]; };
+
+function append(values: int[], value: int): int {
+    values.push(value);
+    return value;
+}
+
+function main() {
+    let total = 0;
+    const log: string[] = [];
+    function add(amount: int): void {
+        total += amount;
+        log.push("add");
+    }
+    function addTwice(amount: int): void {
+        add(amount);
+        add(amount);
+    }
+    addTwice(2);
+    add(1);
+    strictEqual(total, 5);
+    strictEqual(log.length, 3);
+
+    const seen: int[] = [];
+    function walk(depth: int): void {
+        if (depth === 0) {
+            return;
+        }
+        seen.push(depth);
+        walk(depth - 1);
+    }
+    walk(3);
+    strictEqual(seen.join(","), "3,2,1");
+
+    const out: string[] = [];
+    function outer(tag: string): void {
+        function inner(index: int): void {
+            out.push(tag + String(index));
+        }
+        inner(1);
+        inner(2);
+    }
+    outer("a");
+    outer("b");
+    strictEqual(out.join(","), "a1,a2,b1,b2");
+
+    const counts = [0];
+    function tick(step: int): int {
+        counts[0] += step + 1;
+        return counts[0];
+    }
+    strictEqual(tick(counts.length), 2);
+    strictEqual(tick(counts[0]), 5);
+    strictEqual(tick(append(counts, 4)), 10);
+    strictEqual(counts.length, 2);
+
+    const account: Account = { total: 0, names: [] };
+    function deposit(name: string, amount: int): void {
+        account.total += amount;
+        account.names.push(name);
+    }
+    deposit("a", 2);
+    deposit("b", 3);
+    strictEqual(account.total, 5);
+    strictEqual(account.names.join(""), "ab");
+
+    const base = [10];
+    function shifted(value: int): int {
+        return value + base[0];
+    }
+    const mapped = [1, 2].map((value: int): int => shifted(value));
+    strictEqual(mapped.join(","), "11,12");
+    let sum = 0;
+    function accumulate(value: int): void {
+        sum += value;
+    }
+    [1, 2, 3].forEach((value: int): void => { accumulate(value); });
+    strictEqual(sum, 6);
+
+    const greeting = "hi";
+    function greet(name: string, punctuation: string = greeting.length === 2 ? "!" : "?"): string {
+        return greeting + " " + name + punctuation;
+    }
+    strictEqual(greet("Pat"), "hi Pat!");
+    strictEqual(greet("Sam", "."), "hi Sam.");
+
+    let state = 0;
+    function risky(limit: int): int {
+        state += 1;
+        if (limit > 1) {
+            throw "big";
+        }
+        return limit;
+    }
+    let caught = "";
+    try {
+        risky(1);
+        risky(5);
+    } catch (error) {
+        caught = "caught";
+    }
+    strictEqual(caught, "caught");
+    strictEqual(state, 2);
+
+    const rows: int[][] = [[1], [2, 3]];
+    let cells = 0;
+    for (const row of rows) {
+        function size(): int {
+            return row.length;
+        }
+        cells += size();
+    }
+    strictEqual(cells, 3);
+
+    let later: int;
+    function readLater(): int {
+        return later * 2;
+    }
+    later = 21;
+    strictEqual(readLater(), 42);
+
+    function unused(): int {
+        return total;
+    }
+}

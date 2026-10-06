@@ -117,3 +117,38 @@ function main(){
 }"#);
     assert_eq!(tsrust_compiler::check("function bad(value:int){const value=3;}function main(){}").err().unwrap().code, "duplicate");
 }
+
+// Direct calls pass captured bindings as hidden arguments: scalars and
+// records changed in place, forwarding, recursion, nesting, calls from arrow
+// functions, defaults, exceptions, loop bindings and later initialization.
+#[test]
+fn direct_calls_borrow_captures_for_each_call() {
+    native(include_str!("fixtures/nested-function-captures/borrowed-calls.tsr"));
+}
+
+#[test]
+fn capture_borrows_follow_argument_and_view_rules() {
+    for (source, code) in [
+        // The function changes `counts` while an argument lends it too.
+        ("function main(){const counts=[0];function grow(values:int[]):void{values.push(1);counts.push(2);}grow(counts);}", "conflicting-access"),
+        // A view of an element is alive across a call that changes its owner.
+        ("function main(){const names=[\"a\"];function add():void{names.push(\"b\");}const first=names[0];add();console.log(first);}", "view-conflict"),
+        // An arrow that calls the function holds the capture like any closure.
+        ("function main(){const counts=[0];function tick():int{counts[0]+=1;return counts[0];}const run=():int=>tick();console.log(run(),counts);}", "capture-conflict"),
+        // A const scalar cannot be changed through a nested function either.
+        ("function main(){const total=0;function add():void{total+=1;}add();}", "unsupported"),
+        // A capturing function is not a value yet; the message names the arrow form.
+        ("function main(){const counts=[0];function tick():int{counts[0]+=1;return counts[0];}const run=tick;console.log(run());}", "unsupported"),
+        ("function main(){const base=[1];function add(n:int):int{return n+base[0];}console.log([1].map(add));}", "unsupported"),
+    ] {
+        let error = tsrust_compiler::check(source).err().unwrap_or_else(|| panic!("must be rejected: {source}"));
+        assert_eq!(error.code, code, "{source}: {}", error.message);
+    }
+    // Reading the captured binding in an argument and lending it for reading are fine.
+    for source in [
+        "function main(){const counts=[1,2];function total(values:int[]):int{return values.length+counts.length;}console.log(total(counts));}",
+        "function main(){const counts=[0];function tick(n:int):int{counts[0]+=n;return counts[0];}console.log(tick(counts.length));}",
+    ] {
+        tsrust_compiler::check(source).unwrap_or_else(|error| panic!("{source}: {}", error.message));
+    }
+}

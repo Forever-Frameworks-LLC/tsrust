@@ -978,6 +978,9 @@ pub struct Expr {
     pub(crate) effects_checked: bool,
     /// Checked receiver identity, distinct from its local binding index.
     pub(crate) callable_origin: Option<CallableOrigin>,
+    /// Slots of the calling body that a direct nested function call passes
+    /// as hidden capture arguments, in the callee's hidden parameter order.
+    pub(crate) capture_slots: Option<Box<[usize]>>,
     depth: usize,
 }
 
@@ -1385,6 +1388,7 @@ impl Expr {
             own_may_fail: false,
             effects_checked: false,
             callable_origin: None,
+            capture_slots: None,
             depth: child_depth + usize::from(!transparent),
         }
     }

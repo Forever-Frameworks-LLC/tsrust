@@ -6753,24 +6753,18 @@ impl Emitter<'_> {
     }
 
     /// Hidden capture arguments for a direct call of a nested function, read
-    /// from the calling function's own bindings or forwarded from its own
-    /// hidden parameters.
+    /// from the calling body's own bindings or forwarded from its own hidden
+    /// parameters or captures.
     #[inline(never)]
-    fn named_capture_arguments(&self, fun: &CheckedFunction, callee: usize, span: crate::Span) -> Vec<String> {
+    fn named_capture_arguments(&self, fun: &CheckedFunction, callee: usize, call: &Expr) -> Vec<String> {
         let Some(accesses) = self.program.named_capture_access.get(&callee).filter(|accesses| !accesses.is_empty()) else {
             return Vec::new();
         };
-        let caller = self
-            .program
-            .functions
-            .iter()
-            .position(|candidate| std::ptr::eq(candidate, fun))
-            .expect("capturing function called from a named function");
-        let slots = &self.program.function_source_bindings[&caller];
+        let slots = call.capture_slots.as_deref().expect("checked capture slots of a nested function call");
         accesses
             .iter()
-            .map(|access| {
-                let slot = slots[&access.binding.declaration_start];
+            .zip(slots)
+            .map(|(access, &slot)| {
                 let binding = &fun.bindings[slot];
                 if binding.ty.is_copy() && access.mode == Mode::Mutate {
                     // A scalar the callee changes: lend the caller's slot.
@@ -6780,7 +6774,7 @@ impl Emitter<'_> {
                         format!("&mut value{slot}")
                     };
                 }
-                let mut name = Expr::new(ExprKind::Name(binding.name.clone()), span);
+                let mut name = Expr::new(ExprKind::Name(binding.name.clone()), call.span);
                 name.ty = Some(binding.ty);
                 name.binding = Some(slot);
                 self.expr(fun, &name, if binding.ty.is_copy() { Mode::Copy } else { access.mode })
@@ -6805,7 +6799,7 @@ impl Emitter<'_> {
                 .zip(params)
                 .map(|(arg, param)| self.expr(fun, arg, param.mode))
                 .collect::<Vec<_>>();
-            args.extend(self.named_capture_arguments(fun, index, expr.span));
+            args.extend(self.named_capture_arguments(fun, index, expr));
             let args = args.join(", ");
             let name=native_name;
             let call=format!("{name}({args})");

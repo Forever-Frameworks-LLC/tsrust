@@ -24,23 +24,23 @@ fn pending(checked: &CheckedProgram) -> Diagnostic {
         .expect("capturing function has a capture plan")
 }
 
-/// Direct calls of capturing functions in one checked body, or an error for
-/// a use that is not a direct call.
-fn direct_targets(function: &CheckedFunction, capturing: &HashSet<usize>) -> Result<Vec<usize>, ()> {
-    let mut targets = Vec::new();
-    for expression in crate::error_effects::checked_expressions(function) {
+/// Whether every use of a capturing function in one checked body is a
+/// direct call that recorded its hidden argument slots.
+fn lowered(function: &CheckedFunction, capturing: &HashSet<usize>, checked: &CheckedProgram) -> bool {
+    crate::error_effects::checked_expressions(function).into_iter().all(|expression| {
         let Some(CallTarget::Function(target) | CallTarget::ForwardFunction(target)) = expression.target else {
-            continue;
+            return true;
         };
         if !capturing.contains(&target) {
-            continue;
+            return true;
         }
-        if !matches!(expression.kind, ExprKind::Call(_, _)) || matches!(expression.target, Some(CallTarget::ForwardFunction(_))) {
-            return Err(());
-        }
-        targets.push(target);
-    }
-    Ok(targets)
+        matches!(expression.kind, ExprKind::Call(_, _))
+            && expression.target == Some(CallTarget::Function(target))
+            && expression
+                .capture_slots
+                .as_deref()
+                .is_some_and(|slots| slots.len() == checked.named_capture_access[&target].len())
+    })
 }
 
 pub(crate) fn prepare(checked: &mut CheckedProgram) -> Result<(), Diagnostic> {
@@ -69,33 +69,20 @@ pub(crate) fn prepare(checked: &mut CheckedProgram) -> Result<(), Diagnostic> {
             return Err(pending(checked));
         }
     }
-    // A function value and a call inside an arrow function need an owned or
-    // borrowed environment value. Those stay pending.
+    // A function value needs an environment value. That stays pending.
     for closure in &checked.closures {
         if matches!(closure.forward, Some(ClosureForward::Function(target)) if capturing.contains(&target)) {
             return Err(pending(checked));
         }
         for body in std::iter::once(&closure.function).chain(closure.methods.iter().map(|method| &method.function)) {
-            if direct_targets(body, &capturing).map_or(true, |targets| !targets.is_empty()) {
+            if !body.template && !lowered(body, &capturing, checked) {
                 return Err(pending(checked));
             }
         }
     }
-    for (caller, function) in checked.functions.iter().enumerate() {
-        if function.template {
-            continue;
-        }
-        let Ok(targets) = direct_targets(function, &capturing) else {
+    for function in &checked.functions {
+        if !function.template && !lowered(function, &capturing, checked) {
             return Err(pending(checked));
-        };
-        for target in targets {
-            let known = checked.function_source_bindings.get(&caller);
-            if checked.named_capture_access[&target]
-                .iter()
-                .any(|access| !known.is_some_and(|slots| slots.contains_key(&access.binding.declaration_start)))
-            {
-                return Err(pending(checked));
-            }
         }
     }
     // A scalar that the function changes is passed by mutable reference.
