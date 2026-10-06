@@ -1,0 +1,49 @@
+import { strictEqual } from "std:testing";
+
+type Item = { name: string; count: int; price: number; };
+
+function label(item: Item): string {
+    return item.name + " x" + item.count + " @ " + item.price;
+}
+
+function step(counter: int[]): int {
+    counter[0] += 1;
+    return counter[0];
+}
+
+function main() {
+    strictEqual("a" + 1, "a1");
+    strictEqual(1 + "a", "1a");
+    strictEqual("n=" + 1.5, "n=1.5");
+    strictEqual("n=" + 2.0, "n=2");
+    strictEqual("ok:" + true, "ok:true");
+    strictEqual(false + "!", "false!");
+    strictEqual("v:" + null, "v:null");
+    strictEqual("v:" + undefined, "v:undefined");
+    const count = 3;
+    const ratio = 0.25;
+    strictEqual("count " + count + ", ratio " + ratio, "count 3, ratio 0.25");
+    strictEqual(count + 1 + "a", "4a");
+    strictEqual("a" + count + 1, "a31");
+    strictEqual("a" + (count + 1), "a4");
+    const item: Item = { name: "pen", count: 2, price: 1.5 };
+    strictEqual(label(item), "pen x2 @ 1.5");
+    let text = "id";
+    text += 7;
+    text += "-";
+    text += true;
+    text += 0.5;
+    strictEqual(text, "id7-true0.5");
+    const mixed: int | string = 5;
+    strictEqual("m" + mixed, "m5");
+    const maybe: int | undefined = undefined;
+    strictEqual("u" + maybe, "uundefined");
+    const counter = [0];
+    strictEqual("" + step(counter) + step(counter), "12");
+    strictEqual("x" + -1, "x-1");
+    strictEqual("big " + 1e21, "big 1e+21");
+    strictEqual("nan " + NaN + " " + Infinity, "nan NaN Infinity");
+    const parts = [1, 2, 3].map((value) => "#" + value);
+    strictEqual(parts.join(""), "#1#2#3");
+    strictEqual(("" + count).length, 1);
+}
