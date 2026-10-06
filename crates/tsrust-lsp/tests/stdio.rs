@@ -283,3 +283,17 @@ fn named_capture_body_reports_its_actual_field_type_error() {
     assert_eq!(error["range"]["start"]["character"], 36);
     assert_eq!(error["range"]["end"]["character"], 48);
 }
+
+#[test]
+fn named_capture_failure_path_diagnostic_marks_call_and_binding() {
+    let source = "function fail(): int { throw 1; }\nfunction main() {\n  let value: int;\n  function read(): int { return value; }\n  try { value = fail(); } catch { console.log(read()); }\n}";
+    let uri = "file:///capture-failure.tsr";
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(source, uri).unwrap()).unwrap();
+    let error = &diagnostics[0];
+    assert_eq!(error["code"], "unassigned");
+    let column = source.lines().nth(4).unwrap().find("read()").unwrap();
+    assert_eq!(error["range"]["start"], json!({"line":4,"character":column}));
+    assert_eq!(error["range"]["end"], json!({"line":4,"character":column+4}));
+    assert_eq!(error["relatedInformation"][0]["location"]["uri"], uri);
+    assert_eq!(error["relatedInformation"][0]["location"]["range"]["start"], json!({"line":2,"character":6}));
+}

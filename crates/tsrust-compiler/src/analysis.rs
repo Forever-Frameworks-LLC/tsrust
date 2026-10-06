@@ -187,6 +187,7 @@ impl CallbackContract {
 }
 
 pub struct CheckedProgram {
+    pub(crate) local_capture_plans: Vec<crate::local_capture_plan::Plan>,
     pub(crate) local_declarations: Vec<crate::local_functions::Declaration>,
     pub(crate) error_effects: crate::error_effects::ErrorEffects,
     pub(crate) stored_contracts: crate::callable_storage::Registry,
@@ -397,8 +398,15 @@ pub(crate) fn has_exception_syntax(body:&[Stmt])->bool {
 }
 
 pub fn analyze(program: Program) -> Result<CheckedProgram, Diagnostic> {
-    let mut checked = Analyzer::new(program)?.run()?;
+    finish_analysis(Analyzer::new(program)?.run()?)
+}
+
+// Incomplete capture layouts stay private, even after typed flow checking.
+fn finish_analysis(mut checked: CheckedProgram) -> Result<CheckedProgram, Diagnostic> {
     definitely_assigned(&mut checked)?;
+    if let Some(error) = checked.local_capture_plans.iter().find_map(crate::local_capture_plan::Plan::pending_diagnostic) {
+        return Err(error);
+    }
     Ok(checked)
 }
 
@@ -426,7 +434,8 @@ fn definitely_assigned(checked: &mut CheckedProgram) -> Result<(), Diagnostic> {
             crate::definite_assignment::check(&mut method.function.body, &captures)?;
         }
     }
-    if exceptions {
+    crate::local_readiness::check_checked(checked)?;
+    if exceptions && !checked.local_capture_plans.iter().any(|plan| plan.pending_diagnostic().is_some()) {
         crate::error_effects::defer_unreferenced_error_definitions(checked);
         crate::emit::validate_exception_program(checked)?;
     }
@@ -485,9 +494,7 @@ pub fn analyze_recursive(program: Program) -> Result<CheckedProgram, Diagnostic>
         if !changed {
             let mut analyzer = Analyzer::new(program)?;
             analyzer.assumed_modes = Some(modes);
-            let mut checked = analyzer.run()?;
-            definitely_assigned(&mut checked)?;
-            return Ok(checked);
+            return finish_analysis(analyzer.run()?);
         }
     }
     unreachable!("finite recursive access lattice must converge")
@@ -2887,12 +2894,8 @@ impl Analyzer {
                 &self.program.functions,
             )?;
         }
-        // Typed captured bodies can report real source errors before lowering.
-        // No captured checked tree reaches emission until environments exist.
-        if let Some(error) = self.program.local_capture_plans.iter().find_map(crate::local_capture_plan::Plan::pending_diagnostic) {
-            return Err(error);
-        }
         let checked = CheckedProgram {
+            local_capture_plans: self.program.local_capture_plans,
             local_declarations: self.program.local_declarations,
             function_specializations:self.specializations.iter().map(|((origin,_),instance)|(*instance,*origin)).collect(),
             error_effects: Default::default(),

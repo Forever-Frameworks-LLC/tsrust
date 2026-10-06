@@ -285,3 +285,26 @@ byte before loose-copy removal; logs use target/editor/named-context-* paths.
 Five consumers are atomically refreshed and hash verified. Thirty-one example
 directories, 52 scratch executables and the small runtime-comparisons build tree are
 pruned; libraries and current consumers remain. No full compiler regression or timing.
+
+
+## Typed exceptional readiness checkpoint
+
+The failing-call capture witness now passes without syntactic effect guesses.
+The internal checked tree retains source capture plans until final typed readiness.
+Both public analysis entry points keep an environment barrier after assignment
+checking; incomplete captured programs cannot reach emission. Actual checked closure
+and method bodies are used, with defining declarations distinguished from hidden
+projected capture slots. Failure before assignment and in assignment RHS expressions
+keeps the catch-path capture unassigned. Catch/finally assignments establish readiness.
+The editor reports the exact named-call range with the captured declaration related.
+
+Focused readiness library tests3, all eight canaries63 and the whole editor275 pass.
+The capture suite has seven passes and four genuinely pending native environment
+failures. No positive witness was weakened, no runtime capture acceptance is claimed,
+and no full compiler regression or timing was run. Five consumers are refreshed
+atomically. Continue finite capture access inference and borrowed group lowering.
+
+Final checkpoint evidence: matched lexical cases5 pass untimed; canonical result
+2026-10-06T18-53-10-079Z-verify.json. All107 compiler source hashes are verified.
+Ten exact logs/results are imported into SQLite and read back before removal.
+Readiness library3, depth canaries63, editor275; captures7 pass/4 pending.

@@ -76,8 +76,8 @@ focused unit scenarios. Public bad-field diagnostics pass through caller shadowi
 forwarders and linked private types with exact original source ranges.
 
 Analyzer::new still performs the source readiness precheck, but no longer rejects
-all captures before types exist. Analyzer::run retains the environment guard before
-constructing its public CheckedProgram. Missing defining contexts and captured
+all captures before types exist. Analyzer::run now retains plans in a private provisional CheckedProgram. Public
+analysis runs typed readiness before the environment guard returns an error. Missing defining contexts and captured
 callable values still guard individually. No captured tree reaches emission, and
 no declaration creates a runtime loan in this preparation. The source call ABI
 remains the parameter_count prefix; captured Binding.parameter flags currently serve
@@ -113,3 +113,28 @@ retains 32 exact logs/results. Five consumers refreshed; 31 example directories,
 warm, test executables will relink. No gate171 acceptance or timing. Preserve all
 four fixture edits and keep hourly checks paused. Continue the full plan toward
 finite borrowed group environments and final typed readiness.
+
+
+## Typed exceptional readiness follow-up
+
+The pending fail()/catch witness now reports `unassigned` at the named call, with
+the captured declaration as related information. CheckedProgram retains capture
+plans privately. Both public analysis paths finalize typed effects, ordinary
+definite assignment and named-capture readiness before the environment barrier.
+Actual checked functions, closures and methods are selected by physical declaration
+spans; projected hidden slots cannot masquerade as defining declarations. No source
+closure body copying occurs in this final pass. Exception emission validation is
+deferred only for programs still blocked by missing capture environments.
+
+Focused cases cover failure before assignment, failure in an assignment RHS and
+failure inside a checked closure invocation. Catch assignment and finally assignment
+reach the pending environment barrier rather than a false readiness error. The
+editor diagnostic marks the exact named call and related captured binding. Four
+positive native capture witnesses remain red; no runtime capture acceptance is
+claimed. Next implement finite capture access coordinates and borrowed group
+environments, preserving loans, recursion, loop freshness and drop order.
+
+Final checkpoint evidence: matched lexical cases5 pass untimed; canonical result
+2026-10-06T18-53-10-079Z-verify.json. All107 compiler source hashes are verified.
+Ten exact logs/results are imported into SQLite and read back before removal.
+Readiness library3, depth canaries63, editor275; captures7 pass/4 pending.

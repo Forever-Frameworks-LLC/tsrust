@@ -79,6 +79,60 @@ pub(crate) fn check(program: &mut Program) -> Result<(), Diagnostic> {
     Ok(())
 }
 
+/// Recheck actual invocation bodies after call failures and control targets exist.
+/// Hidden projected capture slots do not count as defining declarations.
+pub(crate) fn check_checked(program: &mut crate::analysis::CheckedProgram) -> Result<(), Diagnostic> {
+    for plan in &program.local_capture_plans {
+        let captures: BTreeMap<BindingId, &Capture> = plan.direct.iter().flatten()
+            .map(|capture| (capture.binding, capture)).collect();
+        let mut aliases: BTreeMap<BindingId, BTreeSet<String>> = BTreeMap::new();
+        for (group, bindings) in plan.group_requirements().into_iter().enumerate() {
+            for binding in bindings {
+                for &member in &plan.groups[group].members {
+                    aliases.entry(binding).or_default().insert(program.local_declarations[member].emitted_name.clone());
+                }
+            }
+        }
+        for (binding, functions) in aliases {
+            let capture = captures[&binding];
+            for function in program.functions.iter_mut()
+                .chain(program.closures.iter_mut().flat_map(|closure| {
+                    std::iter::once(&mut closure.function).chain(closure.methods.iter_mut().map(|method| &mut method.function))
+                })) {
+                let initialized = function.bindings.iter().take(function.parameter_count)
+                    .any(|slot| slot.input_ty.is_some() && slot.declaration_span == Some(capture.declaration));
+                if initialized || declares(&function.body, capture.declaration) {
+                    crate::definite_assignment::check_named_capture(&mut function.body, capture, &functions, &plan.uses, initialized)?;
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+fn declares(body: &[crate::syntax::Stmt], declaration: Span) -> bool {
+    use crate::syntax::StmtKind;
+    let mut pending: Vec<_> = body.iter().collect();
+    while let Some(statement) = pending.pop() {
+        match &statement.kind {
+            StmtKind::Let { name, .. } if name.span == declaration => return true,
+            StmtKind::ForOf { name, body, .. } => {
+                if name.span == declaration { return true; }
+                pending.extend(body);
+            }
+            StmtKind::Block(body) | StmtKind::While { body, .. } => pending.extend(body),
+            StmtKind::Loop { body, update, .. } => { pending.extend(body); pending.extend(update); }
+            StmtKind::If { then_body, else_body, .. } => { pending.extend(then_body); pending.extend(else_body); }
+            StmtKind::Try(region) => {
+                if region.catch.as_ref().and_then(|handler| handler.name.as_ref()).is_some_and(|name| name.span == declaration) { return true; }
+                pending.extend(region.statements());
+            }
+            _ => {}
+        }
+    }
+    false
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -119,6 +173,21 @@ mod tests {
                 "{source}"
             );
             assert_eq!(error.related.len(), 1);
+        }
+    }
+}
+
+#[cfg(test)]
+mod typed_tests {
+    #[test]
+    fn checked_exception_paths_initialize_captures_before_use() {
+        for source in [
+            "function fail():int{throw 1;}function main(){let value:int;function read():int{return value;}try{fail();}catch{value=3;console.log(read());}}",
+            "function fail():int{throw 1;}function main(){let value:int;function read():int{return value;}try{fail();}finally{value=3;}console.log(read());}",
+        ] {
+            let error = crate::check(source).err().expect("environment lowering remains pending");
+            assert_eq!(error.code, "unsupported", "{}", error.message);
+            assert!(error.message.contains("capture"));
         }
     }
 }

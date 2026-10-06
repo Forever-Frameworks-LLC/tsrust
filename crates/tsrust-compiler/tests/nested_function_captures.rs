@@ -75,10 +75,16 @@ fn assigning_a_shadow_does_not_initialize_the_captured_binding() {
 
 #[test]
 fn checked_call_failure_keeps_capture_unassigned_on_the_catch_path() {
-    let source = "function fail():int{throw 1;}function main(){let value:int;function read():int{return value;}try{fail();value=3;}catch{console.log(read());}}";
-    let error = tsrust_compiler::check(source).err().expect("capture unavailable on exceptional path");
-    assert_eq!(error.code, "unassigned");
-    assert_eq!(&source[error.span.start..error.span.end], "read");
+    for source in [
+        "function fail():int{throw 1;}function main(){let value:int;function read():int{return value;}try{fail();value=3;}catch{console.log(read());}}",
+        "function fail():int{throw 1;}function main(){let value:int;function read():int{return value;}try{value=fail();}catch{console.log(read());}}",
+        "function fail():int{throw 1;}function main(){const callback=():int=>{let value:int;function read():int{return value;}try{value=fail();}catch{return read();}return 0;};console.log(callback());}",
+    ] {
+        let error = tsrust_compiler::check(source).err().expect("capture unavailable on exceptional path");
+        assert_eq!(error.code, "unassigned", "{}", error.message);
+        assert_eq!(&source[error.span.start..error.span.end], "read");
+        assert!(error.related.iter().any(|(span, _)| &source[span.start..span.end] == "value"));
+    }
 }
 
 #[test]
