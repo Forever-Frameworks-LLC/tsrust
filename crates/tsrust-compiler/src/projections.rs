@@ -156,6 +156,7 @@ impl Analysis {
         let wrapper_spans = program.closures.iter().filter_map(|closure| {
             let [statement] = closure.function.body.as_slice() else { return None; };
             let StmtKind::Return(Some(call)) = &statement.kind else { return None; };
+            let call = if let ExprKind::SpreadCall(plan) = &call.kind { plan.call.as_ref() } else { call };
             let ExprKind::Call(callee, _) = &call.kind else { return None; };
             (call.span == closure.span && callee.span == closure.span)
                 .then_some((closure.span.start, closure.span.end))
@@ -351,7 +352,8 @@ impl Analysis {
                         // identifier span with its hidden call. That call result
                         // is not the type of the source function value.
                         && !(wrapper_spans.contains(&(expression.span.start, expression.span.end))
-                            && matches!(&expression.kind, ExprKind::Call(callee, _) if callee.span == expression.span))
+                            && (matches!(&expression.kind, ExprKind::Call(callee, _) if callee.span == expression.span)
+                                || matches!(expression.kind, ExprKind::SpreadCall(_))))
                         && let Some(ty) = expression.ty
                     {
                         let types = methods

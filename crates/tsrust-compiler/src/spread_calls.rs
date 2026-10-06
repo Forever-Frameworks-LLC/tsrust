@@ -345,6 +345,7 @@ impl Analyzer {
         if let ExprKind::Name(name) = &callee.kind
             && !context.names.contains_key(name)
             && let Some(&index) = self.function_names.get(name) {
+            self.named_captures.prepare(index, context, &self.program)?;
             self.function(index)?;
             let parameters = if let Some(function) = &self.checked[index] {
                 function.bindings[..function.parameter_count].iter().map(ArgumentContract::from).collect()

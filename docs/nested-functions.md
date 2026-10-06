@@ -215,3 +215,32 @@ The wrapper forwards omission instead of evaluating defaults itself. Borrowed
 captures retain their normal loan scope. A default that consumes a captured owner
 can make the value once-callable; a borrowed default may remain reusable. No
 implicit clone is introduced.
+
+## Captured rest function values
+
+A captured named function with a rest parameter can be stored or returned as a
+callable. Each invocation builds its supplied rest pack in order. An empty call
+passes an empty pack; call spread forwards the elements rather than an array as
+one argument. Fixed parameters retain optional/default behavior, so omitted or
+undefined fixed slots evaluate the original declaration's default once.
+
+```tsr
+const base = 10;
+function sum(...values: int[]): int {
+    let total = base;
+    for (const value of values) { total += value; }
+    return total;
+}
+const action = sum;
+console.log(action(), action(2, 3)); // 10 15
+const values = [4, 5];
+console.log(action(...values)); // 19
+```
+
+Rest element types apply to every supplied element. Array callbacks supply the
+value, index and source array; a rest parameter of int[] cannot receive that
+heterogeneous tuple. A compatible fixed callback contract can adapt a rest value.
+Returned values retain independent captured state. Captures and supplied owned
+values follow the existing ownership rules; consuming a capture still permits only
+one invocation. No implicit clone is introduced. Generic declaration values remain
+pending.

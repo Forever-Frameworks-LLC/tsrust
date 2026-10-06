@@ -7604,3 +7604,12 @@ fn captured_default_function_values_keep_signature_help_and_omission() {
     assert!(label.contains("step") && label.contains("int"),"{help}");
     assert!(label.contains('=') || label.contains('?'),"{help}");
 }
+
+#[test]
+fn captured_rest_function_values_keep_signature_help() {
+    let source="function main(){const base=2;function size(...values:int[]):int{return base+values.length;}const action=size;const result=action(1,2);}";
+    tsrust_compiler::check(source).unwrap();
+    let help=ask(source,"textDocument/signatureHelp","2);",0);
+    let label=help["signatures"][0]["label"].as_str().expect("rest callable signature");
+    assert!(label.contains("values") && label.contains("int") && label.contains("..."),"{help}");
+}

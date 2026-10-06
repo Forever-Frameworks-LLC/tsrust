@@ -19666,6 +19666,34 @@
       "specification": "Retain eight independent observations from captured callable default and optional argument behavior.",
       "sourceSha256": "b97d8496458ec3958bb6377f5b4928988059d46f28f42b3bee2e0e1069fe2951",
       "counterpartSha256": "6d4fb9b4c78ec7abfcc77bd5ff3afba0c37becbd1957ed2c1eeebbda25032341"
+    },
+    {
+      "id": "nested_function_rest",
+      "family": "nested-function-rest",
+      "source": "workloads/nested_function_rest.tsr",
+      "counterpart": "workloads/nested_function_rest.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One captured rest callable scenario",
+      "inputText": "rest",
+      "category": "callbacks",
+      "implementationGate": 173,
+      "measurementStatus": "pending-language-milestone",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": false,
+      "measured": false,
+      "notes": "Captured rest values, empty/supplied/spread packs and default-prefix forwarding. Untimed support; full gate173 acceptance pending.",
+      "specification": "Retain seven independent observations from captured rest callable argument behavior.",
+      "sourceSha256": "8db186ab01c3e2361de972e6637085441fc82549b1e0f95d50b4ee807e8c1458",
+      "counterpartSha256": "9b13d9bd0d509d4fa50cd92e808ad2465391191c9167c1c98f68bc9cdceb7842"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

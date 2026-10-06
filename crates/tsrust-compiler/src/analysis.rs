@@ -2414,7 +2414,7 @@ impl Analyzer {
         if self.named_captures.needs_context(index) {
             return Err(Diagnostic::new(
                 "unsupported",
-                "A nested function with a generic or rest signature that uses variables of its enclosing function cannot be used as a value yet. Call it from an arrow function, for example `(value) => name(value)`.",
+                "A nested function with a generic signature that uses variables of its enclosing function cannot be used as a value yet. Call it from an arrow function, for example `(value) => name(value)`.",
                 span,
             ));
         }

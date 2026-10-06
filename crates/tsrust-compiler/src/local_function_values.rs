@@ -15,13 +15,12 @@ struct Header {
     params: Vec<(Token, ParameterAnnotation)>,
     access: Vec<Option<(Mode, Span)>>,
     initializers: Vec<ParameterInitializer>,
+    rest: bool,
 }
 
 fn header(function: &Function) -> Option<Header> {
     // These shapes keep the diagnostic of the direct function value.
-    if function.rest_parameter
-        || !function.type_parameters.is_empty()
-    {
+    if !function.type_parameters.is_empty() {
         return None;
     }
     Some(Header {
@@ -38,6 +37,7 @@ fn header(function: &Function) -> Option<Header> {
             .collect(),
         access: function.parameter_access.clone(),
         initializers: function.parameter_initializers.clone(),
+        rest: function.rest_parameter,
     })
 }
 
@@ -52,7 +52,7 @@ fn wrapper(emitted: &str, header: &Header, id: usize, span: Span) -> Expr {
         .zip(&names)
         .enumerate()
         .map(|(index, ((name, annotation), text))| CallableParameter {
-            rest: false,
+            rest: header.rest && index + 1 == header.params.len(),
             name: Token { text: text.clone(), span, kind: name.kind },
             ty: annotation.clone(),
             access: header.access.get(index).copied().flatten().map(|(mode, _)| Token {
@@ -71,7 +71,19 @@ fn wrapper(emitted: &str, header: &Header, id: usize, span: Span) -> Expr {
         .collect();
     let arguments = names
         .into_iter()
-        .map(|name| Expr::new(ExprKind::Name(name), span))
+        .enumerate()
+        .map(|(index, name)| {
+            let value = Expr::new(ExprKind::Name(name), span);
+            if header.rest && index + 1 == header.params.len() {
+                Expr::new(ExprKind::Unary {
+                    op: UnaryOp::Spread,
+                    operator: span,
+                    value: Box::new(value),
+                }, span)
+            } else {
+                value
+            }
+        })
         .collect();
     let call = Expr::new(
         ExprKind::Call(Box::new(Expr::new(ExprKind::Name(emitted.to_owned()), span)), arguments),

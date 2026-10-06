@@ -26,3 +26,10 @@ test('Node checkpoint subset preserves sample counts and explicitly identifies m
  assert.equal(measurementPlan([],manifest).engineIDs.length,8);
  for(const argv of [['--engines='],['--engines=missing'],['--engines=native,native'],['--engines=native','--engines=node-tsc']]) assert.throws(()=>measurementPlan(argv,manifest),/engines/);
 });
+test('unknown verification flags cannot silently start measurement',()=>{
+ for(const flag of ['--verify-only','--verfy','--execution-onl']) {
+  assert.throws(()=>measurementPlan([flag],manifest),/Unknown runtime option/);
+ }
+ const verify=measurementPlan(['--verify','--only=nested_function_rest','--engines=native,node-tsc'],manifest);
+ assert.equal(verify.processes,0);assert.equal(verify.samples,0);
+});

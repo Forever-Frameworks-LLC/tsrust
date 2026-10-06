@@ -1,5 +1,10 @@
 export const engineIDs = Object.freeze(['native','node-tsc','node-ts','tsx','ts-node-check','ts-node-transpile','bun','deno']);
 export function measurementPlan(argv, manifest) {
+ for (const arg of argv.filter(arg=>arg.startsWith('--'))) {
+  if(arg!=='--verify'&&arg!=='--execution-only'&&!arg.startsWith('--engines=')&&!arg.startsWith('--only=')) {
+   throw new Error(`Unknown runtime option ${arg}; use --verify for correctness without timing`);
+  }
+ }
  const verify=argv.includes('--verify'), executionOnly=argv.includes('--execution-only');
  if(verify&&executionOnly) throw new Error('--verify and --execution-only cannot be combined');
  const selections=argv.filter(arg=>arg.startsWith('--engines='));

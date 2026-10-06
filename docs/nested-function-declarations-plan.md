@@ -209,3 +209,21 @@ checks cover supplied arguments, undefined, dependent defaults, consumption, arr
 callback arguments and failure. Wrapper projection collisions are repaired, and
 editor signature help is verified. Generic/rest values and the wider context audit
 remain open; this is not full gate173 or full-plan acceptance.
+
+## Captured rest value checkpoint
+
+Captured rest declarations now lower to rest arrow wrappers that spread the final
+pack into the original function. Fixed defaults still forward omission to the
+original declaration. Spread signature lookup now prepares named capture context
+before checking the body, matching direct-call checking. A direct spread control
+and stored-value witnesses cover this boundary. Hidden spread-wrapper call results
+are excluded from source callable type facts using the same precise wrapper-span
+recognition as default wrappers.
+
+Focused native witnesses retain empty, ordered and spread packs, dependent fixed
+defaults, compatible fixed callback adaptation, independent returned factory state,
+owned strings, once captures and invalid element types. A heterogeneous array
+callback tuple remains a type error for int[] rest. Matched nested_function_rest
+support is appended at manifest end, with seven independent observations, source
+mutation guards, registration, native ABI and all oracle/run/profile/report hooks.
+Gate 173 is still open for generic values and the final inference/context audit.
