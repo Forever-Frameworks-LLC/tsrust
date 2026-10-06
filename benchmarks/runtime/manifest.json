@@ -19582,6 +19582,34 @@
       "specification": "Retain seven independent scalar observations per scenario with deterministic seed and iteration inputs.",
       "sourceSha256": "9455e2b845693651c4f665fd5497139d3a349768abf61bb552401aa8052fa3bb",
       "counterpartSha256": "c7843f74d534ad65188630ad6cae581d6ac6b182c4f9ea2c6e8a88456779bf3f"
+    },
+    {
+      "id": "nested_function_owned_escape",
+      "family": "nested-function-owned-escape",
+      "source": "workloads/nested_function_owned_escape.tsr",
+      "counterpart": "workloads/nested_function_owned_escape.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One retained nested owner scenario",
+      "inputText": "owned",
+      "category": "callbacks",
+      "implementationGate": 172,
+      "measurementStatus": "pending-language-milestone",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": false,
+      "measured": false,
+      "notes": "Independent retained factories, inferred callable arrays, consuming owner return, recursive retained dispatch and callback failure. Untimed support; full gate 172 acceptance pending.",
+      "specification": "Retain eight scalar observations from independently checked factory/storage/failure scenarios.",
+      "sourceSha256": "7e21058f3b97244acba75a7aed6278fb70d983de7fa6dff817fb7bc42b44afc4",
+      "counterpartSha256": "ae4cc76350fdb5966ed04bf3f9801633d6cd44b6e077e20f8d825e80c952917b"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

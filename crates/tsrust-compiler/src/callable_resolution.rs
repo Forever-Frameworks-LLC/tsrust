@@ -127,7 +127,7 @@ impl Resolver<'_> {
         }
     }
 
-    fn intern_callable_shape(
+    pub(crate) fn intern_callable_shape(
         &mut self,
         params: &[ArgumentContract],
         result: Type,

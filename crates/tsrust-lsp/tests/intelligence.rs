@@ -7562,3 +7562,13 @@ fn later_block_binding_masks_outer_named_function_for_navigation() {
     let completions=ask(source,"textDocument/completion","value);",0);
     assert!(!completions.as_array().unwrap().iter().any(|item|item["label"]=="value"));
 }
+
+#[test]
+fn inferred_owned_callable_array_keeps_signature_help() {
+    let source = "function make(start:int):(step:int)=>int{let value=start;function next(step:int):int{value+=step;return value;}return next;}function main(){const actions=[make(1),make(2)];console.log(actions[0](3));}";
+    tsrust_compiler::check(source).unwrap();
+    let help = ask(source, "textDocument/signatureHelp", "3)", 0);
+    let label = help["signatures"][0]["label"].as_str().expect("inferred callable help");
+    assert!(label.contains("int"), "{help}");
+    assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(), 1);
+}

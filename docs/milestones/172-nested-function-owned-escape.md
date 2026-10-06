@@ -51,3 +51,56 @@ Canonical result 2026-10-06T19-52-48-838Z-verify.json has verified source finger
 and no timing samples. 11 exact original records are imported/read back in SQLite;
 failed assertion and retired-keyword test drafts are retained. Five consumers are
 refreshed atomically. 59 scratch executables and runtime output are pruned.
+
+
+## Retained storage and failure checkpoint
+
+Native witnesses now cover record storage, explicit and inferred callable arrays,
+independent factories, recursive retained array owners, consuming callbacks removed
+from inferred arrays and callback failure propagation. Unannotated callable arrays
+were a genuine array-element error. inferred_callable_arrays.rs now derives owned
+or owned-once storage from the checked first element, registers its origin and checks
+subsequent values against the same signature. It reuses callable_resolution's shared
+shape/arity logic and avoids adding unused duplicate callback declarations. The first
+element is evaluated once; subsequent construction follows existing ownership checks.
+An editor witness verifies indexed signature help for the inferred family.
+
+An instrumented native witness checks five captured record owners drop exactly once
+across independent success cases, failure, consuming return and recursive retained
+groups. Both debug and optimized native execution verify the exact count and owner
+identity mask. No runtime disposal feature or implicit clone was added.
+
+The new matched workload is appended at the manifest end, with eight independent
+observations covering retained state, inferred arrays, both recursive parity paths,
+consuming owner return, callback failure and input length. TypeScript counterpart,
+independent oracle, mutation guards, ABI registration, run/profile/report hooks and
+coverage exports are supplied. implementationAccepted remains false pending full
+gate acceptance; no timing is performed.
+
+Untimed verification exposed an unused throwing factory emitter panic. A native
+regression preserves it. Exception transport preparation now covers every emitted
+non-template definition, rather than only definitions reachable from main. Saved
+error contracts therefore exist even for unused throwing callbacks. Existing
+exception-library and exception-handling checks verify this correction.
+
+Borrowed-data escape is rejected by the existing ReadOnly parameter ownership
+contract, with a focused diagnostic witness. Still pending: dead-inner-declaration
+capture propagation, final editor/guide acceptance and a full gate audit. Gate173 limitations
+and its omitted-result red witness remain unchanged. Gate172 is not accepted here.
+
+## Checkpoint evidence
+
+The final focused suite passes nine tests, including exact callback failure payloads
+and debug/optimized disposal assertions. All eight depth canaries pass (63 tests).
+The complete editor crate passes 277 tests, including 146 intelligence tests.
+Exception handling passes 20 tests and the bounded exception library selection
+passes 140 tests. The registration test passes. The guide example executes natively
+and prints `11 21 12`. Native and Node-after-tsc pass all five untimed workload cases
+with eight observations each. No performance measurement is claimed.
+
+The verification record is stored byte-for-byte in benchmarks/records.sqlite at
+benchmarks/runtime/results/2026-10-06T20-08-05-035Z-verify.json. Its 112 compiler
+fingerprints, oracle inputs and matched source hashes match this checkpoint.
+
+All 35 original checkpoint logs/results, including failed witnesses and
+repairs, were imported, read back byte-for-byte and removed from loose storage.

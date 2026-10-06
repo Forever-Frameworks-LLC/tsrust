@@ -1,3 +1,5 @@
+#[path = "inferred_callable_arrays.rs"]
+mod inferred_callable_arrays;
 #[path = "named_capture_layout.rs"]
 mod named_capture_layout;
 #[path = "named_capture_access.rs"]
@@ -9655,6 +9657,7 @@ impl Analyzer {
             element = Some(ArrayElement::Int(0));
         }
         for value in values {
+            if element.is_none() && let ExprKind::Closure { id, .. } = value.kind { self.escaping.insert(id); }
             let actual = if let Some(ArrayElement::StoredCallable(family, 0)) = element {
                 self.stored_callable_value(context, value, family, loans)?
             } else {
@@ -9666,6 +9669,7 @@ impl Analyzer {
                     element.map(ArrayElement::ty),
                 )?
             };
+            let actual = if element.is_none() { self.inferred_callable_array_element(context, value, actual)? } else { actual };
             let Type::Array(inferred) = Self::transform_array_type(actual, value.span)? else {
                 unreachable!("array element conversion returns an array");
             };

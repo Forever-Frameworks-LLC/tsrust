@@ -116,9 +116,14 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
 }
 
 pub(crate) fn needs_exception_transport(program:&CheckedProgram)->bool {
-    let (functions,closures)=crate::error_effects::executable_callers(program);
-    functions.into_iter().filter_map(|id|program.functions.get(id)).chain(closures.into_iter().filter_map(|id|program.closures.get(id)).flat_map(|closure|std::iter::once(&closure.function).chain(closure.methods.iter().map(|method|&method.function)))).any(|function|crate::analysis::has_exception_syntax(&function.body))
+    // Native emission includes every checked non-template definition, even when
+    // main never invokes it. Its throwing body still requires a saved Result ABI.
+    program.functions.iter().chain(program.closures.iter().flat_map(|closure|
+        std::iter::once(&closure.function).chain(closure.methods.iter().map(|method|&method.function))))
+        .filter(|function|!function.template)
+        .any(|function|crate::analysis::has_exception_syntax(&function.body))
 }
+
 pub(crate) fn validate_exception_program(program:&CheckedProgram)->Result<(),crate::Diagnostic> {
     emitter_for(program,"").prepare_result_declarations().map(|_|())
 }

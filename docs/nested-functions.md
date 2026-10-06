@@ -162,6 +162,28 @@ function main() {
 
 Transferring a capture cannot overlap a borrowed argument that uses the same value.
 Use `clone()` explicitly when two independently owned copies are intended. The
-focused factory fixture verifies independent returned owners. Full owned-escape
-coverage for storage, disposal, failures and recursive retained groups remains in
-progress.
+focused factory fixture verifies independent returned owners. Focused retained storage, disposal, failure and recursive owner cases are verified.
+Full owned-escape gate acceptance remains in progress.
+
+### Retained callback arrays
+
+A nonempty array can infer owned callable storage from its first callback. Every
+following callback must have a compatible parameter, result and invocation contract.
+Each factory invocation retains separate state.
+
+```tsr
+function make(start: int): () => int {
+    let value = start;
+    function next(): int { value += 1; return value; }
+    return next;
+}
+function main() {
+    const actions = [make(10), make(20)];
+    console.log(actions[0](), actions[1](), actions[0]()); // 11 21 12
+}
+```
+
+A callback that consumes its captures produces once-callable storage. Remove such a
+callback from its array to own and invoke it. Borrowing an indexed element does not
+transfer its environment. Empty arrays still require a type or call/return context.
+Borrowed callback environments cannot become owned merely by entering an array.

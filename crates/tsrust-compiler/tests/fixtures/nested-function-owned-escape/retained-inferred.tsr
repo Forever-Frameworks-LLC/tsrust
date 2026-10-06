@@ -1,0 +1,40 @@
+import { strictEqual } from "std:testing";
+type Counter = { next: () => int; };
+function make(start: int): () => int {
+    let value = start;
+    function next(): int { value += 1; return value; }
+    return next;
+}
+function recursive(base: int[]): (n: int) => int {
+    function even(n: int): int {
+        if (n === 0) { return base[0]; }
+        return odd(n - 1);
+    }
+    function odd(n: int): int {
+        if (n === 0) { return base[0] + 1; }
+        return even(n - 1);
+    }
+    return even;
+}
+function failing(message: string): () => int {
+    function fail(): int { throw message; }
+    return fail;
+}
+function main() {
+    const counter: Counter = { next: make(10) };
+    strictEqual(counter.next(), 11);
+    strictEqual(counter.next(), 12);
+    const callbacks = [make(20), make(30)];
+    strictEqual(callbacks[0](), 21);
+    strictEqual(callbacks[1](), 31);
+    strictEqual(callbacks[0](), 22);
+    const first = recursive([3]);
+    const second = recursive([8]);
+    strictEqual(first(4), 3);
+    strictEqual(first(3), 4);
+    strictEqual(second(4), 8);
+    const fail = failing("expected");
+    let caught = false;
+    try { fail(); } catch (error) { strictEqual(error, "expected"); caught = true; }
+    strictEqual(caught, true);
+}
