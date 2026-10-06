@@ -64,3 +64,34 @@ function main() {
     let path = directory.source(source);
     support::success(&support::run(support::cli().arg("run").arg(path), 60));
 }
+
+// An exported alias is usable in an importing module, also when it names
+// types of its own module that the importer did not import.
+#[test]
+fn exported_aliases_expand_in_importing_modules() {
+    let directory = support::TempDirectory::new();
+    std::fs::write(
+        directory.0.join("types.tsr"),
+        "export type Id = int | string;\nexport type Ids = Id[];\ntype Hidden = int;\ntype Point = { x: Hidden; };\nexport type Points = Point[];\nexport function origin(): Points { return [{ x: 0 }]; }\nexport function kind(id: Id): string { return typeof id === \"string\" ? \"text\" : \"number\"; }\n",
+    )
+    .unwrap();
+    let main = directory.0.join("main.tsr");
+    std::fs::write(
+        &main,
+        "import { strictEqual } from \"std:testing\";\nimport { Id, Ids, Points, origin, kind } from \"./types.tsr\";\ntype Local = Ids;\nfunction main() {\n    const ids: Local = [1, \"b\"];\n    const one: Id = 2;\n    strictEqual(kind(one) + kind(ids[1]), \"numbertext\");\n    const points: Points = origin();\n    strictEqual(points[0].x, 0);\n}\n",
+    )
+    .unwrap();
+    let output = support::run(support::cli().arg("run").arg(&main), 60);
+    support::success(&output);
+    for (body, code) in [
+        ("import { Hidden } from \"./types.tsr\";\nfunction main() { const a: Hidden = 1; }\n", "module-private"),
+        ("import { Id } from \"./types.tsr\";\ntype Id = int;\nfunction main() { }\n", "duplicate"),
+        ("import { Id } from \"./types.tsr\";\nfunction main() { const a: Id = true; }\n", "type"),
+    ] {
+        let bad = directory.0.join("bad.tsr");
+        std::fs::write(&bad, body).unwrap();
+        let output = support::run(support::cli().arg("check").arg(&bad), 60);
+        assert!(!output.status.success(), "{body}");
+        assert!(String::from_utf8_lossy(&output.stderr).contains(&format!("error[{code}]")), "{body}: {}", String::from_utf8_lossy(&output.stderr));
+    }
+}

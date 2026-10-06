@@ -52,12 +52,14 @@ pub(crate) fn expand(annotation: &mut ValueAnnotation, aliases: &Aliases) {
     });
 }
 
-/// Checks names and expands aliases that mention other aliases.
-pub(crate) fn resolve(raw: Vec<(Token, ValueAnnotation)>) -> Result<Aliases, Diagnostic> {
+/// Checks names and expands aliases that mention other aliases. `imported`
+/// holds aliases of other modules under their local import names. Returns
+/// every usable alias and the names declared here.
+pub(crate) fn resolve(raw: Vec<(Token, ValueAnnotation)>, imported: Aliases) -> Result<(Aliases, Vec<String>), Diagnostic> {
     let mut declared: HashMap<String, (Token, ValueAnnotation)> = HashMap::new();
     let mut order = Vec::new();
     for (name, annotation) in raw {
-        if declared.contains_key(&name.text) {
+        if declared.contains_key(&name.text) || imported.contains_key(&name.text) {
             return Err(Diagnostic::new(
                 "duplicate",
                 format!("Type name {:?} is already declared.", name.text),
@@ -69,7 +71,8 @@ pub(crate) fn resolve(raw: Vec<(Token, ValueAnnotation)>) -> Result<Aliases, Dia
     }
     // Each round expands the aliases whose right sides mention only resolved
     // aliases. A round without progress means the rest refer to themselves.
-    let mut resolved = Aliases::new();
+    let mut resolved = imported;
+    let local = order.clone();
     let mut remaining = order;
     while !remaining.is_empty() {
         let mut next = Vec::new();
@@ -102,5 +105,25 @@ pub(crate) fn resolve(raw: Vec<(Token, ValueAnnotation)>) -> Result<Aliases, Dia
         }
         remaining = next;
     }
-    Ok(resolved)
+    Ok((resolved, local))
+}
+
+/// Prefix of a module-qualified name produced by project linking.
+pub(crate) const LINKED_PREFIX: &str = "__tsrust_module_";
+
+/// Rewrites the declared type names of an exported alias to their linked
+/// names, so an importing module can use the expansion unchanged.
+pub(crate) fn link_names(annotation: &mut ValueAnnotation, linked: &dyn Fn(&str) -> String) {
+    each(annotation, &mut |current| {
+        if let Kind::Named(name) | Kind::Applied { name, .. } = &mut current.kind {
+            let builtin = matches!(
+                name.text.as_str(),
+                "int" | "number" | "boolean" | "string" | "void" | "null" | "undefined" | "Set" | "Map"
+                    | "Function" | "Mutable" | "ReadOnly" | "Once" | "Owned"
+            );
+            if !builtin && !name.text.starts_with(LINKED_PREFIX) {
+                name.text = linked(&name.text);
+            }
+        }
+    });
 }

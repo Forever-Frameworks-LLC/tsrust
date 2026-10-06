@@ -139,7 +139,7 @@ fn diagnostic(
     }
 }
 fn symbol(module: usize, name: &str) -> String {
-    format!("__tsrust_module_{module}_{name}")
+    format!("{}{module}_{name}", crate::type_aliases::LINKED_PREFIX)
 }
 
 /// Link independently parsed ASTs; internal checker coordinates are mapped to files explicitly.
@@ -157,16 +157,26 @@ pub(crate) fn check_test_graph_entries(graph: ProjectGraph, entries: &[SourceId]
 }
 fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId]) -> Result<ProjectAnalysis, ProjectDiagnostic> {
     let mut programs = BTreeMap::new();
-    let mut globals = BTreeMap::new();
+    let mut globals: BTreeMap<SourceId, BTreeMap<String, String>> = BTreeMap::new();
     let mut segments = vec![];
     let mut offset = 1;
+    // Exported type aliases of each parsed module, with every type name
+    // already in linked form. Modules are ordered dependencies first.
+    let mut module_aliases: BTreeMap<SourceId, crate::type_aliases::Aliases> = BTreeMap::new();
     for (module, id) in graph.order.iter().enumerate() {
         let source = &graph.modules[id];
         segments.push((id.clone(), offset, source.source.text.len()));
         offset += source.source.text.len() + 1;
-        let parsed = if entries.contains(id) {
-            crate::syntax::parse_test_entry(&source.declaration_source)
-        } else { crate::syntax::parse(&source.declaration_source) };
+        let mut imported = crate::type_aliases::Aliases::new();
+        for import in &source.imports {
+            let Some(target) = import.target.as_ref().and_then(|target| module_aliases.get(target)) else { continue };
+            for binding in &import.bindings {
+                if let Some(alias) = target.get(&binding.exported) {
+                    imported.insert(binding.local.clone(), alias.clone());
+                }
+            }
+        }
+        let parsed = crate::syntax::parse_module(&source.declaration_source, entries.contains(id), imported);
         let mut program = parsed.map_err(|value| {
             ProjectDiagnostic {
                 code: value.code,
@@ -220,6 +230,28 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId]) -> Result<Projec
                 (name.text.clone(), linked)
             })
             .collect::<BTreeMap<_, _>>();
+        let mut names = names;
+        // An alias has no linked declaration; its name only needs an entry so
+        // an import of it resolves. Its uses are expanded during parsing.
+        for alias in program.type_aliases.keys() {
+            names.entry(alias.clone()).or_insert_with(|| symbol(module, alias));
+        }
+        let mut visible = names.clone();
+        for import in &source.imports {
+            let Some(target) = import.target.as_ref().and_then(|target| globals.get(target)) else { continue };
+            for binding in &import.bindings {
+                if let Some(linked) = target.get(&binding.exported) {
+                    visible.insert(binding.local.clone(), linked.clone());
+                }
+            }
+        }
+        let mut exported = std::mem::take(&mut program.type_aliases);
+        for annotation in exported.values_mut() {
+            crate::type_aliases::link_names(annotation, &|name| {
+                visible.get(name).cloned().unwrap_or_else(|| symbol(module, name))
+            });
+        }
+        module_aliases.insert(id.clone(), exported);
         globals.insert(id.clone(), names);
         programs.insert(id.clone(), program);
     }
@@ -228,6 +260,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId]) -> Result<Projec
         call_type_arguments: vec![],
         records: vec![],
         functions: vec![],
+        type_aliases: Default::default(),
     };
     let mut closure_id = 0;
     for (module, id) in graph.order.iter().enumerate() {
@@ -356,6 +389,9 @@ impl Linker<'_> {
                 let base = part.trim_end_matches("[]");
                 let suffix = &part[base.len()..];
                 let name = if self.type_parameters.contains(base) {
+                    base.into()
+                } else if base.starts_with(crate::type_aliases::LINKED_PREFIX) {
+                    // Expanded from an imported alias; already a linked name.
                     base.into()
                 } else { self.names.get(base).cloned().unwrap_or_else(|| {
                     if matches!(

@@ -1734,17 +1734,25 @@ pub struct Program {
     pub call_type_arguments: Vec<(Span, Vec<crate::type_syntax::ValueAnnotation>)>,
     pub records: Vec<Record>,
     pub functions: Vec<Function>,
+    /// Expanded `type Name = Type;` declarations of the file. Uses are
+    /// already expanded; a project keeps these for importing modules.
+    pub(crate) type_aliases: crate::type_aliases::Aliases,
 }
 
 pub fn parse(source: &str) -> Result<Program, Diagnostic> {
-    parse_entry(source, false)
+    parse_entry(source, false, Default::default())
 }
 
 pub(crate) fn parse_test_entry(source: &str) -> Result<Program, Diagnostic> {
-    parse_entry(source, true)
+    parse_entry(source, true, Default::default())
 }
 
-fn parse_entry(source: &str, test_entry: bool) -> Result<Program, Diagnostic> {
+/// Parses a module whose imports include type aliases of other modules.
+pub(crate) fn parse_module(source: &str, test_entry: bool, imported: crate::type_aliases::Aliases) -> Result<Program, Diagnostic> {
+    parse_entry(source, test_entry, imported)
+}
+
+fn parse_entry(source: &str, test_entry: bool, imported: crate::type_aliases::Aliases) -> Result<Program, Diagnostic> {
     Parser {
         source,
         tokens: lex(source)?,
@@ -1755,7 +1763,8 @@ fn parse_entry(source: &str, test_entry: bool) -> Result<Program, Diagnostic> {
         pending: Vec::new(),
         next_pattern: 0,
         parameter_patterns: Vec::new(),
-        aliases: Default::default(),
+        aliases: imported,
+        local_aliases: Vec::new(),
     }
     .program(test_entry)
 }
@@ -1791,6 +1800,8 @@ struct Parser<'a> {
     parameter_patterns: Vec<Stmt>,
     /// `type Name = Type;` declarations of the file, fully expanded.
     aliases: std::collections::HashMap<String, crate::type_syntax::ValueAnnotation>,
+    /// Names of the aliases this file declares, as opposed to imports.
+    local_aliases: Vec<String>,
 }
 
 impl Parser<'_> {
@@ -1924,7 +1935,10 @@ impl Parser<'_> {
             raw.push((name, annotation));
             index = end;
         }
-        self.aliases = crate::type_aliases::resolve(raw)?;
+        let imported = std::mem::take(&mut self.aliases);
+        let (aliases, local) = crate::type_aliases::resolve(raw, imported)?;
+        self.aliases = aliases;
+        self.local_aliases = local;
         Ok(())
     }
 
@@ -1980,6 +1994,7 @@ impl Parser<'_> {
         let mut registration = Vec::new();
         let mut program = Program {
             type_argument_checks: Vec::new(),
+            type_aliases: Default::default(),
             call_type_arguments: Vec::new(),
             records: Vec::new(),
             functions: Vec::new(),
@@ -2146,6 +2161,11 @@ impl Parser<'_> {
             });
         }
         program.call_type_arguments = self.call_type_arguments;
+        program.type_aliases = self
+            .local_aliases
+            .iter()
+            .map(|name| (name.clone(), self.aliases[name].clone()))
+            .collect();
         Ok(program)
     }
     fn result_annotation(&mut self) -> Result<ResultAnnotation, Diagnostic> {
