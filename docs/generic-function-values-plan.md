@@ -341,3 +341,13 @@ generic record applications, unchanged parameter labels/defaults and private
 result types with dependency field navigation. Whole editor checks pass, with
 the additional private-result control verified separately. Conditional/optional
 contexts, ambiguous shared spans and real callback/storage adapters remain open.
+
+## Adapter implementation boundary
+
+Three focused native witnesses now require adapters from an already constructed
+generic factory value: borrowed then owned concrete contracts, map callback use,
+and typed record/array storage. Their matched strict TypeScript sources pass and
+observe exact shared/independent factory state. Native tests remain red at the
+explicit compatibility guard and missing replay-body boundary. Continue with
+docs/generic-value-adapters-plan.md; do not reconstruct a declaration to replace
+the already existing runtime environment.
