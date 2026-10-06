@@ -1,0 +1,404 @@
+[
+  {
+    "id": "array_to_reversed_int",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "result": "int[]",
+    "resultEncoding": "copying-array-natural-v1",
+    "method": "toReversed",
+    "family": "int",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
+    "specification": "Construct six runtime-derived int elements, perform one to_reversed operation, retain complete ordered natural output.",
+    "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
+    "sourceSha256": "f357c459331ed8d417f1076b489360768a756de6a7f59b1b3508c59eac760606",
+    "counterpartSha256": "10a004f0488641c09379c13fa4a02c966b9dbc7685c733badda016fead618278",
+    "status": "source-only, execution pending"
+  },
+  {
+    "id": "array_to_reversed_number",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "result": "number[]",
+    "resultEncoding": "copying-array-natural-v1",
+    "method": "toReversed",
+    "family": "number",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
+    "specification": "Construct six runtime-derived number elements, perform one to_reversed operation, retain complete ordered natural output.",
+    "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
+    "sourceSha256": "2b18c75f9c853e36b5ee6b2b8d477a19d55bc699292fd04866dacdb531a46cda",
+    "counterpartSha256": "3af12b243cdbcde18fad796b34045762edf7aa3fae09aedd8d59cbfdd38950f2",
+    "status": "source-only, execution pending"
+  },
+  {
+    "id": "array_to_reversed_boolean",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "result": "boolean[]",
+    "resultEncoding": "copying-array-natural-v1",
+    "method": "toReversed",
+    "family": "boolean",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
+    "specification": "Construct six runtime-derived boolean elements, perform one to_reversed operation, retain complete ordered natural output.",
+    "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
+    "sourceSha256": "05019229f0a7ea40664b2a5c63576b69e300948fe25f2709d1ebb48a4a7d9489",
+    "counterpartSha256": "3840c7198b5bbd96b76ac988da53abbf569a4ac874ce0faab9751e81bbb35e5f",
+    "status": "source-only, execution pending"
+  },
+  {
+    "id": "array_to_reversed_string",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "result": "string[]",
+    "resultEncoding": "copying-array-natural-v1",
+    "method": "toReversed",
+    "family": "string",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
+    "specification": "Construct six runtime-derived string elements, perform one to_reversed operation, retain complete ordered natural output.",
+    "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
+    "sourceSha256": "d4d879393cc2d35b6908b41d306d774eace150f382a1726736afa49b97df79af",
+    "counterpartSha256": "5a81e602469e260eae7192cfc480e8562edd4f805efced4c990ce16158135913",
+    "status": "source-only, execution pending",
+    "inputText": " xé😀é "
+  },
+  {
+    "id": "array_to_reversed_nested",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "result": "int[][]",
+    "resultEncoding": "copying-array-natural-v1",
+    "method": "toReversed",
+    "family": "nested",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
+    "specification": "Construct six runtime-derived nested elements, perform one to_reversed operation, retain complete ordered natural output.",
+    "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
+    "sourceSha256": "a1256df1f68bc5e4cd31aefb1a3c810393853999054f71c194fe3ebb7eba802e",
+    "counterpartSha256": "30065bcbba616d258228e848406d9d298c9db3a5e4ca5f8174b2a4e00eccd600",
+    "status": "source-only, execution pending"
+  },
+  {
+    "id": "array_to_reversed_record",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "result": "Row[]",
+    "resultEncoding": "copying-array-natural-v1",
+    "method": "toReversed",
+    "family": "record",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
+    "specification": "Construct six runtime-derived record elements, perform one to_reversed operation, retain complete ordered natural output.",
+    "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
+    "sourceSha256": "93d662528c6c983666468f918e107cc448314f0b84cbafa64382f0948673ac35",
+    "counterpartSha256": "e3451a24fd51f761cf23bb3c62f6df3bdeab7bf6ff4ba513dae72d2790d6776e",
+    "status": "source-only, execution pending",
+    "inputText": " xé😀é ",
+    "recordSchemas": {
+      "Row": [
+        [
+          "code",
+          "int"
+        ],
+        [
+          "text",
+          "string"
+        ],
+        [
+          "items",
+          "int[]"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "array_to_reversed_deep",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "result": "int[][][]",
+    "resultEncoding": "copying-array-natural-v1",
+    "method": "toReversed",
+    "family": "deep",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
+    "specification": "Construct six runtime-derived deep elements, perform one to_reversed operation, retain complete ordered natural output.",
+    "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
+    "sourceSha256": "f890f969f0f5855e001dc90f66786485a934de238ad9a8320e46b776f148dfb0",
+    "counterpartSha256": "f836ecd8520d0c45c5f74491a35ff386cec9cfcc7d7ca5cf3aae85217da3421e",
+    "status": "source-only, execution pending"
+  },
+  {
+    "id": "array_to_reversed_recursive",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "result": "Node[]",
+    "resultEncoding": "copying-array-natural-v1",
+    "method": "toReversed",
+    "family": "recursive",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
+    "specification": "Construct six runtime-derived recursive elements, perform one to_reversed operation, retain complete ordered natural output.",
+    "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
+    "sourceSha256": "d53b82a3d9dce08efc6e88233f9c2087573ff2c7a1313a9f27f3e35e99eb51f2",
+    "counterpartSha256": "5dcd111a2ee9436975068f716bcc8320d15debde90f49be7fa88f0f791e7c9be",
+    "status": "source-only, execution pending",
+    "inputText": " xé😀é ",
+    "recordSchemas": {
+      "Node": [
+        [
+          "code",
+          "int"
+        ],
+        [
+          "text",
+          "string"
+        ],
+        [
+          "children",
+          "Node[]"
+        ]
+      ]
+    },
+    "typescriptNominalAliases": {
+      "Node": "CopyingBenchmarkNode"
+    }
+  },
+  {
+    "id": "array_with_int",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "result": "int[]",
+    "resultEncoding": "copying-array-natural-v1",
+    "method": "with",
+    "family": "int",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
+    "specification": "Construct six runtime-derived int elements, perform one with operation, retain complete ordered natural output.",
+    "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
+    "sourceSha256": "bd27c7d21d4758bdfd8e63a1bb25e4153f833da0306bdb6f54dbbd25762025bd",
+    "counterpartSha256": "8ae09b67c95d0e4e372acf3ffe590ff6f6c5aaec732d3eca65f7349e96a57f69",
+    "status": "source-only, execution pending"
+  },
+  {
+    "id": "array_with_number",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "result": "number[]",
+    "resultEncoding": "copying-array-natural-v1",
+    "method": "with",
+    "family": "number",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
+    "specification": "Construct six runtime-derived number elements, perform one with operation, retain complete ordered natural output.",
+    "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
+    "sourceSha256": "97dd8f241afd6face11460e951b464d3c12577d7fded682dcca55187192847ea",
+    "counterpartSha256": "1d1a4067bf49ea51bb48bcd366bc77dbb00df74430ffecbb38f855fc22fb77d9",
+    "status": "source-only, execution pending"
+  },
+  {
+    "id": "array_with_boolean",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "result": "boolean[]",
+    "resultEncoding": "copying-array-natural-v1",
+    "method": "with",
+    "family": "boolean",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
+    "specification": "Construct six runtime-derived boolean elements, perform one with operation, retain complete ordered natural output.",
+    "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
+    "sourceSha256": "ae7301f543c71bf12b6ef82e033503c640f3baaf40784691319d24d9704c28ba",
+    "counterpartSha256": "554a7a875be2cf75c829feabb4ddcaf9c2615e84313587d24f8392abce68e895",
+    "status": "source-only, execution pending"
+  },
+  {
+    "id": "array_with_string",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "result": "string[]",
+    "resultEncoding": "copying-array-natural-v1",
+    "method": "with",
+    "family": "string",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
+    "specification": "Construct six runtime-derived string elements, perform one with operation, retain complete ordered natural output.",
+    "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
+    "sourceSha256": "cdb7ac6cca6d391a87881b844b8899097498ec6a1b76563208626d22694d5aca",
+    "counterpartSha256": "32bd91d5818559e7c26a3bc5aecf0ff4cd721d8155fbfcc1b0d799cfac027cd1",
+    "status": "source-only, execution pending",
+    "inputText": " xé😀é "
+  },
+  {
+    "id": "array_with_nested",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "result": "int[][]",
+    "resultEncoding": "copying-array-natural-v1",
+    "method": "with",
+    "family": "nested",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
+    "specification": "Construct six runtime-derived nested elements, perform one with operation, retain complete ordered natural output.",
+    "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
+    "sourceSha256": "a30a11850b366eeb29e7fa8e718ea8eca6ce474496118574dee63ad435f8f3ed",
+    "counterpartSha256": "d06d72de0d6eceb2147a283a7e28f5d963378a0cbae134b2ffe60c8f23cb28ff",
+    "status": "source-only, execution pending"
+  },
+  {
+    "id": "array_with_record",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "result": "Row[]",
+    "resultEncoding": "copying-array-natural-v1",
+    "method": "with",
+    "family": "record",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
+    "specification": "Construct six runtime-derived record elements, perform one with operation, retain complete ordered natural output.",
+    "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
+    "sourceSha256": "0db592b1599619563d6c36c353142a51c6d9aa151e7c228e9d027c4f0247711c",
+    "counterpartSha256": "fa800557deae1ee8b1000049c840890f529366ccf53f550446370972f3ad7814",
+    "status": "source-only, execution pending",
+    "inputText": " xé😀é ",
+    "recordSchemas": {
+      "Row": [
+        [
+          "code",
+          "int"
+        ],
+        [
+          "text",
+          "string"
+        ],
+        [
+          "items",
+          "int[]"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "array_with_deep",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "result": "int[][][]",
+    "resultEncoding": "copying-array-natural-v1",
+    "method": "with",
+    "family": "deep",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
+    "specification": "Construct six runtime-derived deep elements, perform one with operation, retain complete ordered natural output.",
+    "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
+    "sourceSha256": "6f46b53a896ef7f1b9c7145eebb01d92751e03695e1ad601abe5b7370a1715f3",
+    "counterpartSha256": "97e466d7791f99d22c3ca7f785afbbb483ee8c291cf7dd32bc0c3e3e74a0f20a",
+    "status": "source-only, execution pending"
+  },
+  {
+    "id": "array_with_recursive",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "result": "Node[]",
+    "resultEncoding": "copying-array-natural-v1",
+    "method": "with",
+    "family": "recursive",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
+    "specification": "Construct six runtime-derived recursive elements, perform one with operation, retain complete ordered natural output.",
+    "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
+    "sourceSha256": "e82a972a8eaaf1de1900b0b19f3922952dcb1abcf9778bc2e9a6b14ab6f299cc",
+    "counterpartSha256": "c43a630aca22615d1baad28f6b0b425362c734542fc76dca56ccf9cd1d11a6c1",
+    "status": "source-only, execution pending",
+    "inputText": " xé😀é ",
+    "recordSchemas": {
+      "Node": [
+        [
+          "code",
+          "int"
+        ],
+        [
+          "text",
+          "string"
+        ],
+        [
+          "children",
+          "Node[]"
+        ]
+      ]
+    },
+    "typescriptNominalAliases": {
+      "Node": "CopyingBenchmarkNode"
+    }
+  }
+]

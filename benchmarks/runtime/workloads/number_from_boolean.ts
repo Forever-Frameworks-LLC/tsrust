@@ -1,0 +1,7 @@
+type int = number;
+function workload(n: int, seed: int): number {
+    let sum: number = 0.0; let i = 0;
+    while (i < n) { const flag = (i + seed) % 2 === 0; sum = sum + Number(flag); i = i + 1; }
+    return sum;
+}
+function main() { const result = workload(2, 7); console.log(result); }

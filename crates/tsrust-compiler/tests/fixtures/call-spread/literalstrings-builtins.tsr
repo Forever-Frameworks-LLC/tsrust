@@ -1,0 +1,6 @@
+function main() {
+    const strings: string[] = ["é", "😀"];
+    console.log(strings.concat(...["!", "a"]).join(","));
+    console.log(strings.join(","));
+    console.log(strings.toSpliced(...[1, 1], "x").join(","));
+}

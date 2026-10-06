@@ -1,0 +1,24 @@
+{
+  "verifiedImport": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-96-analytics/verified-import.json",
+    "sha256": "56a167b14e1bf0e9dae468dae7cfc5fc43601129ba94779d795fb3f4af3f47dd"
+  },
+  "stats": {
+    "databaseBytes": 163258368,
+    "records": 21127,
+    "blobs": 13852,
+    "analytics_runs": 6,
+    "analytics_samples": 52080,
+    "analytics_summaries": 560,
+    "analytics_profiles": 471
+  },
+  "deltas": {
+    "databaseBytes": 5705728,
+    "records": 3,
+    "blobs": 3,
+    "analytics_runs": 2,
+    "analytics_samples": 8928,
+    "analytics_summaries": 96,
+    "analytics_profiles": 144
+  }
+}

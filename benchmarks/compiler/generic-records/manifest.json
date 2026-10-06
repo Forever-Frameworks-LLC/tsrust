@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "status": "registered-unmeasured",
+  "checkpoint": "next scheduled combined checkpoint",
+  "instanceCounts": [1, 16, 64, 128],
+  "samples": 11,
+  "generator": "check.py:source(count, scalar)",
+  "phases": {
+    "frontendCheck": "Separate process wall time for tsrust check and strict TypeScript tsc --noEmit on deterministic generated declarations. Includes process startup and source reads. Native specialization and TypeScript structural checking differ; compare actual frontend cost, not equivalent validation coverage.",
+    "frontendEmit": "Separate tsrust emit process wall time, including startup and source reads; excludes rustc and execution. Distinct nominal argument records require distinct Box applications even though each argument has an identical field shape."
+  },
+  "acceptance": "Validate all counts with check.py before measuring. Preserve generated sources and hashes, generator identity, commands, compiler/toolchain identities and individual samples in canonical SQLite at the checkpoint. Do not describe generic specialization as runtime throughput."
+}

@@ -1,0 +1,82 @@
+import { strictEqual } from "std:testing";
+
+function risky(value: int): int {
+    if (value === 0) {
+        throw "zero";
+    }
+
+    return value + 1;
+}
+
+function finalized(trace: int[]): int {
+    try {
+        return 7;
+    } finally {
+        trace.push(3);
+    }
+}
+
+function main() {
+    let value = 0;
+    try {
+        value = risky(0);
+    } catch (error) {
+        if (typeof error === "string") {
+            strictEqual(error, "zero");
+        } else {
+            throw error;
+        }
+        value = 2;
+    }
+
+    strictEqual(value, 2);
+    strictEqual(risky(3), 4);
+    let caught = 0;
+    try {
+        throw 5;
+    } catch (error) {
+        strictEqual(error, 5);
+        caught = 1;
+    }
+
+    strictEqual(caught, 1);
+    const trace: int[] = [];
+    try {
+        trace.push(1);
+        throw "outer";
+    } catch (error) {
+        if (typeof error === "string") {
+            strictEqual(error, "outer");
+        } else {
+            throw error;
+        }
+        trace.push(2);
+    } finally {
+        trace.push(4);
+    }
+
+    strictEqual(trace.join(","), "1,2,4");
+    strictEqual(finalized(trace), 7);
+    strictEqual(trace.join(","), "1,2,4,3");
+    let nested = 0;
+    try {
+        try {
+            throw "again";
+        } catch (error) {
+            throw error;
+        }
+    } catch (error) {
+        strictEqual(error, "again");
+        nested = 1;
+    }
+
+    strictEqual(nested, 1);
+    let optional = 0;
+    try {
+        throw "ignored";
+    } catch {
+        optional = 1;
+    }
+
+    strictEqual(optional, 1);
+}

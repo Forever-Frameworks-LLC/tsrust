@@ -1,0 +1,26 @@
+import {strictEqual} from "std:testing";
+type Counter={value:int;};
+function source(counter:Mutable<Counter>):string{counter.value+=1;return "é🙂";}
+function count(text:string):int{let total=0;for(const character of text){total+=1;}return total;}
+function bytes(text:string):int{return text.length;}
+function main(){
+ strictEqual(count(""),0);strictEqual(count("abc"),3);strictEqual(count("Aé🙂é"),5);
+ let text=String("Aé🙂é");let trace="";let size=0;
+ const output:string[]=[];
+ for(const character of text){trace=trace+character+"|";size+=bytes(character);output.push(clone(character));}
+ strictEqual(trace,"A|é|🙂|e|́|");strictEqual(size,10);strictEqual(output.join(""),text);
+ text="changed";strictEqual(output.join(""),"Aé🙂é");
+ const counter:Counter={value:0};let visits=0;for(const character of source(counter)){visits+=1;}
+ strictEqual(counter.value,1);strictEqual(visits,2);
+ let nested="";for(const outer of "é🙂"){for(const inner of "ab"){nested=nested+outer+inner;}}
+ strictEqual(nested,"éaéb🙂a🙂b");
+ let finalized=0;let stopped="";
+ for(const character of "abc"){
+  try{if(character==="a"){continue;}stopped=stopped+character;if(character==="b"){break;}}
+  finally{finalized+=1;}
+ }
+ strictEqual(stopped,"b");strictEqual(finalized,2);
+ let caught=0;try{for(const character of "é"){throw character+"!";}}
+ catch(error){if(typeof error==="string"){strictEqual(error,"é!");caught=1;}}
+ strictEqual(caught,1);
+}

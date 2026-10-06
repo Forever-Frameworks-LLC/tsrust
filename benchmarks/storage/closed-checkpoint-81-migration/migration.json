@@ -1,0 +1,31 @@
+{
+  "kind": "executed-closed-gate-artifact-compaction",
+  "timestamp": "2026-10-03T08:46:20.043446+00:00",
+  "planSHA256": "2180d92ceec47974096c679dc2583f14439b3a6bae4406a94689c4ca3d43562b",
+  "selection": [
+    "runtime/diagnostics/2026-10-03T05-33-34-000Z-quoted-string-literals-source-validation-artifacts",
+    "runtime/diagnostics/2026-10-03T05-42-17-000Z-builtin-documentation-examples-artifacts",
+    "runtime/diagnostics/2026-10-03T05-56-16-000Z-quoted-string-literals-implementation-artifacts",
+    "runtime/diagnostics/2026-10-03T06-19-03-000Z-template-literals-implementation-artifacts",
+    "runtime/diagnostics/2026-10-03T06-37-34-000Z-split-storage-implementation-artifacts",
+    "runtime/diagnostics/2026-10-03T06-58-56-000Z-string-substr-implementation-artifacts",
+    "runtime/diagnostics/2026-10-03T07-15-42-000Z-string-html-wrappers-implementation-artifacts",
+    "runtime/diagnostics/2026-10-03T08-24-00-000Z-checkpoint81-regression-artifacts",
+    "runtime/diagnostics/2026-10-03T08-44-00-000Z-checkpoint81-runtime-artifacts",
+    "runtime/diagnostics/2026-10-03T08-45-55-000Z-checkpoint81-completed-artifacts",
+    "runtime/diagnostics/2026-10-03T08-45-55-000Z-checkpoint81-completed-proof-closure-artifacts"
+  ],
+  "files": 748,
+  "originalLogicalBytes": 17390204,
+  "originalAllocatedBytes": 19144704,
+  "database": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/records.sqlite",
+    "sha256": "a7f9f07f8bfe89e9ac2d08d0cd721aa97d4285f3924abc185ade15ecb00bf6c2",
+    "logicalBytes": 126795776,
+    "allocatedBytes": 126795776
+  },
+  "databaseGrowthBytes": 2670592,
+  "grossAllocatedBytesReclaimed": 16474112,
+  "verification": "original/restored/archive paths, sizes and SHA256; independent zlib; rehash each leaf before unlink",
+  "rollbackOnFailure": true
+}

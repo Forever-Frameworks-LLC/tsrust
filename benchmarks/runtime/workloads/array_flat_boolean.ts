@@ -1,0 +1,23 @@
+type int = number;
+function workload(n: int, seed: int): boolean[][] {
+    const output: boolean[][] = [];
+    const sizes: int[] = [0, 1, 4, 5, 17];
+    let i = 0;
+    while (i < n) {
+        const count = sizes[(i + seed) % 5];
+        const source: boolean[][] = [];
+        let j = 0;
+        while (j < count) {
+            const part: boolean[] = [];
+            const width = (j + seed) % 3; let k = 0;
+            while (k < width) { const ordinal = j * 3 + k; part.push((ordinal + seed) % 3 !== 0); k = k + 1; }
+            source.push(part);
+            j = j + 1;
+        }
+        const flattened = source.flat();
+        output.push(flattened);
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7); }

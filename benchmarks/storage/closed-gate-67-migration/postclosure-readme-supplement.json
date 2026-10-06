@@ -1,0 +1,68 @@
+{
+  "gate": 67,
+  "kind": "documentation-only-postclosure-supplement",
+  "timestamp": "2026-10-02T20:53:10.159405+00:00",
+  "compilerProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof.json",
+    "sha256": "b91447ac87e5f82d3223955c55e5d8668f353aa68a7c55840dcb19f0a93ffdd7"
+  },
+  "sourceProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation.json",
+    "sha256": "d92b5e905e28be750f904d8da45a44c44b8ad52ffd30d3b0b92489d661d19e15"
+  },
+  "runtimeProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-proof.json",
+    "sha256": "4c72062bea73a0a782cab0a532841efa01855e99ebeab8a392e83535c9b58e67"
+  },
+  "files": [
+    {
+      "path": "docs/milestones/67-scalar-assignment-values.md",
+      "beforeSha256": "8e78a3ef137fc1c69a6480a51b1a6c2420ace033bbc08013c6bb17f8c5eb574e",
+      "afterSha256": "27a29f25026210682d787ce935af20788c768aaa89594c77d04720a231bb74e4"
+    },
+    {
+      "path": "docs/roadmap.md",
+      "beforeSha256": "4475e2b3f7fcff4d4263d5418bb49279177ad6a4c73a7c71c26f4187bc0c579e",
+      "afterSha256": "d3a57dd10c911be33f0edc66223120b81c75786e67036b4af75f997307f5093a"
+    },
+    {
+      "path": "crates/tsrust-compiler/README.md",
+      "beforeSha256": "242dedb213a42075110ffa1c01184f4d5b730fe6fd7bcba3f3a80ce572ba1a2c",
+      "afterSha256": "beefc76d8f66e7d8b2aeaaf6b28327a2cf3b36a0109ec9628d67c34fe9691534"
+    },
+    {
+      "path": "benchmarks/runtime/README.md",
+      "beforeSha256": "165b97a908216dd49024877464e0316fbe6a779af7ac27fb0e7072665ff01e22",
+      "afterSha256": "a64980cbf78e6059c881c1935f5d31970f57772fe55df5e6b88755fd2b8fe916"
+    },
+    {
+      "path": "benchmarks/coverage/status.json",
+      "beforeSha256": "ca4d7ca151c3a9630d2364ffb5e700a4d687f849089b5db9ec94bd6b64bd4b19",
+      "afterSha256": "4bb9de16c715200a6327ea32063e0278ea09ea097d34c931dd58008d3149f5cc"
+    },
+    {
+      "path": "docs/feature-coverage.md",
+      "beforeSha256": "06f5bbf1b5de96055301213517beb9b7a3443327205114f6e61431506de4670a",
+      "afterSha256": "91baf985dd346c711b56bee20604892ee2b998b44a533c2e2dd7d3d6ae54ed27"
+    },
+    {
+      "path": "benchmarks/coverage/inventory.json",
+      "beforeSha256": "d653ec00052abcc36d331e87cb985b37194494724a0f6d283c2074a8ade8b538",
+      "afterSha256": "9e49066e652b1e308510fe9561394b360d8ef805cfee702f819e66c2ffefafd5"
+    }
+  ],
+  "inventoryOperations": 1900,
+  "inventoryFamilies": 28,
+  "compilerCodeChanged": false,
+  "sourceManifestHarnessChanged": false,
+  "measuredReportChanged": false,
+  "measurementsRepeated": false,
+  "inventoryRegenerations": 1,
+  "closureArtifacts": [
+    {
+      "originalPath": "/private/tmp/tsrust-gate67-close-docs.py",
+      "path": "benchmarks/runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-proof-closure-artifacts/tsrust-gate67-close-docs.py",
+      "sha256": "8dff9fd73e091069f919a8f947d0306b9a18d9d5428e03058a053c184223f4e9"
+    }
+  ]
+}

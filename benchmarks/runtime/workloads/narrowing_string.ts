@@ -1,0 +1,14 @@
+type int = number;
+function workload(n: int, seed: int, input: string): string[] {
+    const values: string[] = [input.repeat(1), "", "é😀e\u0301", "\uFEFF\u0000", input.repeat(2)];
+    const output: string[] = []; let i = 0;
+    while (i < n) {
+        const mode = (i + seed) % 3;
+        const at = (i * 13 + seed) % 5;
+        const value: string | null | undefined = mode === 0 ? null : mode === 1 ? undefined : values[at].repeat(1);
+        if (!(value === null || value === undefined)) { output.push("payload"); output.push(value.concat("!")); } else if (value === null) { output.push("null"); output.push(""); } else { output.push("undefined"); output.push(""); }
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7, "dynamic text"); }

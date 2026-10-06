@@ -1,0 +1,3 @@
+[workspace]
+members = ["crates/tsrust-compiler", "crates/tsrust-lsp"]
+resolver = "3"

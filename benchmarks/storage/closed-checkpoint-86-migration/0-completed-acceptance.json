@@ -1,0 +1,179 @@
+{
+  "gate": 86,
+  "regressionAccepted": true,
+  "runtimeAccepted": true,
+  "profilesAccepted": true,
+  "documentationAccepted": true,
+  "allConsumersFinished": true,
+  "commands": [
+    {
+      "gate": 86,
+      "argv": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+      "pid": 61012,
+      "startedUtc": "2026-10-03T12:57:36.069816+00:00",
+      "finishedUtc": "2026-10-03T12:57:37.035850+00:00",
+      "exitCode": 0,
+      "log": "/private/tmp/tsrust-gate86/format-repaired.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "gate": 86,
+      "argv": [
+        "cargo",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--locked",
+        "--offline",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+      "pid": 63480,
+      "startedUtc": "2026-10-03T12:58:56.730282+00:00",
+      "finishedUtc": "2026-10-03T12:58:59.733442+00:00",
+      "exitCode": 0,
+      "log": "/private/tmp/tsrust-gate86/clippy-final.log",
+      "logSha256": "f6c96a5b958050e31249b329ddc3a0c8b69e0cf9a36b27feabfa837b040f7c94"
+    },
+    {
+      "gate": 86,
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "-p",
+        "tsrust-compiler",
+        "--bin",
+        "tsrust"
+      ],
+      "cwd": "/tmp/tsrust-gate86-benchmark-workspace",
+      "pid": 12337,
+      "startedUtc": "2026-10-03T13:29:24.987345+00:00",
+      "log": "/tmp/tsrust-gate86/isolated-release-v2/build.log",
+      "exitCode": 0,
+      "finishedUtc": "2026-10-03T13:29:33.399088+00:00",
+      "logSha256": "41e145c2fae9c4d5a53ce3fab91560dec79629c8a9e4e4a078ca69b9e8193d5e",
+      "releaseSha256": "138b05e1a50f008c2489910a51737a6453161566e8f888168ba68ae6d93cd95d"
+    },
+    {
+      "gate": 86,
+      "phase": "runtime",
+      "argv": [
+        "/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node",
+        "benchmarks/runtime/run.mjs",
+        "--execution-only",
+        "--only=array_join_int,array_join_boolean,array_join_string,array_join_nested,array_join_number,array_join_nullish,array_to_string_int,array_to_string_boolean,array_to_string_string,array_to_string_nested,array_to_string_number,array_to_string_nullish,string_array_conversion,nullable_int_null,nullable_boolean_undefined,nullable_number_null,nullable_string_undefined,nullable_array_null,nullable_record_undefined,narrowing_int,narrowing_number,narrowing_boolean,narrowing_string,narrowing_array,narrowing_record,array_pop_int,array_pop_number,array_pop_boolean,array_pop_string,array_pop_nested,array_pop_record,array_pop_null,array_pop_undefined,array_shift_int,array_shift_number,array_shift_boolean,array_shift_string,array_shift_nested,array_shift_record,array_shift_null,array_shift_undefined"
+      ],
+      "cwd": "/private/tmp/tsrust-gate86-benchmark-workspace",
+      "cargoTargetDirectory": "/private/tmp/tsrust-gate86-benchmark-workspace/target",
+      "pid": 24534,
+      "startedUtc": "2026-10-03T13:35:26.659561+00:00",
+      "finishedUtc": "2026-10-03T13:45:13.731033+00:00",
+      "exitCode": 0,
+      "log": "/private/tmp/tsrust-gate86/runtime-owner/runtime.log",
+      "logSha256": "d55d700affc4ef92f1c3ad40f38a03fb22beb409c8e7db717c79ea81288602df",
+      "freeze": {
+        "path": "/private/tmp/tsrust-gate86/runtime-freeze.json",
+        "sha256": "cf7c51510b05ce1cd72cf2362f6fdcf7671f32eb4c81e30ba2a264db302fdce5"
+      },
+      "ownerScript": {
+        "path": "/private/tmp/tsrust-gate86/runtime-prep-isolated/owner.py",
+        "sha256": "29b964d11655138d48531989c98733b3627a5659c231d806f682ca22cbb9d36d"
+      }
+    },
+    {
+      "gate": 86,
+      "phase": "profiles",
+      "argv": [
+        "/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node",
+        "benchmarks/runtime/profile-native.mjs",
+        "--only=array_join_int,array_join_boolean,array_join_string,array_join_nested,array_join_number,array_join_nullish,array_to_string_int,array_to_string_boolean,array_to_string_string,array_to_string_nested,array_to_string_number,array_to_string_nullish,string_array_conversion,nullable_int_null,nullable_boolean_undefined,nullable_number_null,nullable_string_undefined,nullable_array_null,nullable_record_undefined,narrowing_int,narrowing_number,narrowing_boolean,narrowing_string,narrowing_array,narrowing_record,array_pop_int,array_pop_number,array_pop_boolean,array_pop_string,array_pop_nested,array_pop_record,array_pop_null,array_pop_undefined,array_shift_int,array_shift_number,array_shift_boolean,array_shift_string,array_shift_nested,array_shift_record,array_shift_null,array_shift_undefined"
+      ],
+      "cwd": "/private/tmp/tsrust-gate86-benchmark-workspace",
+      "cargoTargetDirectory": "/private/tmp/tsrust-gate86-benchmark-workspace/target",
+      "pid": 58469,
+      "startedUtc": "2026-10-03T13:45:45.353540+00:00",
+      "finishedUtc": "2026-10-03T13:46:03.221297+00:00",
+      "exitCode": 0,
+      "log": "/private/tmp/tsrust-gate86/profile-owner/profiles.log",
+      "logSha256": "0dc9bdb289ea9e7dc7bb110da31b0a72cb8784b49beaeac10ed474527bfe1780",
+      "freeze": {
+        "path": "/private/tmp/tsrust-gate86/runtime-freeze.json",
+        "sha256": "cf7c51510b05ce1cd72cf2362f6fdcf7671f32eb4c81e30ba2a264db302fdce5"
+      },
+      "ownerScript": {
+        "path": "/private/tmp/tsrust-gate86/runtime-prep-isolated/owner.py",
+        "sha256": "29b964d11655138d48531989c98733b3627a5659c231d806f682ca22cbb9d36d"
+      }
+    },
+    {
+      "gate": 86,
+      "phase": "report",
+      "argv": [
+        "/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node",
+        "/tmp/tsrust-gate86/report-operation-repair/report-canonical-v2.mjs"
+      ],
+      "cwd": "/private/tmp/tsrust-gate86-benchmark-workspace",
+      "pid": 78591,
+      "startedUtc": "2026-10-03T13:54:41.595639+00:00",
+      "log": "/tmp/tsrust-gate86/report-owner-v2/report.log",
+      "measurementRepeated": false,
+      "exitCode": 0,
+      "finishedUtc": "2026-10-03T13:56:41.360929+00:00",
+      "logSha256": "d476cdbe68780ad2036607a016bb31d3f516af2bb9c16e7fae9459bd69e23b5e"
+    }
+  ],
+  "implementationProofs": [
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T09-12-23-000Z-array-join-implementation.json",
+      "sha256": "ca2ee3bafdcce7db9cf43267daf64fe030d96443f78e992413aca54c950fd532"
+    },
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T09-36-55-000Z-array-to-string-implementation.json",
+      "sha256": "d70296360f1eb332ec904566db85c89000cb576638b949aceeb90853424abb22"
+    },
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T10-48-34-000Z-nullable-type-foundation-implementation.json",
+      "sha256": "31d075312f76202a407aaf81f92f0633ad7a18e1831b89b5188eb9d83f680cfc"
+    },
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T11-59-10-000Z-nullable-flow-narrowing-implementation.json",
+      "sha256": "8330ea509ec0ac93ed86f6fd0fff1c178c464c5cec62d2446da96a814cf61345"
+    },
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T12-38-17-000Z-array-pop-shift-implementation.json",
+      "sha256": "cf3fda0686625f6fff2bc4e0a4d834245f2a3218dbb0acf584d914a3907a4457"
+    }
+  ],
+  "regressionProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T13-43-00-000Z-checkpoint86-regression-proof.json",
+    "sha256": "90399c365a3975c6d8beb9003dbfacd58987ce31065d75f5bec190d5a26fe8bd"
+  },
+  "runtimeProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T13-57-02-000Z-checkpoint86-runtime-proof.json",
+    "sha256": "da4c6d471e290fe5336640d83073dd4bad7a562a7f4670226cf09e8dbd9f2404"
+  },
+  "report": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/BENCHMARKS.md",
+    "sha256": "7d930574d5fb1a40d72a6fc4dad98f3c7ec4d8212b41e265e1df7c6033f9d900"
+  },
+  "release": {
+    "path": "/private/tmp/tsrust-gate86-benchmark-workspace/target/release/tsrust",
+    "sha256": "138b05e1a50f008c2489910a51737a6453161566e8f888168ba68ae6d93cd95d"
+  },
+  "checkpointProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T14-02-43-000Z-checkpoint86-completed-proof.json",
+    "sha256": "8b797bd1d518ae17aa9863588e8ceba12b7e52c3c123138dbb7402823b67d755"
+  }
+}

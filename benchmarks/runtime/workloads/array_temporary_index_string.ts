@@ -1,0 +1,13 @@
+type int = number;
+function workload(n: int, seed: int, input: string): string[] {
+    const output: string[] = []; let i = 0;
+    while (i < n) {
+        output.push(make_string(seed, i, input)[index_for(i, seed)]);
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7, "élan 😀 e\u0301"); console.log(result.length); }
+function make_string(seed: int, i: int, input: string): string[] { return [clone(input), "Pat", clone(input), "a\u0000😀"]; }
+function index_for(i: int, seed: int): int { return (i * 3 + seed) % 4; }
+function clone(value: string): string { return value; }

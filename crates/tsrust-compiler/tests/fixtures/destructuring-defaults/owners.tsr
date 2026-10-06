@@ -1,0 +1,14 @@
+import { strictEqual } from "std:testing";
+type Box={text:string|undefined;};
+function make(trace:int[],text:string):string{trace.push(1);return text;}
+function main(){
+ const trace:int[]=[];
+ const words:(string|undefined)[]=["",undefined];
+ {
+  const [first="fallback",second=make(trace,"new"),third="missing"]=words;
+  strictEqual(first,"");strictEqual(second,"new");strictEqual(third,"missing");strictEqual(trace.length,1);strictEqual(String(words[1]),"undefined");
+ }
+ words.push("last");strictEqual(words.length,3);
+ const box:Box={text:"owner"};const {text=make(trace,"unused")}=box;
+ strictEqual(text,"owner");strictEqual(trace.length,1);
+}

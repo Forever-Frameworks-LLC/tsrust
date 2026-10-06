@@ -1,0 +1,130 @@
+use tsrust_compiler::{
+    Span,
+    project::{ProjectDiagnostic, SourceId, SourceLocation},
+};
+use tsrust_lsp::{
+    project_diagnostics::{convert, file_uri, source_id},
+    workspace::Workspace,
+};
+fn id(name: &str) -> SourceId {
+    SourceId(format!("/tsrust diagnostics/{name}.tsr"))
+}
+#[test]
+fn file_uri_roundtrip_handles_spaces_unicode_percent_and_path_normalization() {
+    for name in ["hello world", "😀", "percent%#?", "café"] {
+        let id = id(name);
+        let uri = file_uri(&id).unwrap();
+        assert_eq!(source_id(uri.as_str()).unwrap(), id);
+    }
+    assert_eq!(
+        source_id("file:///tsrust%20diagnostics/sub/../main.tsr").unwrap(),
+        id("main")
+    );
+    assert_eq!(
+        source_id("file://localhost/tsrust%20diagnostics/main.tsr").unwrap(),
+        id("main")
+    );
+    for uri in [
+        "untitled:test",
+        "file://remote/path",
+        "file:///x%",
+        "file:///x%GG",
+        "file:///x%00",
+        "file:///x?query",
+        "file:///x#fragment",
+        "file:///x%FF",
+    ] {
+        assert!(source_id(uri).is_err(), "{uri}");
+    }
+}
+#[test]
+fn errors_in_unsaved_dependency_map_to_its_own_utf16_range() {
+    let mut workspace = Workspace::default();
+    workspace.open(
+        id("main"),
+        1,
+        "import { value } from './dep.tsr';function main(){value();}".into(),
+    );
+    let source = "export function value(){console.log('😀');console.log(missing);}";
+    workspace.open(id("dep"), 4, source.into());
+    let snapshot = workspace.snapshot();
+    let error = snapshot.check(&id("main")).err().unwrap();
+    let diagnostics = convert(&snapshot, Some(&error)).unwrap();
+    assert!(diagnostics[&id("main")].is_empty());
+    let diagnostic = &diagnostics[&id("dep")][0];
+    let start = source.find("missing").unwrap();
+    assert_eq!(
+        diagnostic.range.start.character,
+        source[..start].encode_utf16().count() as u32
+    );
+    assert_eq!(
+        diagnostic.range.end.character - diagnostic.range.start.character,
+        7
+    );
+    assert_eq!(snapshot.version(&id("dep")), Some(4));
+}
+#[test]
+fn cross_file_related_ranges_use_each_exact_snapshot_and_invalid_spans_fail() {
+    let mut workspace = Workspace::default();
+    workspace.open(
+        id("main"),
+        1,
+        "import { value } from './dep.tsr';function main(){value();}".into(),
+    );
+    workspace.open(id("dep"), 2, "export function value(){}".into());
+    let snapshot = workspace.snapshot();
+    snapshot.check(&id("main")).unwrap();
+    let mut error = ProjectDiagnostic {
+        code: "test",
+        message: "test".into(),
+        location: SourceLocation {
+            source: id("main"),
+            span: Span::new(0, 6),
+        },
+        related: vec![(
+            SourceLocation {
+                source: id("dep"),
+                span: Span::new(0, 6),
+            },
+            "Dependency declaration".into(),
+        )],
+        fixes: Box::new([]),
+    };
+    let converted = convert(&snapshot, Some(&error)).unwrap();
+    let related = &converted[&id("main")][0]
+        .related_information
+        .as_ref()
+        .unwrap()[0];
+    assert_eq!(related.location.uri, file_uri(&id("dep")).unwrap());
+    error.related[0].0.span = Span::new(1000, 1001);
+    assert!(convert(&snapshot, Some(&error)).is_err());
+    assert!(
+        convert(&snapshot, None)
+            .unwrap()
+            .values()
+            .all(Vec::is_empty)
+    );
+}
+
+#[test]
+fn dependent_recheck_preserves_source_version_and_bounded_queue_order() {
+    use std::time::{Duration, Instant};
+    let now = Instant::now();
+    let mut documents = tsrust_lsp::Documents::default();
+    documents.open("first".into(), 4, "function main(){}".into(), now);
+    documents.open("second".into(), 7, "function main(){}".into(), now);
+    let first = documents.next(now).unwrap();
+    assert_eq!(first.uri, "first");
+    assert!(documents.reschedule("first", now, Duration::ZERO));
+    for _ in 0..20 {
+        assert!(documents.reschedule("first", now, Duration::ZERO));
+    }
+    assert_eq!(documents.next(now).unwrap().uri, "second");
+    let refreshed = documents.next(now).unwrap();
+    assert_eq!(refreshed.uri, "first");
+    assert_eq!(refreshed.version, 4);
+    assert_eq!(refreshed.text, first.text);
+    assert_eq!(refreshed.generation, first.generation);
+    assert!(documents.next(now).is_none());
+    assert!(!documents.reschedule("closed", now, Duration::ZERO));
+}

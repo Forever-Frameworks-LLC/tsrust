@@ -1,0 +1,25 @@
+# Milestone 52: array callback traversal
+
+[Roadmap](../roadmap.md) · [Array coverage](../feature-coverage.md)
+
+## Scope
+
+Add `forEach` across all current array element types and ranks, including recursive records. Use ordinary Rust forward iteration over existing array storage. Evaluate the receiver and reusable callback once, in that order. Invoke the callback for every element in ascending original-index order; empty arrays invoke it zero times.
+
+Accept zero through three declared callback parameters: value, integer index, and readonly source array. Scalars copy; owned values and the source remain borrowed under existing contracts. Support inline, named, factory-produced, and forwarded callbacks wherever current callback contracts permit them. Mutable unrelated captures are valid; consuming captures cannot be reused. Source mutation or resizing remains prohibited during traversal.
+
+Ignore callback results as JavaScript does. Accept void and existing valid data/callable result types, disposing an owned result after each invocation. The traversal itself returns void and constructs no output container. Preserve source ownership, temporary lifetimes, and cleanup on normal exits and failures.
+
+`thisArg`, sparse arrays, implicit coercion, async callbacks, and host behavior require their own language capabilities. This gate does not imply support for them.
+
+## Acceptance
+
+Focused checks at optimization levels 0 and 3 cover all current element/rank families, empty and singleton arrays, original indices, receiver/callback effects, readonly source access, mutable and rejected consuming captures, discarded scalar/owned/callable results, temporary/field/indexed receivers, and cleanup. Run one settled full compiler regression after focused checks pass; retain passed suites on failure.
+
+Matched TypeScript workloads observe actual effect results. Cover primitive values, strings, records, nested arrays, and return disposal without forcing scalar outputs into arrays. Independent expectations check complete outputs and operand/callback order. Record execution-only throughput and separate untimed allocation/disposal evidence. Retain previous records and retime only new or affected workloads.
+
+## Dependencies and status
+
+Milestone 51 is closed. The reviewed `forEach` changes are integrated on its accepted compiler, preserving the reduction fixtures and unrelated crate files. All four focused O0/O3 fixture groups passed. A local Clippy allowance addresses the shared analyzer helper's argument count without changing behavior; the scoped Clippy repair passed. All 38 affected checks and the existing expression-depth acceptance/rejection check passed. The gate's single full compiler regression passed all 562 groups, including doctests. Formatting, workspace Clippy and the fresh release passed. The saved milestone 51 compiler rejects `forEach`; the fresh compiler emits it and passes O0/O3 operand-order/effect checks. [Compiler evidence](../../benchmarks/runtime/diagnostics/2026-10-02T08-21-48-495Z-array-for-each-compiler-proof.json) records accepted source identities and actual commands.
+
+Sixteen reviewed TypeScript/TSR benchmark pairs are integrated: twelve element/rank/recursive-record families and four discarded-return cases. They belong to Arrays and observe actual integer or Number scalars. Manual traversal, BigInt/quarter arithmetic, hand-calculated cells and operand-order fixtures supply independent expectations. Native ownership costs and possible elimination of unobservable return construction are documented. Eight unique oracle groups and 336 untimed TypeScript cases plus the complete order/empty/singleton fixture are accepted. A test mutation correction and recursive-record type-name correction retain passed checks; the latter preserves identical emitted JavaScript. The original checker retained 231 accepted-case counts and prepared/compiled identities but did not persist their individual stdout; the remaining 105 cases have archived raw observations. [Source-validation evidence](../../benchmarks/runtime/diagnostics/2026-10-02T08-10-44-000Z-array-for-each-source-validation.json) preserves the original failures, repairs and accepted cases. Native preflight passed 66 O0/O3 builds, 160 scalar cases, 32 disposal checks and two complete order fixtures. The targeted runtime run passed all eight engines with 384 process cells and 11,904 timed batches; all 48 allocation-profile samples finish with zero live output/final bytes. Native leads Node on 15/16 and the fastest scripting runtime on 12/16. The nested-number, nested-record, recursive-record and discarded-nested workloads retain measured fastest-runner gaps; setup/copy and ignored-construction costs remain disclosed. [Runtime/resource evidence](../../benchmarks/runtime/diagnostics/2026-10-02T08-32-59-000Z-array-for-each-runtime-proof.json) preserves all raw records and identities. Earlier 221 runtime tables, nine primitive-memory tables and auxiliary baselines are unchanged. The gate is complete.

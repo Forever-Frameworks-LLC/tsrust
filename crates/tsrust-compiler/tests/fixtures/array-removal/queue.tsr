@@ -1,0 +1,22 @@
+type User = { name: string; tags: string[]; };
+
+function take(users: User[], index: int): User {
+  return users.remove(index);
+}
+
+function main() {
+  const users: User[] = [
+    { name: "Pat", tags: ["admin"] },
+    { name: "Sam", tags: ["member"] },
+    { name: "Alex", tags: [] }
+  ];
+  const removed = take(users, 1);
+  removed.tags.push("saved");
+  console.log(removed.name);
+  console.log(removed.tags[1]);
+  console.log(users.length);
+  console.log(users[0].name);
+  console.log(users[1].name);
+  users.push(removed);
+  console.log(users[2].name);
+}

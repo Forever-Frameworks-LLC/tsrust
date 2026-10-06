@@ -1,0 +1,18 @@
+type int = number;
+function workload(n: int, seed: int, input: string): string[][] {
+    const output: string[][] = []; let i = 0;
+    while (i < n) {
+        const values = makeItems(i + seed, input);
+        output.push(values);
+        i = i + 1;
+    }
+    return output;
+}
+function makeItems(seed: int, input: string): string[] {
+    const choice = seed % 3;
+    if (choice === 0) { const empty: string[] = Array.of(); return empty; }
+    if (choice === 1) { return Array.of(item(seed, 0, input)); }
+    return Array.of(item(seed, 0, input), item(seed, 1, input), item(seed, 2, input), item(seed, 3, input), item(seed, 4, input));
+}
+function item(seed: int, ordinal: int, input: string): string { return input.concat(":", String(ordinal)); }
+function main() { const result = workload(2, 7, "dynamic text"); }

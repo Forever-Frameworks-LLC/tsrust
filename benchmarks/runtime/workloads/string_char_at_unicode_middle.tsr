@@ -1,0 +1,10 @@
+function workload(n: int, seed: int, input: string, coordinates: int): string[] {
+    const width = coordinates; const middle = (width - width % 2) / 2;
+    const results: string[] = []; let i = 0;
+    while (i < n) {
+        results.push(input.charAt(middle - 8 + (i * 13 + seed) % 17));
+        i = i + 1;
+    }
+    return results;
+}
+function main() { const results = workload(2, 7, "ABC😀éZ", 6); console.log(results.length); }

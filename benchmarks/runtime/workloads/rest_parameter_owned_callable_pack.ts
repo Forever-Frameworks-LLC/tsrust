@@ -1,0 +1,13 @@
+type int = number;
+function clone<T>(value: T): T { return value; }
+function first(value: int): int { return value + 1; }
+function second(value: int): int { return value + 2; }
+function pack(base: int, ...actions: ((value: int) => int)[]): int[] { const result: int[] = []; let at = 0; while (at < actions.length) { result.push(actions[at](base)); at = at + 1; } return result; }
+function workload(n: int, seed: int, input: string): int[][] {
+    const output: int[][] = []; let i = 0;
+    while (i < n) { const mode = (i + seed) % 3; const base = (i * 13 + seed) % 97;
+        const values = mode === 0 ? pack(base) : mode === 1 ? pack(base, first) : pack(base, first, second, first, second, first);
+        output.push(values); i = i + 1;
+    } return output;
+}
+function main() { const result = workload(3, 0, "abc"); }

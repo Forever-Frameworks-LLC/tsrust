@@ -1,0 +1,39 @@
+type Point = { x: int; y: int; label: string; };
+type Line = { from: Point; to: Point; };
+type Row = { id: int; name: string; tags: string[]; };
+function pair(): [int, string] { return [7, "seven".repeat(1)]; }
+function triple(): [string, [int, boolean], string] { return ["a", [1, true], "z"]; }
+function keep(value: string): string { return value; }
+function main() {
+    const [count, word] = pair();
+    console.log(count + 1, word); console.log(keep(word));
+    const point: Point = { x: 1, y: 2, label: "p" };
+    const { x, y, label } = clone(point);
+    console.log(x + y, label, point.label);
+    const { label: text, x: px } = point;
+    console.log(text, px);
+    const [first, [inner, flag], last] = triple();
+    console.log(first, inner, flag, last);
+    const [, second] = pair();
+    console.log(second);
+    const line: Line = { from: { x: 0, y: 0, label: "a" }, to: { x: 3, y: 4, label: "b" } };
+    const { from: { label: start }, to: { x: endX, y: endY } } = line;
+    console.log(start, endX * endY);
+    const row: Row = { name: "ada", id: 7, tags: ["t", "u"] };
+    for (const [key, value] of Object.entries(row)) { console.log(key, key.length, typeof value, String(value)); }
+    const rows: Row[] = [row, { id: 8, name: "bob", tags: [] }];
+    for (const { id, name, tags } of rows) { console.log(id, name.toUpperCase(), tags.length); }
+    let total = 0;
+    for (const [index, item] of ["x", "yy", "zzz"].entries()) { total += index * item.length; }
+    console.log(total, rows.length, rows[0].name);
+    const numbers = [10, 20, 30];
+    const [a, b] = clone(numbers);
+    let [m, n] = [1, 2];
+    m = m + n;
+    n = 0;
+    console.log(a + b, m, n, numbers.length);
+    const pairs: [string, int][] = [["one", 1], ["two", 2]];
+    let names = "";
+    for (const [name, amount] of pairs) { names += name + "=" + String(amount) + ";"; }
+    console.log(names, pairs.length);
+}

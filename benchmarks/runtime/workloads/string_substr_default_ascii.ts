@@ -1,0 +1,15 @@
+type int = number;
+interface String { substr(from?: number, length?: number): string; }
+function workload(n: int, seed: int, input: string): string[] {
+    const values: string[] = [clone(input), "", "ABC", "a\u0000b", " x ", "quote\"", "slash\\", input.repeat(2)];
+    const output: string[] = []; let i = 0;
+    while (i < n) {
+        const at = (i * 13 + seed) % 8;
+        const selected: string = values[at].substr();
+        output.push(selected);
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7, "dynamic ASCII"); }
+function clone<T>(value: T): T { return value; }

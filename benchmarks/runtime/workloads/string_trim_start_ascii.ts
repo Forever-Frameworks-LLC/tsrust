@@ -1,0 +1,11 @@
+function workload(n: number, seed: number, input: string): string[] {
+    const values: string[] = [clone(input), input.repeat(2), input.repeat(3), input.repeat(1), clone(input), "", " \t\r\n  \u000b\f\t ", " \t\r\n literal A \u000b\f\t "];
+    const output: string[] = []; let i = 0;
+    while (i < n) {
+        output.push(values[(i * 13 + seed) % 8].trimStart());
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7, " A alpha Z "); }
+function clone<T>(value:T):T{return value;}

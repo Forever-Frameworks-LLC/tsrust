@@ -1,0 +1,6 @@
+type Probe={state:number;};
+function workload(n:number,seed:number):number{let trace=seed;let i=0;while(i<n){const probe:Probe={state:(seed+i)%1000003};const action=produce(probe);const value=action(seed+i);trace=(trace*131+value+probe.state)%1000000007;i=i+1;}return trace;}
+function step(value:number):number{return(value*3+1)%1000000007;}
+function produce(probe:Probe):(value:number)=>number{probe.state=(probe.state*10+7)%1000003;return step;}
+
+function main(){const result=workload(2,7);}

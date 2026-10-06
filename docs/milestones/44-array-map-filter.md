@@ -1,0 +1,27 @@
+# Milestone 44: array map and filter
+
+[Roadmap](../roadmap.md) · [Primitive coverage](../feature-coverage.md)
+
+## Scope
+
+Add `Array.map(callback)` and `Array.filter(callback)` for every currently supported array element type and rank. Accept existing typed arrows, named reusable closures, and reusable callback parameters with zero through three arguments: value, int index, and readonly source array. Existing typed parameter and result annotations remain required where the language currently requires them. `map` infers its output array element from the callback result; `filter` requires a boolean result.
+
+Evaluate the receiver and callback once, then invoke the callback once per element in order. Empty arrays invoke it zero times. Preserve reusable mutable captures of other storage. The source array and owned elements remain borrowed during callbacks; consuming or mutating borrowed elements or the third receiver argument is rejected. Callbacks that consume their environment are not reusable and remain invalid for these methods. JavaScript `thisArg` requires a separate object/`this` model and is outside this gate.
+
+Use standard Rust iteration and existing output containers. Map callback results become owned output elements. Filter clones only selected owned values using established native clone semantics. Retain the source and return independent output storage. Native cloning of nested owned values differs from JavaScript reference sharing and must be disclosed.
+
+## Acceptance
+
+Focused native programs run at optimization levels 0 and 3. Cover all current element types and ranks, changed map result types, callback arities, empty arrays, callback order, readonly receiver access, mutable captures, returned callbacks, and ownership/type/arity diagnostics. Verify result independence, failure ordering, and disposal, including recursive records. Preserve existing depth guards and array operations. Run one settled full regression after integration.
+
+Eight matched comparison drafts cover map and filter for int, number, owned string, and nested-int values using actual TypeScript methods. Independently validate complete results and observable callback traces. Include input construction, callbacks, output retention, and native ownership costs in the measurement unit. Preserve true timing and allocation/disposal records and update BENCHMARKS.md.
+
+## Status
+
+The compiler candidate is integrated after complete milestone 43 acceptance. All four focused groups pass at optimization levels 0 and 3, covering all current leaves and ranks, callback arities, mutable captures, clone independence, recursive disposal, and diagnostics. One expected output was corrected from 9 to 11 because the callback computes 6 + 2 + 3; compiler output was correct and no implementation repair was needed. The existing operator depth and generic callback forwarding groups also pass. The single settled regression passes all 527 groups across 54 integration binaries and doctests, without failures, source repairs, or restarts. Formatting, Clippy with warnings denied, and release build also pass. The [compiler proof](../../benchmarks/runtime/diagnostics/2026-10-02T03-29-45-000Z-array-transform-compiler-acceptance.json) preserves source identities, commands, logs, and the fixture correction. Eight comparison drafts are ready, using actual TypeScript map/filter calls with typed callbacks and visible mutable-capture traces. Independent Node validation passes 208 source/oracle cases and 60 domain, shape, and callback-count guards. Numeric, string, and nested outputs retain exact values and order; signed zero is preserved. Eight comparison pairs and independent oracles are integrated into the harness; all 99 light tool groups pass. The [source proof](../../benchmarks/runtime/diagnostics/2026-10-02T03-12-33-000Z-array-map-filter-benchmark-source.json) preserves earlier pairs, observer protocols, and raw records. Compiler and runtime acceptance are complete. All eight actual native ABIs and prepared wrappers pass preflight, followed by 320 independent engine checks and 5,952 execution batches across eight runtimes. All 24 native profile samples dispose to zero live bytes. The [runtime proof](../../benchmarks/runtime/diagnostics/2026-10-02T03-33-27-000Z-native-array-map-filter-runtime-proof.json) preserves exact emissions, 440 material inputs, 328 historical records, and all 110 prior workload pairs. BENCHMARKS.md now contains 118 dated runtime rows and the nine retained memory probes. No startup, compilation, or historical memory measurements were repeated.
+
+## Runtime results
+
+Each operation is one complete map or filter call over eight elements, including input setup, callback work, observable trace, and output retention. All eight native workloads lead Node after tsc by 2.44–7.56 times. Seven lead the fastest measured JavaScript runtime; owned-string filter reaches 0.975 times Deno. These comparisons cover nonmutating content and shape, not reference-sharing equivalence. Native filter clones selected owned values, while JavaScript retains references.
+
+Output retained bytes at n=2,000 are 226,304/204,960 for int map/filter, 177,168/113,168 for number, 658,528/585,246 for string, and 1,289,600/1,177,600 for nested arrays. All output and separate string input storage frees completely. Exact rates, allocation counts, peaks, and min/avg/max tables remain in the linked proof and top-level benchmark report.

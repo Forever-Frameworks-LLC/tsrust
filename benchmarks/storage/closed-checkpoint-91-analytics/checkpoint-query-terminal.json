@@ -1,0 +1,14 @@
+{
+  "argv": [
+    "/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node",
+    "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/checkpoint.mjs",
+    "--raw-sha256=d0f33323edd94abf418f0e74288f13a451dfa25f204f5eda1d881905d4334a8e",
+    "--json"
+  ],
+  "pid": 41078,
+  "startedUtc": "2026-10-03T18:14:37.824904+00:00",
+  "finishedUtc": "2026-10-03T18:14:38.016887+00:00",
+  "exitCode": 0,
+  "stdoutSha256": "57dd1b771bd2ea1ef532a1fbc1aca4aaed6d9079d3502399da24de88ce32df01",
+  "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

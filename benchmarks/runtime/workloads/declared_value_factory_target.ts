@@ -1,0 +1,5 @@
+function workload(n:number,seed:number,input:string):string[]{const prefixes:string[]=[clone(input),"a\u0000b","😀","e\u0301"];const output:string[]=[];const factory=make;let i=0;while(i<n){const prefix=clone(prefixes[(seed+i)%4]);const action=factory(prefix);const result=action(input);output.push(result);i=i+1;}return output;}
+function make(prefix:string):(text:string)=>string{return(text:string):string=>{return text.replaceAll("x",prefix);};}
+
+function main(){const result=workload(2,7," xé😀e\u0301 ");}
+function clone<T>(value:T):T{return value;}

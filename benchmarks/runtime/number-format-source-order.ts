@@ -1,0 +1,20 @@
+type int = number;
+type Trace = { code: int; };
+function receiver(trace: Trace): number { trace.code = trace.code * 10 + 1; return 9.999; }
+function precision(trace: Trace): int { trace.code = trace.code * 10 + 2; return 2; }
+function main() {
+    const trace: Trace = { code: 0 };
+    console.log(receiver(trace).toFixed(precision(trace))); console.log(trace.code);
+    trace.code = 0;
+    console.log(receiver(trace).toExponential(precision(trace))); console.log(trace.code);
+    trace.code = 0;
+    console.log(receiver(trace).toPrecision(precision(trace))); console.log(trace.code);
+    trace.code = 0;
+    console.log(receiver(trace).toFixed()); console.log(trace.code);
+    trace.code = 0;
+    console.log(receiver(trace).toExponential()); console.log(trace.code);
+    trace.code = 0;
+    console.log(receiver(trace).toPrecision()); console.log(trace.code);
+    const reusable: number = -0.0;
+    console.log(reusable.toFixed(2)); console.log(1.0 / reusable < 0.0);
+}

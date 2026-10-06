@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/gate99-artifact-import/cleanup-verified-objects.py", line 14, in <module>
+    p=base/r['path'];assert p.parent==base/PREFIX.rstrip('/') and p.parent.resolve()==p.parent
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

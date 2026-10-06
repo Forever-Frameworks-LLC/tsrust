@@ -1,0 +1,19 @@
+type int = number;
+function workload(n: int, seed: int): string[][] {
+    const output: string[][] = []; let i = 0;
+    while (i < n) {
+        const values = makeItems(i + seed);
+        output.push(describe(values));
+        i = i + 1;
+    }
+    return output;
+}
+function makeItems(seed: int): undefined[] {
+    const choice = seed % 3;
+    if (choice === 0) { const empty: undefined[] = Array.of(); return empty; }
+    if (choice === 1) { return Array.of(item(seed, 0)); }
+    return Array.of(item(seed, 0), item(seed, 1), item(seed, 2), item(seed, 3), item(seed, 4));
+}
+function item(seed: int, ordinal: int): undefined { return undefined; }
+function describe(values: undefined[]): string[] { const result: string[] = []; let at = 0; while (at < values.length) { result.push(String(values[at])); at = at + 1; } return result; }
+function main() { const result = workload(2, 7); }

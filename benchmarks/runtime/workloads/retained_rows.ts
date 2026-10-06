@@ -1,0 +1,1 @@
+function workload(n: number, seed: number): number[][] { const result: number[][] = []; for (let r = 0; r < n; r++) { const cells: number[] = []; for (let c = 0; c < (r + seed) % 65; c++) cells.push((3 * r + seed + c) % 1009); result.push(cells); } return result; }

@@ -1,0 +1,2403 @@
+{
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/0-buffer-fresh-cli.py": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/0-buffer-fresh-cli.py",
+    "kind": "diagnostic",
+    "sha256": "a131036ea497f2f4b8e8c58c3407c0a9bdfad0946a6573633bfbc2b6bf640b32",
+    "original_size": 1316,
+    "compressed_size": 653
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/1-buffer-fresh-cli.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/1-buffer-fresh-cli.log",
+    "kind": "diagnostic",
+    "sha256": "29d52b47b649aa4d4409211126eb5e52f6aeacfc71427b7c936b1d46be85ba8e",
+    "original_size": 1284,
+    "compressed_size": 444
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/10-buffer-debug-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/10-buffer-debug-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "37f0c825f60ffced1e0c2b5d7368b88d4ad3846df2801b283a643c862ebf7505",
+    "original_size": 446,
+    "compressed_size": 288
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/11-accept-buffer-regression.py": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/11-accept-buffer-regression.py",
+    "kind": "diagnostic",
+    "sha256": "45cf3dada356dc0e461f1bfcb2dd6ab7277c8a5ca9c56ecae8534645b178ab02",
+    "original_size": 6877,
+    "compressed_size": 2338
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/12-buffer-release-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/12-buffer-release-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "a18bc66945d86e19f49a26a1f325511d3591f42d0b1d341b78007bc5d408883b",
+    "original_size": 465,
+    "compressed_size": 291
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/13-seal-buffer-compiler.py": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/13-seal-buffer-compiler.py",
+    "kind": "diagnostic",
+    "sha256": "063aeb9289a1029a8019a2c1bd9a575f560a75102019b62df9013ec4ecd7f4af",
+    "original_size": 3630,
+    "compressed_size": 1482
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/14-buffer-fmt-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/14-buffer-fmt-start.json",
+    "kind": "diagnostic",
+    "sha256": "ae1780701b7924777f449ceacf7867060f8b3628a532acb0703160117c7bb05a",
+    "original_size": 221,
+    "compressed_size": 163
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/15-buffer-clippy-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/15-buffer-clippy-start.json",
+    "kind": "diagnostic",
+    "sha256": "7c0a87fb0c55f344f76bb0ac4111dd64121fee9cca180450445247ff73342781",
+    "original_size": 295,
+    "compressed_size": 196
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/16-native-hands-buffer.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/16-native-hands-buffer.log",
+    "kind": "diagnostic",
+    "sha256": "75c6a283d7532544a8fac36b39f1ce96e6ffb8a06d088bb1b1999c2ecded5056",
+    "original_size": 68,
+    "compressed_size": 64
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/17-buffer-release-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/17-buffer-release-start.json",
+    "kind": "diagnostic",
+    "sha256": "8fe08f7faa5aaec9cf95ab6e2067a68153460be4997ead8d5be467dd54ab81e6",
+    "original_size": 254,
+    "compressed_size": 181
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/18-buffer-final-checks.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/18-buffer-final-checks.json",
+    "kind": "diagnostic",
+    "sha256": "63c62f0f6b7e40a9740cbb20f1c55dac1f0dbcde38547059de53bb322528e7e8",
+    "original_size": 2532,
+    "compressed_size": 680
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/19-buffer-fmt.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/19-buffer-fmt.log",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/2-buffer-source-freeze.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/2-buffer-source-freeze.json",
+    "kind": "diagnostic",
+    "sha256": "37b955191e8a3274bbf5ff6dcf0ec151d695f820b399f8768a6b771fed554d57",
+    "original_size": 17999,
+    "compressed_size": 7210
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/20-buffer-application.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/20-buffer-application.json",
+    "kind": "diagnostic",
+    "sha256": "19911db606d79bffac9de76d8f47f950c24aeb61e94d421307db76519266a956",
+    "original_size": 1656,
+    "compressed_size": 845
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/21-buffer-fresh-cli.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/21-buffer-fresh-cli.json",
+    "kind": "diagnostic",
+    "sha256": "d3e6c1b8d09982f4940b9f6b47fb17445684565fb3aa31a2cdfd45d2874e8a7d",
+    "original_size": 1484,
+    "compressed_size": 463
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/22-buffer-clippy-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/22-buffer-clippy-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "da12a2a8741630a1d2ce1c3fbf03379547f68c52ec9325eda37f93c6fb086233",
+    "original_size": 505,
+    "compressed_size": 308
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/23-buffer-focused-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/23-buffer-focused-start.json",
+    "kind": "diagnostic",
+    "sha256": "48fb4292a22c71dcf0b9f832f8846b67c3a165feb370081e0d2bb485a0879e8a",
+    "original_size": 289,
+    "compressed_size": 195
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/24-buffer-release.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/24-buffer-release.log",
+    "kind": "diagnostic",
+    "sha256": "cee99c9f0f9509ed72e0b5724c73a4b866ef3dce4c51e6472a780ed515eebe69",
+    "original_size": 266,
+    "compressed_size": 150
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/25-buffer-debug-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/25-buffer-debug-start.json",
+    "kind": "diagnostic",
+    "sha256": "9f8b421f5162a10f94442788cdd93ad4f71518589cf9cfe7001155ec3170c402",
+    "original_size": 237,
+    "compressed_size": 176
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/26-buffer-debug.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/26-buffer-debug.log",
+    "kind": "diagnostic",
+    "sha256": "8838339f91ebca01257395725cb3eecedf86ddb71e9d7b65ed320bd6fa6b51e2",
+    "original_size": 169,
+    "compressed_size": 142
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/27-buffer-regression-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/27-buffer-regression-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "3d97578d43e7898da4feb31e87129b20ece29d214ee1511d390ecd36f6912252",
+    "original_size": 4654,
+    "compressed_size": 1853
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/28-native-hands-buffer-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/28-native-hands-buffer-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "f98daced84b45cce4bc472a89ce3d24303885e1d3697ad42cff175d109dce27f",
+    "original_size": 439,
+    "compressed_size": 274
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/29-buffer-fresh-cli-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/29-buffer-fresh-cli-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "a10b10fea5de2b6ddcb0c4810fc0788cb8a4caca659fb59ebacb9ad4be5cb7ea",
+    "original_size": 433,
+    "compressed_size": 274
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/3-buffer-regression-union.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/3-buffer-regression-union.json",
+    "kind": "diagnostic",
+    "sha256": "62947df20180282a7b5f03b4041422625c56b21c52a5cee3fd092c51fbbddd7e",
+    "original_size": 174116,
+    "compressed_size": 30086
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/30-native-hands-buffer.py": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/30-native-hands-buffer.py",
+    "kind": "diagnostic",
+    "sha256": "96607515ba10ce80965ccdd2cc7a0b49edee0e7101beae0d346be583c166b82a",
+    "original_size": 2371,
+    "compressed_size": 1038
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/31-native-hands-buffer-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/31-native-hands-buffer-start.json",
+    "kind": "diagnostic",
+    "sha256": "319524b9fe8de4fbf6cdb3d461cc36693bc67b0eb1fd64a8c7eaef1d307c2755",
+    "original_size": 223,
+    "compressed_size": 178
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/32-pool-hands-run-o3.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/32-pool-hands-run-o3.stdout",
+    "kind": "diagnostic",
+    "sha256": "61ebd0aa64a8e262932585c5ad3b3fdaff72246d30da08b740bc91b729199bb4",
+    "original_size": 1170,
+    "compressed_size": 315
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/33-source-order.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/33-source-order.rs",
+    "kind": "diagnostic",
+    "sha256": "0940c5ddaa5a91231055383ec6159c46e2454d963a447c0292788da4f97823a1",
+    "original_size": 18876,
+    "compressed_size": 4223
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/34-source-order-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/34-source-order-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "0940c5ddaa5a91231055383ec6159c46e2454d963a447c0292788da4f97823a1",
+    "original_size": 18876,
+    "compressed_size": 4223
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/35-pool-hands-build-o3.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/35-pool-hands-build-o3.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/36-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/36-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "3fbf941c69d97645657b79b3583fe69e6976ceb2b48f052ad121f27501fc08d3",
+    "original_size": 9898,
+    "compressed_size": 1233
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/37-source-order-build-o3.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/37-source-order-build-o3.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/38-source-order-run-o0.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/38-source-order-run-o0.stdout",
+    "kind": "diagnostic",
+    "sha256": "1488227ea54be40b3eed689bd34fd406fb4b9c8f30522b23789cb6d1c54fdec9",
+    "original_size": 60,
+    "compressed_size": 45
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/39-source-order-build-o3.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/39-source-order-build-o3.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/4-buffer-focused-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/4-buffer-focused-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "2b0e9b628136716f6f8d968c0e75f420626d62f1f74444ff8acdbf2096f56fbe",
+    "original_size": 500,
+    "compressed_size": 309
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/40-source-order-run-o0.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/40-source-order-run-o0.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/41-pool-hands.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/41-pool-hands.rs",
+    "kind": "diagnostic",
+    "sha256": "d6d8695e32e5cc61f8be52dc72494902a27b2a93f583311b5426c71be454b5e1",
+    "original_size": 22932,
+    "compressed_size": 4442
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/42-pool-hands-run-o3.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/42-pool-hands-run-o3.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/43-commands.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/43-commands.json",
+    "kind": "diagnostic",
+    "sha256": "d7ea894f7993f5ee1816d9d80fcb76de9ae1b6c7ea2f36963870707cca4c3b01",
+    "original_size": 7229,
+    "compressed_size": 887
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/44-pool-hands-build-o3.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/44-pool-hands-build-o3.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/45-source-order-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/45-source-order-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/46-source-order-run-o3.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/46-source-order-run-o3.stdout",
+    "kind": "diagnostic",
+    "sha256": "1488227ea54be40b3eed689bd34fd406fb4b9c8f30522b23789cb6d1c54fdec9",
+    "original_size": 60,
+    "compressed_size": 45
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/47-source-order-build-o0.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/47-source-order-build-o0.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/48-pool-hands-build-o0.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/48-pool-hands-build-o0.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/49-pool-hands-run-o0.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/49-pool-hands-run-o0.stdout",
+    "kind": "diagnostic",
+    "sha256": "61ebd0aa64a8e262932585c5ad3b3fdaff72246d30da08b740bc91b729199bb4",
+    "original_size": 1170,
+    "compressed_size": 315
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/5-buffer-fresh-cli-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/5-buffer-fresh-cli-start.json",
+    "kind": "diagnostic",
+    "sha256": "958a94f72923a335c1a97ba1ae2e79340c06217fe0845528c934dc78f8ab946f",
+    "original_size": 220,
+    "compressed_size": 176
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/50-pool-hands-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/50-pool-hands-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/51-pool-hands-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/51-pool-hands-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "d6d8695e32e5cc61f8be52dc72494902a27b2a93f583311b5426c71be454b5e1",
+    "original_size": 22932,
+    "compressed_size": 4442
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/52-pool-hands-build-o0.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/52-pool-hands-build-o0.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/53-pool-hands-run-o0.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/53-pool-hands-run-o0.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/54-source-order-run-o3.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/54-source-order-run-o3.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/55-source-order-build-o0.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/55-source-order-build-o0.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/56-after.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/56-after.rs",
+    "kind": "diagnostic",
+    "sha256": "cc80d7497eeb1e9520f46e223505ad07a6176323b780cf4d4bd9ca48585fee89",
+    "original_size": 15210,
+    "compressed_size": 3625
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/57-before.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/57-before.rs",
+    "kind": "diagnostic",
+    "sha256": "fd6687745d4f848eb00b601e82f2563dbfc296d425fa484a2dd99fdaba26d461",
+    "original_size": 14838,
+    "compressed_size": 3601
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/58-README.md": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/58-README.md",
+    "kind": "diagnostic",
+    "sha256": "a9d544caa53006438613d42fd0bd485ce3f19af7c0c8f5630581e9867dee6faa",
+    "original_size": 2408,
+    "compressed_size": 1166
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/59-source.diff": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/59-source.diff",
+    "kind": "diagnostic",
+    "sha256": "760c60c736cc380d5cdb558ae8bb5faa4dfaeccfdb07aafed6a185ab7aaa3330",
+    "original_size": 4847,
+    "compressed_size": 1388
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/6-baseline-compiler-proof.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/6-baseline-compiler-proof.json",
+    "kind": "diagnostic",
+    "sha256": "afc9ef8d313351053064043ee490b94e503a863318d094454b54b3bbb1933c1c",
+    "original_size": 232,
+    "compressed_size": 193
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/60-proposal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/60-proposal.json",
+    "kind": "diagnostic",
+    "sha256": "61249cd76650d6e40a14f260e1c30109c1ba5e782acf9ffef690a8ba6b282ef3",
+    "original_size": 920,
+    "compressed_size": 517
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/61-prepare.py": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/61-prepare.py",
+    "kind": "diagnostic",
+    "sha256": "3ea12d6d0c36cabd98d46fbd6aa5ca54c10f35c945ddd956dc30af8361a511ff",
+    "original_size": 5255,
+    "compressed_size": 1715
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/7-buffer-fmt-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/7-buffer-fmt-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "b544f38c3991f9a5df513cd184274eb2501e30fe0b8186e973c5961d4d1fcdbc",
+    "original_size": 428,
+    "compressed_size": 275
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/8-buffer-focused.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/8-buffer-focused.log",
+    "kind": "diagnostic",
+    "sha256": "ae2c791ae8e0c6e6c34c6e7dc8793b053b1e57faf48275028c80c2680e20c6bb",
+    "original_size": 711,
+    "compressed_size": 421
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/9-buffer-clippy.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts/9-buffer-clippy.log",
+    "kind": "diagnostic",
+    "sha256": "837cdfda58898876212772357222a216d9984334f8044967f6e72a298faed4af",
+    "original_size": 277,
+    "compressed_size": 159
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/0-source-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/0-source-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "a3b211f451484ed9509e5833cfd150c06512e34bcf30aac7bb9807ab3fd0128b",
+    "original_size": 5018,
+    "compressed_size": 1605
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/1-candidate-source.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/1-candidate-source.json",
+    "kind": "diagnostic",
+    "sha256": "84feae07a4e533e6177e79ad85d522fb978ef8b15d69cf33aff8ac0591b5f780",
+    "original_size": 15907,
+    "compressed_size": 4470
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/10-node-hands-observed.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/10-node-hands-observed.json",
+    "kind": "diagnostic",
+    "sha256": "0e512cc42f0438ead43de28153d1292a8e3db76439b48434f8eee9cfb682092e",
+    "original_size": 31400,
+    "compressed_size": 1670
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/11-node-hands-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/11-node-hands-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "914cfcc6a671e054fc327f63e1f123e445d1b30ade24cb33692a3148200b2e9d",
+    "original_size": 441,
+    "compressed_size": 278
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/12-node-hands.log": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/12-node-hands.log",
+    "kind": "diagnostic",
+    "sha256": "5562c3fa27d3cb5a1ae5424ac52e528c345321988804e8d1f72303e9f7a02a09",
+    "original_size": 42,
+    "compressed_size": 46
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/2-candidate-source.diff": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/2-candidate-source.diff",
+    "kind": "diagnostic",
+    "sha256": "0352dd444edaea071022f6bcac5a82eb94671fedaddc7f427c2c696454169c4f",
+    "original_size": 124641,
+    "compressed_size": 17061
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/3-benchmark-integration.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/3-benchmark-integration.json",
+    "kind": "diagnostic",
+    "sha256": "74fba77e5409f5a34e3d6e323229dcedd8b5fbe045487fab507408c28a6d672e",
+    "original_size": 4124,
+    "compressed_size": 1720
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/4-seal-source.py": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/4-seal-source.py",
+    "kind": "diagnostic",
+    "sha256": "2b50df9d5be51f4509dc416d6c9c4577987ca8259f3f2b458c2455f84977589f",
+    "original_size": 3036,
+    "compressed_size": 1233
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/5-node-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/5-node-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "1e74bef7babf1038b9ef66b03c02855e39a98bb5a4893207e9dcf8a9032d165e",
+    "original_size": 595,
+    "compressed_size": 358
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/6-node.log": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/6-node.log",
+    "kind": "diagnostic",
+    "sha256": "367380e838b117f4c0898254c6e3287bc94898fa953d49ac7b0c4647bcfcc8c8",
+    "original_size": 352,
+    "compressed_size": 246
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/7-typescript-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/7-typescript-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "9ce0cf35afc354546fa92a511540f3b41a3752c24f6c5a55343ffcec2da40b60",
+    "original_size": 643,
+    "compressed_size": 379
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/8-typescript.log": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/8-typescript.log",
+    "kind": "diagnostic",
+    "sha256": "ba4be2e2bff8abdcd014b7fa1256b76784ae88efc35f189f8c22210f1e5162b4",
+    "original_size": 2054,
+    "compressed_size": 866
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/9-check-node-hands.mjs": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/9-check-node-hands.mjs",
+    "kind": "diagnostic",
+    "sha256": "a667a97474c867219172f449a7283a425d83fcb792bff1ee6696f8f1ef755f5a",
+    "original_size": 955,
+    "compressed_size": 528
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/literal-hands.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/literal-hands.json",
+    "kind": "diagnostic",
+    "sha256": "36bc667a9d9d8b16338836ff391fee7f9edbaefbbc11a5fa0741031c4f9a52c1",
+    "original_size": 34692,
+    "compressed_size": 1589
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_exponential_2-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_exponential_2-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "175b2d7c5222b653e25b2da030cef2aae1465e209f0b644559d32c5b7e973a0c",
+    "original_size": 94782,
+    "compressed_size": 3934
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_exponential_2-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_exponential_2-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "1aae7bb2605fc53c8e10b7f0bd707e8cecd44455f343e43c6f4869aa93b25100",
+    "original_size": 2302,
+    "compressed_size": 927
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_exponential_2-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_exponential_2-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "dab5cac6bd3bc2085f6ecb487793633d50591124855df6a2909bd42e8e624830",
+    "original_size": 2014,
+    "compressed_size": 987
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_exponential_2-wrong-precision.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_exponential_2-wrong-precision.json",
+    "kind": "diagnostic",
+    "sha256": "620d003347b9a52d5c92c563b3f17af1189b23d6beb2acf5e04f13061d58ee6c",
+    "original_size": 953,
+    "compressed_size": 437
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_exponential_default-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_exponential_default-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "9f4f68479a3f358b548d0d17a7f18e08e21a75fbcac793d1f539b674ba188cca",
+    "original_size": 95415,
+    "compressed_size": 3997
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_exponential_default-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_exponential_default-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "7a8322da0f4460c283f5567342ed453ee44db4af377b9df86b7daffb6f555f1c",
+    "original_size": 2301,
+    "compressed_size": 927
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_exponential_default-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_exponential_default-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "14b070944a01845115d8fa19466ec9f10b3ff45d0b92b62e779a7e8e2a52207c",
+    "original_size": 2013,
+    "compressed_size": 987
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_exponential_default-wrong-precision.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_exponential_default-wrong-precision.json",
+    "kind": "diagnostic",
+    "sha256": "aeb772f217d41f68b998463519b36af48f6f23b8102c1829d39290b8db836d81",
+    "original_size": 908,
+    "compressed_size": 421
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_fixed_2-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_fixed_2-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "abeb44a12fb48eb59f39a852ff319ab1538f8b703267881433f735d163b4f1a7",
+    "original_size": 88328,
+    "compressed_size": 3857
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_fixed_2-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_fixed_2-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "b6e79c0157fdd8dd050fb9be4631650d429b6e7f8a623e1419b43478f04f25cc",
+    "original_size": 2296,
+    "compressed_size": 923
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_fixed_2-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_fixed_2-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "10ebaea1a70b55c971e28fdc64335786dacd45fedfab87310d03691df5f05cb8",
+    "original_size": 2008,
+    "compressed_size": 983
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_fixed_2-wrong-precision.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_fixed_2-wrong-precision.json",
+    "kind": "diagnostic",
+    "sha256": "2ff6f925c646827fe4b83db33ffcb05af13eefe62b16cd76a2384004a885b255",
+    "original_size": 866,
+    "compressed_size": 417
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_fixed_default-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_fixed_default-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "bafa13c8867b25f9368cbfab7aa426a61cbec9f6234c18fd7df4fddbabf3f88c",
+    "original_size": 69350,
+    "compressed_size": 3724
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_fixed_default-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_fixed_default-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "76dc1950034b7b802f6f35a72f56bf8f439e141dabb50fece814510d9bd750ff",
+    "original_size": 2295,
+    "compressed_size": 922
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_fixed_default-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_fixed_default-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "56edcf6f5d1c06ebe47f6b847069f90950f48f93dcdd3507d987d280c323542a",
+    "original_size": 2007,
+    "compressed_size": 982
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_fixed_default-wrong-precision.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_fixed_default-wrong-precision.json",
+    "kind": "diagnostic",
+    "sha256": "8a55067ef65458adb8a8da418a1596dc7a2593df1c105263099c1456ff6ca6b5",
+    "original_size": 836,
+    "compressed_size": 413
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_precision_5-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_precision_5-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "c998fb74834cc745b472ed0f0fd251420f9b056cd8457005a58b0e62763e1391",
+    "original_size": 99210,
+    "compressed_size": 4008
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_precision_5-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_precision_5-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "a1d1486a0a5a71cb406ac66be8c8fea9f74abace1ccf3a8074ba106e5b08fbae",
+    "original_size": 2300,
+    "compressed_size": 925
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_precision_5-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_precision_5-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "dba742cb498c0f273b76815bd52f1d4d033386a364002a73553f3925861e5770",
+    "original_size": 2012,
+    "compressed_size": 985
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_precision_5-wrong-precision.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_precision_5-wrong-precision.json",
+    "kind": "diagnostic",
+    "sha256": "37550fa9d69b9ddcff94c0ea14f3cde62da4e15552da294a435d4c3e89f7da47",
+    "original_size": 919,
+    "compressed_size": 432
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_precision_default-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_precision_default-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "1f1bff635a9e4e1f07f4fb90690c34ecd9fea3293a5da02ab2c6be081a3c6de9",
+    "original_size": 91041,
+    "compressed_size": 3981
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_precision_default-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_precision_default-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "1a5a15ac12ef082402108220a5e1df59f34b58fba1b46be5570c91dbd9be22a1",
+    "original_size": 2299,
+    "compressed_size": 925
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_precision_default-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_precision_default-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "bd9ccb14c223d314783340a8949ee62af0b760942640761f06041e5b63eb7cee",
+    "original_size": 2011,
+    "compressed_size": 985
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_precision_default-wrong-precision.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/number_to_precision_default-wrong-precision.json",
+    "kind": "diagnostic",
+    "sha256": "f71990f55cbddac2b930661941305ea28c3924eb9f8f52b117d8101c37dd4ef7",
+    "original_size": 820,
+    "compressed_size": 408
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/pool-hands-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/pool-hands-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "ebfabdc8b82984454b0c197badd474b30212185f4fce27ac7a78af97d28e7fbb",
+    "original_size": 4069,
+    "compressed_size": 958
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/pool-hands-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/pool-hands-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "a108734a1525781e8afaddc4da48b5ebe85cd4e25a09e63aff744814fb88aea9",
+    "original_size": 3677,
+    "compressed_size": 1005
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/pool-hands.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/pool-hands.json",
+    "kind": "diagnostic",
+    "sha256": "9865f823ac6a861c815c211fce8f67120e6b0ce1394b4c45e228397ff4603f5e",
+    "original_size": 4735,
+    "compressed_size": 1282
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/source-order-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/source-order-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "1eb15a37f4289471ea435cbca72a3be41ecbd63952d57f08052b43525fce676f",
+    "original_size": 2670,
+    "compressed_size": 855
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/source-order-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/source-order-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "6382b02e2f5b72b4081e213e063387afc9a416a0c55846e582904403075a16e7",
+    "original_size": 2381,
+    "compressed_size": 931
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/source-order.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/source-order.json",
+    "kind": "diagnostic",
+    "sha256": "f6df32defd73ae04ed780874f76900e54c7c1c36cf29ffa7c0d43597ae912f36",
+    "original_size": 1477,
+    "compressed_size": 715
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/summary.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts/actual-source/summary.json",
+    "kind": "diagnostic",
+    "sha256": "54f3ed8187b18cd608e85e9af57c2a1d79c1ae91f41299cefc565931ae42b5d7",
+    "original_size": 2505,
+    "compressed_size": 902
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/0-before.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/0-before.json",
+    "kind": "diagnostic",
+    "sha256": "c3b8a245a3fa1eb71f60dedd72beaaab367224c55ed8992b13684c63f2d3f2ec",
+    "original_size": 573,
+    "compressed_size": 323
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/1-seal-compiler.py": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/1-seal-compiler.py",
+    "kind": "diagnostic",
+    "sha256": "443463caeff14aa9be41896a4d5a580408bbf20483ecc0948efca62668199e50",
+    "original_size": 3016,
+    "compressed_size": 1413
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/10-run-command.py": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/10-run-command.py",
+    "kind": "diagnostic",
+    "sha256": "ffd83be9d2ec82a323b30f8cb658c78dfadd8653d96f33b9ee88c94674a39ab2",
+    "original_size": 1684,
+    "compressed_size": 786
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/100-source-order-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/100-source-order-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/101-source-order-run-o3.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/101-source-order-run-o3.stdout",
+    "kind": "diagnostic",
+    "sha256": "1488227ea54be40b3eed689bd34fd406fb4b9c8f30522b23789cb6d1c54fdec9",
+    "original_size": 60,
+    "compressed_size": 45
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/102-source-order-build-o0.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/102-source-order-build-o0.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/103-pool-hands-build-o0.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/103-pool-hands-build-o0.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/104-pool-hands-run-o0.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/104-pool-hands-run-o0.stdout",
+    "kind": "diagnostic",
+    "sha256": "61ebd0aa64a8e262932585c5ad3b3fdaff72246d30da08b740bc91b729199bb4",
+    "original_size": 1170,
+    "compressed_size": 315
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/105-pool-hands-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/105-pool-hands-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/106-pool-hands-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/106-pool-hands-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "c1aa26ad05adb03a97c0362ec49ef8625e52270fc443f6fb6a55dcd9e147e705",
+    "original_size": 22560,
+    "compressed_size": 4412
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/107-pool-hands-build-o0.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/107-pool-hands-build-o0.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/108-pool-hands-run-o0.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/108-pool-hands-run-o0.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/109-source-order-run-o3.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/109-source-order-run-o3.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/11-fmt.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/11-fmt.log",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/110-source-order-build-o0.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/110-source-order-build-o0.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/111-run.py": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/111-run.py",
+    "kind": "diagnostic",
+    "sha256": "ac7fd215bfee84c02b10edf70e24c17d16a0c6a672b5d833e0a56157ba342c99",
+    "original_size": 917,
+    "compressed_size": 489
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/112-format.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/112-format.log",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/113-parent.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/113-parent.json",
+    "kind": "diagnostic",
+    "sha256": "dbbb7244ee40fbc77a8ba5bc4e8b8c83bcb0759f85bc6c32586eecd33d394cc5",
+    "original_size": 1341,
+    "compressed_size": 450
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/114-focused-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/114-focused-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "7958d575feaa41f08ba90a59c0ff242fa37969a9259f1d96c8a97419ccd64d43",
+    "original_size": 544,
+    "compressed_size": 326
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/115-freeze.py": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/115-freeze.py",
+    "kind": "diagnostic",
+    "sha256": "95ea1f4dbdacd9b6d40e2645b052f7c4394e13c9847083fde68304b929c88e0c",
+    "original_size": 3673,
+    "compressed_size": 1686
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/116-candidate.diff": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/116-candidate.diff",
+    "kind": "diagnostic",
+    "sha256": "1be740b4088cb967d2956ec29e6250eb8c34f772824876924fb67cdb19b7d9a3",
+    "original_size": 30044,
+    "compressed_size": 7345
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/117-format-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/117-format-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "65f95d664177dbaf36e86b94482a40ef9efdb84699d16c0c621f97a67f3c93c8",
+    "original_size": 743,
+    "compressed_size": 363
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/118-candidate-source.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/118-candidate-source.json",
+    "kind": "diagnostic",
+    "sha256": "33bf2cf959745a432438e5681444a3170539a1e0a663323113253b0c5661324c",
+    "original_size": 7814,
+    "compressed_size": 2358
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/119-focused.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/119-focused.log",
+    "kind": "diagnostic",
+    "sha256": "41f7dda89dd9b1c9328458797569c30c5e85d99e4be0eaa6c035fb6a0ae143c9",
+    "original_size": 766,
+    "compressed_size": 453
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/12-active-run.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/12-active-run.json",
+    "kind": "diagnostic",
+    "sha256": "859a2ef4022cc8626e89e31966e471ba4c8ca1708e825e239cf7b3c521fbc86f",
+    "original_size": 1055,
+    "compressed_size": 569
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/120-write-tests.py": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/120-write-tests.py",
+    "kind": "diagnostic",
+    "sha256": "8c72466063249d47a090872659765d04fb061230f05caeb404490770e443a051",
+    "original_size": 13169,
+    "compressed_size": 3698
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/121-source-identities.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/121-source-identities.json",
+    "kind": "diagnostic",
+    "sha256": "650deb94746f00732bd7c45ff4140ee55ad9808172d596adc238899407d7fda8",
+    "original_size": 692,
+    "compressed_size": 366
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/122-number_formatting.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/122-number_formatting.rs",
+    "kind": "diagnostic",
+    "sha256": "aad2abf9d013a9859ce3ae6f19a79afe882f835b8a8c6d5f3b21388f749b60a4",
+    "original_size": 14175,
+    "compressed_size": 3973
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/123-fixed_storage.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/123-fixed_storage.rs",
+    "kind": "diagnostic",
+    "sha256": "0e1b2826235239c0f6f27a13e3d5bd93ced0af6c53b68007cda5b7ad484b8c1a",
+    "original_size": 44768,
+    "compressed_size": 7756
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/124-analysis.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/124-analysis.rs",
+    "kind": "diagnostic",
+    "sha256": "cde8d7db61c0306800eb08023cde31b74215de29f30e73ccc49e58b309dd0a90",
+    "original_size": 281590,
+    "compressed_size": 45691
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/125-runtime_strings.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/125-runtime_strings.rs",
+    "kind": "diagnostic",
+    "sha256": "538b87d7459f3bf854af73f8a831f89092dec15cc1f5fc34d2e1bb6ac27fed23",
+    "original_size": 14271,
+    "compressed_size": 3539
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/126-emit.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/126-emit.rs",
+    "kind": "diagnostic",
+    "sha256": "74b5bc9388c2b81824bf69eaff719c0381b0642fba9a49770c8309737e4b8267",
+    "original_size": 149637,
+    "compressed_size": 24384
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/127-syntax.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/127-syntax.rs",
+    "kind": "diagnostic",
+    "sha256": "88fd04f4ada09822623e58775a521b509b8ea6bc0b7118d54e20a9064cefa8b9",
+    "original_size": 56231,
+    "compressed_size": 10844
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/128-fixed_storage.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/128-fixed_storage.rs",
+    "kind": "diagnostic",
+    "sha256": "d0b0e6f97e727a1570a8200cdeb54d916919b64d868a842f850c1da1391e52a1",
+    "original_size": 44626,
+    "compressed_size": 7727
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/129-analysis.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/129-analysis.rs",
+    "kind": "diagnostic",
+    "sha256": "2c1a946f1ca260821f1fffde89e3c49d174441429ab58daefab2064d25669b9c",
+    "original_size": 280298,
+    "compressed_size": 45510
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/13-repair-application.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/13-repair-application.json",
+    "kind": "diagnostic",
+    "sha256": "1b6097306dfb8ae762df82c599e65a7a4afcda9d3b082341eaa3901e615e4fd2",
+    "original_size": 1688,
+    "compressed_size": 764
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/130-runtime_strings.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/130-runtime_strings.rs",
+    "kind": "diagnostic",
+    "sha256": "1f6b49cfd15306244c580e78411d03de0ac3b11674094fb8cb0a2ae2e7fa79c3",
+    "original_size": 10702,
+    "compressed_size": 2655
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/131-emit.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/131-emit.rs",
+    "kind": "diagnostic",
+    "sha256": "da68eef1c8383c8958a8bde7e0ddb8754db69f5cc0bdb3b8f319b0bdd5e3f6f9",
+    "original_size": 148234,
+    "compressed_size": 24141
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/132-syntax.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/132-syntax.rs",
+    "kind": "diagnostic",
+    "sha256": "c22fb9f3ebc2e7679ad34780350ae0cf9ef2300e513ac5670722f0a1cc0f8202",
+    "original_size": 56164,
+    "compressed_size": 10820
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/133-source-identities.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/133-source-identities.json",
+    "kind": "diagnostic",
+    "sha256": "0406242a2d51cbf9ac3c581bd99f53cab14d053e6b0ba2945ba08215cadcb71a",
+    "original_size": 692,
+    "compressed_size": 367
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/134-number_formatting.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/134-number_formatting.rs",
+    "kind": "diagnostic",
+    "sha256": "a6d3bccf38d759584b9d76bcb2a9da09bd009cfd485aa7cf1119abef71911bd7",
+    "original_size": 14536,
+    "compressed_size": 4020
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/135-fixed_storage.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/135-fixed_storage.rs",
+    "kind": "diagnostic",
+    "sha256": "0e1b2826235239c0f6f27a13e3d5bd93ced0af6c53b68007cda5b7ad484b8c1a",
+    "original_size": 44768,
+    "compressed_size": 7756
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/136-analysis.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/136-analysis.rs",
+    "kind": "diagnostic",
+    "sha256": "e02b1bd1325046033d7d393826f969f7be0a729286a5463a328489e56f307b69",
+    "original_size": 281614,
+    "compressed_size": 45696
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/137-runtime_strings.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/137-runtime_strings.rs",
+    "kind": "diagnostic",
+    "sha256": "fd6687745d4f848eb00b601e82f2563dbfc296d425fa484a2dd99fdaba26d461",
+    "original_size": 14838,
+    "compressed_size": 3601
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/138-emit.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/138-emit.rs",
+    "kind": "diagnostic",
+    "sha256": "ffaf755a8bba203ce5a921ec3884a682bba9d0d85eeec628ece6735992004a99",
+    "original_size": 149977,
+    "compressed_size": 24380
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/139-syntax.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/139-syntax.rs",
+    "kind": "diagnostic",
+    "sha256": "88fd04f4ada09822623e58775a521b509b8ea6bc0b7118d54e20a9064cefa8b9",
+    "original_size": 56231,
+    "compressed_size": 10844
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/14-fresh-cli.py": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/14-fresh-cli.py",
+    "kind": "diagnostic",
+    "sha256": "8b41d68a4303365b9323de94fcea06ec4e4b1db2894c6598b7ea21adcead19e0",
+    "original_size": 1297,
+    "compressed_size": 650
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/140-number_formatting.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/140-number_formatting.rs",
+    "kind": "diagnostic",
+    "sha256": "a6d3bccf38d759584b9d76bcb2a9da09bd009cfd485aa7cf1119abef71911bd7",
+    "original_size": 14536,
+    "compressed_size": 4020
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/141-fixed_storage.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/141-fixed_storage.rs",
+    "kind": "diagnostic",
+    "sha256": "0e1b2826235239c0f6f27a13e3d5bd93ced0af6c53b68007cda5b7ad484b8c1a",
+    "original_size": 44768,
+    "compressed_size": 7756
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/142-analysis.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/142-analysis.rs",
+    "kind": "diagnostic",
+    "sha256": "e02b1bd1325046033d7d393826f969f7be0a729286a5463a328489e56f307b69",
+    "original_size": 281614,
+    "compressed_size": 45696
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/143-runtime_strings.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/143-runtime_strings.rs",
+    "kind": "diagnostic",
+    "sha256": "fd6687745d4f848eb00b601e82f2563dbfc296d425fa484a2dd99fdaba26d461",
+    "original_size": 14838,
+    "compressed_size": 3601
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/144-emit.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/144-emit.rs",
+    "kind": "diagnostic",
+    "sha256": "ffaf755a8bba203ce5a921ec3884a682bba9d0d85eeec628ece6735992004a99",
+    "original_size": 149977,
+    "compressed_size": 24380
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/145-syntax.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/145-syntax.rs",
+    "kind": "diagnostic",
+    "sha256": "88fd04f4ada09822623e58775a521b509b8ea6bc0b7118d54e20a9064cefa8b9",
+    "original_size": 56231,
+    "compressed_size": 10844
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/146-build.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/146-build.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/147-boolean-isolated-observation.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/147-boolean-isolated-observation.json",
+    "kind": "diagnostic",
+    "sha256": "0936ac546bb38fae2885c5f76522d86b786043cde18596849af2d3b1e03026f4",
+    "original_size": 969,
+    "compressed_size": 389
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/148-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/148-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "c4fe0b396636bf76514d25c5ea0abc0232741cefecc878d561b80542c5cf58c1",
+    "original_size": 261,
+    "compressed_size": 187
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/149-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/149-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/15-repair-witness-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/15-repair-witness-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "ef73a1da9b39046a643aff112daedbebac8ed15877d54cf2d42d2d7be263b4a9",
+    "original_size": 594,
+    "compressed_size": 357
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/150-repair.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/150-repair.json",
+    "kind": "diagnostic",
+    "sha256": "a3d83e1db5e2f3c0814bfd8e02921625acf32c1eebd9e216c6b2df46976cde20",
+    "original_size": 1893,
+    "compressed_size": 840
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/151-build.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/151-build.stderr",
+    "kind": "diagnostic",
+    "sha256": "ceef3895c624825d73bed0d0dd46f54a21e77e28f027ee3834ad154e44c65c91",
+    "original_size": 615,
+    "compressed_size": 250
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/152-boolean-isolated.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/152-boolean-isolated.rs",
+    "kind": "diagnostic",
+    "sha256": "c4fe0b396636bf76514d25c5ea0abc0232741cefecc878d561b80542c5cf58c1",
+    "original_size": 261,
+    "compressed_size": 187
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/153-repair.diff": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/153-repair.diff",
+    "kind": "diagnostic",
+    "sha256": "82e3f0bcfcbc58b6ce9a55888b822b37426fc394593f814f09990b521100fa1a",
+    "original_size": 1931,
+    "compressed_size": 684
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/154-boolean-isolated.tsr": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/154-boolean-isolated.tsr",
+    "kind": "diagnostic",
+    "sha256": "09472dfe3b8911225d1945e9ed34821d8cec1d9457d90bef1d843c1b3ced5d9d",
+    "original_size": 77,
+    "compressed_size": 63
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/155-number_formatting.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/155-number_formatting.rs",
+    "kind": "diagnostic",
+    "sha256": "a6d3bccf38d759584b9d76bcb2a9da09bd009cfd485aa7cf1119abef71911bd7",
+    "original_size": 14536,
+    "compressed_size": 4020
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/156-emit.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/156-emit.rs",
+    "kind": "diagnostic",
+    "sha256": "ffaf755a8bba203ce5a921ec3884a682bba9d0d85eeec628ece6735992004a99",
+    "original_size": 149977,
+    "compressed_size": 24380
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/157-repair.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/157-repair.json",
+    "kind": "diagnostic",
+    "sha256": "2959ad823e0f04fda22850bacc40f466d76cca4620d86af458753f140cc29d63",
+    "original_size": 1421,
+    "compressed_size": 630
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/158-repair.diff": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/158-repair.diff",
+    "kind": "diagnostic",
+    "sha256": "e5c1f8c7ec150656ee183fc9677467fa4fb9ad432b299d4ad194134f08f5cb1d",
+    "original_size": 1645,
+    "compressed_size": 634
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/159-number_formatting.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/159-number_formatting.rs",
+    "kind": "diagnostic",
+    "sha256": "cbc19d2be096c37c27355dbaae8f98cddbad56e30cb1fe70709b07be08213115",
+    "original_size": 15260,
+    "compressed_size": 4202
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/16-lsp-catalog-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/16-lsp-catalog-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "afc12cca738a910e3f12206533712539185abb6a979fd088cb8a189fd66f6a12",
+    "original_size": 570,
+    "compressed_size": 340
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/160-emit.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/160-emit.rs",
+    "kind": "diagnostic",
+    "sha256": "792acd36f492138e8f3172b105b1672e8e1fd117c7ae04e54e67af813fee386a",
+    "original_size": 150151,
+    "compressed_size": 24417
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/161-number_formatting.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/161-number_formatting.rs",
+    "kind": "diagnostic",
+    "sha256": "a5198b15539efb9a285c53971a1e8766ca1d7fc0a22eb22af3df215a0699b6f5",
+    "original_size": 15435,
+    "compressed_size": 4239
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/162-emit.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/162-emit.rs",
+    "kind": "diagnostic",
+    "sha256": "42d0e675279db731399fb3da9111f859dc4c65f953c9ee571daf1d394a651b98",
+    "original_size": 150258,
+    "compressed_size": 24431
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/163-probe.mjs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/163-probe.mjs",
+    "kind": "diagnostic",
+    "sha256": "b91c4764e6dd8cf81ff3f06823bd1a534766e78da2f186e24d19940a20da8038",
+    "original_size": 1018,
+    "compressed_size": 494
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/164-node-output.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/164-node-output.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/165-run.py": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/165-run.py",
+    "kind": "diagnostic",
+    "sha256": "1337d61c0285770efa0c7aeacd3a56fe4ea69a27e61da2fdc3a27de4a29dd993",
+    "original_size": 902,
+    "compressed_size": 425
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/166-rust-output.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/166-rust-output.stdout",
+    "kind": "diagnostic",
+    "sha256": "720e749bfa7b73f252a3946dddddd73edc8d5b1b00aed13ab04dbd06805866f8",
+    "original_size": 37526,
+    "compressed_size": 4157
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/167-rust-unsupported-radix-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/167-rust-unsupported-radix-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "71a9c6d1e104223759f7f449065068a32533b3b5dbb107a5fabf6b86928e7e7d",
+    "original_size": 709,
+    "compressed_size": 344
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/168-cells.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/168-cells.json",
+    "kind": "diagnostic",
+    "sha256": "78dfaf05f1dd5f5825da801751fc26015aefd308c526013c5843a78fec6d728e",
+    "original_size": 2017,
+    "compressed_size": 403
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/169-node-output.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/169-node-output.stdout",
+    "kind": "diagnostic",
+    "sha256": "89f35955177818f07c08c18a86704abde369fc4b551d1e905a1f3faad2e3cea4",
+    "original_size": 48540,
+    "compressed_size": 5546
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/17-full.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/17-full.log",
+    "kind": "diagnostic",
+    "sha256": "84906e5c3943aba2b1f0e99ffedafb3360f6be3689f1e7cb33c2f2c336d727db",
+    "original_size": 69697,
+    "compressed_size": 16627
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/170-rust-output.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/170-rust-output.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/171-summarize.py": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/171-summarize.py",
+    "kind": "diagnostic",
+    "sha256": "4a8ac4cbb5357354bebbf7da403ffa6a254e4e7e969c27735cf9215e7b9dbc55",
+    "original_size": 2252,
+    "compressed_size": 1038
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/172-comparison.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/172-comparison.json",
+    "kind": "diagnostic",
+    "sha256": "8ea136e54ca1a85cd05a7e8a0712d4498c704dae60bab43c9dd3aa165bf653a6",
+    "original_size": 8751,
+    "compressed_size": 944
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/173-rust-unsupported-radix.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/173-rust-unsupported-radix.stderr",
+    "kind": "diagnostic",
+    "sha256": "73eda87b36190be92bd3ae46b8616fd9abb92a979caeb9d03b0dfa60797e2347",
+    "original_size": 649,
+    "compressed_size": 329
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/174-rust-build.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/174-rust-build.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/175-node-output-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/175-node-output-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "d52c6f24862f121457611db9cd57da83f37f59f64f3cf7f479a355fc844fd995",
+    "original_size": 621,
+    "compressed_size": 336
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/176-rust-output-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/176-rust-output-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "10b50c206e4677392681f4e02c55b9ddabb9223c471fce01f81d6d59afca85ca",
+    "original_size": 557,
+    "compressed_size": 295
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/177-probe.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/177-probe.rs",
+    "kind": "diagnostic",
+    "sha256": "24275976bde499354aa91f602f63943b89a07198a549df52eb10474ba6cffb1d",
+    "original_size": 2246,
+    "compressed_size": 847
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/178-unsupported-f64-radix.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/178-unsupported-f64-radix.rs",
+    "kind": "diagnostic",
+    "sha256": "97f3376cd0c09afcc6c1982dda140c841a353bccc7546c76f0182b8bfdb4bbb8",
+    "original_size": 36,
+    "compressed_size": 44
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/179-rust-build-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/179-rust-build-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "ec9d1bdb6b776ff917ff1c46c90144ef35c445accf6620f673855d5baa8d89b4",
+    "original_size": 653,
+    "compressed_size": 292
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/18-repair-witness.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/18-repair-witness.log",
+    "kind": "diagnostic",
+    "sha256": "01e01eb24c9fdfd11042642341cbeed9b1fae9379609ae7e282e30e6b8f967d1",
+    "original_size": 461,
+    "compressed_size": 303
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/180-rust-build.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/180-rust-build.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/181-prepare.py": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/181-prepare.py",
+    "kind": "diagnostic",
+    "sha256": "fefa136d462dbf81a13e53acf6aa5e17e80585121434f585e2e51223906271fd",
+    "original_size": 3174,
+    "compressed_size": 1382
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/182-rust-unsupported-radix.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/182-rust-unsupported-radix.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/19-parent.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/19-parent.json",
+    "kind": "diagnostic",
+    "sha256": "b6c704d66c6254218f902508fe57ef46b1cfa7df3e802498718109c985bf74f2",
+    "original_size": 228,
+    "compressed_size": 186
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/2-native-hands-repaired.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/2-native-hands-repaired.log",
+    "kind": "diagnostic",
+    "sha256": "75c6a283d7532544a8fac36b39f1ce96e6ffb8a06d088bb1b1999c2ecded5056",
+    "original_size": 68,
+    "compressed_size": 64
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/20-clippy-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/20-clippy-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "2dd92fc0698268076959ebdaaf0c7075eb09522aa8aa6d2d66d024de113636d2",
+    "original_size": 497,
+    "compressed_size": 304
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/21-native-hands-repaired.py": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/21-native-hands-repaired.py",
+    "kind": "diagnostic",
+    "sha256": "546ad83ba50c75afd95d6ed609e9cf9754b5a3f13f7110472debc222d23b4915",
+    "original_size": 2373,
+    "compressed_size": 1040
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/22-fresh-cli.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/22-fresh-cli.json",
+    "kind": "diagnostic",
+    "sha256": "4f09d55485ccbbf40b1786bd3b39104882915dcd9a6f63b52a9adba69c6c23dd",
+    "original_size": 1484,
+    "compressed_size": 463
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/23-native-hands.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/23-native-hands.log",
+    "kind": "diagnostic",
+    "sha256": "3165f15cffb0b2c78843a9e39898592cdbd0619c427b382385bf2ffa28ee9915",
+    "original_size": 5420,
+    "compressed_size": 984
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/24-lsp-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/24-lsp-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "eca921459a1a727df0f89443021276ed33ddbfe1ce09dee6af992bae579c03b9",
+    "original_size": 2085,
+    "compressed_size": 816
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/25-repair-format.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/25-repair-format.log",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/26-final-source-freeze.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/26-final-source-freeze.json",
+    "kind": "diagnostic",
+    "sha256": "f7d07af4e739a081569ac618185595905acc45618b089fa6f7848dbda3348e91",
+    "original_size": 17999,
+    "compressed_size": 7210
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/27-final-fmt-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/27-final-fmt-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "37b6319afc425b6e8b0d20769386f30cd3a2ef6f458ba8daef2429fcd7231cd6",
+    "original_size": 426,
+    "compressed_size": 274
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/28-clippy.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/28-clippy.log",
+    "kind": "diagnostic",
+    "sha256": "d75f0f8586f6941d9b6b628e096fa24b557a3ac67f34eb2468020c87856bbbe2",
+    "original_size": 277,
+    "compressed_size": 158
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/29-release-pool-hands-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/29-release-pool-hands-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "c1aa26ad05adb03a97c0362ec49ef8625e52270fc443f6fb6a55dcd9e147e705",
+    "original_size": 22560,
+    "compressed_size": 4412
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/3-release.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/3-release.log",
+    "kind": "diagnostic",
+    "sha256": "c83dabae571efd14659138271b33f63cd008f782ccc8b716ddecf91a32f24a34",
+    "original_size": 266,
+    "compressed_size": 151
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/30-native-hands-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/30-native-hands-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "20b837d5ba2e211c2ec22ec9054edb627198182d459246f362baf9a2329363c8",
+    "original_size": 425,
+    "compressed_size": 268
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/31-repair-witness-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/31-repair-witness-start.json",
+    "kind": "diagnostic",
+    "sha256": "82185499b70b7464b277c4bbbec4fd98fd25ddeb2f2aed1e9f5e210530b53107",
+    "original_size": 383,
+    "compressed_size": 244
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/32-repair-test-before-format.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/32-repair-test-before-format.rs",
+    "kind": "diagnostic",
+    "sha256": "a5198b15539efb9a285c53971a1e8766ca1d7fc0a22eb22af3df215a0699b6f5",
+    "original_size": 15435,
+    "compressed_size": 4239
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/33-debug-source-order-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/33-debug-source-order-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "c5335856c73c430f25018491fe0bb12b9104926a44a1d0edcc572a1a193d51e1",
+    "original_size": 18504,
+    "compressed_size": 4191
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/34-debug-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/34-debug-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "ab3b36cf95b2347f0d5ebd9caa95b61f8c1390b9cbae0e0f38d1cff2089a3fa2",
+    "original_size": 438,
+    "compressed_size": 284
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/35-format-before.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/35-format-before.json",
+    "kind": "diagnostic",
+    "sha256": "91c67b01ad0bfb885e4e75e78cf47b68cfdf598344693187e7427537b1aedcb9",
+    "original_size": 146,
+    "compressed_size": 131
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/36-repair-fmt-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/36-repair-fmt-start.json",
+    "kind": "diagnostic",
+    "sha256": "c1b5826b400d7fea138d81494a55e27315ef5f0966e9869d55d5e510344b0c18",
+    "original_size": 221,
+    "compressed_size": 164
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/37-final-fmt-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/37-final-fmt-start.json",
+    "kind": "diagnostic",
+    "sha256": "4b3b6f234f4210e0fc11b985bf2df54aa0b977578f6ad335f07f108a64b03d7d",
+    "original_size": 220,
+    "compressed_size": 163
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/38-repair-fmt.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/38-repair-fmt.log",
+    "kind": "diagnostic",
+    "sha256": "8d07b6863b151e2f2954146df5af532bf3729f8e8a86154648fd5f25c9f827eb",
+    "original_size": 1733,
+    "compressed_size": 489
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/39-final-fmt.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/39-final-fmt.log",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/4-lsp-catalog.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/4-lsp-catalog.log",
+    "kind": "diagnostic",
+    "sha256": "6ff8b71b9b77498ca6045abd7b8edeb89d221ec3cf402fe1bb21e29a8818595b",
+    "original_size": 333,
+    "compressed_size": 232
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/40-native-hands-repaired-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/40-native-hands-repaired-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "93120ce328bde7d5e1c3fe3ed489d4b265b61c656512a6a0e39fd23ba242ca4f",
+    "original_size": 442,
+    "compressed_size": 274
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/41-native-hands-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/41-native-hands-start.json",
+    "kind": "diagnostic",
+    "sha256": "534b5ddf6f89ebaa95212abc9322fd37b8450a37fcc4c5e0ef8f93b82ac45705",
+    "original_size": 216,
+    "compressed_size": 173
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/42-fresh-cli.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/42-fresh-cli.log",
+    "kind": "diagnostic",
+    "sha256": "764ff92dc5e0fa6f12b4033287182c859e8335469b9666af31f3cca85fdf8160",
+    "original_size": 1284,
+    "compressed_size": 444
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/43-lsp-formatting-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/43-lsp-formatting-start.json",
+    "kind": "diagnostic",
+    "sha256": "13b7fcae74203d51dcc80032ee4a9cc7d65a4886ca7ea71c7a304201a4a127a4",
+    "original_size": 369,
+    "compressed_size": 238
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/44-benchmark-integration.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/44-benchmark-integration.json",
+    "kind": "diagnostic",
+    "sha256": "74fba77e5409f5a34e3d6e323229dcedd8b5fbe045487fab507408c28a6d672e",
+    "original_size": 4124,
+    "compressed_size": 1720
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/45-native-hands.py": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/45-native-hands.py",
+    "kind": "diagnostic",
+    "sha256": "ade73d82a49a20ab3a81d6f97ad89f7d61bfc0aa53d73a39a84a600838411864",
+    "original_size": 2364,
+    "compressed_size": 1033
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/46-full-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/46-full-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "cc46988d06ee455fac0a7d639bec5c1aa96ab3f43ff243ea251840fc95342658",
+    "original_size": 452,
+    "compressed_size": 289
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/47-doctests-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/47-doctests-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "1097bcab0d498680beaa7868e963bfa4943c91f2c08a71583905ebe38abb7ec5",
+    "original_size": 492,
+    "compressed_size": 301
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/48-regression-union.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/48-regression-union.json",
+    "kind": "diagnostic",
+    "sha256": "b052dfcd847d2585dab578d94c95e6d5e27c1f81819741daf637bf473ab034ff",
+    "original_size": 172639,
+    "compressed_size": 29916
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/49-accept-regression.py": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/49-accept-regression.py",
+    "kind": "diagnostic",
+    "sha256": "6cd895ec41d894acdd47507c0fc2f7ed5c858c2b08463d33eb2fdd61b94abd0b",
+    "original_size": 6421,
+    "compressed_size": 2248
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/5-full-source-freeze.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/5-full-source-freeze.json",
+    "kind": "diagnostic",
+    "sha256": "3eb405a1b8e1f4be9ef796f85c6ba2623607b4a46ff5a1f78d331343906a2126",
+    "original_size": 17999,
+    "compressed_size": 7204
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/50-fresh-cli-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/50-fresh-cli-start.json",
+    "kind": "diagnostic",
+    "sha256": "af4df0b8aba93d1838d841e46d58cae14787ed4274621f253d18bbffcafc4435",
+    "original_size": 212,
+    "compressed_size": 170
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/51-debug-pool-hands-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/51-debug-pool-hands-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "c1aa26ad05adb03a97c0362ec49ef8625e52270fc443f6fb6a55dcd9e147e705",
+    "original_size": 22560,
+    "compressed_size": 4412
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/52-release-source-order-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/52-release-source-order-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "c5335856c73c430f25018491fe0bb12b9104926a44a1d0edcc572a1a193d51e1",
+    "original_size": 18504,
+    "compressed_size": 4191
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/53-manifest.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/53-manifest.json",
+    "kind": "diagnostic",
+    "sha256": "c686b724a8a7916f5761cd11084bb0cb166be44876a0ffc2f0b054c7c980a2e5",
+    "original_size": 855084,
+    "compressed_size": 60633
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/54-native-hands-repaired-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/54-native-hands-repaired-start.json",
+    "kind": "diagnostic",
+    "sha256": "8eecc9f5c280300e0900ba9d5f5bf671956e03147c0d59aae2e8a8ef1974603a",
+    "original_size": 224,
+    "compressed_size": 176
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/55-debug.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/55-debug.log",
+    "kind": "diagnostic",
+    "sha256": "25b01978bb75cf3b0c5250eb78134d458c58ff17ae535234cec1d418b5149442",
+    "original_size": 170,
+    "compressed_size": 143
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/56-lsp-formatting.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/56-lsp-formatting.log",
+    "kind": "diagnostic",
+    "sha256": "d945986dac2f60d489f047bbe26065bebbf9fd9224b999a73de20e35ef09805b",
+    "original_size": 544,
+    "compressed_size": 311
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/57-fmt-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/57-fmt-start.json",
+    "kind": "diagnostic",
+    "sha256": "2d3b8c74a820061e91416ed71bf91b9f1b1874b515bcec49a4b44d336a6bc6ac",
+    "original_size": 221,
+    "compressed_size": 163
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/58-inventory.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/58-inventory.json",
+    "kind": "diagnostic",
+    "sha256": "072d536b2524724b04fc91e60874df5062a476057f4ea509e475c5c5e0e3f109",
+    "original_size": 683222,
+    "compressed_size": 37152
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/59-source-proof.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/59-source-proof.json",
+    "kind": "diagnostic",
+    "sha256": "7274949b0ae41e795d2ab8a5791b29132bd752c747703965ec81bd85471b3ab2",
+    "original_size": 235,
+    "compressed_size": 195
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/6-repair-fmt-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/6-repair-fmt-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "69d5c0e2808075481054e0a17408ab9b564a8c60aee14748df8062a088032bea",
+    "original_size": 428,
+    "compressed_size": 276
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/60-clippy-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/60-clippy-start.json",
+    "kind": "diagnostic",
+    "sha256": "4ae16dd386cd5764e7c1cb1f33dd048f472d0f6c00acbdaf83ad5f4913167fee",
+    "original_size": 294,
+    "compressed_size": 193
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/61-repair-format-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/61-repair-format-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "24dc49b6d3d93203440000a08c6e5f9bd85b19a9e10b21c36626b655bae4ec6f",
+    "original_size": 404,
+    "compressed_size": 268
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/62-lsp-before.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/62-lsp-before.json",
+    "kind": "diagnostic",
+    "sha256": "bb345b22f1b506e12dcf94896cb766e91b3052c8dc665c1ea2987cd0712b408e",
+    "original_size": 336,
+    "compressed_size": 211
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/63-full-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/63-full-start.json",
+    "kind": "diagnostic",
+    "sha256": "03dd8d354169389fb795ae0784a9433438e127dfecad67a362f312de8763c3d7",
+    "original_size": 251,
+    "compressed_size": 178
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/64-debug-pool-hands-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/64-debug-pool-hands-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/65-apply-repair.py": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/65-apply-repair.py",
+    "kind": "diagnostic",
+    "sha256": "94d188e4ff0d2e69b01ef2cdf4af7cf412b020190f4865d9ea99a1ae4e297b21",
+    "original_size": 1992,
+    "compressed_size": 925
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/66-formatting-overlay.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/66-formatting-overlay.json",
+    "kind": "diagnostic",
+    "sha256": "fa8339eaaf6b7de887e4e2b172e3ea9f5429fc3df3c0328e3d2e379f1024ab17",
+    "original_size": 450,
+    "compressed_size": 308
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/67-final-checks.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/67-final-checks.json",
+    "kind": "diagnostic",
+    "sha256": "d7fd734d1745ba4fe34027dcd665433577eb8425e9093a2f4b8c7f1ec58d4955",
+    "original_size": 2506,
+    "compressed_size": 673
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/68-doctests-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/68-doctests-start.json",
+    "kind": "diagnostic",
+    "sha256": "eeff34a52fd5d4483f4cc84d7c40c0c513dd5c8f5b1ac3418dba92ebed2963bf",
+    "original_size": 287,
+    "compressed_size": 191
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/69-release-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/69-release-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "39aa2619afcc963e13cdaff536913e7b97303a3990d723b30496b2e491f70672",
+    "original_size": 457,
+    "compressed_size": 288
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/7-debug-source-order-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/7-debug-source-order-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/70-release-source-order-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/70-release-source-order-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/71-regression-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/71-regression-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "6ccf7278ea2ed9f002a4967e473a4fdf6b197dfc5dbc5eb2bb722b9bc3d26ce7",
+    "original_size": 2873,
+    "compressed_size": 1193
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/72-release-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/72-release-start.json",
+    "kind": "diagnostic",
+    "sha256": "440c33705ce636f7e7d09ec99b7e70943061bb990bcd713f4b837c9cd51f24ec",
+    "original_size": 253,
+    "compressed_size": 180
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/73-status.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/73-status.json",
+    "kind": "diagnostic",
+    "sha256": "6b87aaa69889fce67a2b6ceefb7d781b8f38c62d98e476a66287bf3517d7e034",
+    "original_size": 181690,
+    "compressed_size": 14929
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/74-seal-source.py": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/74-seal-source.py",
+    "kind": "diagnostic",
+    "sha256": "2b50df9d5be51f4509dc416d6c9c4577987ca8259f3f2b458c2455f84977589f",
+    "original_size": 3036,
+    "compressed_size": 1233
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/75-lsp-catalog-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/75-lsp-catalog-start.json",
+    "kind": "diagnostic",
+    "sha256": "5c591c5199ff7a64d612214da15d45959b397d2c8282fb728f7e5ae0829acfeb",
+    "original_size": 362,
+    "compressed_size": 231
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/76-fmt-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/76-fmt-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "6aaffd75b215f886432cbf2c7c894d01309358263afc25026708989d2578c955",
+    "original_size": 421,
+    "compressed_size": 272
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/77-repair-format-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/77-repair-format-start.json",
+    "kind": "diagnostic",
+    "sha256": "3ac4bf5200466f4d3f965fcc65471ce67528aac0faf70152b2c85522796d7c3b",
+    "original_size": 194,
+    "compressed_size": 155
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/78-debug-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/78-debug-start.json",
+    "kind": "diagnostic",
+    "sha256": "abea6ed89d20c33b1ba0e4c94c1652d084b3d547987d01ec826566cdbd687df8",
+    "original_size": 236,
+    "compressed_size": 175
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/79-doctests.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/79-doctests.log",
+    "kind": "diagnostic",
+    "sha256": "ebfb3b7b9004e336365fb5e22a708d510b41c8fc518fd254aae1f8ac69eb3a53",
+    "original_size": 449,
+    "compressed_size": 227
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/8-fresh-cli-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/8-fresh-cli-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "bcad1f8a09c6aa40cb31360d5936b451bda970ffeca8a92baea8552d3c25339b",
+    "original_size": 418,
+    "compressed_size": 268
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/80-lsp-formatting-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/80-lsp-formatting-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "f25d961cf9d8f49d2d257d5a026d515ba4a82adb6bbd27101c5bed823e7dd605",
+    "original_size": 580,
+    "compressed_size": 349
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/81-pool-hands.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/81-pool-hands.rs",
+    "kind": "diagnostic",
+    "sha256": "c164957711d0796ff4e22abc6f9dcc93b6f5937a5fe3c198feda18ba6c85e663",
+    "original_size": 7722,
+    "compressed_size": 923
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/82-commands.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/82-commands.json",
+    "kind": "diagnostic",
+    "sha256": "d0ebb2783e91f1f65aa98b86f17a3e4f28a1f71c5131d8109c24b37252aba191",
+    "original_size": 1516,
+    "compressed_size": 537
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/83-pool-hands-build-o0.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/83-pool-hands-build-o0.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/84-pool-hands-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/84-pool-hands-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/85-pool-hands-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/85-pool-hands-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "c164957711d0796ff4e22abc6f9dcc93b6f5937a5fe3c198feda18ba6c85e663",
+    "original_size": 7722,
+    "compressed_size": 923
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/86-pool-hands-build-o0.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/86-pool-hands-build-o0.stderr",
+    "kind": "diagnostic",
+    "sha256": "c2126f0c37ebe20e68e81cc0fb5ecc42e01114cc5e14b9a38955acb2ddedd3f8",
+    "original_size": 4609,
+    "compressed_size": 691
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/87-pool-hands-run-o3.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/87-pool-hands-run-o3.stdout",
+    "kind": "diagnostic",
+    "sha256": "61ebd0aa64a8e262932585c5ad3b3fdaff72246d30da08b740bc91b729199bb4",
+    "original_size": 1170,
+    "compressed_size": 315
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/88-source-order.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/88-source-order.rs",
+    "kind": "diagnostic",
+    "sha256": "c5335856c73c430f25018491fe0bb12b9104926a44a1d0edcc572a1a193d51e1",
+    "original_size": 18504,
+    "compressed_size": 4191
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/89-source-order-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/89-source-order-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "c5335856c73c430f25018491fe0bb12b9104926a44a1d0edcc572a1a193d51e1",
+    "original_size": 18504,
+    "compressed_size": 4191
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/9-release-pool-hands-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/9-release-pool-hands-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/90-pool-hands-build-o3.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/90-pool-hands-build-o3.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/91-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/91-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "66dfa04b06841fab2a9bedc95b892dac1c13f1e59e608f90efd67e98fca4c7ec",
+    "original_size": 9962,
+    "compressed_size": 1223
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/92-source-order-build-o3.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/92-source-order-build-o3.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/93-source-order-run-o0.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/93-source-order-run-o0.stdout",
+    "kind": "diagnostic",
+    "sha256": "1488227ea54be40b3eed689bd34fd406fb4b9c8f30522b23789cb6d1c54fdec9",
+    "original_size": 60,
+    "compressed_size": 45
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/94-source-order-build-o3.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/94-source-order-build-o3.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/95-source-order-run-o0.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/95-source-order-run-o0.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/96-pool-hands.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/96-pool-hands.rs",
+    "kind": "diagnostic",
+    "sha256": "c1aa26ad05adb03a97c0362ec49ef8625e52270fc443f6fb6a55dcd9e147e705",
+    "original_size": 22560,
+    "compressed_size": 4412
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/97-pool-hands-run-o3.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/97-pool-hands-run-o3.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/98-commands.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/98-commands.json",
+    "kind": "diagnostic",
+    "sha256": "03fc9e0dea479d51f9387e3acb2344cb3a3822805b10d92408aca96bb1be1ae1",
+    "original_size": 7293,
+    "compressed_size": 877
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/99-pool-hands-build-o3.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts/99-pool-hands-build-o3.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/0-seal-runtime.py": {
+    "path": "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/0-seal-runtime.py",
+    "kind": "diagnostic",
+    "sha256": "66b671a78ab083447fdd4c0f63b265e4321a4956182b9da019fa5bf1477e1896",
+    "original_size": 7361,
+    "compressed_size": 3046
+  },
+  "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/1-runtime-freeze.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/1-runtime-freeze.json",
+    "kind": "diagnostic",
+    "sha256": "a5923c03e2bc14b186a5495953fb0b15b82c28e9c7f292553852af06fc1987bd",
+    "original_size": 23323,
+    "compressed_size": 9400
+  },
+  "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/10-report-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/10-report-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "cbaedc5e7a43fe9fcea4445bac60e32e35f663b33a19575f1f28c1911bc89ee9",
+    "original_size": 461,
+    "compressed_size": 300
+  },
+  "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/11-runtime-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/11-runtime-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "ea8541abea1aee9eb2dd96b374935f4717685ed3b8a4af158bb84ed6e73772d6",
+    "original_size": 642,
+    "compressed_size": 369
+  },
+  "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/12-profiles-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/12-profiles-start.json",
+    "kind": "diagnostic",
+    "sha256": "794f32fe6a84a9f3599150bf3775e8568f79739579fc7c94d275745c2159a4b7",
+    "original_size": 426,
+    "compressed_size": 257
+  },
+  "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/13-number_to_fixed_default.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/13-number_to_fixed_default.rs",
+    "kind": "diagnostic",
+    "sha256": "7f700468c8212121a296540302878d1205a47f600b8a95caf05ddf2be2776a27",
+    "original_size": 26067,
+    "compressed_size": 6636
+  },
+  "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/14-number_to_fixed_default.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/14-number_to_fixed_default.rs",
+    "kind": "diagnostic",
+    "sha256": "5c02edb9b8a246a584cc25de3f39b95feba625e10af8ae0c8604abca0aa76c4e",
+    "original_size": 28799,
+    "compressed_size": 7350
+  },
+  "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/15-number_to_fixed_2.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/15-number_to_fixed_2.rs",
+    "kind": "diagnostic",
+    "sha256": "e692884745b8fd51c2e0efe71478d76ff11c6abbf9d325755e045b4c60d258ea",
+    "original_size": 26073,
+    "compressed_size": 6637
+  },
+  "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/16-number_to_fixed_2.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/16-number_to_fixed_2.rs",
+    "kind": "diagnostic",
+    "sha256": "938a7cbdc19f0d7da24fed5c86d563a7d0bd9537c78e8a3a1301c7300e32fe21",
+    "original_size": 28805,
+    "compressed_size": 7352
+  },
+  "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/17-number_to_exponential_default.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/17-number_to_exponential_default.rs",
+    "kind": "diagnostic",
+    "sha256": "d88372686baa87853be075ad8860d177b5adfeb2003df34349e72b03aaf69aef",
+    "original_size": 26079,
+    "compressed_size": 6637
+  },
+  "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/18-number_to_exponential_default.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/18-number_to_exponential_default.rs",
+    "kind": "diagnostic",
+    "sha256": "549b14834be34a33f89a53018494a4eeab05abe3fa7c77f407d20f84e8d1b714",
+    "original_size": 28811,
+    "compressed_size": 7352
+  },
+  "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/19-number_to_exponential_2.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/19-number_to_exponential_2.rs",
+    "kind": "diagnostic",
+    "sha256": "4129f85c1be99698ffca4deee348022d6a481683621e4df695c41e1b3f31b990",
+    "original_size": 26085,
+    "compressed_size": 6640
+  },
+  "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/2-BENCHMARKS.md": {
+    "path": "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/2-BENCHMARKS.md",
+    "kind": "diagnostic",
+    "sha256": "e8038596d70baea33ea6d8149f75c2ba6f0651f407121a3ae02b844a5ac00aba",
+    "original_size": 901706,
+    "compressed_size": 132038
+  },
+  "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/20-number_to_exponential_2.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/20-number_to_exponential_2.rs",
+    "kind": "diagnostic",
+    "sha256": "f3970e7ab12a3a790655154b6c441ed3bcb4be6ad20d16d603f9e92d5ebcbd29",
+    "original_size": 28817,
+    "compressed_size": 7355
+  },
+  "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/21-number_to_precision_default.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/21-number_to_precision_default.rs",
+    "kind": "diagnostic",
+    "sha256": "53228c1ebc616ef143882f2423b7ac3282c98db2644570e101577536494f1ce1",
+    "original_size": 26075,
+    "compressed_size": 6636
+  },
+  "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/22-number_to_precision_default.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/22-number_to_precision_default.rs",
+    "kind": "diagnostic",
+    "sha256": "da630d55892f405c6f0d86e469b45e1ad85a762b205ffaa9c38192dad94bd8a1",
+    "original_size": 28807,
+    "compressed_size": 7350
+  },
+  "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/23-number_to_precision_5.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/23-number_to_precision_5.rs",
+    "kind": "diagnostic",
+    "sha256": "678b8eec19a5f80146fc50fd44498f773d8b19700c6b29a6f0a02cae34b32398",
+    "original_size": 26081,
+    "compressed_size": 6638
+  },
+  "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/24-number_to_precision_5.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/24-number_to_precision_5.rs",
+    "kind": "diagnostic",
+    "sha256": "a0e4fb938db0624364ff6ba0b4138ff4687903a5d06a6f8fdde569adfbf17997",
+    "original_size": 28813,
+    "compressed_size": 7353
+  },
+  "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/3-report-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/3-report-start.json",
+    "kind": "diagnostic",
+    "sha256": "05aa1822799dca3e9dcff9cc873227e8d11fb13f6eab2ac0276f5fbc4b040dbd",
+    "original_size": 258,
+    "compressed_size": 194
+  },
+  "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/4-profiles.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/4-profiles.log",
+    "kind": "diagnostic",
+    "sha256": "f40157d6a8e68bcfbd034e9d8282e70ed891965548ec8949d32ffed559bf76de",
+    "original_size": 555,
+    "compressed_size": 225
+  },
+  "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/5-report.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/5-report.log",
+    "kind": "diagnostic",
+    "sha256": "a3a0d3b911bb28198da95b0f3c1dd5a2e15c3e79474e1e9b03e9f6f247fecc04",
+    "original_size": 68,
+    "compressed_size": 76
+  },
+  "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/6-profiles-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/6-profiles-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "adbe7d93d735cced440d07d163f1de60313d697d2792867e371605c0438bd8fe",
+    "original_size": 631,
+    "compressed_size": 364
+  },
+  "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/7-runtime-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/7-runtime-start.json",
+    "kind": "diagnostic",
+    "sha256": "07fd4f33fe36078f9822cfcb57e2f056bf715b11678f3932d45e48cef35fb115",
+    "original_size": 438,
+    "compressed_size": 261
+  },
+  "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/8-runtime-driver-supplement.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/8-runtime-driver-supplement.json",
+    "kind": "diagnostic",
+    "sha256": "0ad5e7cb87d4d128295cf34bdaf448ea809200aed8f74354c8d29d3ba9673f78",
+    "original_size": 981,
+    "compressed_size": 538
+  },
+  "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/9-runtime.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts/9-runtime.log",
+    "kind": "diagnostic",
+    "sha256": "d7b88374094e33f4b4054c8a81fcb9f4d122455b6a81b7f31ffc016673f91a97",
+    "original_size": 1283,
+    "compressed_size": 273
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/0-seal-buffer-runtime.py": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/0-seal-buffer-runtime.py",
+    "kind": "diagnostic",
+    "sha256": "c93548e268bbfa926a8b8922a753eb291150d5b4e3986cb1640fadb54fc7cc17",
+    "original_size": 7966,
+    "compressed_size": 3194
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/1-buffer-runtime-freeze.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/1-buffer-runtime-freeze.json",
+    "kind": "diagnostic",
+    "sha256": "81a9c489a5e5dfd7e9edfa6d139a6811360f70522c1e6f7406259db0cde3d932",
+    "original_size": 24036,
+    "compressed_size": 9723
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/10-buffer-runtime-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/10-buffer-runtime-start.json",
+    "kind": "diagnostic",
+    "sha256": "a121bf258be9d35341b56bfa84704dd2ad6e142d12a14003563f6df72aec5a78",
+    "original_size": 439,
+    "compressed_size": 261
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/11-buffer-profiles-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/11-buffer-profiles-start.json",
+    "kind": "diagnostic",
+    "sha256": "f9a3ac0707cbef33e1d04a689ffac42388a7b1978c622c64cfa0662ad6b08914",
+    "original_size": 426,
+    "compressed_size": 258
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/12-number_to_fixed_default.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/12-number_to_fixed_default.rs",
+    "kind": "diagnostic",
+    "sha256": "73c2f78a73801cd3df45010bfc83970b2a70ac50fb7d4b79efcd17bab49a483a",
+    "original_size": 26439,
+    "compressed_size": 6645
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/13-number_to_fixed_default.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/13-number_to_fixed_default.rs",
+    "kind": "diagnostic",
+    "sha256": "f5985cd1e7afb210d0d7e12ea0f65729bf63e51710e2efb6ac131038a3a464b9",
+    "original_size": 29171,
+    "compressed_size": 7362
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/14-number_to_fixed_2.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/14-number_to_fixed_2.rs",
+    "kind": "diagnostic",
+    "sha256": "6210aa757fab896bf052368c9289faf511ccec29f92bc4b9843fcc0509694c1d",
+    "original_size": 26445,
+    "compressed_size": 6647
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/15-number_to_fixed_2.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/15-number_to_fixed_2.rs",
+    "kind": "diagnostic",
+    "sha256": "d662fd09ce8ac7eef2c016ac50fb8cb6d4ce62d1f08d7eadaf88f3f8749c4b95",
+    "original_size": 29177,
+    "compressed_size": 7364
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/16-number_to_exponential_default.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/16-number_to_exponential_default.rs",
+    "kind": "diagnostic",
+    "sha256": "be0d0ad994c2fb8a83da68996d3bf21b94ab08c319a7e29b346cc5b35753b0fe",
+    "original_size": 26451,
+    "compressed_size": 6647
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/17-number_to_exponential_default.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/17-number_to_exponential_default.rs",
+    "kind": "diagnostic",
+    "sha256": "92124f3002bc0852350af2154c29aad905801b0249cad4ab21653896752c6b6e",
+    "original_size": 29183,
+    "compressed_size": 7364
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/18-number_to_exponential_2.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/18-number_to_exponential_2.rs",
+    "kind": "diagnostic",
+    "sha256": "e0d7da28817341857c6847b84b67a42996e88567c674d85f47985959ff8e7f7b",
+    "original_size": 26457,
+    "compressed_size": 6650
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/19-number_to_exponential_2.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/19-number_to_exponential_2.rs",
+    "kind": "diagnostic",
+    "sha256": "fabbc6887880fb98d4cb9305a53c59d662868067043bd5d44caca53f15067ce4",
+    "original_size": 29189,
+    "compressed_size": 7367
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/2-BENCHMARKS.md": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/2-BENCHMARKS.md",
+    "kind": "diagnostic",
+    "sha256": "1f99f4d1ba3c25f8563cdaec7b5b9aa2dd0b44dbf8efff9df928eca6ffb79501",
+    "original_size": 901851,
+    "compressed_size": 132036
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/20-number_to_precision_default.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/20-number_to_precision_default.rs",
+    "kind": "diagnostic",
+    "sha256": "986b71854935de40794378a3007cac217f1e8413caef5a1a691d7fe3949e82b1",
+    "original_size": 26447,
+    "compressed_size": 6645
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/21-number_to_precision_default.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/21-number_to_precision_default.rs",
+    "kind": "diagnostic",
+    "sha256": "db611a5177f8d69ebb4e17b40ab9a021b0ee264af9cff22ee72a5c8d9f34abd4",
+    "original_size": 29179,
+    "compressed_size": 7362
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/22-number_to_precision_5.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/22-number_to_precision_5.rs",
+    "kind": "diagnostic",
+    "sha256": "73bb848258176e775b91edea1de6f4682ee0f638742a494aaed36e211fbc66ff",
+    "original_size": 26453,
+    "compressed_size": 6649
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/23-number_to_precision_5.rs": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/23-number_to_precision_5.rs",
+    "kind": "diagnostic",
+    "sha256": "e66962dbb7ec9c59551146538442d98ecb20002fb5ec10444435f132e3877b10",
+    "original_size": 29185,
+    "compressed_size": 7365
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/3-buffer-profiles.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/3-buffer-profiles.log",
+    "kind": "diagnostic",
+    "sha256": "2aae8404ced61bd589f789e73b12ef20a4ed7ccf1f016ec244bea1148d66c464",
+    "original_size": 542,
+    "compressed_size": 203
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/4-buffer-report.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/4-buffer-report.log",
+    "kind": "diagnostic",
+    "sha256": "a3a0d3b911bb28198da95b0f3c1dd5a2e15c3e79474e1e9b03e9f6f247fecc04",
+    "original_size": 68,
+    "compressed_size": 76
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/5-buffer-report-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/5-buffer-report-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "247d65f310d5af85c14fd83045949597d553e24afb7c834bd78fe4af67fdd0e8",
+    "original_size": 468,
+    "compressed_size": 306
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/6-buffer-runtime-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/6-buffer-runtime-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "9f0e8d30c6c35eb9a7a4d2921b362c042b576dfbdc081b2e30b77b9d1451aa57",
+    "original_size": 650,
+    "compressed_size": 372
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/7-buffer-runtime.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/7-buffer-runtime.log",
+    "kind": "diagnostic",
+    "sha256": "140404c2d0e158bc244bc4b966115fb3aafb9e2e217d4147ae8d6e08d851ef59",
+    "original_size": 1283,
+    "compressed_size": 274
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/8-buffer-profiles-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/8-buffer-profiles-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "402e5d5ec5674095fa9cfc4fc3f1956e304580e80779abf992755c9c90d822e3",
+    "original_size": 638,
+    "compressed_size": 366
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/9-buffer-report-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts/9-buffer-report-start.json",
+    "kind": "diagnostic",
+    "sha256": "4488c049640180a7ba0a69ea9022f4f08a35de61fd9c243352fdf08d42ce6020",
+    "original_size": 258,
+    "compressed_size": 195
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-proof-closure-artifacts/close-docs.py": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-proof-closure-artifacts/close-docs.py",
+    "kind": "diagnostic",
+    "sha256": "83154ed171e2c066b230ee4053edd018610af238998b44a5e8d52989445611b2",
+    "original_size": 8979,
+    "compressed_size": 3490
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-proof-closure-artifacts/completed-acceptance.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-proof-closure-artifacts/completed-acceptance.json",
+    "kind": "diagnostic",
+    "sha256": "b724b2a0a00b51c3fdf59d8333837e887bb473555a6d82c15eb3fa4eed969a9b",
+    "original_size": 3904,
+    "compressed_size": 1540
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-proof-closure-artifacts/docs-closure-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-proof-closure-artifacts/docs-closure-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "17a16821ada56cc4b47b75d5f5270d6686a9ad0aa1e13478f5b5b4e8453d5cab",
+    "original_size": 423,
+    "compressed_size": 277
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-proof-closure-artifacts/docs-closure.log": {
+    "path": "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-proof-closure-artifacts/docs-closure.log",
+    "kind": "diagnostic",
+    "sha256": "0ab084393b31bcdf9f4275e7cc0d19f1c6f1883ad065e1fa8ae73aa11bb651d5",
+    "original_size": 150,
+    "compressed_size": 132
+  }
+}

@@ -1,0 +1,350 @@
+[
+  {
+    "id": "string_to_string_ascii",
+    "category": "strings",
+    "family": "string",
+    "primitiveMethod": "toString",
+    "methodResult": "string",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual primitive toString call with one retained complete result",
+    "specification": "Dynamic pool selection; actual zero-argument toString. Preserve full primitive method value.",
+    "notes": "Whole workload includes input/pool setup, dynamic selection, actual method, loop and output retention. Complete observation stays outside timing; no pure method latency or JavaScript/native allocation parity claim. Native static String Cow results can stay Borrowed; owned results are independent normal copies, including empty-owned clone behavior.",
+    "methodExpressions": {
+      "native": [
+        "values[at].toString()"
+      ],
+      "typescript": [
+        "values[at].toString()"
+      ]
+    },
+    "sourceRequired": {
+      "native": [
+        "const values: string[] = [clone(input), \"\", \"ABC\", \"a\\u0000b\", \" e \", \"Z\", input.repeat(2), \"tail\"];",
+        "const at = (i * 13 + seed) % 8;",
+        "const selected: string = values[at].toString();",
+        "output.push(selected);"
+      ],
+      "typescript": [
+        "const values: string[] = [clone(input), \"\", \"ABC\", \"a\\u0000b\", \" e \", \"Z\", input.repeat(2), \"tail\"];",
+        "const at = (i * 13 + seed) % 8;",
+        "const selected: string = values[at].toString();",
+        "output.push(selected);"
+      ]
+    },
+    "sourceSha256": "a5461bbb566c34048401e74b7836a3f844e58963397dd80e4500771ca71819f8",
+    "counterpartSha256": "a28deb713fbcfd31e4e8fa08ef773bd8549acf56c5235b8b0ad3d918d3546c96",
+    "inputFamily": "ascii",
+    "inputText": " A alpha Z "
+  },
+  {
+    "id": "string_to_string_unicode",
+    "category": "strings",
+    "family": "string",
+    "primitiveMethod": "toString",
+    "methodResult": "string",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual primitive toString call with one retained complete result",
+    "specification": "Dynamic pool selection; actual zero-argument toString. Preserve full primitive method value.",
+    "notes": "Whole workload includes input/pool setup, dynamic selection, actual method, loop and output retention. Complete observation stays outside timing; no pure method latency or JavaScript/native allocation parity claim. Native static String Cow results can stay Borrowed; owned results are independent normal copies, including empty-owned clone behavior.",
+    "methodExpressions": {
+      "native": [
+        "values[at].toString()"
+      ],
+      "typescript": [
+        "values[at].toString()"
+      ]
+    },
+    "sourceRequired": {
+      "native": [
+        "const values: string[] = [clone(input), \"\", \"é😀Z\", \"a\\u0000é😀\", \"e\\u0301\", \"\\uFEFF中Z\", input.repeat(2), \"tail\"];",
+        "const at = (i * 13 + seed) % 8;",
+        "const selected: string = values[at].toString();",
+        "output.push(selected);"
+      ],
+      "typescript": [
+        "const values: string[] = [clone(input), \"\", \"é😀Z\", \"a\\u0000é😀\", \"e\\u0301\", \"\\uFEFF中Z\", input.repeat(2), \"tail\"];",
+        "const at = (i * 13 + seed) % 8;",
+        "const selected: string = values[at].toString();",
+        "output.push(selected);"
+      ]
+    },
+    "sourceSha256": "0469379fc13e381f9273984dfade068937e0f4a309c370a817d56dce9ace348b",
+    "counterpartSha256": "2ce07ecfe08aea599f77e48d0bf3a3a80d834b6bdfd37530f62fa1b3ea586b08",
+    "inputFamily": "unicode",
+    "inputText": " é😀é Z "
+  },
+  {
+    "id": "string_value_of_ascii",
+    "category": "strings",
+    "family": "string",
+    "primitiveMethod": "valueOf",
+    "methodResult": "string",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual primitive valueOf call with one retained complete result",
+    "specification": "Dynamic pool selection; actual zero-argument valueOf. Preserve full primitive method value.",
+    "notes": "Whole workload includes input/pool setup, dynamic selection, actual method, loop and output retention. Complete observation stays outside timing; no pure method latency or JavaScript/native allocation parity claim. Native static String Cow results can stay Borrowed; owned results are independent normal copies, including empty-owned clone behavior.",
+    "methodExpressions": {
+      "native": [
+        "values[at].valueOf()"
+      ],
+      "typescript": [
+        "values[at].valueOf()"
+      ]
+    },
+    "sourceRequired": {
+      "native": [
+        "const values: string[] = [clone(input), \"\", \"ABC\", \"a\\u0000b\", \" e \", \"Z\", input.repeat(2), \"tail\"];",
+        "const at = (i * 13 + seed) % 8;",
+        "const selected: string = values[at].valueOf();",
+        "output.push(selected);"
+      ],
+      "typescript": [
+        "const values: string[] = [clone(input), \"\", \"ABC\", \"a\\u0000b\", \" e \", \"Z\", input.repeat(2), \"tail\"];",
+        "const at = (i * 13 + seed) % 8;",
+        "const selected: string = values[at].valueOf();",
+        "output.push(selected);"
+      ]
+    },
+    "sourceSha256": "2f0a2f940e7198b2751fe458f2d6346470a4a4d59e92d12d3422e4ec0909bbbd",
+    "counterpartSha256": "ee319f33e0d53767504d4f15a0393e4feedc7eb058f19032122b32cbe3c5f2f9",
+    "inputFamily": "ascii",
+    "inputText": " A alpha Z "
+  },
+  {
+    "id": "string_value_of_unicode",
+    "category": "strings",
+    "family": "string",
+    "primitiveMethod": "valueOf",
+    "methodResult": "string",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual primitive valueOf call with one retained complete result",
+    "specification": "Dynamic pool selection; actual zero-argument valueOf. Preserve full primitive method value.",
+    "notes": "Whole workload includes input/pool setup, dynamic selection, actual method, loop and output retention. Complete observation stays outside timing; no pure method latency or JavaScript/native allocation parity claim. Native static String Cow results can stay Borrowed; owned results are independent normal copies, including empty-owned clone behavior.",
+    "methodExpressions": {
+      "native": [
+        "values[at].valueOf()"
+      ],
+      "typescript": [
+        "values[at].valueOf()"
+      ]
+    },
+    "sourceRequired": {
+      "native": [
+        "const values: string[] = [clone(input), \"\", \"é😀Z\", \"a\\u0000é😀\", \"e\\u0301\", \"\\uFEFF中Z\", input.repeat(2), \"tail\"];",
+        "const at = (i * 13 + seed) % 8;",
+        "const selected: string = values[at].valueOf();",
+        "output.push(selected);"
+      ],
+      "typescript": [
+        "const values: string[] = [clone(input), \"\", \"é😀Z\", \"a\\u0000é😀\", \"e\\u0301\", \"\\uFEFF中Z\", input.repeat(2), \"tail\"];",
+        "const at = (i * 13 + seed) % 8;",
+        "const selected: string = values[at].valueOf();",
+        "output.push(selected);"
+      ]
+    },
+    "sourceSha256": "9f13898494311877285daf1e27366704061a094bf351282ed5b5a122ceca8a4b",
+    "counterpartSha256": "f070259eb203a6fc28e5a1674e4124594052b3f967b1b73a4b5e481661328f8d",
+    "inputFamily": "unicode",
+    "inputText": " é😀é Z "
+  },
+  {
+    "id": "boolean_to_string",
+    "category": "booleans",
+    "family": "boolean",
+    "primitiveMethod": "toString",
+    "methodResult": "string",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual primitive toString call with one retained complete result",
+    "specification": "Dynamic pool selection; actual zero-argument toString. Preserve full primitive method value.",
+    "notes": "Whole workload includes input/pool setup, dynamic selection, actual method, loop and output retention. Complete observation stays outside timing; no pure method latency or JavaScript/native allocation parity claim. Boolean.toString uses natural static true/false content.",
+    "methodExpressions": {
+      "native": [
+        "values[at].toString()"
+      ],
+      "typescript": [
+        "values[at].toString()"
+      ]
+    },
+    "sourceRequired": {
+      "native": [
+        "const values: boolean[] = [false, true, true, false];",
+        "const at = (i * 13 + seed) % 4;",
+        "const selected: string = values[at].toString();",
+        "output.push(selected);"
+      ],
+      "typescript": [
+        "const values: boolean[] = [false, true, true, false];",
+        "const at = (i * 13 + seed) % 4;",
+        "const selected: string = values[at].toString();",
+        "output.push(selected);"
+      ]
+    },
+    "sourceSha256": "d7c2b4a12cc65fa6347bc37438378095ae5cb456349c1f6c94754ad6cafac680",
+    "counterpartSha256": "56855e1b5bf454080a16f34f84b653a4d4822bbf5cdbc0d6795a4baf5e2aa8f8"
+  },
+  {
+    "id": "boolean_value_of",
+    "category": "booleans",
+    "family": "boolean",
+    "primitiveMethod": "valueOf",
+    "methodResult": "boolean",
+    "result": "boolean[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual Boolean.valueOf call with one retained complete Boolean",
+    "specification": "Dynamic Boolean pool selection; actual zero-argument valueOf, natural Boolean[] complete output.",
+    "notes": "Whole workload includes pool setup, dynamic selection, actual method, loop and natural Boolean[] output retention. Complete observation stays outside timing; no pure method latency or JavaScript/native allocation parity claim. Boolean checksum/exact-token encoding occurs outside timing, without Boolean-to-int projection in the workload.",
+    "methodExpressions": {
+      "native": [
+        "values[at].valueOf()"
+      ],
+      "typescript": [
+        "values[at].valueOf()"
+      ]
+    },
+    "sourceRequired": {
+      "native": [
+        "const values: boolean[] = [false, true, true, false];",
+        "const at = (i * 13 + seed) % 4;",
+        "const selected: boolean = values[at].valueOf();",
+        "output.push(selected);"
+      ],
+      "typescript": [
+        "const values: boolean[] = [false, true, true, false];",
+        "const at = (i * 13 + seed) % 4;",
+        "const selected: boolean = values[at].valueOf();",
+        "output.push(selected);"
+      ]
+    },
+    "sourceSha256": "e44cbc831d70bc749f9bf7063f600dc6e11005662b679a879f7a17947a026e32",
+    "counterpartSha256": "a80549af6a4196527b321bc39f9038e99a5875c5f9199040c8d765268d8f5370"
+  },
+  {
+    "id": "number_value_of",
+    "category": "numbers",
+    "family": "number",
+    "primitiveMethod": "valueOf",
+    "methodResult": "number",
+    "result": "number[]",
+    "resultEncoding": "ieee-f64-bits-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual primitive valueOf call with one retained complete result",
+    "specification": "Dynamic pool selection; actual zero-argument valueOf. Preserve full primitive method value.",
+    "notes": "Whole workload includes input/pool setup, dynamic selection, actual method, loop and output retention. Complete observation stays outside timing; no pure method latency or JavaScript/native allocation parity claim. Full f64 sign/subnormal/nonfinite content is retained; existing observer canonicalizes NaN, without JavaScript NaN-payload identity claims.",
+    "methodExpressions": {
+      "native": [
+        "values[at].valueOf()"
+      ],
+      "typescript": [
+        "values[at].valueOf()"
+      ]
+    },
+    "sourceRequired": {
+      "native": [
+        "const values: number[] = [0.0, -0.0, 5e-324, -2.5, 0.5, 1.0 / 0.0, -1.0 / 0.0, 0.0 / 0.0];",
+        "const at = (i * 13 + seed) % 8;",
+        "const selected: number = values[at].valueOf();",
+        "output.push(selected);"
+      ],
+      "typescript": [
+        "const values: number[] = [0.0, -0.0, 5e-324, -2.5, 0.5, 1.0 / 0.0, -1.0 / 0.0, 0.0 / 0.0];",
+        "const at = (i * 13 + seed) % 8;",
+        "const selected: number = values[at].valueOf();",
+        "output.push(selected);"
+      ]
+    },
+    "sourceSha256": "dab571dbd2946a5ab0f8f9d9278a3639bd44484e52e84c0cb762f819eb5f30d1",
+    "counterpartSha256": "9ee2a16ed02cb99221fed78413c93326018897c96f3ef592465c6e113a4beb85"
+  },
+  {
+    "id": "int_value_of",
+    "category": "numbers",
+    "family": "int",
+    "primitiveMethod": "valueOf",
+    "methodResult": "int",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual primitive valueOf call with one retained complete result",
+    "specification": "Dynamic pool selection; actual zero-argument valueOf. Preserve full primitive method value.",
+    "notes": "Whole workload includes input/pool setup, dynamic selection, actual method, loop and output retention. Complete observation stays outside timing; no pure method latency or JavaScript/native allocation parity claim. Existing bounded int observation uses nonnegative values ≤2147483647; signed safe-integer identity is separately compared by literal console hands, native-only i64 extremes remain compiler acceptance.",
+    "methodExpressions": {
+      "native": [
+        "values[at].valueOf()"
+      ],
+      "typescript": [
+        "values[at].valueOf()"
+      ]
+    },
+    "sourceRequired": {
+      "native": [
+        "const values: int[] = [0, 1, 7, 31, 1024, 65535, 1048576, 2147483647];",
+        "const at = (i * 13 + seed) % 8;",
+        "const selected: int = values[at].valueOf();",
+        "output.push(selected);"
+      ],
+      "typescript": [
+        "const values: int[] = [0, 1, 7, 31, 1024, 65535, 1048576, 2147483647];",
+        "const at = (i * 13 + seed) % 8;",
+        "const selected: int = values[at].valueOf();",
+        "output.push(selected);"
+      ]
+    },
+    "sourceSha256": "7dc98eecded4a440e839c988848df3533576e6aa43ad0d26b8ec865e80fcc6b3",
+    "counterpartSha256": "4758a6f9b8c5aec457c2d786e569c955cec22090d594b891513858e9caf63ac5"
+  }
+]

@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "python3",
+    "/tmp/tsrust-gate98-archive-plan/import-closed-artifacts.py"
+  ],
+  "pid": 96220,
+  "startUTC": "2026-10-04T07:19:32.789151+00:00",
+  "before": {
+    "records": 22507,
+    "blobs": 15107,
+    "databaseBytes": 172138496,
+    "databaseSha256": "d8f81a95a35b63e7934dd29e4123e1a5f7250f6e2982bd6f169c209d62d18023"
+  },
+  "plan": {
+    "path": "/tmp/tsrust-gate98-bundle-storage/import-plan.json",
+    "sha256": "ff90d50180413b2875229ab27052f3a654a821fa1975ff42f7271ab527272fac",
+    "bytes": 385169
+  }
+}

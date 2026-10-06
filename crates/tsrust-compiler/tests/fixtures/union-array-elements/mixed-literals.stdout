@@ -1,0 +1,10 @@
+[ 1, 'a', true, null ] 4 true 2
+number
+string
+boolean
+object
+[ 1, 2.5, 3 ] 1.5
+[ 1.5, 'x', 2 ] 1.5|x|2
+[ 2, true, 'ww' ]
+2 [ [ 1, 2 ], 's' ]
+1 2 ab

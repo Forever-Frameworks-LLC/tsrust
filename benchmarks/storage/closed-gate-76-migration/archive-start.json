@@ -1,0 +1,10 @@
+{
+  "gate": 76,
+  "argv": [
+    "python3",
+    "/tmp/tsrust-gate76/archive.py"
+  ],
+  "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+  "pid": 97214,
+  "startedUtc": "2026-10-03T05:17:01.215951+00:00"
+}

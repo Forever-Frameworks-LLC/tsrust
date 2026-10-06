@@ -1,0 +1,96 @@
+{
+  "gate": 72,
+  "kind": "documentation-only-postclosure-supplement",
+  "timestamp": "2026-10-03T01:56:00.509852+00:00",
+  "compilerProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T01-46-40-000Z-primitive-identity-compiler-proof.json",
+    "sha256": "8e53b074b1dab01ffeb5ca9ba4f77a10fc192a1b007fb1da81f249bdf03ff6dc"
+  },
+  "sourceProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T01-34-29-000Z-primitive-identity-source-validation.json",
+    "sha256": "d46713670d538486d6192d47df9c936e7b673c8a48ab672994cf94d7b47e2057"
+  },
+  "runtimeProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T01-55-51-000Z-primitive-identity-runtime-proof.json",
+    "sha256": "2add80e4ed3bc43a47736b432f9d257e4396cab396b56ab7b03c4c2d160dcc5e"
+  },
+  "files": [
+    {
+      "path": "docs/milestones/72-primitive-identity.md",
+      "beforeSha256": "52d8ed82a35db9f59e684d952cce966f984a255eb1ef0b9a15bd7fa75b0623db",
+      "afterSha256": "883be37b74cf55fef7ba9a72d28da370f2293de993e7217d49a101ebf3b597df"
+    },
+    {
+      "path": "docs/roadmap.md",
+      "beforeSha256": "22a8622b148e88851476f4b17e1fb54d76a365c15da6fb8934ac012781c03338",
+      "afterSha256": "e3132b3a4bf480f51f52aa8c5666073344b668e9695fc5b7d80f8020ac88e45b"
+    },
+    {
+      "path": "docs/README.md",
+      "beforeSha256": "1e527c18e573169ee60f2d61df5b3976d4d054d86c9b2595341f2ea3106f807c",
+      "afterSha256": "b395fe32cb65e29e9121661fa5ab476ec94527851e02af191d4bd7a97237a843"
+    },
+    {
+      "path": "crates/tsrust-compiler/README.md",
+      "beforeSha256": "b0b857600a4875f7e990c6ae45c6d9c6cb0a589505632229afe4c4a954e84264",
+      "afterSha256": "079f5f39e03ce6da26c48813c74412b7a3aa6a412bc232b5933e8588fb74361f"
+    },
+    {
+      "path": "benchmarks/runtime/README.md",
+      "beforeSha256": "9252c3d8d4a6e265127e40f245d9143ce405b9d9c280323d120a5bc311a56292",
+      "afterSha256": "977345f9d10b21a7c72bb06bcf615eea9b7c93838da3a0917e7968058c28a534"
+    },
+    {
+      "path": "docs/string-semantics.md",
+      "beforeSha256": "155fab5bad4eb7624171b17a5793b5d64c1f130d0d6355857bb2599edc20210c",
+      "afterSha256": "1ba07506c964cf3ca00ab706f12dbc882adb11fd89aefc39bebb31856497d75f"
+    },
+    {
+      "path": "benchmarks/coverage/status.json",
+      "beforeSha256": "c03b76f9cb1ac8cbd82ee63435d196f39037a325b016e0c800ebe68ec7f15489",
+      "afterSha256": "ffa2edc89faa3c108faaf82e4743416e338218ad8bfb620c0f101e21f4da5d3f"
+    },
+    {
+      "path": "docs/feature-coverage.md",
+      "beforeSha256": "f3f943ade860a763c47f085777d474eb9ccd53ba196ffdc49edb466fbd898f61",
+      "afterSha256": "6dea87f2e3026764e272145c80d7f00657d88076922a863d104e22f5d37e6819"
+    },
+    {
+      "path": "benchmarks/coverage/inventory.json",
+      "beforeSha256": "23256665dff6c0882371c42b90e7fe773593306f293040570d733de68bcaba7f",
+      "afterSha256": "b22431c477f3adf7c436e50023fd47e8a831f9f8dccde98047c0ed87a149e47e"
+    }
+  ],
+  "coverageStatusChanges": {
+    "completedMethods": [
+      "String.toString",
+      "String.valueOf",
+      "Boolean.toString",
+      "Boolean.valueOf",
+      "Number.valueOf",
+      "int.valueOf"
+    ],
+    "otherStatusesUnchanged": true,
+    "scopeBefore": {
+      "path": "/tmp/tsrust-gate72-root-acceptance/scope-before/status.json",
+      "sha256": "8cf57e5b8db8568abf66317e54d931017257d5d9ce4ddd4d90e176cc9a958c70"
+    }
+  },
+  "inventoryOperations": 1926,
+  "inventoryFamilies": 28,
+  "acceptedCompilerSourceIdentityCount": 196,
+  "compilerReadmeAcceptedSha256": "b0b857600a4875f7e990c6ae45c6d9c6cb0a589505632229afe4c4a954e84264",
+  "compilerReadmeAfterSha256": "079f5f39e03ce6da26c48813c74412b7a3aa6a412bc232b5933e8588fb74361f",
+  "compilerCodeChanged": false,
+  "sourceManifestHarnessChanged": false,
+  "measuredReportChanged": false,
+  "measurementsRepeated": false,
+  "inventoryRegenerations": 1,
+  "closureArtifacts": [
+    {
+      "originalPath": "/private/tmp/tsrust-gate72-close-docs.py",
+      "path": "benchmarks/runtime/diagnostics/2026-10-03T01-55-51-000Z-primitive-identity-runtime-proof-closure-artifacts/tsrust-gate72-close-docs.py",
+      "sha256": "d2d4005bac7fe5641d8b6026c2e2016d4a2b2b60cd9bb8588b2ce1d60e84ddcf"
+    }
+  ]
+}

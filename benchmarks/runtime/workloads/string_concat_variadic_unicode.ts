@@ -1,0 +1,20 @@
+function workload(n: number, seed: number, input: string): string[] {
+    const values: string[] = [clone(input), "", "é", "😀", "e\u0301", "a\u0000é😀", input.repeat(2), "Z"];
+    const parts: string[] = ["", "é", "😀", "e\u0301", "\u0000", clone(input), "中", "Z"];
+    const output: string[] = []; let i = 0;
+    while (i < n) {
+        const at = (i * 13 + seed) % 8;
+        const argAt = (i * 7 + seed * 3) % 8;
+        const arity = (i + seed) % 4 + 1;
+        let selected: string = "";
+        if (arity === 1) { selected = values[at].concat(parts[argAt]); }
+        else if (arity === 2) { selected = values[at].concat(parts[argAt], parts[(argAt + 1) % 8]); }
+        else if (arity === 3) { selected = values[at].concat(parts[argAt], parts[(argAt + 1) % 8], parts[(argAt + 2) % 8]); }
+        else { selected = values[at].concat(parts[argAt], parts[(argAt + 1) % 8], parts[(argAt + 2) % 8], parts[(argAt + 3) % 8]); }
+        output.push(selected);
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7, " é😀é Z "); }
+function clone<T>(value: T): T { return value; }

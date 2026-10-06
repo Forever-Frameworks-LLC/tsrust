@@ -1,0 +1,4 @@
+function clone<T>(value:T):T{return value;}
+type ConcatBenchmarkNode={code:number;text:string;children:ConcatBenchmarkNode[];};
+function workload(n:number,seed:number,input:string):ConcatBenchmarkNode[][]{const base:ConcatBenchmarkNode[]=[{code:seed,text:clone(input),children:[{code:1,text:"é",children:[]}]},{code:2,text:"😀",children:[]},{code:3,text:"a\u0000b",children:[{code:4,text:"e\u0301",children:[]}]},{code:5,text:"x",children:[]},{code:6,text:"z",children:[]}];const output:ConcatBenchmarkNode[][]=[];let i=0;while(i<n){const mode=(i+seed)%4;let count=5;if(mode===0){count=0;}else if(mode===1){count=1;}else if(mode===2){count=4;}const selected=base.slice(0,count);const result=selected.concat();output.push(result);i=i+1;}return output;}
+function main(){const result=workload(2,7,"é 😀 e\u0301");}

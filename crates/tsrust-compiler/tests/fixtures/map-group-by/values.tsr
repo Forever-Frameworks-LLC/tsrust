@@ -1,0 +1,36 @@
+import {strictEqual} from "std:testing";
+function withDefaults(value:int=99,index:int=98,...tail:int[]):int{strictEqual(tail.length,0);return value%2;}
+function fromRest(...values:int[]):int{return values[1]%2;}
+function main(){
+ const values:int[]=[4,1,6,3,8];let visits=0;
+ const groups=Map.groupBy(values,(value:int,index:int):int=>{visits+=1;return (value+index)%2;});
+ strictEqual(visits,5);strictEqual(values.join(","),"4,1,6,3,8");
+ strictEqual(groups.size,1);const all=groups.get(0);if(all!==undefined){strictEqual(all.join(","),"4,1,6,3,8");}else{throw "missing";}
+ const odds=Map.groupBy(values,(value:int):int=>{return value%2;});
+ strictEqual(Array.from(odds.keys()).join(","),"0,1");
+ const even=odds.get(0);if(even!==undefined){strictEqual(even.join(","),"4,6,8");}else{throw "even";}
+ const odd=odds.get(1);if(odd!==undefined){strictEqual(odd.join(","),"1,3");}else{throw "odd";}
+ const words:string[]=["a","bb","c"];
+ const lengths=Map.groupBy(words,(word:string):int=>{return word.length;});
+ words[0]="changed";const one=lengths.get(1);if(one!==undefined){strictEqual(one.join(","),"a,c");}else{throw "one";}
+ const keys=new Set<int>([3,2,3,4]);const sets=Map.groupBy(keys,(key:int):int=>{return key%2;});
+ strictEqual(Array.from(sets.keys()).join(","),"1,0");strictEqual(keys.size,3);
+ const empty:int[]=[];const none=Map.groupBy(empty,(value:int):int=>{return value;});strictEqual(none.size,0);
+ let seen=0;try{Map.groupBy(values,(value:int):int=>{if(value===6){throw "stop";}seen+=1;return value%2;});}catch(error){if(typeof error==="string"){strictEqual(error,"stop");}else{throw "wrong";}}finally{seen+=10;}
+ strictEqual(seen,12);
+ const byDefault=Map.groupBy(values,withDefaults);strictEqual(byDefault.size,2);
+ const byRest=Map.groupBy(values,fromRest);strictEqual(byRest.size,2);
+ const letters=Map.groupBy("aé🙂a",(letter:string,index:int):int=>{return letter==="a"?0:1;});
+ const nonAscii=letters.get(1);if(nonAscii!==undefined){strictEqual(nonAscii.join("|"),"é|🙂");}else{throw "characters";}
+ const map=new Map<int,string>([[1,"a"],[2,"b"],[3,"c"]]);
+ const entries=Map.groupBy(map,(entry:[int,string]):int=>{return entry[0]%2;});map.clear();
+ const pairs=entries.get(1);if(pairs!==undefined){strictEqual(pairs.length,2);strictEqual(pairs[0][1],"a");strictEqual(pairs[1][1],"c");}else{throw "entries";}
+ const named:Map<int,int[]>=Map.groupBy([2,3],(value:int):int=>{return value%2;});strictEqual(named.size,2);
+ const numbers:number[]=[NaN,Infinity,-0,0,NaN];const same=Map.groupBy(numbers,(value:number):number=>{return value;});strictEqual(same.size,3);
+
+ const nested=Map.groupBy(Map.groupBy([2,3],(value:int):int=>{return value%2;}),(entry:[int,int[]]):int=>{return entry[0];});strictEqual(nested.size,2);
+
+ const textKeys=Map.groupBy([1,2,3],(value:int):string=>{return value%2===0?"even":"odd";});strictEqual(Array.from(textKeys.keys()).join(","),"odd,even");
+ const boolKeys=Map.groupBy([1,2,3],(value:int):boolean=>{return value%2===0;});strictEqual(boolKeys.size,2);
+
+}

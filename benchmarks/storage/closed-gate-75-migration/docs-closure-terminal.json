@@ -1,0 +1,14 @@
+{
+  "gate": 75,
+  "argv": [
+    "python3",
+    "/tmp/tsrust-gate75/close-docs.py"
+  ],
+  "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+  "pid": 28938,
+  "startedUtc": "2026-10-03T04:29:35.993242+00:00",
+  "finishedUtc": "2026-10-03T04:29:36.366104+00:00",
+  "exitCode": 0,
+  "log": "/private/tmp/tsrust-gate75/docs-closure.log",
+  "logSha256": "f819548eacac2c1336db8e5f0566938ea50c69100403dfdd9097d24a0e00b323"
+}

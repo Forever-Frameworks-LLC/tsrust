@@ -1,0 +1,14 @@
+type int = number;
+function workload(n: int, seed: int): int {
+    const values: number[] = [0.0 / 0.0, 1.0 / 0.0, -1.0 / 0.0, -0.0, 0.0, 1.0, -1.0, 1.5, -1.5, 5e-324, -5e-324, 1.7976931348623157e308, -1.7976931348623157e308, 9007199254740991.0, -9007199254740991.0, 9007199254740992.0, -9007199254740992.0, 4503599627370495.5, 4503599627370496.0, 4503599627370497.0, 10.0, -10.0, 0.25, -0.25];
+    let digest = seed; let i = 0;
+    while (i < n) {
+        const value = values[(i * 13 + seed) % 24];
+        let bit = 0;
+        if (Number.isFinite(value)) { bit = 1; }
+        digest = (digest * 131 + bit) % 1000000007;
+        i = i + 1;
+    }
+    return digest;
+}
+function main() { const result = workload(2, 7); console.log(result); }

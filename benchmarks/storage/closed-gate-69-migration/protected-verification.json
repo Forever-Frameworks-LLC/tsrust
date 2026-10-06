@@ -1,0 +1,19 @@
+{
+  "files": 466,
+  "completePathSetExact": true,
+  "acceptedOriginalHashesRetained": true,
+  "priorOriginalBytesRehashed": false,
+  "priorProtectedIdentityLedger": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-gate-68-migration/protected-files.json",
+    "sha256": "2b948b6686e74af547524ed4b4561478c1afb1738e893950cba6fe95fa00fa8a"
+  },
+  "allFileStatIdentitiesUnchanged": true,
+  "freshHashesBeforeAndAfter": [
+    "BENCHMARKS.md",
+    "benchmarks/runtime/results/2026-10-02T23-06-23-051Z.json",
+    "benchmarks/runtime/diagnostics/2026-10-02T23-12-32-000Z-conditional-expression-runtime-proof.json",
+    "benchmarks/runtime/diagnostics/2026-10-02T23-10-46-064Z-native-allocations.json",
+    "benchmarks/runtime/diagnostics/2026-10-02T22-58-28-000Z-conditional-expressions-compiler-proof.json",
+    "benchmarks/runtime/diagnostics/2026-10-02T22-20-19-000Z-conditional-expression-source-validation.json"
+  ]
+}

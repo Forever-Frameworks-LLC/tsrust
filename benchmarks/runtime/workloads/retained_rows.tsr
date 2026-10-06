@@ -1,0 +1,2 @@
+function workload(n: int, seed: int): int[][] { const rows: int[][] = []; let i = 0; while (i < n) { const row: int[] = []; const width = (i + seed) % 65; let j = 0; while (j < width) { row.push((i * 3 + seed + j) % 1009); j = j + 1; } rows.push(row); i = i + 1; } return rows; }
+function main() { const rows = workload(2, 7); for (const row of rows) { for (const value of row) { console.log(value); } } }

@@ -1,0 +1,300 @@
+{
+  "gate": 81,
+  "regressionAccepted": true,
+  "runtimeAccepted": true,
+  "profilesAccepted": true,
+  "documentationAccepted": true,
+  "allConsumersFinished": true,
+  "implementationProofs": [
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T05-56-16-000Z-quoted-string-literals-implementation.json",
+      "sha256": "781fc10bfb3493590b7a022ad6bcab89a394460ab572e6cdb788352dc077343e"
+    },
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T06-19-03-000Z-template-literals-implementation.json",
+      "sha256": "9ecb17f116fc6198da7fa829d77f81adba02ea5f6cc59d29074ecf84cc91f53d"
+    },
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T06-37-34-000Z-split-storage-implementation.json",
+      "sha256": "c2f6d15244335d361e5271b98273bacd3fe05b3503af7016af700015c7bf0f6f"
+    },
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T06-58-56-000Z-string-substr-implementation.json",
+      "sha256": "1d233a99cb6591e721d6d5ea8d86ef68d82e4392a50289d792f96a3df3adc863"
+    },
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T07-15-42-000Z-string-html-wrappers-implementation.json",
+      "sha256": "0f37271fa0ad8a01ffb0cac53c55655de2899a97ed7c98a12b4ee81203d64ca3"
+    }
+  ],
+  "report": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/BENCHMARKS.md",
+    "sha256": "be18fc49258b1fd39819d91fa400c4ca14529c152ff3ed8ddb26ea6f50f9ff7a"
+  },
+  "release": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/target/release/tsrust",
+    "sha256": "cacfd47dab909500960b462d215c8b67614475efa576553a99fc6036c2df4798"
+  },
+  "commands": [
+    {
+      "gate": 81,
+      "argv": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "tsrust-compiler",
+        "--test",
+        "acceptance",
+        "frontend_rejections",
+        "--",
+        "--exact"
+      ],
+      "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+      "pid": 34002,
+      "startedUtc": "2026-10-03T07:21:34.275122+00:00",
+      "finishedUtc": "2026-10-03T07:21:53.063476+00:00",
+      "exitCode": 0,
+      "log": "/private/tmp/tsrust-gate81/frontend-rejections-repaired.log",
+      "logSha256": "e3df2711db98fa4401fdef222d0f776e26405297697c4651db7df1dd210f6053"
+    },
+    {
+      "gate": 81,
+      "argv": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "tsrust-compiler",
+        "--test",
+        "arrays"
+      ],
+      "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+      "pid": 63230,
+      "startedUtc": "2026-10-03T08:09:14.336626+00:00",
+      "finishedUtc": "2026-10-03T08:09:36.331358+00:00",
+      "exitCode": 0,
+      "log": "/private/tmp/tsrust-gate81/arrays-final.log",
+      "logSha256": "b327a4443883f3f51d351dc6eb48c15dc6e30a049d3b298265d695e90a83a9f6"
+    },
+    {
+      "gate": 81,
+      "argv": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "tsrust-lsp"
+      ],
+      "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+      "pid": 68868,
+      "startedUtc": "2026-10-03T08:11:40.127793+00:00",
+      "finishedUtc": "2026-10-03T08:13:09.416088+00:00",
+      "exitCode": 0,
+      "log": "/private/tmp/tsrust-gate81/current-lsp.log",
+      "logSha256": "2b8b96261b2138ee61a1fea6abd3e084fc94f7c1a8390931b3855fc5bde1c3b1"
+    },
+    {
+      "gate": 81,
+      "argv": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "tsrust-compiler",
+        "--doc"
+      ],
+      "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+      "pid": 74350,
+      "startedUtc": "2026-10-03T08:15:13.276831+00:00",
+      "finishedUtc": "2026-10-03T08:15:18.160789+00:00",
+      "exitCode": 0,
+      "log": "/private/tmp/tsrust-gate81/compiler-doctests.log",
+      "logSha256": "d2f5b109611fe1d40ecf3e14a61e478bc6f1e5d2fc3d00e25a0a677b556f87e1"
+    },
+    {
+      "gate": 81,
+      "argv": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "tsrust-compiler",
+        "--test",
+        "quoted_strings",
+        "all_continuations_are_empty_and_long_code_point_escapes_remain_iterative",
+        "--",
+        "--exact"
+      ],
+      "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+      "pid": 83001,
+      "startedUtc": "2026-10-03T08:21:33.560954+00:00",
+      "finishedUtc": "2026-10-03T08:22:00.704236+00:00",
+      "exitCode": 0,
+      "log": "/private/tmp/tsrust-gate81/quoted-continuation-final.log",
+      "logSha256": "cbe9ab4cca94f520693eddf47b3230a37ecf1817c11125512569d0250e2d59eb"
+    },
+    {
+      "gate": 81,
+      "argv": [
+        "cargo",
+        "build",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "tsrust-compiler"
+      ],
+      "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+      "pid": 87942,
+      "startedUtc": "2026-10-03T08:25:06.135844+00:00",
+      "finishedUtc": "2026-10-03T08:25:12.982205+00:00",
+      "exitCode": 0,
+      "log": "/private/tmp/tsrust-gate81/release.log",
+      "logSha256": "acbcd3e67fc89f16f20bb5c105ea0bbea1cbf2b64f2e1d934d70f55e0456971a"
+    },
+    {
+      "gate": 81,
+      "argv": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--offline",
+        "--workspace",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+      "pid": 81178,
+      "startedUtc": "2026-10-03T08:20:14.027665+00:00",
+      "finishedUtc": "2026-10-03T08:20:40.052604+00:00",
+      "exitCode": 0,
+      "log": "/private/tmp/tsrust-gate81/clippy-final.log",
+      "logSha256": "a91f9d90ea5d6619580d64a7654641c9a25d0e92f156c63f99584962b0b59ea3"
+    },
+    {
+      "gate": 81,
+      "argv": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+      "pid": 68536,
+      "startedUtc": "2026-10-03T08:11:28.130515+00:00",
+      "finishedUtc": "2026-10-03T08:11:29.257786+00:00",
+      "exitCode": 0,
+      "log": "/private/tmp/tsrust-gate81/format-final-repaired.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "gate": 81,
+      "argv": [
+        "/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node",
+        "benchmarks/runtime/run.mjs",
+        "--execution-only",
+        "--only=quoted_string_literals_ascii,quoted_string_literals_unicode,template_primitive_ascii,template_string_unicode,string_cow_split_pieces,string_scalar_split_unicode,string_substr_default_ascii,string_substr_default_unicode,string_substr_bounded_ascii,string_substr_bounded_unicode,string_split_normal,string_split_limits,string_split_empty_delimiter,string_html_anchor,string_html_big,string_html_blink,string_html_bold,string_html_fixed,string_html_fontcolor,string_html_fontsize,string_html_italics,string_html_link,string_html_small,string_html_strike,string_html_sub,string_html_sup,boolean_string_truthiness,string_explicit_int,string_array_conversion"
+      ],
+      "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+      "pid": 2012,
+      "startedUtc": "2026-10-03T08:35:28.477959+00:00",
+      "finishedUtc": "2026-10-03T08:40:34.465845+00:00",
+      "exitCode": 0,
+      "log": "/private/tmp/tsrust-gate81/runtime-socket-retry.log",
+      "logSha256": "579c7118c7677f7975a59d976dc9e9e6f887328752c5c06fd4dadff98362b0ad"
+    },
+    {
+      "gate": 81,
+      "argv": [
+        "/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node",
+        "benchmarks/runtime/profile-native.mjs",
+        "--only=quoted_string_literals_ascii,quoted_string_literals_unicode,template_primitive_ascii,template_string_unicode,string_cow_split_pieces,string_scalar_split_unicode,string_substr_default_ascii,string_substr_default_unicode,string_substr_bounded_ascii,string_substr_bounded_unicode,string_split_normal,string_split_limits,string_split_empty_delimiter,string_html_anchor,string_html_big,string_html_blink,string_html_bold,string_html_fixed,string_html_fontcolor,string_html_fontsize,string_html_italics,string_html_link,string_html_small,string_html_strike,string_html_sub,string_html_sup,boolean_string_truthiness,string_explicit_int,string_array_conversion"
+      ],
+      "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+      "pid": 17542,
+      "startedUtc": "2026-10-03T08:41:33.107272+00:00",
+      "finishedUtc": "2026-10-03T08:41:44.277038+00:00",
+      "exitCode": 0,
+      "log": "/private/tmp/tsrust-gate81/profiles.log",
+      "logSha256": "2948272241b28640594e9ca3b45a5c27300d2ab1932b3736270739a66bc49ab9"
+    },
+    {
+      "gate": 81,
+      "argv": [
+        "/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node",
+        "benchmarks/runtime/report.mjs"
+      ],
+      "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+      "pid": 20761,
+      "startedUtc": "2026-10-03T08:42:05.678047+00:00",
+      "finishedUtc": "2026-10-03T08:43:37.154852+00:00",
+      "exitCode": 0,
+      "log": "/private/tmp/tsrust-gate81/report.log",
+      "logSha256": "a3a0d3b911bb28198da95b0f3c1dd5a2e15c3e79474e1e9b03e9f6f247fecc04"
+    },
+    {
+      "gate": 81,
+      "argv": [
+        "/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node",
+        "--test",
+        "benchmarks/runtime/value-types-harness.test.mjs"
+      ],
+      "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+      "pid": 13731,
+      "startedUtc": "2026-10-03T07:56:11.854249+00:00",
+      "finishedUtc": "2026-10-03T07:56:12.002513+00:00",
+      "exitCode": 0,
+      "log": "/private/tmp/tsrust-gate81/value-source-contract.log",
+      "logSha256": "bf6b8bdb345a8325453ea8a9ce91c76ad3f4cf5dcf9850eed2926f5511c21283"
+    },
+    {
+      "gate": 81,
+      "argv": [
+        "/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node",
+        "benchmarks/runtime/value-types-check-drafts.mjs",
+        "--output=/tmp/tsrust-checkpoint81-value-source-checks"
+      ],
+      "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+      "pid": 13970,
+      "startedUtc": "2026-10-03T07:56:20.622930+00:00",
+      "finishedUtc": "2026-10-03T07:56:21.286643+00:00",
+      "exitCode": 0,
+      "log": "/private/tmp/tsrust-gate81/value-source-cases.log",
+      "logSha256": "b040a298da0e3a830645db964cfc4324189d64d3146e0f7d089a300f93f7c449"
+    }
+  ],
+  "checkpointProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T08-45-55-000Z-checkpoint81-completed-proof.json",
+    "sha256": "0a279c90deaee0976ff32742fb52f7cdb3f69b087c717b832df0aa272576144f"
+  },
+  "runtimeProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T08-44-00-000Z-checkpoint81-runtime-proof.json",
+    "sha256": "dd761f02bf63403a960140a73e067346f4e1de4fc8e7abe0a5531fec933ca357"
+  },
+  "regressionProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T08-24-00-000Z-checkpoint81-regression.json",
+    "sha256": "5e6b542eae3c5f436010a269f795b4373b8c1a6cccd8653a57f91dd8d96cf8ab"
+  },
+  "failedMeasurementHistory": {
+    "ledger": {
+      "path": "/private/tmp/tsrust-gate81/failed-measurement-attempts.json",
+      "sha256": "4061792d835c4400930de0ce4dd533f896d99ad4b4611468b96e3868ba178711"
+    },
+    "originalRuntimeTerminal": {
+      "path": "/private/tmp/tsrust-gate81/runtime-terminal.json",
+      "sha256": "c54ccb39c8856360e6636319c7f2abc7b28a7cda534cd48d8d4d436cb3a634dd"
+    },
+    "diagnosis": "tsx CLI IPC socket listen was denied by sandbox before performance sampling; unchanged inputs retry requires local socket permission.",
+    "successfulOwner": "runtime-socket-retry",
+    "frozenInputsUnchanged": true
+  }
+}

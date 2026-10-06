@@ -1,0 +1,248 @@
+[
+  {
+    "id": "nullable_int_null",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "object",
+      "null",
+      "false",
+      "sentinel"
+    ]
+  },
+  {
+    "id": "nullable_int_null",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "number",
+      "0",
+      "false",
+      "payload"
+    ]
+  },
+  {
+    "id": "nullable_int_null",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "number",
+      "1",
+      "true",
+      "payload"
+    ]
+  },
+  {
+    "id": "nullable_boolean_undefined",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "undefined",
+      "undefined",
+      "false",
+      "sentinel"
+    ]
+  },
+  {
+    "id": "nullable_boolean_undefined",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "boolean",
+      "false",
+      "false",
+      "payload"
+    ]
+  },
+  {
+    "id": "nullable_boolean_undefined",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "boolean",
+      "true",
+      "true",
+      "payload"
+    ]
+  },
+  {
+    "id": "nullable_number_null",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "object",
+      "null",
+      "false",
+      "sentinel"
+    ]
+  },
+  {
+    "id": "nullable_number_null",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "number",
+      "0",
+      "false",
+      "payload"
+    ]
+  },
+  {
+    "id": "nullable_number_null",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "number",
+      "0.5",
+      "true",
+      "payload"
+    ]
+  },
+  {
+    "id": "nullable_number_null",
+    "n": 1,
+    "seed": 5,
+    "expected": [
+      "number",
+      "NaN",
+      "false",
+      "payload"
+    ]
+  },
+  {
+    "id": "nullable_number_null",
+    "n": 2,
+    "seed": 4,
+    "expected": [
+      "number",
+      "17",
+      "true",
+      "payload",
+      "number",
+      "0",
+      "false",
+      "payload"
+    ]
+  },
+  {
+    "id": "nullable_number_null",
+    "n": 1,
+    "seed": 7,
+    "expected": [
+      "number",
+      "-Infinity",
+      "true",
+      "payload"
+    ]
+  },
+  {
+    "id": "nullable_string_undefined",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "undefined",
+      "undefined",
+      "false",
+      "sentinel"
+    ]
+  },
+  {
+    "id": "nullable_string_undefined",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "string",
+      "",
+      "false",
+      "payload"
+    ]
+  },
+  {
+    "id": "nullable_string_undefined",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "string",
+      "static",
+      "true",
+      "payload"
+    ]
+  },
+  {
+    "id": "nullable_string_undefined",
+    "n": 1,
+    "seed": 4,
+    "expected": [
+      "string",
+      "﻿\u0000",
+      "true",
+      "payload"
+    ]
+  },
+  {
+    "id": "nullable_array_null",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "object",
+      "null",
+      "false",
+      "sentinel"
+    ]
+  },
+  {
+    "id": "nullable_array_null",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "object",
+      "1,0",
+      "true",
+      "payload"
+    ]
+  },
+  {
+    "id": "nullable_record_undefined",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "undefined",
+      "undefined",
+      "false",
+      "sentinel"
+    ]
+  },
+  {
+    "id": "nullable_record_undefined",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "object",
+      "[object Object]",
+      "true",
+      "payload"
+    ]
+  },
+  {
+    "id": "nullable_number_null",
+    "n": 1,
+    "seed": 14,
+    "expected": [
+      "number",
+      "Infinity",
+      "true",
+      "payload"
+    ]
+  },
+  {
+    "id": "nullable_number_null",
+    "n": 1,
+    "seed": 11,
+    "expected": [
+      "number",
+      "-2.5",
+      "true",
+      "payload"
+    ]
+  }
+]

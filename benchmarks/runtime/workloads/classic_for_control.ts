@@ -1,0 +1,18 @@
+type int = number;
+function workload(n: int, seed: int): int {
+    let sum = seed; let i = 0;
+    while (i < n) {
+        const bound = (i + seed) % 10;
+        const stop = (i * 3 + seed) % 7;
+        let j = 0;
+        for (; j < bound; j = j + 1) {
+            sum = (sum * 131 + (j + seed) % 97) % 1000000007;
+            if (j === stop) { break; }
+            if ((j + seed) % 3 === 0) { continue; }
+            sum = (sum * 131 + (j * 3 + 1) % 97) % 1000000007;
+        }
+        sum = (sum * 131 + j) % 1000000007;
+        i = i + 1;
+    } return sum;
+}
+function main() { console.log(workload(17, 7)); }

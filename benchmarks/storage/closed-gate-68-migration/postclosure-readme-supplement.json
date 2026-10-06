@@ -1,0 +1,68 @@
+{
+  "gate": 68,
+  "kind": "documentation-only-postclosure-supplement",
+  "timestamp": "2026-10-02T21:37:55.497504+00:00",
+  "compilerProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T21-29-16-000Z-numeric-compound-assignment-values-compiler-proof.json",
+    "sha256": "0a3e4dcbcc5b6741c2930c6ac3bbe6e5d8f7f445d2d8e566eb0a3be098909992"
+  },
+  "sourceProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T21-15-11-000Z-numeric-compound-assignment-value-source-validation.json",
+    "sha256": "4f6805b9b7910a0da8159fc085b8cc7e9530ea6d16260be92eb5af07bbcacc35"
+  },
+  "runtimeProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T21-37-19-000Z-numeric-compound-assignment-value-runtime-proof.json",
+    "sha256": "ffd4c74ca3b4a8b61bc02cb06508ea2e9134462bfe0370105d9468fdac1cd103"
+  },
+  "files": [
+    {
+      "path": "docs/milestones/68-numeric-compound-assignment-values.md",
+      "beforeSha256": "b25ca92f033d4270941dc8c0e0446276fd26393fb28e8934b6d820c4ccc20fa9",
+      "afterSha256": "6ac8879d71d7211a5b1c2791220903e36efa72485de6397012e2389269ddccda"
+    },
+    {
+      "path": "docs/roadmap.md",
+      "beforeSha256": "6c3ec31f856cf0a43eab8fca74fd8c0f642f623ffa2c0142e30fb65fe73002e2",
+      "afterSha256": "2e0c217cf05f3aed49638db1b91c6202cf976c379dd109347bdf6a516b3719de"
+    },
+    {
+      "path": "crates/tsrust-compiler/README.md",
+      "beforeSha256": "beefc76d8f66e7d8b2aeaaf6b28327a2cf3b36a0109ec9628d67c34fe9691534",
+      "afterSha256": "90fb27d914df91405d3344d6a090f55a074023d3eaa65f829d4fc1c79e446216"
+    },
+    {
+      "path": "benchmarks/runtime/README.md",
+      "beforeSha256": "a64980cbf78e6059c881c1935f5d31970f57772fe55df5e6b88755fd2b8fe916",
+      "afterSha256": "595b64261cf3715a077bb8ae6dd991f2e8e87859a186b348816aedfbd752b4c2"
+    },
+    {
+      "path": "benchmarks/coverage/status.json",
+      "beforeSha256": "29e7ecb73485347919b61d31a9ac5686ecdadc370d42b8d1e3e22570f91ebce1",
+      "afterSha256": "92309143e622bdfbf1204df93b05ae431c90be9742ff4fde32022ae85a72daff"
+    },
+    {
+      "path": "docs/feature-coverage.md",
+      "beforeSha256": "bed596597bf92c4c7d65b14619f9c4d4676c8de4a03f0604fe321cf32f09d4de",
+      "afterSha256": "36203d99d3748ee3503f90da8b66664cf426cfad6375cd872c97e11b48a6c034"
+    },
+    {
+      "path": "benchmarks/coverage/inventory.json",
+      "beforeSha256": "7e1a70c6de5161cb48b26fb2467ed881a1f530dc37c5bb727cc118073ac44072",
+      "afterSha256": "fa0493dac5002f76b04cb0da98f2b140fe57667444abd67a6ee24f7b81626b6d"
+    }
+  ],
+  "inventoryOperations": 1924,
+  "inventoryFamilies": 28,
+  "compilerCodeChanged": false,
+  "sourceManifestHarnessChanged": false,
+  "measuredReportChanged": false,
+  "measurementsRepeated": false,
+  "inventoryRegenerations": 1,
+  "closureArtifacts": [
+    {
+      "originalPath": "/private/tmp/tsrust-gate68-close-docs.py",
+      "path": "benchmarks/runtime/diagnostics/2026-10-02T21-37-19-000Z-numeric-compound-assignment-value-runtime-proof-closure-artifacts/tsrust-gate68-close-docs.py",
+      "sha256": "f46c4c9c1d56fbe0f41f5a9bd63342d73d2ea2d52b879726b427edac8c4109ee"
+    }
+  ]
+}

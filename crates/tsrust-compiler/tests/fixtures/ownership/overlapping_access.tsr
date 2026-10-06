@@ -1,0 +1,10 @@
+type User = { name: string; };
+
+function renameAndLog(first: User, second: User) {
+    first.name = "Sam";
+    console.log(second.name);
+}
+function main() {
+    const user: User = { name: "Pat" };
+    renameAndLog(user, user);
+}

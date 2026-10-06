@@ -1,0 +1,18 @@
+{
+  "gate": 68,
+  "argv": [
+    "python3",
+    "/tmp/tsrust-gate68-close-docs.py",
+    "--runtime-proof",
+    "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T21-37-19-000Z-numeric-compound-assignment-value-runtime-proof.json",
+    "--runtime-proof-sha",
+    "ffd4c74ca3b4a8b61bc02cb06508ea2e9134462bfe0370105d9468fdac1cd103"
+  ],
+  "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+  "pid": 16159,
+  "startedUtc": "2026-10-02T21:37:55.040553+00:00",
+  "finishedUtc": "2026-10-02T21:37:55.505638+00:00",
+  "exitCode": 0,
+  "log": "/tmp/tsrust-gate68-root-acceptance/docs-closure.log",
+  "logSha256": "2ab49bf33a05a0d27f0b490114016a080873da29014b07a52963798c6dbd1fd6"
+}

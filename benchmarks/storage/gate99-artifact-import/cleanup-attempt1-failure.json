@@ -1,0 +1,21 @@
+{
+  "gate": 99,
+  "command": [
+    "python3",
+    "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/gate99-artifact-import/cleanup-verified-objects.py"
+  ],
+  "toolSession": 84950,
+  "exitCode": 1,
+  "pid": null,
+  "pidUnavailable": "The guard aborted before a process receipt was written; retained tool-session exit is the actual observation.",
+  "source": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/gate99-artifact-import/cleanup-verified-objects.attempt1.py",
+    "sha256": "d33704dcb0f7071f8b92743c54fc146343cfde267c993f7f6c93e5197c53d019"
+  },
+  "stderr": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/gate99-artifact-import/cleanup.attempt1.stderr",
+    "sha256": "dda8508eaf665f1f2f865749386bc63ca2654b0c22bebc02ee73888b8ab04a6d"
+  },
+  "deletedFiles": 0,
+  "reason": "Literal /tmp parent path differed from macOS canonical /private/tmp; all hash guards and removal phase were untouched."
+}

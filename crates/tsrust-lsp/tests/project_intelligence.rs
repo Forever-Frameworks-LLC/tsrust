@@ -1,0 +1,1089 @@
+use serde_json::{Value, json};
+use tsrust_lsp::{
+    project_diagnostics::source_id, project_intelligence::ProjectIndex, workspace::Workspace,
+};
+fn ask(index: &ProjectIndex, source: &str, needle: &str, method: &str) -> Value {
+    let offset = source.rfind(needle).unwrap();
+    let position = json!({"line":0,"character":source[..offset].encode_utf16().count()});
+    index
+        .request(
+            method,
+            &json!({"position":position}),
+            "file:///tsrust-intelligence/main.tsr",
+        )
+        .unwrap()
+        .unwrap()
+}
+
+#[test]
+fn checked_project_generic_callable_help_preserves_aliases_and_unsaved_names() {
+    let entry = "import {User as Person,invoke as apply} from './dep.tsr';function main(){const action=(user:Person):Person=>{return user;};apply(action,{name:'Pat'});}";
+    let dependency = "export type User={name:string;};export function invoke<T>(action:Function<T, [person:Owned<T>]>,value:T):T{return action(value);}";
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let dependency_uri = "file:///tsrust-intelligence/dep.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.into());
+    workspace.open(source_id(dependency_uri).unwrap(), 1, dependency.into());
+    for (version, name) in [(1, "person"), (2, "recipient")] {
+        if version == 2 {
+            workspace.open(source_id(dependency_uri).unwrap(), version, dependency.replace("person:", "recipient:"));
+        }
+        let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+        let index = ProjectIndex::checked(&checked);
+        let expected = format!("Function<Person, [{name}: Owned<Person>]>");
+        let hover = ask(&index, entry, "apply(action", "textDocument/hover");
+        assert!(hover["contents"]["value"].as_str().unwrap().contains(&expected), "{hover}");
+        let help = ask(&index, entry, "action,{name", "textDocument/signatureHelp");
+        assert!(help["signatures"][0]["label"].as_str().unwrap().contains(&expected), "{help}");
+    }
+}
+
+#[test]
+fn checked_project_generic_callable_results_show_concrete_aliases() {
+    let entry = "import {User as Person,make as build} from './dep.tsr';function main(){const seed:Person={name:'seed'};const action=build(seed);console.log(action({name:'Pat'}).name);}";
+    let dependency = "export type User={name:string;};export function make<T>(seed:T):(value:Owned<T>)=>T{return (value:T):T=>{return value;};}";
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.into());
+    workspace.open(source_id("file:///tsrust-intelligence/dep.tsr").unwrap(), 1, dependency.into());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::checked(&checked);
+    let hover = ask(&index, entry, "build(seed)", "textDocument/hover");
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("Function<Person, [value: Owned<Person>]>"), "{hover}");
+    let help = ask(&index, entry, "seed);", "textDocument/signatureHelp");
+    assert!(help["signatures"][0]["label"].as_str().unwrap().contains("Function<Person, [value: Owned<Person>]>"), "{help}");
+    let invocation = ask(&index, entry, "{name:'Pat'}", "textDocument/signatureHelp");
+    assert!(invocation["signatures"][0]["label"].as_str().unwrap().contains("Person"), "{invocation}");
+}
+
+#[test]
+fn checked_project_generic_once_results_show_consuming_invocation() {
+    let entry = "import {User as Person,make as build} from './dep.tsr';function main(){const seed:Person={name:'Pat'};const action=build(seed);console.log(action().name);}";
+    let dependency = "export type User={name:string;};export function make<T>(seed:T):()=>T{return ():T=>{return seed;};}";
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.into());
+    workspace.open(source_id("file:///tsrust-intelligence/dep.tsr").unwrap(), 1, dependency.into());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::checked(&checked);
+    let hover = ask(&index, entry, "build(seed)", "textDocument/hover");
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("Once<Function<Person>>"), "{hover}");
+    let help = ask(&index, entry, "seed);", "textDocument/signatureHelp");
+    assert!(help["signatures"][0]["label"].as_str().unwrap().contains("Once<Function<Person>>"), "{help}");
+}
+
+#[test]
+fn transitive_generic_callback_results_preserve_private_nominal_identity() {
+    let entry = "import {make as build} from './middle.tsr';type Secret={wrong:int;};function main(){const action=build('Pat');const saved=action();console.log(saved.value.trim());}";
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let model_uri = "file:///tsrust-intelligence/model.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.into());
+    workspace.open(source_id("file:///tsrust-intelligence/middle.tsr").unwrap(), 1, "import {Secret as Hidden} from './model.tsr';export function make<T>(seed:T):()=>Hidden<T>{return ():Hidden<T> =>{return {value:seed};};}".into());
+    workspace.open(source_id(model_uri).unwrap(), 1, "export type Secret<T>={value:T;};".into());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::checked(&checked);
+    let hover = ask(&index, entry, "build('Pat')", "textDocument/hover");
+    let display = hover["contents"]["value"].as_str().unwrap();
+    assert!(display.contains("Once<Function<Secret<string>>>"), "{hover}");
+    assert!(!display.contains("__tsrust_private_"), "{hover}");
+    let definition = ask(&index, entry, "value.trim", "textDocument/definition");
+    assert_eq!(definition["uri"], model_uri, "{definition}");
+    assert!(!ask(&index, entry, "trim()", "textDocument/hover").is_null());
+}
+#[test]
+fn imported_alias_docs_hover_signatures_completion_and_definitions() {
+    let entry = "import { greet as hello } from './dep.tsr';function main(){hello(3);}";
+    let mut workspace = Workspace::default();
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    workspace.open(source_id(uri).unwrap(), 1, entry.into());
+    workspace.open(source_id("file:///tsrust-intelligence/dep.tsr").unwrap(),1,"/** Adds one. @param value The starting number. */ export function greet(value:int):int{return value+1;}".into());
+    let snapshot = workspace.snapshot();
+    let checked = snapshot.check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::new(&checked.graph);
+    let hover = ask(&index, entry, "hello(3)", "textDocument/hover");
+    let docs = hover["contents"]["value"].as_str().unwrap();
+    assert!(docs.contains("hello"), "{hover}");
+    assert!(docs.contains("Adds one"), "{hover}");
+    let definition = ask(&index, entry, "hello(3)", "textDocument/definition");
+    assert_eq!(definition["uri"], "file:///tsrust-intelligence/dep.tsr");
+    let help = ask(&index, entry, "3)", "textDocument/signatureHelp");
+    assert!(
+        help["signatures"][0]["label"]
+            .as_str()
+            .unwrap()
+            .contains("hello"),
+        "{help}"
+    );
+    let completion = ask(&index, entry, "hello(3)", "textDocument/completion");
+    assert!(
+        completion
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item["label"] == "hello")
+    );
+}
+#[test]
+fn imported_record_fields_and_local_shadowing_have_correct_targets() {
+    let entry = "import { User as Person, value } from './dep.tsr';function main(){const user:Person={name:\"Ada\"};console.log(user.name);{const value=2;console.log(value);}}";
+    let mut workspace = Workspace::default();
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    workspace.open(source_id(uri).unwrap(), 1, entry.into());
+    workspace.open(
+        source_id("file:///tsrust-intelligence/dep.tsr").unwrap(),
+        1,
+        "export type User={name:string;};export function value():int{return 1;}".into(),
+    );
+    let input = workspace.snapshot();
+    let checked = input.check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::new(&checked.graph);
+    let field = ask(&index, entry, "name);", "textDocument/definition");
+    assert_eq!(
+        field["uri"], "file:///tsrust-intelligence/dep.tsr",
+        "{field}"
+    );
+    let local = ask(&index, entry, "value);", "textDocument/definition");
+    assert_eq!(local["uri"], uri, "{local}");
+}
+
+#[test]
+fn imported_main_is_ordinary_and_cached_help_expires_after_dependency_edit() {
+    use tsrust_lsp::{Snapshot, project_session::ProjectSession};
+    let root = "file:///tsrust-intelligence/main.tsr";
+    let dep = "file:///tsrust-intelligence/dep.tsr";
+    let source = "import { main as helper } from './dep.tsr';function main(){helper();}";
+    let mut session = ProjectSession::default();
+    session.open(&Snapshot {
+        uri: dep.into(),
+        version: 1,
+        generation: 1,
+        text: "/** Ordinary helper. */ export function main(){}".into(),
+    });
+    let entry = Snapshot {
+        uri: root.into(),
+        version: 1,
+        generation: 2,
+        text: source.into(),
+    };
+    session.open(&entry);
+    let input = session.prepare(&entry).unwrap();
+    let checked = input.check(&source_id(root).unwrap()).unwrap();
+    session.cache_index(root, &input, Some(ProjectIndex::new(&checked.graph)));
+    let params = json!({"position":{"line":0,"character":source.rfind("helper()").unwrap()}});
+    let hover = session
+        .request("textDocument/hover", &params, root)
+        .unwrap()
+        .unwrap();
+    let docs = hover["contents"]["value"].as_str().unwrap();
+    assert!(docs.contains("Ordinary helper"));
+    assert!(!docs.contains("Program entry point"));
+    session.change(&Snapshot {
+        uri: dep.into(),
+        version: 2,
+        generation: 1,
+        text: "export function main(){}".into(),
+    });
+    assert!(
+        session
+            .request("textDocument/hover", &params, root)
+            .is_none()
+    );
+}
+
+#[test]
+fn imported_return_types_use_alias_identity_or_remain_unknown() {
+    for import in [
+        "import { User as Person, make } from './dep.tsr';",
+        "import { make } from './dep.tsr';",
+    ] {
+        let entry = format!(
+            "{import}type User={{wrong:int;}};function main(){{const user=make();console.log(user.name);}}"
+        );
+        let mut workspace = Workspace::default();
+        let root = "file:///tsrust-intelligence/main.tsr";
+        workspace.open(source_id(root).unwrap(), 1, entry.clone());
+        workspace.open(
+            source_id("file:///tsrust-intelligence/dep.tsr").unwrap(),
+            1,
+            "export type User={name:string;};export function make():User{return {name:\"Ada\"};}"
+                .into(),
+        );
+        let input = workspace.snapshot();
+        let checked = input.check(&source_id(root).unwrap()).unwrap();
+        let index = ProjectIndex::new(&checked.graph);
+        let completion = ask(&index, &entry, "name);", "textDocument/completion");
+        assert!(
+            !completion
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|item| item["label"] == "wrong"),
+            "{completion}"
+        );
+        if import.contains("Person") {
+            let definition = ask(&index, &entry, "name);", "textDocument/definition");
+            assert_eq!(
+                definition["uri"], "file:///tsrust-intelligence/dep.tsr",
+                "{definition}"
+            );
+        }
+    }
+}
+
+#[test]
+fn project_references_follow_aliases_and_exclude_shadowed_locals() {
+    let root = "file:///tsrust-intelligence/main.tsr";
+    let dep = "file:///tsrust-intelligence/dep.tsr";
+    let other = "file:///tsrust-intelligence/other.tsr";
+    let entry = "import { greet as hello } from './dep.tsr';import { call } from './other.tsr';function main(){hello(3);call();{const hello=4;console.log(hello);}}";
+    let library = "export function greet(value:int):int{return value+1;}";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(root).unwrap(), 1, entry.into());
+    workspace.open(source_id(dep).unwrap(), 1, library.into());
+    workspace.open(source_id(other).unwrap(), 1,
+        "import { greet as welcome } from './dep.tsr';export function call():int{return welcome(2);}".into());
+    let checked = workspace
+        .snapshot()
+        .check(&source_id(root).unwrap())
+        .unwrap();
+    let index = ProjectIndex::new(&checked.graph);
+    let refs = ask(&index, entry, "hello(3)", "textDocument/references");
+    let locations = refs.as_array().unwrap();
+    assert_eq!(
+        locations.iter().filter(|loc| loc["uri"] == root).count(),
+        3,
+        "{refs}"
+    );
+    assert_eq!(
+        locations.iter().filter(|loc| loc["uri"] == other).count(),
+        3,
+        "{refs}"
+    );
+    assert_eq!(
+        locations.iter().filter(|loc| loc["uri"] == dep).count(),
+        1,
+        "{refs}"
+    );
+    let params = json!({"position":{"line":0,"character":library.find("greet").unwrap()},
+        "context":{"includeDeclaration":false}});
+    let uses = index
+        .request("textDocument/references", &params, dep)
+        .unwrap()
+        .unwrap();
+    assert_eq!(uses.as_array().unwrap().len(), 6, "{uses}");
+    assert!(!uses.as_array().unwrap().iter().any(|loc| loc["uri"] == dep));
+    let local = ask(&index, entry, "hello);", "textDocument/references");
+    assert_eq!(local.as_array().unwrap().len(), 2, "{local}");
+    assert!(
+        local
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|loc| loc["uri"] == root)
+    );
+}
+
+#[test]
+fn session_navigation_preserves_open_uri_aliases() {
+    use tsrust_lsp::{Snapshot, project_session::ProjectSession};
+    let root = "file:///tsrust-intelligence/main.tsr";
+    let dep = "file://localhost/tsrust-intelligence/dep.tsr";
+    let entry = "import { value as local } from './dep.tsr';function main(){console.log(local());}";
+    let mut session = ProjectSession::default();
+    for (uri, text) in [
+        (root, entry),
+        (dep, "export function value():int{return 1;}"),
+    ] {
+        session.open(&Snapshot {
+            uri: uri.into(),
+            text: text.into(),
+            version: 1,
+            generation: 1,
+        });
+    }
+    let input = session.workspace.snapshot();
+    let checked = input.check(&source_id(root).unwrap()).unwrap();
+    session.cache_index(root, &input, Some(ProjectIndex::new(&checked.graph)));
+    let params = json!({"position":{"line":0,"character":entry.rfind("local()").unwrap()}});
+    let definition = session
+        .request("textDocument/definition", &params, root)
+        .unwrap()
+        .unwrap();
+    assert_eq!(definition["uri"], dep);
+    let references = session
+        .request("textDocument/references", &params, root)
+        .unwrap()
+        .unwrap();
+    assert!(
+        references
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|location| location["uri"] == dep)
+    );
+    assert!(
+        !references
+            .to_string()
+            .contains("file:///tsrust-intelligence/dep.tsr")
+    );
+}
+
+#[test]
+fn imported_nested_private_records_keep_module_identity_and_field_navigation() {
+    let root = "file:///tsrust-intelligence/main.tsr";
+    let dep = "file:///tsrust-intelligence/dep.tsr";
+    let entry = "import { User as Person, make } from './dep.tsr';type Address={wrong:int;};function main(){const user=make();console.log(user.address.city);console.log(user.addresses[0].city);}";
+    let library = "type Address={city:string;};export type User={address:Address;addresses:Address[];};export function make():User{return {address:{city:\"Ada\"},addresses:[{city:\"Rome\"}]};}";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(root).unwrap(), 1, entry.into());
+    workspace.open(source_id(dep).unwrap(), 1, library.into());
+    let checked = workspace
+        .snapshot()
+        .check(&source_id(root).unwrap())
+        .unwrap();
+    let index = ProjectIndex::new(&checked.graph);
+    for needle in ["city);", "city);console"] {
+        let completion = ask(&index, entry, needle, "textDocument/completion");
+        assert!(
+            completion
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|item| item["label"] == "city"),
+            "{completion}"
+        );
+        assert!(
+            !completion
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|item| item["label"] == "wrong")
+        );
+        let definition = ask(&index, entry, needle, "textDocument/definition");
+        assert_eq!(definition["uri"], dep, "{definition}");
+        assert_eq!(
+            definition["range"]["start"]["character"],
+            library.find("city:string").unwrap()
+        );
+    }
+    let references = ask(&index, entry, "city);", "textDocument/references");
+    assert_eq!(references.as_array().unwrap().len(), 3, "{references}");
+}
+
+#[test]
+fn nested_records_across_dependency_chains_keep_original_field_locations() {
+    let root = "file:///tsrust-intelligence/main.tsr";
+    let middle = "file:///tsrust-intelligence/middle.tsr";
+    let leaf = "file:///tsrust-intelligence/leaf.tsr";
+    let entry = "import { User as Person, make } from './middle.tsr';type Address={wrong:int;};function main(){const user=make();console.log(user.address.city);console.log(user.address.geo.code);}";
+    let library = "import { Address as Location } from './leaf.tsr';export type User={address:Location;};export function make():User{return {address:{city:\"Rome\",geo:{code:7}}};}";
+    let leaf_source = "type Geo={code:int;};export type Address={city:string;geo:Geo;};";
+    let mut workspace = Workspace::default();
+    for (uri, text) in [(root, entry), (middle, library), (leaf, leaf_source)] {
+        workspace.open(source_id(uri).unwrap(), 1, text.into());
+    }
+    let checked = workspace
+        .snapshot()
+        .check(&source_id(root).unwrap())
+        .unwrap();
+    let index = ProjectIndex::new(&checked.graph);
+    for (needle, field) in [("city);", "city"), ("code);", "code")] {
+        let completion = ask(&index, entry, needle, "textDocument/completion");
+        assert!(
+            completion
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|item| item["label"] == field),
+            "{completion}"
+        );
+        assert!(
+            !completion
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|item| item["label"] == "wrong")
+        );
+        let definition = ask(&index, entry, needle, "textDocument/definition");
+        assert_eq!(definition["uri"], leaf, "{definition}");
+        assert_eq!(
+            definition["range"]["start"]["character"],
+            leaf_source.find(&format!("{field}:")).unwrap()
+        );
+        let references = ask(&index, entry, needle, "textDocument/references");
+        assert!(
+            references
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|location| location["uri"] == root)
+        );
+        assert!(
+            references
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|location| location["uri"] == leaf)
+        );
+    }
+}
+
+#[test]
+fn current_headers_supply_imported_help_while_bodies_are_incomplete() {
+    let root = "file:///tsrust-intelligence/main.tsr";
+    let dep = "file:///tsrust-intelligence/dep.tsr";
+    let library = "/** Current helper. */ export function greet(value:int):int{return value;}export type User={name:string;};";
+    let entry = "import { greet as hello, User } from './dep.tsr';function main(){const user:User={name:\"Ada\"};hello(2);user.na";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(root).unwrap(), 1, entry.into());
+    workspace.open(source_id(dep).unwrap(), 1, library.into());
+    let input = workspace.snapshot();
+    assert!(input.check(&source_id(root).unwrap()).is_err());
+    let graph = tsrust_compiler::project::load_project_headers(&input, &source_id(root).unwrap().0)
+        .unwrap();
+    let index = ProjectIndex::new(&graph);
+    let completion = ask(&index, entry, "na", "textDocument/completion");
+    assert!(
+        completion
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item["label"] == "name"),
+        "{completion}"
+    );
+    let hover = ask(&index, entry, "hello(2)", "textDocument/hover");
+    assert!(
+        hover["contents"]["value"]
+            .as_str()
+            .unwrap()
+            .contains("Current helper.")
+    );
+    let definition = ask(&index, entry, "hello(2)", "textDocument/definition");
+    assert_eq!(definition["uri"], dep);
+    workspace.change(
+        &source_id(dep).unwrap(),
+        2,
+        "function greet(value:int):int{return value;}export type User={name:string;};".into(),
+    );
+    let next = workspace.snapshot();
+    assert_eq!(
+        tsrust_compiler::project::load_project_headers(&next, &source_id(root).unwrap().0)
+            .err()
+            .unwrap()
+            .code,
+        "module-private"
+    );
+}
+
+#[test]
+fn std_imported_alias_help_uses_registry_and_catalog_and_respects_shadowing() {
+    let root = "file:///tsrust-intelligence/main.tsr";
+    let entry = "import { basename as fileName } from 'std:path';function main(){const path='/tmp/report.txt';const name=fileName(path,'.txt');console.log(name.toUpperCase());{const fileName=2;console.log(fileName);}}";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(root).unwrap(), 1, entry.into());
+    let checked = workspace
+        .snapshot()
+        .check(&source_id(root).unwrap())
+        .unwrap();
+    let index = ProjectIndex::new(&checked.graph);
+    let hover = ask(&index, entry, "fileName(path", "textDocument/hover");
+    let docs = hover["contents"]["value"].as_str().unwrap();
+    assert!(
+        docs.contains("function fileName(path: string, suffix?: string): string"),
+        "{hover}"
+    );
+    assert!(docs.contains("without reading the filesystem"));
+    assert!(docs.contains("report.txt"));
+    let help = ask(&index, entry, "'.txt'", "textDocument/signatureHelp");
+    assert_eq!(help["activeParameter"], 1);
+    assert_eq!(
+        help["signatures"][0]["parameters"][1]["label"],
+        "suffix?: string"
+    );
+    assert!(
+        help["signatures"][0]["parameters"][1]["documentation"]["value"]
+            .as_str()
+            .unwrap()
+            .contains("case-sensitive"),
+        "{help}"
+    );
+    let completion = ask(&index, entry, "fileName(path", "textDocument/completion");
+    assert!(
+        completion
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item["label"] == "fileName"
+                && item["detail"].as_str().unwrap().contains("suffix?: string"))
+    );
+    let result = ask(&index, entry, "toUpperCase", "textDocument/hover");
+    assert!(
+        result["contents"]["value"]
+            .as_str()
+            .unwrap()
+            .contains("toUpperCase")
+    );
+    let local = ask(&index, entry, "fileName);", "textDocument/hover");
+    assert!(
+        !local["contents"]["value"]
+            .as_str()
+            .unwrap()
+            .contains("basename")
+    );
+    let incomplete=entry.replace("const name=fileName(path,'.txt');console.log(name.toUpperCase());{const fileName=2;console.log(fileName);}","fileN");
+    workspace.change(&source_id(root).unwrap(), 2, incomplete.clone());
+    let input = workspace.snapshot();
+    let graph = tsrust_compiler::project::load_project_headers(&input, &source_id(root).unwrap().0)
+        .unwrap();
+    let index = ProjectIndex::new(&graph);
+    let completion = ask(&index, &incomplete, "fileN}", "textDocument/completion");
+    assert!(
+        completion
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item["label"] == "fileName"),
+        "{completion}"
+    );
+}
+
+#[test]
+fn stored_native_values_keep_optional_signatures_docs_and_string_results() {
+    let root = "file:///tsrust-intelligence/main.tsr";
+    let entry = "import { basename as original } from 'std:path';function main(){const nameOf=original;const moved=nameOf;const result=moved('/tmp/report.txt','.txt');console.log(result.toUpperCase());{const original=2;console.log(original);}}";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(root).unwrap(), 1, entry.into());
+    let checked = workspace.snapshot().check(&source_id(root).unwrap()).unwrap();
+    let index = ProjectIndex::new(&checked.graph);
+    let hover = ask(&index, entry, "moved('/tmp", "textDocument/hover");
+    let docs = hover["contents"]["value"].as_str().unwrap();
+    assert!(docs.contains("const moved: (path: string, suffix?: string) => string"), "{hover}");
+    assert!(docs.contains("without reading the filesystem"));
+    let completion = ask(&index, entry, "moved('/tmp", "textDocument/completion");
+    assert!(completion.as_array().unwrap().iter().any(|item| item["label"] == "moved" && item["detail"].as_str().is_some_and(|detail| detail.contains("suffix?: string"))));
+    let help = ask(&index, entry, "'.txt'", "textDocument/signatureHelp");
+    assert_eq!(help["activeParameter"], 1);
+    assert_eq!(help["signatures"][0]["parameters"][1]["label"], "suffix?: string");
+    assert!(help["signatures"][0]["parameters"][1]["documentation"]["value"].as_str().unwrap().contains("case-sensitive"));
+    let result = ask(&index, entry, "toUpperCase", "textDocument/hover");
+    assert!(result["contents"]["value"].as_str().unwrap().contains("toUpperCase"));
+    let shadow = ask(&index, entry, "original);", "textDocument/hover");
+    assert!(!shadow["contents"]["value"].as_str().unwrap().contains("basename"));
+}
+
+#[test]
+fn returned_native_callable_values_have_typed_hover_and_signature_help() {
+    let root = "file:///tsrust-intelligence/main.tsr";
+    let entry = "import { basename } from 'std:path';function factory():(path:ReadOnly<string>)=>string{return basename;}function main(){const nameOf=factory();console.log(nameOf('/tmp/report.txt').toUpperCase());}";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(root).unwrap(), 1, entry.into());
+    let checked = workspace.snapshot().check(&source_id(root).unwrap()).unwrap();
+    let index = ProjectIndex::new(&checked.graph);
+    let hover = ask(&index, entry, "nameOf('/tmp", "textDocument/hover");
+    assert!(hover["contents"]["value"].as_str().unwrap().split_whitespace().collect::<String>().contains("=>string"), "{hover}");
+    let help = ask(&index, entry, "'/tmp/report.txt'", "textDocument/signatureHelp");
+    assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(), 1, "{help}");
+    assert!(help["signatures"][0]["parameters"][0]["label"].as_str().unwrap().contains("path"));
+    let chained = ask(&index, entry, "toUpperCase", "textDocument/hover");
+    assert!(chained["contents"]["value"].as_str().unwrap().contains("toUpperCase"), "{chained}");
+}
+
+#[test]
+fn imported_factory_results_remain_callable_in_current_project_metadata() {
+    let root = "file:///tsrust-intelligence/main.tsr";
+    let dep = "file:///tsrust-intelligence/factory.tsr";
+    let entry = "import { factory as make } from './factory.tsr';function main(){const nameOf=make();console.log(nameOf('/tmp/report.txt').toUpperCase());}";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(root).unwrap(), 1, entry.into());
+    workspace.open(source_id(dep).unwrap(), 1, "import { basename } from 'std:path';export function factory():(path:ReadOnly<string>)=>string{return basename;}".into());
+    let checked = workspace.snapshot().check(&source_id(root).unwrap()).unwrap();
+    let index = ProjectIndex::new(&checked.graph);
+    let hover = ask(&index, entry, "nameOf('/tmp", "textDocument/hover");
+    assert!(hover["contents"]["value"].as_str().unwrap().split_whitespace().collect::<String>().contains("=>string"), "{hover}");
+    let help = ask(&index, entry, "'/tmp/report.txt'", "textDocument/signatureHelp");
+    assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(), 1, "{help}");
+}
+
+#[test]
+fn imported_factory_callable_record_parameters_use_local_type_aliases() {
+    let root = "file:///tsrust-intelligence/main.tsr";
+    let dep = "file:///tsrust-intelligence/factory.tsr";
+    let entry = "import { factory as make,User as Person } from './factory.tsr';function main(){const readName=make();const user:Person={name:'Pat'};console.log(readName(user));}";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(root).unwrap(), 1, entry.into());
+    workspace.open(source_id(dep).unwrap(), 1, "export type User={name:string;};export function factory():(user:ReadOnly<User>)=>string{return (user:User):string=>{return user.name.trim();};}".into());
+    let checked = workspace.snapshot().check(&source_id(root).unwrap()).unwrap();
+    let index = ProjectIndex::new(&checked.graph);
+    let help = ask(&index, entry, "user));", "textDocument/signatureHelp");
+    assert!(help["signatures"][0]["parameters"][0]["label"].as_str().unwrap().contains("Person"), "{help}");
+}
+
+#[test]
+fn conditional_native_initializers_preserve_registry_identity_and_optional_help() {
+    let root = "file:///tsrust-intelligence/main.tsr";
+    let entry = "import { basename as left,basename as right } from 'std:path';function main(){const original=left;const selected=(true?original:(false?left:right));console.log(selected('/tmp/report.txt','.txt'));}";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(root).unwrap(), 1, entry.into());
+    let checked = workspace.snapshot().check(&source_id(root).unwrap()).unwrap();
+    let index = ProjectIndex::new(&checked.graph);
+    let hover = ask(&index, entry, "selected('/tmp", "textDocument/hover");
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("suffix?: string"), "{hover}");
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("without reading the filesystem"));
+    let help = ask(&index, entry, "'.txt'", "textDocument/signatureHelp");
+    assert_eq!(help["activeParameter"], 1);
+    assert!(help["signatures"][0]["parameters"][1]["documentation"]["value"].as_str().unwrap().contains("case-sensitive"));
+    let mixed = entry.replace("(true?original:(false?left:right))", "(true?original:2)");
+    workspace.change(&source_id(root).unwrap(), 2, mixed.clone());
+    let input = workspace.snapshot();
+    let graph = tsrust_compiler::project::load_project_headers(&input, &source_id(root).unwrap().0).unwrap();
+    let index = ProjectIndex::new(&graph);
+    let hover = ask(&index, &mixed, "selected('/tmp", "textDocument/hover");
+    assert!(!hover["contents"]["value"].as_str().unwrap().contains("without reading the filesystem"), "{hover}");
+
+}
+
+#[test]
+fn imported_generic_alias_fields_follow_unsaved_template_changes() {
+    let entry = "import {Box as Package} from './dep.tsr';function main(){const item:Package<string>={value:'Pat'};console.log(item.value.trim());}";
+    let mut workspace = Workspace::default();
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let dependency = "file:///tsrust-intelligence/dep.tsr";
+    workspace.open(source_id(uri).unwrap(),1,entry.into());
+    workspace.open(source_id(dependency).unwrap(),1,"export type Box<T>={value:T;};".into());
+    let input = workspace.snapshot();
+    let checked = input.check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::new(&checked.graph);
+    let hover = ask(&index,entry,"value.trim","textDocument/hover");
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("value: string"),"{hover}");
+    let definition = ask(&index,entry,"value.trim","textDocument/definition");
+    assert_eq!(definition["uri"],dependency);
+    workspace.open(source_id(dependency).unwrap(),2,"export type Box<T>={value:int;};".into());
+    let input = workspace.snapshot();
+    let graph = tsrust_compiler::project::load_project_headers(&input, &source_id(uri).unwrap().0).unwrap();
+    let changed = ProjectIndex::new(&graph);
+    let hover = ask(&changed,entry,"value.trim","textDocument/hover");
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("value: int"),"{hover}");
+}
+
+#[test]
+fn imported_generic_private_records_keep_identity_and_field_navigation() {
+    let entry = "import {Envelope as Package} from './dep.tsr';type Secret={wrong:int;};function main(){const item:Package<string>={inner:{value:'Pat'}};console.log(item.inner.value.trim());}";
+    let mut workspace = Workspace::default();
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let dependency = "file:///tsrust-intelligence/dep.tsr";
+    workspace.open(source_id(uri).unwrap(),1,entry.into());
+    workspace.open(source_id(dependency).unwrap(),1,"type Secret<T>={value:T;};export type Envelope<T>={inner:Secret<T>;};".into());
+    let input = workspace.snapshot();
+    let checked = input.check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::new(&checked.graph);
+    let hover = ask(&index,entry,"value.trim","textDocument/hover");
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("value: string"),"{hover}");
+    let inner = ask(&index,entry,"inner.value","textDocument/hover");
+    let display = inner["contents"]["value"].as_str().unwrap();
+    assert!(display.contains("inner: Secret<string>"),"{inner}");
+    assert!(!display.contains("__tsrust_private_"),"{inner}");
+    let definition = ask(&index,entry,"value.trim","textDocument/definition");
+    assert_eq!(definition["uri"],dependency);
+    let hover = ask(&index,entry,"trim()","textDocument/hover");
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("trim"),"{hover}");
+}
+
+#[test]
+fn transitive_generic_templates_preserve_original_definitions() {
+    let entry = "import {Envelope as Package} from './dep.tsr';function main(){const item:Package<string>={inner:{value:'Pat'}};console.log(item.inner.value.trim());}";
+    let mut workspace = Workspace::default();
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    workspace.open(source_id(uri).unwrap(),1,entry.into());
+    workspace.open(source_id("file:///tsrust-intelligence/dep.tsr").unwrap(),1,"import {Box as Hidden} from './model.tsr';export type Envelope<T>={inner:Hidden<T>;};".into());
+    workspace.open(source_id("file:///tsrust-intelligence/model.tsr").unwrap(),1,"export type Box<T>={value:T;};".into());
+    let input = workspace.snapshot();
+    let checked = input.check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::new(&checked.graph);
+    let hover = ask(&index,entry,"value.trim","textDocument/hover");
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("value: string"),"{hover}");
+    let definition = ask(&index,entry,"value.trim","textDocument/definition");
+    assert_eq!(definition["uri"],"file:///tsrust-intelligence/model.tsr");
+}
+
+#[test]
+fn checked_project_generic_aliases_preserve_nominal_identity_and_unsaved_updates() {
+    let entry="/* 🦀 */ import {User as Person,Box as Package,identity as keep,wrap as make} from './dep.tsr';function main(){const user:Person={name:'Pat'};const wrapped=make(user);const n=keep(7);const text=keep('Sam');console.log(wrapped.value.name,n,text.toLowerCase());}";
+    let dependency="/** User data. */ export type User={name:string;};export type Box<T>={value:T;};/** Keep the supplied value. */ export function identity<T>(value:T):T{return value;}/** Wrap the supplied value. */ export function wrap<T>(value:T):Box<T>{return {value:value};}";
+    let mut workspace=Workspace::default();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let dep="file:///tsrust-intelligence/dep.tsr";
+    workspace.open(source_id(uri).unwrap(),1,entry.into());
+    workspace.open(source_id(dep).unwrap(),1,dependency.into());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,entry,"make(user)","textDocument/hover");
+    let value=hover["contents"]["value"].as_str().unwrap();
+    assert!(value.contains("make(value: Person): Package<Person>"),"{hover}");
+    assert!(value.contains("Wrap the supplied value."));
+    assert!(!value.contains("__tsrust_module_"));
+    let number=ask(&index,entry,"keep(7)","textDocument/hover");
+    assert!(number["contents"]["value"].as_str().unwrap().contains("keep(value: int): int"));
+    assert!(!ask(&index,entry,"toLowerCase()","textDocument/hover").is_null());
+    assert!(!ask(&index,entry,"name,n","textDocument/hover").is_null());
+    let field_definition=ask(&index,entry,"name,n","textDocument/definition");
+    assert_eq!(field_definition["uri"],dep);
+    let references=ask(&index,entry,"name,n","textDocument/references");
+    assert!(references.as_array().unwrap().iter().any(|location|location["uri"]==uri),"{references}");
+    let help=ask(&index,entry,"user);const n","textDocument/signatureHelp");
+    assert_eq!(help["signatures"][0]["label"],"function make(value: Person): Package<Person>");
+    let definition=ask(&index,entry,"make(user)","textDocument/definition");
+    assert_eq!(definition["uri"],dep);
+    workspace.change(&source_id(dep).unwrap(),2,dependency.replace("Keep the supplied value.","Return the supplied argument unchanged."));
+    let changed=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let updated=ProjectIndex::checked(&changed);
+    let hover=ask(&updated,entry,"keep(7)","textDocument/hover");
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("Return the supplied argument unchanged."));
+    let revised=dependency.replace("function identity<T>(value:T):T{return value;}","function identity<T>(value:T):string{return 'changed';}");
+    workspace.change(&source_id(dep).unwrap(),3,revised);
+    let changed=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let updated=ProjectIndex::checked(&changed);
+    let hover=ask(&updated,entry,"keep(7)","textDocument/hover");
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("keep(value: int): string"),"{hover}");
+}
+
+#[test]
+fn checked_private_generic_results_cross_modules_without_local_name_capture() {
+    let entry="import {make as build,identity as keep} from './dep.tsr';type Secret={wrong:int;};function main(){const item=build('Pat');const retained=keep(item);console.log(retained.value.trim());}";
+    let mut workspace=Workspace::default();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let dependency="file:///tsrust-intelligence/dep.tsr";
+    workspace.open(source_id(uri).unwrap(),1,entry.into());
+    workspace.open(source_id(dependency).unwrap(),1,"type Secret<T>={value:T;};export function make<T>(value:T):Secret<T>{return {value:value};}export function identity<T>(value:T):T{return value;}".into());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,entry,"build('Pat')","textDocument/hover");
+    let display=hover["contents"]["value"].as_str().unwrap();
+    assert!(display.contains("build(value: string): Secret<string>"),"{hover}");
+    assert!(!display.contains("__tsrust_private_"));
+    let field=ask(&index,entry,"value.trim","textDocument/hover");
+    assert!(field["contents"]["value"].as_str().unwrap().contains("value: string"),"{field}");
+    let definition=ask(&index,entry,"value.trim","textDocument/definition");
+    assert_eq!(definition["uri"],dependency);
+    assert!(!ask(&index,entry,"trim()","textDocument/hover").is_null());
+}
+
+#[test]
+fn checked_transitive_generic_results_keep_same_named_nominals_distinct() {
+    let entry="import {make as leftMake} from './left.tsr';import {make as rightMake} from './right.tsr';type Secret={wrong:int;};function main(){const left=leftMake('Pat');const right=rightMake('Sam');console.log(left.value.trim(),right.value.toLowerCase());}";
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let left_model="file:///tsrust-intelligence/left-model.tsr";
+    let right_model="file:///tsrust-intelligence/right-model.tsr";
+    let mut workspace=Workspace::default();
+    workspace.open(source_id(uri).unwrap(),1,entry.into());
+    for (file,model) in [("left.tsr","left-model.tsr"),("right.tsr","right-model.tsr")] {
+        workspace.open(source_id(&format!("file:///tsrust-intelligence/{file}")).unwrap(),1,format!("import {{Secret as Hidden}} from './{model}';export function make<T>(value:T):Hidden<T>{{return {{value:value}};}}"));
+    }
+    for model in [left_model,right_model] {
+        workspace.open(source_id(model).unwrap(),1,"export type Secret<T>={value:T;};".into());
+    }
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index=ProjectIndex::checked(&checked);
+    for (needle,expected) in [("value.trim",left_model),("value.toLowerCase",right_model)] {
+        let hover=ask(&index,entry,needle,"textDocument/hover");
+        assert!(hover["contents"]["value"].as_str().unwrap().contains("value: string"),"{hover}");
+        let definition=ask(&index,entry,needle,"textDocument/definition");
+        assert_eq!(definition["uri"],expected,"{definition}");
+        let refs=ask(&index,entry,needle,"textDocument/references");
+        assert!(refs.as_array().unwrap().iter().any(|location|location["uri"]==uri),"{refs}");
+        assert!(refs.as_array().unwrap().iter().all(|location|location["uri"]!=if expected==left_model{right_model}else{left_model}),"{refs}");
+    }
+    let hover=ask(&index,entry,"leftMake('Pat')","textDocument/hover");
+    let display=hover["contents"]["value"].as_str().unwrap();
+    assert!(display.contains("leftMake(value: string): Secret<string>"),"{hover}");
+    assert!(!display.contains("__tsrust_private_"));
+    assert!(!ask(&index,entry,"trim()","textDocument/hover").is_null());
+    assert!(!ask(&index,entry,"toLowerCase()","textDocument/hover").is_null());
+}
+
+#[test]
+fn imported_callable_field_help_tracks_unsaved_declaration_names() {
+    let entry = "import {Handler as Work,make as build} from './dep.tsr';function main(){const work:Work=build();console.log(work.run('Pat').trim());}";
+    let dependency = "export type Handler={run:Function<string, [input:ReadOnly<string>]>;};export function make():Handler{return {run:(text:string):string=>{return text.toLowerCase();}};}";
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let dependency_uri = "file:///tsrust-intelligence/dep.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.into());
+    for (version, parameter) in [(1, "input"), (2, "recipient")] {
+        workspace.open(source_id(dependency_uri).unwrap(), version, dependency.replace("input:", &format!("{parameter}:")));
+        let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+        let index = ProjectIndex::checked(&checked);
+        let hover = ask(&index, entry, "run('Pat')", "textDocument/hover");
+        assert!(hover["contents"]["value"].as_str().unwrap().contains(parameter), "{hover}");
+        let help = ask(&index, entry, "'Pat')", "textDocument/signatureHelp");
+        assert!(help["signatures"][0]["label"].as_str().unwrap().contains(parameter), "{help}");
+        assert!(!ask(&index, entry, "trim()", "textDocument/hover").is_null());
+    }
+}
+
+#[test]
+fn imported_callable_field_signatures_use_callers_nominal_aliases() {
+    let entry = "import {User as Person,Handler as Work,make as build} from './dep.tsr';function main(){const work:Work=build();const person:Person={name:'Pat'};console.log(work.run(person).trim());}";
+    let dependency = "export type User={name:string;};export type Handler={run:Function<string, [value:ReadOnly<User>]>;};export function make():Handler{return {run:(user:User):string=>{return user.name.trim();}};}";
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.into());
+    workspace.open(source_id("file:///tsrust-intelligence/dep.tsr").unwrap(), 1, dependency.into());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::checked(&checked);
+    for (method, needle) in [("textDocument/hover", "run(person)"), ("textDocument/signatureHelp", "person).trim")] {
+        let response = ask(&index, entry, needle, method);
+        let label = if method == "textDocument/hover" { &response["contents"]["value"] } else { &response["signatures"][0]["label"] };
+        assert!(label.as_str().unwrap().contains("Person"), "{response}");
+        assert!(!label.as_str().unwrap().contains("read User"), "{response}");
+    }
+}
+
+#[test]
+fn private_callable_field_parameters_use_source_type_names() {
+    let entry = "import {Handler,make} from './dep.tsr';function main(){const handler:Handler=make();console.log(handler.run({name:'Pat'}));}";
+    let dependency = "type Secret={name:string;};export type Handler={run:Function<string, [value:ReadOnly<Secret>]>;};export function make():Handler{return {run:(user:Secret):string=>{return user.name.trim();}};}";
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.into());
+    workspace.open(source_id("file:///tsrust-intelligence/dep.tsr").unwrap(), 1, dependency.into());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::checked(&checked);
+    let help = ask(&index, entry, "{name:'Pat'}", "textDocument/signatureHelp");
+    let parameter = help["signatures"][0]["parameters"][0]["label"].as_str().unwrap();
+    assert_eq!(parameter, "value:ReadOnly<Secret>", "{help}");
+    assert!(!help.to_string().contains("__tsrust_private_"), "{help}");
+}
+
+#[test]
+fn imported_callable_array_fields_preserve_private_types_and_unsaved_help() {
+    let entry = "import {Collection as Tasks,make,user} from './dep.tsr';function main(){const tasks:Tasks=make();const value=user();const saved=tasks.actions[0](value);console.log(saved.trim());console.log(tasks.actions[0](value).trim());}";
+    let dependency = "type Hidden={name:string;};export type Collection={actions:((input:ReadOnly<Hidden>)=>string)[];};export function user():Hidden{return {name:'Pat'};}export function make():Collection{return {actions:[(value:Hidden):string=>{return value.name.trim();}]};}";
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let dependency_uri = "file:///tsrust-intelligence/dep.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.into());
+    for (version, parameter) in [(1, "input"), (2, "recipient")] {
+        workspace.open(source_id(dependency_uri).unwrap(), version, dependency.replace("input:", &format!("{parameter}:")));
+        let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+        let index = ProjectIndex::checked(&checked);
+        let help = ask(&index, entry, "value).trim", "textDocument/signatureHelp");
+        let label = help["signatures"][0]["parameters"][0]["label"].as_str().expect("imported indexed parameter");
+        assert!(label.contains(parameter), "{help}");
+        assert!(label.contains("ReadOnly<Hidden>"), "{help}");
+        assert!(!help.to_string().contains("__tsrust_private_"), "{help}");
+        assert!(!ask(&index, entry, "trim()", "textDocument/hover").is_null());
+        let saved = ask(&index, entry, "saved.trim", "textDocument/hover");
+        assert!(saved["contents"]["value"].as_str().unwrap().contains("string"), "{saved}");
+        let definition = ask(&index, entry, "actions[0]", "textDocument/definition");
+        assert_eq!(definition["uri"], dependency_uri, "{definition}");
+    }
+}
+
+#[test]
+fn bundled_assertion_imports_supply_hover_and_signature_help() {
+    let entry = "import {strictEqual as same} from 'std:testing';function main(){same(3,3,'sum');}";
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.into());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::checked(&checked);
+    let hover = ask(&index, entry, "same(3", "textDocument/hover");
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("Object.is"), "{hover}");
+    let help = ask(&index, entry, "3,'sum'", "textDocument/signatureHelp");
+    assert!(help["signatures"][0]["label"].as_str().unwrap().contains("expected"), "{help}");
+}
+
+#[test]
+fn bundled_expect_supplies_generic_method_hover_and_parameter_help() {
+    let entry = "import {expect} from 'std:testing';function main(){expect(3).toBe(3);}";
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();
+    workspace.open(source_id(uri).unwrap(),1,entry.into());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,entry,"toBe", "textDocument/hover");
+    let completion=ask(&index,entry,"toBe","textDocument/completion");
+    assert!(completion.as_array().unwrap().iter().any(|item|item["label"]=="toBe" && item["detail"].as_str().is_some_and(|label|label.contains("expected: int"))),"{completion}");
+    assert!(hover["contents"]["value"].as_str().is_some_and(|value|value.contains("Object.is")),"{hover}");
+    let help=ask(&index,entry,"3);", "textDocument/signatureHelp");
+    assert!(help["signatures"][0]["label"].as_str().unwrap().contains("expected: int"),"{help}");
+}
+
+#[test]
+fn conventional_testing_entry_supports_top_level_matcher_editor_help() {
+    let entry="import {test,expect} from 'std:testing';test('sum',():void=>{expect(3).toBe(3);});";
+    let uri="file:///tsrust-intelligence/sum.test.tsr";
+    let id=source_id(uri).unwrap();
+    let mut workspace=Workspace::default();
+    workspace.open(id.clone(),1,entry.into());
+    let checked=workspace.snapshot().check(&id).unwrap();
+    let index=ProjectIndex::checked(&checked);
+    for (needle,method,expected) in [("toBe","textDocument/hover","Object.is"),("3);","textDocument/signatureHelp","expected: int"),("test('sum'","textDocument/hover","Registers a synchronous named test")] {
+        let offset=entry.rfind(needle).unwrap();
+        let result=index.request(method,&json!({"position":{"line":0,"character":entry[..offset].encode_utf16().count()}}),uri).unwrap().unwrap();
+        assert!(result.to_string().contains(expected),"{result}");
+    }
+}
+
+#[test]
+fn bundled_suite_registration_supplies_borrowed_callback_help() {
+    let entry="import {describe as group,test} from 'std:testing';group('math',():void=>{test('sum',():void=>{});});";
+    let uri="file:///tsrust-intelligence/sum.test.tsr";
+    let id=source_id(uri).unwrap();let mut workspace=Workspace::default();workspace.open(id.clone(),1,entry.into());
+    let checked=workspace.snapshot().check(&id).unwrap();let index=ProjectIndex::checked(&checked);
+    for (needle,method,expected) in [("group('math'","textDocument/hover","Groups synchronous tests"),("():void=>","textDocument/signatureHelp","Mutable<Function<void>>")] {
+        let offset=entry.find(needle).unwrap();
+        let result=index.request(method,&json!({"position":{"line":0,"character":entry[..offset].encode_utf16().count()}}),uri).unwrap().unwrap();
+        assert!(result.to_string().contains(expected),"{result}");
+    }
+}
+
+#[test]
+fn bundled_each_hook_editor_help_tracks_owned_reusable_callbacks() {
+    let entry="import {beforeEach as setup,test} from 'std:testing';setup(():void=>{});test('body',():void=>{});";
+    let uri="file:///tsrust-intelligence/hooks.test.tsr";
+    let id=source_id(uri).unwrap();let mut workspace=Workspace::default();workspace.open(id.clone(),1,entry.into());
+    let checked=workspace.snapshot().check(&id).unwrap();let index=ProjectIndex::checked(&checked);
+    for (needle,method,expected) in [("setup(()","textDocument/hover","Registers a synchronous setup callback before every test"),("():void=>{});test","textDocument/signatureHelp","Owned<Function<void>>")] {
+        let offset=entry.find(needle).unwrap();
+        let result=index.request(method,&json!({"position":{"line":0,"character":entry[..offset].encode_utf16().count()}}),uri).unwrap().unwrap();
+        assert!(result.to_string().contains(expected),"{result}");
+    }
+}
+
+#[test]
+fn bundled_truthiness_matchers_supply_hover_completion_and_zero_argument_help() {
+    for name in ["toBeTruthy","toBeFalsy"] {
+        let entry=format!("import {{expect}} from 'std:testing';function main(){{expect(0).{name}();}}");
+        let uri="file:///tsrust-intelligence/main.tsr";
+        let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+        let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+        let hover=ask(&index,&entry,name,"textDocument/hover");
+        assert!(hover.to_string().contains("Boolean conversion"),"{hover}");
+        let completion=ask(&index,&entry,name,"textDocument/completion");
+        assert!(completion.as_array().unwrap().iter().any(|row|row["label"]==name),"{completion}");
+        let help=ask(&index,&entry,");}","textDocument/signatureHelp");
+        assert!(help["signatures"][0]["label"].as_str().unwrap().contains(name),"{help}");
+        assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),0);
+    }
+}
+
+#[test]
+fn bundled_nullish_matchers_supply_documented_zero_argument_help() {
+    for name in ["toBeNull","toBeUndefined","toBeDefined","toBeNaN"] {
+        let entry=format!("import {{expect}} from 'std:testing';function main(){{expect(null).{name}();}}");
+        let uri="file:///tsrust-intelligence/main.tsr";
+        let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+        let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+        let hover=ask(&index,&entry,name,"textDocument/hover");assert!(hover.to_string().contains("Takes no arguments"),"{hover}");
+        let completion=ask(&index,&entry,name,"textDocument/completion");assert!(completion.as_array().unwrap().iter().any(|row|row["label"]==name),"{completion}");
+        let help=ask(&index,&entry,");}","textDocument/signatureHelp");assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),0);
+    }
+}
+
+#[test]
+fn nullable_expectation_exposes_predicate_completion_and_help() {
+    let entry="import {expect} from 'std:testing';function inspect(value:string|null|undefined):void{expect(value).toBeDefined();}function main(){inspect(null);}";
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.into());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,entry,"toBeDefined","textDocument/hover");assert!(hover.to_string().contains("data unions"),"{hover}");
+    let completion=ask(&index,entry,"toBeDefined","textDocument/completion");assert!(completion.as_array().unwrap().iter().any(|row|row["label"]=="toBeDefined"),"{completion}");
+}
+
+#[test]
+fn copy_union_expectation_signature_uses_copy_parameter_contract() {
+    let entry="import {expect} from 'std:testing';function inspect(value:number|null|undefined):void{expect(value).toBe(value);}function main(){inspect(null);}";
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.into());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let help=ask(&index,entry,"value);}","textDocument/signatureHelp");
+    let label=help["signatures"][0]["label"].as_str().unwrap();
+    assert!(label.contains("expected:"),"{help}");assert!(!label.contains("ReadOnly"),"{help}");
+}
+
+#[test]
+fn negated_expectation_exposes_completion_hover_and_parameter_help() {
+    let entry="import {expect} from 'std:testing';function main(){const assertion=expect('saved');assertion.not.toBe('different');}";
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.into());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,entry,"toBe(","textDocument/hover");
+    assert!(hover.to_string().contains("false"),"{hover}");
+    let completion=ask(&index,entry,"toBe(","textDocument/completion");
+    for name in ["toBe","toBeTruthy","toBeFalsy","toBeNull","toBeUndefined","toBeDefined","toBeNaN"] {
+        assert!(completion.as_array().unwrap().iter().any(|row|row["label"]==name),"{name}: {completion}");
+    }
+    let help=ask(&index,entry,"'different'","textDocument/signatureHelp");
+    assert!(help.to_string().contains("expected"),"{help}");
+}
+
+#[test]
+fn typeof_matcher_completion_hover_and_parameter_help_cover_both_views() {
+    for view in ["", "not."] {
+        let entry=format!("import {{expect}} from 'std:testing';function main(){{expect(null).{view}toBeTypeOf('object');}}");
+        let uri="file:///tsrust-intelligence/main.tsr";
+        let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+        let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+        let hover=ask(&index,&entry,"toBeTypeOf(","textDocument/hover");
+        assert!(hover.to_string().contains("No value coercion"),"{hover}");
+        let completion=ask(&index,&entry,"toBeTypeOf(","textDocument/completion");
+        assert!(completion.as_array().unwrap().iter().any(|row|row["label"]=="toBeTypeOf"),"{completion}");
+        let help=ask(&index,&entry,"'object'","textDocument/signatureHelp");
+        assert!(help.to_string().contains("expected"),"{help}");
+    }
+}
+
+#[test]
+fn numeric_comparison_completion_hover_and_parameter_help_cover_both_views() {
+    for view in ["", "not."] {
+        for method in ["toBeGreaterThan","toBeGreaterThanOrEqual","toBeLessThan","toBeLessThanOrEqual"] {
+            let entry=format!("import {{expect}} from 'std:testing';function main(){{expect(3).{view}{method}(2.0);}}");
+            let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+            let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+            let hover=ask(&index,&entry,&format!("{method}("),"textDocument/hover");assert!(hover.to_string().contains("without coercion"),"{hover}");
+            let completion=ask(&index,&entry,&format!("{method}("),"textDocument/completion");assert!(completion.as_array().unwrap().iter().any(|row|row["label"]==method),"{completion}");
+            let help=ask(&index,&entry,"2.0","textDocument/signatureHelp");assert!(help.to_string().contains("expected"),"{help}");
+        }
+    }
+}
+
+#[test]
+fn close_to_matcher_optional_precision_help_and_completion_cover_both_views() {
+    for view in ["", "not."] {
+        let entry=format!("import {{expect}} from 'std:testing';function main(){{expect(0.1+0.2).{view}toBeCloseTo(0.3,5.0);}}");
+        let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+        let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+        let hover=ask(&index,&entry,"toBeCloseTo(","textDocument/hover");assert!(hover.to_string().contains("default 2"),"{hover}");
+        let completion=ask(&index,&entry,"toBeCloseTo(","textDocument/completion");assert!(completion.as_array().unwrap().iter().any(|row|row["label"]=="toBeCloseTo"),"{completion}");
+        let help=ask(&index,&entry,"5.0","textDocument/signatureHelp");assert!(help.to_string().contains("numDigits"),"{help}");assert!(help.to_string().contains("?"),"{help}");
+    }
+}
+
+#[test]
+fn length_matcher_completion_hover_and_parameter_help_cover_both_views() {
+    for view in ["", "not."] {
+        let entry=format!("import {{expect}} from 'std:testing';function main(){{expect('abc').{view}toHaveLength(3.0);}}");
+        let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+        let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+        let hover=ask(&index,&entry,"toHaveLength(","textDocument/hover");assert!(hover.to_string().contains("UTF-16"),"{hover}");
+        let completion=ask(&index,&entry,"toHaveLength(","textDocument/completion");assert!(completion.as_array().unwrap().iter().any(|row|row["label"]=="toHaveLength"),"{completion}");
+        let help=ask(&index,&entry,"3.0","textDocument/signatureHelp");assert!(help.to_string().contains("expected"),"{help}");
+    }
+}
+
+#[test]
+fn checked_project_labels_keep_local_definitions_after_linking() {
+ let entry="import {count} from './dep.tsr';function main(){const outer=count();outer:while(true){break outer;}console.log(outer);}";
+ let mut workspace=Workspace::default();let uri="file:///tsrust-intelligence/main.tsr";
+ workspace.open(source_id(uri).unwrap(),1,entry.into());
+ workspace.open(source_id("file:///tsrust-intelligence/dep.tsr").unwrap(),1,"export function count():int{return 4;}".into());
+ let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+ let definition=ask(&index,entry,"outer;","textDocument/definition");
+ assert_eq!(definition["range"]["start"]["character"],json!(entry.find("outer:while").unwrap()),"{definition}");
+ let hover=ask(&index,entry,"outer;","textDocument/hover");assert!(hover.to_string().contains("label outer"),"{hover}");
+ let value=ask(&index,entry,"outer);","textDocument/hover");assert!(value.to_string().contains("int"),"{value}");
+ let labels=ask(&index,entry,"outer;","textDocument/references");assert_eq!(labels.as_array().unwrap().len(),2,"{labels}");
+ let values=ask(&index,entry,"outer);","textDocument/references");assert_eq!(values.as_array().unwrap().len(),2,"{values}");
+}

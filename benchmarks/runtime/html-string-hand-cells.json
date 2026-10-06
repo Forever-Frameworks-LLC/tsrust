@@ -1,0 +1,560 @@
+[
+  {
+    "id": "string_html_anchor",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "<a name=\"\">dynamic é😀&<</a>"
+    ]
+  },
+  {
+    "id": "string_html_anchor",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "<a name=\"dynamic é😀&<\"></a>"
+    ]
+  },
+  {
+    "id": "string_html_anchor",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "<a name=\"&quot;\">raw &<>\u0000</a>"
+    ]
+  },
+  {
+    "id": "string_html_anchor",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "<a name=\"a&quot;b\">é😀é</a>"
+    ]
+  },
+  {
+    "id": "string_html_anchor",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  },
+  {
+    "id": "string_html_big",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "<big>dynamic é😀&<</big>"
+    ]
+  },
+  {
+    "id": "string_html_big",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "<big></big>"
+    ]
+  },
+  {
+    "id": "string_html_big",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "<big>raw &<>\u0000</big>"
+    ]
+  },
+  {
+    "id": "string_html_big",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "<big>é😀é</big>"
+    ]
+  },
+  {
+    "id": "string_html_big",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  },
+  {
+    "id": "string_html_blink",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "<blink>dynamic é😀&<</blink>"
+    ]
+  },
+  {
+    "id": "string_html_blink",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "<blink></blink>"
+    ]
+  },
+  {
+    "id": "string_html_blink",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "<blink>raw &<>\u0000</blink>"
+    ]
+  },
+  {
+    "id": "string_html_blink",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "<blink>é😀é</blink>"
+    ]
+  },
+  {
+    "id": "string_html_blink",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  },
+  {
+    "id": "string_html_bold",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "<b>dynamic é😀&<</b>"
+    ]
+  },
+  {
+    "id": "string_html_bold",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "<b></b>"
+    ]
+  },
+  {
+    "id": "string_html_bold",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "<b>raw &<>\u0000</b>"
+    ]
+  },
+  {
+    "id": "string_html_bold",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "<b>é😀é</b>"
+    ]
+  },
+  {
+    "id": "string_html_bold",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  },
+  {
+    "id": "string_html_fixed",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "<tt>dynamic é😀&<</tt>"
+    ]
+  },
+  {
+    "id": "string_html_fixed",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "<tt></tt>"
+    ]
+  },
+  {
+    "id": "string_html_fixed",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "<tt>raw &<>\u0000</tt>"
+    ]
+  },
+  {
+    "id": "string_html_fixed",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "<tt>é😀é</tt>"
+    ]
+  },
+  {
+    "id": "string_html_fixed",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  },
+  {
+    "id": "string_html_fontcolor",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "<font color=\"\">dynamic é😀&<</font>"
+    ]
+  },
+  {
+    "id": "string_html_fontcolor",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "<font color=\"dynamic é😀&<\"></font>"
+    ]
+  },
+  {
+    "id": "string_html_fontcolor",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "<font color=\"&quot;\">raw &<>\u0000</font>"
+    ]
+  },
+  {
+    "id": "string_html_fontcolor",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "<font color=\"a&quot;b\">é😀é</font>"
+    ]
+  },
+  {
+    "id": "string_html_fontcolor",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  },
+  {
+    "id": "string_html_fontsize",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "<font size=\"\">dynamic é😀&<</font>"
+    ]
+  },
+  {
+    "id": "string_html_fontsize",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "<font size=\"dynamic é😀&<\"></font>"
+    ]
+  },
+  {
+    "id": "string_html_fontsize",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "<font size=\"&quot;\">raw &<>\u0000</font>"
+    ]
+  },
+  {
+    "id": "string_html_fontsize",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "<font size=\"a&quot;b\">é😀é</font>"
+    ]
+  },
+  {
+    "id": "string_html_fontsize",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  },
+  {
+    "id": "string_html_italics",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "<i>dynamic é😀&<</i>"
+    ]
+  },
+  {
+    "id": "string_html_italics",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "<i></i>"
+    ]
+  },
+  {
+    "id": "string_html_italics",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "<i>raw &<>\u0000</i>"
+    ]
+  },
+  {
+    "id": "string_html_italics",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "<i>é😀é</i>"
+    ]
+  },
+  {
+    "id": "string_html_italics",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  },
+  {
+    "id": "string_html_link",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "<a href=\"\">dynamic é😀&<</a>"
+    ]
+  },
+  {
+    "id": "string_html_link",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "<a href=\"dynamic é😀&<\"></a>"
+    ]
+  },
+  {
+    "id": "string_html_link",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "<a href=\"&quot;\">raw &<>\u0000</a>"
+    ]
+  },
+  {
+    "id": "string_html_link",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "<a href=\"a&quot;b\">é😀é</a>"
+    ]
+  },
+  {
+    "id": "string_html_link",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  },
+  {
+    "id": "string_html_small",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "<small>dynamic é😀&<</small>"
+    ]
+  },
+  {
+    "id": "string_html_small",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "<small></small>"
+    ]
+  },
+  {
+    "id": "string_html_small",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "<small>raw &<>\u0000</small>"
+    ]
+  },
+  {
+    "id": "string_html_small",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "<small>é😀é</small>"
+    ]
+  },
+  {
+    "id": "string_html_small",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  },
+  {
+    "id": "string_html_strike",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "<strike>dynamic é😀&<</strike>"
+    ]
+  },
+  {
+    "id": "string_html_strike",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "<strike></strike>"
+    ]
+  },
+  {
+    "id": "string_html_strike",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "<strike>raw &<>\u0000</strike>"
+    ]
+  },
+  {
+    "id": "string_html_strike",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "<strike>é😀é</strike>"
+    ]
+  },
+  {
+    "id": "string_html_strike",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  },
+  {
+    "id": "string_html_sub",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "<sub>dynamic é😀&<</sub>"
+    ]
+  },
+  {
+    "id": "string_html_sub",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "<sub></sub>"
+    ]
+  },
+  {
+    "id": "string_html_sub",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "<sub>raw &<>\u0000</sub>"
+    ]
+  },
+  {
+    "id": "string_html_sub",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "<sub>é😀é</sub>"
+    ]
+  },
+  {
+    "id": "string_html_sub",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  },
+  {
+    "id": "string_html_sup",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "<sup>dynamic é😀&<</sup>"
+    ]
+  },
+  {
+    "id": "string_html_sup",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "<sup></sup>"
+    ]
+  },
+  {
+    "id": "string_html_sup",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "<sup>raw &<>\u0000</sup>"
+    ]
+  },
+  {
+    "id": "string_html_sup",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "<sup>é😀é</sup>"
+    ]
+  },
+  {
+    "id": "string_html_sup",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  },
+  {
+    "id": "string_html_anchor",
+    "n": 1,
+    "seed": 8,
+    "expected": [
+      "<a name=\"&quot;\">dynamic é😀&<</a>"
+    ]
+  },
+  {
+    "id": "string_html_anchor",
+    "n": 1,
+    "seed": 5,
+    "expected": [
+      "<a name=\"'\u0000\">a'&<></a>"
+    ]
+  },
+  {
+    "id": "string_html_fontcolor",
+    "n": 1,
+    "seed": 8,
+    "expected": [
+      "<font color=\"&quot;\">dynamic é😀&<</font>"
+    ]
+  },
+  {
+    "id": "string_html_fontcolor",
+    "n": 1,
+    "seed": 5,
+    "expected": [
+      "<font color=\"'\u0000\">a'&<></font>"
+    ]
+  },
+  {
+    "id": "string_html_fontsize",
+    "n": 1,
+    "seed": 8,
+    "expected": [
+      "<font size=\"&quot;\">dynamic é😀&<</font>"
+    ]
+  },
+  {
+    "id": "string_html_fontsize",
+    "n": 1,
+    "seed": 5,
+    "expected": [
+      "<font size=\"'\u0000\">a'&<></font>"
+    ]
+  },
+  {
+    "id": "string_html_link",
+    "n": 1,
+    "seed": 8,
+    "expected": [
+      "<a href=\"&quot;\">dynamic é😀&<</a>"
+    ]
+  },
+  {
+    "id": "string_html_link",
+    "n": 1,
+    "seed": 5,
+    "expected": [
+      "<a href=\"'\u0000\">a'&<></a>"
+    ]
+  }
+]

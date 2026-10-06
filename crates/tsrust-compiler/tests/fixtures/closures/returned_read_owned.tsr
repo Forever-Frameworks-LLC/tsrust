@@ -1,0 +1,11 @@
+type User = { name: string; };
+
+function make(): () => string {
+    const user: User = { name: "Pat" };
+    return (): string => { return user.name.trim(); };
+}
+function main() {
+    const show = make();
+    console.log(show());
+    console.log(show());
+}

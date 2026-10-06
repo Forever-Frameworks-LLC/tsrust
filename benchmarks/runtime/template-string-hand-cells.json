@@ -1,0 +1,198 @@
+[
+  {
+    "id": "template_primitive_ascii",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "head:dynamic ASCII|0|0.5|true:tail"
+    ]
+  },
+  {
+    "id": "template_primitive_ascii",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "head:|1|1.25|false:tail"
+    ]
+  },
+  {
+    "id": "template_primitive_ascii",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "head:ABC|2|2.5|false:tail"
+    ]
+  },
+  {
+    "id": "template_primitive_ascii",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "head:a\u0000b|3|12.75|true:tail"
+    ]
+  },
+  {
+    "id": "template_primitive_ascii",
+    "n": 1,
+    "seed": 4,
+    "expected": [
+      "head: x |4|0.5|false:tail"
+    ]
+  },
+  {
+    "id": "template_primitive_ascii",
+    "n": 1,
+    "seed": 5,
+    "expected": [
+      "head:quote\"|5|1.25|false:tail"
+    ]
+  },
+  {
+    "id": "template_primitive_ascii",
+    "n": 1,
+    "seed": 6,
+    "expected": [
+      "head:slash\\|6|2.5|true:tail"
+    ]
+  },
+  {
+    "id": "template_primitive_ascii",
+    "n": 1,
+    "seed": 7,
+    "expected": [
+      "head:dynamic ASCIIdynamic ASCII|7|12.75|false:tail"
+    ]
+  },
+  {
+    "id": "template_primitive_ascii",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  },
+  {
+    "id": "template_string_unicode",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "é😀:${literal}|dynamic é😀|a\u0000é:é"
+    ]
+  },
+  {
+    "id": "template_string_unicode",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "é😀:${literal}||﻿中:é"
+    ]
+  },
+  {
+    "id": "template_string_unicode",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "é😀:${literal}|é😀|é:é"
+    ]
+  },
+  {
+    "id": "template_string_unicode",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "é😀:${literal}|a\u0000é|﷐￿􏿿:é"
+    ]
+  },
+  {
+    "id": "template_string_unicode",
+    "n": 1,
+    "seed": 4,
+    "expected": [
+      "é😀:${literal}|﻿中|dynamic é😀dynamic é😀:é"
+    ]
+  },
+  {
+    "id": "template_string_unicode",
+    "n": 1,
+    "seed": 5,
+    "expected": [
+      "é😀:${literal}|é|dynamic é😀:é"
+    ]
+  },
+  {
+    "id": "template_string_unicode",
+    "n": 1,
+    "seed": 6,
+    "expected": [
+      "é😀:${literal}|﷐￿􏿿|:é"
+    ]
+  },
+  {
+    "id": "template_string_unicode",
+    "n": 1,
+    "seed": 7,
+    "expected": [
+      "é😀:${literal}|dynamic é😀dynamic é😀|é😀:é"
+    ]
+  },
+  {
+    "id": "template_string_unicode",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  },
+  {
+    "id": "template_primitive_ascii",
+    "n": 3,
+    "seed": 0,
+    "expected": [
+      "head:dynamic ASCII|0|0.5|true:tail",
+      "head:quote\"|7|1.25|false:tail",
+      "head:ABC|14|2.5|false:tail"
+    ]
+  },
+  {
+    "id": "template_string_unicode",
+    "n": 3,
+    "seed": 0,
+    "expected": [
+      "é😀:${literal}|dynamic é😀|a\u0000é:é",
+      "é😀:${literal}|é|dynamic é😀:é",
+      "é😀:${literal}|é😀|é:é"
+    ]
+  },
+  {
+    "id": "template_primitive_ascii",
+    "n": 1,
+    "seed": 0,
+    "input": "",
+    "expected": [
+      "head:|0|0.5|true:tail"
+    ]
+  },
+  {
+    "id": "template_primitive_ascii",
+    "n": 1,
+    "seed": 0,
+    "input": "a\u0000b",
+    "expected": [
+      "head:a\u0000b|0|0.5|true:tail"
+    ]
+  },
+  {
+    "id": "template_string_unicode",
+    "n": 1,
+    "seed": 0,
+    "input": "",
+    "expected": [
+      "é😀:${literal}||a\u0000é:é"
+    ]
+  },
+  {
+    "id": "template_string_unicode",
+    "n": 1,
+    "seed": 0,
+    "input": "﻿😀",
+    "expected": [
+      "é😀:${literal}|﻿😀|a\u0000é:é"
+    ]
+  }
+]

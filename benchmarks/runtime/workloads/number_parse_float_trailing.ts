@@ -1,0 +1,14 @@
+type int = number;
+function workload(n: int, seed: int, input: string): number[] {
+    const values: string[] = [clone(input), "0x1", "1_2", "1e+tail", "1e-tail", "1e", "1E+", "1e2tail", ".5e-2tail", "1.2.3", "-0tail", "Infinitytail", "+Infinityx", "-Infinity!", "12\u0000junk", "12 34"];
+    const output: number[] = []; let i = 0;
+    while (i < n) {
+        const at = (i * 13 + seed) % 16;
+        const selected: number = Number.parseFloat(values[at]);
+        output.push(selected);
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7, "123.5tail"); }
+function clone<T>(value: T): T { return value; }

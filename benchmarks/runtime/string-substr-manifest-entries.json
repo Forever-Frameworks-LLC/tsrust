@@ -1,0 +1,186 @@
+[
+  {
+    "id": "string_substr_default_ascii",
+    "category": "strings",
+    "family": "substr-byte-coordinate-selection",
+    "inputFamily": "ascii",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "dynamic ASCII",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String.substr call retaining its complete String result",
+    "measurementStatus": "pending-checkpoint-81",
+    "pendingCheckpoint": 81,
+    "specification": "Native optional strict int start defaults to zero and optional byte length defaults to remaining bytes. Negative start counts from the byte end and clamps. Nonpositive length returns empty; length caps remaining bytes. Nonempty boundaries must be UTF8 scalar boundaries.",
+    "notes": "Full workload includes input/pool construction, coordinate setup/selection, actual substr call and natural String[] retention/disposal. Complete String observer outside timing. Native static Cow slices may remain borrowed; owned receiver slices copy independently. ASCII byte and UTF16 coordinates are identical. Timings remain pending checkpoint81.",
+    "sourceRequired": [
+      "function workload(n: int, seed: int, input: string): string[] {",
+      "    const values: string[] = [clone(input), \"\", \"ABC\", \"a\\u0000b\", \" x \", \"quote\\\"\", \"slash\\\\\", input.repeat(2)];",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 8;",
+      "        const selected: string = values[at].substr();",
+      "output.push(selected);",
+      "i = i + 1;",
+      "return output;"
+    ],
+    "nativeRequired": [],
+    "typescriptRequired": [],
+    "methodExpressions": {
+      "native": [
+        "values[at].substr()"
+      ],
+      "typescript": [
+        "values[at].substr()"
+      ]
+    },
+    "sourceSha256": "9a7db7655549d35c704e101b794e0eb2b9a47542bfad9fc3b353a01e93fd314d",
+    "counterpartSha256": "2f07282981cb713f70543a8508b2dc2bde6abd654ce34ce24b0c6a2bc0205b6f"
+  },
+  {
+    "id": "string_substr_default_unicode",
+    "category": "strings",
+    "family": "substr-byte-coordinate-selection",
+    "inputFamily": "unicode",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "dynamic é😀",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String.substr call retaining its complete String result",
+    "measurementStatus": "pending-checkpoint-81",
+    "pendingCheckpoint": 81,
+    "specification": "Native optional strict int start defaults to zero and optional byte length defaults to remaining bytes. Negative start counts from the byte end and clamps. Nonpositive length returns empty; length caps remaining bytes. Nonempty boundaries must be UTF8 scalar boundaries.",
+    "notes": "Full workload includes input/pool construction, coordinate setup/selection, actual substr call and natural String[] retention/disposal. Complete String observer outside timing. Native static Cow slices may remain borrowed; owned receiver slices copy independently. Unicode counterpart constructs equivalent UTF16 coordinate tuples once in timed workload setup; no per-operation encoding or whole-input bridge scan. All setup costs are disclosed; no raw-method or allocation-parity claim. Timings remain pending checkpoint81.",
+    "sourceRequired": [
+      "function workload(n: int, seed: int, input: string): string[] {",
+      "    const values: string[] = [clone(input), \"\", \"é😀Z\", \"a\\u0000é😀\", \"e\\u0301\", \"\\uFEFF中Z\", input.repeat(2), \"\\uFDD0\\uFFFF\\u{10FFFF}\"];",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 8;",
+      "        const selected: string = values[at].substr();",
+      "output.push(selected);",
+      "i = i + 1;",
+      "return output;"
+    ],
+    "nativeRequired": [],
+    "typescriptRequired": [],
+    "methodExpressions": {
+      "native": [
+        "values[at].substr()"
+      ],
+      "typescript": [
+        "values[at].substr()"
+      ]
+    },
+    "sourceSha256": "7b6ffdacfdf3a0bfce6bc82796c91ba92083dfcd878b93b5178160cd0135f6ec",
+    "counterpartSha256": "db7d0dfb85c9b7a36dea6cab3d484f83042e8ce14e70aef20ba4ec71dc889592"
+  },
+  {
+    "id": "string_substr_bounded_ascii",
+    "category": "strings",
+    "family": "substr-byte-coordinate-selection",
+    "inputFamily": "ascii",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "dynamic ASCII",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String.substr call retaining its complete String result",
+    "measurementStatus": "pending-checkpoint-81",
+    "pendingCheckpoint": 81,
+    "specification": "Native optional strict int start defaults to zero and optional byte length defaults to remaining bytes. Negative start counts from the byte end and clamps. Nonpositive length returns empty; length caps remaining bytes. Nonempty boundaries must be UTF8 scalar boundaries.",
+    "notes": "Full workload includes input/pool construction, coordinate setup/selection, actual substr call and natural String[] retention/disposal. Complete String observer outside timing. Native static Cow slices may remain borrowed; owned receiver slices copy independently. ASCII byte and UTF16 coordinates are identical. Timings remain pending checkpoint81.",
+    "sourceRequired": [
+      "function workload(n: int, seed: int, input: string): string[] {",
+      "    const values: string[] = [clone(input), \"\", \"ABC\", \"a\\u0000b\", \" x \", \"quote\\\"\", \"slash\\\\\", input.repeat(2)];",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 8;",
+      "        const mode = (i * 7 + seed) % 9;\n        const selected: string = values[at].substr(bounds[at][mode][0], bounds[at][mode][1]);",
+      "output.push(selected);",
+      "i = i + 1;",
+      "return output;"
+    ],
+    "nativeRequired": [
+      "    const bounds: int[][][] = [\n        [[0, input.length], [1, 0], [1000000, 7], [-1000000, input.length], [1, 3], [-3, 2], [1, -1], [2, 1000000], [-1000000, 0]],\n        [[0, 0], [1, 0], [1000000, 7], [-1000000, 0], [1, 3], [-3, 2], [1, -1], [2, 1000000], [-1000000, 0]],\n        [[0, 3], [1, 0], [1000000, 7], [-1000000, 3], [1, 3], [-3, 2], [1, -1], [2, 1000000], [-1000000, 0]],\n        [[0, 3], [1, 0], [1000000, 7], [-1000000, 3], [1, 3], [-3, 2], [1, -1], [2, 1000000], [-1000000, 0]],\n        [[0, 3], [1, 0], [1000000, 7], [-1000000, 3], [1, 3], [-3, 2], [1, -1], [2, 1000000], [-1000000, 0]],\n        [[0, 6], [1, 0], [1000000, 7], [-1000000, 6], [1, 3], [-3, 2], [1, -1], [2, 1000000], [-1000000, 0]],\n        [[0, 6], [1, 0], [1000000, 7], [-1000000, 6], [1, 3], [-3, 2], [1, -1], [2, 1000000], [-1000000, 0]],\n        [[0, input.length * 2], [1, 0], [1000000, 7], [-1000000, input.length * 2], [1, 3], [-3, 2], [1, -1], [2, 1000000], [-1000000, 0]]\n    ];"
+    ],
+    "typescriptRequired": [
+      "    const bounds: int[][][] = [\n        [[0, input.length], [1, 0], [1000000, 7], [-1000000, input.length], [1, 3], [-3, 2], [1, -1], [2, 1000000], [-1000000, 0]],\n        [[0, 0], [1, 0], [1000000, 7], [-1000000, 0], [1, 3], [-3, 2], [1, -1], [2, 1000000], [-1000000, 0]],\n        [[0, 3], [1, 0], [1000000, 7], [-1000000, 3], [1, 3], [-3, 2], [1, -1], [2, 1000000], [-1000000, 0]],\n        [[0, 3], [1, 0], [1000000, 7], [-1000000, 3], [1, 3], [-3, 2], [1, -1], [2, 1000000], [-1000000, 0]],\n        [[0, 3], [1, 0], [1000000, 7], [-1000000, 3], [1, 3], [-3, 2], [1, -1], [2, 1000000], [-1000000, 0]],\n        [[0, 6], [1, 0], [1000000, 7], [-1000000, 6], [1, 3], [-3, 2], [1, -1], [2, 1000000], [-1000000, 0]],\n        [[0, 6], [1, 0], [1000000, 7], [-1000000, 6], [1, 3], [-3, 2], [1, -1], [2, 1000000], [-1000000, 0]],\n        [[0, input.length * 2], [1, 0], [1000000, 7], [-1000000, input.length * 2], [1, 3], [-3, 2], [1, -1], [2, 1000000], [-1000000, 0]]\n    ];"
+    ],
+    "methodExpressions": {
+      "native": [
+        "values[at].substr(bounds[at][mode][0], bounds[at][mode][1])"
+      ],
+      "typescript": [
+        "values[at].substr(bounds[at][mode][0], bounds[at][mode][1])"
+      ]
+    },
+    "sourceSha256": "e4175ec01b713dc55d3aa1ac370ac1ed25673402543edf613165b095c398ce13",
+    "counterpartSha256": "cd080585317aa0cd8705fef935d31bb74ca31c5e0a302a62b00a89dadc8cdd53"
+  },
+  {
+    "id": "string_substr_bounded_unicode",
+    "category": "strings",
+    "family": "substr-byte-coordinate-selection",
+    "inputFamily": "unicode",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "dynamic é😀",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String.substr call retaining its complete String result",
+    "measurementStatus": "pending-checkpoint-81",
+    "pendingCheckpoint": 81,
+    "specification": "Native optional strict int start defaults to zero and optional byte length defaults to remaining bytes. Negative start counts from the byte end and clamps. Nonpositive length returns empty; length caps remaining bytes. Nonempty boundaries must be UTF8 scalar boundaries.",
+    "notes": "Full workload includes input/pool construction, coordinate setup/selection, actual substr call and natural String[] retention/disposal. Complete String observer outside timing. Native static Cow slices may remain borrowed; owned receiver slices copy independently. Unicode counterpart constructs equivalent UTF16 coordinate tuples once in timed workload setup; no per-operation encoding or whole-input bridge scan. All setup costs are disclosed; no raw-method or allocation-parity claim. Timings remain pending checkpoint81.",
+    "sourceRequired": [
+      "function workload(n: int, seed: int, input: string): string[] {",
+      "    const values: string[] = [clone(input), \"\", \"é😀Z\", \"a\\u0000é😀\", \"e\\u0301\", \"\\uFEFF中Z\", input.repeat(2), \"\\uFDD0\\uFFFF\\u{10FFFF}\"];",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 8;",
+      "        const mode = (i * 7 + seed) % 9;\n        const selected: string = values[at].substr(bounds[at][mode][0], bounds[at][mode][1]);",
+      "output.push(selected);",
+      "i = i + 1;",
+      "return output;"
+    ],
+    "nativeRequired": [
+      "    const bounds: int[][][] = [\n        [[0, input.length], [1, 0], [1000000, 7], [-1000000, input.length], [0, input.length], [-input.length, input.length], [1, -1], [0, 1000000], [-1000000, 0]],\n        [[0, 0], [1, 0], [1000000, 7], [-1000000, 0], [0, 0], [-1, 5], [1, -1], [0, 1000000], [-1000000, 0]],\n        [[0, 7], [1, 0], [1000000, 7], [-1000000, 7], [2, 4], [-1, 1], [1, -1], [2, 1000000], [-1000000, 0]],\n        [[0, 8], [1, 0], [1000000, 7], [-1000000, 8], [2, 2], [-4, 4], [1, -1], [2, 1000000], [-1000000, 0]],\n        [[0, 3], [1, 0], [1000000, 7], [-1000000, 3], [1, 2], [-2, 2], [1, -1], [1, 1000000], [-1000000, 0]],\n        [[0, 7], [1, 0], [1000000, 7], [-1000000, 7], [3, 3], [-1, 1], [1, -1], [3, 1000000], [-1000000, 0]],\n        [[0, input.length * 2], [1, 0], [1000000, 7], [-1000000, input.length * 2], [input.length, input.length], [-input.length, input.length], [1, -1], [input.length, 1000000], [-1000000, 0]],\n        [[0, 10], [1, 0], [1000000, 7], [-1000000, 10], [6, 4], [-4, 4], [1, -1], [6, 1000000], [-1000000, 0]]\n    ];"
+    ],
+    "typescriptRequired": [
+      "    const bounds: int[][][] = [\n        [[0, input.length], [1, 0], [1000000, 7], [-1000000, input.length], [0, input.length], [-input.length, input.length], [1, -1], [0, 1000000], [-1000000, 0]],\n        [[0, 0], [1, 0], [1000000, 7], [-1000000, 0], [0, 0], [-1, 5], [1, -1], [0, 1000000], [-1000000, 0]],\n        [[0, 4], [1, 0], [1000000, 7], [-1000000, 4], [1, 2], [-1, 1], [1, -1], [1, 1000000], [-1000000, 0]],\n        [[0, 5], [1, 0], [1000000, 7], [-1000000, 5], [2, 1], [-2, 2], [1, -1], [2, 1000000], [-1000000, 0]],\n        [[0, 2], [1, 0], [1000000, 7], [-1000000, 2], [1, 1], [-1, 1], [1, -1], [1, 1000000], [-1000000, 0]],\n        [[0, 3], [1, 0], [1000000, 7], [-1000000, 3], [1, 1], [-1, 1], [1, -1], [1, 1000000], [-1000000, 0]],\n        [[0, input.length * 2], [1, 0], [1000000, 7], [-1000000, input.length * 2], [input.length, input.length], [-input.length, input.length], [1, -1], [input.length, 1000000], [-1000000, 0]],\n        [[0, 4], [1, 0], [1000000, 7], [-1000000, 4], [2, 2], [-2, 2], [1, -1], [2, 1000000], [-1000000, 0]]\n    ];"
+    ],
+    "methodExpressions": {
+      "native": [
+        "values[at].substr(bounds[at][mode][0], bounds[at][mode][1])"
+      ],
+      "typescript": [
+        "values[at].substr(bounds[at][mode][0], bounds[at][mode][1])"
+      ]
+    },
+    "sourceSha256": "15a33373163862d174d1068dee59ac970b6c8b1da28af5568773375dc23b48c0",
+    "counterpartSha256": "57e8c4c347a1386c8aa894cfca91fbe6f330f33254c460bba04e34b4f683629d"
+  }
+]

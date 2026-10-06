@@ -1,0 +1,17 @@
+{
+  "closedProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T21-37-19-000Z-numeric-compound-assignment-value-runtime-proof.json",
+    "sha256": "ffd4c74ca3b4a8b61bc02cb06508ea2e9134462bfe0370105d9468fdac1cd103"
+  },
+  "paths": [
+    "runtime/diagnostics/2026-10-02T21-29-16-000Z-numeric-compound-assignment-values-compiler-proof-artifacts",
+    "runtime/diagnostics/2026-10-02T21-15-11-000Z-numeric-compound-assignment-value-source-validation-artifacts",
+    "runtime/diagnostics/2026-10-02T21-37-19-000Z-numeric-compound-assignment-value-runtime-artifacts",
+    "runtime/diagnostics/2026-10-02T21-37-19-000Z-numeric-compound-assignment-value-runtime-proof-closure-artifacts"
+  ],
+  "completedAcceptance": {
+    "path": "/private/tmp/tsrust-gate68-completed-acceptance.json",
+    "sha256": "968b29c68a9168fad42cb47890ed77f994e362ff5a1cf3a029de28eca9355d8b"
+  },
+  "allConsumersFinishedBeforeCompaction": true
+}

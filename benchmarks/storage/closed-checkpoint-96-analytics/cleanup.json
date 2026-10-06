@@ -1,0 +1,32 @@
+{
+  "gate": 96,
+  "canonicalLooseCopiesRemoved": true,
+  "records": [
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/results/2026-10-03T23-59-28-597Z.json",
+      "sha256": "88062448ae461ab4893f080c4481f24200380e3c9990a537a033821473cb93e2",
+      "bytes": 63976914,
+      "allocatedBytes": 63979520,
+      "frozenOriginalPreserved": "/private/tmp/tsrust-checkpoint96-workspace/benchmarks/runtime/results/2026-10-03T23-59-28-597Z.json"
+    },
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-04T00-00-12-445Z-native-allocations.json",
+      "sha256": "04f401bc65dc57cd7896f329d60b5354c63c54a754f31f908c0d22594ea9f3c4",
+      "bytes": 1383829,
+      "allocatedBytes": 1384448,
+      "frozenOriginalPreserved": "/private/tmp/tsrust-checkpoint96-workspace/benchmarks/runtime/diagnostics/2026-10-04T00-00-12-445Z-native-allocations.json"
+    }
+  ],
+  "logicalBytesReclaimed": 65360743,
+  "allocatedBytesReclaimed": 65363968,
+  "databaseGrowthBytes": 5705728,
+  "netAllocatedBytesAfterDatabaseGrowth": 59658240,
+  "exactRestorationVerifiedBeforeRemoval": true,
+  "verifiedImport": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-96-analytics/verified-import.json",
+    "sha256": "56a167b14e1bf0e9dae468dae7cfc5fc43601129ba94779d795fb3f4af3f47dd"
+  },
+  "immutableProofAndFrozenRawOriginalsPreserved": true,
+  "historicalRecordsUnchanged": true,
+  "at": "2026-10-04T00:22:16.679300+00:00"
+}

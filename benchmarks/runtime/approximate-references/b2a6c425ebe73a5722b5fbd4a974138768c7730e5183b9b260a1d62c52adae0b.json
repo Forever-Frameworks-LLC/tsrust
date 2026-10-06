@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "protocol": "mpfr-directed-f64-scalar-v1",
+  "predeclared": true,
+  "policyByWorkload": {
+    "number_exponent": {
+      "method": "pow",
+      "operationArity": 2,
+      "domain": {
+        "maxIterations": 131072,
+        "maxSeed": 1000000
+      },
+      "argumentBounds": [
+        {
+          "lower": {
+            "numerator": "1",
+            "denominatorPowerOfTwo": 1
+          },
+          "upper": {
+            "numerator": "41",
+            "denominatorPowerOfTwo": 4
+          }
+        },
+        {
+          "lower": {
+            "numerator": "-5",
+            "denominatorPowerOfTwo": 1
+          },
+          "upper": {
+            "numerator": "81",
+            "denominatorPowerOfTwo": 5
+          }
+        }
+      ],
+      "inputRecipeSha256": "946f6bb3eb69707203e3925b4177b37fa2ce294ffba8520868380a17172b9b47",
+      "tsSha256": "74b2ce4847f6705df2c34f4ae8b5137dda645573cf7a9a00f096e894cd1b1e03",
+      "tsrSha256": "7b9d12167201e83eb92abab4066d40f301886516b9647c4d1e1ff27e37c0c491",
+      "policy": {
+        "predeclared": true,
+        "maxOperationRankSteps": 8,
+        "exactSupportingAddition": "binary64-nearest-even-in-source-order",
+        "quantization": false
+      }
+    }
+  }
+}

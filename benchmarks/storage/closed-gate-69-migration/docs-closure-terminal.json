@@ -1,0 +1,16 @@
+{
+  "gate": 69,
+  "argv": [
+    "python3",
+    "/tmp/tsrust-gate69-close-docs.py",
+    "--runtime-proof=/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T23-12-32-000Z-conditional-expression-runtime-proof.json",
+    "--runtime-proof-sha=10d4b1f5a0884a863c779026fe105785315e2f9e3f029b111c1465d97a4e7fa5"
+  ],
+  "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+  "pid": 63182,
+  "startedUtc": "2026-10-02T23:17:36.855673+00:00",
+  "finishedUtc": "2026-10-02T23:17:37.513554+00:00",
+  "exitCode": 0,
+  "log": "/private/tmp/tsrust-gate69-root-acceptance/docs-closure.log",
+  "logSha256": "3f74f355c8445522b414feef753e96b7d6a3b0c7505242592d5571be006aa3f8"
+}

@@ -1,0 +1,60 @@
+{
+  "status": "source-only, unexecuted",
+  "rows": 16,
+  "methods": [
+    "fill",
+    "copyWithin"
+  ],
+  "sourceResultDifference": "Native operations return void; TS returned receiver unused.",
+  "bounds": {
+    "n": [
+      0,
+      128
+    ],
+    "seed": [
+      0,
+      1000000
+    ],
+    "inputUTF8BytesMax": 256
+  },
+  "receiverLength": 6,
+  "rangeRecipe": {
+    "selector": "(i+seed)%8",
+    "start": [
+      0,
+      1,
+      -6,
+      -9,
+      -9,
+      4,
+      -3,
+      -9
+    ],
+    "end": [
+      5,
+      6,
+      -1,
+      9,
+      9,
+      1,
+      9,
+      -1
+    ],
+    "target": [
+      1,
+      0,
+      -2,
+      -9,
+      9,
+      2,
+      -1,
+      0
+    ],
+    "fillDefaults": "selector0 value-only; selector1 value/start; others value/start/end",
+    "copyDefault": "selector7 target/start; others target/start/end"
+  },
+  "naturalOutputs": "All six final elements retained in source order for every iteration; no checksum inside kernels. Number canonical NaN and exact zero/infinity signs outside timing.",
+  "ownedSharing": "Native fill clones and owned copyWithin snapshots deeply; TS shares references. No later alias mutation is compared; setup/output clones included.",
+  "observer": "Reuse complete existing concat Rust observer including bool visitor; TS counterpart uses reviewed complete concat observer with only root rank/name substitution for natural outputs. Future actual ABI/protocol binding pending.",
+  "executedChecks": []
+}

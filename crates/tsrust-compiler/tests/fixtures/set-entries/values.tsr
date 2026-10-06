@@ -1,0 +1,18 @@
+import {strictEqual} from "std:testing";
+function main(){
+ const values=new Set<string>([String("a"),String("b"),String("a")]);
+ values.delete("a");values.add(String("a"));
+ const entries=values.entries();
+ strictEqual(entries.length,2);
+ strictEqual(entries[0][0],"b");strictEqual(entries[0][1],"b");
+ strictEqual(entries[1][0],"a");strictEqual(entries[1][1],"a");
+ values.clear();strictEqual(entries.length,2);strictEqual(values.size,0);
+ const empty=new Set<int>();strictEqual(empty.entries().length,0);
+ const numbers=new Set<number>([NaN,NaN,-0.0,0.0]);
+ const numericEntries=numbers.entries();
+ strictEqual(numericEntries.length,2);
+ strictEqual(Number.isNaN(numericEntries[0][0]),true);
+ strictEqual(Number.isNaN(numericEntries[0][1]),true);
+ strictEqual(Object.is(numericEntries[1][0],-0.0),false);
+ strictEqual(Object.is(numericEntries[1][1],-0.0),false);
+}

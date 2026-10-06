@@ -1,0 +1,36 @@
+type Trace = { calls: int; arguments: int; fallbacks: int; factories: int; };
+type Holder = { run: (Function<int, [input: int, trace: Mutable<Trace>]>) | null | undefined; };
+function workload(n: int, seed: int, input: string): int[][] {
+    const output: int[][] = [];
+    const trace: Trace = { calls: 0, arguments: 0, fallbacks: 0, factories: 0 };
+    let i = 0;
+    while (i < n) {
+        const tag = (i + seed) % 3;
+        const value = (i * 13 + seed) % 97;
+        const beforeCalls = trace.calls; const beforeArguments = trace.arguments;
+        const beforeFallbacks = trace.fallbacks; const beforeFactories = trace.factories;
+        const observed: int[] = [];
+        const holder: Holder = { run: makeOwned(tag, value, input, trace) };
+        if (holder.run !== null && holder.run !== undefined) {
+            observed.push(holder.run(argument(trace, value), trace));
+            observed.push(holder.run(argument(trace, (value + 1) % 97), trace));
+        }
+        output.push(observed);
+        output.push([trace.calls - beforeCalls, trace.arguments - beforeArguments,
+            trace.fallbacks - beforeFallbacks, trace.factories - beforeFactories]);
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const output = workload(3, 0, "abc"); }
+function makeOwned(tag: int, offset: int, input: string, trace: Trace): (Function<int, [input: int, trace: Mutable<Trace>]>) | null | undefined {
+    trace.factories = trace.factories + 1;
+    if (tag === 1) { return null; } if (tag === 2) { return undefined; }
+    const text = input.repeat(1); const extra = offset % 7;
+    return (callValue: int, callTrace: Trace): int => {
+        callTrace.calls = callTrace.calls + 1; return (callValue + text.length + extra) % 1009;
+    };
+}
+function argument(trace: Trace, value: int): int { trace.arguments = trace.arguments + 1; return value; }
+function step(input: int, trace: Trace): int { trace.calls = trace.calls + 1; return (input * 17 + 3) % 1009; }
+function fallbackStep(input: int, trace: Trace): int { trace.calls = trace.calls + 1; return (input * 17 + 103) % 1009; }

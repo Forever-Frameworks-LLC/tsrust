@@ -1,0 +1,1943 @@
+{
+  "rawSha256": "d0f33323edd94abf418f0e74288f13a451dfa25f204f5eda1d881905d4334a8e",
+  "timestamp": "2026-10-03T18:02:58.195Z",
+  "semanticEpoch": "rust-native-utf8-v1",
+  "measurementScope": "execution-only",
+  "provenance": {
+    "adapterSha256": "4352cc0dd8dca930b682b6b402b479bdf98d5cacb32920ef5415dd0e78fc14bb",
+    "compilerInputs": [
+      [
+        "analysis.rs",
+        "8218d5fba3ad815918979db7bb607cee038908dbaec015e9cfe5d9abc6449b5d"
+      ],
+      [
+        "diagnostic.rs",
+        "3a98c0f4081482c84ea6064bf94758b2bd87d0e3adea49f5d552da7605a56c8a"
+      ],
+      [
+        "emit.rs",
+        "ac7b01d53d7bb4c08d4d94a272905a1ceb2815f4acce835ef8eeae4d183164f8"
+      ],
+      [
+        "fixed_storage.rs",
+        "8ec00b2ea4ede367fd074c9769975f65e40f6d98bd04c421ccad17f9d0096785"
+      ],
+      [
+        "flow.rs",
+        "dbdd942bd8e0f1e2dda4183fae64292e1a9be17ff88c648b0538abe5b7dd3ced"
+      ],
+      [
+        "formatting.rs",
+        "fa2dbbf9e10cd6fbf01d39713244b31518dd7b960f8320dcc0a904c5a441081a"
+      ],
+      [
+        "generic_records.rs",
+        "c569dce5ece62da233d4cce61f7e383af45d8d64f11d826ce7956660f74a68dd"
+      ],
+      [
+        "lib.rs",
+        "6a96623ce27c1531e29358d31cc88bfcfffdf32574b69cd0b045b767e2a9541d"
+      ],
+      [
+        "main.rs",
+        "a7b7de75102e2e21de4cfc12839ed68c5fcb89686fd102e8777a321a4e5a303c"
+      ],
+      [
+        "native_bindings.rs",
+        "b21f41698cb4a63e43df029c08f58d6ed1f3529f82138c9b6f59e446ba87c111"
+      ],
+      [
+        "native_cache.rs",
+        "3be9f457bab3c9220fa527a0069c4c9cdd0ef04921a2d023f2a63946dbba3f5e"
+      ],
+      [
+        "native_emit.rs",
+        "7adb7d3c977d7b9a9a2fcdc9bf2597417368acfb3c3129cd7e199db7396f3061"
+      ],
+      [
+        "native_path.rs",
+        "2f4f006f911605391e6723cd2be3811c3a6144c1592463e175801742df7e3a72"
+      ],
+      [
+        "project.rs",
+        "53dde6d653dc393f821db4da28604fc3ef4da213472989c84e4ba7de833295e3"
+      ],
+      [
+        "project_cli.rs",
+        "6e517db313009827d55fdb3c83d5f91c92ac6a8ea051770e0a2530334267cf3c"
+      ],
+      [
+        "project_link.rs",
+        "d1be7a93b6ab63c56dfb26143e5a745ba022b1c2d629df70863094d6d787b52a"
+      ],
+      [
+        "project_runtime.rs",
+        "d10fccb609accb1f4db72c2c0c94fc5c234346eb11308cbd62332fe20433ba93"
+      ],
+      [
+        "projections.rs",
+        "37ac0acc4b92d905352697ed86cfb6a3ef3e5aeb24454edf6dfce313b9995a57"
+      ],
+      [
+        "record_runtime.rs",
+        "6dca2d0c4a7fbab20fe86ee4b7ab5f44db9a78b2d0905895b6b3275823fa9b9f"
+      ],
+      [
+        "runtime.rs",
+        "78f28d336800e8b09ae2295914e94d0ca052fd64c43c4c708b5c7499be80854a"
+      ],
+      [
+        "runtime_console.rs",
+        "b89efd510135fce8466e8c408b8bb1fda36f1bba812de6807cede4ceb40b2796"
+      ],
+      [
+        "runtime_join.rs",
+        "6671a77a99b81ead1d3fb7b45f1dcc7a24c7b6705a1a5f428f5ac1b89b68534b"
+      ],
+      [
+        "runtime_math.rs",
+        "edad89c1e5df2d4d539264a08407ebef33199c06caf79136b5a3d88634fae375"
+      ],
+      [
+        "runtime_strings.rs",
+        "64a85a026912f47a83a5463af32a8166038e017d005c382d28ac6f36dc3e0a0c"
+      ],
+      [
+        "runtime_values.rs",
+        "4c7917649ac5f1b7e32afe0bbebe8a7d0dbd46b7c289a7a69564f22cf5b4d521"
+      ],
+      [
+        "storage.rs",
+        "5f6487bc590fe62f6b2257817aa51446a41b02a49fa3e27d74b35bec11e455e2"
+      ],
+      [
+        "syntax.rs",
+        "fa83950607d7a2b4cfb5ae952ed097c0c6cfec5a0404aefc226fc497e4c77944"
+      ],
+      [
+        "type_syntax.rs",
+        "5504cc60f494f780442be8dda66a1c166f658e0d41f59e89af5f86f68cbe2742"
+      ],
+      [
+        "unions.rs",
+        "132350403e053fd15f9a8d9b1b02e5ea62dd85ae89e544bb1a58f76f874293df"
+      ]
+    ],
+    "harnessSha256": "39d92f3e37f07e92f73867999ffa378cdacbcfa4eb08719b57ff8876ecd7cd36",
+    "lockSha256": "0ae02705cbf1b0552d5f057f61e3889f2787d42445ed53128f338f1802e7c6db",
+    "machine": {
+      "architecture": "arm64",
+      "cpu": "Apple M3",
+      "logicalCPUs": 8,
+      "platform": "darwin",
+      "release": "27.0.0",
+      "totalMemoryBytes": 8589934592
+    },
+    "measuredEngines": [
+      "native",
+      "node-tsc"
+    ],
+    "measurementPlanSha256": "eaac37969d15fac62d4002aa6e4b274514d8b9fae23bea1d798f86ec8cf69e3d",
+    "nodeComponents": {
+      "acorn": "8.15.0",
+      "ada": "3.3.0",
+      "amaro": "1.1.4",
+      "ares": "1.34.5",
+      "brotli": "1.1.0",
+      "cjs_module_lexer": "2.1.0",
+      "cldr": "47.0",
+      "icu": "77.1",
+      "llhttp": "9.3.0",
+      "modules": "137",
+      "napi": "10",
+      "nbytes": "0.1.1",
+      "ncrypto": "0.0.1",
+      "nghttp2": "1.66.0",
+      "node": "24.11.1",
+      "openssl": "3.5.4",
+      "simdjson": "4.0.7",
+      "simdutf": "6.4.0",
+      "sqlite": "3.50.4",
+      "tz": "2025b",
+      "undici": "7.16.0",
+      "unicode": "16.0",
+      "uv": "1.51.0",
+      "uvwasi": "0.0.23",
+      "v8": "13.6.233.10-node.28",
+      "zlib": "1.3.1-470d3a2",
+      "zstd": "1.5.7"
+    },
+    "numberAdapterInputs": [
+      [
+        "number-driver.rs",
+        "5213db7704f714849a07b9e76c903d2ac88065e38355d47a28abbf084f5be0a2"
+      ],
+      [
+        "number-driver.ts",
+        "da49559fced688eff36cc6296a660333457ec40586fbfd94a9567bd81f38896d"
+      ],
+      [
+        "number-observation.rs",
+        "bf8356720bc60f10628b92e890b29b48b047243eb2dcd3f8ff77eff4a6afd800"
+      ],
+      [
+        "number-observation.ts",
+        "3700455fa27d4087304121a9bd17f089b78e39aedfe51f7171fdfbff02e4e064"
+      ],
+      [
+        "number-observation.mjs",
+        "097f81a0141318a0f7b64be6a8569795f423dad6b612bd1afaa5b0eef45bea89"
+      ],
+      [
+        "number-oracle.mjs",
+        "bf5efafa4b241414e395dfef141ceb94cb96e46cf99623e7fa29b5a9b0c6210c"
+      ]
+    ],
+    "oracleInputs": [
+      [
+        "array-sorting-source-contract.mjs",
+        "37eed612ef28ea37f171d901618ab072676c09a76877bfaa35a102490ff4208c"
+      ],
+      [
+        "array-sorting-oracle.mjs",
+        "b5369c9bb0bf2ccd7e4fc2ae3f9c4a79fd8c1a7d4ab16f55f0350bc4ce372bdd"
+      ],
+      [
+        "array-splice-source-contract.mjs",
+        "a936b1c5fc6ce15bcae00abcc478477b0f15b572d17699c86e6c3b49572805b6"
+      ],
+      [
+        "array-splice-oracle.mjs",
+        "db89bec1ff71f070038b98d0af63617f7efaffd0e7d82538ac3dc980c570eb45"
+      ],
+      [
+        "array-unshift-source-contract.mjs",
+        "59d5fa7d4b6021b64236ceea6fe1544fe8248ea1b9fd3bfb63288c0f4cbf5c1e"
+      ],
+      [
+        "array-unshift-oracle.mjs",
+        "6e74c1bae87911f5063332717f19ab0ec503e4cb7cd95f94c826155f3d1f419d"
+      ],
+      [
+        "array-find-values-source-contract.mjs",
+        "056ad2b3533eebf0f56c1d8573eddcf132a77e9a6e71473376952dcbf42e921e"
+      ],
+      [
+        "array-find-values-oracle.mjs",
+        "79605cb91b1adf0a1331ff05a02773483fca3977f2721881e779a0263406894e"
+      ],
+      [
+        "array-at-source-contract.mjs",
+        "086d4bf62fbad3c1567717d3c897fd07bd8ca293b7b6c8593ba7162448319725"
+      ],
+      [
+        "array-at-oracle.mjs",
+        "4cc2c09f94189d875639d8bbbf8bda529c180d9be2066f2dd206e4679922fff1"
+      ],
+      [
+        "array-removal-source-contract.mjs",
+        "ce92c775eccaf8381270c706a0ed25cc172660836dcc5c4cfa079612ee9b5d17"
+      ],
+      [
+        "array-removal-oracle.mjs",
+        "533e0d5cda923d5cb2df74db6955d7d870efdcb19ba8c2139d4ce82f03422760"
+      ],
+      [
+        "narrowing-source-contract.mjs",
+        "82da23594780621735bcc9757b97f3298358361c2424b6e4a017cec05bbf23bc"
+      ],
+      [
+        "narrowing-oracle.mjs",
+        "00cddd928ab2db47cf5ba2662b6f85de237c673f78457f24af4e34d6f76e1622"
+      ],
+      [
+        "nullable-transport-source-contract.mjs",
+        "0de78ffb83a81d21892cbe064dd10a605e55ca98e559703ff57a759ff40d35ce"
+      ],
+      [
+        "nullable-transport-oracle.mjs",
+        "02ac9358740c2243378c8312e40682f22370d5d86aad824befb6f51aec015f3a"
+      ],
+      [
+        "array-to-string-source-contract.mjs",
+        "4efca814b9818dbae7d7e5351f1a1f0efe90069a5e7c455b026e0877b7864089"
+      ],
+      [
+        "array-to-string-oracle.mjs",
+        "c97db2740b3f585796bd66cdbd98298fc164fb828c29f4c846e12f210b269b4e"
+      ],
+      [
+        "array-join-source-contract.mjs",
+        "346a7db8def33220a6f1ecb30003426a734cfdd6a2e0e25b51c4b7f0597cce82"
+      ],
+      [
+        "array-join-oracle.mjs",
+        "2e3debe2871e53bf229ccb73eb04e07a9ec7056cd6cc5f2c93a9cec2a733f496"
+      ],
+      [
+        "value-types-source-contract.mjs",
+        "ed83653bd57bfbb8376ebea30f754e5880b45024a0a6c19128e3f720cfbf6ed0"
+      ],
+      [
+        "value-types-oracle.mjs",
+        "fb56eb970226dbf13f677151125569cfca4cc66fce133a23becaf7ebda5ea998"
+      ],
+      [
+        "html-string-source-contract.mjs",
+        "9a499943d962c12b7d91c954e82dd4c5fb65ba2164f60e99396ce43c9ee1d8ba"
+      ],
+      [
+        "html-string-oracle.mjs",
+        "b3efdddb3e990ec8bb0e0777e7c7db50244af6240f4fa8a1358e3e4dd5e8c0d8"
+      ],
+      [
+        "string-substr-source-contract.mjs",
+        "353622d5fde8985065107480efc357dc8ced4beaa92ef647761436b161538a04"
+      ],
+      [
+        "string-substr-oracle.mjs",
+        "504984301935ec2c1c08515afb11f2942bae0e8de017690ebe99f17b686bc5e6"
+      ],
+      [
+        "split-ownership-source-contract.mjs",
+        "023ae1c267d56deef85319fe7b21be37f740df87856b6f1f9b8fe5ffc95d7019"
+      ],
+      [
+        "split-ownership-oracle.mjs",
+        "5595920f787defa7cc1558d6c5d3fe94347aaa418b4aa5b0764d6f4dc56c3f2a"
+      ],
+      [
+        "template-string-source-contract.mjs",
+        "3652120f490a87d309c0270c8cd474e49178db61725f4b4ab10008a95d4b13a2"
+      ],
+      [
+        "template-string-oracle.mjs",
+        "42a6ffbb84c3dc56151bdd6b661a205bd2383fb18c78ebdc8179d924be97eb88"
+      ],
+      [
+        "quoted-string-literals-source-contract.mjs",
+        "e4dad131eb99992bc27f10bad26d972e5e316edaf80a16ab64e72d6c8c11b2e4"
+      ],
+      [
+        "quoted-string-literals-oracle.mjs",
+        "02ed18da7bd3cf7976b1c3ccf1ef6ff8f328682325d14a3986651cdea147bd4a"
+      ],
+      [
+        "quoted-string-literals-domains.json",
+        "a00657433c3aeded9c5bf9b8825c8c1f4145ad6346047c3ea95558fe9ea19860"
+      ],
+      [
+        "string-well-formed-source-contract.mjs",
+        "0876a8260a1f7002031ca7a8ed5858a1c89307ad236a73ce8b8ab2fdc68847df"
+      ],
+      [
+        "string-well-formed-oracle.mjs",
+        "df18b4ee880f96c6ece50256caabe6715a3499758919c129dbcd0c822672c42d"
+      ],
+      [
+        "number-parse-float-source-contract.mjs",
+        "1433558de54f29d1ccfbf20200e268f448b318b3b7a93db0fd1ce8d02b8d16f3"
+      ],
+      [
+        "number-parse-float-oracle.mjs",
+        "179976ce330c5582ac039313623d5f67399b36e5ca291b2fe537a3aed855ecba"
+      ],
+      [
+        "number-parse-float-domains.json",
+        "186a32042013bb389f52fc6d01d2b56ed594b320d0d4b649ae52a496155cccbb"
+      ],
+      [
+        "number-format-source-contract.mjs",
+        "792b5757270512c84c8ba956d50382e7ebffe310a925975a60175894250287c5"
+      ],
+      [
+        "number-format-oracle.mjs",
+        "4149a7b1eb44f665e4f529f221d9cbc240a285aca0b0339ef0fc18dff1d74ac4"
+      ],
+      [
+        "number-format-domains.json",
+        "b447ad5bce4781fdb4a4fdf6dd01e25dd3c11011aade3cb90e90e746b47fdaf9"
+      ],
+      [
+        "int-to-string-source-contract.mjs",
+        "7726f46aacaf998a12660294173490ac48a17e333d2f96c28f5969973eee8da8"
+      ],
+      [
+        "int-to-string-oracle.mjs",
+        "31adf2ac891c3cb58f56379517f9ce2d48222e2279cb29491fe55b3457b4524e"
+      ],
+      [
+        "primitive-identity-source-contract.mjs",
+        "7c8626a1e8e09d16e64d01e6579a223d19fc56b748b3316b42b2ff78f77ae97c"
+      ],
+      [
+        "primitive-identity-oracle.mjs",
+        "dd1d6ad0680ce69aee4cff955672e7e4447af95e771d3142b85552c71279b63f"
+      ],
+      [
+        "string-substring-source-contract.mjs",
+        "4f5f8267d5613c3054a27a5be2bfaa7b3a84e5462877c599f2cd4910cb62f58e"
+      ],
+      [
+        "string-substring-oracle.mjs",
+        "c4b953809150f42fe4f617f9a2e640d1c2c8627245c2d1f03382d520a1a5bdf9"
+      ],
+      [
+        "string-concat-padding-source-contract.mjs",
+        "785ecfb016562cd426b95f02661a5a180bef72de3efc2f50145c849bd0365ccb"
+      ],
+      [
+        "string-concat-padding-oracle.mjs",
+        "093a378a9bcbd10ac6b84f389142460f4ac0e17a826fd8eb163eee4e58a00401"
+      ],
+      [
+        "conditional-source-contract.mjs",
+        "6dacb6d18e64fbac7cc4c767f23cbc282008cecb364e238d3108eed7f0a034ed"
+      ],
+      [
+        "conditional-oracle.mjs",
+        "36dcb6e00697072a35e8b2b1a199fa60baf9c1284406dad2bb299601ba9f2b71"
+      ],
+      [
+        "compound-value-oracle.mjs",
+        "b701f54ea67f03b9111c8202cd97c92ec4f562a128ad681d7601a0abc2c4dba3"
+      ],
+      [
+        "assignment-value-oracle.mjs",
+        "3d3f61bfac53a095de4428a17486158ea0c2c907e45a5afba464c99fa53fa578"
+      ],
+      [
+        "logical-assignment-oracle.mjs",
+        "59c90c74d4fbb81ab3563a6783acfedce8ebdd5d184004bd17c70105f5ee3e0a"
+      ],
+      [
+        "int-native-oracle.mjs",
+        "ac0d884553cfd46eda486802e56f6d4644fdd11840b4bf19674469cee3e8a0c8"
+      ],
+      [
+        "int-native-domains.json",
+        "7996d57d980ec0e38065f43c0c630dad7616599dd86a8ba214c6f9e6b64fb7a5"
+      ],
+      [
+        "oracle.mjs",
+        "767c55a185ebe063fd49bdfd7142f1431a1c6c1ff0d67bc4282f007ac4901576"
+      ],
+      [
+        "number-oracle.mjs",
+        "bf5efafa4b241414e395dfef141ceb94cb96e46cf99623e7fa29b5a9b0c6210c"
+      ],
+      [
+        "number-operators-oracle.mjs",
+        "1d36560dc443f00f914e8bc8ab627f9c8887e1f1c2d9e915fdca4d49d8b15406"
+      ],
+      [
+        "number-operators-domains.json",
+        "12ae55543018ab66f59cfa514c4b70f5c02e68425deffd92d784193d014ffa0c"
+      ],
+      [
+        "number-predicate-oracle.mjs",
+        "054b5fdb1c1f8ed0a8f968ddf95eade2281f77d3cf81cd19bc3f6699bebdfce5"
+      ],
+      [
+        "math-oracle.mjs",
+        "22ce948ec938a3f3a368257317f2d892095738e644cb13402d3e3e448ce80105"
+      ],
+      [
+        "exact-math-oracle.mjs",
+        "8134610234ed2efefdd9263c0f54adefed99f19a1fc0efcb228e8b0f6e71b908"
+      ],
+      [
+        "slice-oracle.mjs",
+        "6e58edd0cb0e25805d53737a892ccb441e523d9f993e2038ed01084c98237fdb"
+      ],
+      [
+        "temporary-index-oracle.mjs",
+        "70cd296ed963e3b12c0ba28820b25966e0ec4bd115221163a7009d6e8d92d658"
+      ],
+      [
+        "map-filter-oracle.mjs",
+        "054ed31662f897fe9ef39531b21891e818cf7ee71333aa62d3fbc347cf0c35be"
+      ],
+      [
+        "fixed-number-oracle.mjs",
+        "06ca613f578378456ea50749a408d6772c77efaf807e198ecf60b4eeec793992"
+      ],
+      [
+        "array-predicate-oracle.mjs",
+        "ae70cc09dc4bf30eb268d67f1ba876a37ccc387b8cd638aa91a364bbb7cf8ab9"
+      ],
+      [
+        "string-construction-oracle.mjs",
+        "8be25294b51702274ec9991f98bd002a3029ccb36007710612b2bb9e4554f546"
+      ],
+      [
+        "reduction-oracle.mjs",
+        "7ce2ce30d2362db7df4978de6924c4509ca602d5eaa29b3d2cc53e674aacbecf"
+      ],
+      [
+        "reduction-results.mjs",
+        "9761fcb76b2d3867b798582db77952093fc1e0f14538f857f1923137abf8047a"
+      ],
+      [
+        "for-each-oracle.mjs",
+        "8ca91e84f4fffda9bae0a7694301bc930980a2d3885c50d2ce7df8407972483d"
+      ],
+      [
+        "concat-oracle.mjs",
+        "3a9a6c2251e575e913831e82f53959f9d9f246356666815aa8f96c2241a4773d"
+      ],
+      [
+        "declared-value-oracle.mjs",
+        "d2f5cf7bd4bdd88634ae75b83eedc26bbd2b895a20e943be04af199c9e10122b"
+      ],
+      [
+        "higher-order-oracle.mjs",
+        "fc779ef325deab312f6029646bfc397795b8de6e64c2fb42c04a4311f862a2af"
+      ],
+      [
+        "range-mutation-oracle.mjs",
+        "01cea960981398e0e52ae0333976231e94c0e3eac57c0167259426640c7841cd"
+      ],
+      [
+        "copying-array-oracle.mjs",
+        "aed48f4d6c0d33a2b93e3fffdac3cbd681409d67a87a6a668ede2894750f4655"
+      ],
+      [
+        "to-spliced-oracle.mjs",
+        "30d2833e30e996e507eca9c09fc80440fae9cd30832d0d60c020c7e7c736cec1"
+      ],
+      [
+        "last-index-of-oracle.mjs",
+        "4c82aed410cb82cd8701e6654a39bf6dc50db0a1ba790969e94de4669a3be0e2"
+      ],
+      [
+        "string-last-index-of-oracle.mjs",
+        "4790626ba96316b830dc83f7ad157baa3a4de250ab3b29d275c58740d4cf2206"
+      ],
+      [
+        "string-trim-oracle.mjs",
+        "06f215b4bca76fc1805c9ccf8f714009ee45c3dd71db33b604a8b85dcd36225a"
+      ],
+      [
+        "string-add-oracle.mjs",
+        "ba8df28e8c1f5ee478706d4d3245b106fda2ceb37f9848939cb1227c3d2cd6bb"
+      ],
+      [
+        "compound-oracle.mjs",
+        "9d5abc2e33953bf210448b467ed9531efee89cdf045562ee878aebd3f12a8dc9"
+      ],
+      [
+        "update-oracle.mjs",
+        "2228e1d85f6b2150a7383f2274eda0eb3f8ad11060381eb78aeeac42b56e4d6b"
+      ]
+    ],
+    "release": {
+      "path": "/private/tmp/tsrust-gate91-benchmark-workspace/target/release/tsrust",
+      "sha256": "1102d9618826a7914b375df94aeac12f3b7e142e58946e2a34c6152b5729af27"
+    },
+    "sliceAdapterInputs": [
+      [
+        "slice-driver.rs",
+        "3246d55473ec8db48534cd77a79570ec73244e116e4fc3a21184f51d535551b2"
+      ],
+      [
+        "slice-driver.ts",
+        "8c4e4c636d32516ea4c2d457a7e016e0f512893d7179d49bf6f0ff6a49db4436"
+      ],
+      [
+        "slice-observation.rs",
+        "30f627ef79f70661ee7cfd9946abe42f18bc5e53225239416206635e54092970"
+      ],
+      [
+        "slice-observation.ts",
+        "1f380fc5c827e939dc7e82b3363fb8cb1caf69bafe0405c36373107461c4225d"
+      ],
+      [
+        "slice-observation.mjs",
+        "0eab27f2c01225f4e958ebf046a1ff771de6dd5f195cfdcef96f6a37faa4b0e9"
+      ],
+      [
+        "slice-oracle.mjs",
+        "6e58edd0cb0e25805d53737a892ccb441e523d9f993e2038ed01084c98237fdb"
+      ],
+      [
+        "result-observation.mjs",
+        "067f682afb2e3773420b663abc0f9d870ce7286e50a2910763deacf360e1ed80"
+      ]
+    ],
+    "versions": {
+      "bun": "1.3.11",
+      "deno": "deno 2.9.6 (stable, release, aarch64-apple-darwin)\nv8 15.0.245.2-rusty\ntypescript 6.0.3",
+      "node": "v24.11.1",
+      "rust": "rustc 1.96.1 (31fca3adb 2026-06-26)",
+      "ts-node": "10.9.2",
+      "tsx": "4.23.15",
+      "typescript": "5.9.3"
+    }
+  },
+  "comparedRows": 68,
+  "nativeWins": 34,
+  "rows": [
+    {
+      "id": "array_at_boolean",
+      "sourceSha256": "5b1f7f07ed7f5e0fe4249548a0d5010d7abde1b5bf298fc2d5c02ddf4f3147b7",
+      "counterpartSha256": "9e26818cbe7d638d8b2e1cd3b730eb3ffec6180a035a7b3ee88ea1b8e79c8605",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 13668550.986765265,
+        "avg": 15059676.360509094,
+        "max": 15968810.916179337
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 8427983.539094824,
+        "avg": 26304471.219491728,
+        "max": 31148288.973386776
+      },
+      "nativeNodeRatio": 0.572513936313223,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_at_int",
+      "sourceSha256": "161e93b15e4abe6840bbfec68b586e06376e746802401d297d172c304dec47f4",
+      "counterpartSha256": "7e8f74c335dae7929847c76cf9e68a7da8547af031eda1cc36b1aa83659c4124",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 13510660.755752586,
+        "avg": 15701982.205719445,
+        "max": 16521725.100437244
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 7411347.902711746,
+        "avg": 25657135.17846704,
+        "max": 31426949.222764958
+      },
+      "nativeNodeRatio": 0.611992808101875,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_at_nested",
+      "sourceSha256": "f7c0d5ade26de73b95180871efca4f9563f4c3baf482b6798e20e2bbfc5c6231",
+      "counterpartSha256": "58e83fea111672de8b51943bbb7b1ecd6d723d2ea460ad8116d737bf32e9e578",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 5573410.911149272,
+        "avg": 5811976.592912135,
+        "max": 6073402.766245167
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 3652525.021936517,
+        "avg": 8799891.852350209,
+        "max": 9795153.121009374
+      },
+      "nativeNodeRatio": 0.6604600022851321,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_at_null",
+      "sourceSha256": "9da732a5b572c2e1fab9240945b00da4078a37095e5aa986625a3e144a0e8c7e",
+      "counterpartSha256": "71f5ffaa6a33fddc57631299ec32ed2902839d0d1c8d172c15c83dc6457b3507",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 28895943.562610228,
+        "avg": 33246166.969704296,
+        "max": 35158798.283261806
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 15259895.088221155,
+        "avg": 36624327.15526746,
+        "max": 43769100.89547236
+      },
+      "nativeNodeRatio": 0.9077618498971577,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_at_number",
+      "sourceSha256": "a389f2dd9b51efee503bb39c6f13ee35fc2ed104078d02adb29b531ceb036997",
+      "counterpartSha256": "e6a6395bd69efeb909da98c18f529ea412cc0c0c38bdfbd159cdadd4e33721d7",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 7796944.420121294,
+        "avg": 8397465.197433796,
+        "max": 8867374.728847977
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 6983802.2165387785,
+        "avg": 11407561.21401447,
+        "max": 12427787.756686796
+      },
+      "nativeNodeRatio": 0.736131504349703,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_at_record",
+      "sourceSha256": "b5ffea216a6828169ad102d3e10f48d9af042b5fd9af73f02e3f444eccc379b8",
+      "counterpartSha256": "1e604e5b46165cd1c9b3d0c59d0735d3f32390e4669a51078f5fc017b318c8ad",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 6031654.405051511,
+        "avg": 6474858.5511265,
+        "max": 6748852.398511824
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 2802600.0684228516,
+        "avg": 13512182.219359698,
+        "max": 15948044.262050904
+      },
+      "nativeNodeRatio": 0.47918674023279445,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_at_string",
+      "sourceSha256": "aa06bef2aa0b90258cf8c3785acf11de0af5026e6b95e83924869509f7b7d45f",
+      "counterpartSha256": "1c18a0bf7d1854fee1b74f5afad6f3e8ff2a816214535cbbfb43278eba108b1b",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 10186976.785829756,
+        "avg": 11001455.145391688,
+        "max": 11641853.828794261
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 8224899.598393732,
+        "avg": 26457047.045980126,
+        "max": 30453531.598512392
+      },
+      "nativeNodeRatio": 0.4158232446074606,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_at_undefined",
+      "sourceSha256": "203c3dc743005ef53fd7a3392d77ff384fa6408468efdfab4e8399ca64f50ad3",
+      "counterpartSha256": "6e92719c3c988b0e34adc897ee850b993042deeb813e67268db2e5751d3dbb57",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 31227128.567943398,
+        "avg": 38010244.09504301,
+        "max": 40420786.70535062
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 8873791.119276466,
+        "avg": 34501794.31689623,
+        "max": 43574468.08510912
+      },
+      "nativeNodeRatio": 1.1016889077107686,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_find_boolean",
+      "sourceSha256": "4f2be0c967795f6a868477b506096d3808648d8cd7c832ad9799c1c9c6d94b43",
+      "counterpartSha256": "eb8ab2a5469e52cca1786a2887a5e82882c7b41f61c9f7b5c97fb67b5085bcd6",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 7337214.509628302,
+        "avg": 8175667.749065971,
+        "max": 8552612.34699886
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1794916.7397020296,
+        "avg": 12320510.103724273,
+        "max": 16041733.572496897
+      },
+      "nativeNodeRatio": 0.6635819199234787,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_find_int",
+      "sourceSha256": "bdaddac1f77573f09864d7e15cbba5ea212e2bd8cd9bfb4906ff2bfd864c480b",
+      "counterpartSha256": "502f0d525bc48073913244480ecfef599d6a80d982b92a33a24c58697967fc23",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 7662032.533708454,
+        "avg": 8414928.469348531,
+        "max": 8841878.035617918
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 2906683.811559522,
+        "avg": 12672878.586264867,
+        "max": 16622162.342036325
+      },
+      "nativeNodeRatio": 0.6640108174372323,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_find_last_boolean",
+      "sourceSha256": "f064172330d3f04f473102728c061eb54cc1652f28665b1a5da63332871dd0b5",
+      "counterpartSha256": "faab712e46a4f18be193627f16a961ed7a467485da76521c8ef8da124dc1a9c8",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 6763718.988612645,
+        "avg": 8008052.8230539905,
+        "max": 8353523.734938776
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1018462.112264555,
+        "avg": 10106875.749037104,
+        "max": 12275675.222077448
+      },
+      "nativeNodeRatio": 0.7923371199865527,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_find_last_int",
+      "sourceSha256": "d8f58da1db1acc278955f0f1f96b5a3e52777e35a4042212e998f7a0951eadf3",
+      "counterpartSha256": "f51e7201890ae53399806fc5eebc10df94972bbd2adfe9b18981c8772a97239f",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 7424782.386443972,
+        "avg": 8288047.138877287,
+        "max": 8722614.058400627
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 2140486.1244659075,
+        "avg": 10315036.245249335,
+        "max": 12900787.401574988
+      },
+      "nativeNodeRatio": 0.803491809608949,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_find_last_nested",
+      "sourceSha256": "e02445a19b340ca888e99ff84d667a98449a23a88738e16532dde75cb3f2467d",
+      "counterpartSha256": "f620d8b8ea94eb0b5a92db46e957ff5e2e4fe7a966aaa80ebe350b6db8dbd019",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 3792009.7466500523,
+        "avg": 4010244.4211613177,
+        "max": 4157320.477036285
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1182334.0359214759,
+        "avg": 5357439.910854493,
+        "max": 6191987.906274251
+      },
+      "nativeNodeRatio": 0.7485374521954643,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_find_last_null",
+      "sourceSha256": "f6e74eb54c55b30816c195b28885c4b814637024d355a7e4ec96b048ca02856f",
+      "counterpartSha256": "a1cda6d4f964e54514bcbc7d3fe1d82ab7b6688e272f333931c7202a0fc45ed9",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 4797657.393850659,
+        "avg": 11237414.19892831,
+        "max": 11956191.766106999
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 3020279.228354047,
+        "avg": 12521402.313549094,
+        "max": 15713595.175434344
+      },
+      "nativeNodeRatio": 0.8974565242399877,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_find_last_number",
+      "sourceSha256": "92a0af83ba672a8c618e0f6178741812c9a8ac22081ea0e9e9f732294cf0e27b",
+      "counterpartSha256": "356e8367d583564fa7d996f04410f952cb9805bdf0844ab67e15eed25df9fd51",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 35514861.443484895,
+        "avg": 43475022.8268723,
+        "max": 47766763.8483965
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 3551701.712551529,
+        "avg": 14625488.663987916,
+        "max": 18710372.928426124
+      },
+      "nativeNodeRatio": 2.972551811818779,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_find_last_record",
+      "sourceSha256": "40639e1598d1ac1f1ab2d4d61f689d9daacdc63e2ea5ea6bd51d273585904c5d",
+      "counterpartSha256": "7e5aa09fa17931baad60a37b06765ec7480fed9a7f8471566c267ec5af6398fc",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 4132856.817094852,
+        "avg": 4486779.884377084,
+        "max": 4664701.78251739
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 423928.7932105189,
+        "avg": 6933796.312502019,
+        "max": 8704115.329528505
+      },
+      "nativeNodeRatio": 0.647088504213366,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_find_last_string",
+      "sourceSha256": "3f8d91c4f52f57de835d56237031861ab66033daf1f440aca0f5de382e383ef4",
+      "counterpartSha256": "9de176c0a5f4a97aa186ecd9df6a0338b4a368c7ebbda795491e351abbc1a01d",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 5771729.236006797,
+        "avg": 6567567.261360564,
+        "max": 6960067.969413764
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1709159.1904861233,
+        "avg": 10101373.07424088,
+        "max": 12661514.683154296
+      },
+      "nativeNodeRatio": 0.6501657955895385,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_find_last_undefined",
+      "sourceSha256": "37cacd9a549df025f4a6082e01d049d670d239de504e5d1f34faaef0eb105b63",
+      "counterpartSha256": "b3e1f9cbed9fa7e522d569c15898274a722c7114c400820c51e78b517fc7a550",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 10565741.820320481,
+        "avg": 11631506.834910925,
+        "max": 12321909.896033885
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1741003.6103722337,
+        "avg": 12644518.710142462,
+        "max": 15393635.092678772
+      },
+      "nativeNodeRatio": 0.9198852958777327,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_find_nested",
+      "sourceSha256": "e1067b26b6c8d55a590b6981f26f2ac0c62e602d72f45e947a74a9b2b4d95b67",
+      "counterpartSha256": "c4a55d022ebec012735743dac86c1d50c51a8bd72c1cf7cb682546570f808756",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 3810232.558139535,
+        "avg": 4079607.6485867547,
+        "max": 4316122.233930454
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1531501.2151804268,
+        "avg": 6010919.27515407,
+        "max": 6988759.290476799
+      },
+      "nativeNodeRatio": 0.6786994570780004,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_find_null",
+      "sourceSha256": "3c56578cb3e76a1f82946e44b6d117b69cf2dffbd8ed311d304541c50fbf01f4",
+      "counterpartSha256": "c41a8d8f99f3251ebc7c9e98a91b99b60f65ce3e7ab172de5fec4a9dc7214a6e",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 10632057.10577547,
+        "avg": 11435617.596865842,
+        "max": 12112322.869106479
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 2926583.899215758,
+        "avg": 15144151.55947294,
+        "max": 19512566.931532558
+      },
+      "nativeNodeRatio": 0.7551177464090193,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_find_number",
+      "sourceSha256": "b993833cefa22ddd64c8c17f89e496bfb8ef4bf14dcbf71a767bb2ad977f368f",
+      "counterpartSha256": "063260d087f0e6efac70fff3ae9625afd561f1cef80f78e064416cb5f70dbfd8",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 37377719.375091255,
+        "avg": 43140869.85878434,
+        "max": 46990799.16481197
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 961615.2130531875,
+        "avg": 16815447.605095163,
+        "max": 24899696.04862733
+      },
+      "nativeNodeRatio": 2.565549896258036,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_find_record",
+      "sourceSha256": "3c35d3f484489ff5b527b0b5aa373cd14fe8c4107c14d24c73afcfcc10d3bc3c",
+      "counterpartSha256": "99011f789b52071c4e33fbfa9e8cdbb0771c4e69f9e3e6e377b10b7a8da57c2a",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 4188490.241513092,
+        "avg": 4572819.249886444,
+        "max": 4764175.632451294
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1593464.3065551918,
+        "avg": 8284347.438457478,
+        "max": 10284996.861267567
+      },
+      "nativeNodeRatio": 0.5519830359430085,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_find_string",
+      "sourceSha256": "2fa154c519200523183bc3382ea04f067b4a06332d453fb90dcf1367b9babf56",
+      "counterpartSha256": "f0bb9ebab498a61ad361ae3e90bfad4f3a4ca48d2c32f47f54a9289d9b423da4",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 6225699.859252977,
+        "avg": 6663692.769809284,
+        "max": 7000728.103069314
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1326066.7293872216,
+        "avg": 11864481.780132165,
+        "max": 15794303.87068268
+      },
+      "nativeNodeRatio": 0.5616505544277597,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_find_undefined",
+      "sourceSha256": "b4fe70798f76ce53fd6f3117ed278bf11d6a178a55253bca8bae78c7b1f3807e",
+      "counterpartSha256": "516d852115c57a6ee3c0f9b8664c03b8736ed9683b12df5c7067d7d9b096c7d4",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 9791219.456223974,
+        "avg": 11821593.80211875,
+        "max": 12380831.474395012
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1544931.6360207424,
+        "avg": 15468836.46767048,
+        "max": 19875390.617415
+      },
+      "nativeNodeRatio": 0.7642199739344078,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_sort_compare_boolean",
+      "sourceSha256": "c4d7f20424d063dd3e09fe505167df3047ce12a7cadeb32b05e8ba4fa311fe32",
+      "counterpartSha256": "af1b8fab824f153b77270ada85839fbd9901d7b159993c9f85e3fcc664dfcd83",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 47125960.697685115,
+        "avg": 57363934.64878435,
+        "max": 60160977.61588626
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 3465313.0287647992,
+        "avg": 5929232.097749583,
+        "max": 7125535.371950913
+      },
+      "nativeNodeRatio": 9.674766260298126,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_sort_compare_int",
+      "sourceSha256": "0797fc07ab1cab8602b202deacb0c3f4035ae46811a6d7e77942e13bf84ee248",
+      "counterpartSha256": "6433b3834235a52a96abd84e5920d47b4a0e7776bc4ab48cef2b0dd774c8a677",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 37264142.36066886,
+        "avg": 46047955.37755393,
+        "max": 51576508.51213861
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 3478556.263269612,
+        "avg": 6410112.354900885,
+        "max": 7696846.472717312
+      },
+      "nativeNodeRatio": 7.183642474277026,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_sort_compare_nested",
+      "sourceSha256": "72469b672416fb45372036286314f3b9ab9b7c18a0dc347b586c47ce7dca9e59",
+      "counterpartSha256": "5f25bb1b98d8cd64a06910210b41276ad9216e7b875896d16cf4893554976062",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 13963604.628171299,
+        "avg": 15544152.159184096,
+        "max": 16627830.50654802
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 2864668.2062393264,
+        "avg": 6380530.814119789,
+        "max": 7931559.318226683
+      },
+      "nativeNodeRatio": 2.436184795908466,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_sort_compare_null",
+      "sourceSha256": "f759bca4c1aa432b932cbcce7053670a0a41f94920634d16d0d80c6dc6322f92",
+      "counterpartSha256": "8382da8d2074cfbe091bb87dfbf030c222858f61299949dcb533b8f1f3c29b84",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 23665083.601992123,
+        "avg": 28336018.34506004,
+        "max": 31916717.3157542
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 2823690.320588137,
+        "avg": 7971797.176327566,
+        "max": 9814727.84258126
+      },
+      "nativeNodeRatio": 3.5545332775405396,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_sort_compare_number",
+      "sourceSha256": "116a700f6d9e3e1f8b5cb1391f2192a9baa681dac565d9afc5afd4569a0291e6",
+      "counterpartSha256": "27e23c260e2ebb49c99f7db2ac2f2c4fb00c1465f65a67963a06895fa5c2cdbc",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 15799421.407907426,
+        "avg": 18027370.68100545,
+        "max": 18788990.82568807
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 2487952.0194565253,
+        "avg": 5585942.361078933,
+        "max": 6375097.276264467
+      },
+      "nativeNodeRatio": 3.227274739999902,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_sort_compare_record",
+      "sourceSha256": "c0c6d07c7a0aa7371880dda35ecee0b2f2bc5165edc74ffe4220483675ed72cc",
+      "counterpartSha256": "45b33a46d2e49924087eafbc85d50f495e5ed267f5f7c06e5dd1594b6a79aa67",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 1414608.8758418234,
+        "avg": 1558253.8766080698,
+        "max": 1662337.6623376624
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 750458.0432392859,
+        "avg": 2906697.9069967815,
+        "max": 3360820.512820513
+      },
+      "nativeNodeRatio": 0.5360907553747364,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_sort_compare_string",
+      "sourceSha256": "75f41baca9b3eb9febaa4ab4904b78a7fe544cdd7fd33352fc1a620f45a404e3",
+      "counterpartSha256": "9f0abd506b0182fe17c6c348c248e3f5917294a74d2d88d37101da42843203f6",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 7281777.777777778,
+        "avg": 8699168.325072829,
+        "max": 9102222.222222222
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1418405.3328716073,
+        "avg": 4476597.79482788,
+        "max": 5161940.768746098
+      },
+      "nativeNodeRatio": 1.9432543917891334,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_sort_compare_undefined",
+      "sourceSha256": "c04f9d0b8bbb2c94de1e001a6ff2a1364d6d64933e5ee1f46963bb9248e6ef0a",
+      "counterpartSha256": "ccaa2c0cfad7731c1c08ac5bdf3ef51bc763d89e7867e267a55f0818f19f38bc",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 22745193.85613221,
+        "avg": 27702512.761721436,
+        "max": 30893622.156519644
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 2503792.9773986167,
+        "avg": 10173860.78125364,
+        "max": 12522777.023638671
+      },
+      "nativeNodeRatio": 2.722910540781735,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_sort_default_boolean",
+      "sourceSha256": "48282440c7beecb97ff45bc7595b4962fea20f0ab659624e88b485e16895021e",
+      "counterpartSha256": "48fb32b7cf4e8db380236eae0bac152466c8a1276c621019f02e241af30b6241",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 50257668.71165644,
+        "avg": 55458019.36729213,
+        "max": 57219490.38891373
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 3060521.514061505,
+        "avg": 5400784.100928397,
+        "max": 6524890.481879666
+      },
+      "nativeNodeRatio": 10.268512558715107,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_sort_default_int",
+      "sourceSha256": "3f9bd25f4a736a9923db2e7ef9f03615839443f41b228784015441791c489948",
+      "counterpartSha256": "0ea5adfc31fac776a87b62b1e56658e3f0c0623b82a5e9421fd32bc1f2410ca3",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 39607024.05817282,
+        "avg": 51139010.996365435,
+        "max": 54491272.88207748
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 3227529.820768053,
+        "avg": 6347074.3766630925,
+        "max": 7716159.854116372
+      },
+      "nativeNodeRatio": 8.057099690590238,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_sort_default_null",
+      "sourceSha256": "7c4f84a7f5a63f0c46fd56920f0d397f060ac5cec70d45571e7cea28f700d651",
+      "counterpartSha256": "60111219a2e54dcef11e4c5a1f674e2f7e4c6d3edd6e4013f5d89336f8cccc69",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 24466000.86013284,
+        "avg": 27555530.04649129,
+        "max": 32062622.309197657
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1305845.1234527398,
+        "avg": 7267034.468638938,
+        "max": 8707149.811444381
+      },
+      "nativeNodeRatio": 3.791853494765691,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_sort_default_number",
+      "sourceSha256": "81a7c3ff1fe94b23ae9f24130926e7e1c5c21b522547b084ab9e9cbff88a8ad8",
+      "counterpartSha256": "ff7c38988e9cb9e0eb6b8a030cc42a6a268ac15e099a8e53d8706e7532c351ac",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 14465013.45500519,
+        "avg": 18047647.59857852,
+        "max": 19443099.503479443
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1355655.7587568266,
+        "avg": 5367287.1572077945,
+        "max": 6086181.277860311
+      },
+      "nativeNodeRatio": 3.3625269284022035,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_sort_default_string",
+      "sourceSha256": "c898c1008f6f867538ca1c3591a8d5a48eb8950d2e0b6559d02fcfbd097d344d",
+      "counterpartSha256": "6fce8c810a4422d6b1ec598666979a357e2224c993b75390f15f3fa7630ae694",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 8155301.144848184,
+        "avg": 8681250.74479322,
+        "max": 9165033.250096215
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1477233.793165644,
+        "avg": 5573756.059645104,
+        "max": 6402500.976944196
+      },
+      "nativeNodeRatio": 1.5575225488691333,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_sort_default_undefined",
+      "sourceSha256": "3af221b12ad4a4785a6a8f356da7653c5977b1692f46b3c2fa9f4f41e9ede269",
+      "counterpartSha256": "21290339a00f43a86a0b24c6866a6b3561a1f10697095577f3049bcd57300a35",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 24600600.6006006,
+        "avg": 27166075.676192418,
+        "max": 31069846.47126646
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 2467963.4722125414,
+        "avg": 10114368.689528111,
+        "max": 12525993.88379212
+      },
+      "nativeNodeRatio": 2.6858894025010924,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_splice_boolean",
+      "sourceSha256": "b69db08ea511e86458843a5dd6d8c8c3eb3e4e65e0a51e7c23f321512f96ec8a",
+      "counterpartSha256": "d799c29eedd56c5c7b0df373cb0b66e7b1f61fce32a1f36a6f66e60ac7fd417d",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 4737998.843262001,
+        "avg": 5086663.194277189,
+        "max": 5331597.787178652
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 2737814.1869039508,
+        "avg": 7997715.485731867,
+        "max": 9204494.382022614
+      },
+      "nativeNodeRatio": 0.63601452231602,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_splice_int",
+      "sourceSha256": "0af8bdd0f82c00be22079fcd3fc2ca64a4a4c2f9165d6342aecf01e51fdcde37",
+      "counterpartSha256": "a813f78b4e39c65c6eb4787d0ec71f21c0fcc64834ba918f2ba762a1befae55f",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 4694997.1229387745,
+        "avg": 5136560.430670791,
+        "max": 5390055.242802512
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 2299186.079146794,
+        "avg": 8416411.243401371,
+        "max": 12248217.78862239
+      },
+      "nativeNodeRatio": 0.610302928661899,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_splice_nested",
+      "sourceSha256": "73cc677ae5c0a65dda34a69d395d57748e942ae6375da24d2347c150bd207688",
+      "counterpartSha256": "b2cb9fa10622d1aef77ebd72c222128325719a92d094d18c1b9998dbaab092ec",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 1406472.6585973045,
+        "avg": 1497673.7654423194,
+        "max": 1547022.9250970476
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 991047.6651342827,
+        "avg": 2078874.298110612,
+        "max": 2373804.6942916512
+      },
+      "nativeNodeRatio": 0.7204253603998484,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_splice_null",
+      "sourceSha256": "a61e1c71eeb427cacad1bb6de0147431df20111b0a2189dd48bc76508c4be7ad",
+      "counterpartSha256": "e5c6d9f55fed2d9e435b71e1eb0616306ae49bfa958ee3e55edb619f0975d23f",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 14140326.166507864,
+        "avg": 15893829.48310328,
+        "max": 16667344.86266531
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1289706.6547100109,
+        "avg": 8470636.496579625,
+        "max": 9385497.390116744
+      },
+      "nativeNodeRatio": 1.8763441790379132,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_splice_number",
+      "sourceSha256": "645380c3c626b683eaee48ffcba40081aee999d85872ff02b085b3b9d8886c87",
+      "counterpartSha256": "93c46778d2ba79298adf14cc67c308aa8e4d8ff3a76568e5d2536815faf674d4",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 10291457.28643216,
+        "avg": 12337143.473870484,
+        "max": 13010113.330284089
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 2986328.2161355386,
+        "avg": 12750966.032410447,
+        "max": 15189047.272944864
+      },
+      "nativeNodeRatio": 0.9675457877083111,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_splice_record",
+      "sourceSha256": "c9801a21453495d9230ed5d59f40bd2b56c6da9e94e9a08fc3c24be1ce17de88",
+      "counterpartSha256": "a43a8bd89b68492ec6c0c315e0a215a26a6b79f0a1831e890acdff41e6b80779",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 1257373.5627385203,
+        "avg": 1336447.580281304,
+        "max": 1377617.0856806524
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 595940.7935149465,
+        "avg": 3439403.329106094,
+        "max": 3900335.7564423513
+      },
+      "nativeNodeRatio": 0.3885696012943759,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_splice_string",
+      "sourceSha256": "367ccea1a479285dae4b4e3a4f110cfb92d0ee30fe9041ec6cf96a5cfeef434d",
+      "counterpartSha256": "e0f17419a17cc4386aa0a2439f2236411822407a333830e0fedcdfdd79b08dca",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 1629059.6237413168,
+        "avg": 1882113.9051741317,
+        "max": 1948542.49402022
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1378274.4112049374,
+        "avg": 5044525.835373749,
+        "max": 6013942.47992957
+      },
+      "nativeNodeRatio": 0.373100260876092,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_splice_undefined",
+      "sourceSha256": "82d173d3abdcc5aa208bb82a7565b8f15ba981cf6cd889bc8a85fc607acbc60d",
+      "counterpartSha256": "e06718385d81aa6a9ede6baca39ff0aab0dd4d0232a84b5a511eb26814a47732",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 12497330.282227306,
+        "avg": 15856225.75805791,
+        "max": 16650406.504065039
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1298017.291263541,
+        "avg": 8438018.132805748,
+        "max": 9459584.295612168
+      },
+      "nativeNodeRatio": 1.879140991225331,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_to_sorted_compare_boolean",
+      "sourceSha256": "68ce53e2f6ff8d7afeaab327fccf71fa2df52eea9b681a45f018afe92dd0d06e",
+      "counterpartSha256": "fad0eb13180e5b8a24315c6009846d12db762ff4b2119d3496f0bf3eba785aa4",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 31731767.403665885,
+        "avg": 34905626.61419347,
+        "max": 36489977.728285074
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1936262.182001098,
+        "avg": 5837509.449865541,
+        "max": 6938468.522797132
+      },
+      "nativeNodeRatio": 5.9795409179161965,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_to_sorted_compare_int",
+      "sourceSha256": "f5acf465361ad7cc42f34f49be7e2ab9da48fa782ed85be82c4e9fd69c03c6b5",
+      "counterpartSha256": "2408ed100020aafe72529996ed0ba7f66421a1513952e0310bfd6205c4a04832",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 24861911.987860397,
+        "avg": 28298677.265280522,
+        "max": 29556081.51013104
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 2642011.3343318165,
+        "avg": 6205386.415587306,
+        "max": 7443889.141299335
+      },
+      "nativeNodeRatio": 4.560340866798737,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_to_sorted_compare_nested",
+      "sourceSha256": "96a6e80ee41d313edd07d980e1ce7290d37801a7ab8dfbccc75b6766136fb49f",
+      "counterpartSha256": "c1ea213938e9f287b7cd62095e307606c729fa783b531f822111ef39608fc48c",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 8829184.593762664,
+        "avg": 9611260.12561763,
+        "max": 10147002.720070552
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1531930.808789163,
+        "avg": 6407680.585037183,
+        "max": 7587545.754975764
+      },
+      "nativeNodeRatio": 1.49995930634577,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_to_sorted_compare_null",
+      "sourceSha256": "528d49f4dd2083fd85b834766da5f07c362c72fda7f0eec68a5795f3250227bb",
+      "counterpartSha256": "5e329035569f1e6e949c0c5f73ab61e652bc04eab79bdadf86481cd867f2134e",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 11750395.887361439,
+        "avg": 15537580.0242913,
+        "max": 16510669.859159471
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1837389.2564764107,
+        "avg": 5832085.373968936,
+        "max": 6985779.436293726
+      },
+      "nativeNodeRatio": 2.664155105417711,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_to_sorted_compare_number",
+      "sourceSha256": "f85a39ff98643f4392b7b5b47063e7518a4dbf642ba8ea52037ad46af0902a6c",
+      "counterpartSha256": "b6730dc3717c63d7317c8eb1c52523a4c9142acc7240ac7d1d3170e13632fe11",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 13775846.528459769,
+        "avg": 15192259.250373375,
+        "max": 15989506.886105996
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1763553.0082012056,
+        "avg": 5457779.577573031,
+        "max": 6047238.142481873
+      },
+      "nativeNodeRatio": 2.7835970717470926,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_to_sorted_compare_record",
+      "sourceSha256": "848f4ade940436fbf8d3bcca9a1e882879bbb211e24721d15048beb1c2729264",
+      "counterpartSha256": "61ad2551f1fc6c737bcfe000a88b45cd8c322054073ff85f66ad032357a682a0",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 711533.3369697505,
+        "avg": 897093.4802097849,
+        "max": 932074.1836386393
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 723941.2094696324,
+        "avg": 2188387.9042802243,
+        "max": 2510062.3103358196
+      },
+      "nativeNodeRatio": 0.4099334850348869,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_to_sorted_compare_string",
+      "sourceSha256": "5fcc6e139066bf35f624ce31de8385c7163cb26d3ac1a3a4ac6feff234bed07d",
+      "counterpartSha256": "b5f62c8be6048c91a4ee7787f7223fcb56938991dda6ee6e22b59c6ddc53e27a",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 5700114.948607118,
+        "avg": 6354447.427196819,
+        "max": 6627831.715210356
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1817750.941493808,
+        "avg": 4356439.516599746,
+        "max": 5010397.553516847
+      },
+      "nativeNodeRatio": 1.4586332262812045,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_to_sorted_compare_undefined",
+      "sourceSha256": "6efd3c2237b1ef89febf3ab25dae7ba4acf8f7fd3ed62828ae1e8f33a9bf441c",
+      "counterpartSha256": "7c5c973a693becd186ef7a4dcb37278e3273022ae2a31aebbaf6c98b03e3e3b3",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 14342540.198330438,
+        "avg": 15756441.648617286,
+        "max": 16438839.970140388
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 3041206.265954079,
+        "avg": 7193171.685906401,
+        "max": 8170234.495305586
+      },
+      "nativeNodeRatio": 2.190472066653007,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_to_sorted_default_boolean",
+      "sourceSha256": "1800c7ceb69709844c9f044ea89d3d844557723cbd2221cf0fae7a9ed35c9ea2",
+      "counterpartSha256": "6bfa2f4f53b142514619fb2e3f082884df26af4076fe5b341cf54263a93c314c",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 30854990.58380414,
+        "avg": 34432001.28476161,
+        "max": 36221502.98013831
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1873029.1124329541,
+        "avg": 5225676.894993149,
+        "max": 6389178.329204845
+      },
+      "nativeNodeRatio": 6.589003104602921,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_to_sorted_default_int",
+      "sourceSha256": "54f0993d41aaf2dc11c9805090a61d5c2b1a10018409782e692ac97c6562e73c",
+      "counterpartSha256": "81239b44bfeb083d0dadc9120eb6b83650d0412f59119864f2dae9b0d498b7b2",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 20600098.574690443,
+        "avg": 30405707.985727634,
+        "max": 32042055.197446648
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1949857.8070002657,
+        "avg": 6002045.416694328,
+        "max": 7194370.966778755
+      },
+      "nativeNodeRatio": 5.065891021276845,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_to_sorted_default_null",
+      "sourceSha256": "5c7af91515bb092d5288d945839d706bdae9c58e4d9da1ca358d9a3dafe2fe57",
+      "counterpartSha256": "a557ec2bc93aa8b3214316721e8b71b23bc4ab97d576e000dc117c07922f179e",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 11252747.252747253,
+        "avg": 15534111.022357082,
+        "max": 16521725.100437244
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 2791457.159719558,
+        "avg": 5433927.30075382,
+        "max": 6291858.678955352
+      },
+      "nativeNodeRatio": 2.858726324918281,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_to_sorted_default_number",
+      "sourceSha256": "1cfaeae95520920c1a2bdd40c89fed409a8e36dc6f98b65b3e518376fc3353e0",
+      "counterpartSha256": "1bfb631fef83ecda8ae864ba18bbd2a1f25e4c0eb843bad8dfaa69011223aa33",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 12513212.804047244,
+        "avg": 15273932.695599854,
+        "max": 16356651.678393727
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 3061473.1246609795,
+        "avg": 5263781.308658253,
+        "max": 5767665.588045027
+      },
+      "nativeNodeRatio": 2.9017035093149044,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_to_sorted_default_string",
+      "sourceSha256": "985b1ba8c99f7996906e6c89d428e0a6932e6da9a482805a66be04c406e00550",
+      "counterpartSha256": "edb143ddc0ae453ab6a1a0d35dd29a6e374421feeef0f87d97d868c101032624",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 6049488.835916477,
+        "avg": 6434369.787049024,
+        "max": 6681892.332789558
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1627388.4388672428,
+        "avg": 5006875.202694529,
+        "max": 6013960.139895018
+      },
+      "nativeNodeRatio": 1.285106883348374,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_to_sorted_default_undefined",
+      "sourceSha256": "72e4a983b80275e423855b13806705713a2febe748f31a6d6f88859ac7181919",
+      "counterpartSha256": "9170de8908fde80bda9aec9e5e28c71ffe89c789fe067c6532e1907529ac750f",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 13900389.590997327,
+        "avg": 15676727.649347808,
+        "max": 16594282.751020938
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 2730666.6666666665,
+        "avg": 6947184.339754644,
+        "max": 8155301.144848124
+      },
+      "nativeNodeRatio": 2.2565584678153896,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_unshift_boolean",
+      "sourceSha256": "05a0e309932463936ec5763040473487022214184e3ed6520a9afe7cf4bda42b",
+      "counterpartSha256": "bb08201d8e13616fee2285e794f7021df5e047458a92259692cd61dbf3b343b8",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 4494105.874814575,
+        "avg": 5343400.928163758,
+        "max": 5591808.873720137
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 965070.3893502924,
+        "avg": 9752287.638069728,
+        "max": 10903244.35405676
+      },
+      "nativeNodeRatio": 0.5479125643612967,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_unshift_int",
+      "sourceSha256": "bd0ec80f0359e1032a32e17b990ee82bc64a60cb8c1b17160d2e5d5bd35af252",
+      "counterpartSha256": "20d4966b77c58372ea5e6c8c42cd6556c9c4a265b0583323a6107dc9e180b635",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 3078541.901540774,
+        "avg": 5163574.059840733,
+        "max": 5572789.115646259
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 2070079.4676014676,
+        "avg": 9301408.864856528,
+        "max": 13983531.114722736
+      },
+      "nativeNodeRatio": 0.5551389187234035,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_unshift_nested",
+      "sourceSha256": "c877ab17e0f511eed259a6daa5af7a8d0ae46289bf1e4c1f115c3b55789af695",
+      "counterpartSha256": "664c0bdd4f8d247efbf5fdb9d7fb77ae6d309a11e78ea1dfb20280a01f66aedb",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 1412373.8570150775,
+        "avg": 1498116.3144895006,
+        "max": 1537873.5144089286
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 659351.3437986017,
+        "avg": 2070319.4578799887,
+        "max": 2376098.858706798
+      },
+      "nativeNodeRatio": 0.7236160143244631,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_unshift_null",
+      "sourceSha256": "72de0bbd0637a63a6a9dcdb446b661a2587e653f9071a7ba7baddacab96f174a",
+      "counterpartSha256": "d57dd297a487705af83a587ca487cfbee4aacfd69a85c510e3aa201d52666a6c",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 16157790.927021695,
+        "avg": 18026624.172720395,
+        "max": 19170106.614997238
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 2630700.064226048,
+        "avg": 9671908.571538197,
+        "max": 11283746.556473844
+      },
+      "nativeNodeRatio": 1.8638125080884098,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_unshift_number",
+      "sourceSha256": "49ddebf1e2216e8e58e92d9130d9406aab2bce7752142f32a73087e839aede01",
+      "counterpartSha256": "37ca87c778550848b4b2fe8564f0c7ff7c8ef44a2c79d67da2517c2c46715e88",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 12648533.80765335,
+        "avg": 14431070.876351368,
+        "max": 15520089.725518726
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1741804.6729353473,
+        "avg": 14266156.946051102,
+        "max": 18030867.295280986
+      },
+      "nativeNodeRatio": 1.0115598006473576,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_unshift_record",
+      "sourceSha256": "f773c1566e4483a1169d7b9f2e953a182d5c459cbd753f7c00c042fef6f84de5",
+      "counterpartSha256": "37d4874b2c4f952adc664864233759845f8fec5c9853259fee422605c7365ce2",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 1259984.3609363013,
+        "avg": 1332127.5802501906,
+        "max": 1379047.5010487628
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 430399.03328342125,
+        "avg": 3493870.1691472586,
+        "max": 4111764.505113003
+      },
+      "nativeNodeRatio": 0.3812756386924704,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_unshift_string",
+      "sourceSha256": "134456c6db1bbc83401bb8712b10af386685a2752d85d11d25cc27b6377efe29",
+      "counterpartSha256": "4e981cb9355c3d54d9add7ac89af4c7cc7ce07a7f08d4156c1c3aacf6491005f",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 1810721.2735877833,
+        "avg": 1926049.5115440243,
+        "max": 1980816.6419548185
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 911184.0275846615,
+        "avg": 5452500.537287578,
+        "max": 6712927.30175138
+      },
+      "nativeNodeRatio": 0.3532415078866117,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_unshift_undefined",
+      "sourceSha256": "779af9523192763f0563d42a543e370329c3b7d2409f6492810ac13d4584908a",
+      "counterpartSha256": "7aed4819eb22a475ef8c50d70d829b3e12ea318e254ea722cbf8b9c1dcefdf70",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 8673372.154579142,
+        "avg": 17812665.235954132,
+        "max": 19051162.790697675
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1200293.0402930323,
+        "avg": 9815045.481946876,
+        "max": 11227085.343391592
+      },
+      "nativeNodeRatio": 1.814832673849299,
+      "signal": "native-at-least-as-fast"
+    }
+  ],
+  "policy": "Same accepted original run and captured source pair; no cross-run/toolchain/hardware aggregation. Rates are reciprocal per actual sample; complete workload scope applies."
+}

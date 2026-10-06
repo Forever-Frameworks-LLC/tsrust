@@ -1,0 +1,7 @@
+// Independent Boolean tags/truth table; no evaluated logical-assignment operator.
+const outcomes={and:[0,0,0,1],or:[0,1,1,1]};
+export function validateLogicalAssignmentCase(id,n,seed){const match=/^boolean_logical_(and|or)_assign$/.exec(id);if(!match)throw Error('Unknown logical assignment row');if(!Number.isSafeInteger(n)||n<0||n>2048||!Number.isSafeInteger(seed)||seed<0||seed>1000000)throw Error('Bounded n/seed required');return match[1];}
+export function referenceLogicalAssignment(form,old,rhs){if(!outcomes[form]||typeof old!=='boolean'||typeof rhs!=='boolean')throw Error('Strict Boolean truth cell required');const tag=(old?2:0)+(rhs?1:0),bit=outcomes[form][tag];return {result:bit===1,committed:bit===1,rhsEvaluated:form==='and'?old:!old};}
+export function expectedLogicalAssignmentValues(id,n,seed){const form=validateLogicalAssignmentCase(id,n,seed),out=[];let tag=seed%4;for(let remaining=n;remaining>0;remaining--){const bit=outcomes[form][tag];out.push(bit,bit);tag=(tag+1)%4;}return out;}
+export function expectedLogicalAssignmentObservation(id,n,seed){const values=expectedLogicalAssignmentValues(id,n,seed);let checksum=0n;for(const code of[256,...values,257])checksum=(checksum*131n+BigInt(code))%1000000007n;return{checksum:Number(checksum),exactBits:'t:['+values.join(',')+']'};}
+export const logicalAssignmentHandCells=['and','or'].flatMap(form=>[false,true].flatMap(old=>[false,true].map(rhs=>({form,old,rhs,...referenceLogicalAssignment(form,old,rhs)}))));

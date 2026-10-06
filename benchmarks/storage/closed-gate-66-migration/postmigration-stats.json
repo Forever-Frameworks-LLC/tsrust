@@ -1,0 +1,22 @@
+{
+  "gate": 66,
+  "records": 12792,
+  "blobs": 9197,
+  "databaseBytes": 110649344,
+  "databaseSha256": "b0558a9579db4926827a709d806c116c23f69a897ca69279e9dade63e8705f90",
+  "databaseGrowthBytes": 749568,
+  "files": 273,
+  "artifactDirectories": [
+    "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts",
+    "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts",
+    "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts",
+    "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-proof-closure-artifacts"
+  ],
+  "originalLogicalBytes": 6030336,
+  "originalAllocatedBytes": 6651904,
+  "grossAllocatedBytesReclaimed": 5902336,
+  "migrationEvidenceAllocatedBytes": 335872,
+  "netAllocatedBytesReclaimedAfterEvidence": 5566464,
+  "cumulativeGrossAllocatedBytesReclaimed": 1353412608,
+  "protectedFilesExact": 451
+}

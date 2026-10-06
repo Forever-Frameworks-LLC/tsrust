@@ -1,0 +1,9 @@
+// Independent content identity and true predicate on the declared valid-Unicode domain.
+// No isWellFormed/toWellFormed method is used to derive expected results.
+import {observeSliceTree} from './slice-observation.mjs';
+export const stringWellFormedIds=['string_is_well_formed_ascii','string_is_well_formed_unicode','string_to_well_formed_ascii','string_to_well_formed_unicode'];
+const encoder=new TextEncoder();
+export function validateStringWellFormedCase(id,n,seed,input){if(!stringWellFormedIds.includes(id)||!Number.isSafeInteger(n)||n<0||n>2048||!Number.isSafeInteger(seed)||seed<0||seed>1000000)throw Error('Known bounded well-formed case');const unicode=id.endsWith('_unicode');if(input===undefined)input=unicode?' é😀e\u0301 Z ':' A alpha Z ';if(typeof input!=='string')throw Error('String input');for(const scalar of input){const code=scalar.codePointAt(0);if(code>=0xd800&&code<=0xdfff)throw Error('Unpaired surrogate excluded from native UTF8 domain');if(!unicode&&code>127)throw Error('ASCII domain required');}if(encoder.encode(input).length>256)throw Error('At most256 UTF8 bytes');return {input,unicode};}
+function doubled(value){let output='';for(let k=0;k<2;k++)for(const scalar of value)output+=scalar;return output;}
+export function expectedStringWellFormedValues(id,n,seed,input){const domain=validateStringWellFormedCase(id,n,seed,input);const pool=domain.unicode?[domain.input,'','é😀Z','a\u0000é😀','e\u0301','\uFEFF中Z',doubled(domain.input),'\uFDD0\uFFFF\u{10FFFF}']:[domain.input,'','ABC','a\u0000b',' e ','Z',doubled(domain.input),'tail'];const output=[];let at=seed%pool.length;for(let remaining=n;remaining>0;remaining--){output.push(id.startsWith('string_is_')?true:pool[at]);at=(at+13)%pool.length;}return output;}
+export function expectedStringWellFormedObservation(id,n,seed,input){return observeSliceTree(expectedStringWellFormedValues(id,n,seed,input));}

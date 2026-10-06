@@ -1,0 +1,20 @@
+function make(base:int):Function<int,[value:int]>{return (value:int):int=>base+value;}
+function chain(a:int):Function<Function<int,[c:int]>,[b:int]>{return (b:int):Function<int,[c:int]> => (c:int):int=>a+b+c;}
+function factory(trace:int[],base:int):Function<int,[value:int]>{trace.push(1);return (value:int):int=>value+base;}
+function mark(trace:int[],value:int):int{trace.push(2);return value;}
+function workload(n: int, seed: int, input: string): string[][] {
+ const output:string[][]=[];let i=0;
+ while (i < n) {
+  const base=(i*13+seed)%97;
+  const direct=make(base)(3);
+  const nested=chain(base)(2)(3);
+  const inline=((value)=>value*2)(base);
+  const named=(function(value:int):int{return value+4;})(base);
+  const args=[base,2];const spread=((a,b)=>a+b)(...args);
+  const omitted=((value:int=7):int=>value)();
+  const trace:int[]=[];const ordered=factory(trace,base)(mark(trace,5));
+  output.push([String(direct),String(nested),String(inline),String(named),String(spread),String(omitted),String(ordered),trace.join(","),input+String(base)]);
+  i=i+1;
+ }return output;
+}
+function main(){const result=workload(3,0,"abc");}

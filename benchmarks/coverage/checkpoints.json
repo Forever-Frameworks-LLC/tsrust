@@ -1,0 +1,1347 @@
+{
+  "schemaVersion": 1,
+  "gatesPerCheckpoint": 5,
+  "lastMeasuredGate": 96,
+  "nextCheckpointGate": 101,
+  "batchStartGate": 97,
+  "batchEndGate": 101,
+  "status": "focused-implementation-batch",
+  "alreadyRunningRegression": {
+    "gate": 77,
+    "restart": false,
+    "status": "completed",
+    "exitCode": 0,
+    "compilerGroups": 665,
+    "workspaceGroups": 691
+  },
+  "pendingGates": [
+    {
+      "gate": 97,
+      "implementationAccepted": true,
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "measured": false,
+      "pendingCheckpoint": 101,
+      "workloads": [
+        "nullable_callable_declared_guard",
+        "nullable_callable_declared_optional",
+        "nullable_callable_read_forward",
+        "nullable_callable_once_forward",
+        "nullable_callable_owned_record",
+        "nullable_callable_owned_once_return",
+        "nullable_callable_generic_coalesce",
+        "nullable_callable_nullish_assign",
+        "nullable_callable_higher_order_factory",
+        "nullable_callable_absent_higher_order_factory"
+      ],
+      "evidence": "benchmarks/runtime/diagnostics/2026-10-04T04-22-29-000Z-nullable-callable-implementation.json"
+    },
+    {
+      "gate": 98,
+      "implementationAccepted": true,
+      "documentationAccepted": true,
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "measured": false,
+      "pendingCheckpoint": 101,
+      "workloads": [
+        "optional_parameter_int_guard",
+        "default_parameter_number_value",
+        "default_parameter_boolean_value",
+        "default_parameter_string_value",
+        "default_parameter_array_value",
+        "default_parameter_record_value",
+        "default_parameter_dependent_positions",
+        "optional_parameter_read_callback",
+        "optional_parameter_mutate_callback",
+        "default_parameter_owned_reusable_callback",
+        "optional_parameter_once_callback",
+        "default_parameter_owned_once_callback",
+        "default_parameter_stored_family"
+      ],
+      "sourceEntries": 704,
+      "evidence": "benchmarks/runtime/diagnostics/gate98-benchmark-registration.json",
+      "nativeEpochScope": "Original ten and affected three native acceptances are retained; final-domain4 correspondence and the changed Borrowed Mutate row replay bind the accepted final compiler epoch.",
+      "nativeEvidence": {
+        "path": "/tmp/tsrust-gate98-native-affected2/retained-native-union.json",
+        "sha256": "f8f3202d69a74c4e84ae651c8a90f50c04d38bf10a3e38af624e22821380f58f",
+        "bytes": 10746
+      },
+      "counterpartEvidence": {
+        "path": "/tmp/tsrust-gate98-counterpart-acceptance1/source-accepted.json",
+        "sha256": "0b1481be5fa502a9c218d361389e031f29371fcc42c256a4026a47c6f02ab9eb",
+        "bytes": 23144
+      },
+      "counterpartRepairEvidence": {
+        "path": "/tmp/tsrust-gate98-source-repair1/accepted-counterpart.json",
+        "sha256": "6a86273be38f19882d18dc447a19c836a7c9293773505c4f70df2a4347bbbbb1",
+        "bytes": 1113
+      },
+      "finalCoreCorrespondenceAccepted": true,
+      "finalCoreCorrespondence": {
+        "path": "/tmp/tsrust-gate98-root/current-emission4/results.json",
+        "sha256": "f4f3286f3e34a82c7ce313978500bf33e6b4a253f3afda9b0b913eea296c8fd0",
+        "bytes": 86204
+      },
+      "finalAffectedNativeEvidence": {
+        "path": "/tmp/tsrust-gate98-final-mutate-native2/accepted.json",
+        "sha256": "1e25b558f4c570dc17a378319cb4f7cd4fd0ef2bd5cbbe6f7b863e0a2b4ac4b9",
+        "bytes": 6964
+      },
+      "focusedIntegrationEvidence": {
+        "path": "/tmp/tsrust-gate98-root/integration1/focused.terminal.json",
+        "sha256": "1a41d396ac9e9d9fc4c694ebb58eda5d19ab5f72f9f1ecf0466136494325ef4e",
+        "bytes": 687
+      }
+    },
+    {
+      "gate": 99,
+      "implementationAccepted": true,
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "documentationAccepted": true,
+      "measured": false,
+      "pendingCheckpoint": 101,
+      "status": "focused-accepted",
+      "milestone": "docs/milestones/99-rest-parameters.md",
+      "workloads": [
+        "rest_parameter_int_pack",
+        "rest_parameter_number_pack",
+        "rest_parameter_boolean_pack",
+        "rest_parameter_string_pack",
+        "rest_parameter_nested_pack",
+        "rest_parameter_record_pack",
+        "rest_parameter_null_pack",
+        "rest_parameter_undefined_pack",
+        "rest_parameter_default_prefix",
+        "rest_parameter_read_callback",
+        "rest_parameter_mutate_callback",
+        "rest_parameter_owned_once_callback",
+        "rest_parameter_owned_callable_pack"
+      ],
+      "sourceEntries": 717,
+      "evidence": "benchmarks/runtime/diagnostics/gate99-rest-parameter-implementation.json",
+      "gateClosed": true,
+      "closureEvidence": "benchmarks/runtime/diagnostics/gate99-focused-closure.json"
+    },
+    {
+      "gate": 100,
+      "implementationAccepted": true,
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "documentationAccepted": true,
+      "measured": false,
+      "pendingCheckpoint": 101,
+      "status": "focused-implementation-accepted",
+      "milestone": "docs/milestones/100-call-spread.md",
+      "workloads": [
+        "call_spread_fixed_literal_int",
+        "call_spread_dynamic_int",
+        "call_spread_multiple_mixed_int",
+        "call_spread_math_number",
+        "call_spread_boolean_pack",
+        "call_spread_string_owned",
+        "call_spread_nested_owned",
+        "call_spread_record_owned",
+        "call_spread_nullish_packs",
+        "call_spread_borrowed_string_fixed",
+        "call_spread_optional_default_counts",
+        "call_spread_mutate_callback",
+        "call_spread_owned_once_optional"
+      ],
+      "evidence": "benchmarks/runtime/diagnostics/gate100-call-spread-implementation.json"
+    }
+  ],
+  "lastImplementationGate": 100,
+  "currentRegressionOwner": null,
+  "initialRegressionOwner": "/tmp/tsrust-gate86/full-start.json",
+  "fullRestarts": 0,
+  "observedFailedTargets": [
+    "analysis",
+    "control_flow",
+    "for_of",
+    "int_to_string",
+    "operators",
+    "owned_arrays",
+    "recursion",
+    "recursive_callable_results",
+    "recursive_callbacks",
+    "recursive_owned_callbacks",
+    "intelligence"
+  ],
+  "checkpointRepairStatus": "Checkpoint96 frozen revision retains 1,033 accepted named baseline groups plus six bounded concat-refinement groups. Original failed attempts and scoped repairs remain bound to immutable evidence; later peer source is excluded.",
+  "stagedConsoleFixtureAudit": "/tmp/tsrust-gate81-console-fixtures",
+  "unrunRegressionOwner": "/private/tmp/tsrust-gate81/unrun-compiler-tests-start.json",
+  "selectedCheckpointRows": 48,
+  "registeredSourceRows": 731,
+  "retainedUnrunPassingGroups": 627,
+  "namespaceSupplement": {
+    "operations": [
+      "BooleanConstructor.call()",
+      "StringConstructor.call()"
+    ],
+    "workloads": [
+      "boolean_string_truthiness",
+      "string_explicit_int",
+      "string_array_conversion"
+    ],
+    "registrationAccepted": true,
+    "sourceChecksAccepted": true,
+    "nativeMeasurementAccepted": true,
+    "measured": true,
+    "checkpointGate": 81
+  },
+  "compilerFailedTargetsResolved": true,
+  "affectedPassingTargetsRetained": 26,
+  "regressionEvidence": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-04T00-10-34-000Z-checkpoint96-runtime-proof-artifacts/28-test-coverage-summary.json",
+    "sha256": "716a39662d87999890a7dc7495657a7511d95d9945c01ddf878f7f9053c46323",
+    "originalPath": "/private/tmp/tsrust-checkpoint96-plan/test-coverage-summary.json"
+  },
+  "regressionAccepted": true,
+  "compilerGroups": 923,
+  "workspaceGroups": 1033,
+  "runtimeOwner": "/tmp/tsrust-gate81/runtime-socket-retry-start.json",
+  "releaseAccepted": true,
+  "next": "Complete a meaningful feature-family milestone, including compiler, LSP and benchmark readiness, before heavy regression and timing. The former gate101/five-gate schedule is superseded; retain its partial checks and pending workload plan.",
+  "runtimeSessionId": 23445,
+  "runtimeLog": "/tmp/tsrust-gate81/runtime-socket-retry.log",
+  "failedRuntimeTerminal": "/tmp/tsrust-gate81/runtime-terminal.json",
+  "runtimeAccepted": true,
+  "runtimeTerminal": {
+    "path": "/private/tmp/tsrust-gate86/runtime-owner/runtime-terminal.json",
+    "sha256": "a255b4c5f87d200f805924630fa5c288f2df27c54a7e2c1ba9cc2fbfc3a47e1c"
+  },
+  "runtimeExitCode": 0,
+  "runtimeRecord": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/results/2026-10-03T13-42-38-756Z.json",
+    "sha256": "f0efc6e6e0c5eff29d6fe68b22e7c360a622e2830384f6fc587d7a5153cacaab"
+  },
+  "profilesSessionId": 6263,
+  "profilesOwner": "/tmp/tsrust-gate81/profiles-start.json",
+  "preparedRuntimeSealer": "/tmp/tsrust-checkpoint81-seal-revision3/seal-runtime.py",
+  "completedCheckpoints": [
+    {
+      "batchStartGate": 77,
+      "batchEndGate": 81,
+      "pendingGates": [
+        {
+          "gate": 77,
+          "operations": [
+            "string.literal"
+          ],
+          "workloads": [
+            "quoted_string_literals_ascii",
+            "quoted_string_literals_unicode"
+          ],
+          "sourceEntries": 490,
+          "measured": false,
+          "documentationScope": "No new built-in method or property. Existing quoted String examples and editor catalog examples must remain verified.",
+          "implementationAccepted": true,
+          "implementationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T05-56-16-000Z-quoted-string-literals-implementation.json",
+            "sha256": "781fc10bfb3493590b7a022ad6bcab89a394460ab572e6cdb788352dc077343e"
+          },
+          "documentationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T05-42-17-000Z-builtin-documentation-examples.json",
+            "sha256": "e67b62bdf9ff60256a548042f784c008dc483f05779572e3c33a293372b94984"
+          }
+        },
+        {
+          "gate": 78,
+          "operations": [
+            "string.templateLiteral",
+            "syntax.templateStrings"
+          ],
+          "workloads": [
+            "template_primitive_ascii",
+            "template_string_unicode"
+          ],
+          "sourceEntries": 492,
+          "measured": false,
+          "implementationAccepted": true,
+          "status": "implementation-complete-checkpoint-pending",
+          "documentationScope": "Ordinary template syntax adds no built-in method or property. Language examples/native auxiliary acceptance pending.",
+          "implementationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T06-19-03-000Z-template-literals-implementation.json",
+            "sha256": "9ecb17f116fc6198da7fa829d77f81adba02ea5f6cc59d29074ecf84cc91f53d"
+          },
+          "documentationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T06-19-03-000Z-template-literals-implementation.json",
+            "sha256": "9ecb17f116fc6198da7fa829d77f81adba02ea5f6cc59d29074ecf84cc91f53d"
+          }
+        },
+        {
+          "gate": 79,
+          "operations": [
+            "String.split"
+          ],
+          "status": "implementation-complete-checkpoint-pending",
+          "implementationAccepted": true,
+          "measured": false,
+          "documentationScope": "Existing split entry receives complete behavioral documentation, signed u32 wrapping correction and executable examples.",
+          "affectedMeasuredWorkloads": [
+            "string_split_normal",
+            "string_split_limits",
+            "string_split_empty_delimiter"
+          ],
+          "workloads": [
+            "string_cow_split_pieces",
+            "string_scalar_split_unicode"
+          ],
+          "sourceEntries": 494,
+          "implementationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T06-37-34-000Z-split-storage-implementation.json",
+            "sha256": "c2f6d15244335d361e5271b98273bacd3fe05b3503af7016af700015c7bf0f6f"
+          },
+          "documentationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T06-37-34-000Z-split-storage-implementation.json",
+            "sha256": "c2f6d15244335d361e5271b98273bacd3fe05b3503af7016af700015c7bf0f6f"
+          }
+        },
+        {
+          "gate": 80,
+          "operations": [
+            "String.substr"
+          ],
+          "workloads": [
+            "string_substr_default_ascii",
+            "string_substr_default_unicode",
+            "string_substr_bounded_ascii",
+            "string_substr_bounded_unicode"
+          ],
+          "sourceEntries": 498,
+          "implementationAccepted": true,
+          "status": "implementation-complete-checkpoint-pending",
+          "measured": false,
+          "implementationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T06-58-56-000Z-string-substr-implementation.json",
+            "sha256": "1d233a99cb6591e721d6d5ea8d86ef68d82e4392a50289d792f96a3df3adc863"
+          },
+          "documentationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T06-58-56-000Z-string-substr-implementation.json",
+            "sha256": "1d233a99cb6591e721d6d5ea8d86ef68d82e4392a50289d792f96a3df3adc863"
+          }
+        },
+        {
+          "gate": 81,
+          "operations": [
+            "String.anchor",
+            "String.big",
+            "String.blink",
+            "String.bold",
+            "String.fixed",
+            "String.fontcolor",
+            "String.fontsize",
+            "String.italics",
+            "String.link",
+            "String.small",
+            "String.strike",
+            "String.sub",
+            "String.sup"
+          ],
+          "workloads": [
+            "string_html_anchor",
+            "string_html_big",
+            "string_html_blink",
+            "string_html_bold",
+            "string_html_fixed",
+            "string_html_fontcolor",
+            "string_html_fontsize",
+            "string_html_italics",
+            "string_html_link",
+            "string_html_small",
+            "string_html_strike",
+            "string_html_sub",
+            "string_html_sup"
+          ],
+          "sourceEntries": 511,
+          "implementationAccepted": true,
+          "status": "implementation-complete-checkpoint-pending",
+          "measured": false,
+          "implementationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T07-15-42-000Z-string-html-wrappers-implementation.json",
+            "sha256": "0f37271fa0ad8a01ffb0cac53c55655de2899a97ed7c98a12b4ee81203d64ca3"
+          },
+          "documentationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T07-15-42-000Z-string-html-wrappers-implementation.json",
+            "sha256": "0f37271fa0ad8a01ffb0cac53c55655de2899a97ed7c98a12b4ee81203d64ca3"
+          }
+        }
+      ],
+      "namespaceSupplement": {
+        "operations": [
+          "BooleanConstructor.call()",
+          "StringConstructor.call()"
+        ],
+        "workloads": [
+          "boolean_string_truthiness",
+          "string_explicit_int",
+          "string_array_conversion"
+        ],
+        "registrationAccepted": true,
+        "sourceChecksAccepted": true,
+        "nativeMeasurementAccepted": true,
+        "measured": true,
+        "checkpointGate": 81
+      },
+      "regressionEvidence": {
+        "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T08-24-00-000Z-checkpoint81-regression.json",
+        "sha256": "5e6b542eae3c5f436010a269f795b4373b8c1a6cccd8653a57f91dd8d96cf8ab"
+      },
+      "checkpointProof": {
+        "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T08-45-55-000Z-checkpoint81-completed-proof.json",
+        "sha256": "0a279c90deaee0976ff32742fb52f7cdb3f69b087c717b832df0aa272576144f"
+      },
+      "runtimeProof": {
+        "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T08-44-00-000Z-checkpoint81-runtime-proof.json",
+        "sha256": "dd761f02bf63403a960140a73e067346f4e1de4fc8e7abe0a5531fec933ca357"
+      },
+      "regressionAccepted": true,
+      "runtimeAccepted": true,
+      "profilesAccepted": true,
+      "documentationAccepted": true,
+      "measured": true,
+      "compacted": true
+    },
+    {
+      "batchStartGate": 82,
+      "batchEndGate": 86,
+      "pendingGates": [
+        {
+          "gate": 82,
+          "operations": [
+            "Array.join"
+          ],
+          "implementationAccepted": true,
+          "documentationAccepted": true,
+          "sourceChecksAccepted": true,
+          "measured": true,
+          "checkpointGate": 86,
+          "workloads": [
+            "array_join_int",
+            "array_join_boolean",
+            "array_join_string",
+            "array_join_nested",
+            "array_join_number",
+            "array_join_nullish"
+          ],
+          "sourceEntries": 520,
+          "sourceEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T09-12-23-000Z-array-join-implementation.json",
+            "sha256": "ca2ee3bafdcce7db9cf43267daf64fe030d96443f78e992413aca54c950fd532"
+          },
+          "status": "completed",
+          "implementationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T09-12-23-000Z-array-join-implementation.json",
+            "sha256": "ca2ee3bafdcce7db9cf43267daf64fe030d96443f78e992413aca54c950fd532"
+          },
+          "documentationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T09-12-23-000Z-array-join-implementation.json",
+            "sha256": "ca2ee3bafdcce7db9cf43267daf64fe030d96443f78e992413aca54c950fd532"
+          },
+          "measurementEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T13-57-02-000Z-checkpoint86-runtime-proof.json",
+            "sha256": "da4c6d471e290fe5336640d83073dd4bad7a562a7f4670226cf09e8dbd9f2404"
+          }
+        },
+        {
+          "gate": 83,
+          "operations": [
+            "Array.toString",
+            "StringConstructor.call() array conversion"
+          ],
+          "implementationAccepted": true,
+          "documentationAccepted": true,
+          "sourceChecksAccepted": true,
+          "measured": true,
+          "checkpointGate": 86,
+          "pendingRerunWorkloads": [
+            "string_array_conversion"
+          ],
+          "workloads": [
+            "array_to_string_int",
+            "array_to_string_boolean",
+            "array_to_string_string",
+            "array_to_string_nested",
+            "array_to_string_number",
+            "array_to_string_nullish"
+          ],
+          "sourceEntries": 526,
+          "sourceEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T09-36-55-000Z-array-to-string-implementation.json",
+            "sha256": "d70296360f1eb332ec904566db85c89000cb576638b949aceeb90853424abb22"
+          },
+          "status": "completed",
+          "implementationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T09-36-55-000Z-array-to-string-implementation.json",
+            "sha256": "d70296360f1eb332ec904566db85c89000cb576638b949aceeb90853424abb22"
+          },
+          "documentationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T09-36-55-000Z-array-to-string-implementation.json",
+            "sha256": "d70296360f1eb332ec904566db85c89000cb576638b949aceeb90853424abb22"
+          },
+          "measurementEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T13-57-02-000Z-checkpoint86-runtime-proof.json",
+            "sha256": "da4c6d471e290fe5336640d83073dd4bad7a562a7f4670226cf09e8dbd9f2404"
+          }
+        },
+        {
+          "gate": 84,
+          "operations": [
+            "type.union nullable foundation"
+          ],
+          "implementationAccepted": true,
+          "documentationAccepted": true,
+          "sourceChecksAccepted": true,
+          "measured": true,
+          "checkpointGate": 86,
+          "workloads": [
+            "nullable_int_null",
+            "nullable_boolean_undefined",
+            "nullable_number_null",
+            "nullable_string_undefined",
+            "nullable_array_null",
+            "nullable_record_undefined"
+          ],
+          "sourceEntries": 532,
+          "status": "completed",
+          "implementationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T10-48-34-000Z-nullable-type-foundation-implementation.json",
+            "sha256": "31d075312f76202a407aaf81f92f0633ad7a18e1831b89b5188eb9d83f680cfc"
+          },
+          "documentationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T10-48-34-000Z-nullable-type-foundation-implementation.json",
+            "sha256": "31d075312f76202a407aaf81f92f0633ad7a18e1831b89b5188eb9d83f680cfc"
+          },
+          "sourceEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T10-48-34-000Z-nullable-type-foundation-implementation.json",
+            "sha256": "31d075312f76202a407aaf81f92f0633ad7a18e1831b89b5188eb9d83f680cfc"
+          },
+          "measurementEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T13-57-02-000Z-checkpoint86-runtime-proof.json",
+            "sha256": "da4c6d471e290fe5336640d83073dd4bad7a562a7f4670226cf09e8dbd9f2404"
+          }
+        },
+        {
+          "gate": 85,
+          "operations": [
+            "type.narrowing nullable stable-place guards"
+          ],
+          "implementationAccepted": true,
+          "documentationAccepted": true,
+          "sourceChecksAccepted": true,
+          "measured": true,
+          "checkpointGate": 86,
+          "workloads": [
+            "narrowing_int",
+            "narrowing_number",
+            "narrowing_boolean",
+            "narrowing_string",
+            "narrowing_array",
+            "narrowing_record"
+          ],
+          "sourceEntries": 538,
+          "status": "completed",
+          "sourceEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T11-59-10-000Z-nullable-flow-narrowing-implementation.json",
+            "sha256": "8330ea509ec0ac93ed86f6fd0fff1c178c464c5cec62d2446da96a814cf61345"
+          },
+          "implementationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T11-59-10-000Z-nullable-flow-narrowing-implementation.json",
+            "sha256": "8330ea509ec0ac93ed86f6fd0fff1c178c464c5cec62d2446da96a814cf61345"
+          },
+          "documentationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T11-59-10-000Z-nullable-flow-narrowing-implementation.json",
+            "sha256": "8330ea509ec0ac93ed86f6fd0fff1c178c464c5cec62d2446da96a814cf61345"
+          },
+          "measurementEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T13-57-02-000Z-checkpoint86-runtime-proof.json",
+            "sha256": "da4c6d471e290fe5336640d83073dd4bad7a562a7f4670226cf09e8dbd9f2404"
+          }
+        },
+        {
+          "gate": 86,
+          "operations": [
+            "Array.pop",
+            "Array.shift"
+          ],
+          "implementationAccepted": true,
+          "documentationAccepted": true,
+          "sourceChecksAccepted": true,
+          "measured": true,
+          "checkpointGate": 86,
+          "workloads": [
+            "array_pop_int",
+            "array_pop_number",
+            "array_pop_boolean",
+            "array_pop_string",
+            "array_pop_nested",
+            "array_pop_record",
+            "array_pop_null",
+            "array_pop_undefined",
+            "array_shift_int",
+            "array_shift_number",
+            "array_shift_boolean",
+            "array_shift_string",
+            "array_shift_nested",
+            "array_shift_record",
+            "array_shift_null",
+            "array_shift_undefined"
+          ],
+          "status": "completed",
+          "sourceEntries": 554,
+          "sourceAccepted": true,
+          "implementationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T12-38-17-000Z-array-pop-shift-implementation.json",
+            "sha256": "cf3fda0686625f6fff2bc4e0a4d834245f2a3218dbb0acf584d914a3907a4457"
+          },
+          "documentationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T12-38-17-000Z-array-pop-shift-implementation.json",
+            "sha256": "cf3fda0686625f6fff2bc4e0a4d834245f2a3218dbb0acf584d914a3907a4457"
+          },
+          "sourceEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T12-38-17-000Z-array-pop-shift-implementation.json",
+            "sha256": "cf3fda0686625f6fff2bc4e0a4d834245f2a3218dbb0acf584d914a3907a4457"
+          },
+          "measurementEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T13-57-02-000Z-checkpoint86-runtime-proof.json",
+            "sha256": "da4c6d471e290fe5336640d83073dd4bad7a562a7f4670226cf09e8dbd9f2404"
+          }
+        }
+      ],
+      "regressionEvidence": {
+        "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T13-43-00-000Z-checkpoint86-regression-proof.json",
+        "sha256": "90399c365a3975c6d8beb9003dbfacd58987ce31065d75f5bec190d5a26fe8bd"
+      },
+      "checkpointProof": {
+        "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T14-02-43-000Z-checkpoint86-completed-proof.json",
+        "sha256": "8b797bd1d518ae17aa9863588e8ceba12b7e52c3c123138dbb7402823b67d755"
+      },
+      "runtimeProof": {
+        "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T13-57-02-000Z-checkpoint86-runtime-proof.json",
+        "sha256": "da4c6d471e290fe5336640d83073dd4bad7a562a7f4670226cf09e8dbd9f2404"
+      },
+      "regressionAccepted": true,
+      "runtimeAccepted": true,
+      "profilesAccepted": true,
+      "documentationAccepted": true,
+      "measured": true,
+      "compacted": true,
+      "compaction": {
+        "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-86-migration/postmigration-stats.json",
+        "sha256": "cbea942947c2f8bbfa851eec9fe1a965a9553960dabbe7bf8b69e7db217ef5ec"
+      }
+    },
+    {
+      "batchStartGate": 87,
+      "batchEndGate": 91,
+      "pendingGates": [
+        {
+          "gate": 87,
+          "operations": [
+            "Array.at"
+          ],
+          "implementationAccepted": true,
+          "documentationAccepted": true,
+          "measured": true,
+          "checkpointGate": 91,
+          "workloads": [
+            "array_at_int",
+            "array_at_number",
+            "array_at_boolean",
+            "array_at_string",
+            "array_at_nested",
+            "array_at_record",
+            "array_at_null",
+            "array_at_undefined"
+          ],
+          "sourceEntries": 562,
+          "sourceAccepted": true,
+          "sourceChecksAccepted": true,
+          "sourceEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T15-09-13-000Z-array-at-implementation.json",
+            "sha256": "701c43faa146b3cc1b22f772994fe8615e4dcbaa9c17ee6669ff657096630c0c"
+          },
+          "nativeSourceEvidence": {
+            "path": "/private/tmp/tsrust-gate87-candidate/compiler-integration.json",
+            "sha256": "b02ce8131f68b755abcf215c1cbe5f64383a81db85e6641ba4d95db7cd66f92b"
+          },
+          "status": "completed",
+          "implementationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T15-09-13-000Z-array-at-implementation.json",
+            "sha256": "701c43faa146b3cc1b22f772994fe8615e4dcbaa9c17ee6669ff657096630c0c"
+          },
+          "documentationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T15-09-13-000Z-array-at-implementation.json",
+            "sha256": "701c43faa146b3cc1b22f772994fe8615e4dcbaa9c17ee6669ff657096630c0c"
+          },
+          "measurementEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T18-11-33-000Z-checkpoint91-runtime-proof.json",
+            "sha256": "aff99bf249cef51932388e9e7b59efe22578efba570beb1fa208e23aaaf6daac"
+          }
+        },
+        {
+          "gate": 88,
+          "operations": [
+            "Array.find",
+            "Array.findLast"
+          ],
+          "implementationAccepted": true,
+          "documentationAccepted": true,
+          "measured": true,
+          "checkpointGate": 91,
+          "workloads": [
+            "array_find_int",
+            "array_find_number",
+            "array_find_boolean",
+            "array_find_string",
+            "array_find_nested",
+            "array_find_record",
+            "array_find_null",
+            "array_find_undefined",
+            "array_find_last_int",
+            "array_find_last_number",
+            "array_find_last_boolean",
+            "array_find_last_string",
+            "array_find_last_nested",
+            "array_find_last_record",
+            "array_find_last_null",
+            "array_find_last_undefined"
+          ],
+          "sourceEntries": 578,
+          "sourceAccepted": true,
+          "sourceChecksAccepted": true,
+          "sourceEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T15-50-48-000Z-array-find-implementation.json",
+            "sha256": "34c936345d45d659117040cce264e915e9eda6e4613103ebb33e8db313079c9f"
+          },
+          "nativeSourceEvidence": {
+            "path": "/tmp/tsrust-gate88-candidate/source-supplement-accepted.json",
+            "sha256": "fb6c6432a0961d39ad1196fa970f734d0e931799c26c12c669e62d3cf2bdb6f1"
+          },
+          "status": "completed",
+          "implementationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T15-50-48-000Z-array-find-implementation.json",
+            "sha256": "34c936345d45d659117040cce264e915e9eda6e4613103ebb33e8db313079c9f"
+          },
+          "documentationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T15-50-48-000Z-array-find-implementation.json",
+            "sha256": "34c936345d45d659117040cce264e915e9eda6e4613103ebb33e8db313079c9f"
+          },
+          "measurementEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T18-11-33-000Z-checkpoint91-runtime-proof.json",
+            "sha256": "aff99bf249cef51932388e9e7b59efe22578efba570beb1fa208e23aaaf6daac"
+          }
+        },
+        {
+          "gate": 89,
+          "operations": [
+            "Array.unshift"
+          ],
+          "implementationAccepted": true,
+          "documentationAccepted": true,
+          "measured": true,
+          "checkpointGate": 91,
+          "workloads": [
+            "array_unshift_int",
+            "array_unshift_number",
+            "array_unshift_boolean",
+            "array_unshift_string",
+            "array_unshift_nested",
+            "array_unshift_record",
+            "array_unshift_null",
+            "array_unshift_undefined"
+          ],
+          "sourceEntries": 587,
+          "sourceAccepted": true,
+          "sourceChecksAccepted": true,
+          "sourceEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T16-15-35-000Z-array-unshift-implementation.json",
+            "sha256": "2fb85c907402356b1ba6c74f446e20a3fefa39a1ebd5bf701da58c19ba7a071a"
+          },
+          "nativeSourceEvidence": {
+            "path": "/tmp/tsrust-gate89-candidate/source-supplement-accepted.json",
+            "sha256": "41bff1a9cd32070454fe0cc0f7482c70d7f8cb7a21bc3a4173be5799061ffa7c"
+          },
+          "status": "completed",
+          "implementationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T16-15-35-000Z-array-unshift-implementation.json",
+            "sha256": "2fb85c907402356b1ba6c74f446e20a3fefa39a1ebd5bf701da58c19ba7a071a"
+          },
+          "documentationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T16-15-35-000Z-array-unshift-implementation.json",
+            "sha256": "2fb85c907402356b1ba6c74f446e20a3fefa39a1ebd5bf701da58c19ba7a071a"
+          },
+          "measurementEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T18-11-33-000Z-checkpoint91-runtime-proof.json",
+            "sha256": "aff99bf249cef51932388e9e7b59efe22578efba570beb1fa208e23aaaf6daac"
+          }
+        },
+        {
+          "gate": 90,
+          "operations": [
+            "Array.splice"
+          ],
+          "implementationAccepted": true,
+          "documentationAccepted": true,
+          "measured": true,
+          "checkpointGate": 91,
+          "workloads": [
+            "array_splice_int",
+            "array_splice_number",
+            "array_splice_boolean",
+            "array_splice_string",
+            "array_splice_nested",
+            "array_splice_record",
+            "array_splice_null",
+            "array_splice_undefined"
+          ],
+          "sourceEntries": 595,
+          "sourceAccepted": true,
+          "sourceChecksAccepted": true,
+          "sourceEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T16-42-24-000Z-array-splice-implementation.json",
+            "sha256": "060e1ca95aac7f4b4ba4623f63bcd490f93f3bbab51987daf92665140e007cc8"
+          },
+          "nativeSourceEvidence": {
+            "path": "/tmp/tsrust-gate90-candidate/source-supplement-accepted.json",
+            "sha256": "06f74561e8c84d9d6f272015676c8b051b20deef0ba76c3e7f1457886e4ed5cf"
+          },
+          "status": "completed",
+          "implementationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T16-42-24-000Z-array-splice-implementation.json",
+            "sha256": "060e1ca95aac7f4b4ba4623f63bcd490f93f3bbab51987daf92665140e007cc8"
+          },
+          "documentationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T16-42-24-000Z-array-splice-implementation.json",
+            "sha256": "060e1ca95aac7f4b4ba4623f63bcd490f93f3bbab51987daf92665140e007cc8"
+          },
+          "measurementEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T18-11-33-000Z-checkpoint91-runtime-proof.json",
+            "sha256": "aff99bf249cef51932388e9e7b59efe22578efba570beb1fa208e23aaaf6daac"
+          }
+        },
+        {
+          "gate": 91,
+          "operations": [
+            "Array.sort",
+            "Array.toSorted"
+          ],
+          "implementationAccepted": true,
+          "documentationAccepted": true,
+          "measured": true,
+          "checkpointGate": 91,
+          "workloads": [
+            "array_sort_default_int",
+            "array_sort_default_number",
+            "array_sort_default_boolean",
+            "array_sort_default_string",
+            "array_sort_default_null",
+            "array_sort_default_undefined",
+            "array_sort_compare_int",
+            "array_sort_compare_number",
+            "array_sort_compare_boolean",
+            "array_sort_compare_string",
+            "array_sort_compare_nested",
+            "array_sort_compare_record",
+            "array_sort_compare_null",
+            "array_sort_compare_undefined",
+            "array_to_sorted_default_int",
+            "array_to_sorted_default_number",
+            "array_to_sorted_default_boolean",
+            "array_to_sorted_default_string",
+            "array_to_sorted_default_null",
+            "array_to_sorted_default_undefined",
+            "array_to_sorted_compare_int",
+            "array_to_sorted_compare_number",
+            "array_to_sorted_compare_boolean",
+            "array_to_sorted_compare_string",
+            "array_to_sorted_compare_nested",
+            "array_to_sorted_compare_record",
+            "array_to_sorted_compare_null",
+            "array_to_sorted_compare_undefined"
+          ],
+          "sourceEntries": 623,
+          "sourceAccepted": true,
+          "sourceChecksAccepted": true,
+          "sourceEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T17-35-53-000Z-array-sorting-implementation.json",
+            "sha256": "45bfb8e925b80b740e7b8fa2e10a0bfb3841052d882fe12112ec2c26c2d3dde4"
+          },
+          "nativeSourceEvidence": {
+            "path": "/tmp/tsrust-gate91-candidate/source-supplement-accepted.json",
+            "sha256": "3c922dbc37000de4f688974ebfd6753afc5806b184caf03924c2099ec4dd477f"
+          },
+          "status": "completed",
+          "implementationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T17-35-53-000Z-array-sorting-implementation.json",
+            "sha256": "45bfb8e925b80b740e7b8fa2e10a0bfb3841052d882fe12112ec2c26c2d3dde4"
+          },
+          "documentationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T17-35-53-000Z-array-sorting-implementation.json",
+            "sha256": "45bfb8e925b80b740e7b8fa2e10a0bfb3841052d882fe12112ec2c26c2d3dde4"
+          },
+          "measurementEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T18-11-33-000Z-checkpoint91-runtime-proof.json",
+            "sha256": "aff99bf249cef51932388e9e7b59efe22578efba570beb1fa208e23aaaf6daac"
+          }
+        }
+      ],
+      "regressionEvidence": {
+        "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T18-01-10-000Z-checkpoint91-regression-proof.json",
+        "sha256": "31af0dcd3383e8fb36da3c122e31535473a892ea6eaf5f260fe6af59f5dec446"
+      },
+      "checkpointProof": {
+        "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T18-25-41-000Z-checkpoint91-completed-proof.json",
+        "sha256": "3154acc322a63ef2f87273865f2e52d14f5dd70781ddc95848a3e9e367407aa8"
+      },
+      "runtimeProof": {
+        "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T18-11-33-000Z-checkpoint91-runtime-proof.json",
+        "sha256": "aff99bf249cef51932388e9e7b59efe22578efba570beb1fa208e23aaaf6daac"
+      },
+      "regressionAccepted": true,
+      "runtimeAccepted": true,
+      "profilesAccepted": true,
+      "documentationAccepted": true,
+      "measured": true,
+      "analyticsIngested": true,
+      "compacted": true,
+      "compaction": {
+        "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-91-analytics/postmigration-stats.json",
+        "sha256": "01cd9604ea8840a284a36b7e93171e0a8245e912d44df8f89d026aaa2bd40e79"
+      }
+    },
+    {
+      "batchStartGate": 92,
+      "batchEndGate": 96,
+      "pendingGates": [
+        {
+          "gate": 92,
+          "operations": [
+            "Array.flat",
+            "Array.flatMap"
+          ],
+          "implementationAccepted": true,
+          "documentationAccepted": true,
+          "measured": true,
+          "checkpointGate": 96,
+          "workloads": [
+            "array_flat_int",
+            "array_flat_number",
+            "array_flat_boolean",
+            "array_flat_string",
+            "array_flat_nested",
+            "array_flat_record",
+            "array_flat_null",
+            "array_flat_undefined",
+            "array_flat_map_int",
+            "array_flat_map_number",
+            "array_flat_map_boolean",
+            "array_flat_map_string",
+            "array_flat_map_nested",
+            "array_flat_map_record",
+            "array_flat_map_null",
+            "array_flat_map_undefined"
+          ],
+          "sourceEntries": 640,
+          "sourceAccepted": true,
+          "sourceChecksAccepted": true,
+          "sourceEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T19-01-32-000Z-array-flattening-implementation.json",
+            "sha256": "e94902783e23f10cd1b541b5e8dad316646abbff92c22365a06b522745d83668"
+          },
+          "nativeSourceEvidence": {
+            "path": "/tmp/tsrust-gate92-candidate/source-supplement-accepted.json",
+            "sha256": "239e457fbdba5a05359be5739bbb505c9c7e9f524b5880f9343e8160065117c4"
+          },
+          "status": "completed",
+          "implementationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T19-01-32-000Z-array-flattening-implementation.json",
+            "sha256": "e94902783e23f10cd1b541b5e8dad316646abbff92c22365a06b522745d83668"
+          },
+          "documentationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T19-01-32-000Z-array-flattening-implementation.json",
+            "sha256": "e94902783e23f10cd1b541b5e8dad316646abbff92c22365a06b522745d83668"
+          },
+          "measurementEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-04T00-10-34-000Z-checkpoint96-runtime-proof.json",
+            "sha256": "69b3a78107d9f7d86dcbcfd4b3e5e79ec73c01823fd45c49f1698e1e507e18e2"
+          }
+        },
+        {
+          "gate": 93,
+          "operations": [
+            "Array.of"
+          ],
+          "implementationAccepted": true,
+          "documentationAccepted": true,
+          "measured": true,
+          "checkpointGate": 96,
+          "workloads": [
+            "array_of_int",
+            "array_of_number",
+            "array_of_boolean",
+            "array_of_string",
+            "array_of_nested",
+            "array_of_record",
+            "array_of_null",
+            "array_of_undefined"
+          ],
+          "sourceEntries": 648,
+          "sourceAccepted": true,
+          "sourceChecksAccepted": true,
+          "sourceEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T19-34-31-000Z-array-of-implementation.json",
+            "sha256": "afd3f2e8e13542bc942ab08076bc9a3779597be3aef55d09102518f037c2bb8b"
+          },
+          "nativeSourceEvidence": {
+            "path": "/tmp/tsrust-gate93-candidate/source-supplement-accepted.json",
+            "sha256": "86e25889d5b6234c3f6be0a2948e2837a7d47fbc40b3e14b2c4bbf5fdb966ee8"
+          },
+          "status": "completed",
+          "implementationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T19-34-31-000Z-array-of-implementation.json",
+            "sha256": "afd3f2e8e13542bc942ab08076bc9a3779597be3aef55d09102518f037c2bb8b"
+          },
+          "documentationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T19-34-31-000Z-array-of-implementation.json",
+            "sha256": "afd3f2e8e13542bc942ab08076bc9a3779597be3aef55d09102518f037c2bb8b"
+          },
+          "measurementEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-04T00-10-34-000Z-checkpoint96-runtime-proof.json",
+            "sha256": "69b3a78107d9f7d86dcbcfd4b3e5e79ec73c01823fd45c49f1698e1e507e18e2"
+          }
+        },
+        {
+          "gate": 94,
+          "operations": [
+            "nullish coalescing"
+          ],
+          "implementationAccepted": true,
+          "documentationAccepted": true,
+          "measured": true,
+          "checkpointGate": 96,
+          "workloads": [
+            "nullish_int_value",
+            "nullish_number_value",
+            "nullish_boolean_value",
+            "nullish_string_value",
+            "nullish_array_value",
+            "nullish_record_value",
+            "nullish_nullable_fallback_int",
+            "nullish_null_undefined_value"
+          ],
+          "sourceEntries": 656,
+          "sourceAccepted": true,
+          "sourceChecksAccepted": true,
+          "sourceEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T20-48-38-000Z-nullish-coalescing-implementation.json",
+            "sha256": "6fca43b9159af8ffc06a16abb35a3cc384d990a482ec1dd16e44279161d45bf6",
+            "bytes": 6255
+          },
+          "nativeSourceEvidence": {
+            "path": "/tmp/tsrust-gate94-candidate/final-source-correspondence-accepted.json",
+            "sha256": "22552a2a5bd155c1a0421e33a37956511dcec54eef50533a08af793d767779fb"
+          },
+          "status": "completed",
+          "originalNativeSourceEvidence": {
+            "path": "/tmp/tsrust-gate94-candidate/source-supplement-accepted.json",
+            "sha256": "3781c08c222401fd2d61008f908e3e51f08cc53698b34b309c46aba37b98168a"
+          },
+          "nativeSourceCorrespondenceEvidence": {
+            "path": "/tmp/tsrust-gate94-candidate/final-source-correspondence-accepted.json",
+            "sha256": "22552a2a5bd155c1a0421e33a37956511dcec54eef50533a08af793d767779fb"
+          },
+          "finalCoreCorrespondenceAccepted": true,
+          "implementationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T20-48-38-000Z-nullish-coalescing-implementation.json",
+            "sha256": "6fca43b9159af8ffc06a16abb35a3cc384d990a482ec1dd16e44279161d45bf6",
+            "bytes": 6255
+          },
+          "documentationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T20-48-38-000Z-nullish-coalescing-implementation.json",
+            "sha256": "6fca43b9159af8ffc06a16abb35a3cc384d990a482ec1dd16e44279161d45bf6",
+            "bytes": 6255
+          },
+          "measurementEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-04T00-10-34-000Z-checkpoint96-runtime-proof.json",
+            "sha256": "69b3a78107d9f7d86dcbcfd4b3e5e79ec73c01823fd45c49f1698e1e507e18e2"
+          }
+        },
+        {
+          "gate": 95,
+          "operations": [
+            "nullish assignment"
+          ],
+          "implementationAccepted": true,
+          "documentationAccepted": true,
+          "measured": true,
+          "checkpointGate": 96,
+          "workloads": [
+            "nullish_assign_int_value",
+            "nullish_assign_number_value",
+            "nullish_assign_boolean_value",
+            "nullish_assign_string_value",
+            "nullish_assign_array_value",
+            "nullish_assign_record_value",
+            "nullish_assign_nullable_int_value",
+            "nullish_assign_nullable_string_value"
+          ],
+          "sourceEntries": 665,
+          "sourceAccepted": true,
+          "sourceChecksAccepted": true,
+          "sourceEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T21-49-17-000Z-nullish-assignment-implementation.json",
+            "sha256": "408d4addb6d1299faa43f3236da1489f91211bde95c2c0e35da8be5d93e83240",
+            "bytes": 8607
+          },
+          "nativeSourceEvidence": {
+            "path": "/tmp/tsrust-gate95-candidate/final-source-correspondence-accepted.json",
+            "sha256": "bef1e1243ec9d05fcc59dbc98a6aaa6ee9ffba701736958c3866f18fd78406e7"
+          },
+          "registrationEvidence": {
+            "path": "/tmp/tsrust-gate95-source/registration-candidate.json",
+            "sha256": "cab95cf21297bc0c63a1a52c99b98ccdc21139926329d0deb754685aa7bf50e8"
+          },
+          "status": "completed",
+          "originalNativeSourceEvidence": {
+            "path": "/tmp/tsrust-gate95-candidate/source-supplement-accepted.json",
+            "sha256": "9fd501f76c5157a731559e6da1369ca396d75d1787831a9071dbf3badb1850c3"
+          },
+          "nativeSourceCorrespondenceEvidence": {
+            "path": "/tmp/tsrust-gate95-candidate/final-source-correspondence-accepted.json",
+            "sha256": "bef1e1243ec9d05fcc59dbc98a6aaa6ee9ffba701736958c3866f18fd78406e7"
+          },
+          "finalCoreCorrespondenceAccepted": true,
+          "implementationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T21-49-17-000Z-nullish-assignment-implementation.json",
+            "sha256": "408d4addb6d1299faa43f3236da1489f91211bde95c2c0e35da8be5d93e83240",
+            "bytes": 8607
+          },
+          "documentationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T21-49-17-000Z-nullish-assignment-implementation.json",
+            "sha256": "408d4addb6d1299faa43f3236da1489f91211bde95c2c0e35da8be5d93e83240",
+            "bytes": 8607
+          },
+          "measurementEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-04T00-10-34-000Z-checkpoint96-runtime-proof.json",
+            "sha256": "69b3a78107d9f7d86dcbcfd4b3e5e79ec73c01823fd45c49f1698e1e507e18e2"
+          }
+        },
+        {
+          "gate": 96,
+          "operations": [
+            "optional chaining"
+          ],
+          "implementationAccepted": true,
+          "documentationAccepted": true,
+          "measured": true,
+          "checkpointGate": 96,
+          "workloads": [
+            "optional_chain_int_field",
+            "optional_chain_number_field",
+            "optional_chain_boolean_field",
+            "optional_chain_string_length",
+            "optional_chain_array_index",
+            "optional_chain_array_join",
+            "optional_chain_record_field",
+            "optional_chain_nullable_chain"
+          ],
+          "sourceEntries": 674,
+          "sourceAccepted": true,
+          "sourceChecksAccepted": true,
+          "sourceEvidence": {
+            "path": "/tmp/tsrust-gate96-source/source-accepted.json",
+            "sha256": "745c4cd37e5ba4621c7b329a73c4ea6118d6ebddd83bfa531c75d31f5f83e9b3"
+          },
+          "nativeSourceEvidence": {
+            "path": "/tmp/tsrust-gate96-candidate/source-supplement-final-accepted.json",
+            "sha256": "f1ed0846f546af074462177b3e7931c57a9bedcd55dd936ebfa29875614cd52d"
+          },
+          "registrationEvidence": {
+            "path": "/tmp/tsrust-gate96-source/registration-review/candidate-source-v3.json",
+            "sha256": "1b355c8fd81c91dd4c5449ca891a649145d272553fc34aac9ac5f88a4aa45a21"
+          },
+          "status": "completed",
+          "implementationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T23-30-44-000Z-optional-chaining-implementation.json",
+            "sha256": "f445f3d6601f598ef13cdd17c93327170afa046ea0d5b90d4e62ee598112d28e",
+            "bytes": 10501
+          },
+          "documentationEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T23-30-44-000Z-optional-chaining-implementation.json",
+            "sha256": "f445f3d6601f598ef13cdd17c93327170afa046ea0d5b90d4e62ee598112d28e",
+            "bytes": 10501
+          },
+          "finalCoreCorrespondenceAccepted": true,
+          "measurementEvidence": {
+            "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-04T00-10-34-000Z-checkpoint96-runtime-proof.json",
+            "sha256": "69b3a78107d9f7d86dcbcfd4b3e5e79ec73c01823fd45c49f1698e1e507e18e2"
+          }
+        }
+      ],
+      "evidence": {
+        "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-04T01-06-08-000Z-checkpoint96-completed-proof.json",
+        "sha256": "48fd57f8da3e06eb86535fef676685155240b5381a020964ff124a713039343e"
+      },
+      "registeredSourceRows": 674,
+      "historicallyMeasuredRows": 670,
+      "excludedPeerRows": 4,
+      "newMeasuredRows": 48,
+      "olderAffectedRefreshedRows": 18,
+      "retainedBaselineNamedGroups": 1033,
+      "newFocusedSupplementGroups": 6,
+      "fullRestarts": 0,
+      "refinementEvidence": {
+        "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-04T00-56-20-000Z-checkpoint96-concat-refinement-runtime-proof.json",
+        "sha256": "b3e7d2cfb5909fabf4f50c938ae3cd799bcde2d4e0e401ed0fb11014a0466ea6"
+      },
+      "storageEvidence": {
+        "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-96-refinement-analytics/storage-accepted.json",
+        "sha256": "055865666cd283e45beb49a91ec6c846d79b34743ef333b651f29175c3b38822",
+        "bytes": 2867
+      },
+      "originalAndRefinementStorageReceipts": [
+        {
+          "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-96-analytics/verified-import.json",
+          "sha256": "56a167b14e1bf0e9dae468dae7cfc5fc43601129ba94779d795fb3f4af3f47dd",
+          "bytes": 2398
+        },
+        {
+          "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-96-analytics/cleanup.json",
+          "sha256": "f75ad60e14f6f120115baca6bbb812cff09b83196934f45ad2b47f5da59462f3",
+          "bytes": 1530
+        },
+        {
+          "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-96-refinement-analytics/verified-import.json",
+          "sha256": "992f21472f61883dd481013111ffcf8fca7f98f2d1b3bee3c8729a9899a3590b",
+          "bytes": 2470
+        },
+        {
+          "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-96-refinement-analytics/cleanup.json",
+          "sha256": "a73ef37a56cb253231f04d728059c2fa1494bd7e555b3699aba096296dfa091c",
+          "bytes": 1589
+        }
+      ]
+    }
+  ],
+  "lastCheckpointEvidence": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-04T01-06-08-000Z-checkpoint96-completed-proof.json",
+    "sha256": "48fd57f8da3e06eb86535fef676685155240b5381a020964ff124a713039343e"
+  },
+  "lastCheckpointCompaction": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-96-refinement-analytics/storage-accepted.json",
+    "sha256": "055865666cd283e45beb49a91ec6c846d79b34743ef333b651f29175c3b38822",
+    "bytes": 2867
+  },
+  "currentImplementationGate": 100,
+  "currentRegressionAcceptancePending": false,
+  "checkpointRepairChecksPassed": true,
+  "retainedUniqueNamedGroups": 1033,
+  "runtimeIsolationWorkspace": "/tmp/tsrust-gate86-benchmark-workspace",
+  "performanceMeasurementsStarted": false,
+  "regressionAcceptance": {
+    "gate": 96,
+    "uniqueNamedGroups": 1033,
+    "focusedSupplementGroups": 6,
+    "evidence": {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-04T01-06-08-000Z-checkpoint96-completed-proof.json",
+      "sha256": "48fd57f8da3e06eb86535fef676685155240b5381a020964ff124a713039343e"
+    },
+    "scope": "Frozen tested baseline plus bounded parser/fixture and concat helper/fusion supplements. Subsequent peer revisions excluded; no full restart."
+  },
+  "currentMeasurementOwner": null,
+  "profilesAccepted": true,
+  "analyticsStorage": {
+    "database": "benchmarks/records.sqlite",
+    "canonicalAcceptedRecords": true,
+    "originalBytesPreserved": true,
+    "markdownReports": "optional export; historical snapshot retained",
+    "checkpointEngines": [
+      "native",
+      "node-tsc"
+    ],
+    "broaderRuntimeMatrix": "optional",
+    "purpose": "Correctness and comparable native versus compiled-Node performance signals before later features depend on changed implementations.",
+    "lastIngestionEvidence": {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-96-refinement-analytics/storage-accepted.json",
+      "sha256": "055865666cd283e45beb49a91ec6c846d79b34743ef333b651f29175c3b38822",
+      "bytes": 2867
+    },
+    "historicalLooseRecordMigration": "Older raw history remains unchanged; checkpoint86 raw records are verified in SQLite and restorable.",
+    "checkpointEngineSelection": "Implemented --engines=native,node-tsc; default manual runs retain eight engines. Selected engines and helper SHA are captured in each new record.",
+    "checkpoint96Receipts": [
+      {
+        "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-96-analytics/verified-import.json",
+        "sha256": "56a167b14e1bf0e9dae468dae7cfc5fc43601129ba94779d795fb3f4af3f47dd",
+        "bytes": 2398
+      },
+      {
+        "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-96-analytics/cleanup.json",
+        "sha256": "f75ad60e14f6f120115baca6bbb812cff09b83196934f45ad2b47f5da59462f3",
+        "bytes": 1530
+      },
+      {
+        "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-96-refinement-analytics/verified-import.json",
+        "sha256": "992f21472f61883dd481013111ffcf8fca7f98f2d1b3bee3c8729a9899a3590b",
+        "bytes": 2470
+      },
+      {
+        "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-96-refinement-analytics/cleanup.json",
+        "sha256": "a73ef37a56cb253231f04d728059c2fa1494bd7e555b3699aba096296dfa091c",
+        "bytes": 1589
+      }
+    ],
+    "gate97ArtifactReceipt": {
+      "path": "benchmarks/storage/gate97-artifact-import/accepted.json",
+      "sha256": "25c787a248ce5f44ccf8299a86906f5ee8198ccd998d21196b05fe82be4a82c6"
+    },
+    "gate98ArtifactReceipt": {
+      "path": "benchmarks/storage/gate98-artifact-import/accepted.json",
+      "sha256": "92204307129ffa8c772bbbfeed7ce519bf6b546726c4f0fe79ed1a9afca35974"
+    },
+    "gate98ArtifactCleanup": {
+      "path": "benchmarks/storage/gate98-artifact-import/cleanup.json",
+      "sha256": "e87247332f1e502d618a450c1f311a3ac2855ad5e9eded7efe5bcde4f745d03d"
+    },
+    "gate99ArtifactReceipt": {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/gate99-artifact-import/accepted.json",
+      "bytes": 2115,
+      "sha256": "5776730bd18bdd8b8139c2e865fff0b5554f80ad7490218f4793f4304a3af30f"
+    },
+    "gate99ArtifactCleanup": {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/gate99-artifact-import/cleanup.json",
+      "bytes": 1986,
+      "sha256": "90fa00fcbda79f1aeae56d23dfa376343e805142288e5dce9739d35eea3ca32f"
+    }
+  },
+  "currentImplementationStatus": "call-spread-focused-accepted",
+  "currentImplementationOperations": [
+    "function.callSpread",
+    "syntax.spreadArguments"
+  ],
+  "legacyRuntimeFieldsScope": "Older runtime owner/session/terminal/record fields are retained historical checkpoint metadata; current checkpoint96 scope is authoritative in completedCheckpoints and lastCheckpointEvidence.",
+  "checkpoint96RuntimeEvidence": {
+    "original48": {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-04T00-10-34-000Z-checkpoint96-runtime-proof.json",
+      "sha256": "69b3a78107d9f7d86dcbcfd4b3e5e79ec73c01823fd45c49f1698e1e507e18e2",
+      "bytes": 242287
+    },
+    "affected33": {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-04T00-56-20-000Z-checkpoint96-concat-refinement-runtime-proof.json",
+      "sha256": "b3e7d2cfb5909fabf4f50c938ae3cd799bcde2d4e0e401ed0fb11014a0466ea6",
+      "bytes": 214988
+    },
+    "originalCohort": {
+      "nativeWins": 27,
+      "nativeSlower": 21
+    },
+    "affectedCohort": {
+      "nativeWins": 2,
+      "nativeSlower": 31
+    },
+    "sameSourceNativeImprovedRows": 15,
+    "olderFreshRows": 18
+  }
+}

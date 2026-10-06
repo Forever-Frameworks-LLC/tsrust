@@ -1,0 +1,37 @@
+# Milestone 67: scalar assignment values
+
+Status: complete. Scalar assignment values for all three copy primitives, 625 distinct compiler groups, required checks, three matched rows and nine fully disposed profiles are accepted.
+
+## Scope
+
+Implement ordinary `=` as a value-producing expression for all current copy primitives: `int`, `number` and `boolean`. Support every existing expression context, low precedence and right-associated chains. Infer the RHS from the selected target type. Preserve strict matching and existing mutable-name, parameter, capture, iteration, field and array-index rules.
+
+Select the destination and indices once and check bounds before evaluating the RHS. Ordinary assignment does not read the old value. Standalone scalar statements and for clauses use this same contract and discard the returned scalar. Evaluate the RHS once; commit only after success and return exactly the committed scalar, preserving Number IEEE values including signed zero, infinities and NaN. Save selection indices and reacquire valid destinations after permitted RHS mutation. Preserve incoming and selected-parent loans, unconditional ownership effects and existing replacement rules; no conditional availability join applies.
+
+Preserve standalone assignment behavior for all existing owned types, including their existing replacement-before-final-bounds-check contract. Owned assignment results and arithmetic compound assignment values remain explicit subsequent gates. Diagnose owned results in nested expression contexts without introducing hidden clones, shared ownership, new containers or unsafe code. Use ordinary Rust scalar locals and assignment blocks.
+
+## Acceptance
+
+Four focused O0/O3 groups pass all three types, right-associated chains, mixed logical assignments and supported expression contexts. They cover once-only selection, unconditional RHS effects, growth/reverse/remove and destination reacquisition, captures, strict diagnostics, incoming/parent loans, partial fields, bounds before RHS, failure without outer commit, normal-stack depth guards, zero scalar allocation and owned disposal on success/unwind. Returned and committed Number values preserve exact IEEE bits, including signed zero, infinities and NaN payloads. Standalone scalar statements and for clauses use the same contract; owned statement replacement keeps its earlier final-bounds timing.
+
+The sole full invocation and its retained continuations encountered 4 failed regression commands. 3 failures exposed obsolete scalar bounds-order expectations; 1 exposed a genuine indexed-record analyzer regression. The compiler proof records 4 expectation-only fixture repairs in `array_fields`, `nested_records`, `fixed_storage`, `nested_arrays`, including any corrected before their first execution. Scalar destination bounds now fail before RHS evaluation; compiler code and owned assignment expectations were unchanged by these repairs. The indexed-record repair restores RHS array growth for the final selected record by retaining ancestor and incoming loans, then reacquiring the destination from saved indices. Its exact original group and expanded O0/O3 growth, IEEE-bit and loan witnesses pass. A handwritten nested Rust test wrapper was corrected from `Array` to its generated `Vec` type after its recorded focused failure; the analyzer was unchanged by that wrapper correction. Failed commands retained 456 passing groups, and 4 successful exact repairs brought accepted progress to 460 groups before the final unfinished targets and LSP unit groups completed. Doctests ran once. The accepted compiler proof records 625 distinct compiler groups and 640 distinct workspace groups, with format, all-target Clippy, debug/release builds and fresh identical CLI emissions passing. The saved Gate66 executable rejects assignment values. No full restart is claimed.
+
+Three TypeScript workloads pass 210 complete cases, nineteen mutation/domain negatives, twenty independent hand cells and two focused Node groups. Two auxiliary TypeScript programs cover hand results and source order. Native O0/O3 preflight passes fourteen builds, thirty complete outputs, six untimed disposal checks and two order executions. Every timed operation retains both the actual assignment value and final destination: int[] for int, Boolean-to-0/1 int[] for boolean, and the existing IEEE number[] observer for Number. Dynamic initialization, selection, the actual assignment, boolean conversion where needed and complete output construction/retention are timed. Independent complete observation runs outside timing; JavaScript uses ordinary assignment on the strict matched primitive domains.
+
+The execution-only run contains 72 process cells and 2,232 timed batches, publishing twenty-four min/average/max rate cells across eight runtimes. Native leads compiled Node on 3/3 rows and the fastest scripting runtime on 3/3. Average-rate ratios span 2.401–2.581× versus Node and 1.951–2.273× versus the fastest scripting runtime. The accepted measurements, rounded here to whole operations per second, are:
+
+| Operation | Native min / avg / max ops/s | Compiled Node min / avg / max ops/s | Native / fastest scripting avg |
+| --- | ---: | ---: | ---: |
+| `int.assignmentExpression` | 303,407,407 / 440,604,000 / 481,882,353 | 17,978,002 / 183,501,478 / 262,833,676 | 1.951× |
+| `number.assignmentExpression` | 240,941,176 / 405,075,573 / 614,461,446 | 9,527,443 / 161,410,305 / 199,804,878 | 2.273× |
+| `boolean.assignmentExpression` | 409,600,000 / 449,348,497 / 517,433,047 | 15,398,496 / 174,124,067 / 256,000,000 | 2.254× |
+
+All nine native profiles dispose output and final owners to zero. `int_assignment_value` averages 16 retained bytes and 31.875 cumulative requested bytes per complete operation; its 2,048-operation batch averages 1 output allocations and 7 reallocations. `number_assignment_value` averages 16 retained bytes and 31.9844 cumulative requested bytes per complete operation; its 2,048-operation batch averages 1 output allocations and 10 reallocations. `boolean_assignment_value` averages 16 retained bytes and 31.875 cumulative requested bytes per complete operation; its 2,048-operation batch averages 1 output allocations and 7 reallocations. These are output-storage costs; focused scalar assignment allocates no heap storage. Raw counters and per-operation min/average/max across three samples remain retained. Input adaptation is separate; peak means the retained-batch peak divided by operations, not an isolated-call peak.
+
+The grouped report contains 410 separately dated rows. Earlier 407 measured sections, nine primitive memory tables and auxiliary baselines remain byte-exact and were not retimed. No combined 410-row run is claimed. Authoritative proofs retain actual owner commands, fixture repairs and measurement histories.
+
+[Compiler proof](../../benchmarks/runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof.json) · [Source proof](../../benchmarks/runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation.json) · [Runtime/resource proof](../../benchmarks/runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-proof.json)
+
+## Remaining separate work
+
+Arithmetic compound assignment values, owned assignment results, nullish types/assignment, coercion, destructuring and additional built-in APIs remain pending. This scalar gate does not claim the assignment-expression umbrella complete.

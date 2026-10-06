@@ -1,0 +1,99 @@
+[
+  {
+    "id": "boolean_string_truthiness",
+    "category": "booleans",
+    "family": "explicit-value-conversion",
+    "result": "boolean[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "dynamic text",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "One explicit Boolean conversion on a runtime-selected string, with complete boolean[] output retention.",
+    "specification": "One explicit Boolean conversion on a runtime-selected string, with complete boolean[] output retention.",
+    "notes": "Pool setup, runtime selection, explicit conversion and complete output construction/retention are timed. Full-output observation runs outside timing. Native strings and arrays have independent ownership; JavaScript strings are immutable. The shared domain uses 0..2048 iterations, seeds 0..1000000 and valid UTF-8 input up to 256 bytes. Integer conversion omits external input; array conversion retains comma-joined string content. Allocation counters describe the complete native workload and are normalized by actual conversions.",
+    "sourceSha256": "836161c8e05d182e3f0c2e2adfd9c79f47ef0fa7e6bf6dd5b65cee6fd2e6ebb7",
+    "counterpartSha256": "0e6fb314ff03c07fcffea3e372a606af48eda5196229eebe5c1b7d9b75e4c69b",
+    "conversion": "Boolean",
+    "poolSize": 6,
+    "conversionExpression": "Boolean(values[(i + seed) % 6])",
+    "sourceRequired": [
+      "function workload(n: int, seed: int, input: string): boolean[] {",
+      "const values: string[] = [\"\", input.repeat(1), \"false\", \"0\", \"\\u0000\", \"é😀\"];",
+      "const output: boolean[] = []; let i = 0;",
+      "while (i < n) {",
+      "output.push(Boolean(values[(i + seed) % 6]));",
+      "i = i + 1;",
+      "return output;",
+      "function main() { const result = workload(2, 7, \"dynamic text\"); }"
+    ]
+  },
+  {
+    "id": "string_explicit_int",
+    "category": "strings",
+    "family": "explicit-value-conversion",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "One explicit String conversion on a runtime-selected bounded int, with complete string[] output retention. Shared seed domain 0..1000000 keeps every value exactly representable in JavaScript.",
+    "specification": "One explicit String conversion on a runtime-selected bounded int, with complete string[] output retention. Shared seed domain 0..1000000 keeps every value exactly representable in JavaScript.",
+    "notes": "Pool setup, runtime selection, explicit conversion and complete output construction/retention are timed. Full-output observation runs outside timing. Native strings and arrays have independent ownership; JavaScript strings are immutable. The shared domain uses 0..2048 iterations, seeds 0..1000000 and valid UTF-8 input up to 256 bytes. Integer conversion omits external input; array conversion retains comma-joined string content. Allocation counters describe the complete native workload and are normalized by actual conversions.",
+    "sourceSha256": "c7312a1a9a09ca503133da346c49bd3fd0efbf268222e6def4e8c750be7d16ec",
+    "counterpartSha256": "13d82e3e22c21b84f681eaa2d103415a5f790d65da1b7d31b722e9f0f544a5fd",
+    "conversion": "String",
+    "poolSize": 5,
+    "conversionExpression": "String(values[(i + seed) % 5])",
+    "sourceRequired": [
+      "function workload(n: int, seed: int): string[] {",
+      "const values: int[] = [seed, seed + 1, 0, 17, 9001];",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "output.push(String(values[(i + seed) % 5]));",
+      "i = i + 1;",
+      "return output;",
+      "function main() { const result = workload(2, 7); }"
+    ]
+  },
+  {
+    "id": "string_array_conversion",
+    "category": "strings",
+    "family": "explicit-value-conversion",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "dynamic text",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "One explicit String conversion on a runtime-selected homogeneous string array, with complete string[] output retention. Arrays use comma-joined string content; no heterogeneous/dynamic-object behavior is claimed.",
+    "specification": "One explicit String conversion on a runtime-selected homogeneous string array, with complete string[] output retention. Arrays use comma-joined string content; no heterogeneous/dynamic-object behavior is claimed.",
+    "notes": "Pool setup, runtime selection, explicit conversion and complete output construction/retention are timed. Full-output observation runs outside timing. Native strings and arrays have independent ownership; JavaScript strings are immutable. The shared domain uses 0..2048 iterations, seeds 0..1000000 and valid UTF-8 input up to 256 bytes. Integer conversion omits external input; array conversion retains comma-joined string content. Allocation counters describe the complete native workload and are normalized by actual conversions.",
+    "sourceSha256": "6a2ed04c012a9a1b1df626e90fd43d40bacee5c53191c45d7f78d2efa01f4423",
+    "counterpartSha256": "56b4e2291e081c13e54d1ecc91b506ce3e631923c97e52f8e2c35336ab46d258",
+    "conversion": "String",
+    "poolSize": 3,
+    "conversionExpression": "String(values[(i + seed) % 3])",
+    "sourceRequired": [
+      "function workload(n: int, seed: int, input: string): string[] {",
+      "const values: string[][] = [[input.repeat(1), \"\"], [\"é\", \"😀\"], [\"a\", \"b\", \"c\"]];",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "output.push(String(values[(i + seed) % 3]));",
+      "i = i + 1;",
+      "return output;",
+      "function main() { const result = workload(2, 7, \"dynamic text\"); }"
+    ]
+  }
+]

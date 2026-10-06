@@ -1,0 +1,26 @@
+type int = number;
+function clone<T>(value: T): T { return value; }
+type Trace = { calls: int; defaults: int; };
+function consumeText(text: string): string { return text; }
+function fallback(trace: Trace, base: int, input: string): (trace: Trace) => string {
+    trace.defaults = trace.defaults + 1; const text = input.repeat(base % 3 + 1).concat(":default:", String(base));
+    return (callTrace: Trace): string => { callTrace.calls = callTrace.calls + 1; return consumeText(text); };
+}
+function apply(trace: Trace, base: int, input: string, action: (trace: Trace) => string = fallback(trace, base, input)): string[] { return [action(trace)]; }
+function workload(n: int, seed: int, input: string): string[][] {
+    const output: string[][] = []; const trace: Trace = { calls: 0, defaults: 0 };
+    let i = 0; while (i < n) {
+        const mode = (i + seed) % 4; const value = (i * 13 + seed) % 97;
+        const beforeCalls = trace.calls; const beforeDefaults = trace.defaults;
+        if (mode === 0) { const selected = apply(trace, value, input); output.push(selected); }
+        else if (mode === 1) { const selected = apply(trace, value, input, undefined); output.push(selected); }
+        else {
+            const text = input.repeat(value % 3 + 1).concat(":present:", String(value));
+            const supplied = (callTrace: Trace): string => { callTrace.calls = callTrace.calls + 1; return consumeText(text); };
+            const selected = apply(trace, value, input, supplied); output.push(selected);
+        }
+        output.push([String(trace.calls - beforeCalls), String(trace.defaults - beforeDefaults)]);
+        i = i + 1;
+    } return output;
+}
+function main() { const result = workload(3, 0, "abc"); }

@@ -1,0 +1,9 @@
+{
+  "exitCode": 1,
+  "error": "sqlite3.OperationalError: no such column: live_after_drop",
+  "helper": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-96-analytics/verify-sqlite-new-records-attempt1.py",
+  "helperSha256": "596007996f4a5a0dc2a36554b083905d8c59e6c4f2a4ccd04c9236c92d2ba416",
+  "scratchRootsPreserved": [],
+  "rawImportRepeated": false,
+  "at": "2026-10-04T00:19:45.287153+00:00"
+}

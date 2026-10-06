@@ -1,0 +1,18 @@
+function receiver(trace: int[]): int[] { trace.push(1); return [4, 5]; }
+function depth(trace: int[]): int { trace.push(2); return -7; }
+function main() {
+    const trace: int[] = [];
+    const copied = receiver(trace).flat(depth(trace));
+    console.log(trace.join(",")); console.log(copied.join(","));
+    const groups: int[][] = [[1], [], [2, 3]];
+    console.log(groups.flat(0).join("|")); console.log(groups.flat(-1).join("|"));
+    console.log(groups.flat().join(","));
+    const deep: int[][][] = [[[1], []], [[2, 3]]];
+    console.log(deep.flat(99).join(","));
+    const values: int[] = [2, 4];
+    const mapped = values.flatMap((value: int, index: int, source: int[]): int[] => { trace.push(index + 10); return [value, source.length]; });
+    console.log(trace.join(",")); console.log(mapped.join(",")); console.log(values.join(","));
+    console.log(values.flatMap((): int => { return 7; }).join(","));
+    console.log(values.flatMap((value: int): int => { return value + 1; }).join(","));
+    console.log(values.flatMap((value: int, index: int): int => { return value + index; }).join(","));
+}

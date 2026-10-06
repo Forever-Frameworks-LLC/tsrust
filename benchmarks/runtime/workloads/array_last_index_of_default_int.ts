@@ -1,0 +1,2 @@
+function workload(n: number, seed: number): number[] { const values: number[] = []; let j = 0; while (j < 129) { values.push((j * 37 + seed) % 101); j = j + 1; } const output: number[] = []; let i = 0; while (i < n) { const needle = (i * 17 + seed) % 137; const at = values.lastIndexOf(needle); output.push(at + 1); i = i + 1; } return output; }
+function main() { const result = workload(2, 7); }

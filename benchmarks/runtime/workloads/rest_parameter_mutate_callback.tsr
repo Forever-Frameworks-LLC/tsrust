@@ -1,0 +1,10 @@
+type Trace = { calls: int; defaults: int; };
+function apply(action: Mutable<Function<int[], [trace: Mutable<Trace>, ...values: int[]]>>, trace: Trace, mode: int, base: int): int[] { if (mode === 0) { return action(trace); } if (mode === 1) { return action(trace, base); } return action(trace, base, base + 1, base + 2, base + 3, base + 4); }
+function workload(n: int, seed: int, input: string): int[][] {
+    const output: int[][] = []; const trace: Trace = { calls: 0, defaults: 0 }; let state = seed % 11;
+    const callback = (callTrace: Trace, ...values: int[]): int[] => { state = state + 1; callTrace.calls = callTrace.calls + 1; const result: int[] = [state]; let at = 0; while (at < values.length) { result.push(values[at] + state); at = at + 1; } return result; };
+    let i = 0; while (i < n) { const before = trace.calls; const mode = (i + seed) % 3; const base = (i * 13 + seed) % 97;
+        output.push(apply(callback, trace, mode, base)); output.push([trace.calls - before]); i = i + 1;
+    } return output;
+}
+function main() { const result = workload(3, 0, "abc"); }

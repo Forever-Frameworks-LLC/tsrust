@@ -1,0 +1,15 @@
+type int = number;
+function workload(n: int, seed: int): int {
+    const leftValues = [false, false, true, true];
+    const rightValues = [false, true, false, true];
+    let digest = seed; let i = 0;
+    while (i < n) {
+        const at = (i * 13 + seed) % 4;
+        const left = leftValues[at]; const right = rightValues[at];
+        const result = left === right;
+        let bit = 0; if (result) { bit = 1; }
+        digest = (digest * 131 + bit) % 1000000007;
+        i = i + 1;
+    }
+    return digest;
+}

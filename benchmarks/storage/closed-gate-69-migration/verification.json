@@ -1,0 +1,8 @@
+{
+  "exactPathsAndBytes": 710,
+  "independentBlobChecks": 413,
+  "closedProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T23-12-32-000Z-conditional-expression-runtime-proof.json",
+    "sha256": "10d4b1f5a0884a863c779026fe105785315e2f9e3f029b111c1465d97a4e7fa5"
+  }
+}

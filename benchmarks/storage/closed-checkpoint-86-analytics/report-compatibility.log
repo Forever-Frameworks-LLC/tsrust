@@ -1,0 +1,13 @@
+✔ exact tree restoration and archive-only reading reproduce existing report bytes (212.6235ms)
+✔ mixed records deduplicate identical bindings and preserve original filenames (254.02575ms)
+✔ loose/archive byte conflict fails before replacing the valid report (108.066458ms)
+✔ corrupt archived bytes fail before replacing the valid report (124.122042ms)
+✔ archive discovery uses the configured results prefix and ignores nested JSON (328.3765ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1090.109333

@@ -1,0 +1,15 @@
+type User = {
+    name: string;
+};
+
+function log(user: User) {
+    console.log(user.name);
+}
+
+function main() {
+    const user: User = {
+        name: "Pat"
+    };
+    log(user);
+    log(user);
+}

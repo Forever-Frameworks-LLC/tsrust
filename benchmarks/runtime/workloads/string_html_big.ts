@@ -1,0 +1,14 @@
+type int = number;
+function workload(n: int, seed: int, input: string): string[] {
+    const values: string[] = [clone(input), "", "raw &<>\u0000", "é😀e\u0301", "\uFEFFquote\"", "a'&<>", "static", input.repeat(2)];
+    const output: string[] = []; let i = 0;
+    while (i < n) {
+        const at = (i * 13 + seed) % 8;
+        const selected: string = values[at].big();
+        output.push(selected);
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7, "dynamic é😀&<"); }
+function clone<T>(value: T): T { return value; }

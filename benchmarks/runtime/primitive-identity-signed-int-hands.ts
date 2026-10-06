@@ -1,0 +1,9 @@
+type int = number;
+function main() {
+    const values: int[] = [-9007199254740991, -2147483648, -1, 0, 1, 2147483647, 9007199254740991];
+    let i = 0;
+    while (i < values.length) {
+        const selected: int = values[i].valueOf();
+        console.log(selected); i = i + 1;
+    }
+}

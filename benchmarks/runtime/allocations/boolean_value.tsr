@@ -1,0 +1,2 @@
+function workload(n: int, seed: int): boolean { return n > seed; }
+function main() { }

@@ -1,0 +1,428 @@
+[
+  {
+    "id": "string_to_string_ascii",
+    "n": 0,
+    "seed": 0,
+    "expected": []
+  },
+  {
+    "id": "string_to_string_ascii",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      " A alpha Z "
+    ]
+  },
+  {
+    "id": "string_to_string_ascii",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_to_string_ascii",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "ABC"
+    ]
+  },
+  {
+    "id": "string_to_string_ascii",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "a\u0000b"
+    ]
+  },
+  {
+    "id": "string_to_string_ascii",
+    "n": 1,
+    "seed": 4,
+    "expected": [
+      " e "
+    ]
+  },
+  {
+    "id": "string_to_string_ascii",
+    "n": 1,
+    "seed": 5,
+    "expected": [
+      "Z"
+    ]
+  },
+  {
+    "id": "string_to_string_ascii",
+    "n": 3,
+    "seed": 0,
+    "expected": [
+      " A alpha Z ",
+      "Z",
+      "ABC"
+    ]
+  },
+  {
+    "id": "string_to_string_unicode",
+    "n": 0,
+    "seed": 0,
+    "expected": []
+  },
+  {
+    "id": "string_to_string_unicode",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      " é😀é Z "
+    ]
+  },
+  {
+    "id": "string_to_string_unicode",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_to_string_unicode",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "é😀Z"
+    ]
+  },
+  {
+    "id": "string_to_string_unicode",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "a\u0000é😀"
+    ]
+  },
+  {
+    "id": "string_to_string_unicode",
+    "n": 1,
+    "seed": 4,
+    "expected": [
+      "é"
+    ]
+  },
+  {
+    "id": "string_to_string_unicode",
+    "n": 1,
+    "seed": 5,
+    "expected": [
+      "﻿中Z"
+    ]
+  },
+  {
+    "id": "string_to_string_unicode",
+    "n": 3,
+    "seed": 0,
+    "expected": [
+      " é😀é Z ",
+      "﻿中Z",
+      "é😀Z"
+    ]
+  },
+  {
+    "id": "string_value_of_ascii",
+    "n": 0,
+    "seed": 0,
+    "expected": []
+  },
+  {
+    "id": "string_value_of_ascii",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      " A alpha Z "
+    ]
+  },
+  {
+    "id": "string_value_of_ascii",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_value_of_ascii",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "ABC"
+    ]
+  },
+  {
+    "id": "string_value_of_ascii",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "a\u0000b"
+    ]
+  },
+  {
+    "id": "string_value_of_ascii",
+    "n": 1,
+    "seed": 4,
+    "expected": [
+      " e "
+    ]
+  },
+  {
+    "id": "string_value_of_ascii",
+    "n": 1,
+    "seed": 5,
+    "expected": [
+      "Z"
+    ]
+  },
+  {
+    "id": "string_value_of_ascii",
+    "n": 3,
+    "seed": 0,
+    "expected": [
+      " A alpha Z ",
+      "Z",
+      "ABC"
+    ]
+  },
+  {
+    "id": "string_value_of_unicode",
+    "n": 0,
+    "seed": 0,
+    "expected": []
+  },
+  {
+    "id": "string_value_of_unicode",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      " é😀é Z "
+    ]
+  },
+  {
+    "id": "string_value_of_unicode",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_value_of_unicode",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "é😀Z"
+    ]
+  },
+  {
+    "id": "string_value_of_unicode",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "a\u0000é😀"
+    ]
+  },
+  {
+    "id": "string_value_of_unicode",
+    "n": 1,
+    "seed": 4,
+    "expected": [
+      "é"
+    ]
+  },
+  {
+    "id": "string_value_of_unicode",
+    "n": 1,
+    "seed": 5,
+    "expected": [
+      "﻿中Z"
+    ]
+  },
+  {
+    "id": "string_value_of_unicode",
+    "n": 3,
+    "seed": 0,
+    "expected": [
+      " é😀é Z ",
+      "﻿中Z",
+      "é😀Z"
+    ]
+  },
+  {
+    "id": "boolean_to_string",
+    "n": 0,
+    "seed": 0,
+    "expected": []
+  },
+  {
+    "id": "boolean_to_string",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "false"
+    ]
+  },
+  {
+    "id": "boolean_to_string",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "true"
+    ]
+  },
+  {
+    "id": "boolean_to_string",
+    "n": 4,
+    "seed": 0,
+    "expected": [
+      "false",
+      "true",
+      "true",
+      "false"
+    ]
+  },
+  {
+    "id": "boolean_value_of",
+    "n": 0,
+    "seed": 0,
+    "expected": []
+  },
+  {
+    "id": "boolean_value_of",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      false
+    ]
+  },
+  {
+    "id": "boolean_value_of",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      true
+    ]
+  },
+  {
+    "id": "boolean_value_of",
+    "n": 4,
+    "seed": 0,
+    "expected": [
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  {
+    "id": "number_value_of",
+    "n": 0,
+    "seed": 0,
+    "expectedTokens": []
+  },
+  {
+    "id": "number_value_of",
+    "n": 1,
+    "seed": 0,
+    "expectedTokens": [
+      "0000000000000000"
+    ]
+  },
+  {
+    "id": "number_value_of",
+    "n": 1,
+    "seed": 1,
+    "expectedTokens": [
+      "8000000000000000"
+    ]
+  },
+  {
+    "id": "number_value_of",
+    "n": 1,
+    "seed": 2,
+    "expectedTokens": [
+      "0000000000000001"
+    ]
+  },
+  {
+    "id": "number_value_of",
+    "n": 1,
+    "seed": 5,
+    "expectedTokens": [
+      "7ff0000000000000"
+    ]
+  },
+  {
+    "id": "number_value_of",
+    "n": 1,
+    "seed": 6,
+    "expectedTokens": [
+      "fff0000000000000"
+    ]
+  },
+  {
+    "id": "number_value_of",
+    "n": 1,
+    "seed": 7,
+    "expectedTokens": [
+      "nan"
+    ]
+  },
+  {
+    "id": "number_value_of",
+    "n": 3,
+    "seed": 0,
+    "expectedTokens": [
+      "0000000000000000",
+      "7ff0000000000000",
+      "0000000000000001"
+    ]
+  },
+  {
+    "id": "int_value_of",
+    "n": 0,
+    "seed": 0,
+    "expected": []
+  },
+  {
+    "id": "int_value_of",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      0
+    ]
+  },
+  {
+    "id": "int_value_of",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      1
+    ]
+  },
+  {
+    "id": "int_value_of",
+    "n": 1,
+    "seed": 7,
+    "expected": [
+      2147483647
+    ]
+  },
+  {
+    "id": "int_value_of",
+    "n": 3,
+    "seed": 0,
+    "expected": [
+      0,
+      65535,
+      7
+    ]
+  }
+]

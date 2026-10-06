@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "kind": "executed-exact-byte-historical-artifact-compaction",
+  "timestamp": "2026-10-02T12:15:50.353144+00:00",
+  "originalApprovedPlan": {
+    "path": "/tmp/tsrust-historical-artifact-compaction-plan.json",
+    "sha256": "c8f419d5f68a16ab9035a47d7d481ea933937f004065f7dc9333b4cbeec63e8f"
+  },
+  "database": {
+    "path": "benchmarks/records.sqlite",
+    "sha256": "01132567943e49b3a3ce6cd76de9e3eb66319df3538c6e51cf21992fcdd80299",
+    "logicalBytes": 59138048,
+    "allocatedBytes": 59138048,
+    "records": 4264,
+    "uniqueBlobs": 3876
+  },
+  "selection": {
+    "importRoot": "benchmarks",
+    "paths": [
+      "runtime/diagnostics/2026-10-02T01-00-12-000Z-native-control-flow-compiler-artifacts",
+      "runtime/diagnostics/2026-10-02T01-29-22-000Z-native-number-compiler-artifacts",
+      "runtime/diagnostics/2026-10-02T01-57-36-000Z-number-predicates-compiler-artifacts",
+      "runtime/diagnostics/2026-10-02T02-16-44-000Z-math-unary-compiler-artifacts",
+      "runtime/diagnostics/2026-10-02T02-39-37-000Z-array-slice-compiler-artifacts",
+      "runtime/diagnostics/2026-10-02T03-07-20-000Z-temporary-array-index-compiler-artifacts",
+      "runtime/diagnostics/2026-10-02T03-29-45-000Z-array-transform-compiler-artifacts",
+      "runtime/diagnostics/2026-10-02T04-29-08-000Z-array-predicates-compiler-artifacts",
+      "runtime/diagnostics/2026-10-02T05-00-07-000Z-string-construction-compiler-artifacts",
+      "runtime/diagnostics/2026-10-02T05-37-36-000Z-exact-math-compiler-artifacts",
+      "runtime/diagnostics/2026-10-02T06-15-27-000Z-approximate-math-compiler-artifacts",
+      "runtime/diagnostics/2026-10-02T06-23-17-000Z-approximate-math-runtime-artifacts",
+      "runtime/diagnostics/2026-10-02T06-48-49-000Z-number-operators-source-reference-artifacts",
+      "runtime/diagnostics/2026-10-02T06-53-02-123Z-number-operators-compiler-artifacts",
+      "runtime/diagnostics/2026-10-02T07-03-33-000Z-native-number-operators-runtime-artifacts",
+      "runtime/diagnostics/2026-10-02T07-21-48-943Z-array-reduction-source-validation-artifacts",
+      "runtime/diagnostics/2026-10-02T07-34-04-372Z-array-reduction-compiler-artifacts",
+      "runtime/diagnostics/2026-10-02T07-49-56-000Z-array-reduction-runtime-artifacts",
+      "runtime/diagnostics/2026-10-02T08-10-44-000Z-array-for-each-source-validation-artifacts",
+      "runtime/diagnostics/2026-10-02T08-21-48-495Z-array-for-each-compiler-artifacts",
+      "runtime/diagnostics/2026-10-02T08-32-59-000Z-array-for-each-runtime-artifacts",
+      "runtime/diagnostics/2026-10-02T08-51-48-000Z-array-concat-source-validation-artifacts",
+      "runtime/diagnostics/2026-10-02T09-21-22-843Z-array-concat-compiler-artifacts",
+      "runtime/diagnostics/2026-10-02T09-30-42-000Z-array-concat-record-layout-repair-artifacts",
+      "runtime/diagnostics/2026-10-02T09-40-32-000Z-array-concat-runtime-artifacts",
+      "runtime/diagnostics/2026-10-02T09-44-00-000Z-array-concat-presentation-artifacts",
+      "runtime/diagnostics/2026-10-02T09-56-59.893Z-declared-function-source-validation-artifacts",
+      "runtime/diagnostics/2026-10-02T10-27-23-650Z-declared-function-values-compiler-artifacts",
+      "runtime/diagnostics/2026-10-02T10-39-37-000Z-declared-function-runtime-artifacts"
+    ],
+    "directories": 29,
+    "files": 4264,
+    "originalLogicalBytes": 205982770,
+    "originalAllocatedBytes": 217894912
+  },
+  "verification": {
+    "storeCLIOriginalDigestVerificationPassedBeforeAndAfterRemoval": true,
+    "independentSQLiteZlibOriginalDigestVerificationPassed": true,
+    "originalRestoredIndexedPathSetsExact": 4264,
+    "originalRestoredStoreSizesAndSHA256Exact": 4264,
+    "everyOriginalRehashedImmediatelyBeforeRemoval": true,
+    "protectedOriginalPathsExactBeforeAndAfterRemoval": 3470,
+    "protectedOriginalsInventory": {
+      "path": "/tmp/tsrust-historical-artifact-compaction-executed/preserved-originals.json",
+      "sha256": "2e1b8bc6806f057a758a661ef17649f4e23e2bdfd65f0865a65f3fa4ee9248dc"
+    },
+    "noNativeCompilerOrBenchmarkExecution": true,
+    "scratchRestorationRemovedAfterVerification": true,
+    "originalsRestoredOnAnyRemovalFailure": true
+  },
+  "archiveIndex": {
+    "path": "benchmarks/storage/historical-artifact-index-2026-10-02.jsonl",
+    "sha256": "7870b26d9d63b325c4325357247f18e92742747ed212181b2a3c37d61334d1cd",
+    "bytes": 1169000
+  },
+  "removal": {
+    "onlyVerifiedIndexedOriginalLeavesRemoved": 4264,
+    "onlyEmptyOriginalDirectoriesRemoved": 276,
+    "topLevelRawRecordsReportWorkloadsReferencesDependenciesAndGate55ArtifactsUnchanged": true
+  },
+  "savings": {
+    "logicalBytesBeforeDocumentation": 146844722,
+    "allocatedBytesBeforeDocumentation": 158756864,
+    "sqlitePageAndIndexOverheadIncluded": true,
+    "newManifestIndexDocumentationLogicalBytes": 1176891,
+    "newManifestIndexDocumentationAllocatedBytes": 1183744,
+    "netAllocatedBytesAfterDocumentation": 157573120
+  },
+  "executionEvidence": {
+    "approvedByRootAfterGate55Seal": true,
+    "existingCLICommands": [
+      "import",
+      "verify",
+      "list",
+      "restore",
+      "verify"
+    ],
+    "sourcePlanCopyDirectory": "/tmp/tsrust-historical-artifact-compaction-executed"
+  }
+}

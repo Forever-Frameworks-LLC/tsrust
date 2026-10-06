@@ -1,0 +1,1591 @@
+{
+  "acos": {
+    "tables": [
+      [
+        -0.75,
+        -0.5,
+        -0.25,
+        -0.125,
+        0.125,
+        0.25,
+        0.5,
+        0.75
+      ]
+    ],
+    "jitterDenominators": [
+      64
+    ],
+    "method": "acos",
+    "workloadId": "math_acos",
+    "operationArity": 1,
+    "maxIterations": 131072,
+    "maxSeed": 1000000,
+    "tableSelector": "(i*13+seed)%8",
+    "jitterSelector": "(i*17+seed)%5",
+    "tuplesPerMethod": 40,
+    "iterationPeriod": 40,
+    "baseRationals": [
+      [
+        {
+          "numerator": "-3",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 2
+        }
+      ]
+    ]
+  },
+  "asin": {
+    "tables": [
+      [
+        -0.75,
+        -0.5,
+        -0.25,
+        -0.125,
+        0.125,
+        0.25,
+        0.5,
+        0.75
+      ]
+    ],
+    "jitterDenominators": [
+      64
+    ],
+    "method": "asin",
+    "workloadId": "math_asin",
+    "operationArity": 1,
+    "maxIterations": 131072,
+    "maxSeed": 1000000,
+    "tableSelector": "(i*13+seed)%8",
+    "jitterSelector": "(i*17+seed)%5",
+    "tuplesPerMethod": 40,
+    "iterationPeriod": 40,
+    "baseRationals": [
+      [
+        {
+          "numerator": "-3",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 2
+        }
+      ]
+    ]
+  },
+  "atanh": {
+    "tables": [
+      [
+        -0.625,
+        -0.5,
+        -0.25,
+        -0.125,
+        0.125,
+        0.25,
+        0.5,
+        0.625
+      ]
+    ],
+    "jitterDenominators": [
+      64
+    ],
+    "method": "atanh",
+    "workloadId": "math_atanh",
+    "operationArity": 1,
+    "maxIterations": 131072,
+    "maxSeed": 1000000,
+    "tableSelector": "(i*13+seed)%8",
+    "jitterSelector": "(i*17+seed)%5",
+    "tuplesPerMethod": 40,
+    "iterationPeriod": 40,
+    "baseRationals": [
+      [
+        {
+          "numerator": "-5",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "5",
+          "denominatorPowerOfTwo": 3
+        }
+      ]
+    ]
+  },
+  "acosh": {
+    "tables": [
+      [
+        1.25,
+        1.5,
+        1.75,
+        2,
+        2.5,
+        3,
+        3.5,
+        4
+      ]
+    ],
+    "jitterDenominators": [
+      32
+    ],
+    "method": "acosh",
+    "workloadId": "math_acosh",
+    "operationArity": 1,
+    "maxIterations": 131072,
+    "maxSeed": 1000000,
+    "tableSelector": "(i*13+seed)%8",
+    "jitterSelector": "(i*17+seed)%5",
+    "tuplesPerMethod": 40,
+    "iterationPeriod": 40,
+    "baseRationals": [
+      [
+        {
+          "numerator": "5",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "7",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "2",
+          "denominatorPowerOfTwo": 0
+        },
+        {
+          "numerator": "5",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 0
+        },
+        {
+          "numerator": "7",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "4",
+          "denominatorPowerOfTwo": 0
+        }
+      ]
+    ]
+  },
+  "log": {
+    "tables": [
+      [
+        0.25,
+        0.375,
+        0.5,
+        0.75,
+        1.25,
+        1.5,
+        2,
+        3.5
+      ]
+    ],
+    "jitterDenominators": [
+      64
+    ],
+    "method": "log",
+    "workloadId": "math_log",
+    "operationArity": 1,
+    "maxIterations": 131072,
+    "maxSeed": 1000000,
+    "tableSelector": "(i*13+seed)%8",
+    "jitterSelector": "(i*17+seed)%5",
+    "tuplesPerMethod": 40,
+    "iterationPeriod": 40,
+    "baseRationals": [
+      [
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "5",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "2",
+          "denominatorPowerOfTwo": 0
+        },
+        {
+          "numerator": "7",
+          "denominatorPowerOfTwo": 1
+        }
+      ]
+    ]
+  },
+  "log10": {
+    "tables": [
+      [
+        0.25,
+        0.375,
+        0.5,
+        0.75,
+        1.25,
+        1.5,
+        2,
+        3.5
+      ]
+    ],
+    "jitterDenominators": [
+      64
+    ],
+    "method": "log10",
+    "workloadId": "math_log10",
+    "operationArity": 1,
+    "maxIterations": 131072,
+    "maxSeed": 1000000,
+    "tableSelector": "(i*13+seed)%8",
+    "jitterSelector": "(i*17+seed)%5",
+    "tuplesPerMethod": 40,
+    "iterationPeriod": 40,
+    "baseRationals": [
+      [
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "5",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "2",
+          "denominatorPowerOfTwo": 0
+        },
+        {
+          "numerator": "7",
+          "denominatorPowerOfTwo": 1
+        }
+      ]
+    ]
+  },
+  "log2": {
+    "tables": [
+      [
+        0.25,
+        0.375,
+        0.5,
+        0.75,
+        1.25,
+        1.5,
+        2,
+        3.5
+      ]
+    ],
+    "jitterDenominators": [
+      64
+    ],
+    "method": "log2",
+    "workloadId": "math_log2",
+    "operationArity": 1,
+    "maxIterations": 131072,
+    "maxSeed": 1000000,
+    "tableSelector": "(i*13+seed)%8",
+    "jitterSelector": "(i*17+seed)%5",
+    "tuplesPerMethod": 40,
+    "iterationPeriod": 40,
+    "baseRationals": [
+      [
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "5",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "2",
+          "denominatorPowerOfTwo": 0
+        },
+        {
+          "numerator": "7",
+          "denominatorPowerOfTwo": 1
+        }
+      ]
+    ]
+  },
+  "log1p": {
+    "tables": [
+      [
+        -0.375,
+        -0.25,
+        -0.125,
+        -0.0625,
+        0.0625,
+        0.125,
+        0.25,
+        0.75
+      ]
+    ],
+    "jitterDenominators": [
+      128
+    ],
+    "method": "log1p",
+    "workloadId": "math_log1p",
+    "operationArity": 1,
+    "maxIterations": 131072,
+    "maxSeed": 1000000,
+    "tableSelector": "(i*13+seed)%8",
+    "jitterSelector": "(i*17+seed)%5",
+    "tuplesPerMethod": 40,
+    "iterationPeriod": 40,
+    "baseRationals": [
+      [
+        {
+          "numerator": "-3",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 4
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 4
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 2
+        }
+      ]
+    ]
+  },
+  "cos": {
+    "tables": [
+      [
+        -1.25,
+        -1,
+        -0.5,
+        -0.125,
+        0.125,
+        0.5,
+        1,
+        1.125
+      ]
+    ],
+    "jitterDenominators": [
+      32
+    ],
+    "method": "cos",
+    "workloadId": "math_cos",
+    "operationArity": 1,
+    "maxIterations": 131072,
+    "maxSeed": 1000000,
+    "tableSelector": "(i*13+seed)%8",
+    "jitterSelector": "(i*17+seed)%5",
+    "tuplesPerMethod": 40,
+    "iterationPeriod": 40,
+    "baseRationals": [
+      [
+        {
+          "numerator": "-5",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 0
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 0
+        },
+        {
+          "numerator": "9",
+          "denominatorPowerOfTwo": 3
+        }
+      ]
+    ]
+  },
+  "sin": {
+    "tables": [
+      [
+        -1.25,
+        -1,
+        -0.5,
+        -0.125,
+        0.125,
+        0.5,
+        1,
+        1.125
+      ]
+    ],
+    "jitterDenominators": [
+      32
+    ],
+    "method": "sin",
+    "workloadId": "math_sin",
+    "operationArity": 1,
+    "maxIterations": 131072,
+    "maxSeed": 1000000,
+    "tableSelector": "(i*13+seed)%8",
+    "jitterSelector": "(i*17+seed)%5",
+    "tuplesPerMethod": 40,
+    "iterationPeriod": 40,
+    "baseRationals": [
+      [
+        {
+          "numerator": "-5",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 0
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 0
+        },
+        {
+          "numerator": "9",
+          "denominatorPowerOfTwo": 3
+        }
+      ]
+    ]
+  },
+  "tan": {
+    "tables": [
+      [
+        -1.25,
+        -1,
+        -0.5,
+        -0.125,
+        0.125,
+        0.5,
+        1,
+        1.125
+      ]
+    ],
+    "jitterDenominators": [
+      32
+    ],
+    "method": "tan",
+    "workloadId": "math_tan",
+    "operationArity": 1,
+    "maxIterations": 131072,
+    "maxSeed": 1000000,
+    "tableSelector": "(i*13+seed)%8",
+    "jitterSelector": "(i*17+seed)%5",
+    "tuplesPerMethod": 40,
+    "iterationPeriod": 40,
+    "baseRationals": [
+      [
+        {
+          "numerator": "-5",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 0
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 0
+        },
+        {
+          "numerator": "9",
+          "denominatorPowerOfTwo": 3
+        }
+      ]
+    ]
+  },
+  "cosh": {
+    "tables": [
+      [
+        -1.75,
+        -1.25,
+        -0.75,
+        -0.25,
+        0.25,
+        0.75,
+        1.25,
+        1.75
+      ]
+    ],
+    "jitterDenominators": [
+      32
+    ],
+    "method": "cosh",
+    "workloadId": "math_cosh",
+    "operationArity": 1,
+    "maxIterations": 131072,
+    "maxSeed": 1000000,
+    "tableSelector": "(i*13+seed)%8",
+    "jitterSelector": "(i*17+seed)%5",
+    "tuplesPerMethod": 40,
+    "iterationPeriod": 40,
+    "baseRationals": [
+      [
+        {
+          "numerator": "-7",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-5",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-3",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "5",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "7",
+          "denominatorPowerOfTwo": 2
+        }
+      ]
+    ]
+  },
+  "exp": {
+    "tables": [
+      [
+        -1.75,
+        -1.25,
+        -0.75,
+        -0.25,
+        0.25,
+        0.75,
+        1.25,
+        1.75
+      ]
+    ],
+    "jitterDenominators": [
+      32
+    ],
+    "method": "exp",
+    "workloadId": "math_exp",
+    "operationArity": 1,
+    "maxIterations": 131072,
+    "maxSeed": 1000000,
+    "tableSelector": "(i*13+seed)%8",
+    "jitterSelector": "(i*17+seed)%5",
+    "tuplesPerMethod": 40,
+    "iterationPeriod": 40,
+    "baseRationals": [
+      [
+        {
+          "numerator": "-7",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-5",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-3",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "5",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "7",
+          "denominatorPowerOfTwo": 2
+        }
+      ]
+    ]
+  },
+  "expm1": {
+    "tables": [
+      [
+        -1.75,
+        -1.25,
+        -0.75,
+        -0.25,
+        0.25,
+        0.75,
+        1.25,
+        1.75
+      ]
+    ],
+    "jitterDenominators": [
+      32
+    ],
+    "method": "expm1",
+    "workloadId": "math_expm1",
+    "operationArity": 1,
+    "maxIterations": 131072,
+    "maxSeed": 1000000,
+    "tableSelector": "(i*13+seed)%8",
+    "jitterSelector": "(i*17+seed)%5",
+    "tuplesPerMethod": 40,
+    "iterationPeriod": 40,
+    "baseRationals": [
+      [
+        {
+          "numerator": "-7",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-5",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-3",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "5",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "7",
+          "denominatorPowerOfTwo": 2
+        }
+      ]
+    ]
+  },
+  "sinh": {
+    "tables": [
+      [
+        -1.75,
+        -1.25,
+        -0.75,
+        -0.25,
+        0.25,
+        0.75,
+        1.25,
+        1.75
+      ]
+    ],
+    "jitterDenominators": [
+      32
+    ],
+    "method": "sinh",
+    "workloadId": "math_sinh",
+    "operationArity": 1,
+    "maxIterations": 131072,
+    "maxSeed": 1000000,
+    "tableSelector": "(i*13+seed)%8",
+    "jitterSelector": "(i*17+seed)%5",
+    "tuplesPerMethod": 40,
+    "iterationPeriod": 40,
+    "baseRationals": [
+      [
+        {
+          "numerator": "-7",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-5",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-3",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "5",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "7",
+          "denominatorPowerOfTwo": 2
+        }
+      ]
+    ]
+  },
+  "tanh": {
+    "tables": [
+      [
+        -1.75,
+        -1.25,
+        -0.75,
+        -0.25,
+        0.25,
+        0.75,
+        1.25,
+        1.75
+      ]
+    ],
+    "jitterDenominators": [
+      32
+    ],
+    "method": "tanh",
+    "workloadId": "math_tanh",
+    "operationArity": 1,
+    "maxIterations": 131072,
+    "maxSeed": 1000000,
+    "tableSelector": "(i*13+seed)%8",
+    "jitterSelector": "(i*17+seed)%5",
+    "tuplesPerMethod": 40,
+    "iterationPeriod": 40,
+    "baseRationals": [
+      [
+        {
+          "numerator": "-7",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-5",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-3",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "5",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "7",
+          "denominatorPowerOfTwo": 2
+        }
+      ]
+    ]
+  },
+  "asinh": {
+    "tables": [
+      [
+        -7.5,
+        -3.5,
+        -1.5,
+        -0.375,
+        0.375,
+        1.5,
+        3.5,
+        7.5
+      ]
+    ],
+    "jitterDenominators": [
+      32
+    ],
+    "method": "asinh",
+    "workloadId": "math_asinh",
+    "operationArity": 1,
+    "maxIterations": 131072,
+    "maxSeed": 1000000,
+    "tableSelector": "(i*13+seed)%8",
+    "jitterSelector": "(i*17+seed)%5",
+    "tuplesPerMethod": 40,
+    "iterationPeriod": 40,
+    "baseRationals": [
+      [
+        {
+          "numerator": "-15",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "-7",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "-3",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "-3",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "7",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "15",
+          "denominatorPowerOfTwo": 1
+        }
+      ]
+    ]
+  },
+  "atan": {
+    "tables": [
+      [
+        -7.5,
+        -3.5,
+        -1.5,
+        -0.375,
+        0.375,
+        1.5,
+        3.5,
+        7.5
+      ]
+    ],
+    "jitterDenominators": [
+      32
+    ],
+    "method": "atan",
+    "workloadId": "math_atan",
+    "operationArity": 1,
+    "maxIterations": 131072,
+    "maxSeed": 1000000,
+    "tableSelector": "(i*13+seed)%8",
+    "jitterSelector": "(i*17+seed)%5",
+    "tuplesPerMethod": 40,
+    "iterationPeriod": 40,
+    "baseRationals": [
+      [
+        {
+          "numerator": "-15",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "-7",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "-3",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "-3",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "7",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "15",
+          "denominatorPowerOfTwo": 1
+        }
+      ]
+    ]
+  },
+  "cbrt": {
+    "tables": [
+      [
+        -7.5,
+        -3.5,
+        -1.5,
+        -0.375,
+        0.375,
+        1.5,
+        3.5,
+        7.5
+      ]
+    ],
+    "jitterDenominators": [
+      32
+    ],
+    "method": "cbrt",
+    "workloadId": "math_cbrt",
+    "operationArity": 1,
+    "maxIterations": 131072,
+    "maxSeed": 1000000,
+    "tableSelector": "(i*13+seed)%8",
+    "jitterSelector": "(i*17+seed)%5",
+    "tuplesPerMethod": 40,
+    "iterationPeriod": 40,
+    "baseRationals": [
+      [
+        {
+          "numerator": "-15",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "-7",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "-3",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "-3",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "7",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "15",
+          "denominatorPowerOfTwo": 1
+        }
+      ]
+    ]
+  },
+  "atan2": {
+    "tables": [
+      [
+        -3.5,
+        -1.5,
+        -0.5,
+        -0.125,
+        0.125,
+        0.5,
+        1.5,
+        3.5
+      ],
+      [
+        0.25,
+        0.5,
+        0.75,
+        1,
+        1.25,
+        1.5,
+        2,
+        3.5
+      ]
+    ],
+    "jitterDenominators": [
+      32,
+      64
+    ],
+    "method": "atan2",
+    "workloadId": "math_atan2",
+    "operationArity": 2,
+    "maxIterations": 131072,
+    "maxSeed": 1000000,
+    "tableSelector": "(i*13+seed)%8",
+    "jitterSelector": "(i*17+seed)%5",
+    "tuplesPerMethod": 40,
+    "iterationPeriod": 40,
+    "baseRationals": [
+      [
+        {
+          "numerator": "-7",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "-3",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "7",
+          "denominatorPowerOfTwo": 1
+        }
+      ],
+      [
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 0
+        },
+        {
+          "numerator": "5",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "2",
+          "denominatorPowerOfTwo": 0
+        },
+        {
+          "numerator": "7",
+          "denominatorPowerOfTwo": 1
+        }
+      ]
+    ]
+  },
+  "pow": {
+    "tables": [
+      [
+        0.5,
+        0.625,
+        0.75,
+        1.125,
+        1.5,
+        1.75,
+        2.25,
+        2.5
+      ],
+      [
+        -2.5,
+        -1.75,
+        -1.25,
+        -0.625,
+        0.375,
+        0.75,
+        1.25,
+        2.5
+      ]
+    ],
+    "jitterDenominators": [
+      64,
+      128
+    ],
+    "method": "pow",
+    "workloadId": "math_pow",
+    "operationArity": 2,
+    "maxIterations": 131072,
+    "maxSeed": 1000000,
+    "tableSelector": "(i*13+seed)%8",
+    "jitterSelector": "(i*17+seed)%5",
+    "tuplesPerMethod": 40,
+    "iterationPeriod": 40,
+    "baseRationals": [
+      [
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "5",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "9",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "7",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "9",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "5",
+          "denominatorPowerOfTwo": 1
+        }
+      ],
+      [
+        {
+          "numerator": "-5",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "-7",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-5",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-5",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "5",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "5",
+          "denominatorPowerOfTwo": 1
+        }
+      ]
+    ]
+  },
+  "hypot": {
+    "tables": [
+      [
+        -3.5,
+        -2,
+        -1.25,
+        -0.5,
+        0.25,
+        1,
+        2.5,
+        3.75
+      ],
+      [
+        0.25,
+        0.5,
+        0.75,
+        1,
+        1.25,
+        1.5,
+        1.75,
+        2
+      ],
+      [
+        -1.5,
+        -1,
+        -0.75,
+        -0.375,
+        0.375,
+        0.75,
+        1,
+        1.5
+      ],
+      [
+        0.5,
+        -0.75,
+        1,
+        -1.25,
+        1.5,
+        -1.75,
+        2,
+        -2.5
+      ]
+    ],
+    "jitterDenominators": [
+      32,
+      64,
+      128,
+      64
+    ],
+    "method": "hypot",
+    "workloadId": "math_hypot",
+    "operationArity": 4,
+    "maxIterations": 131072,
+    "maxSeed": 1000000,
+    "tableSelector": "(i*13+seed)%8",
+    "jitterSelector": "(i*17+seed)%5",
+    "tuplesPerMethod": 40,
+    "iterationPeriod": 40,
+    "baseRationals": [
+      [
+        {
+          "numerator": "-7",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "-2",
+          "denominatorPowerOfTwo": 0
+        },
+        {
+          "numerator": "-5",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 0
+        },
+        {
+          "numerator": "5",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "15",
+          "denominatorPowerOfTwo": 2
+        }
+      ],
+      [
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 0
+        },
+        {
+          "numerator": "5",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "7",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "2",
+          "denominatorPowerOfTwo": 0
+        }
+      ],
+      [
+        {
+          "numerator": "-3",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "-1",
+          "denominatorPowerOfTwo": 0
+        },
+        {
+          "numerator": "-3",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-3",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 0
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 1
+        }
+      ],
+      [
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "-3",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 0
+        },
+        {
+          "numerator": "-5",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "-7",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "2",
+          "denominatorPowerOfTwo": 0
+        },
+        {
+          "numerator": "-5",
+          "denominatorPowerOfTwo": 1
+        }
+      ]
+    ]
+  }
+}

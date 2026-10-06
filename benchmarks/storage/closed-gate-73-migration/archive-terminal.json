@@ -1,0 +1,14 @@
+{
+  "gate": 73,
+  "argv": [
+    "python3",
+    "/tmp/tsrust-gate73/archive.py"
+  ],
+  "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+  "pid": 51885,
+  "startedUtc": "2026-10-03T02:30:21.428301+00:00",
+  "finishedUtc": "2026-10-03T02:30:25.451014+00:00",
+  "exitCode": 0,
+  "log": "/private/tmp/tsrust-gate73/archive.log",
+  "logSha256": "a0b1c522688f4048ba9e30fcd397b12e456c99245acc301dce4fe807b182ee1d"
+}

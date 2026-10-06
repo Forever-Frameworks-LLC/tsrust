@@ -1,0 +1,64 @@
+[
+  {
+    "id": "quoted_string_literals_ascii",
+    "category": "strings",
+    "family": "quoted-string-literals",
+    "inputFamily": "ascii",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "dynamic ASCII",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one dynamic quoted-string pool selection and explicit clone with one complete retained string",
+    "specification": "Both quote styles, byte/Unicode/code-point escapes, identity/control escapes and all five line-continuation forms decode at compile time to valid Unicode scalars. Native excludes lone UTF16 surrogates; paired escapes form their scalar.",
+    "notes": "Whole timed workload includes borrowed input/pool setup, dynamic selection, explicit clone(values[at]), loop and natural String[] retention. TypeScript clone is identity; native ordinary Cow clone shares static literals and independently copies owned input. Complete content observation is outside timing. Quote decoding happens at compile time; these rates describe selection/cloning/retention, never decoding throughput. Ordinary optimization remains allowed; no JavaScript allocation parity claim.",
+    "sourceRequired": [
+      "function workload(n: int, seed: int, input: string): string[] {\n    const values: string[] = [clone(input), 'plain single', \"plain double\", '\\x41\\x00Z', \"\\u0042\\u0000Y\", '\\u{43}\\u{0}X', 'quote\\' slash\\\\', \"quote\\\" slash\\\\\", '\\q\\$\\_', \"\\b\\f\\n\\r\\t\\v\\0\", 'join\\\ned', \"join\\\red\", 'join\\\r\ned', \"join\\ ed\", 'join\\ ed', ''];\n",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 16;",
+      "const selected: string = clone(values[at]);",
+      "output.push(selected);",
+      "i = i + 1;",
+      "return output;"
+    ],
+    "sourceSha256": "550eaf2d6cb0ae7778e204b67187d5df2a5159ff1fbabd424ac4bee957886128",
+    "counterpartSha256": "94a26b244e2b8cd8df2c14d4846d2226af63429d1300e09dd5927e56f4882260"
+  },
+  {
+    "id": "quoted_string_literals_unicode",
+    "category": "strings",
+    "family": "quoted-string-literals",
+    "inputFamily": "unicode",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "dynamic é😀",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one dynamic quoted-string pool selection and explicit clone with one complete retained string",
+    "specification": "Both quote styles, byte/Unicode/code-point escapes, identity/control escapes and all five line-continuation forms decode at compile time to valid Unicode scalars. Native excludes lone UTF16 surrogates; paired escapes form their scalar.",
+    "notes": "Whole timed workload includes borrowed input/pool setup, dynamic selection, explicit clone(values[at]), loop and natural String[] retention. TypeScript clone is identity; native ordinary Cow clone shares static literals and independently copies owned input. Complete content observation is outside timing. Quote decoding happens at compile time; these rates describe selection/cloning/retention, never decoding throughput. Ordinary optimization remains allowed; no JavaScript allocation parity claim.",
+    "sourceRequired": [
+      "function workload(n: int, seed: int, input: string): string[] {\n    const values: string[] = [clone(input), 'é😀', \"BOM\\uFEFF中\", '\\xE9', \"\\u00E9\\u4E2D\", '\\u{1F600}\\u{10FFFF}', \"\\uD83D\\uDE00\", '\\u0065\\u0301', '\\qé\\$\\_', \"\\0é😀\", 'é\\\n😀', \"é\\\r😀\", 'é\\\r\n😀', \"é\\ 😀\", 'é\\ 😀', \"\"];\n",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 16;",
+      "const selected: string = clone(values[at]);",
+      "output.push(selected);",
+      "i = i + 1;",
+      "return output;"
+    ],
+    "sourceSha256": "7a645b692d08b5b1c54dd8c7c0cf1be2308b3e7a343a6d7828cedc9c755deb95",
+    "counterpartSha256": "039570fcf468600d7f82840245ff5ca8bf67deae5fc241824f4c10f946f85610"
+  }
+]

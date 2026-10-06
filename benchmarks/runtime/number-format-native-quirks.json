@@ -1,0 +1,28 @@
+{
+  "nativeExecuted": false,
+  "javascriptEquivalenceClaimed": false,
+  "nativeRounding": "standard Rust exact ties-to-even",
+  "cells": [
+    {
+      "source": "(2.5).toFixed()",
+      "nativeExpected": "2",
+      "javascriptExpected": "3"
+    },
+    {
+      "source": "(-2.5).toFixed()",
+      "nativeExpected": "-2",
+      "javascriptExpected": "-3"
+    },
+    {
+      "source": "(1.25).toFixed(1)",
+      "nativeExpected": "1.2",
+      "javascriptExpected": "1.3"
+    },
+    {
+      "source": "(-1.25).toFixed(1)",
+      "nativeExpected": "-1.2",
+      "javascriptExpected": "-1.3"
+    }
+  ],
+  "shortest": "Standard Rust Display/LowerExp supplies shortest digits; equal-distance shortest choices are native behavior, not a universal ECMAScript guarantee. Actual shared-pool native verification pending."
+}

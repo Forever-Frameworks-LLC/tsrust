@@ -1,0 +1,16 @@
+type Trace = { predicates: int; left: int; right: int; };
+function workload(n: int, seed: int): int[] {
+    const output: int[] = []; const trace: Trace = { predicates: 0, left: 0, right: 0 }; let i = 0;
+    while (i < n) {
+        const left: int = (i * 13 + seed) % 64; const right: int = (i * 7 + seed) % 64 + 64;
+        const selected: int = predicate(trace, (i + seed) % 2 === 0) ? leftValue(trace, left) : rightValue(trace, right);
+        output.push(selected);
+        i = i + 1;
+    }
+    output.push(trace.predicates); output.push(trace.left); output.push(trace.right);
+    return output;
+}
+function predicate(trace: Trace, flag: boolean): boolean { trace.predicates = trace.predicates + 1; return flag; }
+function leftValue(trace: Trace, value: int): int { trace.left = trace.left + 1; return value; }
+function rightValue(trace: Trace, value: int): int { trace.right = trace.right + 1; return value; }
+function main() { const result = workload(2, 7); }

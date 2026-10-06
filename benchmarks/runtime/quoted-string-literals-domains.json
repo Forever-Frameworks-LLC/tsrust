@@ -1,0 +1,76 @@
+{
+  "ascii": {
+    "lexemes": [
+      "'plain single'",
+      "\"plain double\"",
+      "'\\x41\\x00Z'",
+      "\"\\u0042\\u0000Y\"",
+      "'\\u{43}\\u{0}X'",
+      "'quote\\' slash\\\\'",
+      "\"quote\\\" slash\\\\\"",
+      "'\\q\\$\\_'",
+      "\"\\b\\f\\n\\r\\t\\v\\0\"",
+      "'join\\\ned'",
+      "\"join\\\red\"",
+      "'join\\\r\ned'",
+      "\"join\\ ed\"",
+      "'join\\ ed'",
+      "''"
+    ],
+    "decoded": [
+      "plain single",
+      "plain double",
+      "A\u0000Z",
+      "B\u0000Y",
+      "C\u0000X",
+      "quote' slash\\",
+      "quote\" slash\\",
+      "q$_",
+      "\b\f\n\r\t\u000b\u0000",
+      "joined",
+      "joined",
+      "joined",
+      "joined",
+      "joined",
+      ""
+    ],
+    "inputText": "dynamic ASCII"
+  },
+  "unicode": {
+    "lexemes": [
+      "'é😀'",
+      "\"BOM\\uFEFF中\"",
+      "'\\xE9'",
+      "\"\\u00E9\\u4E2D\"",
+      "'\\u{1F600}\\u{10FFFF}'",
+      "\"\\uD83D\\uDE00\"",
+      "'\\u0065\\u0301'",
+      "'\\qé\\$\\_'",
+      "\"\\0é😀\"",
+      "'é\\\n😀'",
+      "\"é\\\r😀\"",
+      "'é\\\r\n😀'",
+      "\"é\\ 😀\"",
+      "'é\\ 😀'",
+      "\"\""
+    ],
+    "decoded": [
+      "é😀",
+      "BOM﻿中",
+      "é",
+      "é中",
+      "😀􏿿",
+      "😀",
+      "é",
+      "qé$_",
+      "\u0000é😀",
+      "é😀",
+      "é😀",
+      "é😀",
+      "é😀",
+      "é😀",
+      ""
+    ],
+    "inputText": "dynamic é😀"
+  }
+}

@@ -1,0 +1,15 @@
+import {observeSliceTree} from './slice-observation.mjs';import {validateArrayRemovalCase} from './array-removal-oracle.mjs';
+export const nullishAssignmentFamilies=['int','number','boolean','string','array','record','nullable_int','nullable_string'];
+export const nullishAssignmentIds=nullishAssignmentFamilies.map(f=>'nullish_assign_'+f+'_value');
+export function nullishAssignmentFamily(id){const at=nullishAssignmentIds.indexOf(id);if(at<0)throw Error('Nullish assignment ID');return nullishAssignmentFamilies[at];}
+export function validateNullishAssignmentCase(id,n,seed,input){const f=nullishAssignmentFamily(id);return validateArrayRemovalCase('array_pop_'+(f==='array'||f==='nullable_int'?'int':f==='nullable_string'?'string':f),n,seed,input);}
+function digits(value){if(value===0)return'0';let out='';while(value>0){out='0123456789'[value%10]+out;value=Math.floor(value/10);}return out;}
+// Independent explicit tag table; no assignment/coalescing operation is evaluated here.
+export function expectedNullishAssignmentValues(id,n,seed,input){input=validateNullishAssignmentCase(id,n,seed,input);const f=nullishAssignmentFamily(id),out=[];let calls=0;
+ for(let i=0;i<n;i++){const value=seed+i,missing=value%5<2,delta=missing?1:0;calls+=delta;let committed;
+ if(missing){if(f==='int')committed=value+100;else if(f==='number')committed=(value+100)/4;else if(f==='boolean')committed=value%2===0;else if(f==='string')committed=input+'|fallback:'+digits(value);else if(f==='array')committed=[value+100,value+101,value+102];else if(f==='record')committed=digits(value+100)+':'+input+'|fallback:'+digits(value);else if(f==='nullable_int')committed=value%2===0?null:value+100;else committed=value%2===0?undefined:input+'|fallback:'+digits(value);}
+ else{if(f==='int'||f==='nullable_int')committed=value%4;else if(f==='number')committed=[-0,0,NaN,Infinity,-Infinity,2.5,-2.5,value/4][value%8];else if(f==='boolean')committed=value%3!==0;else if(f==='string'||f==='nullable_string')committed=value%3===0?'':input+':'+digits(value);else if(f==='array')committed=value%3===0?[]:[value,value+1];else committed=digits(value%4)+':'+(value%3===0?'':input+':'+digits(value));}
+ if(f==='array')out.push([...committed],[...committed],[delta]);else if(f==='boolean')out.push([committed,committed,delta===0,delta===1]);else if(f==='nullable_int'||f==='nullable_string'){const text=committed===null?'null':committed===undefined?'undefined':f==='nullable_int'?digits(committed):committed,kind=committed===null?'object':committed===undefined?'undefined':f==='nullable_int'?'number':'string';out.push([text,kind,text,kind,digits(delta)]);}else out.push([committed,committed,['string','record'].includes(f)?digits(delta):delta]);
+ }if(f!=='boolean')out.push([['string','record','nullable_int','nullable_string'].includes(f)?digits(calls):calls]);return out;
+}
+export function expectedNullishAssignmentObservation(id,n,seed,input){return observeSliceTree(expectedNullishAssignmentValues(id,n,seed,input),{numbers:nullishAssignmentFamily(id)==='number'});}

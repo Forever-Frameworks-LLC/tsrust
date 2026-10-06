@@ -1,0 +1,448 @@
+[
+  {
+    "id": "string_substring_default_ascii",
+    "category": "strings",
+    "family": "string",
+    "stringMethod": "substring",
+    "variant": "default",
+    "inputFamily": "ascii",
+    "inputText": " A alpha Z ",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String.substring with one complete retained String",
+    "specification": "Dynamic eight-receiver selection with required start and omitted end. Native indices are UTF8 bytes; equal interior-byte ranges are empty. Retain full output content.",
+    "notes": "Whole workload includes input/pool setup, tuple initialization, dynamic receiver/index selection, actual substring, loop and complete String[] retention; no pure method latency claim. Static valid native slices can share Borrowed storage without allocations; owned slices copy independently. No JavaScript/native ownership or allocation parity claim. Complete observation is outside timing.",
+    "methodExpressions": {
+      "native": [
+        "values[at].substring(start)"
+      ],
+      "typescript": [
+        "values[at].substring(start)"
+      ]
+    },
+    "boundarySetup": {
+      "native": [
+        "const values: string[] = [clone(input), \"\", \"AB\", \"QZ\", \"eX\", \"a\\u0000bZ\", input.repeat(2), \"BOM\"];",
+        "const left: int[] = [0, 0, 1, 1, 1, 1, 0, 1];",
+        "const right: int[] = [values[0].length, 0, 2, 2, 2, 3, values[6].length, 2];",
+        "const equal: int[] = [0, 0, 1, 1, 1, 1, 0, 1];"
+      ],
+      "typescript": [
+        "const values: string[] = [clone(input), \"\", \"AB\", \"QZ\", \"eX\", \"a\\u0000bZ\", input.repeat(2), \"BOM\"];",
+        "const left: number[] = [0, 0, 1, 1, 1, 1, 0, 1];",
+        "const right: number[] = [values[0].length, 0, 2, 2, 2, 3, values[6].length, 2];",
+        "const equal: number[] = [0, 0, 1, 1, 1, 1, 0, 1];"
+      ]
+    },
+    "sourceSha256": "99fb2526ae336bac5c776234e306906c9f80a3740d32cc03648d57a586dd2e04",
+    "counterpartSha256": "0b62322d16dcf5b442b219ce6086416b9814ef707d51446af2bd3e36a28390d9",
+    "sourceSchedule": {
+      "native": [
+        "const at = (i * 13 + seed) % 8;",
+        "const tag = (i * 7 + seed) % 9;",
+        "let start: int = -1;",
+        "if (tag === 1) { start = left[at]; }",
+        "if (tag === 2) { start = right[at]; }",
+        "if (tag === 3) { start = 1000000000; }",
+        "if (tag === 4) { start = -10000; }",
+        "if (tag === 5) { start = 0; }",
+        "if (tag === 6) { start = values[at].length; }",
+        "if (tag === 7) { start = left[at]; }",
+        "if (tag === 8) { start = right[at]; }"
+      ],
+      "typescript": [
+        "const at = (i * 13 + seed) % 8;",
+        "const tag = (i * 7 + seed) % 9;",
+        "let start: number = -1;",
+        "if (tag === 1) { start = left[at]; }",
+        "if (tag === 2) { start = right[at]; }",
+        "if (tag === 3) { start = 1000000000; }",
+        "if (tag === 4) { start = -10000; }",
+        "if (tag === 5) { start = 0; }",
+        "if (tag === 6) { start = values[at].length; }",
+        "if (tag === 7) { start = left[at]; }",
+        "if (tag === 8) { start = right[at]; }"
+      ]
+    }
+  },
+  {
+    "id": "string_substring_default_unicode",
+    "category": "strings",
+    "family": "string",
+    "stringMethod": "substring",
+    "variant": "default",
+    "inputFamily": "unicode",
+    "inputText": " é😀é Z ",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String.substring with one complete retained String",
+    "specification": "Dynamic eight-receiver selection with required start and omitted end. Native indices are UTF8 bytes; equal interior-byte ranges are empty. Retain full output content.",
+    "notes": "Whole workload includes input/pool setup, tuple initialization, dynamic receiver/index selection, actual substring, loop and complete String[] retention; no pure method latency claim. Static valid native slices can share Borrowed storage without allocations; owned slices copy independently. No JavaScript/native ownership or allocation parity claim. Complete observation is outside timing. Unicode byte/UTF16 boundary tuples are constructed once inside timed setup; dynamic input receivers use only whole-value boundaries. Actual JS substring receives corresponding UTF16 indices. No per-operation encoder, bridge traversal or method reimplementation; mapping/setup cost remains timed.",
+    "methodExpressions": {
+      "native": [
+        "values[at].substring(start)"
+      ],
+      "typescript": [
+        "values[at].substring(start)"
+      ]
+    },
+    "boundarySetup": {
+      "native": [
+        "const values: string[] = [clone(input), \"\", \"Aé\", \"😀Z\", \"e\\u0301\", \"a\\u0000é😀\", input.repeat(2), \"\\uFEFF中Z\"];",
+        "const left: int[] = [0, 0, 1, 4, 1, 2, 0, 3];",
+        "const right: int[] = [values[0].length, 0, 3, 5, 3, 4, values[6].length, 6];",
+        "const equal: int[] = [0, 0, 2, 1, 2, 3, 0, 1];"
+      ],
+      "typescript": [
+        "const values: string[] = [clone(input), \"\", \"Aé\", \"😀Z\", \"e\\u0301\", \"a\\u0000é😀\", input.repeat(2), \"\\uFEFF中Z\"];",
+        "const left: number[] = [0, 0, 1, 2, 1, 2, 0, 1];",
+        "const right: number[] = [values[0].length, 0, 2, 3, 2, 3, values[6].length, 2];",
+        "const equal: number[] = [0, 0, 1, 1, 1, 2, 0, 1];"
+      ]
+    },
+    "sourceSha256": "d67fd0ce74e191eb8a80a0d2aba02d8d0ec8bdd539cbcf6e3be4ccded4eef7a2",
+    "counterpartSha256": "064942b02b6fd52e035b111565f4e9262f81edc8632506c8b93b5657896e685e",
+    "sourceSchedule": {
+      "native": [
+        "const at = (i * 13 + seed) % 8;",
+        "const tag = (i * 7 + seed) % 9;",
+        "let start: int = -1;",
+        "if (tag === 1) { start = left[at]; }",
+        "if (tag === 2) { start = right[at]; }",
+        "if (tag === 3) { start = 1000000000; }",
+        "if (tag === 4) { start = -10000; }",
+        "if (tag === 5) { start = 0; }",
+        "if (tag === 6) { start = values[at].length; }",
+        "if (tag === 7) { start = left[at]; }",
+        "if (tag === 8) { start = right[at]; }"
+      ],
+      "typescript": [
+        "const at = (i * 13 + seed) % 8;",
+        "const tag = (i * 7 + seed) % 9;",
+        "let start: number = -1;",
+        "if (tag === 1) { start = left[at]; }",
+        "if (tag === 2) { start = right[at]; }",
+        "if (tag === 3) { start = 1000000000; }",
+        "if (tag === 4) { start = -10000; }",
+        "if (tag === 5) { start = 0; }",
+        "if (tag === 6) { start = values[at].length; }",
+        "if (tag === 7) { start = left[at]; }",
+        "if (tag === 8) { start = right[at]; }"
+      ]
+    }
+  },
+  {
+    "id": "string_substring_bounded_ascii",
+    "category": "strings",
+    "family": "string",
+    "stringMethod": "substring",
+    "variant": "bounded",
+    "inputFamily": "ascii",
+    "inputText": " A alpha Z ",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String.substring with one complete retained String",
+    "specification": "Dynamic eight-receiver selection with clamped/signed bounds and swapped ranges. Native indices are UTF8 bytes; equal interior-byte ranges are empty. Retain full output content.",
+    "notes": "Whole workload includes input/pool setup, tuple initialization, dynamic receiver/index selection, actual substring, loop and complete String[] retention; no pure method latency claim. Static valid native slices can share Borrowed storage without allocations; owned slices copy independently. No JavaScript/native ownership or allocation parity claim. Complete observation is outside timing.",
+    "methodExpressions": {
+      "native": [
+        "values[at].substring(start, end)"
+      ],
+      "typescript": [
+        "values[at].substring(start, end)"
+      ]
+    },
+    "boundarySetup": {
+      "native": [
+        "const values: string[] = [clone(input), \"\", \"AB\", \"QZ\", \"eX\", \"a\\u0000bZ\", input.repeat(2), \"BOM\"];",
+        "const left: int[] = [0, 0, 1, 1, 1, 1, 0, 1];",
+        "const right: int[] = [values[0].length, 0, 2, 2, 2, 3, values[6].length, 2];",
+        "const equal: int[] = [0, 0, 1, 1, 1, 1, 0, 1];"
+      ],
+      "typescript": [
+        "const values: string[] = [clone(input), \"\", \"AB\", \"QZ\", \"eX\", \"a\\u0000bZ\", input.repeat(2), \"BOM\"];",
+        "const left: number[] = [0, 0, 1, 1, 1, 1, 0, 1];",
+        "const right: number[] = [values[0].length, 0, 2, 2, 2, 3, values[6].length, 2];",
+        "const equal: number[] = [0, 0, 1, 1, 1, 1, 0, 1];"
+      ]
+    },
+    "sourceSha256": "ca2b15b010e89ba6329a190a91d7024ff766d4a56c95b4a0f993eb0fd96f212a",
+    "counterpartSha256": "7524f8dfa565b658015a1f5d871a32c5970c3e8c8cc5065c85f014b7f2c06a87",
+    "sourceSchedule": {
+      "native": [
+        "const at = (i * 13 + seed) % 8;",
+        "const tag = (i * 7 + seed) % 9;",
+        "let from: int = -1; let to: int = 1000000000;",
+        "if (tag === 1) { from = left[at]; to = right[at]; }",
+        "if (tag === 2) { from = equal[at]; to = equal[at]; }",
+        "if (tag === 3) { from = 1000000000; to = 1000000000; }",
+        "if (tag === 4) { from = -10000; to = 0; }",
+        "if (tag === 5) { from = 0; to = right[at]; }",
+        "if (tag === 6) { from = left[at]; to = values[at].length; }",
+        "if (tag === 7) { from = right[at]; to = left[at]; }",
+        "if (tag === 8) { from = values[at].length; to = 0; }",
+        "const start: int = from; const end: int = to;"
+      ],
+      "typescript": [
+        "const at = (i * 13 + seed) % 8;",
+        "const tag = (i * 7 + seed) % 9;",
+        "let from: number = -1; let to: number = 1000000000;",
+        "if (tag === 1) { from = left[at]; to = right[at]; }",
+        "if (tag === 2) { from = equal[at]; to = equal[at]; }",
+        "if (tag === 3) { from = 1000000000; to = 1000000000; }",
+        "if (tag === 4) { from = -10000; to = 0; }",
+        "if (tag === 5) { from = 0; to = right[at]; }",
+        "if (tag === 6) { from = left[at]; to = values[at].length; }",
+        "if (tag === 7) { from = right[at]; to = left[at]; }",
+        "if (tag === 8) { from = values[at].length; to = 0; }",
+        "const start: number = from; const end: number = to;"
+      ]
+    }
+  },
+  {
+    "id": "string_substring_bounded_unicode",
+    "category": "strings",
+    "family": "string",
+    "stringMethod": "substring",
+    "variant": "bounded",
+    "inputFamily": "unicode",
+    "inputText": " é😀é Z ",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String.substring with one complete retained String",
+    "specification": "Dynamic eight-receiver selection with clamped/signed bounds and swapped ranges. Native indices are UTF8 bytes; equal interior-byte ranges are empty. Retain full output content.",
+    "notes": "Whole workload includes input/pool setup, tuple initialization, dynamic receiver/index selection, actual substring, loop and complete String[] retention; no pure method latency claim. Static valid native slices can share Borrowed storage without allocations; owned slices copy independently. No JavaScript/native ownership or allocation parity claim. Complete observation is outside timing. Unicode byte/UTF16 boundary tuples are constructed once inside timed setup; dynamic input receivers use only whole-value boundaries. Actual JS substring receives corresponding UTF16 indices. No per-operation encoder, bridge traversal or method reimplementation; mapping/setup cost remains timed.",
+    "methodExpressions": {
+      "native": [
+        "values[at].substring(start, end)"
+      ],
+      "typescript": [
+        "values[at].substring(start, end)"
+      ]
+    },
+    "boundarySetup": {
+      "native": [
+        "const values: string[] = [clone(input), \"\", \"Aé\", \"😀Z\", \"e\\u0301\", \"a\\u0000é😀\", input.repeat(2), \"\\uFEFF中Z\"];",
+        "const left: int[] = [0, 0, 1, 4, 1, 2, 0, 3];",
+        "const right: int[] = [values[0].length, 0, 3, 5, 3, 4, values[6].length, 6];",
+        "const equal: int[] = [0, 0, 2, 1, 2, 3, 0, 1];"
+      ],
+      "typescript": [
+        "const values: string[] = [clone(input), \"\", \"Aé\", \"😀Z\", \"e\\u0301\", \"a\\u0000é😀\", input.repeat(2), \"\\uFEFF中Z\"];",
+        "const left: number[] = [0, 0, 1, 2, 1, 2, 0, 1];",
+        "const right: number[] = [values[0].length, 0, 2, 3, 2, 3, values[6].length, 2];",
+        "const equal: number[] = [0, 0, 1, 1, 1, 2, 0, 1];"
+      ]
+    },
+    "sourceSha256": "4850c4cdcfd61ad101f17dffac9288468a7dd320481816110cade86c7e610924",
+    "counterpartSha256": "453f2c43e520ffa173c9e0593e6dfce706b4aa8dbdad1a44ff83e6c4561690e9",
+    "sourceSchedule": {
+      "native": [
+        "const at = (i * 13 + seed) % 8;",
+        "const tag = (i * 7 + seed) % 9;",
+        "let from: int = -1; let to: int = 1000000000;",
+        "if (tag === 1) { from = left[at]; to = right[at]; }",
+        "if (tag === 2) { from = equal[at]; to = equal[at]; }",
+        "if (tag === 3) { from = 1000000000; to = 1000000000; }",
+        "if (tag === 4) { from = -10000; to = 0; }",
+        "if (tag === 5) { from = 0; to = right[at]; }",
+        "if (tag === 6) { from = left[at]; to = values[at].length; }",
+        "if (tag === 7) { from = right[at]; to = left[at]; }",
+        "if (tag === 8) { from = values[at].length; to = 0; }",
+        "const start: int = from; const end: int = to;"
+      ],
+      "typescript": [
+        "const at = (i * 13 + seed) % 8;",
+        "const tag = (i * 7 + seed) % 9;",
+        "let from: number = -1; let to: number = 1000000000;",
+        "if (tag === 1) { from = left[at]; to = right[at]; }",
+        "if (tag === 2) { from = equal[at]; to = equal[at]; }",
+        "if (tag === 3) { from = 1000000000; to = 1000000000; }",
+        "if (tag === 4) { from = -10000; to = 0; }",
+        "if (tag === 5) { from = 0; to = right[at]; }",
+        "if (tag === 6) { from = left[at]; to = values[at].length; }",
+        "if (tag === 7) { from = right[at]; to = left[at]; }",
+        "if (tag === 8) { from = values[at].length; to = 0; }",
+        "const start: number = from; const end: number = to;"
+      ]
+    }
+  },
+  {
+    "id": "string_substring_swapped_ascii",
+    "category": "strings",
+    "family": "string",
+    "stringMethod": "substring",
+    "variant": "swapped",
+    "inputFamily": "ascii",
+    "inputText": " A alpha Z ",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String.substring with one complete retained String",
+    "specification": "Dynamic eight-receiver selection with reversed ordered bounds, including clamped full/partial/empty ranges. Native indices are UTF8 bytes; equal interior-byte ranges are empty. Retain full output content.",
+    "notes": "Whole workload includes input/pool setup, tuple initialization, dynamic receiver/index selection, actual substring, loop and complete String[] retention; no pure method latency claim. Static valid native slices can share Borrowed storage without allocations; owned slices copy independently. No JavaScript/native ownership or allocation parity claim. Complete observation is outside timing.",
+    "methodExpressions": {
+      "native": [
+        "values[at].substring(start, end)"
+      ],
+      "typescript": [
+        "values[at].substring(start, end)"
+      ]
+    },
+    "boundarySetup": {
+      "native": [
+        "const values: string[] = [clone(input), \"\", \"AB\", \"QZ\", \"eX\", \"a\\u0000bZ\", input.repeat(2), \"BOM\"];",
+        "const left: int[] = [0, 0, 1, 1, 1, 1, 0, 1];",
+        "const right: int[] = [values[0].length, 0, 2, 2, 2, 3, values[6].length, 2];",
+        "const equal: int[] = [0, 0, 1, 1, 1, 1, 0, 1];"
+      ],
+      "typescript": [
+        "const values: string[] = [clone(input), \"\", \"AB\", \"QZ\", \"eX\", \"a\\u0000bZ\", input.repeat(2), \"BOM\"];",
+        "const left: number[] = [0, 0, 1, 1, 1, 1, 0, 1];",
+        "const right: number[] = [values[0].length, 0, 2, 2, 2, 3, values[6].length, 2];",
+        "const equal: number[] = [0, 0, 1, 1, 1, 1, 0, 1];"
+      ]
+    },
+    "sourceSha256": "13421abd04635228ec1b0f54ed38eba48982bd825d91e4805635d70a4c4d182f",
+    "counterpartSha256": "a50101a57b4b0470c6a7d86cea2c780efa8e1ac90f12397ef367bc1a61cb186c",
+    "sourceSchedule": {
+      "native": [
+        "const at = (i * 13 + seed) % 8;",
+        "const tag = (i * 7 + seed) % 9;",
+        "let from: int = -1; let to: int = 1000000000;",
+        "if (tag === 1) { from = left[at]; to = right[at]; }",
+        "if (tag === 2) { from = equal[at]; to = equal[at]; }",
+        "if (tag === 3) { from = 1000000000; to = 1000000000; }",
+        "if (tag === 4) { from = -10000; to = 0; }",
+        "if (tag === 5) { from = 0; to = right[at]; }",
+        "if (tag === 6) { from = left[at]; to = values[at].length; }",
+        "if (tag === 7) { from = right[at]; to = left[at]; }",
+        "if (tag === 8) { from = values[at].length; to = 0; }",
+        "const start: int = to; const end: int = from;"
+      ],
+      "typescript": [
+        "const at = (i * 13 + seed) % 8;",
+        "const tag = (i * 7 + seed) % 9;",
+        "let from: number = -1; let to: number = 1000000000;",
+        "if (tag === 1) { from = left[at]; to = right[at]; }",
+        "if (tag === 2) { from = equal[at]; to = equal[at]; }",
+        "if (tag === 3) { from = 1000000000; to = 1000000000; }",
+        "if (tag === 4) { from = -10000; to = 0; }",
+        "if (tag === 5) { from = 0; to = right[at]; }",
+        "if (tag === 6) { from = left[at]; to = values[at].length; }",
+        "if (tag === 7) { from = right[at]; to = left[at]; }",
+        "if (tag === 8) { from = values[at].length; to = 0; }",
+        "const start: number = to; const end: number = from;"
+      ]
+    }
+  },
+  {
+    "id": "string_substring_swapped_unicode",
+    "category": "strings",
+    "family": "string",
+    "stringMethod": "substring",
+    "variant": "swapped",
+    "inputFamily": "unicode",
+    "inputText": " é😀é Z ",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String.substring with one complete retained String",
+    "specification": "Dynamic eight-receiver selection with reversed ordered bounds, including clamped full/partial/empty ranges. Native indices are UTF8 bytes; equal interior-byte ranges are empty. Retain full output content.",
+    "notes": "Whole workload includes input/pool setup, tuple initialization, dynamic receiver/index selection, actual substring, loop and complete String[] retention; no pure method latency claim. Static valid native slices can share Borrowed storage without allocations; owned slices copy independently. No JavaScript/native ownership or allocation parity claim. Complete observation is outside timing. Unicode byte/UTF16 boundary tuples are constructed once inside timed setup; dynamic input receivers use only whole-value boundaries. Actual JS substring receives corresponding UTF16 indices. No per-operation encoder, bridge traversal or method reimplementation; mapping/setup cost remains timed.",
+    "methodExpressions": {
+      "native": [
+        "values[at].substring(start, end)"
+      ],
+      "typescript": [
+        "values[at].substring(start, end)"
+      ]
+    },
+    "boundarySetup": {
+      "native": [
+        "const values: string[] = [clone(input), \"\", \"Aé\", \"😀Z\", \"e\\u0301\", \"a\\u0000é😀\", input.repeat(2), \"\\uFEFF中Z\"];",
+        "const left: int[] = [0, 0, 1, 4, 1, 2, 0, 3];",
+        "const right: int[] = [values[0].length, 0, 3, 5, 3, 4, values[6].length, 6];",
+        "const equal: int[] = [0, 0, 2, 1, 2, 3, 0, 1];"
+      ],
+      "typescript": [
+        "const values: string[] = [clone(input), \"\", \"Aé\", \"😀Z\", \"e\\u0301\", \"a\\u0000é😀\", input.repeat(2), \"\\uFEFF中Z\"];",
+        "const left: number[] = [0, 0, 1, 2, 1, 2, 0, 1];",
+        "const right: number[] = [values[0].length, 0, 2, 3, 2, 3, values[6].length, 2];",
+        "const equal: number[] = [0, 0, 1, 1, 1, 2, 0, 1];"
+      ]
+    },
+    "sourceSha256": "f9bcbce818a90f7db49bae78b244ce0f7007837e2fddfa7cf984937fa7a3d15e",
+    "counterpartSha256": "92a9ea56788a27a93bde9fbe6b6b3997d91f533b4bed868e185376db6e8fb4ab",
+    "sourceSchedule": {
+      "native": [
+        "const at = (i * 13 + seed) % 8;",
+        "const tag = (i * 7 + seed) % 9;",
+        "let from: int = -1; let to: int = 1000000000;",
+        "if (tag === 1) { from = left[at]; to = right[at]; }",
+        "if (tag === 2) { from = equal[at]; to = equal[at]; }",
+        "if (tag === 3) { from = 1000000000; to = 1000000000; }",
+        "if (tag === 4) { from = -10000; to = 0; }",
+        "if (tag === 5) { from = 0; to = right[at]; }",
+        "if (tag === 6) { from = left[at]; to = values[at].length; }",
+        "if (tag === 7) { from = right[at]; to = left[at]; }",
+        "if (tag === 8) { from = values[at].length; to = 0; }",
+        "const start: int = to; const end: int = from;"
+      ],
+      "typescript": [
+        "const at = (i * 13 + seed) % 8;",
+        "const tag = (i * 7 + seed) % 9;",
+        "let from: number = -1; let to: number = 1000000000;",
+        "if (tag === 1) { from = left[at]; to = right[at]; }",
+        "if (tag === 2) { from = equal[at]; to = equal[at]; }",
+        "if (tag === 3) { from = 1000000000; to = 1000000000; }",
+        "if (tag === 4) { from = -10000; to = 0; }",
+        "if (tag === 5) { from = 0; to = right[at]; }",
+        "if (tag === 6) { from = left[at]; to = values[at].length; }",
+        "if (tag === 7) { from = right[at]; to = left[at]; }",
+        "if (tag === 8) { from = values[at].length; to = 0; }",
+        "const start: number = to; const end: number = from;"
+      ]
+    }
+  }
+]

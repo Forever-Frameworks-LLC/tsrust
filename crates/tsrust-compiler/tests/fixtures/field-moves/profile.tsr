@@ -1,0 +1,20 @@
+type Details = { name: string; tags: string[]; };
+type Profile = { details: Details; count: int; };
+
+function take(profile: Profile): string {
+  const name = profile.details.name;
+  console.log(profile.details.tags[0]);
+  console.log(profile.count);
+  profile.details.name = "New";
+  const restored = profile;
+  console.log(restored.details.name);
+  return name;
+}
+
+function main() {
+  const profile: Profile = {
+    details: { name: "Pat", tags: ["admin"] },
+    count: 7
+  };
+  console.log(take(profile));
+}

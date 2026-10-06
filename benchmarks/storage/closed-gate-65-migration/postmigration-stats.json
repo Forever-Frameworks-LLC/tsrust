@@ -1,0 +1,13 @@
+{
+  "records": 12519,
+  "blobs": 9010,
+  "databaseBytes": 109899776,
+  "databaseGrowthBytes": 1474560,
+  "files": 987,
+  "originalLogicalBytes": 8355650,
+  "originalAllocatedBytes": 10035200,
+  "grossAllocatedBytesReclaimed": 8560640,
+  "migrationEvidenceAllocatedBytes": 753664,
+  "netAllocatedBytesReclaimedAfterEvidence": 7806976,
+  "protectedFilesExact": 446
+}

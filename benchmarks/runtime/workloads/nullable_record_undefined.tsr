@@ -1,0 +1,17 @@
+type NullableBenchRecord = { tag: int; text: string; };
+function workload(n: int, seed: int, input: string): string[] {
+    const output: string[] = []; let i = 0;
+    while (i < n) {
+        const mode = (i + seed) % 3;
+        const initial: NullableBenchRecord | undefined = mode === 0 ? undefined : {tag: seed + i, text: input.repeat(1)};
+        const value: NullableBenchRecord | undefined = pass(initial);
+        output.push(typeof value);
+        output.push(String(value));
+        output.push(Boolean(value) ? "true" : "false");
+        output.push(value === undefined ? "sentinel" : "payload");
+        i = i + 1;
+    }
+    return output;
+}
+function pass(value: NullableBenchRecord | undefined): NullableBenchRecord | undefined { return value; }
+function main() { const result = workload(2, 7, "dynamic text"); }

@@ -1,0 +1,86 @@
+[
+  {
+    "id": "string_add_direct_ascii",
+    "category": "strings",
+    "family": "ascii",
+    "additionKind": "direct",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": " A alpha Z ",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one retained complete addition result; direct performs one binary addition and chained performs two left-associated binary additions",
+    "specification": "Select two string operands from a runtime-dependent mixed owned/literal pool, then use actual string + and retain the complete result. Operands remain reusable. All UTF8 content and output order are observable.",
+    "notes": "Input cloning/repetition, operand selection, actual additions and complete output retention are timed. Observation runs outside timing. Native additions produce independent owned strings, including the chained intermediate; JavaScript may use immutable ropes or shared storage. Literal-only correctness cells are separate from throughput. No coordinate conversion, custom storage, isolated-call latency or equal allocation claim.",
+    "sourceSha256": "46ee0cdba4119571f7831c38ec99db259061a7fe6f851d375114afddeb9ca43f",
+    "counterpartSha256": "557534c1081dced2cfcab9c946364330df8877877908022bff26289a392d7970"
+  },
+  {
+    "id": "string_add_direct_unicode",
+    "category": "strings",
+    "family": "unicode",
+    "additionKind": "direct",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": " é😀é Z ",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one retained complete addition result; direct performs one binary addition and chained performs two left-associated binary additions",
+    "specification": "Select two string operands from a runtime-dependent mixed owned/literal pool, then use actual string + and retain the complete result. Operands remain reusable. All UTF8 content and output order are observable.",
+    "notes": "Input cloning/repetition, operand selection, actual additions and complete output retention are timed. Observation runs outside timing. Native additions produce independent owned strings, including the chained intermediate; JavaScript may use immutable ropes or shared storage. Literal-only correctness cells are separate from throughput. No coordinate conversion, custom storage, isolated-call latency or equal allocation claim.",
+    "sourceSha256": "1fd4c66902c1b3e34f781a996088563eea1d7a6f6462c32ab213dde22b92b42e",
+    "counterpartSha256": "df2b9414f074ba0a18ce58ff8c5b808cea51a238a69f264760c78b1b1fcf815a"
+  },
+  {
+    "id": "string_add_chained_ascii",
+    "category": "strings",
+    "family": "ascii",
+    "additionKind": "chained",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": " A alpha Z ",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one retained complete addition result; direct performs one binary addition and chained performs two left-associated binary additions",
+    "specification": "Select three string operands from a runtime-dependent mixed owned/literal pool, then use actual string + and retain the complete result. Operands remain reusable. All UTF8 content and output order are observable.",
+    "notes": "Input cloning/repetition, operand selection, actual additions and complete output retention are timed. Observation runs outside timing. Native additions produce independent owned strings, including the chained intermediate; JavaScript may use immutable ropes or shared storage. Literal-only correctness cells are separate from throughput. No coordinate conversion, custom storage, isolated-call latency or equal allocation claim.",
+    "sourceSha256": "9b7e55f1907e4cff045005300f11ce66bcdb1f2c48919974c08c8b37cd30e18d",
+    "counterpartSha256": "cf6113657676df08f648f35a2b49caac49e9f16d67e8b3cbdf035105744f8fb9"
+  },
+  {
+    "id": "string_add_chained_unicode",
+    "category": "strings",
+    "family": "unicode",
+    "additionKind": "chained",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": " é😀é Z ",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one retained complete addition result; direct performs one binary addition and chained performs two left-associated binary additions",
+    "specification": "Select three string operands from a runtime-dependent mixed owned/literal pool, then use actual string + and retain the complete result. Operands remain reusable. All UTF8 content and output order are observable.",
+    "notes": "Input cloning/repetition, operand selection, actual additions and complete output retention are timed. Observation runs outside timing. Native additions produce independent owned strings, including the chained intermediate; JavaScript may use immutable ropes or shared storage. Literal-only correctness cells are separate from throughput. No coordinate conversion, custom storage, isolated-call latency or equal allocation claim.",
+    "sourceSha256": "10b97dccf9bbe07bf9f91b457899cb7dc419bd1646bea94f43f3dc7b220e097c",
+    "counterpartSha256": "15cbe2993ffc5b8bbfe0485541130b8fbcdc3aa8af696ac606a25d5b647b64d5"
+  }
+]

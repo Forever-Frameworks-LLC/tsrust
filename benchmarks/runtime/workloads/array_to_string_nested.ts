@@ -1,0 +1,15 @@
+type int = number;
+function workload(n: int, seed: int): string[] {
+    const values: int[][] = [[seed, 1], [], [2, 3], [4], [5, 6, 7]];
+    const output: string[] = []; let i = 0;
+    while (i < n) {
+        const count = (i + seed) % 6;
+        let joined: string = "";
+        const receiver = values.slice(0, count);
+        joined = receiver.toString();
+        output.push(joined);
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7); }

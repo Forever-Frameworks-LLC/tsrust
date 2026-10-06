@@ -1,0 +1,26 @@
+type int = number;
+interface String { substr(from?: number, length?: number): string; }
+function workload(n: int, seed: int, input: string): string[] {
+    const values: string[] = [clone(input), "", "é😀Z", "a\u0000é😀", "e\u0301", "\uFEFF中Z", input.repeat(2), "\uFDD0\uFFFF\u{10FFFF}"];
+    const bounds: int[][][] = [
+        [[0, input.length], [1, 0], [1000000, 7], [-1000000, input.length], [0, input.length], [-input.length, input.length], [1, -1], [0, 1000000], [-1000000, 0]],
+        [[0, 0], [1, 0], [1000000, 7], [-1000000, 0], [0, 0], [-1, 5], [1, -1], [0, 1000000], [-1000000, 0]],
+        [[0, 4], [1, 0], [1000000, 7], [-1000000, 4], [1, 2], [-1, 1], [1, -1], [1, 1000000], [-1000000, 0]],
+        [[0, 5], [1, 0], [1000000, 7], [-1000000, 5], [2, 1], [-2, 2], [1, -1], [2, 1000000], [-1000000, 0]],
+        [[0, 2], [1, 0], [1000000, 7], [-1000000, 2], [1, 1], [-1, 1], [1, -1], [1, 1000000], [-1000000, 0]],
+        [[0, 3], [1, 0], [1000000, 7], [-1000000, 3], [1, 1], [-1, 1], [1, -1], [1, 1000000], [-1000000, 0]],
+        [[0, input.length * 2], [1, 0], [1000000, 7], [-1000000, input.length * 2], [input.length, input.length], [-input.length, input.length], [1, -1], [input.length, 1000000], [-1000000, 0]],
+        [[0, 4], [1, 0], [1000000, 7], [-1000000, 4], [2, 2], [-2, 2], [1, -1], [2, 1000000], [-1000000, 0]]
+    ];
+    const output: string[] = []; let i = 0;
+    while (i < n) {
+        const at = (i * 13 + seed) % 8;
+        const mode = (i * 7 + seed) % 9;
+        const selected: string = values[at].substr(bounds[at][mode][0], bounds[at][mode][1]);
+        output.push(selected);
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7, "dynamic é😀"); }
+function clone<T>(value: T): T { return value; }

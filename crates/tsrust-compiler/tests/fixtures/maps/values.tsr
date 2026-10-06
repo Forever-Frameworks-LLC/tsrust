@@ -1,0 +1,77 @@
+import {strictEqual} from "std:testing";
+type Box={label:string;};
+type Bag={values:Map<string,int>;};
+enum State { Ready, Busy }
+function sizeOf<K,V>(values:Map<K,V>):int{return values.size;}
+function make():Map<int,string>{return new Map<int,string>([[4,"four"]]);}
+function main(){
+ const initial:[string,int][]=[["a",1],["b",2],["a",3]];
+ const counts=new Map<string,int>(initial);
+ strictEqual(counts.size,2);
+ strictEqual(counts.get("a")??0,3);
+ strictEqual(counts.has("b"),true);
+ counts.set("c",4);
+ strictEqual(counts.delete("b"),true);
+ strictEqual(counts.delete("missing"),false);
+ strictEqual<int|undefined>(counts.get("missing"),undefined);
+ strictEqual(initial.length,3);
+ const names=new Map<int,string>();
+ names.set(1,String("one"));
+ {
+  const text=names.get(1);
+  strictEqual(text??"missing","one");
+ }
+ names.clear();
+ strictEqual(names.size,0);
+ const boxes=new Map<int,Box>();
+ boxes.set(1,{label:"box"});
+ {
+  const box=boxes.get(1);
+  strictEqual(box?.label??"missing","box");
+ }
+ boxes.delete(1);
+ const copied=new Map<string,int>(counts);
+ strictEqual(copied.get("a")??0,3);
+ counts.clear();
+ strictEqual(copied.size,2);
+ const temporary=new Map<int,string>([[1,"temporary"]]).get(1);
+ strictEqual(temporary??"missing","temporary");
+ const numbers=new Map<number,int>([[NaN,1],[NaN,2],[-0.0,3],[0.0,4]]);
+ strictEqual(numbers.size,2);
+ strictEqual(numbers.get(NaN)??0,2);
+ strictEqual(numbers.get(-0.0)??0,4);
+ strictEqual(numbers.delete(NaN),true);
+ const alternatives=new Map<int|string,string>([[1,"integer"],["1","string"]]);
+ strictEqual(alternatives.size,2);
+ strictEqual(alternatives.get(1)??"","integer");
+ strictEqual(alternatives.get("1")??"","string");
+ const states=new Map<State,int>([[State.Ready,1],[State.Busy,2]]);
+ strictEqual(states.get(State.Busy)??0,2);
+ const empty:Map<boolean,int>=new Map();
+ empty.set(true,1);
+ strictEqual(sizeOf(empty),1);
+ const missing=new Map<int,string>(undefined);
+ const absent=new Map<int,string>(null);
+ strictEqual(missing.size+absent.size,0);
+ const returned=make();
+ strictEqual(returned.get(4)??"","four");
+ const cloned=clone(returned);
+ cloned.delete(4);
+ strictEqual(returned.size,1);
+ strictEqual(cloned.size,0);
+ const widened=new Map<int|string,string|int>(returned);
+ strictEqual(widened.has(4),true);
+ const arrays=new Map<string,int[]>();
+ arrays.set("values",[5,6]);
+ {
+  const values=arrays.get("values");
+  strictEqual(values?.length??0,2);
+ }
+ arrays.clear();
+ const bag:Bag={values:new Map<string,int>([["inside",7]])};
+ strictEqual(bag.values.get("inside")??0,7);
+ const groups:Map<int,string>[]=[new Map<int,string>([[1,"first"]])];
+ strictEqual(groups[0].get(1)??"","first");
+ const maybe:Map<int,int>|undefined=new Map<int,int>();
+ strictEqual(String(maybe),"[object Map]");
+}

@@ -1,0 +1,20 @@
+type int = number;
+function workload(n: int, seed: int): number[][] {
+    const output: number[][] = [];
+    const sizes: int[] = [0, 1, 4, 5, 17];
+    const numbers: number[] = [Number(seed) / 4.0, -2.5, 0.0, 13.25];
+    let i = 0;
+    while (i < n) {
+        const count = sizes[(i + seed) % 5];
+        const values: number[] = []; let j = 0;
+        while (j < count) {
+            values.push(numbers[(j * 3 + seed) % 4]);
+            j = j + 1;
+        }
+        values.sort((left: number, right: number): number => left - right);
+        output.push(values);
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7); }

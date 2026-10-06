@@ -1,0 +1,6 @@
+type int=number;
+function workload(n: int, seed: int, input: string): number[][] {
+ const output: number[][] = []; let i = 0;
+ while (i < n) { const count = (i + seed) % 3; const values:number[] = [0.0,-0.0,2.5]; const selected:number[] = []; let at = 0; while(at < count){selected.push(values[at]);at = at + 1;} const packed:number[] = [1.5,...selected,-2.5]; output.push(packed); i = i + 1; } return output;
+}
+function main() { const result = workload(3, 0, "abc"); }

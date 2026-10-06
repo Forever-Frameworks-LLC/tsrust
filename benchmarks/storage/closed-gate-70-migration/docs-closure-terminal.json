@@ -1,0 +1,16 @@
+{
+  "gate": 70,
+  "argv": [
+    "python3",
+    "/tmp/tsrust-gate70-close-docs.py",
+    "--runtime-proof=/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T00-15-54-000Z-string-concat-padding-runtime-proof.json",
+    "--runtime-proof-sha=8d1f991fb5d2f80e04ecb227a73258a04c4b177cf7e2e8b9abdeb7ebc6b53985"
+  ],
+  "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+  "pid": 58749,
+  "startedUtc": "2026-10-03T00:19:26.613869+00:00",
+  "finishedUtc": "2026-10-03T00:19:27.234349+00:00",
+  "exitCode": 0,
+  "log": "/private/tmp/tsrust-gate70-root-acceptance/docs-closure.log",
+  "logSha256": "810ec85120b7946bd504835476baf0bfb489e949841f524cdde95be1ce9ff3b6"
+}

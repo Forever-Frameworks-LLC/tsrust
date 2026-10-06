@@ -1,0 +1,36 @@
+{
+  "gate": 75,
+  "status": "complete",
+  "startedUtc": "2026-10-03T03:48:24.193083+00:00",
+  "previousGate": 74,
+  "method": "Number.parseFloat",
+  "fullRegressionStarted": true,
+  "fullRestarts": 0,
+  "gateComplete": true,
+  "goalComplete": false,
+  "fullOwnerSession": 89384,
+  "fullPid": 86055,
+  "fullOwnerLive": false,
+  "fullSourceFreeze": {
+    "path": "/tmp/tsrust-gate75/full-source-freeze.json",
+    "sha256": "2abfff15e531ae1c30b6175f78510aa1eb8a10f3f79e33eb9026a279da911d5d"
+  },
+  "focusedAccepted": true,
+  "sourceAccepted": true,
+  "nativePoolAccepted": true,
+  "sourceProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation.json",
+    "sha256": "4722ea5843c634caf13e731a2116f4ec27441a4745b5902d7257d91e630ecd4e"
+  },
+  "benchmarkSourceRows": 484,
+  "measuredRows": 484,
+  "fullRegressionAccepted": true,
+  "compilerGroups": 657,
+  "workspaceGroups": 675,
+  "runtimeOwnerSession": 30747,
+  "runtimePid": 20499,
+  "runtimeAccepted": true,
+  "archiveAccepted": true,
+  "archiveOwnerSession": 27743,
+  "archiveOwnerLive": false
+}

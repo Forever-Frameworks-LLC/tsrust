@@ -1,0 +1,1 @@
+function main() { let left: int = 2; let right: int = 63; const value: int = left ** right; console.log(value); }

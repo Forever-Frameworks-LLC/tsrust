@@ -1,0 +1,37 @@
+import { strictEqual } from "std:testing";
+
+function zero(): int { return 0; }
+function divide(): int { return 7 / zero(); }
+function missing(): int {
+    const items = [1];
+    return items[2]!;
+}
+
+function main() {
+    let trace = 0;
+    try {
+        divide();
+    } catch (error) {
+        strictEqual(error.code, "arithmetic");
+        trace = 1;
+    } finally {
+        trace = trace + 2;
+    }
+    strictEqual(trace, 3);
+    try {
+        missing();
+    } catch (error) {
+        strictEqual(error.code, "bounds");
+        strictEqual(error.name, "RangeError");
+        trace = 4;
+    }
+    strictEqual(trace, 4);
+    try {
+        strictEqual(1, 2);
+    } catch (error) {
+        strictEqual(error.name, "AssertionError");
+        strictEqual(error.code, "assertion");
+        trace = 5;
+    }
+    strictEqual(trace, 5);
+}

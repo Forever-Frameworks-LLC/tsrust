@@ -1,0 +1,17 @@
+type int = number;
+type Choice = { tag: int; payload: int[]; };
+type Trace = { predicates: int; left: int; right: int; };
+function workload(n: int, seed: int): int[] {
+    const output: int[] = []; const trace: Trace = { predicates: 0, left: 0, right: 0 }; let i = 0;
+    while (i < n) {
+        const size: int = (i * 7 + seed * 2) % 4; const at: int = (i * 13 + seed * 2) % 8;
+        const selected: Choice = predicate(trace, (i + seed) % 2 === 0) ? leftValue(trace, at, size) : rightValue(trace, at, size);
+        output.push(selected.tag); output.push(selected.payload.length); let j = 0; while (j < selected.payload.length) { output.push(selected.payload[j]); j = j + 1; }
+        i = i + 1;
+    }
+    output.push(trace.predicates); output.push(trace.left); output.push(trace.right);
+    return output;
+}
+function predicate(trace: Trace, flag: boolean): boolean { trace.predicates = trace.predicates + 1; return flag; }
+function leftValue(trace: Trace, at: int, size: int): Choice { trace.left = trace.left + 1; const payload: int[] = []; let j = 0; while (j < size) { payload.push(at * 8 + j); j = j + 1; } return { tag: 101, payload: payload }; }
+function rightValue(trace: Trace, at: int, size: int): Choice { trace.right = trace.right + 1; const payload: int[] = []; let j = 0; while (j < size) { payload.push(at * 8 + j + 64); j = j + 1; } return { tag: 202, payload: payload }; }

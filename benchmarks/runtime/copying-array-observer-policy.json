@@ -1,0 +1,65 @@
+{
+  "status": "source-only, execution pending",
+  "rows": 24,
+  "methods": [
+    "toReversed",
+    "with",
+    "toSpliced"
+  ],
+  "families": [
+    "int",
+    "number",
+    "boolean",
+    "string",
+    "nested",
+    "record",
+    "deep",
+    "recursive"
+  ],
+  "bounds": {
+    "n": [
+      0,
+      128
+    ],
+    "seed": [
+      0,
+      1000000
+    ],
+    "inputUTF8BytesMax": 256
+  },
+  "receiverLength": 6,
+  "replacementIndices": [
+    -6,
+    -1,
+    0,
+    5,
+    -3,
+    2,
+    -2,
+    1
+  ],
+  "naturalOutputs": "toReversed/with retain six returned elements per iteration. toSpliced retains each whole variable-length result array as one nested output element with normal ownership transfer. Receiver and inserted/replacement value construction, owned copying and output retention are timed; complete observation runs outside timing.",
+  "ownedSharing": "Native copying independently clones descendants; JS copies references. Retaining borrowed native output elements requires owned clones, included in the complete iteration cost.",
+  "observer": "Complete existing Gate56 TypeScript observer and concat Rust visitor; only operation naming changed. Native ABI/owner/field bindings remain pending real emission.",
+  "executedChecks": [],
+  "toSpliced": {
+    "starts": [
+      -9,
+      -6,
+      -1,
+      0,
+      2,
+      5,
+      6,
+      99
+    ],
+    "argumentForms": 10,
+    "insertedCounts": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "bounds": "Signed start clamps. Omitted delete count removes the remainder; negative deletion clamps to zero."
+  }
+}

@@ -1,0 +1,36 @@
+function emptyInts(): int[] {
+    return[];
+}
+
+function emptyNumbers(): number[] {
+    return[];
+}
+
+function emptyStrings(): string[] {
+    return[];
+}
+
+function one(): int[] {
+    return[1];
+}
+
+function main() {
+    console.log(Math.min(...emptyNumbers()) > 0);
+    console.log(Math.max(...emptyNumbers()) < 0);
+    console.log(Math.hypot(...emptyNumbers()));
+    console.log("é".concat(...emptyStrings()));
+    console.log(Boolean(...emptyInts()));
+    console.log("[".concat(String(...emptyInts()), "]"));
+    const values: int[] = [1, 2, 3];
+    console.log(values.unshift(...emptyInts()));
+    console.log(values.splice(...emptyInts()).length);
+    console.log(values.join(","));
+    console.log(values.toSpliced(...emptyInts()).join(","));
+    console.log(values.toSpliced(...one()).join(","));
+    console.log(values.splice(...one()).join(","));
+    console.log(values.join(","));
+    const strings: string[] = ["é", "😀"];
+    console.log(strings.concat(...["!", "a"]).join(","));
+    console.log(strings.join(","));
+    console.log(strings.toSpliced(...[1, 1], "x").join(","));
+}

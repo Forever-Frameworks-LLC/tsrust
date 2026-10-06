@@ -1,0 +1,102 @@
+[
+  {
+    "id": "string_cow_split_pieces",
+    "category": "strings",
+    "family": "split-ownership-and-scalars",
+    "inputFamily": "unicode",
+    "result": "string[][]",
+    "methodResult": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "é::😀::",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String.split call retaining its complete natural String[] result",
+    "measurementStatus": "pending-checkpoint-81",
+    "pendingCheckpoint": 81,
+    "specification": "Existing strict String separator/optional int limit contract, with unsigned32 wrapping retained. Omitted separator returns one complete receiver; nonempty separator retains interior/trailing empty pieces; empty separator selects Unicode scalars. Timed limits are0/1/2/3/7. Static Cow pieces may share static storage; owned receiver pieces remain independent copies.",
+    "notes": "Full workload includes input/pool construction, source and limit selection, splitting, natural String[][] retention and ordinary disposal; complete observer outside timing. It distinguishes uninstrumented static/owned piece storage from earlier traced split workloads. Actual split() no-separator calls also retain one complete receiver. No separate trace counter or allocation parity claim.",
+    "sourceRequired": [
+      "function workload(n: int, seed: int, input: string): string[][] {",
+      "    const values: string[] = [clone(input), \"\", \"::a::::b::\", \"é😀é😀\", \"a\\u0000b\", \"e\\u0301::😀\", \"\\uFEFF::中\", input.repeat(2)];\n    const limits: int[] = [0, 1, 2, 3, 7];",
+      "const output: string[][] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 8;",
+      "i = i + 1;",
+      "return output;"
+    ],
+    "nativeRequired": [
+      "        if ((i + seed) % 17 === 0) {\n            const pieces: string[] = values[at].split();\n            output.push(pieces);\n        } else {\n            const pieces: string[] = values[at].split(\"::\", limits[(i * 3 + seed) % 5]);\n            output.push(pieces);\n        }"
+    ],
+    "typescriptRequired": [
+      "        if ((i + seed) % 17 === 0) {\n            const pieces: string[] = values[at].split();\n            output.push(pieces);\n        } else {\n            const pieces: string[] = values[at].split(\"::\", limits[(i * 3 + seed) % 5]);\n            output.push(pieces);\n        }"
+    ],
+    "methodExpressions": {
+      "native": [
+        "values[at].split()",
+        "values[at].split(\"::\", limits[(i * 3 + seed) % 5])"
+      ],
+      "typescript": [
+        "values[at].split()",
+        "values[at].split(\"::\", limits[(i * 3 + seed) % 5])"
+      ]
+    },
+    "splitCalls": 2,
+    "sourceSha256": "17705a4937727a039bd2244502d8fb11f1a06e01fd929c358a2444d2bd2bf5fa",
+    "counterpartSha256": "4cd4acb62f7c88e6d880233624fbb898e936d53e944cef9b1801f9541ac7d3a7"
+  },
+  {
+    "id": "string_scalar_split_unicode",
+    "category": "strings",
+    "family": "split-ownership-and-scalars",
+    "inputFamily": "unicode",
+    "result": "string[][]",
+    "methodResult": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "é::😀::",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String.split call retaining its complete natural String[] result",
+    "measurementStatus": "pending-checkpoint-81",
+    "pendingCheckpoint": 81,
+    "specification": "Existing strict String separator/optional int limit contract, with unsigned32 wrapping retained. Omitted separator returns one complete receiver; nonempty separator retains interior/trailing empty pieces; empty separator selects Unicode scalars. Timed limits are0/1/2/3/7. Static Cow pieces may share static storage; owned receiver pieces remain independent copies.",
+    "notes": "Full workload includes input/pool construction, source and limit selection, splitting, natural String[][] retention and ordinary disposal; complete observer outside timing. It distinguishes uninstrumented static/owned piece storage from earlier traced split workloads. Unicode counterpart precomputes scalar-prefix UTF16 limits once inside workload setup, then uses real JS split and joins surrogate-pair pieces per operation; all mapping/reassembly cost is timed and disclosed. No isolated split throughput or allocation parity claim.",
+    "sourceRequired": [
+      "function workload(n: int, seed: int, input: string): string[][] {",
+      "    const values: string[] = [clone(input), \"\", \"::a::::b::\", \"é😀é😀\", \"a\\u0000b\", \"e\\u0301::😀\", \"\\uFEFF::中\", input.repeat(2)];\n    const limits: int[] = [0, 1, 2, 3, 7];",
+      "const output: string[][] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 8;",
+      "i = i + 1;",
+      "return output;"
+    ],
+    "nativeRequired": [
+      "        const limitIndex = (i * 3 + seed) % 5;\n        const pieces: string[] = values[at].split(\"\", limits[limitIndex]);\n        output.push(pieces);"
+    ],
+    "typescriptRequired": [
+      "        const limitIndex = (i * 3 + seed) % 5;\n        const pieces: string[] = mergeScalarPieces(values[at].split(\"\", unitLimits[at][limitIndex]));\n        output.push(pieces);",
+      "    const unitLimits: int[][] = values.map(text => limits.map(limit => scalarUnitLimit(text, limit)));",
+      "function scalarUnitLimit(source: string, limit: int): int {\n    if (limit === 0) { return 0; }\n    let scalars = 0; let units = 0;\n    for (const scalar of source) { if (scalars >= limit) { break; } units += scalar.length; scalars += 1; }\n    return units;\n}\nfunction mergeScalarPieces(parts: string[]): string[] {\n    const pieces: string[] = []; let i = 0;\n    while (i < parts.length) {\n        const high = parts[i].charCodeAt(0);\n        if (high >= 55296 && high <= 56319 && i + 1 < parts.length) { pieces.push(parts[i] + parts[i + 1]); i += 2; }\n        else { pieces.push(parts[i]); i += 1; }\n    }\n    return pieces;\n}\n"
+    ],
+    "methodExpressions": {
+      "native": [
+        "values[at].split(\"\", limits[limitIndex])"
+      ],
+      "typescript": [
+        "values[at].split(\"\", unitLimits[at][limitIndex])"
+      ]
+    },
+    "splitCalls": 1,
+    "sourceSha256": "c9757f308a23df2cac36ec25dd78e997ed85ee90fe545b254852ed20dd17b76f",
+    "counterpartSha256": "2c00b10f632117939bad78f30771d3125ac4609ba620f1a7f9c29584da4d87d3"
+  }
+]

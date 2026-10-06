@@ -1,0 +1,36 @@
+import {strictEqual} from "std:testing";
+type Box<T>={value:T;};
+function visit(values:Map<string,int>,action:Mutable<Function<void,[int,ReadOnly<string>]>>):void{values.forEach(action);}
+function inspect(values:Map<string,int>,action:ReadOnly<Function<void,[int,ReadOnly<string>]>>):void{values.forEach(action);}
+function requirePositive(value:int,key:string):void{strictEqual(value>0,true);strictEqual(key.length>0,true);}
+type ActionRow={label:string;action:Once<Function<int>>;};
+function advanced():void{
+ const values=new Map<string,int>([["a",2],["b",3]]);let total=0;
+ {const action=(value:int,key:string):void=>{total+=value+key.length;};visit(values,action);values.forEach(action);}
+ strictEqual(total,14);inspect(values,requirePositive);
+ let caught=0;try{inspect(new Map<string,int>([["bad",-1]]),requirePositive);}catch(error){caught=1;}strictEqual(caught,1);
+ let defaults=0;values.forEach((value:int,key:string,source:Map<string,int>,extra:int=7)=>{defaults+=value+key.length+source.size+extra;return String(value);});strictEqual(defaults,25);
+ let extras=0;values.forEach((value:int,key:string,source:Map<string,int>,...tail:int[])=>{extras+=tail.length;});strictEqual(extras,0);
+ const boxes=new Map<string,Box<int>>([["first",{value:8}]]);let found=0;
+ boxes.forEach((box,key,source)=>{found+=box.value+key.length+source.size;});strictEqual(found,14);
+ const mixed=new Map<int,int|string>([[1,2],[2,"abc"]]);let length=0;
+ mixed.forEach((value)=>{if(typeof value==="string"){length+=value.length;}else{length+=value;}});strictEqual(length,5);
+ const actions=new Map<int,ActionRow>();actions.set(1,{label:"one",action:():int=>{return 7;}});let label="";
+ actions.forEach((row)=>{label=label+row.label;});strictEqual(label,"one");
+}
+function main(){advanced();
+ const values=new Map<string,int>([["a",1],["b",2],["a",3]]);
+ let visits=0;values.forEach(()=>{visits+=1;});strictEqual(visits,2);
+ let total=0;values.forEach((value)=>{total+=value;});strictEqual(total,5);
+ let trace="";values.forEach((value,key)=>{trace=trace+key+String(value)+"|";});strictEqual(trace,"a3|b2|");
+ let sizes=0;values.forEach((value,key,source)=>{if(source.has(key)){sizes+=source.size;}});strictEqual(sizes,4);
+ const words=new Map<int,string>([[4,"four"],[7,"seven"]]);let labels="";
+ words.forEach((value,key,source)=>{labels=labels+String(key)+":"+value+":"+String(source.size)+"|";});
+ strictEqual(labels,"4:four:2|7:seven:2|");
+ const empty=new Map<int,string>();empty.forEach(()=>{throw "empty callback";});
+ let caught=0;let finalized=0;let count=0;
+ try{values.forEach((value,key)=>{count+=1;if(key==="a"){throw "stopped";}});}
+ catch(error){if(typeof error==="string"){strictEqual(error,"stopped");caught=1;}}
+ finally{finalized=1;}
+ strictEqual(caught,1);strictEqual(finalized,1);strictEqual(count,1);strictEqual(values.size,2);
+}

@@ -1,0 +1,307 @@
+{
+  "gate": 71,
+  "compilerAccepted": true,
+  "runtimeAccepted": true,
+  "completedUtc": "2026-10-03T00:57:11.246953+00:00",
+  "namedGroups": 641,
+  "workspaceNamedGroups": 656,
+  "releasePath": "/Users/seancotter/Desktop/dev/learning/tsrust/target/release/tsrust",
+  "releaseSha256": "8ad405217059e65c48e29f5007204e294d01500da7672ce32a168a66ece65741",
+  "compilerProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T00-49-43-000Z-string-substring-compiler-proof.json",
+    "sha256": "049b9c1386e25d6073378f36f0772b11d753458788d2d893b3f7ebcde28ef86e"
+  },
+  "sourceProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T00-40-49-000Z-string-substring-source-validation.json",
+    "sha256": "27837a858175e96f3140a0255beff774a4b85c2f71f974c531f5aa34130a6be3"
+  },
+  "runtimeProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T00-56-53-000Z-string-substring-runtime-proof.json",
+    "sha256": "c2d9438f8224136a2ff1cb0a321e7c15b6b0162f7093f4b136ae6dc6aba897a4"
+  },
+  "measuredRows": 460,
+  "manifest": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/manifest.json",
+    "sha256": "850bf1f1de7215019f49f6839c83383851d7c844ffdf005b19ff6e15b79c42f4"
+  },
+  "report": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/BENCHMARKS.md",
+    "sha256": "cd8a8f35feb7147048648f471cf08160404add784dc651bf0771ff3b2096b4a2"
+  },
+  "rawRecords": [
+    {
+      "path": "benchmarks/runtime/results/2026-10-03T00-52-08-089Z.json",
+      "sha256": "a67543583cebfc7139aa0c097e10afd2bcb172718d95d791f93339a0e62728f9"
+    },
+    {
+      "path": "benchmarks/runtime/diagnostics/2026-10-03T00-54-02-870Z-native-allocations.json",
+      "sha256": "1984693a2c295caeab15c7b1a30e475b506b3943ee981c47b6077dceec61a899"
+    },
+    {
+      "path": "benchmarks/runtime/diagnostics/2026-10-03T00-49-43-000Z-string-substring-compiler-proof.json",
+      "sha256": "049b9c1386e25d6073378f36f0772b11d753458788d2d893b3f7ebcde28ef86e"
+    },
+    {
+      "path": "benchmarks/runtime/diagnostics/2026-10-03T00-40-49-000Z-string-substring-source-validation.json",
+      "sha256": "27837a858175e96f3140a0255beff774a4b85c2f71f974c531f5aa34130a6be3"
+    }
+  ],
+  "verification": {
+    "compilerScope": {
+      "methods": [
+        "String.substring"
+      ],
+      "newRegressionTarget": "string_substring",
+      "uniqueRegressionGroups": 641,
+      "workspaceNamedGroups": 656,
+      "additionalWorkspaceGroups": 15,
+      "focusedGroups": 4,
+      "focusedCommands": 1,
+      "failedFocusedCommands": 0,
+      "retainedFocusedGroupsAfterFailedCommand": 0,
+      "editorGroupsIncludedInFull": 8,
+      "focusedNativeOptimizationLevels": [
+        "0",
+        "3"
+      ],
+      "fullAttempts": 1,
+      "fullRestarts": 0,
+      "failedRegressionCommands": 0,
+      "retainedGroupsFromFailedRegressionCommands": 0,
+      "targetedResumptionCommands": 0,
+      "separateDoctestCommands": 1,
+      "finalFormatClippyBuildsPassed": true,
+      "freshDebugReleaseEmissionByteExact": true,
+      "independentLiteralHandCellsPerLevel": 28,
+      "nativePerformancePending": true
+    },
+    "sourcePrograms": 6,
+    "sourceCases": 822,
+    "sourceMutationNegatives": 125,
+    "independentSourceHandCells": 48,
+    "sourceSemanticMutantsRejected": 10,
+    "sourceOrder": true,
+    "sourceOrderLines": 21,
+    "uniqueNodeGroups": 2,
+    "runtimeScope": {
+      "newWorkloads": 6,
+      "engines": 8,
+      "currentSourceInputsExact": 32,
+      "publishedRateCells": 48,
+      "priorRawRecordsRehashed": false,
+      "old454MeasurementTablesByteExact": true,
+      "old454ReportSectionsByteExact": true,
+      "old9PrimitiveMemoryTablesByteExact": true,
+      "auxiliaryTablesByteExact": true,
+      "measurementScope": "execution-only",
+      "startupCompilerMeasurements": 0,
+      "processCells": 144,
+      "processesPerEngineRow": 3,
+      "samplesPerProcess": 31,
+      "warmupsPerProcess": 8,
+      "timedBatches": 4464,
+      "independentEngineCorrectnessPreparationsBeforeTiming": 240,
+      "actualSourceTypeScriptCases": 822,
+      "actualSourceTypeScriptPrograms": 6,
+      "actualNodeUniqueGroups": 2,
+      "independentSourceHandCells": 48,
+      "sourceObserverMutationNegatives": 125,
+      "actualSourceSemanticMutantsRejected": 10,
+      "actualSourceTimedDomainCases": 6,
+      "nativePreflightBuilds": 26,
+      "nativeO0O3CompleteOutputCases": 60,
+      "nativeUntimedAllocationCases": 12,
+      "nativeCompleteOrderCases": 2,
+      "nativeProfileSamples": 18,
+      "allAfterOutputAndFinalDisposalsZero": true,
+      "groupedReportMeasuredRows": 460,
+      "groupedPrimitiveRows": 9,
+      "old454RowsMemory9AuxiliaryBaselinesNotRetimed": true,
+      "combined460WorkloadRunClaimed": false,
+      "realCompleteTypedArrayResultABI": true,
+      "naturalOutputConstructionAndRetentionTimed": true,
+      "actualStringMethodsAndRetentionTimed": true,
+      "unicodeTargetTupleSetupAndSelectionTimed": true,
+      "perOperationUnicodeEncoderAllocation": false,
+      "nativeStaticBorrowedSlicesAndIndependentOwnedCopiesNatural": true,
+      "retainedStringResultsPerOperation": 1,
+      "javaScriptAllocationParityClaimed": false,
+      "completeObserverTraversalTimed": false,
+      "ownedCloningSharingIdentityEquivalenceClaimed": false,
+      "sourceValidationFailureAttempts": [],
+      "nativeStdoutStoredOnce": true
+    },
+    "oldMeasurementsRepeated": false,
+    "resourceNormalization": {
+      "operationsPerSample": 2048,
+      "samples": 3,
+      "rawCountersRetained": true,
+      "inputAdaptationSeparate": true,
+      "absoluteDisposalBytes": {
+        "liveBytesAfterOutputDrop": 0,
+        "liveBytesAfterDrop": 0
+      },
+      "peak": "retained-batch peak divided by operations; not an isolated-call peak",
+      "retainedStringResultsPerOperation": 1,
+      "naturalStaticSubslicesAndIndependentOwnedCopies": true
+    }
+  },
+  "measurementHistory": {
+    "failedMeasurementAttempts": [],
+    "failedSourceValidationAttempts": [],
+    "acceptedRecordSuppliesAllPublishedRates": true
+  },
+  "sessions": {
+    "nativePreflight": {
+      "session": 93616,
+      "terminal": {
+        "path": "/private/tmp/tsrust-gate71-root-acceptance/native-preflight-terminal.json",
+        "sha256": "f9b4cf82390bb552f986aae90229c49382cc992cc762ea58a5b66556b1568214"
+      },
+      "actual": {
+        "gate": 71,
+        "argv": [
+          "/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node",
+          "/tmp/tsrust-gate71-native-source-plan/preflight.mjs",
+          "--compiler-proof=/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T00-49-43-000Z-string-substring-compiler-proof.json",
+          "--compiler-proof-sha=049b9c1386e25d6073378f36f0772b11d753458788d2d893b3f7ebcde28ef86e",
+          "--release-sha=8ad405217059e65c48e29f5007204e294d01500da7672ce32a168a66ece65741",
+          "--source-proof=/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T00-40-49-000Z-string-substring-source-validation.json",
+          "--source-proof-sha=27837a858175e96f3140a0255beff774a4b85c2f71f974c531f5aa34130a6be3",
+          "--output=/tmp/tsrust-gate71-native-preflight",
+          "--fixture-source=/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/string-substring-source-order.tsr",
+          "--fixture-expected=/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/string-substring-source-order-expected.txt"
+        ],
+        "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+        "pid": 1295,
+        "startedUtc": "2026-10-03T00:50:02.666628+00:00",
+        "finishedUtc": "2026-10-03T00:50:09.748520+00:00",
+        "exitCode": 0,
+        "log": "/private/tmp/tsrust-gate71-root-acceptance/native-preflight.log",
+        "logSha256": "bee1912f47bc777a69358303bd018e430fec5ace6bdb7445ccd29fa4fa81f146"
+      }
+    },
+    "sourceSeal": {
+      "terminal": {
+        "path": "/private/tmp/tsrust-gate71-root-acceptance/source-seal-terminal.json",
+        "sha256": "caea2f7d09a3e7e102fdd7cb561c690921749402fe59c731d696a879c2cb1638"
+      },
+      "actual": {
+        "gate": 71,
+        "argv": [
+          "python3",
+          "/tmp/tsrust-gate71-seal-source.py",
+          "--output",
+          "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T00-40-49-000Z-string-substring-source-validation.json",
+          "--observations",
+          "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T00-40-49-000Z-string-substring-source-validation-artifacts/observations"
+        ],
+        "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+        "pid": 35228,
+        "startedUtc": "2026-10-03T00:40:49.173351+00:00",
+        "finishedUtc": "2026-10-03T00:40:49.320360+00:00",
+        "exitCode": 0,
+        "log": "/private/tmp/tsrust-gate71-root-acceptance/source-seal.log",
+        "logSha256": "50f6e0e1db1aa2087248a9697430a06c614b2caa28092fb4d36937f2f172244c"
+      }
+    },
+    "runtime": {
+      "session": 87668,
+      "terminal": {
+        "path": "/private/tmp/tsrust-gate71-root-acceptance/runtime-terminal.json",
+        "sha256": "1f7dc67eabce32f5012bb124c3e1529ad18aea3247ebf68191c73b64af7b2e4f"
+      },
+      "actual": {
+        "gate": 71,
+        "argv": [
+          "/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node",
+          "benchmarks/runtime/run.mjs",
+          "--execution-only",
+          "--only=string_substring_default_ascii,string_substring_default_unicode,string_substring_bounded_ascii,string_substring_bounded_unicode,string_substring_swapped_ascii,string_substring_swapped_unicode"
+        ],
+        "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+        "pid": 5484,
+        "startedUtc": "2026-10-03T00:51:31.756707+00:00",
+        "finishedUtc": "2026-10-03T00:53:28.840824+00:00",
+        "exitCode": 0,
+        "log": "/private/tmp/tsrust-gate71-root-acceptance/runtime.log",
+        "logSha256": "4015ac6a9adf45011a94d5a39a11b06cedcb86ddcaeb9cce7e0e0cf7cec35b34"
+      }
+    },
+    "profile": {
+      "session": 36828,
+      "terminal": {
+        "path": "/private/tmp/tsrust-gate71-root-acceptance/profile-terminal.json",
+        "sha256": "5325bd83a6eb2be0d65d7b8eae6d1cd21889d4ae8591b24f419861d16c444ed2"
+      },
+      "actual": {
+        "gate": 71,
+        "argv": [
+          "/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node",
+          "benchmarks/runtime/profile-native.mjs",
+          "--only=string_substring_default_ascii,string_substring_default_unicode,string_substring_bounded_ascii,string_substring_bounded_unicode,string_substring_swapped_ascii,string_substring_swapped_unicode"
+        ],
+        "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+        "pid": 10163,
+        "startedUtc": "2026-10-03T00:53:58.285680+00:00",
+        "finishedUtc": "2026-10-03T00:54:02.909752+00:00",
+        "exitCode": 0,
+        "log": "/private/tmp/tsrust-gate71-root-acceptance/profile.log",
+        "logSha256": "c2e3edff48c011c762dca031e1f365e21abeb63573e9e4b2932af9ea9bdea171"
+      }
+    },
+    "report": {
+      "session": 75024,
+      "terminal": {
+        "path": "/private/tmp/tsrust-gate71-root-acceptance/report-terminal.json",
+        "sha256": "389b5c906e4ee3b5df89e173ac1bc850f4f69235f4d934869b6405f2e357e54f"
+      },
+      "actual": {
+        "gate": 71,
+        "argv": [
+          "/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node",
+          "benchmarks/runtime/report.mjs"
+        ],
+        "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+        "pid": 11796,
+        "startedUtc": "2026-10-03T00:54:41.210916+00:00",
+        "finishedUtc": "2026-10-03T00:56:01.788352+00:00",
+        "exitCode": 0,
+        "log": "/private/tmp/tsrust-gate71-root-acceptance/report.log",
+        "logSha256": "a3a0d3b911bb28198da95b0f3c1dd5a2e15c3e79474e1e9b03e9f6f247fecc04"
+      }
+    }
+  },
+  "rateLeads": {
+    "nativeNode": 6,
+    "nativeFastestScripting": 6,
+    "rows": 6,
+    "nativeNodeAverageRatioRange": [
+      1.5953266639927404,
+      1.6476207288792604
+    ],
+    "nativeFastestAverageRatioRange": [
+      1.3099309175552984,
+      1.5891482240299144
+    ],
+    "laggingNodeRows": [],
+    "laggingFastestRows": []
+  },
+  "inventoryOperations": 1924,
+  "inventoryFamilies": 28,
+  "readmeSha256": "b0b857600a4875f7e990c6ae45c6d9c6cb0a589505632229afe4c4a954e84264",
+  "documentationOnlyCompilerSupplement": "/tmp/tsrust-gate71-postclosure-readme-supplement.json",
+  "documentationSupplementSha256": "fa7f290d472c3843dd70e53c303277b1cac6315618b941889e5efbeb5817f2e4",
+  "closureArtifacts": [
+    {
+      "originalPath": "/private/tmp/tsrust-gate71-close-docs.py",
+      "path": "benchmarks/runtime/diagnostics/2026-10-03T00-56-53-000Z-string-substring-runtime-proof-closure-artifacts/tsrust-gate71-close-docs.py",
+      "sha256": "793f22d5fd952da3a48292df5ea1139b56f053f25cd1d55be1d6c24234023498"
+    }
+  ],
+  "archivedDocumentationSupplement": {
+    "path": "benchmarks/runtime/diagnostics/2026-10-03T00-56-53-000Z-string-substring-runtime-proof-closure-artifacts/tsrust-gate71-postclosure-readme-supplement.json",
+    "sha256": "fa7f290d472c3843dd70e53c303277b1cac6315618b941889e5efbeb5817f2e4"
+  },
+  "historicalCompilerProofUnchanged": true
+}

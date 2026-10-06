@@ -1,0 +1,68 @@
+{
+  "gate": 66,
+  "kind": "documentation-only-postclosure-supplement",
+  "timestamp": "2026-10-02T19:54:06.118679+00:00",
+  "compilerProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof.json",
+    "sha256": "9bd21c9f9df22b7002d2a6ddf01d61cee16e72d235eb7e7fc32f15cba8e493f0"
+  },
+  "sourceProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation.json",
+    "sha256": "bf29081224a4bf601b77f9452570283bbecf5b859e7aa371a749d9a215b4e616"
+  },
+  "runtimeProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-proof.json",
+    "sha256": "1433dfedaca349ccb8933127507ae1392987962bbf5283364d285e9d26defb07"
+  },
+  "files": [
+    {
+      "path": "docs/milestones/66-boolean-logical-assignment.md",
+      "beforeSha256": "8ba955a617e95fc3e1a398fe951bb7b3f0674f473baa7a834bd9d869005601f1",
+      "afterSha256": "099135384dc0307dd099375a1bba468116569127293ca2e65a51a757c944ce52"
+    },
+    {
+      "path": "docs/roadmap.md",
+      "beforeSha256": "be62178b518fa2000ef96db99e4edf42b298518843bf765025f5645a2a519902",
+      "afterSha256": "64049a5fcf95ee4c29a9cad88093f2daa205e94d68d2d57eebe01745ac11a51b"
+    },
+    {
+      "path": "crates/tsrust-compiler/README.md",
+      "beforeSha256": "b309497c921b4b4a8854b365b1660385d9da6059cee82313ccdee60fef8aa6f0",
+      "afterSha256": "242dedb213a42075110ffa1c01184f4d5b730fe6fd7bcba3f3a80ce572ba1a2c"
+    },
+    {
+      "path": "benchmarks/runtime/README.md",
+      "beforeSha256": "e2f8f2e418246deb9235111e619162d50412eb688b2edc199c005e4717170a1f",
+      "afterSha256": "165b97a908216dd49024877464e0316fbe6a779af7ac27fb0e7072665ff01e22"
+    },
+    {
+      "path": "benchmarks/coverage/status.json",
+      "beforeSha256": "e369fed12beead9b51cdd6f358345e90eb9c1d963439d056dea18a924f16aecd",
+      "afterSha256": "5756265b6a88ec348e763b0e57160db2d51fe8aef12bbfec6c8e707b4dbeabf5"
+    },
+    {
+      "path": "docs/feature-coverage.md",
+      "beforeSha256": "0bf2a510bbe5236396a7fd627ac8c19c18875e226964c84732ddf2c2979da2af",
+      "afterSha256": "ebb89e700d47faabf52d3ab9ec7e6f25c4259058b15e54c209d4dde6c3d45d91"
+    },
+    {
+      "path": "benchmarks/coverage/inventory.json",
+      "beforeSha256": "96a3d5c4a3dcb60ad84b2162105dbd0a9fe0fe282b1f9708d021c6e92b7c1a96",
+      "afterSha256": "34eb6cf974294bf8bd4eec718aee4dd4abd89f1419f79435625d9e55260fab41"
+    }
+  ],
+  "inventoryOperations": 1897,
+  "inventoryFamilies": 28,
+  "compilerCodeChanged": false,
+  "sourceManifestHarnessChanged": false,
+  "measuredReportChanged": false,
+  "measurementsRepeated": false,
+  "inventoryRegenerations": 1,
+  "closureArtifacts": [
+    {
+      "originalPath": "/private/tmp/tsrust-gate66-close-docs.py",
+      "path": "benchmarks/runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-proof-closure-artifacts/tsrust-gate66-close-docs.py",
+      "sha256": "52be246b40f29572053fa4f6dff38c61e8f4ae593b21946a8a08a0cb78b7d02f"
+    }
+  ]
+}

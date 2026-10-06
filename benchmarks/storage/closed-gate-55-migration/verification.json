@@ -1,0 +1,8 @@
+{
+  "exactPathsAndBytes": 1706,
+  "independentBlobChecks": 1578,
+  "closedProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T12-09-41-000Z-higher-order-function-runtime-proof.json",
+    "sha256": "25a1a68307c92f1d84b16c3dca910d08304d12b6c105f48aadee0fbca989b2ae"
+  }
+}

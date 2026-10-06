@@ -1,0 +1,2 @@
+function workload(n: int, seed: int): int { return n + seed; }
+function main() { }

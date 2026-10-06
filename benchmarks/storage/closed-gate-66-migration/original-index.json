@@ -1,0 +1,1094 @@
+{
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/current/benchmarks/runtime/logical-assignment-check-drafts.mjs": {
+    "sha256": "7b103c90623a21c9138cd7daab869b47d12a24b6794c536da3f6d5f52cf39831",
+    "original_size": 6770
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/current/benchmarks/runtime/logical-assignment-hand-probes.ts": {
+    "sha256": "da5eae226d3a2df784d21e22df801ad91a5e206252d5c31e7afeef7cd1ee27b6",
+    "original_size": 542
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/current/benchmarks/runtime/logical-assignment-harness.test.mjs": {
+    "sha256": "5241c53c57b0f0a0b6ed17b70c15f7930f01788c720a89a713b6ae3a73669d6b",
+    "original_size": 3337
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/current/benchmarks/runtime/logical-assignment-manifest-entries.json": {
+    "sha256": "ccb37f7c7c1abbf290dc5a54dee6e896d1064a6998368869cb21fa9e8eb29977",
+    "original_size": 2854
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/current/benchmarks/runtime/logical-assignment-oracle.mjs": {
+    "sha256": "59c90c74d4fbb81ab3563a6783acfedce8ebdd5d184004bd17c70105f5ee3e0a",
+    "original_size": 1484
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/current/benchmarks/runtime/logical-assignment-source-order-expected.txt": {
+    "sha256": "996eb4e19e665717f28461136b1ac14397a47b88b70c9f2cec090b16c0cba432",
+    "original_size": 52
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/current/benchmarks/runtime/logical-assignment-source-order.ts": {
+    "sha256": "02eafc28b91e24634f929ae3b345298c9bcb83c609926112dafa26906311ce28",
+    "original_size": 2201
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/current/benchmarks/runtime/logical-assignment-source-order.tsr": {
+    "sha256": "f9fd2e4a3f33c0eb99bcd08e2fb9495ea984f43812fa71a92822b31b9ab9d15d",
+    "original_size": 2182
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/current/benchmarks/runtime/manifest.json": {
+    "sha256": "fd4458a964defdf44e796fedd09200cd40acfaf8db8f67090fa6a17f1ff26b9e",
+    "original_size": 839365
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/current/benchmarks/runtime/oracle.mjs": {
+    "sha256": "6543de7d9ed57566fbc4b8a98fdfd79bcdbea88fabd6e76a16a88cf87e66f90b",
+    "original_size": 36720
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/current/benchmarks/runtime/profile-native.mjs": {
+    "sha256": "8b690e7746f2337c6500328ce14ec836eae4e827936bf7224399a58a17ed5c0e",
+    "original_size": 10989
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/current/benchmarks/runtime/report.mjs": {
+    "sha256": "745fab914611e1a2d04fa8a4183f836b3de2339f859447d97020e7f804aaa57b",
+    "original_size": 37154
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/current/benchmarks/runtime/run.mjs": {
+    "sha256": "3cbafe3c6d2933a1e1ecbb910a111668448a0de1f558a9ff9fc91839237ef940",
+    "original_size": 21676
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/current/benchmarks/runtime/workloads/boolean_logical_and_assign.ts": {
+    "sha256": "a1dd2c383c8bfecf4e67dbb4b4d553e9c72e816b908a8ced39660dca27f64aab",
+    "original_size": 581
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/current/benchmarks/runtime/workloads/boolean_logical_and_assign.tsr": {
+    "sha256": "8840741cf72a652db3d942c3750edcec0713a8b57c06b472704a713158eb37cc",
+    "original_size": 615
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/current/benchmarks/runtime/workloads/boolean_logical_or_assign.ts": {
+    "sha256": "c3f0bd9b38ff5d90f6caa9b5a1a1b1717ed0e6c998e5777aca17c5d4d1a6ee80",
+    "original_size": 581
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/current/benchmarks/runtime/workloads/boolean_logical_or_assign.tsr": {
+    "sha256": "14096de56cdff09eeff78f4d2c8abc26b3a4fd77604bc30e217e6d8f1d2fe2fd",
+    "original_size": 615
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/observations/bindings.json": {
+    "sha256": "61aa3604b591ebe9bda05e6aa4f353f0b09c3b26e9c275ec2ad1e7ea4896dd2c",
+    "original_size": 1416
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/observations/boolean_logical_and_assign-accepted.json": {
+    "sha256": "93a21fa9e5b68f1b46d5e7ee24ef267556d74fe3b183a2fc1492bd5ec6854c46",
+    "original_size": 104329
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/observations/boolean_logical_and_assign-compiled.js": {
+    "sha256": "f8efb967387d6c266d27f8907bed6226a03218ea7b1ea7e7102452e0b174511e",
+    "original_size": 2236
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/observations/boolean_logical_and_assign-prepared.ts": {
+    "sha256": "dacb3c429f85856523eb6c9bb1494f278c07a20c35229ff2d25e26dfc86b9583",
+    "original_size": 1903
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/observations/boolean_logical_or_assign-accepted.json": {
+    "sha256": "d736104a014af76f8ff2605bd1e7d5f66681c68c70993094c0cf7b01dffd45f0",
+    "original_size": 104336
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/observations/boolean_logical_or_assign-compiled.js": {
+    "sha256": "2b20125213253ad969af9b803924b7d7b1767a0c210404c3c0a485bd5f4ef93b",
+    "original_size": 2236
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/observations/boolean_logical_or_assign-prepared.ts": {
+    "sha256": "3b31860c02cf3fd5255e413ce976efc7feec571005dbcce04c2274f9911df08b",
+    "original_size": 1903
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/observations/hand-compiled.js": {
+    "sha256": "e9546eff79956e524c84c770aeaea4ffa7d09132430fab678f2f1084096a5fb5",
+    "original_size": 2175
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/observations/hand-prepared.ts": {
+    "sha256": "f98bbc23679a754280fc2ab1ee27265ec888205b8fc2e49f7853c4c68ab91f1e",
+    "original_size": 1864
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/observations/manual-hand-cells.json": {
+    "sha256": "9e62a09108b7688bec268bd99444ad16912145d1a132524c78cdf4f18e1eb34b",
+    "original_size": 3249
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/observations/source-order-compiled.js": {
+    "sha256": "8ef8c3ac3dc7000b72375b696a1b7bfbd5db981115843676b9a0b98eff7c3f02",
+    "original_size": 3766
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/observations/source-order-prepared.ts": {
+    "sha256": "aa6a95abd079f1861def0a5c32de8082221882b5617d148f68790a29b818ea0c",
+    "original_size": 3523
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/observations/source-order.json": {
+    "sha256": "f47f3e1db29c53bb50d35f2a10e4c474cb08698caf34bbcbd75c854239d1cb8d",
+    "original_size": 1692
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/observations/summary.json": {
+    "sha256": "5549ea58b5b12eda1d1c11d661fbc86875166a951553f081f6d76417c8e0b93b",
+    "original_size": 1559
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/records/before-BENCHMARKS.md": {
+    "sha256": "ce5ec37e59b4d2a1220c61189aac50c3876cff179025c206f541a65e72e82cda",
+    "original_size": 770040
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/records/before-manifest.json": {
+    "sha256": "8bee1e618db6b04be2304cc7e7d95d55dc11988c5eef0fe7892206aa0a2be597",
+    "original_size": 836434
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/records/benchmark-parent.json": {
+    "sha256": "d2caa654b9c21ff180f8e3dc5e04bb0e5b344a23fe564bbec37d285d37ed067a",
+    "original_size": 126865
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/records/benchmark-source-review.json": {
+    "sha256": "3d33ada5638c6c56044734f648c72bc2bef87d2badee8ce61b6b93e40a9a6eb6",
+    "original_size": 646
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/records/candidate-source.diff": {
+    "sha256": "ae8a1839575b2f0342d5e589c84c6e6c95d96e0b8d7588f9bc27e1f2767cf1a9",
+    "original_size": 53211
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/records/candidate-source.json": {
+    "sha256": "b1cfc5a92b6b5e211d81497f7fa448614122a22dff1c7ffa29b3a1bb40869d35",
+    "original_size": 7203
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/records/integrated-benchmarks.json": {
+    "sha256": "4c58e0de15251e8e008506dbbcd646e8da65956afca2050ea0a6de976c452b1a",
+    "original_size": 6611
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/records/node-focused-terminal.json": {
+    "sha256": "7da2faa96c4e590c0f9ceda345fec5a78d8936b9ee48ba831df6a4615085b978",
+    "original_size": 514
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/records/node-focused.log": {
+    "sha256": "ba559f36eeed9b01c9514cbbbf719d13376a3d8986c7e1de6a1d90a51f817e0f",
+    "original_size": 363
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/records/source-accepted.json": {
+    "sha256": "52ba337b438059f296a322758429f401c9cfd3173bd93e927f99a29b7a6510b3",
+    "original_size": 3895
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/records/ts-source-terminal.json": {
+    "sha256": "b83fbd5cbdec89e4aed2c4048e73d55077b2b4debc40301248cf32df625f9224",
+    "original_size": 553
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/records/ts-source.log": {
+    "sha256": "df77e5ce840f48842dc1cd5e0300e3b5a9576e5ab62d196e611beacc37c9428f",
+    "original_size": 1345
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/records/tsrust-gate66-seal-source.py": {
+    "sha256": "ec091bf35d694dea8ff2042d5416fee896937ebdc8b94828337b31fbffe68004",
+    "original_size": 10420
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/support/adapters.mjs": {
+    "sha256": "a2bddce334b593655df79ee2a2ed7bdd4f9206497d535ec2cd94aae6ec689f29",
+    "original_size": 18809
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/support/allocation-driver.rs": {
+    "sha256": "d64e7f057f5e09f6d75f53b27e29a26e264ef00bf65b22247955ddaeca6990dd",
+    "original_size": 4000
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/support/driver.rs": {
+    "sha256": "0f49cb626ff34b2348bcb9d138f3f9851a1139b6b42a18aad6652459d9e6a8eb",
+    "original_size": 1387
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/support/result-observation.mjs": {
+    "sha256": "cb80c77b95b7bf1f50b0fb0939548399a2ac0c973935a5895297d291482dac4d",
+    "original_size": 2892
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/support/slice-driver.rs": {
+    "sha256": "3246d55473ec8db48534cd77a79570ec73244e116e4fc3a21184f51d535551b2",
+    "original_size": 1275
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/support/slice-driver.ts": {
+    "sha256": "8c4e4c636d32516ea4c2d457a7e016e0f512893d7179d49bf6f0ff6a49db4436",
+    "original_size": 1192
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/support/slice-observation.rs": {
+    "sha256": "8d0f9e3a2241888ede5182e432951044e32604f1888ea654a9e1d74e1dcc27ed",
+    "original_size": 3114
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/support/slice-observation.ts": {
+    "sha256": "49f21d7bb1920f90fd4113bf139d5556743f312184b89f6abea5181e0bef78f0",
+    "original_size": 1321
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/support/tsconfig.json": {
+    "sha256": "484100178c33af6b1bf93543134d3068ebf907e28c7456f82b7f29415fdb1802",
+    "original_size": 173
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts/support/versions.json": {
+    "sha256": "237f74c54470bdcaa3197d4699a44ed215807c7efbb7d3f1b7ff28935848eb1c",
+    "original_size": 151
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/000-parent.json": {
+    "sha256": "bce8b4200c27f660f4fac56a89815548c42e49fca4001686d40439871025fc49",
+    "original_size": 23975
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/001-tsrust-gate66-candidate-source.json": {
+    "sha256": "d7abce3ca3105984bdfec96abc63df3dc4086b6527e43458fef60d55ee0a83a5",
+    "original_size": 2896
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/002-tsrust-gate66-candidate.diff": {
+    "sha256": "39a13e84b2bbd137c64cf01e9ad4e5f21712b97aba235438aa396f49210ccdc7",
+    "original_size": 31655
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/003-compiler-source-review.json": {
+    "sha256": "9728b29c56ff5bda368f00cdf1f06a1d65f178d5ca4d7c4a02d69ab0a5e9c51d",
+    "original_size": 906
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/004-integrated-source.json": {
+    "sha256": "31d5cde0dba7b6a650ea721a3e2d288180fd995e4ec84772b314414c5c62795d",
+    "original_size": 2650
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/005-focused-terminal.json": {
+    "sha256": "1792fdfeedc2e65b5c3b854a1536e053518c1896fbfabad2df3e4419ffb083c7",
+    "original_size": 664
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/006-full-terminal.json": {
+    "sha256": "9e299bbe8ecd4f0ac204bf234d87578a957d61f4ee7663c4cc1f38e0b18a01f3",
+    "original_size": 501
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/007-doctests-terminal.json": {
+    "sha256": "c219190427fe938b1db4a369735059cef359eb166cafe294dea9a5acd2228a75",
+    "original_size": 501
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/008-final-checks.json": {
+    "sha256": "4f6b5168701d24e93ab13b0a54493cda6da65403d9ca719f3bc5d6033a6fcd07",
+    "original_size": 2176
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/009-fresh-cli.json": {
+    "sha256": "af44b71f03d1ec770a01f5b9b7531d30e96c4dbfe7ea1d629849ab49f0e766c5",
+    "original_size": 3065
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/010-logical-assignment-source-order.tsr": {
+    "sha256": "f9fd2e4a3f33c0eb99bcd08e2fb9495ea984f43812fa71a92822b31b9ab9d15d",
+    "original_size": 2182
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/011-tsrust-gate66-seal-compiler.py": {
+    "sha256": "2316fc438c87d97bf7d0b0b16961dcce1c4c6ed8d2d6660bd391bad1d4949cdc",
+    "original_size": 18705
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/012-tsrust-gate66-seal-compiler-before-retained-resumption.py": {
+    "sha256": "8b640dd4f867162042a3ccdaf1438ca3d904e73f826cf91ce4a72fca0f2bb12d",
+    "original_size": 10407
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/013-tsrust-gate66-seal-compiler-revision.json": {
+    "sha256": "cacaeda9ba89db7780f1568435a21b9723908041509e786083cbf88889d9a17e",
+    "original_size": 952
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/014-tsrust-gate66-seal-compiler-before-measured-diagnosis.py": {
+    "sha256": "e7156b8085fd7a177c89c8ff734498534804f025b7d9416bfbcafe6acf4fcb6a",
+    "original_size": 16809
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/015-tsrust-gate66-seal-compiler-revision-before-measured-diagnosis.json": {
+    "sha256": "455bff4b6e305bc969d289931fb0e4c2728f22b0f1fbbb230091e0a696edbe94",
+    "original_size": 587
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/016-repair-attempts.json": {
+    "sha256": "4c773caf345dc5797d5b49c2491114eeeb78c067c6554bb5052cb54bd983eda6",
+    "original_size": 6460
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/017-integrated-stack-repair.json": {
+    "sha256": "455101f0aac0d520ac0a8aed7f14d35ee60446d25e7f499b43d485509cf8620d",
+    "original_size": 734
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/018-remaining-plan.json": {
+    "sha256": "8f75ba5ddffab9d3855b79a36da1c60fcbcaa54abd01018b3f112f891e9d11a5",
+    "original_size": 17484
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/019-regression-union.json": {
+    "sha256": "5896c9ac30da67f754384025b9d35623bdd017df34ac4463fd5cf7ccda9b17d4",
+    "original_size": 86092
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/020-regression-accepted.json": {
+    "sha256": "ae142914f7ee9ae016e5129ef28719bd3ba49a13246f1f70bbdd3bf593c095f0",
+    "original_size": 994
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/021-remaining-arrays-terminal.json": {
+    "sha256": "8919de12082a7fb79f8b4c967c405160e50fe4c8b387aba4747d91cf39b456f3",
+    "original_size": 610
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/022-resume-terminal.json": {
+    "sha256": "51ba68ecb3abf4bcf48ee4b5de780ec1fadf1d556ebd63dcc7d417e3cf92f1f2",
+    "original_size": 2690
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/023-arrays.rs": {
+    "sha256": "8a2537be6db77b339d4becff804b681e1e95ca0384760dad23c28da58a41cc37",
+    "original_size": 10657
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/024-tsrust-gate66-cargo-check-terminal.json": {
+    "sha256": "3a93169fe9aceab74b8e6b40ee87217438218a3b75c3254ee60f19f5f78ce36d",
+    "original_size": 509
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/025-tsrust-gate66-check.log": {
+    "sha256": "b2a22ca83a56532a375d23102eb3ea53a479eca91cc9803530fcdd29dfe89f43",
+    "original_size": 189
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/026-tsrust-gate66-source-probe-terminal.json": {
+    "sha256": "97fc7e497788257b6928a70b2adcf65f2005fae7e699ee49848624050a849c1f",
+    "original_size": 560
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/027-tsrust-gate66-probe.log": {
+    "sha256": "4f2da93b073c097f825be542ecc2c3c7f4c56a01186894e9b9845cfc0147be31",
+    "original_size": 1458
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/028-tsrust-gate66-format-terminal.json": {
+    "sha256": "7d24bad49d3648a1c2aa5450adb4aafa7b34b1e99900848a3e82b00b7bb0ac6c",
+    "original_size": 393
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/029-tsrust-gate66-format.log": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/030-compound_assignment.rs": {
+    "sha256": "35637a2165c3c6733f8335da0d022ec9edc67b627dfce139164f947f9a10fff4",
+    "original_size": 15133
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/031-update_expressions.rs": {
+    "sha256": "07e02d749272e74d5a27588adf9d3293d332bb0144acefd155fb78dc7c6d9375",
+    "original_size": 17798
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/032-fixed_storage.rs": {
+    "sha256": "deaae28d99ee1f564e6e95e5e1d65d17624448d02f62892e64cbe4cb59398a1d",
+    "original_size": 40095
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/033-analysis.rs": {
+    "sha256": "b2fd6f96fa7f1159fe82b993b4512c20a1d3240b56622d871a9ec308aecdd98e",
+    "original_size": 255535
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/034-emit.rs": {
+    "sha256": "d2ecf47e508d8ccc4f6238c4175fd67ffd7247e6e642bc670c166ddc6be41707",
+    "original_size": 135480
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/035-syntax.rs": {
+    "sha256": "796d77386ea984ecf280f678a2bc4c1b1af95738cd7799f531b948ab13dad830",
+    "original_size": 52356
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/036-logical_assignment.rs": {
+    "sha256": "b51fb805e7961844ff4b92106b8c751a243e1230196959b23cc5933b79f6ab82",
+    "original_size": 16900
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/037-repair.json": {
+    "sha256": "6f5baf04770557eef6a974b6da30e2b8c8e0226af7478b86dfb45821c0c14d4e",
+    "original_size": 870
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/038-repaired-array-terminal.json": {
+    "sha256": "c075eab68d7aca4f17dec0f6038ca5ec7cd0ad02fffad1016b2c2e881439e277",
+    "original_size": 699
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/039-before-syntax.rs": {
+    "sha256": "fd87af09f360e9f097e4068a7f6ae55eae7c47263f28eab8ab10be4e973460cd",
+    "original_size": 52034
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/040-after-syntax.rs": {
+    "sha256": "88d08788fefb9a9781d28d4779cc6ba780c274a43a6e32e3cfe7f55200a11803",
+    "original_size": 52373
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/041-syntax.diff": {
+    "sha256": "519f357b2547fb5e127c44591c84a0ee55e417d87a72bf49d47ca1997166645c",
+    "original_size": 2548
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/042-repaired-array.log": {
+    "sha256": "77eef0362b6e6e3cfd3ba4f609065ef4c341110ecdd7948a9a7b41571f203f4a",
+    "original_size": 753
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/043-repair.json": {
+    "sha256": "54f162193e859b1fac551496544b8f3357d80f92d2a19634f25f3c6f6aa3cf98",
+    "original_size": 3710
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/044-repaired-array-final-terminal.json": {
+    "sha256": "d5343697878cbc7f405aee7b3af6ac708ca70d2dbdc47828ebc8cca147e27c9a",
+    "original_size": 704
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/045-syntax.rs": {
+    "sha256": "796d77386ea984ecf280f678a2bc4c1b1af95738cd7799f531b948ab13dad830",
+    "original_size": 52356
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/046-syntax.diff": {
+    "sha256": "48e9c388e21ab91cd993d4582f82495b36e86102b08bbd3869ac12aaf1ec331f",
+    "original_size": 2293
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/047-repaired-array-final.log": {
+    "sha256": "f5c4dff5702a13b55e7535f885134fd65aa3d033decbd2f8857fb2047b1af66f",
+    "original_size": 469
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/048-frames.json": {
+    "sha256": "ab253bc1444546f2734e134faa8d05a675b3abfbd838626a0d0333f3e6169035",
+    "original_size": 23736
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/049-parent65-reconstruction.json": {
+    "sha256": "ed99538a3125184c2275944134f0a3e304eb9eeeada8d5ef58339dda80feb2eb",
+    "original_size": 23929
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/050-frames.py": {
+    "sha256": "ce37ad144fe74eeca4ac9cedcbad13329bd961c76a45c995b8b01a4f44668758",
+    "original_size": 1572
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/051-assembly.py": {
+    "sha256": "8a35d631fbb4ce155528d75891b3f8450a5f0600d8a5984e8d794147d228afe0",
+    "original_size": 943
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/052-assembly-pure.py": {
+    "sha256": "88e0ecc6aa149fc882db79eb899d27f7c9ef4e7cc03e7554b900c0433f78d09b",
+    "original_size": 900
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/053-phases.py": {
+    "sha256": "ebcb1a8dd4ae460892668ddf07d87f8232835ffe2b01c8bd61029ed242492f7f",
+    "original_size": 938
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/054-phases200.py": {
+    "sha256": "478ab84f445217ac8fd85ba2d6362a57818d416266f56ccfa20607d00277b269",
+    "original_size": 950
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/055-parent65-Parser.binary.asm.txt": {
+    "sha256": "583def10da1e5fbb4392078bc5c0764d2568a5b806fd5b05c5a7a9925491e2a9",
+    "original_size": 648
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/056-initial66-Parser.binary.asm.txt": {
+    "sha256": "86c8549850da69882f1faee8ba009347393208efda210d820fa4c05e1e2ddb43",
+    "original_size": 648
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/057-outlined66-Parser.binary.asm.txt": {
+    "sha256": "50ab036963bd411647e484e1a20b9a6a33cf3895173777165737067093822f46",
+    "original_size": 648
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/058-pure66-Parser.binary.asm.txt": {
+    "sha256": "67a8c0458e42668bed4740531b3e0abbb2a17eac899387f05d21bd6fae6577d1",
+    "original_size": 650
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/059-pure66-Parser.primary.asm.txt": {
+    "sha256": "63960b2ea2407ed9edf02d02a19fadd2a73e63895bc0502afabe1138e28c7d16",
+    "original_size": 621
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/060-pure66-Parser.postfix.asm.txt": {
+    "sha256": "15ad568b7b65edf63aa033925f4ca4f4c3bb2b756c47c003a71e56082b10d630",
+    "original_size": 640
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/061-pure66-Parser.array_literal.asm.txt": {
+    "sha256": "7b7a94995e293216f2489b9ca3dc72d1d7df1e0c8662a05e43022e996b27c815",
+    "original_size": 605
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/062-main.rs": {
+    "sha256": "f987e4782d9b7313f1e52dc20c4639a0e75afbff5961d26f6a992feca003bb97",
+    "original_size": 617
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/063-Cargo.toml": {
+    "sha256": "ad539303d6ae257447f5e5604014f30ea252433874be0d18903d0cc1f3f45101",
+    "original_size": 168
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/064-main.rs": {
+    "sha256": "f987e4782d9b7313f1e52dc20c4639a0e75afbff5961d26f6a992feca003bb97",
+    "original_size": 617
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/065-Cargo.toml": {
+    "sha256": "afb7d53e7267763262c17cf64bb0f2496ae784410b338c6ea1b37aa407b4d6ae",
+    "original_size": 168
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/066-pure66-assembly-terminal.json": {
+    "sha256": "dd1e2ee0186f3c8ff3662cb0864803a978c5f87575ed46e78e868ef59355ffe1",
+    "original_size": 485
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/067-pure66-assembly.log": {
+    "sha256": "28cf023545b33b55d10aaef970f423e8f92b97f6ed35c990af62dd5d22edacd7",
+    "original_size": 183
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/068-phase65-index-terminal.json": {
+    "sha256": "9782256cab21a0a8762eb1c3410626e54186beed0c24f2002168304e36d04006",
+    "original_size": 499
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/069-phase65-index.log": {
+    "sha256": "cc40e6e09168dbb255d666a123f052ae869daff3ac71d5d298f75d0197342751",
+    "original_size": 524
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/070-phase65-array-terminal.json": {
+    "sha256": "b75016144c8fe731699fd338ef5f50b8887d5dde05b6f15c6a351d01df37524b",
+    "original_size": 499
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/071-phase65-array.log": {
+    "sha256": "43845fd2763342e7dd24292edb8379bdaa53e8e1e4aa89a938acfe9956b1be2c",
+    "original_size": 277
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/072-phase65-index200-terminal.json": {
+    "sha256": "1614b70d9f50bb8a0287a659764413b302552b4f7a772455e4aadbe964dfdb90",
+    "original_size": 514
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/073-phase65-index200.log": {
+    "sha256": "c7ed2f0ec28ff7c931e7a3f34eb118d0bd43398b0c61c39e3d11728519170ac8",
+    "original_size": 314
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/074-phase65-array200-terminal.json": {
+    "sha256": "6e55a9c8b048d58a9156a2d988df2927b46ca06239c8ff32d1e24e69d8110ed0",
+    "original_size": 514
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/075-phase65-array200.log": {
+    "sha256": "98dc03d29acf861b6b7b0487273728bc69d2b758bc0cc6e918740f7c49206487",
+    "original_size": 235
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/076-phase66-index-terminal.json": {
+    "sha256": "0314b1ec425878b3b53cc4488ec7de9997e3822a40d3428619561763930af2a1",
+    "original_size": 499
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/077-phase66-index.log": {
+    "sha256": "04e0ddffed6b67ce16112ee3757bcf218a7846f7ab42c600e840aaa3b521f655",
+    "original_size": 524
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/078-phase66-array-terminal.json": {
+    "sha256": "e4956ea492b2aa05a5b1e7a699715d0697d995d173f4a717bed2088822018679",
+    "original_size": 499
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/079-phase66-array.log": {
+    "sha256": "c5742c68a126c32c81dc5561a3161850f67a9d5d446ade6ebc665b234f36556e",
+    "original_size": 277
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/080-phase66-index200-terminal.json": {
+    "sha256": "133e69ac8e5d36ed070ab3256821430816fcc9045cd79560e28b899e3db621bd",
+    "original_size": 515
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/081-phase66-index200.log": {
+    "sha256": "c4bd718f18429f8b70acdaf83452105a812e0055ca46e5f515531cc517d7a46d",
+    "original_size": 389
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/082-phase66-array200-terminal.json": {
+    "sha256": "4055a495e9422dd9b4797f03faed688c5baffa3c7c78775c78230ef7d143bb6c",
+    "original_size": 514
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/083-phase66-array200.log": {
+    "sha256": "1ae2be279d53b7f9f5d7b58580d60c0a618e99820af7bc159ea11b53964f6036",
+    "original_size": 235
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/084-parent65-assembly-terminal.json": {
+    "sha256": "9985fd335cf53a23d4bd9fedc3e3a04358a72c7e8bdf3eb31fe751f405581eda",
+    "original_size": 450
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/085-parent65-assembly.log": {
+    "sha256": "e1483ad35de7b3767d8e58616c7461dee5906a61169e87daa476a51c4874e20d",
+    "original_size": 187
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/086-parent65-assembly-resumed-terminal.json": {
+    "sha256": "7de3ab9f4489b25fac2b1f173149b76b35b0ffbe0c6a68844fcc2a6165aa1e49",
+    "original_size": 496
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/087-parent65-assembly-resumed.log": {
+    "sha256": "2948fe08b07abb73cf349f382626a79a5cc0906d98749b28f6e9baae1c545170",
+    "original_size": 185
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/088-initial66-assembly-resumed-terminal.json": {
+    "sha256": "fd2ecb12cd1cf9c6553246cc5dc3861e3ba58731e99026c8403712523e330c85",
+    "original_size": 498
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/089-initial66-assembly-resumed.log": {
+    "sha256": "ee38fe9fd3d2bde468c7218815204a5cdb5a018f74adcaf860fb2058525a4187",
+    "original_size": 186
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/090-outlined66-assembly-resumed-terminal.json": {
+    "sha256": "bebcee3918ae44b075d80c937bf7ee6eed7120307ac47d42c9dbc0f74d24e326",
+    "original_size": 500
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/091-outlined66-assembly-resumed.log": {
+    "sha256": "cf103774608c4e41ea8ec3b198a978927baa490b21413d8db9e11a2ba991e674",
+    "original_size": 187
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/092-focused.log": {
+    "sha256": "2e5ae9bfb851493e7e9055602c1db7251491f34b8c1e6d768910d174b9ed848a",
+    "original_size": 782
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/093-full.log": {
+    "sha256": "6e4c1e65a4fe01638093699c84f1ad1c95fe3497a02996555927b8aa89503697",
+    "original_size": 13362
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/094-remaining-arrays.log": {
+    "sha256": "b566b19b014ecb531649a04d588ba8f17a0d63b57b7c9db279b4d4ee73016c68",
+    "original_size": 1173
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/095-resume.log": {
+    "sha256": "bf90b1068a84e3caafdbf8be61c2805300abaac037d4ae1ca58165d0574bb799",
+    "original_size": 49450
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/096-doctests.log": {
+    "sha256": "49f7d5df3f7e19491ebdee7dd3214172c72953dc26e60b2b3286eeaeca5534ea",
+    "original_size": 1033
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/097-final-0.log": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/098-final-1.log": {
+    "sha256": "f61e9ccb5ee472cc09e98ed337a201d84157434ff79bd9b443cb04fa47215af5",
+    "original_size": 673
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/099-final-2.log": {
+    "sha256": "60f3f8b8a6e2d2a6dba26d1c89735077d935d5929181938730e13dd986aa8e6a",
+    "original_size": 169
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/100-final-3.log": {
+    "sha256": "9bcbbcfc417a661ddab1c9251b14ae2dab70f2d40dcbb9c5ed43f95045bdd53c",
+    "original_size": 850
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/101-final-0-terminal.json": {
+    "sha256": "088ba53f6919ddc30c53ec3f4cbb070b6069ce491460bd4b87013633f0656ee6",
+    "original_size": 462
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/102-final-1-terminal.json": {
+    "sha256": "29b6e5100e2aca5c9ed8cb117b6e53b841469f03bb0934b8410aec2159ca1d76",
+    "original_size": 546
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/103-final-2-terminal.json": {
+    "sha256": "f382ede280d5f1e2ef8bc7f7040a19c9698cf8172b490a31f63a0ceb0b5f2a93",
+    "original_size": 488
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/104-final-3-terminal.json": {
+    "sha256": "153b8fc10fc3cb98554860a3d58f648c5fb64a825abf3db6d49a8e59a6788179",
+    "original_size": 505
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/105-fresh-debug.stdout": {
+    "sha256": "94bf241ff3eda1874c692fec0551d333fa6471cbdc6124b31aadbac63797c3eb",
+    "original_size": 13251
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/106-fresh-debug.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/107-fresh-release.stdout": {
+    "sha256": "94bf241ff3eda1874c692fec0551d333fa6471cbdc6124b31aadbac63797c3eb",
+    "original_size": 13251
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/108-fresh-release.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/109-fresh-saved65.stdout": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts/110-fresh-saved65.stderr": {
+    "sha256": "c816794b058ff7289ca76e17022c9d22986e95ed511dfb650eafa8e60535a115",
+    "original_size": 300
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/0-tsrust-gate66-seal-runtime.py": {
+    "sha256": "8359a5959245fbe75f107bf921aa56171af5ef06cedb9bcf86fa9814cfb2c695",
+    "original_size": 20327
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/1-tsrust-gate66-runtime-freeze.json": {
+    "sha256": "cd0d32a6893f81fce1b376b2985c4eb2acf611945e59c9b6ca8c3ca009daea78",
+    "original_size": 8885
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/10-command-0003.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/100-native-preflight.log": {
+    "sha256": "000bebcc414d4e2800a820e87c9130489baaddb0050381390e7aaed33321ea46",
+    "original_size": 199
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/101-tsrust-gate66-runtime-terminal.json": {
+    "sha256": "e23a29ba87c9d928b836112889c7b359084eca45a2d67f0fc352b6f8f751b6ce",
+    "original_size": 528
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/102-tsrust-gate66-runtime.log": {
+    "sha256": "d2ebc24b4d361978b957cb12b385add0c903f1d306ca281e9a34d430f7bb641f",
+    "original_size": 563
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/103-tsrust-gate66-profile-terminal.json": {
+    "sha256": "8eddf76ea5321a2f1817cbbbeca9c57c9b4e3fde509c043849d74db02baffbea",
+    "original_size": 515
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/104-tsrust-gate66-profile.log": {
+    "sha256": "76057ae4711c95360e64a817a71275c177acd60743a1c3311b2acd8d7583f258",
+    "original_size": 267
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/11-command-0004.stdout": {
+    "sha256": "d760ae422e95d7ed6b33fb1a46b0cf6543789ab4c8687e3fd3b2821114c0f04b",
+    "original_size": 61
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/12-command-0004.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/13-command-0005.stdout": {
+    "sha256": "91a45d2f1a8328af765d77b1368312bfa29ac8a2f4c73031172efac381f1486e",
+    "original_size": 68
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/14-command-0005.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/15-command-0006.stdout": {
+    "sha256": "a7b2a1e39f364f0d3ddac28dfe1ffda7adf0d0277c4180809804f8d4198e7e42",
+    "original_size": 72
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/16-command-0006.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/17-command-0007.stdout": {
+    "sha256": "48c866918602ab5bcd0160cc45b84289efd4b7d366b71b1bdfbbfbfdae8cbd22",
+    "original_size": 132
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/18-command-0007.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/19-command-0008.stdout": {
+    "sha256": "d5050c92d9cbba14d2b231ffb4163540074e7137b64c5a3ce2950ab4a76a88f6",
+    "original_size": 8256
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/2-before-BENCHMARKS.md": {
+    "sha256": "ce5ec37e59b4d2a1220c61189aac50c3876cff179025c206f541a65e72e82cda",
+    "original_size": 770040
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/20-command-0008.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/21-command-0009.stdout": {
+    "sha256": "517b7cf4f38aee32d9ce73fee8fc1b0ab392c858bc6ce03eaa95670ef06f5b7a",
+    "original_size": 242
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/22-command-0009.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/23-command-0010.stdout": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/24-command-0010.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/25-command-0011.stdout": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/26-command-0011.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/27-command-0012.stdout": {
+    "sha256": "086e3d51a50d7371f727952c230f42c078a9f024344cf9e54cdc126e0f9603c8",
+    "original_size": 59
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/28-command-0012.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/29-command-0013.stdout": {
+    "sha256": "530fa3a8d2b069ed1f5e6b04696ee5b4b81daef72dedd5caef07494d8853bbfe",
+    "original_size": 68
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/3-BENCHMARKS.md": {
+    "sha256": "6bb40fbd1d72f4e27609cde464b371cf5800a17d7a6dfff57956b172f0881afd",
+    "original_size": 774185
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/30-command-0013.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/31-command-0014.stdout": {
+    "sha256": "117b46afdfe17c3d729461f9ab92afb536985428239e3bc6cc681948cfa96789",
+    "original_size": 70
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/32-command-0014.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/33-command-0015.stdout": {
+    "sha256": "3b221e419a752d8a09ff1fa9d39ceca692cc6fe1f2d1b31c90c62f5c057b5171",
+    "original_size": 129
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/34-command-0015.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/35-command-0016.stdout": {
+    "sha256": "7fd73a42e8aba9833573f9444c7523f6d083efc6d77e2cb4b52cb9c8650b6585",
+    "original_size": 8256
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/36-command-0016.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/37-command-0017.stdout": {
+    "sha256": "517b7cf4f38aee32d9ce73fee8fc1b0ab392c858bc6ce03eaa95670ef06f5b7a",
+    "original_size": 242
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/38-command-0017.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/39-command-0018.stdout": {
+    "sha256": "bca7104a1271686f93b89cbdb7ece092c91cd549f42400be17df02ab5558047a",
+    "original_size": 4893
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/4-native-abi-complete-order-disposal-proof.json": {
+    "sha256": "90a57aeb04cca4b8fbb8a05f617e511632c0aa0f0de8d1e0c57cb593bbc9d9a1",
+    "original_size": 51419
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/40-command-0018.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/41-command-0019.stdout": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/42-command-0019.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/43-command-0020.stdout": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/44-command-0020.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/45-command-0021.stdout": {
+    "sha256": "34575be8ef9fe70f9a2914c8110546a3a0a60707f4236e8a8888090c45a66722",
+    "original_size": 60
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/46-command-0021.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/47-command-0022.stdout": {
+    "sha256": "f6a1de1152568616d1b7b04cfbe9414775890044e605d11c4b4a8ad01af21ad9",
+    "original_size": 68
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/48-command-0022.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/49-command-0023.stdout": {
+    "sha256": "5a638a783b487056ba6da11db496092be2bcd00fcc4983585548f67f0b547493",
+    "original_size": 85
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/5-command-0001.stdout": {
+    "sha256": "4b1e95a881350e4c6ab14d89ec0970720dd84ea23fbef5e3453f06f0e68084e1",
+    "original_size": 4892
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/50-command-0023.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/51-command-0024.stdout": {
+    "sha256": "e6833420d40ac4545c3061eb9dab4e2daacb49e8629aa708b60d472f024a7bde",
+    "original_size": 132
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/52-command-0024.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/53-command-0025.stdout": {
+    "sha256": "22356695ce3f628479f143862aaba6981de1c0e2b22e32cd70dffe9f05d3ab25",
+    "original_size": 8255
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/54-command-0025.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/55-command-0026.stdout": {
+    "sha256": "7349e81b1672a99a3e2b52747f77e5269dfcc67b45fff7e961d908bb6531d4cc",
+    "original_size": 242
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/56-command-0026.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/57-command-0027.stdout": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/58-command-0027.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/59-command-0028.stdout": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/6-command-0001.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/60-command-0028.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/61-command-0029.stdout": {
+    "sha256": "217d6acf346daf15a24997b3bf1c359b4a60947bc7dc8eebf048856cf0e663c6",
+    "original_size": 56
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/62-command-0029.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/63-command-0030.stdout": {
+    "sha256": "530fa3a8d2b069ed1f5e6b04696ee5b4b81daef72dedd5caef07494d8853bbfe",
+    "original_size": 68
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/64-command-0030.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/65-command-0031.stdout": {
+    "sha256": "eb11f6f5222c383822a9b40906db166094f996631dc3195cb7393655b29b4b7d",
+    "original_size": 70
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/66-command-0031.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/67-command-0032.stdout": {
+    "sha256": "2027251cb0f654f78b7a855a35cc26b8a35bb824d17695ec7e1a18360f056308",
+    "original_size": 132
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/68-command-0032.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/69-command-0033.stdout": {
+    "sha256": "f39e8b043b8ea92d89317914103c0a5198b837882d3d72e3566cb53915ac232d",
+    "original_size": 8256
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/7-command-0002.stdout": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/70-command-0033.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/71-command-0034.stdout": {
+    "sha256": "7349e81b1672a99a3e2b52747f77e5269dfcc67b45fff7e961d908bb6531d4cc",
+    "original_size": 242
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/72-command-0034.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/73-command-0035.stdout": {
+    "sha256": "94bf241ff3eda1874c692fec0551d333fa6471cbdc6124b31aadbac63797c3eb",
+    "original_size": 13251
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/74-command-0035.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/75-command-0036.stdout": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/76-command-0036.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/77-command-0037.stdout": {
+    "sha256": "996eb4e19e665717f28461136b1ac14397a47b88b70c9f2cec090b16c0cba432",
+    "original_size": 52
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/78-command-0037.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/79-command-0038.stdout": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/8-command-0002.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/80-command-0038.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/81-command-0039.stdout": {
+    "sha256": "996eb4e19e665717f28461136b1ac14397a47b88b70c9f2cec090b16c0cba432",
+    "original_size": 52
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/82-command-0039.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/83-preflight.mjs": {
+    "sha256": "66b4ea6e3d30f85e7715a1602a858df3833207f70d49aafc2a0f36d4f958d7f8",
+    "original_size": 9570
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/84-tsrust-gate66-run-measurement.py": {
+    "sha256": "1a096d0cc6e53fd40b39b534407ca83b7e0795332d5eaca58fb98338bbe3581d",
+    "original_size": 1266
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/85-tsrust-gate66-freeze-runtime.py": {
+    "sha256": "0990e90c77071aa475c8f14a044eab6e7716a441d18d98ad91b55c432b0e9e52",
+    "original_size": 5633
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/86-source-order.rs": {
+    "sha256": "f11032e9dabd2b6fa3d476a401c13186f9e493ad6478873d15fd89e72a77f6e3",
+    "original_size": 13250
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/87-boolean_logical_and_assign.rs": {
+    "sha256": "c94837132e4634e5a0805a64f1ee2e55b4442977103c810b5d5c99d641890f84",
+    "original_size": 9100
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/88-boolean_logical_and_assign.rs": {
+    "sha256": "292a44ad31c308d4d899dfb5da7518ca19aa2b3e9bf2286d05854a15935ac874",
+    "original_size": 11832
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/89-boolean_logical_or_assign.rs": {
+    "sha256": "6fd8d205277c3225b3a2e5694540d6f6c4536f6ffedee6a84bddc2fa450cb0f4",
+    "original_size": 9101
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/9-command-0003.stdout": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/90-boolean_logical_or_assign.rs": {
+    "sha256": "e6cf7ab3abdb33293312dac1ec37d9f052aa56995c7ac3935db2fe5e02e66360",
+    "original_size": 11833
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/91-boolean_logical_and_assign_emitted.rs": {
+    "sha256": "cf1753a01caa8655c59a075b3d7a20be58d261037596b0de079e9377a1c58376",
+    "original_size": 4891
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/92-boolean_logical_and_assign_scalar.rs": {
+    "sha256": "c94837132e4634e5a0805a64f1ee2e55b4442977103c810b5d5c99d641890f84",
+    "original_size": 9100
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/93-boolean_logical_and_assign_allocation.rs": {
+    "sha256": "292a44ad31c308d4d899dfb5da7518ca19aa2b3e9bf2286d05854a15935ac874",
+    "original_size": 11832
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/94-boolean_logical_and_assign_accepted-row.json": {
+    "sha256": "e04adbca39e5d4c8f37eb7ff44f31b6fdd5bdc387bb94abc0ee80f5e26ee19a9",
+    "original_size": 8509
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/95-boolean_logical_or_assign_emitted.rs": {
+    "sha256": "3c1fc2cc21e68b7ee76a77e11086e205b60aa289cb97c7ec9bb29b68f24bf78f",
+    "original_size": 4892
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/96-boolean_logical_or_assign_scalar.rs": {
+    "sha256": "6fd8d205277c3225b3a2e5694540d6f6c4536f6ffedee6a84bddc2fa450cb0f4",
+    "original_size": 9101
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/97-boolean_logical_or_assign_allocation.rs": {
+    "sha256": "e6cf7ab3abdb33293312dac1ec37d9f052aa56995c7ac3935db2fe5e02e66360",
+    "original_size": 11833
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/98-boolean_logical_or_assign_accepted-row.json": {
+    "sha256": "daa66ca3459f4839e9ed96fa51590de3b0249138ce2241529fbbfa6dbb55fdb5",
+    "original_size": 8504
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts/99-native-preflight-terminal.json": {
+    "sha256": "d35f0cb72d26e9a78066851d0a40615ad6db6a01b96e1b2272917cc062e4cc04",
+    "original_size": 1157
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-proof-closure-artifacts/tsrust-gate66-close-docs.py": {
+    "sha256": "52be246b40f29572053fa4f6dff38c61e8f4ae593b21946a8a08a0cb78b7d02f",
+    "original_size": 20111
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-proof-closure-artifacts/tsrust-gate66-completed-acceptance.json": {
+    "sha256": "7206611191905821ab0377db4f51a5f3dbdbc93543cae3f38a5221a97e4f6d4f",
+    "original_size": 8894
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-proof-closure-artifacts/tsrust-gate66-postclosure-readme-supplement.json": {
+    "sha256": "397d6e9482448994286c8b214519f2f57057391e01d4bafaea885caed42ef004",
+    "original_size": 3174
+  }
+}

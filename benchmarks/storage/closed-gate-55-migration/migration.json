@@ -1,0 +1,29 @@
+{
+  "kind": "executed-closed-gate-artifact-compaction",
+  "timestamp": "2026-10-02T12:50:37.363040+00:00",
+  "planSHA256": "df6ab0c1b9f042e31b53d99046a7ffc0633735d40d6d64a410c1f40b585dde06",
+  "selection": [
+    "runtime/diagnostics/2026-10-02T10-47-54.269Z-higher-order-source-validation-artifacts",
+    "runtime/diagnostics/2026-10-02T11-53-51-000Z-higher-order-function-values-compiler-artifacts",
+    "runtime/diagnostics/2026-10-02T11-58-38-000Z-storage-support-artifacts",
+    "runtime/diagnostics/2026-10-02T12-09-41-000Z-higher-order-function-runtime-artifacts"
+  ],
+  "files": 1706,
+  "originalLogicalBytes": 130066954,
+  "originalAllocatedBytes": 134889472,
+  "database": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/records.sqlite",
+    "sha256": "6f3d2ed422926edbc59c4cb96bd6c51a05389e38e726a10f855df0f7cfe97d47",
+    "logicalBytes": 91398144,
+    "allocatedBytes": 91398144
+  },
+  "databaseGrowthBytes": 27934720,
+  "grossAllocatedBytesReclaimed": 106954752,
+  "verification": "original/restored/archive paths, sizes and SHA256; independent zlib; rehash each leaf before unlink",
+  "rollbackOnFailure": true,
+  "protectedOriginals": {
+    "files": 399,
+    "topLevelProofsResultsAndBENCHMARKSExact": true,
+    "inventory": "protected-originals.json"
+  }
+}

@@ -1,0 +1,31 @@
+type Node = {
+    value: int;
+    children: Node[];
+};
+
+function visit(node: Node, action: Mutable<Function<void, [value: int]>>) {
+    action(node.value);
+    for (const child of node.children) {
+        visit(child, action);
+    }
+}
+
+function main() {
+    const tree: Node = {
+        value: 1, children: [{
+            value: 2, children: []
+        }, {
+            value: 3, children: []
+        }]
+    };
+
+    let sum = 0;
+    if (true) {
+        const add =(value: int): void => {
+            sum = sum + value;
+        };
+        visit(tree, add);
+    }
+
+    console.log(sum);
+}

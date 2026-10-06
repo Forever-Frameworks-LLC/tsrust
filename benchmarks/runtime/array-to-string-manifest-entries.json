@@ -1,0 +1,454 @@
+[
+  {
+    "category": "arrays",
+    "receiverLength": 5,
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "measurementStatus": "pending-checkpoint-86",
+    "pendingCheckpoint": 86,
+    "id": "array_to_string_int",
+    "family": "array-to-string",
+    "arrayLeaf": "int",
+    "toStringCalls": 1,
+    "sourceRequired": [
+      {
+        "text": "function workload(n: int, seed: int): string[] {",
+        "count": 1
+      },
+      {
+        "text": "const values: int[] = [seed, seed + 1, 0, 17, 9001];",
+        "count": 1
+      },
+      {
+        "text": "const output: string[] = []; let i = 0;",
+        "count": 1
+      },
+      {
+        "text": "while (i < n) {",
+        "count": 1
+      },
+      {
+        "text": "const count = (i + seed) % 6;",
+        "count": 1
+      },
+      {
+        "text": "let joined: string = \"\";",
+        "count": 1
+      },
+      {
+        "text": "const receiver = values.slice(0, count);",
+        "count": 1
+      },
+      {
+        "text": "joined = receiver.toString();",
+        "count": 1
+      },
+      {
+        "text": "output.push(joined);",
+        "count": 1
+      },
+      {
+        "text": "i = i + 1;",
+        "count": 1
+      },
+      {
+        "text": "return output;",
+        "count": 1
+      },
+      {
+        "text": "function main() { const result = workload(2, 7); }",
+        "count": 1
+      }
+    ],
+    "sourceSha256": "fda4bff35c44e5789797f4730b6caa960a834e244fa366f50921ae704c98ea23",
+    "counterpartSha256": "844a65612442d5ee3dab0cf4c926c50da452ac2710960fbc65fad74545e97795",
+    "operationUnit": "One actual zero-argument Array.toString call with complete String retention.",
+    "specification": "Matched built-in Array.toString on homogeneous scalar/nested arrays with zero/one/multiple selected elements; implicit comma separator and full String[] result.",
+    "notes": "Full workload includes receiver pool construction, prefix slicing, dynamic selection, formatting, and complete output retention; observer outside timing. No isolated API latency or allocation parity claim. Nested arrays use internal commas, null/undefined leaves empty text, Number -0 is 0 with exact shared shortest/nonfinite pool. Broad native rounding and full i64 behavior remain separate compiler evidence. Measurements pending checkpoint86."
+  },
+  {
+    "category": "arrays",
+    "receiverLength": 6,
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "measurementStatus": "pending-checkpoint-86",
+    "pendingCheckpoint": 86,
+    "id": "array_to_string_boolean",
+    "family": "array-to-string",
+    "arrayLeaf": "boolean",
+    "toStringCalls": 1,
+    "sourceRequired": [
+      {
+        "text": "function workload(n: int, seed: int): string[] {",
+        "count": 1
+      },
+      {
+        "text": "const values: boolean[] = [true, false, seed % 2 === 0, false, true, false];",
+        "count": 1
+      },
+      {
+        "text": "const output: string[] = []; let i = 0;",
+        "count": 1
+      },
+      {
+        "text": "while (i < n) {",
+        "count": 1
+      },
+      {
+        "text": "const count = (i + seed) % 7;",
+        "count": 1
+      },
+      {
+        "text": "let joined: string = \"\";",
+        "count": 1
+      },
+      {
+        "text": "const receiver = values.slice(0, count);",
+        "count": 1
+      },
+      {
+        "text": "joined = receiver.toString();",
+        "count": 1
+      },
+      {
+        "text": "output.push(joined);",
+        "count": 1
+      },
+      {
+        "text": "i = i + 1;",
+        "count": 1
+      },
+      {
+        "text": "return output;",
+        "count": 1
+      },
+      {
+        "text": "function main() { const result = workload(2, 7); }",
+        "count": 1
+      }
+    ],
+    "sourceSha256": "9dcfd07438c5bb6a946b373e2ba85b42f4917af5e0c1f33c2ad68d3159d20d20",
+    "counterpartSha256": "23245e147e2b1224c00d158ab1c5f2c72f7710d1c9c99a504874f0f6d69d1279",
+    "operationUnit": "One actual zero-argument Array.toString call with complete String retention.",
+    "specification": "Matched built-in Array.toString on homogeneous scalar/nested arrays with zero/one/multiple selected elements; implicit comma separator and full String[] result.",
+    "notes": "Full workload includes receiver pool construction, prefix slicing, dynamic selection, formatting, and complete output retention; observer outside timing. No isolated API latency or allocation parity claim. Nested arrays use internal commas, null/undefined leaves empty text, Number -0 is 0 with exact shared shortest/nonfinite pool. Broad native rounding and full i64 behavior remain separate compiler evidence. Measurements pending checkpoint86."
+  },
+  {
+    "category": "arrays",
+    "receiverLength": 5,
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "measurementStatus": "pending-checkpoint-86",
+    "pendingCheckpoint": 86,
+    "inputText": "dynamic text",
+    "id": "array_to_string_string",
+    "family": "array-to-string",
+    "arrayLeaf": "string",
+    "toStringCalls": 1,
+    "sourceRequired": [
+      {
+        "text": "function workload(n: int, seed: int, input: string): string[] {",
+        "count": 1
+      },
+      {
+        "text": "const values: string[] = [clone(input), \"\", \"é😀e\\u0301\", \"\\uFEFF\\u0000\", input.repeat(2)];",
+        "count": 1
+      },
+      {
+        "text": "const output: string[] = []; let i = 0;",
+        "count": 1
+      },
+      {
+        "text": "while (i < n) {",
+        "count": 1
+      },
+      {
+        "text": "const count = (i + seed) % 6;",
+        "count": 1
+      },
+      {
+        "text": "let joined: string = \"\";",
+        "count": 1
+      },
+      {
+        "text": "const receiver = values.slice(0, count);",
+        "count": 1
+      },
+      {
+        "text": "joined = receiver.toString();",
+        "count": 1
+      },
+      {
+        "text": "output.push(joined);",
+        "count": 1
+      },
+      {
+        "text": "i = i + 1;",
+        "count": 1
+      },
+      {
+        "text": "return output;",
+        "count": 1
+      },
+      {
+        "text": "function main() { const result = workload(2, 7, \"dynamic text\"); }",
+        "count": 1
+      }
+    ],
+    "sourceSha256": "d7ea6c7fd25f1de17e30c43f22a2916e7d8c32380a88510b49336282f79f33c0",
+    "counterpartSha256": "9c5e2c851ec9dc1af1378e982844337fcd8173da92158a9ecab36b23a0f140bf",
+    "operationUnit": "One actual zero-argument Array.toString call with complete String retention.",
+    "specification": "Matched built-in Array.toString on homogeneous scalar/nested arrays with zero/one/multiple selected elements; implicit comma separator and full String[] result.",
+    "notes": "Full workload includes receiver pool construction, prefix slicing, dynamic selection, formatting, and complete output retention; observer outside timing. No isolated API latency or allocation parity claim. Nested arrays use internal commas, null/undefined leaves empty text, Number -0 is 0 with exact shared shortest/nonfinite pool. Broad native rounding and full i64 behavior remain separate compiler evidence. Measurements pending checkpoint86."
+  },
+  {
+    "category": "arrays",
+    "receiverLength": 5,
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "measurementStatus": "pending-checkpoint-86",
+    "pendingCheckpoint": 86,
+    "id": "array_to_string_nested",
+    "family": "array-to-string",
+    "arrayLeaf": "nested",
+    "toStringCalls": 1,
+    "sourceRequired": [
+      {
+        "text": "function workload(n: int, seed: int): string[] {",
+        "count": 1
+      },
+      {
+        "text": "const values: int[][] = [[seed, 1], [], [2, 3], [4], [5, 6, 7]];",
+        "count": 1
+      },
+      {
+        "text": "const output: string[] = []; let i = 0;",
+        "count": 1
+      },
+      {
+        "text": "while (i < n) {",
+        "count": 1
+      },
+      {
+        "text": "const count = (i + seed) % 6;",
+        "count": 1
+      },
+      {
+        "text": "let joined: string = \"\";",
+        "count": 1
+      },
+      {
+        "text": "const receiver = values.slice(0, count);",
+        "count": 1
+      },
+      {
+        "text": "joined = receiver.toString();",
+        "count": 1
+      },
+      {
+        "text": "output.push(joined);",
+        "count": 1
+      },
+      {
+        "text": "i = i + 1;",
+        "count": 1
+      },
+      {
+        "text": "return output;",
+        "count": 1
+      },
+      {
+        "text": "function main() { const result = workload(2, 7); }",
+        "count": 1
+      }
+    ],
+    "sourceSha256": "571cfb33b8a2b9c98cd096d805cd0ba8cacfb70f5eb0db5a71018102c63c1d7e",
+    "counterpartSha256": "4c2bdeaf14a0a2a00e2b6fd2cf8c863eb8334bd76a53f50a7cb6137084ef9353",
+    "operationUnit": "One actual zero-argument Array.toString call with complete String retention.",
+    "specification": "Matched built-in Array.toString on homogeneous scalar/nested arrays with zero/one/multiple selected elements; implicit comma separator and full String[] result.",
+    "notes": "Full workload includes receiver pool construction, prefix slicing, dynamic selection, formatting, and complete output retention; observer outside timing. No isolated API latency or allocation parity claim. Nested arrays use internal commas, null/undefined leaves empty text, Number -0 is 0 with exact shared shortest/nonfinite pool. Broad native rounding and full i64 behavior remain separate compiler evidence. Measurements pending checkpoint86."
+  },
+  {
+    "category": "arrays",
+    "receiverLength": 8,
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "measurementStatus": "pending-checkpoint-86",
+    "pendingCheckpoint": 86,
+    "id": "array_to_string_number",
+    "family": "array-to-string",
+    "arrayLeaf": "number",
+    "toStringCalls": 1,
+    "sourceRequired": [
+      {
+        "text": "function workload(n: int, seed: int): string[] {",
+        "count": 1
+      },
+      {
+        "text": "const values: number[] = [Number(seed), -0.0, 0.5, -2.5, 17.0, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY];",
+        "count": 1
+      },
+      {
+        "text": "const output: string[] = []; let i = 0;",
+        "count": 1
+      },
+      {
+        "text": "while (i < n) {",
+        "count": 1
+      },
+      {
+        "text": "const count = (i + seed) % 9;",
+        "count": 1
+      },
+      {
+        "text": "let joined: string = \"\";",
+        "count": 1
+      },
+      {
+        "text": "const receiver = values.slice(0, count);",
+        "count": 1
+      },
+      {
+        "text": "joined = receiver.toString();",
+        "count": 1
+      },
+      {
+        "text": "output.push(joined);",
+        "count": 1
+      },
+      {
+        "text": "i = i + 1;",
+        "count": 1
+      },
+      {
+        "text": "return output;",
+        "count": 1
+      },
+      {
+        "text": "function main() { const result = workload(2, 7); }",
+        "count": 1
+      }
+    ],
+    "sourceSha256": "481ab9f2e3b6e00bf85a1f29e1d9c7e2bf12551a3f9e30d53a521930afef4d3d",
+    "counterpartSha256": "9f197de2e5aa5dd911a5571b3213b9d3de69584fc5fe97d12c6135f28034a0c9",
+    "operationUnit": "One actual zero-argument Array.toString call with complete String retention.",
+    "specification": "Matched built-in Array.toString on homogeneous scalar/nested arrays with zero/one/multiple selected elements; implicit comma separator and full String[] result.",
+    "notes": "Full workload includes receiver pool construction, prefix slicing, dynamic selection, formatting, and complete output retention; observer outside timing. No isolated API latency or allocation parity claim. Nested arrays use internal commas, null/undefined leaves empty text, Number -0 is 0 with exact shared shortest/nonfinite pool. Broad native rounding and full i64 behavior remain separate compiler evidence. Measurements pending checkpoint86."
+  },
+  {
+    "category": "arrays",
+    "receiverLength": 3,
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "measurementStatus": "pending-checkpoint-86",
+    "pendingCheckpoint": 86,
+    "id": "array_to_string_nullish",
+    "family": "array-to-string",
+    "arrayLeaf": "nullish",
+    "toStringCalls": 2,
+    "sourceRequired": [
+      {
+        "text": "function workload(n: int, seed: int): string[] {",
+        "count": 1
+      },
+      {
+        "text": "const values: null[] = [null, null, null];",
+        "count": 1
+      },
+      {
+        "text": "const missing: undefined[] = [undefined, undefined, undefined];",
+        "count": 1
+      },
+      {
+        "text": "const output: string[] = []; let i = 0;",
+        "count": 1
+      },
+      {
+        "text": "while (i < n) {",
+        "count": 1
+      },
+      {
+        "text": "const count = (i + seed) % 4;",
+        "count": 1
+      },
+      {
+        "text": "let joined: string = \"\";",
+        "count": 1
+      },
+      {
+        "text": "if ((i + seed) % 2 === 0) {",
+        "count": 1
+      },
+      {
+        "text": "const receiver = values.slice(0, count);",
+        "count": 1
+      },
+      {
+        "text": "joined = receiver.toString();",
+        "count": 2
+      },
+      {
+        "text": "const receiver = missing.slice(0, count);",
+        "count": 1
+      },
+      {
+        "text": "output.push(joined);",
+        "count": 1
+      },
+      {
+        "text": "i = i + 1;",
+        "count": 1
+      },
+      {
+        "text": "return output;",
+        "count": 1
+      },
+      {
+        "text": "function main() { const result = workload(2, 7); }",
+        "count": 1
+      }
+    ],
+    "sourceSha256": "c6603e33c016afc525d633f342b14f9bc47fbe3e276bed27aed82363a876c2cf",
+    "counterpartSha256": "b2d5589b9d77bad65c32a50928dffbed760186b1dc229dc3f42881aeab6bdf71",
+    "operationUnit": "One actual zero-argument Array.toString call with complete String retention.",
+    "specification": "Matched built-in Array.toString on homogeneous scalar/nested arrays with zero/one/multiple selected elements; implicit comma separator and full String[] result.",
+    "notes": "Full workload includes receiver pool construction, prefix slicing, dynamic selection, formatting, and complete output retention; observer outside timing. No isolated API latency or allocation parity claim. Nested arrays use internal commas, null/undefined leaves empty text, Number -0 is 0 with exact shared shortest/nonfinite pool. Broad native rounding and full i64 behavior remain separate compiler evidence. Measurements pending checkpoint86."
+  }
+]

@@ -1,0 +1,90 @@
+[
+  {
+    "id": "string_last_index_of_default_ascii",
+    "category": "strings",
+    "family": "ascii",
+    "method": "lastIndexOf",
+    "searchMode": "default",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "aaa ababa alpha A alpha Z",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "complete reverse-search iteration including needle and position selection and retaining byte index + 1; setup runs once per workload invocation",
+    "specification": "Find the greatest ascii substring match start at or before the default byte length. Retain every byte index as index + 1, including misses. Empty needles return the selected position; overlapping matches remain visible.",
+    "notes": "Needle pool setup, reverse search, selection and complete result retention are timed. ASCII byte offsets equal UTF16 offsets, so the TypeScript counterpart directly calls actual String.lastIndexOf with the same position pool and no coordinate bridge. Complete observation runs outside timing. These are complete iterations, not isolated-call latency or allocation-parity measurements.",
+    "sourceSha256": "8a6f3228c830648fbb026a59132c030a930e95161fae1a2df62797041c3489e8",
+    "counterpartSha256": "ff0dcc7df66e3ee4cd6a520a0528e6be778055b861812b6c55a5b7dcc923be8b"
+  },
+  {
+    "id": "string_last_index_of_default_unicode",
+    "category": "strings",
+    "family": "unicode",
+    "method": "lastIndexOf",
+    "searchMode": "default",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "aaababaé😀ababaé😀é😀Z",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "complete reverse-search iteration including needle and position selection and retaining byte index + 1; setup runs once per workload invocation",
+    "specification": "Find the greatest unicode substring match start at or before the default byte length. Retain every byte index as index + 1, including misses. Empty needles return the selected position; overlapping matches remain visible.",
+    "notes": "Needle pool setup, reverse search, selection and complete result retention are timed. The TypeScript counterpart calls actual String.lastIndexOf and includes standard UTF8/UTF16 coordinate mapping setup and lookup costs. Complete observation runs outside timing. These are complete iterations, not isolated-call latency or allocation-parity measurements.",
+    "sourceSha256": "a37d9e41a2318896792ddcd53c5551c4b958e7898011dcccf3bda48b4e351f15",
+    "counterpartSha256": "6664f5cc54925a2ebff9653fce850487fe42b5417a690c975d1bf2958e1f8a28"
+  },
+  {
+    "id": "string_last_index_of_bounded_ascii",
+    "category": "strings",
+    "family": "ascii",
+    "method": "lastIndexOf",
+    "searchMode": "bounded",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "aaa ababa alpha A alpha Z",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "complete reverse-search iteration including needle and position selection and retaining byte index + 1; setup runs once per workload invocation",
+    "specification": "Find the greatest ascii substring match start at or before a signed-clamped, dynamically valid UTF8 byte boundary. Retain every byte index as index + 1, including misses. Empty needles return the selected position; overlapping matches remain visible.",
+    "notes": "Needle pool setup, reverse search, selection and complete result retention are timed. The bounded position pool performs six fixed indexOf support searches once per invocation. ASCII byte offsets equal UTF16 offsets, so the TypeScript counterpart directly calls actual String.lastIndexOf with the same position pool and no coordinate bridge. Complete observation runs outside timing. These are complete iterations, not isolated-call latency or allocation-parity measurements.",
+    "sourceSha256": "d98af9c435ebd32f7e8a1e93b727caf25dc7abdb08b9856c7bbf530fcb09075a",
+    "counterpartSha256": "b014fa8922441c22e2f8b6b536d20f3a139fe9e9d184685b0d3f524ef84816fb"
+  },
+  {
+    "id": "string_last_index_of_bounded_unicode",
+    "category": "strings",
+    "family": "unicode",
+    "method": "lastIndexOf",
+    "searchMode": "bounded",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "aaababaé😀ababaé😀é😀Z",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "complete reverse-search iteration including needle and position selection and retaining byte index + 1; setup runs once per workload invocation",
+    "specification": "Find the greatest unicode substring match start at or before a signed-clamped, dynamically valid UTF8 byte boundary. Retain every byte index as index + 1, including misses. Empty needles return the selected position; overlapping matches remain visible.",
+    "notes": "Needle pool setup, reverse search, selection and complete result retention are timed. The bounded position pool performs six fixed indexOf support searches once per invocation. The TypeScript counterpart calls actual String.lastIndexOf and includes standard UTF8/UTF16 coordinate mapping setup and lookup costs. Complete observation runs outside timing. These are complete iterations, not isolated-call latency or allocation-parity measurements.",
+    "sourceSha256": "0a13258004334b81f18ec3ced3a733ccf0e1def22dafdc114824ece30ec347af",
+    "counterpartSha256": "575dd220c4c2a95834e019d3ceb1b03e7e31015c81f1b358e2e50b4d5b0aaacf"
+  }
+]

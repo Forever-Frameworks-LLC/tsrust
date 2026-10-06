@@ -1,0 +1,13 @@
+type int = number;
+function workload(n: int, seed: int): int[] {
+    const values: int[] = [0, 1, 7, 31, 1024, 65535, 1048576, 2147483647];
+    const output: int[] = []; let i = 0;
+    while (i < n) {
+        const at = (i * 13 + seed) % 8;
+        const selected: int = values[at].valueOf();
+        output.push(selected);
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7); }

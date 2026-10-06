@@ -1,0 +1,9 @@
+function workload(n: int, seed: int, input: string): string[][] {
+ const output: string[][] = []; const fractions: number[] = [0.0,0.2345,0.9995];
+ const specials: number[] = [-0.0004,-0.0005,Number.NaN,Number.POSITIVE_INFINITY,Number.NEGATIVE_INFINITY]; let i = 0;
+ while (i < n) { const whole = ((i * 13 + seed) % 97) * 1001;
+ const value = Number(whole) + fractions[i % 3]; const negative = -value; const special = specials[i % 5]; const large:number=1e21;
+ output.push([whole.toLocaleString(),value.toLocaleString(),negative.toLocaleString(),special.toLocaleString(),large.toLocaleString()]);
+ i = i + 1; } return output;
+}
+function main() { const result = workload(3, 0, "abc"); }

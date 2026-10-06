@@ -1,0 +1,46 @@
+import {expect} from "std:testing";
+type Measured={length:number|null;};
+function workload(n:int,seed:int):int {
+    let checksum=0;let i=0;
+    while(i<n){
+        const kind=(i*13+seed)%6;
+        const actual:number|null|undefined=kind===0?null:kind===1?undefined:kind===2?0.0:kind===3?Number.NaN:kind===4?-0.0:7.0;
+        const assertion=expect(actual);
+        if(kind===0){assertion.toBeNull();}else if(kind===1){assertion.toBeUndefined();}else{assertion.toBeDefined();}
+        if(kind===5){assertion.toBeTruthy();}else{assertion.toBeFalsy();}
+        if(kind===3){assertion.toBeNaN();}else{assertion.toBe(actual);}
+        if(kind===0){assertion.not.toBeUndefined();}else if(kind===1){assertion.not.toBeDefined();}else{assertion.not.toBeNull();}
+        if(kind===5){assertion.not.toBeFalsy();}else{assertion.not.toBeTruthy();}
+        if(kind===3){assertion.not.toBe(0.0);}else{assertion.not.toBeNaN();}
+        const expectedType=kind===0?"object":kind===1?"undefined":"number";
+        assertion.toBeTypeOf(expectedType);
+        assertion.not.toBeTypeOf("string");
+        const numericActual=Number(kind);
+        const numericAssertion=expect(numericActual);
+        numericAssertion.toBeGreaterThan(-1.0);
+        numericAssertion.toBeGreaterThanOrEqual(numericActual);
+        numericAssertion.toBeLessThan(6.0);
+        numericAssertion.toBeLessThanOrEqual(numericActual);
+        numericAssertion.not.toBeGreaterThan(6.0);
+        numericAssertion.not.toBeGreaterThanOrEqual(6.0);
+        numericAssertion.not.toBeLessThan(-1.0);
+        numericAssertion.not.toBeLessThanOrEqual(-1.0);
+        numericAssertion.toBeCloseTo(numericActual);
+        numericAssertion.not.toBeCloseTo(numericActual+0.125,5.0);
+        const text=kind===0?"😀":"x".repeat(kind);
+        const expectedLength=kind===0?2.0:Number(kind);
+        const lengthAssertion=expect(text);
+        lengthAssertion.toHaveLength(expectedLength);
+        lengthAssertion.not.toHaveLength(expectedLength+1.0);
+        const measured:number|null=numericActual;
+        const record:Measured={length:measured};
+        const recordAssertion=expect(record);
+        recordAssertion.toHaveLength(numericActual);
+        recordAssertion.not.toHaveLength(numericActual+1.0);
+        const code=actual===null?1:actual===undefined?2:Boolean(actual)?4:8;
+        checksum=(checksum*131+code)%1000000007;
+        i=i+1;
+    }
+    return checksum;
+}
+function main(){console.log(workload(17,3));}

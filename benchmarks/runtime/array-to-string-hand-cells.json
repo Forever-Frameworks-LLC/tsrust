@@ -1,0 +1,94 @@
+[
+  {
+    "values": [],
+    "expected": ""
+  },
+  {
+    "values": [
+      0,
+      17,
+      9001
+    ],
+    "expected": "0,17,9001"
+  },
+  {
+    "values": [
+      true,
+      false,
+      true
+    ],
+    "expected": "true,false,true"
+  },
+  {
+    "values": [
+      "",
+      "é😀",
+      "﻿\u0000"
+    ],
+    "expected": ",é😀,﻿\u0000"
+  },
+  {
+    "values": [
+      [
+        1,
+        2
+      ],
+      [],
+      [
+        3
+      ]
+    ],
+    "expected": "1,2,,3"
+  },
+  {
+    "values": [
+      [
+        1
+      ],
+      [],
+      [
+        2,
+        3
+      ]
+    ],
+    "expected": "1,,2,3"
+  },
+  {
+    "values": [
+      null,
+      null,
+      null
+    ],
+    "expected": ",,"
+  },
+  {
+    "kind": "undefined",
+    "expected": ",,"
+  },
+  {
+    "kind": "number-special",
+    "expected": "0,0,0.5,-2.5,17,NaN,Infinity,-Infinity"
+  },
+  {
+    "values": [
+      "a,b",
+      "&<>",
+      ""
+    ],
+    "expected": "a,b,&<>,"
+  },
+  {
+    "values": [
+      "﻿",
+      "é",
+      "😀"
+    ],
+    "expected": "﻿,é,😀"
+  },
+  {
+    "values": [
+      ""
+    ],
+    "expected": ""
+  }
+]

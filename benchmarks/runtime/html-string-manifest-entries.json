@@ -1,0 +1,617 @@
+[
+  {
+    "id": "string_html_anchor",
+    "category": "strings",
+    "family": "html-string-wrapper",
+    "method": "anchor",
+    "htmlTag": "a",
+    "htmlAttribute": "name",
+    "inputFamily": "unicode",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "dynamic é😀&<",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String.anchor call retaining its complete String result",
+    "measurementStatus": "pending-checkpoint-81",
+    "pendingCheckpoint": 81,
+    "specification": "Legacy HTML String wrapper with strict native zero arguments except one String attribute. Receiver text stays raw, including &<>/NUL and Unicode. Only double quotes in attribute values become &quot;; existing ampersands and angle brackets remain raw.",
+    "notes": "Full workload includes input/static/owned receiver-pool construction, attribute-pool construction and selection, actual HTML wrapper call and natural String[] retention/disposal. Complete existing String observer runs outside timing; no HTML escaping beyond the method attribute rule, coercion, standalone method-throughput, or allocation-parity claim. Timing pending checkpoint81.",
+    "sourceRequired": [
+      "function workload(n: int, seed: int, input: string): string[] {",
+      "    const values: string[] = [clone(input), \"\", \"raw &<>\\u0000\", \"é😀e\\u0301\", \"\\uFEFFquote\\\"\", \"a'&<>\", \"static\", input.repeat(2)];",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 8;",
+      "        const selected: string = values[at].anchor(attributes[(i * 7 + seed) % 9]);",
+      "output.push(selected);",
+      "i = i + 1;",
+      "return output;",
+      "    const attributes: string[] = [\"\", clone(input), \"\\\"\", \"a\\\"b\", \"&<>\", \"'\\u0000\", \"é😀\", input.repeat(2), \"&quot;\"];"
+    ],
+    "nativeRequired": [],
+    "typescriptRequired": [],
+    "methodExpressions": {
+      "native": [
+        "values[at].anchor(attributes[(i * 7 + seed) % 9])"
+      ],
+      "typescript": [
+        "values[at].anchor(attributes[(i * 7 + seed) % 9])"
+      ]
+    },
+    "sourceSha256": "886b425e56950daca85b16f7700e02dccad564e4df110f51b0b3fbc36be13a21",
+    "counterpartSha256": "3b64a15a92b5ec5b88759a0b12a30d94ef3c9c0dfdbfd3bc3d0dbc8f620fdf1c"
+  },
+  {
+    "id": "string_html_big",
+    "category": "strings",
+    "family": "html-string-wrapper",
+    "method": "big",
+    "htmlTag": "big",
+    "htmlAttribute": null,
+    "inputFamily": "unicode",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "dynamic é😀&<",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String.big call retaining its complete String result",
+    "measurementStatus": "pending-checkpoint-81",
+    "pendingCheckpoint": 81,
+    "specification": "Legacy HTML String wrapper with strict native zero arguments. Receiver text stays raw, including &<>/NUL and Unicode. Only double quotes in attribute values become &quot;; existing ampersands and angle brackets remain raw.",
+    "notes": "Full workload includes input/static/owned receiver-pool construction, actual HTML wrapper call and natural String[] retention/disposal. Complete existing String observer runs outside timing; no HTML escaping beyond the method attribute rule, coercion, standalone method-throughput, or allocation-parity claim. Timing pending checkpoint81.",
+    "sourceRequired": [
+      "function workload(n: int, seed: int, input: string): string[] {",
+      "    const values: string[] = [clone(input), \"\", \"raw &<>\\u0000\", \"é😀e\\u0301\", \"\\uFEFFquote\\\"\", \"a'&<>\", \"static\", input.repeat(2)];",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 8;",
+      "        const selected: string = values[at].big();",
+      "output.push(selected);",
+      "i = i + 1;",
+      "return output;"
+    ],
+    "nativeRequired": [],
+    "typescriptRequired": [],
+    "methodExpressions": {
+      "native": [
+        "values[at].big()"
+      ],
+      "typescript": [
+        "values[at].big()"
+      ]
+    },
+    "sourceSha256": "47e32c0b7a16f780b3270bb484b01bca69d37e90c231eec312ff6a73b5e80537",
+    "counterpartSha256": "0427e4f9b64d0d9a08e7e6b260c274ea8ec5709f641f9f67dd6d19f079384c99"
+  },
+  {
+    "id": "string_html_blink",
+    "category": "strings",
+    "family": "html-string-wrapper",
+    "method": "blink",
+    "htmlTag": "blink",
+    "htmlAttribute": null,
+    "inputFamily": "unicode",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "dynamic é😀&<",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String.blink call retaining its complete String result",
+    "measurementStatus": "pending-checkpoint-81",
+    "pendingCheckpoint": 81,
+    "specification": "Legacy HTML String wrapper with strict native zero arguments. Receiver text stays raw, including &<>/NUL and Unicode. Only double quotes in attribute values become &quot;; existing ampersands and angle brackets remain raw.",
+    "notes": "Full workload includes input/static/owned receiver-pool construction, actual HTML wrapper call and natural String[] retention/disposal. Complete existing String observer runs outside timing; no HTML escaping beyond the method attribute rule, coercion, standalone method-throughput, or allocation-parity claim. Timing pending checkpoint81.",
+    "sourceRequired": [
+      "function workload(n: int, seed: int, input: string): string[] {",
+      "    const values: string[] = [clone(input), \"\", \"raw &<>\\u0000\", \"é😀e\\u0301\", \"\\uFEFFquote\\\"\", \"a'&<>\", \"static\", input.repeat(2)];",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 8;",
+      "        const selected: string = values[at].blink();",
+      "output.push(selected);",
+      "i = i + 1;",
+      "return output;"
+    ],
+    "nativeRequired": [],
+    "typescriptRequired": [],
+    "methodExpressions": {
+      "native": [
+        "values[at].blink()"
+      ],
+      "typescript": [
+        "values[at].blink()"
+      ]
+    },
+    "sourceSha256": "5a79725f52339570eea200ab057872d4cc993fdf66c816d866aa36e313128789",
+    "counterpartSha256": "9f64b8da571a32ae6b881da76af9467008e36214ddf38610e1d6c74c550020d1"
+  },
+  {
+    "id": "string_html_bold",
+    "category": "strings",
+    "family": "html-string-wrapper",
+    "method": "bold",
+    "htmlTag": "b",
+    "htmlAttribute": null,
+    "inputFamily": "unicode",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "dynamic é😀&<",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String.bold call retaining its complete String result",
+    "measurementStatus": "pending-checkpoint-81",
+    "pendingCheckpoint": 81,
+    "specification": "Legacy HTML String wrapper with strict native zero arguments. Receiver text stays raw, including &<>/NUL and Unicode. Only double quotes in attribute values become &quot;; existing ampersands and angle brackets remain raw.",
+    "notes": "Full workload includes input/static/owned receiver-pool construction, actual HTML wrapper call and natural String[] retention/disposal. Complete existing String observer runs outside timing; no HTML escaping beyond the method attribute rule, coercion, standalone method-throughput, or allocation-parity claim. Timing pending checkpoint81.",
+    "sourceRequired": [
+      "function workload(n: int, seed: int, input: string): string[] {",
+      "    const values: string[] = [clone(input), \"\", \"raw &<>\\u0000\", \"é😀e\\u0301\", \"\\uFEFFquote\\\"\", \"a'&<>\", \"static\", input.repeat(2)];",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 8;",
+      "        const selected: string = values[at].bold();",
+      "output.push(selected);",
+      "i = i + 1;",
+      "return output;"
+    ],
+    "nativeRequired": [],
+    "typescriptRequired": [],
+    "methodExpressions": {
+      "native": [
+        "values[at].bold()"
+      ],
+      "typescript": [
+        "values[at].bold()"
+      ]
+    },
+    "sourceSha256": "bdab68d11e138a1c2ab16d952bae8bb30f83af1a9fad61dc6820654524d4bd4d",
+    "counterpartSha256": "808a8ff036b1e4a689d746c99652438bb3e989e1f961bd6ba4c900f014031e83"
+  },
+  {
+    "id": "string_html_fixed",
+    "category": "strings",
+    "family": "html-string-wrapper",
+    "method": "fixed",
+    "htmlTag": "tt",
+    "htmlAttribute": null,
+    "inputFamily": "unicode",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "dynamic é😀&<",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String.fixed call retaining its complete String result",
+    "measurementStatus": "pending-checkpoint-81",
+    "pendingCheckpoint": 81,
+    "specification": "Legacy HTML String wrapper with strict native zero arguments. Receiver text stays raw, including &<>/NUL and Unicode. Only double quotes in attribute values become &quot;; existing ampersands and angle brackets remain raw.",
+    "notes": "Full workload includes input/static/owned receiver-pool construction, actual HTML wrapper call and natural String[] retention/disposal. Complete existing String observer runs outside timing; no HTML escaping beyond the method attribute rule, coercion, standalone method-throughput, or allocation-parity claim. Timing pending checkpoint81.",
+    "sourceRequired": [
+      "function workload(n: int, seed: int, input: string): string[] {",
+      "    const values: string[] = [clone(input), \"\", \"raw &<>\\u0000\", \"é😀e\\u0301\", \"\\uFEFFquote\\\"\", \"a'&<>\", \"static\", input.repeat(2)];",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 8;",
+      "        const selected: string = values[at].fixed();",
+      "output.push(selected);",
+      "i = i + 1;",
+      "return output;"
+    ],
+    "nativeRequired": [],
+    "typescriptRequired": [],
+    "methodExpressions": {
+      "native": [
+        "values[at].fixed()"
+      ],
+      "typescript": [
+        "values[at].fixed()"
+      ]
+    },
+    "sourceSha256": "e43ccda8f34678e2fe3ad55e3c2f34c60683a40c0b9520c395a1e78eae1926ce",
+    "counterpartSha256": "24e1bdfe82bd8bb0a66c7bcd5c92abb90c554c8126e413e86cbe4bfc7b842cab"
+  },
+  {
+    "id": "string_html_fontcolor",
+    "category": "strings",
+    "family": "html-string-wrapper",
+    "method": "fontcolor",
+    "htmlTag": "font",
+    "htmlAttribute": "color",
+    "inputFamily": "unicode",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "dynamic é😀&<",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String.fontcolor call retaining its complete String result",
+    "measurementStatus": "pending-checkpoint-81",
+    "pendingCheckpoint": 81,
+    "specification": "Legacy HTML String wrapper with strict native zero arguments except one String attribute. Receiver text stays raw, including &<>/NUL and Unicode. Only double quotes in attribute values become &quot;; existing ampersands and angle brackets remain raw.",
+    "notes": "Full workload includes input/static/owned receiver-pool construction, attribute-pool construction and selection, actual HTML wrapper call and natural String[] retention/disposal. Complete existing String observer runs outside timing; no HTML escaping beyond the method attribute rule, coercion, standalone method-throughput, or allocation-parity claim. Timing pending checkpoint81.",
+    "sourceRequired": [
+      "function workload(n: int, seed: int, input: string): string[] {",
+      "    const values: string[] = [clone(input), \"\", \"raw &<>\\u0000\", \"é😀e\\u0301\", \"\\uFEFFquote\\\"\", \"a'&<>\", \"static\", input.repeat(2)];",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 8;",
+      "        const selected: string = values[at].fontcolor(attributes[(i * 7 + seed) % 9]);",
+      "output.push(selected);",
+      "i = i + 1;",
+      "return output;",
+      "    const attributes: string[] = [\"\", clone(input), \"\\\"\", \"a\\\"b\", \"&<>\", \"'\\u0000\", \"é😀\", input.repeat(2), \"&quot;\"];"
+    ],
+    "nativeRequired": [],
+    "typescriptRequired": [],
+    "methodExpressions": {
+      "native": [
+        "values[at].fontcolor(attributes[(i * 7 + seed) % 9])"
+      ],
+      "typescript": [
+        "values[at].fontcolor(attributes[(i * 7 + seed) % 9])"
+      ]
+    },
+    "sourceSha256": "9dac42dd37b5a32578317c06650c3a0c96fcb61cae342d3b0862803800a2f9c1",
+    "counterpartSha256": "5be3e58ec69b4d793ea631b864183c62afebb7bb852e6d34ed35c4bc91f96ef2"
+  },
+  {
+    "id": "string_html_fontsize",
+    "category": "strings",
+    "family": "html-string-wrapper",
+    "method": "fontsize",
+    "htmlTag": "font",
+    "htmlAttribute": "size",
+    "inputFamily": "unicode",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "dynamic é😀&<",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String.fontsize call retaining its complete String result",
+    "measurementStatus": "pending-checkpoint-81",
+    "pendingCheckpoint": 81,
+    "specification": "Legacy HTML String wrapper with strict native zero arguments except one String attribute. Receiver text stays raw, including &<>/NUL and Unicode. Only double quotes in attribute values become &quot;; existing ampersands and angle brackets remain raw.",
+    "notes": "Full workload includes input/static/owned receiver-pool construction, attribute-pool construction and selection, actual HTML wrapper call and natural String[] retention/disposal. Complete existing String observer runs outside timing; no HTML escaping beyond the method attribute rule, coercion, standalone method-throughput, or allocation-parity claim. Timing pending checkpoint81.",
+    "sourceRequired": [
+      "function workload(n: int, seed: int, input: string): string[] {",
+      "    const values: string[] = [clone(input), \"\", \"raw &<>\\u0000\", \"é😀e\\u0301\", \"\\uFEFFquote\\\"\", \"a'&<>\", \"static\", input.repeat(2)];",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 8;",
+      "        const selected: string = values[at].fontsize(attributes[(i * 7 + seed) % 9]);",
+      "output.push(selected);",
+      "i = i + 1;",
+      "return output;",
+      "    const attributes: string[] = [\"\", clone(input), \"\\\"\", \"a\\\"b\", \"&<>\", \"'\\u0000\", \"é😀\", input.repeat(2), \"&quot;\"];"
+    ],
+    "nativeRequired": [],
+    "typescriptRequired": [],
+    "methodExpressions": {
+      "native": [
+        "values[at].fontsize(attributes[(i * 7 + seed) % 9])"
+      ],
+      "typescript": [
+        "values[at].fontsize(attributes[(i * 7 + seed) % 9])"
+      ]
+    },
+    "sourceSha256": "837dcd6544cf4aeb4de32b645b9963619c471385d7e949200a4a2a356d296aca",
+    "counterpartSha256": "b1cf55223c14a36213cefff5809ea935f6e2af83a043161ed574e32cd1983012"
+  },
+  {
+    "id": "string_html_italics",
+    "category": "strings",
+    "family": "html-string-wrapper",
+    "method": "italics",
+    "htmlTag": "i",
+    "htmlAttribute": null,
+    "inputFamily": "unicode",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "dynamic é😀&<",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String.italics call retaining its complete String result",
+    "measurementStatus": "pending-checkpoint-81",
+    "pendingCheckpoint": 81,
+    "specification": "Legacy HTML String wrapper with strict native zero arguments. Receiver text stays raw, including &<>/NUL and Unicode. Only double quotes in attribute values become &quot;; existing ampersands and angle brackets remain raw.",
+    "notes": "Full workload includes input/static/owned receiver-pool construction, actual HTML wrapper call and natural String[] retention/disposal. Complete existing String observer runs outside timing; no HTML escaping beyond the method attribute rule, coercion, standalone method-throughput, or allocation-parity claim. Timing pending checkpoint81.",
+    "sourceRequired": [
+      "function workload(n: int, seed: int, input: string): string[] {",
+      "    const values: string[] = [clone(input), \"\", \"raw &<>\\u0000\", \"é😀e\\u0301\", \"\\uFEFFquote\\\"\", \"a'&<>\", \"static\", input.repeat(2)];",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 8;",
+      "        const selected: string = values[at].italics();",
+      "output.push(selected);",
+      "i = i + 1;",
+      "return output;"
+    ],
+    "nativeRequired": [],
+    "typescriptRequired": [],
+    "methodExpressions": {
+      "native": [
+        "values[at].italics()"
+      ],
+      "typescript": [
+        "values[at].italics()"
+      ]
+    },
+    "sourceSha256": "655b69c742c7eac27b0cd2b56a44c5a22c1d1236c6b600b46c1d35dfc5cf92c9",
+    "counterpartSha256": "892c69e82d3fb82a581d6a175833405ba6ccf4ba6e2a912f90145f86bdaa9cb2"
+  },
+  {
+    "id": "string_html_link",
+    "category": "strings",
+    "family": "html-string-wrapper",
+    "method": "link",
+    "htmlTag": "a",
+    "htmlAttribute": "href",
+    "inputFamily": "unicode",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "dynamic é😀&<",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String.link call retaining its complete String result",
+    "measurementStatus": "pending-checkpoint-81",
+    "pendingCheckpoint": 81,
+    "specification": "Legacy HTML String wrapper with strict native zero arguments except one String attribute. Receiver text stays raw, including &<>/NUL and Unicode. Only double quotes in attribute values become &quot;; existing ampersands and angle brackets remain raw.",
+    "notes": "Full workload includes input/static/owned receiver-pool construction, attribute-pool construction and selection, actual HTML wrapper call and natural String[] retention/disposal. Complete existing String observer runs outside timing; no HTML escaping beyond the method attribute rule, coercion, standalone method-throughput, or allocation-parity claim. Timing pending checkpoint81.",
+    "sourceRequired": [
+      "function workload(n: int, seed: int, input: string): string[] {",
+      "    const values: string[] = [clone(input), \"\", \"raw &<>\\u0000\", \"é😀e\\u0301\", \"\\uFEFFquote\\\"\", \"a'&<>\", \"static\", input.repeat(2)];",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 8;",
+      "        const selected: string = values[at].link(attributes[(i * 7 + seed) % 9]);",
+      "output.push(selected);",
+      "i = i + 1;",
+      "return output;",
+      "    const attributes: string[] = [\"\", clone(input), \"\\\"\", \"a\\\"b\", \"&<>\", \"'\\u0000\", \"é😀\", input.repeat(2), \"&quot;\"];"
+    ],
+    "nativeRequired": [],
+    "typescriptRequired": [],
+    "methodExpressions": {
+      "native": [
+        "values[at].link(attributes[(i * 7 + seed) % 9])"
+      ],
+      "typescript": [
+        "values[at].link(attributes[(i * 7 + seed) % 9])"
+      ]
+    },
+    "sourceSha256": "e54b139d7489abe4af6bab70ed0a4c4c48cf2a0a06f4f3203a7d5604edd92ab0",
+    "counterpartSha256": "db1ea1b27e26d6a00c525d630c3f876174417c6535ba0f3c129b636481cbd130"
+  },
+  {
+    "id": "string_html_small",
+    "category": "strings",
+    "family": "html-string-wrapper",
+    "method": "small",
+    "htmlTag": "small",
+    "htmlAttribute": null,
+    "inputFamily": "unicode",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "dynamic é😀&<",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String.small call retaining its complete String result",
+    "measurementStatus": "pending-checkpoint-81",
+    "pendingCheckpoint": 81,
+    "specification": "Legacy HTML String wrapper with strict native zero arguments. Receiver text stays raw, including &<>/NUL and Unicode. Only double quotes in attribute values become &quot;; existing ampersands and angle brackets remain raw.",
+    "notes": "Full workload includes input/static/owned receiver-pool construction, actual HTML wrapper call and natural String[] retention/disposal. Complete existing String observer runs outside timing; no HTML escaping beyond the method attribute rule, coercion, standalone method-throughput, or allocation-parity claim. Timing pending checkpoint81.",
+    "sourceRequired": [
+      "function workload(n: int, seed: int, input: string): string[] {",
+      "    const values: string[] = [clone(input), \"\", \"raw &<>\\u0000\", \"é😀e\\u0301\", \"\\uFEFFquote\\\"\", \"a'&<>\", \"static\", input.repeat(2)];",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 8;",
+      "        const selected: string = values[at].small();",
+      "output.push(selected);",
+      "i = i + 1;",
+      "return output;"
+    ],
+    "nativeRequired": [],
+    "typescriptRequired": [],
+    "methodExpressions": {
+      "native": [
+        "values[at].small()"
+      ],
+      "typescript": [
+        "values[at].small()"
+      ]
+    },
+    "sourceSha256": "d8e93c95fb42f6ff2ff0b7d853d81a4a3565fa8394a011d06ee4c8d59e72881e",
+    "counterpartSha256": "c496115ea7db11f50f6947c44c026e056e009ac635eeed8d72f02e268bb79e60"
+  },
+  {
+    "id": "string_html_strike",
+    "category": "strings",
+    "family": "html-string-wrapper",
+    "method": "strike",
+    "htmlTag": "strike",
+    "htmlAttribute": null,
+    "inputFamily": "unicode",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "dynamic é😀&<",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String.strike call retaining its complete String result",
+    "measurementStatus": "pending-checkpoint-81",
+    "pendingCheckpoint": 81,
+    "specification": "Legacy HTML String wrapper with strict native zero arguments. Receiver text stays raw, including &<>/NUL and Unicode. Only double quotes in attribute values become &quot;; existing ampersands and angle brackets remain raw.",
+    "notes": "Full workload includes input/static/owned receiver-pool construction, actual HTML wrapper call and natural String[] retention/disposal. Complete existing String observer runs outside timing; no HTML escaping beyond the method attribute rule, coercion, standalone method-throughput, or allocation-parity claim. Timing pending checkpoint81.",
+    "sourceRequired": [
+      "function workload(n: int, seed: int, input: string): string[] {",
+      "    const values: string[] = [clone(input), \"\", \"raw &<>\\u0000\", \"é😀e\\u0301\", \"\\uFEFFquote\\\"\", \"a'&<>\", \"static\", input.repeat(2)];",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 8;",
+      "        const selected: string = values[at].strike();",
+      "output.push(selected);",
+      "i = i + 1;",
+      "return output;"
+    ],
+    "nativeRequired": [],
+    "typescriptRequired": [],
+    "methodExpressions": {
+      "native": [
+        "values[at].strike()"
+      ],
+      "typescript": [
+        "values[at].strike()"
+      ]
+    },
+    "sourceSha256": "d36a7d3abe5c6ede91e9ffee15bd25d5a2c02648ac330d3a30f3fc5a889e34ea",
+    "counterpartSha256": "010280ef06ae8104301a2aab68604e48ebf1c886ea59b63d5d469983ad2e64ae"
+  },
+  {
+    "id": "string_html_sub",
+    "category": "strings",
+    "family": "html-string-wrapper",
+    "method": "sub",
+    "htmlTag": "sub",
+    "htmlAttribute": null,
+    "inputFamily": "unicode",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "dynamic é😀&<",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String.sub call retaining its complete String result",
+    "measurementStatus": "pending-checkpoint-81",
+    "pendingCheckpoint": 81,
+    "specification": "Legacy HTML String wrapper with strict native zero arguments. Receiver text stays raw, including &<>/NUL and Unicode. Only double quotes in attribute values become &quot;; existing ampersands and angle brackets remain raw.",
+    "notes": "Full workload includes input/static/owned receiver-pool construction, actual HTML wrapper call and natural String[] retention/disposal. Complete existing String observer runs outside timing; no HTML escaping beyond the method attribute rule, coercion, standalone method-throughput, or allocation-parity claim. Timing pending checkpoint81.",
+    "sourceRequired": [
+      "function workload(n: int, seed: int, input: string): string[] {",
+      "    const values: string[] = [clone(input), \"\", \"raw &<>\\u0000\", \"é😀e\\u0301\", \"\\uFEFFquote\\\"\", \"a'&<>\", \"static\", input.repeat(2)];",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 8;",
+      "        const selected: string = values[at].sub();",
+      "output.push(selected);",
+      "i = i + 1;",
+      "return output;"
+    ],
+    "nativeRequired": [],
+    "typescriptRequired": [],
+    "methodExpressions": {
+      "native": [
+        "values[at].sub()"
+      ],
+      "typescript": [
+        "values[at].sub()"
+      ]
+    },
+    "sourceSha256": "1a4a7b0fdb46dda73bef8e413fc6a8a02cbf3b7d993564694cdf21d697e9f9ea",
+    "counterpartSha256": "4f976af96ea316c67839b9a7cc6231e355ae0416b846626668ca2bb73a7c25c3"
+  },
+  {
+    "id": "string_html_sup",
+    "category": "strings",
+    "family": "html-string-wrapper",
+    "method": "sup",
+    "htmlTag": "sup",
+    "htmlAttribute": null,
+    "inputFamily": "unicode",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "dynamic é😀&<",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String.sup call retaining its complete String result",
+    "measurementStatus": "pending-checkpoint-81",
+    "pendingCheckpoint": 81,
+    "specification": "Legacy HTML String wrapper with strict native zero arguments. Receiver text stays raw, including &<>/NUL and Unicode. Only double quotes in attribute values become &quot;; existing ampersands and angle brackets remain raw.",
+    "notes": "Full workload includes input/static/owned receiver-pool construction, actual HTML wrapper call and natural String[] retention/disposal. Complete existing String observer runs outside timing; no HTML escaping beyond the method attribute rule, coercion, standalone method-throughput, or allocation-parity claim. Timing pending checkpoint81.",
+    "sourceRequired": [
+      "function workload(n: int, seed: int, input: string): string[] {",
+      "    const values: string[] = [clone(input), \"\", \"raw &<>\\u0000\", \"é😀e\\u0301\", \"\\uFEFFquote\\\"\", \"a'&<>\", \"static\", input.repeat(2)];",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 8;",
+      "        const selected: string = values[at].sup();",
+      "output.push(selected);",
+      "i = i + 1;",
+      "return output;"
+    ],
+    "nativeRequired": [],
+    "typescriptRequired": [],
+    "methodExpressions": {
+      "native": [
+        "values[at].sup()"
+      ],
+      "typescript": [
+        "values[at].sup()"
+      ]
+    },
+    "sourceSha256": "8bd0a69875042f3207797a1f6c3f6bd22ab40efbed257c86c1eb2cff981a3734",
+    "counterpartSha256": "900134f3f86a1c7be0f1599c8bf62e07139f79342b20ce08a1c8d3629c7be444"
+  }
+]

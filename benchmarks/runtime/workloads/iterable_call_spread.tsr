@@ -1,0 +1,23 @@
+type ActionRow={label:string;action:Once<Function<int>>;};
+function total(...values:int[]):int{let result=0;for(const value of values){result+=value;}return result;}
+function letters(...values:string[]):string{return values.join("|");}
+function pair(a:[int,int],b:[int,int]):int{return a[0]+a[1]+b[0]+b[1];}
+function first<T>(value:T):T{return value;}
+function label(entry:[int,ActionRow]):string{return entry[1].label+":"+String(entry[0]);}
+function workload(n: int, seed: int, input: string): string[][] {
+ const output:string[][]=[];let i=0;
+ while(i<n){
+  const keys=new Set<int>([i+seed+2,i+seed,i+seed+2]);
+  const sum=total(...keys);keys.clear();
+  const characters=letters(...input);
+  const values=new Map<int,int>([[i+seed,2],[i+seed+1,3]]);
+  const combined=pair(...values);
+  const selected=first(...new Set<int>([i+seed+2]));
+  const rows=new Map<int,ActionRow>();rows.set(i+seed,{label:String(input),action:():int=>{return 7;}});
+  const text=label(...rows);
+  const raw=String.raw({raw:["<",":",">"]},...new Set<string>(["a","b"]));
+  output.push([String(sum),characters,String(combined),String(selected),text,String(values.size),raw]);i=i+1;
+ }
+ return output;
+}
+function main(){const result=workload(3,0,"abc");}

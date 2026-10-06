@@ -1,0 +1,16 @@
+type User = { name: string; value: int; };
+function workload(n: int, seed: int): int {
+ let sum = seed; let i = 0; while (i < n) {
+ const user: User = {name: " Pat ", value: i};
+ const read = (item: User): int => { return item.value; };
+ sum = sum + readTwice(read, user);
+ const mutate = (item: User): void => { item.value = item.value + seed; };
+ apply(mutate, user); sum = sum + user.value;
+ const take = (item: User): User => { return item; };
+ const saved = takeOnce(take, user); sum = sum + saved.value;
+ i = i + 1; } return sum;
+}
+function readTwice(action: Mutable<Function<int, [user: ReadOnly<User>]>>, user: User): int { return action(user) + action(user); }
+function apply(action: Mutable<Function<void, [user: Mutable<User>]>>, user: User) { action(user); }
+function takeOnce(action: Once<Function<User, [user: Owned<User>]>>, user: User): User { return action(user); }
+function main() { console.log(workload(2, 7)); }

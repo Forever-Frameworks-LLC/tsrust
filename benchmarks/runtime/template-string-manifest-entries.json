@@ -1,0 +1,95 @@
+[
+  {
+    "id": "template_primitive_ascii",
+    "category": "strings",
+    "family": "ordinary-template",
+    "inputFamily": "ascii",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "dynamic ASCII",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual ordinary template construction with one complete retained String",
+    "measurementStatus": "pending-checkpoint-81",
+    "pendingCheckpoint": 81,
+    "specification": "Ordinary untagged templates evaluate interpolations once, left to right, and construct complete String content. Native primitive interpolation uses Rust Display; shared numeric inputs have verified-simple matching spelling (nonnegative int0..96 and four positive finite exact fractions). Unicode row interpolates Strings only. Lone UTF16 surrogates are excluded from native Strings.",
+    "notes": "Whole workload includes input/pool setup, dynamic selection, interpolation and String[] retention; complete observer outside timing. Native String interpolation borrows pool elements; resulting construction/copy/disposal follows ordinary ownership. Static quote/template decoding is compile-time work, excluded from runtime-throughput claims. No JS allocation parity or full Number formatting equivalence claim. Measurement pending checkpoint81; no measured result is asserted.",
+    "templateExpression": "`head:${values[at]}|${count}|${fraction}|${flag}:tail`",
+    "interpolations": [
+      "values[at]",
+      "count",
+      "fraction",
+      "flag"
+    ],
+    "templateChunks": [
+      "head:",
+      "|",
+      "|",
+      "|",
+      ":tail"
+    ],
+    "sourceRequired": [
+      "function workload(n: int, seed: int, input: string): string[] {",
+      "    const values: string[] = [clone(input), \"\", \"ABC\", \"a\\u0000b\", \" x \", \"quote\\\"\", \"slash\\\\\", input.repeat(2)];\n    const fractions: number[] = [0.5, 1.25, 2.5, 12.75];",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 8;",
+      "        const count: int = (i * 7 + seed) % 97;\n        const fraction: number = fractions[(i + seed) % 4];\n        const flag: boolean = (i + seed) % 3 === 0;",
+      "const selected: string = `head:${values[at]}|${count}|${fraction}|${flag}:tail`;",
+      "output.push(selected);",
+      "i = i + 1;",
+      "return output;"
+    ],
+    "sourceSha256": "fa56c003471015d4863e4207b301eb5b93238c990a6076d86325c3a7a34ac878",
+    "counterpartSha256": "970091c5fc8636050462d0acc3878cc625351c252a26850ae4b19a007b38deb0"
+  },
+  {
+    "id": "template_string_unicode",
+    "category": "strings",
+    "family": "ordinary-template",
+    "inputFamily": "unicode",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": "dynamic é😀",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual ordinary template construction with one complete retained String",
+    "measurementStatus": "pending-checkpoint-81",
+    "pendingCheckpoint": 81,
+    "specification": "Ordinary untagged templates evaluate interpolations once, left to right, and construct complete String content. Native primitive interpolation uses Rust Display; shared numeric inputs have verified-simple matching spelling (nonnegative int0..96 and four positive finite exact fractions). Unicode row interpolates Strings only. Lone UTF16 surrogates are excluded from native Strings.",
+    "notes": "Whole workload includes input/pool setup, dynamic selection, interpolation and String[] retention; complete observer outside timing. Native String interpolation borrows pool elements; resulting construction/copy/disposal follows ordinary ownership. Static quote/template decoding is compile-time work, excluded from runtime-throughput claims. No JS allocation parity or full Number formatting equivalence claim. Measurement pending checkpoint81; no measured result is asserted.",
+    "templateExpression": "`é😀:\\${literal}|${values[at]}|${values[(at + 3) % 8]}:e\\u0301`",
+    "interpolations": [
+      "values[at]",
+      "values[(at + 3) % 8]"
+    ],
+    "templateChunks": [
+      "é😀:${literal}|",
+      "|",
+      ":é"
+    ],
+    "sourceRequired": [
+      "function workload(n: int, seed: int, input: string): string[] {",
+      "    const values: string[] = [clone(input), \"\", \"é😀\", \"a\\u0000é\", \"\\uFEFF中\", \"e\\u0301\", \"\\uFDD0\\uFFFF\\u{10FFFF}\", input.repeat(2)];",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 8;",
+      "const selected: string = `é😀:\\${literal}|${values[at]}|${values[(at + 3) % 8]}:e\\u0301`;",
+      "output.push(selected);",
+      "i = i + 1;",
+      "return output;"
+    ],
+    "sourceSha256": "ca9cbc8b4eb9ee01c46399474526d2e5b47fa75dea883f95765e19435648caa9",
+    "counterpartSha256": "a47bc683f7f25e1cc885c9f8bced6e8b4afabd58abc9912428a6611554dfa6ac"
+  }
+]

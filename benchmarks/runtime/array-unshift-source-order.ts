@@ -1,0 +1,9 @@
+type int = number;
+function clone(value: string): string { return value; }
+function argument(trace: int[], tag: int, value: string): string { trace.push(tag); return clone(value); }
+function main() {
+    const values: string[] = ["a", "b"]; const trace: int[] = [];
+    const length = values.unshift(argument(trace, 1, "x"), argument(trace, 2, "é"), argument(trace, 3, "z"));
+    console.log(length); console.log(values.join("|")); console.log(trace.join(","));
+    console.log(values.unshift()); console.log(values.join("|"));
+}

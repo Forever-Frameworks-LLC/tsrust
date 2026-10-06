@@ -1,0 +1,20 @@
+type int = number;
+type Trace = { bases: int; indices: int; args: int; };
+type Carrier = { value: boolean; };
+function workload(n: int, seed: int): boolean[][] {
+    const output: boolean[][] = []; const trace: Trace = { bases: 0, indices: 0, args: 0 }; let i = 0;
+    while (i < n) {
+        const value = i + seed; const bb = trace.bases; const bi = trace.indices; const ba = trace.args;
+        const carrier: Carrier | null | undefined = makeCarrier(trace, value);
+        const selected = carrier?.value;
+        const db = trace.bases - bb; const di = trace.indices - bi; const da = trace.args - ba;
+        if (selected === undefined) { output.push([]); } else { output.push([selected]); } output.push([db === 0, db === 1, di === 0, di === 1, da === 0, da === 1]);
+        i = i + 1;
+    }
+    return output;
+}
+function makeCarrier(trace: Trace, value: int): Carrier | null | undefined {
+    trace.bases = trace.bases + 1; const tag = value % 5; if (tag === 0) { return null; } if (tag === 1) { return undefined; }
+    return { value: value % 3 !== 0 };
+}
+function main() { const result = workload(2, 7); }

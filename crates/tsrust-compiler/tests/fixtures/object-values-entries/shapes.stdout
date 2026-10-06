@@ -1,0 +1,13 @@
+[ 2, 1 ] 3 [ [ 'second', 2 ], [ 'first', 1 ] ]
+a+b 2
+[ 1, 2 ] [ [ 'w', 1 ], [ 'h', 2 ] ] CODE,FLAG,ROWS,SIZE
+4 [ 'c7', undefined, [ [ 1 ], [ 2, 3 ] ], { w: 1, h: 2 } ]
+text c7
+missing
+object
+object
+4 3 9 4
+[ 'x', 'y' ] [ [ 'only', 'x' ] ] x
+4 4
+3,7 [ 3, 4 ]
+code,flag,rows,size 4

@@ -1,0 +1,18 @@
+type User = { profile: Profile; active: boolean; };
+type Profile = { name: string; scores: int[]; };
+function update(user: User) {
+  user.profile.name = user.profile.name.trim();
+  user.profile.scores.push(7);
+}
+function main() {
+  const user: User = { profile: { name: "  Pat  ", scores: [1] }, active: true };
+  update(user);
+  const saved = clone(user);
+  user.profile = { name: "Sam", scores: [9] };
+  console.log(saved.profile.name);
+  console.log(saved.profile.scores[1]);
+  console.log(user.profile.name);
+  for (const score of user.profile.scores) {
+    console.log(score);
+  }
+}

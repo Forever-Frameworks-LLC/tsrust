@@ -1,0 +1,15 @@
+{
+  "closedProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-proof.json",
+    "sha256": "9a9182cac7470a7b1eb68ca72527c891f64cd4411aec6546e8914e7ede8a6cd7"
+  },
+  "paths": [
+    "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-artifacts",
+    "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation-artifacts",
+    "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof-artifacts",
+    "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-artifacts",
+    "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-artifacts",
+    "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-proof-closure-artifacts"
+  ],
+  "allConsumersFinishedBeforeCompaction": true
+}

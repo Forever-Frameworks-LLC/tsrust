@@ -1,0 +1,11 @@
+type int = number;
+function workload(n: int, seed: int): string[] {
+    const values: int[] = [seed, seed + 1, 0, 17, 9001];
+    const output: string[] = []; let i = 0;
+    while (i < n) {
+        output.push(String(values[(i + seed) % 5]));
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7); }

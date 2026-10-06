@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "python3",
+    "/tmp/gate97-bundle-sqlite.py"
+  ],
+  "pid": 38661,
+  "startUTC": "2026-10-04T04:24:25.290518+00:00",
+  "before": {
+    "records": 21130,
+    "blobs": 13855,
+    "databaseBytes": 167780352,
+    "databaseSha256": "ac5b95b987eb2299256f212d853a1973024690e23f67cd777f9167f6960cdd82"
+  },
+  "plan": {
+    "path": "/tmp/tsrust-gate97-bundle-storage/import-plan.json",
+    "sha256": "7382e5dc8c992330a9c19b0feb6e297afb8fa51c8b5335854ea0021ee76b54d9",
+    "bytes": 362535
+  }
+}

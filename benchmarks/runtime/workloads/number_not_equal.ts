@@ -1,0 +1,12 @@
+type int = number;
+function workload(n: int, seed: int): int {
+    const values: number[] = [0.0 / 0.0, 1.0 / 0.0, -1.0 / 0.0, -0.0, 0.0, 1.5, -2.25, 2.25];
+    let sum = seed; let i = 0;
+    while (i < n) {
+        const a = values[(i * 13 + seed) % 8]; const b = values[(i * 17 + seed) % 8];
+        let code = 0;
+        if (a !== b) { code = 1; }
+        sum = (sum * 131 + code) % 1000000007; i = i + 1;
+    } return sum;
+}
+function main() { const result = workload(2, 7); console.log(result); }

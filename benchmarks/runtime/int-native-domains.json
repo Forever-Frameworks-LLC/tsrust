@@ -1,0 +1,197 @@
+{
+  "semanticEpoch": "rust-native-utf8-v1",
+  "maxIterations": 2048,
+  "maxSeed": 1000000,
+  "retainedScalarsPerOperation": 1,
+  "operations": {
+    "unary_plus": {
+      "left": [
+        0,
+        1,
+        3,
+        7,
+        15,
+        63,
+        255,
+        65535
+      ],
+      "right": null,
+      "matchedDomain": "Nonnegative exact i32-safe operands/results"
+    },
+    "bit_not": {
+      "left": [
+        -1,
+        -2,
+        -3,
+        -8,
+        -16,
+        -256,
+        -1024,
+        -65536
+      ],
+      "right": null,
+      "matchedDomain": "Exact i32-safe negative operands with natural nonnegative complements"
+    },
+    "bit_and": {
+      "left": [
+        0,
+        1,
+        3,
+        7,
+        15,
+        63,
+        255,
+        65535
+      ],
+      "right": [
+        0,
+        2,
+        5,
+        8,
+        17,
+        42,
+        170,
+        43690
+      ],
+      "matchedDomain": "Nonnegative exact i32-safe operands/results"
+    },
+    "bit_or": {
+      "left": [
+        0,
+        1,
+        3,
+        7,
+        15,
+        63,
+        255,
+        65535
+      ],
+      "right": [
+        0,
+        2,
+        5,
+        8,
+        17,
+        42,
+        170,
+        43690
+      ],
+      "matchedDomain": "Nonnegative exact i32-safe operands/results"
+    },
+    "bit_xor": {
+      "left": [
+        0,
+        1,
+        3,
+        7,
+        15,
+        63,
+        255,
+        65535
+      ],
+      "right": [
+        0,
+        2,
+        5,
+        8,
+        17,
+        42,
+        170,
+        43690
+      ],
+      "matchedDomain": "Nonnegative exact i32-safe operands/results"
+    },
+    "shift_left": {
+      "left": [
+        0,
+        1,
+        2,
+        3,
+        7,
+        15,
+        31,
+        63
+      ],
+      "right": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        10,
+        20
+      ],
+      "matchedDomain": "Nonnegative exactly represented common results; shift counts below32 with no sign overflow"
+    },
+    "shift_right": {
+      "left": [
+        0,
+        1,
+        2,
+        3,
+        7,
+        15,
+        65535,
+        1073741823
+      ],
+      "right": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        7,
+        15,
+        31
+      ],
+      "matchedDomain": "Nonnegative exactly represented common results; shift counts below32 with no sign overflow"
+    },
+    "shift_right_unsigned": {
+      "left": [
+        0,
+        1,
+        2,
+        3,
+        7,
+        15,
+        65535,
+        1073741823
+      ],
+      "right": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        7,
+        15,
+        31
+      ],
+      "matchedDomain": "Nonnegative exactly represented common results; shift counts below32 with no sign overflow"
+    },
+    "power": {
+      "left": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "right": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "matchedDomain": "Nonnegative exact small integer bases/exponents0..7 including0**0"
+    }
+  }
+}

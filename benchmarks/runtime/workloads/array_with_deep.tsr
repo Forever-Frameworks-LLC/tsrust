@@ -1,0 +1,4 @@
+function workload(n:int,seed:int):int[][][]{const output:int[][][]=[];let i=0;while(i<n){const values:int[][][]=[item(seed+i+0),item(seed+i+1),item(seed+i+2),item(seed+i+3),item(seed+i+4),item(seed+i+5)];const replacement=item(seed+i+11);const result=values.with(index(i,seed),replacement);for(const value of result){output.push(clone(value));}i=i+1;}return output;}
+function index(i:int,seed:int):int{const c=(i+seed)%8;if(c===0){return -6;}if(c===1){return -1;}if(c===2){return 0;}if(c===3){return 5;}if(c===4){return -3;}if(c===5){return 2;}if(c===6){return -2;}return 1;}
+function item(base:int):int[][]{if(base%3===0){return [];}if(base%3===1){return [[],[base%17]];}return [[base%17,(base+1)%17],[],[0]];}
+function main(){const result=workload(2,7);}

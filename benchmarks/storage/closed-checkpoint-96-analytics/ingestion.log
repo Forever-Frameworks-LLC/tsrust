@@ -1,0 +1,23 @@
+{
+  "proof": {
+    "path": "runtime/diagnostics/2026-10-04T00-10-34-000Z-checkpoint96-runtime-proof.json",
+    "sha256": "69b3a78107d9f7d86dcbcfd4b3e5e79ec73c01823fd45c49f1698e1e507e18e2"
+  },
+  "indexed": [
+    {
+      "path": "runtime/results/2026-10-03T23-59-28-597Z.json",
+      "sha256": "88062448ae461ab4893f080c4481f24200380e3c9990a537a033821473cb93e2",
+      "workloads": 48,
+      "samples": 8928,
+      "kind": "execution"
+    },
+    {
+      "path": "runtime/diagnostics/2026-10-04T00-00-12-445Z-native-allocations.json",
+      "sha256": "04f401bc65dc57cd7896f329d60b5354c63c54a754f31f908c0d22594ea9f3c4",
+      "workloads": 48,
+      "samples": 144,
+      "kind": "profile"
+    }
+  ],
+  "looseOriginalsRemoved": false
+}

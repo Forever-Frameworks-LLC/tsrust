@@ -1,0 +1,2 @@
+import { basename } from "std:path";
+export function value(): int { return 7; }

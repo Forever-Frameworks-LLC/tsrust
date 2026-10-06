@@ -1,0 +1,15 @@
+{
+  "argv": [
+    "python3",
+    "/tmp/tsrust-gate98-archive-plan/import-closed-artifacts.py"
+  ],
+  "pid": 96220,
+  "startUTC": "2026-10-04T07:19:32.789151+00:00",
+  "finishUTC": "2026-10-04T07:19:35.109622+00:00",
+  "exitCode": 0,
+  "accepted": {
+    "path": "/tmp/tsrust-gate98-bundle-storage/accepted.json",
+    "sha256": "92204307129ffa8c772bbbfeed7ce519bf6b546726c4f0fe79ed1a9afca35974",
+    "bytes": 1993
+  }
+}

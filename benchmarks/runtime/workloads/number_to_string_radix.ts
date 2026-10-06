@@ -1,0 +1,7 @@
+type int = number;
+function workload(n: int, seed: int, input: string): string[][] {
+ const output: string[][] = [];  let i = 0;
+ while (i < n) { const base = (i * 13 + seed) % 97; const value = Number(base) + Number(i % 8) / 8.0;
+ output.push([value.toString(), value.toString(2), value.toString(16), value.toString(36), (-value).toString(8)]); i = i + 1; } return output;
+}
+function main() { const result = workload(3, 0, "abc"); }

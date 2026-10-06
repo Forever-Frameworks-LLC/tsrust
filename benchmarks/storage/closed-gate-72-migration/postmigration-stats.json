@@ -1,0 +1,24 @@
+{
+  "gate": 72,
+  "records": 16702,
+  "blobs": 11255,
+  "databaseBytes": 119136256,
+  "databaseSha256": "2330c603b3413f828bb752201461ff7c506081e10b700a1221b2756b33985e21",
+  "databaseGrowthBytes": 1179648,
+  "files": 558,
+  "artifactDirectories": [
+    "runtime/diagnostics/2026-10-03T01-46-40-000Z-primitive-identity-compiler-proof-artifacts",
+    "runtime/diagnostics/2026-10-03T01-34-29-000Z-primitive-identity-source-validation-artifacts",
+    "runtime/diagnostics/2026-10-03T01-55-51-000Z-primitive-identity-runtime-artifacts",
+    "runtime/diagnostics/2026-10-03T01-55-51-000Z-primitive-identity-runtime-proof-closure-artifacts"
+  ],
+  "originalLogicalBytes": 9441824,
+  "originalAllocatedBytes": 10489856,
+  "grossAllocatedBytesReclaimed": 9310208,
+  "migrationEvidenceAllocatedBytes": 692224,
+  "netAllocatedBytesReclaimedAfterEvidence": 8617984,
+  "cumulativeGrossAllocatedBytesReclaimed": 1494622208,
+  "protectedFilesExact": 481,
+  "priorOriginalBytesRehashed": false,
+  "newLooseRecordsAndReportFreshlyHashed": 6
+}

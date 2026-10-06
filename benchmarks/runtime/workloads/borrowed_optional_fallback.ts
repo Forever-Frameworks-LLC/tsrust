@@ -1,0 +1,10 @@
+type Row={label:string;};
+function workload(n: number, seed: number, input: string): string[][] {
+ const output:string[][]=[];let i=0;
+ while (i < n) {
+  const rows:(Row|null)[]=[{label:input.repeat((i+seed)%3+1)},null,{label:""}];
+  for(const item of rows){const label=item?.label??"none";output.push([label.toUpperCase(),label.slice(),String(i)]);}
+  i=i+1;
+ } return output;
+}
+function main(){const result=workload(3,0,"abc");}

@@ -1,0 +1,17 @@
+{
+  "gate": 91,
+  "runtimeProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T18-11-33-000Z-checkpoint91-runtime-proof.json",
+    "sha256": "aff99bf249cef51932388e9e7b59efe22578efba570beb1fa208e23aaaf6daac"
+  },
+  "comparisonScope": "Complete end-to-end workloads; not isolated method latency. These 68 new workload IDs establish baselines; no same-source earlier checkpoint comparison is claimed.",
+  "nativeWins": 34,
+  "reviewSlowerRows": 34,
+  "sourceReview": {
+    "array_at_string": "The timed program creates strings and retains String conversions for the selected value and the original array. The accepted at implementation borrows its result; retained owned strings add observable copy costs.",
+    "array_unshift_string_and_array_splice_record": "The programs construct inputs, format integers, build strings and serialize complete retained contents within timing. Insertion/removal implementations transfer owners; their focused pointer/disposal checks pass.",
+    "array_to_sorted_compare_record": "The result independently clones owned record string fields and serializes both source and result. JavaScript shares the copied records; ownership and allocation parity are not claimed."
+  },
+  "assessment": "Correctness, normal-stack regression and disposal checks pass. Slower rows remain performance review signals, not established compiler regressions or isolated method costs. Continue feature work with these baselines preserved.",
+  "futureProfilingCandidate": "Investigate generic reuse of an owned temporary String buffer in concat with standard Rust methods; the current borrowed helper allocates a separate result. No performance gain or refactor is claimed without measurement."
+}

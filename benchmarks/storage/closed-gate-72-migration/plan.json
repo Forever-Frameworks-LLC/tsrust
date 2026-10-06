@@ -1,0 +1,21 @@
+{
+  "closedProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T01-55-51-000Z-primitive-identity-runtime-proof.json",
+    "sha256": "2add80e4ed3bc43a47736b432f9d257e4396cab396b56ab7b03c4c2d160dcc5e"
+  },
+  "paths": [
+    "runtime/diagnostics/2026-10-03T01-46-40-000Z-primitive-identity-compiler-proof-artifacts",
+    "runtime/diagnostics/2026-10-03T01-34-29-000Z-primitive-identity-source-validation-artifacts",
+    "runtime/diagnostics/2026-10-03T01-55-51-000Z-primitive-identity-runtime-artifacts",
+    "runtime/diagnostics/2026-10-03T01-55-51-000Z-primitive-identity-runtime-proof-closure-artifacts"
+  ],
+  "completedAcceptance": {
+    "path": "/private/tmp/tsrust-gate72-completed-acceptance.json",
+    "sha256": "ab8cc14fc5cc3e390e18e1e6a73fdd7d41f1e8aad6bf60eadbb25a6d5aa2146d"
+  },
+  "allConsumersFinishedBeforeCompaction": true,
+  "utilitySources": {
+    "compact_closed_gate.py": "9ae0e1f0e361467f8dd21914a6dd2e10eec051e31897b10fe2996d559ca3b0fb",
+    "store.py": "9f9f7ab732f02b01a845830abe8dfb808de040e8730a2c61db7d01cd2138f77f"
+  }
+}

@@ -1,0 +1,10 @@
+function workload(n: int, seed: int, input: string): int {
+    const values = [clone(input), input.trim()];
+    let digest = seed; let i = 0;
+    while (i < n) {
+        digest = (digest * 131 + values[(i + seed) % 2].length) % 1000000007;
+        i = i + 1;
+    }
+    return digest;
+}
+function main() { console.log(workload(2, 7, " A😀e\u0301 Z ")); }

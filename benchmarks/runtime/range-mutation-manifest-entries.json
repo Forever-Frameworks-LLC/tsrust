@@ -1,0 +1,430 @@
+[
+  {
+    "id": "array_fill_int",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "result": "int[]",
+    "resultEncoding": "range-array-natural-v1",
+    "method": "fill",
+    "family": "int",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
+    "specification": "Build six runtime-derived int elements, perform one dynamic fill operation, append all six final elements to the natural int[] output.",
+    "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
+    "sourceSha256": "c140c362103690decaddd6d937a21bcf322dcd698e7286b0e4ea44ff2737b0df",
+    "counterpartSha256": "abe317a56a51072eddbc114817a019aa97ed76fc153baeae05ab0cf4a4c64991",
+    "status": "source-only, unexecuted",
+    "recordSchemas": null,
+    "typescriptNominalAliases": null
+  },
+  {
+    "id": "array_fill_number",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "result": "number[]",
+    "resultEncoding": "range-array-natural-v1",
+    "method": "fill",
+    "family": "number",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
+    "specification": "Build six runtime-derived number elements, perform one dynamic fill operation, append all six final elements to the natural number[] output.",
+    "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
+    "sourceSha256": "b07f494b549660a933508d6184bd3bd6213c0161cfc5ebe61eceb31c69762301",
+    "counterpartSha256": "6d8cb978fa5f483622d44f84b65d1507349974062693276e63e166f84635273f",
+    "status": "source-only, unexecuted",
+    "recordSchemas": null,
+    "typescriptNominalAliases": null
+  },
+  {
+    "id": "array_fill_boolean",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "result": "boolean[]",
+    "resultEncoding": "range-array-natural-v1",
+    "method": "fill",
+    "family": "boolean",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
+    "specification": "Build six runtime-derived boolean elements, perform one dynamic fill operation, append all six final elements to the natural boolean[] output.",
+    "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
+    "sourceSha256": "6da804cdd6afe6938a0256cf2d8e96b9448c22544e14f44d7f0f5992d19c2757",
+    "counterpartSha256": "e01c47ba8239f00141ae11fec46ed4d3af54b0559e164dc92cbfba47d5a370b5",
+    "status": "source-only, unexecuted",
+    "recordSchemas": null,
+    "typescriptNominalAliases": null
+  },
+  {
+    "id": "array_fill_string",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "result": "string[]",
+    "resultEncoding": "range-array-natural-v1",
+    "method": "fill",
+    "family": "string",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
+    "specification": "Build six runtime-derived string elements, perform one dynamic fill operation, append all six final elements to the natural string[] output.",
+    "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
+    "sourceSha256": "323292df98de0b9403b84d7daf81153a54682575d532b5d78b1bda609e19caf7",
+    "counterpartSha256": "ab81b9f857bc2eec5b868b9cb6c19070ad23e2149818f5050ac1b69b6b6817c1",
+    "status": "source-only, unexecuted",
+    "inputText": " xé😀é ",
+    "recordSchemas": null,
+    "typescriptNominalAliases": null
+  },
+  {
+    "id": "array_fill_nested",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "result": "int[][]",
+    "resultEncoding": "range-array-natural-v1",
+    "method": "fill",
+    "family": "nested",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
+    "specification": "Build six runtime-derived int[] elements, perform one dynamic fill operation, append all six final elements to the natural int[][] output.",
+    "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
+    "sourceSha256": "de1f9b0035964639acebde1e94a092f3130591ee6f6aa8a2e508778fb76fb5e3",
+    "counterpartSha256": "1a4ede31c30f3f6e5a98d212f0260b662a8a0058ab226e923d81c69108488a20",
+    "status": "source-only, unexecuted",
+    "recordSchemas": null,
+    "typescriptNominalAliases": null
+  },
+  {
+    "id": "array_fill_record",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "result": "Row[]",
+    "resultEncoding": "range-array-natural-v1",
+    "method": "fill",
+    "family": "record",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
+    "specification": "Build six runtime-derived Row elements, perform one dynamic fill operation, append all six final elements to the natural Row[] output.",
+    "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
+    "sourceSha256": "02f446c243411d1f4e8ea75b6eae0ac9844cd73b7bb4b4a8a6d0ee068067ee45",
+    "counterpartSha256": "1c96cfed066da6a42db1930ab710ae981958f56d409bb5a0815adc5de23b6da6",
+    "status": "source-only, unexecuted",
+    "inputText": " xé😀é ",
+    "recordSchemas": {
+      "Row": [
+        [
+          "code",
+          "int"
+        ],
+        [
+          "text",
+          "string"
+        ],
+        [
+          "items",
+          "int[]"
+        ]
+      ]
+    },
+    "typescriptNominalAliases": null
+  },
+  {
+    "id": "array_fill_deep",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "result": "int[][][]",
+    "resultEncoding": "range-array-natural-v1",
+    "method": "fill",
+    "family": "deep",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
+    "specification": "Build six runtime-derived int[][] elements, perform one dynamic fill operation, append all six final elements to the natural int[][][] output.",
+    "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
+    "sourceSha256": "9d99ec6c3e28e7a160beed96d45e2422761c9c5f0c38301e7620379712832e9e",
+    "counterpartSha256": "b99637aaffe8b8c066db3240e6734750e72c70718fd76b25a6f4fc4c7058c4e6",
+    "status": "source-only, unexecuted",
+    "recordSchemas": null,
+    "typescriptNominalAliases": null
+  },
+  {
+    "id": "array_fill_recursive",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "result": "Node[]",
+    "resultEncoding": "range-array-natural-v1",
+    "method": "fill",
+    "family": "recursive",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
+    "specification": "Build six runtime-derived Node elements, perform one dynamic fill operation, append all six final elements to the natural Node[] output.",
+    "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
+    "sourceSha256": "470abdf03328ef8731b204d41160b5175a6e5ae81c0def3ed570fbe13c257eaa",
+    "counterpartSha256": "ebfe51af3f757ef617b2edf099258914d7a76f434feba662223f3381f091170e",
+    "status": "source-only, unexecuted",
+    "inputText": " xé😀é ",
+    "recordSchemas": {
+      "Node": [
+        [
+          "code",
+          "int"
+        ],
+        [
+          "text",
+          "string"
+        ],
+        [
+          "children",
+          "Node[]"
+        ]
+      ]
+    },
+    "typescriptNominalAliases": {
+      "Node": "RangeBenchmarkNode"
+    }
+  },
+  {
+    "id": "array_copy_within_int",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "result": "int[]",
+    "resultEncoding": "range-array-natural-v1",
+    "method": "copyWithin",
+    "family": "int",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
+    "specification": "Build six runtime-derived int elements, perform one dynamic copy_within operation, append all six final elements to the natural int[] output.",
+    "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
+    "sourceSha256": "b7ba057842f84596f468247b39515add5dd13e1bfb47a398ae5ec022e3d21374",
+    "counterpartSha256": "11a65f9d6cde46968d47fc33596bd1beae3616c1024d2fe2fe317259fa78b92b",
+    "status": "source-only, unexecuted",
+    "recordSchemas": null,
+    "typescriptNominalAliases": null
+  },
+  {
+    "id": "array_copy_within_number",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "result": "number[]",
+    "resultEncoding": "range-array-natural-v1",
+    "method": "copyWithin",
+    "family": "number",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
+    "specification": "Build six runtime-derived number elements, perform one dynamic copy_within operation, append all six final elements to the natural number[] output.",
+    "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
+    "sourceSha256": "a2b027138047154edee597d100d8c7d5c65b999096718b5c7ef741e880afde55",
+    "counterpartSha256": "e8bb2d66c7172969b82c9795a5b3cf036484fdb654c4570c96b0a375ce839d6c",
+    "status": "source-only, unexecuted",
+    "recordSchemas": null,
+    "typescriptNominalAliases": null
+  },
+  {
+    "id": "array_copy_within_boolean",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "result": "boolean[]",
+    "resultEncoding": "range-array-natural-v1",
+    "method": "copyWithin",
+    "family": "boolean",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
+    "specification": "Build six runtime-derived boolean elements, perform one dynamic copy_within operation, append all six final elements to the natural boolean[] output.",
+    "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
+    "sourceSha256": "5c573c897709d818ee14af0f6f2f378eec467d46f43a5eda6c59b5f8c7147d4f",
+    "counterpartSha256": "8db2de78a958f6e8353cd0fb769ceadfcfc0208ca11e23b9ff73a8919c4bfc9c",
+    "status": "source-only, unexecuted",
+    "recordSchemas": null,
+    "typescriptNominalAliases": null
+  },
+  {
+    "id": "array_copy_within_string",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "result": "string[]",
+    "resultEncoding": "range-array-natural-v1",
+    "method": "copyWithin",
+    "family": "string",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
+    "specification": "Build six runtime-derived string elements, perform one dynamic copy_within operation, append all six final elements to the natural string[] output.",
+    "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
+    "sourceSha256": "e67af7b36eabfda40f5c2a84c466b60e54d3f50637087e8c3fad56e874c43260",
+    "counterpartSha256": "71e5870c23f7f15f22b98f93f1a78086cf8f463a6b61b0ef2f9f00918553135c",
+    "status": "source-only, unexecuted",
+    "inputText": " xé😀é ",
+    "recordSchemas": null,
+    "typescriptNominalAliases": null
+  },
+  {
+    "id": "array_copy_within_nested",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "result": "int[][]",
+    "resultEncoding": "range-array-natural-v1",
+    "method": "copyWithin",
+    "family": "nested",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
+    "specification": "Build six runtime-derived int[] elements, perform one dynamic copy_within operation, append all six final elements to the natural int[][] output.",
+    "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
+    "sourceSha256": "078e0c1a809b5299975f304922dbba4bb3568b8be46cfc026edac9ba28ab093d",
+    "counterpartSha256": "754a6c1a92ec8e7da3609ba05da493eaf35b84cf2efefef4334f4f5b7881612d",
+    "status": "source-only, unexecuted",
+    "recordSchemas": null,
+    "typescriptNominalAliases": null
+  },
+  {
+    "id": "array_copy_within_record",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "result": "Row[]",
+    "resultEncoding": "range-array-natural-v1",
+    "method": "copyWithin",
+    "family": "record",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
+    "specification": "Build six runtime-derived Row elements, perform one dynamic copy_within operation, append all six final elements to the natural Row[] output.",
+    "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
+    "sourceSha256": "daea4614ef94d4622c94c28b9094dcff384f135a2f0979a72d4b620ba4e4ad30",
+    "counterpartSha256": "f3417c3b8600f894b6a043a276f8642ad40807c78f7ebde37205dcbea5e0540b",
+    "status": "source-only, unexecuted",
+    "inputText": " xé😀é ",
+    "recordSchemas": {
+      "Row": [
+        [
+          "code",
+          "int"
+        ],
+        [
+          "text",
+          "string"
+        ],
+        [
+          "items",
+          "int[]"
+        ]
+      ]
+    },
+    "typescriptNominalAliases": null
+  },
+  {
+    "id": "array_copy_within_deep",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "result": "int[][][]",
+    "resultEncoding": "range-array-natural-v1",
+    "method": "copyWithin",
+    "family": "deep",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
+    "specification": "Build six runtime-derived int[][] elements, perform one dynamic copy_within operation, append all six final elements to the natural int[][][] output.",
+    "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
+    "sourceSha256": "235dc84bfc59c86a250ff56641a4a3e87deefacfee44a58a66dd57b30059d081",
+    "counterpartSha256": "cbe6dc4500588e5cd02a8edd8181357a22edf423aac2815c598ec68da60b453e",
+    "status": "source-only, unexecuted",
+    "recordSchemas": null,
+    "typescriptNominalAliases": null
+  },
+  {
+    "id": "array_copy_within_recursive",
+    "category": "Array operations",
+    "iterations": 128,
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "result": "Node[]",
+    "resultEncoding": "range-array-natural-v1",
+    "method": "copyWithin",
+    "family": "recursive",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
+    "specification": "Build six runtime-derived Node elements, perform one dynamic copy_within operation, append all six final elements to the natural Node[] output.",
+    "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
+    "sourceSha256": "bd730aa275664237e907b394e481fe25510291376f84dbf963eeeb3b6e6ecb94",
+    "counterpartSha256": "79294acfcfc9fbc92a51910b69cc0f98e7c44ef0fa3e459659b6c1c147604650",
+    "status": "source-only, unexecuted",
+    "inputText": " xé😀é ",
+    "recordSchemas": {
+      "Node": [
+        [
+          "code",
+          "int"
+        ],
+        [
+          "text",
+          "string"
+        ],
+        [
+          "children",
+          "Node[]"
+        ]
+      ]
+    },
+    "typescriptNominalAliases": {
+      "Node": "RangeBenchmarkNode"
+    }
+  }
+]

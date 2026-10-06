@@ -1,0 +1,324 @@
+[
+  {
+    "id": "string_concat_zero_ascii",
+    "category": "strings",
+    "family": "string",
+    "stringMethod": "concat",
+    "variant": "zero",
+    "inputFamily": "ascii",
+    "inputText": " A alpha Z ",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String method call with complete String output retention",
+    "specification": "Dynamic receiver selection; actual zero-argument concat. Retain complete content in natural String[] output.",
+    "notes": "Whole workload includes receiver/argument pool setup, dynamic selection, actual method, loop and complete output retention. Complete observation is outside timing; no pure method latency or JavaScript/native ownership/allocation equivalence claim. Native no-op Cow cloning can share static borrowed strings; owned strings are copied independently; actual allocation profiles determine observed cost.",
+    "methodExpressions": {
+      "native": [
+        "values[at].concat()"
+      ],
+      "typescript": [
+        "values[at].concat()"
+      ]
+    },
+    "sourceSha256": "87dcfbb2f77f5202f44b1f45efee3ef4c84f1408093366c663c9df142b291297",
+    "counterpartSha256": "1265c4158232c47c17d80dda27b70997182e65330d56ce5b05180ce651d547f6"
+  },
+  {
+    "id": "string_concat_zero_unicode",
+    "category": "strings",
+    "family": "string",
+    "stringMethod": "concat",
+    "variant": "zero",
+    "inputFamily": "unicode",
+    "inputText": " é😀é Z ",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String method call with complete String output retention",
+    "specification": "Dynamic receiver selection; actual zero-argument concat. Retain complete content in natural String[] output.",
+    "notes": "Whole workload includes receiver/argument pool setup, dynamic selection, actual method, loop and complete output retention. Complete observation is outside timing; no pure method latency or JavaScript/native ownership/allocation equivalence claim. Native no-op Cow cloning can share static borrowed strings; owned strings are copied independently; actual allocation profiles determine observed cost.",
+    "methodExpressions": {
+      "native": [
+        "values[at].concat()"
+      ],
+      "typescript": [
+        "values[at].concat()"
+      ]
+    },
+    "sourceSha256": "935c4a26bb477bb1b4c83912fd672c990e16982d0852d2af62bd50dd125e409f",
+    "counterpartSha256": "af680ed320537aee1d9eff0e45a783a613de7ed2e5a43f1e5162e9c8103f39a5"
+  },
+  {
+    "id": "string_concat_variadic_ascii",
+    "category": "strings",
+    "family": "string",
+    "stringMethod": "concat",
+    "variant": "variadic",
+    "inputFamily": "ascii",
+    "inputText": " A alpha Z ",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String method call with complete String output retention",
+    "specification": "Dynamic receiver selection; actual concat with cycling one to four arguments. Retain complete content in natural String[] output.",
+    "notes": "Whole workload includes receiver/argument pool setup, dynamic selection, actual method, loop and complete output retention. Complete observation is outside timing; no pure method latency or JavaScript/native ownership/allocation equivalence claim. Native no-op Cow cloning can share static borrowed strings; owned strings are copied independently; actual allocation profiles determine observed cost.",
+    "methodExpressions": {
+      "native": [
+        "values[at].concat(parts[argAt])",
+        "values[at].concat(parts[argAt], parts[(argAt + 1) % 8])",
+        "values[at].concat(parts[argAt], parts[(argAt + 1) % 8], parts[(argAt + 2) % 8])",
+        "values[at].concat(parts[argAt], parts[(argAt + 1) % 8], parts[(argAt + 2) % 8], parts[(argAt + 3) % 8])"
+      ],
+      "typescript": [
+        "values[at].concat(parts[argAt])",
+        "values[at].concat(parts[argAt], parts[(argAt + 1) % 8])",
+        "values[at].concat(parts[argAt], parts[(argAt + 1) % 8], parts[(argAt + 2) % 8])",
+        "values[at].concat(parts[argAt], parts[(argAt + 1) % 8], parts[(argAt + 2) % 8], parts[(argAt + 3) % 8])"
+      ]
+    },
+    "sourceSha256": "040b382a72efe2e52fb406eb1ad57dd09179b946c8d882c070ca0d7bd982ab1f",
+    "counterpartSha256": "75d0feff89c51c12a53f16b4dfc554771e9c5b371a1e9c1e01f7bc11317aa845"
+  },
+  {
+    "id": "string_concat_variadic_unicode",
+    "category": "strings",
+    "family": "string",
+    "stringMethod": "concat",
+    "variant": "variadic",
+    "inputFamily": "unicode",
+    "inputText": " é😀é Z ",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String method call with complete String output retention",
+    "specification": "Dynamic receiver selection; actual concat with cycling one to four arguments. Retain complete content in natural String[] output.",
+    "notes": "Whole workload includes receiver/argument pool setup, dynamic selection, actual method, loop and complete output retention. Complete observation is outside timing; no pure method latency or JavaScript/native ownership/allocation equivalence claim. Native no-op Cow cloning can share static borrowed strings; owned strings are copied independently; actual allocation profiles determine observed cost.",
+    "methodExpressions": {
+      "native": [
+        "values[at].concat(parts[argAt])",
+        "values[at].concat(parts[argAt], parts[(argAt + 1) % 8])",
+        "values[at].concat(parts[argAt], parts[(argAt + 1) % 8], parts[(argAt + 2) % 8])",
+        "values[at].concat(parts[argAt], parts[(argAt + 1) % 8], parts[(argAt + 2) % 8], parts[(argAt + 3) % 8])"
+      ],
+      "typescript": [
+        "values[at].concat(parts[argAt])",
+        "values[at].concat(parts[argAt], parts[(argAt + 1) % 8])",
+        "values[at].concat(parts[argAt], parts[(argAt + 1) % 8], parts[(argAt + 2) % 8])",
+        "values[at].concat(parts[argAt], parts[(argAt + 1) % 8], parts[(argAt + 2) % 8], parts[(argAt + 3) % 8])"
+      ]
+    },
+    "sourceSha256": "56ea4a60f44ceeb7c815f0f25aebddf7c7d9ebe56afd0438c81828b520ab7e8d",
+    "counterpartSha256": "2dabc121ef85a36c56edb8e87db27290ff19f89e26744a5d240d2dc7a8b23d16"
+  },
+  {
+    "id": "string_pad_start_default",
+    "category": "strings",
+    "family": "string",
+    "stringMethod": "padStart",
+    "variant": "default",
+    "inputFamily": "ascii",
+    "inputText": " A alpha Z ",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String method call with complete String output retention",
+    "specification": "Dynamic receiver selection; actual padStart with native UTF8 byte targets, negative/no-op targets, default space filler. Retain complete content in natural String[] output.",
+    "notes": "Whole workload includes receiver/argument pool setup, dynamic selection, actual method, loop and complete output retention. Complete observation is outside timing; no pure method latency or JavaScript/native ownership/allocation equivalence claim. Native no-op Cow cloning can share static borrowed strings; owned strings are copied independently; actual allocation profiles determine observed cost.",
+    "methodExpressions": {
+      "native": [
+        "values[at].padStart(target)"
+      ],
+      "typescript": [
+        "values[at].padStart(target)"
+      ]
+    },
+    "sourceSha256": "6b1bf3a3965c461d932db17f6430c5fe6cb167c832bf4fec2b7c7d9ca2db76af",
+    "counterpartSha256": "b880a9a4657282179266e6d3f07df34a02d250613c4ea80bf27292fd75e6903a"
+  },
+  {
+    "id": "string_pad_end_default",
+    "category": "strings",
+    "family": "string",
+    "stringMethod": "padEnd",
+    "variant": "default",
+    "inputFamily": "ascii",
+    "inputText": " A alpha Z ",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String method call with complete String output retention",
+    "specification": "Dynamic receiver selection; actual padEnd with native UTF8 byte targets, negative/no-op targets, default space filler. Retain complete content in natural String[] output.",
+    "notes": "Whole workload includes receiver/argument pool setup, dynamic selection, actual method, loop and complete output retention. Complete observation is outside timing; no pure method latency or JavaScript/native ownership/allocation equivalence claim. Native no-op Cow cloning can share static borrowed strings; owned strings are copied independently; actual allocation profiles determine observed cost.",
+    "methodExpressions": {
+      "native": [
+        "values[at].padEnd(target)"
+      ],
+      "typescript": [
+        "values[at].padEnd(target)"
+      ]
+    },
+    "sourceSha256": "6d9939856ccf32dbb968e5428fe0e9da996c90f26fd64a1273a76b709c29ac95",
+    "counterpartSha256": "22a941947835ec32c8f7d0a08bb06fb5fbdfc72535044d54c5fa70faf6580476"
+  },
+  {
+    "id": "string_pad_start_ascii",
+    "category": "strings",
+    "family": "string",
+    "stringMethod": "padStart",
+    "variant": "explicit",
+    "inputFamily": "ascii",
+    "inputText": " A alpha Z ",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String method call with complete String output retention",
+    "specification": "Dynamic receiver selection; actual padStart with native UTF8 byte targets, negative/no-op targets, empty and nonempty fillers with valid UTF8 partial prefixes. Retain complete content in natural String[] output.",
+    "notes": "Whole workload includes receiver/argument pool setup, dynamic selection, actual method, loop and complete output retention. Complete observation is outside timing; no pure method latency or JavaScript/native ownership/allocation equivalence claim. Native no-op Cow cloning can share static borrowed strings; owned strings are copied independently; actual allocation profiles determine observed cost.",
+    "methodExpressions": {
+      "native": [
+        "values[at].padStart(target, fillers[fillAt])"
+      ],
+      "typescript": [
+        "values[at].padStart(target, fillers[fillAt])"
+      ]
+    },
+    "sourceSha256": "42129b79b63b6aea884c0bbfd88b67761606ba94e3c1419e7c883049241f21ae",
+    "counterpartSha256": "a15a3e8cc30189eeeea14463c974d8bb183c4ff08d6b10b33b22e41f8a877086"
+  },
+  {
+    "id": "string_pad_end_ascii",
+    "category": "strings",
+    "family": "string",
+    "stringMethod": "padEnd",
+    "variant": "explicit",
+    "inputFamily": "ascii",
+    "inputText": " A alpha Z ",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String method call with complete String output retention",
+    "specification": "Dynamic receiver selection; actual padEnd with native UTF8 byte targets, negative/no-op targets, empty and nonempty fillers with valid UTF8 partial prefixes. Retain complete content in natural String[] output.",
+    "notes": "Whole workload includes receiver/argument pool setup, dynamic selection, actual method, loop and complete output retention. Complete observation is outside timing; no pure method latency or JavaScript/native ownership/allocation equivalence claim. Native no-op Cow cloning can share static borrowed strings; owned strings are copied independently; actual allocation profiles determine observed cost.",
+    "methodExpressions": {
+      "native": [
+        "values[at].padEnd(target, fillers[fillAt])"
+      ],
+      "typescript": [
+        "values[at].padEnd(target, fillers[fillAt])"
+      ]
+    },
+    "sourceSha256": "41fd9c7f7a35af65d8eca05853a948783ff8acc6cd5cd8b416b73695933794fb",
+    "counterpartSha256": "363f6ac7b2a003fc926cb3ad5411589c04df4f3f14beba0897c12ff3876900cc"
+  },
+  {
+    "id": "string_pad_start_unicode",
+    "category": "strings",
+    "family": "string",
+    "stringMethod": "padStart",
+    "variant": "explicit",
+    "inputFamily": "unicode",
+    "inputText": " é😀é Z ",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String method call with complete String output retention",
+    "specification": "Dynamic receiver selection; actual padStart with native UTF8 byte targets, negative/no-op targets, empty and nonempty fillers with valid UTF8 partial prefixes. Retain complete content in natural String[] output.",
+    "notes": "Whole workload includes receiver/argument pool setup, dynamic selection, actual method, loop and complete output retention. Complete observation is outside timing; no pure method latency or JavaScript/native ownership/allocation equivalence claim. Native no-op Cow cloning can share static borrowed strings; owned strings are copied independently; actual allocation profiles determine observed cost. Unicode TS calls the actual JS padding built-in using validated UTF8-byte/UTF16-unit filler/prefix tuples, initialized once inside timed setup, with corresponding per-operation target selection. No per-operation encoder allocation or padding reconstruction. Mapping and setup cost remain timed.",
+    "methodExpressions": {
+      "native": [
+        "values[at].padStart(target, fillers[fillAt])"
+      ],
+      "typescript": [
+        "values[at].padStart(target, fillers[fillAt])"
+      ]
+    },
+    "sourceSha256": "74201bcbe421159c36270bc4c0c4c95fd69aec89a786c8817b827d3ccb386aea",
+    "counterpartSha256": "38f934d946d6397ac3f7390f520a1fa8c3325f7bb829b343861a99e635bc29eb"
+  },
+  {
+    "id": "string_pad_end_unicode",
+    "category": "strings",
+    "family": "string",
+    "stringMethod": "padEnd",
+    "variant": "explicit",
+    "inputFamily": "unicode",
+    "inputText": " é😀é Z ",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual String method call with complete String output retention",
+    "specification": "Dynamic receiver selection; actual padEnd with native UTF8 byte targets, negative/no-op targets, empty and nonempty fillers with valid UTF8 partial prefixes. Retain complete content in natural String[] output.",
+    "notes": "Whole workload includes receiver/argument pool setup, dynamic selection, actual method, loop and complete output retention. Complete observation is outside timing; no pure method latency or JavaScript/native ownership/allocation equivalence claim. Native no-op Cow cloning can share static borrowed strings; owned strings are copied independently; actual allocation profiles determine observed cost. Unicode TS calls the actual JS padding built-in using validated UTF8-byte/UTF16-unit filler/prefix tuples, initialized once inside timed setup, with corresponding per-operation target selection. No per-operation encoder allocation or padding reconstruction. Mapping and setup cost remain timed.",
+    "methodExpressions": {
+      "native": [
+        "values[at].padEnd(target, fillers[fillAt])"
+      ],
+      "typescript": [
+        "values[at].padEnd(target, fillers[fillAt])"
+      ]
+    },
+    "sourceSha256": "88dac2591c8e6f76c70b5c3e734b7e3c164fb8708ea99ad9b0493f03425ee799",
+    "counterpartSha256": "2f2e85b929a8088520ef23183353f8f350dc558edc1147a6a42402c83b48ae83"
+  }
+]

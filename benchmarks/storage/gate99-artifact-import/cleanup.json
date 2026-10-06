@@ -1,0 +1,48 @@
+{
+  "gate": 99,
+  "accepted": true,
+  "argv": [
+    "python3",
+    "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/gate99-artifact-import/cleanup-verified-objects.py"
+  ],
+  "pid": 93995,
+  "startUTC": "2026-10-04T09:38:54.108085+00:00",
+  "finishUTC": "2026-10-04T09:38:54.772595+00:00",
+  "exitCode": 0,
+  "plan": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/gate99-artifact-import/cleanup-plan.json",
+    "sha256": "ca73410d4ca853586bfafdacf0b9c558c0631392ab9f0914de06c4c2c978ef7b",
+    "bytes": 1574054
+  },
+  "importAcceptance": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/gate99-artifact-import/accepted.json",
+    "sha256": "5776730bd18bdd8b8139c2e865fff0b5554f80ad7490218f4793f4304a3af30f",
+    "bytes": 2115
+  },
+  "restorationMap": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/gate99-closure-evidence/restoration-map.json",
+    "sha256": "40d161e363ca971baf25d7e4d23bdf9e5a923cc9e409663fde8e93a2a210f2a3",
+    "bytes": 4136223
+  },
+  "deletedFiles": 4202,
+  "packagedObjectFilesDeleted": 2101,
+  "scratchObjectFilesDeleted": 2101,
+  "logicalBytesRemoved": 80410966,
+  "allocatedBytesReclaimed": 93134848,
+  "databaseGrowthBytes": 7073792,
+  "netAllocatedBytesAfterDatabaseGrowth": 86061056,
+  "database": {
+    "records": 26083,
+    "blobs": 18390,
+    "analyticsSamples": 58218,
+    "analyticsProfiles": 570,
+    "databaseBytes": 186728448,
+    "databaseSha256": "3f3da2f5e82b595e6ba1f3024c1c0d6c455f3282133a1237715f1dd25460e066"
+  },
+  "originalSourceAliasesRetained": true,
+  "identityOnlyReferencesRetained": true,
+  "mapsScriptsReceiptsRetained": true,
+  "databaseRecordsDeleted": 0,
+  "analyticsSamplesAdded": 0,
+  "restoration": "Export the storedPath object using store.py to an existing scratch root, then use restoration-map.json originalPath/digest aliases. Identity-only unsnapshotted versions remain explicitly unavailable."
+}

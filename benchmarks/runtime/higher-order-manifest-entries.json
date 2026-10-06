@@ -1,0 +1,443 @@
+[
+  {
+    "id": "higher_declared_reusable_int",
+    "category": "Closures and callbacks",
+    "iterations": 2048,
+    "result": "int",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "coverage": "same forwarding environment reusable across invocations; callback reusable; declared consumer",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including callback/factory setup, invocation(s), accumulation or owned result retention",
+    "status": "source-only; all acceptance unexecuted",
+    "sourceSha256": "8ba225f5c84e57a6b5c543af7148bbfee336f2169aee9f12ce984bc26ecd1cba",
+    "counterpartSha256": "4427df41c3221f663ea77f488a2c24ed510f5ccce42adfa0a353d09a14dd5c86"
+  },
+  {
+    "id": "higher_inline_reusable_int",
+    "category": "Closures and callbacks",
+    "iterations": 2048,
+    "result": "int",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "coverage": "same forwarding environment reusable across invocations; callback reusable; inline consumer",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including callback/factory setup, invocation(s), accumulation or owned result retention",
+    "status": "source-only; all acceptance unexecuted",
+    "sourceSha256": "a42b8b6e7170654c49e3614b0750b545cf932a36c418e5ae831ff8fa6ed2a701",
+    "counterpartSha256": "72b06af2c38370c30166715ef45bfb805f488795a588fcb628860a7786e05978"
+  },
+  {
+    "id": "higher_declared_once_int",
+    "category": "Closures and callbacks",
+    "iterations": 2048,
+    "result": "int",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "coverage": "same forwarding environment reusable across invocations; callback once; declared consumer",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including callback/factory setup, invocation(s), accumulation or owned result retention",
+    "status": "source-only; all acceptance unexecuted",
+    "sourceSha256": "df7472e842facaaa6250633d4a99d97ff744efd803cba0b96862a0eb1385f60d",
+    "counterpartSha256": "4427df41c3221f663ea77f488a2c24ed510f5ccce42adfa0a353d09a14dd5c86"
+  },
+  {
+    "id": "higher_inline_once_int",
+    "category": "Closures and callbacks",
+    "iterations": 2048,
+    "result": "int",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "coverage": "same forwarding environment reusable across invocations; callback once; inline consumer",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including callback/factory setup, invocation(s), accumulation or owned result retention",
+    "status": "source-only; all acceptance unexecuted",
+    "sourceSha256": "7681e0fe51d0097b108cb3bb5e358b1c9895c22fd4f3ca946f16b48f2a75792d",
+    "counterpartSha256": "72b06af2c38370c30166715ef45bfb805f488795a588fcb628860a7786e05978"
+  },
+  {
+    "id": "higher_declared_owned_int",
+    "category": "Closures and callbacks",
+    "iterations": 2048,
+    "result": "int",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "coverage": "same forwarding environment reusable across invocations; callback owned; declared consumer",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including callback/factory setup, invocation(s), accumulation or owned result retention",
+    "status": "source-only; all acceptance unexecuted",
+    "sourceSha256": "33e67fa721617fb14a6a4020aef09a94771a53283a057bd1ff43eb2173727b66",
+    "counterpartSha256": "4427df41c3221f663ea77f488a2c24ed510f5ccce42adfa0a353d09a14dd5c86"
+  },
+  {
+    "id": "higher_inline_owned_int",
+    "category": "Closures and callbacks",
+    "iterations": 2048,
+    "result": "int",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "coverage": "same forwarding environment reusable across invocations; callback owned; inline consumer",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including callback/factory setup, invocation(s), accumulation or owned result retention",
+    "status": "source-only; all acceptance unexecuted",
+    "sourceSha256": "2fcb29fd8e2b75f286b3e7095b83c7abd4013489b4ead6eebd893319f00b2528",
+    "counterpartSha256": "72b06af2c38370c30166715ef45bfb805f488795a588fcb628860a7786e05978"
+  },
+  {
+    "id": "higher_declared_owned_once_int",
+    "category": "Closures and callbacks",
+    "iterations": 2048,
+    "result": "int",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "coverage": "same forwarding environment reusable across invocations; callback owned_once; declared consumer",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including callback/factory setup, invocation(s), accumulation or owned result retention",
+    "status": "source-only; all acceptance unexecuted",
+    "sourceSha256": "df7472e842facaaa6250633d4a99d97ff744efd803cba0b96862a0eb1385f60d",
+    "counterpartSha256": "4427df41c3221f663ea77f488a2c24ed510f5ccce42adfa0a353d09a14dd5c86"
+  },
+  {
+    "id": "higher_inline_owned_once_int",
+    "category": "Closures and callbacks",
+    "iterations": 2048,
+    "result": "int",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "coverage": "same forwarding environment reusable across invocations; callback owned_once; inline consumer",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including callback/factory setup, invocation(s), accumulation or owned result retention",
+    "status": "source-only; all acceptance unexecuted",
+    "sourceSha256": "7681e0fe51d0097b108cb3bb5e358b1c9895c22fd4f3ca946f16b48f2a75792d",
+    "counterpartSha256": "72b06af2c38370c30166715ef45bfb805f488795a588fcb628860a7786e05978"
+  },
+  {
+    "id": "higher_distinct_origins_int",
+    "category": "Closures and callbacks",
+    "iterations": 2048,
+    "result": "int",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "coverage": "one stable consumer, two distinct concrete callback origins, repeated calls",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including callback/factory setup, invocation(s), accumulation or owned result retention",
+    "status": "source-only; all acceptance unexecuted",
+    "sourceSha256": "206f92a17adbbbcd1234b22a81ed62fd1121345e5101b66b043f67851677d3f7",
+    "counterpartSha256": "0f9bf528c837e5752a71e32f5d38a9239ae6ff570602fac818f7c049fcaf280a"
+  },
+  {
+    "id": "higher_multiple_callbacks_int",
+    "category": "Closures and callbacks",
+    "iterations": 2048,
+    "result": "int",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "coverage": "multiple callbacks, swapped witnesses, declared and inline invocations",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including callback/factory setup, invocation(s), accumulation or owned result retention",
+    "status": "source-only; all acceptance unexecuted",
+    "sourceSha256": "e9f82b57a4dddbe52ed293fe330eb86ea8f1ee440404c05e90e873320d8759a4",
+    "counterpartSha256": "e43d7ceca1c67d4ed8632abd8948267aecd769e3b9954a81372119f7ea64e736"
+  },
+  {
+    "id": "higher_borrowed_declared_factory_int",
+    "category": "Closures and callbacks",
+    "iterations": 2048,
+    "result": "int",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "coverage": "borrowed consumer parameter with argument-dependent callable results, distinct captured origins, escaped reusable results",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including callback/factory setup, invocation(s), accumulation or owned result retention",
+    "status": "source-only; all acceptance unexecuted",
+    "sourceSha256": "f83acc63c171f1237bc07d673045391c0da4212c49f17457f00f21daa27fff1b",
+    "counterpartSha256": "d6625fb679044545900d84597b30fee3a4fe6eb7c76a7a0059e42f48a6ec5c5b"
+  },
+  {
+    "id": "higher_borrowed_inline_factory_int",
+    "category": "Closures and callbacks",
+    "iterations": 2048,
+    "result": "int",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "coverage": "borrowed consumer parameter with argument-dependent callable results, distinct captured origins, escaped reusable results",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including callback/factory setup, invocation(s), accumulation or owned result retention",
+    "status": "source-only; all acceptance unexecuted",
+    "sourceSha256": "f267441f2ae651ce83584ed40a0e7035d19c049e34a08968fa9b384ddcd15175",
+    "counterpartSha256": "34907f59a609e37b25dd967034e3e7edb59300905c4da4adf91794fdcce7567e"
+  },
+  {
+    "id": "higher_nested_consumer_int",
+    "category": "Closures and callbacks",
+    "iterations": 2048,
+    "result": "int",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "coverage": "recursive argument/result annotation, returned consumer factory, passing consumer itself",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including callback/factory setup, invocation(s), accumulation or owned result retention",
+    "status": "source-only; all acceptance unexecuted",
+    "sourceSha256": "7c63def8493cc1f0ada8e8be55c700686fb66dd82cc776e887b6303ba5c9e8ed",
+    "counterpartSha256": "2f8a7c8f85c8b1792a78e4e3bc4d746b04259b4a2d9818065eefb6bac8336463"
+  },
+  {
+    "id": "higher_owned_once_nested_int",
+    "category": "Closures and callbacks",
+    "iterations": 2048,
+    "result": "int",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "coverage": "owned-once inline consumer passed under recursive annotation, returned single-use closure owns callback",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including callback/factory setup, invocation(s), accumulation or owned result retention",
+    "status": "source-only; all acceptance unexecuted",
+    "sourceSha256": "b561a33bc4eb086efd345edc50f30f375380a82d7ea36fa9746c4b012d23e2ad",
+    "counterpartSha256": "012af397caf6aac1b36a03b8024f179a0d77575f1edc39c64812b53b05be3fbf"
+  },
+  {
+    "id": "higher_number_reusable",
+    "category": "Closures and callbacks",
+    "iterations": 2048,
+    "result": "number",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "coverage": "primitive Number witnesses, natural scalar exact quarter sum",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including callback/factory setup, invocation(s), accumulation or owned result retention",
+    "status": "source-only; all acceptance unexecuted",
+    "resultEncoding": "ieee-f64-bits-v1",
+    "sourceSha256": "ff71a50f9f12bfbad0240905d38a319645e065c3c4e5d5b63ba43ee2c2d96616",
+    "counterpartSha256": "20a95fc86944c1f7c4768343d47656932ea61c74d2f3c5b402096341867b243f"
+  },
+  {
+    "id": "higher_boolean_reusable",
+    "category": "Closures and callbacks",
+    "iterations": 2048,
+    "result": "boolean",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "coverage": "primitive Boolean callback, natural boolean parity result; separate order fixture covers order",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including callback/factory setup, invocation(s), accumulation or owned result retention",
+    "status": "source-only; all acceptance unexecuted",
+    "resultEncoding": "declared-value-result-v1",
+    "sourceSha256": "c3fa7a85d80408037d1dd6286ea4a421a75f55a3ffe6773d1771f6ed8439bcb1",
+    "counterpartSha256": "f0b7a542b702897749ce26ad65b6a23fd909aa2055f5d9104249c3a1454ef85d"
+  },
+  {
+    "id": "higher_owned_callback_return_string",
+    "category": "Closures and callbacks",
+    "iterations": 128,
+    "result": "string[]",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "coverage": "returned owned callback with owned UTF8 capture, two invocations per iteration",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including callback/factory setup, invocation(s), accumulation or owned result retention",
+    "status": "source-only; all acceptance unexecuted",
+    "resultEncoding": "declared-value-result-v1",
+    "inputText": " xé😀é ",
+    "sourceSha256": "a7214fd36176c1d40d9e2a5d17bd363d64c8f8f4605cfec925d5219756a5bb0a",
+    "counterpartSha256": "ad70d120e09b40cbde3cc036b6b4d229acdd3905e7aabaf6108889b35f3db536"
+  },
+  {
+    "id": "higher_captured_factory_string",
+    "category": "Closures and callbacks",
+    "iterations": 128,
+    "result": "string[]",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "coverage": "owned callback factory captured by returned closure, owned prefix copied into returned callback",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including callback/factory setup, invocation(s), accumulation or owned result retention",
+    "status": "source-only; all acceptance unexecuted",
+    "resultEncoding": "declared-value-result-v1",
+    "inputText": " xé😀é ",
+    "sourceSha256": "601d3d4c68aa348c02b085a503f4ed463e22d38cdf4919e31035988de573a3d8",
+    "counterpartSha256": "4432f5cbffb39ba2a1890edf3a2bb5329248c195a2007eb6e00000cc60234e13"
+  },
+  {
+    "id": "higher_read_string",
+    "category": "Closures and callbacks",
+    "iterations": 128,
+    "result": "string[]",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "coverage": "source data read only, callback returns independent owned string copy",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including callback/factory setup, invocation(s), accumulation or owned result retention",
+    "status": "source-only; all acceptance unexecuted",
+    "resultEncoding": "declared-value-result-v1",
+    "inputText": " xé😀é ",
+    "sourceSha256": "5e2cbf3399d4a0f535787c7147308bb4b826a05606c0eec246a17cf2d7f7edee",
+    "counterpartSha256": "c650049be1426c5b8a048c4bf30912c7d998ba095d8087bebea878b5eb046891"
+  },
+  {
+    "id": "higher_consume_string",
+    "category": "Closures and callbacks",
+    "iterations": 128,
+    "result": "string[]",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "coverage": "owned-once callback consumes owned source data and transfers result, no extra clone inside callback",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including callback/factory setup, invocation(s), accumulation or owned result retention",
+    "status": "source-only; all acceptance unexecuted",
+    "resultEncoding": "declared-value-result-v1",
+    "inputText": " xé😀é ",
+    "sourceSha256": "1157f232a7ccb861b0a5b07f85bf490b670c244d3c948fa5969556265f7260f0",
+    "counterpartSha256": "e1e68fe599af7e99021b04df2468f675f91d5416e514397e3b025aa53d9ca007"
+  },
+  {
+    "id": "higher_mutate_array",
+    "category": "Closures and callbacks",
+    "iterations": 128,
+    "result": "int[][]",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "coverage": "callback mutates borrowed data, complete copied result and mutated caller state retained",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including callback/factory setup, invocation(s), accumulation or owned result retention",
+    "status": "source-only; all acceptance unexecuted",
+    "resultEncoding": "declared-value-result-v1",
+    "sourceSha256": "20234fd8eeca2f55811888a635502cfcbc21c739d5e4f9da7e7a70a8b21cb05f",
+    "counterpartSha256": "4e70aaf9485f20805082bfe247ccf7c07d39e2fb220c65ed133d4c0a7b3b8213"
+  },
+  {
+    "id": "higher_owned_record",
+    "category": "Closures and callbacks",
+    "iterations": 128,
+    "result": "Row[]",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "coverage": "owned nominal record callback result, full fields preserved",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including callback/factory setup, invocation(s), accumulation or owned result retention",
+    "status": "source-only; all acceptance unexecuted",
+    "resultEncoding": "declared-value-result-v1",
+    "inputText": " xé😀é ",
+    "recordSchemas": {
+      "Row": [
+        [
+          "code",
+          "int"
+        ],
+        [
+          "text",
+          "string"
+        ],
+        [
+          "items",
+          "int[]"
+        ]
+      ]
+    },
+    "sourceSha256": "0735b66006579314ce251cab864fa5c6203d1008b2b3deecaa48eaa17e1fef78",
+    "counterpartSha256": "963ea710e53860ff0378e036f39317b06abdbf8b48f721c8def9c2e340683bf6"
+  },
+  {
+    "id": "higher_deep_array",
+    "category": "Closures and callbacks",
+    "iterations": 128,
+    "result": "int[][][]",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "coverage": "higher-order owned deep array result, empty rows and every leaf retained",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including callback/factory setup, invocation(s), accumulation or owned result retention",
+    "status": "source-only; all acceptance unexecuted",
+    "resultEncoding": "declared-value-result-v1",
+    "sourceSha256": "27521bb6e24229c33fe1322e80249f085ae6e37be4c2d8b545e14276d0a2428e",
+    "counterpartSha256": "5e0cb23aeb6b32ca455e9df6fc300fd62f4e01806a467668bf3caf58270c6104"
+  },
+  {
+    "id": "higher_recursive_tree",
+    "category": "Closures and callbacks",
+    "iterations": 128,
+    "result": "Node[]",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "coverage": "higher-order recursive nominal owned copy result, all children/text/leaf fields retained",
+    "operationsPerIteration": 1,
+    "operationUnit": "complete iteration including callback/factory setup, invocation(s), accumulation or owned result retention",
+    "status": "source-only; all acceptance unexecuted",
+    "resultEncoding": "declared-value-result-v1",
+    "inputText": " xé😀é ",
+    "recordSchemas": {
+      "Node": [
+        [
+          "code",
+          "int"
+        ],
+        [
+          "text",
+          "string"
+        ],
+        [
+          "children",
+          "Node[]"
+        ]
+      ]
+    },
+    "sourceSha256": "297872786a2022936a4df2976a4ea0d00a2b62a64596778ed888545dbcbd557e",
+    "counterpartSha256": "43b59a6ccbaecb0201c302bad21921bfdd553d94dacbab9efe1a38a8cedf9c4b",
+    "typescriptNominalAliases": {
+      "Node": "HigherBenchmarkNode"
+    }
+  }
+]

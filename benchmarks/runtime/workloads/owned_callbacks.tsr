@@ -1,0 +1,14 @@
+type User = { name: string; value: int; };
+function workload(n: int, seed: int): int {
+ let sum = seed; let i = 0; while (i < n) {
+ const first = counter(i); const moved = identity(first); const wrapped = retain(moved);
+ sum = sum + wrapped() + wrapped();
+ const take = (user: User): User => { return user; }; const user = consume(take, {name: " Pat ", value: seed});
+ sum = sum + user.value; i = i + 1;
+ } return sum;
+}
+function counter(start: int): () => int { let value = start; return (): int => { value = value + 1; return value; }; }
+function identity(action: Function<int>): () => int { const moved = action; return moved; }
+function retain(action: Function<int>): () => int { return (): int => { return action(); }; }
+function consume(action: Once<Function<User, [user: Owned<User>]>>, user: User): User { return action(user); }
+function main() { console.log(workload(2, 7)); }

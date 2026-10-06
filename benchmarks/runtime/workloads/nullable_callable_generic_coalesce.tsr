@@ -1,0 +1,27 @@
+type Trace = { calls: int; arguments: int; fallbacks: int; factories: int; };
+function workload(n: int, seed: int, input: string): int[][] {
+    const output: int[][] = [];
+    const trace: Trace = { calls: 0, arguments: 0, fallbacks: 0, factories: 0 };
+    let i = 0;
+    while (i < n) {
+        const tag = (i + seed) % 3;
+        const value = (i * 13 + seed) % 97;
+        const beforeCalls = trace.calls; const beforeArguments = trace.arguments;
+        const beforeFallbacks = trace.fallbacks; const beforeFactories = trace.factories;
+        const observed: int[] = [];
+        const action: (Function<int, [input: int, trace: Mutable<Trace>]>) | null | undefined = tag === 0 ? step : tag === 1 ? null : undefined;
+        const selected = relay<int>(action) ?? makeFallback(trace);
+        observed.push(selected(argument(trace, value), trace));
+        output.push(observed);
+        output.push([trace.calls - beforeCalls, trace.arguments - beforeArguments,
+            trace.fallbacks - beforeFallbacks, trace.factories - beforeFactories]);
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const output = workload(3, 0, "abc"); }
+function relay<T>(action: (Function<T, [input: T, trace: Mutable<Trace>]>) | null | undefined): (Function<T, [input: T, trace: Mutable<Trace>]>) | null | undefined { return action; }
+function makeFallback(trace: Trace): Function<int, [input: int, trace: Mutable<Trace>]> { trace.fallbacks = trace.fallbacks + 1; return fallbackStep; }
+function argument(trace: Trace, value: int): int { trace.arguments = trace.arguments + 1; return value; }
+function step(input: int, trace: Trace): int { trace.calls = trace.calls + 1; return (input * 17 + 3) % 1009; }
+function fallbackStep(input: int, trace: Trace): int { trace.calls = trace.calls + 1; return (input * 17 + 103) % 1009; }

@@ -1,0 +1,33 @@
+# JavaScript singleton values and static namespaces
+
+Status: Stage 1 and the first three Stage 3 APIs are implemented with focused acceptance. This work follows [the full dependency plan](../javascript-parity-plan.md) alongside the numbered compiler progression. It does not renumber gates or claim complete JavaScript parity.
+
+## Supported behavior
+
+`null` and `undefined` have distinct zero-sized copy types, including annotations, parameters/results, nominal record fields, homogeneous/nested arrays, cloning and typed callbacks/captures. The global `undefined` value is read-only; a local or parameter named `undefined` shadows it. Procedure `void` remains a separate unusable result type; unary `void expression` evaluates its input once and returns an actual undefined value.
+
+Strict comparisons involving either singleton preserve operand order and ownership; different types compare unequal. `typeof` reports JavaScript names for supported values, including null as object, numeric types as number and callables as function. An unresolved bare identifier yields undefined, while member errors and access before a local declaration remain errors. `!null` and `!undefined` are true, `Number(null)` is zero, `Number(undefined)` is NaN, and template interpolation prints their names.
+
+All console operations accept the new values. Inspection, placeholders, JSON object omissions/array null slots, table defaults, dir options and counter/timer default labels are covered by pinned Node comparisons. Node 24's countReset raw-label type check is preserved; warning scheduling and native trace differences remain in [the console ledger](console-parity.md).
+
+`Array.isArray(value?)` identifies supported array types, returns false for other types and false with no argument. `Boolean(value?)` implements explicit truthiness for supported primitives, arrays, records and callables, including false for NaN/zero/empty text/null/undefined/void call results. `String(value?)` implements primitive and array text conversion, record `[object Object]` conversion and omission versus explicit undefined. Extra arguments to these APIs evaluate once left to right before being ignored. Inputs stay borrowed; converting an owned string produces an independent copy.
+
+## Limits and next dependencies
+
+Nullable unions, optional fields, optional chaining and nullish coalescing remain Stage 2. General heterogeneous values, arbitrary property storage, BigInt, Symbol and host classes remain future stages. The native int range remains i64; numeric shortest text can differ at rounding boundaries. String function-source conversion is rejected; boxed constructors and custom coercion hooks are unsupported. Array text conversion uses disposable diagnostic storage with a depth cap of 128. Existing arithmetic and conditions retain their strict static type requirements.
+
+`JSON.stringify` waits for a string-or-undefined result type and complete property/replacer contracts. `Object.is` waits for a sound native identity contract, including zero-sized records; comparing record contents or zero-sized addresses would be incorrect. Object enumeration waits for own-key ordering and heterogeneous result contracts. The plan makes these compiler prerequisites explicit before editor advertising.
+
+## Evidence
+
+`crates/tsrust-compiler/tests/value_types.rs` contains eight focused groups: Node v24.11.1 versus native O0/O3 output; literals/types/storage; strict equality/reflection/void/conversions/order; console defaults/JSON/colors/table; callbacks/captures/transforms/reductions; static diagnostics and temporal declaration errors; three new static APIs; and independently matched conversion workloads. A warmed allocation probe confirms no allocations for singleton payloads, typed singleton arrays/clones, zero-sized records and captures at O0/O3. Generated source contains no unsafe code; the test-only allocator uses Rust's System allocator.
+
+The editor catalog includes complete root/member descriptions, parameter help, defaults, examples and native limits. Compiler witnesses and native execution verify catalog examples. Focused LSP tests cover nullable values/types, local undefined shadowing, conversion inference, signatures, Array namespace/instance separation and homogeneous singleton array search completion. Real TextMate grammar tests cover literals, unary operators, namespace roots and procedure void annotations.
+
+Three independently matched runtime workloads live under `benchmarks/runtime/workloads/`: boolean_string_truthiness, string_explicit_int and string_array_conversion. Their complete outputs match Node at O0/O3. The three rows are registered in `benchmarks/runtime/manifest.json`, grouped under Booleans and Strings. Their source checks pass 78 cases, 22 independent literal expectations, 58 negative guards and three executed semantic mutants. The existing complete-output observers are reused. Combined timing and native disposal profiles pass at checkpoint 81; the original draft registration is retained for provenance. The original drafts are source provenance; measured rows are bound by [checkpoint81 evidence](../../benchmarks/runtime/diagnostics/2026-10-03T08-44-00-000Z-checkpoint81-runtime-proof.json). Singleton payload creation, static Array.isArray and typeof classification have no meaningful independent runtime throughput after static specialization; the allocation probe and side-effect/order checks are their evidence.
+
+## Focused acceptance recorded October 3, 2026
+
+All 121 tests across value_types, console_output, array_search, array_reduce, array_transform, assignment_values, callable_captures, closures, operators, nested_records, fixed_storage and recursive_storage passed. The deep indexed-expression fixture exposed parser stack growth; unary operator construction now runs outside the recursive primary parsing frame and the original guard/100-level fixtures pass. Console writers use static generic dispatch, preserving the closure corpus's no-dynamic-dispatch contract.
+
+All 35 LSP tests pass, including every catalog witness and executable documentation example. Extension TypeScript build, real TextMate tokenization, packaging and installed-VSIX E2E tests pass. The Electron host required running outside the restricted sandbox; it used an isolated temporary profile and extensions directory. The updated extension was also installed in the user's VS Code. Compiler/LSP debug and release builds, changed compiler-target Clippy, LSP all-target Clippy and workspace formatting checks pass. The compatibility script reports no missing catalog candidates. Full regression and performance acceptance remain assigned to the scheduled checkpoint; no new timing measurement is claimed.

@@ -1,0 +1,12 @@
+type int = number;
+function workload(n: int, seed: int): number {
+    let sum: number = Number(seed); let i = 0;
+    while (i < n) {
+        const value: number = Number((i * 104729 + seed) % 1048576 - 524288) * 8192.0 + Number(i % 4) * 0.25;
+        const value_result: number = Math.clz32(value);
+        sum = sum + value_result;
+        i = i + 1;
+    }
+    return sum;
+}
+function main() { const result = workload(2, 7); console.log(result); }

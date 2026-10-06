@@ -1,0 +1,8 @@
+{
+  "exactPathsAndBytes": 1011,
+  "independentBlobChecks": 508,
+  "closedProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T17-06-35-000Z-compound-assignment-runtime-proof.json",
+    "sha256": "8a0cfa6d9447b9fe9fdad44cc5df353b6cf02f3fac8f0f5d19508cf564db55d4"
+  }
+}

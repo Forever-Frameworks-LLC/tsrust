@@ -1,0 +1,15 @@
+/// <reference lib="esnext.collection" />
+function workload(n: number, seed: number, input: string): string[][] {
+ const output:string[][]=[];let i=0;
+ while(i<n){
+  const small=new Set<number>([i+seed,i+seed+1]);
+  const large=new Set<number>([i+seed,i+seed+1,i+seed+2]);
+  const apart=new Set<number>([i+seed+4]);
+  const names=new Set<string>([String(input)]);
+  const labels=new Set<string>(["tail"]);
+  output.push([String(small.isSubsetOf(large)),String(large.isSupersetOf(small)),String(small.isDisjointFrom(apart)),String(small.isDisjointFrom(large)),String(names.isDisjointFrom(labels)),String(names.isSubsetOf(labels))]);
+  i=i+1;
+ }
+ return output;
+}
+function main(){const result=workload(3,0,"abc");}

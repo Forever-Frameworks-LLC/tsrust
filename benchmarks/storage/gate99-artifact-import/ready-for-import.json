@@ -1,0 +1,21 @@
+{
+  "gate": 99,
+  "readyForImport": true,
+  "rootAcceptance": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/gate99-rest-parameter-implementation.json",
+    "sha256": "365819805ce26c57c4187c98d84a72f832bf859a7b67b52bd6b21f9d206df285",
+    "bytes": 19160
+  },
+  "restorationMap": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/gate99-closure-evidence/restoration-map.json",
+    "sha256": "40d161e363ca971baf25d7e4d23bdf9e5a923cc9e409663fde8e93a2a210f2a3",
+    "bytes": 4136223
+  },
+  "files": 6786,
+  "uniqueObjects": 2101,
+  "uniqueObjectBytes": 40205483,
+  "identityOnlyHistoricalVersions": 52,
+  "final3ExactInputs": 307,
+  "analyticsSamplesAdded": 0,
+  "deletedFiles": 0
+}

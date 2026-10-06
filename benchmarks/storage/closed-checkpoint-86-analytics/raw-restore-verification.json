@@ -1,0 +1,36 @@
+{
+  "gate": 86,
+  "timestamp": "2026-10-03T15:18:10.865600+00:00",
+  "certificate": {
+    "path": "/tmp/tsrust-gate86/completed-acceptance.json",
+    "sha256": "9cf16b1b8946445822c194dd6c72c45419daffb398118bef480e315334a611f9"
+  },
+  "runtimeProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T13-57-02-000Z-checkpoint86-runtime-proof.json",
+    "sha256": "da4c6d471e290fe5336640d83073dd4bad7a562a7f4670226cf09e8dbd9f2404"
+  },
+  "records": [
+    {
+      "path": "runtime/results/2026-10-03T13-42-38-756Z.json",
+      "originalSha256": "f0efc6e6e0c5eff29d6fe68b22e7c360a622e2830384f6fc587d7a5153cacaab",
+      "restoredSha256": "f0efc6e6e0c5eff29d6fe68b22e7c360a622e2830384f6fc587d7a5153cacaab",
+      "archiveSha256": "f0efc6e6e0c5eff29d6fe68b22e7c360a622e2830384f6fc587d7a5153cacaab",
+      "bytes": 280036663,
+      "allocatedBytes": 280039424,
+      "restorationVerified": true
+    },
+    {
+      "path": "runtime/diagnostics/2026-10-03T13-46-03-175Z-native-allocations.json",
+      "originalSha256": "af8006d5af707ecf7d2fdd9e41145a016aa09e846aaeb4a4db972038c8720aa8",
+      "restoredSha256": "af8006d5af707ecf7d2fdd9e41145a016aa09e846aaeb4a4db972038c8720aa8",
+      "archiveSha256": "af8006d5af707ecf7d2fdd9e41145a016aa09e846aaeb4a4db972038c8720aa8",
+      "bytes": 1162941,
+      "allocatedBytes": 1163264,
+      "restorationVerified": true
+    }
+  ],
+  "independentRestoredSha256Compared": true,
+  "selectedPathsExact": true,
+  "rawReencoded": false,
+  "scratch": "/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-86-raw-restored-h7rl0ezl"
+}

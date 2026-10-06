@@ -1,0 +1,290 @@
+[
+  {
+    "id": "quoted_string_literals_ascii",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "dynamic ASCII"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_ascii",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "plain single"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_ascii",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "plain double"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_ascii",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "A\u0000Z"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_ascii",
+    "n": 1,
+    "seed": 4,
+    "expected": [
+      "B\u0000Y"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_ascii",
+    "n": 1,
+    "seed": 5,
+    "expected": [
+      "C\u0000X"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_ascii",
+    "n": 1,
+    "seed": 6,
+    "expected": [
+      "quote' slash\\"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_ascii",
+    "n": 1,
+    "seed": 7,
+    "expected": [
+      "quote\" slash\\"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_ascii",
+    "n": 1,
+    "seed": 8,
+    "expected": [
+      "q$_"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_ascii",
+    "n": 1,
+    "seed": 9,
+    "expected": [
+      "\b\f\n\r\t\u000b\u0000"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_ascii",
+    "n": 1,
+    "seed": 10,
+    "expected": [
+      "joined"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_ascii",
+    "n": 1,
+    "seed": 11,
+    "expected": [
+      "joined"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_ascii",
+    "n": 1,
+    "seed": 12,
+    "expected": [
+      "joined"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_ascii",
+    "n": 1,
+    "seed": 13,
+    "expected": [
+      "joined"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_ascii",
+    "n": 1,
+    "seed": 14,
+    "expected": [
+      "joined"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_ascii",
+    "n": 1,
+    "seed": 15,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "quoted_string_literals_ascii",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  },
+  {
+    "id": "quoted_string_literals_ascii",
+    "n": 3,
+    "seed": 0,
+    "expected": [
+      "dynamic ASCII",
+      "joined",
+      "joined"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_unicode",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "dynamic é😀"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_unicode",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "é😀"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_unicode",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "BOM﻿中"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_unicode",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "é"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_unicode",
+    "n": 1,
+    "seed": 4,
+    "expected": [
+      "é中"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_unicode",
+    "n": 1,
+    "seed": 5,
+    "expected": [
+      "😀􏿿"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_unicode",
+    "n": 1,
+    "seed": 6,
+    "expected": [
+      "😀"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_unicode",
+    "n": 1,
+    "seed": 7,
+    "expected": [
+      "é"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_unicode",
+    "n": 1,
+    "seed": 8,
+    "expected": [
+      "qé$_"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_unicode",
+    "n": 1,
+    "seed": 9,
+    "expected": [
+      "\u0000é😀"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_unicode",
+    "n": 1,
+    "seed": 10,
+    "expected": [
+      "é😀"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_unicode",
+    "n": 1,
+    "seed": 11,
+    "expected": [
+      "é😀"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_unicode",
+    "n": 1,
+    "seed": 12,
+    "expected": [
+      "é😀"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_unicode",
+    "n": 1,
+    "seed": 13,
+    "expected": [
+      "é😀"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_unicode",
+    "n": 1,
+    "seed": 14,
+    "expected": [
+      "é😀"
+    ]
+  },
+  {
+    "id": "quoted_string_literals_unicode",
+    "n": 1,
+    "seed": 15,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "quoted_string_literals_unicode",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  },
+  {
+    "id": "quoted_string_literals_unicode",
+    "n": 3,
+    "seed": 0,
+    "expected": [
+      "dynamic é😀",
+      "é😀",
+      "é😀"
+    ]
+  }
+]

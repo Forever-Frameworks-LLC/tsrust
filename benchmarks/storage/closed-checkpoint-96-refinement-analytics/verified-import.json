@@ -1,0 +1,73 @@
+{
+  "gate": 96,
+  "acceptedRefinementIndexed": true,
+  "original48BaselineUnchanged": true,
+  "before": {
+    "databaseBytes": 163258368,
+    "records": 21127,
+    "blobs": 13852,
+    "analytics_runs": 6,
+    "analytics_samples": 52080,
+    "analytics_summaries": 560,
+    "analytics_profiles": 471
+  },
+  "after": {
+    "databaseBytes": 167780352,
+    "records": 21130,
+    "blobs": 13855,
+    "analytics_runs": 8,
+    "analytics_samples": 58218,
+    "analytics_summaries": 626,
+    "analytics_profiles": 570
+  },
+  "deltas": {
+    "databaseBytes": 4521984,
+    "records": 3,
+    "blobs": 3,
+    "analytics_runs": 2,
+    "analytics_samples": 6138,
+    "analytics_summaries": 66,
+    "analytics_profiles": 99
+  },
+  "proof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-04T00-56-20-000Z-checkpoint96-concat-refinement-runtime-proof.json",
+    "sha256": "b3e7d2cfb5909fabf4f50c938ae3cd799bcde2d4e0e401ed0fb11014a0466ea6"
+  },
+  "records": [
+    {
+      "relativePath": "runtime/results/2026-10-04T00-51-36-247Z.json",
+      "sha256": "42399f159bb3b4ac6a022a6e500f8342d42de6201d8f3a89788c03182c447cb8",
+      "bytes": 111256671,
+      "originalExact": true,
+      "snapshotOriginalExact": true,
+      "restoredExact": true,
+      "compressedBytes": 1663288
+    },
+    {
+      "relativePath": "runtime/diagnostics/2026-10-04T00-52-16-262Z-native-allocations.json",
+      "sha256": "8e1a625a00d44bceaead1ba2afa2bf244b992b755d84b9e62a77bf052b1bccf6",
+      "bytes": 1360697,
+      "originalExact": true,
+      "snapshotOriginalExact": true,
+      "restoredExact": true,
+      "compressedBytes": 114894
+    }
+  ],
+  "scratchRoot": "/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-checkpoint96-refinement-exact-restore-9_1u8isn",
+  "restoredPathSetExact": true,
+  "independentRestoredHashesExact": true,
+  "sqliteProcessSampleBoundariesExact": true,
+  "sqliteRateSummariesMatchIndependentReciprocalDerivation": true,
+  "profileDisposalsZero": true,
+  "query": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-96-refinement-analytics/checkpoint-query.log",
+    "sha256": "6d4ef05dc2397edc3bb92cc0448a21c0e1530aec66aed3c937d1155e97abab2e",
+    "comparedRows": 33,
+    "nativeWins": 2,
+    "reviewSlower": 31
+  },
+  "looseOriginalsRemoved": false,
+  "priorHistoryReverified": false,
+  "at": "2026-10-04T01:00:18.452698+00:00",
+  "verifiedScratchCopiesRemoved": true
+}

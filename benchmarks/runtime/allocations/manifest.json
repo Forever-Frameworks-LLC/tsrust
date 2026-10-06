@@ -1,0 +1,110 @@
+[
+  {
+    "id": "empty_control",
+    "result": "int",
+    "rustType": "i64",
+    "rustChecksum": "fn probe_checksum(value: &i64) -> i64 { *value }",
+    "expected": "0",
+    "sizes": [
+      1
+    ],
+    "specification": "Return zero without constructing workload output storage; control for runtime/GC measurement overhead."
+  },
+  {
+    "id": "int_value",
+    "result": "int",
+    "rustType": "i64",
+    "rustChecksum": "fn probe_checksum(value: &i64) -> i64 { *value }",
+    "expected": "n+7",
+    "sizes": [
+      1
+    ],
+    "specification": "Return one runtime-derived integer."
+  },
+  {
+    "id": "boolean_value",
+    "result": "boolean",
+    "rustType": "bool",
+    "rustChecksum": "fn probe_checksum(value: &bool) -> i64 { i64::from(*value) }",
+    "expected": "n>7",
+    "sizes": [
+      1,
+      8
+    ],
+    "specification": "Return one runtime-derived boolean."
+  },
+  {
+    "id": "string_value",
+    "result": "string",
+    "rustType": "String",
+    "rustChecksum": "fn probe_checksum(value: &String) -> i64 { value.as_ref().bytes().map(i64::from).sum() }",
+    "expected": "293",
+    "sizes": [
+      1
+    ],
+    "specification": "Return ASCII literal Pat; immutable literal bytes can use static storage in both implementations."
+  },
+  {
+    "id": "record_value",
+    "result": "Value",
+    "rustType": "Record0",
+    "rustChecksum": "fn probe_checksum(value: &Record0) -> i64 { value.field0 + i64::from(value.field1) }",
+    "expected": "n+7+(n>7)",
+    "sizes": [
+      1,
+      8
+    ],
+    "specification": "Return scalar-field record by value; native inline layout differs from JS object."
+  },
+  {
+    "id": "int_array",
+    "result": "int[]",
+    "rustType": "NumericArray<i64>",
+    "rustChecksum": "fn probe_checksum(values: &NumericArray<i64>) -> i64 { values.iter().sum() }",
+    "expected": "n*7+n*(n-1)/2",
+    "sizes": [
+      0,
+      1,
+      100000
+    ],
+    "specification": "Push n runtime-derived integers; retain the entire array."
+  },
+  {
+    "id": "boolean_array",
+    "result": "boolean[]",
+    "rustType": "NumericArray<bool>",
+    "rustChecksum": "fn probe_checksum(values: &NumericArray<bool>) -> i64 { values.iter().filter(|&&v| v).count() as i64 }",
+    "expected": "ceil(n/2)",
+    "sizes": [
+      0,
+      1,
+      100000
+    ],
+    "specification": "Push n alternating booleans; retain the entire array."
+  },
+  {
+    "id": "string_array",
+    "result": "string[]",
+    "rustType": "Array<String>",
+    "rustChecksum": "fn probe_checksum(values: &Array<String>) -> i64 { values.iter().map(|v| v.as_ref().bytes().map(i64::from).sum::<i64>()).sum() }",
+    "expected": "293*n",
+    "sizes": [
+      0,
+      1,
+      100000
+    ],
+    "specification": "Push n copies of literal Pat; retain the entire array, sharing immutable literal bytes."
+  },
+  {
+    "id": "number_value",
+    "result": "number",
+    "rustType": "f64",
+    "sizes": [
+      1,
+      8
+    ],
+    "specification": "Return runtime-derived f64 n+7.5 by value; exact IEEE observation occurs after storage measurement.",
+    "observation": "Noalloc floating bit digest, plus exact bit validation before measurement",
+    "resultEncoding": "ieee-f64-bits-v1"
+  }
+]

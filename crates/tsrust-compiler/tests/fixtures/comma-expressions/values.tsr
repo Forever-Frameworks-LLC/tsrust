@@ -1,0 +1,34 @@
+import {strictEqual} from "std:testing";
+function mark(trace:int[],value:int):int{trace.push(value);return value;}
+function selected(trace:int[]):int{return mark(trace,8),9;}
+function failure():int{throw "stop";}
+function throwSequence(trace:int[]){throw mark(trace,10),"caught";}
+type Box={x:int;};
+type TextBox={label:string;other:string;};
+function take(value:Owned<string>):string{return value;}
+function main(){
+ const trace:int[]=[];const value=(mark(trace,1),mark(trace,2),7);strictEqual(value,7);strictEqual(trace.join(","),"1,2");
+ let i=0,j=0;for(i=0,j=3;i<3;i++,j++){mark(trace,j);}
+ strictEqual(i,3);strictEqual(j,6);strictEqual(trace.join(","),"1,2,3,4,5");
+ const text=(false,"yes");strictEqual(text,"yes");const owner=String("kept");const zero=(owner,0);strictEqual(zero,0);strictEqual(owner,"kept");
+ const action=(mark(trace,6),()=>{return 11;});strictEqual(action(),11);
+ mark(trace,7),mark(trace,7);strictEqual(selected(trace),9);
+ const list=[(1,2),3];strictEqual(list.length,2);strictEqual(list[mark(trace,12),0],2);
+ if(mark(trace,13),true){mark(trace,14);}
+ let seen=0;try{const ignored=(mark(trace,15),failure(),mark(trace,99));}catch(error){if(typeof error==="string"){strictEqual(error,"stop");}else{throw "wrong";}seen=1;}finally{mark(trace,16);}
+ strictEqual(seen,1);strictEqual(trace.join(","),"1,2,3,4,5,6,7,7,8,12,13,14,15,16");
+ try{throwSequence(trace);}catch(error){if(typeof error==="string"){strictEqual(error,"caught");}else{throw "wrong throw";}}
+ strictEqual(trace[trace.length-1],10);
+ const mutable=[1];const copied=mutable[(mutable.push(2),0)];strictEqual(copied,1);strictEqual(mutable.length,2);
+ const source=[String("last")];const first=(mark(trace,17),source)[0];strictEqual(first,"last");strictEqual(source.length,1);
+
+ const guarded:int|string="ready";if(mark(trace,18),typeof guarded==="string"){strictEqual(guarded.toUpperCase(),"READY");}
+ const contextual=(0,[] as int[]);contextual.push(3);strictEqual(contextual[0],3);
+ const captured=[1];const discarded=(()=>{return captured.length;},captured.push(2),captured.length);strictEqual(discarded,2);
+ const box:Box={x:2};(mark(trace,19),box).x=3;strictEqual(box.x,3);strictEqual(trace[trace.length-1],19);
+ const textBox:TextBox={label:String("moved"),other:String("kept")};const moved=take((mark(trace,20),textBox).label);strictEqual(moved,"moved");strictEqual(trace[trace.length-1],20);strictEqual((mark(trace,21),textBox).other,"kept");
+ let appended=String("a");let k=0;for(k=0;k<2;k++,appended+="b"){}strictEqual(appended,"abb");const reused=String("keep");0,reused;strictEqual(reused,"keep");const selectedAfter=(appended+="c",4);strictEqual(selectedAfter,4);strictEqual(appended,"abbc");
+ let replaced=String("start");for(k=0;k<2;k++,replaced=String("done")){}strictEqual(replaced,"done");const afterReplace=(replaced=String("next"),5);strictEqual(afterReplace,5);strictEqual(replaced,"next");
+ const lastCapture=[1];0,()=>{return lastCapture.length;};lastCapture.push(2);strictEqual(lastCapture.length,2);
+ let left=0,right=1;for(k=0;k<3;[left,right]=[right,left+right],k++){}strictEqual(left,2);strictEqual(right,3);for([left,right]=[3,4],k=0;k<1;k++){}strictEqual(left,3);strictEqual(right,4);
+}

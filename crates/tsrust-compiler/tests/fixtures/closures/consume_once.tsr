@@ -1,0 +1,8 @@
+type User = { name: string; };
+
+function main() {
+    const user: User = { name: "Pat" };
+    const get = (): User => { return user; };
+    const saved = get();
+    console.log(saved.name);
+}

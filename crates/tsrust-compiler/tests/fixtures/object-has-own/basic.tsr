@@ -1,0 +1,34 @@
+import { strictEqual } from "std:testing";
+
+type Row = {
+    label: string | undefined;
+    hasOwnProperty: int;
+};
+
+function main() {
+    const row: Row = {
+        label: undefined, hasOwnProperty: 7
+    };
+    strictEqual(Object.hasOwn(row, "label"), true);
+    strictEqual(Object.hasOwn(row, "hasOwnProperty"), true);
+    strictEqual(Object.hasOwn(row, "toString"), false);
+    strictEqual(Object.hasOwn(row, "missing"), false);
+    const values: int[] = [4, 5];
+    strictEqual(Object.hasOwn(values, 0), true);
+    strictEqual(Object.hasOwn(values, "1"), true);
+    strictEqual(Object.hasOwn(values, "length"), true);
+    strictEqual(Object.hasOwn(values, "01"), false);
+    strictEqual(Object.hasOwn(values, "-0"), false);
+    strictEqual(Object.hasOwn(values, 2), false);
+    const pair: [int, string] = [1, "x"];
+    strictEqual(Object.hasOwn(pair, "length"), true);
+    strictEqual(Object.hasOwn(pair, 1), true);
+    strictEqual(Object.hasOwn("é😀", 2), true);
+    strictEqual(Object.hasOwn("é😀", 3), false);
+    strictEqual(Object.hasOwn("é😀", "length"), true);
+    strictEqual(Object.hasOwn(1, "toString"), false);
+    strictEqual(Object.hasOwn(true, "valueOf"), false);
+    strictEqual(row.hasOwnProperty, 7);
+    values.push(6);
+    strictEqual(values.length, 3);
+}

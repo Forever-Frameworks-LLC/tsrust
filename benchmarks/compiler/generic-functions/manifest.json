@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "status": "registered-unmeasured",
+  "checkpoint": 96,
+  "instanceCounts": [1, 16, 64, 128],
+  "modes": ["inferred", "mixed"],
+  "samples": 11,
+  "generator": "check.py:source(count, scalar, mode)",
+  "phases": {
+    "frontendCheck": "Separate process wall time for tsrust check and strict TypeScript tsc --noEmit. Includes startup and source reads. Native nominal specialization and TypeScript structural checking have different validation coverage; compare actual frontend costs without claiming equivalent compiler work.",
+    "frontendEmit": "Separate tsrust emit process wall time including startup and source reads, excluding rustc and execution. Each distinct nominal record specializes identity<T>. Mixed mode alternates explicit and inferred applications; repeated inferred and grouped explicit calls reuse Argument0 at every count."
+  },
+  "acceptance": "Validate all eight cells with check.py before timing. Preserve generated sources, hashes, generator/toolchain identities, exact commands and individual samples in canonical SQLite at checkpoint 96. These are compile-time scaling workloads, not runtime specialization throughput."
+}

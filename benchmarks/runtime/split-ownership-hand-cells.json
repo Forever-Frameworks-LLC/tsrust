@@ -1,0 +1,278 @@
+[
+  {
+    "id": "string_cow_split_pieces",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      [
+        "é::😀::"
+      ]
+    ]
+  },
+  {
+    "id": "string_cow_split_pieces",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      [
+        ""
+      ]
+    ]
+  },
+  {
+    "id": "string_cow_split_pieces",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      [
+        "",
+        "a"
+      ]
+    ]
+  },
+  {
+    "id": "string_cow_split_pieces",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      [
+        "é😀é😀"
+      ]
+    ]
+  },
+  {
+    "id": "string_cow_split_pieces",
+    "n": 1,
+    "seed": 4,
+    "expected": [
+      [
+        "a\u0000b"
+      ]
+    ]
+  },
+  {
+    "id": "string_cow_split_pieces",
+    "n": 1,
+    "seed": 5,
+    "expected": [
+      []
+    ]
+  },
+  {
+    "id": "string_cow_split_pieces",
+    "n": 1,
+    "seed": 6,
+    "expected": [
+      [
+        "﻿"
+      ]
+    ]
+  },
+  {
+    "id": "string_cow_split_pieces",
+    "n": 1,
+    "seed": 7,
+    "expected": [
+      [
+        "é",
+        "😀"
+      ]
+    ]
+  },
+  {
+    "id": "string_cow_split_pieces",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  },
+  {
+    "id": "string_scalar_split_unicode",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      []
+    ]
+  },
+  {
+    "id": "string_scalar_split_unicode",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      []
+    ]
+  },
+  {
+    "id": "string_scalar_split_unicode",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      [
+        ":",
+        ":"
+      ]
+    ]
+  },
+  {
+    "id": "string_scalar_split_unicode",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      [
+        "é",
+        "😀",
+        "é"
+      ]
+    ]
+  },
+  {
+    "id": "string_scalar_split_unicode",
+    "n": 1,
+    "seed": 4,
+    "expected": [
+      [
+        "a",
+        "\u0000",
+        "b"
+      ]
+    ]
+  },
+  {
+    "id": "string_scalar_split_unicode",
+    "n": 1,
+    "seed": 5,
+    "expected": [
+      []
+    ]
+  },
+  {
+    "id": "string_scalar_split_unicode",
+    "n": 1,
+    "seed": 6,
+    "expected": [
+      [
+        "﻿"
+      ]
+    ]
+  },
+  {
+    "id": "string_scalar_split_unicode",
+    "n": 1,
+    "seed": 7,
+    "expected": [
+      [
+        "é",
+        ":"
+      ]
+    ]
+  },
+  {
+    "id": "string_scalar_split_unicode",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  },
+  {
+    "id": "string_cow_split_pieces",
+    "n": 1,
+    "seed": 0,
+    "input": "a::",
+    "expected": [
+      [
+        "a::"
+      ]
+    ]
+  },
+  {
+    "id": "string_cow_split_pieces",
+    "n": 1,
+    "seed": 17,
+    "expected": [
+      [
+        ""
+      ]
+    ]
+  },
+  {
+    "id": "string_cow_split_pieces",
+    "n": 1,
+    "seed": 42,
+    "expected": [
+      [
+        "",
+        "a"
+      ]
+    ]
+  },
+  {
+    "id": "string_cow_split_pieces",
+    "n": 3,
+    "seed": 0,
+    "expected": [
+      [
+        "é::😀::"
+      ],
+      [
+        "é",
+        "😀"
+      ],
+      [
+        ""
+      ]
+    ]
+  },
+  {
+    "id": "string_cow_split_pieces",
+    "n": 1,
+    "seed": 7,
+    "input": "",
+    "expected": [
+      [
+        ""
+      ]
+    ]
+  },
+  {
+    "id": "string_scalar_split_unicode",
+    "n": 1,
+    "seed": 0,
+    "input": "",
+    "expected": [
+      []
+    ]
+  },
+  {
+    "id": "string_scalar_split_unicode",
+    "n": 1,
+    "seed": 7,
+    "input": "😀",
+    "expected": [
+      [
+        "😀",
+        "😀"
+      ]
+    ]
+  },
+  {
+    "id": "string_scalar_split_unicode",
+    "n": 1,
+    "seed": 16,
+    "input": "😀Z",
+    "expected": [
+      [
+        "😀"
+      ]
+    ]
+  },
+  {
+    "id": "string_scalar_split_unicode",
+    "n": 1,
+    "seed": 24,
+    "input": "é",
+    "expected": [
+      [
+        "e",
+        "́"
+      ]
+    ]
+  }
+]

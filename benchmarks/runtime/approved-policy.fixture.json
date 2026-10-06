@@ -1,0 +1,695 @@
+{
+  "schemaVersion": 1,
+  "protocol": "mpfr-directed-f64-scalar-v1",
+  "predeclared": true,
+  "policyByWorkload": {
+    "math_acos": {
+      "method": "acos",
+      "operationArity": 1,
+      "domain": {
+        "maxIterations": 131072,
+        "maxSeed": 1000000
+      },
+      "argumentBounds": [
+        {
+          "lower": {
+            "numerator": "-3",
+            "denominatorPowerOfTwo": 2
+          },
+          "upper": {
+            "numerator": "13",
+            "denominatorPowerOfTwo": 4
+          }
+        }
+      ],
+      "inputRecipeSha256": "4948dd4e8d5c577dfcdc7f05c08fba9998a2f3a4cb12801245a5930c4136ed38",
+      "tsSha256": "ee172aec4c8dc9bd6f40cecc2b89a8544f1a94d06ab9f3acf22a057afe77e0c5",
+      "tsrSha256": "360b10e6efe869668437e09511e2f519942178f7aaaab5004c766982e713d6b4",
+      "policy": {
+        "predeclared": true,
+        "maxOperationRankSteps": 8,
+        "exactSupportingAddition": "binary64-nearest-even-in-source-order",
+        "quantization": false
+      }
+    },
+    "math_asin": {
+      "method": "asin",
+      "operationArity": 1,
+      "domain": {
+        "maxIterations": 131072,
+        "maxSeed": 1000000
+      },
+      "argumentBounds": [
+        {
+          "lower": {
+            "numerator": "-3",
+            "denominatorPowerOfTwo": 2
+          },
+          "upper": {
+            "numerator": "13",
+            "denominatorPowerOfTwo": 4
+          }
+        }
+      ],
+      "inputRecipeSha256": "4948dd4e8d5c577dfcdc7f05c08fba9998a2f3a4cb12801245a5930c4136ed38",
+      "tsSha256": "fe3dc0d1e90468726640c1351ca91673251625e2cef52515c199bf7e7b1a6a68",
+      "tsrSha256": "7f8f7ef6745f302177fae2c95dc5be4a296e3098f2129ef973574c5dd1910abd",
+      "policy": {
+        "predeclared": true,
+        "maxOperationRankSteps": 8,
+        "exactSupportingAddition": "binary64-nearest-even-in-source-order",
+        "quantization": false
+      }
+    },
+    "math_atanh": {
+      "method": "atanh",
+      "operationArity": 1,
+      "domain": {
+        "maxIterations": 131072,
+        "maxSeed": 1000000
+      },
+      "argumentBounds": [
+        {
+          "lower": {
+            "numerator": "-5",
+            "denominatorPowerOfTwo": 3
+          },
+          "upper": {
+            "numerator": "11",
+            "denominatorPowerOfTwo": 4
+          }
+        }
+      ],
+      "inputRecipeSha256": "4948dd4e8d5c577dfcdc7f05c08fba9998a2f3a4cb12801245a5930c4136ed38",
+      "tsSha256": "4742771a28c9b990b27de9e3f3d0ba8fd94861bb7f4617e914fcded608db8ed3",
+      "tsrSha256": "3509905887a20ba504b72513fef8a169236235240efa62dd6e48703f780aae5f",
+      "policy": {
+        "predeclared": true,
+        "maxOperationRankSteps": 8,
+        "exactSupportingAddition": "binary64-nearest-even-in-source-order",
+        "quantization": false
+      }
+    },
+    "math_acosh": {
+      "method": "acosh",
+      "operationArity": 1,
+      "domain": {
+        "maxIterations": 131072,
+        "maxSeed": 1000000
+      },
+      "argumentBounds": [
+        {
+          "lower": {
+            "numerator": "5",
+            "denominatorPowerOfTwo": 2
+          },
+          "upper": {
+            "numerator": "33",
+            "denominatorPowerOfTwo": 3
+          }
+        }
+      ],
+      "inputRecipeSha256": "4948dd4e8d5c577dfcdc7f05c08fba9998a2f3a4cb12801245a5930c4136ed38",
+      "tsSha256": "69997756c5e1d5bec5d29c3d451d67755d5854cadfb8cee010aba6dc83a9d7c6",
+      "tsrSha256": "20cebd1d06974dbf09c0ba9ec6ccd68a29765c7691f08b78ad81f6a48d654f83",
+      "policy": {
+        "predeclared": true,
+        "maxOperationRankSteps": 8,
+        "exactSupportingAddition": "binary64-nearest-even-in-source-order",
+        "quantization": false
+      }
+    },
+    "math_log": {
+      "method": "log",
+      "operationArity": 1,
+      "domain": {
+        "maxIterations": 131072,
+        "maxSeed": 1000000
+      },
+      "argumentBounds": [
+        {
+          "lower": {
+            "numerator": "1",
+            "denominatorPowerOfTwo": 2
+          },
+          "upper": {
+            "numerator": "57",
+            "denominatorPowerOfTwo": 4
+          }
+        }
+      ],
+      "inputRecipeSha256": "4948dd4e8d5c577dfcdc7f05c08fba9998a2f3a4cb12801245a5930c4136ed38",
+      "tsSha256": "e8053bf15832d7e843f41c6903479ca1a2162579cf3cbccb5e8ea7f0041af7c7",
+      "tsrSha256": "5635e569bdd33a185fb90adf27fb04efca5a4bbe1e7834e5c136d03a37abc173",
+      "policy": {
+        "predeclared": true,
+        "maxOperationRankSteps": 8,
+        "exactSupportingAddition": "binary64-nearest-even-in-source-order",
+        "quantization": false
+      }
+    },
+    "math_log10": {
+      "method": "log10",
+      "operationArity": 1,
+      "domain": {
+        "maxIterations": 131072,
+        "maxSeed": 1000000
+      },
+      "argumentBounds": [
+        {
+          "lower": {
+            "numerator": "1",
+            "denominatorPowerOfTwo": 2
+          },
+          "upper": {
+            "numerator": "57",
+            "denominatorPowerOfTwo": 4
+          }
+        }
+      ],
+      "inputRecipeSha256": "4948dd4e8d5c577dfcdc7f05c08fba9998a2f3a4cb12801245a5930c4136ed38",
+      "tsSha256": "11400e631f246a1610e4e03fc25b5ff194f0eff8d4e5982c09ff1d34ea734d98",
+      "tsrSha256": "b8b9ed226ddd08f3041fc6073fbc1afc8a93a70fc6aa580bf3e20ac76b8d08fc",
+      "policy": {
+        "predeclared": true,
+        "maxOperationRankSteps": 8,
+        "exactSupportingAddition": "binary64-nearest-even-in-source-order",
+        "quantization": false
+      }
+    },
+    "math_log2": {
+      "method": "log2",
+      "operationArity": 1,
+      "domain": {
+        "maxIterations": 131072,
+        "maxSeed": 1000000
+      },
+      "argumentBounds": [
+        {
+          "lower": {
+            "numerator": "1",
+            "denominatorPowerOfTwo": 2
+          },
+          "upper": {
+            "numerator": "57",
+            "denominatorPowerOfTwo": 4
+          }
+        }
+      ],
+      "inputRecipeSha256": "4948dd4e8d5c577dfcdc7f05c08fba9998a2f3a4cb12801245a5930c4136ed38",
+      "tsSha256": "c5bf7b66437481395d4afcabeaf6a659aa02be75686b233080dd03e2d181dd77",
+      "tsrSha256": "680aedc45ed3d380163c9f33671a55eed759fb2cecb9f7c2abffdb2607ac9ce7",
+      "policy": {
+        "predeclared": true,
+        "maxOperationRankSteps": 8,
+        "exactSupportingAddition": "binary64-nearest-even-in-source-order",
+        "quantization": false
+      }
+    },
+    "math_log1p": {
+      "method": "log1p",
+      "operationArity": 1,
+      "domain": {
+        "maxIterations": 131072,
+        "maxSeed": 1000000
+      },
+      "argumentBounds": [
+        {
+          "lower": {
+            "numerator": "-3",
+            "denominatorPowerOfTwo": 3
+          },
+          "upper": {
+            "numerator": "25",
+            "denominatorPowerOfTwo": 5
+          }
+        }
+      ],
+      "inputRecipeSha256": "4948dd4e8d5c577dfcdc7f05c08fba9998a2f3a4cb12801245a5930c4136ed38",
+      "tsSha256": "1228452b2a9040d5002ca14c4ac1132157e78dad2f39ab17e5881dd685b41e65",
+      "tsrSha256": "39731050090de8605dda72d4b63f462a18718dfc74403045ee30c96dea29a214",
+      "policy": {
+        "predeclared": true,
+        "maxOperationRankSteps": 8,
+        "exactSupportingAddition": "binary64-nearest-even-in-source-order",
+        "quantization": false
+      }
+    },
+    "math_cos": {
+      "method": "cos",
+      "operationArity": 1,
+      "domain": {
+        "maxIterations": 131072,
+        "maxSeed": 1000000
+      },
+      "argumentBounds": [
+        {
+          "lower": {
+            "numerator": "-5",
+            "denominatorPowerOfTwo": 2
+          },
+          "upper": {
+            "numerator": "5",
+            "denominatorPowerOfTwo": 2
+          }
+        }
+      ],
+      "inputRecipeSha256": "4948dd4e8d5c577dfcdc7f05c08fba9998a2f3a4cb12801245a5930c4136ed38",
+      "tsSha256": "a983561028ba21726ec7c3a41f5251a5ad423ef21d4af883956e9073b2829229",
+      "tsrSha256": "17aa5d4d9286f19aed7d4ae981a52f7b4338a145dfaf47fbf7a4fcf9a231939b",
+      "policy": {
+        "predeclared": true,
+        "maxOperationRankSteps": 8,
+        "exactSupportingAddition": "binary64-nearest-even-in-source-order",
+        "quantization": false
+      }
+    },
+    "math_sin": {
+      "method": "sin",
+      "operationArity": 1,
+      "domain": {
+        "maxIterations": 131072,
+        "maxSeed": 1000000
+      },
+      "argumentBounds": [
+        {
+          "lower": {
+            "numerator": "-5",
+            "denominatorPowerOfTwo": 2
+          },
+          "upper": {
+            "numerator": "5",
+            "denominatorPowerOfTwo": 2
+          }
+        }
+      ],
+      "inputRecipeSha256": "4948dd4e8d5c577dfcdc7f05c08fba9998a2f3a4cb12801245a5930c4136ed38",
+      "tsSha256": "3ddb95c75934026c711f0aabec655d82e11c29e405a5c70d935d40302816dd6d",
+      "tsrSha256": "2b886844a5e802525a30cd7d80bd50dff432b2b1ecd146182d08962e69e5204a",
+      "policy": {
+        "predeclared": true,
+        "maxOperationRankSteps": 8,
+        "exactSupportingAddition": "binary64-nearest-even-in-source-order",
+        "quantization": false
+      }
+    },
+    "math_tan": {
+      "method": "tan",
+      "operationArity": 1,
+      "domain": {
+        "maxIterations": 131072,
+        "maxSeed": 1000000
+      },
+      "argumentBounds": [
+        {
+          "lower": {
+            "numerator": "-5",
+            "denominatorPowerOfTwo": 2
+          },
+          "upper": {
+            "numerator": "5",
+            "denominatorPowerOfTwo": 2
+          }
+        }
+      ],
+      "inputRecipeSha256": "4948dd4e8d5c577dfcdc7f05c08fba9998a2f3a4cb12801245a5930c4136ed38",
+      "tsSha256": "f0c1af489ce97d387a506fee0fcaecf6edf9ecebf5efdab8076377fc0d4b49d1",
+      "tsrSha256": "2bfb8aefb9402703537421e3c3ea8ca0cfc8c0902c2b0fd532291e9cc8af2922",
+      "policy": {
+        "predeclared": true,
+        "maxOperationRankSteps": 8,
+        "exactSupportingAddition": "binary64-nearest-even-in-source-order",
+        "quantization": false
+      }
+    },
+    "math_cosh": {
+      "method": "cosh",
+      "operationArity": 1,
+      "domain": {
+        "maxIterations": 131072,
+        "maxSeed": 1000000
+      },
+      "argumentBounds": [
+        {
+          "lower": {
+            "numerator": "-7",
+            "denominatorPowerOfTwo": 2
+          },
+          "upper": {
+            "numerator": "15",
+            "denominatorPowerOfTwo": 3
+          }
+        }
+      ],
+      "inputRecipeSha256": "4948dd4e8d5c577dfcdc7f05c08fba9998a2f3a4cb12801245a5930c4136ed38",
+      "tsSha256": "ee4d9b27a2df1cf8d58bc58d53c8cf61546e03a27eb27a1ad63598d5bcabc2a3",
+      "tsrSha256": "3d465123d965bb43481f8b04af6f587f94f62137ff88799583739e1cbd5e7f1e",
+      "policy": {
+        "predeclared": true,
+        "maxOperationRankSteps": 8,
+        "exactSupportingAddition": "binary64-nearest-even-in-source-order",
+        "quantization": false
+      }
+    },
+    "math_exp": {
+      "method": "exp",
+      "operationArity": 1,
+      "domain": {
+        "maxIterations": 131072,
+        "maxSeed": 1000000
+      },
+      "argumentBounds": [
+        {
+          "lower": {
+            "numerator": "-7",
+            "denominatorPowerOfTwo": 2
+          },
+          "upper": {
+            "numerator": "15",
+            "denominatorPowerOfTwo": 3
+          }
+        }
+      ],
+      "inputRecipeSha256": "4948dd4e8d5c577dfcdc7f05c08fba9998a2f3a4cb12801245a5930c4136ed38",
+      "tsSha256": "db270f54096a76f53aa6a417596275ac0d318e7e20aefe5f4cf10f132f44e7e9",
+      "tsrSha256": "49a61e884f14cae582b1e4b48ec124510b3c1d5cad36c86f7b72295341037693",
+      "policy": {
+        "predeclared": true,
+        "maxOperationRankSteps": 8,
+        "exactSupportingAddition": "binary64-nearest-even-in-source-order",
+        "quantization": false
+      }
+    },
+    "math_expm1": {
+      "method": "expm1",
+      "operationArity": 1,
+      "domain": {
+        "maxIterations": 131072,
+        "maxSeed": 1000000
+      },
+      "argumentBounds": [
+        {
+          "lower": {
+            "numerator": "-7",
+            "denominatorPowerOfTwo": 2
+          },
+          "upper": {
+            "numerator": "15",
+            "denominatorPowerOfTwo": 3
+          }
+        }
+      ],
+      "inputRecipeSha256": "4948dd4e8d5c577dfcdc7f05c08fba9998a2f3a4cb12801245a5930c4136ed38",
+      "tsSha256": "4114621214ad52e0695fb525cca6a9a519874bd86ae08321d1cce1a29f7c2462",
+      "tsrSha256": "aeb37b32212b61753a61c2f2390b4994794e7473d31e0711e212f90ef6db2294",
+      "policy": {
+        "predeclared": true,
+        "maxOperationRankSteps": 8,
+        "exactSupportingAddition": "binary64-nearest-even-in-source-order",
+        "quantization": false
+      }
+    },
+    "math_sinh": {
+      "method": "sinh",
+      "operationArity": 1,
+      "domain": {
+        "maxIterations": 131072,
+        "maxSeed": 1000000
+      },
+      "argumentBounds": [
+        {
+          "lower": {
+            "numerator": "-7",
+            "denominatorPowerOfTwo": 2
+          },
+          "upper": {
+            "numerator": "15",
+            "denominatorPowerOfTwo": 3
+          }
+        }
+      ],
+      "inputRecipeSha256": "4948dd4e8d5c577dfcdc7f05c08fba9998a2f3a4cb12801245a5930c4136ed38",
+      "tsSha256": "43d37931e746dcd22caa053bba4e06f109798ed5a74d3514e13226e599e5a5a1",
+      "tsrSha256": "3ad05ec48ecc3c96de98cb45e46a20e9461ada99fc60d82d2cbf68aee087e27f",
+      "policy": {
+        "predeclared": true,
+        "maxOperationRankSteps": 8,
+        "exactSupportingAddition": "binary64-nearest-even-in-source-order",
+        "quantization": false
+      }
+    },
+    "math_tanh": {
+      "method": "tanh",
+      "operationArity": 1,
+      "domain": {
+        "maxIterations": 131072,
+        "maxSeed": 1000000
+      },
+      "argumentBounds": [
+        {
+          "lower": {
+            "numerator": "-7",
+            "denominatorPowerOfTwo": 2
+          },
+          "upper": {
+            "numerator": "15",
+            "denominatorPowerOfTwo": 3
+          }
+        }
+      ],
+      "inputRecipeSha256": "4948dd4e8d5c577dfcdc7f05c08fba9998a2f3a4cb12801245a5930c4136ed38",
+      "tsSha256": "ccf5314d8c593e046b1d2b9e46c51568aca3b51e42be5417565fd3df8f63488b",
+      "tsrSha256": "5978f958aef56ef8a06ca985bad570e4c7a3510df31de71e09aefe57013c9696",
+      "policy": {
+        "predeclared": true,
+        "maxOperationRankSteps": 8,
+        "exactSupportingAddition": "binary64-nearest-even-in-source-order",
+        "quantization": false
+      }
+    },
+    "math_asinh": {
+      "method": "asinh",
+      "operationArity": 1,
+      "domain": {
+        "maxIterations": 131072,
+        "maxSeed": 1000000
+      },
+      "argumentBounds": [
+        {
+          "lower": {
+            "numerator": "-15",
+            "denominatorPowerOfTwo": 1
+          },
+          "upper": {
+            "numerator": "61",
+            "denominatorPowerOfTwo": 3
+          }
+        }
+      ],
+      "inputRecipeSha256": "4948dd4e8d5c577dfcdc7f05c08fba9998a2f3a4cb12801245a5930c4136ed38",
+      "tsSha256": "79afaf9ac2315167afbe704ad6c6831baf6348ff22c8afb8551c7a9e8a89166f",
+      "tsrSha256": "b1b32ef85b29d722d8f7746f6290db60de2cac3f1c0b7415abb39d32dbb139fa",
+      "policy": {
+        "predeclared": true,
+        "maxOperationRankSteps": 8,
+        "exactSupportingAddition": "binary64-nearest-even-in-source-order",
+        "quantization": false
+      }
+    },
+    "math_atan": {
+      "method": "atan",
+      "operationArity": 1,
+      "domain": {
+        "maxIterations": 131072,
+        "maxSeed": 1000000
+      },
+      "argumentBounds": [
+        {
+          "lower": {
+            "numerator": "-15",
+            "denominatorPowerOfTwo": 1
+          },
+          "upper": {
+            "numerator": "61",
+            "denominatorPowerOfTwo": 3
+          }
+        }
+      ],
+      "inputRecipeSha256": "4948dd4e8d5c577dfcdc7f05c08fba9998a2f3a4cb12801245a5930c4136ed38",
+      "tsSha256": "aa99429cdf5bb617ea641ebf7f842e5ab992c20eab64e0fd62cc3712399adf0f",
+      "tsrSha256": "315b898450f6a575a229dc12f0ea1da4ff61097e7509b879283abe0bba92e19e",
+      "policy": {
+        "predeclared": true,
+        "maxOperationRankSteps": 8,
+        "exactSupportingAddition": "binary64-nearest-even-in-source-order",
+        "quantization": false
+      }
+    },
+    "math_cbrt": {
+      "method": "cbrt",
+      "operationArity": 1,
+      "domain": {
+        "maxIterations": 131072,
+        "maxSeed": 1000000
+      },
+      "argumentBounds": [
+        {
+          "lower": {
+            "numerator": "-15",
+            "denominatorPowerOfTwo": 1
+          },
+          "upper": {
+            "numerator": "61",
+            "denominatorPowerOfTwo": 3
+          }
+        }
+      ],
+      "inputRecipeSha256": "4948dd4e8d5c577dfcdc7f05c08fba9998a2f3a4cb12801245a5930c4136ed38",
+      "tsSha256": "7236efdc3ca9f199f46e321f8046fe1dbccacbb81ef83e5dfaed1faf5813b29e",
+      "tsrSha256": "6c1b6465fe796c843209014e9f77e7173f5142e1d3dd5ad1b11ec519962569f3",
+      "policy": {
+        "predeclared": true,
+        "maxOperationRankSteps": 8,
+        "exactSupportingAddition": "binary64-nearest-even-in-source-order",
+        "quantization": false
+      }
+    },
+    "math_atan2": {
+      "method": "atan2",
+      "operationArity": 2,
+      "domain": {
+        "maxIterations": 131072,
+        "maxSeed": 1000000
+      },
+      "argumentBounds": [
+        {
+          "lower": {
+            "numerator": "-7",
+            "denominatorPowerOfTwo": 1
+          },
+          "upper": {
+            "numerator": "29",
+            "denominatorPowerOfTwo": 3
+          }
+        },
+        {
+          "lower": {
+            "numerator": "1",
+            "denominatorPowerOfTwo": 2
+          },
+          "upper": {
+            "numerator": "57",
+            "denominatorPowerOfTwo": 4
+          }
+        }
+      ],
+      "inputRecipeSha256": "4948dd4e8d5c577dfcdc7f05c08fba9998a2f3a4cb12801245a5930c4136ed38",
+      "tsSha256": "b5d7ad3b6e70590eec5d6eca0f9893e1a8fc7e23eaba591d04bca8747389ba38",
+      "tsrSha256": "8e34911b8381ff919fbf26a8a4ea88196daf0a8580ab4302afa9f37eba60d8b1",
+      "policy": {
+        "predeclared": true,
+        "maxOperationRankSteps": 8,
+        "exactSupportingAddition": "binary64-nearest-even-in-source-order",
+        "quantization": false
+      }
+    },
+    "math_pow": {
+      "method": "pow",
+      "operationArity": 2,
+      "domain": {
+        "maxIterations": 131072,
+        "maxSeed": 1000000
+      },
+      "argumentBounds": [
+        {
+          "lower": {
+            "numerator": "1",
+            "denominatorPowerOfTwo": 1
+          },
+          "upper": {
+            "numerator": "41",
+            "denominatorPowerOfTwo": 4
+          }
+        },
+        {
+          "lower": {
+            "numerator": "-5",
+            "denominatorPowerOfTwo": 1
+          },
+          "upper": {
+            "numerator": "81",
+            "denominatorPowerOfTwo": 5
+          }
+        }
+      ],
+      "inputRecipeSha256": "4948dd4e8d5c577dfcdc7f05c08fba9998a2f3a4cb12801245a5930c4136ed38",
+      "tsSha256": "e51801bdb6393d8241386c73e45efb7a7eeb3c97aacdb2a63413feb7cb7ff8e5",
+      "tsrSha256": "1df2f30ba0d0cf0a0962b819f95d09163148411ab6a79f08503f1e1a362d5921",
+      "policy": {
+        "predeclared": true,
+        "maxOperationRankSteps": 8,
+        "exactSupportingAddition": "binary64-nearest-even-in-source-order",
+        "quantization": false
+      }
+    },
+    "math_hypot": {
+      "method": "hypot",
+      "operationArity": 4,
+      "domain": {
+        "maxIterations": 131072,
+        "maxSeed": 1000000
+      },
+      "argumentBounds": [
+        {
+          "lower": {
+            "numerator": "-7",
+            "denominatorPowerOfTwo": 1
+          },
+          "upper": {
+            "numerator": "31",
+            "denominatorPowerOfTwo": 3
+          }
+        },
+        {
+          "lower": {
+            "numerator": "1",
+            "denominatorPowerOfTwo": 2
+          },
+          "upper": {
+            "numerator": "33",
+            "denominatorPowerOfTwo": 4
+          }
+        },
+        {
+          "lower": {
+            "numerator": "-3",
+            "denominatorPowerOfTwo": 1
+          },
+          "upper": {
+            "numerator": "49",
+            "denominatorPowerOfTwo": 5
+          }
+        },
+        {
+          "lower": {
+            "numerator": "-5",
+            "denominatorPowerOfTwo": 1
+          },
+          "upper": {
+            "numerator": "33",
+            "denominatorPowerOfTwo": 4
+          }
+        }
+      ],
+      "inputRecipeSha256": "4948dd4e8d5c577dfcdc7f05c08fba9998a2f3a4cb12801245a5930c4136ed38",
+      "tsSha256": "553fe929feb01176df72053e6cba796481da6537cf75e5ae85edb2c29b1bf310",
+      "tsrSha256": "37fa73f1c3afbdcc048f4d25ef6219271a432fb039a4c94d5dde18e0b508de43",
+      "policy": {
+        "predeclared": true,
+        "maxOperationRankSteps": 32,
+        "exactSupportingAddition": "binary64-nearest-even-in-source-order",
+        "quantization": false
+      }
+    }
+  }
+}

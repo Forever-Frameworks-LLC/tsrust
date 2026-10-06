@@ -1,0 +1,2 @@
+function workload(n: int, seed: int): boolean[] { const values: boolean[] = []; let i = 0; while (i < n) { values.push(i % 2 === 0); i = i + 1; } return values; }
+function main() { }

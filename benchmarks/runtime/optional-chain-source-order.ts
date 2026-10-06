@@ -1,0 +1,20 @@
+type int = number;
+type Child = { text: string; };
+type Carrier = { child: Child | null | undefined; };
+function base(trace: int[], tag: int): Carrier | null | undefined {
+    trace.push(1); if (tag === 0) { return null; } if (tag === 1) { return undefined; }
+    if (tag === 2) { return { child: null }; } if (tag === 3) { return { child: undefined }; }
+    return { child: { text: "é😀\u0000\uFEFF" } };
+}
+function argument(trace: int[]): string { trace.push(2); return "|"; }
+function arrayBase(trace: int[], missing: boolean): int[] | null { trace.push(3); if (missing) { return null; } return [9]; }
+function index(trace: int[]): int { trace.push(4); return 0; }
+function main() {
+    let tag = 0; while (tag < 5) {
+        const trace: int[] = []; const selected = base(trace, tag)?.child?.text.concat(argument(trace));
+        console.log(String(selected)); console.log(trace.join(",")); tag = tag + 1;
+    }
+    const absent: int[] = []; const skipped = arrayBase(absent, true)?.[index(absent)]; console.log(String(skipped)); console.log(absent.join(","));
+    const present: int[] = []; const selected = arrayBase(present, false)?.[index(present)]; console.log(String(selected)); console.log(present.join(","));
+    const grouped: int[] = []; const value = (base(grouped, 0)?.child)?.text; console.log(String(value)); console.log(grouped.join(","));
+}

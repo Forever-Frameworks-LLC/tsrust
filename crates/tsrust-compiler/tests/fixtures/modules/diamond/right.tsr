@@ -1,0 +1,5 @@
+import { value } from "./shared.tsr";
+
+export function right(): int {
+    return value();
+}

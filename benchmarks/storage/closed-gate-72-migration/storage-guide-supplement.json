@@ -1,0 +1,53 @@
+{
+  "gate": 72,
+  "kind": "documentation-only-postcompaction-storage-guides",
+  "utilityExitCode": 0,
+  "executedMigration": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-gate-72-migration/migration.json",
+    "sha256": "530677853153eff7bf31dba3feae305490634cd19b7b1b4bd8c00536ee61ee3c"
+  },
+  "files": [
+    {
+      "path": "benchmarks/storage/README.md",
+      "beforeSha256": "425ef45e234439ae28f274c593d819610945e6908ac933fee0965033d0006aa0",
+      "afterSha256": "8eaa81e61e0b2793c5a3e3378086a57766b58bad3856c7ca69359ab7d81bb7fc"
+    },
+    {
+      "path": "benchmarks/storage/HISTORICAL_ARCHIVE.md",
+      "beforeSha256": "41a1fa675bfc40582e1ec29518f102487cb96910747191d1fc9a7a463a60098f",
+      "afterSha256": "dd0c331a3da886b1d1600fc4005a881f83091f5efcd24e65e3cb31ef67d45db1"
+    }
+  ],
+  "testsRepeated": false,
+  "measurementsRepeated": false,
+  "priorArchive": {
+    "records": 16144,
+    "blobs": 10950,
+    "databaseBytes": 117956608,
+    "databaseSha256": "c4f67a4ff9ed626e944501cce088963a10900fd5cb3fb01a3c0f5821370a21ef",
+    "cumulativeGrossAllocatedBytesReclaimed": 1485312000
+  },
+  "actualArchive": {
+    "records": 16702,
+    "blobs": 11255,
+    "databaseBytes": 119136256,
+    "databaseSha256": "2330c603b3413f828bb752201461ff7c506081e10b700a1221b2756b33985e21",
+    "databaseGrowthBytes": 1179648,
+    "grossAllocatedBytesReclaimed": 9310208,
+    "netAllocatedBytesReclaimedAfterEvidence": 8617984,
+    "cumulativeGrossAllocatedBytesReclaimed": 1494622208
+  },
+  "protectedFilesExact": 481,
+  "newLooseRecords": 5,
+  "protectedPriorLedger": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-gate-71-migration/protected-files.json",
+    "sha256": "92736bcabbaed7afe9c023f3efd9067af6503894dbe6cb8fdcd534258e140efe"
+  },
+  "selectedArtifactTrees": [
+    "runtime/diagnostics/2026-10-03T01-46-40-000Z-primitive-identity-compiler-proof-artifacts",
+    "runtime/diagnostics/2026-10-03T01-34-29-000Z-primitive-identity-source-validation-artifacts",
+    "runtime/diagnostics/2026-10-03T01-55-51-000Z-primitive-identity-runtime-artifacts",
+    "runtime/diagnostics/2026-10-03T01-55-51-000Z-primitive-identity-runtime-proof-closure-artifacts"
+  ],
+  "verification": "original/restored/archive paths, sizes and SHA256; independent zlib; rehash each leaf before unlink"
+}

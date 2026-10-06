@@ -1,0 +1,58 @@
+{
+  "closedProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T08-45-55-000Z-checkpoint81-completed-proof.json",
+    "sha256": "0a279c90deaee0976ff32742fb52f7cdb3f69b087c717b832df0aa272576144f"
+  },
+  "completedCertificate": {
+    "path": "/private/tmp/tsrust-gate81/completed-acceptance.json",
+    "sha256": "e5c789d8865326494f85de306b8a63483ea1a83c6f9a97a0a5c49fd2b362c4a0"
+  },
+  "completedGateProofs": [
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T08-45-55-000Z-checkpoint81-completed-proof.json",
+      "sha256": "0a279c90deaee0976ff32742fb52f7cdb3f69b087c717b832df0aa272576144f"
+    },
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T05-56-16-000Z-quoted-string-literals-implementation.json",
+      "sha256": "781fc10bfb3493590b7a022ad6bcab89a394460ab572e6cdb788352dc077343e"
+    },
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T06-19-03-000Z-template-literals-implementation.json",
+      "sha256": "9ecb17f116fc6198da7fa829d77f81adba02ea5f6cc59d29074ecf84cc91f53d"
+    },
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T06-37-34-000Z-split-storage-implementation.json",
+      "sha256": "c2f6d15244335d361e5271b98273bacd3fe05b3503af7016af700015c7bf0f6f"
+    },
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T06-58-56-000Z-string-substr-implementation.json",
+      "sha256": "1d233a99cb6591e721d6d5ea8d86ef68d82e4392a50289d792f96a3df3adc863"
+    },
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T07-15-42-000Z-string-html-wrappers-implementation.json",
+      "sha256": "0f37271fa0ad8a01ffb0cac53c55655de2899a97ed7c98a12b4ee81203d64ca3"
+    },
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T05-33-34-000Z-quoted-string-literals-source-validation.json",
+      "sha256": "b779468e92f0e635a10f43decaef8639a1d4c60b1fd377c34107e4319a91c674"
+    },
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T05-42-17-000Z-builtin-documentation-examples.json",
+      "sha256": "e67b62bdf9ff60256a548042f784c008dc483f05779572e3c33a293372b94984"
+    }
+  ],
+  "paths": [
+    "runtime/diagnostics/2026-10-03T05-33-34-000Z-quoted-string-literals-source-validation-artifacts",
+    "runtime/diagnostics/2026-10-03T05-42-17-000Z-builtin-documentation-examples-artifacts",
+    "runtime/diagnostics/2026-10-03T05-56-16-000Z-quoted-string-literals-implementation-artifacts",
+    "runtime/diagnostics/2026-10-03T06-19-03-000Z-template-literals-implementation-artifacts",
+    "runtime/diagnostics/2026-10-03T06-37-34-000Z-split-storage-implementation-artifacts",
+    "runtime/diagnostics/2026-10-03T06-58-56-000Z-string-substr-implementation-artifacts",
+    "runtime/diagnostics/2026-10-03T07-15-42-000Z-string-html-wrappers-implementation-artifacts",
+    "runtime/diagnostics/2026-10-03T08-24-00-000Z-checkpoint81-regression-artifacts",
+    "runtime/diagnostics/2026-10-03T08-44-00-000Z-checkpoint81-runtime-artifacts",
+    "runtime/diagnostics/2026-10-03T08-45-55-000Z-checkpoint81-completed-artifacts",
+    "runtime/diagnostics/2026-10-03T08-45-55-000Z-checkpoint81-completed-proof-closure-artifacts"
+  ],
+  "allConsumersFinishedBeforeCompaction": true
+}

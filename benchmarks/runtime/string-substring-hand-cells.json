@@ -1,0 +1,386 @@
+[
+  {
+    "id": "string_substring_default_ascii",
+    "n": 0,
+    "seed": 0,
+    "expected": []
+  },
+  {
+    "id": "string_substring_default_ascii",
+    "n": 3,
+    "seed": 0,
+    "expected": [
+      " A alpha Z ",
+      "\u0000bZ",
+      "AB"
+    ]
+  },
+  {
+    "id": "string_substring_default_ascii",
+    "n": 1,
+    "seed": 5,
+    "expected": [
+      "a\u0000bZ"
+    ]
+  },
+  {
+    "id": "string_substring_default_ascii",
+    "n": 1,
+    "seed": 7,
+    "expected": [
+      "OM"
+    ]
+  },
+  {
+    "id": "string_substring_default_ascii",
+    "n": 1,
+    "seed": 4,
+    "expected": [
+      "eX"
+    ]
+  },
+  {
+    "id": "string_substring_default_ascii",
+    "n": 1,
+    "seed": 8,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_substring_default_ascii",
+    "n": 1,
+    "seed": 6,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_substring_default_ascii",
+    "n": 1,
+    "seed": 11,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_substring_default_unicode",
+    "n": 0,
+    "seed": 0,
+    "expected": []
+  },
+  {
+    "id": "string_substring_default_unicode",
+    "n": 3,
+    "seed": 0,
+    "expected": [
+      " é😀é Z ",
+      "é😀",
+      "Aé"
+    ]
+  },
+  {
+    "id": "string_substring_default_unicode",
+    "n": 1,
+    "seed": 5,
+    "expected": [
+      "a\u0000é😀"
+    ]
+  },
+  {
+    "id": "string_substring_default_unicode",
+    "n": 1,
+    "seed": 7,
+    "expected": [
+      "中Z"
+    ]
+  },
+  {
+    "id": "string_substring_default_unicode",
+    "n": 1,
+    "seed": 4,
+    "expected": [
+      "é"
+    ]
+  },
+  {
+    "id": "string_substring_default_unicode",
+    "n": 1,
+    "seed": 8,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_substring_default_unicode",
+    "n": 1,
+    "seed": 6,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_substring_default_unicode",
+    "n": 1,
+    "seed": 11,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_substring_bounded_ascii",
+    "n": 0,
+    "seed": 0,
+    "expected": []
+  },
+  {
+    "id": "string_substring_bounded_ascii",
+    "n": 3,
+    "seed": 0,
+    "expected": [
+      " A alpha Z ",
+      "\u0000b",
+      "AB"
+    ]
+  },
+  {
+    "id": "string_substring_bounded_ascii",
+    "n": 1,
+    "seed": 5,
+    "expected": [
+      "a\u0000b"
+    ]
+  },
+  {
+    "id": "string_substring_bounded_ascii",
+    "n": 1,
+    "seed": 7,
+    "expected": [
+      "O"
+    ]
+  },
+  {
+    "id": "string_substring_bounded_ascii",
+    "n": 1,
+    "seed": 4,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_substring_bounded_ascii",
+    "n": 1,
+    "seed": 8,
+    "expected": [
+      " A alpha Z "
+    ]
+  },
+  {
+    "id": "string_substring_bounded_ascii",
+    "n": 1,
+    "seed": 6,
+    "expected": [
+      " A alpha Z  A alpha Z "
+    ]
+  },
+  {
+    "id": "string_substring_bounded_ascii",
+    "n": 1,
+    "seed": 11,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_substring_bounded_unicode",
+    "n": 0,
+    "seed": 0,
+    "expected": []
+  },
+  {
+    "id": "string_substring_bounded_unicode",
+    "n": 3,
+    "seed": 0,
+    "expected": [
+      " é😀é Z ",
+      "é",
+      "Aé"
+    ]
+  },
+  {
+    "id": "string_substring_bounded_unicode",
+    "n": 1,
+    "seed": 5,
+    "expected": [
+      "a\u0000é"
+    ]
+  },
+  {
+    "id": "string_substring_bounded_unicode",
+    "n": 1,
+    "seed": 7,
+    "expected": [
+      "中"
+    ]
+  },
+  {
+    "id": "string_substring_bounded_unicode",
+    "n": 1,
+    "seed": 4,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_substring_bounded_unicode",
+    "n": 1,
+    "seed": 8,
+    "expected": [
+      " é😀é Z "
+    ]
+  },
+  {
+    "id": "string_substring_bounded_unicode",
+    "n": 1,
+    "seed": 6,
+    "expected": [
+      " é😀é Z  é😀é Z "
+    ]
+  },
+  {
+    "id": "string_substring_bounded_unicode",
+    "n": 1,
+    "seed": 11,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_substring_swapped_ascii",
+    "n": 0,
+    "seed": 0,
+    "expected": []
+  },
+  {
+    "id": "string_substring_swapped_ascii",
+    "n": 3,
+    "seed": 0,
+    "expected": [
+      " A alpha Z ",
+      "\u0000b",
+      "AB"
+    ]
+  },
+  {
+    "id": "string_substring_swapped_ascii",
+    "n": 1,
+    "seed": 5,
+    "expected": [
+      "a\u0000b"
+    ]
+  },
+  {
+    "id": "string_substring_swapped_ascii",
+    "n": 1,
+    "seed": 7,
+    "expected": [
+      "O"
+    ]
+  },
+  {
+    "id": "string_substring_swapped_ascii",
+    "n": 1,
+    "seed": 4,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_substring_swapped_ascii",
+    "n": 1,
+    "seed": 8,
+    "expected": [
+      " A alpha Z "
+    ]
+  },
+  {
+    "id": "string_substring_swapped_ascii",
+    "n": 1,
+    "seed": 6,
+    "expected": [
+      " A alpha Z  A alpha Z "
+    ]
+  },
+  {
+    "id": "string_substring_swapped_ascii",
+    "n": 1,
+    "seed": 11,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_substring_swapped_unicode",
+    "n": 0,
+    "seed": 0,
+    "expected": []
+  },
+  {
+    "id": "string_substring_swapped_unicode",
+    "n": 3,
+    "seed": 0,
+    "expected": [
+      " é😀é Z ",
+      "é",
+      "Aé"
+    ]
+  },
+  {
+    "id": "string_substring_swapped_unicode",
+    "n": 1,
+    "seed": 5,
+    "expected": [
+      "a\u0000é"
+    ]
+  },
+  {
+    "id": "string_substring_swapped_unicode",
+    "n": 1,
+    "seed": 7,
+    "expected": [
+      "中"
+    ]
+  },
+  {
+    "id": "string_substring_swapped_unicode",
+    "n": 1,
+    "seed": 4,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_substring_swapped_unicode",
+    "n": 1,
+    "seed": 8,
+    "expected": [
+      " é😀é Z "
+    ]
+  },
+  {
+    "id": "string_substring_swapped_unicode",
+    "n": 1,
+    "seed": 6,
+    "expected": [
+      " é😀é Z  é😀é Z "
+    ]
+  },
+  {
+    "id": "string_substring_swapped_unicode",
+    "n": 1,
+    "seed": 11,
+    "expected": [
+      ""
+    ]
+  }
+]

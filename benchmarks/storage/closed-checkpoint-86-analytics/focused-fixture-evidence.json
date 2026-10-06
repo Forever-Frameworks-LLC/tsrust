@@ -1,0 +1,70 @@
+{
+  "syntheticFixturesOnly": true,
+  "measurementExecuted": false,
+  "commands": [
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "benchmarks/storage",
+        "-p",
+        "test_analytics.py",
+        "-v"
+      ],
+      "exitCode": 0,
+      "tests": 3,
+      "durationSeconds": 0.05
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "test_analytics.AnalyticsTests.test_exact_bytes_reciprocal_rates_source_keys_and_profile_operations",
+        "-v"
+      ],
+      "environment": {
+        "PYTHONPATH": "benchmarks/storage"
+      },
+      "exitCode": 0,
+      "tests": 1,
+      "durationSeconds": 0.014,
+      "reason": "Added SQL resource normalization view"
+    },
+    {
+      "argv": [
+        "node",
+        "--check",
+        "benchmarks/runtime/checkpoint.mjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "argv": [
+        "node",
+        "--check",
+        "benchmarks/runtime/report.mjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "argv": [
+        "node",
+        "--check",
+        "benchmarks/runtime/allocations.mjs"
+      ],
+      "exitCode": 0
+    }
+  ],
+  "consoleToolResultsRetainedInConversation": true,
+  "pidUtcNotCapturedForTheseSmallFixtures": true,
+  "compatibilityOwner": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-86-analytics/report-compatibility-terminal.json",
+    "sha256": "f13ed0d79d8b4f5b6822002ec75cd6ae298e25ec52b6f1fd200e30a38207c3d3"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "status": "source-only, unexecuted; actual compiler/ABI/comparisons pending Gate54 integration after Gate53 closure",
+  "protocol": "declared-value-result-v1",
+  "category": "Closures and callbacks",
+  "optional_input": {
+    "only_rows": [
+      "declared_callback_string_map",
+      "declared_callback_record_map",
+      "declared_value_factory_target",
+      "declared_value_owned_tree_move"
+    ],
+    "native_parameters": [
+      "i64",
+      "i64",
+      "&String"
+    ],
+    "purpose": "UTF8 text is genuinely read/constructed/retained; all other rows keep two-i64 native ABI"
+  },
+  "bounds": {
+    "scalar_n": [
+      0,
+      2048
+    ],
+    "owned_n": [
+      0,
+      512
+    ],
+    "seed": [
+      0,
+      1000000
+    ],
+    "input_utf8_bytes_max": 256
+  },
+  "observation": {
+    "int": "existing natural i64 scalar checksum",
+    "number": "existing exact ieee-f64-bits-v1 scalar observation; manual quarter-rational expected bits",
+    "boolean": "natural bool result, outside-timer checksum 0/1 and b:0/b:1 token",
+    "owned": "existing complete SliceTree tokens, UTF8 scalar String contents, every nested array/record field; all output retained",
+    "Row": "separate code:int,text:string,items:int[] schema; no Row5 padding",
+    "Node": "separate code:int,text:string,children:Node[] nominal recursive schema",
+    "actual_abi": "bind source and emitted hashes, function0 argument/result types, actual record/field/container owners, zero-field forwarding wrappers, exact target argument modes and owned factory capture before adapters",
+    "profiling": "visit full output through allocation-free existing visitor after kernel; fresh/disposal counts reflect actual native ownership"
+  },
+  "source_order": "source-order.tsr/.ts plus manually derived full stdout; reduce forward/reverse index traces, empty and singleton behavior, factory/initial order, reuse/move/global/bound/factory target",
+  "IEEE_identity": "separate untimed real declared-value identity fixture with -0/+0/infinities/NaN/-quarter, external exact bits; not a forced array workload result",
+  "ownership_costs": [
+    "Array.slice setup copies native elements while JavaScript slices element references; scalar copies trivial, Row clones owned String/items.",
+    "Native clone(input), prefix clone, Row returned fields and owned factory capture copy content; TS clone helper returns readonly identity and object/array contents may alias.",
+    "Each selected map retains complete output batch; each consuming tree identity retains the transferred full tree, avoiding an additional source owner clone.",
+    "Factories, callback wrappers, local moves and all invocations are inside timed workload; CLI parse/input conversion and posttimer observation are outside.",
+    "Zero-capture descriptors may inline/optimize away; no claim of equivalent heap/environment allocation to JavaScript functions.",
+    "Boolean XOR row measures content/parity, not order; the separate source-order fixture establishes order.",
+    "No broad JS object coerce/this binding/generic higher-order target or callable storage claim; existing accepted compiler model only."
+  ],
+  "executed_checks": [],
+  "production_changes": []
+}

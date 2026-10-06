@@ -1,0 +1,18 @@
+function workload(n: int, seed: int): string[] {
+    const values: boolean[] = [true, false];
+    const output: string[] = []; let i = 0;
+    while (i < n) {
+        const mode = (i + seed) % 3;
+        const at = (i * 13 + seed) % 2;
+        const initial: boolean | undefined = mode === 0 ? undefined : values[at];
+        const value: boolean | undefined = pass(initial);
+        output.push(typeof value);
+        output.push(String(value));
+        output.push(Boolean(value) ? "true" : "false");
+        output.push(value === undefined ? "sentinel" : "payload");
+        i = i + 1;
+    }
+    return output;
+}
+function pass(value: boolean | undefined): boolean | undefined { return value; }
+function main() { const result = workload(2, 7); }

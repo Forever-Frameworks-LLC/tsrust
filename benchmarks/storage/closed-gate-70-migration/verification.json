@@ -1,0 +1,8 @@
+{
+  "exactPathsAndBytes": 646,
+  "independentBlobChecks": 383,
+  "closedProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T00-15-54-000Z-string-concat-padding-runtime-proof.json",
+    "sha256": "8d1f991fb5d2f80e04ecb227a73258a04c4b177cf7e2e8b9abdeb7ebc6b53985"
+  }
+}

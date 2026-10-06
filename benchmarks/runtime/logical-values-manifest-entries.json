@@ -1,0 +1,24 @@
+[
+  {
+    "id": "logical_nullable_string_values",
+    "category": "strings",
+    "family": "logical-value-selection",
+    "source": "workloads/logical_nullable_string_values.tsr",
+    "counterpart": "workloads/logical_nullable_string_values.ts",
+    "sourceSha256": "996a87fb270ae86f34db06ed91a2298fc9ab5efb08b613b27f28896dd3e31492",
+    "counterpartSha256": "29137bb21c9c2720ff9da7ce8b34ef956686a3b3439ffc18fc1e001ba33fc704",
+    "iterations": 2048,
+    "operationsPerIteration": 2,
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "pendingCheckpoint": 101,
+    "measurementStatus": "pending-checkpoint-101",
+    "operationUnit": "Two actual value-returning logical expressions plus complete selected-value and lazy-RHS counter retention.",
+    "specification": "Dynamic period-four undefined, empty string, accented text and astral text. OR selects payload/fallback; AND retains falsy payload/undefined or evaluates RHS. Four string leaves per iteration retain both values and cumulative RHS call counts.",
+    "notes": "Full tagged construction, truthiness selection, fallback calls and output retention pipeline. Independent oracle computes selection by case rather than using the operators. Correctness at native O0/O3 versus Node after strict tsc; timing pending, no allocation parity claim."
+  }
+]

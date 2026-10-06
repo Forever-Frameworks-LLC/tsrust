@@ -1,0 +1,6 @@
+type Tree = { value: int; children: Tree[]; };
+function workload(n: int, seed: int): int { let sum = 0; let i = 0; while (i < n) { const tree: Tree = {value: i, children: [{value: seed, children: []}, {value: i + 1, children: []}]}; sum = sum + total(tree) + even(8, seed); i = i + 1; } return sum; }
+function total(tree: Tree): int { let result = tree.value; for (const child of tree.children) { result = result + total(child); } return result; }
+function even(depth: int, seed: int): int { if (depth === 0) { return seed; } return depth + odd(depth - 1, seed); }
+function odd(depth: int, seed: int): int { if (depth === 0) { return seed; } return depth + even(depth - 1, seed); }
+function main() { console.log(workload(2, 7)); }

@@ -1,0 +1,8 @@
+{
+  "exactPathsAndBytes": 305,
+  "independentBlobChecks": 187,
+  "closedProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-proof.json",
+    "sha256": "21c47032d22bbe3d5f7b9104c7ac7b38b905f29b1353c19cf5d124af8ad487f1"
+  }
+}

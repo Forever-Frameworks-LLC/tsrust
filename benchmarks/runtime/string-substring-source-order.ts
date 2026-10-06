@@ -1,0 +1,25 @@
+type int = number;
+type Trace = { tag: int; };
+function receiver(trace: Trace): string { trace.tag = trace.tag * 10 + 1; return "é😀Z"; }
+function start(trace: Trace): int { trace.tag = trace.tag * 10 + 2; return 1; }
+function end(trace: Trace): int { trace.tag = trace.tag * 10 + 3; return 3; }
+function swappedStart(trace: Trace): int { trace.tag = trace.tag * 10 + 2; return 3; }
+function swappedEnd(trace: Trace): int { trace.tag = trace.tag * 10 + 3; return 1; }
+function emptyStart(trace: Trace): int { trace.tag = trace.tag * 10 + 2; return 1; }
+function emptyEnd(trace: Trace): int { trace.tag = trace.tag * 10 + 3; return 1; }
+function main() {
+    const first: Trace = { tag: 0 }; const tail = receiver(first).substring(start(first));
+    console.log(tail); console.log(first.tag);
+    const second: Trace = { tag: 0 }; const middle = receiver(second).substring(start(second), end(second));
+    console.log(middle); console.log(second.tag);
+    const third: Trace = { tag: 0 }; const swapped = receiver(third).substring(swappedStart(third), swappedEnd(third));
+    console.log(swapped); console.log(third.tag);
+    const fourth: Trace = { tag: 0 }; const empty = receiver(fourth).substring(emptyStart(fourth), emptyEnd(fourth));
+    console.log(empty); console.log(fourth.tag);
+    console.log("abc".substring(-1)); console.log("abc".substring(1000000000));
+    console.log("abc".substring(2, 1)); console.log("abc".substring(1, 1)); console.log("abc".substring(-10000, 1000000000));
+    console.log("\uFEFF中Z".substring(0)); console.log("é😀Z".substring(1, 3)); console.log("é😀Z".substring(3, 1));
+    console.log("e\u0301".substring(1)); console.log("a\u0000é😀".substring(1, 3)); console.log("é".substring(1, 1));
+    const owned = clone("é😀Z"); console.log(owned.substring(1, 3)); console.log(owned);
+}
+function clone<T>(value: T): T { return value; }

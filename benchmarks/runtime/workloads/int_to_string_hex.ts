@@ -1,0 +1,13 @@
+type int = number;
+function workload(n: int, seed: int): string[] {
+    const values: int[] = [0, 1, -1, 2, -2, 35, -35, 255, -255, 65535, -65535, 2147483647, -2147483648, 9007199254740991, -9007199254740991, 4294967296];
+    const output: string[] = []; let i = 0;
+    while (i < n) {
+        const at = (i * 13 + seed) % 16;
+        const selected: string = values[at].toString(16);
+        output.push(selected);
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7); }

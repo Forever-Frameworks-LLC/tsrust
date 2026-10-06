@@ -1,0 +1,794 @@
+[
+  {
+    "id": "array_at_int",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_int",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "undefined",
+      "undefined",
+      "1",
+      "1",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_int",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "number",
+      "2",
+      "2",
+      "2",
+      "3",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_int",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "number",
+      "5",
+      "3",
+      "3",
+      "4",
+      "5"
+    ]
+  },
+  {
+    "id": "array_at_int",
+    "n": 1,
+    "seed": 11,
+    "expected": [
+      "number",
+      "12",
+      "3",
+      "11",
+      "12",
+      "13"
+    ]
+  },
+  {
+    "id": "array_at_int",
+    "n": 1,
+    "seed": 13,
+    "expected": [
+      "number",
+      "13",
+      "1",
+      "13",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_int",
+    "n": 1,
+    "seed": 14,
+    "expected": [
+      "number",
+      "15",
+      "2",
+      "14",
+      "15",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_int",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  },
+  {
+    "id": "array_at_number",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_number",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "undefined",
+      "undefined",
+      "1",
+      "0.25",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_number",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "number",
+      "0.5",
+      "2",
+      "0.5",
+      "0",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_number",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "number",
+      "-2.5",
+      "3",
+      "0.75",
+      "0",
+      "-2.5"
+    ]
+  },
+  {
+    "id": "array_at_number",
+    "n": 1,
+    "seed": 11,
+    "expected": [
+      "number",
+      "0",
+      "3",
+      "2.75",
+      "0",
+      "-2.5"
+    ]
+  },
+  {
+    "id": "array_at_number",
+    "n": 1,
+    "seed": 13,
+    "expected": [
+      "number",
+      "3.25",
+      "1",
+      "3.25",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_number",
+    "n": 1,
+    "seed": 14,
+    "expected": [
+      "number",
+      "0",
+      "2",
+      "3.5",
+      "0",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_number",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  },
+  {
+    "id": "array_at_boolean",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_boolean",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "undefined",
+      "undefined",
+      "1",
+      "false",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_boolean",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "boolean",
+      "true",
+      "2",
+      "true",
+      "false",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_boolean",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "boolean",
+      "true",
+      "3",
+      "false",
+      "false",
+      "true"
+    ]
+  },
+  {
+    "id": "array_at_boolean",
+    "n": 1,
+    "seed": 11,
+    "expected": [
+      "boolean",
+      "false",
+      "3",
+      "false",
+      "false",
+      "true"
+    ]
+  },
+  {
+    "id": "array_at_boolean",
+    "n": 1,
+    "seed": 13,
+    "expected": [
+      "boolean",
+      "false",
+      "1",
+      "false",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_boolean",
+    "n": 1,
+    "seed": 14,
+    "expected": [
+      "boolean",
+      "false",
+      "2",
+      "true",
+      "false",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_boolean",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  },
+  {
+    "id": "array_at_string",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>",
+      "<absent>"
+    ],
+    "input": "é!"
+  },
+  {
+    "id": "array_at_string",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "undefined",
+      "undefined",
+      "1",
+      "é!",
+      "<absent>",
+      "<absent>"
+    ],
+    "input": "é!"
+  },
+  {
+    "id": "array_at_string",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "string",
+      "é!",
+      "2",
+      "é!",
+      "é!!",
+      "<absent>"
+    ],
+    "input": "é!"
+  },
+  {
+    "id": "array_at_string",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "string",
+      "é😀é\u0000",
+      "3",
+      "é!",
+      "é!!",
+      "é😀é\u0000"
+    ],
+    "input": "é!"
+  },
+  {
+    "id": "array_at_string",
+    "n": 1,
+    "seed": 11,
+    "expected": [
+      "string",
+      "é!!",
+      "3",
+      "é!",
+      "é!!",
+      "é😀é\u0000"
+    ],
+    "input": "é!"
+  },
+  {
+    "id": "array_at_string",
+    "n": 1,
+    "seed": 13,
+    "expected": [
+      "string",
+      "é!",
+      "1",
+      "é!",
+      "<absent>",
+      "<absent>"
+    ],
+    "input": "é!"
+  },
+  {
+    "id": "array_at_string",
+    "n": 1,
+    "seed": 14,
+    "expected": [
+      "string",
+      "é!!",
+      "2",
+      "é!",
+      "é!!",
+      "<absent>"
+    ],
+    "input": "é!"
+  },
+  {
+    "id": "array_at_string",
+    "n": 0,
+    "seed": 7,
+    "expected": [],
+    "input": "é!"
+  },
+  {
+    "id": "array_at_nested",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_nested",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "undefined",
+      "undefined",
+      "1",
+      "2:1,1",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_nested",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "object",
+      "2:2,1",
+      "2",
+      "2:2,1",
+      "0:",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_nested",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "object",
+      "2:5,3",
+      "3",
+      "2:3,1",
+      "0:",
+      "2:5,3"
+    ]
+  },
+  {
+    "id": "array_at_nested",
+    "n": 1,
+    "seed": 11,
+    "expected": [
+      "object",
+      "0:",
+      "3",
+      "2:11,1",
+      "0:",
+      "2:13,3"
+    ]
+  },
+  {
+    "id": "array_at_nested",
+    "n": 1,
+    "seed": 13,
+    "expected": [
+      "object",
+      "2:13,1",
+      "1",
+      "2:13,1",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_nested",
+    "n": 1,
+    "seed": 14,
+    "expected": [
+      "object",
+      "0:",
+      "2",
+      "2:14,1",
+      "0:",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_nested",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  },
+  {
+    "id": "array_at_record",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>",
+      "<absent>"
+    ],
+    "input": "é!"
+  },
+  {
+    "id": "array_at_record",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "undefined",
+      "undefined",
+      "1",
+      "1:é!",
+      "<absent>",
+      "<absent>"
+    ],
+    "input": "é!"
+  },
+  {
+    "id": "array_at_record",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "object",
+      "2:é!",
+      "2",
+      "2:é!",
+      "3:é!!",
+      "<absent>"
+    ],
+    "input": "é!"
+  },
+  {
+    "id": "array_at_record",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "object",
+      "5:é😀é\u0000",
+      "3",
+      "3:é!",
+      "4:é!!",
+      "5:é😀é\u0000"
+    ],
+    "input": "é!"
+  },
+  {
+    "id": "array_at_record",
+    "n": 1,
+    "seed": 11,
+    "expected": [
+      "object",
+      "12:é!!",
+      "3",
+      "11:é!",
+      "12:é!!",
+      "13:é😀é\u0000"
+    ],
+    "input": "é!"
+  },
+  {
+    "id": "array_at_record",
+    "n": 1,
+    "seed": 13,
+    "expected": [
+      "object",
+      "13:é!",
+      "1",
+      "13:é!",
+      "<absent>",
+      "<absent>"
+    ],
+    "input": "é!"
+  },
+  {
+    "id": "array_at_record",
+    "n": 1,
+    "seed": 14,
+    "expected": [
+      "object",
+      "15:é!!",
+      "2",
+      "14:é!",
+      "15:é!!",
+      "<absent>"
+    ],
+    "input": "é!"
+  },
+  {
+    "id": "array_at_record",
+    "n": 0,
+    "seed": 7,
+    "expected": [],
+    "input": "é!"
+  },
+  {
+    "id": "array_at_null",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_null",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "undefined",
+      "undefined",
+      "1",
+      "null",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_null",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "object",
+      "null",
+      "2",
+      "null",
+      "null",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_null",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "object",
+      "null",
+      "3",
+      "null",
+      "null",
+      "null"
+    ]
+  },
+  {
+    "id": "array_at_null",
+    "n": 1,
+    "seed": 11,
+    "expected": [
+      "object",
+      "null",
+      "3",
+      "null",
+      "null",
+      "null"
+    ]
+  },
+  {
+    "id": "array_at_null",
+    "n": 1,
+    "seed": 13,
+    "expected": [
+      "object",
+      "null",
+      "1",
+      "null",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_null",
+    "n": 1,
+    "seed": 14,
+    "expected": [
+      "object",
+      "null",
+      "2",
+      "null",
+      "null",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_null",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  },
+  {
+    "id": "array_at_undefined",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_undefined",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "undefined",
+      "undefined",
+      "1",
+      "undefined",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_undefined",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "undefined",
+      "undefined",
+      "2",
+      "undefined",
+      "undefined",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_undefined",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "undefined",
+      "undefined",
+      "3",
+      "undefined",
+      "undefined",
+      "undefined"
+    ]
+  },
+  {
+    "id": "array_at_undefined",
+    "n": 1,
+    "seed": 11,
+    "expected": [
+      "undefined",
+      "undefined",
+      "3",
+      "undefined",
+      "undefined",
+      "undefined"
+    ]
+  },
+  {
+    "id": "array_at_undefined",
+    "n": 1,
+    "seed": 13,
+    "expected": [
+      "undefined",
+      "undefined",
+      "1",
+      "undefined",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_undefined",
+    "n": 1,
+    "seed": 14,
+    "expected": [
+      "undefined",
+      "undefined",
+      "2",
+      "undefined",
+      "undefined",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_at_undefined",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  }
+]

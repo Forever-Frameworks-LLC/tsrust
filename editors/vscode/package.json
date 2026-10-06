@@ -1,0 +1,170 @@
+{
+  "name": "tsrust",
+  "displayName": "Tsrust",
+  "description": "Tsrust diagnostics, documentation hover, autocomplete, signatures and source navigation.",
+  "version": "0.2.0",
+  "publisher": "tsrust-local",
+  "license": "UNLICENSED",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:tsrust",
+    "onCommand:tsrust.restartServer",
+    "onCommand:tsrust.runFile",
+    "onCommand:tsrust.checkFile",
+    "onCommand:tsrust.formatDocument"
+  ],
+  "main": "./out/extension.js",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Highlighting is available. Compiler analysis requires a trusted workspace.",
+      "restrictedConfigurations": [
+        "tsrust.server.path",
+        "tsrust.compiler.path"
+      ]
+    }
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "tsrust",
+        "aliases": [
+          "Tsrust",
+          "tsrust"
+        ],
+        "extensions": [
+          ".tsr"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/tsrust.svg",
+          "dark": "./icons/tsrust.svg"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "tsrust",
+        "scopeName": "source.tsrust",
+        "path": "./syntaxes/tsrust.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "tsrust.restartServer",
+        "title": "Tsrust: Restart Language Server"
+      },
+      {
+        "command": "tsrust.runFile",
+        "title": "Tsrust: Run File",
+        "icon": "$(play)"
+      },
+      {
+        "command": "tsrust.checkFile",
+        "title": "Tsrust: Check/Lint File"
+      },
+      {
+        "command": "tsrust.formatDocument",
+        "title": "Tsrust: Format Document"
+      }
+    ],
+    "configuration": {
+      "title": "Tsrust",
+      "properties": {
+        "tsrust.server.path": {
+          "type": "string",
+          "default": "",
+          "scope": "window",
+          "description": "Absolute path to the locally built tsrust-lsp executable. Restarted automatically when changed."
+        },
+        "tsrust.analysis.debounceMs": {
+          "type": "integer",
+          "default": 200,
+          "minimum": 0,
+          "maximum": 2000,
+          "scope": "window",
+          "description": "Delay after typing before checking. Changes restart the server."
+        },
+        "tsrust.compiler.path": {
+          "type": "string",
+          "default": "",
+          "scope": "window",
+          "description": "Absolute path to tsrust. When empty, uses the compiler beside the configured language server."
+        },
+        "tsrust.run.release": {
+          "type": "boolean",
+          "default": false,
+          "description": "Run files with compiler optimizations enabled."
+        },
+        "tsrust.run.closeOnSuccess": {
+          "type": "boolean",
+          "default": false,
+          "description": "Close the run terminal automatically after a successful run. Disable to keep successful program output visible."
+        },
+        "tsrust.checkOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Run a compiler check after saving a Tsrust file. Live diagnostics remain enabled while typing."
+        },
+        "tsrust.formatOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Format Tsrust files automatically before saving."
+        }
+      }
+    },
+    "snippets": [
+      {
+        "language": "tsrust",
+        "path": "./snippets/tsrust.json"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "tsrust.runFile",
+          "when": "resourceLangId == tsrust && isWorkspaceTrusted",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "tsrust.runFile",
+          "when": "resourceLangId == tsrust && isWorkspaceTrusted",
+          "group": "tsrust"
+        },
+        {
+          "command": "tsrust.checkFile",
+          "when": "resourceLangId == tsrust && isWorkspaceTrusted",
+          "group": "tsrust"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "tsc --noEmit && node scripts/build.cjs",
+    "vscode:prepublish": "npm run compile",
+    "test:grammar": "node --test scripts/grammar.test.cjs",
+    "test:integration": "npm run compile && tsc -p tsconfig.test.json && node out/test/run.js",
+    "test": "npm run compile && npm run test:grammar",
+    "package": "vsce package --no-dependencies --allow-missing-repository"
+  },
+  "dependencies": {
+    "vscode-languageclient": "9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "1.100.0",
+    "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.6.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.9.0",
+    "vscode-textmate": "^9.2.0",
+    "vscode-oniguruma": "^2.0.1"
+  }
+}

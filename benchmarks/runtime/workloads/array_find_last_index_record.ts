@@ -1,0 +1,29 @@
+type int = number;
+type Entry = { key: int; active: boolean; };
+function workload(n: int, seed: int): int[][] {
+    const output: int[][] = []; let trace = seed; let visits = 0; let i = 0;
+    while (i < n) {
+        const base = seed + i; const mode = (i + seed) % 11;
+        let values: Entry[] = [];
+        if (mode !== 0) { values = [{key: base, active: true}, {key: base + 1, active: false}, {key: base + 2, active: true}, {key: base + 3, active: true}, {key: base + 4, active: false}, {key: base + 5, active: true}, {key: base + 6, active: false}, {key: base + 7, active: true}]; }
+        let left = -1; let right = -1; let all = false;
+        if (mode === 2) { left = 0; }
+        if (mode === 3) { left = 7; }
+        if (mode === 4) { left = 3; }
+        if (mode === 5) { left = 0; right = 7; }
+        if (mode === 6) { left = 2; right = 5; }
+        if (mode === 7) { all = true; }
+        if (mode === 8) { left = 1; }
+        if (mode === 9) { left = 6; }
+        if (mode === 10) { left = 4; }
+        const answer: int = values.findLastIndex((value: Entry, index: int, source: Entry[]): boolean => {
+            trace = (trace * 131 + index + visits + i + source.length) % 1000000007;
+            visits = visits + 1;
+            return (value.active && value.key >= base) && (all || index === left || index === right);
+        });
+        output.push([answer + 1, trace, visits]);
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7); console.log(result.length); }

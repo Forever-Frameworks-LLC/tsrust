@@ -1,0 +1,21 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/analytics.py",
+    "ingest",
+    "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/records.sqlite",
+    "--root",
+    "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks",
+    "--proof",
+    "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T18-11-33-000Z-checkpoint91-runtime-proof.json",
+    "--proof-sha256",
+    "aff99bf249cef51932388e9e7b59efe22578efba570beb1fa208e23aaaf6daac"
+  ],
+  "pid": 38782,
+  "startUTC": "2026-10-03T18:12:53.025034+00:00",
+  "finishUTC": "2026-10-03T18:12:54.662551+00:00",
+  "exitCode": 0,
+  "stdoutSha256": "77d0e0806d71d44475c172e55919ac0e9dd2c51cb94a5b0c0d8c8bc3967ac27e",
+  "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

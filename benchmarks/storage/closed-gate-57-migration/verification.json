@@ -1,0 +1,8 @@
+{
+  "exactPathsAndBytes": 791,
+  "independentBlobChecks": 725,
+  "closedProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T13-15-38-000Z-array-copying-updates-runtime-proof.json",
+    "sha256": "5b2744eaac8f8da8decaff0d1b55b61e362783ef7db5cc7b4cc54324bbd21360"
+  }
+}

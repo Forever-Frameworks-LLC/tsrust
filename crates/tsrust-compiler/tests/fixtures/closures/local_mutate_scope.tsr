@@ -1,0 +1,11 @@
+type User = { name: string; };
+
+function main() {
+    const user: User = { name: "Pat" };
+    if (true) {
+        const change = (): void => { user.name = "Sam"; };
+        change();
+        change();
+    }
+    console.log(user.name);
+}

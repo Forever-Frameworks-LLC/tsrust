@@ -1,0 +1,14 @@
+{
+  "gate": 96,
+  "label": "checkpoint-query",
+  "argv": [
+    "/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node",
+    "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/checkpoint.mjs",
+    "--raw-sha256=88062448ae461ab4893f080c4481f24200380e3c9990a537a033821473cb93e2",
+    "--json"
+  ],
+  "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+  "environment": {},
+  "pid": 361,
+  "startedUtc": "2026-10-04T00:16:00.082431+00:00"
+}

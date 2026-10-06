@@ -1,0 +1,10 @@
+type ArrayItem={label:string;};
+function example0(){const values=Array.of(3,1,2);console.log(values.join("|"));}
+function example1(){const empty=Array.of<int>();const contextual:string[]=Array.of();console.log(empty.length,contextual.length);}
+function example2(){const values:number[]=Array.of(1,2.5,-0.0);console.log(values.join("|"),1.0/values[2]);}
+function example3(){const first:int[]=[1,2];const values=Array.of<int[]>(first,[3]);values[0][0]=9;console.log(values[0].join("|"),values[1][0]);}
+function example4(){const item:ArrayItem={label:clone("é")};const values=Array.of<ArrayItem>(item,{label:clone("😀")});console.log(values[0].label,values[1].label);}
+function example5(){const nulls=Array.of<null>(null,null);const absents=Array.of<undefined>(undefined);console.log(nulls.length,absents.length,String(absents));}
+function example6(){const source=[1,2];const values=[0,...source,3];console.log(values.join("|"),source.length);}
+function example7(){const values=Array.of(...new Set<int>([2,1,2]));const characters=[..."Aé🙂"];console.log(values.join("|"),characters.join("|"));}
+function main(){example0();example1();example2();example3();example4();example5();example6();example7();}

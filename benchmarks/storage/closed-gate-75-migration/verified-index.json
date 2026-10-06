@@ -1,0 +1,2606 @@
+{
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/0-before.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/0-before.json",
+    "kind": "diagnostic",
+    "sha256": "8666f5a799ffc13b05e60123b88759f39fbf269a470cb2570246db372c699c0d",
+    "original_size": 409,
+    "compressed_size": 272
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/1-seal-compiler.py": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/1-seal-compiler.py",
+    "kind": "diagnostic",
+    "sha256": "c11660fe100dafddd7b0d27db430dfc7b68e3ddb1ebd8a1339b24b0daaccdea3",
+    "original_size": 2864,
+    "compressed_size": 1379
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/10-full-source-freeze.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/10-full-source-freeze.json",
+    "kind": "diagnostic",
+    "sha256": "2abfff15e531ae1c30b6175f78510aa1eb8a10f3f79e33eb9026a279da911d5d",
+    "original_size": 18075,
+    "compressed_size": 7218
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/100-source-order-run-o0.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/100-source-order-run-o0.stdout",
+    "kind": "diagnostic",
+    "sha256": "d4f9a9ed110b71936454cb63b43e14dd20fe610ff99c2820a8d02a04b1532982",
+    "original_size": 64,
+    "compressed_size": 21
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/101-source-order-build-o3.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/101-source-order-build-o3.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/102-source-order-run-o0.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/102-source-order-run-o0.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/103-pool-hands.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/103-pool-hands.rs",
+    "kind": "diagnostic",
+    "sha256": "04bb6b34c2ce6d324a1e521adf20061038b5eb15fc28f2d1188c34e91e02d937",
+    "original_size": 101883,
+    "compressed_size": 8332
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/104-pool-hands-run-o3.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/104-pool-hands-run-o3.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/105-commands.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/105-commands.json",
+    "kind": "diagnostic",
+    "sha256": "ecee87a0bbe51d6f78f8e82c81a85f90a2d3583fef32d5e7755cf41c800fbba0",
+    "original_size": 7055,
+    "compressed_size": 873
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/106-pool-hands-build-o3.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/106-pool-hands-build-o3.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/107-source-order-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/107-source-order-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/108-source-order-run-o3.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/108-source-order-run-o3.stdout",
+    "kind": "diagnostic",
+    "sha256": "d4f9a9ed110b71936454cb63b43e14dd20fe610ff99c2820a8d02a04b1532982",
+    "original_size": 64,
+    "compressed_size": 21
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/109-source-order-build-o0.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/109-source-order-build-o0.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/11-debug-source-order-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/11-debug-source-order-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/110-pool-hands-build-o0.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/110-pool-hands-build-o0.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/111-pool-hands-run-o0.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/111-pool-hands-run-o0.stdout",
+    "kind": "diagnostic",
+    "sha256": "e6a493410bfd5bfa0a7a7b426cd51742e60f1f617ad068e1f3defa2539be4ed3",
+    "original_size": 800,
+    "compressed_size": 21
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/112-pool-hands-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/112-pool-hands-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/113-pool-hands-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/113-pool-hands-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "04bb6b34c2ce6d324a1e521adf20061038b5eb15fc28f2d1188c34e91e02d937",
+    "original_size": 101883,
+    "compressed_size": 8332
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/114-pool-hands-build-o0.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/114-pool-hands-build-o0.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/115-pool-hands-run-o0.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/115-pool-hands-run-o0.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/116-source-order-run-o3.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/116-source-order-run-o3.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/117-source-order-build-o0.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/117-source-order-build-o0.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/118-candidate-v2.diff": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/118-candidate-v2.diff",
+    "kind": "diagnostic",
+    "sha256": "01e19e1646ae95f9c62049cb80bbab9919427f9fd7867046ef20300e586129bc",
+    "original_size": 24128,
+    "compressed_size": 6404
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/119-parent.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/119-parent.json",
+    "kind": "diagnostic",
+    "sha256": "9cc3536addcd60aee13f6089e3ba7bae3c47997d1d64be5e25a9a9b163989dca",
+    "original_size": 1300,
+    "compressed_size": 547
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/12-focused-original-number_prefix_parsing.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/12-focused-original-number_prefix_parsing.rs",
+    "kind": "diagnostic",
+    "sha256": "b2fe3264266c5ff553f83443aa2946d52af71db44eb25fbf4861d016844b7ade",
+    "original_size": 14799,
+    "compressed_size": 3847
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/120-RATIONALE.md": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/120-RATIONALE.md",
+    "kind": "diagnostic",
+    "sha256": "e5cdcadd813ab357e754652ccc9a920c69e3333c823ef9fc7bd894d783bb69af",
+    "original_size": 2690,
+    "compressed_size": 1353
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/121-freeze.py": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/121-freeze.py",
+    "kind": "diagnostic",
+    "sha256": "583bcb27052d887b65f2800d3f51adc2cec4cb7c2e35d2d73a851e4cd65bed02",
+    "original_size": 2435,
+    "compressed_size": 1169
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/122-candidate.diff": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/122-candidate.diff",
+    "kind": "diagnostic",
+    "sha256": "f45ac8d9ad9d32082038fe43f77d1ab2dd966762f496d75e4534e7a5dd6d5069",
+    "original_size": 23229,
+    "compressed_size": 6282
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/123-candidate-source.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/123-candidate-source.json",
+    "kind": "diagnostic",
+    "sha256": "6eef1f010b1bb7e1d95cb7d9fed6ed9b403d904dcf2918eaf61890f62ac40758",
+    "original_size": 10134,
+    "compressed_size": 2087
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/124-candidate-source-v2.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/124-candidate-source-v2.json",
+    "kind": "diagnostic",
+    "sha256": "88973fc1718f7863f5f1430fd5fd95c48c70f0db85abd25951f2f74a0f3016ca",
+    "original_size": 10823,
+    "compressed_size": 2363
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/125-prepare.py": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/125-prepare.py",
+    "kind": "diagnostic",
+    "sha256": "3c58490808c494273da6c78ba953e08adb757e45d8ce03ae3f2b01d9193492c0",
+    "original_size": 6126,
+    "compressed_size": 1986
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/126-write-tests.py": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/126-write-tests.py",
+    "kind": "diagnostic",
+    "sha256": "cfb1a7f496798d31ea7eda1cd404cf56e04db29f7fbad7b4816ad551919014c2",
+    "original_size": 13103,
+    "compressed_size": 3731
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/127-intelligence.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/127-intelligence.rs",
+    "kind": "diagnostic",
+    "sha256": "ce6ca6518f4d63b323929c7399a46e2c6719505616d264af7bc81ba6a354a39c",
+    "original_size": 24003,
+    "compressed_size": 4477
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/128-intelligence.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/128-intelligence.rs",
+    "kind": "diagnostic",
+    "sha256": "510560ff103c0e528ceaa53955ad97615972eae2109a351a89d646132e61f7dd",
+    "original_size": 41272,
+    "compressed_size": 8771
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/129-builtins.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/129-builtins.json",
+    "kind": "diagnostic",
+    "sha256": "470c075b12341cc42eed00d7e22065c06bb8c3a29269c8b3fcf501ea364aca34",
+    "original_size": 30021,
+    "compressed_size": 3241
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/13-candidate-debug-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/13-candidate-debug-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "bbf31d1fd2cd37c3bf68a41386d4a7a9ee2f6cd1cfc296fb2efa49c5f4d54e94",
+    "original_size": 463,
+    "compressed_size": 293
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/130-fixed_storage.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/130-fixed_storage.rs",
+    "kind": "diagnostic",
+    "sha256": "0e1b2826235239c0f6f27a13e3d5bd93ced0af6c53b68007cda5b7ad484b8c1a",
+    "original_size": 44768,
+    "compressed_size": 7756
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/131-analysis.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/131-analysis.rs",
+    "kind": "diagnostic",
+    "sha256": "e02b1bd1325046033d7d393826f969f7be0a729286a5463a328489e56f307b69",
+    "original_size": 281614,
+    "compressed_size": 45696
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/132-runtime_strings.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/132-runtime_strings.rs",
+    "kind": "diagnostic",
+    "sha256": "cc80d7497eeb1e9520f46e223505ad07a6176323b780cf4d4bd9ca48585fee89",
+    "original_size": 15210,
+    "compressed_size": 3625
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/133-emit.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/133-emit.rs",
+    "kind": "diagnostic",
+    "sha256": "42d0e675279db731399fb3da9111f859dc4c65f953c9ee571daf1d394a651b98",
+    "original_size": 150258,
+    "compressed_size": 24431
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/134-syntax.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/134-syntax.rs",
+    "kind": "diagnostic",
+    "sha256": "88fd04f4ada09822623e58775a521b509b8ea6bc0b7118d54e20a9064cefa8b9",
+    "original_size": 56231,
+    "compressed_size": 10844
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/135-number_prefix_parsing.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/135-number_prefix_parsing.rs",
+    "kind": "diagnostic",
+    "sha256": "645afe969975fa0a8b46b9b2f62941a10c28bc768e56b867d51bb6bf6d51e9fe",
+    "original_size": 13121,
+    "compressed_size": 3606
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/136-intelligence.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/136-intelligence.rs",
+    "kind": "diagnostic",
+    "sha256": "595c58d3124a2f59dedae1d151dce1983b0bac4e717cf61453a8646b6014d3ae",
+    "original_size": 25623,
+    "compressed_size": 4742
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/137-intelligence.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/137-intelligence.rs",
+    "kind": "diagnostic",
+    "sha256": "81ae0eb89e2c02a73f20f5cfcaf6de76d4e00336f9b0dab95f28cfd24bc572e9",
+    "original_size": 41809,
+    "compressed_size": 8852
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/138-builtins.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/138-builtins.json",
+    "kind": "diagnostic",
+    "sha256": "48cd8b6d8268ce17d2c9fc2ca203e1a111a2ab6ffe2d1486f7f4a797be74cb42",
+    "original_size": 30388,
+    "compressed_size": 3355
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/139-number_prefix_parsing.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/139-number_prefix_parsing.rs",
+    "kind": "diagnostic",
+    "sha256": "89a933281ef6c0f057525d86ef63648dd685fbb59972da82d6fc11d6705d5f5f",
+    "original_size": 14006,
+    "compressed_size": 3726
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/14-seal-runtime.py": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/14-seal-runtime.py",
+    "kind": "diagnostic",
+    "sha256": "f8e0a5471ad80d2b192b78ed2e9af4cf7339fd2cb2293f53192feb565beb9298",
+    "original_size": 13836,
+    "compressed_size": 5084
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/140-fixed_storage.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/140-fixed_storage.rs",
+    "kind": "diagnostic",
+    "sha256": "73801a09efd03f1bae63c9e4431e01564cbb84d30168530f07c2d5a01ece1beb",
+    "original_size": 44853,
+    "compressed_size": 7768
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/141-analysis.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/141-analysis.rs",
+    "kind": "diagnostic",
+    "sha256": "3b2a14e1e683cedca1243005942e2cf32eae693fe8c01482b8638139c395dfef",
+    "original_size": 282648,
+    "compressed_size": 45799
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/142-runtime_strings.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/142-runtime_strings.rs",
+    "kind": "diagnostic",
+    "sha256": "61354746ee67d19b71bc0c7fe9b389835d1e8f8840c0758c3e9b5569dc337224",
+    "original_size": 16797,
+    "compressed_size": 4090
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/143-emit.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/143-emit.rs",
+    "kind": "diagnostic",
+    "sha256": "fc94635acf73c1da0b197e09d5858aa61960c601732af67122fb661b7b891850",
+    "original_size": 150564,
+    "compressed_size": 24485
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/144-syntax.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/144-syntax.rs",
+    "kind": "diagnostic",
+    "sha256": "09bf92596f74b3d8d33b2d6b5542c9c31b211508c892282cec36b10eb16fe8cc",
+    "original_size": 56253,
+    "compressed_size": 10851
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/145-probe.mjs": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/145-probe.mjs",
+    "kind": "diagnostic",
+    "sha256": "1f600634797a2e6a21fd2fdba306e81b5c128b38768ab0269fdd09688b4afeb9",
+    "original_size": 322,
+    "compressed_size": 248
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/146-inputs.bin": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/146-inputs.bin",
+    "kind": "diagnostic",
+    "sha256": "40befae9d377ff90bbfa5809280158b0636e81306e9cb55760adef3f618a29cf",
+    "original_size": 1313464,
+    "compressed_size": 96624
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/147-run.py": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/147-run.py",
+    "kind": "diagnostic",
+    "sha256": "0924fa0201838f6b15d527f52a0c7444308c6d4232ccd334827d93e4ecf2c50d",
+    "original_size": 7244,
+    "compressed_size": 3168
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/148-rust.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/148-rust.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/149-rust.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/149-rust.stdout",
+    "kind": "diagnostic",
+    "sha256": "1fe4426abd3b807f56d79669ce1445a741481af7a43f51d3bb2cbe0abd6a0c1d",
+    "original_size": 38692,
+    "compressed_size": 8083
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/15-source-node-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/15-source-node-start.json",
+    "kind": "diagnostic",
+    "sha256": "bd5a95a87003bcb7b423303d7a0a0e041db97b7fbd9f4a0b0376c7e94f8a3801",
+    "original_size": 297,
+    "compressed_size": 217
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/150-results.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/150-results.json",
+    "kind": "diagnostic",
+    "sha256": "78b21871f46eeb5a0fcff9fc6ee4aad4fb54126649188cc2dbc6369511bb0f85",
+    "original_size": 607,
+    "compressed_size": 379
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/151-commands.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/151-commands.json",
+    "kind": "diagnostic",
+    "sha256": "d3cb1597cebd7c1abbca35a08aea442a1ef21c66a1fbd578360cfe5fc63d6672",
+    "original_size": 2765,
+    "compressed_size": 586
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/152-compile.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/152-compile.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/153-strict-differences.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/153-strict-differences.json",
+    "kind": "diagnostic",
+    "sha256": "fb05fa27df6e4a4fac348689df145b0f54aeca2e9efd3c8c49d755442602015a",
+    "original_size": 128363,
+    "compressed_size": 7194
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/154-node.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/154-node.stdout",
+    "kind": "diagnostic",
+    "sha256": "9846b3a653e6fdaa5eb8856f17e8f7f8b5ef89f40f4995134552734abac12c5c",
+    "original_size": 25309,
+    "compressed_size": 6033
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/155-rust-version.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/155-rust-version.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/156-node-version.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/156-node-version.stdout",
+    "kind": "diagnostic",
+    "sha256": "748eb133647756c1f6659600e99aef70247f4e62e6e86390400e67967fb69e52",
+    "original_size": 9,
+    "compressed_size": 17
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/157-cases.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/157-cases.json",
+    "kind": "diagnostic",
+    "sha256": "be240093053eb487d6519702ab7a374402e1e1a1a6b9b916d0fe52db51fbbb71",
+    "original_size": 1366502,
+    "compressed_size": 97747
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/158-manifest.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/158-manifest.json",
+    "kind": "diagnostic",
+    "sha256": "b10f2d942f0434fbf20cd698aaff0c908fc676167129f1d60cd62935c12c16d7",
+    "original_size": 1652,
+    "compressed_size": 709
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/159-probe.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/159-probe.rs",
+    "kind": "diagnostic",
+    "sha256": "2fd19229e7cc2f5fc7e2757e12efc3fb214469f177883536b77e4551ae546e21",
+    "original_size": 1710,
+    "compressed_size": 789
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/16-release-pool-hands-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/16-release-pool-hands-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/160-rust-version.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/160-rust-version.stdout",
+    "kind": "diagnostic",
+    "sha256": "2d65913be579a9932e833cc5a9ec9da203ac9b56868eee0f01b450c929001c40",
+    "original_size": 36,
+    "compressed_size": 44
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/161-node.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/161-node.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/162-node-version.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/162-node-version.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/163-compile.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/163-compile.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/17-source-node-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/17-source-node-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "0c628bef8791b917430e96a9d63801994a201e4008d74d0b3597865a33d6bef8",
+    "original_size": 505,
+    "compressed_size": 325
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/18-run-command.py": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/18-run-command.py",
+    "kind": "diagnostic",
+    "sha256": "00293dfca5d9d878796f670dff440e557a97d06419c056d127bae0802d67077f",
+    "original_size": 1684,
+    "compressed_size": 786
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/19-active-run.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/19-active-run.json",
+    "kind": "diagnostic",
+    "sha256": "1b12a01935cca9e33afd492a829421ad9d1b42adb312e14601fc650e3619ebd1",
+    "original_size": 901,
+    "compressed_size": 489
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/2-candidate-debug-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/2-candidate-debug-start.json",
+    "kind": "diagnostic",
+    "sha256": "a7f502e10cb783eb4b25660b93d1df76ddf0ae99b8a89772de45bb9b26ea4d78",
+    "original_size": 251,
+    "compressed_size": 179
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/20-source-typescript-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/20-source-typescript-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "55fab9f97b09ebff1bbdbcaccc7b0ad805348d61061414cc84ed22d91d3d455c",
+    "original_size": 553,
+    "compressed_size": 351
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/21-format.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/21-format.log",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/22-format-check.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/22-format-check.log",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/23-fresh-cli.py": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/23-fresh-cli.py",
+    "kind": "diagnostic",
+    "sha256": "2ee2d2a2d6d646470d325130b0ea00f3fdee91293a763599cbe973d63ddb03d6",
+    "original_size": 1293,
+    "compressed_size": 647
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/24-driver-compatibility-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/24-driver-compatibility-start.json",
+    "kind": "diagnostic",
+    "sha256": "68c321fdb7a15888108352ef9c52818333093c209d0bb18571fdcbbff82358bd",
+    "original_size": 338,
+    "compressed_size": 229
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/25-lsp-catalog-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/25-lsp-catalog-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "6a70de1471204118fd0aad6f232e2203c51bf965438c76e515c28638ad49bd49",
+    "original_size": 570,
+    "compressed_size": 342
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/26-full.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/26-full.log",
+    "kind": "diagnostic",
+    "sha256": "189ce8d7e66e9d350163745d8b4840bbeda4208ff91918e05caadd1f200a718b",
+    "original_size": 70343,
+    "compressed_size": 16741
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/27-focused-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/27-focused-start.json",
+    "kind": "diagnostic",
+    "sha256": "87139a5e35e7cc1ec69805a544b91cb1aa05a1f628589a3c950683413a16dfdc",
+    "original_size": 293,
+    "compressed_size": 202
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/28-driver-repair-application.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/28-driver-repair-application.json",
+    "kind": "diagnostic",
+    "sha256": "77275e987c8b273fb21398cfeba51dd8284b8805bab6766fcb44f1564b465e27",
+    "original_size": 488,
+    "compressed_size": 329
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/29-research-reviewed.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/29-research-reviewed.json",
+    "kind": "diagnostic",
+    "sha256": "dfa3a06e59ed2d106476988ea43a51af349bf1fccc150006609f96f7b0dd9d78",
+    "original_size": 588,
+    "compressed_size": 349
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/3-candidate-debug.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/3-candidate-debug.log",
+    "kind": "diagnostic",
+    "sha256": "59639588a6f1826f129cbcd121edc07279dab94786f5fa5bde6b3439b2e845cc",
+    "original_size": 72,
+    "compressed_size": 79
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/30-parent.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/30-parent.json",
+    "kind": "diagnostic",
+    "sha256": "9e3ea2839d026d1c19f7cecb4289d39e952dfcd080bd62453433e813bddf66dd",
+    "original_size": 226,
+    "compressed_size": 186
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/31-driver-repair-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/31-driver-repair-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "b41448a96881054d48897ed343701ebf4ddf007244fa048e9fd430a43627535d",
+    "original_size": 92068,
+    "compressed_size": 8725
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/32-driver-compatibility-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/32-driver-compatibility-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "e83d3b86ec48947b5fd419d66f6b2e205cebaf2f58556c46c9cd2e4a8907324b",
+    "original_size": 555,
+    "compressed_size": 325
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/33-candidate-application.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/33-candidate-application.json",
+    "kind": "diagnostic",
+    "sha256": "942987f16016c497fd16aa08d857840d1e7134da9638a87d5c856da558d8ba45",
+    "original_size": 4316,
+    "compressed_size": 1239
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/34-clippy-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/34-clippy-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "1bf412a3c42b4348ad422bde85c72549720db79f1ea7cf9f255719b6f8987f7c",
+    "original_size": 498,
+    "compressed_size": 303
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/35-fresh-cli.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/35-fresh-cli.json",
+    "kind": "diagnostic",
+    "sha256": "4dcd3cecfd03e5f2f62fce34042e6afd10a0db43361a817b75f742cd35703422",
+    "original_size": 1484,
+    "compressed_size": 463
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/36-native-hands.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/36-native-hands.log",
+    "kind": "diagnostic",
+    "sha256": "691a5aa04090df2f5fce4c8229da0fae67fa79bfb843f6748cacfa72c1fadc14",
+    "original_size": 68,
+    "compressed_size": 65
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/37-release-corrected-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/37-release-corrected-start.json",
+    "kind": "diagnostic",
+    "sha256": "777f89512e1df6f42974b59b9db945715f522b15e001fa8527da93da838ec69e",
+    "original_size": 268,
+    "compressed_size": 186
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/38-focused-allocation-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/38-focused-allocation-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "f4b0e5acd2bc16b8f068b00d655c83c1a9c037e00a2074cfa3c27341b16c881a",
+    "original_size": 619,
+    "compressed_size": 365
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/39-focused-fixture-repair.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/39-focused-fixture-repair.json",
+    "kind": "diagnostic",
+    "sha256": "d121090d89154b9b2a7d5c0e28be3ab055bcdeac654d2885a66a117604ec2e8c",
+    "original_size": 715,
+    "compressed_size": 457
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/4-driver-compatibility-2-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/4-driver-compatibility-2-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "2a4254a025d9b48d997b327f8f3963c9a943dcd017b84e0439420748ba8adb5d",
+    "original_size": 559,
+    "compressed_size": 328
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/40-clippy.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/40-clippy.log",
+    "kind": "diagnostic",
+    "sha256": "dd3ab2392465547c3009cbf2720a75f1763bbf99730b6b70fcb9ff998812029a",
+    "original_size": 277,
+    "compressed_size": 158
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/41-focused-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/41-focused-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "27fd49c1155afb07d890687ebf4ac4c783e9eb50e61c59df1b4c63fdce3a0452",
+    "original_size": 4321,
+    "compressed_size": 1514
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/42-apply-candidate.py": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/42-apply-candidate.py",
+    "kind": "diagnostic",
+    "sha256": "8df19839b5a89498a4beeb240699581993d0a66e468d706548583a5fe363e99d",
+    "original_size": 1046,
+    "compressed_size": 570
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/43-release-pool-hands-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/43-release-pool-hands-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "04bb6b34c2ce6d324a1e521adf20061038b5eb15fc28f2d1188c34e91e02d937",
+    "original_size": 101883,
+    "compressed_size": 8332
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/44-native-hands-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/44-native-hands-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "fdc012460218738c1b85e39d2ffca9ece24fb9164dc3a57d43f0da80a6645b02",
+    "original_size": 425,
+    "compressed_size": 269
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/45-driver-compatibility-2.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/45-driver-compatibility-2.log",
+    "kind": "diagnostic",
+    "sha256": "f01f9cd5b2f70c08470a99d3f391e614b7862a2587d502306448df01325d0be7",
+    "original_size": 118,
+    "compressed_size": 112
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/46-debug-source-order-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/46-debug-source-order-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "65377d27bf55f41e841e6e58c74e9a1f6e3489ccba0dcb3de352b9b6cda4b94c",
+    "original_size": 20258,
+    "compressed_size": 4591
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/47-focused-allocation-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/47-focused-allocation-start.json",
+    "kind": "diagnostic",
+    "sha256": "2d51774ba69e3615ae92cca0433c8ce3d4d9733b8709eb3e93093df89afc5931",
+    "original_size": 404,
+    "compressed_size": 255
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/48-source-node.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/48-source-node.log",
+    "kind": "diagnostic",
+    "sha256": "db4def58580a8d87dcbdcf44546581ff063a1c19fe825e712e7c600a91320389",
+    "original_size": 377,
+    "compressed_size": 271
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/49-focused-allocation.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/49-focused-allocation.log",
+    "kind": "diagnostic",
+    "sha256": "ddaa0a7d2274f53cefe7d27a23687b7745bda0a80fe5a9579cb4f3741a314d42",
+    "original_size": 379,
+    "compressed_size": 249
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/5-release.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/5-release.log",
+    "kind": "diagnostic",
+    "sha256": "1546fb785cb62be0f7ceb3e21544f6c3d341612eb4e88904c48856ea88f4299e",
+    "original_size": 130,
+    "compressed_size": 104
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/50-native-hands-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/50-native-hands-start.json",
+    "kind": "diagnostic",
+    "sha256": "6e7dc111975aa724b7ec715a7a2679b1f6ad73d737bb4b0b0a6c1b9693426a76",
+    "original_size": 216,
+    "compressed_size": 172
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/51-focused-diagnostics-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/51-focused-diagnostics-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "0fe036758978ed8ad5f7ee52e7aa8272729d42b40a6f7daae64e531e5dd66a85",
+    "original_size": 612,
+    "compressed_size": 363
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/52-seal-runtime.pre-review.py": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/52-seal-runtime.pre-review.py",
+    "kind": "diagnostic",
+    "sha256": "1a2c2de754287b96b3aaf644ec1a5811ba7f4767c47657e40638be1c92b867f8",
+    "original_size": 13830,
+    "compressed_size": 5090
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/53-lsp-formatting-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/53-lsp-formatting-start.json",
+    "kind": "diagnostic",
+    "sha256": "04612f9e278e0ac9805be5fd1abe472c10fabe7a689ea48dd46d48e64c008ebf",
+    "original_size": 375,
+    "compressed_size": 239
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/54-focused-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/54-focused-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "40d8338d4531fa3aef78fd45a81937033515129ece2c133434446c28d475864e",
+    "original_size": 499,
+    "compressed_size": 312
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/55-benchmark-integration.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/55-benchmark-integration.json",
+    "kind": "diagnostic",
+    "sha256": "83ebddd358f9b440335edc93b120d19e2d3d792a088c479ca42e6e51ec422149",
+    "original_size": 325,
+    "compressed_size": 237
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/56-native-hands.py": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/56-native-hands.py",
+    "kind": "diagnostic",
+    "sha256": "6c1d4ca20719b6580957f22e6bd774c51f94d8aa70ed9a5fd656f7ed302c26ac",
+    "original_size": 2402,
+    "compressed_size": 1041
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/57-full-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/57-full-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "2c0f0f94189497317aa4277ef640b4d6c484b9abb1adfab233b7bcb80a65a63d",
+    "original_size": 452,
+    "compressed_size": 289
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/58-doctests-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/58-doctests-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "f7c37cb74d2f0d535372074f5c8468d90db8dbe4288e3ecd720b0121540281c8",
+    "original_size": 454,
+    "compressed_size": 287
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/59-regression-union.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/59-regression-union.json",
+    "kind": "diagnostic",
+    "sha256": "f42f9a16e96fc34a93668aa369c237be69e594e7b966b1503dae650439baea3e",
+    "original_size": 89050,
+    "compressed_size": 16040
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/6-freeze-source.py": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/6-freeze-source.py",
+    "kind": "diagnostic",
+    "sha256": "4cab8a1aa1a55dd2a9a11ec8fcfcfdbf3c0f23eb1a92367dd3f9bd847ee2e620",
+    "original_size": 573,
+    "compressed_size": 378
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/60-accept-full.py": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/60-accept-full.py",
+    "kind": "diagnostic",
+    "sha256": "853d6408106d0ed7a10ec9f88bbfbfd6458625a92c78f6b2c8086740b5cf5809",
+    "original_size": 2533,
+    "compressed_size": 1114
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/61-debug-pool-hands-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/61-debug-pool-hands-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "04bb6b34c2ce6d324a1e521adf20061038b5eb15fc28f2d1188c34e91e02d937",
+    "original_size": 101883,
+    "compressed_size": 8332
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/62-source-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/62-source-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "3e96a18c32f35cae366d9f0f7b1ee4aac8011dd334f1a42eae36abf092e0af9c",
+    "original_size": 4290,
+    "compressed_size": 1367
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/63-release-source-order-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/63-release-source-order-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "65377d27bf55f41e841e6e58c74e9a1f6e3489ccba0dcb3de352b9b6cda4b94c",
+    "original_size": 20258,
+    "compressed_size": 4591
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/64-format-check-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/64-format-check-start.json",
+    "kind": "diagnostic",
+    "sha256": "46885384aa824fcad88016a1e7a4b43a7ea0b4a3d2d4556fe7c6f7bcc055ca22",
+    "original_size": 221,
+    "compressed_size": 163
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/65-lsp-formatting.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/65-lsp-formatting.log",
+    "kind": "diagnostic",
+    "sha256": "ce1856df55dba3dfa768259fb8b95f2d33b2ebb0ebf7c3312dea8df241020111",
+    "original_size": 445,
+    "compressed_size": 297
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/66-freeze-runtime.py": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/66-freeze-runtime.py",
+    "kind": "diagnostic",
+    "sha256": "75744c27a501c811536cb72f0ea82d98f32c2a28ab17446f9eff931ee78799c1",
+    "original_size": 1837,
+    "compressed_size": 838
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/67-driver-compatibility-2-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/67-driver-compatibility-2-start.json",
+    "kind": "diagnostic",
+    "sha256": "ffbf332538b3586c720f431c060c9c53a8412a4216157e63858884012012c6d5",
+    "original_size": 340,
+    "compressed_size": 231
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/68-source-proof.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/68-source-proof.json",
+    "kind": "diagnostic",
+    "sha256": "0698982bd9cf919015841fdff53a57db399945c31dcf1b41a3ed9ab7a94b7639",
+    "original_size": 240,
+    "compressed_size": 197
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/69-clippy-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/69-clippy-start.json",
+    "kind": "diagnostic",
+    "sha256": "e5687e707bf29232d72472b2c8b63883f6da8d66c6e2568d6469fe12ce262012",
+    "original_size": 295,
+    "compressed_size": 196
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/7-driver-compatibility.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/7-driver-compatibility.log",
+    "kind": "diagnostic",
+    "sha256": "4cac57357deb44c9e4e4fa44fcc69193fc5bccc4a84d133d3a5ffb660237f425",
+    "original_size": 857,
+    "compressed_size": 417
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/70-format-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/70-format-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "e79c72da9883cbad1917fbf3a85d6d1b423596ff756aa43509f111f19192d7eb",
+    "original_size": 399,
+    "compressed_size": 266
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/71-full-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/71-full-start.json",
+    "kind": "diagnostic",
+    "sha256": "05faaa0d834a31e21d8ac0a0ba555dd39447b9acfbd094f82e4412caf4bafbce",
+    "original_size": 251,
+    "compressed_size": 176
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/72-focused-diagnostics.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/72-focused-diagnostics.log",
+    "kind": "diagnostic",
+    "sha256": "becd14bf8e0e509d6f3842b820cefd97c9126eb68c07126b01d633e14a04573d",
+    "original_size": 478,
+    "compressed_size": 312
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/73-debug-pool-hands-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/73-debug-pool-hands-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/74-focused-source-identities.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/74-focused-source-identities.json",
+    "kind": "diagnostic",
+    "sha256": "0df0ff874609a2c8d75ec1620dce4a978641d74be59b220412fed195eee755cc",
+    "original_size": 1029,
+    "compressed_size": 524
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/75-driver-repair-prepackaging.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/75-driver-repair-prepackaging.json",
+    "kind": "diagnostic",
+    "sha256": "f27801eb172a4540fb3d3b6e932cdcfafcb9ce475a222303b4bb03247dd708a8",
+    "original_size": 43730,
+    "compressed_size": 4240
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/76-close-docs.py": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/76-close-docs.py",
+    "kind": "diagnostic",
+    "sha256": "ad0b87f3b6cdfccf6817bf0127c3e63f8b686b1d7cb34e262de4d8656faf689c",
+    "original_size": 8670,
+    "compressed_size": 3512
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/77-format-check-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/77-format-check-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "0006e813a52622c259a3a2fd5803016cb7e3bbe84a03b071e5a8cf13afaea17f",
+    "original_size": 430,
+    "compressed_size": 274
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/78-final-checks.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/78-final-checks.json",
+    "kind": "diagnostic",
+    "sha256": "a11fd2dcc3db605ee49e09f866d4804fb1731c0fd0b740fb4fdb4c4149d9f268",
+    "original_size": 2521,
+    "compressed_size": 677
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/79-release-corrected.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/79-release-corrected.log",
+    "kind": "diagnostic",
+    "sha256": "1500797a51d78982ca948ace3074829ffc7c5ed5303b3281808f320040a9837e",
+    "original_size": 169,
+    "compressed_size": 137
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/8-lsp-catalog.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/8-lsp-catalog.log",
+    "kind": "diagnostic",
+    "sha256": "e45b3babe499b5f6682a7279f9441cc0356a045209637cc8638dee9403be5ec8",
+    "original_size": 334,
+    "compressed_size": 232
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/80-doctests-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/80-doctests-start.json",
+    "kind": "diagnostic",
+    "sha256": "d78bb449a5ffed1373ec5b511471e6eab849039ecadb62da482db17f509b6067",
+    "original_size": 249,
+    "compressed_size": 177
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/81-release-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/81-release-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "2794240be0caa3ffe06c603cf03eb39d165bb123a193df70870e0f857b14b6d9",
+    "original_size": 469,
+    "compressed_size": 287
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/82-release-source-order-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/82-release-source-order-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/83-regression-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/83-regression-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "8899db30c1ef55c18591e6aaf191999fbfe8841337d70d7f8a052c5977308c06",
+    "original_size": 492,
+    "compressed_size": 287
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/84-release-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/84-release-start.json",
+    "kind": "diagnostic",
+    "sha256": "e930e179feb76022528e3d442f244e7c2ae581aefcba8a0e612427db005dc759",
+    "original_size": 263,
+    "compressed_size": 183
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/85-source-typescript-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/85-source-typescript-start.json",
+    "kind": "diagnostic",
+    "sha256": "79109ea96ebc1e0054f1b3347ddff1cdd6eb4d94bb91f762706d82ce229db6df",
+    "original_size": 339,
+    "compressed_size": 244
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/86-seal-source.py": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/86-seal-source.py",
+    "kind": "diagnostic",
+    "sha256": "d9c899a2fedf3121505c0d88931b21cc2c1c45c58023a41874a2d8dd51e9c6dc",
+    "original_size": 2789,
+    "compressed_size": 1180
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/87-source-typescript.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/87-source-typescript.log",
+    "kind": "diagnostic",
+    "sha256": "0cc91b09ab928853452b4bdc18ba93d93175ad26471c55c59fc4d79b8f61a354",
+    "original_size": 2180,
+    "compressed_size": 867
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/88-lsp-catalog-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/88-lsp-catalog-start.json",
+    "kind": "diagnostic",
+    "sha256": "1dec5c136e9ddf897354cf330a6b588658740437047c429721a0c126beafb503",
+    "original_size": 362,
+    "compressed_size": 231
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/89-focused.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/89-focused.log",
+    "kind": "diagnostic",
+    "sha256": "28239d9ac8707955b70a6dea8a5a62babe48e740df85e1889dc46c1864e0fb35",
+    "original_size": 1453,
+    "compressed_size": 725
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/9-format-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/9-format-start.json",
+    "kind": "diagnostic",
+    "sha256": "7c4b49424ca19bb457270fe46899d5dda1499e8dd7c6506e7ec59ba63918aa17",
+    "original_size": 196,
+    "compressed_size": 157
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/90-focused-diagnostics-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/90-focused-diagnostics-start.json",
+    "kind": "diagnostic",
+    "sha256": "41143354951d94f3dd16544cebdefeb0e261c1d56db03f012d4e5333de11d60a",
+    "original_size": 396,
+    "compressed_size": 254
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/91-release-corrected-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/91-release-corrected-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "a30bbda2ce7834fab1c64c7b40ae9d2fbb4e04a954b46d1561b639ad958d7139",
+    "original_size": 482,
+    "compressed_size": 297
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/92-doctests.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/92-doctests.log",
+    "kind": "diagnostic",
+    "sha256": "d4030266f1ae8ce75046576abc6122db8d3571eebebbbfed7063e27dfed2df11",
+    "original_size": 407,
+    "compressed_size": 203
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/93-lsp-formatting-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/93-lsp-formatting-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "1afe5ef48bddaface79ebfa12b5d551003a5892dc93db1b396efb92eea023cc0",
+    "original_size": 586,
+    "compressed_size": 356
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/94-pool-hands-run-o3.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/94-pool-hands-run-o3.stdout",
+    "kind": "diagnostic",
+    "sha256": "e6a493410bfd5bfa0a7a7b426cd51742e60f1f617ad068e1f3defa2539be4ed3",
+    "original_size": 800,
+    "compressed_size": 21
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/95-source-order.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/95-source-order.rs",
+    "kind": "diagnostic",
+    "sha256": "65377d27bf55f41e841e6e58c74e9a1f6e3489ccba0dcb3de352b9b6cda4b94c",
+    "original_size": 20258,
+    "compressed_size": 4591
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/96-source-order-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/96-source-order-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "65377d27bf55f41e841e6e58c74e9a1f6e3489ccba0dcb3de352b9b6cda4b94c",
+    "original_size": 20258,
+    "compressed_size": 4591
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/97-pool-hands-build-o3.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/97-pool-hands-build-o3.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/98-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/98-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "30dbe9fde5d9b783ef2b2237679d3c27eeeb7fd3dc59024a19e9ba3c86992ffd",
+    "original_size": 9724,
+    "compressed_size": 1222
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/99-source-order-build-o3.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof-artifacts/99-source-order-build-o3.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/0-source-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/0-source-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "3e96a18c32f35cae366d9f0f7b1ee4aac8011dd334f1a42eae36abf092e0af9c",
+    "original_size": 4290,
+    "compressed_size": 1367
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/1-candidate-source.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/1-candidate-source.json",
+    "kind": "diagnostic",
+    "sha256": "e9a36bf598a1d40be7a6ca37ebcea889d19f871610f3ae9e592ee529885005f9",
+    "original_size": 14789,
+    "compressed_size": 3736
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/10-source-typescript.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/10-source-typescript.log",
+    "kind": "diagnostic",
+    "sha256": "0cc91b09ab928853452b4bdc18ba93d93175ad26471c55c59fc4d79b8f61a354",
+    "original_size": 2180,
+    "compressed_size": 867
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/2-candidate-source.diff": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/2-candidate-source.diff",
+    "kind": "diagnostic",
+    "sha256": "c21e3209835708f70d34d9b414109087afc4dedcef58c30860d8d101efd1d33c",
+    "original_size": 167916,
+    "compressed_size": 21603
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/3-benchmark-integration.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/3-benchmark-integration.json",
+    "kind": "diagnostic",
+    "sha256": "83ebddd358f9b440335edc93b120d19e2d3d792a088c479ca42e6e51ec422149",
+    "original_size": 325,
+    "compressed_size": 237
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/4-seal-source.py": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/4-seal-source.py",
+    "kind": "diagnostic",
+    "sha256": "d9c899a2fedf3121505c0d88931b21cc2c1c45c58023a41874a2d8dd51e9c6dc",
+    "original_size": 2789,
+    "compressed_size": 1180
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/5-source-node-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/5-source-node-start.json",
+    "kind": "diagnostic",
+    "sha256": "bd5a95a87003bcb7b423303d7a0a0e041db97b7fbd9f4a0b0376c7e94f8a3801",
+    "original_size": 297,
+    "compressed_size": 217
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/6-source-node-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/6-source-node-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "0c628bef8791b917430e96a9d63801994a201e4008d74d0b3597865a33d6bef8",
+    "original_size": 505,
+    "compressed_size": 325
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/7-source-node.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/7-source-node.log",
+    "kind": "diagnostic",
+    "sha256": "db4def58580a8d87dcbdcf44546581ff063a1c19fe825e712e7c600a91320389",
+    "original_size": 377,
+    "compressed_size": 271
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/8-source-typescript-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/8-source-typescript-start.json",
+    "kind": "diagnostic",
+    "sha256": "79109ea96ebc1e0054f1b3347ddff1cdd6eb4d94bb91f762706d82ce229db6df",
+    "original_size": 339,
+    "compressed_size": 244
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/9-source-typescript-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/9-source-typescript-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "55fab9f97b09ebff1bbdbcaccc7b0ad805348d61061414cc84ed22d91d3d455c",
+    "original_size": 553,
+    "compressed_size": 351
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/literal-hands.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/literal-hands.json",
+    "kind": "diagnostic",
+    "sha256": "6dfb28e763051152f53ca7f9091e0c7cab8aad76d0fe1a0637df92eddd99e4c5",
+    "original_size": 47545,
+    "compressed_size": 3738
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_decimal-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_decimal-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "1fc8cdb4c1d098035614b8eda87b650c78bc5fa0c5373bea38bc934bb7e47999",
+    "original_size": 138540,
+    "compressed_size": 6541
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_decimal-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_decimal-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "88c83b537c3ffd74b6e84a856ec5d7d20bd86a233d3566e0bf956bb632a5fb65",
+    "original_size": 1389,
+    "compressed_size": 662
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_decimal-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_decimal-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "ae98817c81ba065db1d0621d0317f07dc4b35c20326e3ae7491e7ce540fd3c0f",
+    "original_size": 1506,
+    "compressed_size": 713
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_decimal-wrong-parser.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_decimal-wrong-parser.json",
+    "kind": "diagnostic",
+    "sha256": "6760761911eac77d511f464c05989fe81cb7c4eadb85c1aaf3234ae7f42146df",
+    "original_size": 727,
+    "compressed_size": 354
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_exponent-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_exponent-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "5dd97d2f7fa2a1ee04fb6e300c6d11b24339a040bbc9cddca003fdefc3e5bceb",
+    "original_size": 138740,
+    "compressed_size": 6868
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_exponent-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_exponent-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "0a772008cd0ea7ba263636a21528ad126be82175c5947633a8b404b0e9737f7f",
+    "original_size": 1363,
+    "compressed_size": 644
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_exponent-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_exponent-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "d80f1bdb7b810aade0f96a85adf3b1f33e2bb7998dff4a35baf2423cb0ac3cd1",
+    "original_size": 1480,
+    "compressed_size": 696
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_exponent-wrong-parser.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_exponent-wrong-parser.json",
+    "kind": "diagnostic",
+    "sha256": "c2a043c904a15d035de5b8f59e49e9b36ebbdea04e2eead05822aab6181a8ad3",
+    "original_size": 728,
+    "compressed_size": 336
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_mixed-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_mixed-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "fe8286124d8aa2e75f17a47874d56988b41b39106246c35244bd029eeb878a83",
+    "original_size": 129890,
+    "compressed_size": 6476
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_mixed-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_mixed-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "03a73feecfbfd3828136ecb5f326339b621e2d20d96744b6407d49f56f0509e0",
+    "original_size": 1425,
+    "compressed_size": 689
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_mixed-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_mixed-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "7fc41cfcefb92040eafb92098fbadb6a20dc59b65d7d5fcfc892d11dc4d824cb",
+    "original_size": 1542,
+    "compressed_size": 740
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_mixed-wrong-parser.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_mixed-wrong-parser.json",
+    "kind": "diagnostic",
+    "sha256": "374ed2bf692575cf0cf83efd3a9aaca67f029abe2dc4aa71a8d60c19e9414759",
+    "original_size": 676,
+    "compressed_size": 342
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_nonfinite_invalid-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_nonfinite_invalid-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "50d64810c7bc151bc4919ac3e0f24a80fc41021607ca53b26a35819ab3e2b5d3",
+    "original_size": 84650,
+    "compressed_size": 4701
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_nonfinite_invalid-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_nonfinite_invalid-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "b91fb649d1741045dda9ceb054030ddaf814fbccdc563ae3fb3142ecd68a93b7",
+    "original_size": 1326,
+    "compressed_size": 628
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_nonfinite_invalid-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_nonfinite_invalid-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "4204da2a9731668ef5ba527bd40071fac155b3c4f502a3868c93815a56dfe7b2",
+    "original_size": 1443,
+    "compressed_size": 678
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_nonfinite_invalid-wrong-parser.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_nonfinite_invalid-wrong-parser.json",
+    "kind": "diagnostic",
+    "sha256": "104d9e963e41889fbb90c7580c7d04a2c47ccfb394d588490ea159e9c865c102",
+    "original_size": 732,
+    "compressed_size": 295
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_trailing-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_trailing-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "8b67d9b1e53b1aef735dc2212888d23ccd83b0d7d3ee1e05a606b767b2292ac8",
+    "original_size": 138758,
+    "compressed_size": 6437
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_trailing-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_trailing-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "a322f54299847a9b80073d74cef86d926ed679ab8924cf3a313840a200c05260",
+    "original_size": 1363,
+    "compressed_size": 645
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_trailing-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_trailing-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "a8af8cd3fde4fab734202033afee43d53923f2e660d9b5771545f5f8b8971485",
+    "original_size": 1480,
+    "compressed_size": 698
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_trailing-wrong-parser.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_trailing-wrong-parser.json",
+    "kind": "diagnostic",
+    "sha256": "4a8ebcc33b205fc3de77fcb066785a37b953e0d839764500022c37033d1a5f8f",
+    "original_size": 533,
+    "compressed_size": 306
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_whitespace-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_whitespace-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "1969910f38bcb7a23bd406a8e88cdf76e7d969539dae90af38d505e8a6abcebf",
+    "original_size": 125720,
+    "compressed_size": 6809
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_whitespace-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_whitespace-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "de46458bf54301e597398b0c72c55448041eecdbb455ef8cab2be2c2776c43ae",
+    "original_size": 1401,
+    "compressed_size": 666
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_whitespace-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_whitespace-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "8abf8c7ffd2e5c5a2697f73e5bab48e38eb428e3cd4a336b44d91d07f3242525",
+    "original_size": 1518,
+    "compressed_size": 718
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_whitespace-wrong-parser.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/number_parse_float_whitespace-wrong-parser.json",
+    "kind": "diagnostic",
+    "sha256": "99006032556e1f9ea3707a034bcdf3c03fc0bd6724527197f46f3f83b5cd1adc",
+    "original_size": 701,
+    "compressed_size": 343
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/pool-hands-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/pool-hands-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "994994f656dca4a9a4e5daab0852ac1c78fbfa71a8fe62c41b0fea29f904b91b",
+    "original_size": 16236,
+    "compressed_size": 1971
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/pool-hands-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/pool-hands-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "f2105d268302b0e6d3271394caf91d89d955ed3a290f5223e682da8aeb178fd9",
+    "original_size": 16313,
+    "compressed_size": 2022
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/source-order-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/source-order-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "71980475301255ee509309dca8cd99a990454183b1053a40016025b950e5e5dc",
+    "original_size": 2029,
+    "compressed_size": 658
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/source-order-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/source-order-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "2d7a91516af187e755cd509e7b41dfe99990ac5155554fa0a3fb539a4729e1fa",
+    "original_size": 2124,
+    "compressed_size": 713
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/source-order.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/source-order.json",
+    "kind": "diagnostic",
+    "sha256": "606a1bbce0455fc80a3c292496160ab8f3f39878b9d272c8354011694ea3217c",
+    "original_size": 1535,
+    "compressed_size": 659
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/summary.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation-artifacts/actual-source/summary.json",
+    "kind": "diagnostic",
+    "sha256": "a5ae14cbca5599790866699652021ba92a7d248c840e75d6ddc55dac673b0029",
+    "original_size": 2631,
+    "compressed_size": 901
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/0-seal-runtime.py": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/0-seal-runtime.py",
+    "kind": "diagnostic",
+    "sha256": "f8e0a5471ad80d2b192b78ed2e9af4cf7339fd2cb2293f53192feb565beb9298",
+    "original_size": 13836,
+    "compressed_size": 5084
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/1-runtime-freeze.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/1-runtime-freeze.json",
+    "kind": "diagnostic",
+    "sha256": "7e471b3d11831ebc211193f346680e1d42e39b939fc037b77edd6262e53bc00f",
+    "original_size": 55039,
+    "compressed_size": 21452
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/10-runtime-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/10-runtime-start.json",
+    "kind": "diagnostic",
+    "sha256": "ff70f6a3cfb3e1cd187f36dcfe0cf0a5bc8b3f675dfce099c6a046b71b4210dc",
+    "original_size": 468,
+    "compressed_size": 273
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/100-scalar-input-17-17.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/100-scalar-input-17-17.stdout",
+    "kind": "diagnostic",
+    "sha256": "98bb52c4397b1663fd3c9fc900f4b8fa2e0ad55ad9efec2f1140877e86b4d275",
+    "original_size": 91,
+    "compressed_size": 83
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/101-scalar-input-17-17.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/101-scalar-input-17-17.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/102-array-no-input-original-build.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/102-array-no-input-original-build.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/103-array-no-input-original-build.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/103-array-no-input-original-build.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/104-array-no-input-original-0-18.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/104-array-no-input-original-0-18.stdout",
+    "kind": "diagnostic",
+    "sha256": "f97d335b8c58434bf9a6a4213d68c570a26758c137bc810a4460603fa9214f96",
+    "original_size": 50,
+    "compressed_size": 57
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/105-array-no-input-original-0-18.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/105-array-no-input-original-0-18.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/106-array-no-input-original-17-19.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/106-array-no-input-original-17-19.stdout",
+    "kind": "diagnostic",
+    "sha256": "8fca31a1b07fe0d0cffa81529d6597df27d583181b25b8f310a20300483f06e9",
+    "original_size": 349,
+    "compressed_size": 122
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/107-array-no-input-original-17-19.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/107-array-no-input-original-17-19.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/108-array-no-input-repaired-build.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/108-array-no-input-repaired-build.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/109-array-no-input-repaired-build.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/109-array-no-input-repaired-build.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/11-runtime.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/11-runtime.log",
+    "kind": "diagnostic",
+    "sha256": "0823fa9ffc9771bf721901cfc32861e7d524f786d757981dcde6f6d6e174c97a",
+    "original_size": 1399,
+    "compressed_size": 297
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/110-array-no-input-repaired-0-20.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/110-array-no-input-repaired-0-20.stdout",
+    "kind": "diagnostic",
+    "sha256": "877a8b368a6932bff53aac506d0696c8ad1cdf0d24a99a2a7fb9d29e48d434f0",
+    "original_size": 55,
+    "compressed_size": 62
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/111-array-no-input-repaired-0-20.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/111-array-no-input-repaired-0-20.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/112-array-no-input-repaired-17-21.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/112-array-no-input-repaired-17-21.stdout",
+    "kind": "diagnostic",
+    "sha256": "4141417b4045763923f68c5831878bc6ffa934b40c603275feefc39e72170e33",
+    "original_size": 351,
+    "compressed_size": 123
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/113-array-no-input-repaired-17-21.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/113-array-no-input-repaired-17-21.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/114-array-no-input-tsc.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/114-array-no-input-tsc.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/115-array-no-input-tsc.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/115-array-no-input-tsc.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/116-array-no-input-0-22.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/116-array-no-input-0-22.stdout",
+    "kind": "diagnostic",
+    "sha256": "8eb7e2629fe2a7ea7b4d09d999066c773fdc6ef13edce439a1086d481936f84e",
+    "original_size": 68,
+    "compressed_size": 67
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/117-array-no-input-0-22.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/117-array-no-input-0-22.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/118-array-no-input-17-23.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/118-array-no-input-17-23.stdout",
+    "kind": "diagnostic",
+    "sha256": "b5f9e438334f683ab73b135235d2dbd996349f842676b2a385f0846d29bb0854",
+    "original_size": 364,
+    "compressed_size": 129
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/119-array-no-input-17-23.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/119-array-no-input-17-23.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/12-driver-repair-prepackaging.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/12-driver-repair-prepackaging.json",
+    "kind": "diagnostic",
+    "sha256": "f27801eb172a4540fb3d3b6e932cdcfafcb9ce475a222303b4bb03247dd708a8",
+    "original_size": 43730,
+    "compressed_size": 4240
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/120-array-input-repaired-build.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/120-array-input-repaired-build.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/121-array-input-repaired-build.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/121-array-input-repaired-build.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/122-array-input-repaired-0-24.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/122-array-input-repaired-0-24.stdout",
+    "kind": "diagnostic",
+    "sha256": "13e5f7f5e21079693861dc73c86b6273f43962a201923eb25327018e6b4c8768",
+    "original_size": 53,
+    "compressed_size": 60
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/123-array-input-repaired-0-24.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/123-array-input-repaired-0-24.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/124-array-input-repaired-0-25.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/124-array-input-repaired-0-25.stdout",
+    "kind": "diagnostic",
+    "sha256": "13e5f7f5e21079693861dc73c86b6273f43962a201923eb25327018e6b4c8768",
+    "original_size": 53,
+    "compressed_size": 60
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/125-array-input-repaired-0-25.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/125-array-input-repaired-0-25.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/126-array-input-repaired-0-26.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/126-array-input-repaired-0-26.stdout",
+    "kind": "diagnostic",
+    "sha256": "f97d335b8c58434bf9a6a4213d68c570a26758c137bc810a4460603fa9214f96",
+    "original_size": 50,
+    "compressed_size": 57
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/127-array-input-repaired-0-26.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/127-array-input-repaired-0-26.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/128-array-input-repaired-17-27.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/128-array-input-repaired-17-27.stdout",
+    "kind": "diagnostic",
+    "sha256": "28a5fcb9ea26a603b8965b358e8a5d83ce2f266b52bad13b7e5a61d52b8e8fac",
+    "original_size": 351,
+    "compressed_size": 123
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/129-array-input-repaired-17-27.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/129-array-input-repaired-17-27.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/13-report-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/13-report-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "3129e9473826f53e4d0094c3a64c44cf6921c617ab1cfbbec7ead6e61e8fcf78",
+    "original_size": 461,
+    "compressed_size": 301
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/130-array-input-repaired-17-28.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/130-array-input-repaired-17-28.stdout",
+    "kind": "diagnostic",
+    "sha256": "1ee5b89e59e8f6d2dba08c253b815cab42a1afe05c3980428ab908ca1371f273",
+    "original_size": 350,
+    "compressed_size": 121
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/131-array-input-repaired-17-28.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/131-array-input-repaired-17-28.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/132-array-input-repaired-17-29.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/132-array-input-repaired-17-29.stdout",
+    "kind": "diagnostic",
+    "sha256": "95fb8b439d25e910fb1066549bd18833a38886b54727360704dc69a2f7c51f47",
+    "original_size": 364,
+    "compressed_size": 125
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/133-array-input-repaired-17-29.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/133-array-input-repaired-17-29.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/134-array-input-tsc.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/134-array-input-tsc.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/135-array-input-tsc.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/135-array-input-tsc.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/136-array-input-0-30.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/136-array-input-0-30.stdout",
+    "kind": "diagnostic",
+    "sha256": "9a4a1e98a8c3841989c5700b9eca87b2557ae7d345dc8b85a1f53c1b131c9f5f",
+    "original_size": 68,
+    "compressed_size": 68
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/137-array-input-0-30.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/137-array-input-0-30.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/138-array-input-0-31.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/138-array-input-0-31.stdout",
+    "kind": "diagnostic",
+    "sha256": "a97cbda7cf05847de3b37c1de2590e2997cbd5350792122a434b57044caa77bb",
+    "original_size": 68,
+    "compressed_size": 67
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/139-array-input-0-31.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/139-array-input-0-31.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/14-runtime-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/14-runtime-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "df472b2489bdcdc494e5c350d29b23c23605c1d46c0e240b2305f8a453f5287c",
+    "original_size": 672,
+    "compressed_size": 384
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/140-array-input-0-32.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/140-array-input-0-32.stdout",
+    "kind": "diagnostic",
+    "sha256": "a718fea9ab7aabe4e812c49b01cbbffa6c59b5e4810ae8ff508c198d5cbea392",
+    "original_size": 68,
+    "compressed_size": 68
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/141-array-input-0-32.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/141-array-input-0-32.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/142-array-input-17-33.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/142-array-input-17-33.stdout",
+    "kind": "diagnostic",
+    "sha256": "86efb380dad35eddb204f38ba091d22d717662211d6d03beb234dd7a993907cd",
+    "original_size": 364,
+    "compressed_size": 129
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/143-array-input-17-33.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/143-array-input-17-33.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/144-array-input-17-34.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/144-array-input-17-34.stdout",
+    "kind": "diagnostic",
+    "sha256": "0bd379540c8c0677df66ec3061976ea98368d3f02ec95011a86afa429af6f52e",
+    "original_size": 363,
+    "compressed_size": 125
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/145-array-input-17-34.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/145-array-input-17-34.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/146-array-input-17-35.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/146-array-input-17-35.stdout",
+    "kind": "diagnostic",
+    "sha256": "ddc66b5924ca89d6f63b2da4a688b8427666271087abacc43a08b0b8f0031689",
+    "original_size": 363,
+    "compressed_size": 124
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/147-array-input-17-35.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/147-array-input-17-35.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/148-number_parse_float_decimal.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/148-number_parse_float_decimal.rs",
+    "kind": "diagnostic",
+    "sha256": "3ad5afdfc6cddc99cae3e6e235911f0cfcb0f011be4c7021b6a2a09c095d2d9d",
+    "original_size": 26595,
+    "compressed_size": 6637
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/149-number_parse_float_decimal.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/149-number_parse_float_decimal.rs",
+    "kind": "diagnostic",
+    "sha256": "5b4fb21ea2781a397d9007301a03bcad965b0914d4af7276189df2c5fa1cc6ef",
+    "original_size": 29250,
+    "compressed_size": 7351
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/15-profiles-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/15-profiles-start.json",
+    "kind": "diagnostic",
+    "sha256": "168f0f5bc61d140dedd5048056ae1ef901a1d0002ed6d23697140c004eddfbb2",
+    "original_size": 455,
+    "compressed_size": 271
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/150-number_parse_float_exponent.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/150-number_parse_float_exponent.rs",
+    "kind": "diagnostic",
+    "sha256": "91047b4f54ae7d6e76ded37686421d5d42174a98d6752fdf49a5b4fccb730eee",
+    "original_size": 26569,
+    "compressed_size": 6618
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/151-number_parse_float_exponent.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/151-number_parse_float_exponent.rs",
+    "kind": "diagnostic",
+    "sha256": "da38995f96db0a8fa061076aebe38260464be0a3126781b8a10e65420f3bb636",
+    "original_size": 29224,
+    "compressed_size": 7332
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/152-number_parse_float_whitespace.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/152-number_parse_float_whitespace.rs",
+    "kind": "diagnostic",
+    "sha256": "377e0d5f05fac551091aff11c9755dd4c59bcf9bb01923412acd916fab40ce98",
+    "original_size": 26633,
+    "compressed_size": 6639
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/153-number_parse_float_whitespace.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/153-number_parse_float_whitespace.rs",
+    "kind": "diagnostic",
+    "sha256": "d794c9cd99174d942415aa3779302572610a35f4a7228c0e0d2b1daa1bd6a5bf",
+    "original_size": 29288,
+    "compressed_size": 7354
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/154-number_parse_float_trailing.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/154-number_parse_float_trailing.rs",
+    "kind": "diagnostic",
+    "sha256": "909c190c69939e83a74cf5875b20e62e48b0c77f1754addd98fe1dc4c12dab2a",
+    "original_size": 26565,
+    "compressed_size": 6607
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/155-number_parse_float_trailing.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/155-number_parse_float_trailing.rs",
+    "kind": "diagnostic",
+    "sha256": "036c1027b6eb5e43b6cb85469a458234af4c5ba87cfdb7a912eae33223e2d3f5",
+    "original_size": 29220,
+    "compressed_size": 7320
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/156-number_parse_float_nonfinite_invalid.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/156-number_parse_float_nonfinite_invalid.rs",
+    "kind": "diagnostic",
+    "sha256": "558f1fb6d8770180d0bd4e3f7353af67ec5e03f3d0641cf7e06f5f549d54ea11",
+    "original_size": 26532,
+    "compressed_size": 6569
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/157-number_parse_float_nonfinite_invalid.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/157-number_parse_float_nonfinite_invalid.rs",
+    "kind": "diagnostic",
+    "sha256": "b565263259d1416f432fa1842b2bf5ac6b471b212e90eaa2267c3b56c7c55328",
+    "original_size": 29187,
+    "compressed_size": 7283
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/158-number_parse_float_mixed.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/158-number_parse_float_mixed.rs",
+    "kind": "diagnostic",
+    "sha256": "378699e0aba8c47335abc09252d50298c6930533b5c2226d5888c12a8a200d87",
+    "original_size": 26629,
+    "compressed_size": 6650
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/159-number_parse_float_mixed.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/159-number_parse_float_mixed.rs",
+    "kind": "diagnostic",
+    "sha256": "8f035ed668f3fda733142a4c26d6b9f215d6cbf5bee5c269993179e4ad4a8508",
+    "original_size": 29284,
+    "compressed_size": 7365
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/16-proposal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/16-proposal.json",
+    "kind": "diagnostic",
+    "sha256": "c8e812797939d28c1e03cd553e7a600ade3cdaaafa1cdb69e349062cd80d8d71",
+    "original_size": 2989,
+    "compressed_size": 1120
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/17-check-adaptation.mjs": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/17-check-adaptation.mjs",
+    "kind": "diagnostic",
+    "sha256": "0595b2634b94cd3d240ac85e4bdc2419d0955c5dcf7455a7de97e2fc88bea06b",
+    "original_size": 7070,
+    "compressed_size": 2670
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/18-number-driver.before.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/18-number-driver.before.rs",
+    "kind": "diagnostic",
+    "sha256": "fe51c80edf23df0560067a08f732b2beec4721667f20b3210b50790def97bccb",
+    "original_size": 1240,
+    "compressed_size": 524
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/19-number-driver.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/19-number-driver.rs",
+    "kind": "diagnostic",
+    "sha256": "5213db7704f714849a07b9e76c903d2ac88065e38355d47a28abbf084f5be0a2",
+    "original_size": 1337,
+    "compressed_size": 534
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/2-driver-repair-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/2-driver-repair-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "b41448a96881054d48897ed343701ebf4ddf007244fa048e9fd430a43627535d",
+    "original_size": 92068,
+    "compressed_size": 8725
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/20-adapters.mjs": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/20-adapters.mjs",
+    "kind": "diagnostic",
+    "sha256": "25e3c6317e5659a1ffd77de181a438d1f420f8f39a3db82ff5c287a5b13d5191",
+    "original_size": 18872,
+    "compressed_size": 4197
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/21-number-driver.ts": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/21-number-driver.ts",
+    "kind": "diagnostic",
+    "sha256": "da49559fced688eff36cc6296a660333457ec40586fbfd94a9567bd81f38896d",
+    "original_size": 1180,
+    "compressed_size": 544
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/22-number-observation.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/22-number-observation.rs",
+    "kind": "diagnostic",
+    "sha256": "bf8356720bc60f10628b92e890b29b48b047243eb2dcd3f8ff77eff4a6afd800",
+    "original_size": 1555,
+    "compressed_size": 612
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/23-number-observation.ts": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/23-number-observation.ts",
+    "kind": "diagnostic",
+    "sha256": "3700455fa27d4087304121a9bd17f089b78e39aedfe51f7171fdfbff02e4e064",
+    "original_size": 831,
+    "compressed_size": 443
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/24-number-observation.mjs": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/24-number-observation.mjs",
+    "kind": "diagnostic",
+    "sha256": "097f81a0141318a0f7b64be6a8569795f423dad6b612bd1afaa5b0eef45bea89",
+    "original_size": 1387,
+    "compressed_size": 702
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/25-versions.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/25-versions.json",
+    "kind": "diagnostic",
+    "sha256": "237f74c54470bdcaa3197d4699a44ed215807c7efbb7d3f1b7ff28935848eb1c",
+    "original_size": 151,
+    "compressed_size": 105
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/26-scalar-no-input-original.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/26-scalar-no-input-original.rs",
+    "kind": "diagnostic",
+    "sha256": "4d94e2bf0bb6fb15aa134a8536c3f325eefd358330aced6232777f1fc5ef1df1",
+    "original_size": 2999,
+    "compressed_size": 1144
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/27-scalar-no-input-original": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/27-scalar-no-input-original",
+    "kind": "diagnostic",
+    "sha256": "fa5f999839bc3b0f29fd392d86a08bc73dc215eb0f819965ae08f63041c1d062",
+    "original_size": 539992,
+    "compressed_size": 211261
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/28-scalar-no-input-repaired.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/28-scalar-no-input-repaired.rs",
+    "kind": "diagnostic",
+    "sha256": "91563824688cedf95bc4858f27c48aa6d5565ee5f482f6f34ec44d4f71012dbc",
+    "original_size": 3096,
+    "compressed_size": 1156
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/29-scalar-no-input-repaired": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/29-scalar-no-input-repaired",
+    "kind": "diagnostic",
+    "sha256": "4ed1030050ddc373152c957c43fc119710fc0b70cc842596ca6a86c4a09eb880",
+    "original_size": 539992,
+    "compressed_size": 211266
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/3-BENCHMARKS.md": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/3-BENCHMARKS.md",
+    "kind": "diagnostic",
+    "sha256": "a7d9ff20ba850860b26adf6f5efacfd3036a137a1822c8a482079d1c888cffcc",
+    "original_size": 912615,
+    "compressed_size": 133556
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/30-scalar-no-input.ts": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/30-scalar-no-input.ts",
+    "kind": "diagnostic",
+    "sha256": "d44eda1bb30f82ab68ec3ae1cbc8115ecef5fbb13e5c639ca71615eaff849a15",
+    "original_size": 2140,
+    "compressed_size": 926
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/31-scalar-no-input.js": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/31-scalar-no-input.js",
+    "kind": "diagnostic",
+    "sha256": "870f47e190ab95597cae5e44ceb0d1082a848e73cb94687b3d99e7d04bd36c09",
+    "original_size": 1938,
+    "compressed_size": 853
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/32-scalar-input-repaired.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/32-scalar-input-repaired.rs",
+    "kind": "diagnostic",
+    "sha256": "80dc8d518f10924f2595bd65adf41ed930677620cefa87252c182cb3e784d19a",
+    "original_size": 3232,
+    "compressed_size": 1205
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/33-scalar-input-repaired": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/33-scalar-input-repaired",
+    "kind": "diagnostic",
+    "sha256": "0121d4f1083605a2d392ac134ac2a5cea1bd3a20b0451d3614d75a2b5f1aacbe",
+    "original_size": 541016,
+    "compressed_size": 211967
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/34-scalar-input.ts": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/34-scalar-input.ts",
+    "kind": "diagnostic",
+    "sha256": "011ecec6bd739897194e267c97f47232bb218d1fe41c3fd114997fccc1e8ffb2",
+    "original_size": 2200,
+    "compressed_size": 952
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/35-scalar-input.js": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/35-scalar-input.js",
+    "kind": "diagnostic",
+    "sha256": "beda5ee91b1d5f86db30cede3ec9d7c16bfbf2dd3482b3c069de0f63c4661fe0",
+    "original_size": 1990,
+    "compressed_size": 876
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/36-array-no-input-original.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/36-array-no-input-original.rs",
+    "kind": "diagnostic",
+    "sha256": "a78b585e6ec4b78d1ca0f29e180c77c3216a0391e871fb6352de6e6d2f9b7758",
+    "original_size": 3018,
+    "compressed_size": 1138
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/37-array-no-input-original": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/37-array-no-input-original",
+    "kind": "diagnostic",
+    "sha256": "8058b9bc362e4846bcb7f61574672082375276183e48fd545caa2ff5ebae25d5",
+    "original_size": 540472,
+    "compressed_size": 211600
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/38-array-no-input-repaired.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/38-array-no-input-repaired.rs",
+    "kind": "diagnostic",
+    "sha256": "b05203ffa63110c52bf68251f38fc3af932eebbc2d2cfb246e7b23325037966c",
+    "original_size": 3115,
+    "compressed_size": 1149
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/39-array-no-input-repaired": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/39-array-no-input-repaired",
+    "kind": "diagnostic",
+    "sha256": "cf28e20db7676704a6e2794cef4cf8664721b251697de0075322a3806393e17e",
+    "original_size": 540472,
+    "compressed_size": 211596
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/4-BENCHMARKS.md": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/4-BENCHMARKS.md",
+    "kind": "diagnostic",
+    "sha256": "1f99f4d1ba3c25f8563cdaec7b5b9aa2dd0b44dbf8efff9df928eca6ffb79501",
+    "original_size": 901851,
+    "compressed_size": 132036
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/40-array-no-input.ts": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/40-array-no-input.ts",
+    "kind": "diagnostic",
+    "sha256": "68d2603167a365b758b21a7c48d9dc282f2676deb2fee6aa2387f2f23dede477",
+    "original_size": 2166,
+    "compressed_size": 923
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/41-array-no-input.js": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/41-array-no-input.js",
+    "kind": "diagnostic",
+    "sha256": "65ad869cf4d96bdad2f44355690a47c606c5b7240f89c6a03dfe8e066ad6663f",
+    "original_size": 1963,
+    "compressed_size": 849
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/42-array-input-repaired.rs": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/42-array-input-repaired.rs",
+    "kind": "diagnostic",
+    "sha256": "5efd6a1e42f4a7f01996724b82c5e073b6e5e049c83d617037a3f070aab5cdcc",
+    "original_size": 3251,
+    "compressed_size": 1197
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/43-array-input-repaired": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/43-array-input-repaired",
+    "kind": "diagnostic",
+    "sha256": "e88e48b3f44ccb7157673ec167fdaaddc011a81904846fbcca94648baddb4f85",
+    "original_size": 541496,
+    "compressed_size": 212377
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/44-array-input.ts": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/44-array-input.ts",
+    "kind": "diagnostic",
+    "sha256": "ae2b461944bb650a75c84a0b940068a8f860a5e0efdddc5daaff59c011c15ae7",
+    "original_size": 2224,
+    "compressed_size": 950
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/45-array-input.js": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/45-array-input.js",
+    "kind": "diagnostic",
+    "sha256": "1457c2d52e832453d44ed30473d3f526529aca43cbbdee739159815786fa8191",
+    "original_size": 2015,
+    "compressed_size": 869
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/46-driver.diff": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/46-driver.diff",
+    "kind": "diagnostic",
+    "sha256": "4ed778ac6350940f713f98c6c6c5b92314a90248c2fb6a8bdee40f52ea6d4bfa",
+    "original_size": 1363,
+    "compressed_size": 484
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/47-proposal.before-ts-binding-repair.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/47-proposal.before-ts-binding-repair.json",
+    "kind": "diagnostic",
+    "sha256": "3cf9ed37e56dd466951330973d1b05c330580823f132b66dd4604eb7578ab24b",
+    "original_size": 2098,
+    "compressed_size": 814
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/48-fixture-ts-binding-repair.diff": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/48-fixture-ts-binding-repair.diff",
+    "kind": "diagnostic",
+    "sha256": "74a7ff707d814a2bfa859673e781ec0cb5cd7d8d997b4451461e8bacb694232c",
+    "original_size": 3462,
+    "compressed_size": 1313
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/49-check-adaptation.before-ts-binding-repair.mjs": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/49-check-adaptation.before-ts-binding-repair.mjs",
+    "kind": "diagnostic",
+    "sha256": "8e44baed14e7d4d86396748cb30ef1a7e4e5d0704fe0d7efaf7f76683f2e0a34",
+    "original_size": 7137,
+    "compressed_size": 2663
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/5-report-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/5-report-start.json",
+    "kind": "diagnostic",
+    "sha256": "18144269cf7609a6af6ed3826c601d23c315b685d4209bb34ca598254726033d",
+    "original_size": 258,
+    "compressed_size": 195
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/50-check-adaptation.before-abi-witness.mjs": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/50-check-adaptation.before-abi-witness.mjs",
+    "kind": "diagnostic",
+    "sha256": "695a6911ee1a4ed88afe7685f79a47d98f2c93417eafefaa271628eb67073c1b",
+    "original_size": 7057,
+    "compressed_size": 2666
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/51-proposal.before-abi-witness.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/51-proposal.before-abi-witness.json",
+    "kind": "diagnostic",
+    "sha256": "22cea9f82a2e16bb45e3e41519cd5b264938343bff6f049b0de162634fc06949",
+    "original_size": 2653,
+    "compressed_size": 977
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/52-driver-compatibility-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/52-driver-compatibility-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "e83d3b86ec48947b5fd419d66f6b2e205cebaf2f58556c46c9cd2e4a8907324b",
+    "original_size": 555,
+    "compressed_size": 325
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/53-driver-compatibility.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/53-driver-compatibility.log",
+    "kind": "diagnostic",
+    "sha256": "4cac57357deb44c9e4e4fa44fcc69193fc5bccc4a84d133d3a5ffb660237f425",
+    "original_size": 857,
+    "compressed_size": 417
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/54-driver-compatibility-2-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/54-driver-compatibility-2-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "2a4254a025d9b48d997b327f8f3963c9a943dcd017b84e0439420748ba8adb5d",
+    "original_size": 559,
+    "compressed_size": 328
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/55-driver-compatibility-2.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/55-driver-compatibility-2.log",
+    "kind": "diagnostic",
+    "sha256": "f01f9cd5b2f70c08470a99d3f391e614b7862a2587d502306448df01325d0be7",
+    "original_size": 118,
+    "compressed_size": 112
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/56-scalar-no-input-original-build.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/56-scalar-no-input-original-build.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/57-scalar-no-input-original-build.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/57-scalar-no-input-original-build.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/58-scalar-no-input-original-0-0.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/58-scalar-no-input-original-0-0.stdout",
+    "kind": "diagnostic",
+    "sha256": "75895135d5825438085a352248c90d5864c4fc08746b146ce1e83fe8e0676fc9",
+    "original_size": 76,
+    "compressed_size": 70
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/59-scalar-no-input-original-0-0.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/59-scalar-no-input-original-0-0.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/6-profiles.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/6-profiles.log",
+    "kind": "diagnostic",
+    "sha256": "01b284136f882ca8a4259f126d13f8025bd725532ffa194a0d879a256731f6bc",
+    "original_size": 553,
+    "compressed_size": 210
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/60-scalar-no-input-original-17-1.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/60-scalar-no-input-original-17-1.stdout",
+    "kind": "diagnostic",
+    "sha256": "e8c791d56af3ca3abab82981ff7c66594b5cccec7611b67c1a28890356dc79bc",
+    "original_size": 77,
+    "compressed_size": 75
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/61-scalar-no-input-original-17-1.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/61-scalar-no-input-original-17-1.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/62-scalar-no-input-repaired-build.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/62-scalar-no-input-repaired-build.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/63-scalar-no-input-repaired-build.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/63-scalar-no-input-repaired-build.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/64-scalar-no-input-repaired-0-2.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/64-scalar-no-input-repaired-0-2.stdout",
+    "kind": "diagnostic",
+    "sha256": "75895135d5825438085a352248c90d5864c4fc08746b146ce1e83fe8e0676fc9",
+    "original_size": 76,
+    "compressed_size": 70
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/65-scalar-no-input-repaired-0-2.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/65-scalar-no-input-repaired-0-2.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/66-scalar-no-input-repaired-17-3.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/66-scalar-no-input-repaired-17-3.stdout",
+    "kind": "diagnostic",
+    "sha256": "e8c791d56af3ca3abab82981ff7c66594b5cccec7611b67c1a28890356dc79bc",
+    "original_size": 77,
+    "compressed_size": 75
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/67-scalar-no-input-repaired-17-3.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/67-scalar-no-input-repaired-17-3.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/68-scalar-no-input-tsc.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/68-scalar-no-input-tsc.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/69-scalar-no-input-tsc.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/69-scalar-no-input-tsc.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/7-report.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/7-report.log",
+    "kind": "diagnostic",
+    "sha256": "a3a0d3b911bb28198da95b0f3c1dd5a2e15c3e79474e1e9b03e9f6f247fecc04",
+    "original_size": 68,
+    "compressed_size": 76
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/70-scalar-no-input-0-4.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/70-scalar-no-input-0-4.stdout",
+    "kind": "diagnostic",
+    "sha256": "fe9f29a48594d15767681d5a0ebbc41ea3be21ddba4f0cb7bdbb61b7dfbbb442",
+    "original_size": 91,
+    "compressed_size": 78
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/71-scalar-no-input-0-4.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/71-scalar-no-input-0-4.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/72-scalar-no-input-17-5.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/72-scalar-no-input-17-5.stdout",
+    "kind": "diagnostic",
+    "sha256": "76c8e002f383821f4dcaaf92e510333f01f96c24a6d16d42f0f2fd00507d2e78",
+    "original_size": 92,
+    "compressed_size": 81
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/73-scalar-no-input-17-5.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/73-scalar-no-input-17-5.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/74-scalar-input-repaired-build.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/74-scalar-input-repaired-build.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/75-scalar-input-repaired-build.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/75-scalar-input-repaired-build.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/76-scalar-input-repaired-0-6.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/76-scalar-input-repaired-0-6.stdout",
+    "kind": "diagnostic",
+    "sha256": "fccf1114a8f3db61c5eb2e07d547122b6a5d0e980c3f72b758720ad73e54ae1f",
+    "original_size": 76,
+    "compressed_size": 70
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/77-scalar-input-repaired-0-6.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/77-scalar-input-repaired-0-6.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/78-scalar-input-repaired-0-7.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/78-scalar-input-repaired-0-7.stdout",
+    "kind": "diagnostic",
+    "sha256": "75895135d5825438085a352248c90d5864c4fc08746b146ce1e83fe8e0676fc9",
+    "original_size": 76,
+    "compressed_size": 70
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/79-scalar-input-repaired-0-7.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/79-scalar-input-repaired-0-7.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/8-driver-repair-application.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/8-driver-repair-application.json",
+    "kind": "diagnostic",
+    "sha256": "77275e987c8b273fb21398cfeba51dd8284b8805bab6766fcb44f1564b465e27",
+    "original_size": 488,
+    "compressed_size": 329
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/80-scalar-input-repaired-0-8.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/80-scalar-input-repaired-0-8.stdout",
+    "kind": "diagnostic",
+    "sha256": "fccf1114a8f3db61c5eb2e07d547122b6a5d0e980c3f72b758720ad73e54ae1f",
+    "original_size": 76,
+    "compressed_size": 70
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/81-scalar-input-repaired-0-8.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/81-scalar-input-repaired-0-8.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/82-scalar-input-repaired-17-9.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/82-scalar-input-repaired-17-9.stdout",
+    "kind": "diagnostic",
+    "sha256": "63f1c94302e634b7bed79afac5005bd60df606560fd801e89093be7d2a80bfec",
+    "original_size": 93,
+    "compressed_size": 80
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/83-scalar-input-repaired-17-9.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/83-scalar-input-repaired-17-9.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/84-scalar-input-repaired-17-10.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/84-scalar-input-repaired-17-10.stdout",
+    "kind": "diagnostic",
+    "sha256": "f1e9e4034d655d205ddd2d0065de81b5138872c82e7b3769d30dd6044347d0ea",
+    "original_size": 77,
+    "compressed_size": 75
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/85-scalar-input-repaired-17-10.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/85-scalar-input-repaired-17-10.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/86-scalar-input-repaired-17-11.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/86-scalar-input-repaired-17-11.stdout",
+    "kind": "diagnostic",
+    "sha256": "1c2e79657194c79f4e0938c9340ce8641a6741f39865530de1dbd73dc71940f3",
+    "original_size": 77,
+    "compressed_size": 75
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/87-scalar-input-repaired-17-11.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/87-scalar-input-repaired-17-11.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/88-scalar-input-tsc.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/88-scalar-input-tsc.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/89-scalar-input-tsc.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/89-scalar-input-tsc.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/9-profiles-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/9-profiles-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "f05c35f1562d666d95320716fc22f186d5fe3d59fe1a2750a62d51949969e4d6",
+    "original_size": 660,
+    "compressed_size": 380
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/90-scalar-input-0-12.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/90-scalar-input-0-12.stdout",
+    "kind": "diagnostic",
+    "sha256": "fef19f3987ec9c120952ee49bc99e9c873d1e02bd9aea0bddd6fe26b65975b89",
+    "original_size": 91,
+    "compressed_size": 76
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/91-scalar-input-0-12.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/91-scalar-input-0-12.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/92-scalar-input-0-13.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/92-scalar-input-0-13.stdout",
+    "kind": "diagnostic",
+    "sha256": "4b8143b424b8de7b95b187f8e340adc457143adfa3ab711fdf32058d3cca1c7b",
+    "original_size": 91,
+    "compressed_size": 78
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/93-scalar-input-0-13.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/93-scalar-input-0-13.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/94-scalar-input-0-14.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/94-scalar-input-0-14.stdout",
+    "kind": "diagnostic",
+    "sha256": "fe9f29a48594d15767681d5a0ebbc41ea3be21ddba4f0cb7bdbb61b7dfbbb442",
+    "original_size": 91,
+    "compressed_size": 78
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/95-scalar-input-0-14.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/95-scalar-input-0-14.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/96-scalar-input-17-15.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/96-scalar-input-17-15.stdout",
+    "kind": "diagnostic",
+    "sha256": "779a026aabc850ad188a3a22d498e6553b2d4d979c4601e902376217653d1e57",
+    "original_size": 90,
+    "compressed_size": 82
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/97-scalar-input-17-15.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/97-scalar-input-17-15.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/98-scalar-input-17-16.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/98-scalar-input-17-16.stdout",
+    "kind": "diagnostic",
+    "sha256": "bbc9028fc42c33f1e8279adfea9d649c789c053b7b8bbc9f658b3d22a1f50caa",
+    "original_size": 92,
+    "compressed_size": 84
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/99-scalar-input-17-16.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-artifacts/99-scalar-input-17-16.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-proof-closure-artifacts/archive.py": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-proof-closure-artifacts/archive.py",
+    "kind": "diagnostic",
+    "sha256": "2277098144adecca6f535629653601062a4511efccf61af39b93747e20ae46b3",
+    "original_size": 10088,
+    "compressed_size": 3560
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-proof-closure-artifacts/close-docs.py": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-proof-closure-artifacts/close-docs.py",
+    "kind": "diagnostic",
+    "sha256": "ad0b87f3b6cdfccf6817bf0127c3e63f8b686b1d7cb34e262de4d8656faf689c",
+    "original_size": 8670,
+    "compressed_size": 3512
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-proof-closure-artifacts/completed-acceptance.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-proof-closure-artifacts/completed-acceptance.json",
+    "kind": "diagnostic",
+    "sha256": "bf2e7fe7b5d2b7851bee191ff5250e50267dfd5a98736269b76bb2511f8994d6",
+    "original_size": 3535,
+    "compressed_size": 1495
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-proof-closure-artifacts/docs-closure-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-proof-closure-artifacts/docs-closure-start.json",
+    "kind": "diagnostic",
+    "sha256": "7459ba89036b0363c40c7ea43437b457a0f566bbca8ee10e4d46391a45a7953d",
+    "original_size": 214,
+    "compressed_size": 172
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-proof-closure-artifacts/docs-closure-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-proof-closure-artifacts/docs-closure-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "265e9873159238843fb7694a5de3b3b9a24f227b99e60441678b846ed826b938",
+    "original_size": 423,
+    "compressed_size": 276
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-proof-closure-artifacts/docs-closure.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-proof-closure-artifacts/docs-closure.log",
+    "kind": "diagnostic",
+    "sha256": "f819548eacac2c1336db8e5f0566938ea50c69100403dfdd9097d24a0e00b323",
+    "original_size": 150,
+    "compressed_size": 130
+  }
+}

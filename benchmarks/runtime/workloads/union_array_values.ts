@@ -1,0 +1,11 @@
+type int = number;
+function workload(n: int, seed: int, input: string): string[][] {
+ const output: string[][] = [];  let i = 0;
+ while (i < n) { const base = (i * 13 + seed) % 97; const mode = (i + seed) % 3;
+  const values: (int | string | null)[] = [base, input.repeat(mode), null];
+  if (mode === 0) { values.push("tail"); } else { values.push(base + 1); }
+  let sum = 0; let text = "";
+  for (const value of values) { if (typeof value === "number") { sum += value; } else if (typeof value === "string") { text += value; } }
+  output.push([String(sum), text, values.join("|"), String(values.includes(null)), String(values.indexOf(base + 1)), String(values.at(-1)), String(values.filter((value) => typeof value === "string").length)]); i = i + 1; } return output;
+}
+function main() { const result = workload(3, 0, "abc"); }

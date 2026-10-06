@@ -1,0 +1,10 @@
+type User = { name: string; };
+
+function make(user: User): () => User {
+    return (): User => { return user; };
+}
+function main() {
+    const get = make({ name: "Pat" });
+    const saved = get();
+    console.log(saved.name);
+}

@@ -1,0 +1,15 @@
+type User = { name: string; };
+
+function main() {
+    const outer = (user: User): void => {
+        if (true) {
+            const rename = (): void => { user.name = "Sam"; };
+            rename();
+        }
+        console.log(user.name);
+    };
+    const user: User = { name: "Pat" };
+    outer(user);
+    console.log(user.name);
+    outer({ name: "Jo" });
+}

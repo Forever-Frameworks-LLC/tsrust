@@ -1,0 +1,133 @@
+{
+  "gate": 63,
+  "kind": "documentation-only-postclosure-supplement",
+  "timestamp": "2026-10-02T17:09:40.823031+00:00",
+  "compilerProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T16-53-53-000Z-compound-assignment-compiler-proof.json",
+    "sha256": "2b88281d5a7e56d28dca3ee17f168eb94c47e7d625a3b01e4b7bfe0df903e03b"
+  },
+  "sourceProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T16-38-33-000Z-compound-source-validation.json",
+    "sha256": "be645d3ec7cb87e3d2eba1e6797cd1026138ef1d933ad399302301a6eb3ac5ac"
+  },
+  "runtimeProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T17-06-35-000Z-compound-assignment-runtime-proof.json",
+    "sha256": "8a0cfa6d9447b9fe9fdad44cc5df353b6cf02f3fac8f0f5d19508cf564db55d4"
+  },
+  "files": [
+    {
+      "path": "docs/milestones/63-compound-assignment.md",
+      "beforeSha256": "f925c541de9f6403613ff45c9ce7a233e1d3d065114d3f8f8feb8872d17b31e1",
+      "afterSha256": "f3ed6380050560f33e50071ddaa8082b6113fadeba46ae14e62ad121844b131f"
+    },
+    {
+      "path": "docs/roadmap.md",
+      "beforeSha256": "082c9bcdf95e310cd9e2a87458a8e207cc1ff48d4d6830b8d2be2d756f02e774",
+      "afterSha256": "b539ead313a4cd9d0e98bfab27930f179d639976e12cc565d9cf71a5dee5df6d"
+    },
+    {
+      "path": "crates/tsrust-compiler/README.md",
+      "beforeSha256": "7db393bace1114998dedda8bde9cab8e28834c979daa58dde9c24265c54eaa11",
+      "afterSha256": "d80066b3ec6891d3edf234d82d3f446a6e8a7cffe1c2d8b72596a7f6c9e6dfbc"
+    },
+    {
+      "path": "benchmarks/runtime/README.md",
+      "beforeSha256": "09d6967e86338f0e1029ddff2193689645b88e5aed25faff1856457d837938c0",
+      "afterSha256": "e85bc9f2b886b3e0b4ca6bc2be08488d5a3b4d9a4362b5d6d44b2220a6895a51"
+    },
+    {
+      "path": "docs/string-semantics.md",
+      "beforeSha256": "85c336596f84b0337d654562cd4a2b412109dd04f31694f77a7a036da0093240",
+      "afterSha256": "ea6fdeb815218d30ca7ef71ae3c04f4e96017fcf7dc40ef5c244d5e7929480bd"
+    },
+    {
+      "path": "benchmarks/coverage/language.json",
+      "beforeSha256": "83c375746abf7b7f73e7230c74dfbed2b4ada452e15d3c47aaa98e3e768e1861",
+      "afterSha256": "d6ac2eb609cb6fcb9fd078f8f61db2b1e16176ceb9357651a5264f23803f4827"
+    },
+    {
+      "path": "benchmarks/coverage/status.json",
+      "beforeSha256": "93a76864e9dbf11bacf1f4a0e928cebb98043369131003f2ba39b61aa1bdd5c1",
+      "afterSha256": "6a0236c81def63363457e0159c8ee69af3b6e19a30154072fc8670f21716c7bb"
+    },
+    {
+      "path": "docs/feature-coverage.md",
+      "beforeSha256": "925318624df01c31ac04abdfc13804d6c0cfb04b32422e749cc81f2ea4927644",
+      "afterSha256": "7d5ec020fbc9315c9fe07419c7685f0fc2dd778bd7ceab92ac5dec69d44a058e"
+    },
+    {
+      "path": "benchmarks/coverage/inventory.json",
+      "beforeSha256": "cd8cd6c71e8ed80d91e91d6bc3fa2e6e9855d3cb96b3f23a8539ff29be4ee1f7",
+      "afterSha256": "1a7fca7b0d4145311fde86e170e0c58ebe5d1da43930eafdfa685ec0cf98a960"
+    }
+  ],
+  "inventoryOperations": 1886,
+  "inventoryFamilies": 28,
+  "compilerCodeChanged": false,
+  "measurementsRepeatedByDocumentationClosure": false,
+  "measurementHistory": {
+    "acceptedRecordSuppliesAllPublishedRates": true,
+    "interruptedAttemptExcluded": true,
+    "firstAttemptTerminalExitCode": -15,
+    "noInterruptedTimingRecordPublished": true,
+    "confirmedCompletedWorkloadProcesses": [
+      "compound_int_add/process1"
+    ],
+    "additionalPartialMeasurements": "Unknown; process interrupted before durable result write.",
+    "reason": "Required execution-only flag omitted. Interrupted after first workload/process measurement completed; partial timing/startup/compilation results were not published and are excluded.",
+    "durableArtifacts": [
+      {
+        "originalPath": "/tmp/tsrust-gate63-runtime-stopped.json",
+        "path": "benchmarks/runtime/diagnostics/2026-10-02T17-06-35-000Z-compound-assignment-runtime-artifacts/5-tsrust-gate63-runtime-stopped.json",
+        "sha256": "6194a6c7959a08853e54335a4eb2b21ce38c34cebb4477dda5bb365ccd288ad4"
+      },
+      {
+        "originalPath": "/tmp/tsrust-gate63-runtime-attempt1/tsrust-gate63-runtime-terminal.json",
+        "path": "benchmarks/runtime/diagnostics/2026-10-02T17-06-35-000Z-compound-assignment-runtime-artifacts/6-tsrust-gate63-runtime-terminal.json",
+        "sha256": "6572b94ef3e846981cf98c12a465eafc24715bb7d4223a813b26d7abc01395d0"
+      },
+      {
+        "originalPath": "/tmp/tsrust-gate63-runtime-attempt1/tsrust-gate63-runtime.log",
+        "path": "benchmarks/runtime/diagnostics/2026-10-02T17-06-35-000Z-compound-assignment-runtime-artifacts/7-tsrust-gate63-runtime.log",
+        "sha256": "8bccb7d1fe734baa0549a693890b1997875709eb768a31c545d12f97ae2eb7a5"
+      }
+    ]
+  },
+  "closureArtifacts": [
+    {
+      "originalPath": "/tmp/tsrust-gate63-close-docs.py",
+      "path": "benchmarks/runtime/diagnostics/2026-10-02T17-06-35-000Z-compound-assignment-runtime-proof-closure-artifacts/tsrust-gate63-close-docs.py",
+      "sha256": "5a031feedb29903b8aeebe159f066ca958814b0c352db90a23d51afd12b1e59c"
+    },
+    {
+      "originalPath": "/tmp/tsrust-gate63-root-acceptance/native-preflight-terminal.json",
+      "path": "benchmarks/runtime/diagnostics/2026-10-02T17-06-35-000Z-compound-assignment-runtime-proof-closure-artifacts/native-preflight-terminal.json",
+      "sha256": "78a3591ad2929eeb953e08366a385ea382449a167b018b01c843d8b2baea78ee"
+    },
+    {
+      "originalPath": "/tmp/tsrust-gate63-root-acceptance/native-preflight.log",
+      "path": "benchmarks/runtime/diagnostics/2026-10-02T17-06-35-000Z-compound-assignment-runtime-proof-closure-artifacts/native-preflight.log",
+      "sha256": "886cb1446c7895b4a47341cc07755256574c9e57c4216b58b899b98f29d76cc4"
+    }
+  ],
+  "nativePreflightOwner": {
+    "gate": 63,
+    "argv": [
+      "/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node",
+      "/tmp/tsrust-gate63-native-source-plan/preflight.mjs",
+      "--release-sha=581c4e8ec4b928d36b49a18f231263ba01b5a3e0f23efacf9379eee6a3c34e98",
+      "--source-proof=/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T16-38-33-000Z-compound-source-validation.json",
+      "--source-proof-sha=be645d3ec7cb87e3d2eba1e6797cd1026138ef1d933ad399302301a6eb3ac5ac",
+      "--output=/tmp/tsrust-gate63-native-preflight",
+      "--fixture-source=/tmp/tsrust-gate63-compound-benchmarks/source-order.tsr",
+      "--fixture-expected=/tmp/tsrust-gate63-compound-benchmarks/source-order-expected.txt"
+    ],
+    "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+    "pid": 25182,
+    "startedUtc": "2026-10-02T16:54:17.964624+00:00",
+    "finishedUtc": "2026-10-02T16:54:38.978632+00:00",
+    "exitCode": 0,
+    "log": "/tmp/tsrust-gate63-root-acceptance/native-preflight.log",
+    "logSha256": "886cb1446c7895b4a47341cc07755256574c9e57c4216b58b899b98f29d76cc4"
+  }
+}

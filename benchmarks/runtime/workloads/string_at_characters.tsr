@@ -1,0 +1,6 @@
+function workload(n: int, seed: int, input: string): string[][] {
+ const output: string[][] = [];  let i = 0;
+ while (i < n) { const mode = (i + seed) % 3; const text = input.repeat(mode);
+ output.push([text.at(i % 7) ?? "none", text.at(-1 - mode) ?? "none"]); i = i + 1; } return output;
+}
+function main() { const result = workload(3, 0, "abc"); }

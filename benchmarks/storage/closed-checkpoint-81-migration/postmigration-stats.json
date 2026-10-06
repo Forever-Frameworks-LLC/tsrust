@@ -1,0 +1,43 @@
+{
+  "gate": 81,
+  "completedGates": [
+    77,
+    78,
+    79,
+    80,
+    81
+  ],
+  "records": 18538,
+  "blobs": 12674,
+  "databaseBytes": 126795776,
+  "databaseSha256": "a7f9f07f8bfe89e9ac2d08d0cd721aa97d4285f3924abc185ade15ecb00bf6c2",
+  "databaseGrowthBytes": 2670592,
+  "files": 748,
+  "originalLogicalBytes": 17390204,
+  "originalAllocatedBytes": 19144704,
+  "grossAllocatedBytesReclaimed": 16474112,
+  "cumulativeGrossAllocatedBytesReclaimed": 1537679360,
+  "protectedFilesExact": 517,
+  "priorOriginalBytesRehashed": false,
+  "artifactDirectories": [
+    "runtime/diagnostics/2026-10-03T05-33-34-000Z-quoted-string-literals-source-validation-artifacts",
+    "runtime/diagnostics/2026-10-03T05-42-17-000Z-builtin-documentation-examples-artifacts",
+    "runtime/diagnostics/2026-10-03T05-56-16-000Z-quoted-string-literals-implementation-artifacts",
+    "runtime/diagnostics/2026-10-03T06-19-03-000Z-template-literals-implementation-artifacts",
+    "runtime/diagnostics/2026-10-03T06-37-34-000Z-split-storage-implementation-artifacts",
+    "runtime/diagnostics/2026-10-03T06-58-56-000Z-string-substr-implementation-artifacts",
+    "runtime/diagnostics/2026-10-03T07-15-42-000Z-string-html-wrappers-implementation-artifacts",
+    "runtime/diagnostics/2026-10-03T08-24-00-000Z-checkpoint81-regression-artifacts",
+    "runtime/diagnostics/2026-10-03T08-44-00-000Z-checkpoint81-runtime-artifacts",
+    "runtime/diagnostics/2026-10-03T08-45-55-000Z-checkpoint81-completed-artifacts",
+    "runtime/diagnostics/2026-10-03T08-45-55-000Z-checkpoint81-completed-proof-closure-artifacts"
+  ],
+  "completedCertificate": {
+    "path": "/private/tmp/tsrust-gate81/completed-acceptance.json",
+    "sha256": "e5c789d8865326494f85de306b8a63483ea1a83c6f9a97a0a5c49fd2b362c4a0"
+  },
+  "checkpointProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T08-45-55-000Z-checkpoint81-completed-proof.json",
+    "sha256": "0a279c90deaee0976ff32742fb52f7cdb3f69b087c717b832df0aa272576144f"
+  }
+}

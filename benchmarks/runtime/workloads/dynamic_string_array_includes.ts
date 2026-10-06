@@ -1,0 +1,19 @@
+function rustTrim(text: string): string { return text.replace(/^\p{White_Space}+|\p{White_Space}+$/gu, ""); }
+type int = number;
+function workload(n: int, seed: int, input: string): int {
+    const values: string[] = []; let j = 0;
+    while (j < 129) {
+        if ((j * 37 + seed) % 101 < 100) { values.push(rustTrim(input).toLowerCase()); }
+        else { values.push(rustTrim(input)); }
+        j = j + 1;
+    }
+    let sum = seed; let i = 0;
+    while (i < n) {
+        const choice = (i + seed) % 3; const from = (i * 13 + seed) % 387 - 193;
+        if (choice === 0) { if (values.includes("label å", from)) { sum = sum + 1; } }
+        else { if (choice === 1) { if (values.includes("Label Å", from)) { sum = sum + 1; } } else { if (values.includes("label ö", from)) { sum = sum + 1; } } }
+        i = i + 1;
+    }
+    return sum;
+}
+function main() { console.log(workload(2, 7, "  Label Å  ")); }

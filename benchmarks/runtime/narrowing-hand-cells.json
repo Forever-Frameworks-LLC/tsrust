@@ -1,0 +1,204 @@
+[
+  {
+    "id": "narrowing_int",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      0,
+      0
+    ]
+  },
+  {
+    "id": "narrowing_int",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      1,
+      0
+    ]
+  },
+  {
+    "id": "narrowing_int",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      2,
+      2
+    ]
+  },
+  {
+    "id": "narrowing_number",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      0,
+      0
+    ]
+  },
+  {
+    "id": "narrowing_number",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      1,
+      0
+    ]
+  },
+  {
+    "id": "narrowing_number",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      2,
+      0.5
+    ]
+  },
+  {
+    "id": "narrowing_number",
+    "n": 1,
+    "seed": 11,
+    "expected": [
+      2,
+      0
+    ],
+    "negativeZeroIndex": 1,
+    "expectedExactBits": "a:4000000000000000,8000000000000000"
+  },
+  {
+    "id": "narrowing_boolean",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      false,
+      false
+    ]
+  },
+  {
+    "id": "narrowing_boolean",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      false,
+      true
+    ]
+  },
+  {
+    "id": "narrowing_boolean",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      true,
+      true
+    ]
+  },
+  {
+    "id": "narrowing_boolean",
+    "n": 1,
+    "seed": 5,
+    "expected": [
+      true,
+      false
+    ]
+  },
+  {
+    "id": "narrowing_string",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "null",
+      ""
+    ]
+  },
+  {
+    "id": "narrowing_string",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "undefined",
+      ""
+    ]
+  },
+  {
+    "id": "narrowing_string",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "payload",
+      "é😀é!"
+    ]
+  },
+  {
+    "id": "narrowing_string",
+    "n": 1,
+    "seed": 8,
+    "expected": [
+      "payload",
+      "﻿\u0000!"
+    ]
+  },
+  {
+    "id": "narrowing_array",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "null",
+      ""
+    ]
+  },
+  {
+    "id": "narrowing_array",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "undefined",
+      ""
+    ]
+  },
+  {
+    "id": "narrowing_array",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "payload",
+      "2é|0"
+    ]
+  },
+  {
+    "id": "narrowing_record",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "null",
+      ""
+    ]
+  },
+  {
+    "id": "narrowing_record",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "undefined",
+      ""
+    ]
+  },
+  {
+    "id": "narrowing_record",
+    "n": 1,
+    "seed": 2,
+    "input": "﻿é\u0000😀",
+    "expected": [
+      "2",
+      "﻿é\u0000😀!"
+    ]
+  },
+  {
+    "id": "narrowing_string",
+    "n": 1,
+    "seed": 5,
+    "input": "",
+    "expected": [
+      "payload",
+      "!"
+    ]
+  }
+]

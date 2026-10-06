@@ -1,0 +1,12 @@
+0
+1
+7
+1,2
+false
+-Infinity
+true
+0
+0
+null
+object
+1

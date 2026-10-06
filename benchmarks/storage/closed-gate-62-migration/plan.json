@@ -1,0 +1,16 @@
+{
+  "closedProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-proof.json",
+    "sha256": "21c47032d22bbe3d5f7b9104c7ac7b38b905f29b1353c19cf5d124af8ad487f1"
+  },
+  "completedAcceptance": {
+    "path": "/tmp/tsrust-gate62-completed-acceptance.json",
+    "sha256": "d6c7226e0cbf664377d22206cdd4e88f3a43487f53bc8cb2e447071511fe4f56"
+  },
+  "paths": [
+    "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts",
+    "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts",
+    "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts",
+    "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts"
+  ]
+}

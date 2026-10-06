@@ -1,0 +1,8 @@
+{
+  "exactPathsAndBytes": 394,
+  "independentBlobChecks": 358,
+  "closedProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T14-57-40-000Z-string-last-index-of-runtime-proof.json",
+    "sha256": "4e92721519d011904611337aa7538ff656c9906b46dc323a3c6d7eb5f8e5e5fe"
+  }
+}

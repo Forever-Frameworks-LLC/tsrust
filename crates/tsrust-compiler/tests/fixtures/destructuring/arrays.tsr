@@ -1,0 +1,22 @@
+function make(): string[] {
+    return ["x", "yy", "zzz"];
+}
+
+function keep(value: string): string {
+    return value;
+}
+
+function main() {
+    const words = ["alpha", "be"];
+    {
+        const [a, b] = words;
+        console.log(a, b.length, keep(clone(a)));
+    }
+
+    const [x,, z] = make();
+    console.log(x + z, words.length);
+    const rows = [["a", "b"], ["c"]];
+    for (const [head] of rows) {
+        console.log(head);
+    }
+}

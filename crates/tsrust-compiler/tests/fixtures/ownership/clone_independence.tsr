@@ -1,0 +1,10 @@
+type User = { name: string; };
+
+function rename(user: User) { user.name = "Sam"; }
+function main() {
+    const user: User = { name: "Pat" };
+    const backup = clone(user);
+    rename(backup);
+    console.log(user.name);
+    console.log(backup.name);
+}

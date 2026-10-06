@@ -1,0 +1,21 @@
+{
+  "closedProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T00-15-54-000Z-string-concat-padding-runtime-proof.json",
+    "sha256": "8d1f991fb5d2f80e04ecb227a73258a04c4b177cf7e2e8b9abdeb7ebc6b53985"
+  },
+  "paths": [
+    "runtime/diagnostics/2026-10-03T00-07-33-000Z-string-concat-padding-compiler-proof-artifacts",
+    "runtime/diagnostics/2026-10-02T23-57-28-000Z-string-concat-padding-source-validation-artifacts",
+    "runtime/diagnostics/2026-10-03T00-15-54-000Z-string-concat-padding-runtime-artifacts",
+    "runtime/diagnostics/2026-10-03T00-15-54-000Z-string-concat-padding-runtime-proof-closure-artifacts"
+  ],
+  "completedAcceptance": {
+    "path": "/private/tmp/tsrust-gate70-completed-acceptance.json",
+    "sha256": "79b606a625b5d19ae8aaa22a1c0ab1fd19c92b321823a97540e9afd8e0a2a8ca"
+  },
+  "allConsumersFinishedBeforeCompaction": true,
+  "sourcePackagingRepair": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T23-57-28-000Z-string-concat-padding-source-validation-artifacts/packaging-repair/repair.json",
+    "sha256": "3c450649bee1aab286775d835f39e69922ce72dd863c30e702c22618a3ba6530"
+  }
+}

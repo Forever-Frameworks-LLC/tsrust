@@ -1,0 +1,6 @@
+function rhs(values: int[], count: int): int { values[0] = 9; values.push(17); return count; }
+function shiftLeft(values: int[]): int { values[0] <<= rhs(values, 64); return values[0]; }
+function shiftRight(values: int[]): int { values[0] >>= rhs(values, 64); return values[0]; }
+function logicalShift(values: int[]): int { values[0] >>>= rhs(values, 64); return values[0]; }
+function power(values: int[]): int { values[0] **= rhs(values, 63); return values[0]; }
+function main() {}

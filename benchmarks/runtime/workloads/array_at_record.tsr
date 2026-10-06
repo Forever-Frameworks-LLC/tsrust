@@ -1,0 +1,23 @@
+type AtRecord = { id: int; label: string; };
+function workload(n: int, seed: int, input: string): string[] {
+    const output: string[] = []; let i = 0;
+    while (i < n) {
+        const count = (i + seed) % 4;
+        const values: AtRecord[] = [];
+        if (count > 0) { values.push({ id: seed, label: input.repeat(1) }); }
+        if (count > 1) { values.push({ id: seed + 1, label: input.concat("!") }); }
+        if (count > 2) { values.push({ id: seed + 2, label: "é😀e\u0301\u0000" }); }
+        const index = (i * 5 + seed) % 9 - 4;
+        const selected = values.at(index);
+        output.push(typeof selected);
+        if (selected === undefined) { output.push("undefined"); } else { output.push(describe(selected)); }
+        output.push(String(values.length));
+        if (values.length > 0) { output.push(describe(values[0])); } else { output.push("<absent>"); }
+        if (values.length > 1) { output.push(describe(values[1])); } else { output.push("<absent>"); }
+        if (values.length > 2) { output.push(describe(values[2])); } else { output.push("<absent>"); }
+        i = i + 1;
+    }
+    return output;
+}
+function describe(value: AtRecord): string { return String(value.id).concat(":", value.label); }
+function main() { const result = workload(2, 7, "dynamic text"); }

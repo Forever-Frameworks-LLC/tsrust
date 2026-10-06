@@ -1,0 +1,13 @@
+import {observeSliceTree} from './slice-observation.mjs';
+export const exceptionCompletionIds=['exception_completion'];
+// Closed-form arithmetic is independent of exception execution.
+export function expectedExceptionCompletionValues(id,n,seed,input){
+ if(!exceptionCompletionIds.includes(id)||!Number.isSafeInteger(n)||n<0||n>2048||!Number.isSafeInteger(seed)||seed<0||seed>1000000||typeof input!=='string')throw Error('Exception completion case');
+ const output=[];
+ for(let i=0;i<n;i++){
+  const value=(i*13+seed)%97;
+  output.push([String(value+(value%3===0?2:1)),String(value+4),String(value),input+String(value)]);
+ }
+ return output;
+}
+export function expectedExceptionCompletionObservation(id,n,seed,input){return observeSliceTree(expectedExceptionCompletionValues(id,n,seed,input));}

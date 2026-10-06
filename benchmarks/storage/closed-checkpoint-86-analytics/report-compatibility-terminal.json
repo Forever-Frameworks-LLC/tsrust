@@ -1,0 +1,16 @@
+{
+  "argv": [
+    "/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node",
+    "--test",
+    "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/report-archive.test.mjs"
+  ],
+  "pid": 52397,
+  "startedUtc": "2026-10-03T15:22:41.763963+00:00",
+  "finishedUtc": "2026-10-03T15:22:42.995497+00:00",
+  "exitCode": 0,
+  "log": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-86-analytics/report-compatibility.log",
+  "logSha256": "697588e7cd3c31061488bb75b1308d31d525aceb5f7f5edd18b785c4b063eb8c",
+  "syntheticFixturesOnly": true,
+  "realReportRendered": false,
+  "measurementsExecuted": false
+}

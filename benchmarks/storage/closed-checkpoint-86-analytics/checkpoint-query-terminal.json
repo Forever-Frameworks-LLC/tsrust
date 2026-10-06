@@ -1,0 +1,20 @@
+{
+  "argv": [
+    "/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node",
+    "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/checkpoint.mjs",
+    "--json",
+    "--raw-sha256=f0efc6e6e0c5eff29d6fe68b22e7c360a622e2830384f6fc587d7a5153cacaab"
+  ],
+  "pid": 24812,
+  "startedUtc": "2026-10-03T15:11:49.264330+00:00",
+  "finishedUtc": "2026-10-03T15:11:49.488456+00:00",
+  "exitCode": 0,
+  "stdout": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-86-analytics/checkpoint-query.json",
+    "sha256": "8d36f2ea1eef0f4f7b2c0e969ce3bb3b3ca051505d97383f412f673a3dac026f"
+  },
+  "stderr": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-86-analytics/checkpoint-query.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

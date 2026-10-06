@@ -1,0 +1,12 @@
+type int = number;
+function workload(n: int, seed: int): number {
+    const left: number[] = [0.0, 0.25, -0.5, 0.75, 2.5, -3.0, -0.0];
+    const right: number[] = [0.5, -0.5, 2.0, -2.0, 4.0, -4.0, 1.0];
+    let sum: number = Number(seed); let i = 0;
+    while (i < n) {
+        const a = left[(i * 13 + seed) % 7]; const b = right[(i * 17 + seed) % 7];
+        const result = a / b;
+        sum = sum + result; i = i + 1;
+    } return sum;
+}
+function main() { const result = workload(2, 7); console.log(result); }

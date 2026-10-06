@@ -1,0 +1,1106 @@
+[
+  {
+    "id": "array_pop_int",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_pop_int",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "number",
+      "1",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_pop_int",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "number",
+      "3",
+      "1",
+      "2",
+      "<absent>",
+      "number",
+      "2",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_pop_int",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "number",
+      "5",
+      "2",
+      "3",
+      "4",
+      "number",
+      "4",
+      "1",
+      "3",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_pop_number",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_pop_number",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "number",
+      "0.25",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_pop_number",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "number",
+      "0",
+      "1",
+      "0.5",
+      "<absent>",
+      "number",
+      "0.5",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_pop_number",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "number",
+      "-2.5",
+      "2",
+      "0.75",
+      "0",
+      "number",
+      "0",
+      "1",
+      "0.75",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_pop_boolean",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_pop_boolean",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "boolean",
+      "false",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_pop_boolean",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "boolean",
+      "false",
+      "1",
+      "true",
+      "<absent>",
+      "boolean",
+      "true",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_pop_boolean",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "boolean",
+      "true",
+      "2",
+      "false",
+      "false",
+      "boolean",
+      "false",
+      "1",
+      "false",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_pop_string",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ],
+    "input": "é\u0000x"
+  },
+  {
+    "id": "array_pop_string",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "string",
+      "é\u0000x",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ],
+    "input": "é\u0000x"
+  },
+  {
+    "id": "array_pop_string",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "string",
+      "é\u0000x!",
+      "1",
+      "é\u0000x",
+      "<absent>",
+      "string",
+      "é\u0000x",
+      "0",
+      "<absent>",
+      "<absent>"
+    ],
+    "input": "é\u0000x"
+  },
+  {
+    "id": "array_pop_string",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "string",
+      "é😀é\u0000",
+      "2",
+      "é\u0000x",
+      "é\u0000x!",
+      "string",
+      "é\u0000x!",
+      "1",
+      "é\u0000x",
+      "<absent>"
+    ],
+    "input": "é\u0000x"
+  },
+  {
+    "id": "array_pop_nested",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_pop_nested",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "object",
+      "2:1,1",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_pop_nested",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "object",
+      "0:",
+      "1",
+      "2:2,1",
+      "<absent>",
+      "object",
+      "2:2,1",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_pop_nested",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "object",
+      "2:5,3",
+      "2",
+      "2:3,1",
+      "0:",
+      "object",
+      "0:",
+      "1",
+      "2:3,1",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_pop_record",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ],
+    "input": "é\u0000x"
+  },
+  {
+    "id": "array_pop_record",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "object",
+      "1:é\u0000x",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ],
+    "input": "é\u0000x"
+  },
+  {
+    "id": "array_pop_record",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "object",
+      "3:é\u0000x!",
+      "1",
+      "2:é\u0000x",
+      "<absent>",
+      "object",
+      "2:é\u0000x",
+      "0",
+      "<absent>",
+      "<absent>"
+    ],
+    "input": "é\u0000x"
+  },
+  {
+    "id": "array_pop_record",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "object",
+      "5:é😀é\u0000",
+      "2",
+      "3:é\u0000x",
+      "4:é\u0000x!",
+      "object",
+      "4:é\u0000x!",
+      "1",
+      "3:é\u0000x",
+      "<absent>"
+    ],
+    "input": "é\u0000x"
+  },
+  {
+    "id": "array_pop_null",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_pop_null",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "object",
+      "null",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_pop_null",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "object",
+      "null",
+      "1",
+      "null",
+      "<absent>",
+      "object",
+      "null",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_pop_null",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "object",
+      "null",
+      "2",
+      "null",
+      "null",
+      "object",
+      "null",
+      "1",
+      "null",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_pop_undefined",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_pop_undefined",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_pop_undefined",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "undefined",
+      "undefined",
+      "1",
+      "undefined",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_pop_undefined",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "undefined",
+      "undefined",
+      "2",
+      "undefined",
+      "undefined",
+      "undefined",
+      "undefined",
+      "1",
+      "undefined",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_shift_int",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_shift_int",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "number",
+      "1",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_shift_int",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "number",
+      "2",
+      "1",
+      "3",
+      "<absent>",
+      "number",
+      "3",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_shift_int",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "number",
+      "3",
+      "2",
+      "4",
+      "5",
+      "number",
+      "4",
+      "1",
+      "5",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_shift_number",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_shift_number",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "number",
+      "0.25",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_shift_number",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "number",
+      "0.5",
+      "1",
+      "0",
+      "<absent>",
+      "number",
+      "0",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_shift_number",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "number",
+      "0.75",
+      "2",
+      "0",
+      "-2.5",
+      "number",
+      "0",
+      "1",
+      "-2.5",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_shift_boolean",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_shift_boolean",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "boolean",
+      "false",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_shift_boolean",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "boolean",
+      "true",
+      "1",
+      "false",
+      "<absent>",
+      "boolean",
+      "false",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_shift_boolean",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "boolean",
+      "false",
+      "2",
+      "false",
+      "true",
+      "boolean",
+      "false",
+      "1",
+      "true",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_shift_string",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ],
+    "input": "é\u0000x"
+  },
+  {
+    "id": "array_shift_string",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "string",
+      "é\u0000x",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ],
+    "input": "é\u0000x"
+  },
+  {
+    "id": "array_shift_string",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "string",
+      "é\u0000x",
+      "1",
+      "é\u0000x!",
+      "<absent>",
+      "string",
+      "é\u0000x!",
+      "0",
+      "<absent>",
+      "<absent>"
+    ],
+    "input": "é\u0000x"
+  },
+  {
+    "id": "array_shift_string",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "string",
+      "é\u0000x",
+      "2",
+      "é\u0000x!",
+      "é😀é\u0000",
+      "string",
+      "é\u0000x!",
+      "1",
+      "é😀é\u0000",
+      "<absent>"
+    ],
+    "input": "é\u0000x"
+  },
+  {
+    "id": "array_shift_nested",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_shift_nested",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "object",
+      "2:1,1",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_shift_nested",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "object",
+      "2:2,1",
+      "1",
+      "0:",
+      "<absent>",
+      "object",
+      "0:",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_shift_nested",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "object",
+      "2:3,1",
+      "2",
+      "0:",
+      "2:5,3",
+      "object",
+      "0:",
+      "1",
+      "2:5,3",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_shift_record",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ],
+    "input": "é\u0000x"
+  },
+  {
+    "id": "array_shift_record",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "object",
+      "1:é\u0000x",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ],
+    "input": "é\u0000x"
+  },
+  {
+    "id": "array_shift_record",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "object",
+      "2:é\u0000x",
+      "1",
+      "3:é\u0000x!",
+      "<absent>",
+      "object",
+      "3:é\u0000x!",
+      "0",
+      "<absent>",
+      "<absent>"
+    ],
+    "input": "é\u0000x"
+  },
+  {
+    "id": "array_shift_record",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "object",
+      "3:é\u0000x",
+      "2",
+      "4:é\u0000x!",
+      "5:é😀é\u0000",
+      "object",
+      "4:é\u0000x!",
+      "1",
+      "5:é😀é\u0000",
+      "<absent>"
+    ],
+    "input": "é\u0000x"
+  },
+  {
+    "id": "array_shift_null",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_shift_null",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "object",
+      "null",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_shift_null",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "object",
+      "null",
+      "1",
+      "null",
+      "<absent>",
+      "object",
+      "null",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_shift_null",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "object",
+      "null",
+      "2",
+      "null",
+      "null",
+      "object",
+      "null",
+      "1",
+      "null",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_shift_undefined",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_shift_undefined",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_shift_undefined",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "undefined",
+      "undefined",
+      "1",
+      "undefined",
+      "<absent>",
+      "undefined",
+      "undefined",
+      "0",
+      "<absent>",
+      "<absent>"
+    ]
+  },
+  {
+    "id": "array_shift_undefined",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "undefined",
+      "undefined",
+      "2",
+      "undefined",
+      "undefined",
+      "undefined",
+      "undefined",
+      "1",
+      "undefined",
+      "<absent>"
+    ]
+  }
+]

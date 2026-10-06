@@ -1,0 +1,15 @@
+{
+  "argv": [
+    "python3",
+    "/tmp/gate97-bundle-sqlite.py"
+  ],
+  "pid": 38661,
+  "startUTC": "2026-10-04T04:24:25.290518+00:00",
+  "finishUTC": "2026-10-04T04:24:27.186524+00:00",
+  "exitCode": 0,
+  "accepted": {
+    "path": "/tmp/tsrust-gate97-bundle-storage/accepted.json",
+    "sha256": "25c787a248ce5f44ccf8299a86906f5ee8198ccd998d21196b05fe82be4a82c6",
+    "bytes": 1726
+  }
+}

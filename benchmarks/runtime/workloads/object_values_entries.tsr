@@ -1,0 +1,15 @@
+type ValueRow = { alpha: int; beta: string; gamma: boolean; };
+type Sides = { w: int; h: int; };
+function workload(n: int, seed: int, input: string): string[][] {
+ const output: string[][] = [];  let i = 0;
+ while (i < n) { const base = (i * 13 + seed) % 97;
+  const row: ValueRow = (i + seed) % 2 === 0 ? { gamma: true, alpha: base, beta: input.slice() } : { beta: input.slice(), gamma: false, alpha: base };
+  const values = Object.values(row); let text = ""; let sum = 0;
+  for (const value of values) { if (typeof value === "string") { text += value; } else if (typeof value === "number") { sum += value; } else { text += value ? "T" : "F"; } }
+  const sides: Sides = { h: base, w: i % 5 };
+  const lengths = Object.values(sides);
+  let names = "";
+  for (const pair of Object.entries(row)) { names += pair[0] + "=" + String(pair[1]) + ";"; }
+  output.push([text, String(sum), values.join("|"), String(lengths[0] - lengths[1]), names, String(Object.entries(sides).length)]); i = i + 1; } return output;
+}
+function main() { const result = workload(3, 0, "abc"); }

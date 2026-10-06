@@ -1,0 +1,36 @@
+{
+  "groupBreak": "type Child = { text: string; }; function bad(value: Child | null): string { return (value?.text).concat(\"x\"); } function main() {}",
+  "nullableChild": "type Child = { text: string; }; type Carrier = { child: Child | null; }; function bad(value: Carrier | null): string | undefined { return value?.child.text; } function main() {}",
+  "nativePresentBounds": "function bad(index: int) { const values: int[] | null = [9]; const value = values?.[index]; console.log(String(value)); } function main() { bad(99); }",
+  "nativeUnicodeLength": "function main() { const value: string | null = \"\u00e9\ud83d\ude00\"; console.log(String(value?.length)); }",
+  "nativeUnicodeLengthExpected": "6\n",
+  "javascriptUnicodeLengthExpected": "3\n",
+  "scope": "Untimed native O0/O3 Unicode length and present-bounds witnesses plus two actual type diagnostics accepted in bound evidence. Native byte-length6 versus JavaScript UTF16-length3 and native present-bounds trap differ intentionally; no shared-output claim. Final merged core emissions match retained native executions byte-exact; comment-only documentation overlay verified separately.",
+  "nativeExecution": {
+    "accepted": true,
+    "timed": false,
+    "evidence": {
+      "path": "/tmp/tsrust-gate96-candidate/source-supplement-accepted.json",
+      "sha256": "d9b118fa83ed34aef5da003f9525faae1d2c50da8c0a6738e51a280f43b1354e"
+    },
+    "nativeUnicodeLengthOutputs": 2,
+    "nativePresentBoundsTrapOutputs": 2,
+    "optimizationLevels": [
+      "0",
+      "3"
+    ],
+    "typedBoundaryDiagnosticCodes": [
+      "type",
+      "type"
+    ],
+    "originalPreparationMetadata": {
+      "path": "/tmp/tsrust-gate96-source/benchmarks/runtime/optional-chain-edge-witnesses.json",
+      "sha256": "c378b45030072af310f5a369258d13364c5db62b631a38f67cde7c369ab2219b"
+    },
+    "finalCoreCorrespondencePending": false,
+    "finalCoreCorrespondence": {
+      "path": "/tmp/tsrust-gate96-candidate/final-merged-source-correspondence-accepted.json",
+      "sha256": "d59016ee3a6a68c39c6cc1eb7e8138c2543c81e6ddff04b8ee8021085107bab4"
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "exactPathsAndBytes": 2580,
+  "independentBlobChecks": 1361,
+  "closedProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T14-02-43-000Z-checkpoint86-completed-proof.json",
+    "sha256": "8b797bd1d518ae17aa9863588e8ceba12b7e52c3c123138dbb7402823b67d755"
+  }
+}

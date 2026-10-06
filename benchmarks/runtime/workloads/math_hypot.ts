@@ -1,0 +1,21 @@
+type int = number;
+function workload(n: int, seed: int): number {
+    const table0: number[] = [-3.5, -2.0, -1.25, -0.5, 0.25, 1.0, 2.5, 3.75];
+    const table1: number[] = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
+    const table2: number[] = [-1.5, -1.0, -0.75, -0.375, 0.375, 0.75, 1.0, 1.5];
+    const table3: number[] = [0.5, -0.75, 1.0, -1.25, 1.5, -1.75, 2.0, -2.5];
+    let sum: number = Number(seed); let i = 0;
+    while (i < n) {
+        const position = (i * 13 + seed) % 8;
+        const jitter = (i * 17 + seed) % 5;
+        const argument0: number = table0[position] + Number(jitter) * 0.03125;
+        const argument1: number = table1[position] + Number(jitter) * 0.015625;
+        const argument2: number = table2[position] + Number(jitter) * 0.0078125;
+        const argument3: number = table3[position] + Number(jitter) * 0.015625;
+        sum = sum + operation(argument0, argument1, argument2, argument3);
+        i = i + 1;
+    }
+    return sum;
+}
+function operation(argument0: number, argument1: number, argument2: number, argument3: number): number { return Math.hypot(argument0, argument1, argument2, argument3); }
+function main() { const result = workload(2, 7); console.log(result); }

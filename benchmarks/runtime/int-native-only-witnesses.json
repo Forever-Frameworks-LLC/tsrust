@@ -1,0 +1,118 @@
+{
+  "untimed": true,
+  "javascriptEquivalenceClaimed": false,
+  "wide": {
+    "source": "int-native-wide.tsr",
+    "expected": "int-native-wide-expected.txt",
+    "scalarLines": 18
+  },
+  "traps": [
+    {
+      "id": "shift_left_minus1",
+      "operator": "<<",
+      "left": 1,
+      "right": -1,
+      "reason": "count outside0..63",
+      "source": "int-native-trap-shift_left_minus1.tsr",
+      "expectedStdout": "",
+      "expectedFailure": "operator source range plus fatal checked operation"
+    },
+    {
+      "id": "shift_left_64",
+      "operator": "<<",
+      "left": 1,
+      "right": 64,
+      "reason": "count outside0..63",
+      "source": "int-native-trap-shift_left_64.tsr",
+      "expectedStdout": "",
+      "expectedFailure": "operator source range plus fatal checked operation"
+    },
+    {
+      "id": "shift_right_minus1",
+      "operator": ">>",
+      "left": 1,
+      "right": -1,
+      "reason": "count outside0..63",
+      "source": "int-native-trap-shift_right_minus1.tsr",
+      "expectedStdout": "",
+      "expectedFailure": "operator source range plus fatal checked operation"
+    },
+    {
+      "id": "shift_right_64",
+      "operator": ">>",
+      "left": 1,
+      "right": 64,
+      "reason": "count outside0..63",
+      "source": "int-native-trap-shift_right_64.tsr",
+      "expectedStdout": "",
+      "expectedFailure": "operator source range plus fatal checked operation"
+    },
+    {
+      "id": "shift_right_unsigned_minus1",
+      "operator": ">>>",
+      "left": 1,
+      "right": -1,
+      "reason": "count outside0..63",
+      "source": "int-native-trap-shift_right_unsigned_minus1.tsr",
+      "expectedStdout": "",
+      "expectedFailure": "operator source range plus fatal checked operation"
+    },
+    {
+      "id": "shift_right_unsigned_64",
+      "operator": ">>>",
+      "left": 1,
+      "right": 64,
+      "reason": "count outside0..63",
+      "source": "int-native-trap-shift_right_unsigned_64.tsr",
+      "expectedStdout": "",
+      "expectedFailure": "operator source range plus fatal checked operation"
+    },
+    {
+      "id": "power_negative",
+      "operator": "**",
+      "left": 2,
+      "right": -1,
+      "reason": "negative exponent",
+      "source": "int-native-trap-power_negative.tsr",
+      "expectedStdout": "",
+      "expectedFailure": "operator source range plus fatal checked operation"
+    },
+    {
+      "id": "power_out_of_u32",
+      "operator": "**",
+      "left": 2,
+      "right": 4294967296,
+      "reason": "exponent exceedsu32",
+      "source": "int-native-trap-power_out_of_u32.tsr",
+      "expectedStdout": "",
+      "expectedFailure": "operator source range plus fatal checked operation"
+    },
+    {
+      "id": "power_overflow",
+      "operator": "**",
+      "left": 2,
+      "right": 63,
+      "reason": "i64 result overflow",
+      "source": "int-native-trap-power_overflow.tsr",
+      "expectedStdout": "",
+      "expectedFailure": "operator source range plus fatal checked operation"
+    }
+  ],
+  "noCommit": {
+    "source": "int-native-no-commit.tsr",
+    "initial": [
+      6
+    ],
+    "expectedAfterUnwind": [
+      9,
+      17
+    ],
+    "functions": [
+      "shiftLeft",
+      "shiftRight",
+      "logicalShift",
+      "power"
+    ],
+    "meaning": "Old selected scalar is copied before RHS mutation/growth; checked failure leaves completed RHS effects and does not commit the computed result. Catch in native wrapper, not unsupported source exception syntax."
+  }
+}

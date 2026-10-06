@@ -1,0 +1,9 @@
+type User = { name: string; };
+
+function maybe(user: User, flag: boolean) {
+    if (flag) {
+        const get = (): User => { return user; };
+    }
+    console.log(user.name);
+}
+function main() { maybe({ name: "Pat" }, false); }

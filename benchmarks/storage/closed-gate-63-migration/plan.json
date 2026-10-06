@@ -1,0 +1,16 @@
+{
+  "closedProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T17-06-35-000Z-compound-assignment-runtime-proof.json",
+    "sha256": "8a0cfa6d9447b9fe9fdad44cc5df353b6cf02f3fac8f0f5d19508cf564db55d4"
+  },
+  "completedAcceptance": {
+    "path": "/tmp/tsrust-gate63-completed-acceptance.json",
+    "sha256": "d17e2d5c533785406fb59b1bf33df2c3042936e089aa35a1ce4e13eead630a00"
+  },
+  "paths": [
+    "runtime/diagnostics/2026-10-02T16-53-53-000Z-compound-assignment-compiler-proof-artifacts",
+    "runtime/diagnostics/2026-10-02T16-38-33-000Z-compound-source-validation-artifacts",
+    "runtime/diagnostics/2026-10-02T17-06-35-000Z-compound-assignment-runtime-artifacts",
+    "runtime/diagnostics/2026-10-02T17-06-35-000Z-compound-assignment-runtime-proof-closure-artifacts"
+  ]
+}

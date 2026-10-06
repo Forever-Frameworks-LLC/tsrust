@@ -1,0 +1,2137 @@
+{
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/analysis-before-hint-repair.rs": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/analysis-before-hint-repair.rs",
+    "kind": "diagnostic",
+    "sha256": "8951daac1d681c614888d11c4f0231f8d092d974a7e181a104711855e9ce7d15",
+    "original_size": 245240,
+    "compressed_size": 40467
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/attempt1/candidate-source.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/attempt1/candidate-source.json",
+    "kind": "diagnostic",
+    "sha256": "381670a3baeaff1832e3aabe6c3c6c03a67e372ff54c0798647fee4e9e5896bf",
+    "original_size": 2115,
+    "compressed_size": 983
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/attempt1/focused-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/attempt1/focused-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "f55a76a1ff94522d8f58913e89c65a2c26369b72615e682919544227ecbf6b0a",
+    "original_size": 530,
+    "compressed_size": 291
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/attempt1/focused.log": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/attempt1/focused.log",
+    "kind": "diagnostic",
+    "sha256": "5ad2a8f19afa295ebc1c20afd23d4c2fc68e9370070d3f5bcc54b0f88885b502",
+    "original_size": 1935,
+    "compressed_size": 790
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/attempt1/gate62-source.diff": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/attempt1/gate62-source.diff",
+    "kind": "diagnostic",
+    "sha256": "1c815076ca8a56e24ef534accec0f0e2c3dd9a179b76ed4d30ded65746eb8bff",
+    "original_size": 18391,
+    "compressed_size": 4971
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/attempt1/string_addition.rs": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/attempt1/string_addition.rs",
+    "kind": "diagnostic",
+    "sha256": "f8d03fc2486091569192f8b022826bf7f2dd3796e64963a7a5840b32bafe1576",
+    "original_size": 13034,
+    "compressed_size": 3687
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/attempt2/emit.rs": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/attempt2/emit.rs",
+    "kind": "diagnostic",
+    "sha256": "35875fb14092d40b7cf78dba738c0d3813d6e305302e4b9e2ed034fdebdeae7a",
+    "original_size": 127250,
+    "compressed_size": 20719
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/attempt2/fixture-repair.diff": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/attempt2/fixture-repair.diff",
+    "kind": "diagnostic",
+    "sha256": "3b45b444387566855185e059f819755a65cfa0811a3cf040a18bdac31c6e3b2d",
+    "original_size": 1949,
+    "compressed_size": 734
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/attempt2/resumed-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/attempt2/resumed-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "2984e29948ac359547f67fe5196e9998bd54853b6b424c62db52584ebddceae3",
+    "original_size": 738,
+    "compressed_size": 400
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/attempt2/resumed.log": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/attempt2/resumed.log",
+    "kind": "diagnostic",
+    "sha256": "d4dfc9164ca4ee3d4203f5750a99dc7191f90a7f18d60735f9740ba3b90031be",
+    "original_size": 2815,
+    "compressed_size": 1154
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/attempt2/string_addition.rs": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/attempt2/string_addition.rs",
+    "kind": "diagnostic",
+    "sha256": "9b766d3bf24ddc394ef981b6f19e7a003c6ac51d1c468600cc4ec3beba52a0fb",
+    "original_size": 13382,
+    "compressed_size": 3761
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/candidate-source-hint-repaired.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/candidate-source-hint-repaired.json",
+    "kind": "diagnostic",
+    "sha256": "7eb17faa8f594ac615dfc6cbe9ea44c24702fc6515db08a68a1ac1fa83c872a1",
+    "original_size": 6300,
+    "compressed_size": 1940
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/candidate-source.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/candidate-source.json",
+    "kind": "diagnostic",
+    "sha256": "bd5bab1eeff8f88cd097824fd9f92b2ae275dd4e3d7f80de26e7534b9a3d7e9d",
+    "original_size": 4749,
+    "compressed_size": 1527
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/clippy-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/clippy-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "0a7046188805d422e1073a7536f8e4515452789fc5eac0f6068d60651526e604",
+    "original_size": 541,
+    "compressed_size": 296
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/clippy.log": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/clippy.log",
+    "kind": "diagnostic",
+    "sha256": "9538913e99a3dd544f8ae50580d800dd724ceeb3d6ac0588564028ffd3a10f28",
+    "original_size": 193,
+    "compressed_size": 153
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/emitter-repair.diff": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/emitter-repair.diff",
+    "kind": "diagnostic",
+    "sha256": "be8a31ef3255c4ff18d9e19c7346d2e5310b1fa5ac011d2d69c8744898dfe476",
+    "original_size": 1809,
+    "compressed_size": 429
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/fixture-repair.diff": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/fixture-repair.diff",
+    "kind": "diagnostic",
+    "sha256": "3b45b444387566855185e059f819755a65cfa0811a3cf040a18bdac31c6e3b2d",
+    "original_size": 1949,
+    "compressed_size": 734
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/fmt-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/fmt-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "f8491209531d528fd8a78fdd6801dbc4754a5ecebfcf8b1c1fe5ad5a7f39283f",
+    "original_size": 464,
+    "compressed_size": 270
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/fmt.log": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/fmt.log",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/focused-acceptance.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/focused-acceptance.json",
+    "kind": "diagnostic",
+    "sha256": "102a29b010508830a37956da0cd8f78b0b584a9c75f1bf7b8d9e148e5437d215",
+    "original_size": 3821,
+    "compressed_size": 1211
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/focused-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/focused-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "f55a76a1ff94522d8f58913e89c65a2c26369b72615e682919544227ecbf6b0a",
+    "original_size": 530,
+    "compressed_size": 291
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/focused.log": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/focused.log",
+    "kind": "diagnostic",
+    "sha256": "5ad2a8f19afa295ebc1c20afd23d4c2fc68e9370070d3f5bcc54b0f88885b502",
+    "original_size": 1935,
+    "compressed_size": 790
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/gate62-source-hint-repaired.diff": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/gate62-source-hint-repaired.diff",
+    "kind": "diagnostic",
+    "sha256": "c9b924ace1ddbd0e459b2415a0a6a12e83224f17838ad37b7a617ace51c3b366",
+    "original_size": 21071,
+    "compressed_size": 5406
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/gate62-source.diff": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/gate62-source.diff",
+    "kind": "diagnostic",
+    "sha256": "e74a682f693a099a3d0dc0ca9b401072a960fc801a2c99d724393a614f55007f",
+    "original_size": 20741,
+    "compressed_size": 5385
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/hint-repair.diff": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/hint-repair.diff",
+    "kind": "diagnostic",
+    "sha256": "cb07518cd8d47ba0e833df7d7da7e7153fde9c86e3d872018f131fa49d56a37b",
+    "original_size": 1398,
+    "compressed_size": 396
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/parent-reconstruction/crates/tsrust-compiler/src/analysis.rs": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/parent-reconstruction/crates/tsrust-compiler/src/analysis.rs",
+    "kind": "diagnostic",
+    "sha256": "fbc4136992fa437452fa90f763d76b1106ce3c7691c5997eeb0316226219358f",
+    "original_size": 244307,
+    "compressed_size": 40339
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/parent-reconstruction/crates/tsrust-compiler/src/emit.rs": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/parent-reconstruction/crates/tsrust-compiler/src/emit.rs",
+    "kind": "diagnostic",
+    "sha256": "40869800d304295f226ae588738fd9445ff860722e2f00b4c1476a1365a3cb6b",
+    "original_size": 126778,
+    "compressed_size": 20660
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/parent-reconstruction/crates/tsrust-compiler/src/runtime_strings.rs": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/parent-reconstruction/crates/tsrust-compiler/src/runtime_strings.rs",
+    "kind": "diagnostic",
+    "sha256": "e740be259ff49c291bf81ca2c707c1c3e9653a960a7f60c3eb90f87fe8b1d7f1",
+    "original_size": 6789,
+    "compressed_size": 1751
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/parent-reconstruction/crates/tsrust-compiler/tests/string_operators.rs": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/parent-reconstruction/crates/tsrust-compiler/tests/string_operators.rs",
+    "kind": "diagnostic",
+    "sha256": "4303489d78272c529133ac049cbe9d148d46f5b4942c4f1ca77307b3cf5a092d",
+    "original_size": 7829,
+    "compressed_size": 2144
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/parent-source.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/parent-source.json",
+    "kind": "diagnostic",
+    "sha256": "d430b45790dfc2a979b2d0e20b9d3c101a83cf9ed8c4a74a662323e51569cdb0",
+    "original_size": 710,
+    "compressed_size": 389
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/resumed-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/resumed-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "2984e29948ac359547f67fe5196e9998bd54853b6b424c62db52584ebddceae3",
+    "original_size": 738,
+    "compressed_size": 400
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/resumed.log": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/resumed.log",
+    "kind": "diagnostic",
+    "sha256": "d4dfc9164ca4ee3d4203f5750a99dc7191f90a7f18d60735f9740ba3b90031be",
+    "original_size": 2815,
+    "compressed_size": 1154
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/run.py": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/run.py",
+    "kind": "diagnostic",
+    "sha256": "52eb152f03b0c82db096cd7f4c25d60f3df27e7ff765b90f721c1fac02da0e92",
+    "original_size": 1514,
+    "compressed_size": 750
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/semantic-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/semantic-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "ee8ef1602be21d63b255f3f62331ce02b9349c07104cad11e68d091d1f8cb2b8",
+    "original_size": 636,
+    "compressed_size": 346
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/semantic.log": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/candidate/semantic.log",
+    "kind": "diagnostic",
+    "sha256": "865cea1387de3f21ac2a53ee47123a274f9f197c3ecf8c75f1057833f5dc9bfd",
+    "original_size": 484,
+    "compressed_size": 308
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/before-hint-repair-analysis.rs": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/before-hint-repair-analysis.rs",
+    "kind": "diagnostic",
+    "sha256": "8951daac1d681c614888d11c4f0231f8d092d974a7e181a104711855e9ce7d15",
+    "original_size": 245240,
+    "compressed_size": 40467
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/final-0-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/final-0-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "7943a2cbd4cf461c29d2b04984471aa7aef842809063cc880205a8a868c33b2f",
+    "original_size": 448,
+    "compressed_size": 282
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/final-0.log": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/final-0.log",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/final-1-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/final-1-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "921a78b470466216adb2d635650076dca5e3d9ff0be923060257e55b85b55e77",
+    "original_size": 516,
+    "compressed_size": 308
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/final-1.log": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/final-1.log",
+    "kind": "diagnostic",
+    "sha256": "e2f00fcb4a411c6f5b5dce422a467ae36761d6cfb9aac4e9991373836ab2e2e8",
+    "original_size": 179,
+    "compressed_size": 146
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/final-2-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/final-2-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "fee141888c8da8c0053d619ba4d1d7f60e4491014c5aeebe928175ad8bd0b91d",
+    "original_size": 458,
+    "compressed_size": 288
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/final-2.log": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/final-2.log",
+    "kind": "diagnostic",
+    "sha256": "8c233a54790c4800d3dd585436af679aa838da259bfdb129412e2d51cdb75cdc",
+    "original_size": 72,
+    "compressed_size": 79
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/final-3-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/final-3-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "b58aeafc040e736362d94b8465b38339f5990eeafc0a69c6ceeeb49d530d2f40",
+    "original_size": 475,
+    "compressed_size": 293
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/final-3.log": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/final-3.log",
+    "kind": "diagnostic",
+    "sha256": "ec00148e983955f271c687521a424fa4c31a9fa6ca58d5dd5161edeec0465ff6",
+    "original_size": 169,
+    "compressed_size": 137
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/final-checks.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/final-checks.json",
+    "kind": "diagnostic",
+    "sha256": "d87a87dbac5bea4bf726c4628b7f3b57ef2ae2683130e52519d36b9ef4d4b021",
+    "original_size": 2058,
+    "compressed_size": 554
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/final-checks.py": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/final-checks.py",
+    "kind": "diagnostic",
+    "sha256": "b956c5d65aff0ce34b012f4d2141902947a80f64d9073bf14d98ff309f59b0c2",
+    "original_size": 1359,
+    "compressed_size": 650
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/fresh-cli.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/fresh-cli.json",
+    "kind": "diagnostic",
+    "sha256": "97be365f4620966fbb8d9015c181cf4ff6c6700f35e71f43f0436011d7fdb649",
+    "original_size": 933,
+    "compressed_size": 390
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/fresh-debug.rs": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/fresh-debug.rs",
+    "kind": "diagnostic",
+    "sha256": "0f652a6a99c36fa2d3ab1e1271c549374ae2f81dc79715fb6547352988aafbd3",
+    "original_size": 8461,
+    "compressed_size": 2126
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/fresh-release.rs": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/fresh-release.rs",
+    "kind": "diagnostic",
+    "sha256": "0f652a6a99c36fa2d3ab1e1271c549374ae2f81dc79715fb6547352988aafbd3",
+    "original_size": 8461,
+    "compressed_size": 2126
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/full-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/full-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "b1793362e674d8343e48ed19170d5d6dc85ceb108f46c8e9162ad2df25e3151e",
+    "original_size": 512,
+    "compressed_size": 319
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/full.log": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/full.log",
+    "kind": "diagnostic",
+    "sha256": "57d179bc083e682aa8b4234263198ef9a1b149a4b44d516a7a98bccacecbfd65",
+    "original_size": 42964,
+    "compressed_size": 10994
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/hint-repair.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/hint-repair.json",
+    "kind": "diagnostic",
+    "sha256": "226931a7cd1b7a19527bb39fecae74d22563f8a0a941f2b047ad0bd3373baacd",
+    "original_size": 666,
+    "compressed_size": 418
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/integrated-source.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/integrated-source.json",
+    "kind": "diagnostic",
+    "sha256": "280ef9634fa98514a0e9ee2b8f295563e02cb8c1c881b946ee3667c6f7295cb4",
+    "original_size": 24469,
+    "compressed_size": 9195
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/operator-diagnostic-repair-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/operator-diagnostic-repair-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "9369e3034a685c9b6be3994cbfa90b8d773a61b30fe8ced01be7796cff16027a",
+    "original_size": 433,
+    "compressed_size": 263
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/operator-diagnostic-repair.log": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/operator-diagnostic-repair.log",
+    "kind": "diagnostic",
+    "sha256": "914474437510a35475e2f19841524067ddd8307795d0c0bb49a25468cecff349",
+    "original_size": 432,
+    "compressed_size": 283
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/operators-fixture-repair.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/operators-fixture-repair.json",
+    "kind": "diagnostic",
+    "sha256": "5a44adee386f98005faf6aa9edf6c85dcb96b97ffb865cf7266763953d391102",
+    "original_size": 357,
+    "compressed_size": 259
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/parent.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/parent.json",
+    "kind": "diagnostic",
+    "sha256": "97e061826eb5f3e67a3dfde019a69d4cc722eec687fbc8dfc387c21613eb2aaa",
+    "original_size": 23500,
+    "compressed_size": 9008
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/regression-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/regression-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "056be7c1d26caef41304b0bfaa8f478bf35387427fef85db767a2b3d5cbc2f53",
+    "original_size": 129068,
+    "compressed_size": 16047
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/remaining-commands.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/remaining-commands.json",
+    "kind": "diagnostic",
+    "sha256": "e501d52f09856bf3c8d67c8abf47cde983ef9d43168daa6e3b82e9146f8e701b",
+    "original_size": 1293,
+    "compressed_size": 309
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/resume-0-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/resume-0-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "1e343904c00760a01756c8d2a5c6494e15691de975bb96b32b7ddd82d33b13c9",
+    "original_size": 558,
+    "compressed_size": 329
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/resume-0.log": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/resume-0.log",
+    "kind": "diagnostic",
+    "sha256": "0a6b58a9b61bf9be14fa334fa5f2ff4adc08408c38861b3dff5ba3bbe2b9a31d",
+    "original_size": 421,
+    "compressed_size": 281
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/resume-1-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/resume-1-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "7fe66ca77c98ee013dfe1f1432f6190bff4f1321c1739f8eb01a5addf3602199",
+    "original_size": 1311,
+    "compressed_size": 479
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/resume-1.log": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/resume-1.log",
+    "kind": "diagnostic",
+    "sha256": "b5ad9757f173915ffcb6035c41ae3dac0138fbed68293a7c79868bc57d8cefb4",
+    "original_size": 18434,
+    "compressed_size": 4933
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/resume-2-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/resume-2-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "78b1c079d784a90c4d5cf9c7420befe74419b3d325e54ed0786ecbdb3eaa6ff0",
+    "original_size": 471,
+    "compressed_size": 290
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/resume-2.log": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/resume-2.log",
+    "kind": "diagnostic",
+    "sha256": "2a6d522d3eea5556c7f74afeba7c7fcc05e5485b259fa07db464b9561094e236",
+    "original_size": 215,
+    "compressed_size": 158
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/resumption.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/resumption.json",
+    "kind": "diagnostic",
+    "sha256": "498213b2229ec68dba15256ad37ce6e2d6eee7bc813bd0dbcdfc7812b8638247",
+    "original_size": 2554,
+    "compressed_size": 680
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/saved61-rejection.log": {
+    "path": "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof-artifacts/root/saved61-rejection.log",
+    "kind": "diagnostic",
+    "sha256": "4d0dfa982602bd532cb47f925cde87752dfd14b69d2499f6a735f02124b5e5ea",
+    "original_size": 382,
+    "compressed_size": 204
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/PLAN.md": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/PLAN.md",
+    "kind": "diagnostic",
+    "sha256": "c33e51aee1e9d5127726f149db9ea7ca606a875622866ddbb312596b0e5da6f6",
+    "original_size": 1331,
+    "compressed_size": 699
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/check-drafts.mjs": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/check-drafts.mjs",
+    "kind": "diagnostic",
+    "sha256": "123cbc3b979184567d2b34b0677952095e7110ae8c0aa70e12b5fd2d0323a0d7",
+    "original_size": 6878,
+    "compressed_size": 2511
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/manifest-entries.json": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/manifest-entries.json",
+    "kind": "diagnostic",
+    "sha256": "7bff6b5060686516b817ca4ad7c6f1410794b57fd1b8dcbcc1408377b6091458",
+    "original_size": 5519,
+    "compressed_size": 1112
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/observer.ts": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/observer.ts",
+    "kind": "diagnostic",
+    "sha256": "49f21d7bb1920f90fd4113bf139d5556743f312184b89f6abea5181e0bef78f0",
+    "original_size": 1321,
+    "compressed_size": 695
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/oracle.mjs": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/oracle.mjs",
+    "kind": "diagnostic",
+    "sha256": "ba8df28e8c1f5ee478706d4d3245b106fda2ceb37f9848939cb1227c3d2cd6bb",
+    "original_size": 3014,
+    "compressed_size": 1193
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/source-order-expected.txt": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/source-order-expected.txt",
+    "kind": "diagnostic",
+    "sha256": "0f7f976a2864648a41f3226dfce1aa8b7dccfa598b65bebf9ed35b431781041f",
+    "original_size": 37,
+    "compressed_size": 35
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/source-order.ts": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/source-order.ts",
+    "kind": "diagnostic",
+    "sha256": "99d6e437c771b925ce3ff28dfe5bff922fa9683cfa440f778ff6337b8e3fca55",
+    "original_size": 358,
+    "compressed_size": 158
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/source-order.tsr": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/source-order.tsr",
+    "kind": "diagnostic",
+    "sha256": "99d6e437c771b925ce3ff28dfe5bff922fa9683cfa440f778ff6337b8e3fca55",
+    "original_size": 358,
+    "compressed_size": 158
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/workloads/string_add_chained_ascii.ts": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/workloads/string_add_chained_ascii.ts",
+    "kind": "diagnostic",
+    "sha256": "cf6113657676df08f648f35a2b49caac49e9f16d67e8b3cbdf035105744f8fb9",
+    "original_size": 539,
+    "compressed_size": 287
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/workloads/string_add_chained_ascii.tsr": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/workloads/string_add_chained_ascii.tsr",
+    "kind": "diagnostic",
+    "sha256": "9b7e55f1907e4cff045005300f11ce66bcdb1f2c48919974c08c8b37cd30e18d",
+    "original_size": 484,
+    "compressed_size": 263
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/workloads/string_add_chained_unicode.ts": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/workloads/string_add_chained_unicode.ts",
+    "kind": "diagnostic",
+    "sha256": "15cbe2993ffc5b8bbfe0485541130b8fbcdc3aa8af696ac606a25d5b647b64d5",
+    "original_size": 544,
+    "compressed_size": 308
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/workloads/string_add_chained_unicode.tsr": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/workloads/string_add_chained_unicode.tsr",
+    "kind": "diagnostic",
+    "sha256": "10b97dccf9bbe07bf9f91b457899cb7dc419bd1646bea94f43f3dc7b220e097c",
+    "original_size": 489,
+    "compressed_size": 283
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/workloads/string_add_direct_ascii.ts": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/workloads/string_add_direct_ascii.ts",
+    "kind": "diagnostic",
+    "sha256": "557534c1081dced2cfcab9c946364330df8877877908022bff26289a392d7970",
+    "original_size": 506,
+    "compressed_size": 278
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/workloads/string_add_direct_ascii.tsr": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/workloads/string_add_direct_ascii.tsr",
+    "kind": "diagnostic",
+    "sha256": "46ee0cdba4119571f7831c38ec99db259061a7fe6f851d375114afddeb9ca43f",
+    "original_size": 451,
+    "compressed_size": 254
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/workloads/string_add_direct_unicode.ts": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/workloads/string_add_direct_unicode.ts",
+    "kind": "diagnostic",
+    "sha256": "df2b9414f074ba0a18ce58ff8c5b808cea51a238a69f264760c78b1b1fcf815a",
+    "original_size": 511,
+    "compressed_size": 299
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/workloads/string_add_direct_unicode.tsr": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/canonical/workloads/string_add_direct_unicode.tsr",
+    "kind": "diagnostic",
+    "sha256": "1fd4c66902c1b3e34f781a996088563eea1d7a6f6462c32ab213dde22b92b42e",
+    "original_size": 456,
+    "compressed_size": 275
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/manifest.json": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/manifest.json",
+    "kind": "diagnostic",
+    "sha256": "3373b4db0b424a6d41d85aa47be72f9cb24ebf77d4873dedc225a05c5840279c",
+    "original_size": 670637,
+    "compressed_size": 41785
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/oracle.mjs": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/oracle.mjs",
+    "kind": "diagnostic",
+    "sha256": "8c94e6082777ca032cb6cb81a670e338ea22d7af4a31a484c3cf8bbda7d5ab12",
+    "original_size": 35482,
+    "compressed_size": 8536
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/profile-native.mjs": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/profile-native.mjs",
+    "kind": "diagnostic",
+    "sha256": "1c4c7a2669b33344215bf5bae23f8c6769c369616fd7cd4ff7413e9e3d080ce7",
+    "original_size": 10865,
+    "compressed_size": 3171
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/run.mjs": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/run.mjs",
+    "kind": "diagnostic",
+    "sha256": "f3e106cd02825556b3370448831b0dddf56b2570df410cb75b8e3f015ab9d795",
+    "original_size": 20601,
+    "compressed_size": 5766
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/string-add-harness.test.mjs": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/string-add-harness.test.mjs",
+    "kind": "diagnostic",
+    "sha256": "c07784b5b91f4dede716865aad6548e334cc8b447c828a9fcd0ba90adee340b5",
+    "original_size": 2526,
+    "compressed_size": 1052
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/string-add-manifest-entries.json": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/string-add-manifest-entries.json",
+    "kind": "diagnostic",
+    "sha256": "7bff6b5060686516b817ca4ad7c6f1410794b57fd1b8dcbcc1408377b6091458",
+    "original_size": 5519,
+    "compressed_size": 1112
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/string-add-oracle.mjs": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/string-add-oracle.mjs",
+    "kind": "diagnostic",
+    "sha256": "ba8df28e8c1f5ee478706d4d3245b106fda2ceb37f9848939cb1227c3d2cd6bb",
+    "original_size": 3014,
+    "compressed_size": 1193
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/workloads/string_add_chained_ascii.ts": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/workloads/string_add_chained_ascii.ts",
+    "kind": "diagnostic",
+    "sha256": "cf6113657676df08f648f35a2b49caac49e9f16d67e8b3cbdf035105744f8fb9",
+    "original_size": 539,
+    "compressed_size": 287
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/workloads/string_add_chained_ascii.tsr": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/workloads/string_add_chained_ascii.tsr",
+    "kind": "diagnostic",
+    "sha256": "9b7e55f1907e4cff045005300f11ce66bcdb1f2c48919974c08c8b37cd30e18d",
+    "original_size": 484,
+    "compressed_size": 263
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/workloads/string_add_chained_unicode.ts": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/workloads/string_add_chained_unicode.ts",
+    "kind": "diagnostic",
+    "sha256": "15cbe2993ffc5b8bbfe0485541130b8fbcdc3aa8af696ac606a25d5b647b64d5",
+    "original_size": 544,
+    "compressed_size": 308
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/workloads/string_add_chained_unicode.tsr": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/workloads/string_add_chained_unicode.tsr",
+    "kind": "diagnostic",
+    "sha256": "10b97dccf9bbe07bf9f91b457899cb7dc419bd1646bea94f43f3dc7b220e097c",
+    "original_size": 489,
+    "compressed_size": 283
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/workloads/string_add_direct_ascii.ts": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/workloads/string_add_direct_ascii.ts",
+    "kind": "diagnostic",
+    "sha256": "557534c1081dced2cfcab9c946364330df8877877908022bff26289a392d7970",
+    "original_size": 506,
+    "compressed_size": 278
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/workloads/string_add_direct_ascii.tsr": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/workloads/string_add_direct_ascii.tsr",
+    "kind": "diagnostic",
+    "sha256": "46ee0cdba4119571f7831c38ec99db259061a7fe6f851d375114afddeb9ca43f",
+    "original_size": 451,
+    "compressed_size": 254
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/workloads/string_add_direct_unicode.ts": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/workloads/string_add_direct_unicode.ts",
+    "kind": "diagnostic",
+    "sha256": "df2b9414f074ba0a18ce58ff8c5b808cea51a238a69f264760c78b1b1fcf815a",
+    "original_size": 511,
+    "compressed_size": 299
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/workloads/string_add_direct_unicode.tsr": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/current/workloads/string_add_direct_unicode.tsr",
+    "kind": "diagnostic",
+    "sha256": "1fd4c66902c1b3e34f781a996088563eea1d7a6f6462c32ab213dde22b92b42e",
+    "original_size": 456,
+    "compressed_size": 275
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/fixture-repair/fixture-repair.diff": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/fixture-repair/fixture-repair.diff",
+    "kind": "diagnostic",
+    "sha256": "77f9d3ab5824fb59fe604b00a2ed01ce4af2ebf0bfce60b33fb3a29c636ce025",
+    "original_size": 3922,
+    "compressed_size": 1122
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/fixture-repair/original-source-manifest.json": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/fixture-repair/original-source-manifest.json",
+    "kind": "diagnostic",
+    "sha256": "52c4db9c1b31693a0713ee70aaa549d67c962aa0c7b5381f7fe5973b85bc3969",
+    "original_size": 19804,
+    "compressed_size": 8228
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/fixture-repair/original-source.diff": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/fixture-repair/original-source.diff",
+    "kind": "diagnostic",
+    "sha256": "c075f41af77635bdd627a9fd4e49c96b6cb9a3978ee4e9f78821e0a4c2bf18d9",
+    "original_size": 41142,
+    "compressed_size": 6607
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/fixture-repair/original-string-add-harness.test.mjs": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/fixture-repair/original-string-add-harness.test.mjs",
+    "kind": "diagnostic",
+    "sha256": "3167dec69ae27b67b7f63d54b3c83ae9ca444787d42eede9f333c7a108afe5c2",
+    "original_size": 2516,
+    "compressed_size": 1044
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/records/completed61-baseline.json": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/records/completed61-baseline.json",
+    "kind": "diagnostic",
+    "sha256": "ffc557dbce9d0a4b667103276d96293d8f13503dc7c57566ac6a09fbd22d98cd",
+    "original_size": 866715,
+    "compressed_size": 96282
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/records/tsrust-gate62-benchmark-source.diff": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/records/tsrust-gate62-benchmark-source.diff",
+    "kind": "diagnostic",
+    "sha256": "c075f41af77635bdd627a9fd4e49c96b6cb9a3978ee4e9f78821e0a4c2bf18d9",
+    "original_size": 41142,
+    "compressed_size": 6607
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/records/tsrust-gate62-benchmark-source.json": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/records/tsrust-gate62-benchmark-source.json",
+    "kind": "diagnostic",
+    "sha256": "ad458aac631340c34e9499dc3f0a3f6ac87dcb7afd0d2289ad55b2ab75851fe5",
+    "original_size": 20527,
+    "compressed_size": 8445
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/records/tsrust-gate62-node-fixture-repair.json": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/records/tsrust-gate62-node-fixture-repair.json",
+    "kind": "diagnostic",
+    "sha256": "7ae86e1e911bd5365f4f56b9e7560fb90ab0da41347aa76c3e58033e5af30747",
+    "original_size": 537,
+    "compressed_size": 373
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/records/tsrust-gate62-node-focused.log": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/records/tsrust-gate62-node-focused.log",
+    "kind": "diagnostic",
+    "sha256": "1d83fd3967e814d6fcff29ad4e76e09506b88a63f6e54d8c93ca38081c8a3a3f",
+    "original_size": 1432,
+    "compressed_size": 501
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/records/tsrust-gate62-node-production.log": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/records/tsrust-gate62-node-production.log",
+    "kind": "diagnostic",
+    "sha256": "a7e646a9f08dbe05a098e488fbd90b3063d62f18e99863da61879b4ff0f8ddec",
+    "original_size": 1331,
+    "compressed_size": 629
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/records/tsrust-gate62-node-source-guard-repair.log": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/records/tsrust-gate62-node-source-guard-repair.log",
+    "kind": "diagnostic",
+    "sha256": "80cb5b818643b784dd1dbaf1d3166bdaa89bcf1fd96d348688cd1719e007dea2",
+    "original_size": 233,
+    "compressed_size": 170
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/records/tsrust-gate62-seal-source.py": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/records/tsrust-gate62-seal-source.py",
+    "kind": "diagnostic",
+    "sha256": "6eeff7ecc26686896579f0a2f2fcee81f9585ab390f1ae1026c3dd933ad95a3d",
+    "original_size": 7146,
+    "compressed_size": 2669
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/records/tsrust-gate62-ts-command.json": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/records/tsrust-gate62-ts-command.json",
+    "kind": "diagnostic",
+    "sha256": "f12811d85d0392bf191c892a7f201596d41be43169dc59e0fcc261e4955d7f41",
+    "original_size": 554,
+    "compressed_size": 334
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/records/tsrust-gate62-ts-source.log": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation-artifacts/records/tsrust-gate62-ts-source.log",
+    "kind": "diagnostic",
+    "sha256": "55545eb36aa4e4cc3fed46288c18ff9f6e1fab45551df24b66410016993643a6",
+    "original_size": 1217,
+    "compressed_size": 599
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/bindings.json": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/bindings.json",
+    "kind": "diagnostic",
+    "sha256": "0a1b6778403bbfc9aea6eb0150838e017ddf2d05bd1a97bd87a0b53bccc915d6",
+    "original_size": 1286,
+    "compressed_size": 552
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/manual-hand-cells.json": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/manual-hand-cells.json",
+    "kind": "diagnostic",
+    "sha256": "dc9ff68d82ae64612a39702f0a5382a91e3189e3aaebed362fc46190b70681e9",
+    "original_size": 2357,
+    "compressed_size": 288
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/source-order-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/source-order-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "eb3b9549af05372d11f39fa6143aad782748969505013e97b87127a9d804e332",
+    "original_size": 1956,
+    "compressed_size": 776
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/source-order-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/source-order-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "91eb76929c50e02fa09a8608df31d9915992688d5597c52445c6b821d83c3556",
+    "original_size": 1680,
+    "compressed_size": 820
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/source-order.json": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/source-order.json",
+    "kind": "diagnostic",
+    "sha256": "b54f071d8538456081512cdf8e7f9f7c7662528f0cb548debda9e384d8516a6a",
+    "original_size": 1482,
+    "compressed_size": 732
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/string_add_chained_ascii-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/string_add_chained_ascii-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "7bb0f49832123fef9153e2e59b01ad6c8a03060a242df167f5f76a7543a3c581",
+    "original_size": 31937228,
+    "compressed_size": 126836
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/string_add_chained_ascii-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/string_add_chained_ascii-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "72ca737f6fcfcfb9982267f491bead09a4a97b2ed7d94d067480bb050978f3e2",
+    "original_size": 2110,
+    "compressed_size": 853
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/string_add_chained_ascii-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/string_add_chained_ascii-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "3758edb23a082ec02d30e67e6ab067854a5c236712c0c5bd7b06050fe1e16519",
+    "original_size": 1861,
+    "compressed_size": 913
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/string_add_chained_unicode-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/string_add_chained_unicode-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "5560560a8451bdc1d7e2f9bf65c069e9c17d8db4c2b988a5014eb9302f3c2494",
+    "original_size": 20305054,
+    "compressed_size": 122089
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/string_add_chained_unicode-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/string_add_chained_unicode-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "2b5d75a4222da86a51a4e8a5f713dc0cbd0426c61dc9488251ca5bb9c33ab5f6",
+    "original_size": 2115,
+    "compressed_size": 878
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/string_add_chained_unicode-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/string_add_chained_unicode-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "06e782cdc1a60e41c4e8fdee2fc32e12a65c349076f2d4087f4e931b12fd277f",
+    "original_size": 1866,
+    "compressed_size": 940
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/string_add_direct_ascii-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/string_add_direct_ascii-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "7182277355c9cd38ab0721e8a7f33ed2bbe77f59a302869a9d285bb6237dff3a",
+    "original_size": 21411101,
+    "compressed_size": 95205
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/string_add_direct_ascii-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/string_add_direct_ascii-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "6e5900f5b60dee774d0f7eaa9ad77b9efee68c4a7d0147461d6bac3b52ad155f",
+    "original_size": 2077,
+    "compressed_size": 845
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/string_add_direct_ascii-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/string_add_direct_ascii-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "f56dd0611a82046024e645cffe6893b19363d9fc4880094ba38917bb08dfd182",
+    "original_size": 1828,
+    "compressed_size": 907
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/string_add_direct_unicode-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/string_add_direct_unicode-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "260a8dc605d3c62c6b613f83764f0311fefaf919b9e7aa3e911c4d0376724479",
+    "original_size": 13656295,
+    "compressed_size": 93558
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/string_add_direct_unicode-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/string_add_direct_unicode-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "81a8f75f104a975d46c7219ab83db5f4b7d4ddc33a4ca6ebee7cb65b03d6bf2e",
+    "original_size": 2082,
+    "compressed_size": 871
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/string_add_direct_unicode-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/string_add_direct_unicode-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "8ff0bc58db97270987bd5c5dab3a990d30282ee3c4e18fd3661c075b337733e2",
+    "original_size": 1833,
+    "compressed_size": 933
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/summary.json": {
+    "path": "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-observations-artifacts/summary.json",
+    "kind": "diagnostic",
+    "sha256": "0138482bc5baa81f7a25cf2d813c0ec72ba07d14a373f656e2e2f64daf9cc72d",
+    "original_size": 1431,
+    "compressed_size": 626
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/0-tsrust-gate62-seal-runtime.py": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/0-tsrust-gate62-seal-runtime.py",
+    "kind": "diagnostic",
+    "sha256": "fa9bcefe80286db5b8c31067dd701d0a6ac7f2f494c34557de8b753b0d6e1c41",
+    "original_size": 15055,
+    "compressed_size": 5274
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/1-tsrust-gate62-runtime-freeze.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/1-tsrust-gate62-runtime-freeze.json",
+    "kind": "diagnostic",
+    "sha256": "ce2b3095dbba2717c4938f8cd01f02d21043c9fde3734b3a79ad5cd5359d8d63",
+    "original_size": 123854,
+    "compressed_size": 39447
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/10-command-0030.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/10-command-0030.stdout",
+    "kind": "diagnostic",
+    "sha256": "7ce252040a5621f18f122d200d3f7cb0afa3bb095b5798f44458c2c8f3e33f36",
+    "original_size": 129,
+    "compressed_size": 104
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/100-command-0031.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/100-command-0031.stdout",
+    "kind": "diagnostic",
+    "sha256": "801ad1509ddb629233a3edb05ef2765ed14ae8555b8d573d21dc3bdf0e2ddbdc",
+    "original_size": 124,
+    "compressed_size": 114
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/101-command-0040.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/101-command-0040.stdout",
+    "kind": "diagnostic",
+    "sha256": "c2d8e5fb7b01874dbe05dac891c2c91ab98dfde2f8b36143d7415ebe0e7e0b35",
+    "original_size": 239,
+    "compressed_size": 133
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/102-string_add_chained_unicode_allocation.rs": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/102-string_add_chained_unicode_allocation.rs",
+    "kind": "diagnostic",
+    "sha256": "87f2b72e50d27d3c14f5099c02135f1982b42795b7db27c8354b5dcabc11dbb0",
+    "original_size": 22379,
+    "compressed_size": 5625
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/103-command-0023.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/103-command-0023.stdout",
+    "kind": "diagnostic",
+    "sha256": "305cee2c77c59dee5bcee55c1b51338f2b4052910ccf110a8a985c787d9cc7e2",
+    "original_size": 125,
+    "compressed_size": 116
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/104-command-0068.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/104-command-0068.stdout",
+    "kind": "diagnostic",
+    "sha256": "c6a2eec0f1635de1f04119f172f870ac548bb8f5a887f967b012767e4b2395ff",
+    "original_size": 252,
+    "compressed_size": 153
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/105-command-0015.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/105-command-0015.stdout",
+    "kind": "diagnostic",
+    "sha256": "c71f4a10f2b33018ec0505766962b8e5d1623e7dbb854ff2c37f60b5e4fcc321",
+    "original_size": 1055,
+    "compressed_size": 168
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/106-command-0064.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/106-command-0064.stdout",
+    "kind": "diagnostic",
+    "sha256": "ed5bb6052f473d8cc42f0628c75b5286e6349f122c84e48698bdf47d330d2381",
+    "original_size": 142,
+    "compressed_size": 105
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/107-native-abi-complete-order-disposal-proof.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/107-native-abi-complete-order-disposal-proof.json",
+    "kind": "diagnostic",
+    "sha256": "b9b588a21b8d2d38566d565bbc0e8a4bd62143c479571d808d8349f3b8d8ca9f",
+    "original_size": 90849,
+    "compressed_size": 10789
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/108-command-0019.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/108-command-0019.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/109-string_add_direct_ascii_emitted.rs": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/109-string_add_direct_ascii_emitted.rs",
+    "kind": "diagnostic",
+    "sha256": "311c204e5d54ec665fc5d15ec1132f0c87c65b75c8c73d9bb07a26334a8a389b",
+    "original_size": 14577,
+    "compressed_size": 3526
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/11-command-0053.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/11-command-0053.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/110-command-0007.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/110-command-0007.stdout",
+    "kind": "diagnostic",
+    "sha256": "629307d6a5a657e12d804d65aa6cab3df5944e673a6546d1f9874a754861f140",
+    "original_size": 1053,
+    "compressed_size": 166
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/111-command-0021.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/111-command-0021.stdout",
+    "kind": "diagnostic",
+    "sha256": "1b75a8614655053a263e39846a0f3038181c3e6e464ee00758910fa2aaa0400a",
+    "original_size": 59,
+    "compressed_size": 66
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/112-command-0042.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/112-command-0042.stdout",
+    "kind": "diagnostic",
+    "sha256": "7d70e4e3f72390a8b686317b0ad28fa25a474fb92a7b1919e61ded3a5d2c8de3",
+    "original_size": 182848,
+    "compressed_size": 1274
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/113-command-0033.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/113-command-0033.stdout",
+    "kind": "diagnostic",
+    "sha256": "282854431bec03ca4580467b53e169ed8434a767f43f002bf75cae4765d71aec",
+    "original_size": 104510,
+    "compressed_size": 621
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/114-command-0050.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/114-command-0050.stdout",
+    "kind": "diagnostic",
+    "sha256": "686f1c827a735c5fb3f4127f6b91140bb83912d7a4ed1ae20a1ca91dba94dac6",
+    "original_size": 182848,
+    "compressed_size": 1274
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/115-command-0005.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/115-command-0005.stdout",
+    "kind": "diagnostic",
+    "sha256": "04f922fcce2ff45e78d95ca1806faa6b720cca6cdc2e2880fd2460f8809a75fd",
+    "original_size": 139,
+    "compressed_size": 103
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/116-command-0066.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/116-command-0066.stdout",
+    "kind": "diagnostic",
+    "sha256": "96d89d05ca17e5181b42c7d2bad6b1325a068ea8cb6e6da7be08ebc60bf30658",
+    "original_size": 1339,
+    "compressed_size": 165
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/117-command-0017.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/117-command-0017.stdout",
+    "kind": "diagnostic",
+    "sha256": "8d04aae931060da7c9a849bacbbb74e1687a8b9aa894c57e53c51760c95ac41d",
+    "original_size": 247,
+    "compressed_size": 152
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/118-string_add_chained_unicode_accepted-row.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/118-string_add_chained_unicode_accepted-row.json",
+    "kind": "diagnostic",
+    "sha256": "34a8f09e8c6fddf13553d15728e48490247352788adcf70ff0a2ce563fa249c4",
+    "original_size": 8539,
+    "compressed_size": 1841
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/119-string_add_direct_ascii_scalar.rs": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/119-string_add_direct_ascii_scalar.rs",
+    "kind": "diagnostic",
+    "sha256": "0febf5b16d3f3f97a04fc3d68f8fb48e0e36dae7e9088ee002dc0e9e6b261421",
+    "original_size": 18834,
+    "compressed_size": 4807
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/12-command-0022.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/12-command-0022.stdout",
+    "kind": "diagnostic",
+    "sha256": "4447122af1a09260665c17c591516834f69d4a7a847a1b4389cda232efcb0e0c",
+    "original_size": 129,
+    "compressed_size": 104
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/120-command-0009.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/120-command-0009.stdout",
+    "kind": "diagnostic",
+    "sha256": "8d04aae931060da7c9a849bacbbb74e1687a8b9aa894c57e53c51760c95ac41d",
+    "original_size": 247,
+    "compressed_size": 152
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/121-command-0001.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/121-command-0001.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/122-command-0062.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/122-command-0062.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/123-command-0013.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/123-command-0013.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/124-command-0070.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/124-command-0070.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/125-string_add_chained_unicode_scalar.rs": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/125-string_add_chained_unicode_scalar.rs",
+    "kind": "diagnostic",
+    "sha256": "6d033a0f5a332119f015ca14bf04f42d5838b3cebf8e909c14014580bcb62011",
+    "original_size": 19655,
+    "compressed_size": 4908
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/126-command-0058.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/126-command-0058.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/127-command-0025.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/127-command-0025.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/128-command-0046.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/128-command-0046.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/129-command-0037.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/129-command-0037.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/13-string_add_chained_ascii_allocation.rs": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/13-string_add_chained_ascii_allocation.rs",
+    "kind": "diagnostic",
+    "sha256": "24eaea4c5485bc653dee981ad19fedd560ecbc56df7f096b2110e034a7a5dcdb",
+    "original_size": 22355,
+    "compressed_size": 5593
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/130-command-0054.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/130-command-0054.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/131-command-0029.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/131-command-0029.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/132-command-0013.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/132-command-0013.stdout",
+    "kind": "diagnostic",
+    "sha256": "9c1716194567e88918d292396d00e690cd26fca9e081d565330ec0be0ca23c05",
+    "original_size": 139,
+    "compressed_size": 104
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/133-command-0070.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/133-command-0070.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/134-command-0001.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/134-command-0001.stdout",
+    "kind": "diagnostic",
+    "sha256": "4ac788311f854facc332402b3d9c1797a3d04cfa419e521d562f7066d5574181",
+    "original_size": 14578,
+    "compressed_size": 3527
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/135-command-0062.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/135-command-0062.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/136-command-0037.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/136-command-0037.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/137-command-0029.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/137-command-0029.stdout",
+    "kind": "diagnostic",
+    "sha256": "42d6795bf19a17c7c126a5ffd2482ab12816c6d76292d79777f80a2fa54ccf25",
+    "original_size": 61,
+    "compressed_size": 68
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/138-command-0054.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/138-command-0054.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/139-command-0025.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/139-command-0025.stdout",
+    "kind": "diagnostic",
+    "sha256": "1c0e26ac2abae1ddee7d7fa4a3530072af33b729b9cb3af3ed11dfb573ede63d",
+    "original_size": 104512,
+    "compressed_size": 624
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/14-command-0041.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/14-command-0041.stdout",
+    "kind": "diagnostic",
+    "sha256": "c2ce5036a02bb68b24e024842ce17e10ebee6627cc2683b7c65f4ac763697386",
+    "original_size": 1599,
+    "compressed_size": 182
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/140-command-0058.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/140-command-0058.stdout",
+    "kind": "diagnostic",
+    "sha256": "23840e8828a972077a8d44326e4866587b6c55ae7b1f1086d4fef1a138934d91",
+    "original_size": 1339,
+    "compressed_size": 165
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/141-command-0046.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/141-command-0046.stdout",
+    "kind": "diagnostic",
+    "sha256": "b3df5142702376ef4ff9a1a3a1144572a16f895859159e78e47f42ff9a7f1da9",
+    "original_size": 74,
+    "compressed_size": 71
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/142-command-0033.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/142-command-0033.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/143-command-0050.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/143-command-0050.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/144-command-0021.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/144-command-0021.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/145-command-0042.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/145-command-0042.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/146-command-0017.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/146-command-0017.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/147-command-0009.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/147-command-0009.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/148-command-0005.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/148-command-0005.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/149-command-0066.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/149-command-0066.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/15-command-0034.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/15-command-0034.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/150-command-0040.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/150-command-0040.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/151-command-0023.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/151-command-0023.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/152-command-0052.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/152-command-0052.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/153-command-0031.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/153-command-0031.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/154-command-0019.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/154-command-0019.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/155-command-0064.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/155-command-0064.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/156-command-0007.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/156-command-0007.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/157-command-0015.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/157-command-0015.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/158-command-0068.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/158-command-0068.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/159-command-0060.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/159-command-0060.stdout",
+    "kind": "diagnostic",
+    "sha256": "c6a2eec0f1635de1f04119f172f870ac548bb8f5a887f967b012767e4b2395ff",
+    "original_size": 252,
+    "compressed_size": 153
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/16-command-0049.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/16-command-0049.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/160-command-0003.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/160-command-0003.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/161-command-0072.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/161-command-0072.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/162-command-0011.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/162-command-0011.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/163-command-0039.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/163-command-0039.stdout",
+    "kind": "diagnostic",
+    "sha256": "eb3c427554e61c3e38b414deff29c78ee9b382608b50d5ec2b11af6e0fdda0ba",
+    "original_size": 161,
+    "compressed_size": 114
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/164-command-0044.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/164-command-0044.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/165-command-0027.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/165-command-0027.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/166-command-0056.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/166-command-0056.stdout",
+    "kind": "diagnostic",
+    "sha256": "6df4ec37a90050d07d9a32d3c81e3eac555c28315732832eb6a71caf7b6e2315",
+    "original_size": 139,
+    "compressed_size": 102
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/167-command-0035.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/167-command-0035.stdout",
+    "kind": "diagnostic",
+    "sha256": "5dad202c66abc97e82d615f0e7032ab3204e4753bb152d602dc640d9b90b425a",
+    "original_size": 15375,
+    "compressed_size": 3595
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/168-command-0048.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/168-command-0048.stdout",
+    "kind": "diagnostic",
+    "sha256": "efda5650e28ae15c564df035c20c4f199ada483354e238586437a41fc6c85006",
+    "original_size": 239,
+    "compressed_size": 133
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/169-preflight.mjs": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/169-preflight.mjs",
+    "kind": "diagnostic",
+    "sha256": "354a9eac5239db712dd26ed1f166ad3b2dc204fd99d47da5f25f7990c32509e5",
+    "original_size": 8637,
+    "compressed_size": 3010
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/17-command-0057.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/17-command-0057.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/170-tsrust-gate62-native-preflight.log": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/170-tsrust-gate62-native-preflight.log",
+    "kind": "diagnostic",
+    "sha256": "8199fdb4fdd0cff93fea413ae5e6314210b868e304521a7353153fd1b7778d55",
+    "original_size": 330,
+    "compressed_size": 135
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/171-tsrust-gate62-runtime.log": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/171-tsrust-gate62-runtime.log",
+    "kind": "diagnostic",
+    "sha256": "0a9605d08293f37d6300731a19ad298c07625af69242db4a89de64199e53e5df",
+    "original_size": 933,
+    "compressed_size": 239
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/172-tsrust-gate62-profile.log": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/172-tsrust-gate62-profile.log",
+    "kind": "diagnostic",
+    "sha256": "91ac3b87c7058e28caf0c65e150c6176fdbc669272105929c44de2c33cd6e879",
+    "original_size": 410,
+    "compressed_size": 192
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/173-tsrust-gate62-runtime-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/173-tsrust-gate62-runtime-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "0cf934f9afefb3410fc64e9c80d70c693feab8a785ef4bff0c1de2f2a0f31718",
+    "original_size": 577,
+    "compressed_size": 343
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/174-tsrust-gate62-profile-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/174-tsrust-gate62-profile-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "68dc2c8e1cf7ccf37fa4917aae281eda14624542cee7e056a4968b74ebbc634f",
+    "original_size": 564,
+    "compressed_size": 339
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/18-command-0026.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/18-command-0026.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/19-command-0038.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/19-command-0038.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/2-tsrust-gate62-before-runtime-BENCHMARKS.md": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/2-tsrust-gate62-before-runtime-BENCHMARKS.md",
+    "kind": "diagnostic",
+    "sha256": "3e1e9e029655cd7d84a431e850a042e5f6e52ab820b6a3fea6d9f97f444e9357",
+    "original_size": 684448,
+    "compressed_size": 100814
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/20-command-0045.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/20-command-0045.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/21-command-0010.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/21-command-0010.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/22-command-0073.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/22-command-0073.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/23-command-0002.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/23-command-0002.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/24-command-0061.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/24-command-0061.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/25-command-0047.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/25-command-0047.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/26-string_add_direct_ascii_allocation.rs": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/26-string_add_direct_ascii_allocation.rs",
+    "kind": "diagnostic",
+    "sha256": "040e3379c11f5980ecbfaddc0383d86eabb699b014b64c1da7b229f37159a0e0",
+    "original_size": 21558,
+    "compressed_size": 5522
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/27-command-0024.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/27-command-0024.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/28-command-0059.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/28-command-0059.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/29-command-0028.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/29-command-0028.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/3-BENCHMARKS.md": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/3-BENCHMARKS.md",
+    "kind": "diagnostic",
+    "sha256": "f21ac63554eae827a2a61f3a4b0ba16f33e8599036f563686c9755fa8e7e01a3",
+    "original_size": 691819,
+    "compressed_size": 101875
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/30-command-0055.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/30-command-0055.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/31-command-0036.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/31-command-0036.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/32-string_add_direct_unicode_allocation.rs": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/32-string_add_direct_unicode_allocation.rs",
+    "kind": "diagnostic",
+    "sha256": "1c3082c395b048fb7454894bbe5f0ee314f3bc86bc101785169640a90248e7fd",
+    "original_size": 21582,
+    "compressed_size": 5553
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/33-command-0063.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/33-command-0063.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/34-string_add_direct_ascii_accepted-row.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/34-string_add_direct_ascii_accepted-row.json",
+    "kind": "diagnostic",
+    "sha256": "9346394939a8745bb371c518dd00571ed1de248c30d879fc1c1b9e5fdafa0d35",
+    "original_size": 8516,
+    "compressed_size": 1845
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/35-command-0071.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/35-command-0071.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/36-command-0012.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/36-command-0012.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/37-command-0067.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/37-command-0067.stdout",
+    "kind": "diagnostic",
+    "sha256": "7eefbeb4d5aacc9ed3f6d99be222ae9169365da24b1e7ca7af894df32ab79ec2",
+    "original_size": 153663,
+    "compressed_size": 946
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/38-command-0004.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/38-command-0004.stdout",
+    "kind": "diagnostic",
+    "sha256": "da6bae94f8ad825b0a619e2c6b4836a67c643a603134fff7b9c3ac0480160fd6",
+    "original_size": 59,
+    "compressed_size": 66
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/39-command-0008.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/39-command-0008.stdout",
+    "kind": "diagnostic",
+    "sha256": "e7a1c16ee948e3e3eae46e81afd093c7a65922919914e2c8e9453d5969cdf3fe",
+    "original_size": 123979,
+    "compressed_size": 730
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/4-command-0014.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/4-command-0014.stdout",
+    "kind": "diagnostic",
+    "sha256": "604dc4ec224a8183cc1e07fe69723b2946f99963b4669c5f937110be8b472f70",
+    "original_size": 148,
+    "compressed_size": 126
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/40-command-0016.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/40-command-0016.stdout",
+    "kind": "diagnostic",
+    "sha256": "d5a7f77f3c982a4fd4f993f266112a2ee46c339c6bd3ccda3f4f820adad8b75b",
+    "original_size": 123968,
+    "compressed_size": 726
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/41-command-0043.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/41-command-0043.stdout",
+    "kind": "diagnostic",
+    "sha256": "414af5ee7c25809b93eb4b81fcf3692d261bee79a6a7305aa862b46688f0e85c",
+    "original_size": 252,
+    "compressed_size": 156
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/42-command-0020.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/42-command-0020.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/43-command-0051.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/43-command-0051.stdout",
+    "kind": "diagnostic",
+    "sha256": "414af5ee7c25809b93eb4b81fcf3692d261bee79a6a7305aa862b46688f0e85c",
+    "original_size": 252,
+    "compressed_size": 156
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/44-command-0032.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/44-command-0032.stdout",
+    "kind": "diagnostic",
+    "sha256": "9ccf924004c52c63f59d80f6581581f2e7c84fa564a933d2a2a432a072db3079",
+    "original_size": 893,
+    "compressed_size": 155
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/45-string_add_direct_unicode_accepted-row.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/45-string_add_direct_unicode_accepted-row.json",
+    "kind": "diagnostic",
+    "sha256": "b50cfd041dbd6c30d0b797d495d9d21e598d780eb7101862b8b0a548dbb11241",
+    "original_size": 8526,
+    "compressed_size": 1847
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/46-command-0008.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/46-command-0008.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/47-command-0016.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/47-command-0016.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/48-command-0067.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/48-command-0067.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/49-command-0004.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/49-command-0004.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/5-command-0069.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/5-command-0069.stdout",
+    "kind": "diagnostic",
+    "sha256": "0f652a6a99c36fa2d3ab1e1271c549374ae2f81dc79715fb6547352988aafbd3",
+    "original_size": 8461,
+    "compressed_size": 2126
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/50-command-0051.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/50-command-0051.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/51-command-0032.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/51-command-0032.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/52-command-0043.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/52-command-0043.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/53-command-0020.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/53-command-0020.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/54-command-0055.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/54-command-0055.stdout",
+    "kind": "diagnostic",
+    "sha256": "13feaaa56e583ed307e29ee8e13c5f95ad9c777d495598f62249b3f403d911f3",
+    "original_size": 58,
+    "compressed_size": 65
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/55-command-0028.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/55-command-0028.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/56-command-0036.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/56-command-0036.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/57-command-0047.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/57-command-0047.stdout",
+    "kind": "diagnostic",
+    "sha256": "94ea413f5d25ed78b0582112c9543ce58951fc142104961326a739a722df1c78",
+    "original_size": 161,
+    "compressed_size": 114
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/58-command-0059.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/58-command-0059.stdout",
+    "kind": "diagnostic",
+    "sha256": "bf3f38bddc9423509b4a83cf4f3d06fb8fb794e2ccaec7ada759f9b0659ab551",
+    "original_size": 153675,
+    "compressed_size": 950
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/59-command-0024.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/59-command-0024.stdout",
+    "kind": "diagnostic",
+    "sha256": "fea58e7cfd6b79057af0f8fc8956b3403fbbff1f3bf139505b620f35ed1ca52e",
+    "original_size": 905,
+    "compressed_size": 159
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/6-command-0006.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/6-command-0006.stdout",
+    "kind": "diagnostic",
+    "sha256": "118bbb0cc6eea5d1252c2b93e243d1c80687035f0e16b2992827a2a5ef7b6fe5",
+    "original_size": 148,
+    "compressed_size": 126
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/60-command-0071.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/60-command-0071.stdout",
+    "kind": "diagnostic",
+    "sha256": "0f7f976a2864648a41f3226dfce1aa8b7dccfa598b65bebf9ed35b431781041f",
+    "original_size": 37,
+    "compressed_size": 35
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/61-string_add_chained_ascii_accepted-row.json": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/61-string_add_chained_ascii_accepted-row.json",
+    "kind": "diagnostic",
+    "sha256": "3a9e85e119d0f024894f38fc42d88510c839c3f59e1d57a299a25f3d2979db5e",
+    "original_size": 8529,
+    "compressed_size": 1849
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/62-command-0012.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/62-command-0012.stdout",
+    "kind": "diagnostic",
+    "sha256": "564cbbe57f789a0ac2e75a2058cc6f83e60a67d3ed346d05b6d6f94c2ab75aa6",
+    "original_size": 61,
+    "compressed_size": 68
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/63-command-0063.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/63-command-0063.stdout",
+    "kind": "diagnostic",
+    "sha256": "b260ca6b6b7c48865e14c80aed3b3107cdf9c788a5207cea5c998b53a27848a0",
+    "original_size": 60,
+    "compressed_size": 67
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/64-string_add_direct_unicode_scalar.rs": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/64-string_add_direct_unicode_scalar.rs",
+    "kind": "diagnostic",
+    "sha256": "1f362ec330eaae15b76bd1991e22a24a764fe770254c0427b223fd8d61282f57",
+    "original_size": 18858,
+    "compressed_size": 4838
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/65-command-0026.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/65-command-0026.stdout",
+    "kind": "diagnostic",
+    "sha256": "2b8f22cbdb1eb526cd188bd6186f97add146d03d943dd7dac903fa7b0ce94f99",
+    "original_size": 247,
+    "compressed_size": 151
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/66-command-0045.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/66-command-0045.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/67-command-0038.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/67-command-0038.stdout",
+    "kind": "diagnostic",
+    "sha256": "1238a5741ea89a9ae22512770d3e5eb4897f60ecd3a324c0eac344d8ef9f713d",
+    "original_size": 74,
+    "compressed_size": 71
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/68-string_add_direct_unicode_emitted.rs": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/68-string_add_direct_unicode_emitted.rs",
+    "kind": "diagnostic",
+    "sha256": "39a2633b5c4b7c21f20db4a65d958c6c4ef9f1d9a74fb3fd7ceb1590dc6a3edd",
+    "original_size": 14601,
+    "compressed_size": 3558
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/69-command-0049.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/69-command-0049.stdout",
+    "kind": "diagnostic",
+    "sha256": "514b517f1c3c03fd461d016d3e3470ef39be91e699a911fbe3442f80ffc4bf95",
+    "original_size": 1587,
+    "compressed_size": 180
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/7-command-0018.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/7-command-0018.stdout",
+    "kind": "diagnostic",
+    "sha256": "41c172671fcf5eb2818b3e412b586659e327c5e56378bb5a17479f40314408e0",
+    "original_size": 14602,
+    "compressed_size": 3559
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/70-command-0034.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/70-command-0034.stdout",
+    "kind": "diagnostic",
+    "sha256": "2b8f22cbdb1eb526cd188bd6186f97add146d03d943dd7dac903fa7b0ce94f99",
+    "original_size": 247,
+    "compressed_size": 151
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/71-command-0057.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/71-command-0057.stdout",
+    "kind": "diagnostic",
+    "sha256": "ec249f2a70b74ad8908e64d37e6ca56f93488713ad1e56200f69e5e3684d1a86",
+    "original_size": 197,
+    "compressed_size": 122
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/72-commands.jsonl": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/72-commands.jsonl",
+    "kind": "diagnostic",
+    "sha256": "0d6ae78622e1b9ccb98dea921a10fe6ba3ddb2fa911cdd6814e603c463b108d7",
+    "original_size": 34305,
+    "compressed_size": 3515
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/73-command-0002.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/73-command-0002.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/74-command-0061.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/74-command-0061.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/75-command-0010.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/75-command-0010.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/76-command-0073.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/76-command-0073.stdout",
+    "kind": "diagnostic",
+    "sha256": "0f7f976a2864648a41f3226dfce1aa8b7dccfa598b65bebf9ed35b431781041f",
+    "original_size": 37,
+    "compressed_size": 35
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/77-command-0006.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/77-command-0006.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/78-command-0065.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/78-command-0065.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/79-command-0018.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/79-command-0018.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/8-source-order.rs": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/8-source-order.rs",
+    "kind": "diagnostic",
+    "sha256": "a0f3811f095560e8164442e926f8eef4157f6bea60ebef189c8ab663ee2b3d4e",
+    "original_size": 8460,
+    "compressed_size": 2125
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/80-string_add_chained_ascii_scalar.rs": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/80-string_add_chained_ascii_scalar.rs",
+    "kind": "diagnostic",
+    "sha256": "04ddae30e8fc0c885ab8482217e4e829660e5617dfd31a8fc1f7be48341afbcb",
+    "original_size": 19631,
+    "compressed_size": 4876
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/81-command-0069.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/81-command-0069.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/82-command-0014.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/82-command-0014.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/83-string_add_chained_ascii_emitted.rs": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/83-string_add_chained_ascii_emitted.rs",
+    "kind": "diagnostic",
+    "sha256": "1b9e6c6497ae828dc9254102281bf2c65b6c255b10fb330220531bfd61b509e9",
+    "original_size": 15374,
+    "compressed_size": 3594
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/84-command-0022.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/84-command-0022.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/85-command-0041.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/85-command-0041.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/86-string_add_chained_unicode_emitted.rs": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/86-string_add_chained_unicode_emitted.rs",
+    "kind": "diagnostic",
+    "sha256": "eaff1ca16ad69cefac1f575f52b71d5247317161da11e77bb09ce28475af99e8",
+    "original_size": 15398,
+    "compressed_size": 3626
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/87-command-0030.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/87-command-0030.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/88-command-0053.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/88-command-0053.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/89-command-0072.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/89-command-0072.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/9-command-0065.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/9-command-0065.stdout",
+    "kind": "diagnostic",
+    "sha256": "611a8a681dee6e777778f04170d44138944f87f7a481a5d30431467f3a12a627",
+    "original_size": 194,
+    "compressed_size": 119
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/90-command-0011.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/90-command-0011.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/91-command-0060.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/91-command-0060.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/92-command-0003.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/92-command-0003.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/93-command-0056.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/93-command-0056.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/94-command-0048.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/94-command-0048.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/95-command-0035.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/95-command-0035.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/96-command-0044.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/96-command-0044.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/97-command-0039.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/97-command-0039.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/98-command-0027.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/98-command-0027.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/99-command-0052.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-artifacts/99-command-0052.stdout",
+    "kind": "diagnostic",
+    "sha256": "fc44b8a590c93ab9d9d03c915491a592ed933ac21a5a5361a1ce0103784d3ab9",
+    "original_size": 15399,
+    "compressed_size": 3627
+  }
+}

@@ -1,0 +1,9 @@
+type int = number;
+// The comparison library set predates this function; the runtime provides it.
+interface Math { f16round(value: number): number; }
+function workload(n: int, seed: int, input: string): number[][] {
+ const output: number[][] = [];  let i = 0;
+ while (i < n) { const base = (i * 13 + seed) % 97; const scaled = Number(base);
+ output.push([Math.f16round(scaled / 7.0 + 0.1), Math.f16round(2049.0 + scaled * 2.0), Math.f16round(-(scaled + 1.0) / 67108864.0), Math.f16round(65500.0 + scaled), Math.f16round(Number(i) * 0.001 - 1.0)]); i = i + 1; } return output;
+}
+function main() { const result = workload(3, 0, "abc"); }

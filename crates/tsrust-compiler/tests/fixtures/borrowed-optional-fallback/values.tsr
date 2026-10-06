@@ -1,0 +1,19 @@
+type Row = {
+    label: string;
+};
+
+function main() {
+    const rows:(Row | null) [] = [{
+        label: "first"
+    }, null, {
+        label: ""
+    }, {
+        label: "é😀"
+    }];
+    for (const item of rows) {
+        const label = item ?. label ?? "none";
+        console.log(label);
+    }
+
+    console.log(rows[0] ?. label ?? "missing");
+}

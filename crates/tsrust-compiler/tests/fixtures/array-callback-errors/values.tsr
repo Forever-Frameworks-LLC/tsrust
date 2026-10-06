@@ -1,0 +1,113 @@
+import {strictEqual} from "std:testing";
+function checkMap():void{
+ const values=[1,2];let caught=0;
+ try{values.map((value):int=>{if(value===2){throw "map";}return value;});}
+ catch(error){if(typeof error==="string"){strictEqual(error,"map");caught=1;}}
+ strictEqual(caught,1,"map callback error must reach catch");
+ strictEqual(values.join(","),"1,2");
+}
+function checkFilter():void{
+ const values=[1,2];let caught=0;
+ try{values.filter((value):boolean=>{if(value===2){throw "filter";}return true;});}
+ catch(error){if(typeof error==="string"){strictEqual(error,"filter");caught=1;}}
+ strictEqual(caught,1,"filter callback error must reach catch");
+ strictEqual(values.join(","),"1,2");
+}
+function checkFlatMap():void{
+ const values=[1,2];let caught=0;
+ try{values.flatMap((value):int[]=>{if(value===2){throw "flatMap";}return [value];});}
+ catch(error){if(typeof error==="string"){strictEqual(error,"flatMap");caught=1;}}
+ strictEqual(caught,1,"flatMap callback error must reach catch");
+ strictEqual(values.join(","),"1,2");
+}
+function checkSome():void{
+ const values=[1,2];let caught=0;
+ try{values.some((value):boolean=>{if(value===2){throw "some";}return false;});}
+ catch(error){if(typeof error==="string"){strictEqual(error,"some");caught=1;}}
+ strictEqual(caught,1,"some callback error must reach catch");
+ strictEqual(values.join(","),"1,2");
+}
+function checkEvery():void{
+ const values=[1,2];let caught=0;
+ try{values.every((value):boolean=>{if(value===2){throw "every";}return true;});}
+ catch(error){if(typeof error==="string"){strictEqual(error,"every");caught=1;}}
+ strictEqual(caught,1,"every callback error must reach catch");
+ strictEqual(values.join(","),"1,2");
+}
+function checkFind():void{
+ const values=[1,2];let caught=0;
+ try{values.find((value):boolean=>{if(value===2){throw "find";}return false;});}
+ catch(error){if(typeof error==="string"){strictEqual(error,"find");caught=1;}}
+ strictEqual(caught,1,"find callback error must reach catch");
+ strictEqual(values.join(","),"1,2");
+}
+function checkFindLast():void{
+ const values=[1,2];let caught=0;
+ try{values.findLast((value):boolean=>{if(value===2){throw "findLast";}return false;});}
+ catch(error){if(typeof error==="string"){strictEqual(error,"findLast");caught=1;}}
+ strictEqual(caught,1,"findLast callback error must reach catch");
+ strictEqual(values.join(","),"1,2");
+}
+function checkFindIndex():void{
+ const values=[1,2];let caught=0;
+ try{values.findIndex((value):boolean=>{if(value===2){throw "findIndex";}return false;});}
+ catch(error){if(typeof error==="string"){strictEqual(error,"findIndex");caught=1;}}
+ strictEqual(caught,1,"findIndex callback error must reach catch");
+ strictEqual(values.join(","),"1,2");
+}
+function checkFindLastIndex():void{
+ const values=[1,2];let caught=0;
+ try{values.findLastIndex((value):boolean=>{if(value===2){throw "findLastIndex";}return false;});}
+ catch(error){if(typeof error==="string"){strictEqual(error,"findLastIndex");caught=1;}}
+ strictEqual(caught,1,"findLastIndex callback error must reach catch");
+ strictEqual(values.join(","),"1,2");
+}
+function checkReduce():void{
+ const values=[1,2];let caught=0;
+ try{values.reduce((total:int,value:int):int=>{if(value===2){throw "reduce";}return total+value;},0);}
+ catch(error){if(typeof error==="string"){strictEqual(error,"reduce");caught=1;}}
+ strictEqual(caught,1,"reduce callback error must reach catch");
+ strictEqual(values.join(","),"1,2");
+}
+function checkReduceRight():void{
+ const values=[1,2];let caught=0;
+ try{values.reduceRight((total:int,value:int):int=>{if(value===2){throw "reduceRight";}return total+value;},0);}
+ catch(error){if(typeof error==="string"){strictEqual(error,"reduceRight");caught=1;}}
+ strictEqual(caught,1,"reduceRight callback error must reach catch");
+ strictEqual(values.join(","),"1,2");
+}
+function checkSort():void{
+ const values=[1,2];let caught=0;
+ try{values.sort((left:int,right:int):int=>{throw "sort";});}
+ catch(error){if(typeof error==="string"){strictEqual(error,"sort");caught=1;}}
+ strictEqual(caught,1,"sort callback error must reach catch");
+ strictEqual(values.join(","),"1,2");
+}
+function checkToSorted():void{
+ const values=[1,2];let caught=0;
+ try{values.toSorted((left:int,right:int):int=>{throw "toSorted";});}
+ catch(error){if(typeof error==="string"){strictEqual(error,"toSorted");caught=1;}}
+ strictEqual(caught,1,"toSorted callback error must reach catch");
+ strictEqual(values.join(","),"1,2");
+}
+function checkFallibleSuccess():void{
+ const values=[3,1,2,1];
+ const sorted=values.toSorted((a:int,b:int):int=>{if(a<0){throw "negative";}return a-b;});
+ strictEqual(sorted.join(","),"1,1,2,3");strictEqual(values.join(","),"3,1,2,1");
+ values.sort((a:int,b:int):int=>{if(a<0){throw "negative";}return a-b;});
+ strictEqual(values.join(","),"1,1,2,3");
+ const words=["b","a","c"];
+ words.sort((a:string,b:string):int=>{if(a==="missing"){throw "missing";}return a<b?-1:a>b?1:0;});
+ strictEqual(words.join(","),"a,b,c");
+ strictEqual(values.map((v:int):int=>{if(v<0){throw "negative";}return v+1;}).join(","),"2,2,3,4");
+ strictEqual(values.filter((v:int):boolean=>{if(v<0){throw "negative";}return v>1;}).join(","),"2,3");
+ let calls=0;
+ strictEqual(values.some((v:int):boolean=>{calls+=1;if(v===3){throw "unreached";}return v===1;}),true);
+ strictEqual(calls,1);
+ let finalized=0;let caught=0;
+ try{words.map((v:string):string=>{throw "owned input";});}
+ catch(error){if(typeof error==="string"){strictEqual(error,"owned input");caught=1;}}
+ finally{finalized=1;}
+ strictEqual(caught,1);strictEqual(finalized,1);strictEqual(words.join(","),"a,b,c");
+}
+function main(){checkFallibleSuccess();checkMap();checkFilter();checkFlatMap();checkSome();checkEvery();checkFind();checkFindLast();checkFindIndex();checkFindLastIndex();checkReduce();checkReduceRight();checkSort();checkToSorted();}

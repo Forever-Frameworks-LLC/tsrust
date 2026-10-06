@@ -1,0 +1,16 @@
+{
+  "closedProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T14-57-40-000Z-string-last-index-of-runtime-proof.json",
+    "sha256": "4e92721519d011904611337aa7538ff656c9906b46dc323a3c6d7eb5f8e5e5fe"
+  },
+  "completedAcceptance": {
+    "path": "/tmp/tsrust-gate60-completed-acceptance.json",
+    "sha256": "aefe4544302d14945e517261c6e3ff4b953a71a0e18937cc49aa8365680827ff"
+  },
+  "paths": [
+    "runtime/diagnostics/2026-10-02T14-42-00-000Z-string-last-index-of-compiler-proof-artifacts",
+    "runtime/diagnostics/2026-10-02T14-48-00-000Z-string-last-index-of-source-validation-artifacts",
+    "runtime/diagnostics/2026-10-02T14-53-46-000Z-string-last-index-of-native-borrow-source-supplement-artifacts",
+    "runtime/diagnostics/2026-10-02T14-57-40-000Z-string-last-index-of-runtime-artifacts"
+  ]
+}

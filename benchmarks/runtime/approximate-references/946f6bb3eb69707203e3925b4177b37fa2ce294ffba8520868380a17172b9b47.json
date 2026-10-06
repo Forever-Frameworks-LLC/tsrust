@@ -1,0 +1,109 @@
+{
+  "pow": {
+    "tables": [
+      [
+        0.5,
+        0.625,
+        0.75,
+        1.125,
+        1.5,
+        1.75,
+        2.25,
+        2.5
+      ],
+      [
+        -2.5,
+        -1.75,
+        -1.25,
+        -0.625,
+        0.375,
+        0.75,
+        1.25,
+        2.5
+      ]
+    ],
+    "jitterDenominators": [
+      64,
+      128
+    ],
+    "method": "pow",
+    "workloadId": "number_exponent",
+    "operationArity": 2,
+    "maxIterations": 131072,
+    "maxSeed": 1000000,
+    "tableSelector": "(i*13+seed)%8",
+    "jitterSelector": "(i*17+seed)%5",
+    "tuplesPerMethod": 40,
+    "iterationPeriod": 40,
+    "baseRationals": [
+      [
+        {
+          "numerator": "1",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "5",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "9",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "7",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "9",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "5",
+          "denominatorPowerOfTwo": 1
+        }
+      ],
+      [
+        {
+          "numerator": "-5",
+          "denominatorPowerOfTwo": 1
+        },
+        {
+          "numerator": "-7",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-5",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "-5",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 3
+        },
+        {
+          "numerator": "3",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "5",
+          "denominatorPowerOfTwo": 2
+        },
+        {
+          "numerator": "5",
+          "denominatorPowerOfTwo": 1
+        }
+      ]
+    ]
+  }
+}

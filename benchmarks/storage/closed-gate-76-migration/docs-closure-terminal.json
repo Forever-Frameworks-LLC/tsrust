@@ -1,0 +1,18 @@
+{
+  "gate": 76,
+  "argv": [
+    "python3",
+    "/tmp/tsrust-gate76/close-docs.py",
+    "--runtime-proof",
+    "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-proof.json",
+    "--runtime-sha256",
+    "26cb5c6cf1bc78bb5d54f93a137a50d0f719ad743bf5063d1fc179dd658ddbd8"
+  ],
+  "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+  "pid": 97068,
+  "startedUtc": "2026-10-03T05:16:56.572673+00:00",
+  "finishedUtc": "2026-10-03T05:16:57.068959+00:00",
+  "exitCode": 0,
+  "log": "/private/tmp/tsrust-gate76/docs-closure.log",
+  "logSha256": "1277a5515fe5df67bf23fae741bd6c2990192b6eadc7fe7e70eeceeab700187d"
+}

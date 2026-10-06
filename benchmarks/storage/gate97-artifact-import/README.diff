@@ -1,0 +1,22 @@
+--- before/benchmarks/storage/README.md
++++ after/benchmarks/storage/README.md
+@@ -30,8 +30,8 @@
+ bytes (88.3%). Exact file deduplication saves 64,944,390 original bytes, or another
+ 3,629,954 bytes after compression. These are payload measurements, not measured
+ SQLite file sizes; SQLite pages and indexes add overhead. Dependencies are a
+-separate source of disk use. Completed artifact migrations and closed checkpoint86/91/96 raw imports and the affected-only checkpoint96 refinement now store
+-**21,130 original records in 13,855 blobs, occupying 167,780,352 bytes**. Verified
++separate source of disk use. Completed artifact migrations, closed checkpoint86/91/96 raw imports, the affected-only checkpoint96 refinement and Gate97 focused evidence now store
++**22,507 original records in 15,107 blobs, occupying 172,138,496 bytes**. Before the artifact-only Gate97 import, checkpoint96 contained 21,130 records in 13,855 blobs and occupied 167,780,352 bytes. Verified
+ removal reclaimed **2,236,624,896 allocated bytes (about 2,133 MiB)** before migration
+ evidence and documentation overhead. Actual plans, indexes and verification are in
+ [the initial migration](./historical-artifact-migration-2026-10-02.json),
+@@ -64,6 +64,8 @@
+ Checkpoint96 added 8,928 individual timing samples, 96 throughput summaries and 144 allocation profiles. The original 48-comparison baseline retains all 21 slower native results for review; all disposal checks are zero. Both raw records were restored with exact original paths, sizes and hashes before removing only their canonical loose copies. Frozen originals remain available for the pending refinement audit. See [verified import](./closed-checkpoint-96-analytics/verified-import.json) and [scoped cleanup](./closed-checkpoint-96-analytics/cleanup.json). Historical raw links remain recoverable with `store.py export` as described below.
+ 
+ The affected-only integer concat refinement adds 6,138 timing samples, 66 rate summaries and 99 profiles while preserving the original baseline. Its 15 comparable rows have fewer allocations and observed native mean throughput improvements; all 31 slower results in the targeted 33-row cohort remain recorded. Both new raw records were restored exactly before scoped cleanup. See [refinement verification](./closed-checkpoint-96-refinement-analytics/verified-import.json) and [cleanup](./closed-checkpoint-96-refinement-analytics/cleanup.json). The database now contains 58,218 individual timing samples and 570 allocation profiles; records remain separated by original run and compiler provenance.
++
++Gate97 added 1,377 focused compiler, editor, root and benchmark evidence paths as artifact records, adding 4,358,144 database bytes. Each selected record was independently decoded and exported to scratch with exact original size and SHA256 verification; no files were deleted and no timing samples were added. The existing 58,218 timing samples and 570 profiles remain the last measured checkpoint history. See [artifact import verification](./gate97-artifact-import/accepted.json) and [restoration identities](./gate97-artifact-import/verified-records.json). Artifact paths were imported relative to the repository root; use that same relative path with `store.py export` and an empty scratch root.
+ 
+ ## Commands
+ 

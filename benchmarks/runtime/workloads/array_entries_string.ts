@@ -1,0 +1,11 @@
+type int=number;
+function workload(n: int, seed: int, input: string): string[][] {
+ const output:string[][]=[];let i=0;
+ while (i < n) {
+  const base=(i*13+seed)%97;const source=[input.repeat(base%3+1),input.slice()];
+  const pairs=Array.from(source.entries(),(pair:[int,string]):[int,string]=>{return [pair[0],pair[1].slice()];});pairs[0][0]=base+5;pairs[0][1]=input.slice();
+  output.push([String(pairs[0][0]),pairs[0][1].slice(),source[0].slice(),String(pairs[1][0]),pairs[1][1].slice(),String(pairs.length),String(source.length),String(Array.isArray(pairs[0]))]);
+  i=i+1;
+ } return output;
+}
+function main(){const result=workload(3,0,"abc");}

@@ -1,0 +1,32 @@
+{
+  "gate": 86,
+  "completedRawRecordsRemoved": 2,
+  "removedPaths": [
+    "runtime/results/2026-10-03T13-42-38-756Z.json",
+    "runtime/diagnostics/2026-10-03T13-46-03-175Z-native-allocations.json"
+  ],
+  "exactOriginalBytesRestorable": true,
+  "protectedRemainingLooseJsonPathStatIdentitiesExact": true,
+  "reportSha256": "7d930574d5fb1a40d72a6fc4dad98f3c7ec4d8212b41e265e1df7c6033f9d900",
+  "reportUnchanged": true,
+  "database": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/records.sqlite",
+    "sha256": "4d857e51e0e38d132e7f59c94607c4c8a9db04d03c3efa32ed8b34efc9757fda",
+    "bytes": 149852160,
+    "allocatedBytes": 149852160,
+    "records": 21121,
+    "blobs": 13846,
+    "analytics_runs": 2,
+    "analytics_samples": 30504,
+    "analytics_summaries": 328,
+    "analytics_profiles": 123
+  },
+  "originalLogicalBytes": 281199604,
+  "originalAllocatedBytes": 281202688,
+  "databaseLogicalGrowthBytes": 15589376,
+  "databaseAllocatedGrowthBytes": 15589376,
+  "grossAllocatedBytesReclaimed": 265613312,
+  "scratchVerifiedCopiesRemoved": true,
+  "oldRawHistoryMigrated": false,
+  "newGate87EvidenceTouched": false
+}

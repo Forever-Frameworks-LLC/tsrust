@@ -1,0 +1,13 @@
+{
+  "gate": 96,
+  "label": "restore-verification",
+  "argv": [
+    "python3",
+    "-B",
+    "/tmp/tsrust-checkpoint96-refinement-plan/verify-sqlite-new-records.py"
+  ],
+  "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+  "environment": {},
+  "pid": 6785,
+  "startedUtc": "2026-10-04T01:00:17.404528+00:00"
+}

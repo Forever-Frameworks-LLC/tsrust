@@ -1,0 +1,26 @@
+function workload(n: int, seed: int, input: string): string[][] {
+ const output:string[][]=[];let i=0;
+ while (i < n) {
+  const base=(i*13+seed)%97;
+  const skip=base%3;
+  let trace="";let updates=0;
+  outer:for(let row=0;row<4;row++,updates++){
+   for(let col=0;col<3;col++){
+    if(row===skip)continue outer;
+    if(row===3)break outer;
+    trace+=String(row)+String(col);
+   }
+  }
+  let count=0;
+  again:while(count<base%4+1){count++;for(const x of [1,2]){if(x===1)continue again;count+=10;}}
+  let post=0;
+  postLoop:do{post++;for(;;){continue postLoop;}}while(post<base%3+1);
+  let selected=1;
+  done:{if(base%2===0)break done;selected=2;}
+  let once=0;
+  first:second:for(const value of [base,base+1]){once+=value;for(;;){break first;}}
+  output.push([trace,String(updates),String(count),String(post),String(selected),String(once),input+String(base)]);
+  i=i+1;
+ }return output;
+}
+function main(){const result=workload(3,0,"abc");}

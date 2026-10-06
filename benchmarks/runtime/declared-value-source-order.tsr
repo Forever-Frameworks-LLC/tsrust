@@ -1,0 +1,9 @@
+type Probe={state:int;};
+function main(){let probe:Probe={state:0};console.log(receiver().reduce(factory(probe),initial(probe)));console.log(receiver().reduceRight(factory(probe),initial(probe)));console.log(empty().reduce(factory(probe),initial(probe)));console.log([5].reduce(fold));const selected=step;const bound=(value:int):int=>{return selected(value);};const global=(value:int):int=>{const target=step;return target(value);};console.log(bound(2));console.log(bound(3));console.log(global(2));const original=step;const moved=original;console.log(moved(4));const factoryValue=make;const action=factoryValue("é\u0000");console.log(action("xx"));console.log(action("x😀"));}
+function receiver():int[]{console.log("receiver");return [1,2];}
+function empty():int[]{console.log("empty");return [];}
+function factory(probe:Probe):(a:int,value:int,index:int)=>int{probe.state=probe.state+1;console.log("factory");return fold;}
+function initial(probe:Probe):int{console.log("initial");return probe.state;}
+function fold(a:int,value:int,index:int):int{console.log(index);return a*10+value;}
+function step(value:int):int{return value*3+1;}
+function make(prefix:string):(text:ReadOnly<string>)=>string{return(text:string):string=>{return text.replaceAll("x",prefix);};}

@@ -1,0 +1,57 @@
+{
+  "gate": 60,
+  "compilerAccepted": true,
+  "runtimeAccepted": true,
+  "namedGroups": 597,
+  "releasePath": "/Users/seancotter/Desktop/dev/learning/tsrust/target/release/tsrust",
+  "releaseSha256": "995fda616e9c989a714d7d26df9fed28571cd97557736d291563567df6243aaa",
+  "compilerProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T14-42-00-000Z-string-last-index-of-compiler-proof.json",
+    "sha256": "907939a7e2a93b9402446dbcb64cd5ee2e8dd05a51e11ce193e864682fb5a875"
+  },
+  "sourceProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T14-53-46-000Z-string-last-index-of-native-borrow-source-supplement.json",
+    "sha256": "32b2d6db7457bbdbbfd0c0fa6f8b4e64bf53394c7223077710430e6e0d7478c8"
+  },
+  "runtimeProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T14-57-40-000Z-string-last-index-of-runtime-proof.json",
+    "sha256": "4e92721519d011904611337aa7538ff656c9906b46dc323a3c6d7eb5f8e5e5fe"
+  },
+  "measuredRows": 350,
+  "verification": {
+    "uniqueRegressionGroups": 597,
+    "fullAttempts": 1,
+    "fullRestarts": 0,
+    "newComparisons": 4,
+    "sourcePrograms": 4,
+    "sourceCases": 864,
+    "uniqueNodeGroups": 18,
+    "nativeBuilds": 18,
+    "nativeOutputChecks": 40,
+    "processCells": 96,
+    "timedBatches": 2976,
+    "publishedRateCells": 32,
+    "profileSamples": 12,
+    "finalDisposalZero": true,
+    "oldMeasurementsRepeated": false,
+    "allSearchResultsRetained": true,
+    "losslessIndexMapping": "byte index + 1; recover each index by subtracting one",
+    "unicodeCoordinateTranslationTimed": true,
+    "asciiCoordinateBridgeUsed": false,
+    "benchmarkBorrowedNeedleFixtureCorrection": true,
+    "resourceNormalization": {
+      "operationsPerSample": 2048,
+      "samples": 3,
+      "statistics": [
+        "min",
+        "avg",
+        "max"
+      ],
+      "rawCountersRetained": true,
+      "inputAdaptationSeparate": true,
+      "peak": "retained-batch peak divided by 2,048 operations; not an isolated-call peak"
+    }
+  },
+  "readmeSha256": "bf0a010d002351cfed8107b2e654219e6249d2e1acb16142ced95f2d9e24ab7a",
+  "documentationOnlyCompilerSupplement": "/tmp/tsrust-gate60-postclosure-readme-supplement.json"
+}

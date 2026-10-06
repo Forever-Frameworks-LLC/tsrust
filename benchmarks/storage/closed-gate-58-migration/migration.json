@@ -1,0 +1,34 @@
+{
+  "kind": "executed-closed-gate-artifact-compaction",
+  "timestamp": "2026-10-02T13:51:34.451131+00:00",
+  "planSHA256": "08e1d85bc944b8649651d7f5d9c5cec08b7b065c375d1f257701aeb8b1451314",
+  "selection": [
+    "runtime/diagnostics/2026-10-02T13-25-52-000Z-array-to-spliced-compiler-proof-artifacts",
+    "runtime/diagnostics/2026-10-02T13-40-00-000Z-array-to-spliced-source-validation-artifacts",
+    "runtime/diagnostics/2026-10-02T13-50-12-000Z-array-to-spliced-runtime-artifacts"
+  ],
+  "files": 500,
+  "originalLogicalBytes": 63963900,
+  "originalAllocatedBytes": 65253376,
+  "database": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/records.sqlite",
+    "sha256": "b952a7f9ec99bdfdf3f4ff2f2e87e33926fdbc452be4c5de90d87f9295db3d88",
+    "logicalBytes": 97628160,
+    "allocatedBytes": 97628160
+  },
+  "databaseGrowthBytes": 2314240,
+  "grossAllocatedBytesReclaimed": 62939136,
+  "verification": "original/restored/archive paths, sizes and SHA256; independent zlib; rehash each leaf before unlink",
+  "rollbackOnFailure": true,
+  "protectedOriginals": {
+    "files": 409,
+    "topLevelProofsResultsAndBENCHMARKSExact": true,
+    "completeProtectedPathSetsExact": true,
+    "inventory": "protected-originals.json"
+  },
+  "savingsAccounting": {
+    "migrationEvidenceAllocatedBytes": 434176,
+    "readmeAndGuideAllocatedGrowthBytes": 0,
+    "netAllocatedBytesAfterEvidenceAndGuideGrowth": 62504960
+  }
+}

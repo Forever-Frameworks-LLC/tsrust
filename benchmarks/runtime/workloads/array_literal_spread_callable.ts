@@ -1,0 +1,6 @@
+type int=number;
+function workload(n: int, seed: int, input: string): int[][] {
+ const output: int[][] = []; let i = 0;
+ while (i < n) { const base = (i + seed) % 97; const actions: (() => int)[] = [():int=>{return base;},():int=>{return base + 1;}]; const packed:(() => int)[] = [...actions,():int=>{return base + 2;}]; output.push([packed[0](),packed[1](),packed[2]()]); i = i + 1; } return output;
+}
+function main() { const result = workload(3, 0, "abc"); }

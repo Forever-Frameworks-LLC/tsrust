@@ -1,0 +1,16 @@
+type Row={name:string;count:int;active:boolean;};
+function workload(n: int, seed: int, input: string): string[][] {
+ const output:string[][]=[];let i=0;
+ while (i < n) {
+  const base=(i*13+seed)%97;
+  const words=[input.repeat(1),String(base),input.repeat(2)];
+  const [first,...rest]=words;rest.push("tail");
+  const pair:[int,string]=[base,input.repeat(1)];const [,...tupleTail]=pair;
+  const row:Row={active:base%2===0,name:input.repeat(1),count:base};
+  const merged={before:base,...row,count:base+1,after:seed};
+  const {name:label,...fields}=row;
+  output.push([first.slice(),rest.join("|"),tupleTail[0].slice(),label,String(fields.count),Object.keys(fields).join(","),merged.name.slice(),String(merged.count),Object.keys(merged).join(","),String(words.length),String(rest.length)]);
+  i=i+1;
+ }return output;
+}
+function main(){const result=workload(3,0,"abc");}

@@ -1,0 +1,4 @@
+type int = number;
+function receiver(trace: int[], empty: boolean): int[] { trace.push(1); if (empty) { return []; } return [2, 3]; }
+function separator(trace: int[]): string { trace.push(2); return "|"; }
+function main() { const trace: int[] = []; console.log(receiver(trace, false).join(separator(trace))); console.log(trace[0]); console.log(trace[1]); const other: int[] = []; console.log(receiver(other, true).join(separator(other))); console.log(other[0]); console.log(other[1]); }

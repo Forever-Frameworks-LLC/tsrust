@@ -1,0 +1,7 @@
+function workload(n: int, seed: int, input: string): string[][] {
+ const output: string[][] = []; const words=["é","Åﬁ①","각","à̕","é😀"]; const forms=["NFC","NFD","NFKC","NFKD"];let i = 0;
+ while (i < n) { const base=(i*13+seed)%97;const text=words[i%5].repeat(base%3+1);
+ output.push([text.normalize("NFC"),text.normalize("NFD"),text.normalize("NFKC"),text.normalize("NFKD"),text.normalize(),text.normalize(undefined),text.normalize(forms[i%4])]);
+ i=i+1; } return output;
+}
+function main() { const result = workload(3, 0, "abc"); }

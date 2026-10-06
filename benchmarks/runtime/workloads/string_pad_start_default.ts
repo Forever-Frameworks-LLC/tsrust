@@ -1,0 +1,15 @@
+function workload(n: number, seed: number, input: string): string[] {
+    const values: string[] = [clone(input), "", "A", "a\u0000b", "XY", " x ", input.repeat(2), "Z"];
+    const extras: number[] = [-10000, -1, 0, 1, 2, 5, 8, 17];
+    const output: string[] = []; let i = 0;
+    while (i < n) {
+        const at = (i * 13 + seed) % 8;
+        const target: number = values[at].length + extras[(i * 7 + seed) % 8];
+        const selected: string = values[at].padStart(target);
+        output.push(selected);
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7, " A alpha Z "); }
+function clone<T>(value: T): T { return value; }

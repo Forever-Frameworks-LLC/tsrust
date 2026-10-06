@@ -1,0 +1,12 @@
+function apply(action: Mutable<Function<int, [value: int, enabled: boolean]>>): int {
+    return action(7, true);
+}
+
+function main() {
+    const choose = (value: int, enabled: boolean): int => {
+        if (enabled) { return value; }
+        return 0;
+    };
+    console.log(apply(choose));
+    console.log(choose(9, false));
+}

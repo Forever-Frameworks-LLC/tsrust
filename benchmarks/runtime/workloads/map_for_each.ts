@@ -1,0 +1,15 @@
+function workload(n: number, seed: number, input: string): string[][] {
+ const output:string[][]=[];let i=0;
+ while(i<n){
+  const values=new Map<number,number>([[i+seed,2],[i+seed+1,3],[i+seed,4]]);
+  let total=0;
+  values.forEach((value,key,source)=>{total=total+value+key+source.size;});
+  const names=new Map<string,string>([[String(input),"first"],["tail","last"],[String(input),"updated"]]);
+  let text="";
+  names.forEach((value,key,source)=>{if(source.has(key)){text=text+key+":"+value+"|";}});
+  output.push([String(total),String(values.size),text,String(names.size)]);
+  i=i+1;
+ }
+ return output;
+}
+function main(){const result=workload(3,0,"abc");}

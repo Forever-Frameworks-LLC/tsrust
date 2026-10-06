@@ -1,0 +1,113 @@
+{
+  "sourceValues": [
+    "0.0",
+    "-0.0",
+    "1.0",
+    "-1.0",
+    "1.234",
+    "-1.234",
+    "9.999",
+    "-9.999",
+    "12345.678",
+    "-12345.678",
+    "1e-7",
+    "1e-6",
+    "9.999e-7",
+    "9.999e-6",
+    "1e20",
+    "1e21",
+    "1.0000123e21",
+    "-1e21",
+    "1.0 / 0.0",
+    "-1.0 / 0.0",
+    "0.0 / 0.0",
+    "-1e-7",
+    "5e-324",
+    "1.7976931348623157e308"
+  ],
+  "ieeeBits": [
+    "0000000000000000",
+    "8000000000000000",
+    "3ff0000000000000",
+    "bff0000000000000",
+    "3ff3be76c8b43958",
+    "bff3be76c8b43958",
+    "4023ff7ced916873",
+    "c023ff7ced916873",
+    "40c81cd6c8b43958",
+    "c0c81cd6c8b43958",
+    "3e7ad7f29abcaf48",
+    "3eb0c6f7a0b5ed8d",
+    "3eb0c689ad36862e",
+    "3ee4f82c188427ba",
+    "4415af1d78b58c40",
+    "444b1ae4d6e2ef50",
+    "444b1afab04764ae",
+    "c44b1ae4d6e2ef50",
+    "7ff0000000000000",
+    "fff0000000000000",
+    "nan",
+    "be7ad7f29abcaf48",
+    "0000000000000001",
+    "7fefffffffffffff"
+  ],
+  "shortest": [
+    "0",
+    "0",
+    "1",
+    "-1",
+    "1.234",
+    "-1.234",
+    "9.999",
+    "-9.999",
+    "12345.678",
+    "-12345.678",
+    "1e-7",
+    "0.000001",
+    "9.999e-7",
+    "0.000009999",
+    "100000000000000000000",
+    "1e+21",
+    "1.0000123e+21",
+    "-1e+21",
+    "Infinity",
+    "-Infinity",
+    "NaN",
+    "-1e-7",
+    "5e-324",
+    "1.7976931348623157e+308"
+  ],
+  "methodRows": [
+    {
+      "id": "number_to_fixed_default",
+      "method": "toFixed",
+      "argument": null
+    },
+    {
+      "id": "number_to_fixed_2",
+      "method": "toFixed",
+      "argument": 2
+    },
+    {
+      "id": "number_to_exponential_default",
+      "method": "toExponential",
+      "argument": null
+    },
+    {
+      "id": "number_to_exponential_2",
+      "method": "toExponential",
+      "argument": 2
+    },
+    {
+      "id": "number_to_precision_default",
+      "method": "toPrecision",
+      "argument": null
+    },
+    {
+      "id": "number_to_precision_5",
+      "method": "toPrecision",
+      "argument": 5
+    }
+  ],
+  "rounding": "Native standard Rust decimal rounding uses ties-to-even; shared pool avoids ties that diverge from JavaScript. Shortest spellings are independent literals, with native verification pending."
+}

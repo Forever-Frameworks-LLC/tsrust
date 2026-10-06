@@ -1,0 +1,16 @@
+function main() {
+    const mixed = [1, "a", true, null];
+    console.log(mixed, mixed.length, mixed.includes("a"), mixed.indexOf(true));
+    for (const item of mixed) { console.log(typeof item); }
+    const numbers = [1, 2.5, 3];
+    console.log(numbers, numbers[0] + 0.5);
+    const texts = [1.5, "x", 2];
+    console.log(texts, texts.join("|"));
+    const word = "w".repeat(2);
+    const built = [word.length, word === "ww", word];
+    console.log(built);
+    const nested = [[1, 2], "s"];
+    console.log(nested.length, nested);
+    const same = [1, 2, 3];
+    console.log(same.at(0) ?? 0, [true, false].length, ["a", "b"].join(""));
+}

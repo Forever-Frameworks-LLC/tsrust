@@ -1,0 +1,76 @@
+{
+  "gate": 73,
+  "compilerAccepted": true,
+  "runtimeAccepted": true,
+  "namedGroups": 649,
+  "workspaceNamedGroups": 665,
+  "measuredRows": 472,
+  "releasePath": "/Users/seancotter/Desktop/dev/learning/tsrust/target/release/tsrust",
+  "releaseSha256": "68b405177b78232200db3b66e3867a34feebaa3bd7caddadd860d81da3653c44",
+  "compilerProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof.json",
+    "sha256": "fc2e2ee6bed68cdff4969ec227804d2b8bd439cad2c3ca9013cb26c292c75ca0"
+  },
+  "sourceProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation.json",
+    "sha256": "fc565790f9f61abe055afa85038306a7184147f07bbeb8933fd589637da43dd8"
+  },
+  "runtimeProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-proof.json",
+    "sha256": "eb438a5a5b431a3b64a6de882d6aeff190aec4c4fa66d8ab412eeb4552ccfc2f"
+  },
+  "report": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/BENCHMARKS.md",
+    "sha256": "31aa05fab21ae04eba2bd190c694f5c0c62eb745ff378957cb64c0928df1061e"
+  },
+  "inventoryOperations": 1926,
+  "inventoryFamilies": 28,
+  "rateLeads": {
+    "nativeNode": 4,
+    "nativeFastest": 3,
+    "rows": 4
+  },
+  "docsChanges": [
+    {
+      "path": "docs/milestones/73-integer-formatting.md",
+      "beforeSha256": "57052112e7c618b8312d7ccaad2aeadbc7b53571b661c4251b83c56e7a5e18ae",
+      "afterSha256": "4ef430492e69878cc6109791b1f459bd61c0c095830082bdde4c846b1343500d"
+    },
+    {
+      "path": "docs/roadmap.md",
+      "beforeSha256": "11c55a6fac1cb6b2313446d6a62396200c29e37d0331e04d81e4db989650395c",
+      "afterSha256": "fe060edb91a0c4b0423474e384675cd9f373e170490e0ad939a74d41db4ee6d9"
+    },
+    {
+      "path": "docs/README.md",
+      "beforeSha256": "741c111c8d790740b14dca9965dca4acebb8b8d1548f9e314ec4eeababf6fc76",
+      "afterSha256": "a1ffc702d10080a05c678de90eaf09b2e4658882e2d809ecbbd71b128a6f8997"
+    },
+    {
+      "path": "crates/tsrust-compiler/README.md",
+      "beforeSha256": "079f5f39e03ce6da26c48813c74412b7a3aa6a412bc232b5933e8588fb74361f",
+      "afterSha256": "175733f2a7bc025797da3470bfa65c336b2a5578513371c6d3cf0ad64f8413ca"
+    },
+    {
+      "path": "benchmarks/runtime/README.md",
+      "beforeSha256": "977345f9d10b21a7c72bb06bcf615eea9b7c93838da3a0917e7968058c28a534",
+      "afterSha256": "4c53bc060c3ab2c958c44a58ab5f6531e0f1dd4555e09f5b4d7ee1429507d819"
+    },
+    {
+      "path": "benchmarks/coverage/status.json",
+      "beforeSha256": "afb435fecc6b3a4846f04ffd0f493f85ec5b0e55001a788ddd6ce0521c3f8162",
+      "afterSha256": "6b87aaa69889fce67a2b6ceefb7d781b8f38c62d98e476a66287bf3517d7e034"
+    },
+    {
+      "path": "benchmarks/coverage/inventory.json",
+      "beforeSha256": "b22431c477f3adf7c436e50023fd47e8a831f9f8dccde98047c0ed87a149e47e",
+      "afterSha256": "072d536b2524724b04fc91e60874df5062a476057f4ea509e475c5c5e0e3f109"
+    },
+    {
+      "path": "docs/feature-coverage.md",
+      "beforeSha256": "6dea87f2e3026764e272145c80d7f00657d88076922a863d104e22f5d37e6819",
+      "afterSha256": "388d3f1ac6700faa0548f45ebf7e753764f40effcbcedfa0b3a7013a4dcbacdf"
+    }
+  ],
+  "fullRestarts": 0
+}

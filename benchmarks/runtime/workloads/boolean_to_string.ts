@@ -1,0 +1,13 @@
+type int = number;
+function workload(n: int, seed: int): string[] {
+    const values: boolean[] = [false, true, true, false];
+    const output: string[] = []; let i = 0;
+    while (i < n) {
+        const at = (i * 13 + seed) % 4;
+        const selected: string = values[at].toString();
+        output.push(selected);
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7); }

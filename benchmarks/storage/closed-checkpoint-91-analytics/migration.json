@@ -1,0 +1,101 @@
+{
+  "gate": 91,
+  "accepted": true,
+  "timed": true,
+  "measurementRepeated": false,
+  "sqliteCanonical": true,
+  "proof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T18-11-33-000Z-checkpoint91-runtime-proof.json",
+    "sha256": "aff99bf249cef51932388e9e7b59efe22578efba570beb1fa208e23aaaf6daac"
+  },
+  "records": [
+    {
+      "originalPath": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/results/2026-10-03T18-02-58-195Z.json",
+      "relativePath": "runtime/results/2026-10-03T18-02-58-195Z.json",
+      "sha256": "d0f33323edd94abf418f0e74288f13a451dfa25f204f5eda1d881905d4334a8e",
+      "restoredPath": "/tmp/tsrust-gate91-raw-restore/runtime/results/2026-10-03T18-02-58-195Z.json",
+      "bytes": 170940513,
+      "allocatedBytes": 170942464,
+      "restoredExact": true,
+      "storeBindingExact": true
+    },
+    {
+      "originalPath": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T18-03-45-893Z-native-allocations.json",
+      "relativePath": "runtime/diagnostics/2026-10-03T18-03-45-893Z-native-allocations.json",
+      "sha256": "44b76337dc7adfc007d8c1b10dabc1dcd128f9add9f57ff8a903a41926b8b983",
+      "restoredPath": "/tmp/tsrust-gate91-raw-restore/runtime/diagnostics/2026-10-03T18-03-45-893Z-native-allocations.json",
+      "bytes": 1329467,
+      "allocatedBytes": 1331200,
+      "restoredExact": true,
+      "storeBindingExact": true
+    }
+  ],
+  "restoreCommands": [
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/store.py",
+        "export",
+        "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/records.sqlite",
+        "runtime/results/2026-10-03T18-02-58-195Z.json",
+        "--root",
+        "/tmp/tsrust-gate91-raw-restore"
+      ],
+      "pid": 41080,
+      "startedUtc": "2026-10-03T18:14:38.107939+00:00",
+      "finishedUtc": "2026-10-03T18:14:38.305097+00:00",
+      "exitCode": 0
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/store.py",
+        "export",
+        "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/records.sqlite",
+        "runtime/diagnostics/2026-10-03T18-03-45-893Z-native-allocations.json",
+        "--root",
+        "/tmp/tsrust-gate91-raw-restore"
+      ],
+      "pid": 41081,
+      "startedUtc": "2026-10-03T18:14:38.440221+00:00",
+      "finishedUtc": "2026-10-03T18:14:38.473949+00:00",
+      "exitCode": 0
+    }
+  ],
+  "allRestoredBeforeAnyOriginalRemoved": true,
+  "exactOriginalRestoredStorePathsetsSizeSHA": true,
+  "looseOriginalsRemoved": true,
+  "scratchVerifiedCopiesRemoved": true,
+  "protectedOriginalLooseRecords": 531,
+  "protectedPreviousStatIdentitiesAndPathsetExact": true,
+  "reportSha256": "7d930574d5fb1a40d72a6fc4dad98f3c7ec4d8212b41e265e1df7c6033f9d900",
+  "before": {
+    "databaseBytes": 149852160,
+    "records": 21121,
+    "blobs": 13846,
+    "analytics_runs": 2,
+    "analytics_samples": 30504,
+    "analytics_summaries": 328,
+    "analytics_profiles": 123
+  },
+  "after": {
+    "databaseBytes": 157552640,
+    "records": 21124,
+    "blobs": 13849,
+    "analytics_runs": 4,
+    "analytics_samples": 43152,
+    "analytics_summaries": 464,
+    "analytics_profiles": 327
+  },
+  "databaseSha256": "f91b20a30fd7298ffde96ac5e099cbaf6f66d16d09b4322427e2b07f42bedf84",
+  "databaseGrowthBytes": 7700480,
+  "originalLogicalBytes": 172269980,
+  "originalAllocatedBytes": 172273664,
+  "grossAllocatedReclaimedBytes": 164573184,
+  "checkpointComparedRows": 68,
+  "nativeWins": 34,
+  "reviewSlowerRows": 34,
+  "restoration": "python3 benchmarks/storage/store.py export benchmarks/records.sqlite RELATIVE_RECORD_PATH --root benchmarks; use scratch root for revalidation, existing outputs never overwritten."
+}

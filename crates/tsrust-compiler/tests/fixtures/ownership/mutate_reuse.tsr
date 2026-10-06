@@ -1,0 +1,9 @@
+type User = { name: string; };
+
+function rename(user: User) { user.name = "Sam"; }
+function log(user: User) { console.log(user.name); }
+function main() {
+    const user: User = { name: "Pat" };
+    rename(user);
+    log(user);
+}

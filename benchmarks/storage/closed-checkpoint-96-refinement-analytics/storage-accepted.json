@@ -1,0 +1,61 @@
+{
+  "gate": 96,
+  "storageAccepted": true,
+  "refinementIndexed": true,
+  "originalBaselineImmutable": true,
+  "sqliteCanonical": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/records.sqlite",
+  "runtimeProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-04T00-56-20-000Z-checkpoint96-concat-refinement-runtime-proof.json",
+    "sha256": "b3e7d2cfb5909fabf4f50c938ae3cd799bcde2d4e0e401ed0fb11014a0466ea6"
+  },
+  "importPlan": {
+    "path": "/private/tmp/tsrust-checkpoint96-refinement-plan/sqlite-import-plan.json",
+    "sha256": "abee6f812f39a31f36deb524c05108d63d929607efe77a9ae96880bc70772bcc"
+  },
+  "rootReview": {
+    "path": "/private/tmp/tsrust-checkpoint96-refinement-plan/sqlite-root-review.json",
+    "sha256": "ff1eede4e884273f335ff1983405f7ef67fc93e398c4d78a99f959a7fa74633b"
+  },
+  "verifiedImport": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-96-refinement-analytics/verified-import.json",
+    "sha256": "992f21472f61883dd481013111ffcf8fca7f98f2d1b3bee3c8729a9899a3590b"
+  },
+  "query": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-96-refinement-analytics/checkpoint-query.log",
+    "sha256": "6d4ef05dc2397edc3bb92cc0448a21c0e1530aec66aed3c937d1155e97abab2e"
+  },
+  "cleanup": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-96-refinement-analytics/cleanup.json",
+    "sha256": "a73ef37a56cb253231f04d728059c2fa1494bd7e555b3699aba096296dfa091c"
+  },
+  "originalBaseline": {
+    "runtimeProof": {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-04T00-10-34-000Z-checkpoint96-runtime-proof.json",
+      "sha256": "69b3a78107d9f7d86dcbcfd4b3e5e79ec73c01823fd45c49f1698e1e507e18e2"
+    },
+    "verifiedImport": {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-96-analytics/verified-import.json",
+      "sha256": "56a167b14e1bf0e9dae468dae7cfc5fc43601129ba94779d795fb3f4af3f47dd"
+    },
+    "cleanup": {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-96-analytics/cleanup.json",
+      "sha256": "f75ad60e14f6f120115baca6bbb812cff09b83196934f45ad2b47f5da59462f3"
+    }
+  },
+  "statistics": {
+    "databaseBytes": 167780352,
+    "records": 21130,
+    "blobs": 13855,
+    "analytics_runs": 8,
+    "analytics_samples": 58218,
+    "analytics_summaries": 626,
+    "analytics_profiles": 570
+  },
+  "refinementReclaimedAllocatedBytes": 112623616,
+  "refinementNetAllocatedReclaimedBytes": 108101632,
+  "frozenRawOriginalsPreserved": true,
+  "markdownRendered": false,
+  "measurementsRepeated": false,
+  "historicalCorpusReverified": false,
+  "at": "2026-10-04T01:02:40.378750+00:00"
+}

@@ -1,0 +1,6 @@
+string
+é
+1
+a|é
+undefined
+1,1

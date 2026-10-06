@@ -1,0 +1,37 @@
+{
+  "status": "source-only, unexecuted",
+  "protocol": "declared-value-result-v1",
+  "reusedProtocolParent": "/tmp/tsrust-gate54-declared-function-benchmarks-revision2/observer-policy.json",
+  "bounds": {
+    "scalar_n": [
+      0,
+      2048
+    ],
+    "owned_n": [
+      0,
+      128
+    ],
+    "seed": [
+      0,
+      1000000
+    ],
+    "input_utf8_bytes_max": 256
+  },
+  "observation": {
+    "int": "natural bounded nonnegative int modulo scalar result",
+    "number": "exact quarter rational sum; current ieee-f64-bits-v1",
+    "boolean": "natural bool b:0/b:1 outside timer",
+    "owned": "complete existing tree tokens; full UTF8/NUL scalar contents, empty rows, Row3/Node3 fields; external formatting only",
+    "nativeABI": "PENDING actual release emission: exact reviewed source/counterpart and emitted hashes, function0 data args/natural result, standard owners and actual nominal fields/recursive identity. Internal callable graphs are compiler semantics, not extra external adapter ABI requirements."
+  },
+  "costs": [
+    "Whole iterations include function-value bindings, callbacks/factory setup and invocation(s), independent native clone where source asks for it, accumulation and full owned result retention.",
+    "Native clone copies owned buffers recursively; TS clone helper returns identity. No row mutates an aliased clone except mutate-array, whose returned result is a snapshot before a separate caller copy and no later mutation.",
+    "Native string byte-length quirks do not affect any timed result; replacement uses ASCII x matches and the same four ordinary substitution tokens, original prefix/suffix at every match, preserves astral/NUL and combining content.",
+    "Descriptors/methods may inline or erase; no claim of equal heap allocations or dispatch strategy.",
+    "int/number scalar results observe all returned values through ordered accumulation; per-invocation accuracy/effects are separately tested, not proved by final checksum alone.",
+    "TypeScript has no owned/once/read/mutate annotations; counterpart removes these annotations and runs the same natural function values and effects."
+  ],
+  "executedChecks": [],
+  "productionChanges": []
+}

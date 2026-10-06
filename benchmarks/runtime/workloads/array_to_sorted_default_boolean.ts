@@ -1,0 +1,20 @@
+type int = number;
+function workload(n: int, seed: int): boolean[][] {
+    const output: boolean[][] = [];
+    const sizes: int[] = [0, 1, 4, 5, 17];
+    let i = 0;
+    while (i < n) {
+        const count = sizes[(i + seed) % 5];
+        const values: boolean[] = []; let j = 0;
+        while (j < count) {
+            values.push(j % 3 !== 0);
+            j = j + 1;
+        }
+        const sorted = values.toSorted();
+        output.push(values);
+        output.push(sorted);
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7); }

@@ -1,0 +1,62 @@
+[
+  {
+    "id": "int_assignment_value",
+    "category": "numbers",
+    "family": "int",
+    "assignmentToken": "=",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "retainedScalarResultsPerOperation": 2,
+    "operationUnit": "one actual int assignment expression and retention of result and committed target",
+    "specification": "Select a dynamic old initializer and RHS, evaluate actual (target = rhsValues[rhsAt]) once, retain its result and final target interleaved with length 2*n. Ordinary assignment does not read the old target.",
+    "notes": "Dynamic selection and initialization, actual ordinary assignment, complete output construction/retention are timed. One assignment counts as one operation despite two retained leaves. Existing int-array scalar-tree ABI/observer unchanged. Compiler optimization follows ordinary native semantics; dead initializers or redundant stores may be optimized, without benchmark fixups. Complete observation and source-order/chain witnesses run outside timing.",
+    "sourceSha256": "fffc4415e3c1a2d8210f75aa85588ac0ade08d4ae65faa48cd7de3d67f824829",
+    "counterpartSha256": "00ae27b2e08d7f576a4479eaace87906c6136d08f76cea8933163fc47861959b"
+  },
+  {
+    "id": "number_assignment_value",
+    "category": "numbers",
+    "family": "number",
+    "assignmentToken": "=",
+    "result": "number[]",
+    "resultEncoding": "ieee-f64-bits-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "retainedScalarResultsPerOperation": 2,
+    "operationUnit": "one actual number assignment expression and retention of result and committed target",
+    "specification": "Select a dynamic old initializer and RHS, evaluate actual (target = rhsValues[rhsAt]) once, retain its result and final target interleaved with length 2*n. Ordinary assignment does not read the old target. Number uses complete IEEE values including negative zero, NaN and infinities.",
+    "notes": "Dynamic selection and initialization, actual ordinary assignment, complete output construction/retention are timed. One assignment counts as one operation despite two retained leaves. Existing IEEE Number-array ABI/observer unchanged. Compiler optimization follows ordinary native semantics; dead initializers or redundant stores may be optimized, without benchmark fixups. Complete observation and source-order/chain witnesses run outside timing.",
+    "sourceSha256": "495b6aec6c85d29c04fb13c6976af12f4d6c698671a184f7aa6400a800ef0bc5",
+    "counterpartSha256": "1b1f649040470a6409b08e4363856b7f2de894a43397d2c1e3850a936583f0c7"
+  },
+  {
+    "id": "boolean_assignment_value",
+    "category": "booleans",
+    "family": "boolean",
+    "assignmentToken": "=",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "retainedScalarResultsPerOperation": 2,
+    "operationUnit": "one actual boolean assignment expression and retention of result and committed target",
+    "specification": "Select a dynamic old initializer and RHS, evaluate actual (target = rhsValues[rhsAt]) once, retain its result and final target interleaved with length 2*n. Ordinary assignment does not read the old target.",
+    "notes": "Dynamic selection and initialization, actual ordinary assignment, complete output construction/retention, and Boolean-to-0/1 branching via the existing Boolean observation pattern are timed. One assignment counts as one operation despite two retained leaves. Existing int-array scalar-tree ABI/observer unchanged. Compiler optimization follows ordinary native semantics; dead initializers or redundant stores may be optimized, without benchmark fixups. Complete observation and source-order/chain witnesses run outside timing.",
+    "sourceSha256": "391b866bba12d68c04483d6f74ff243feeb6a8ce2b81c68a3b3a145ae1c8a314",
+    "counterpartSha256": "0f17105e74ea273b8e043a1a31946d5b0fe8a899ba689dd7e9cfcc45834950bb"
+  }
+]

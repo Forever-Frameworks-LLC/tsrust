@@ -1,0 +1,2 @@
+Coverage updated: 1926 operations across 28 families; unique IDs and comparison references verified.
+{"certificate": "/private/tmp/tsrust-gate76/completed-acceptance.json", "rateLeads": {"nativeNode": 4, "nativeFastest": 4, "rows": 4}, "compilerGroups": 661, "workspaceGroups": 680}

@@ -1,0 +1,24 @@
+{
+  "kind": "executed-closed-gate-artifact-compaction",
+  "timestamp": "2026-10-02T19:08:04.538669+00:00",
+  "planSHA256": "04782f3a5f62cc0ac7045d8ed28279b33581f45c3ac586c2b1b952317820c77b",
+  "selection": [
+    "runtime/diagnostics/2026-10-02T18-48-35-000Z-native-int-compiler-proof-artifacts",
+    "runtime/diagnostics/2026-10-02T18-47-23-000Z-native-int-source-validation-artifacts",
+    "runtime/diagnostics/2026-10-02T19-00-25-000Z-native-int-runtime-artifacts",
+    "runtime/diagnostics/2026-10-02T19-00-25-000Z-native-int-runtime-proof-closure-artifacts"
+  ],
+  "files": 987,
+  "originalLogicalBytes": 8355650,
+  "originalAllocatedBytes": 10035200,
+  "database": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/records.sqlite",
+    "sha256": "3240ba7f8ee6f07cba501b9b2b2777c57238a2603076199c36bebcb3bb9601dd",
+    "logicalBytes": 109899776,
+    "allocatedBytes": 109899776
+  },
+  "databaseGrowthBytes": 1474560,
+  "grossAllocatedBytesReclaimed": 8560640,
+  "verification": "original/restored/archive paths, sizes and SHA256; independent zlib; rehash each leaf before unlink",
+  "rollbackOnFailure": true
+}

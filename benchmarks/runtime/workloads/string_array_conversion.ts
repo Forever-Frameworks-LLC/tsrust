@@ -1,0 +1,11 @@
+type int = number;
+function workload(n: int, seed: int, input: string): string[] {
+    const values: string[][] = [[input.repeat(1), ""], ["é", "😀"], ["a", "b", "c"]];
+    const output: string[] = []; let i = 0;
+    while (i < n) {
+        output.push(String(values[(i + seed) % 3]));
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7, "dynamic text"); }

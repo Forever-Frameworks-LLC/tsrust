@@ -1,0 +1,48 @@
+{
+  "gate": 97,
+  "accepted": true,
+  "kind": "artifact",
+  "analyticsSamplesAdded": 0,
+  "importedPaths": 1377,
+  "narrowVerifiedPaths": 1377,
+  "originalsRetained": true,
+  "deletedFiles": 0,
+  "plan": {
+    "path": "/tmp/tsrust-gate97-bundle-storage/import-plan.json",
+    "sha256": "7382e5dc8c992330a9c19b0feb6e297afb8fa51c8b5335854ea0021ee76b54d9",
+    "bytes": 362535
+  },
+  "verification": {
+    "path": "/tmp/tsrust-gate97-bundle-storage/verified-records.json",
+    "sha256": "ca586fa39ca5df8713a2518610e92c01d12c56c6a10163a3af2d7081e43685b2",
+    "bytes": 547888
+  },
+  "before": {
+    "records": 21130,
+    "blobs": 13855,
+    "databaseBytes": 167780352,
+    "databaseSha256": "ac5b95b987eb2299256f212d853a1973024690e23f67cd777f9167f6960cdd82"
+  },
+  "after": {
+    "records": 22507,
+    "blobs": 15107,
+    "databaseBytes": 172138496,
+    "databaseSha256": "d8f81a95a35b63e7934dd29e4123e1a5f7250f6e2982bd6f169c209d62d18023"
+  },
+  "newRecords": 1377,
+  "newBlobs": 1252,
+  "databaseGrowthBytes": 4358144,
+  "selectedOriginalBytes": 22542347,
+  "selectedCompressedBytes": 3720381,
+  "store": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/store.py",
+    "sha256": "9f9f7ab732f02b01a845830abe8dfb808de040e8730a2c61db7d01cd2138f77f",
+    "bytes": 14901
+  },
+  "analytics": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/analytics.py",
+    "sha256": "a96524b9dbc661591389c1e892c7459cd8737e01139abe05caecb5cd7d6f61c7",
+    "bytes": 14254
+  },
+  "restoration": "Use store.py export with the recorded relative path and an existing scratch --root. The original absolute path aliases remain in each durable restoration map; no proof bytes were rewritten."
+}

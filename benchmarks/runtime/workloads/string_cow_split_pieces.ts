@@ -1,0 +1,21 @@
+type int = number;
+interface String { split(): string[]; }
+function workload(n: int, seed: int, input: string): string[][] {
+    const values: string[] = [clone(input), "", "::a::::b::", "é😀é😀", "a\u0000b", "e\u0301::😀", "\uFEFF::中", input.repeat(2)];
+    const limits: int[] = [0, 1, 2, 3, 7];
+    const output: string[][] = []; let i = 0;
+    while (i < n) {
+        const at = (i * 13 + seed) % 8;
+        if ((i + seed) % 17 === 0) {
+            const pieces: string[] = values[at].split();
+            output.push(pieces);
+        } else {
+            const pieces: string[] = values[at].split("::", limits[(i * 3 + seed) % 5]);
+            output.push(pieces);
+        }
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7, "é::😀::"); }
+function clone<T>(value: T): T { return value; }

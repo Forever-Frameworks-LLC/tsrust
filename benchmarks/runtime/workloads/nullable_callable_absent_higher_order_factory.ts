@@ -1,0 +1,45 @@
+type int = number;
+type Trace = { factories: int; innerFactories: int; arguments: int; outerCalls: int; innerCalls: int; fallbacks: int; };
+function workload(n: int, seed: int, input: string): int[][] {
+    const output: int[][] = [];
+    const trace: Trace = { factories: 0, innerFactories: 0, arguments: 0, outerCalls: 0, innerCalls: 0, fallbacks: 0 };
+    let i = 0;
+    while (i < n) {
+        const tag = (i + seed) % 3;
+        const value = (i * 13 + seed + input.length) % 97;
+        const beforeFactories = trace.factories; const beforeInnerFactories = trace.innerFactories;
+        const beforeArguments = trace.arguments; const beforeOuter = trace.outerCalls;
+        const beforeInner = trace.innerCalls; const beforeFallbacks = trace.fallbacks;
+        const observed: int[] = [];
+        const nil = empty(tag, trace);
+        if (nil !== null && nil !== undefined) {
+            observed.push(nil(makeInner(trace, seed % 11), argument(trace, value), trace));
+        }
+        const skipped = forwardEmpty(tag, trace)?.(makeInner(trace, seed % 11), argument(trace, value), trace);
+        if (skipped !== undefined) { observed.push(skipped); }
+        const selected = forwardEmpty(tag, trace) ?? makePresent(i % 7, trace);
+        observed.push(selected(makeInner(trace, seed % 11), argument(trace, value), trace));
+        output.push(observed);
+        output.push([trace.factories - beforeFactories, trace.innerFactories - beforeInnerFactories,
+            trace.arguments - beforeArguments, trace.outerCalls - beforeOuter,
+            trace.innerCalls - beforeInner, trace.fallbacks - beforeFallbacks]);
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const output = workload(3, 0, "abc"); }
+function argument(trace: Trace, value: int): int { trace.arguments = trace.arguments + 1; return value; }
+function makeInner(trace: Trace, offset: int): (input: int, trace: Trace) => int {
+    trace.innerFactories = trace.innerFactories + 1;
+    return (input: int, callTrace: Trace): int => { callTrace.innerCalls = callTrace.innerCalls + 1; return (input * 3 + offset + 7) % 1009; };
+}
+function empty(tag: int, trace: Trace): ((inner: (input: int, trace: Trace) => int, input: int, trace: Trace) => int) | null | undefined {
+    trace.factories = trace.factories + 1; if (tag === 1) { return null; } return undefined;
+}
+function forwardEmpty(tag: int, trace: Trace): ((inner: (input: int, trace: Trace) => int, input: int, trace: Trace) => int) | null | undefined { return empty(tag, trace); }
+function makePresent(bias: int, trace: Trace): (inner: (input: int, trace: Trace) => int, input: int, trace: Trace) => int {
+    trace.fallbacks = trace.fallbacks + 1;
+    return (inner: (input: int, callTrace: Trace) => int, input: int, callTrace: Trace): int => {
+        callTrace.outerCalls = callTrace.outerCalls + 1; return (inner(input, callTrace) + bias) % 1009;
+    };
+}

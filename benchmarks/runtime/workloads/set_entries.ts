@@ -1,0 +1,16 @@
+function workload(n: number, seed: number, input: string): string[][] {
+ const output:string[][]=[];let i=0;
+ while(i<n){
+  const values=new Set<number>([i+seed,i+seed+1,i+seed]);
+  values.delete(i+seed);values.add(i+seed);
+  const entries=Array.from(values.entries());
+  values.clear();
+  const names=new Set<string>([String(input),"tail"]);
+  const labels=Array.from(names.entries());
+  names.clear();
+  output.push([String(entries[0][0]),String(entries[0][1]),String(entries[1][0]),String(entries[1][1]),String(labels[0][0]),String(labels[0][1]),String(labels.length),String(names.size)]);
+  i=i+1;
+ }
+ return output;
+}
+function main(){const result=workload(3,0,"abc");}

@@ -1,0 +1,17 @@
+{
+  "closedProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-proof.json",
+    "sha256": "1433dfedaca349ccb8933127507ae1392987962bbf5283364d285e9d26defb07"
+  },
+  "paths": [
+    "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof-artifacts",
+    "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation-artifacts",
+    "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-artifacts",
+    "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-proof-closure-artifacts"
+  ],
+  "completedAcceptance": {
+    "path": "/private/tmp/tsrust-gate66-completed-acceptance.json",
+    "sha256": "7206611191905821ab0377db4f51a5f3dbdbc93543cae3f38a5221a97e4f6d4f"
+  },
+  "allConsumersFinishedBeforeCompaction": true
+}

@@ -1,0 +1,136 @@
+{
+  "name": "Tsrust",
+  "scopeName": "source.tsrust",
+  "patterns": [
+    {
+      "name": "comment.line.double-slash.tsrust",
+      "begin": "//",
+      "end": "$"
+    },
+    {
+      "name": "comment.block.tsrust",
+      "begin": "/\\*",
+      "end": "\\*/"
+    },
+    {
+      "name": "string.quoted.double.tsrust",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.tsrust",
+          "match": "\\\\(?:u\\{[0-9a-fA-F]+\\}|u[0-9a-fA-F]{4}|x[0-9a-fA-F]{2}|.)"
+        }
+      ]
+    },
+    {
+      "name": "string.quoted.single.tsrust",
+      "begin": "'",
+      "end": "'",
+      "patterns": [
+        {
+          "name": "constant.character.escape.tsrust",
+          "match": "\\\\(?:u\\{[0-9a-fA-F]+\\}|u[0-9a-fA-F]{4}|x[0-9a-fA-F]{2}|.)"
+        }
+      ]
+    },
+    {
+      "name": "meta.import.tsrust",
+      "begin": "\\bimport\\b",
+      "beginCaptures": {
+        "0": {
+          "name": "keyword.control.import.tsrust"
+        }
+      },
+      "end": "(?=;)",
+      "patterns": [
+        {
+          "name": "keyword.control.import.tsrust",
+          "match": "\\b(?:from|as)\\b"
+        },
+        {
+          "include": "$self"
+        }
+      ]
+    },
+    {
+      "name": "keyword.control.export.tsrust",
+      "match": "\\bexport\\b"
+    },
+    {
+      "name": "keyword.control.tsrust",
+      "match": "\\b(?:if|else|while|do|for|of|in|return|break|continue|switch|case|default|try|catch|finally|throw)\\b"
+    },
+    {
+      "name": "meta.function.generic.tsrust",
+      "match": "\\b(function)(\\s+)([A-Za-z_][A-Za-z_0-9]*)(?=\\s*<)",
+      "captures": {
+        "1": {
+          "name": "storage.type.tsrust"
+        },
+        "3": {
+          "name": "entity.name.function.tsrust"
+        }
+      }
+    },
+    {
+      "name": "storage.type.tsrust",
+      "match": "\\b(?:type|enum|function|const|let|new)\\b"
+    },
+    {
+      "name": "support.type.builtin.tsrust",
+      "match": "\\b(?:Function|Mutable|ReadOnly|Once|Owned|Set|Map)\\b(?=\\s*<)"
+    },
+    {
+      "match": "(:\\s*)(void)\\b(?=\\s*(?:[,;)}]|=>|\\{))",
+      "captures": {
+        "1": {
+          "name": "punctuation.separator.tsrust"
+        },
+        "2": {
+          "name": "support.type.primitive.tsrust"
+        }
+      }
+    },
+    {
+      "name": "keyword.operator.expression.tsrust",
+      "match": "\\b(?:typeof|void|in|as|satisfies)\\b(?!\\s*[,;)}\\]])"
+    },
+    {
+      "name": "support.type.primitive.tsrust",
+      "match": "\\b(?:int|number|string|boolean|void)\\b"
+    },
+    {
+      "name": "constant.language.tsrust",
+      "match": "\\b(?:true|false|null|undefined)\\b|(?<![\\w.])(?:NaN|Infinity)\\b"
+    },
+    {
+      "name": "constant.numeric.tsrust",
+      "match": "(?<![\\w.])(?:0[bB][01](?:_?[01])*|0[oO][0-7](?:_?[0-7])*|0[xX][0-9a-fA-F](?:_?[0-9a-fA-F])*|(?:\\d(?:_?\\d)*(?:\\.(?![a-df-zA-DF-Z_])(?:\\d(?:_?\\d)*)?)?|\\.\\d(?:_?\\d)*)(?:[eE][+-]?\\d(?:_?\\d)*)?)(?!\\w)"
+    },
+    {
+      "name": "support.class.tsrust",
+      "match": "\\b(?:Math|Number|console|Array|String|Boolean)\\b"
+    },
+    {
+      "name": "support.function.tsrust",
+      "match": "\\bclone\\b|(?<![\\w.])(?:parseInt|parseFloat|isNaN|isFinite)(?=\\s*\\()"
+    },
+    {
+      "name": "entity.name.function.tsrust",
+      "match": "\\b[A-Za-z_][A-Za-z_0-9]*(?=\\s*\\()"
+    },
+    {
+      "name": "keyword.operator.tsrust",
+      "match": "\\b(?:typeof|void|in|as|satisfies)\\b|>>>=|===|!==|>>>|&&=|\\|\\|=|<<=|>>=|\\*\\*=|=>|\\+\\+|--|&&|\\|\\||<<|>>|\\*\\*|[+*/%&|^!-]=?|[-=<>~]"
+    },
+    {
+      "name": "punctuation.separator.tsrust",
+      "match": "[;,:.]"
+    },
+    {
+      "name": "punctuation.section.tsrust",
+      "match": "[{}\\[\\]()]"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+function identity(action: Function<int>): () => int {
+  return action;
+}
+function counter(): () => int {
+  let count = 0;
+  return identity((): int => { count = count + 1; return count; });
+}
+function main() {
+  const first = counter();
+  const second = counter();
+  console.log(first());
+  console.log(first());
+  console.log(second());
+}

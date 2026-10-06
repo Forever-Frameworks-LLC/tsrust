@@ -1,0 +1,15 @@
+{
+  "files": 441,
+  "completePathSetAndHashesExact": true,
+  "runtimeFreezeArtifact": {
+    "originalPath": "/private/tmp/tsrust-gate64-runtime-freeze.json",
+    "path": "benchmarks/runtime/diagnostics/2026-10-02T18-13-02-000Z-update-expression-runtime-artifacts/1-tsrust-gate64-runtime-freeze.json",
+    "sha256": "864db6adafcbb1fdec54b3fe30247f164215f8f389c5455e02d4d36a77adab60"
+  },
+  "sealPackagingHistory": {
+    "firstAttemptExitCode": 1,
+    "assertion": "len(olds) == 390 and all(news[k] == v for k, v in olds.items())",
+    "reason": "Section extraction included following run metadata before its first anchor; all prior measurement tables unchanged.",
+    "measurementsRepeated": false
+  }
+}

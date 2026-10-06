@@ -1,0 +1,10 @@
+{
+  "comparedRows": 41,
+  "nativeWins": 18,
+  "reviewSlowerRows": 23,
+  "profileSamples": 123,
+  "allAfterOutputAndFinalDisposalsZero": true,
+  "samples": 30504,
+  "removalOperationsPerIteration": 2,
+  "sameCapturedSourceRunOnly": true
+}

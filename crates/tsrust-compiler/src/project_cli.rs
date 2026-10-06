@@ -1,0 +1,211 @@
+//! CLI adapter preserving the existing single-file output contract.
+use crate::project::{
+    FileSourceProvider, ProjectAnalysis, ProjectDiagnostic, SourceProvider, check_graph,
+    load_project,
+};
+use crate::{Analysis, ClosureInfo, Diagnostic, Mode, Span, check, json_string, line_column};
+use std::collections::BTreeMap;
+use std::path::Path;
+
+pub enum CheckedInput {
+    Single(Analysis),
+    Project(ProjectAnalysis),
+}
+pub enum InputDiagnostic {
+    Single(Diagnostic),
+    Project(ProjectDiagnostic),
+}
+pub fn check_input(path: &Path, source: &str) -> Result<CheckedInput, InputDiagnostic> {
+    let module = uses_modules(source).map_err(InputDiagnostic::Single)?
+        || path.to_str().is_some_and(crate::project::is_test_entry);
+    if module {
+        let path = path.to_str().ok_or_else(|| {
+            InputDiagnostic::Single(Diagnostic::new(
+                "module-path",
+                "Source path must be valid UTF-8.",
+                Span::default(),
+            ))
+        })?;
+        check_graph(load_project(&FileSourceProvider, path).map_err(InputDiagnostic::Project)?)
+            .map(CheckedInput::Project)
+            .map_err(InputDiagnostic::Project)
+    } else {
+        check(source)
+            .map(CheckedInput::Single)
+            .map_err(InputDiagnostic::Single)
+    }
+}
+/// Check a test entry through the module graph without rewriting source coordinates.
+pub fn check_test_input(path: &Path) -> Result<CheckedInput, InputDiagnostic> {
+    let path = path.to_str().ok_or_else(|| InputDiagnostic::Single(Diagnostic::new("module-path", "Source path must be valid UTF-8.", Span::default())))?;
+    crate::project_link::check_test_graph(crate::project::load_project_headers(&FileSourceProvider, path).map_err(InputDiagnostic::Project)?)
+        .map(CheckedInput::Project).map_err(InputDiagnostic::Project)
+}
+/// Load selected test entries once and execute all registrations in one native registry.
+pub fn check_test_inputs(paths: &[std::path::PathBuf]) -> Result<CheckedInput, InputDiagnostic> {
+    let mut graph: Option<crate::project::ProjectGraph> = None;
+    let mut entries = Vec::new();
+    for path in paths {
+        let path = path.to_str().ok_or_else(|| InputDiagnostic::Single(Diagnostic::new("module-path", "Source path must be valid UTF-8.", Span::default())))?;
+        let loaded = crate::project::load_project_headers(&FileSourceProvider, path).map_err(InputDiagnostic::Project)?;
+        if entries.contains(&loaded.entry) { continue; }
+        entries.push(loaded.entry.clone());
+        if let Some(graph) = &mut graph {
+            for id in loaded.order {
+                if !graph.modules.contains_key(&id) {
+                    graph.modules.insert(id.clone(), loaded.modules[&id].clone());
+                    graph.order.push(id);
+                }
+            }
+        } else { graph = Some(loaded); }
+    }
+    let graph = graph.ok_or_else(|| InputDiagnostic::Single(Diagnostic::new("test-entry", "No test files selected.", Span::default())))?;
+    crate::project_link::check_test_graph_entries(graph, &entries).map(CheckedInput::Project).map_err(InputDiagnostic::Project)
+}
+
+/// Deterministic file selection; discovery does not read or execute source files.
+pub fn discover_test_inputs(paths: &[std::path::PathBuf]) -> Result<Vec<std::path::PathBuf>, String> {
+    crate::stdlib::testing::discovery::select(paths)
+}
+impl CheckedInput {
+    pub fn emit_rust(&self) -> String {
+        match self {
+            Self::Single(analysis) => analysis.emit_rust(),
+            Self::Project(analysis) => analysis.emit_rust(),
+        }
+    }
+    pub fn emit_rust_with_native_features(&self) -> (String, Vec<&'static str>) {
+        match self {
+            Self::Single(analysis) => analysis.emit_rust_with_native_features(),
+            Self::Project(analysis) => analysis.emit_rust_with_native_features(),
+        }
+    }
+    pub fn contracts(&self) -> BTreeMap<String, Mode> {
+        match self {
+            Self::Single(analysis) => analysis.contracts(),
+            Self::Project(analysis) => analysis.contracts(),
+        }
+    }
+    pub fn closures(&self) -> Vec<ClosureInfo> {
+        match self {
+            Self::Single(analysis) => analysis.closures(),
+            Self::Project(analysis) => analysis.closures(),
+        }
+    }
+    pub fn to_json(&self) -> String {
+        match self {
+            Self::Single(analysis) => analysis.to_json(),
+            Self::Project(analysis) => analysis.to_json(),
+        }
+    }
+}
+impl InputDiagnostic {
+    pub fn render(&self, path: &str, source: &str, color: bool) -> String {
+        match self {
+            Self::Single(diagnostic) => diagnostic.render_terminal(path, source, color),
+            Self::Project(diagnostic) => {
+                let provider = FileSourceProvider;
+                let text = provider
+                    .read(&diagnostic.location.source)
+                    .unwrap_or_default();
+                let mut result = Diagnostic::new(
+                    diagnostic.code,
+                    &diagnostic.message,
+                    diagnostic.location.span,
+                )
+                .render_terminal(&diagnostic.location.source.0, &text, color);
+                for (location, message) in &diagnostic.related {
+                    let text = provider.read(&location.source).unwrap_or_default();
+                    let (line, column) = line_column(&text, location.span);
+                    result.push_str(&format!(
+                        "  {}:{line}:{column}: {message}\n",
+                        location.source.0
+                    ));
+                }
+                result
+            }
+        }
+    }
+    pub fn to_json(&self, source: &str) -> String {
+        match self {
+            Self::Single(diagnostic) => diagnostic.to_json(source),
+            Self::Project(diagnostic) => {
+                let related = diagnostic
+                    .related
+                    .iter()
+                    .map(|(location, message)| {
+                        format!(
+                            "{{\"message\":{},\"location\":{}}}",
+                            json_string(message),
+                            location_json(location)
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join(",");
+                format!(
+                    "{{\"code\":{},\"message\":{},\"location\":{},\"related\":[{related}]}}",
+                    json_string(diagnostic.code),
+                    json_string(&diagnostic.message),
+                    location_json(&diagnostic.location)
+                )
+            }
+        }
+    }
+}
+fn location_json(location: &crate::project::SourceLocation) -> String {
+    let text = FileSourceProvider
+        .read(&location.source)
+        .unwrap_or_default();
+    let (line, column) = line_column(&text, location.span);
+    format!(
+        "{{\"file\":{},\"line\":{line},\"column\":{column},\"start\":{},\"end\":{}}}",
+        json_string(&location.source.0),
+        location.span.start,
+        location.span.end
+    )
+}
+
+/// Detect real top-level module declarations without interpreting comment or string contents.
+pub fn uses_modules(source: &str) -> Result<bool, Diagnostic> {
+    let tokens = crate::syntax::lex(source)?;
+    let mut depth = 0usize;
+    Ok(tokens.iter().any(|token| {
+        if token.kind == crate::syntax::TokenKind::Symbol {
+            if token.text == "{" {
+                depth += 1;
+            }
+            if token.text == "}" {
+                depth = depth.saturating_sub(1);
+            }
+        }
+        depth == 0
+            && token.kind == crate::syntax::TokenKind::Name
+            && matches!(token.text.as_str(), "import" | "export")
+    }))
+}
+
+/// Identify a top-level main declaration without treating member/string text as code.
+pub fn declares_main(source: &str) -> Result<bool, Diagnostic> {
+    let tokens = crate::syntax::lex(source)?;
+    let mut depth = 0usize;
+    for (index, token) in tokens.iter().enumerate() {
+        if depth == 0
+            && token.kind == crate::syntax::TokenKind::Name
+            && token.text == "function"
+            && tokens.get(index + 1).is_some_and(|name| {
+                name.kind == crate::syntax::TokenKind::Name && name.text == "main"
+            })
+        {
+            return Ok(true);
+        }
+        if token.kind == crate::syntax::TokenKind::Symbol {
+            if token.text == "{" {
+                depth += 1;
+            }
+            if token.text == "}" {
+                depth = depth.saturating_sub(1);
+            }
+        }
+    }
+    Ok(false)
+}

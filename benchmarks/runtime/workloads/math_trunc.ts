@@ -1,0 +1,12 @@
+type int = number;
+function workload(n: int, seed: int): number {
+    const values: number[] = [-2.5, -1.75, -0.25, -0.0, 0.0, 0.25, 1.75, 2.5];
+    let sum: number = Number(seed); let i = 0;
+    while (i < n) {
+        const value = values[(i * 13 + seed) % 8];
+        sum = sum + Math.trunc(value);
+        i = i + 1;
+    }
+    return sum;
+}
+function main() { const result = workload(2, 7); console.log(result); }

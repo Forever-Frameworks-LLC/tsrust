@@ -1,0 +1,16 @@
+{
+  "closedProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T15-36-57-000Z-string-trim-runtime-proof.json",
+    "sha256": "a412546a5a7e07daf05bbe3d86ec3c2ab9109f87a292b814e9836969bad802b7"
+  },
+  "completedAcceptance": {
+    "path": "/tmp/tsrust-gate61-completed-acceptance.json",
+    "sha256": "62a67f328a2d6ec32a9753a1c5bcfec4c96f97cc032f2f02d7f27248dbd961a1"
+  },
+  "paths": [
+    "runtime/diagnostics/2026-10-02T15-18-00-000Z-string-side-trimming-compiler-proof-artifacts",
+    "runtime/diagnostics/2026-10-02T15-19-00-000Z-string-trim-source-validation-artifacts",
+    "runtime/diagnostics/2026-10-02T15-25-00-000Z-string-trim-repeat-pool-source-supplement-artifacts",
+    "runtime/diagnostics/2026-10-02T15-36-57-000Z-string-trim-runtime-artifacts"
+  ]
+}

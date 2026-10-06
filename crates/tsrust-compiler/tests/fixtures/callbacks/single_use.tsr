@@ -1,0 +1,15 @@
+type User = { name: string; };
+
+function take(action: Once<Function<User>>): User {
+    return action();
+}
+
+function forward(action: Once<Function<User>>): User {
+    return take(action);
+}
+
+function main() {
+    const user: User = { name: "Pat" };
+    const saved = forward((): User => { return user; });
+    console.log(saved.name);
+}

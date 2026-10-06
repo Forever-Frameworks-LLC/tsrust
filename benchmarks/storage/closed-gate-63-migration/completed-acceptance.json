@@ -1,0 +1,174 @@
+{
+  "gate": 63,
+  "compilerAccepted": true,
+  "runtimeAccepted": true,
+  "namedGroups": 609,
+  "releasePath": "/Users/seancotter/Desktop/dev/learning/tsrust/target/release/tsrust",
+  "releaseSha256": "581c4e8ec4b928d36b49a18f231263ba01b5a3e0f23efacf9379eee6a3c34e98",
+  "compilerProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T16-53-53-000Z-compound-assignment-compiler-proof.json",
+    "sha256": "2b88281d5a7e56d28dca3ee17f168eb94c47e7d625a3b01e4b7bfe0df903e03b"
+  },
+  "sourceProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T16-38-33-000Z-compound-source-validation.json",
+    "sha256": "be645d3ec7cb87e3d2eba1e6797cd1026138ef1d933ad399302301a6eb3ac5ac"
+  },
+  "runtimeProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T17-06-35-000Z-compound-assignment-runtime-proof.json",
+    "sha256": "8a0cfa6d9447b9fe9fdad44cc5df353b6cf02f3fac8f0f5d19508cf564db55d4"
+  },
+  "measuredRows": 381,
+  "verification": {
+    "uniqueRegressionGroups": 609,
+    "focusedGroups": 4,
+    "fullAttempts": 1,
+    "fullRestarts": 0,
+    "acceptedResumptionCommands": 5,
+    "failedTargetedDiagnosticCommands": 2,
+    "parserRepairs": [
+      {
+        "path": "/tmp/tsrust-compound-assignment-gate63-source-review/stack-repair.json",
+        "sha256": "ef34a41843163b98be3b42483d1f0db70cc0fcceaba4e2a3b451fe976fd2689a"
+      },
+      {
+        "path": "/tmp/tsrust-compound-assignment-gate63-source-review/control-flow-repair.json",
+        "sha256": "b8fab55961c714c8b19881f9b0d017b266b0c28a4ad813c066a4f068d9069bfa"
+      }
+    ],
+    "failedAttemptsRetained": true,
+    "sourcePrograms": 19,
+    "sourceCases": 1654,
+    "sourceMutationNegatives": 58,
+    "independentSourceHandCells": 134,
+    "sourceOrder": true,
+    "uniqueNodeGroups": 2,
+    "runtimeScope": {
+      "newWorkloads": 19,
+      "engines": 8,
+      "materialInputsExact": 372,
+      "publishedRateCells": 152,
+      "priorRawRecordsExact": 432,
+      "oldSourcePairFilesExact": 724,
+      "old362MeasurementTablesByteExact": true,
+      "old9PrimitiveMemoryTablesByteExact": true,
+      "auxiliaryTablesByteExact": true,
+      "measurementScope": "execution-only",
+      "startupCompilerMeasurements": 0,
+      "processCells": 456,
+      "processesPerEngineRow": 3,
+      "samplesPerProcess": 31,
+      "warmupsPerProcess": 8,
+      "timedBatches": 14136,
+      "independentEngineCorrectnessPreparationsBeforeTiming": 760,
+      "actualSourceTypeScriptCases": 1654,
+      "actualSourceTypeScriptPrograms": 19,
+      "actualNodeUniqueGroups": 2,
+      "independentSourceHandCells": 134,
+      "sourceObserverMutationNegatives": 58,
+      "nativePreflightBuilds": 78,
+      "nativeO0O3CompleteOutputCases": 190,
+      "nativeUntimedAllocationCases": 38,
+      "nativeCompleteOrderCases": 2,
+      "nativeProfileSamples": 57,
+      "allAfterOutputAndFinalDisposalsZero": true,
+      "groupedReportMeasuredRows": 381,
+      "groupedPrimitiveRows": 9,
+      "old362RowsMemory9AuxiliaryBaselinesNotRetimed": true,
+      "combined381WorkloadRunClaimed": false,
+      "realCompleteIntNumberStringArrayResultABI": true,
+      "naturalOutputConstructionAndRetentionTimed": true,
+      "completeObserverTraversalTimed": false,
+      "ownedCloningSharingIdentityEquivalenceClaimed": false,
+      "nativeStdoutStoredOnce": true
+    },
+    "publishedRateCells": 152,
+    "allPrimitiveResultsRetained": true,
+    "oldMeasurementsRepeated": false,
+    "resourceNormalization": {
+      "operationsPerSample": 2048,
+      "samples": 3,
+      "statistics": [
+        "min",
+        "avg",
+        "max"
+      ],
+      "rawCountersRetained": true,
+      "inputAdaptationSeparate": true,
+      "peak": "retained-batch peak divided by operations; not an isolated-call peak"
+    }
+  },
+  "measurementHistory": {
+    "acceptedRecordSuppliesAllPublishedRates": true,
+    "interruptedAttemptExcluded": true,
+    "firstAttemptTerminalExitCode": -15,
+    "noInterruptedTimingRecordPublished": true,
+    "confirmedCompletedWorkloadProcesses": [
+      "compound_int_add/process1"
+    ],
+    "additionalPartialMeasurements": "Unknown; process interrupted before durable result write.",
+    "reason": "Required execution-only flag omitted. Interrupted after first workload/process measurement completed; partial timing/startup/compilation results were not published and are excluded.",
+    "durableArtifacts": [
+      {
+        "originalPath": "/tmp/tsrust-gate63-runtime-stopped.json",
+        "path": "benchmarks/runtime/diagnostics/2026-10-02T17-06-35-000Z-compound-assignment-runtime-artifacts/5-tsrust-gate63-runtime-stopped.json",
+        "sha256": "6194a6c7959a08853e54335a4eb2b21ce38c34cebb4477dda5bb365ccd288ad4"
+      },
+      {
+        "originalPath": "/tmp/tsrust-gate63-runtime-attempt1/tsrust-gate63-runtime-terminal.json",
+        "path": "benchmarks/runtime/diagnostics/2026-10-02T17-06-35-000Z-compound-assignment-runtime-artifacts/6-tsrust-gate63-runtime-terminal.json",
+        "sha256": "6572b94ef3e846981cf98c12a465eafc24715bb7d4223a813b26d7abc01395d0"
+      },
+      {
+        "originalPath": "/tmp/tsrust-gate63-runtime-attempt1/tsrust-gate63-runtime.log",
+        "path": "benchmarks/runtime/diagnostics/2026-10-02T17-06-35-000Z-compound-assignment-runtime-artifacts/7-tsrust-gate63-runtime.log",
+        "sha256": "8bccb7d1fe734baa0549a693890b1997875709eb768a31c545d12f97ae2eb7a5"
+      }
+    ]
+  },
+  "rateLeads": {
+    "nativeNode": 17,
+    "nativeFastestScripting": 16,
+    "rows": 19
+  },
+  "inventoryOperations": 1886,
+  "inventoryFamilies": 28,
+  "readmeSha256": "d80066b3ec6891d3edf234d82d3f446a6e8a7cffe1c2d8b72596a7f6c9e6dfbc",
+  "documentationOnlyCompilerSupplement": "/tmp/tsrust-gate63-postclosure-readme-supplement.json",
+  "closureArtifacts": [
+    {
+      "originalPath": "/tmp/tsrust-gate63-close-docs.py",
+      "path": "benchmarks/runtime/diagnostics/2026-10-02T17-06-35-000Z-compound-assignment-runtime-proof-closure-artifacts/tsrust-gate63-close-docs.py",
+      "sha256": "5a031feedb29903b8aeebe159f066ca958814b0c352db90a23d51afd12b1e59c"
+    },
+    {
+      "originalPath": "/tmp/tsrust-gate63-root-acceptance/native-preflight-terminal.json",
+      "path": "benchmarks/runtime/diagnostics/2026-10-02T17-06-35-000Z-compound-assignment-runtime-proof-closure-artifacts/native-preflight-terminal.json",
+      "sha256": "78a3591ad2929eeb953e08366a385ea382449a167b018b01c843d8b2baea78ee"
+    },
+    {
+      "originalPath": "/tmp/tsrust-gate63-root-acceptance/native-preflight.log",
+      "path": "benchmarks/runtime/diagnostics/2026-10-02T17-06-35-000Z-compound-assignment-runtime-proof-closure-artifacts/native-preflight.log",
+      "sha256": "886cb1446c7895b4a47341cc07755256574c9e57c4216b58b899b98f29d76cc4"
+    }
+  ],
+  "nativePreflightOwner": {
+    "gate": 63,
+    "argv": [
+      "/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node",
+      "/tmp/tsrust-gate63-native-source-plan/preflight.mjs",
+      "--release-sha=581c4e8ec4b928d36b49a18f231263ba01b5a3e0f23efacf9379eee6a3c34e98",
+      "--source-proof=/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T16-38-33-000Z-compound-source-validation.json",
+      "--source-proof-sha=be645d3ec7cb87e3d2eba1e6797cd1026138ef1d933ad399302301a6eb3ac5ac",
+      "--output=/tmp/tsrust-gate63-native-preflight",
+      "--fixture-source=/tmp/tsrust-gate63-compound-benchmarks/source-order.tsr",
+      "--fixture-expected=/tmp/tsrust-gate63-compound-benchmarks/source-order-expected.txt"
+    ],
+    "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+    "pid": 25182,
+    "startedUtc": "2026-10-02T16:54:17.964624+00:00",
+    "finishedUtc": "2026-10-02T16:54:38.978632+00:00",
+    "exitCode": 0,
+    "log": "/tmp/tsrust-gate63-root-acceptance/native-preflight.log",
+    "logSha256": "886cb1446c7895b4a47341cc07755256574c9e57c4216b58b899b98f29d76cc4"
+  }
+}

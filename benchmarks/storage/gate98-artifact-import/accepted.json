@@ -1,0 +1,53 @@
+{
+  "gate": 98,
+  "accepted": true,
+  "kind": "artifact",
+  "analyticsSamplesAdded": 0,
+  "importedPaths": 1469,
+  "narrowVerifiedPaths": 1469,
+  "originalsRetained": true,
+  "deletedFiles": 0,
+  "restorationMap": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/gate98-closure-evidence/restoration-map.json",
+    "sha256": "02f02056f5a6896ca9fbe26be4beb65f526442414f3ab4f15a311776ee5e2e16",
+    "bytes": 2988953
+  },
+  "plan": {
+    "path": "/tmp/tsrust-gate98-bundle-storage/import-plan.json",
+    "sha256": "ff90d50180413b2875229ab27052f3a654a821fa1975ff42f7271ab527272fac",
+    "bytes": 385169
+  },
+  "verification": {
+    "path": "/tmp/tsrust-gate98-bundle-storage/verified-records.json",
+    "sha256": "cc1735227a955e32098c058f33b2395062f4066e71fc1400c433ad67551b6dd9",
+    "bytes": 582991
+  },
+  "before": {
+    "records": 22507,
+    "blobs": 15107,
+    "databaseBytes": 172138496,
+    "databaseSha256": "d8f81a95a35b63e7934dd29e4123e1a5f7250f6e2982bd6f169c209d62d18023"
+  },
+  "after": {
+    "records": 23976,
+    "blobs": 16536,
+    "databaseBytes": 179654656,
+    "databaseSha256": "80005d023394ab1c3c15384dbdaf35635aa1c6755d8cfc16993d4c11233eb45d"
+  },
+  "newRecords": 1469,
+  "newBlobs": 1429,
+  "databaseGrowthBytes": 7516160,
+  "selectedOriginalBytes": 43948327,
+  "selectedCompressedBytes": 6643962,
+  "store": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/store.py",
+    "sha256": "9f9f7ab732f02b01a845830abe8dfb808de040e8730a2c61db7d01cd2138f77f",
+    "bytes": 14901
+  },
+  "analytics": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/analytics.py",
+    "sha256": "a96524b9dbc661591389c1e892c7459cd8737e01139abe05caecb5cd7d6f61c7",
+    "bytes": 14254
+  },
+  "restoration": "Use store.py export with the recorded relative path and an existing scratch --root. The original absolute path aliases remain in each durable restoration map; no proof bytes were rewritten."
+}

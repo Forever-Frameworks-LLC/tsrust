@@ -1,0 +1,84 @@
+{
+  "gate": 71,
+  "kind": "documentation-only-postclosure-supplement",
+  "timestamp": "2026-10-03T00:57:11.246953+00:00",
+  "compilerProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T00-49-43-000Z-string-substring-compiler-proof.json",
+    "sha256": "049b9c1386e25d6073378f36f0772b11d753458788d2d893b3f7ebcde28ef86e"
+  },
+  "sourceProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T00-40-49-000Z-string-substring-source-validation.json",
+    "sha256": "27837a858175e96f3140a0255beff774a4b85c2f71f974c531f5aa34130a6be3"
+  },
+  "runtimeProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T00-56-53-000Z-string-substring-runtime-proof.json",
+    "sha256": "c2d9438f8224136a2ff1cb0a321e7c15b6b0162f7093f4b136ae6dc6aba897a4"
+  },
+  "files": [
+    {
+      "path": "docs/milestones/71-string-substring.md",
+      "beforeSha256": "bcf78b9cab241885438d777a655462589d98793f6b460c078ac60de9a6a1c007",
+      "afterSha256": "c71e3d044d15e9ae7e0edafe38de77256c19725941a65aac0c91db95c6a3bf57"
+    },
+    {
+      "path": "docs/roadmap.md",
+      "beforeSha256": "8c73af459d246519f2441469155f67db874c9c18af2c333fd69c9f9da2703187",
+      "afterSha256": "9f19a899190e15d46ed7e375921fce0a1f1fd9d0a8452d5c0b324160cf96728f"
+    },
+    {
+      "path": "docs/README.md",
+      "beforeSha256": "7ece767a62032821986fac2c9d1ed52e55a009f11543a48b5aba60f40d468a36",
+      "afterSha256": "1774eb203115e188f8e2f5d10b73fd17ab243c7a4cc7dad5bc7153a6e812cedb"
+    },
+    {
+      "path": "crates/tsrust-compiler/README.md",
+      "beforeSha256": "a63522b76f619cf2769d60573f870685abcb09d077134351a6c20fe10f246df4",
+      "afterSha256": "b0b857600a4875f7e990c6ae45c6d9c6cb0a589505632229afe4c4a954e84264"
+    },
+    {
+      "path": "benchmarks/runtime/README.md",
+      "beforeSha256": "0d54974d9e0b4be678c1e9e564dffa2b22335c92539fbb6c702462fd2ad4648f",
+      "afterSha256": "9252c3d8d4a6e265127e40f245d9143ce405b9d9c280323d120a5bc311a56292"
+    },
+    {
+      "path": "docs/string-semantics.md",
+      "beforeSha256": "ef1be09da70e6b23e5dee40ce8127eb95486c9a9cd3cf2bf14cdab81829c45c5",
+      "afterSha256": "155fab5bad4eb7624171b17a5793b5d64c1f130d0d6355857bb2599edc20210c"
+    },
+    {
+      "path": "benchmarks/coverage/status.json",
+      "beforeSha256": "8c0c20adbd9c456d5410dc4adda9cf1570fb80f5954476eac3f7271763d731d6",
+      "afterSha256": "8cf57e5b8db8568abf66317e54d931017257d5d9ce4ddd4d90e176cc9a958c70"
+    },
+    {
+      "path": "docs/feature-coverage.md",
+      "beforeSha256": "399ca88a0a484d4b3c0508ac1da076168bd4ee65900d024612599e5074ec5aa8",
+      "afterSha256": "73bceaf0dcaf4888eacd487ffcce910a3bda737dbae237c645e2023ec5ecb656"
+    },
+    {
+      "path": "benchmarks/coverage/inventory.json",
+      "beforeSha256": "10772b589e44a729198a66d7e14947f400e58f1a8fb06c1bdbd132a1a1adf306",
+      "afterSha256": "8d1ca871383f27dff3d67488d68800e9fa0ab9678ddef69f21693b00edb2c669"
+    }
+  ],
+  "coverageStatusChanges": {
+    "completedMethods": [
+      "String.substring"
+    ],
+    "otherStatusesUnchanged": true
+  },
+  "inventoryOperations": 1924,
+  "inventoryFamilies": 28,
+  "compilerCodeChanged": false,
+  "sourceManifestHarnessChanged": false,
+  "measuredReportChanged": false,
+  "measurementsRepeated": false,
+  "inventoryRegenerations": 1,
+  "closureArtifacts": [
+    {
+      "originalPath": "/private/tmp/tsrust-gate71-close-docs.py",
+      "path": "benchmarks/runtime/diagnostics/2026-10-03T00-56-53-000Z-string-substring-runtime-proof-closure-artifacts/tsrust-gate71-close-docs.py",
+      "sha256": "793f22d5fd952da3a48292df5ea1139b56f053f25cd1d55be1d6c24234023498"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+type int = number;
+function workload(n: int, seed: int): int[] {
+    const output: int[] = []; let i = 0;
+    while (i < n) {
+        const base: int = (i * 13 + seed) % 64; const rhs: int = (i * 7 + seed) % 4 + 1;
+        let value: int = base + rhs;
+        const observed: int = (value += rhs);
+        output.push(observed); output.push(value);
+        i = i + 1;
+    }
+    return output;
+}

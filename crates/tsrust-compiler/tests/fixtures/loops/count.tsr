@@ -1,0 +1,27 @@
+type Counter = {
+    value: int;
+    total: int;
+};
+
+function count(counter: Counter, limit: int) {
+    while (counter.value < limit) {
+        counter.value = counter.value + 1;
+        if (counter.value % 2 === 0) {
+            continue;
+        }
+
+        counter.total = counter.total + counter.value;
+        if (counter.total >= 9) {
+            break;
+        }
+    }
+}
+
+function main() {
+    const counter: Counter = {
+        value: 0, total: 0
+    };
+    count(counter, 10);
+    console.log(counter.value);
+    console.log(counter.total);
+}

@@ -1,0 +1,156 @@
+{
+  "gate": 64,
+  "kind": "documentation-only-postclosure-supplement",
+  "timestamp": "2026-10-02T18:18:43.209044+00:00",
+  "compilerProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T18-03-13-000Z-update-expression-compiler-proof.json",
+    "sha256": "db8ec02b9b44321bbf54d72469dede8857be7ec87655e5a83b65ac3cf4be3847"
+  },
+  "sourceProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T17-43-26-000Z-update-expression-source-validation.json",
+    "sha256": "360e59f9ed59eac283574aa811d907495c2f716be11958fae90bc83d6d8dfa46"
+  },
+  "runtimeProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T18-13-02-000Z-update-expression-runtime-proof.json",
+    "sha256": "d2baeefe88c51356ca322615d7ed3aca973e7bfaca7130d15efcb90fd46244a1"
+  },
+  "files": [
+    {
+      "path": "docs/milestones/64-update-expressions.md",
+      "beforeSha256": "25cc8d5149412614b6cab07533137c0606c42aeb9a2c12e4bfd2de561a405024",
+      "afterSha256": "71f1e9b647118361bb91dce112b10c7b5a5dee849b73ae95a2ed4e0136fa3673"
+    },
+    {
+      "path": "docs/roadmap.md",
+      "beforeSha256": "5a59d6cab48fc21d801d8c82bb0ef8689daa658e0f7eab022b7939e9a0285520",
+      "afterSha256": "65d2a9514d380b44d7e25c7ce6a08a8c4c57d0d2dccf9daad19089da986dd55b"
+    },
+    {
+      "path": "crates/tsrust-compiler/README.md",
+      "beforeSha256": "d80066b3ec6891d3edf234d82d3f446a6e8a7cffe1c2d8b72596a7f6c9e6dfbc",
+      "afterSha256": "6933001803d0406ca058d834b2d2baebc596ee749e5e5b52891ff918db46ba68"
+    },
+    {
+      "path": "benchmarks/runtime/README.md",
+      "beforeSha256": "e85bc9f2b886b3e0b4ca6bc2be08488d5a3b4d9a4362b5d6d44b2220a6895a51",
+      "afterSha256": "7ecf7b9d06ae2390682306cb0df7ab78af915ddf6ee77041c3a49efac40930ba"
+    },
+    {
+      "path": "benchmarks/coverage/status.json",
+      "beforeSha256": "1e25c2e0fbcde40c3c6cacc5a82ee156331df0c21bd529446a22d9527cbd521f",
+      "afterSha256": "fae726d8167ae877eb501a4e181264bdd3de0f697d0e4557d9db00828cda44a5"
+    },
+    {
+      "path": "docs/feature-coverage.md",
+      "beforeSha256": "c7b17afd547ad996d4458983ff850ad4850a1f3385683f3b0fa804799f17f08c",
+      "afterSha256": "2a2c0224d49cacaebc91f884bcabcd0b45749dea30eb64abe9e381b4203e719f"
+    },
+    {
+      "path": "benchmarks/coverage/inventory.json",
+      "beforeSha256": "961594a7a3402b0710e744cf0dbaa9a5e09c0f7845ceb92dc2a2862f43aacdb3",
+      "afterSha256": "b734de22274d2cbf5bc6aeefcf8fbf0f8649b69f11c16df9c55cd2c9bbbe816f"
+    }
+  ],
+  "inventoryOperations": 1894,
+  "inventoryFamilies": 28,
+  "compilerCodeChanged": false,
+  "sourceManifestHarnessChanged": false,
+  "measuredReportChanged": false,
+  "measurementsRepeated": false,
+  "measurementsRepeatedByDocumentationClosure": false,
+  "inventoryRegenerations": 1,
+  "sealPackagingHistory": {
+    "firstAttemptExitCode": 1,
+    "assertion": "len(olds) == 390 and all(news[k] == v for k, v in olds.items())",
+    "reason": "Section extraction included following run metadata before its first anchor; all prior measurement tables unchanged.",
+    "measurementsRepeated": false,
+    "sourceOnly": true,
+    "durableArtifacts": [
+      {
+        "originalPath": "/private/tmp/tsrust-gate64-seal-runtime.py",
+        "path": "benchmarks/runtime/diagnostics/2026-10-02T18-13-02-000Z-update-expression-runtime-artifacts/0-tsrust-gate64-seal-runtime.py",
+        "sha256": "80556da79606ee08b6af59c4ee03c038fe76c7c5cdb4e281c6d003006f02a861"
+      },
+      {
+        "originalPath": "/private/tmp/tsrust-gate64-runtime-freeze.json",
+        "path": "benchmarks/runtime/diagnostics/2026-10-02T18-13-02-000Z-update-expression-runtime-artifacts/1-tsrust-gate64-runtime-freeze.json",
+        "sha256": "864db6adafcbb1fdec54b3fe30247f164215f8f389c5455e02d4d36a77adab60"
+      },
+      {
+        "originalPath": "/private/tmp/tsrust-gate64-seal-runtime-before-section-fix.py",
+        "path": "benchmarks/runtime/diagnostics/2026-10-02T18-13-02-000Z-update-expression-runtime-artifacts/331-tsrust-gate64-seal-runtime-before-section-fix.py",
+        "sha256": "bba2f6a313d6621e35239fad02f0b8f0248b8cb615fd6667a7b2ab3302efb02b"
+      }
+    ]
+  },
+  "closureArtifacts": [
+    {
+      "originalPath": "/tmp/tsrust-gate64-close-docs.py",
+      "path": "benchmarks/runtime/diagnostics/2026-10-02T18-13-02-000Z-update-expression-runtime-proof-closure-artifacts/tsrust-gate64-close-docs.py",
+      "sha256": "dcc7bb0d7482cff6e3950de2f21ed673e84e687ab11cafb906a8d646e5695209"
+    },
+    {
+      "originalPath": "/tmp/tsrust-gate64-root-acceptance/native-preflight-terminal.json",
+      "path": "benchmarks/runtime/diagnostics/2026-10-02T18-13-02-000Z-update-expression-runtime-proof-closure-artifacts/native-preflight-terminal.json",
+      "sha256": "ee3db115ff2835a46fb52da512b2da8ef6b3aba70f3d81ec21c8af08016d38e3"
+    },
+    {
+      "originalPath": "/tmp/tsrust-gate64-root-acceptance/overflow-preflight-terminal.json",
+      "path": "benchmarks/runtime/diagnostics/2026-10-02T18-13-02-000Z-update-expression-runtime-proof-closure-artifacts/overflow-preflight-terminal.json",
+      "sha256": "894f6fbc7380902189d6a0ce16616a38cb7a0e40514eff2d53c6d9eee500fa25"
+    },
+    {
+      "originalPath": "/tmp/tsrust-gate64-root-acceptance/native-preflight.log",
+      "path": "benchmarks/runtime/diagnostics/2026-10-02T18-13-02-000Z-update-expression-runtime-proof-closure-artifacts/native-preflight.log",
+      "sha256": "4b1ea69fac10280ea643750e4e464eea32372d9857372b8ff9f3a865bf8022f3"
+    },
+    {
+      "originalPath": "/tmp/tsrust-gate64-root-acceptance/overflow-preflight.log",
+      "path": "benchmarks/runtime/diagnostics/2026-10-02T18-13-02-000Z-update-expression-runtime-proof-closure-artifacts/overflow-preflight.log",
+      "sha256": "f0e349decd6598b25ae5aa5a20b69dcfc1ab3bb52663b1c1bd908c54fed9b1f2"
+    },
+    {
+      "originalPath": "/private/tmp/tsrust-gate64-runtime-freeze.json#sealPackagingHistory",
+      "path": "benchmarks/runtime/diagnostics/2026-10-02T18-13-02-000Z-update-expression-runtime-proof-closure-artifacts/seal-packaging-history.json",
+      "sha256": "fa17926dd70d3f7cc09250e54314d0b58d3a5287da34227782df128a21c83890"
+    }
+  ],
+  "nativePreflightOwner": {
+    "gate": 64,
+    "argv": [
+      "/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node",
+      "/tmp/tsrust-gate64-native-source-plan-draft/preflight.mjs",
+      "--release-sha=89348a4e65ef7330f99b6ba5d8547e5f152b4ab37fa904faeccbe64c8dcc150a",
+      "--source-proof=/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T17-43-26-000Z-update-expression-source-validation.json",
+      "--source-proof-sha=360e59f9ed59eac283574aa811d907495c2f716be11958fae90bc83d6d8dfa46",
+      "--output=/tmp/tsrust-gate64-native-preflight",
+      "--fixture-source=/tmp/tsrust-gate64-update-benchmarks/source-order.tsr",
+      "--fixture-expected=/tmp/tsrust-gate64-update-benchmarks/source-order-expected.txt"
+    ],
+    "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+    "pid": 35387,
+    "startedUtc": "2026-10-02T18:00:39.841369+00:00",
+    "finishedUtc": "2026-10-02T18:00:50.987654+00:00",
+    "exitCode": 0,
+    "log": "/tmp/tsrust-gate64-root-acceptance/native-preflight.log",
+    "logSha256": "4b1ea69fac10280ea643750e4e464eea32372d9857372b8ff9f3a865bf8022f3"
+  },
+  "overflowPreflightOwner": {
+    "gate": 64,
+    "argv": [
+      "/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node",
+      "/tmp/tsrust-gate64-native-overflow-source-plan/overflow.mjs",
+      "--release-sha=89348a4e65ef7330f99b6ba5d8547e5f152b4ab37fa904faeccbe64c8dcc150a",
+      "--source-proof=/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T17-43-26-000Z-update-expression-source-validation.json",
+      "--source-proof-sha=360e59f9ed59eac283574aa811d907495c2f716be11958fae90bc83d6d8dfa46",
+      "--output=/tmp/tsrust-gate64-native-overflow-preflight"
+    ],
+    "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+    "pid": 39665,
+    "startedUtc": "2026-10-02T18:01:47.229158+00:00",
+    "finishedUtc": "2026-10-02T18:01:50.922542+00:00",
+    "exitCode": 0,
+    "log": "/tmp/tsrust-gate64-root-acceptance/overflow-preflight.log",
+    "logSha256": "f0e349decd6598b25ae5aa5a20b69dcfc1ab3bb52663b1c1bd908c54fed9b1f2"
+  }
+}

@@ -1,0 +1,17 @@
+type Trace = { code: int; };
+function receiver(trace: Trace): string { trace.code = trace.code * 10 + 1; return "é::😀::"; }
+function separator(trace: Trace): string { trace.code = trace.code * 10 + 2; return "::"; }
+function cap(trace: Trace, value: int): int { trace.code = trace.code * 10 + 3; return value; }
+function main() {
+    const trace: Trace = { code: 0 };
+    const pieces: string[] = receiver(trace).split(separator(trace), cap(trace, 2));
+    console.log(trace.code); console.log(pieces.length); console.log(pieces[0]); console.log(pieces[1]);
+    trace.code = 0;
+    const empty: string[] = receiver(trace).split(separator(trace), cap(trace, 0));
+    console.log(trace.code); console.log(empty.length);
+    const owned: string = "é中".repeat(2);
+    const chars: string[] = owned.split("", 2);
+    console.log(chars.length); console.log(chars[0]); console.log(chars[1]); console.log(owned);
+    console.log("a::".split("::", -1).length);
+    console.log("abc".split("", 4294967296).length);
+}

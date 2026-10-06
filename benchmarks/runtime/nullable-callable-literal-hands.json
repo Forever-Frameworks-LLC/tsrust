@@ -1,0 +1,623 @@
+{
+  "literalExpectedValues": true,
+  "executionStatus": "Accepted untimed TypeScript/Node and native O0/O3 complete outputs; original prepared metadata retained in source proof.",
+  "cells": [
+    {
+      "id": "nullable_callable_declared_guard",
+      "n": 1,
+      "seed": 0,
+      "input": "abc",
+      "expected": [
+        [
+          3
+        ],
+        [
+          1,
+          1,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_declared_guard",
+      "n": 1,
+      "seed": 1,
+      "input": "abc",
+      "expected": [
+        [],
+        [
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_declared_guard",
+      "n": 1,
+      "seed": 2,
+      "input": "abc",
+      "expected": [
+        [],
+        [
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_declared_guard",
+      "n": 1,
+      "seed": 3,
+      "input": "abc",
+      "expected": [
+        [
+          54
+        ],
+        [
+          1,
+          1,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_declared_optional",
+      "n": 1,
+      "seed": 0,
+      "input": "abc",
+      "expected": [
+        [
+          3
+        ],
+        [
+          1,
+          1,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_declared_optional",
+      "n": 1,
+      "seed": 1,
+      "input": "abc",
+      "expected": [
+        [],
+        [
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_declared_optional",
+      "n": 1,
+      "seed": 2,
+      "input": "abc",
+      "expected": [
+        [],
+        [
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_declared_optional",
+      "n": 1,
+      "seed": 3,
+      "input": "abc",
+      "expected": [
+        [
+          54
+        ],
+        [
+          1,
+          1,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_read_forward",
+      "n": 1,
+      "seed": 0,
+      "input": "abc",
+      "expected": [
+        [
+          3
+        ],
+        [
+          1,
+          1,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_read_forward",
+      "n": 1,
+      "seed": 1,
+      "input": "abc",
+      "expected": [
+        [],
+        [
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_read_forward",
+      "n": 1,
+      "seed": 2,
+      "input": "abc",
+      "expected": [
+        [],
+        [
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_read_forward",
+      "n": 1,
+      "seed": 3,
+      "input": "abc",
+      "expected": [
+        [
+          57
+        ],
+        [
+          1,
+          1,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_once_forward",
+      "n": 1,
+      "seed": 0,
+      "input": "abc",
+      "expected": [
+        [
+          5
+        ],
+        [
+          1,
+          1,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_once_forward",
+      "n": 1,
+      "seed": 1,
+      "input": "abc",
+      "expected": [
+        [],
+        [
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_once_forward",
+      "n": 1,
+      "seed": 2,
+      "input": "abc",
+      "expected": [
+        [],
+        [
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_once_forward",
+      "n": 1,
+      "seed": 3,
+      "input": "abc",
+      "expected": [
+        [
+          11
+        ],
+        [
+          1,
+          1,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_owned_record",
+      "n": 1,
+      "seed": 0,
+      "input": "abc",
+      "expected": [
+        [
+          3,
+          4
+        ],
+        [
+          2,
+          2,
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_owned_record",
+      "n": 1,
+      "seed": 1,
+      "input": "abc",
+      "expected": [
+        [],
+        [
+          0,
+          0,
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_owned_record",
+      "n": 1,
+      "seed": 2,
+      "input": "abc",
+      "expected": [
+        [],
+        [
+          0,
+          0,
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_owned_record",
+      "n": 1,
+      "seed": 3,
+      "input": "abc",
+      "expected": [
+        [
+          9,
+          10
+        ],
+        [
+          2,
+          2,
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_owned_once_return",
+      "n": 1,
+      "seed": 0,
+      "input": "abc",
+      "expected": [
+        [
+          3
+        ],
+        [
+          1,
+          1,
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_owned_once_return",
+      "n": 1,
+      "seed": 1,
+      "input": "abc",
+      "expected": [
+        [],
+        [
+          0,
+          0,
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_owned_once_return",
+      "n": 1,
+      "seed": 2,
+      "input": "abc",
+      "expected": [
+        [],
+        [
+          0,
+          0,
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_owned_once_return",
+      "n": 1,
+      "seed": 3,
+      "input": "abc",
+      "expected": [
+        [
+          9
+        ],
+        [
+          1,
+          1,
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_generic_coalesce",
+      "n": 1,
+      "seed": 0,
+      "input": "abc",
+      "expected": [
+        [
+          3
+        ],
+        [
+          1,
+          1,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_generic_coalesce",
+      "n": 1,
+      "seed": 1,
+      "input": "abc",
+      "expected": [
+        [
+          120
+        ],
+        [
+          1,
+          1,
+          1,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_generic_coalesce",
+      "n": 1,
+      "seed": 2,
+      "input": "abc",
+      "expected": [
+        [
+          137
+        ],
+        [
+          1,
+          1,
+          1,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_generic_coalesce",
+      "n": 1,
+      "seed": 3,
+      "input": "abc",
+      "expected": [
+        [
+          54
+        ],
+        [
+          1,
+          1,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_nullish_assign",
+      "n": 1,
+      "seed": 0,
+      "input": "abc",
+      "expected": [
+        [
+          3,
+          20
+        ],
+        [
+          2,
+          2,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_nullish_assign",
+      "n": 1,
+      "seed": 1,
+      "input": "abc",
+      "expected": [
+        [
+          20,
+          37
+        ],
+        [
+          2,
+          2,
+          1,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_nullish_assign",
+      "n": 1,
+      "seed": 2,
+      "input": "abc",
+      "expected": [
+        [
+          37,
+          54
+        ],
+        [
+          2,
+          2,
+          1,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_nullish_assign",
+      "n": 1,
+      "seed": 3,
+      "input": "abc",
+      "expected": [
+        [
+          54,
+          71
+        ],
+        [
+          2,
+          2,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_declared_guard",
+      "n": 0,
+      "seed": 7,
+      "input": "abc",
+      "expected": []
+    },
+    {
+      "id": "nullable_callable_declared_optional",
+      "n": 0,
+      "seed": 7,
+      "input": "abc",
+      "expected": []
+    },
+    {
+      "id": "nullable_callable_read_forward",
+      "n": 0,
+      "seed": 7,
+      "input": "abc",
+      "expected": []
+    },
+    {
+      "id": "nullable_callable_once_forward",
+      "n": 0,
+      "seed": 7,
+      "input": "abc",
+      "expected": []
+    },
+    {
+      "id": "nullable_callable_owned_record",
+      "n": 0,
+      "seed": 7,
+      "input": "abc",
+      "expected": []
+    },
+    {
+      "id": "nullable_callable_owned_once_return",
+      "n": 0,
+      "seed": 7,
+      "input": "abc",
+      "expected": []
+    },
+    {
+      "id": "nullable_callable_generic_coalesce",
+      "n": 0,
+      "seed": 7,
+      "input": "abc",
+      "expected": []
+    },
+    {
+      "id": "nullable_callable_nullish_assign",
+      "n": 0,
+      "seed": 7,
+      "input": "abc",
+      "expected": []
+    },
+    {
+      "id": "nullable_callable_owned_record",
+      "n": 1,
+      "seed": 0,
+      "input": "",
+      "expected": [
+        [
+          0,
+          1
+        ],
+        [
+          2,
+          2,
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_owned_once_return",
+      "n": 1,
+      "seed": 0,
+      "input": "",
+      "expected": [
+        [
+          0
+        ],
+        [
+          1,
+          1,
+          0,
+          1
+        ]
+      ]
+    }
+  ]
+}

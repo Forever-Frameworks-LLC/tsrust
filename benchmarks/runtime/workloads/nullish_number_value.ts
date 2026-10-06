@@ -1,0 +1,25 @@
+type int = number;
+type Trace = { calls: int; };
+function workload(n: int, seed: int): number[][] {
+    const output: number[][] = []; const trace: Trace = { calls: 0 }; let i = 0;
+    while (i < n) {
+        const value = i + seed; const left: number | null | undefined = makeLeft(value);
+        const before = trace.calls;
+        const selected = left ?? fallback(trace, value);
+        const delta = trace.calls - before;
+        output.push([selected, Number(delta)]);
+        i = i + 1;
+    }
+    output.push([Number(trace.calls)]);
+    return output;
+}
+function makeLeft(value: int): number | null | undefined {
+    const tag = value % 5; if (tag === 0) { return null; } if (tag === 1) { return undefined; }
+    const at = value % 8; if (at === 0) { return -0.0; } if (at === 1) { return 0.0; } if (at === 2) { return 0.0 / 0.0; } if (at === 3) { return 1.0 / 0.0; } if (at === 4) { return -1.0 / 0.0; } if (at === 5) { return 2.5; } if (at === 6) { return -2.5; }
+    return Number(value) / 4.0;
+}
+function fallback(trace: Trace, value: int): number {
+    trace.calls = trace.calls + 1;
+    return Number(value + 100) / 4.0;
+}
+function main() { const result = workload(2, 7); }

@@ -1,0 +1,94 @@
+import { strictEqual } from "std:testing";
+
+function apply(action: Mutable<Function<int>>): int {
+    return action();
+}
+
+function main() {
+    const action = (): int => { throw "callback"; };
+    let caught = 0;
+    try {
+        apply(action);
+    } catch (error) {
+        strictEqual(error, "callback");
+        caught = 1;
+    } finally {
+        caught = caught + 2;
+    }
+    strictEqual(caught, 3);
+    const other = (): int => { throw "second"; };
+    try {
+        apply(other);
+    } catch (error) {
+        strictEqual(error, "second");
+        caught = 4;
+    }
+    strictEqual(caught, 4);
+    const invoke = (callback: Mutable<Function<int>>): int => {
+        return callback();
+    };
+    const third = (): int => { throw "closure"; };
+    try {
+        invoke(third);
+    } catch (error) {
+        strictEqual(error, "closure");
+        caught = 5;
+    }
+    strictEqual(caught, 5);
+    const pure = (): int => { return 8; };
+    const replace = (callback: Mutable<Function<int>>): int => {
+        try {
+            return callback();
+        } finally {
+            return 9;
+        }
+    };
+    strictEqual(replace(pure), 9);
+    const label = "captured";
+    const captured = (callback: Mutable<Function<int>>): int => {
+        try {
+            return callback();
+        } finally {
+            strictEqual(label, "captured");
+        }
+    };
+    const failure = (): int => { throw "environment"; };
+    try {
+        captured(failure);
+    } catch (error) {
+        if (typeof error === "string") {
+            strictEqual(error, "environment");
+            caught = 6;
+        } else {
+            throw error;
+        }
+    }
+    strictEqual(caught, 6);
+    strictEqual(label, "captured");
+    const rest: ReadOnly<Function<int, [callback: Mutable<Function<int>>, extra?: undefined]>> =
+        (callback: Mutable<Function<int>>, ...tail: undefined[]): int => {
+            if (tail.length === 0) {
+                throw "omitted";
+            }
+            return callback();
+        };
+    const supplied = (): int => { return 11; };
+    strictEqual(rest(supplied, undefined), 11);
+    try {
+        rest(supplied);
+    } catch (error) {
+        strictEqual(error, "omitted");
+        caught = 7;
+    }
+    strictEqual(caught, 7);
+    const once: Once<Function<int, [callback: Once<Function<int>>]>> =
+        (callback: Once<Function<int>>): int => { return callback(); };
+    const last = (): int => { throw "once"; };
+    try {
+        once(last);
+    } catch (error) {
+        strictEqual(error, "once");
+        caught = 8;
+    }
+    strictEqual(caught, 8);
+}

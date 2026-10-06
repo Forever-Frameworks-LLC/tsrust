@@ -1,0 +1,27 @@
+{
+  "gate": 98,
+  "accepted": true,
+  "importAccepted": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/gate98-artifact-import/accepted.json",
+    "sha256": "92204307129ffa8c772bbbfeed7ce519bf6b546726c4f0fe79ed1a9afca35974",
+    "bytes": 1993
+  },
+  "cleanupPlan": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/gate98-artifact-import/cleanup-plan.json",
+    "sha256": "5abd8b94d0ed1eefa4d990afb9f383f2abb0ced28c7a0879b80e13d97b922e5d",
+    "bytes": 984296
+  },
+  "pid": 98375,
+  "startedAt": "2026-10-04T07:21:07.109100+00:00",
+  "finishedAt": "2026-10-04T07:21:07.420196+00:00",
+  "deletedPackagedObjects": 1464,
+  "deletedScratchObjects": 1464,
+  "deletedBytes": 81879506,
+  "reclaimedAllocatedBytes": 90628096,
+  "databaseGrowthBytes": 7516160,
+  "netAllocatedBytesReclaimed": 83111936,
+  "originalSourcesDeleted": 0,
+  "indexesRetained": true,
+  "analyticsSamplesAdded": 0,
+  "restore": "Use store.py export with the storedPath in restoration-map.json and an existing scratch root; match originalPath and SHA256 to recover the correct source epoch."
+}

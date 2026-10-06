@@ -1,0 +1,4 @@
+type int = number;
+function workload(n: int, seed: int): boolean[][] { return [[false, true], [], [true, false]]; }
+function flat(): boolean[] { return [false, true]; }
+function main() { const matrices = workload(0, 0); const leaves = flat(); }

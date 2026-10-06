@@ -1,0 +1,115 @@
+# Development and acceptance workflow
+
+## Implementation-first development
+
+Implementation is the priority. Develop new features and defects with a focused
+failing test first, implement the behavior, then run the smallest meaningful
+compiler, native and editor checks. Keep feedback fast and bounded. Include the
+relevant ownership, diagnostic and observable-output cases; use native execution
+when output or disposal matters. Do not substitute tests that only mirror the
+implementation. Do not repeatedly run all compiler or LSP suites during routine
+feature work.
+
+A feature's focused acceptance includes its compiler and LSP behavior, consistent
+signatures, completion, hover, parameter help, diagnostics, verified executable
+examples and documentation. Its benchmark support must also be ready: matched
+TypeScript sources, independent result oracles, result observers, native ABI and
+driver support, source fingerprints, guards and registrations. Run quick untimed
+checks for representative affected cases as this support lands. A future benchmark
+command must execute current supported workloads without first implementing or
+repairing support accumulated over dozens of gates.
+
+## Batched development checks
+
+Group related implementation changes into a coherent batch and run the affected suites together after that batch. Keep a focused failing witness before implementation, but avoid rerunning all accumulated witnesses after each small edit. Preserve completed evidence and rerun only the affected batch when a defect is repaired. This does not authorize routine full regressions or timing runs.
+
+When backend witnesses can share a native compilation, compile them together in isolated modules with their original assertions and run them in one executable. Keep case identity in generated source so failures remain attributable. Preserve evaluation-order, ownership, failure and output assertions; batching must not reduce coverage.
+
+## Native assertion-based fixtures
+
+Use the built-in std:testing library for new executable behavior checks wherever possible. Assert observed values directly instead of printing them solely for an external stdout comparison. Run through the compiler's project/module path so assertion imports and generated native execution are exercised. Keep stdout checks when output formatting itself is the behavior under test, and retain independent Node reference evidence for parity.
+
+When a required assertion or matcher is missing, implement it with focused failing tests, ownership and failure checks, IntelliSense documentation and the normal acceptance workflow. Do not replace the missing operation with logging or weaken the test to avoid adding it. Prefer borrowing assertions for existing owned or borrowed values; do not introduce implicit clones to make a matcher fit.
+
+## Meaningful feature-family milestones
+
+Run complete regressions and accumulated performance comparisons after meaningful
+feature progress, not on a fixed gate-count schedule. Define a concrete family scope
+and finish its compiler, LSP and benchmark support before the heavy run. For example,
+complete the scoped Node built-in array methods and all their editor behavior before
+running the complete compiler/LSP regression, array comparisons and optimization
+review. An individual method, a small repair, or five more numbered gates does not
+by itself justify this work. An explicit user request can require a broader check.
+
+The former five-gate schedule is superseded. Accepted checkpoints81,86,91 and96
+remain historical evidence. The old checkpoint101 queue records pending work; it
+is not an instruction to launch or complete a heavy pass now. Array-literal spread
+has focused acceptance while the broader array milestone remains open.
+
+At a completed family milestone, run the complete compiler and LSP regressions and
+matched benchmarks, review correctness and comparable performance signals, then
+optimize. Preserve passed suites and original command evidence. Repair/rerun only
+affected checks and resume unrun suites rather than restarting the full pass. Keep
+runs bounded. If the user changes priorities, stop the heavy continuation and retain
+completed evidence. Track focused implementation acceptance and deferred milestone
+measurements separately; never describe unmeasured workloads as measured.
+
+SQLite remains the canonical analytics store. Keep exact original records, source
+and toolchain identities, protocols and sample counts. Markdown reports are optional
+exports. Do not retime unaffected workloads for presentation or replay history
+solely because a new feature landed.
+
+## Analytics purpose and storage
+
+At completed feature-family milestones, use correctness checks and matched performance measurements to review the completed foundation before optimization or further dependencies. Routine checkpoint timing should compare generated native execution against Node after TypeScript compilation. The broader runtime matrix remains available for optional comparison; preserve its existing measurements as context. A universal runtime win is not an acceptance requirement.
+
+Keep SQLite as the persistent analytics source of truth: exact original records, source and toolchain identities, workload semantics, individual samples, normalized allocation counters and derived queryable summaries. Loose files may serve active checks, but closed records should be imported and verified before their disposable copies are removed. Preserve byte-exact restoration for historical evidence consumers. Do not rerun measurements merely to change their presentation.
+
+A checkpoint should produce a concise review of correctness failures, native/compiled-Node throughput ratios and changes against comparable earlier measurements. Flag slower workloads and material regressions for investigation; distinguish measurement noise and changed workload costs from compiler regressions before refactoring. Compare matching semantic epochs, operation counts and measurement scopes. Do not merge samples from separate runs or describe source acceptance as timing evidence.
+
+Use `node benchmarks/runtime/run.mjs --execution-only --engines=native,node-tsc --only=<workload IDs>` for routine checkpoint timing. The selected engines are recorded explicitly; omitting `--engines` retains the broader eight-engine matrix. All existing correctness cases and per-engine sample counts remain unchanged.
+
+The future official documentation site can read derived data from this database for charts and tables. Site implementation and continuous Markdown table generation are not part of compiler gate acceptance.
+
+## Built-in IntelliSense documentation
+
+Every new method or property must have complete documentation in `crates/tsrust-lsp/src/builtins.json` before its gate closes. Apply this requirement to gates already in progress. The catalog supplies hover, completion documentation and signature help.
+
+Each hover description must include:
+
+1. A plain-language explanation of observable behavior.
+2. Argument meanings, accepted types and ranges, optional defaults, and relevant errors. State when there are no arguments.
+3. The return value and whether the receiver changes.
+4. At least one concise Tsrust example and its expected result. Add an edge-case example when it clarifies behavior.
+5. Relevant native differences, including UTF-8 byte indexing, Unicode semantics, integer limits or rounding.
+6. A short ownership note after the behavioral explanation.
+
+Do not substitute generic implementation descriptions for behavior. Follow current compiler semantics rather than copying JavaScript documentation. Keep catalog signatures, parameter labels and descriptions consistent with compiler arity/type rules and actual editor responses.
+
+Keep executable example source and expected stdout in each entry's `examples` array where applicable. Check examples with the current compiler and execute generated native code when output matters. Reuse focused acceptance fixtures for boundary/error examples when practical. Include the changed catalog entry identities, checked examples, native outputs and affected editor protocol checks in gate evidence. Prose review is still required: a schema or a passing example alone cannot prove all semantic claims.
+
+Preserve existing editor fixes and unrelated changes. If those files change during a regression, retain the original run and supplement it with affected checks on the current editor source.
+
+IntelliSense documentation must focus on purpose, observable behavior, arguments, defaults, errors and useful examples. Keep runtime reference versions, test baselines, benchmark/checkpoint details and implementation provenance in developer evidence, not hover or parameter help. Describe relevant limitations directly without a runtime comparison narrative.
+
+## Compiler recursion and stack usage
+
+Keep shared recursive dispatch small. Built-in analysis, branch joins and assignment selection should own their temporary state in dedicated helpers so ordinary calls and blocks do not retain unrelated state on the stack. Preserve the existing source-depth diagnostics and normal test-worker stack; increasing the worker stack is not an acceptance fix. When a depth witness aborts, identify its failing phase and inspect actual compiled frames before changing the implementation. Resume the failed checks once the narrow witness passes.
+
+## Refreshing executable consumers
+
+Finish consumer refreshes before starting checks that execute those binaries. When replacing an existing debug/editor executable, copy the new binary to a temporary sibling file and atomically rename it into place; never overwrite the live executable inode. This keeps already running processes on their original image and new invocations on the refreshed image. Git preserves source checkpoints, not ignored executables. Rebuild consumers from the relevant commit when restoration is needed; do not create binary archives. If a refresh race interrupts checks, keep the completed evidence and rerun the affected groups after refresh finishes.
+
+
+## Git checkpoints
+
+Use local Git commits for source, tests, documentation and benchmark-support checkpoints.
+Inspect status before starting a gate, preserve unrelated changes, and commit accepted
+work with its evidence references. A clean checkpoint before a risky change replaces file snapshots. Never reset or
+discard another agent's changes. Do not create archive directories or snapshots;
+the owner deleted the historical archives.
+
+Generated executables, run artifacts and the canonical SQLite analytics store are
+ignored by Git. Rebuild binaries from the relevant source commit when needed. Retain existing
+analytics evidence on disk; a source commit is not its backup. Do not create archive
+directories or snapshots.

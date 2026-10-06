@@ -1,0 +1,25 @@
+type int = number;
+type Probe = { calls: int; trace: int; };
+function workload(n: int, seed: int): int {
+    const leftValues = [false, false, true, true];
+    const rightValues = [false, true, false, true];
+    const probe: Probe = {calls: 0, trace: 0};
+    let digest = seed; let i = 0;
+    while (i < n) {
+        const at = (i * 13 + seed) % 4;
+        const left = leftValues[at]; const right = rightValues[at];
+        const either = left || mark(probe, right, 1);
+        const both = left && mark(probe, right, 2);
+        let bits = 0;
+        if (either) { bits = bits + 1; }
+        if (both) { bits = bits + 2; }
+        digest = (digest * 131 + bits) % 1000000007;
+        i = i + 1;
+    }
+    return (digest * 131 + probe.trace + probe.calls) % 1000000007;
+}
+function mark(probe: Probe, value: boolean, tag: int): boolean {
+    probe.calls = probe.calls + 1;
+    probe.trace = (probe.trace * 131 + tag) % 1000000007;
+    return value;
+}

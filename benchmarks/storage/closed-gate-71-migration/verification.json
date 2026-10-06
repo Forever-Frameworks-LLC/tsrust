@@ -1,0 +1,8 @@
+{
+  "exactPathsAndBytes": 433,
+  "independentBlobChecks": 272,
+  "closedProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T00-56-53-000Z-string-substring-runtime-proof.json",
+    "sha256": "c2d9438f8224136a2ff1cb0a321e7c15b6b0162f7093f4b136ae6dc6aba897a4"
+  }
+}

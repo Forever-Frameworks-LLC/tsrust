@@ -1,0 +1,25 @@
+{
+  "gate": 96,
+  "label": "ingestion",
+  "argv": [
+    "python3",
+    "-B",
+    "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/analytics.py",
+    "ingest",
+    "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/records.sqlite",
+    "--root",
+    "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks",
+    "--proof",
+    "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-04T00-10-34-000Z-checkpoint96-runtime-proof.json",
+    "--proof-sha256",
+    "69b3a78107d9f7d86dcbcfd4b3e5e79ec73c01823fd45c49f1698e1e507e18e2"
+  ],
+  "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+  "environment": {},
+  "pid": 95033,
+  "startedUtc": "2026-10-04T00:13:23.355930+00:00",
+  "finishedUtc": "2026-10-04T00:13:24.082877+00:00",
+  "exitCode": 0,
+  "log": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-96-analytics/ingestion.log",
+  "logSha256": "316d42fd77a74c7af48a75654e7af2bfb558c963334bbdbf3ad106f8da7f13ba"
+}

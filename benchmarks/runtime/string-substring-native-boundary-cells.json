@@ -1,0 +1,43 @@
+{
+  "untimed": true,
+  "nativeAccepted": false,
+  "javascriptFailureEquivalenceClaimed": false,
+  "nonemptyInvalidByteBoundaries": [
+    {
+      "receiver": "é",
+      "start": 1,
+      "end": 2
+    },
+    {
+      "receiver": "😀",
+      "start": 0,
+      "end": 3
+    },
+    {
+      "receiver": "é",
+      "start": 2,
+      "end": 3
+    }
+  ],
+  "equalInteriorByteRanges": [
+    {
+      "receiver": "é",
+      "start": 1,
+      "end": 1,
+      "expected": ""
+    },
+    {
+      "receiver": "😀",
+      "start": 2,
+      "end": 2,
+      "expected": ""
+    },
+    {
+      "receiver": "é",
+      "start": 2,
+      "end": 2,
+      "expected": ""
+    }
+  ],
+  "meaning": "Prepared byte-contract cells. Native traps require separate compiler acceptance; this source checker only rejects them in its independent oracle."
+}

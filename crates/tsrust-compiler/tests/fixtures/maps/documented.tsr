@@ -1,0 +1,13 @@
+function main(){
+ { const values = new Map<string, int>(); values.set("a", 1); console.log(values.size); }
+ { const values = new Map<string, int>(); values.set("a", 1); values.set("a", 3); console.log(values.size, values.get("a") ?? 0); }
+ { const values = new Map<string, int>(); values.set("a", 1); console.log(values.get("a") ?? 0, values.get("missing") ?? 0); }
+ { const values = new Map<string, int>(); values.set("a", 1); console.log(values.has("a"), values.has("missing")); }
+ { const values = new Map<string, int>(); values.set("a", 1); console.log(values.delete("a"), values.delete("a"), values.size); }
+ { const values = new Map<string, int>(); values.set("a", 1); values.clear(); console.log(values.size); }
+ { const values = new Map<string, int>([["b", 2], ["a", 1]]); console.log(values.keys().join(",")); }
+ { const values = new Map<string, int>([["a", 1], ["b", 2], ["a", 3]]); console.log(values.values().join(",")); }
+ { const values = new Map<string, int>([["a", 3]]); const pairs = values.entries(); console.log(pairs[0][0], pairs[0][1]); }
+ { const values = new Map<string, int>([["b", 2], ["a", 1]]); let text = ""; values.forEach((value, key) => { text = text + key + String(value) + "|"; }); console.log(text); }
+ { const values = new Map<string, int>(); values.set("a", 1); console.log(values.size); }
+}

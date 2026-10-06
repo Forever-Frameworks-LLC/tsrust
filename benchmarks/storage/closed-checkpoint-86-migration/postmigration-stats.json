@@ -1,0 +1,41 @@
+{
+  "gate": 86,
+  "completedGates": [
+    82,
+    83,
+    84,
+    85,
+    86
+  ],
+  "records": 21118,
+  "blobs": 13843,
+  "databaseBytes": 134262784,
+  "databaseSha256": "613aea62b4cc24f166329c627b1a701c92b72349447063a134a48aac9cf94fac",
+  "databaseGrowthBytes": 7467008,
+  "files": 2580,
+  "originalLogicalBytes": 91946366,
+  "originalAllocatedBytes": 98238464,
+  "grossAllocatedBytesReclaimed": 90771456,
+  "cumulativeGrossAllocatedBytesReclaimed": 1628450816,
+  "protectedFilesExact": 527,
+  "priorOriginalBytesRehashed": false,
+  "artifactDirectories": [
+    "runtime/diagnostics/2026-10-03T09-12-23-000Z-array-join-implementation-artifacts",
+    "runtime/diagnostics/2026-10-03T09-36-55-000Z-array-to-string-implementation-artifacts",
+    "runtime/diagnostics/2026-10-03T10-48-34-000Z-nullable-type-foundation-artifacts",
+    "runtime/diagnostics/2026-10-03T11-59-10-000Z-nullable-flow-narrowing-artifacts",
+    "runtime/diagnostics/2026-10-03T12-38-17-000Z-array-pop-shift-artifacts",
+    "runtime/diagnostics/2026-10-03T13-43-00-000Z-checkpoint86-regression-proof-artifacts",
+    "runtime/diagnostics/2026-10-03T13-57-02-000Z-checkpoint86-runtime-artifacts",
+    "runtime/diagnostics/2026-10-03T14-02-43-000Z-checkpoint86-completed-artifacts",
+    "runtime/diagnostics/2026-10-03T14-02-43-000Z-checkpoint86-completed-proof-closure-artifacts"
+  ],
+  "completedCertificate": {
+    "path": "/private/tmp/tsrust-gate86/completed-acceptance.json",
+    "sha256": "9cf16b1b8946445822c194dd6c72c45419daffb398118bef480e315334a611f9"
+  },
+  "checkpointProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T14-02-43-000Z-checkpoint86-completed-proof.json",
+    "sha256": "8b797bd1d518ae17aa9863588e8ceba12b7e52c3c123138dbb7402823b67d755"
+  }
+}

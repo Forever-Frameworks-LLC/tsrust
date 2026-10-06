@@ -1,0 +1,5 @@
+function workload(n:int,seed:int):int{const consumer=pair;const arrow=(left:Mutable<Function<int, [x:int]>>,right:Mutable<Function<int, [x:int]>>,x:int):int=>{return left(x)*7+right(x);};let trace=seed;let i=0;while(i<n){const a=consumer(plus,times,seed+i);const b=arrow(times,plus,seed+i);const value=a+b;trace=(trace*131+value)%1000000007;i=i+1;}return trace;}
+function pair(left:Mutable<Function<int, [x:int]>>,right:Mutable<Function<int, [x:int]>>,x:int):int{return left(x)*7+right(x);}
+function plus(x:int):int{return x+3;}
+function times(x:int):int{return x*2;}
+function main(){const result=workload(2,7);}

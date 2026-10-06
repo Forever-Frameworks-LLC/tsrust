@@ -1,0 +1,24 @@
+{
+  "gate": 66,
+  "argv": [
+    "/Users/seancotter/.pyenv/versions/3.11.3/bin/python3",
+    "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/compact_closed_gate.py",
+    "--store",
+    "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/store.py",
+    "--root",
+    "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks",
+    "--database",
+    "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/records.sqlite",
+    "--plan",
+    "/tmp/tsrust-gate66-archive-execution/plan.json",
+    "--output",
+    "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-gate-66-migration"
+  ],
+  "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+  "pid": 39009,
+  "startedUtc": "2026-10-02T19:54:16.529960+00:00",
+  "finishedUtc": "2026-10-02T19:54:20.602342+00:00",
+  "exitCode": 0,
+  "log": "/tmp/tsrust-gate66-archive-execution/utility.log",
+  "logSha256": "a8414ed54ea91acb7af7ffebcffa2ed961e8a25ff0a7a4be78aba9557639b8b2"
+}

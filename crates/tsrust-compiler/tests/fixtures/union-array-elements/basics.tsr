@@ -1,0 +1,46 @@
+type Item = { label: string; };
+function describe(value: ReadOnly<int | string | boolean>): string {
+    if (typeof value === "string") { return "s:" + value; }
+    if (typeof value === "boolean") { return "b:" + String(value); }
+    return "n:" + String(value);
+}
+function total(values: (int | string)[]): int {
+    let sum = 0;
+    for (const value of values) {
+        if (typeof value === "string") { sum += value.length; } else { sum += value; }
+    }
+    return sum;
+}
+function build(count: int): (int | string)[] {
+    const output: (int | string)[] = [];
+    let i = 0;
+    while (i < count) {
+        if (i % 2 === 0) { output.push(i); } else { output.push("t".repeat(i)); }
+        i += 1;
+    }
+    return output;
+}
+function main() {
+    const mixed: (int | string | boolean)[] = [1, "two", true];
+    console.log(mixed.length, describe(mixed[0]), describe(mixed[1]), describe(mixed[2]));
+    mixed.push("four".repeat(1));
+    mixed.push(5);
+    for (const value of mixed) { console.log(describe(value)); }
+    const built = build(5);
+    console.log(total(built), built.length, String(built[3]), String(built[4]));
+    const holes: (int | null)[] = [1, null, 3];
+    let present = 0;
+    for (const value of holes) { if (value !== null) { present += value; } }
+    console.log(present, holes.length, String(holes[1]), String(holes[2] ?? 0));
+    const copy = clone(built);
+    copy.push("extra");
+    console.log(copy.length, built.length);
+    const empty: (number | string)[] = [];
+    console.log(empty.length);
+    const words: (string | undefined)[] = ["a", undefined];
+    console.log(String(words[0]), String(words[1]), words[1] ?? "none");
+    const nested: (int | string)[][] = [[1, "a"], ["b"]];
+    console.log(nested.length, nested[0].length, String(nested[1][0]));
+    const items: (Item | int)[] = [{ label: "x" }, 2];
+    for (const item of items) { if (typeof item === "number") { console.log(item + 1); } else { console.log(item.label); } }
+}

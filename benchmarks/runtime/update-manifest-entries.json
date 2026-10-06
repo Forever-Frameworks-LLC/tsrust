@@ -1,0 +1,170 @@
+[
+  {
+    "id": "update_int_prefix_increment",
+    "category": "numbers",
+    "family": "int",
+    "updateForm": "prefix",
+    "updateDirection": "increment",
+    "updateToken": "++",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual prefix ++ update and retention of both expression result and committed target",
+    "specification": "Select a bounded operand from runtime iteration/seed, evaluate actual ++value once and retain expression/committed states interleaved in a flat array of length2*n. Int timing inputs remain positive and far inside checked i64 bounds.",
+    "notes": "Operand table/setup, runtime selection, actual update and both retained results are timed. Complete observation runs outside timing. One update counts as one operation even though two values are retained. Existing int-array and flat Number-array protocols remain unchanged. Native-only checked overflow witnesses are separate pending acceptance inputs, without a JavaScript equivalence claim.",
+    "sourceSha256": "82c32e82310b3db74946fad2bdd30b4d90f58c55eabd206d185f8c8d21694388",
+    "counterpartSha256": "e8e7bab54bdcf5a64575be643c7dca50c7eafc6defc71aab61fc3d258d6488c2"
+  },
+  {
+    "id": "update_int_prefix_decrement",
+    "category": "numbers",
+    "family": "int",
+    "updateForm": "prefix",
+    "updateDirection": "decrement",
+    "updateToken": "--",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual prefix -- update and retention of both expression result and committed target",
+    "specification": "Select a bounded operand from runtime iteration/seed, evaluate actual --value once and retain expression/committed states interleaved in a flat array of length2*n. Int timing inputs remain positive and far inside checked i64 bounds.",
+    "notes": "Operand table/setup, runtime selection, actual update and both retained results are timed. Complete observation runs outside timing. One update counts as one operation even though two values are retained. Existing int-array and flat Number-array protocols remain unchanged. Native-only checked overflow witnesses are separate pending acceptance inputs, without a JavaScript equivalence claim.",
+    "sourceSha256": "5bb5df42bd347c0e83c0ebc667d00d83742199134989aa075e2f36e2a682fbb5",
+    "counterpartSha256": "b4d4f283388efe98cbd492cb1e8a0cb1fc4f25760e42dfab328fdb2c0c80bc64"
+  },
+  {
+    "id": "update_int_postfix_increment",
+    "category": "numbers",
+    "family": "int",
+    "updateForm": "postfix",
+    "updateDirection": "increment",
+    "updateToken": "++",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual postfix ++ update and retention of both expression result and committed target",
+    "specification": "Select a bounded operand from runtime iteration/seed, evaluate actual value++ once and retain expression/committed states interleaved in a flat array of length2*n. Int timing inputs remain positive and far inside checked i64 bounds.",
+    "notes": "Operand table/setup, runtime selection, actual update and both retained results are timed. Complete observation runs outside timing. One update counts as one operation even though two values are retained. Existing int-array and flat Number-array protocols remain unchanged. Native-only checked overflow witnesses are separate pending acceptance inputs, without a JavaScript equivalence claim.",
+    "sourceSha256": "4d6a1cd22251b929fea8883d7df06fe2564bf9dbebee50b2946f22ee6dfa22af",
+    "counterpartSha256": "f0812fb03fb7f233c57b85bebe5ac0c0bb3c657438d390ee2dfab0d170fe94b3"
+  },
+  {
+    "id": "update_int_postfix_decrement",
+    "category": "numbers",
+    "family": "int",
+    "updateForm": "postfix",
+    "updateDirection": "decrement",
+    "updateToken": "--",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual postfix -- update and retention of both expression result and committed target",
+    "specification": "Select a bounded operand from runtime iteration/seed, evaluate actual value-- once and retain expression/committed states interleaved in a flat array of length2*n. Int timing inputs remain positive and far inside checked i64 bounds.",
+    "notes": "Operand table/setup, runtime selection, actual update and both retained results are timed. Complete observation runs outside timing. One update counts as one operation even though two values are retained. Existing int-array and flat Number-array protocols remain unchanged. Native-only checked overflow witnesses are separate pending acceptance inputs, without a JavaScript equivalence claim.",
+    "sourceSha256": "1400ed5d499685c323fd4bf4c70ec06d6aecc7d9ad9b254c07303f3f4af59f4d",
+    "counterpartSha256": "b2e73d9605eedda09a94596498db09862c6c5cc78a3f13f1fb0b192c6736ab0f"
+  },
+  {
+    "id": "update_number_prefix_increment",
+    "category": "numbers",
+    "family": "number",
+    "updateForm": "prefix",
+    "updateDirection": "increment",
+    "updateToken": "++",
+    "result": "number[]",
+    "resultEncoding": "ieee-f64-bits-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual prefix ++ update and retention of both expression result and committed target",
+    "specification": "Select a bounded operand from runtime iteration/seed, evaluate actual ++value once and retain expression/committed states interleaved in a flat array of length2*n. Number inputs include exact quarters, negative/positive zero and2^53 rounding boundaries. Postfix old-value bits remain separate from committed bits.",
+    "notes": "Operand table/setup, runtime selection, actual update and both retained results are timed. Complete observation runs outside timing. One update counts as one operation even though two values are retained. Existing int-array and flat Number-array protocols remain unchanged. Native-only checked overflow witnesses are separate pending acceptance inputs, without a JavaScript equivalence claim.",
+    "sourceSha256": "3bd699ab01dae0997ef1a64a43d9f12f180ff889e38044fa128b1fcb92d88888",
+    "counterpartSha256": "153d5271718377649deedd7644938847ed9e5b8dacc6995e4066e8d50be924bf"
+  },
+  {
+    "id": "update_number_prefix_decrement",
+    "category": "numbers",
+    "family": "number",
+    "updateForm": "prefix",
+    "updateDirection": "decrement",
+    "updateToken": "--",
+    "result": "number[]",
+    "resultEncoding": "ieee-f64-bits-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual prefix -- update and retention of both expression result and committed target",
+    "specification": "Select a bounded operand from runtime iteration/seed, evaluate actual --value once and retain expression/committed states interleaved in a flat array of length2*n. Number inputs include exact quarters, negative/positive zero and2^53 rounding boundaries. Postfix old-value bits remain separate from committed bits.",
+    "notes": "Operand table/setup, runtime selection, actual update and both retained results are timed. Complete observation runs outside timing. One update counts as one operation even though two values are retained. Existing int-array and flat Number-array protocols remain unchanged. Native-only checked overflow witnesses are separate pending acceptance inputs, without a JavaScript equivalence claim.",
+    "sourceSha256": "8517a6765ad86004861ee2ab961c5a7ab1de2d7f5e6d5e01b5d890a24bc1c725",
+    "counterpartSha256": "51d35461a62bd593184513782fd2a483f68be80d96c4662a872b2b67a1e113b2"
+  },
+  {
+    "id": "update_number_postfix_increment",
+    "category": "numbers",
+    "family": "number",
+    "updateForm": "postfix",
+    "updateDirection": "increment",
+    "updateToken": "++",
+    "result": "number[]",
+    "resultEncoding": "ieee-f64-bits-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual postfix ++ update and retention of both expression result and committed target",
+    "specification": "Select a bounded operand from runtime iteration/seed, evaluate actual value++ once and retain expression/committed states interleaved in a flat array of length2*n. Number inputs include exact quarters, negative/positive zero and2^53 rounding boundaries. Postfix old-value bits remain separate from committed bits.",
+    "notes": "Operand table/setup, runtime selection, actual update and both retained results are timed. Complete observation runs outside timing. One update counts as one operation even though two values are retained. Existing int-array and flat Number-array protocols remain unchanged. Native-only checked overflow witnesses are separate pending acceptance inputs, without a JavaScript equivalence claim.",
+    "sourceSha256": "d7aa2391408ef46a6c47bd480cc17c6a5cffa798d2bcf14a6a49075ea2828c82",
+    "counterpartSha256": "11ab726cdc8b91f3fad5c1193f46f5fbf42851ddb890bcf669bdff2d0f278077"
+  },
+  {
+    "id": "update_number_postfix_decrement",
+    "category": "numbers",
+    "family": "number",
+    "updateForm": "postfix",
+    "updateDirection": "decrement",
+    "updateToken": "--",
+    "result": "number[]",
+    "resultEncoding": "ieee-f64-bits-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual postfix -- update and retention of both expression result and committed target",
+    "specification": "Select a bounded operand from runtime iteration/seed, evaluate actual value-- once and retain expression/committed states interleaved in a flat array of length2*n. Number inputs include exact quarters, negative/positive zero and2^53 rounding boundaries. Postfix old-value bits remain separate from committed bits.",
+    "notes": "Operand table/setup, runtime selection, actual update and both retained results are timed. Complete observation runs outside timing. One update counts as one operation even though two values are retained. Existing int-array and flat Number-array protocols remain unchanged. Native-only checked overflow witnesses are separate pending acceptance inputs, without a JavaScript equivalence claim.",
+    "sourceSha256": "52ed6a69dd1801768e751c899e89dee99729e707681928054abe857d9f42cd6f",
+    "counterpartSha256": "a384fad31966632db0448dd37721c86ed4c8a0c24f85222e41357d7e097e5440"
+  }
+]

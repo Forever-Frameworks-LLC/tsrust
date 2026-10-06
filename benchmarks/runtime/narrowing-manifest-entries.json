@@ -1,0 +1,424 @@
+[
+  {
+    "id": "narrowing_int",
+    "category": "numbers",
+    "family": "nullable-flow-narrowing",
+    "narrowingPayload": "int",
+    "narrowedType": "int",
+    "guard": "if (value !== null && value !== undefined)",
+    "place": "value",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "retainedResultLeavesPerOperation": 2,
+    "measurementStatus": "pending-implementation-and-checkpoint-86",
+    "pendingCheckpoint": 86,
+    "operationUnit": "One nullable selection, strict guard and permitted payload operation, retaining two complete result leaves.",
+    "specification": "Three-way payload/null/undefined selection; stable local or direct record field narrowing enables actual arithmetic/valueOf/concat/join/field-read consumers.",
+    "notes": "Full pipeline includes pool or fresh owned payload construction, selection, strict guard evaluation, payload operation and complete output retention; observer outside timing. String concat and Array.join preserve full Unicode content without byte/UTF16 index conversion. Number.valueOf uses existing exact IEEE Number[] observer, including -0; NaN payload identity is not claimed. Record numeric field is copied and String field method borrows it, with no owned subfield consumption. No allocation, owner identity or runtime result claimed.",
+    "sourceRequired": [
+      {
+        "text": "function workload(n: int, seed: int): int[] {",
+        "count": 1
+      },
+      {
+        "text": "const values: int[] = [seed, 0, 1, 17, 9001];",
+        "count": 1
+      },
+      {
+        "text": "const output: int[] = []; let i = 0;",
+        "count": 1
+      },
+      {
+        "text": "while (i < n) {",
+        "count": 1
+      },
+      {
+        "text": "const mode = (i + seed) % 3;",
+        "count": 1
+      },
+      {
+        "text": "const at = (i * 13 + seed) % 5;",
+        "count": 1
+      },
+      {
+        "text": "const value: int | null | undefined = mode === 0 ? null : mode === 1 ? undefined : values[at];",
+        "count": 1
+      },
+      {
+        "text": "if (value !== null && value !== undefined) { output.push(2); output.push(value + 1); } else if (value === null) { output.push(0); output.push(0); } else { output.push(1); output.push(0); }",
+        "count": 1
+      },
+      {
+        "text": "i = i + 1;",
+        "count": 1
+      },
+      {
+        "text": "return output;",
+        "count": 1
+      },
+      {
+        "text": "function main() { const result = workload(2, 7); }",
+        "count": 1
+      }
+    ],
+    "sourceSha256": "2b05ee698ba0274beb047189afa346d0518a42882832f1f59e5b33e4e3b58315",
+    "counterpartSha256": "6b3f43e1e3399d2afd4a15a7cb1fc9069cabd0e17c3d3d790447e79e73ac4193"
+  },
+  {
+    "id": "narrowing_number",
+    "category": "numbers",
+    "family": "nullable-flow-narrowing",
+    "narrowingPayload": "number",
+    "narrowedType": "number",
+    "guard": "if (value === null || value === undefined)",
+    "place": "value",
+    "result": "number[]",
+    "resultEncoding": "ieee-f64-bits-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "retainedResultLeavesPerOperation": 2,
+    "measurementStatus": "pending-implementation-and-checkpoint-86",
+    "pendingCheckpoint": 86,
+    "operationUnit": "One nullable selection, strict guard and permitted payload operation, retaining two complete result leaves.",
+    "specification": "Three-way payload/null/undefined selection; stable local or direct record field narrowing enables actual arithmetic/valueOf/concat/join/field-read consumers.",
+    "notes": "Full pipeline includes pool or fresh owned payload construction, selection, strict guard evaluation, payload operation and complete output retention; observer outside timing. String concat and Array.join preserve full Unicode content without byte/UTF16 index conversion. Number.valueOf uses existing exact IEEE Number[] observer, including -0; NaN payload identity is not claimed. Record numeric field is copied and String field method borrows it, with no owned subfield consumption. No allocation, owner identity or runtime result claimed.",
+    "sourceRequired": [
+      {
+        "text": "function workload(n: int, seed: int): number[] {",
+        "count": 1
+      },
+      {
+        "text": "const values: number[] = [Number(seed) / 4.0, -0.0, 0.5, -2.5, 17.0];",
+        "count": 1
+      },
+      {
+        "text": "const output: number[] = []; let i = 0;",
+        "count": 1
+      },
+      {
+        "text": "while (i < n) {",
+        "count": 1
+      },
+      {
+        "text": "const mode = (i + seed) % 3;",
+        "count": 1
+      },
+      {
+        "text": "const at = (i * 13 + seed) % 5;",
+        "count": 1
+      },
+      {
+        "text": "const value: number | null | undefined = mode === 0 ? null : mode === 1 ? undefined : values[at];",
+        "count": 1
+      },
+      {
+        "text": "if (value === null || value === undefined) { if (value === null) { output.push(0.0); output.push(0.0); } else { output.push(1.0); output.push(0.0); } } else { output.push(2.0); output.push(value.valueOf()); }",
+        "count": 1
+      },
+      {
+        "text": "i = i + 1;",
+        "count": 1
+      },
+      {
+        "text": "return output;",
+        "count": 1
+      },
+      {
+        "text": "function main() { const result = workload(2, 7); }",
+        "count": 1
+      }
+    ],
+    "sourceSha256": "b14820742efaf1f2874c60012b85641862580792c82aab53b7d6f64c0b0546b3",
+    "counterpartSha256": "00cb829e25a8f70467ab819c91f1e57b09dc240a31f9c8f85d401174271f894a"
+  },
+  {
+    "id": "narrowing_boolean",
+    "category": "booleans",
+    "family": "nullable-flow-narrowing",
+    "narrowingPayload": "boolean",
+    "narrowedType": "boolean",
+    "guard": "if (value !== null && value !== undefined)",
+    "place": "value",
+    "result": "boolean[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "retainedResultLeavesPerOperation": 2,
+    "measurementStatus": "pending-implementation-and-checkpoint-86",
+    "pendingCheckpoint": 86,
+    "operationUnit": "One nullable selection, strict guard and permitted payload operation, retaining two complete result leaves.",
+    "specification": "Three-way payload/null/undefined selection; stable local or direct record field narrowing enables actual arithmetic/valueOf/concat/join/field-read consumers.",
+    "notes": "Full pipeline includes pool or fresh owned payload construction, selection, strict guard evaluation, payload operation and complete output retention; observer outside timing. String concat and Array.join preserve full Unicode content without byte/UTF16 index conversion. Number.valueOf uses existing exact IEEE Number[] observer, including -0; NaN payload identity is not claimed. Record numeric field is copied and String field method borrows it, with no owned subfield consumption. No allocation, owner identity or runtime result claimed.",
+    "sourceRequired": [
+      {
+        "text": "function workload(n: int, seed: int): boolean[] {",
+        "count": 1
+      },
+      {
+        "text": "const values: boolean[] = [true, false];",
+        "count": 1
+      },
+      {
+        "text": "const output: boolean[] = []; let i = 0;",
+        "count": 1
+      },
+      {
+        "text": "while (i < n) {",
+        "count": 1
+      },
+      {
+        "text": "const mode = (i + seed) % 3;",
+        "count": 1
+      },
+      {
+        "text": "const at = (i * 13 + seed) % 2;",
+        "count": 1
+      },
+      {
+        "text": "const value: boolean | null | undefined = mode === 0 ? null : mode === 1 ? undefined : values[at];",
+        "count": 1
+      },
+      {
+        "text": "if (value !== null && value !== undefined) { output.push(true); output.push(value.valueOf()); } else if (value === null) { output.push(false); output.push(false); } else { output.push(false); output.push(true); }",
+        "count": 1
+      },
+      {
+        "text": "i = i + 1;",
+        "count": 1
+      },
+      {
+        "text": "return output;",
+        "count": 1
+      },
+      {
+        "text": "function main() { const result = workload(2, 7); }",
+        "count": 1
+      }
+    ],
+    "sourceSha256": "1b189c95e7edbecea9182701f5139cac1b20b83ce80427a45acf1b988abcfdfa",
+    "counterpartSha256": "a5261793e122524fba0828b44be4c146d4707385c42d459d8a14bad63e796908"
+  },
+  {
+    "id": "narrowing_string",
+    "category": "strings",
+    "family": "nullable-flow-narrowing",
+    "narrowingPayload": "string",
+    "narrowedType": "string",
+    "guard": "if (!(value === null || value === undefined))",
+    "place": "value",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "retainedResultLeavesPerOperation": 2,
+    "measurementStatus": "pending-implementation-and-checkpoint-86",
+    "pendingCheckpoint": 86,
+    "operationUnit": "One nullable selection, strict guard and permitted payload operation, retaining two complete result leaves.",
+    "specification": "Three-way payload/null/undefined selection; stable local or direct record field narrowing enables actual arithmetic/valueOf/concat/join/field-read consumers.",
+    "notes": "Full pipeline includes pool or fresh owned payload construction, selection, strict guard evaluation, payload operation and complete output retention; observer outside timing. String concat and Array.join preserve full Unicode content without byte/UTF16 index conversion. Number.valueOf uses existing exact IEEE Number[] observer, including -0; NaN payload identity is not claimed. Record numeric field is copied and String field method borrows it, with no owned subfield consumption. No allocation, owner identity or runtime result claimed.",
+    "sourceRequired": [
+      {
+        "text": "function workload(n: int, seed: int, input: string): string[] {",
+        "count": 1
+      },
+      {
+        "text": "const values: string[] = [input.repeat(1), \"\", \"é😀e\\u0301\", \"\\uFEFF\\u0000\", input.repeat(2)];",
+        "count": 1
+      },
+      {
+        "text": "const output: string[] = []; let i = 0;",
+        "count": 1
+      },
+      {
+        "text": "while (i < n) {",
+        "count": 1
+      },
+      {
+        "text": "const mode = (i + seed) % 3;",
+        "count": 1
+      },
+      {
+        "text": "const at = (i * 13 + seed) % 5;",
+        "count": 1
+      },
+      {
+        "text": "const value: string | null | undefined = mode === 0 ? null : mode === 1 ? undefined : values[at].repeat(1);",
+        "count": 1
+      },
+      {
+        "text": "if (!(value === null || value === undefined)) { output.push(\"payload\"); output.push(value.concat(\"!\")); } else if (value === null) { output.push(\"null\"); output.push(\"\"); } else { output.push(\"undefined\"); output.push(\"\"); }",
+        "count": 1
+      },
+      {
+        "text": "i = i + 1;",
+        "count": 1
+      },
+      {
+        "text": "return output;",
+        "count": 1
+      },
+      {
+        "text": "function main() { const result = workload(2, 7, \"dynamic text\"); }",
+        "count": 1
+      }
+    ],
+    "sourceSha256": "a571356f541e81a6886cfe307978ee951d670f1ef5dba5560748be083e5b3647",
+    "counterpartSha256": "2cf9ed0fd93db0ee8224c463696ec6525d61a4bba93fefc4e80e7a8b7706d3fb",
+    "inputText": "dynamic text"
+  },
+  {
+    "id": "narrowing_array",
+    "category": "arrays",
+    "family": "nullable-flow-narrowing",
+    "narrowingPayload": "array",
+    "narrowedType": "int[]",
+    "guard": "if (value === undefined)",
+    "place": "value",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "retainedResultLeavesPerOperation": 2,
+    "measurementStatus": "pending-implementation-and-checkpoint-86",
+    "pendingCheckpoint": 86,
+    "operationUnit": "One nullable selection, strict guard and permitted payload operation, retaining two complete result leaves.",
+    "specification": "Three-way payload/null/undefined selection; stable local or direct record field narrowing enables actual arithmetic/valueOf/concat/join/field-read consumers.",
+    "notes": "Full pipeline includes pool or fresh owned payload construction, selection, strict guard evaluation, payload operation and complete output retention; observer outside timing. String concat and Array.join preserve full Unicode content without byte/UTF16 index conversion. Number.valueOf uses existing exact IEEE Number[] observer, including -0; NaN payload identity is not claimed. Record numeric field is copied and String field method borrows it, with no owned subfield consumption. No allocation, owner identity or runtime result claimed.",
+    "sourceRequired": [
+      {
+        "text": "function workload(n: int, seed: int): string[] {",
+        "count": 1
+      },
+      {
+        "text": "const output: string[] = []; let i = 0;",
+        "count": 1
+      },
+      {
+        "text": "while (i < n) {",
+        "count": 1
+      },
+      {
+        "text": "const mode = (i + seed) % 3;",
+        "count": 1
+      },
+      {
+        "text": "const value: int[] | null | undefined = mode === 0 ? null : mode === 1 ? undefined : [seed, i];",
+        "count": 1
+      },
+      {
+        "text": "if (value === undefined) { output.push(\"undefined\"); output.push(\"\"); } else if (value === null) { output.push(\"null\"); output.push(\"\"); } else { output.push(\"payload\"); output.push(value.join(\"é|\")); }",
+        "count": 1
+      },
+      {
+        "text": "i = i + 1;",
+        "count": 1
+      },
+      {
+        "text": "return output;",
+        "count": 1
+      },
+      {
+        "text": "function main() { const result = workload(2, 7); }",
+        "count": 1
+      }
+    ],
+    "sourceSha256": "5650a9d4efb7ec41a9c0865f2f0e7a1391cd2fd44c8584b16d544d7155225462",
+    "counterpartSha256": "978adc8cc7fa50005bae669180b23753e5705b25967b214e70a9944f16062adc"
+  },
+  {
+    "id": "narrowing_record",
+    "category": "records",
+    "family": "nullable-flow-narrowing",
+    "narrowingPayload": "record",
+    "narrowedType": "NarrowingPayload",
+    "guard": "if (holder.item === null)",
+    "place": "holder.item",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "retainedResultLeavesPerOperation": 2,
+    "measurementStatus": "pending-implementation-and-checkpoint-86",
+    "pendingCheckpoint": 86,
+    "operationUnit": "One nullable selection, strict guard and permitted payload operation, retaining two complete result leaves.",
+    "specification": "Three-way payload/null/undefined selection; stable local or direct record field narrowing enables actual arithmetic/valueOf/concat/join/field-read consumers.",
+    "notes": "Full pipeline includes pool or fresh owned payload construction, selection, strict guard evaluation, payload operation and complete output retention; observer outside timing. String concat and Array.join preserve full Unicode content without byte/UTF16 index conversion. Number.valueOf uses existing exact IEEE Number[] observer, including -0; NaN payload identity is not claimed. Record numeric field is copied and String field method borrows it, with no owned subfield consumption. No allocation, owner identity or runtime result claimed.",
+    "sourceRequired": [
+      {
+        "text": "type NarrowingPayload = { tag: int; text: string; };",
+        "count": 1
+      },
+      {
+        "text": "type NarrowingHolder = { item: NarrowingPayload | null | undefined; };",
+        "count": 1
+      },
+      {
+        "text": "function workload(n: int, seed: int, input: string): string[] {",
+        "count": 1
+      },
+      {
+        "text": "const output: string[] = []; let i = 0;",
+        "count": 1
+      },
+      {
+        "text": "while (i < n) {",
+        "count": 1
+      },
+      {
+        "text": "const mode = (i + seed) % 3;",
+        "count": 1
+      },
+      {
+        "text": "const holder: NarrowingHolder = { item: mode === 0 ? null : mode === 1 ? undefined : {tag: seed + i, text: input.repeat(1)} };",
+        "count": 1
+      },
+      {
+        "text": "if (holder.item === null) { output.push(\"null\"); output.push(\"\"); } else if (holder.item === undefined) { output.push(\"undefined\"); output.push(\"\"); } else { output.push(String(holder.item.tag)); output.push(holder.item.text.concat(\"!\")); }",
+        "count": 1
+      },
+      {
+        "text": "i = i + 1;",
+        "count": 1
+      },
+      {
+        "text": "return output;",
+        "count": 1
+      },
+      {
+        "text": "function main() { const result = workload(2, 7, \"dynamic text\"); }",
+        "count": 1
+      }
+    ],
+    "sourceSha256": "30b0f9858349b5f1370d5fd6a28908c738b9032883dbb0600b01cb8d92b454ba",
+    "counterpartSha256": "8f61b871d251f8b5a7e2472035a7e91086959b322e07369e26a8b15906f63b3e",
+    "inputText": "dynamic text"
+  }
+]

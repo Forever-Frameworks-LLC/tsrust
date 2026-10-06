@@ -1,0 +1,66 @@
+{
+  "accepted": true,
+  "sqliteCanonical": true,
+  "originalStoreSchemaUnchanged": true,
+  "authoritativeRawReencoded": false,
+  "actualMeasurementsRepeated": false,
+  "sources": {
+    "benchmarks/storage/analytics.py": "4275c4646075504650a24caebe0285b2b9f8efeecf50c74a1d6642b9dbd3d154",
+    "benchmarks/storage/test_analytics.py": "dc087354bdaab59efc121e5d1ab3f24ab81dfac5120a90758ee9ad71ebb2f5b7",
+    "benchmarks/runtime/checkpoint.mjs": "2642476d33f3545a2a89e5767d108e593994c8e0152ebc8de57be4400d76033d",
+    "benchmarks/runtime/run.mjs": "c086bec0a30985aa2081d8445fec88d4dc261e2e79f5e42d6284ae68989d6d58",
+    "benchmarks/runtime/report.mjs": "527c7ba5c70849b697846324c976c1034848013fc475b84f4a80b0e5338a3770",
+    "benchmarks/runtime/allocations.mjs": "4ea1bf0b513d71a0d2199f6e6d0c15e805016fc374bacc669eba035b5e2f6f52",
+    "benchmarks/runtime/package.json": "4cb07e4707dd19b030fddf00ee596dad6017eddafb84ac6a0dd320dfa40e0ef2",
+    "benchmarks/runtime/README.md": "3439201373d45e105864ed7046e6755bf598eb674e314e5a222373ab2620294f",
+    "benchmarks/storage/README.md": "c891327d0f7ae791f9b96d912bb13b42346b9ed7933a69df9d383be5eaa62f28",
+    "benchmarks/storage/HISTORICAL_ARCHIVE.md": "469a023f2230efb01123dc64d2b0dc419d36fc226af2e2b33af340aaf6ebcf8e"
+  },
+  "database": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/records.sqlite",
+    "sha256": "4d857e51e0e38d132e7f59c94607c4c8a9db04d03c3efa32ed8b34efc9757fda",
+    "bytes": 149852160,
+    "allocatedBytes": 149852160,
+    "records": 21121,
+    "blobs": 13846,
+    "analytics_runs": 2,
+    "analytics_samples": 30504,
+    "analytics_summaries": 328,
+    "analytics_profiles": 123
+  },
+  "originalRawRestoreVerification": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-86-analytics/raw-restore-verification.json",
+    "sha256": "b5ae59e4451febf6923cb8113776ba9247d643695505536a43b72ee5dd591921"
+  },
+  "ingestionTerminal": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-86-analytics/ingest-terminal.json",
+    "sha256": "544c942b0bae81fd79e1fb85ad04777875a1c3bf0173dda0646673eb78628080"
+  },
+  "queryVerification": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-86-analytics/query-verification.json",
+    "sha256": "12d386c0cb5132a43fb37a8e02e79a6bdd7fba873930abde920c4a4ff2cbfee9"
+  },
+  "queryTerminal": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-86-analytics/checkpoint-query-terminal.json",
+    "sha256": "870a2ecaed82ab72ee36a1c452deaed4fdb930698c25f39574606169d81b47e4"
+  },
+  "focusedFixtures": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-86-analytics/focused-fixture-evidence.json",
+    "sha256": "4f054d03ba890901405d38da85100057d04f46bf9956b797348c2dc54d9330f6"
+  },
+  "defaultMarkdownRendering": false,
+  "explicitReportFlag": "--report",
+  "npmCheckpoint": "node checkpoint.mjs",
+  "existingReportPreserved": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/BENCHMARKS.md",
+    "sha256": "7d930574d5fb1a40d72a6fc4dad98f3c7ec4d8212b41e265e1df7c6033f9d900"
+  },
+  "closedRawFilesRemoved": 2,
+  "grossAllocatedBytesReclaimed": 265613312,
+  "cumulativeGrossAllocatedBytesReclaimed": 1894064128,
+  "olderRawHistoryMigrated": false,
+  "engineSelectorImplemented": false,
+  "remainingEngineSelector": "Root may separately add --engines=native,node-tsc; no unsupported command documented as working.",
+  "evidenceAllocatedBytes": 499712,
+  "netAllocatedBytesReclaimedAfterEvidence": 265113600
+}

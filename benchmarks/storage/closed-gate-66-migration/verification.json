@@ -1,0 +1,8 @@
+{
+  "exactPathsAndBytes": 273,
+  "independentBlobChecks": 205,
+  "closedProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-proof.json",
+    "sha256": "1433dfedaca349ccb8933127507ae1392987962bbf5283364d285e9d26defb07"
+  }
+}

@@ -1,0 +1,9 @@
+type User = { name: string; };
+
+function main() {
+    const user: User = { name: "Pat" };
+    const show = (): void => { console.log(user.name); };
+    show();
+    user.name = "Sam";
+    console.log(user.name);
+}

@@ -1,0 +1,29 @@
+type int = number;
+function workload(n: int, seed: int): string[] {
+    const output: string[] = []; let i = 0;
+    while (i < n) {
+        const count = (i + seed) % 4;
+        const mode = (i * 7 + seed) % 5;
+        const values: null[] = [];
+        if (count > 0) { values.push(null); }
+        if (count > 1) { values.push(null); }
+        if (count > 2) { values.push(null); }
+        let visits = 0; let trace = 0; let sourceVisits = 0;
+        const selected = values.findLast((value: null, index: int, source: null[]): boolean => {
+            visits = visits + 1;
+            trace = trace * 10 + index + 1;
+            sourceVisits = sourceVisits + source.length;
+            return source.length === count && value === source[index] && (mode === 1 && index === 0 || mode === 2 && index % 2 === 0 || mode === 3 && index >= 1 || mode === 4);
+        });
+        output.push(typeof selected);
+        if (selected === undefined) { output.push("undefined"); } else { output.push(describe(selected)); }
+        output.push(String(values.length)); output.push(String(visits)); output.push(String(trace)); output.push(String(sourceVisits));
+        if (values.length > 0) { output.push(describe(values[0])); } else { output.push("<absent>"); }
+        if (values.length > 1) { output.push(describe(values[1])); } else { output.push("<absent>"); }
+        if (values.length > 2) { output.push(describe(values[2])); } else { output.push("<absent>"); }
+        i = i + 1;
+    }
+    return output;
+}
+function describe(value: null): string { return "null"; }
+function main() { const result = workload(2, 7); }

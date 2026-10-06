@@ -1,0 +1,26 @@
+function workload(n: number, seed: number, input: string): string[] {
+    const values: string[] = [clone(input), "", "Aé", "😀Z", "e\u0301", "a\u0000é😀", input.repeat(2), "\uFEFF中Z"];
+    const left: number[] = [0, 0, 1, 2, 1, 2, 0, 1];
+    const right: number[] = [values[0].length, 0, 2, 3, 2, 3, values[6].length, 2];
+    const equal: number[] = [0, 0, 1, 1, 1, 2, 0, 1];
+    const output: string[] = []; let i = 0;
+    while (i < n) {
+        const at = (i * 13 + seed) % 8;
+        const tag = (i * 7 + seed) % 9;
+        let start: number = -1;
+        if (tag === 1) { start = left[at]; }
+        if (tag === 2) { start = right[at]; }
+        if (tag === 3) { start = 1000000000; }
+        if (tag === 4) { start = -10000; }
+        if (tag === 5) { start = 0; }
+        if (tag === 6) { start = values[at].length; }
+        if (tag === 7) { start = left[at]; }
+        if (tag === 8) { start = right[at]; }
+        const selected: string = values[at].substring(start);
+        output.push(selected);
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7, " é😀é Z "); }
+function clone<T>(value: T): T { return value; }

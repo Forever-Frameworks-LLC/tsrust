@@ -1,0 +1,7 @@
+type int = number;
+function workload(n: int, seed: int, input: string): boolean[][] {
+ const output: boolean[][] = [];  let i = 0;
+ while (i < n) { const mode = (i + seed) % 3; const base = (i * 13 + seed) % 97; const left = Number(base) / 4.0; const right = Number(base + mode) / 4.0; const text = input.repeat(mode);
+ output.push([Object.is(left, right), Object.is(left - right, right - left), Object.is((left - right) / (left - right), (right - left) / (right - left)), Object.is(text, input), Object.is(mode, 0), Object.is(left, base)]); i = i + 1; } return output;
+}
+function main() { const result = workload(3, 0, "abc"); }

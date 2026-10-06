@@ -1,0 +1,13 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import {createHash} from 'node:crypto';
+import {assertRestParameterSource} from './rest-parameters-source-contract.mjs';import {restParameterIds,expectedRestParameterObservation} from './rest-parameters-oracle.mjs';import {hands} from './rest-parameters-values-oracle.mjs';import {observeSliceTree} from './slice-observation.mjs';import {expectedChecksum,expectedExactResult} from './oracle.mjs';import {reportCategory} from './report.mjs';
+const read=p=>fs.readFileSync(new URL(p,import.meta.url),'utf8'),manifest=JSON.parse(read('./manifest.json')),rows=manifest.workloads.filter(r=>r.family==='rest-parameters');
+const parentDigest='4c1c2b77bbfac783eb0fd680fde01c92832f7707c45ef49702943430a23a0477';
+test('Gate99 source registration preserves prior rows and binds complete scenario sources',()=>{
+ assert.equal(createHash('sha256').update(JSON.stringify(manifest.workloads.slice(0,704))).digest('hex'),parentDigest);assert.ok(manifest.gate>=99);assert.deepEqual(rows.map(r=>r.id),restParameterIds);assert.equal(rows.length,13);
+ for(const row of rows){assert.equal(row.measured,false);assert.equal(row.pendingCheckpoint,101);assert.equal(reportCategory(row.id),'callbacks');for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){const source=read('./'+name);assertRestParameterSource(source,row,kind);assert.throws(()=>assertRestParameterSource(source.replace('...',''),row,kind));assert.throws(()=>assertRestParameterSource(source.replace('return output;','return [];'),row,kind));}assert.throws(()=>assertRestParameterSource(read('./'+row.source),{...row,operationsPerIteration:2},'native'));}
+ for(const p of ['./run.mjs','./profile-native.mjs']){const t=read(p);assert.match(t,/assertRestParameterSource\(source/);assert.match(t,/assertRestParameterSource\((?:ts|counterpart)/);assert.ok(t.includes("'rest-parameters-values-oracle.mjs'"));}
+});
+test('Gate99 independent complete literal outputs use unchanged observation and oracle routing',()=>{
+ assert.equal(hands.length,42);for(const [id,n,seed,input,literal] of hands){const want=observeSliceTree(literal,{numbers:id==='rest_parameter_number_pack'});assert.deepEqual(expectedRestParameterObservation(id,n,seed,input),want);assert.deepEqual(expectedExactResult(id,n,seed,input),want);assert.equal(expectedChecksum(id,n,seed,input),want.checksum);}
+ for(const row of rows){const want=expectedRestParameterObservation(row.id,2048,7,row.inputText);assert.deepEqual(expectedExactResult(row.id,2048,7,row.inputText),want);assert.equal(expectedChecksum(row.id,2048,7,row.inputText),want.checksum);}
+});

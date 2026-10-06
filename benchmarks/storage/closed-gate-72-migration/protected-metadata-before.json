@@ -1,0 +1,3369 @@
+{
+  "BENCHMARKS.md": {
+    "device": 16777230,
+    "inode": 285388757,
+    "bytes": 884390,
+    "mtimeNs": 1790992544283722135,
+    "ctimeNs": 1790992544284030593
+  },
+  "benchmarks/runtime/results/2026-09-30T23-10-06-553Z.json": {
+    "device": 16777230,
+    "inode": 282305816,
+    "bytes": 730008,
+    "mtimeNs": 1790809806561851111,
+    "ctimeNs": 1790809806561851111
+  },
+  "benchmarks/runtime/results/2026-10-01T01-44-28-709Z-allocations.json": {
+    "device": 16777230,
+    "inode": 282601612,
+    "bytes": 40959,
+    "mtimeNs": 1790819068778054284,
+    "ctimeNs": 1790819068778054284
+  },
+  "benchmarks/runtime/results/2026-10-01T04-51-41-594Z.json": {
+    "device": 16777230,
+    "inode": 282768057,
+    "bytes": 1046014,
+    "mtimeNs": 1790830301602923904,
+    "ctimeNs": 1790830301602923904
+  },
+  "benchmarks/runtime/results/2026-10-01T00-12-07-277Z.json": {
+    "device": 16777230,
+    "inode": 282385590,
+    "bytes": 288782,
+    "mtimeNs": 1790813527283597669,
+    "ctimeNs": 1790813527283597669
+  },
+  "benchmarks/runtime/results/2026-10-02T19-52-01-680Z.json": {
+    "device": 16777230,
+    "inode": 285069134,
+    "bytes": 1239242,
+    "mtimeNs": 1790970721699940519,
+    "ctimeNs": 1790970721699940519
+  },
+  "benchmarks/runtime/results/2026-10-02T01-34-37-644Z-allocations.json": {
+    "device": 16777230,
+    "inode": 283768461,
+    "bytes": 9256,
+    "mtimeNs": 1790904877654712348,
+    "ctimeNs": 1790904877654712348
+  },
+  "benchmarks/runtime/results/2026-10-02T21-34-16-303Z.json": {
+    "device": 16777230,
+    "inode": 285178627,
+    "bytes": 26154412,
+    "mtimeNs": 1790976856403817945,
+    "ctimeNs": 1790976856403817945
+  },
+  "benchmarks/runtime/results/2026-10-01T12-02-42-828Z.json": {
+    "device": 16777230,
+    "inode": 283157481,
+    "bytes": 1464885,
+    "mtimeNs": 1790856162839974994,
+    "ctimeNs": 1790856162839974994
+  },
+  "benchmarks/runtime/results/2026-10-02T00-13-46-688Z.json": {
+    "device": 16777230,
+    "inode": 283663328,
+    "bytes": 407246,
+    "mtimeNs": 1790900026695684205,
+    "ctimeNs": 1790900026695684205
+  },
+  "benchmarks/runtime/results/2026-09-30T23-46-19-030Z.json": {
+    "device": 16777230,
+    "inode": 282336046,
+    "bytes": 732370,
+    "mtimeNs": 1790811979037748074,
+    "ctimeNs": 1790811979037748074
+  },
+  "benchmarks/runtime/results/2026-09-30T23-12-25-749Z-allocations.json": {
+    "device": 16777230,
+    "inode": 282307072,
+    "bytes": 40662,
+    "mtimeNs": 1790809945757260685,
+    "ctimeNs": 1790809945757260685
+  },
+  "benchmarks/runtime/results/2026-10-01T10-43-19-261Z-allocations.json": {
+    "device": 16777230,
+    "inode": 283085223,
+    "bytes": 41343,
+    "mtimeNs": 1790851399263679897,
+    "ctimeNs": 1790851399263679897
+  },
+  "benchmarks/runtime/results/2026-10-01T01-39-21-007Z.json": {
+    "device": 16777230,
+    "inode": 282589059,
+    "bytes": 1010588,
+    "mtimeNs": 1790818761015962993,
+    "ctimeNs": 1790818761015962993
+  },
+  "benchmarks/runtime/results/2026-10-01T02-22-39-793Z.json": {
+    "device": 16777230,
+    "inode": 282638379,
+    "bytes": 1046334,
+    "mtimeNs": 1790821359801792592,
+    "ctimeNs": 1790821359801792592
+  },
+  "benchmarks/runtime/results/2026-10-02T08-30-03-080Z.json": {
+    "device": 16777230,
+    "inode": 284178794,
+    "bytes": 1038191,
+    "mtimeNs": 1790929803095046988,
+    "ctimeNs": 1790929803095046988
+  },
+  "benchmarks/runtime/results/2026-10-01T00-32-23-935Z.json": {
+    "device": 16777230,
+    "inode": 282389171,
+    "bytes": 85296,
+    "mtimeNs": 1790814743941663109,
+    "ctimeNs": 1790814743941663109
+  },
+  "benchmarks/runtime/results/2026-10-01T20-36-35-590Z.json": {
+    "device": 16777230,
+    "inode": 283424812,
+    "bytes": 2062395,
+    "mtimeNs": 1790886995604122762,
+    "ctimeNs": 1790886995604122762
+  },
+  "benchmarks/runtime/results/2026-10-02T01-08-44-019Z.json": {
+    "device": 16777230,
+    "inode": 283734195,
+    "bytes": 704616,
+    "mtimeNs": 1790903324028823870,
+    "ctimeNs": 1790903324028823870
+  },
+  "benchmarks/runtime/results/2026-10-02T03-32-12-893Z.json": {
+    "device": 16777230,
+    "inode": 283921658,
+    "bytes": 29762814,
+    "mtimeNs": 1790911933026155743,
+    "ctimeNs": 1790911933026155743
+  },
+  "benchmarks/runtime/results/2026-10-01T01-18-55-321Z.json": {
+    "device": 16777230,
+    "inode": 282539468,
+    "bytes": 1010431,
+    "mtimeNs": 1790817535330186242,
+    "ctimeNs": 1790817535330186242
+  },
+  "benchmarks/runtime/results/2026-10-01T15-46-43-695Z.json": {
+    "device": 16777230,
+    "inode": 283237606,
+    "bytes": 1739899,
+    "mtimeNs": 1790869603710258612,
+    "ctimeNs": 1790869603710258612
+  },
+  "benchmarks/runtime/results/2026-10-01T23-20-28-895Z.json": {
+    "device": 16777230,
+    "inode": 283590672,
+    "bytes": 2055256,
+    "mtimeNs": 1790896828908631894,
+    "ctimeNs": 1790896828908631894
+  },
+  "benchmarks/runtime/results/2026-10-02T17-03-02-587Z.json": {
+    "device": 16777230,
+    "inode": 284763591,
+    "bytes": 18240194,
+    "mtimeNs": 1790960582673717617,
+    "ctimeNs": 1790960582673717617
+  },
+  "benchmarks/runtime/results/2026-10-02T07-46-32-501Z.json": {
+    "device": 16777230,
+    "inode": 284142638,
+    "bytes": 13353444,
+    "mtimeNs": 1790927192558900436,
+    "ctimeNs": 1790927192558900436
+  },
+  "benchmarks/runtime/results/2026-10-01T23-21-47-473Z-allocations.json": {
+    "device": 16777230,
+    "inode": 283591229,
+    "bytes": 45165,
+    "mtimeNs": 1790896907484035599,
+    "ctimeNs": 1790896907484035599
+  },
+  "benchmarks/runtime/results/2026-10-02T12-06-21-206Z.json": {
+    "device": 16777230,
+    "inode": 284385601,
+    "bytes": 2600094,
+    "mtimeNs": 1790942781230917679,
+    "ctimeNs": 1790942781230917679
+  },
+  "benchmarks/runtime/results/2026-10-01T18-50-50-099Z.json": {
+    "device": 16777230,
+    "inode": 283376697,
+    "bytes": 2024166,
+    "mtimeNs": 1790880650112841952,
+    "ctimeNs": 1790880650112841952
+  },
+  "benchmarks/runtime/results/2026-10-03T00-52-08-089Z.json": {
+    "device": 16777230,
+    "inode": 285335680,
+    "bytes": 5428534,
+    "mtimeNs": 1790988728126403193,
+    "ctimeNs": 1790988728126403193
+  },
+  "benchmarks/runtime/results/2026-10-02T01-33-56-966Z.json": {
+    "device": 16777230,
+    "inode": 283768140,
+    "bytes": 7657242,
+    "mtimeNs": 1790904837008642744,
+    "ctimeNs": 1790904837008642744
+  },
+  "benchmarks/runtime/results/2026-10-02T05-09-07-504Z.json": {
+    "device": 16777230,
+    "inode": 284012580,
+    "bytes": 23311237,
+    "mtimeNs": 1790917747600054639,
+    "ctimeNs": 1790917747600054639
+  },
+  "benchmarks/runtime/results/2026-09-30T23-49-48-956Z-allocations.json": {
+    "device": 16777230,
+    "inode": 282355166,
+    "bytes": 40744,
+    "mtimeNs": 1790812188958336250,
+    "ctimeNs": 1790812188958336250
+  },
+  "benchmarks/runtime/results/2026-10-01T05-30-20-821Z.json": {
+    "device": 16777230,
+    "inode": 282832520,
+    "bytes": 1255601,
+    "mtimeNs": 1790832620830424434,
+    "ctimeNs": 1790832620830424434
+  },
+  "benchmarks/runtime/results/2026-10-02T04-02-21-910Z.json": {
+    "device": 16777230,
+    "inode": 283952253,
+    "bytes": 19007554,
+    "mtimeNs": 1790913741973756357,
+    "ctimeNs": 1790913741973756357
+  },
+  "benchmarks/runtime/results/2026-10-01T10-35-32-300Z-allocations.json": {
+    "device": 16777230,
+    "inode": 283065780,
+    "bytes": 41343,
+    "mtimeNs": 1790850932311752027,
+    "ctimeNs": 1790850932311752027
+  },
+  "benchmarks/runtime/results/2026-10-02T18-58-45-231Z.json": {
+    "device": 16777230,
+    "inode": 284961126,
+    "bytes": 3844437,
+    "mtimeNs": 1790967525261620994,
+    "ctimeNs": 1790967525261620994
+  },
+  "benchmarks/runtime/results/2026-10-01T08-14-04-568Z.json": {
+    "device": 16777230,
+    "inode": 282960783,
+    "bytes": 1327601,
+    "mtimeNs": 1790842444577717592,
+    "ctimeNs": 1790842444577717592
+  },
+  "benchmarks/runtime/results/2026-10-01T22-37-39-295Z.json": {
+    "device": 16777230,
+    "inode": 283523482,
+    "bytes": 368619,
+    "mtimeNs": 1790894259303918996,
+    "ctimeNs": 1790894259303918996
+  },
+  "benchmarks/runtime/results/2026-10-02T15-34-33-010Z.json": {
+    "device": 16777230,
+    "inode": 284645913,
+    "bytes": 18294049,
+    "mtimeNs": 1790955273117610333,
+    "ctimeNs": 1790955273117610333
+  },
+  "benchmarks/runtime/results/2026-10-01T23-55-50-833Z.json": {
+    "device": 16777230,
+    "inode": 283638659,
+    "bytes": 410125,
+    "mtimeNs": 1790898950841152002,
+    "ctimeNs": 1790898950841152002
+  },
+  "benchmarks/runtime/results/2026-10-01T06-20-37-081Z.json": {
+    "device": 16777230,
+    "inode": 282917243,
+    "bytes": 126963,
+    "mtimeNs": 1790835637087646905,
+    "ctimeNs": 1790835637087646905
+  },
+  "benchmarks/runtime/results/2026-10-01T16-18-45-208Z-allocations.json": {
+    "device": 16777230,
+    "inode": 283264018,
+    "bytes": 41347,
+    "mtimeNs": 1790871525211922331,
+    "ctimeNs": 1790871525211922331
+  },
+  "benchmarks/runtime/results/2026-10-02T06-20-44-810Z.json": {
+    "device": 16777230,
+    "inode": 284072326,
+    "bytes": 69813510,
+    "mtimeNs": 1790922045482559975,
+    "ctimeNs": 1790922045482559975
+  },
+  "benchmarks/runtime/results/2026-10-01T17-06-06-666Z-allocations.json": {
+    "device": 16777230,
+    "inode": 283308911,
+    "bytes": 41343,
+    "mtimeNs": 1790874366670243362,
+    "ctimeNs": 1790874366670243362
+  },
+  "benchmarks/runtime/results/2026-10-02T02-18-13-833Z.json": {
+    "device": 16777230,
+    "inode": 283833044,
+    "bytes": 507452,
+    "mtimeNs": 1790907493842308634,
+    "ctimeNs": 1790907493842308634
+  },
+  "benchmarks/runtime/results/2026-10-02T13-43-31-564Z.json": {
+    "device": 16777230,
+    "inode": 284527591,
+    "bytes": 4598898,
+    "mtimeNs": 1790948611596068379,
+    "ctimeNs": 1790948611596068379
+  },
+  "benchmarks/runtime/results/2026-10-02T18-10-32-031Z.json": {
+    "device": 16777230,
+    "inode": 284826333,
+    "bytes": 9256196,
+    "mtimeNs": 1790964632077061845,
+    "ctimeNs": 1790964632077061845
+  },
+  "benchmarks/runtime/results/2026-10-02T13-14-05-967Z.json": {
+    "device": 16777230,
+    "inode": 284489310,
+    "bytes": 9131410,
+    "mtimeNs": 1790946846012150180,
+    "ctimeNs": 1790946846012150180
+  },
+  "benchmarks/runtime/results/2026-10-01T06-16-41-224Z.json": {
+    "device": 16777230,
+    "inode": 282916866,
+    "bytes": 1256332,
+    "mtimeNs": 1790835401233029617,
+    "ctimeNs": 1790835401233029617
+  },
+  "benchmarks/runtime/results/2026-10-01T17-21-00-518Z.json": {
+    "device": 16777230,
+    "inode": 283322147,
+    "bytes": 1944834,
+    "mtimeNs": 1790875260538554638,
+    "ctimeNs": 1790875260538554638
+  },
+  "benchmarks/runtime/results/2026-10-01T22-19-50-919Z.json": {
+    "device": 16777230,
+    "inode": 283488057,
+    "bytes": 2061865,
+    "mtimeNs": 1790893190933442078,
+    "ctimeNs": 1790893190933442078
+  },
+  "benchmarks/runtime/results/2026-10-01T02-57-37-372Z.json": {
+    "device": 16777230,
+    "inode": 282666850,
+    "bytes": 1045885,
+    "mtimeNs": 1790823457380570604,
+    "ctimeNs": 1790823457380570604
+  },
+  "benchmarks/runtime/results/2026-10-02T14-55-24-143Z.json": {
+    "device": 16777230,
+    "inode": 284606347,
+    "bytes": 1299263,
+    "mtimeNs": 1790952924164143433,
+    "ctimeNs": 1790952924164143433
+  },
+  "benchmarks/runtime/results/2026-10-02T05-39-50-064Z.json": {
+    "device": 16777230,
+    "inode": 284041199,
+    "bytes": 638886,
+    "mtimeNs": 1790919590072607926,
+    "ctimeNs": 1790919590072607926
+  },
+  "benchmarks/runtime/results/2026-10-01T11-49-08-613Z-allocations.json": {
+    "device": 16777230,
+    "inode": 283137988,
+    "bytes": 41341,
+    "mtimeNs": 1790855348620031083,
+    "ctimeNs": 1790855348620031083
+  },
+  "benchmarks/runtime/results/2026-10-01T23-37-48-752Z.json": {
+    "device": 16777230,
+    "inode": 283614977,
+    "bytes": 405508,
+    "mtimeNs": 1790897868760131132,
+    "ctimeNs": 1790897868760131132
+  },
+  "benchmarks/runtime/results/2026-10-03T01-52-33-396Z.json": {
+    "device": 16777230,
+    "inode": 285388488,
+    "bytes": 8051895,
+    "mtimeNs": 1790992353441900714,
+    "ctimeNs": 1790992353441900714
+  },
+  "benchmarks/runtime/results/2026-10-01T03-04-10-862Z-allocations.json": {
+    "device": 16777230,
+    "inode": 282686616,
+    "bytes": 40991,
+    "mtimeNs": 1790823850866387534,
+    "ctimeNs": 1790823850866387534
+  },
+  "benchmarks/runtime/results/2026-10-01T20-38-54-270Z-allocations.json": {
+    "device": 16777230,
+    "inode": 283440992,
+    "bytes": 45216,
+    "mtimeNs": 1790887134280117353,
+    "ctimeNs": 1790887134280117353
+  },
+  "benchmarks/runtime/results/2026-09-30T23-52-32-298Z.json": {
+    "device": 16777230,
+    "inode": 282356955,
+    "bytes": 731374,
+    "mtimeNs": 1790812352305893993,
+    "ctimeNs": 1790812352305893993
+  },
+  "benchmarks/runtime/results/2026-09-30T23-02-37-068Z-verify.json": {
+    "device": 16777230,
+    "inode": 282303375,
+    "bytes": 21259,
+    "mtimeNs": 1790809357073634136,
+    "ctimeNs": 1790809357073634136
+  },
+  "benchmarks/runtime/results/2026-10-01T08-02-30-016Z-allocations.json": {
+    "device": 16777230,
+    "inode": 282946568,
+    "bytes": 41099,
+    "mtimeNs": 1790841750025388204,
+    "ctimeNs": 1790841750025388204
+  },
+  "benchmarks/runtime/results/2026-10-02T10-37-47-527Z.json": {
+    "device": 16777230,
+    "inode": 284262040,
+    "bytes": 4490136,
+    "mtimeNs": 1790937467552371529,
+    "ctimeNs": 1790937467552371529
+  },
+  "benchmarks/runtime/results/2026-10-02T23-06-23-051Z.json": {
+    "device": 16777230,
+    "inode": 285236003,
+    "bytes": 15947678,
+    "mtimeNs": 1790982383117664829,
+    "ctimeNs": 1790982383117664829
+  },
+  "benchmarks/runtime/results/2026-10-01T06-09-54-430Z-allocations.json": {
+    "device": 16777230,
+    "inode": 282913902,
+    "bytes": 41100,
+    "mtimeNs": 1790834994439667355,
+    "ctimeNs": 1790834994439667355
+  },
+  "benchmarks/runtime/results/2026-10-02T09-37-35-119Z.json": {
+    "device": 16777230,
+    "inode": 284222616,
+    "bytes": 38186752,
+    "mtimeNs": 1790933855327569112,
+    "ctimeNs": 1790933855327569112
+  },
+  "benchmarks/runtime/results/2026-10-01T01-49-06-507Z.json": {
+    "device": 16777230,
+    "inode": 282609681,
+    "bytes": 118959,
+    "mtimeNs": 1790819346512945572,
+    "ctimeNs": 1790819346512945572
+  },
+  "benchmarks/runtime/results/2026-10-02T20-50-01-477Z.json": {
+    "device": 16777230,
+    "inode": 285132264,
+    "bytes": 2929316,
+    "mtimeNs": 1790974201501373361,
+    "ctimeNs": 1790974201501373361
+  },
+  "benchmarks/runtime/results/2026-10-01T10-55-24-253Z.json": {
+    "device": 16777230,
+    "inode": 283096167,
+    "bytes": 1466520,
+    "mtimeNs": 1790852124265488486,
+    "ctimeNs": 1790852124265488486
+  },
+  "benchmarks/runtime/results/2026-10-02T12-44-47-209Z.json": {
+    "device": 16777230,
+    "inode": 284442094,
+    "bytes": 9112692,
+    "mtimeNs": 1790945087253392993,
+    "ctimeNs": 1790945087253392993
+  },
+  "benchmarks/runtime/results/2026-10-02T04-35-52-687Z.json": {
+    "device": 16777230,
+    "inode": 283982839,
+    "bytes": 23720159,
+    "mtimeNs": 1790915752783250140,
+    "ctimeNs": 1790915752783250140
+  },
+  "benchmarks/runtime/results/2026-10-02T03-08-58-857Z.json": {
+    "device": 16777230,
+    "inode": 283892681,
+    "bytes": 2190380,
+    "mtimeNs": 1790910538874322621,
+    "ctimeNs": 1790910538874322621
+  },
+  "benchmarks/runtime/results/2026-10-02T02-43-58-188Z.json": {
+    "device": 16777230,
+    "inode": 283866600,
+    "bytes": 7753175,
+    "mtimeNs": 1790909038227092641,
+    "ctimeNs": 1790909038227092641
+  },
+  "benchmarks/runtime/results/2026-10-01T18-34-39-115Z-allocations.json": {
+    "device": 16777230,
+    "inode": 283370472,
+    "bytes": 45235,
+    "mtimeNs": 1790879679121478551,
+    "ctimeNs": 1790879679121478551
+  },
+  "benchmarks/runtime/results/2026-10-02T07-01-29-093Z.json": {
+    "device": 16777230,
+    "inode": 284106220,
+    "bytes": 3752076,
+    "mtimeNs": 1790924489121389493,
+    "ctimeNs": 1790924489121389493
+  },
+  "benchmarks/runtime/results/2026-10-02T01-59-12-737Z.json": {
+    "device": 16777230,
+    "inode": 283806393,
+    "bytes": 464540,
+    "mtimeNs": 1790906352747470860,
+    "ctimeNs": 1790906352747470860
+  },
+  "benchmarks/runtime/results/2026-10-01T22-20-57-653Z-allocations.json": {
+    "device": 16777230,
+    "inode": 283488804,
+    "bytes": 45235,
+    "mtimeNs": 1790893257659828025,
+    "ctimeNs": 1790893257659828025
+  },
+  "benchmarks/runtime/results/2026-10-02T00-34-53-278Z.json": {
+    "device": 16777230,
+    "inode": 283688149,
+    "bytes": 571359,
+    "mtimeNs": 1790901293286947621,
+    "ctimeNs": 1790901293286947621
+  },
+  "benchmarks/runtime/results/2026-10-01T08-50-08-509Z.json": {
+    "device": 16777230,
+    "inode": 283000099,
+    "bytes": 1326824,
+    "mtimeNs": 1790844608518183258,
+    "ctimeNs": 1790844608518183258
+  },
+  "benchmarks/runtime/results/2026-10-01T02-04-04-351Z.json": {
+    "device": 16777230,
+    "inode": 282616245,
+    "bytes": 85028,
+    "mtimeNs": 1790820244357158930,
+    "ctimeNs": 1790820244357158930
+  },
+  "benchmarks/runtime/results/2026-10-02T16-06-20-223Z.json": {
+    "device": 16777230,
+    "inode": 284690724,
+    "bytes": 14950326,
+    "mtimeNs": 1790957180291288273,
+    "ctimeNs": 1790957180291288273
+  },
+  "benchmarks/runtime/results/2026-10-01T15-37-32-637Z-allocations.json": {
+    "device": 16777230,
+    "inode": 283233159,
+    "bytes": 41345,
+    "mtimeNs": 1790869052640439061,
+    "ctimeNs": 1790869052640439061
+  },
+  "benchmarks/runtime/results/2026-10-01T03-10-52-503Z.json": {
+    "device": 16777230,
+    "inode": 282688833,
+    "bytes": 1045911,
+    "mtimeNs": 1790824252511713206,
+    "ctimeNs": 1790824252511713206
+  },
+  "benchmarks/runtime/results/2026-10-02T14-20-09-288Z.json": {
+    "device": 16777230,
+    "inode": 284566132,
+    "bytes": 2164742,
+    "mtimeNs": 1790950809311853681,
+    "ctimeNs": 1790950809311853681
+  },
+  "benchmarks/runtime/results/2026-09-30T23-10-43-349Z-allocations.json": {
+    "device": 16777230,
+    "inode": 282305951,
+    "bytes": 37488,
+    "mtimeNs": 1790809843352033669,
+    "ctimeNs": 1790809843352033669
+  },
+  "benchmarks/runtime/results/2026-10-01T16-45-01-348Z.json": {
+    "device": 16777230,
+    "inode": 283269825,
+    "bytes": 1739625,
+    "mtimeNs": 1790873101362675847,
+    "ctimeNs": 1790873101362675847
+  },
+  "benchmarks/runtime/results/2026-10-01T04-02-12-386Z.json": {
+    "device": 16777230,
+    "inode": 282716187,
+    "bytes": 1045912,
+    "mtimeNs": 1790827332399292632,
+    "ctimeNs": 1790827332399292632
+  },
+  "benchmarks/runtime/results/2026-10-01T08-42-24-351Z-allocations.json": {
+    "device": 16777230,
+    "inode": 282996536,
+    "bytes": 41099,
+    "mtimeNs": 1790844144357272742,
+    "ctimeNs": 1790844144357272742
+  },
+  "benchmarks/runtime/results/2026-10-03T00-10-31-567Z.json": {
+    "device": 16777230,
+    "inode": 285287486,
+    "bytes": 15855583,
+    "mtimeNs": 1790986231632003936,
+    "ctimeNs": 1790986231632003936
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T13-46-43-899Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 284528330,
+    "bytes": 676981,
+    "mtimeNs": 1790948803942217273,
+    "ctimeNs": 1790948803942217273
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T21-15-11-000Z-numeric-compound-assignment-value-source-validation.json": {
+    "device": 16777230,
+    "inode": 285137775,
+    "bytes": 168977,
+    "mtimeNs": 1790975720600405670,
+    "ctimeNs": 1790975720600405670
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T02-31-32-183Z-primitive-emission-equivalence.json": {
+    "device": 16777230,
+    "inode": 282639050,
+    "bytes": 2952,
+    "mtimeNs": 1790821892189931004,
+    "ctimeNs": 1790821892189931004
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T09-30-42-000Z-array-concat-record-layout-repair.json": {
+    "device": 16777230,
+    "inode": 284218841,
+    "bytes": 34923,
+    "mtimeNs": 1790933442457730735,
+    "ctimeNs": 1790933442457730735
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T18-30-16-429Z-inline-ascii13-correctness-evidence.json": {
+    "device": 16777230,
+    "inode": 283368390,
+    "bytes": 140713,
+    "mtimeNs": 1790879416431440150,
+    "ctimeNs": 1790879416431440150
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T22-35-45-121Z-fixed-scalar-array-assessment.json": {
+    "device": 16777230,
+    "inode": 283522932,
+    "bytes": 45063,
+    "mtimeNs": 1790894145125107697,
+    "ctimeNs": 1790894145125107697
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T21-37-19-000Z-numeric-compound-assignment-value-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 285179955,
+    "bytes": 448518,
+    "mtimeNs": 1790977039765423233,
+    "ctimeNs": 1790977039765423233
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T23-12-32-000Z-conditional-expression-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 285237070,
+    "bytes": 201133,
+    "mtimeNs": 1790982752592437909,
+    "ctimeNs": 1790982752592437909
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T07-54-57-642Z-prototype-allocations.json": {
+    "device": 16777230,
+    "inode": 282935524,
+    "bytes": 40833,
+    "mtimeNs": 1790841297681247749,
+    "ctimeNs": 1790841297681247749
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T14-19-59-759Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283179700,
+    "bytes": 1877599,
+    "mtimeNs": 1790864399802817930,
+    "ctimeNs": 1790864399802817930
+  },
+  "benchmarks/runtime/diagnostics/2026-09-30T23-40-56-691Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 282315647,
+    "bytes": 26938,
+    "mtimeNs": 1790811656720272246,
+    "ctimeNs": 1790811656720272246
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T05-09-41-000Z-native-string-construction-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 284012717,
+    "bytes": 568173,
+    "mtimeNs": 1790917781349120510,
+    "ctimeNs": 1790917781349120510
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T22-32-08-719Z-fixed-scalar-array-correctness.json": {
+    "device": 16777230,
+    "inode": 283521111,
+    "bytes": 242177,
+    "mtimeNs": 1790893928720496717,
+    "ctimeNs": 1790893928720496717
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T23-24-46-000Z-gate34-comparison-benchmark-source.json": {
+    "device": 16777230,
+    "inode": 283593065,
+    "bytes": 341287,
+    "mtimeNs": 1790897086435415065,
+    "ctimeNs": 1790897086435415065
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T12-47-23-927Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283165457,
+    "bytes": 1517705,
+    "mtimeNs": 1790858843995484726,
+    "ctimeNs": 1790858843995484726
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T17-43-26-000Z-update-expression-source-validation.json": {
+    "device": 16777230,
+    "inode": 284774796,
+    "bytes": 81206,
+    "mtimeNs": 1790963027140762081,
+    "ctimeNs": 1790963027140762081
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T18-01-58-595Z-prototype-allocations.json": {
+    "device": 16777230,
+    "inode": 283339360,
+    "bytes": 78414,
+    "mtimeNs": 1790877718637905188,
+    "ctimeNs": 1790877718637905188
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T07-21-48-943Z-array-reduction-source-validation.json": {
+    "device": 16777230,
+    "inode": 284131914,
+    "bytes": 220129,
+    "mtimeNs": 1790925709022193506,
+    "ctimeNs": 1790925709022193506
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T05-54-07-279Z-emission-prototype.json": {
+    "device": 16777230,
+    "inode": 282871078,
+    "bytes": 1047198,
+    "mtimeNs": 1790834047314491887,
+    "ctimeNs": 1790834047314491887
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T14-56-48-730Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 284606471,
+    "bytes": 678989,
+    "mtimeNs": 1790953008773190324,
+    "ctimeNs": 1790953008773190324
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T09-38-10-178Z-recursive-followup-proof.json": {
+    "device": 16777230,
+    "inode": 283006437,
+    "bytes": 17821,
+    "mtimeNs": 1790847490185085309,
+    "ctimeNs": 1790847490185085309
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T00-15-08-000Z-native-array-reverse-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 283663403,
+    "bytes": 98843,
+    "mtimeNs": 1790900108995525870,
+    "ctimeNs": 1790900108995525870
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T04-02-54-173Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 283952458,
+    "bytes": 394657,
+    "mtimeNs": 1790913774209457033,
+    "ctimeNs": 1790913774209457033
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T16-18-56-864Z-string-contract.json": {
+    "device": 16777230,
+    "inode": 283264035,
+    "bytes": 4581193,
+    "mtimeNs": 1790871536931818103,
+    "ctimeNs": 1790871536931818103
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T10-59-00-445Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283097079,
+    "bytes": 1709690,
+    "mtimeNs": 1790852340484802683,
+    "ctimeNs": 1790852340484802683
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T02-18-53-000Z-native-math-unary-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 283833114,
+    "bytes": 148741,
+    "mtimeNs": 1790907533173360652,
+    "ctimeNs": 1790907533173360652
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T03-24-10-570Z-prototype-allocations.json": {
+    "device": 16777230,
+    "inode": 282691606,
+    "bytes": 8494,
+    "mtimeNs": 1790825050594827566,
+    "ctimeNs": 1790825050594827566
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T15-00-46-187Z-primitive-assessment.json": {
+    "device": 16777230,
+    "inode": 283203994,
+    "bytes": 6970,
+    "mtimeNs": 1790866846194019835,
+    "ctimeNs": 1790866846194019835
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T04-36-28-000Z-native-array-predicates-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 283983074,
+    "bytes": 826658,
+    "mtimeNs": 1790915788824686628,
+    "ctimeNs": 1790915788824686628
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T04-11-10-838Z-primitive-emission-equivalence.json": {
+    "device": 16777230,
+    "inode": 282718942,
+    "bytes": 3672,
+    "mtimeNs": 1790827870841529603,
+    "ctimeNs": 1790827870841529603
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof.json": {
+    "device": 16777230,
+    "inode": 285132081,
+    "bytes": 210936,
+    "mtimeNs": 1790974141440382962,
+    "ctimeNs": 1790974141440382962
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T00-14-04-697Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 283663368,
+    "bytes": 314108,
+    "mtimeNs": 1790900044724384332,
+    "ctimeNs": 1790900044724384332
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T10-35-44-170Z-string-contract.json": {
+    "device": 16777230,
+    "inode": 283066101,
+    "bytes": 4577901,
+    "mtimeNs": 1790850944221716616,
+    "ctimeNs": 1790850944221716616
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T16-38-33-000Z-compound-source-validation.json": {
+    "device": 16777230,
+    "inode": 284720921,
+    "bytes": 105034,
+    "mtimeNs": 1790959128656963818,
+    "ctimeNs": 1790959128656963818
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T12-08-28-609Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 284386848,
+    "bytes": 655391,
+    "mtimeNs": 1790942908645232450,
+    "ctimeNs": 1790942908645232450
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T00-17-48-812Z-array-prototype.json": {
+    "device": 16777230,
+    "inode": 282386961,
+    "bytes": 163834,
+    "mtimeNs": 1790813868845962555,
+    "ctimeNs": 1790813868845962555
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T13-25-52-000Z-array-to-spliced-compiler-proof.json": {
+    "device": 16777230,
+    "inode": 284524838,
+    "bytes": 176640,
+    "mtimeNs": 1790947552235365424,
+    "ctimeNs": 1790947552235365424
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T08-59-16-703Z-record-storage-prototype.json": {
+    "device": 16777230,
+    "inode": 283002700,
+    "bytes": 290126,
+    "mtimeNs": 1790845156733360578,
+    "ctimeNs": 1790845156733360578
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T10-43-32-812Z-string-semantics.json": {
+    "device": 16777230,
+    "inode": 283085622,
+    "bytes": 330421,
+    "mtimeNs": 1790851412843067766,
+    "ctimeNs": 1790851412843067766
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T06-01-58-370Z-emission-prototype.json": {
+    "device": 16777230,
+    "inode": 282893101,
+    "bytes": 1052173,
+    "mtimeNs": 1790834518403787928,
+    "ctimeNs": 1790834518403787928
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T20-39-54-995Z-production-50-native-resource-proof.json": {
+    "device": 16777230,
+    "inode": 283442428,
+    "bytes": 25755,
+    "mtimeNs": 1790887194999548134,
+    "ctimeNs": 1790887194999548134
+  },
+  "benchmarks/runtime/diagnostics/2026-10-03T00-49-43-000Z-string-substring-compiler-proof.json": {
+    "device": 16777230,
+    "inode": 285334829,
+    "bytes": 168395,
+    "mtimeNs": 1790988583898722191,
+    "ctimeNs": 1790988583898722191
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T00-37-25-000Z-native-string-search-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 283689419,
+    "bytes": 117546,
+    "mtimeNs": 1790901445862196946,
+    "ctimeNs": 1790901445862196946
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T09-12-09-025Z-record-storage-prototype.json": {
+    "device": 16777230,
+    "inode": 283004667,
+    "bytes": 292039,
+    "mtimeNs": 1790845929053451845,
+    "ctimeNs": 1790845929053451845
+  },
+  "benchmarks/runtime/diagnostics/2026-10-03T00-15-54-000Z-string-concat-padding-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 285288910,
+    "bytes": 201030,
+    "mtimeNs": 1790986554170454444,
+    "ctimeNs": 1790986554170454444
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T17-00-17-790Z-bidirectional-correctness.json": {
+    "device": 16777230,
+    "inode": 283296714,
+    "bytes": 22644,
+    "mtimeNs": 1790874017805543583,
+    "ctimeNs": 1790874017805543583
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T19-34-45-621Z-primary-unit-assembly-audit.json": {
+    "device": 16777230,
+    "inode": 283383542,
+    "bytes": 2949200,
+    "mtimeNs": 1790883285631816317,
+    "ctimeNs": 1790883285631816317
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation.json": {
+    "device": 16777230,
+    "inode": 284652932,
+    "bytes": 46686,
+    "mtimeNs": 1790956315477387486,
+    "ctimeNs": 1790956315477387486
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T22-37-02-654Z-fixed-array-production-integration-proof.json": {
+    "device": 16777230,
+    "inode": 283523333,
+    "bytes": 29395,
+    "mtimeNs": 1790894222661683402,
+    "ctimeNs": 1790894222661683402
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T00-14-39-670Z-array-prototype.json": {
+    "device": 16777230,
+    "inode": 282386339,
+    "bytes": 164002,
+    "mtimeNs": 1790813679698134366,
+    "ctimeNs": 1790813679698134366
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T19-47-22-364Z-primary-units-correctness.json": {
+    "device": 16777230,
+    "inode": 283384593,
+    "bytes": 1708367,
+    "mtimeNs": 1790884042370146695,
+    "ctimeNs": 1790884042370146695
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T21-40-05-681Z-cli-release-profile-proof.json": {
+    "device": 16777230,
+    "inode": 283458856,
+    "bytes": 16996,
+    "mtimeNs": 1790890805688846297,
+    "ctimeNs": 1790890805688846297
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof.json": {
+    "device": 16777230,
+    "inode": 284689990,
+    "bytes": 309259,
+    "mtimeNs": 1790957052054862550,
+    "ctimeNs": 1790957052054862550
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T11-26-55-751Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283122627,
+    "bytes": 1689874,
+    "mtimeNs": 1790854015788326857,
+    "ctimeNs": 1790854015788326857
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T02-45-21-000Z-native-array-slice-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 283866679,
+    "bytes": 314751,
+    "mtimeNs": 1790909121572019440,
+    "ctimeNs": 1790909121572019440
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T06-23-17-000Z-approximate-math-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 284072981,
+    "bytes": 2486056,
+    "mtimeNs": 1790922197610382465,
+    "ctimeNs": 1790922197610382465
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T21-36-34-662Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 285178946,
+    "bytes": 839074,
+    "mtimeNs": 1790976994700026705,
+    "ctimeNs": 1790976994700026705
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T23-01-46-000Z-native-utf8-benchmark-migration.json": {
+    "device": 16777230,
+    "inode": 283561889,
+    "bytes": 320762,
+    "mtimeNs": 1790895706388985361,
+    "ctimeNs": 1790895706388985361
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T23-05-37-467603Z-native-utf8-compiler-migration.json": {
+    "device": 16777230,
+    "inode": 283583427,
+    "bytes": 65636,
+    "mtimeNs": 1790895937470555221,
+    "ctimeNs": 1790895937470555221
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T23-41-23-000Z-gate35-uppercase-benchmark-source.json": {
+    "device": 16777230,
+    "inode": 283616594,
+    "bytes": 344990,
+    "mtimeNs": 1790898083913242634,
+    "ctimeNs": 1790898083913242634
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T19-08-04-464Z-prototype-allocations.json": {
+    "device": 16777230,
+    "inode": 283379886,
+    "bytes": 84593,
+    "mtimeNs": 1790881684499573226,
+    "ctimeNs": 1790881684499573226
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T08-32-59-000Z-array-for-each-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 284180149,
+    "bytes": 605670,
+    "mtimeNs": 1790929980090219118,
+    "ctimeNs": 1790929980090219118
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T15-19-25-313Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283210727,
+    "bytes": 1954936,
+    "mtimeNs": 1790867965357956699,
+    "ctimeNs": 1790867965357956699
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T23-21-05-187Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 283591133,
+    "bytes": 379475,
+    "mtimeNs": 1790896865222529412,
+    "ctimeNs": 1790896865222529412
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 285132798,
+    "bytes": 67683,
+    "mtimeNs": 1790974324489802157,
+    "ctimeNs": 1790974324489802157
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T20-26-40-538Z-production-50-refresh-history-inventory.json": {
+    "device": 16777230,
+    "inode": 283415585,
+    "bytes": 452363,
+    "mtimeNs": 1790886400776806339,
+    "ctimeNs": 1790886400776806339
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T19-10-56-085Z-ascii13-outline-verification.json": {
+    "device": 16777230,
+    "inode": 283380042,
+    "bytes": 5626632,
+    "mtimeNs": 1790881856097882127,
+    "ctimeNs": 1790881856097882127
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T01-40-57-431Z-record-drop-prototype.json": {
+    "device": 16777230,
+    "inode": 282589852,
+    "bytes": 169931,
+    "mtimeNs": 1790818857467604462,
+    "ctimeNs": 1790818857467604462
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T03-40-55-247Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 282705805,
+    "bytes": 54828,
+    "mtimeNs": 1790826055280983860,
+    "ctimeNs": 1790826055280983860
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T21-28-40-381Z-inline-whole-text-rejection-assessment.json": {
+    "device": 16777230,
+    "inode": 283456743,
+    "bytes": 117324,
+    "mtimeNs": 1790890120386158518,
+    "ctimeNs": 1790890120386158518
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T03-54-19.029Z-fixed-number-array-compiler-proof.json": {
+    "device": 16777230,
+    "inode": 283950741,
+    "bytes": 209748,
+    "mtimeNs": 1790913259033405833,
+    "ctimeNs": 1790913259033405833
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T04-40-43-000Z-string-construction-benchmark-source.json": {
+    "device": 16777230,
+    "inode": 283994136,
+    "bytes": 1390227,
+    "mtimeNs": 1790916043189992249,
+    "ctimeNs": 1790916043189992249
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T11-49-02-914Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 283137886,
+    "bytes": 79886,
+    "mtimeNs": 1790855342961306377,
+    "ctimeNs": 1790855342961306377
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T02-23-39-000Z-native-array-slice-benchmark-source.json": {
+    "device": 16777230,
+    "inode": 283835684,
+    "bytes": 629203,
+    "mtimeNs": 1790907819975929107,
+    "ctimeNs": 1790907819975929107
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T10-43-14-317Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 283085161,
+    "bytes": 79752,
+    "mtimeNs": 1790851394348777302,
+    "ctimeNs": 1790851394348777302
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T00-08-20-000Z-gate36-execution-only-source-proof.json": {
+    "device": 16777230,
+    "inode": 283659845,
+    "bytes": 515520,
+    "mtimeNs": 1790899685749279510,
+    "ctimeNs": 1790899685749279510
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T15-37-44-691Z-string-contract.json": {
+    "device": 16777230,
+    "inode": 283233214,
+    "bytes": 4581084,
+    "mtimeNs": 1790869064758525616,
+    "ctimeNs": 1790869064758525616
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T04-47-57-833Z-emission-equivalence.json": {
+    "device": 16777230,
+    "inode": 282767303,
+    "bytes": 15719,
+    "mtimeNs": 1790830077837224327,
+    "ctimeNs": 1790830077837224327
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T05-40-06-108Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 284041269,
+    "bytes": 419563,
+    "mtimeNs": 1790919606137576651,
+    "ctimeNs": 1790919606137576651
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T12-59-28-288Z-string-search-codegen.json": {
+    "device": 16777230,
+    "inode": 283167848,
+    "bytes": 9298197,
+    "mtimeNs": 1790859568464332848,
+    "ctimeNs": 1790859568464332848
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T04-29-08-000Z-array-predicates-compiler-acceptance.json": {
+    "device": 16777230,
+    "inode": 283979930,
+    "bytes": 95173,
+    "mtimeNs": 1790915348264369812,
+    "ctimeNs": 1790915348264369812
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T11-03-42-139Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283117631,
+    "bytes": 1709265,
+    "mtimeNs": 1790852622180831092,
+    "ctimeNs": 1790852622180831092
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T19-53-28-863Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 285069236,
+    "bytes": 762925,
+    "mtimeNs": 1790970808897997664,
+    "ctimeNs": 1790970808897997664
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T02-02-22-000Z-native-math-benchmark-source.json": {
+    "device": 16777230,
+    "inode": 283808040,
+    "bytes": 572019,
+    "mtimeNs": 1790906542473026472,
+    "ctimeNs": 1790906542473026472
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T05-09-29-570Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 284012709,
+    "bytes": 422173,
+    "mtimeNs": 1790917769599633999,
+    "ctimeNs": 1790917769599633999
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T15-19-00-000Z-string-trim-source-validation.json": {
+    "device": 16777230,
+    "inode": 284642380,
+    "bytes": 107795,
+    "mtimeNs": 1790954351030914972,
+    "ctimeNs": 1790954351030914972
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T10-56-03-669Z-utf16-string-proof.json": {
+    "device": 16777230,
+    "inode": 283096194,
+    "bytes": 16333,
+    "mtimeNs": 1790852163671545337,
+    "ctimeNs": 1790852163671545337
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T21-29-16-000Z-numeric-compound-assignment-values-compiler-proof.json": {
+    "device": 16777230,
+    "inode": 285175651,
+    "bytes": 157774,
+    "mtimeNs": 1790976595340177364,
+    "ctimeNs": 1790976595340177364
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T03-17-18-985Z-record-storage-prototype.json": {
+    "device": 16777230,
+    "inode": 282690785,
+    "bytes": 175556,
+    "mtimeNs": 1790824639011102774,
+    "ctimeNs": 1790824639011102774
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T13-40-00-000Z-array-to-spliced-source-validation.json": {
+    "device": 16777230,
+    "inode": 284526413,
+    "bytes": 122052,
+    "mtimeNs": 1790948362885020795,
+    "ctimeNs": 1790948362885020795
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T09-40-32-000Z-array-concat-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 284223798,
+    "bytes": 6961881,
+    "mtimeNs": 1790934033395631464,
+    "ctimeNs": 1790934033395631464
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T06-48-49-000Z-number-operators-source-reference-validation.json": {
+    "device": 16777230,
+    "inode": 284103443,
+    "bytes": 157280,
+    "mtimeNs": 1790923729696696158,
+    "ctimeNs": 1790923729696696158
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T01-29-22-000Z-native-number-compiler-acceptance.json": {
+    "device": 16777230,
+    "inode": 283764658,
+    "bytes": 108712,
+    "mtimeNs": 1790904563457886382,
+    "ctimeNs": 1790904563457886382
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T05-51-36-000Z-approximate-math-reference-source-validation.json": {
+    "device": 16777230,
+    "inode": 284042313,
+    "bytes": 905271,
+    "mtimeNs": 1790920296022561358,
+    "ctimeNs": 1790920296022561358
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T01-09-31-341Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 283734352,
+    "bytes": 341871,
+    "mtimeNs": 1790903371376678789,
+    "ctimeNs": 1790903371376678789
+  },
+  "benchmarks/runtime/diagnostics/2026-10-03T00-07-33-000Z-string-concat-padding-compiler-proof.json": {
+    "device": 16777230,
+    "inode": 285286001,
+    "bytes": 189441,
+    "mtimeNs": 1790986053991426213,
+    "ctimeNs": 1790986053991426213
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T14-53-46-000Z-string-last-index-of-native-borrow-source-supplement.json": {
+    "device": 16777230,
+    "inode": 284605840,
+    "bytes": 109320,
+    "mtimeNs": 1790952826550557527,
+    "ctimeNs": 1790952826550557527
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T18-28-57-063Z-long-slice-construction-correctness.json": {
+    "device": 16777230,
+    "inode": 283367659,
+    "bytes": 161219,
+    "mtimeNs": 1790879337065837042,
+    "ctimeNs": 1790879337065837042
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T02-06-43-172Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 282616737,
+    "bytes": 18575,
+    "mtimeNs": 1790820403202703370,
+    "ctimeNs": 1790820403202703370
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T15-11-11-537Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283208703,
+    "bytes": 879353,
+    "mtimeNs": 1790867471570923567,
+    "ctimeNs": 1790867471570923567
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T16-03-39-120Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283239788,
+    "bytes": 878800,
+    "mtimeNs": 1790870619163032885,
+    "ctimeNs": 1790870619163032885
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T08-51-06-150Z-literal-slice-proof.json": {
+    "device": 16777230,
+    "inode": 283000133,
+    "bytes": 20115,
+    "mtimeNs": 1790844666154447110,
+    "ctimeNs": 1790844666154447110
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T04-41-44-255Z-emission-prototype.json": {
+    "device": 16777230,
+    "inode": 282743713,
+    "bytes": 195238,
+    "mtimeNs": 1790829704292139017,
+    "ctimeNs": 1790829704292139017
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T18-32-02-264Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283369723,
+    "bytes": 2361882,
+    "mtimeNs": 1790879522317822223,
+    "ctimeNs": 1790879522317822223
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T20-47-28-829Z-accepted-production-58-proof.json": {
+    "device": 16777230,
+    "inode": 283450253,
+    "bytes": 128331,
+    "mtimeNs": 1790887648837550574,
+    "ctimeNs": 1790887648837550574
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T00-12-50-231Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 282385819,
+    "bytes": 36275,
+    "mtimeNs": 1790813570259418329,
+    "ctimeNs": 1790813570259418329
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T18-26-23-000Z-short-raw-slice-correctness.json": {
+    "device": 16777230,
+    "inode": 283366540,
+    "bytes": 58694,
+    "mtimeNs": 1790879202407141187,
+    "ctimeNs": 1790879202407141187
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T14-28-56-883Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283180820,
+    "bytes": 1889726,
+    "mtimeNs": 1790864936933045522,
+    "ctimeNs": 1790864936933045522
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T11-10-59-597Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283118634,
+    "bytes": 1715701,
+    "mtimeNs": 1790853059644917316,
+    "ctimeNs": 1790853059644917316
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T10-27-23-650Z-declared-function-values-compiler-proof.json": {
+    "device": 16777230,
+    "inode": 284259314,
+    "bytes": 116674,
+    "mtimeNs": 1790936843752896267,
+    "ctimeNs": 1790936843752896267
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T21-32-35-805Z-merged-unit-view-assembly-rejection.json": {
+    "device": 16777230,
+    "inode": 283457120,
+    "bytes": 242841,
+    "mtimeNs": 1790890355810520956,
+    "ctimeNs": 1790890355810520956
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T03-39-47-000Z-fixed-number-array-benchmark-source.json": {
+    "device": 16777230,
+    "inode": 283939999,
+    "bytes": 778397,
+    "mtimeNs": 1790912387915259143,
+    "ctimeNs": 1790912387915259143
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T15-34-32-721Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283231948,
+    "bytes": 1953181,
+    "mtimeNs": 1790868872763847623,
+    "ctimeNs": 1790868872763847623
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T06-33-55-565Z-array-prototype.json": {
+    "device": 16777230,
+    "inode": 282919579,
+    "bytes": 519947,
+    "mtimeNs": 1790836435607426639,
+    "ctimeNs": 1790836435607426639
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T19-24-22-864Z-eager-current-correctness-evidence.json": {
+    "device": 16777230,
+    "inode": 283382173,
+    "bytes": 622189,
+    "mtimeNs": 1790882662882713448,
+    "ctimeNs": 1790882662882713448
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T12-42-00-000Z-array-fill-copy-within-source-validation.json": {
+    "device": 16777230,
+    "inode": 284440211,
+    "bytes": 233955,
+    "mtimeNs": 1790944810857010947,
+    "ctimeNs": 1790944810857010947
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T18-21-07-000Z-exact-slice-correctness.json": {
+    "device": 16777230,
+    "inode": 283360790,
+    "bytes": 143945,
+    "mtimeNs": 1790878990227461033,
+    "ctimeNs": 1790878990227461033
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T23-52-06-751Z-native-uppercase-compiler-acceptance.json": {
+    "device": 16777230,
+    "inode": 283637759,
+    "bytes": 100213,
+    "mtimeNs": 1790898726753485786,
+    "ctimeNs": 1790898726753485786
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T17-03-09-281Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283297733,
+    "bytes": 2207170,
+    "mtimeNs": 1790874189321034865,
+    "ctimeNs": 1790874189321034865
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T01-57-36-000Z-number-predicates-compiler-acceptance.json": {
+    "device": 16777230,
+    "inode": 283802072,
+    "bytes": 95685,
+    "mtimeNs": 1790906256295055208,
+    "ctimeNs": 1790906256295055208
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T04-06-49-000Z-array-predicate-benchmark-source.json": {
+    "device": 16777230,
+    "inode": 283953700,
+    "bytes": 1007269,
+    "mtimeNs": 1790914009995710110,
+    "ctimeNs": 1790914009995710110
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T22-20-34-366Z-standard-view-production-50-refresh-assessment.json": {
+    "device": 16777230,
+    "inode": 283488532,
+    "bytes": 44140,
+    "mtimeNs": 1790893234371850228,
+    "ctimeNs": 1790893234371850228
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T14-55-02-375Z-retired-harness.json": {
+    "device": 16777230,
+    "inode": 283185382,
+    "bytes": 19672,
+    "mtimeNs": 1790866502377233718,
+    "ctimeNs": 1790866502377233718
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T17-06-01-569Z-tail-index-correctness.json": {
+    "device": 16777230,
+    "inode": 283308540,
+    "bytes": 24050,
+    "mtimeNs": 1790874361572468659,
+    "ctimeNs": 1790874361572468659
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T22-37-47-939Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 283523507,
+    "bytes": 302774,
+    "mtimeNs": 1790894267989698077,
+    "ctimeNs": 1790894267989698077
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T20-38-55-816Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 283441019,
+    "bytes": 377893,
+    "mtimeNs": 1790887135849035264,
+    "ctimeNs": 1790887135849035264
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T09-21-22-843Z-array-concat-compiler-proof.json": {
+    "device": 16777230,
+    "inode": 284215458,
+    "bytes": 45111,
+    "mtimeNs": 1790932882896522832,
+    "ctimeNs": 1790932882896522832
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T20-19-32-760Z-bounded-view-outlined-drop-rejection.json": {
+    "device": 16777230,
+    "inode": 283414970,
+    "bytes": 252273,
+    "mtimeNs": 1790885972769563757,
+    "ctimeNs": 1790885972769563757
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T01-34-50-000Z-native-number-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 283768541,
+    "bytes": 185057,
+    "mtimeNs": 1790904890109207463,
+    "ctimeNs": 1790904890109207463
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T12-40-00-000Z-array-fill-copy-within-compiler-proof.json": {
+    "device": 16777230,
+    "inode": 284438471,
+    "bytes": 136347,
+    "mtimeNs": 1790944627391422269,
+    "ctimeNs": 1790944627391422269
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T22-34-40-647Z-fixed-scalar-array-assessment.json": {
+    "device": 16777230,
+    "inode": 283522439,
+    "bytes": 9464,
+    "mtimeNs": 1790894080648426438,
+    "ctimeNs": 1790894080648426438
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T10-29-21-627Z-string-contract.json": {
+    "device": 16777230,
+    "inode": 283032950,
+    "bytes": 4577893,
+    "mtimeNs": 1790850561690587801,
+    "ctimeNs": 1790850561690587801
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T14-10-24-497Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283178595,
+    "bytes": 1884296,
+    "mtimeNs": 1790863824541187586,
+    "ctimeNs": 1790863824541187586
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T13-15-38-000Z-array-copying-updates-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 284489921,
+    "bytes": 3157473,
+    "mtimeNs": 1790946939118288458,
+    "ctimeNs": 1790946939118288458
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T15-47-51-386Z-primitive-followup-proof.json": {
+    "device": 16777230,
+    "inode": 283237888,
+    "bytes": 17730,
+    "mtimeNs": 1790869671394410091,
+    "ctimeNs": 1790869671394410091
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T07-03-33-000Z-native-number-operators-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 284106767,
+    "bytes": 381198,
+    "mtimeNs": 1790924613769793804,
+    "ctimeNs": 1790924613769793804
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T02-38-49-693Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 282642165,
+    "bytes": 18566,
+    "mtimeNs": 1790822329725650337,
+    "ctimeNs": 1790822329725650337
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T08-02-41-626Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 282946941,
+    "bytes": 71977,
+    "mtimeNs": 1790841761662048762,
+    "ctimeNs": 1790841761662048762
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T14-48-00-000Z-string-last-index-of-source-validation.json": {
+    "device": 16777230,
+    "inode": 284605379,
+    "bytes": 95186,
+    "mtimeNs": 1790952489693240095,
+    "ctimeNs": 1790952489693240095
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T21-33-04-984Z-merged-unit-view-correctness-evidence.json": {
+    "device": 16777230,
+    "inode": 283457424,
+    "bytes": 122371,
+    "mtimeNs": 1790890384987891020,
+    "ctimeNs": 1790890384987891020
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T00-28-46-009Z-array-prototype.json": {
+    "device": 16777230,
+    "inode": 282388699,
+    "bytes": 164380,
+    "mtimeNs": 1790814526041054394,
+    "ctimeNs": 1790814526041054394
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T05-55-47-599Z-prototype-allocations.json": {
+    "device": 16777230,
+    "inode": 282871457,
+    "bytes": 45685,
+    "mtimeNs": 1790834147630161784,
+    "ctimeNs": 1790834147630161784
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T23-57-07-000Z-native-uppercase-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 283638729,
+    "bytes": 100515,
+    "mtimeNs": 1790899027062836068,
+    "ctimeNs": 1790899027062836068
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T18-13-50-746Z-prototype-allocations.json": {
+    "device": 16777230,
+    "inode": 283345571,
+    "bytes": 78399,
+    "mtimeNs": 1790878430779572829,
+    "ctimeNs": 1790878430779572829
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T17-06-19-084Z-string-contract.json": {
+    "device": 16777230,
+    "inode": 283309489,
+    "bytes": 4582002,
+    "mtimeNs": 1790874379134605265,
+    "ctimeNs": 1790874379134605265
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T20-07-48-604Z-emission-prototype.json": {
+    "device": 16777230,
+    "inode": 283410366,
+    "bytes": 2520419,
+    "mtimeNs": 1790885268650666073,
+    "ctimeNs": 1790885268650666073
+  },
+  "benchmarks/runtime/diagnostics/2026-10-03T01-55-51-000Z-primitive-identity-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 285389126,
+    "bytes": 166465,
+    "mtimeNs": 1790992551666305991,
+    "ctimeNs": 1790992551666305991
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T10-47-54.269Z-higher-order-source-validation.json": {
+    "device": 16777230,
+    "inode": 284264858,
+    "bytes": 247612,
+    "mtimeNs": 1790938074555657629,
+    "ctimeNs": 1790938074555657629
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T07-49-56-000Z-array-reduction-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 284143736,
+    "bytes": 2755989,
+    "mtimeNs": 1790927396893857532,
+    "ctimeNs": 1790927396893857532
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T04-36-18-227Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 283983063,
+    "bytes": 428804,
+    "mtimeNs": 1790915778271266964,
+    "ctimeNs": 1790915778271266964
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T20-04-13-248Z-primary-owned-emission-baseline.json": {
+    "device": 16777230,
+    "inode": 283409283,
+    "bytes": 1348975,
+    "mtimeNs": 1790885053263732757,
+    "ctimeNs": 1790885053263732757
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T12-57-58-000Z-array-copying-updates-compiler-proof.json": {
+    "device": 16777230,
+    "inode": 284485770,
+    "bytes": 175824,
+    "mtimeNs": 1790945878731486371,
+    "ctimeNs": 1790945878731486371
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T05-26-51-374Z-search-emission-equivalence.json": {
+    "device": 16777230,
+    "inode": 282831885,
+    "bytes": 11213,
+    "mtimeNs": 1790832411378114424,
+    "ctimeNs": 1790832411378114424
+  },
+  "benchmarks/runtime/diagnostics/2026-10-03T01-54-05-699Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 285388711,
+    "bytes": 890615,
+    "mtimeNs": 1790992445736691617,
+    "ctimeNs": 1790992445736691617
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T17-06-00-830Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 283308527,
+    "bytes": 354381,
+    "mtimeNs": 1790874360870298822,
+    "ctimeNs": 1790874360870298822
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T18-12-00-702Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 284826707,
+    "bytes": 746226,
+    "mtimeNs": 1790964720751196043,
+    "ctimeNs": 1790964720751196043
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T03-34-15.105Z-fixed-number-array-compiler-inputs.json": {
+    "device": 16777230,
+    "inode": 283922006,
+    "bytes": 260409,
+    "mtimeNs": 1790912055107773850,
+    "ctimeNs": 1790912055107773850
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T04-57-24-535Z-emission-equivalence.json": {
+    "device": 16777230,
+    "inode": 282799684,
+    "bytes": 16066,
+    "mtimeNs": 1790830644540269603,
+    "ctimeNs": 1790830644540269603
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T17-06-20-143Z-string-semantics.json": {
+    "device": 16777230,
+    "inode": 283309515,
+    "bytes": 297491,
+    "mtimeNs": 1790874380167581872,
+    "ctimeNs": 1790874380167581872
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T12-46-47-000Z-array-fill-copy-within-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 284442808,
+    "bytes": 3224976,
+    "mtimeNs": 1790945208128127780,
+    "ctimeNs": 1790945208128127780
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T13-38-20-896Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283174793,
+    "bytes": 1532031,
+    "mtimeNs": 1790861900945885908,
+    "ctimeNs": 1790861900945885908
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T07-48-00-274Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 284142949,
+    "bytes": 549198,
+    "mtimeNs": 1790927280309672184,
+    "ctimeNs": 1790927280309672184
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T00-14-40-000Z-gate36-fixture-source-repair.json": {
+    "device": 16777230,
+    "inode": 283663170,
+    "bytes": 517466,
+    "mtimeNs": 1790899988471150597,
+    "ctimeNs": 1790899988471150597
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T22-20-42-736Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 283488715,
+    "bytes": 377857,
+    "mtimeNs": 1790893242778759373,
+    "ctimeNs": 1790893242778759373
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T05-31-29-648Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 282832884,
+    "bytes": 67468,
+    "mtimeNs": 1790832689685002143,
+    "ctimeNs": 1790832689685002143
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T03-07-20-000Z-temporary-array-index-compiler-acceptance.json": {
+    "device": 16777230,
+    "inode": 283892395,
+    "bytes": 123757,
+    "mtimeNs": 1790910440456051684,
+    "ctimeNs": 1790910440456051684
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T10-39-37-000Z-declared-function-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 284262619,
+    "bytes": 1176440,
+    "mtimeNs": 1790937577285358905,
+    "ctimeNs": 1790937577285358905
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T02-18-33-441Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 283833102,
+    "bytes": 347875,
+    "mtimeNs": 1790907513472515119,
+    "ctimeNs": 1790907513472515119
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T23-10-46-064Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 285236258,
+    "bytes": 834799,
+    "mtimeNs": 1790982646103381251,
+    "ctimeNs": 1790982646103381251
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T18-48-35-000Z-native-int-compiler-proof.json": {
+    "device": 16777230,
+    "inode": 284954366,
+    "bytes": 148682,
+    "mtimeNs": 1790966915237930543,
+    "ctimeNs": 1790966915237930543
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T12-46-20-847Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283164436,
+    "bytes": 1510522,
+    "mtimeNs": 1790858780888137058,
+    "ctimeNs": 1790858780888137058
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T12-45-23-210Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283163627,
+    "bytes": 1512159,
+    "mtimeNs": 1790858723253271887,
+    "ctimeNs": 1790858723253271887
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T03-27-54-236Z-prototype-allocations.json": {
+    "device": 16777230,
+    "inode": 282692266,
+    "bytes": 8494,
+    "mtimeNs": 1790825274259304201,
+    "ctimeNs": 1790825274259304201
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T16-53-53-000Z-compound-assignment-compiler-proof.json": {
+    "device": 16777230,
+    "inode": 284752496,
+    "bytes": 138932,
+    "mtimeNs": 1790960034082401218,
+    "ctimeNs": 1790960034082401218
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T22-24-19-166Z-standard-view-production-resource-proof.json": {
+    "device": 16777230,
+    "inode": 283491883,
+    "bytes": 124091,
+    "mtimeNs": 1790893459171026189,
+    "ctimeNs": 1790893459171026189
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T18-09-52-334Z-emission-prototype.json": {
+    "device": 16777230,
+    "inode": 283344811,
+    "bytes": 2287346,
+    "mtimeNs": 1790878192382140698,
+    "ctimeNs": 1790878192382140698
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T02-49-15-806Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 282645294,
+    "bytes": 176733,
+    "mtimeNs": 1790822955837252683,
+    "ctimeNs": 1790822955837252683
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T17-35-01-606Z-emission-prototype.json": {
+    "device": 16777230,
+    "inode": 283329408,
+    "bytes": 2307310,
+    "mtimeNs": 1790876101660330420,
+    "ctimeNs": 1790876101660330420
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T22-45-05-861Z-current50-runtime-baseline-snapshot.json": {
+    "device": 16777230,
+    "inode": 283529905,
+    "bytes": 329517,
+    "mtimeNs": 1790894705877914349,
+    "ctimeNs": 1790894705877914349
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T08-21-48-495Z-array-for-each-compiler-proof.json": {
+    "device": 16777230,
+    "inode": 284176263,
+    "bytes": 40866,
+    "mtimeNs": 1790929308538401480,
+    "ctimeNs": 1790929308538401480
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T11-23-23-298Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283121675,
+    "bytes": 1689140,
+    "mtimeNs": 1790853803329873562,
+    "ctimeNs": 1790853803329873562
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T05-59-46-140Z-emission-prototype.json": {
+    "device": 16777230,
+    "inode": 282891313,
+    "bytes": 1051239,
+    "mtimeNs": 1790834386178583363,
+    "ctimeNs": 1790834386178583363
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T08-57-33-779Z-record-storage-prototype.json": {
+    "device": 16777230,
+    "inode": 283001833,
+    "bytes": 291746,
+    "mtimeNs": 1790845053826674557,
+    "ctimeNs": 1790845053826674557
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T02-39-37-000Z-array-slice-compiler-acceptance.json": {
+    "device": 16777230,
+    "inode": 283866055,
+    "bytes": 88441,
+    "mtimeNs": 1790908777510132150,
+    "ctimeNs": 1790908777510132150
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T22-58-28-000Z-conditional-expressions-compiler-proof.json": {
+    "device": 16777230,
+    "inode": 285234459,
+    "bytes": 204681,
+    "mtimeNs": 1790981908680631718,
+    "ctimeNs": 1790981908680631718
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T04-19-06-550Z-verification-prototype.json": {
+    "device": 16777230,
+    "inode": 282719658,
+    "bytes": 101669,
+    "mtimeNs": 1790828346580980952,
+    "ctimeNs": 1790828346580980952
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T10-38-11-948Z-string-semantics.json": {
+    "device": 16777230,
+    "inode": 283072295,
+    "bytes": 328937,
+    "mtimeNs": 1790851091989746092,
+    "ctimeNs": 1790851091989746092
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T14-09-00-000Z-array-last-index-of-compiler-proof.json": {
+    "device": 16777230,
+    "inode": 284564204,
+    "bytes": 169821,
+    "mtimeNs": 1790950153816927658,
+    "ctimeNs": 1790950153816927658
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T14-22-23-000Z-array-last-index-of-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 284566555,
+    "bytes": 938212,
+    "mtimeNs": 1790950944008987831,
+    "ctimeNs": 1790950944008987831
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T03-19-46-455Z-record-storage-prototype.json": {
+    "device": 16777230,
+    "inode": 282691444,
+    "bytes": 237061,
+    "mtimeNs": 1790824786480562848,
+    "ctimeNs": 1790824786480562848
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T02-24-50-112Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 282638698,
+    "bytes": 54837,
+    "mtimeNs": 1790821490142111198,
+    "ctimeNs": 1790821490142111198
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T18-13-02-000Z-update-expression-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 284827234,
+    "bytes": 157301,
+    "mtimeNs": 1790964782682293260,
+    "ctimeNs": 1790964782682293260
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T13-21-54-988Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283173268,
+    "bytes": 1512862,
+    "mtimeNs": 1790860915035323770,
+    "ctimeNs": 1790860915035323770
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T15-38-16-607Z-primitive-candidate-review.json": {
+    "device": 16777230,
+    "inode": 283233274,
+    "bytes": 57304,
+    "mtimeNs": 1790869096615094342,
+    "ctimeNs": 1790869096615094342
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T12-46-21-287Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 284442415,
+    "bytes": 664063,
+    "mtimeNs": 1790945181330448616,
+    "ctimeNs": 1790945181330448616
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T13-13-10-383Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283171371,
+    "bytes": 1530312,
+    "mtimeNs": 1790860390421421370,
+    "ctimeNs": 1790860390421421370
+  },
+  "benchmarks/runtime/diagnostics/2026-10-03T01-46-40-000Z-primitive-identity-compiler-proof.json": {
+    "device": 16777230,
+    "inode": 285387139,
+    "bytes": 185770,
+    "mtimeNs": 1790992000583341668,
+    "ctimeNs": 1790992000583341668
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T16-45-29-551Z-primitive-followup-proof.json": {
+    "device": 16777230,
+    "inode": 283269838,
+    "bytes": 17730,
+    "mtimeNs": 1790873129553226679,
+    "ctimeNs": 1790873129553226679
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T21-18-59-160Z-standard-view-rejections-assessment.json": {
+    "device": 16777230,
+    "inode": 283453853,
+    "bytes": 424187,
+    "mtimeNs": 1790889539167581113,
+    "ctimeNs": 1790889539167581113
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T14-22-04-443Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 284566343,
+    "bytes": 678934,
+    "mtimeNs": 1790950924479604390,
+    "ctimeNs": 1790950924479604390
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T21-48-36-112Z-emission-prototype.json": {
+    "device": 16777230,
+    "inode": 283460329,
+    "bytes": 3038025,
+    "mtimeNs": 1790891316163082205,
+    "ctimeNs": 1790891316163082205
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T06-04-51-958Z-emission-prototype.json": {
+    "device": 16777230,
+    "inode": 282894828,
+    "bytes": 1053748,
+    "mtimeNs": 1790834691993564139,
+    "ctimeNs": 1790834691993564139
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T19-49-59-746Z-primary-unit-normalization-replication.json": {
+    "device": 16777230,
+    "inode": 283384711,
+    "bytes": 190757,
+    "mtimeNs": 1790884199752073864,
+    "ctimeNs": 1790884199752073864
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T02-12-15-336Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 282635823,
+    "bytes": 18575,
+    "mtimeNs": 1790820735367347001,
+    "ctimeNs": 1790820735367347001
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T06-41-29-972Z-search-final-proof.json": {
+    "device": 16777230,
+    "inode": 282920429,
+    "bytes": 21737,
+    "mtimeNs": 1790836889973669796,
+    "ctimeNs": 1790836889973669796
+  },
+  "benchmarks/runtime/diagnostics/2026-09-30T23-49-44-348Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 282355104,
+    "bytes": 26734,
+    "mtimeNs": 1790812184376116982,
+    "ctimeNs": 1790812184376116982
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T02-58-24-075Z-array-prototype.json": {
+    "device": 16777230,
+    "inode": 282667409,
+    "bytes": 177441,
+    "mtimeNs": 1790823504103234122,
+    "ctimeNs": 1790823504103234122
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T15-02-59-158Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283206087,
+    "bytes": 1962679,
+    "mtimeNs": 1790866979197364497,
+    "ctimeNs": 1790866979197364497
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T03-16-04-154Z-record-storage-prototype.json": {
+    "device": 16777230,
+    "inode": 282690187,
+    "bytes": 177026,
+    "mtimeNs": 1790824564205704688,
+    "ctimeNs": 1790824564205704688
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T18-56-10-825Z-primitive-followup-proof.json": {
+    "device": 16777230,
+    "inode": 283377257,
+    "bytes": 19071,
+    "mtimeNs": 1790880970837637726,
+    "ctimeNs": 1790880970837637726
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T03-29-45-000Z-array-transform-compiler-acceptance.json": {
+    "device": 16777230,
+    "inode": 283919808,
+    "bytes": 83395,
+    "mtimeNs": 1790911785875034432,
+    "ctimeNs": 1790911785875034432
+  },
+  "benchmarks/runtime/diagnostics/2026-10-03T01-34-29-000Z-primitive-identity-source-validation.json": {
+    "device": 16777230,
+    "inode": 285374699,
+    "bytes": 93397,
+    "mtimeNs": 1790991269645740940,
+    "ctimeNs": 1790991269645740940
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T20-41-03-688Z-current50-memory-proof.json": {
+    "device": 16777230,
+    "inode": 283444135,
+    "bytes": 85891,
+    "mtimeNs": 1790887263693453606,
+    "ctimeNs": 1790887263693453606
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T00-22-33-000Z-native-string-search-benchmark-source.json": {
+    "device": 16777230,
+    "inode": 283677445,
+    "bytes": 451823,
+    "mtimeNs": 1790900553386981560,
+    "ctimeNs": 1790900553386981560
+  },
+  "benchmarks/runtime/diagnostics/2026-10-03T00-12-33-015Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 285287659,
+    "bytes": 852752,
+    "mtimeNs": 1790986353052320974,
+    "ctimeNs": 1790986353052320974
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T20-07-37-288Z-primary-static-literals-correctness.json": {
+    "device": 16777230,
+    "inode": 283410345,
+    "bytes": 137250,
+    "mtimeNs": 1790885257290462622,
+    "ctimeNs": 1790885257290462622
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T17-58-07-416Z-prototype-allocations.json": {
+    "device": 16777230,
+    "inode": 283336702,
+    "bytes": 78405,
+    "mtimeNs": 1790877487455112667,
+    "ctimeNs": 1790877487455112667
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T16-47-40-653Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283270906,
+    "bytes": 1949180,
+    "mtimeNs": 1790873260697255078,
+    "ctimeNs": 1790873260697255078
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T23-44-44-000Z-grouped-benchmark-report-proof.json": {
+    "device": 16777230,
+    "inode": 283629659,
+    "bytes": 38555,
+    "mtimeNs": 1790898284444703496,
+    "ctimeNs": 1790898284444703496
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T14-57-40-000Z-string-last-index-of-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 284606822,
+    "bytes": 662292,
+    "mtimeNs": 1790953060919312990,
+    "ctimeNs": 1790953060919312990
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T13-04-13-710Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283168804,
+    "bytes": 1541829,
+    "mtimeNs": 1790859853750315721,
+    "ctimeNs": 1790859853750315721
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T20-03-19-000Z-bounded-view-correctness.json": {
+    "device": 16777230,
+    "inode": 283409209,
+    "bytes": 134285,
+    "mtimeNs": 1790885020305632623,
+    "ctimeNs": 1790885020305632623
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T02-50-48-420Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 282656170,
+    "bytes": 18566,
+    "mtimeNs": 1790823048452714694,
+    "ctimeNs": 1790823048452714694
+  },
+  "benchmarks/runtime/diagnostics/2026-09-30T23-39-00-016Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 282312177,
+    "bytes": 27051,
+    "mtimeNs": 1790811540047056636,
+    "ctimeNs": 1790811540047056636
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T01-48-15-023Z-emission-equivalence.json": {
+    "device": 16777230,
+    "inode": 282608878,
+    "bytes": 14276,
+    "mtimeNs": 1790819295030120165,
+    "ctimeNs": 1790819295030120165
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T08-41-57-368Z-prototype-allocations.json": {
+    "device": 16777230,
+    "inode": 282996282,
+    "bytes": 8284,
+    "mtimeNs": 1790844117393394896,
+    "ctimeNs": 1790844117393394896
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T11-49-22-872Z-string-semantics.json": {
+    "device": 16777230,
+    "inode": 283138867,
+    "bytes": 295477,
+    "mtimeNs": 1790855362897625273,
+    "ctimeNs": 1790855362897625273
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T07-02-51-562Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 284106687,
+    "bytes": 2885850,
+    "mtimeNs": 1790924571602124895,
+    "ctimeNs": 1790924571602124895
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T13-02-23-000Z-array-copying-source-validation.json": {
+    "device": 16777230,
+    "inode": 284486567,
+    "bytes": 243916,
+    "mtimeNs": 1790946145052168523,
+    "ctimeNs": 1790946145052168523
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T02-44-23-297Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 283866653,
+    "bytes": 350661,
+    "mtimeNs": 1790909063325951906,
+    "ctimeNs": 1790909063325951906
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T23-35-58-133Z-native-string-operators-compiler-acceptance.json": {
+    "device": 16777230,
+    "inode": 283614631,
+    "bytes": 99418,
+    "mtimeNs": 1790897758134719463,
+    "ctimeNs": 1790897758134719463
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T14-51-43-780Z-string-contract.json": {
+    "device": 16777230,
+    "inode": 283184149,
+    "bytes": 4595273,
+    "mtimeNs": 1790866304099148223,
+    "ctimeNs": 1790866304099148223
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T03-56-46.843Z-fixed-number-array-release-correction.json": {
+    "device": 16777230,
+    "inode": 283950935,
+    "bytes": 65452,
+    "mtimeNs": 1790913406845313877,
+    "ctimeNs": 1790913406845313877
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T16-08-49-077Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 284691173,
+    "bytes": 699640,
+    "mtimeNs": 1790957329118632053,
+    "ctimeNs": 1790957329118632053
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T12-03-01-380Z-utf16-string-proof.json": {
+    "device": 16777230,
+    "inode": 283157505,
+    "bytes": 16346,
+    "mtimeNs": 1790856181382877789,
+    "ctimeNs": 1790856181382877789
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T07-06-31-022Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 282923143,
+    "bytes": 1142863,
+    "mtimeNs": 1790838391058430710,
+    "ctimeNs": 1790838391058430710
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T11-38-09-056Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283123992,
+    "bytes": 1692045,
+    "mtimeNs": 1790854689117839562,
+    "ctimeNs": 1790854689117839562
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T05-16-36-000Z-exact-math-benchmark-source.json": {
+    "device": 16777230,
+    "inode": 284015680,
+    "bytes": 698545,
+    "mtimeNs": 1790918196502920853,
+    "ctimeNs": 1790918196502920853
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T14-54-40-036Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283185365,
+    "bytes": 1907124,
+    "mtimeNs": 1790866480075338644,
+    "ctimeNs": 1790866480075338644
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T04-54-38-322Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 282781821,
+    "bytes": 54895,
+    "mtimeNs": 1790830478355696272,
+    "ctimeNs": 1790830478355696272
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T04-38-48-904Z-benchmark-presentation.json": {
+    "device": 16777230,
+    "inode": 283984488,
+    "bytes": 1039,
+    "mtimeNs": 1790915928911245394,
+    "ctimeNs": 1790915928911245394
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T03-03-44-917Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 282686530,
+    "bytes": 54828,
+    "mtimeNs": 1790823824948705540,
+    "ctimeNs": 1790823824948705540
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T20-14-44.931Z-bounded-view-drop-assembly-audit.json": {
+    "device": 16777230,
+    "inode": 283413714,
+    "bytes": 240188,
+    "mtimeNs": 1790885684936899811,
+    "ctimeNs": 1790885684936899811
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T03-33-27-000Z-native-array-map-filter-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 283921979,
+    "bytes": 290058,
+    "mtimeNs": 1790912007312149185,
+    "ctimeNs": 1790912007312149185
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T13-08-09-921Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283170370,
+    "bytes": 1550563,
+    "mtimeNs": 1790860089959888621,
+    "ctimeNs": 1790860089959888621
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T22-20-19-000Z-conditional-expression-source-validation.json": {
+    "device": 16777230,
+    "inode": 285188817,
+    "bytes": 91685,
+    "mtimeNs": 1790979626057962312,
+    "ctimeNs": 1790979626057962312
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T13-15-31-044Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 284489536,
+    "bytes": 686809,
+    "mtimeNs": 1790946931079073673,
+    "ctimeNs": 1790946931079073673
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T16-18-58-267Z-string-semantics.json": {
+    "device": 16777230,
+    "inode": 283264053,
+    "bytes": 296682,
+    "mtimeNs": 1790871538294940846,
+    "ctimeNs": 1790871538294940846
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T06-22-55-371Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 284072815,
+    "bytes": 55006581,
+    "mtimeNs": 1790922175703179338,
+    "ctimeNs": 1790922175703179338
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T23-38-12-064Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 283615018,
+    "bytes": 307620,
+    "mtimeNs": 1790897892090798328,
+    "ctimeNs": 1790897892090798328
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T11-58-38-000Z-storage-support-review.json": {
+    "device": 16777230,
+    "inode": 284381862,
+    "bytes": 4751,
+    "mtimeNs": 1790942318784363868,
+    "ctimeNs": 1790942318784363868
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T21-26-04-788Z-inline-span-trial-assessment.json": {
+    "device": 16777230,
+    "inode": 283455375,
+    "bytes": 235042,
+    "mtimeNs": 1790889964793498231,
+    "ctimeNs": 1790889964793498231
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T01-00-12-000Z-native-control-flow-compiler-acceptance.json": {
+    "device": 16777230,
+    "inode": 283732862,
+    "bytes": 87924,
+    "mtimeNs": 1790902812569299940,
+    "ctimeNs": 1790902812569299940
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T09-44-27-620Z-string-semantics.json": {
+    "device": 16777230,
+    "inode": 283007196,
+    "bytes": 21285,
+    "mtimeNs": 1790847867653370259,
+    "ctimeNs": 1790847867653370259
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T01-09-41-000Z-native-control-flow-primitive-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 283734362,
+    "bytes": 132267,
+    "mtimeNs": 1790903381892061627,
+    "ctimeNs": 1790903381892061627
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T10-43-31-677Z-string-contract.json": {
+    "device": 16777230,
+    "inode": 283085601,
+    "bytes": 4579385,
+    "mtimeNs": 1790851411728466500,
+    "ctimeNs": 1790851411728466500
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T01-50-06-850Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 282609984,
+    "bytes": 52898,
+    "mtimeNs": 1790819406875128674,
+    "ctimeNs": 1790819406875128674
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T18-33-53-099Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 283370331,
+    "bytes": 375481,
+    "mtimeNs": 1790879633134713303,
+    "ctimeNs": 1790879633134713303
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T18-19-32-039Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283346995,
+    "bytes": 2233412,
+    "mtimeNs": 1790878772083486450,
+    "ctimeNs": 1790878772083486450
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T16-57-54-959Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283290836,
+    "bytes": 2207324,
+    "mtimeNs": 1790873875003776401,
+    "ctimeNs": 1790873875003776401
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T20-09-23-319Z-prototype-allocations.json": {
+    "device": 16777230,
+    "inode": 283411108,
+    "bytes": 84551,
+    "mtimeNs": 1790885363354534096,
+    "ctimeNs": 1790885363354534096
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T21-16-44-180Z-emission-prototype.json": {
+    "device": 16777230,
+    "inode": 283453752,
+    "bytes": 2993567,
+    "mtimeNs": 1790889404246455102,
+    "ctimeNs": 1790889404246455102
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T01-27-42-343Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 282565480,
+    "bytes": 169348,
+    "mtimeNs": 1790818062380094920,
+    "ctimeNs": 1790818062380094920
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T21-46-38-326Z-cli-profile-emission-baseline.json": {
+    "device": 16777230,
+    "inode": 283459253,
+    "bytes": 322056,
+    "mtimeNs": 1790891198337215261,
+    "ctimeNs": 1790891198337215261
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T14-42-00-000Z-string-last-index-of-compiler-proof.json": {
+    "device": 16777230,
+    "inode": 284604729,
+    "bytes": 181427,
+    "mtimeNs": 1790952108076316088,
+    "ctimeNs": 1790952108076316088
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T17-05-47-543Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 284763962,
+    "bytes": 751440,
+    "mtimeNs": 1790960747577915198,
+    "ctimeNs": 1790960747577915198
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T11-53-51-000Z-higher-order-function-values-compiler-proof.json": {
+    "device": 16777230,
+    "inode": 284380533,
+    "bytes": 409264,
+    "mtimeNs": 1790942031478877808,
+    "ctimeNs": 1790942031478877808
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T01-26-30-241Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 282563375,
+    "bytes": 170842,
+    "mtimeNs": 1790817990277547653,
+    "ctimeNs": 1790817990277547653
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T22-37-22-407Z-fixed-array-target-refresh-history-inventory.json": {
+    "device": 16777230,
+    "inode": 283523348,
+    "bytes": 71227,
+    "mtimeNs": 1790894242797689593,
+    "ctimeNs": 1790894242797689593
+  },
+  "benchmarks/runtime/diagnostics/2026-10-03T00-40-49-000Z-string-substring-source-validation.json": {
+    "device": 16777230,
+    "inode": 285325697,
+    "bytes": 76452,
+    "mtimeNs": 1790988049316187870,
+    "ctimeNs": 1790988049316187870
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T20-59-48-625Z-emission-prototype.json": {
+    "device": 16777230,
+    "inode": 283452038,
+    "bytes": 3032209,
+    "mtimeNs": 1790888388680595555,
+    "ctimeNs": 1790888388680595555
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T00-23-53-346Z-array-prototype.json": {
+    "device": 16777230,
+    "inode": 282388068,
+    "bytes": 164052,
+    "mtimeNs": 1790814233370996874,
+    "ctimeNs": 1790814233370996874
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T17-21-30-164Z-primitive-followup-proof.json": {
+    "device": 16777230,
+    "inode": 283322194,
+    "bytes": 18428,
+    "mtimeNs": 1790875290172406804,
+    "ctimeNs": 1790875290172406804
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T01-41-54-354Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 282590415,
+    "bytes": 52898,
+    "mtimeNs": 1790818914398813674,
+    "ctimeNs": 1790818914398813674
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T06-30-12-232Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 282918606,
+    "bytes": 71977,
+    "mtimeNs": 1790836212265665498,
+    "ctimeNs": 1790836212265665498
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T17-57-36-437Z-full-index-correctness.json": {
+    "device": 16777230,
+    "inode": 283335922,
+    "bytes": 158475,
+    "mtimeNs": 1790877456438788695,
+    "ctimeNs": 1790877456438788695
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T02-48-48-000Z-temporary-array-index-benchmark-source.json": {
+    "device": 16777230,
+    "inode": 283870129,
+    "bytes": 599660,
+    "mtimeNs": 1790909328770060923,
+    "ctimeNs": 1790909328770060923
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T18-40-04-884Z-ascii13-rejection-assembly-evidence.json": {
+    "device": 16777230,
+    "inode": 283372547,
+    "bytes": 11950278,
+    "mtimeNs": 1790880004914752647,
+    "ctimeNs": 1790880004914752647
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T09-32-33-904Z-prototype-allocations.json": {
+    "device": 16777230,
+    "inode": 283005731,
+    "bytes": 8404,
+    "mtimeNs": 1790847153936589060,
+    "ctimeNs": 1790847153936589060
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T15-37-46-008Z-string-semantics.json": {
+    "device": 16777230,
+    "inode": 283233237,
+    "bytes": 296573,
+    "mtimeNs": 1790869066037020612,
+    "ctimeNs": 1790869066037020612
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T06-06-15-272Z-prototype-allocations.json": {
+    "device": 16777230,
+    "inode": 282904529,
+    "bytes": 45685,
+    "mtimeNs": 1790834775304154439,
+    "ctimeNs": 1790834775304154439
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T15-08-43-173Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283207647,
+    "bytes": 1964272,
+    "mtimeNs": 1790867323215598228,
+    "ctimeNs": 1790867323215598228
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T17-06-35-000Z-compound-assignment-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 284764765,
+    "bytes": 319110,
+    "mtimeNs": 1790960795275946597,
+    "ctimeNs": 1790960795275946597
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T08-31-27-294Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 284179014,
+    "bytes": 530810,
+    "mtimeNs": 1790929887333060494,
+    "ctimeNs": 1790929887333060494
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T20-59-13-768Z-shared-data-correctness.json": {
+    "device": 16777230,
+    "inode": 283451555,
+    "bytes": 148210,
+    "mtimeNs": 1790888353769559783,
+    "ctimeNs": 1790888353769559783
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T19-00-18-789Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 284961619,
+    "bytes": 781420,
+    "mtimeNs": 1790967618841571774,
+    "ctimeNs": 1790967618841571774
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T09-50-50-930Z-string-semantics.json": {
+    "device": 16777230,
+    "inode": 283007445,
+    "bytes": 320630,
+    "mtimeNs": 1790848250959897679,
+    "ctimeNs": 1790848250959897679
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T19-26-37-646Z-prototype-allocations.json": {
+    "device": 16777230,
+    "inode": 283382835,
+    "bytes": 84577,
+    "mtimeNs": 1790882797685335283,
+    "ctimeNs": 1790882797685335283
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T09-07-08-103Z-record-storage-prototype.json": {
+    "device": 16777230,
+    "inode": 283003774,
+    "bytes": 292821,
+    "mtimeNs": 1790845628132850099,
+    "ctimeNs": 1790845628132850099
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof.json": {
+    "device": 16777230,
+    "inode": 285068785,
+    "bytes": 199123,
+    "mtimeNs": 1790970644778827318,
+    "ctimeNs": 1790970644778827318
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T15-36-57-000Z-string-trim-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 284646485,
+    "bytes": 4892976,
+    "mtimeNs": 1790955417272207850,
+    "ctimeNs": 1790955417272207850
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T23-15-44-gate34-node-draft-validation.json": {
+    "device": 16777230,
+    "inode": 283589325,
+    "bytes": 6508,
+    "mtimeNs": 1790896544119771900,
+    "ctimeNs": 1790896544119771900
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T01-59-44-104Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 283806444,
+    "bytes": 342393,
+    "mtimeNs": 1790906384131827462,
+    "ctimeNs": 1790906384131827462
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T23-57-28-000Z-string-concat-padding-source-validation.json": {
+    "device": 16777230,
+    "inode": 285278439,
+    "bytes": 94594,
+    "mtimeNs": 1790985484791036229,
+    "ctimeNs": 1790985484791036229
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T00-02-59-000Z-gate36-reversal-benchmark-source.json": {
+    "device": 16777230,
+    "inode": 283653607,
+    "bytes": 376487,
+    "mtimeNs": 1790899379623709207,
+    "ctimeNs": 1790899379623709207
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T09-06-21-706Z-prototype-allocations.json": {
+    "device": 16777230,
+    "inode": 283003067,
+    "bytes": 8404,
+    "mtimeNs": 1790845581730469550,
+    "ctimeNs": 1790845581730469550
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T06-10-04-685Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 282914192,
+    "bytes": 67468,
+    "mtimeNs": 1790835004714170604,
+    "ctimeNs": 1790835004714170604
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T15-37-27-631Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 283233087,
+    "bytes": 218869,
+    "mtimeNs": 1790869047665789490,
+    "ctimeNs": 1790869047665789490
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T06-55-23-995Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 282921560,
+    "bytes": 226052,
+    "mtimeNs": 1790837724029087584,
+    "ctimeNs": 1790837724029087584
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T09-08-27-885Z-prototype-allocations.json": {
+    "device": 16777230,
+    "inode": 283003874,
+    "bytes": 8404,
+    "mtimeNs": 1790845707912646153,
+    "ctimeNs": 1790845707912646153
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T04-56-47-050Z-emission-equivalence.json": {
+    "device": 16777230,
+    "inode": 282798639,
+    "bytes": 15719,
+    "mtimeNs": 1790830607053619059,
+    "ctimeNs": 1790830607053619059
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T01-03-21-000Z-control-flow-primitive-fixture-preflight.json": {
+    "device": 16777230,
+    "inode": 283733469,
+    "bytes": 576566,
+    "mtimeNs": 1790903001020662005,
+    "ctimeNs": 1790903001020662005
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T11-53-17-000Z-higher-order-storage-support-source.json": {
+    "device": 16777230,
+    "inode": 284379844,
+    "bytes": 249366,
+    "mtimeNs": 1790941997644704248,
+    "ctimeNs": 1790941997644714373
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T16-18-40-379Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 283263957,
+    "bytes": 218869,
+    "mtimeNs": 1790871520412275464,
+    "ctimeNs": 1790871520412275464
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T18-03-13-000Z-update-expression-compiler-proof.json": {
+    "device": 16777230,
+    "inode": 284824754,
+    "bytes": 152344,
+    "mtimeNs": 1790964206278152719,
+    "ctimeNs": 1790964206278152719
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T00-32-06-449Z-native-string-search-compiler-acceptance.json": {
+    "device": 16777230,
+    "inode": 283687448,
+    "bytes": 181135,
+    "mtimeNs": 1790901126452128065,
+    "ctimeNs": 1790901126452128065
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T03-09-13-046Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 283892727,
+    "bytes": 354023,
+    "mtimeNs": 1790910553075000819,
+    "ctimeNs": 1790910553075000819
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T23-38-46-000Z-native-string-operators-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 283615113,
+    "bytes": 92104,
+    "mtimeNs": 1790897926089708631,
+    "ctimeNs": 1790897926089708631
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T21-21-30-666Z-emission-prototype.json": {
+    "device": 16777230,
+    "inode": 283455141,
+    "bytes": 2984714,
+    "mtimeNs": 1790889690721563083,
+    "ctimeNs": 1790889690721563083
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T12-59-11-087Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283167798,
+    "bytes": 1539843,
+    "mtimeNs": 1790859551131762293,
+    "ctimeNs": 1790859551131762293
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T21-56-17.732Z-merged-unit-view-assessment.json": {
+    "device": 16777230,
+    "inode": 283462256,
+    "bytes": 56528,
+    "mtimeNs": 1790891777733428152,
+    "ctimeNs": 1790891777733428152
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T05-00-07-000Z-string-construction-compiler-acceptance.json": {
+    "device": 16777230,
+    "inode": 284011154,
+    "bytes": 99121,
+    "mtimeNs": 1790917207109264168,
+    "ctimeNs": 1790917207109264168
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T11-11-31-865Z-string-contract.json": {
+    "device": 16777230,
+    "inode": 283118704,
+    "bytes": 4596431,
+    "mtimeNs": 1790853091952548720,
+    "ctimeNs": 1790853091952548720
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T09-56-59.893Z-declared-function-source-validation.json": {
+    "device": 16777230,
+    "inode": 284229619,
+    "bytes": 125513,
+    "mtimeNs": 1790935020010456615,
+    "ctimeNs": 1790935020010456615
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T09-44-00-000Z-array-concat-presentation-supplement.json": {
+    "device": 16777230,
+    "inode": 284224154,
+    "bytes": 2352,
+    "mtimeNs": 1790934416966534417,
+    "ctimeNs": 1790934416966534417
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T19-23-37-502Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283382148,
+    "bytes": 2380893,
+    "mtimeNs": 1790882617549567613,
+    "ctimeNs": 1790882617549567613
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T20-51-49-297Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 285132629,
+    "bytes": 768975,
+    "mtimeNs": 1790974309333410721,
+    "ctimeNs": 1790974309333410721
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T08-40-22-656Z-emission-prototype.json": {
+    "device": 16777230,
+    "inode": 282996179,
+    "bytes": 826815,
+    "mtimeNs": 1790844022689314087,
+    "ctimeNs": 1790844022689314087
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T12-55-01-424Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283166839,
+    "bytes": 1539340,
+    "mtimeNs": 1790859301463916439,
+    "ctimeNs": 1790859301463916439
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T14-17-00-000Z-array-last-index-of-source-validation.json": {
+    "device": 16777230,
+    "inode": 284565036,
+    "bytes": 108032,
+    "mtimeNs": 1790950644074182536,
+    "ctimeNs": 1790950644074182536
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T08-51-48-000Z-array-concat-source-validation.json": {
+    "device": 16777230,
+    "inode": 284183073,
+    "bytes": 869187,
+    "mtimeNs": 1790931108655738243,
+    "ctimeNs": 1790931108655738243
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T10-39-26-251Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 284262252,
+    "bytes": 596292,
+    "mtimeNs": 1790937566283927466,
+    "ctimeNs": 1790937566283927466
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T22-39-13-866Z-fixed-array-current-report-resource-proof.json": {
+    "device": 16777230,
+    "inode": 283523686,
+    "bytes": 10083,
+    "mtimeNs": 1790894353873508897,
+    "ctimeNs": 1790894353873508897
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T03-12-33-000Z-array-map-filter-benchmark-source.json": {
+    "device": 16777230,
+    "inode": 283894610,
+    "bytes": 605983,
+    "mtimeNs": 1790910753038719571,
+    "ctimeNs": 1790910753038719571
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation.json": {
+    "device": 16777230,
+    "inode": 285107356,
+    "bytes": 58254,
+    "mtimeNs": 1790972542626273222,
+    "ctimeNs": 1790972542626273222
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T00-11-32-972Z-native-array-reverse-compiler-acceptance.json": {
+    "device": 16777230,
+    "inode": 283662707,
+    "bytes": 129699,
+    "mtimeNs": 1790899892974674387,
+    "ctimeNs": 1790899898113335097
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T01-59-58-000Z-native-number-predicates-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 283806449,
+    "bytes": 142947,
+    "mtimeNs": 1790906398964287535,
+    "ctimeNs": 1790906398964287535
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T15-36-24-203Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 284646113,
+    "bytes": 699867,
+    "mtimeNs": 1790955384246903473,
+    "ctimeNs": 1790955384246903473
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T00-33-24-000Z-native-string-search-source-preflight.json": {
+    "device": 16777230,
+    "inode": 283687686,
+    "bytes": 455341,
+    "mtimeNs": 1790901204405395525,
+    "ctimeNs": 1790901204405395525
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T11-49-21-826Z-string-contract.json": {
+    "device": 16777230,
+    "inode": 283138842,
+    "bytes": 4579988,
+    "mtimeNs": 1790855361878088953,
+    "ctimeNs": 1790855361878088953
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T22-00-16-891Z-merged-views-production-refresh-history-inventory.json": {
+    "device": 16777230,
+    "inode": 283465422,
+    "bytes": 371987,
+    "mtimeNs": 1790892016918310995,
+    "ctimeNs": 1790892016918310995
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T20-18-04-656Z-static-literal-integration-proof.json": {
+    "device": 16777230,
+    "inode": 283414885,
+    "bytes": 2263476,
+    "mtimeNs": 1790885884661348538,
+    "ctimeNs": 1790885884661348538
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T01-16-58-000Z-native-number-benchmark-source.json": {
+    "device": 16777230,
+    "inode": 283751385,
+    "bytes": 603812,
+    "mtimeNs": 1790903818014264184,
+    "ctimeNs": 1790903818014264184
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T05-37-36-000Z-exact-math-compiler-acceptance.json": {
+    "device": 16777230,
+    "inode": 284040720,
+    "bytes": 100124,
+    "mtimeNs": 1790919456141222226,
+    "ctimeNs": 1790919456141222226
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T09-39-24-356Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 284222915,
+    "bytes": 601307,
+    "mtimeNs": 1790933964395265768,
+    "ctimeNs": 1790933964395265768
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T22-09-43-536Z-standard-view-integration-proof.json": {
+    "device": 16777230,
+    "inode": 283484193,
+    "bytes": 58333,
+    "mtimeNs": 1790892583545992460,
+    "ctimeNs": 1790892583545992460
+  },
+  "benchmarks/runtime/diagnostics/2026-10-03T00-54-02-870Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 285335831,
+    "bytes": 871150,
+    "mtimeNs": 1790988842905848067,
+    "ctimeNs": 1790988842905848067
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T11-22-48-406Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283120869,
+    "bytes": 1721741,
+    "mtimeNs": 1790853768456925697,
+    "ctimeNs": 1790853768456925697
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T17-57-36-411Z-sparse-index-correctness.json": {
+    "device": 16777230,
+    "inode": 283335921,
+    "bytes": 163902,
+    "mtimeNs": 1790877456426615287,
+    "ctimeNs": 1790877456426615287
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T08-10-44-000Z-array-for-each-source-validation.json": {
+    "device": 16777230,
+    "inode": 284169911,
+    "bytes": 364896,
+    "mtimeNs": 1790928644631440506,
+    "ctimeNs": 1790928644631440506
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T03-32-48-558Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 283921951,
+    "bytes": 368874,
+    "mtimeNs": 1790911968589712892,
+    "ctimeNs": 1790911968589712892
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 284691500,
+    "bytes": 76007,
+    "mtimeNs": 1790957453581472211,
+    "ctimeNs": 1790957453581472211
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T07-34-04-372Z-array-reduction-compiler-proof.json": {
+    "device": 16777230,
+    "inode": 284138666,
+    "bytes": 44771,
+    "mtimeNs": 1790926444429926882,
+    "ctimeNs": 1790926444429926882
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T19-00-25-000Z-native-int-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 284962440,
+    "bytes": 328659,
+    "mtimeNs": 1790967625872373779,
+    "ctimeNs": 1790967625872373779
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T04-03-15-000Z-native-fixed-number-array-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 283952501,
+    "bytes": 449249,
+    "mtimeNs": 1790913795808505754,
+    "ctimeNs": 1790913795808505754
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T06-53-02-123Z-number-operators-compiler-proof.json": {
+    "device": 16777230,
+    "inode": 284105022,
+    "bytes": 42066,
+    "mtimeNs": 1790923982195085965,
+    "ctimeNs": 1790923982195085965
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T20-51-01-869Z-owning-slot-view-assembly-criterion.json": {
+    "device": 16777230,
+    "inode": 283450608,
+    "bytes": 298522,
+    "mtimeNs": 1790887861878881304,
+    "ctimeNs": 1790887861878881304
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T04-42-18-144Z-prototype-allocations.json": {
+    "device": 16777230,
+    "inode": 282743755,
+    "bytes": 3291,
+    "mtimeNs": 1790829738169919820,
+    "ctimeNs": 1790829738169919820
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T00-39-59-000Z-control-flow-primitive-catchup-benchmark-source.json": {
+    "device": 16777230,
+    "inode": 283702911,
+    "bytes": 572993,
+    "mtimeNs": 1790901599575589007,
+    "ctimeNs": 1790901599575589007
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 285069352,
+    "bytes": 50761,
+    "mtimeNs": 1790970827019821806,
+    "ctimeNs": 1790970827019821806
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T06-27-08-205Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 282918087,
+    "bytes": 1130290,
+    "mtimeNs": 1790836028245198398,
+    "ctimeNs": 1790836028245198398
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T02-16-44-000Z-math-unary-compiler-acceptance.json": {
+    "device": 16777230,
+    "inode": 283832749,
+    "bytes": 79675,
+    "mtimeNs": 1790907405090138857,
+    "ctimeNs": 1790907405090138857
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T18-47-23-000Z-native-int-source-validation.json": {
+    "device": 16777230,
+    "inode": 284953894,
+    "bytes": 147624,
+    "mtimeNs": 1790966851667550483,
+    "ctimeNs": 1790966851667550483
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T23-56-12-477Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 283638701,
+    "bytes": 309685,
+    "mtimeNs": 1790898972504370170,
+    "ctimeNs": 1790898972504370170
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T07-00-36-385Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 282922342,
+    "bytes": 1137536,
+    "mtimeNs": 1790838036419630027,
+    "ctimeNs": 1790838036419630027
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T12-09-41-000Z-higher-order-function-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 284387954,
+    "bytes": 1507953,
+    "mtimeNs": 1790942982071801827,
+    "ctimeNs": 1790942982071801827
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T00-23-34-720Z-array-prototype.json": {
+    "device": 16777230,
+    "inode": 282387643,
+    "bytes": 163258,
+    "mtimeNs": 1790814214763142178,
+    "ctimeNs": 1790814214763142178
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T08-18-39-840Z-string-efficiency-proof.json": {
+    "device": 16777230,
+    "inode": 282960919,
+    "bytes": 21604,
+    "mtimeNs": 1790842719842575093,
+    "ctimeNs": 1790842719842575093
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T15-23-52-533Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283211765,
+    "bytes": 1951545,
+    "mtimeNs": 1790868232577267481,
+    "ctimeNs": 1790868232577267481
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T21-22-59-427Z-inline-spans-correctness.json": {
+    "device": 16777230,
+    "inode": 283455203,
+    "bytes": 158132,
+    "mtimeNs": 1790889779428710337,
+    "ctimeNs": 1790889779428710337
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T00-06-02-000Z-gate36-execution-only-source-proof.json": {
+    "device": 16777230,
+    "inode": 283657333,
+    "bytes": 405442,
+    "mtimeNs": 1790899562163837915,
+    "ctimeNs": 1790899562163837915
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T22-32-03-744Z-emission-prototype.json": {
+    "device": 16777230,
+    "inode": 283521102,
+    "bytes": 617403,
+    "mtimeNs": 1790893923789851354,
+    "ctimeNs": 1790893923789851354
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T08-42-30-232Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 282996704,
+    "bytes": 71941,
+    "mtimeNs": 1790844150256777125,
+    "ctimeNs": 1790844150256777125
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T13-44-34-662Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283176458,
+    "bytes": 1529242,
+    "mtimeNs": 1790862274707601970,
+    "ctimeNs": 1790862274707601970
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T23-22-32-000Z-native-utf8-current50-proof.json": {
+    "device": 16777230,
+    "inode": 283591266,
+    "bytes": 140890,
+    "mtimeNs": 1790896952664237288,
+    "ctimeNs": 1790896952664237288
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T18-20-59-555Z-eager-index-correctness-evidence.json": {
+    "device": 16777230,
+    "inode": 283357416,
+    "bytes": 5085612,
+    "mtimeNs": 1790878859583378852,
+    "ctimeNs": 1790878859583378852
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T20-37-16-182Z-production-50-refresh-assessment.json": {
+    "device": 16777230,
+    "inode": 283424836,
+    "bytes": 44144,
+    "mtimeNs": 1790887036190823548,
+    "ctimeNs": 1790887036190823548
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T09-48-11-049Z-string-semantics.json": {
+    "device": 16777230,
+    "inode": 283007312,
+    "bytes": 285905,
+    "mtimeNs": 1790848091080370471,
+    "ctimeNs": 1790848091080370471
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T17-59-52-220Z-emission-prototype.json": {
+    "device": 16777230,
+    "inode": 283338534,
+    "bytes": 2284093,
+    "mtimeNs": 1790877592262312721,
+    "ctimeNs": 1790877592262312721
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T03-25-49-949Z-record-storage-prototype.json": {
+    "device": 16777230,
+    "inode": 282692163,
+    "bytes": 237553,
+    "mtimeNs": 1790825149973928150,
+    "ctimeNs": 1790825149973928150
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T02-51-46-363Z-primitive-emission-equivalence.json": {
+    "device": 16777230,
+    "inode": 282664506,
+    "bytes": 3672,
+    "mtimeNs": 1790823106365092204,
+    "ctimeNs": 1790823106365092204
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T00-35-15-345Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 283688247,
+    "bytes": 327639,
+    "mtimeNs": 1790901315373424705,
+    "ctimeNs": 1790901315373424705
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T03-09-58-000Z-native-temporary-array-index-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 283892750,
+    "bytes": 205474,
+    "mtimeNs": 1790910598666601015,
+    "ctimeNs": 1790910598666601015
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T06-15-27-000Z-approximate-math-compiler-acceptance.json": {
+    "device": 16777230,
+    "inode": 284069540,
+    "bytes": 101901,
+    "mtimeNs": 1790921728021643478,
+    "ctimeNs": 1790921728021643478
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T05-40-43-000Z-native-exact-math-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 284041293,
+    "bytes": 250677,
+    "mtimeNs": 1790919643238422960,
+    "ctimeNs": 1790919643238422960
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T09-26-33-170Z-string-semantics.json": {
+    "device": 16777230,
+    "inode": 283005079,
+    "bytes": 16459,
+    "mtimeNs": 1790846793205962682,
+    "ctimeNs": 1790846793205962682
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T01-34-23-961Z-native-allocations.json": {
+    "device": 16777230,
+    "inode": 283768421,
+    "bytes": 357381,
+    "mtimeNs": 1790904864007424200,
+    "ctimeNs": 1790904864007424200
+  },
+  "benchmarks/runtime/diagnostics/2026-09-30T23-58-40-552Z-emission-equivalence.json": {
+    "device": 16777230,
+    "inode": 282382850,
+    "bytes": 8035,
+    "mtimeNs": 1790812720553762476,
+    "ctimeNs": 1790812720553762476
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T16-50-53-774Z-normalization-correctness.json": {
+    "device": 16777230,
+    "inode": 283281292,
+    "bytes": 22028,
+    "mtimeNs": 1790873453783707422,
+    "ctimeNs": 1790873453783707422
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T16-07-10-057Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283243180,
+    "bytes": 1943708,
+    "mtimeNs": 1790870830098058870,
+    "ctimeNs": 1790870830098058870
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T13-50-12-000Z-array-to-spliced-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 284528678,
+    "bytes": 1791999,
+    "mtimeNs": 1790949012871694101,
+    "ctimeNs": 1790949012871694101
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation.json": {
+    "device": 16777230,
+    "inode": 284972617,
+    "bytes": 46836,
+    "mtimeNs": 1790968897136933423,
+    "ctimeNs": 1790968897136933423
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T19-04-00-946Z-emission-prototype.json": {
+    "device": 16777230,
+    "inode": 283379023,
+    "bytes": 2427023,
+    "mtimeNs": 1790881440992293668,
+    "ctimeNs": 1790881440992293668
+  },
+  "benchmarks/runtime/diagnostics/2026-10-03T00-56-53-000Z-string-substring-runtime-proof.json": {
+    "device": 16777230,
+    "inode": 285336752,
+    "bytes": 126017,
+    "mtimeNs": 1790989014038637249,
+    "ctimeNs": 1790989014038637249
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T13-18-49-915Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283172414,
+    "bytes": 1533164,
+    "mtimeNs": 1790860729959508533,
+    "ctimeNs": 1790860729959508533
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T11-14-19-336Z-string-prototype.json": {
+    "device": 16777230,
+    "inode": 283119580,
+    "bytes": 1712920,
+    "mtimeNs": 1790853259378996394,
+    "ctimeNs": 1790853259378996394
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T15-18-00-000Z-string-side-trimming-compiler-proof.json": {
+    "device": 16777230,
+    "inode": 284641922,
+    "bytes": 184409,
+    "mtimeNs": 1790954288460568240,
+    "ctimeNs": 1790954288460568240
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T01-36-47-000Z-native-number-predicate-benchmark-source.json": {
+    "device": 16777230,
+    "inode": 283770469,
+    "bytes": 549824,
+    "mtimeNs": 1790905007312279097,
+    "ctimeNs": 1790905007312279097
+  },
+  "benchmarks/runtime/diagnostics/2026-10-02T15-25-00-000Z-string-trim-repeat-pool-source-supplement.json": {
+    "device": 16777230,
+    "inode": 284644719,
+    "bytes": 218414,
+    "mtimeNs": 1790955147667205981,
+    "ctimeNs": 1790955147667205981
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T09-05-22-684Z-prototype-allocations.json": {
+    "device": 16777230,
+    "inode": 283002972,
+    "bytes": 8404,
+    "mtimeNs": 1790845522708841043,
+    "ctimeNs": 1790845522708841043
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T21-27-12-872Z-emission-prototype.json": {
+    "device": 16777230,
+    "inode": 283456458,
+    "bytes": 2989979,
+    "mtimeNs": 1790890032924107490,
+    "ctimeNs": 1790890032924107490
+  },
+  "benchmarks/runtime/diagnostics/2026-10-01T20-10-25-000Z-bounded-view-assessment.json": {
+    "device": 16777230,
+    "inode": 283411539,
+    "bytes": 36539,
+    "mtimeNs": 1790885553748833643,
+    "ctimeNs": 1790885553748833643
+  }
+}

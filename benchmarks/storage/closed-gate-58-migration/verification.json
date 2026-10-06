@@ -1,0 +1,8 @@
+{
+  "exactPathsAndBytes": 500,
+  "independentBlobChecks": 463,
+  "closedProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T13-50-12-000Z-array-to-spliced-runtime-proof.json",
+    "sha256": "ec730122abf2135641c63750ed5fbebb826784f0fc0f2bde1cdc9aef58a0aae5"
+  }
+}

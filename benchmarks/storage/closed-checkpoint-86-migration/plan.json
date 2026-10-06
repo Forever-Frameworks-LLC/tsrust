@@ -1,0 +1,56 @@
+{
+  "closedProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T14-02-43-000Z-checkpoint86-completed-proof.json",
+    "sha256": "8b797bd1d518ae17aa9863588e8ceba12b7e52c3c123138dbb7402823b67d755"
+  },
+  "completedCertificate": {
+    "path": "/private/tmp/tsrust-gate86/completed-acceptance.json",
+    "sha256": "9cf16b1b8946445822c194dd6c72c45419daffb398118bef480e315334a611f9"
+  },
+  "completedGateProofs": [
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T14-02-43-000Z-checkpoint86-completed-proof.json",
+      "sha256": "8b797bd1d518ae17aa9863588e8ceba12b7e52c3c123138dbb7402823b67d755"
+    },
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T09-12-23-000Z-array-join-implementation.json",
+      "sha256": "ca2ee3bafdcce7db9cf43267daf64fe030d96443f78e992413aca54c950fd532"
+    },
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T09-36-55-000Z-array-to-string-implementation.json",
+      "sha256": "d70296360f1eb332ec904566db85c89000cb576638b949aceeb90853424abb22"
+    },
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T10-48-34-000Z-nullable-type-foundation-implementation.json",
+      "sha256": "31d075312f76202a407aaf81f92f0633ad7a18e1831b89b5188eb9d83f680cfc"
+    },
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T11-59-10-000Z-nullable-flow-narrowing-implementation.json",
+      "sha256": "8330ea509ec0ac93ed86f6fd0fff1c178c464c5cec62d2446da96a814cf61345"
+    },
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T12-38-17-000Z-array-pop-shift-implementation.json",
+      "sha256": "cf3fda0686625f6fff2bc4e0a4d834245f2a3218dbb0acf584d914a3907a4457"
+    },
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T13-43-00-000Z-checkpoint86-regression-proof.json",
+      "sha256": "90399c365a3975c6d8beb9003dbfacd58987ce31065d75f5bec190d5a26fe8bd"
+    },
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T13-57-02-000Z-checkpoint86-runtime-proof.json",
+      "sha256": "da4c6d471e290fe5336640d83073dd4bad7a562a7f4670226cf09e8dbd9f2404"
+    }
+  ],
+  "paths": [
+    "runtime/diagnostics/2026-10-03T09-12-23-000Z-array-join-implementation-artifacts",
+    "runtime/diagnostics/2026-10-03T09-36-55-000Z-array-to-string-implementation-artifacts",
+    "runtime/diagnostics/2026-10-03T10-48-34-000Z-nullable-type-foundation-artifacts",
+    "runtime/diagnostics/2026-10-03T11-59-10-000Z-nullable-flow-narrowing-artifacts",
+    "runtime/diagnostics/2026-10-03T12-38-17-000Z-array-pop-shift-artifacts",
+    "runtime/diagnostics/2026-10-03T13-43-00-000Z-checkpoint86-regression-proof-artifacts",
+    "runtime/diagnostics/2026-10-03T13-57-02-000Z-checkpoint86-runtime-artifacts",
+    "runtime/diagnostics/2026-10-03T14-02-43-000Z-checkpoint86-completed-artifacts",
+    "runtime/diagnostics/2026-10-03T14-02-43-000Z-checkpoint86-completed-proof-closure-artifacts"
+  ],
+  "allConsumersFinishedBeforeCompaction": true
+}

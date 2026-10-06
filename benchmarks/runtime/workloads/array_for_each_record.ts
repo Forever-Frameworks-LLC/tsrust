@@ -1,0 +1,6 @@
+function clone<T>(value:T):T{return value;}
+type Row={n:number;text:string;values:number[];};
+function workload(n:number,seed:number,input:string):number{const base:Row[]=[{n:seed,text:clone(input),values:[seed,1]},{n:2,text:"é",values:[]},{n:3,text:"a\u0000b",values:[2,3]},{n:4,text:"😀",values:[4]},{n:5,text:"e\u0301",values:[5,6]}];let trace:number=seed;let visits=0;let i=0;while(i<n){const mode=(i+seed)%5;let count=5;if(mode===0){count=0;}else if(mode===1){count=1;}else if(mode===2){count=4;}const selected=base.slice(0,count);selected.forEach((value:Row,index:number,source:Row[]):void=>{trace=(trace*131+rowWeight(value,input)+index+source.length+i)%1000000007;visits=visits+1;});i=i+1;}return (trace+visits)%1000000007;}
+function stringWeight(value:string,input:string):number{let w=1;if(value===input){w=w+3;}if(value.includes("\u0000")){w=w+5;}if(value=== "e\u0301"){w=w+7;}if(value==="é"){w=w+11;}if(value==="😀"){w=w+13;}return w;}
+function rowWeight(value:Row,input:string):number{let w=value.n+stringWeight(value.text,input);for(const item of value.values){w=w+item;}return w;}
+function main(){const result=workload(2,7,"é 😀 e\u0301");}

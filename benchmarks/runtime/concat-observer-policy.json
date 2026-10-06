@@ -1,0 +1,77 @@
+{
+  "stage": "SOURCE ONLY: no Node, compiler, native, test, timing or allocation execution",
+  "results": "24 complete array/tree batches plus one actual int scalar ordered computation. Never flatten record/tree timed returns or wrap scalar timed returns solely for observation.",
+  "category": "Arrays for all25 rows",
+  "sourceSchemas": {
+    "Row": {
+      "orderedFields": [
+        {
+          "name": "code",
+          "type": "int"
+        },
+        {
+          "name": "text",
+          "type": "string"
+        },
+        {
+          "name": "items",
+          "type": "int[]"
+        }
+      ]
+    },
+    "Node": {
+      "orderedFields": [
+        {
+          "name": "code",
+          "type": "int"
+        },
+        {
+          "name": "text",
+          "type": "string"
+        },
+        {
+          "name": "children",
+          "type": "Node[]"
+        }
+      ]
+    }
+  },
+  "nativeABIGuard": {
+    "status": "PENDING ACTUAL GATE53 EMISSION; no concrete RecordN/fieldN/owner/String alias accepted",
+    "required": [
+      "Bind exact function0 parameter/result declaration and emitted source hash",
+      "Derive actual owners at each result rank from emitted declaration, including required container implementations",
+      "Bind nominal source-declared Row/Node to emitted record declaration and ordered field identifiers/types",
+      "Verify recursive Node children contain exactly the same nominal Node type",
+      "Bind actual String alias and actual field array owners before compiling observer",
+      "Reject unknown/mismatched field/type/order/owner and prune absent/conflicting generic observer implementations",
+      "Compile benchmark-only external observer against that exact emission and verify complete positive/negative observations before comparisons"
+    ]
+  },
+  "externalObserver": "Existing rank-aware SliceTree tokens with benchmark-only bool and source-schema record/tree extension templates. Native checksum visits every value/field/child allocation-free; exact formatting and TS schema validation happen after timing/counters. All shape lengths/order, Unicode scalar content/NUL, canonical NaN, infinity and signed-zero bits observed.",
+  "canonicalNaN": "NaN token nan; checksum canonical bits0x7ff8000000000000. This is an explicit observation rule, not a payload-preservation claim.",
+  "manualOracle": "No concat/slice/map/filter/reduce/forEach. Manually append ranges and recursively copy expected complete values. Exact finite quarter bits from integer numerators; explicit IEEE exceptional tokens. No approximate tolerance.",
+  "domains": "n0..1000,seed0..1000000; valid Unicode input<=256UTF8bytes. Main CLI input excludes NUL; source literals include NUL. Native signed checked-i64/scalar and JS exact-safe-integer bounds retained.",
+  "ownedCopyDisclosure": "Native copied strings/records/nested arrays/trees own independent contents; JS concat shares elements. No output/source alias mutation occurs. Content/shape/effects are shared, alias identity/allocation equivalence not claimed.",
+  "costs": "Whole workload includes pool/input clone setup, per-iteration receiver/argument slicing and scalar construction, concat allocation/copy, retention/push, effects and loop control. Scalar-row optimizations may remove unobservable allocations; no isolated API latency claim.",
+  "pending": [
+    "Gate52 closure",
+    "Gate53 focused/one-settled-full compiler acceptance and fresh release proof",
+    "Explicit light/native benchmark grants",
+    "Actual-emission ABI binding and observer positive/negative validation",
+    "25 matched eight-runtime comparisons",
+    "Untimed resource profiles and final-owner disposal"
+  ],
+  "integration": {
+    "observer": "declared-concat-v1",
+    "maxDepth": 16,
+    "existingEncodings": [
+      "array-shape-scalar-v1",
+      "ieee-f64-tree-v1"
+    ],
+    "scalarEncoding": "undefined legacy int",
+    "ABI": "actual-emission-concat-abi-v1; source hash, actual owner, three named fields and recursive self-link verified before adapter compilation",
+    "legacyObserversUnchanged": true,
+    "nativeAcceptancePending": true
+  }
+}

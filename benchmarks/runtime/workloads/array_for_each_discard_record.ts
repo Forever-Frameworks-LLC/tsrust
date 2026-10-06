@@ -1,0 +1,4 @@
+function clone<T>(value:T):T{return value;}
+type Row={n:number;text:string;values:number[];};
+function workload(n:number,seed:number):number{const base:number[]=[seed,seed+1,2,3,seed+4];let trace:number=seed;let visits=0;let i=0;while(i<n){const mode=(i+seed)%5;let count=5;if(mode===0){count=0;}else if(mode===1){count=1;}else if(mode===2){count=4;}const selected=base.slice(0,count);selected.forEach((value:number,index:number,source:number[]):Row=>{trace=(trace*131+value+index+source.length+i)%1000000007;visits=visits+1;return {n:value,text:"allocated".repeat(value%3+1),values:[value,index]};});i=i+1;}return (trace+visits)%1000000007;}
+function main(){const result=workload(2,7);}

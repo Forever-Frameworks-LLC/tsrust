@@ -1,0 +1,40 @@
+import {strictEqual} from "std:testing";
+type ActionRow={label:string;action:Once<Function<int>>;};
+type Counter={value:int;};
+type Box={value:string;};
+function source(counter:Mutable<Counter>):Set<int>{counter.value+=1;return new Set<int>([4,2,4]);}
+function mapper(counter:Mutable<Counter>):Function<int,[int,int]>{strictEqual(counter.value,1);counter.value+=10;return(value:int,index:int):int=>{return value+index;};}
+function describe(pair:[string,int],index:int):string{return pair[0]+":"+String(pair[1]+index);}
+function mapPairs(values:Map<string,int>,mapper:ReadOnly<Function<string,[ReadOnly<[string,int]>,int]>>):string[]{return Array.from(values,mapper);}
+function main(){
+ const values=new Set<int>([3,1,3,2]);const copy=Array.from(values);copy.push(9);
+ strictEqual(copy.join(","),"3,1,2,9");strictEqual(values.size,3);
+ strictEqual(Array.from(values,(value,index)=>{return value*10+index;}).join(","),"30,11,22");
+ const words=new Set<string>([String("aa"),"b"]);const labels=Array.from(words);words.clear();strictEqual(labels.join("|"),"aa|b");
+ const map=new Map<string,int>([["b",2],["a",1],["b",3]]);const pairs=Array.from(map);pairs[0][1]=9;
+ strictEqual(mapPairs(map,describe).join("|"),"b:3|a:2");strictEqual(pairs[0][1],9);
+ strictEqual(Array.from(map,([key,value],index)=>{return key+String(value+index);}).join("|"),"b3|a2");
+ const rows=new Map<int,ActionRow>();rows.set(1,{label:"owned",action:():int=>{return 7;}});
+ strictEqual(Array.from(rows,(entry,index)=>{return entry[1].label+String(index);}).join(""),"owned0");
+ strictEqual(Array.from(new Set<int>()).length,0);strictEqual(Array.from(new Map<string,int>()).length,0);
+ const counter:Counter={value:0};strictEqual(Array.from(source(counter),(value,index)=>{return value+index;}).join(","),"4,3");strictEqual(counter.value,1);
+ strictEqual(Array.from(new Set([1,2])).join(","),"1,2");
+ strictEqual(Array.from(Array.from(map)).length,2);
+ strictEqual(Array.from([4],(value:int,index:int,extra:int=7)=>{return value+index+extra;}).join(","),"11");
+ strictEqual(Array.from([4],(value:int,...indices:int[])=>{return indices.length;}).join(","),"1");
+ strictEqual(Array.from("ab",(value:string,index:int,...extra:int[])=>{return String(extra.length);}).join(""),"00");
+ let seen=0;let finished=0;try{Array.from(map,(entry,index)=>{seen+=1;if(index===0){throw "stopped";}return "unused";});}
+ catch(error){if(typeof error==="string"){strictEqual(error,"stopped");}}
+ finally{finished=1;}strictEqual(seen,1);strictEqual(finished,1);strictEqual(map.size,2);
+ const mixed=new Set<int|string>([2,"ab"]);
+ strictEqual(Array.from(mixed,(value,index)=>{if(typeof value==="string"){return value.length+index;}return value+index;}).join(","),"2,3");
+ const records=new Map<int,Box>([[1,{value:"original"}]]);const copied=Array.from(records);copied[0][1].value="changed";
+ strictEqual(Array.from(records,(entry)=>{return String(entry[1].value);}).join(""),"original");
+ strictEqual(Array.from(new Map<int,string>(),(entry,index)=>{if(index===0){throw "empty callback";}return 0;}).length,0);
+
+ const actions:Function<int>[]=[():int=>{return 2;},():int=>{return 3;}];
+ strictEqual(Array.from(actions,(action:Mutable<Function<int>>):int=>{return action();}).join(","),"2,3");
+
+ const order:Counter={value:0};strictEqual(Array.from(source(order),mapper(order)).join(","),"4,3");strictEqual(order.value,11);
+
+}

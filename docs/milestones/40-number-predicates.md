@@ -1,0 +1,19 @@
+# Milestone 40: Number classification
+
+[Roadmap](../roadmap.md) · [Primitive coverage](../feature-coverage.md)
+
+## Scope
+
+Add `Number.isFinite(value)`, `Number.isNaN(value)`, `Number.isInteger(value)`, and `Number.isSafeInteger(value)`. Each accepts one number argument, evaluates it once, and returns boolean. Numeric literals use the existing contextual number rules. An int binding requires explicit `Number(...)` conversion; other types and incorrect arities produce diagnostics. Global coercing `isFinite` and `isNaN` are separate operations.
+
+Use standard Rust `f64` classification. Integer classification requires a finite value with zero fractional part. Safe integer classification additionally requires absolute value at most 9,007,199,254,740,991. Both signed zeros are integers and safe integers. NaN and infinities fail integer classification. Ownership, capture, and borrow contracts follow ordinary number expression evaluation.
+
+## Acceptance
+
+Execute focused programs at optimization levels 0 and 3, covering signed zeros, NaN, infinities, subnormals, fractions, maximum finite values, rounding boundaries, and positive and negative safe-integer limits. Verify argument evaluation once, mutable and escaping captures, and diagnostics. Run one settled full regression after the candidate is integrated.
+
+Four matched benchmark pairs each call one predicate per complete iteration. Validate results independently from an exact input classification table. Include table construction, selection, loop, and digest costs in the stated measurement unit. Retain immutable timing and allocation/disposal records; update the corresponding rows in top-level BENCHMARKS.md.
+
+## Status
+
+The compiler candidate is integrated after complete milestone 39 acceptance; all three focused native groups pass at optimization levels 0 and 3. A storage assertion was moved into a closure-free subfixture because the original capture fixture deliberately retains growable arrays under existing proof rules; compiler behavior was unchanged. Compiler acceptance passes all 512 unique groups across 50 integration binaries, doctests, formatting, Clippy, and release build. It exposed debug-frame growth in existing nested-operator analysis. Call analysis now uses a separate dispatch frame; all six original depth cases pass with the same 128-level guard, and all three predicate groups pass after the repair. Passed suites were retained; only affected and previously unrun suites resumed. The [compiler proof](../../benchmarks/runtime/diagnostics/2026-10-02T01-57-36-000Z-number-predicates-compiler-acceptance.json) preserves exact repair diffs, frame evidence, logs, source identities, and the single-attempt ledger. Four comparison source pairs and independent classification oracles are integrated into the benchmark harness. All 85 light tool groups pass; the [source proof](../../benchmarks/runtime/diagnostics/2026-10-02T01-36-47-000Z-native-number-predicate-benchmark-source.json) preserves previous sources and raw records. Light Node validation passes 140 workload cases, 96 independent classifications, and 24 checks that static methods do not coerce other primitive types. Runtime acceptance passes four matched comparisons across eight runtimes: 160 independent engine checks, 2,976 timed batches, and twelve native allocation/disposal samples. The [runtime proof](../../benchmarks/runtime/diagnostics/2026-10-02T01-59-58-000Z-native-number-predicates-runtime-proof.json) preserves exact inputs, prior records, and actual emitted code. All samples free native storage completely. Each workload allocates one input table and performs no reallocations. The complete iterations lead Node and the fastest scripting runtime in this run; they include table selection, loop, and digest costs. Top-level BENCHMARKS.md now retains 97 dated runtime rows and nine unchanged memory probes. No measurements are claimed for this gate.

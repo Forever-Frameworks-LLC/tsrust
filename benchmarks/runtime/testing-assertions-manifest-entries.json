@@ -1,0 +1,149 @@
+[
+  {
+    "id": "testing_scalar_assertions",
+    "category": "testing",
+    "family": "testing-assertions",
+    "result": "int",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 4096,
+    "operationsPerIteration": 3,
+    "operationUnit": "three successful scalar assertion calls (ok, strictEqual, notStrictEqual)",
+    "specification": "Dynamically select a squared value from an eight-element integer pool. Assert nonnegative truthiness, Object.is equality against an independently computed square, and inequality against its successor. Retain every selected value in a bounded base-131 checksum.",
+    "notes": "Whole workload includes pool setup, indexing, arithmetic, assertion calls and checksum observation. This measures a successful assertion pipeline, not isolated matcher latency. Compiler optimization may prove some successful conditions. Native runtime has no Node dependency; the TypeScript counterpart uses actual Node strict assertion APIs solely for developer measurement. Existing protocols and sample counts remain unchanged.",
+    "methodExpressions": {
+      "native": [
+        "ok(actual >= 0)",
+        "strictEqual(actual, expected)",
+        "notStrictEqual(actual, expected + 1)"
+      ],
+      "typescript": [
+        "ok(actual >= 0)",
+        "strictEqual(actual, expected)",
+        "notStrictEqual(actual, expected + 1)"
+      ]
+    },
+    "sourceRequired": {
+      "native": [
+        "from \"std:testing\"",
+        "const values: int[] = [0, 1, 4, 9, 16, 25, 36, 49];",
+        "const at = (i * 13 + seed) % 8;",
+        "const expected = at * at;",
+        "checksum = (checksum * 131 + actual) % 1000000007;"
+      ],
+      "typescript": [
+        "from \"node:assert/strict\"",
+        "const values: int[] = [0, 1, 4, 9, 16, 25, 36, 49];",
+        "const at = (i * 13 + seed) % 8;",
+        "const expected = at * at;",
+        "checksum = (checksum * 131 + actual) % 1000000007;"
+      ]
+    },
+    "sourceSha256": "899e82a117ba2f4b21d24f334128ad289b6ebfed6c1962aa78321369aaa76112",
+    "counterpartSha256": "d7062c6546a4c73f166e7f7eafdad09e1fc689a66c4735b97f358a707bf30ccc"
+  },
+  {
+    "id": "testing_expectation_predicates",
+    "family": "testing-assertions",
+    "category": "testing",
+    "result": "int",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 4096,
+    "operationsPerIteration": 22,
+    "operationUnit": "twenty-two successful positive and negated assertions through stored expectations or Node strict assertions",
+    "specification": "Cycle through null, undefined, zero, NaN, negative zero and seven. Verify nullish state, truthiness and NaN state or SameValue identity, then observe active values in a bounded checksum. Verify complementary negated nullish, truthiness and NaN or identity conditions using the same stored expectation. Verify typeof category and negated string category. Check all four numeric relations and their negations using the dynamically selected numeric category index. Verify proximity at default precision and negated proximity at explicit precision 5. Check UTF-16 string length and its negation for a supplementary-plane emoji or repeated ASCII selected by category. Check the active numeric alternative of a union-typed record length property.",
+    "notes": "Native uses real std:testing expectations; TypeScript uses real Node assertions as a semantic baseline, not Vitest latency. Whole workload includes expectation construction, predicate captures, tagged union dispatch, assertions and observation. No timing protocol or sample count changes. Numeric relation checks include a second numeric expectation setup; this remains a whole assertion pipeline comparison. Length checks include string construction and a third native expectation setup. Record length checks include record setup and a fourth native expectation.",
+    "methodExpressions": {
+      "native": [
+        "assertion.toBeNull()",
+        "assertion.toBeUndefined()",
+        "assertion.toBeDefined()",
+        "assertion.toBeTruthy()",
+        "assertion.toBeFalsy()",
+        "assertion.toBe(actual)",
+        "assertion.toBeNaN()",
+        "assertion.not.toBeUndefined()",
+        "assertion.not.toBeDefined()",
+        "assertion.not.toBeNull()",
+        "assertion.not.toBeFalsy()",
+        "assertion.not.toBeTruthy()",
+        "assertion.not.toBe(0.0)",
+        "assertion.not.toBeNaN()",
+        "assertion.toBeTypeOf(expectedType)",
+        "assertion.not.toBeTypeOf(\"string\")",
+        "numericAssertion.toBeGreaterThan(-1.0)",
+        "numericAssertion.toBeGreaterThanOrEqual(numericActual)",
+        "numericAssertion.toBeLessThan(6.0)",
+        "numericAssertion.toBeLessThanOrEqual(numericActual)",
+        "numericAssertion.not.toBeGreaterThan(6.0)",
+        "numericAssertion.not.toBeGreaterThanOrEqual(6.0)",
+        "numericAssertion.not.toBeLessThan(-1.0)",
+        "numericAssertion.not.toBeLessThanOrEqual(-1.0)",
+        "numericAssertion.toBeCloseTo(numericActual)",
+        "numericAssertion.not.toBeCloseTo(numericActual+0.125,5.0)",
+        "lengthAssertion.toHaveLength(expectedLength)",
+        "lengthAssertion.not.toHaveLength(expectedLength+1.0)",
+        "recordAssertion.toHaveLength(numericActual)",
+        "recordAssertion.not.toHaveLength(numericActual+1.0)"
+      ],
+      "typescript": [
+        "strictEqual(actual,null)",
+        "strictEqual(actual,undefined)",
+        "ok(actual!==undefined)",
+        "ok(Boolean(actual))",
+        "ok(!Boolean(actual))",
+        "strictEqual(actual,actual)",
+        "ok(Number.isNaN(actual))",
+        "notStrictEqual(actual,undefined)",
+        "notStrictEqual(actual,null)",
+        "notStrictEqual(actual,0.0)",
+        "ok(!Number.isNaN(actual))",
+        "strictEqual(typeof actual,expectedType)",
+        "notStrictEqual(typeof actual,\"string\")",
+        "ok(numericActual>-1.0)",
+        "ok(numericActual>=numericActual)",
+        "ok(numericActual<6.0)",
+        "ok(numericActual<=numericActual)",
+        "ok(!(numericActual>6.0))",
+        "ok(!(numericActual>=6.0))",
+        "ok(!(numericActual< -1.0))",
+        "ok(!(numericActual<= -1.0))",
+        "ok(Math.abs(numericActual-numericActual)<0.005)",
+        "ok(Math.abs(numericActual-(numericActual+0.125))>=0.000005)",
+        "strictEqual(text.length,expectedLength)",
+        "notStrictEqual(text.length,expectedLength+1.0)",
+        "strictEqual(record.length,numericActual)",
+        "notStrictEqual(record.length,numericActual+1.0)"
+      ]
+    },
+    "sourceRequired": {
+      "native": [
+        "from \"std:testing\"",
+        "const assertion=expect(actual);",
+        "const kind=(i*13+seed)%6;",
+        "checksum=(checksum*131+code)%1000000007;",
+        "const numericActual=Number(kind);",
+        "const numericAssertion=expect(numericActual);",
+        "const lengthAssertion=expect(text);",
+        "const text=kind===0?\"😀\":\"x\".repeat(kind);",
+        "type Measured={length:number|null;};",
+        "const recordAssertion=expect(record);"
+      ],
+      "typescript": [
+        "from \"node:assert/strict\"",
+        "const kind=(i*13+seed)%6;",
+        "checksum=(checksum*131+code)%1000000007;",
+        "const numericActual=Number(kind);",
+        "const text=kind===0?\"😀\":\"x\".repeat(kind);",
+        "type Measured={length:number|null;};"
+      ]
+    },
+    "sourceSha256": "ec059ac99efb1a5372847d362b7fff1092040759d9eb0077810a2a37e8e55a0e",
+    "counterpartSha256": "9b06ae4fd2d2f2f057dcc47dde0000d2cfb776a053babe3dc4573e10920c96ee"
+  }
+]

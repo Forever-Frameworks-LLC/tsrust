@@ -1,0 +1,6 @@
+function workload(n: int, seed: int, input: string): number[][] {
+ const output: number[][] = [];  let i = 0;
+ while (i < n) { const base = (i * 13 + seed) % 97; const digits = String(base * 7 + i);
+ output.push([Number.parseInt(digits + "px"), Number.parseInt(digits, 16), Number.parseInt("0x" + digits), Number.parseInt("-" + digits, 36), Number.parseInt("z" + digits)]); i = i + 1; } return output;
+}
+function main() { const result = workload(3, 0, "abc"); }

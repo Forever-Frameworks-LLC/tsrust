@@ -1,0 +1,16 @@
+function workload(n: int, seed: int, input: string): string[][] {
+ const output:string[][]=[];let i=0;
+ while(i<n){
+  const k=i+seed;const source:int[]=[k,k+1,k+2,k+3];let visits=0;
+  const groups=Map.groupBy(source,(value:int,index:int):int=>{visits+=index+1;return value%2;});
+  source.push(k+4);let first="";let second="";
+  const a=groups.get(k%2);if(a!==undefined){first=a.join(",");}
+  const b=groups.get((k+1)%2);if(b!==undefined){second=b.join(",");}
+  const characters=Map.groupBy(input,(value:string):int=>{return value==="a"?0:1;});let alpha="";let other="";
+  const x=characters.get(0);if(x!==undefined){alpha=x.join("|");}
+  const y=characters.get(1);if(y!==undefined){other=y.join("|");}
+  output.push([String(groups.size),Array.from(groups.keys()).join(","),first,second,String(visits),source.join(","),String(characters.size),alpha,other]);i+=1;
+ }
+ return output;
+}
+function main(){const result=workload(3,0,"abc");}

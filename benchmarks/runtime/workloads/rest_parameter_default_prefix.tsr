@@ -1,0 +1,12 @@
+type Trace = { calls: int; defaults: int; };
+function fallback(trace: Trace): int { trace.defaults = trace.defaults + 1; return 10; }
+function argument(trace: Trace, value: int): int { trace.calls = trace.calls + 1; return value; }
+function pack(trace: Trace, prefix: int = fallback(trace), ...values: int[]): int[] { const result: int[] = [prefix]; let at = 0; while (at < values.length) { result.push(values[at]); at = at + 1; } return result; }
+function workload(n: int, seed: int, input: string): int[][] {
+    const output: int[][] = []; const trace: Trace = { calls: 0, defaults: 0 }; const argumentTrace: Trace = { calls: 0, defaults: 0 }; let i = 0;
+    while (i < n) { const mode = (i + seed) % 3; const base = (i * 13 + seed) % 97; const before = argumentTrace.calls; const defaults = trace.defaults;
+        const values = mode === 0 ? pack(trace) : mode === 1 ? pack(trace, undefined, argument(argumentTrace, base)) : pack(trace, base, argument(argumentTrace, base), argument(argumentTrace, base + 1), argument(argumentTrace, base + 2), argument(argumentTrace, base + 3), argument(argumentTrace, base + 4));
+        output.push(values); output.push([argumentTrace.calls - before, trace.defaults - defaults]); i = i + 1;
+    } return output;
+}
+function main() { const result = workload(3, 0, "abc"); }

@@ -1,0 +1,194 @@
+[
+  {
+    "id": "number_to_fixed_default",
+    "method": "toFixed",
+    "argument": null,
+    "category": "numbers",
+    "family": "number",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual Number.toFixed call with one retained complete String",
+    "specification": "Native decimal formatting uses standard Rust f64 rounding and documented spelling/layout normalization. Strict number receiver, optional int; the shared input pool avoids divergent decimal ties, while native ties-to-even and shortest quirks remain separate correctness evidence.",
+    "notes": "Whole workload includes pool/input setup, dynamic selection, actual formatting, loop and complete String[] retention. Complete observation is outside timing. Pool covers signs/zeros/nonfinite values, binary64 min/max, scale thresholds and non-tie rounding/carry. No isolated method throughput or JS/native allocation parity claim.",
+    "methodExpression": "values[at].toFixed()",
+    "sourceRequired": [
+      "function workload(n: int, seed: int): string[] {",
+      "const values: number[] = [0.0, -0.0, 1.0, -1.0, 1.234, -1.234, 9.999, -9.999, 12345.678, -12345.678, 1e-7, 1e-6, 9.999e-7, 9.999e-6, 1e20, 1e21, 1.0000123e21, -1e21, 1.0 / 0.0, -1.0 / 0.0, 0.0 / 0.0, -1e-7, 5e-324, 1.7976931348623157e308];",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 24;",
+      "const selected: string = values[at].toFixed();",
+      "output.push(selected);",
+      "i = i + 1;",
+      "return output;"
+    ],
+    "sourceSha256": "d79ca7466a470053dcf1ccfe6db8a43f8d7fc6347c59bac419395a0c7bcf867f",
+    "counterpartSha256": "2c055543e4e2493706322d505eb543730f0a7c358ce21851b46b6d96278328c7"
+  },
+  {
+    "id": "number_to_fixed_2",
+    "method": "toFixed",
+    "argument": 2,
+    "category": "numbers",
+    "family": "number",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual Number.toFixed call with one retained complete String",
+    "specification": "Native decimal formatting uses standard Rust f64 rounding and documented spelling/layout normalization. Strict number receiver, optional int; the shared input pool avoids divergent decimal ties, while native ties-to-even and shortest quirks remain separate correctness evidence.",
+    "notes": "Whole workload includes pool/input setup, dynamic selection, actual formatting, loop and complete String[] retention. Complete observation is outside timing. Pool covers signs/zeros/nonfinite values, binary64 min/max, scale thresholds and non-tie rounding/carry. No isolated method throughput or JS/native allocation parity claim.",
+    "methodExpression": "values[at].toFixed(2)",
+    "sourceRequired": [
+      "function workload(n: int, seed: int): string[] {",
+      "const values: number[] = [0.0, -0.0, 1.0, -1.0, 1.234, -1.234, 9.999, -9.999, 12345.678, -12345.678, 1e-7, 1e-6, 9.999e-7, 9.999e-6, 1e20, 1e21, 1.0000123e21, -1e21, 1.0 / 0.0, -1.0 / 0.0, 0.0 / 0.0, -1e-7, 5e-324, 1.7976931348623157e308];",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 24;",
+      "const selected: string = values[at].toFixed(2);",
+      "output.push(selected);",
+      "i = i + 1;",
+      "return output;"
+    ],
+    "sourceSha256": "1f9d2a020ceb89408e3ebf2df3c62ee347ff95bb8e6b9e131919c071566a246e",
+    "counterpartSha256": "08f4f20aa8ae1a7347e08edcf071473574d90e2cb993e5467a75b6f8c685f271"
+  },
+  {
+    "id": "number_to_exponential_default",
+    "method": "toExponential",
+    "argument": null,
+    "category": "numbers",
+    "family": "number",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual Number.toExponential call with one retained complete String",
+    "specification": "Native decimal formatting uses standard Rust f64 rounding and documented spelling/layout normalization. Strict number receiver, optional int; the shared input pool avoids divergent decimal ties, while native ties-to-even and shortest quirks remain separate correctness evidence.",
+    "notes": "Whole workload includes pool/input setup, dynamic selection, actual formatting, loop and complete String[] retention. Complete observation is outside timing. Pool covers signs/zeros/nonfinite values, binary64 min/max, scale thresholds and non-tie rounding/carry. No isolated method throughput or JS/native allocation parity claim.",
+    "methodExpression": "values[at].toExponential()",
+    "sourceRequired": [
+      "function workload(n: int, seed: int): string[] {",
+      "const values: number[] = [0.0, -0.0, 1.0, -1.0, 1.234, -1.234, 9.999, -9.999, 12345.678, -12345.678, 1e-7, 1e-6, 9.999e-7, 9.999e-6, 1e20, 1e21, 1.0000123e21, -1e21, 1.0 / 0.0, -1.0 / 0.0, 0.0 / 0.0, -1e-7, 5e-324, 1.7976931348623157e308];",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 24;",
+      "const selected: string = values[at].toExponential();",
+      "output.push(selected);",
+      "i = i + 1;",
+      "return output;"
+    ],
+    "sourceSha256": "e5d73f069d92c02e9e7c3116ff4943153940b5bf4b540b696def8a8d5c25fee3",
+    "counterpartSha256": "ec7df212af84f2035bc17087e214d8ba9d335f2eaca68116c8373c5530370074"
+  },
+  {
+    "id": "number_to_exponential_2",
+    "method": "toExponential",
+    "argument": 2,
+    "category": "numbers",
+    "family": "number",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual Number.toExponential call with one retained complete String",
+    "specification": "Native decimal formatting uses standard Rust f64 rounding and documented spelling/layout normalization. Strict number receiver, optional int; the shared input pool avoids divergent decimal ties, while native ties-to-even and shortest quirks remain separate correctness evidence.",
+    "notes": "Whole workload includes pool/input setup, dynamic selection, actual formatting, loop and complete String[] retention. Complete observation is outside timing. Pool covers signs/zeros/nonfinite values, binary64 min/max, scale thresholds and non-tie rounding/carry. No isolated method throughput or JS/native allocation parity claim.",
+    "methodExpression": "values[at].toExponential(2)",
+    "sourceRequired": [
+      "function workload(n: int, seed: int): string[] {",
+      "const values: number[] = [0.0, -0.0, 1.0, -1.0, 1.234, -1.234, 9.999, -9.999, 12345.678, -12345.678, 1e-7, 1e-6, 9.999e-7, 9.999e-6, 1e20, 1e21, 1.0000123e21, -1e21, 1.0 / 0.0, -1.0 / 0.0, 0.0 / 0.0, -1e-7, 5e-324, 1.7976931348623157e308];",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 24;",
+      "const selected: string = values[at].toExponential(2);",
+      "output.push(selected);",
+      "i = i + 1;",
+      "return output;"
+    ],
+    "sourceSha256": "dc3ded0b3ceca474afcd08f0fb94b29140030412d5d5e3ec983f645cb26e45bf",
+    "counterpartSha256": "c4f292c7c771c1552bc0a5f1b3781c0daef778b0bf048c1f7fbebe7a709125c1"
+  },
+  {
+    "id": "number_to_precision_default",
+    "method": "toPrecision",
+    "argument": null,
+    "category": "numbers",
+    "family": "number",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual Number.toPrecision call with one retained complete String",
+    "specification": "Native decimal formatting uses standard Rust f64 rounding and documented spelling/layout normalization. Strict number receiver, optional int; the shared input pool avoids divergent decimal ties, while native ties-to-even and shortest quirks remain separate correctness evidence.",
+    "notes": "Whole workload includes pool/input setup, dynamic selection, actual formatting, loop and complete String[] retention. Complete observation is outside timing. Pool covers signs/zeros/nonfinite values, binary64 min/max, scale thresholds and non-tie rounding/carry. No isolated method throughput or JS/native allocation parity claim.",
+    "methodExpression": "values[at].toPrecision()",
+    "sourceRequired": [
+      "function workload(n: int, seed: int): string[] {",
+      "const values: number[] = [0.0, -0.0, 1.0, -1.0, 1.234, -1.234, 9.999, -9.999, 12345.678, -12345.678, 1e-7, 1e-6, 9.999e-7, 9.999e-6, 1e20, 1e21, 1.0000123e21, -1e21, 1.0 / 0.0, -1.0 / 0.0, 0.0 / 0.0, -1e-7, 5e-324, 1.7976931348623157e308];",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 24;",
+      "const selected: string = values[at].toPrecision();",
+      "output.push(selected);",
+      "i = i + 1;",
+      "return output;"
+    ],
+    "sourceSha256": "3bbd3f32156254b6d2d7230eaa10e1b243868f8e0b69adf02633e9e0cb1f3610",
+    "counterpartSha256": "7f6c4c7395eecf1b702806574f215793c76212d42aca108a2cce4d330b9923c4"
+  },
+  {
+    "id": "number_to_precision_5",
+    "method": "toPrecision",
+    "argument": 5,
+    "category": "numbers",
+    "family": "number",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual Number.toPrecision call with one retained complete String",
+    "specification": "Native decimal formatting uses standard Rust f64 rounding and documented spelling/layout normalization. Strict number receiver, optional int; the shared input pool avoids divergent decimal ties, while native ties-to-even and shortest quirks remain separate correctness evidence.",
+    "notes": "Whole workload includes pool/input setup, dynamic selection, actual formatting, loop and complete String[] retention. Complete observation is outside timing. Pool covers signs/zeros/nonfinite values, binary64 min/max, scale thresholds and non-tie rounding/carry. No isolated method throughput or JS/native allocation parity claim.",
+    "methodExpression": "values[at].toPrecision(5)",
+    "sourceRequired": [
+      "function workload(n: int, seed: int): string[] {",
+      "const values: number[] = [0.0, -0.0, 1.0, -1.0, 1.234, -1.234, 9.999, -9.999, 12345.678, -12345.678, 1e-7, 1e-6, 9.999e-7, 9.999e-6, 1e20, 1e21, 1.0000123e21, -1e21, 1.0 / 0.0, -1.0 / 0.0, 0.0 / 0.0, -1e-7, 5e-324, 1.7976931348623157e308];",
+      "const output: string[] = []; let i = 0;",
+      "while (i < n) {",
+      "const at = (i * 13 + seed) % 24;",
+      "const selected: string = values[at].toPrecision(5);",
+      "output.push(selected);",
+      "i = i + 1;",
+      "return output;"
+    ],
+    "sourceSha256": "2e95b1b60b28b80653fbcd0243092dd2b9f695ded4134c542898ecf0976a6e95",
+    "counterpartSha256": "c09244feb0dd307edac6e7a9ef7e2e51e7a5a43b2ab133842726147de5b042ef"
+  }
+]

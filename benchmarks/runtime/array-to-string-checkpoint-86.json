@@ -1,0 +1,83 @@
+{
+  "gate": 83,
+  "checkpoint": 86,
+  "newIds": [
+    "array_to_string_int",
+    "array_to_string_boolean",
+    "array_to_string_string",
+    "array_to_string_nested",
+    "array_to_string_number",
+    "array_to_string_nullish"
+  ],
+  "refreshExisting": [
+    "string_array_conversion"
+  ],
+  "audit": [
+    {
+      "id": "boolean_to_string",
+      "sourceSha256": "d7c2b4a12cc65fa6347bc37438378095ae5cb456349c1f6c94754ad6cafac680",
+      "counterpartSha256": "56855e1b5bf454080a16f34f84b653a4d4822bbf5cdbc0d6795a4baf5e2aa8f8",
+      "affected": false,
+      "reason": "Explicit int scalar conversion is unaffected."
+    },
+    {
+      "id": "int_to_string_base36",
+      "sourceSha256": "cdcd10993953700217cc188ae57bd4cf97cc962fd71264ce9380c3a997c87767",
+      "counterpartSha256": "e6af7b05410885b033de03a42e98a36bdbcd9019ae447e8554dc04a029679f90",
+      "affected": false,
+      "reason": "Explicit int scalar conversion is unaffected."
+    },
+    {
+      "id": "int_to_string_binary",
+      "sourceSha256": "da6310955b3bf6d5fbc09e1515f09a7a2bbb8c2bc7b31aad780e0b6bf428caa6",
+      "counterpartSha256": "1742cab19386ec9e2562fe7fb5a8b595d63a1d28f0ec2a5f746782af42b6042e",
+      "affected": false,
+      "reason": "Explicit int scalar conversion is unaffected."
+    },
+    {
+      "id": "int_to_string_decimal",
+      "sourceSha256": "71f719c8898aedee105a1488807c77dc2e88061a0a5a8a9d18a5dfef9884bbf4",
+      "counterpartSha256": "f331e75ec1bbbe8cae1d0e5a2cdf40f655f0da6f1ee20fb9b8a542475b36e1c3",
+      "affected": false,
+      "reason": "Explicit int scalar conversion is unaffected."
+    },
+    {
+      "id": "int_to_string_hex",
+      "sourceSha256": "c369f85ea9f77106556f9ee6cbece8e7f528ce62c8dbffb2042d71d7b3497daf",
+      "counterpartSha256": "9c85ee39e03b7bb91f5614399d014ab17a8f5a2c47dc1503016b761c35eccaa7",
+      "affected": false,
+      "reason": "Explicit int scalar conversion is unaffected."
+    },
+    {
+      "id": "string_array_conversion",
+      "sourceSha256": "6a2ed04c012a9a1b1df626e90fd43d40bacee5c53191c45d7f78d2efa01f4423",
+      "counterpartSha256": "56b4e2291e081c13e54d1ecc91b506ce3e631923c97e52f8e2c35336ab46d258",
+      "affected": true,
+      "reason": "Indexed homogeneous String array conversion now uses comma-separated contents."
+    },
+    {
+      "id": "string_explicit_int",
+      "sourceSha256": "c7312a1a9a09ca503133da346c49bd3fd0efbf268222e6def4e8c750be7d16ec",
+      "counterpartSha256": "13d82e3e22c21b84f681eaa2d103415a5f790d65da1b7d31b722e9f0f544a5fd",
+      "affected": false,
+      "reason": "Explicit int scalar conversion is unaffected."
+    },
+    {
+      "id": "string_to_string_ascii",
+      "sourceSha256": "a5461bbb566c34048401e74b7836a3f844e58963397dd80e4500771ca71819f8",
+      "counterpartSha256": "a28deb713fbcfd31e4e8fa08ef773bd8549acf56c5235b8b0ad3d918d3546c96",
+      "affected": false,
+      "reason": "Explicit int scalar conversion is unaffected."
+    },
+    {
+      "id": "string_to_string_unicode",
+      "sourceSha256": "0469379fc13e381f9273984dfade068937e0f4a309c370a817d56dce9ace348b",
+      "counterpartSha256": "2ce07ecfe08aea599f77e48d0bf3a3a80d834b6bdfd37530f62fa1b3ea586b08",
+      "affected": false,
+      "reason": "Explicit int scalar conversion is unaffected."
+    }
+  ],
+  "existingPairsUnmodified": true,
+  "timed": false,
+  "policy": "Only the existing String(array) comparison is affected. Its source bytes and historical manifest object stay unchanged; refresh performance and complete-output/disposal acceptance at checkpoint86."
+}

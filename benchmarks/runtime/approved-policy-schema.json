@@ -1,0 +1,328 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Independently approved pre-output workload policies",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "protocol",
+    "predeclared",
+    "policyByWorkload"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "protocol": {
+      "const": "mpfr-directed-f64-scalar-v1"
+    },
+    "predeclared": {
+      "const": true
+    },
+    "policyByWorkload": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "method",
+          "operationArity",
+          "tsSha256",
+          "tsrSha256",
+          "inputRecipeSha256",
+          "argumentBounds",
+          "policy",
+          "domain"
+        ],
+        "properties": {
+          "method": {
+            "enum": [
+              "acos",
+              "acosh",
+              "asin",
+              "asinh",
+              "atan",
+              "atanh",
+              "cbrt",
+              "cos",
+              "cosh",
+              "exp",
+              "expm1",
+              "log",
+              "log10",
+              "log1p",
+              "log2",
+              "sin",
+              "sinh",
+              "tan",
+              "tanh",
+              "atan2",
+              "pow",
+              "hypot"
+            ]
+          },
+          "operationArity": {
+            "enum": [
+              1,
+              2,
+              4
+            ]
+          },
+          "tsSha256": {
+            "$ref": "#/$defs/sha"
+          },
+          "tsrSha256": {
+            "$ref": "#/$defs/sha"
+          },
+          "inputRecipeSha256": {
+            "$ref": "#/$defs/sha"
+          },
+          "argumentBounds": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 4,
+            "items": {
+              "$ref": "#/$defs/bound"
+            }
+          },
+          "policy": {
+            "type": "object",
+            "required": [
+              "predeclared",
+              "maxOperationRankSteps",
+              "exactSupportingAddition",
+              "quantization"
+            ],
+            "properties": {
+              "predeclared": {
+                "const": true
+              },
+              "maxOperationRankSteps": {
+                "enum": [
+                  8,
+                  32
+                ]
+              },
+              "exactSupportingAddition": {
+                "const": "binary64-nearest-even-in-source-order"
+              },
+              "quantization": {
+                "const": false
+              }
+            }
+          },
+          "domain": {
+            "type": "object",
+            "required": [
+              "maxIterations",
+              "maxSeed"
+            ],
+            "properties": {
+              "maxIterations": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000
+              },
+              "maxSeed": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "method": {
+                  "const": "hypot"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "operationArity": {
+                  "const": 4
+                },
+                "policy": {
+                  "properties": {
+                    "maxOperationRankSteps": {
+                      "const": 32
+                    }
+                  }
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "policy": {
+                  "properties": {
+                    "maxOperationRankSteps": {
+                      "const": 8
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "bits": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$"
+    },
+    "zeroSign": {
+      "enum": [
+        "positive",
+        "negative",
+        "either"
+      ]
+    },
+    "dyadic": {
+      "type": "object",
+      "required": [
+        "numerator",
+        "denominatorPowerOfTwo"
+      ],
+      "properties": {
+        "numerator": {
+          "type": "string",
+          "pattern": "^(-[1-9][0-9]*|0|[1-9][0-9]*)$",
+          "maxLength": 10000
+        },
+        "denominatorPowerOfTwo": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16384
+        }
+      }
+    },
+    "point": {
+      "type": "object",
+      "required": [
+        "id",
+        "inputBits",
+        "directedLower",
+        "directedUpper",
+        "nearestBits",
+        "uniqueNearestVerified",
+        "refinementPrecisionBits",
+        "allowedRankSteps",
+        "acceptedLowerBits",
+        "acceptedUpperBits",
+        "zeroSign"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "inputBits": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/bits"
+          }
+        },
+        "directedLower": {
+          "$ref": "#/$defs/dyadic"
+        },
+        "directedUpper": {
+          "$ref": "#/$defs/dyadic"
+        },
+        "nearestBits": {
+          "$ref": "#/$defs/bits"
+        },
+        "uniqueNearestVerified": {
+          "const": true
+        },
+        "refinementPrecisionBits": {
+          "type": "integer",
+          "minimum": 256
+        },
+        "allowedRankSteps": {
+          "enum": [
+            0,
+            8,
+            32
+          ]
+        },
+        "acceptedLowerBits": {
+          "$ref": "#/$defs/bits"
+        },
+        "acceptedUpperBits": {
+          "$ref": "#/$defs/bits"
+        },
+        "zeroSign": {
+          "$ref": "#/$defs/zeroSign"
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "required": [
+        "iterations",
+        "seed",
+        "initialBits",
+        "steps",
+        "acceptedLowerBits",
+        "acceptedUpperBits",
+        "idealAccumulatorBits",
+        "zeroSign"
+      ],
+      "properties": {
+        "iterations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "initialBits": {
+          "$ref": "#/$defs/bits"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "acceptedLowerBits": {
+          "$ref": "#/$defs/bits"
+        },
+        "acceptedUpperBits": {
+          "$ref": "#/$defs/bits"
+        },
+        "idealAccumulatorBits": {
+          "$ref": "#/$defs/bits"
+        },
+        "zeroSign": {
+          "$ref": "#/$defs/zeroSign"
+        }
+      }
+    },
+    "bound": {
+      "type": "object",
+      "required": [
+        "lower",
+        "upper"
+      ],
+      "properties": {
+        "lower": {
+          "$ref": "#/$defs/dyadic"
+        },
+        "upper": {
+          "$ref": "#/$defs/dyadic"
+        }
+      }
+    }
+  }
+}

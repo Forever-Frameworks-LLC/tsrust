@@ -1,0 +1,8 @@
+// Reuse the independently accepted scalar matcher; no tested split method.
+import {manualSplit} from './string-construction-oracle.mjs';
+import {observeSliceTree} from './slice-observation.mjs';
+export const splitOwnershipIds=['string_cow_split_pieces','string_scalar_split_unicode'];
+export function validateSplitOwnershipCase(id,n,seed,input){if(!splitOwnershipIds.includes(id)||!Number.isSafeInteger(n)||n<0||n>2048||!Number.isSafeInteger(seed)||seed<0||seed>1000000)throw Error('Known bounded split case');if(input===undefined)input='é::😀::';if(typeof input!=='string')throw Error('String input');for(const scalar of input){const cp=scalar.codePointAt(0);if(cp>=0xd800&&cp<=0xdfff)throw Error('Lone surrogate excluded');}if(new TextEncoder().encode(input).length>256)throw Error('Input at most256 UTF8 bytes');return input;}
+function twice(text){let out='';for(let count=0;count<2;count++)for(const scalar of text)out+=scalar;return out;}
+export function expectedSplitOwnershipValues(id,n,seed,input){input=validateSplitOwnershipCase(id,n,seed,input);const pool=[input,'','::a::::b::','é😀é😀','a\u0000b','e\u0301::😀','\uFEFF::中',twice(input)],limits=[0,1,2,3,7],out=[];let at=seed%8,limitAt=seed%5,absent=seed%17;for(let remaining=n;remaining>0;remaining--){out.push(id==='string_cow_split_pieces'&&absent===0?manualSplit(pool[at]):manualSplit(pool[at],id==='string_cow_split_pieces'?'::':'',limits[limitAt]));at=(at+13)%8;limitAt=(limitAt+3)%5;absent=(absent+1)%17;}return out;}
+export function expectedSplitOwnershipObservation(id,n,seed,input){return observeSliceTree(expectedSplitOwnershipValues(id,n,seed,input));}

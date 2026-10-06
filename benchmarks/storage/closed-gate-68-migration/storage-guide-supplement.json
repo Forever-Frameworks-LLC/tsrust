@@ -1,0 +1,23 @@
+{
+  "gate": 68,
+  "kind": "documentation-only-postcompaction-storage-guides",
+  "utilityExitCode": 0,
+  "executedMigration": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-gate-68-migration/migration.json",
+    "sha256": "56dfcf99f80ff74e7867f1da60d5e378f3751b1727aa1623553551d1e262d325"
+  },
+  "files": [
+    {
+      "path": "benchmarks/storage/README.md",
+      "beforeSha256": "a99dd3b3da1b6da6f20708f020e597af85ac6d2322ac678f7b84ec210c6169c6",
+      "afterSha256": "98c97281f8e7ed249abc064e47efea4024366cd1e9b6f2b475a2cdd3d51d8ca3"
+    },
+    {
+      "path": "benchmarks/storage/HISTORICAL_ARCHIVE.md",
+      "beforeSha256": "435336aa4c84c33aa280a4389cfb52de148680ee5144104084fbb83c4ff64d20",
+      "afterSha256": "e867af31f6f9bf09b0c9500d2aacf55db9e1ce60a27cf314dbb709d4a784088a"
+    }
+  ],
+  "testsRepeated": false,
+  "measurementsRepeated": false
+}

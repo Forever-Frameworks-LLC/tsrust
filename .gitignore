@@ -1,0 +1,17 @@
+/target/
+/benchmarks/runtime/node_modules/
+
+/editors/vscode/node_modules/
+/editors/vscode/out/
+/editors/vscode/.vscode-test/
+/editors/vscode/*.vsix
+/.vscode/settings.json
+
+# Archives must not be recreated; generated run artifacts stay local.
+/archive/
+/benchmarks/runtime/results/
+/benchmarks/runtime/diagnostics/
+# SQLite remains the canonical local analytics store; retain it outside Git.
+/benchmarks/records.sqlite
+/benchmarks/records.sqlite-wal
+/benchmarks/records.sqlite-shm

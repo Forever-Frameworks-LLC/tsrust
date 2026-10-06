@@ -1,0 +1,15 @@
+type int = number;
+function workload(n: int, seed: int): number[] {
+    const output: number[] = []; let i = 0;
+    while (i < n) {
+        const values: number[] = [Number(seed + i) + 0.25, -0.0, 2.25];
+        values.push(Number(i) + 0.5);
+        const saved = values.slice(); values[0] = Number(i) + 1.5;
+        values.reverse(); const removed = values.splice(1, 1)[0];
+        output.push(saved[0]); output.push(saved[1]); output.push(removed);
+        output.push(values[0]); output.push(values[1]); output.push(values[2]);
+        output.push(Number(values.includes(2.25))); output.push(Number(values.indexOf(-0.0)));
+        i = i + 1;
+    } return output;
+}
+function main() { const result = workload(2, 7); console.log(result.length); }

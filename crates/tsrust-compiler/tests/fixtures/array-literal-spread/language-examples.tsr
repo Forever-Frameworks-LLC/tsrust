@@ -1,0 +1,10 @@
+function main() {
+    const source = [1, 2];
+    const values = [0, ...source, 3];
+    console.log(values.join("|"), "length:", source.length);
+    const text = ["a", "b"];
+    const moved = [...text, "c"];
+    console.log(moved.join("|"));
+    const empty: int[] = [...[]];
+    console.log(empty.length);
+}

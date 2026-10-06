@@ -1,0 +1,4 @@
+function workload(n:int,seed:int):int[][][]{const consumer=copying;const output:int[][][]=[];let i=0;while(i<n){const value:int[][]=[[seed+i,1],[],[i,2,3]];output.push(consumer(duplicate,value));i=i+1;}return output;}
+function duplicate(values:int[][]):int[][]{return clone(values);}
+function copying(f:Mutable<Function<int[][], [values:ReadOnly<int[][]>]>>,values:int[][]):int[][]{return f(values);}
+function main(){const result=workload(2,7);}

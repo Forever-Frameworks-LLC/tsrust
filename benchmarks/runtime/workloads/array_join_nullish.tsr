@@ -1,0 +1,22 @@
+function workload(n: int, seed: int): string[] {
+    const values: null[] = [null, null, null];
+    const missing: undefined[] = [undefined, undefined, undefined];
+    const separators: string[] = ["|", "", "é\u0000", " 😀 "];
+    const output: string[] = []; let i = 0;
+    while (i < n) {
+        const count = (i + seed) % 4;
+        const mode = (i * 7 + seed) % 5;
+        let joined: string = "";
+        if ((i + seed) % 2 === 0) {
+            const receiver = values.slice(0, count);
+            if (mode === 0) { joined = receiver.join(); } else { joined = receiver.join(separators[mode - 1]); }
+        } else {
+            const receiver = missing.slice(0, count);
+            if (mode === 0) { joined = receiver.join(); } else { joined = receiver.join(separators[mode - 1]); }
+        }
+        output.push(joined);
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7); }

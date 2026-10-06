@@ -1,0 +1,11 @@
+{
+  "closedProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T12-46-47-000Z-array-fill-copy-within-runtime-proof.json",
+    "sha256": "467aca80c511446783010f066ac7ca017a5fcd810aba9c2296f0b9937bae12c5"
+  },
+  "paths": [
+    "runtime/diagnostics/2026-10-02T12-40-00-000Z-array-fill-copy-within-compiler-proof-artifacts",
+    "runtime/diagnostics/2026-10-02T12-42-00-000Z-array-fill-copy-within-source-validation-artifacts",
+    "runtime/diagnostics/2026-10-02T12-46-47-000Z-array-fill-copy-within-runtime-artifacts"
+  ]
+}

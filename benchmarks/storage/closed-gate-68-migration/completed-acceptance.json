@@ -1,0 +1,234 @@
+{
+  "gate": 68,
+  "compilerAccepted": true,
+  "runtimeAccepted": true,
+  "completedUtc": "2026-10-02T21:37:55.497504+00:00",
+  "namedGroups": 629,
+  "workspaceNamedGroups": 644,
+  "releasePath": "/Users/seancotter/Desktop/dev/learning/tsrust/target/release/tsrust",
+  "releaseSha256": "1a0f547ad9f5d79fb84b161557be13663468801af0f22041f17ff51b8628b284",
+  "compilerProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T21-29-16-000Z-numeric-compound-assignment-values-compiler-proof.json",
+    "sha256": "0a3e4dcbcc5b6741c2930c6ac3bbe6e5d8f7f445d2d8e566eb0a3be098909992"
+  },
+  "sourceProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T21-15-11-000Z-numeric-compound-assignment-value-source-validation.json",
+    "sha256": "4f6805b9b7910a0da8159fc085b8cc7e9530ea6d16260be92eb5af07bbcacc35"
+  },
+  "runtimeProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T21-37-19-000Z-numeric-compound-assignment-value-runtime-proof.json",
+    "sha256": "ffd4c74ca3b4a8b61bc02cb06508ea2e9134462bfe0370105d9468fdac1cd103"
+  },
+  "measuredRows": 434,
+  "verification": {
+    "compilerScope": {
+      "scalarTypes": [
+        "int",
+        "number"
+      ],
+      "operators": [
+        "+=",
+        "-=",
+        "*=",
+        "/=",
+        "%=",
+        "**=",
+        "&=",
+        "|=",
+        "^=",
+        "<<=",
+        ">>=",
+        ">>>="
+      ],
+      "newRegressionTarget": "compound_assignment_values",
+      "uniqueRegressionGroups": 629,
+      "workspaceNamedGroups": 644,
+      "additionalWorkspaceGroups": 15,
+      "focusedGroups": 4,
+      "focusedCommands": 2,
+      "failedFocusedCommands": 1,
+      "retainedFocusedGroupsAfterFailedCommand": 3,
+      "exactFocusedRepairCommands": 1,
+      "focusedNativeOptimizationLevels": [
+        "0",
+        "3"
+      ],
+      "fullAttempts": 1,
+      "fullRestarts": 0,
+      "failedRegressionCommands": 0,
+      "retainedGroupsFromFailedRegressionCommands": 0,
+      "targetedResumptionCommands": 0,
+      "separateDoctestCommands": 1,
+      "finalFormatClippyBuildsPassed": true,
+      "freshDebugReleaseEmissionByteExact": true,
+      "nativePerformancePending": true,
+      "initialPreparationFailures": 0
+    },
+    "sourcePrograms": 24,
+    "sourceCases": 1680,
+    "sourceMutationNegatives": 304,
+    "independentSourceHandCells": 218,
+    "auxiliarySourcePrograms": 2,
+    "sourceOrder": true,
+    "uniqueNodeGroups": 2,
+    "runtimeScope": {
+      "newWorkloads": 24,
+      "engines": 8,
+      "currentSourceInputsExact": 71,
+      "publishedRateCells": 192,
+      "priorRawRecordsRehashed": false,
+      "old410MeasurementTablesByteExact": true,
+      "old410ReportSectionsByteExact": true,
+      "old9PrimitiveMemoryTablesByteExact": true,
+      "auxiliaryTablesByteExact": true,
+      "measurementScope": "execution-only",
+      "startupCompilerMeasurements": 0,
+      "processCells": 576,
+      "processesPerEngineRow": 3,
+      "samplesPerProcess": 31,
+      "warmupsPerProcess": 8,
+      "timedBatches": 17856,
+      "independentEngineCorrectnessPreparationsBeforeTiming": 960,
+      "actualSourceTypeScriptCases": 1680,
+      "actualSourceTypeScriptPrograms": 24,
+      "actualNodeUniqueGroups": 2,
+      "independentSourceHandCells": 218,
+      "sourceObserverMutationNegatives": 304,
+      "nativePreflightBuilds": 98,
+      "nativeO0O3CompleteOutputCases": 240,
+      "nativeUntimedAllocationCases": 48,
+      "nativeCompleteOrderCases": 2,
+      "nativeProfileSamples": 72,
+      "allAfterOutputAndFinalDisposalsZero": true,
+      "groupedReportMeasuredRows": 434,
+      "groupedPrimitiveRows": 9,
+      "old410RowsMemory9AuxiliaryBaselinesNotRetimed": true,
+      "combined434WorkloadRunClaimed": false,
+      "realCompleteTypedArrayResultABI": true,
+      "naturalOutputConstructionAndRetentionTimed": true,
+      "retainedScalarResultsPerOperation": 2,
+      "completeObserverTraversalTimed": false,
+      "ownedCloningSharingIdentityEquivalenceClaimed": false,
+      "nativeStdoutStoredOnce": true
+    },
+    "oldMeasurementsRepeated": false,
+    "resourceNormalization": {
+      "operationsPerSample": 2048,
+      "samples": 3,
+      "retainedScalarResultsPerOperation": 2,
+      "rawCountersRetained": true,
+      "inputAdaptationSeparate": true,
+      "absoluteDisposalBytes": {
+        "liveBytesAfterOutputDrop": 0,
+        "liveBytesAfterDrop": 0
+      },
+      "peak": "retained-batch peak divided by operations; not an isolated-call peak"
+    }
+  },
+  "measurementHistory": {
+    "failedMeasurementAttempts": [],
+    "acceptedRecordSuppliesAllPublishedRates": true
+  },
+  "sessions": {
+    "nativePreflight": {
+      "session": 7315,
+      "terminal": {
+        "path": "/private/tmp/tsrust-gate68-root-acceptance/native-terminal.json",
+        "sha256": "e69065288c20384918e5496835c0799ce62f104e7471b0b85cc4bbb5ebce7eb3"
+      },
+      "actual": {
+        "gate": 68,
+        "argv": [
+          "/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node",
+          "/tmp/tsrust-gate68-native-source-plan/preflight.mjs",
+          "--release-sha=1a0f547ad9f5d79fb84b161557be13663468801af0f22041f17ff51b8628b284",
+          "--source-proof=/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T21-15-11-000Z-numeric-compound-assignment-value-source-validation.json",
+          "--source-proof-sha=4f6805b9b7910a0da8159fc085b8cc7e9530ea6d16260be92eb5af07bbcacc35",
+          "--output=/tmp/tsrust-gate68-native-preflight",
+          "--fixture-source=/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/compound-value-source-order.tsr",
+          "--fixture-expected=/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/compound-value-source-order-expected.txt"
+        ],
+        "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+        "pid": 90293,
+        "startedUtc": "2026-10-02T21:30:25.071151+00:00",
+        "finishedUtc": "2026-10-02T21:30:52.286704+00:00",
+        "exitCode": 0,
+        "log": "/tmp/tsrust-gate68-root-acceptance/native.log",
+        "logSha256": "aa1d01255690712281574518f45a5bf8e9ccbb73804b3667efe1d0ad386213e4"
+      }
+    },
+    "runtime": {
+      "session": 40869,
+      "terminal": {
+        "path": "/private/tmp/tsrust-gate68-runtime-terminal.json",
+        "sha256": "0d75762e3c853cefbc8acbbe2f15ac645f57fd006d227c2c0ce5f2d47f3e64ae"
+      },
+      "actual": {
+        "argv": [
+          "/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node",
+          "benchmarks/runtime/run.mjs",
+          "--execution-only",
+          "--only=compound_value_int_add,compound_value_int_subtract,compound_value_int_multiply,compound_value_int_divide,compound_value_int_remainder,compound_value_int_power,compound_value_int_and,compound_value_int_or,compound_value_int_xor,compound_value_int_shift_left,compound_value_int_shift_right,compound_value_int_shift_right_unsigned,compound_value_number_add,compound_value_number_subtract,compound_value_number_multiply,compound_value_number_divide,compound_value_number_remainder,compound_value_number_power,compound_value_number_and,compound_value_number_or,compound_value_number_xor,compound_value_number_shift_left,compound_value_number_shift_right,compound_value_number_shift_right_unsigned"
+        ],
+        "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+        "pid": 99825,
+        "startedUtc": "2026-10-02T21:31:45.756673+00:00",
+        "finishedUtc": "2026-10-02T21:35:35.464911+00:00",
+        "exitCode": 0,
+        "log": "/tmp/tsrust-gate68-runtime.log",
+        "logSha256": "6956eb0dc3a7d4493a9a82e72823cabf80d05592e4ed535927fda6fac24c44ca"
+      }
+    },
+    "profile": {
+      "session": 24904,
+      "terminal": {
+        "path": "/private/tmp/tsrust-gate68-profile-terminal.json",
+        "sha256": "c804784e8ee52ed8debafc79dae57d00b8020b5e76290ce88a4842cd532d3e92"
+      },
+      "actual": {
+        "argv": [
+          "/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node",
+          "benchmarks/runtime/profile-native.mjs",
+          "--only=compound_value_int_add,compound_value_int_subtract,compound_value_int_multiply,compound_value_int_divide,compound_value_int_remainder,compound_value_int_power,compound_value_int_and,compound_value_int_or,compound_value_int_xor,compound_value_int_shift_left,compound_value_int_shift_right,compound_value_int_shift_right_unsigned,compound_value_number_add,compound_value_number_subtract,compound_value_number_multiply,compound_value_number_divide,compound_value_number_remainder,compound_value_number_power,compound_value_number_and,compound_value_number_or,compound_value_number_xor,compound_value_number_shift_left,compound_value_number_shift_right,compound_value_number_shift_right_unsigned"
+        ],
+        "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+        "pid": 12022,
+        "startedUtc": "2026-10-02T21:36:25.886128+00:00",
+        "finishedUtc": "2026-10-02T21:36:34.706226+00:00",
+        "exitCode": 0,
+        "log": "/tmp/tsrust-gate68-profile.log",
+        "logSha256": "9e679e7c47eb9b11119ace3207647ceb5c4a0ed4bc261cd065c89e38e4badedd"
+      }
+    }
+  },
+  "rateLeads": {
+    "nativeNode": 24,
+    "nativeFastestScripting": 24,
+    "rows": 24,
+    "nativeNodeAverageRatioRange": [
+      1.3913916508090947,
+      3.848540450055229
+    ],
+    "nativeFastestAverageRatioRange": [
+      1.018645838553442,
+      2.646621373690568
+    ]
+  },
+  "inventoryOperations": 1924,
+  "inventoryFamilies": 28,
+  "readmeSha256": "90fb27d914df91405d3344d6a090f55a074023d3eaa65f829d4fc1c79e446216",
+  "documentationOnlyCompilerSupplement": "/private/tmp/tsrust-gate68-postclosure-readme-supplement.json",
+  "documentationSupplementSha256": "a64e28cfaeb447eda34da6eb4ded40e72195b17a8cc9b92702d03619d616100f",
+  "closureArtifacts": [
+    {
+      "originalPath": "/private/tmp/tsrust-gate68-close-docs.py",
+      "path": "benchmarks/runtime/diagnostics/2026-10-02T21-37-19-000Z-numeric-compound-assignment-value-runtime-proof-closure-artifacts/tsrust-gate68-close-docs.py",
+      "sha256": "f46c4c9c1d56fbe0f41f5a9bd63342d73d2ea2d52b879726b427edac8c4109ee"
+    }
+  ],
+  "archivedDocumentationSupplement": {
+    "path": "benchmarks/runtime/diagnostics/2026-10-02T21-37-19-000Z-numeric-compound-assignment-value-runtime-proof-closure-artifacts/tsrust-gate68-postclosure-readme-supplement.json",
+    "sha256": "a64e28cfaeb447eda34da6eb4ded40e72195b17a8cc9b92702d03619d616100f"
+  },
+  "historicalCompilerProofUnchanged": true
+}

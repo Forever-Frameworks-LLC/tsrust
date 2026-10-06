@@ -1,0 +1,636 @@
+[
+  {
+    "id": "conditional_int_value",
+    "n": 0,
+    "seed": 0,
+    "expected": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "id": "conditional_int_value",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      0,
+      1,
+      1,
+      0
+    ]
+  },
+  {
+    "id": "conditional_int_value",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      65,
+      1,
+      0,
+      1
+    ]
+  },
+  {
+    "id": "conditional_int_value",
+    "n": 2,
+    "seed": 0,
+    "expected": [
+      0,
+      71,
+      2,
+      1,
+      1
+    ]
+  },
+  {
+    "id": "conditional_number_value",
+    "n": 0,
+    "seed": 0,
+    "expected": [
+      "0000000000000000",
+      "0000000000000000",
+      "0000000000000000"
+    ]
+  },
+  {
+    "id": "conditional_number_value",
+    "n": 1,
+    "seed": 7,
+    "expected": [
+      "8000000000000000",
+      "3ff0000000000000",
+      "0000000000000000",
+      "3ff0000000000000"
+    ]
+  },
+  {
+    "id": "conditional_number_value",
+    "n": 8,
+    "seed": 0,
+    "expected": [
+      "0000000000000000",
+      "0000000000000000",
+      "fff0000000000000",
+      "4010000000000000",
+      "4010000000000000",
+      "7ff0000000000000",
+      "nan",
+      "nan",
+      "4020000000000000",
+      "4008000000000000",
+      "4014000000000000"
+    ]
+  },
+  {
+    "id": "conditional_number_value",
+    "n": 8,
+    "seed": 1,
+    "expected": [
+      "fff0000000000000",
+      "3fe0000000000000",
+      "7ff0000000000000",
+      "7ff0000000000000",
+      "8000000000000000",
+      "bfe0000000000000",
+      "bfe0000000000000",
+      "0000000000000000",
+      "4020000000000000",
+      "4000000000000000",
+      "4018000000000000"
+    ]
+  },
+  {
+    "id": "conditional_boolean_value",
+    "n": 0,
+    "seed": 0,
+    "expected": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "id": "conditional_boolean_value",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      1,
+      1,
+      1,
+      0
+    ]
+  },
+  {
+    "id": "conditional_boolean_value",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      0,
+      1,
+      0,
+      1
+    ]
+  },
+  {
+    "id": "conditional_boolean_value",
+    "n": 2,
+    "seed": 1,
+    "expected": [
+      1,
+      0,
+      2,
+      1,
+      1
+    ]
+  },
+  {
+    "id": "conditional_string_ascii",
+    "n": 0,
+    "seed": 0,
+    "expected": [
+      "",
+      "",
+      ""
+    ],
+    "input": "a"
+  },
+  {
+    "id": "conditional_string_ascii",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "L",
+      "P",
+      "L",
+      ""
+    ],
+    "input": ""
+  },
+  {
+    "id": "conditional_string_ascii",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "Ra\u0000ba\u0000b",
+      "P",
+      "",
+      "R"
+    ],
+    "input": "a\u0000b"
+  },
+  {
+    "id": "conditional_string_ascii",
+    "n": 2,
+    "seed": 0,
+    "expected": [
+      "La",
+      "Raa",
+      "PP",
+      "L",
+      "R"
+    ],
+    "input": "a"
+  },
+  {
+    "id": "conditional_string_unicode",
+    "n": 0,
+    "seed": 0,
+    "expected": [
+      "",
+      "",
+      ""
+    ],
+    "input": "é😀é\u0000"
+  },
+  {
+    "id": "conditional_string_unicode",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "Lé😀é\u0000",
+      "P",
+      "L",
+      ""
+    ],
+    "input": "é😀é\u0000"
+  },
+  {
+    "id": "conditional_string_unicode",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      "Ré😀é\u0000é😀é\u0000",
+      "P",
+      "",
+      "R"
+    ],
+    "input": "é😀é\u0000"
+  },
+  {
+    "id": "conditional_string_unicode",
+    "n": 2,
+    "seed": 0,
+    "expected": [
+      "Lé😀é\u0000",
+      "Ré😀é\u0000é😀é\u0000",
+      "PP",
+      "L",
+      "R"
+    ],
+    "input": "é😀é\u0000"
+  },
+  {
+    "id": "conditional_array_int",
+    "n": 0,
+    "seed": 0,
+    "expected": [
+      [
+        0,
+        0,
+        0
+      ]
+    ]
+  },
+  {
+    "id": "conditional_array_int",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      [],
+      [
+        1,
+        1,
+        0
+      ]
+    ]
+  },
+  {
+    "id": "conditional_array_int",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      [
+        80,
+        81
+      ],
+      [
+        1,
+        0,
+        1
+      ]
+    ]
+  },
+  {
+    "id": "conditional_array_int",
+    "n": 2,
+    "seed": 0,
+    "expected": [
+      [],
+      [
+        104,
+        105,
+        106
+      ],
+      [
+        2,
+        1,
+        1
+      ]
+    ]
+  },
+  {
+    "id": "conditional_array_int",
+    "n": 3,
+    "seed": 1,
+    "expected": [
+      [
+        80,
+        81
+      ],
+      [
+        56
+      ],
+      [],
+      [
+        3,
+        1,
+        2
+      ]
+    ]
+  },
+  {
+    "id": "conditional_array_number",
+    "n": 0,
+    "seed": 0,
+    "expected": [
+      [
+        "0000000000000000",
+        "0000000000000000",
+        "0000000000000000"
+      ]
+    ]
+  },
+  {
+    "id": "conditional_array_number",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      [],
+      [
+        "3ff0000000000000",
+        "3ff0000000000000",
+        "0000000000000000"
+      ]
+    ]
+  },
+  {
+    "id": "conditional_array_number",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      [
+        "fff0000000000000",
+        "nan"
+      ],
+      [
+        "3ff0000000000000",
+        "0000000000000000",
+        "3ff0000000000000"
+      ]
+    ]
+  },
+  {
+    "id": "conditional_array_number",
+    "n": 2,
+    "seed": 0,
+    "expected": [
+      [],
+      [
+        "0000000000000000",
+        "8000000000000000",
+        "3fe0000000000000"
+      ],
+      [
+        "4000000000000000",
+        "3ff0000000000000",
+        "3ff0000000000000"
+      ]
+    ]
+  },
+  {
+    "id": "conditional_array_number",
+    "n": 3,
+    "seed": 1,
+    "expected": [
+      [
+        "fff0000000000000",
+        "nan"
+      ],
+      [
+        "3fe0000000000000"
+      ],
+      [],
+      [
+        "4008000000000000",
+        "3ff0000000000000",
+        "4000000000000000"
+      ]
+    ]
+  },
+  {
+    "id": "conditional_array_boolean",
+    "n": 0,
+    "seed": 0,
+    "expected": [
+      [
+        0,
+        0,
+        0
+      ]
+    ]
+  },
+  {
+    "id": "conditional_array_boolean",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      [],
+      [
+        1,
+        1,
+        0
+      ]
+    ]
+  },
+  {
+    "id": "conditional_array_boolean",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      [
+        1,
+        0
+      ],
+      [
+        1,
+        0,
+        1
+      ]
+    ]
+  },
+  {
+    "id": "conditional_array_boolean",
+    "n": 2,
+    "seed": 0,
+    "expected": [
+      [],
+      [
+        1,
+        0,
+        0
+      ],
+      [
+        2,
+        1,
+        1
+      ]
+    ]
+  },
+  {
+    "id": "conditional_array_boolean",
+    "n": 3,
+    "seed": 1,
+    "expected": [
+      [
+        1,
+        0
+      ],
+      [
+        0
+      ],
+      [],
+      [
+        3,
+        1,
+        2
+      ]
+    ]
+  },
+  {
+    "id": "conditional_array_string",
+    "n": 0,
+    "seed": 0,
+    "expected": [
+      [
+        "",
+        "",
+        ""
+      ]
+    ],
+    "input": "a"
+  },
+  {
+    "id": "conditional_array_string",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      [],
+      [
+        "P",
+        "L",
+        ""
+      ]
+    ],
+    "input": ""
+  },
+  {
+    "id": "conditional_array_string",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      [
+        "a\u0000R",
+        "a\u0000Ra\u0000R"
+      ],
+      [
+        "P",
+        "",
+        "R"
+      ]
+    ],
+    "input": "a\u0000"
+  },
+  {
+    "id": "conditional_array_string",
+    "n": 2,
+    "seed": 0,
+    "expected": [
+      [],
+      [
+        "é\u0000R",
+        "é\u0000Ré\u0000R",
+        "é\u0000Ré\u0000Ré\u0000R"
+      ],
+      [
+        "PP",
+        "L",
+        "R"
+      ]
+    ],
+    "input": "é\u0000"
+  },
+  {
+    "id": "conditional_array_string",
+    "n": 3,
+    "seed": 1,
+    "expected": [
+      [
+        "aR",
+        "aRaR"
+      ],
+      [
+        "aL"
+      ],
+      [],
+      [
+        "PPP",
+        "L",
+        "RR"
+      ]
+    ],
+    "input": "a"
+  },
+  {
+    "id": "conditional_record_value",
+    "n": 0,
+    "seed": 0,
+    "expected": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "id": "conditional_record_value",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      101,
+      0,
+      1,
+      1,
+      0
+    ]
+  },
+  {
+    "id": "conditional_record_value",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      202,
+      2,
+      80,
+      81,
+      1,
+      0,
+      1
+    ]
+  },
+  {
+    "id": "conditional_record_value",
+    "n": 2,
+    "seed": 0,
+    "expected": [
+      101,
+      0,
+      202,
+      3,
+      104,
+      105,
+      106,
+      2,
+      1,
+      1
+    ]
+  },
+  {
+    "id": "conditional_record_value",
+    "n": 3,
+    "seed": 1,
+    "expected": [
+      202,
+      2,
+      80,
+      81,
+      101,
+      1,
+      56,
+      202,
+      0,
+      3,
+      1,
+      2
+    ]
+  }
+]

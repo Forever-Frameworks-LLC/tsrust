@@ -1,0 +1,388 @@
+[
+  {
+    "id": "compound_int_add",
+    "category": "operators",
+    "family": "int",
+    "compoundOperator": "+=",
+    "operatorName": "add",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual += assignment with complete retained result",
+    "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual int compound assignment, and retain every complete primitive result in order. Int division uses exact multiples of nonzero divisors; subtraction and all retained int values are nonnegative, preserving the existing int-array observer.",
+    "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact content and shape observation runs outside timing. Bounds prevent native checked-int overflow and JavaScript safe-integer drift. Signed non-divisible int division hand cells use an explicit Math.trunc adapter after actual JS /= only outside timing.",
+    "sourceSha256": "035f88dc4c20471bca75b0c9544d736b4ed84b4f9fe82a86baf99c90cc9dfac0",
+    "counterpartSha256": "2801f6420b22e381f80a6f3a54956271eb62009f32ffc20d6205b910353ed1ed"
+  },
+  {
+    "id": "compound_int_subtract",
+    "category": "operators",
+    "family": "int",
+    "compoundOperator": "-=",
+    "operatorName": "subtract",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual -= assignment with complete retained result",
+    "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual int compound assignment, and retain every complete primitive result in order. Int division uses exact multiples of nonzero divisors; subtraction and all retained int values are nonnegative, preserving the existing int-array observer.",
+    "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact content and shape observation runs outside timing. Bounds prevent native checked-int overflow and JavaScript safe-integer drift. Signed non-divisible int division hand cells use an explicit Math.trunc adapter after actual JS /= only outside timing.",
+    "sourceSha256": "4edcf7564eb82d76fa850f880b7b78f8e5ba7a09fa0bcc8e1751f0fe274cc891",
+    "counterpartSha256": "c197204bc8abdf74e829d1d9a2a1dc80db3d247454b6a9156a57b2d290f724c7"
+  },
+  {
+    "id": "compound_int_multiply",
+    "category": "operators",
+    "family": "int",
+    "compoundOperator": "*=",
+    "operatorName": "multiply",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual *= assignment with complete retained result",
+    "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual int compound assignment, and retain every complete primitive result in order. Int division uses exact multiples of nonzero divisors; subtraction and all retained int values are nonnegative, preserving the existing int-array observer.",
+    "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact content and shape observation runs outside timing. Bounds prevent native checked-int overflow and JavaScript safe-integer drift. Signed non-divisible int division hand cells use an explicit Math.trunc adapter after actual JS /= only outside timing.",
+    "sourceSha256": "4ac7cc77a25259e9051a8b708535d1e8fdf2777a574bbfda463319baf008d48f",
+    "counterpartSha256": "521d963e374515c1052d17f046995e6482bd5aae7e82d9a37c8fdfc4c6f10228"
+  },
+  {
+    "id": "compound_int_divide",
+    "category": "operators",
+    "family": "int",
+    "compoundOperator": "/=",
+    "operatorName": "divide",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual /= assignment with complete retained result",
+    "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual int compound assignment, and retain every complete primitive result in order. Int division uses exact multiples of nonzero divisors; subtraction and all retained int values are nonnegative, preserving the existing int-array observer.",
+    "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact content and shape observation runs outside timing. Bounds prevent native checked-int overflow and JavaScript safe-integer drift. Signed non-divisible int division hand cells use an explicit Math.trunc adapter after actual JS /= only outside timing.",
+    "sourceSha256": "3c9db433622809dadc295ca6fd2d2021aaf4cc14a36acbefd721bf6d2ef14013",
+    "counterpartSha256": "121fa5e7a4713f1df8aeed3591d4d51719fb95547feb4ae5345a71154e6cae4b"
+  },
+  {
+    "id": "compound_int_remainder",
+    "category": "operators",
+    "family": "int",
+    "compoundOperator": "%=",
+    "operatorName": "remainder",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual %= assignment with complete retained result",
+    "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual int compound assignment, and retain every complete primitive result in order. Int division uses exact multiples of nonzero divisors; subtraction and all retained int values are nonnegative, preserving the existing int-array observer.",
+    "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact content and shape observation runs outside timing. Bounds prevent native checked-int overflow and JavaScript safe-integer drift. Signed non-divisible int division hand cells use an explicit Math.trunc adapter after actual JS /= only outside timing.",
+    "sourceSha256": "0e90a59daa216e65755de18bb38d9d7e01639246464261243a18bae4abc79f58",
+    "counterpartSha256": "3cfa6a2909edd215f095b48a77b8838a460c9ae686341c95f106b86f94e6a799"
+  },
+  {
+    "id": "compound_number_add",
+    "category": "operators",
+    "family": "number",
+    "compoundOperator": "+=",
+    "operatorName": "add",
+    "result": "number[]",
+    "resultEncoding": "ieee-f64-bits-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual += assignment with complete retained result",
+    "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual number compound assignment, and retain every complete primitive result in order. Arithmetic timing operands are exact quarters with nonzero power-of-two divisors; bitwise and shifts use the accepted bounded exact integer conversion tables.",
+    "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact IEEE content and shape observation runs outside timing, preserving signed zero and canonical NaN. Arithmetic timing values are exact quarters with nonzero power-of-two divisors; power is restricted to exactly represented positive integer powers from 1 through 8. Bitwise and shifts reuse the accepted ToInt32/ToUint32 and count-modulo-32 contracts. No approximate exponentiation or isolated-call claim.",
+    "sourceSha256": "64aafe0a47787ca6db53e20e347c3cfe58ee6d5e2ad51b017368089f3c064a8a",
+    "counterpartSha256": "4366e8ee6758e76f9b552a4fce22e1d39d7ca29e09d0cdd90c8d555cdbaa9e63"
+  },
+  {
+    "id": "compound_number_subtract",
+    "category": "operators",
+    "family": "number",
+    "compoundOperator": "-=",
+    "operatorName": "subtract",
+    "result": "number[]",
+    "resultEncoding": "ieee-f64-bits-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual -= assignment with complete retained result",
+    "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual number compound assignment, and retain every complete primitive result in order. Arithmetic timing operands are exact quarters with nonzero power-of-two divisors; bitwise and shifts use the accepted bounded exact integer conversion tables.",
+    "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact IEEE content and shape observation runs outside timing, preserving signed zero and canonical NaN. Arithmetic timing values are exact quarters with nonzero power-of-two divisors; power is restricted to exactly represented positive integer powers from 1 through 8. Bitwise and shifts reuse the accepted ToInt32/ToUint32 and count-modulo-32 contracts. No approximate exponentiation or isolated-call claim.",
+    "sourceSha256": "679d9c2e443c4897cf8a8b031517a0e59f5b62bf038d7e2d2a34733f51b4d3a2",
+    "counterpartSha256": "159bc77da4231b80ec5443bd74131e80d2e7dbf4086c245ec3cbd770f4f7d46b"
+  },
+  {
+    "id": "compound_number_multiply",
+    "category": "operators",
+    "family": "number",
+    "compoundOperator": "*=",
+    "operatorName": "multiply",
+    "result": "number[]",
+    "resultEncoding": "ieee-f64-bits-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual *= assignment with complete retained result",
+    "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual number compound assignment, and retain every complete primitive result in order. Arithmetic timing operands are exact quarters with nonzero power-of-two divisors; bitwise and shifts use the accepted bounded exact integer conversion tables.",
+    "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact IEEE content and shape observation runs outside timing, preserving signed zero and canonical NaN. Arithmetic timing values are exact quarters with nonzero power-of-two divisors; power is restricted to exactly represented positive integer powers from 1 through 8. Bitwise and shifts reuse the accepted ToInt32/ToUint32 and count-modulo-32 contracts. No approximate exponentiation or isolated-call claim.",
+    "sourceSha256": "347015bc0d2e6c9723a8237240e4ff78c2895cfff584723f494d5511621e2a8a",
+    "counterpartSha256": "cddc7a268614987aee173c1b18e6ff6dd02e2eb0b3959a6b5bb8e6673d0f9036"
+  },
+  {
+    "id": "compound_number_divide",
+    "category": "operators",
+    "family": "number",
+    "compoundOperator": "/=",
+    "operatorName": "divide",
+    "result": "number[]",
+    "resultEncoding": "ieee-f64-bits-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual /= assignment with complete retained result",
+    "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual number compound assignment, and retain every complete primitive result in order. Arithmetic timing operands are exact quarters with nonzero power-of-two divisors; bitwise and shifts use the accepted bounded exact integer conversion tables.",
+    "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact IEEE content and shape observation runs outside timing, preserving signed zero and canonical NaN. Arithmetic timing values are exact quarters with nonzero power-of-two divisors; power is restricted to exactly represented positive integer powers from 1 through 8. Bitwise and shifts reuse the accepted ToInt32/ToUint32 and count-modulo-32 contracts. No approximate exponentiation or isolated-call claim.",
+    "sourceSha256": "883dce8fa669481f3a8053c33921ade684d2e014276dca289b5a3dbb759da4d2",
+    "counterpartSha256": "1df3668ce765bfc0c7c466ebbbf20b8dd0a6d0f55653367c392c2d4a9d72d83c"
+  },
+  {
+    "id": "compound_number_remainder",
+    "category": "operators",
+    "family": "number",
+    "compoundOperator": "%=",
+    "operatorName": "remainder",
+    "result": "number[]",
+    "resultEncoding": "ieee-f64-bits-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual %= assignment with complete retained result",
+    "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual number compound assignment, and retain every complete primitive result in order. Arithmetic timing operands are exact quarters with nonzero power-of-two divisors; bitwise and shifts use the accepted bounded exact integer conversion tables.",
+    "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact IEEE content and shape observation runs outside timing, preserving signed zero and canonical NaN. Arithmetic timing values are exact quarters with nonzero power-of-two divisors; power is restricted to exactly represented positive integer powers from 1 through 8. Bitwise and shifts reuse the accepted ToInt32/ToUint32 and count-modulo-32 contracts. No approximate exponentiation or isolated-call claim.",
+    "sourceSha256": "eda9c90eefa73d7e3ba30547c613df4615ec2dbf6d986ec18a52e64f9cb0ea19",
+    "counterpartSha256": "b9a14564c960ce59f061e0d92dda11452679fb1cd60cf98085120854bf0c0c02"
+  },
+  {
+    "id": "compound_number_power",
+    "category": "operators",
+    "family": "number",
+    "compoundOperator": "**=",
+    "operatorName": "power",
+    "result": "number[]",
+    "resultEncoding": "ieee-f64-bits-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual **= assignment with complete retained result",
+    "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual number compound assignment, and retain every complete primitive result in order. Power uses positive integer bases and exponents from 1 through 8, with exactly represented results; no approximate power domain is claimed.",
+    "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact IEEE content and shape observation runs outside timing, preserving signed zero and canonical NaN. Arithmetic timing values are exact quarters with nonzero power-of-two divisors; power is restricted to exactly represented positive integer powers from 1 through 8. Bitwise and shifts reuse the accepted ToInt32/ToUint32 and count-modulo-32 contracts. No approximate exponentiation or isolated-call claim.",
+    "sourceSha256": "24dc29f3ed51b029db186ac1f6261e39e838776051d506bec265ee21f132eb6e",
+    "counterpartSha256": "2a30231d7c99cba8bce2b1a676c4cb8fbebf38b4b22258fd11b5c210d47b471d"
+  },
+  {
+    "id": "compound_number_and",
+    "category": "operators",
+    "family": "number",
+    "compoundOperator": "&=",
+    "operatorName": "and",
+    "result": "number[]",
+    "resultEncoding": "ieee-f64-bits-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual &= assignment with complete retained result",
+    "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual number compound assignment, and retain every complete primitive result in order. Arithmetic timing operands are exact quarters with nonzero power-of-two divisors; bitwise and shifts use the accepted bounded exact integer conversion tables.",
+    "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact IEEE content and shape observation runs outside timing, preserving signed zero and canonical NaN. Arithmetic timing values are exact quarters with nonzero power-of-two divisors; power is restricted to exactly represented positive integer powers from 1 through 8. Bitwise and shifts reuse the accepted ToInt32/ToUint32 and count-modulo-32 contracts. No approximate exponentiation or isolated-call claim.",
+    "sourceSha256": "0daa731854ac2a5bfbd7b850ee2b7d58a8a20a47631d3557a0f68d8f77e16a4e",
+    "counterpartSha256": "087396f679b26c958663246d69f10ceea73878d4845f93c2b067d97bb08efcb6"
+  },
+  {
+    "id": "compound_number_or",
+    "category": "operators",
+    "family": "number",
+    "compoundOperator": "|=",
+    "operatorName": "or",
+    "result": "number[]",
+    "resultEncoding": "ieee-f64-bits-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual |= assignment with complete retained result",
+    "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual number compound assignment, and retain every complete primitive result in order. Arithmetic timing operands are exact quarters with nonzero power-of-two divisors; bitwise and shifts use the accepted bounded exact integer conversion tables.",
+    "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact IEEE content and shape observation runs outside timing, preserving signed zero and canonical NaN. Arithmetic timing values are exact quarters with nonzero power-of-two divisors; power is restricted to exactly represented positive integer powers from 1 through 8. Bitwise and shifts reuse the accepted ToInt32/ToUint32 and count-modulo-32 contracts. No approximate exponentiation or isolated-call claim.",
+    "sourceSha256": "a8193fa502786cb3ed7214c6f09f5826ef53dca470ea017bb3512ba75410530d",
+    "counterpartSha256": "2c3f2626dfe87221a54ee05ed308855dda379aaf7eb4fe65fb4c4c084c7ca24e"
+  },
+  {
+    "id": "compound_number_xor",
+    "category": "operators",
+    "family": "number",
+    "compoundOperator": "^=",
+    "operatorName": "xor",
+    "result": "number[]",
+    "resultEncoding": "ieee-f64-bits-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual ^= assignment with complete retained result",
+    "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual number compound assignment, and retain every complete primitive result in order. Arithmetic timing operands are exact quarters with nonzero power-of-two divisors; bitwise and shifts use the accepted bounded exact integer conversion tables.",
+    "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact IEEE content and shape observation runs outside timing, preserving signed zero and canonical NaN. Arithmetic timing values are exact quarters with nonzero power-of-two divisors; power is restricted to exactly represented positive integer powers from 1 through 8. Bitwise and shifts reuse the accepted ToInt32/ToUint32 and count-modulo-32 contracts. No approximate exponentiation or isolated-call claim.",
+    "sourceSha256": "73c7691c20bffacfbe878fcfdf4b06acaea7bd2f3e57ac97e6503dafc2493c10",
+    "counterpartSha256": "8c4b6f79b24aab0f4aa510b50af16f21518e893af865b92a250044664e50686e"
+  },
+  {
+    "id": "compound_number_shift_left",
+    "category": "operators",
+    "family": "number",
+    "compoundOperator": "<<=",
+    "operatorName": "shift_left",
+    "result": "number[]",
+    "resultEncoding": "ieee-f64-bits-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual <<= assignment with complete retained result",
+    "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual number compound assignment, and retain every complete primitive result in order. Arithmetic timing operands are exact quarters with nonzero power-of-two divisors; bitwise and shifts use the accepted bounded exact integer conversion tables.",
+    "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact IEEE content and shape observation runs outside timing, preserving signed zero and canonical NaN. Arithmetic timing values are exact quarters with nonzero power-of-two divisors; power is restricted to exactly represented positive integer powers from 1 through 8. Bitwise and shifts reuse the accepted ToInt32/ToUint32 and count-modulo-32 contracts. No approximate exponentiation or isolated-call claim.",
+    "sourceSha256": "665196e9078401698b0db192b49012470f9c5909c6154ead94149daebbc2eaf8",
+    "counterpartSha256": "0d9d4861b2f8398e52edc3347fd82e8ff112c9fc661ed0c8b1e01fccc2f94f8d"
+  },
+  {
+    "id": "compound_number_shift_right",
+    "category": "operators",
+    "family": "number",
+    "compoundOperator": ">>=",
+    "operatorName": "shift_right",
+    "result": "number[]",
+    "resultEncoding": "ieee-f64-bits-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual >>= assignment with complete retained result",
+    "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual number compound assignment, and retain every complete primitive result in order. Arithmetic timing operands are exact quarters with nonzero power-of-two divisors; bitwise and shifts use the accepted bounded exact integer conversion tables.",
+    "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact IEEE content and shape observation runs outside timing, preserving signed zero and canonical NaN. Arithmetic timing values are exact quarters with nonzero power-of-two divisors; power is restricted to exactly represented positive integer powers from 1 through 8. Bitwise and shifts reuse the accepted ToInt32/ToUint32 and count-modulo-32 contracts. No approximate exponentiation or isolated-call claim.",
+    "sourceSha256": "c299f5b5336a5fcc97c217704a76bd073ac4db4d0ce962b268c73435afd696a4",
+    "counterpartSha256": "a4081e26ace1e4fd5b280ae929af0d9a8a5e12cef8c9b0c767922e9150560ca8"
+  },
+  {
+    "id": "compound_number_shift_right_unsigned",
+    "category": "operators",
+    "family": "number",
+    "compoundOperator": ">>>=",
+    "operatorName": "shift_right_unsigned",
+    "result": "number[]",
+    "resultEncoding": "ieee-f64-bits-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual >>>= assignment with complete retained result",
+    "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual number compound assignment, and retain every complete primitive result in order. Arithmetic timing operands are exact quarters with nonzero power-of-two divisors; bitwise and shifts use the accepted bounded exact integer conversion tables.",
+    "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact IEEE content and shape observation runs outside timing, preserving signed zero and canonical NaN. Arithmetic timing values are exact quarters with nonzero power-of-two divisors; power is restricted to exactly represented positive integer powers from 1 through 8. Bitwise and shifts reuse the accepted ToInt32/ToUint32 and count-modulo-32 contracts. No approximate exponentiation or isolated-call claim.",
+    "sourceSha256": "37ad28c2682ee3769d070fd7c3936e696ceb518b68b7d0c35bbc7a5327ae7644",
+    "counterpartSha256": "1aec9ca7daa711a6e7e1fd8092d786e32f3cb6091fc4faf5b255e9d834547bd3"
+  },
+  {
+    "id": "compound_string_add_ascii",
+    "category": "strings",
+    "family": "string",
+    "inputFamily": "ascii",
+    "compoundOperator": "+=",
+    "operatorName": "add",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": " A alpha Z ",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual string += and complete retained result",
+    "specification": "Initialize a mutable target with an explicit clone of a runtime-selected string, append a directly borrowed selected RHS with actual +=, and retain each complete string. Input domain is valid Unicode of at most 256 UTF8 bytes; ASCII rows require ASCII.",
+    "notes": "Input pool cloning/repetition, target initialization, operand selection, actual append and whole-result retention are timed. Native += constructs an independent owned result; JavaScript may retain immutable ropes or shared storage. TypeScript clone is identity under the existing benchmark contract; native clone costs remain visible. No per-character bridge or allocation-parity claim. Self-append and operand order are separate correctness fixtures.",
+    "sourceSha256": "ca98a929f5a60ed04ac8717670e886cbe1b17c679f7319204bf0f5abb2d4bb62",
+    "counterpartSha256": "edb4a1731a113cc9afd3a567ff23d02ab2b9f5332192112a3bb523ffb5ac6092"
+  },
+  {
+    "id": "compound_string_add_unicode",
+    "category": "strings",
+    "family": "string",
+    "inputFamily": "unicode",
+    "compoundOperator": "+=",
+    "operatorName": "add",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": " é😀é Z ",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual string += and complete retained result",
+    "specification": "Initialize a mutable target with an explicit clone of a runtime-selected string, append a directly borrowed selected RHS with actual +=, and retain each complete string. Input domain is valid Unicode of at most 256 UTF8 bytes; ASCII rows require ASCII.",
+    "notes": "Input pool cloning/repetition, target initialization, operand selection, actual append and whole-result retention are timed. Native += constructs an independent owned result; JavaScript may retain immutable ropes or shared storage. TypeScript clone is identity under the existing benchmark contract; native clone costs remain visible. No per-character bridge or allocation-parity claim. Self-append and operand order are separate correctness fixtures.",
+    "sourceSha256": "7f89094184993f026908c960abb06827e20a6c34fc45a87c06b064e247afcc51",
+    "counterpartSha256": "a0b5826d5e56258b1677885c3acad53b2c4943637b2d30bdb9d44feef04a0646"
+  }
+]

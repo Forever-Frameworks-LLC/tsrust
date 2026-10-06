@@ -1,0 +1,17 @@
+{
+  "gate": 96,
+  "label": "restore-verification-retry",
+  "argv": [
+    "python3",
+    "-B",
+    "/tmp/tsrust-checkpoint96-plan/verify-sqlite-new-records.py"
+  ],
+  "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+  "environment": {},
+  "pid": 9906,
+  "startedUtc": "2026-10-04T00:19:51.379860+00:00",
+  "finishedUtc": "2026-10-04T00:19:52.264866+00:00",
+  "exitCode": 0,
+  "log": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-96-analytics/restore-verification-retry.log",
+  "logSha256": "da8af69b89f67770cc07e345e0a12475d5fcf6c126edb552b5476b5a3d7f59c3"
+}

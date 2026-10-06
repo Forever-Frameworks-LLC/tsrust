@@ -1,0 +1,15 @@
+type int = number;
+function workload(n: int, seed: int): int[][][] {
+    const values: int[][] = [[seed, seed + 1], [], [2, 3, 4], [seed + 5], [7, 8], [9], [], [11, 12, 13]];
+    const output: int[][][] = []; let trace = seed; let visits = 0; let i = 0;
+    while (i < n) {
+        const selected: int[][] = values.map((value: int[], index: int): int[] => {
+            trace = (trace * 131 + visits + i + seed) % 1000000007; visits = visits + 1;
+            return value.slice(0, (i + index) % 4);
+        });
+        output.push(selected); i = i + 1;
+    }
+    output.push([[trace, visits]]);
+    return output;
+}
+function main() { const result = workload(2, 7); console.log(result.length); }

@@ -1,0 +1,34 @@
+{
+  "gate": 99,
+  "accepted": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/gate99-artifact-import/accepted.json",
+    "sha256": "5776730bd18bdd8b8139c2e865fff0b5554f80ad7490218f4793f4304a3af30f",
+    "bytes": 2115
+  },
+  "terminal": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/gate99-artifact-import/terminal.json",
+    "sha256": "c3010eaac9ebd1a89275a6db5dc0743c88347ddb4c45db84a410b803437d2f74",
+    "bytes": 418
+  },
+  "verification": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/gate99-artifact-import/verified-records.json",
+    "sha256": "8221599dc67160ff22c86d8eea129009e052e374172083ef46cef77814eeaf28",
+    "bytes": 836035
+  },
+  "restorationMap": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/gate99-closure-evidence/restoration-map.json",
+    "sha256": "40d161e363ca971baf25d7e4d23bdf9e5a923cc9e409663fde8e93a2a210f2a3",
+    "bytes": 4136223
+  },
+  "READMEBefore": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/gate99-artifact-import/README.before.md",
+    "sha256": "764af6f867b741f12444bd43f64ca5986ca0455437bf315ca704656ffb2ee0ea",
+    "bytes": 17047
+  },
+  "READMEAfter": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/README.md",
+    "sha256": "47b57a2aa530a1039976dbe370db077ff0de955c78344376a0d7f5f48323cb78",
+    "bytes": 17949
+  },
+  "deletedFiles": 0
+}

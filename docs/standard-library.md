@@ -1,0 +1,93 @@
+# Standard library
+
+[Documentation index](./README.md) · [Proposed roadmap](./roadmap.md) · [Source section map](./section-map.md)
+
+## Workstream scope
+
+**Status:** Unresolved design/research. The grouping and phase below are proposed planning aids, not approved language semantics.
+
+**Proposed phase:** Core proof; later expansion.
+
+**Scope:** Define library boundaries and compatibility policy; implement only the subset needed by each prototype.
+
+**Planning deliverable:** A staged module/API inventory with experimental and stable boundaries.
+
+**Dependencies to coordinate:** [primitives-and-collections](./primitives-and-collections.md), [error-handling](./error-handling.md)
+
+## Implemented experimental primitive subset
+
+Primitive arrays provide `includes(value, fromIndex?)` and `indexOf(value, fromIndex?)` alongside length, indexing, push, removal, and explicit cloning. Search supports dense integer, boolean, and valid-Unicode-string values; it reads borrowed storage without transferring string needles. The [search gate](./milestones/32-array-search.md) records the exact contract and compatibility restrictions. Shared generated helpers provide methods without allocating method implementations per value. This bounded experiment does not settle broader standard-library stability, generics, owned object identity, sparse storage, or source view semantics.
+
+Array `reverse()` mutates existing storage through standard Rust slice reversal and returns void. It preserves fixed storage where the compiler proves length remains unchanged; other array representations reverse their live elements. [Milestone 36](./milestones/36-array-reversal.md) records acceptance and matched runtime comparisons.
+
+String `startsWith`, `endsWith`, `includes`, and `indexOf` use borrowed UTF-8 input and checked byte positions. [Milestone 37](./milestones/37-string-search.md) records complete compiler and runtime acceptance. See the [string contract](./string-semantics.md) for defaults, clamping, and boundary failures.
+
+## Original vision sections
+
+The sections below retain the original wording and examples. Their proposals and open questions remain proposals and open questions. Section IDs identify the original document family; they do not define implementation order.
+
+<a id="core-14"></a>
+
+## 14. Standard Library
+
+Initial standard library should provide familiar JavaScript-style APIs where sensible.
+Major categories:
+Core
+Array
+Map
+Set
+String
+Math
+Date / DateTime
+Regex
+JSON
+URL
+UUID
+Result
+Option
+Iterator
+Range
+Buffer / Bytes
+Filesystem
+Node-like ergonomics:
+await fs.readFile(path);
+await fs.writeFile(path, data);
+Networking
+fetch()
+Request
+Response
+Headers
+WebSocket
+TCP
+UDP
+TLS
+Processes
+process.env
+process.args
+process.exit()
+spawn()
+Consider preserving familiar naming where it is useful without pretending a Node runtime exists.
+Crypto
+Native safe cryptographic APIs.
+Testing
+Testing should be built into the toolchain.
+Serialization
+First-class JSON support.
+Potential later formats:
+MessagePack
+CBOR
+Protobuf
+YAML
+TOML
+
+<a id="core-48"></a>
+
+## 48. Standard Library Stability
+
+Establish a compatibility policy early.
+Research:
+* stable API guarantees
+* experimental modules
+* deprecation periods
+* language editions
+* standard-library versioning

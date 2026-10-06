@@ -1,0 +1,23 @@
+{
+  "proof": {
+    "path": "runtime/diagnostics/2026-10-04T00-56-20-000Z-checkpoint96-concat-refinement-runtime-proof.json",
+    "sha256": "b3e7d2cfb5909fabf4f50c938ae3cd799bcde2d4e0e401ed0fb11014a0466ea6"
+  },
+  "indexed": [
+    {
+      "path": "runtime/results/2026-10-04T00-51-36-247Z.json",
+      "sha256": "42399f159bb3b4ac6a022a6e500f8342d42de6201d8f3a89788c03182c447cb8",
+      "workloads": 33,
+      "samples": 6138,
+      "kind": "execution"
+    },
+    {
+      "path": "runtime/diagnostics/2026-10-04T00-52-16-262Z-native-allocations.json",
+      "sha256": "8e1a625a00d44bceaead1ba2afa2bf244b992b755d84b9e62a77bf052b1bccf6",
+      "workloads": 33,
+      "samples": 99,
+      "kind": "profile"
+    }
+  ],
+  "looseOriginalsRemoved": false
+}

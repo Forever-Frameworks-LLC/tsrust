@@ -1,0 +1,53 @@
+{
+  "scope": "Gate97 artifact-only import/export verification receipt. Selected original bundle files remain intact; no timing samples or source deletion.",
+  "records": [
+    {
+      "originalPath": "/tmp/tsrust-gate97-bundle-storage/accepted.json",
+      "storedPath": "benchmarks/storage/gate97-artifact-import/accepted.json",
+      "sha256": "25c787a248ce5f44ccf8299a86906f5ee8198ccd998d21196b05fe82be4a82c6",
+      "bytes": 1726
+    },
+    {
+      "originalPath": "/tmp/tsrust-gate97-bundle-storage/terminal.json",
+      "storedPath": "benchmarks/storage/gate97-artifact-import/terminal.json",
+      "sha256": "24b4b8dc9dcc3612edcac64d172cc2a744e223edd556aab18477eae7c9d31385",
+      "bytes": 388
+    },
+    {
+      "originalPath": "/tmp/tsrust-gate97-bundle-storage/start.json",
+      "storedPath": "benchmarks/storage/gate97-artifact-import/start.json",
+      "sha256": "fcd034f92a1db9db22a0289807ac7e91b6d5b1a41e0b633ed832a643c19f2dea",
+      "bytes": 503
+    },
+    {
+      "originalPath": "/tmp/tsrust-gate97-bundle-storage/import-plan.json",
+      "storedPath": "benchmarks/storage/gate97-artifact-import/import-plan.json",
+      "sha256": "7382e5dc8c992330a9c19b0feb6e297afb8fa51c8b5335854ea0021ee76b54d9",
+      "bytes": 362535
+    },
+    {
+      "originalPath": "/tmp/tsrust-gate97-bundle-storage/verified-records.json",
+      "storedPath": "benchmarks/storage/gate97-artifact-import/verified-records.json",
+      "sha256": "ca586fa39ca5df8713a2518610e92c01d12c56c6a10163a3af2d7081e43685b2",
+      "bytes": 547888
+    },
+    {
+      "originalPath": "/tmp/gate97-bundle-sqlite.py",
+      "storedPath": "benchmarks/storage/gate97-artifact-import/gate97-bundle-sqlite.py",
+      "sha256": "f8d85d13d9553e75e22f33addad4da1d9c80ffb2da4dc3014a6bfb009113a5f7",
+      "bytes": 5132
+    },
+    {
+      "originalPath": "/tmp/gate97-bundle-sqlite.log",
+      "storedPath": "benchmarks/storage/gate97-artifact-import/gate97-bundle-sqlite.log",
+      "sha256": "8d23f8de909d53377ac970863329a647df3233df1f8e3a81e34290be12a9660b",
+      "bytes": 998
+    },
+    {
+      "originalPath": "/tmp/gate97-package-benchmark-evidence.py",
+      "storedPath": "benchmarks/storage/gate97-artifact-import/gate97-package-benchmark-evidence.py",
+      "sha256": "e477b6cf8f4ea9c44c7c5435efd0b07a7a078a5e1496b71407f8fa409dda5882",
+      "bytes": 3917
+    }
+  ]
+}

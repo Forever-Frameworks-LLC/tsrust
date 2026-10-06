@@ -1,0 +1,8 @@
+type int = number;
+function workload(n: int, seed: int): number {
+    const texts: string[] = ["", " -0 ", "2.5", "-3.125", " 1e2 ", "0.125", "-0.5"];
+    let sum: number = 0.0; let i = 0;
+    while (i < n) { sum = sum + Number(texts[(i * 13 + seed) % 7]); i = i + 1; }
+    return sum;
+}
+function main() { const result = workload(2, 7); console.log(result); }

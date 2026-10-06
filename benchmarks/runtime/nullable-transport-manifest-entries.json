@@ -1,0 +1,540 @@
+[
+  {
+    "id": "nullable_int_null",
+    "category": "numbers",
+    "family": "nullable-transport",
+    "nullablePayload": "int",
+    "nullableType": "int | null",
+    "nullishSentinel": "null",
+    "receiverLength": 5,
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "retainedResultLeavesPerOperation": 4,
+    "operationUnit": "One nullable transport plus typeof, String, Boolean and strict sentinel observations, retaining four complete String leaves.",
+    "measurementStatus": "pending-implementation-and-checkpoint-86",
+    "pendingCheckpoint": 86,
+    "specification": "Explicit nullable payload/sentinel injection, typed function transport and whole-union consumers.",
+    "notes": "Full workload includes dynamic selection, scalar/pool or fresh owned payload construction, nullable transport, four whole-union observations and String[] retention. No isolated nullable representation latency, JavaScript object identity, Number bit preservation or allocation parity claim. String formatting observes -0 as 0 and common nonfinite labels. Owned String/array/record payloads move under ordinary compiler ownership rules; narrowing/projection/nullish coalescing are not exercised. Native implementation acceptance is pending; no rates published before checkpoint86.",
+    "sourceRequired": [
+      {
+        "text": "function workload(n: int, seed: int): string[] {",
+        "count": 1
+      },
+      {
+        "text": "const values: int[] = [seed, 0, 1, 17, 9001];",
+        "count": 1
+      },
+      {
+        "text": "const output: string[] = []; let i = 0;",
+        "count": 1
+      },
+      {
+        "text": "while (i < n) {",
+        "count": 1
+      },
+      {
+        "text": "const mode = (i + seed) % 3;",
+        "count": 1
+      },
+      {
+        "text": "const at = (i * 13 + seed) % 5;",
+        "count": 1
+      },
+      {
+        "text": "const initial: int | null = mode === 0 ? null : values[at];",
+        "count": 1
+      },
+      {
+        "text": "const value: int | null = pass(initial);",
+        "count": 1
+      },
+      {
+        "text": "output.push(typeof value);",
+        "count": 1
+      },
+      {
+        "text": "output.push(String(value));",
+        "count": 1
+      },
+      {
+        "text": "output.push(Boolean(value) ? \"true\" : \"false\");",
+        "count": 1
+      },
+      {
+        "text": "output.push(value === null ? \"sentinel\" : \"payload\");",
+        "count": 1
+      },
+      {
+        "text": "i = i + 1;",
+        "count": 1
+      },
+      {
+        "text": "return output;",
+        "count": 1
+      },
+      {
+        "text": "function pass(value: int | null): int | null { return value; }",
+        "count": 1
+      },
+      {
+        "text": "function main() { const result = workload(2, 7); }",
+        "count": 1
+      }
+    ],
+    "sourceSha256": "dcd9546fe7f20f9f99fbf5466aca1d3992cc33c60e9de7bbbffb18746f642cb8",
+    "counterpartSha256": "c1f27de8d9c8058de3908edb7e3526cbe49c518fd1df87dbcf156937134d1b4f"
+  },
+  {
+    "id": "nullable_boolean_undefined",
+    "category": "booleans",
+    "family": "nullable-transport",
+    "nullablePayload": "boolean",
+    "nullableType": "boolean | undefined",
+    "nullishSentinel": "undefined",
+    "receiverLength": 2,
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "retainedResultLeavesPerOperation": 4,
+    "operationUnit": "One nullable transport plus typeof, String, Boolean and strict sentinel observations, retaining four complete String leaves.",
+    "measurementStatus": "pending-implementation-and-checkpoint-86",
+    "pendingCheckpoint": 86,
+    "specification": "Explicit nullable payload/sentinel injection, typed function transport and whole-union consumers.",
+    "notes": "Full workload includes dynamic selection, scalar/pool or fresh owned payload construction, nullable transport, four whole-union observations and String[] retention. No isolated nullable representation latency, JavaScript object identity, Number bit preservation or allocation parity claim. String formatting observes -0 as 0 and common nonfinite labels. Owned String/array/record payloads move under ordinary compiler ownership rules; narrowing/projection/nullish coalescing are not exercised. Native implementation acceptance is pending; no rates published before checkpoint86.",
+    "sourceRequired": [
+      {
+        "text": "function workload(n: int, seed: int): string[] {",
+        "count": 1
+      },
+      {
+        "text": "const values: boolean[] = [true, false];",
+        "count": 1
+      },
+      {
+        "text": "const output: string[] = []; let i = 0;",
+        "count": 1
+      },
+      {
+        "text": "while (i < n) {",
+        "count": 1
+      },
+      {
+        "text": "const mode = (i + seed) % 3;",
+        "count": 1
+      },
+      {
+        "text": "const at = (i * 13 + seed) % 2;",
+        "count": 1
+      },
+      {
+        "text": "const initial: boolean | undefined = mode === 0 ? undefined : values[at];",
+        "count": 1
+      },
+      {
+        "text": "const value: boolean | undefined = pass(initial);",
+        "count": 1
+      },
+      {
+        "text": "output.push(typeof value);",
+        "count": 1
+      },
+      {
+        "text": "output.push(String(value));",
+        "count": 1
+      },
+      {
+        "text": "output.push(Boolean(value) ? \"true\" : \"false\");",
+        "count": 1
+      },
+      {
+        "text": "output.push(value === undefined ? \"sentinel\" : \"payload\");",
+        "count": 1
+      },
+      {
+        "text": "i = i + 1;",
+        "count": 1
+      },
+      {
+        "text": "return output;",
+        "count": 1
+      },
+      {
+        "text": "function pass(value: boolean | undefined): boolean | undefined { return value; }",
+        "count": 1
+      },
+      {
+        "text": "function main() { const result = workload(2, 7); }",
+        "count": 1
+      }
+    ],
+    "sourceSha256": "16141f3ccbb79856d51f17cfa94b7b4cc569f38c473b09198276f44f6b98488b",
+    "counterpartSha256": "f9f0871b2829ca5875f16c1f04f7ae3d1456de26de49a549609a4a9c9e694f04"
+  },
+  {
+    "id": "nullable_number_null",
+    "category": "numbers",
+    "family": "nullable-transport",
+    "nullablePayload": "number",
+    "nullableType": "number | null",
+    "nullishSentinel": "null",
+    "receiverLength": 8,
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "retainedResultLeavesPerOperation": 4,
+    "operationUnit": "One nullable transport plus typeof, String, Boolean and strict sentinel observations, retaining four complete String leaves.",
+    "measurementStatus": "pending-implementation-and-checkpoint-86",
+    "pendingCheckpoint": 86,
+    "specification": "Explicit nullable payload/sentinel injection, typed function transport and whole-union consumers.",
+    "notes": "Full workload includes dynamic selection, scalar/pool or fresh owned payload construction, nullable transport, four whole-union observations and String[] retention. No isolated nullable representation latency, JavaScript object identity, Number bit preservation or allocation parity claim. String formatting observes -0 as 0 and common nonfinite labels. Owned String/array/record payloads move under ordinary compiler ownership rules; narrowing/projection/nullish coalescing are not exercised. Native implementation acceptance is pending; no rates published before checkpoint86.",
+    "sourceRequired": [
+      {
+        "text": "function workload(n: int, seed: int): string[] {",
+        "count": 1
+      },
+      {
+        "text": "const values: number[] = [Number(seed), -0.0, 0.5, -2.5, 17.0, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY];",
+        "count": 1
+      },
+      {
+        "text": "const output: string[] = []; let i = 0;",
+        "count": 1
+      },
+      {
+        "text": "while (i < n) {",
+        "count": 1
+      },
+      {
+        "text": "const mode = (i + seed) % 3;",
+        "count": 1
+      },
+      {
+        "text": "const at = (i * 13 + seed) % 8;",
+        "count": 1
+      },
+      {
+        "text": "const initial: number | null = mode === 0 ? null : values[at];",
+        "count": 1
+      },
+      {
+        "text": "const value: number | null = pass(initial);",
+        "count": 1
+      },
+      {
+        "text": "output.push(typeof value);",
+        "count": 1
+      },
+      {
+        "text": "output.push(String(value));",
+        "count": 1
+      },
+      {
+        "text": "output.push(Boolean(value) ? \"true\" : \"false\");",
+        "count": 1
+      },
+      {
+        "text": "output.push(value === null ? \"sentinel\" : \"payload\");",
+        "count": 1
+      },
+      {
+        "text": "i = i + 1;",
+        "count": 1
+      },
+      {
+        "text": "return output;",
+        "count": 1
+      },
+      {
+        "text": "function pass(value: number | null): number | null { return value; }",
+        "count": 1
+      },
+      {
+        "text": "function main() { const result = workload(2, 7); }",
+        "count": 1
+      }
+    ],
+    "sourceSha256": "1e3703218e72399e18d650b7a11adfcd5a52cf901713ac07b72751559a3b5266",
+    "counterpartSha256": "209e7920d5d230d19f0b9d2256c89c708f9013fbf65e274105f180c66ab15ba4"
+  },
+  {
+    "id": "nullable_string_undefined",
+    "category": "strings",
+    "family": "nullable-transport",
+    "nullablePayload": "string",
+    "nullableType": "string | undefined",
+    "nullishSentinel": "undefined",
+    "receiverLength": 5,
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "retainedResultLeavesPerOperation": 4,
+    "operationUnit": "One nullable transport plus typeof, String, Boolean and strict sentinel observations, retaining four complete String leaves.",
+    "measurementStatus": "pending-implementation-and-checkpoint-86",
+    "pendingCheckpoint": 86,
+    "specification": "Explicit nullable payload/sentinel injection, typed function transport and whole-union consumers.",
+    "notes": "Full workload includes dynamic selection, scalar/pool or fresh owned payload construction, nullable transport, four whole-union observations and String[] retention. No isolated nullable representation latency, JavaScript object identity, Number bit preservation or allocation parity claim. String formatting observes -0 as 0 and common nonfinite labels. Owned String/array/record payloads move under ordinary compiler ownership rules; narrowing/projection/nullish coalescing are not exercised. Native implementation acceptance is pending; no rates published before checkpoint86.",
+    "sourceRequired": [
+      {
+        "text": "function workload(n: int, seed: int, input: string): string[] {",
+        "count": 1
+      },
+      {
+        "text": "const values: string[] = [input.repeat(1), \"\", \"static\", \"é😀e\\u0301\", \"\\uFEFF\\u0000\"];",
+        "count": 1
+      },
+      {
+        "text": "const output: string[] = []; let i = 0;",
+        "count": 1
+      },
+      {
+        "text": "while (i < n) {",
+        "count": 1
+      },
+      {
+        "text": "const mode = (i + seed) % 3;",
+        "count": 1
+      },
+      {
+        "text": "const at = (i * 13 + seed) % 5;",
+        "count": 1
+      },
+      {
+        "text": "const initial: string | undefined = mode === 0 ? undefined : values[at].repeat(1);",
+        "count": 1
+      },
+      {
+        "text": "const value: string | undefined = pass(initial);",
+        "count": 1
+      },
+      {
+        "text": "output.push(typeof value);",
+        "count": 1
+      },
+      {
+        "text": "output.push(String(value));",
+        "count": 1
+      },
+      {
+        "text": "output.push(Boolean(value) ? \"true\" : \"false\");",
+        "count": 1
+      },
+      {
+        "text": "output.push(value === undefined ? \"sentinel\" : \"payload\");",
+        "count": 1
+      },
+      {
+        "text": "i = i + 1;",
+        "count": 1
+      },
+      {
+        "text": "return output;",
+        "count": 1
+      },
+      {
+        "text": "function pass(value: string | undefined): string | undefined { return value; }",
+        "count": 1
+      },
+      {
+        "text": "function main() { const result = workload(2, 7, \"dynamic text\"); }",
+        "count": 1
+      }
+    ],
+    "sourceSha256": "650c71346dafcb543e87aaa555ee598f873e120e2d13b851697272c4ce1121a6",
+    "counterpartSha256": "c1d61727cff7c333a9be0e939188159cdf937644235099077fc6cd7056be3923",
+    "inputText": "dynamic text"
+  },
+  {
+    "id": "nullable_array_null",
+    "category": "arrays",
+    "family": "nullable-transport",
+    "nullablePayload": "array",
+    "nullableType": "int[] | null",
+    "nullishSentinel": "null",
+    "receiverLength": 0,
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "retainedResultLeavesPerOperation": 4,
+    "operationUnit": "One nullable transport plus typeof, String, Boolean and strict sentinel observations, retaining four complete String leaves.",
+    "measurementStatus": "pending-implementation-and-checkpoint-86",
+    "pendingCheckpoint": 86,
+    "specification": "Explicit nullable payload/sentinel injection, typed function transport and whole-union consumers.",
+    "notes": "Full workload includes dynamic selection, scalar/pool or fresh owned payload construction, nullable transport, four whole-union observations and String[] retention. No isolated nullable representation latency, JavaScript object identity, Number bit preservation or allocation parity claim. String formatting observes -0 as 0 and common nonfinite labels. Owned String/array/record payloads move under ordinary compiler ownership rules; narrowing/projection/nullish coalescing are not exercised. Native implementation acceptance is pending; no rates published before checkpoint86.",
+    "sourceRequired": [
+      {
+        "text": "function workload(n: int, seed: int): string[] {",
+        "count": 1
+      },
+      {
+        "text": "const output: string[] = []; let i = 0;",
+        "count": 1
+      },
+      {
+        "text": "while (i < n) {",
+        "count": 1
+      },
+      {
+        "text": "const mode = (i + seed) % 3;",
+        "count": 1
+      },
+      {
+        "text": "const initial: int[] | null = mode === 0 ? null : [seed, i];",
+        "count": 1
+      },
+      {
+        "text": "const value: int[] | null = pass(initial);",
+        "count": 1
+      },
+      {
+        "text": "output.push(typeof value);",
+        "count": 1
+      },
+      {
+        "text": "output.push(String(value));",
+        "count": 1
+      },
+      {
+        "text": "output.push(Boolean(value) ? \"true\" : \"false\");",
+        "count": 1
+      },
+      {
+        "text": "output.push(value === null ? \"sentinel\" : \"payload\");",
+        "count": 1
+      },
+      {
+        "text": "i = i + 1;",
+        "count": 1
+      },
+      {
+        "text": "return output;",
+        "count": 1
+      },
+      {
+        "text": "function pass(value: int[] | null): int[] | null { return value; }",
+        "count": 1
+      },
+      {
+        "text": "function main() { const result = workload(2, 7); }",
+        "count": 1
+      }
+    ],
+    "sourceSha256": "aa2afa71184cf12a3d6c4e80ad212da4d2e6e9c669a12e3eb744d01eb4f38810",
+    "counterpartSha256": "faf97311ec9172bf9965e1dc4352a2ce947deea56bddbb1eccb8e0ebcac3a32c"
+  },
+  {
+    "id": "nullable_record_undefined",
+    "category": "records",
+    "family": "nullable-transport",
+    "nullablePayload": "record",
+    "nullableType": "NullableBenchRecord | undefined",
+    "nullishSentinel": "undefined",
+    "receiverLength": 0,
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "retainedResultLeavesPerOperation": 4,
+    "operationUnit": "One nullable transport plus typeof, String, Boolean and strict sentinel observations, retaining four complete String leaves.",
+    "measurementStatus": "pending-implementation-and-checkpoint-86",
+    "pendingCheckpoint": 86,
+    "specification": "Explicit nullable payload/sentinel injection, typed function transport and whole-union consumers.",
+    "notes": "Full workload includes dynamic selection, scalar/pool or fresh owned payload construction, nullable transport, four whole-union observations and String[] retention. No isolated nullable representation latency, JavaScript object identity, Number bit preservation or allocation parity claim. String formatting observes -0 as 0 and common nonfinite labels. Owned String/array/record payloads move under ordinary compiler ownership rules; narrowing/projection/nullish coalescing are not exercised. Native implementation acceptance is pending; no rates published before checkpoint86.",
+    "sourceRequired": [
+      {
+        "text": "type NullableBenchRecord = { tag: int; text: string; };",
+        "count": 1
+      },
+      {
+        "text": "function workload(n: int, seed: int, input: string): string[] {",
+        "count": 1
+      },
+      {
+        "text": "const output: string[] = []; let i = 0;",
+        "count": 1
+      },
+      {
+        "text": "while (i < n) {",
+        "count": 1
+      },
+      {
+        "text": "const mode = (i + seed) % 3;",
+        "count": 1
+      },
+      {
+        "text": "const initial: NullableBenchRecord | undefined = mode === 0 ? undefined : {tag: seed + i, text: input.repeat(1)};",
+        "count": 1
+      },
+      {
+        "text": "const value: NullableBenchRecord | undefined = pass(initial);",
+        "count": 1
+      },
+      {
+        "text": "output.push(typeof value);",
+        "count": 1
+      },
+      {
+        "text": "output.push(String(value));",
+        "count": 1
+      },
+      {
+        "text": "output.push(Boolean(value) ? \"true\" : \"false\");",
+        "count": 1
+      },
+      {
+        "text": "output.push(value === undefined ? \"sentinel\" : \"payload\");",
+        "count": 1
+      },
+      {
+        "text": "i = i + 1;",
+        "count": 1
+      },
+      {
+        "text": "return output;",
+        "count": 1
+      },
+      {
+        "text": "function pass(value: NullableBenchRecord | undefined): NullableBenchRecord | undefined { return value; }",
+        "count": 1
+      },
+      {
+        "text": "function main() { const result = workload(2, 7, \"dynamic text\"); }",
+        "count": 1
+      }
+    ],
+    "sourceSha256": "2f20e628f084a1a9eb2fae8fe4cd1bfe17501715f290d9259304867817260c77",
+    "counterpartSha256": "4bd64af9d453bc56b02022f83f7bbda9a7629bca02b34a6cfaa97cf80a55e502",
+    "inputText": "dynamic text"
+  }
+]

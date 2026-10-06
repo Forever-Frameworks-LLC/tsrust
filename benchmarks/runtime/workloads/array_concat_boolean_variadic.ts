@@ -1,0 +1,3 @@
+function clone<T>(value:T):T{return value;}
+function workload(n:number,seed:number):boolean[][]{const base:boolean[]=[true,false,(seed%2)===0,true,false];const output:boolean[][]=[];let i=0;while(i<n){const mode=(i+seed)%4;let count=5;if(mode===0){count=0;}else if(mode===1){count=1;}else if(mode===2){count=4;}const selected=base.slice(0,count);const first=base.slice(1,mode%3+2);const second=base.slice(0,mode%2);const empty:boolean[]=[];const scalar0:boolean=((i+seed)%2)===0;const scalar1:boolean=false;const result=selected.concat(scalar0,first,scalar1,empty,second);output.push(result);i=i+1;}return output;}
+function main(){const result=workload(2,7);}

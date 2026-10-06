@@ -1,0 +1,14 @@
+type int = number;
+type NarrowingPayload = { tag: int; text: string; };
+type NarrowingHolder = { item: NarrowingPayload | null | undefined; };
+function workload(n: int, seed: int, input: string): string[] {
+    const output: string[] = []; let i = 0;
+    while (i < n) {
+        const mode = (i + seed) % 3;
+        const holder: NarrowingHolder = { item: mode === 0 ? null : mode === 1 ? undefined : {tag: seed + i, text: input.repeat(1)} };
+        if (holder.item === null) { output.push("null"); output.push(""); } else if (holder.item === undefined) { output.push("undefined"); output.push(""); } else { output.push(String(holder.item.tag)); output.push(holder.item.text.concat("!")); }
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7, "dynamic text"); }

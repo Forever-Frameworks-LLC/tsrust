@@ -1,0 +1,7 @@
+export function value(): int {
+    return 2;
+}
+
+function main() {
+    console.log("Imported main must not run.");
+}

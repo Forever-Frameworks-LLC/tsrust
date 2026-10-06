@@ -1,0 +1,37 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/analytics.py",
+    "ingest",
+    "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/records.sqlite",
+    "--root",
+    "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks",
+    "--proof",
+    "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T13-57-02-000Z-checkpoint86-runtime-proof.json",
+    "--proof-sha256",
+    "da4c6d471e290fe5336640d83073dd4bad7a562a7f4670226cf09e8dbd9f2404"
+  ],
+  "pid": 15954,
+  "startedUtc": "2026-10-03T15:08:36.698124+00:00",
+  "before": {
+    "bytes": 134262784,
+    "sha256": "613aea62b4cc24f166329c627b1a701c92b72349447063a134a48aac9cf94fac",
+    "reportSha256": "7d930574d5fb1a40d72a6fc4dad98f3c7ec4d8212b41e265e1df7c6033f9d900"
+  },
+  "exitCode": 0,
+  "finishedUtc": "2026-10-03T15:08:40.800303+00:00",
+  "stdout": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-86-analytics/ingest.stdout",
+    "sha256": "9972dbd591173b9599ea53cc03c032c88d6c480800a06f58e5be580591d03af5"
+  },
+  "stderr": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-86-analytics/ingest.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "after": {
+    "bytes": 149843968,
+    "sha256": "4d46c3e62d540124b34c2d0bc2d8968ce28f49026cc87a55f1cf8a9fdb2a1a29",
+    "reportSha256": "7d930574d5fb1a40d72a6fc4dad98f3c7ec4d8212b41e265e1df7c6033f9d900"
+  }
+}

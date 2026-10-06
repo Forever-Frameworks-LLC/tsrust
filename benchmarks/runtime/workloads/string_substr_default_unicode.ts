@@ -1,0 +1,15 @@
+type int = number;
+interface String { substr(from?: number, length?: number): string; }
+function workload(n: int, seed: int, input: string): string[] {
+    const values: string[] = [clone(input), "", "é😀Z", "a\u0000é😀", "e\u0301", "\uFEFF中Z", input.repeat(2), "\uFDD0\uFFFF\u{10FFFF}"];
+    const output: string[] = []; let i = 0;
+    while (i < n) {
+        const at = (i * 13 + seed) % 8;
+        const selected: string = values[at].substr();
+        output.push(selected);
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7, "dynamic é😀"); }
+function clone<T>(value: T): T { return value; }

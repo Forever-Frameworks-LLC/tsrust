@@ -1,0 +1,17 @@
+type int = number;
+function workload(n: int, seed: int): string[] {
+    const output: string[] = []; let i = 0;
+    while (i < n) {
+        const mode = (i + seed) % 3;
+        const initial: int[] | null = mode === 0 ? null : [seed, i];
+        const value: int[] | null = pass(initial);
+        output.push(typeof value);
+        output.push(String(value));
+        output.push(Boolean(value) ? "true" : "false");
+        output.push(value === null ? "sentinel" : "payload");
+        i = i + 1;
+    }
+    return output;
+}
+function pass(value: int[] | null): int[] | null { return value; }
+function main() { const result = workload(2, 7); }

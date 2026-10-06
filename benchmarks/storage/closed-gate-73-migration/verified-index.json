@@ -1,0 +1,1143 @@
+{
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/0-lsp-catalog.log": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/0-lsp-catalog.log",
+    "kind": "diagnostic",
+    "sha256": "bde9ebd97cb612f51bc10ee9c2cb3f7bff8dd8fe728195a2dc810dd9b45743dc",
+    "original_size": 592,
+    "compressed_size": 334
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/1-full-source-freeze.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/1-full-source-freeze.json",
+    "kind": "diagnostic",
+    "sha256": "6887464d5396029c45adaf44e16277285996a523c0d890709fb4ee03308040cb",
+    "original_size": 17961,
+    "compressed_size": 7241
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/10-final-3-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/10-final-3-start.json",
+    "kind": "diagnostic",
+    "sha256": "3a61656526c7f967fbaffd20f1161cb7def537fa59ae0f6b63df9dd719317677",
+    "original_size": 293,
+    "compressed_size": 197
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/100-syntax.rs": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/100-syntax.rs",
+    "kind": "diagnostic",
+    "sha256": "c22fb9f3ebc2e7679ad34780350ae0cf9ef2300e513ac5670722f0a1cc0f8202",
+    "original_size": 56164,
+    "compressed_size": 10820
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/11-final-1.log": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/11-final-1.log",
+    "kind": "diagnostic",
+    "sha256": "ef1c986ff1c60050429dbb9b16d1d12a55143673effc3a67e6a04a5acf46a013",
+    "original_size": 277,
+    "compressed_size": 160
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/12-fresh-cli.py": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/12-fresh-cli.py",
+    "kind": "diagnostic",
+    "sha256": "48ce44206b75d44392d161d25d5f6618a7e8ec873676b73d5e8d303326f3fd67",
+    "original_size": 1289,
+    "compressed_size": 644
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/13-lsp-catalog-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/13-lsp-catalog-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "55b2f86d96e95fe77f4dc204f38e0e76982830386ef1c0716640348e73bd148b",
+    "original_size": 554,
+    "compressed_size": 337
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/14-lsp-focused.log": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/14-lsp-focused.log",
+    "kind": "diagnostic",
+    "sha256": "c0cd032834b5ba3339d318aa00480de5615ae32d846c6a7df2362ce18fd1ff61",
+    "original_size": 544,
+    "compressed_size": 311
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/15-full.log": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/15-full.log",
+    "kind": "diagnostic",
+    "sha256": "e2e1678a0b853f4ce7f10f718c60276430e54f1ad5d3a1ec5015dc3677e9e93d",
+    "original_size": 69094,
+    "compressed_size": 16530
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/16-final-0.log": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/16-final-0.log",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/17-parent.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/17-parent.json",
+    "kind": "diagnostic",
+    "sha256": "08de733ebb6d9f14051e88efc4ffbda790ff1d6c741496170f93ffb83ba63e02",
+    "original_size": 1021,
+    "compressed_size": 464
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/18-fresh-cli.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/18-fresh-cli.json",
+    "kind": "diagnostic",
+    "sha256": "2768824bb3ea31f35fb06d6840b13fcf115ccc015fe296f91e9f69c48dec9e56",
+    "original_size": 1486,
+    "compressed_size": 463
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/19-native-hands.log": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/19-native-hands.log",
+    "kind": "diagnostic",
+    "sha256": "23a5f3c5acce88e77e5468b9911ca943743a14a8af327cfc10f5ed559405b79e",
+    "original_size": 68,
+    "compressed_size": 65
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/2-debug-source-order-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/2-debug-source-order-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/20-release-radix-hands-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/20-release-radix-hands-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/21-final-3-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/21-final-3-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "e8f43c80f79cb259ea99b8259bfeac327e1fecaa5c321ba2ad6a5ffb7ab3f81f",
+    "original_size": 497,
+    "compressed_size": 304
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/22-native-hands-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/22-native-hands-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "e9c0309f6ed72d178e508dd1e76624079049e5b189dd3f8623492e0f92104e54",
+    "original_size": 425,
+    "compressed_size": 269
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/23-debug-source-order-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/23-debug-source-order-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "f29e7d266230114290c8c8f1785f6475861d4e2f849f1e970ce50928af57b54e",
+    "original_size": 12584,
+    "compressed_size": 3132
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/24-final-0-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/24-final-0-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "d6518f9d557c9ec92dc5e59d055437f2a1b3b2c87a6f8e3d265a3fd0410fa010",
+    "original_size": 454,
+    "compressed_size": 286
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/25-final-1-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/25-final-1-start.json",
+    "kind": "diagnostic",
+    "sha256": "6e17eb559fa7eea5e66f53563793288bb5d23a2f5275276804b5b46aafffdc7c",
+    "original_size": 334,
+    "compressed_size": 209
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/26-lsp-focused-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/26-lsp-focused-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "654e4521589f0aa349a2c8d711fac7232ef949b09e80bc6f67c0a5477ab3189b",
+    "original_size": 561,
+    "compressed_size": 339
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/27-final-1-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/27-final-1-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "1bfadab2bd7b38619b9710415dd360f1f71d5699373b0bca7562379db009feec",
+    "original_size": 538,
+    "compressed_size": 317
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/28-native-hands-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/28-native-hands-start.json",
+    "kind": "diagnostic",
+    "sha256": "8ed408a8509ea2f522a1dbef3cc4aeace86e23cdf23beeb602cf5ff5105298c8",
+    "original_size": 216,
+    "compressed_size": 172
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/29-fresh-cli.log": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/29-fresh-cli.log",
+    "kind": "diagnostic",
+    "sha256": "2909f672e66e0387a10f8e3ef0e4f3ea1c2d5180e98059a7350eb3c9feb2bf3b",
+    "original_size": 1286,
+    "compressed_size": 444
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/3-fresh-cli-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/3-fresh-cli-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "f2a646ca84cb416a1b9cf73d8f273ec67e2a6a33e47c93257f34d0601a00f31e",
+    "original_size": 419,
+    "compressed_size": 266
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/30-benchmark-integration.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/30-benchmark-integration.json",
+    "kind": "diagnostic",
+    "sha256": "2709a97d005c93a051b12d1aa43302e65624bb3345e3af89815ee9bf5fe3e111",
+    "original_size": 3429,
+    "compressed_size": 1486
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/31-native-hands.py": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/31-native-hands.py",
+    "kind": "diagnostic",
+    "sha256": "92482410248dfcb8be767c96b0efdb293c9a53934bccd034b012f749fe09b591",
+    "original_size": 2125,
+    "compressed_size": 975
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/32-full-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/32-full-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "d136a17267c15267488983c3c70596291d60cff43257098aeb27b2dcd0ba46eb",
+    "original_size": 452,
+    "compressed_size": 288
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/33-final-2-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/33-final-2-start.json",
+    "kind": "diagnostic",
+    "sha256": "254a5f47da08da04573aae0c9ae31e17e6e056697428123d2659c74b908995a8",
+    "original_size": 276,
+    "compressed_size": 190
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/34-doctests-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/34-doctests-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "f30f42a938fb4e5c15efd985d9d2d92f823c5af17d6ae74044b3962bbade1ce1",
+    "original_size": 493,
+    "compressed_size": 300
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/35-regression-union.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/35-regression-union.json",
+    "kind": "diagnostic",
+    "sha256": "32d1aa37e72d4211066daebaa0cf12c098e93c3ce5870f7cd818de658e6f0a02",
+    "original_size": 87613,
+    "compressed_size": 15831
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/36-accept-regression.py": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/36-accept-regression.py",
+    "kind": "diagnostic",
+    "sha256": "ca3671dcbc7dd3dc8e5a3d662be4cf6f44d47e421fa6c16e29d6af273b80e8c7",
+    "original_size": 4921,
+    "compressed_size": 1754
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/37-fresh-cli-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/37-fresh-cli-start.json",
+    "kind": "diagnostic",
+    "sha256": "e79dce30b6db3d6f0883e1513e04b15a847cfd2262e790eb03184068b371dff2",
+    "original_size": 213,
+    "compressed_size": 171
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/38-debug-radix-hands-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/38-debug-radix-hands-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "033710720f73d4d5161e8aad975dcd6617b39963d254c020e77dc8bddca6d884",
+    "original_size": 12696,
+    "compressed_size": 3218
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/39-release-source-order-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/39-release-source-order-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "f29e7d266230114290c8c8f1785f6475861d4e2f849f1e970ce50928af57b54e",
+    "original_size": 12584,
+    "compressed_size": 3132
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/4-final-2.log": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/4-final-2.log",
+    "kind": "diagnostic",
+    "sha256": "4cf86278c1e6d659943a46a3d7e3da429ac15be90f0f17742e24ef85228e7d3e",
+    "original_size": 72,
+    "compressed_size": 79
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/40-final-2-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/40-final-2-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "a2e3ec57c078f56fc01f2a378ae3862a0c29503c2f8e33819501415a56c12d85",
+    "original_size": 480,
+    "compressed_size": 297
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/41-source-proof.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/41-source-proof.json",
+    "kind": "diagnostic",
+    "sha256": "d924132f0971e9a487837fafb717f4170d01b0558dd453716374d6ea07c3ecf2",
+    "original_size": 235,
+    "compressed_size": 196
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/42-full-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/42-full-start.json",
+    "kind": "diagnostic",
+    "sha256": "16326be6b973020d167b2d55e3beda954260e2e5caf0fc5083cee574d5015fe5",
+    "original_size": 251,
+    "compressed_size": 177
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/43-debug-radix-hands-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/43-debug-radix-hands-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/44-final-checks.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/44-final-checks.json",
+    "kind": "diagnostic",
+    "sha256": "13131f333275fc698e900cb5dca9c16b17e450d6dec582c7313f785d8821ad90",
+    "original_size": 2144,
+    "compressed_size": 567
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/45-final-0-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/45-final-0-start.json",
+    "kind": "diagnostic",
+    "sha256": "50a2b1b2d9d5377a2bd10ccffe0ef4d17ecafebb6c763499f06c30f4e7210773",
+    "original_size": 250,
+    "compressed_size": 177
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/46-doctests-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/46-doctests-start.json",
+    "kind": "diagnostic",
+    "sha256": "e3c956d82bfb12c59f9b3f7293bc7a77c9e8eeddd1cfef12be0e4e0dd64d5470",
+    "original_size": 288,
+    "compressed_size": 191
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/47-release-source-order-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/47-release-source-order-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/48-regression-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/48-regression-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "66bead7cefa2c8ba28316cae36b2181d2cee2c3f399c531b3c22ed17e6c1f857",
+    "original_size": 1039,
+    "compressed_size": 510
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/49-lsp-catalog-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/49-lsp-catalog-start.json",
+    "kind": "diagnostic",
+    "sha256": "2ed2ec4f59ecc657efec8d3885bcc6a876c12f5896ff7fcc399b7808c8b95141",
+    "original_size": 346,
+    "compressed_size": 226
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/5-release-radix-hands-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/5-release-radix-hands-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "033710720f73d4d5161e8aad975dcd6617b39963d254c020e77dc8bddca6d884",
+    "original_size": 12696,
+    "compressed_size": 3218
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/50-doctests.log": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/50-doctests.log",
+    "kind": "diagnostic",
+    "sha256": "af947fc8cf795efe7dbc43bce441777408a7a2174ed013f8396d3ba575512dac",
+    "original_size": 352,
+    "compressed_size": 168
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/51-source-order.rs": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/51-source-order.rs",
+    "kind": "diagnostic",
+    "sha256": "f29e7d266230114290c8c8f1785f6475861d4e2f849f1e970ce50928af57b54e",
+    "original_size": 12584,
+    "compressed_size": 3132
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/52-source-order-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/52-source-order-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "f29e7d266230114290c8c8f1785f6475861d4e2f849f1e970ce50928af57b54e",
+    "original_size": 12584,
+    "compressed_size": 3132
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/53-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/53-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "6b0655a0c9e725a848bc10073ec3d83adb73ae52c494d07d59872e329f01f308",
+    "original_size": 8544,
+    "compressed_size": 1045
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/54-radix-hands-run-o3.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/54-radix-hands-run-o3.stdout",
+    "kind": "diagnostic",
+    "sha256": "e49c52c3d746c1df89c249138ff889181969711528648122e012a2f8e91dbed8",
+    "original_size": 1715,
+    "compressed_size": 600
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/55-source-order-build-o3.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/55-source-order-build-o3.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/56-radix-hands-build-o0.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/56-radix-hands-build-o0.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/57-source-order-run-o0.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/57-source-order-run-o0.stdout",
+    "kind": "diagnostic",
+    "sha256": "5461f875ada4fb4869dbabbbc4c71c1cb98dee5f8aca1c437c78991e501e4eaa",
+    "original_size": 30,
+    "compressed_size": 31
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/58-radix-hands-build-o0.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/58-radix-hands-build-o0.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/59-source-order-build-o3.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/59-source-order-build-o3.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/6-final-checks.py": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/6-final-checks.py",
+    "kind": "diagnostic",
+    "sha256": "260cf2eea413d3ce74e35a19e2cb1f87537b7b8b78041e06da54fe9ce8ca5bf4",
+    "original_size": 1100,
+    "compressed_size": 493
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/60-source-order-run-o0.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/60-source-order-run-o0.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/61-radix-hands-run-o3.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/61-radix-hands-run-o3.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/62-commands.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/62-commands.json",
+    "kind": "diagnostic",
+    "sha256": "0696d7cf737c53e71b3f2a48c6d125b78d587694f582d718ab430a672390c78f",
+    "original_size": 5934,
+    "compressed_size": 699
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/63-source-order-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/63-source-order-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/64-radix-hands-run-o0.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/64-radix-hands-run-o0.stdout",
+    "kind": "diagnostic",
+    "sha256": "e49c52c3d746c1df89c249138ff889181969711528648122e012a2f8e91dbed8",
+    "original_size": 1715,
+    "compressed_size": 600
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/65-source-order-run-o3.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/65-source-order-run-o3.stdout",
+    "kind": "diagnostic",
+    "sha256": "5461f875ada4fb4869dbabbbc4c71c1cb98dee5f8aca1c437c78991e501e4eaa",
+    "original_size": 30,
+    "compressed_size": 31
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/66-radix-hands-build-o3.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/66-radix-hands-build-o3.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/67-source-order-build-o0.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/67-source-order-build-o0.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/68-radix-hands-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/68-radix-hands-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "033710720f73d4d5161e8aad975dcd6617b39963d254c020e77dc8bddca6d884",
+    "original_size": 12696,
+    "compressed_size": 3218
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/69-radix-hands.rs": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/69-radix-hands.rs",
+    "kind": "diagnostic",
+    "sha256": "033710720f73d4d5161e8aad975dcd6617b39963d254c020e77dc8bddca6d884",
+    "original_size": 12696,
+    "compressed_size": 3218
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/7-final-3.log": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/7-final-3.log",
+    "kind": "diagnostic",
+    "sha256": "cee99c9f0f9509ed72e0b5724c73a4b866ef3dce4c51e6472a780ed515eebe69",
+    "original_size": 266,
+    "compressed_size": 150
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/70-radix-hands-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/70-radix-hands-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/71-source-order-run-o3.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/71-source-order-run-o3.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/72-source-order-build-o0.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/72-source-order-build-o0.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/73-radix-hands-build-o3.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/73-radix-hands-build-o3.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/74-radix-hands-run-o0.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/74-radix-hands-run-o0.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/75-before-identities.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/75-before-identities.json",
+    "kind": "diagnostic",
+    "sha256": "3aa19cae341e591067d333c6b1ddd5735d0a595124276e1bb080d3fb1678a4e7",
+    "original_size": 569,
+    "compressed_size": 309
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/76-run-command.py": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/76-run-command.py",
+    "kind": "diagnostic",
+    "sha256": "57f22ae7586713e16b7d8de9dc663f4391502463ffb9daf8e8c5bc7d398dae3d",
+    "original_size": 1087,
+    "compressed_size": 569
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/77-format.log": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/77-format.log",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/78-focused-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/78-focused-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "37364efc2aa43890d3377d7a5fcf12a23d835eaacdb07d824444a51eb59fb8c0",
+    "original_size": 611,
+    "compressed_size": 345
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/79-focused-repair.log": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/79-focused-repair.log",
+    "kind": "diagnostic",
+    "sha256": "b54b7f1650bae02254b357a511b3888ea09608fac9b6aff1624958b9cc800bc8",
+    "original_size": 493,
+    "compressed_size": 319
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/8-run-command.py": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/8-run-command.py",
+    "kind": "diagnostic",
+    "sha256": "ec6f3307f242dcf90fe2eb097e320dd03297fda19f9ed6323f1a2f5ea9e3ea1b",
+    "original_size": 1684,
+    "compressed_size": 786
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/80-focused-repair-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/80-focused-repair-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "62c164129e86b15c3e347ec857c7bff2a40c9ba2ebb2a32ad300cc04550185b9",
+    "original_size": 723,
+    "compressed_size": 403
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/81-candidate.diff": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/81-candidate.diff",
+    "kind": "diagnostic",
+    "sha256": "57f8fa77a8e1399f6cc8032423c27d9dc59e5b1923b649d9d574dc83f1e1ca92",
+    "original_size": 18201,
+    "compressed_size": 4861
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/82-format-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/82-format-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "3837b32ac2c3f383d2efa979ab8d6ccdd13ba428085ff2e764fb1c953005e33b",
+    "original_size": 694,
+    "compressed_size": 355
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/83-candidate-source.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/83-candidate-source.json",
+    "kind": "diagnostic",
+    "sha256": "613fd92adfe0731634ec514b007dc4cc3f18e508d868363fcd66927d2a84cc8e",
+    "original_size": 8635,
+    "compressed_size": 2263
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/84-focused.log": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/84-focused.log",
+    "kind": "diagnostic",
+    "sha256": "ef6ce69a2166fcaf1add364c1f888fc2dad2954c5b497db901863bec0c43dd58",
+    "original_size": 1480,
+    "compressed_size": 742
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/85-write-tests.py": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/85-write-tests.py",
+    "kind": "diagnostic",
+    "sha256": "d64e100c879926540a3570d721f3909a8963a3575277c583bdc63aa8b6c8b3ae",
+    "original_size": 8747,
+    "compressed_size": 2685
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/86-after.rs": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/86-after.rs",
+    "kind": "diagnostic",
+    "sha256": "f268d7b773237be1cdff81c3b5c8b99b64f9256b3e6e1d001bb30ab13d1b94db",
+    "original_size": 10882,
+    "compressed_size": 3175
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/87-repair.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/87-repair.json",
+    "kind": "diagnostic",
+    "sha256": "7ea1f758d092efda4c6d7e07b34b8a4b84eae768a1006f1a3c56b2763ed4ef4f",
+    "original_size": 1331,
+    "compressed_size": 644
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/88-before.rs": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/88-before.rs",
+    "kind": "diagnostic",
+    "sha256": "9ef133e09fabb7805a706b4fb29233730a8e21f9168b5624abd36e410b02eee7",
+    "original_size": 10882,
+    "compressed_size": 3172
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/89-fixed_storage.rs": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/89-fixed_storage.rs",
+    "kind": "diagnostic",
+    "sha256": "0eb3d62f7471e5c1573abf3c0661bb97575497e32d7aef6638c8760180e10996",
+    "original_size": 44227,
+    "compressed_size": 7688
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/9-lsp-focused-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/9-lsp-focused-start.json",
+    "kind": "diagnostic",
+    "sha256": "f312f9a2f6abf0ca42c2c050c8ca6e1a34a56b04a0104420407c3fadb5270ecf",
+    "original_size": 353,
+    "compressed_size": 227
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/90-analysis.rs": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/90-analysis.rs",
+    "kind": "diagnostic",
+    "sha256": "617d241a30eea090f448e0433eabbffc742a9ecee14bdc51e6b215f1d455492f",
+    "original_size": 279520,
+    "compressed_size": 45408
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/91-runtime_strings.rs": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/91-runtime_strings.rs",
+    "kind": "diagnostic",
+    "sha256": "7d0b4ac85c065ecb1926d9b6b3a98fe70235a82354df62fb06158f53eac4c718",
+    "original_size": 9781,
+    "compressed_size": 2345
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/92-emit.rs": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/92-emit.rs",
+    "kind": "diagnostic",
+    "sha256": "75db72e30c78c32d683edc6e4052be0896ebd155faf37a44b8c1244988e48809",
+    "original_size": 147336,
+    "compressed_size": 24032
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/93-syntax.rs": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/93-syntax.rs",
+    "kind": "diagnostic",
+    "sha256": "f49897c7ccb7cec8c971585bc485b8b3e33e576b8e3208da21769804a8ae6315",
+    "original_size": 56147,
+    "compressed_size": 10818
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/94-source-identities.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/94-source-identities.json",
+    "kind": "diagnostic",
+    "sha256": "9515cb0369c7459d2beabed1c77d4d63651e9b9fff32eb820c00abba0b6f249c",
+    "original_size": 688,
+    "compressed_size": 363
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/95-int_to_string.rs": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/95-int_to_string.rs",
+    "kind": "diagnostic",
+    "sha256": "9ef133e09fabb7805a706b4fb29233730a8e21f9168b5624abd36e410b02eee7",
+    "original_size": 10882,
+    "compressed_size": 3172
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/96-fixed_storage.rs": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/96-fixed_storage.rs",
+    "kind": "diagnostic",
+    "sha256": "d0b0e6f97e727a1570a8200cdeb54d916919b64d868a842f850c1da1391e52a1",
+    "original_size": 44626,
+    "compressed_size": 7727
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/97-analysis.rs": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/97-analysis.rs",
+    "kind": "diagnostic",
+    "sha256": "2c1a946f1ca260821f1fffde89e3c49d174441429ab58daefab2064d25669b9c",
+    "original_size": 280298,
+    "compressed_size": 45510
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/98-runtime_strings.rs": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/98-runtime_strings.rs",
+    "kind": "diagnostic",
+    "sha256": "1f6b49cfd15306244c580e78411d03de0ac3b11674094fb8cb0a2ae2e7fa79c3",
+    "original_size": 10702,
+    "compressed_size": 2655
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/99-emit.rs": {
+    "path": "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof-artifacts/99-emit.rs",
+    "kind": "diagnostic",
+    "sha256": "da68eef1c8383c8958a8bde7e0ddb8754db69f5cc0bdb3b8f319b0bdd5e3f6f9",
+    "original_size": 148234,
+    "compressed_size": 24141
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/0-source-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/0-source-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "9ab6881f1c123b176ad2a3b2c4efe9396174b0a33fbd9c5e45106c0b77ffe63a",
+    "original_size": 7677,
+    "compressed_size": 2571
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/1-candidate-source.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/1-candidate-source.json",
+    "kind": "diagnostic",
+    "sha256": "c7ba14b95d6760d34c1826f14bfc5e88ff12c0b319f2961bb33d0d30551ff994",
+    "original_size": 11479,
+    "compressed_size": 3427
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/10-node-radix-hands-observed.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/10-node-radix-hands-observed.json",
+    "kind": "diagnostic",
+    "sha256": "e3bfb0832c8e376148f737027c5255c9527579e572f750610eb2550fab7c35d3",
+    "original_size": 26699,
+    "compressed_size": 2196
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/11-node-radix-hands.log": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/11-node-radix-hands.log",
+    "kind": "diagnostic",
+    "sha256": "637fb8fcec881ccb7b6afa32171c64043f4d83d5c1582604f21f0dd2b315170a",
+    "original_size": 42,
+    "compressed_size": 46
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/12-before-parent-prefix-harness.test.mjs": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/12-before-parent-prefix-harness.test.mjs",
+    "kind": "diagnostic",
+    "sha256": "5b4fc5ea68cbbdc977e2a6bf699d9cdf3f5c9a48e0ce972bcbc645b561995002",
+    "original_size": 4169,
+    "compressed_size": 1394
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/2-candidate-source.diff": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/2-candidate-source.diff",
+    "kind": "diagnostic",
+    "sha256": "c028b3b1d84433ab052f8e74ac1efbda5974c4ee17f80367e07f55c77e53187d",
+    "original_size": 93250,
+    "compressed_size": 13879
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/3-benchmark-integration.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/3-benchmark-integration.json",
+    "kind": "diagnostic",
+    "sha256": "2709a97d005c93a051b12d1aa43302e65624bb3345e3af89815ee9bf5fe3e111",
+    "original_size": 3429,
+    "compressed_size": 1486
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/4-node-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/4-node-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "9161b480ac33955deb32d0c31a6b579ce9d79a0932c202a015528e4b7eebc520",
+    "original_size": 595,
+    "compressed_size": 358
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/5-node.log": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/5-node.log",
+    "kind": "diagnostic",
+    "sha256": "6d40d635ffa97eb7cc4594b13c8b1e06d60ee6483eb4aa84f4bf23966e88b3b7",
+    "original_size": 356,
+    "compressed_size": 246
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/6-typescript-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/6-typescript-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "9181f3ec46b18e29cd88df63ea78343914bd627e9203c0dbee858b4f6ea8a3b7",
+    "original_size": 643,
+    "compressed_size": 379
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/7-typescript.log": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/7-typescript.log",
+    "kind": "diagnostic",
+    "sha256": "318b7e6d6a6e154fc7a18ee0abcaf3f71fdb274522ea915ccb88408a3836059b",
+    "original_size": 1949,
+    "compressed_size": 850
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/8-node-manifest-prefix-repair-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/8-node-manifest-prefix-repair-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "d53b4a4dc4c2aa755ccdb7d5e867f25a0d951b34432e776b66ead2b67cab4b08",
+    "original_size": 819,
+    "compressed_size": 491
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/9-node-manifest-prefix-repair.log": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/9-node-manifest-prefix-repair.log",
+    "kind": "diagnostic",
+    "sha256": "cd695bb6853b993134763e8118eb04b1b6269b5ce185bac9ad59f2c4178d878b",
+    "original_size": 240,
+    "compressed_size": 180
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/all-radix-hands-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/all-radix-hands-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "312a6958124595e9ef4be4a51a4f2dd286ab885aa5bddff99bcfd0e0d6cb7963",
+    "original_size": 2266,
+    "compressed_size": 906
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/all-radix-hands-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/all-radix-hands-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "0b4da000562a4b363f03a7ec1c6f86a76f531d815e8bea7e9f3126afbc53c9df",
+    "original_size": 1944,
+    "compressed_size": 961
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/all-radix-hands.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/all-radix-hands.json",
+    "kind": "diagnostic",
+    "sha256": "23aa946d4f69fce3725b9d93e1a8d0eb4569fa6da4409dfdb732c84f3b8fc30e",
+    "original_size": 6634,
+    "compressed_size": 1744
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_base36-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_base36-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "6eb2e1c199cb467a1dd902223382727fb914b6779b2735d21fcd88c9fef57051",
+    "original_size": 87787,
+    "compressed_size": 5758
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_base36-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_base36-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "253bdad2899a69d479974be9ef6465fc445958bcd2f5375b61627bb6e0e6c8e6",
+    "original_size": 2211,
+    "compressed_size": 886
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_base36-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_base36-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "15ea0870e46aabb14cea94c934675c89a1aa90810fcbd635a210e2d05cd2b06f",
+    "original_size": 1920,
+    "compressed_size": 950
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_base36-wrong-radix.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_base36-wrong-radix.json",
+    "kind": "diagnostic",
+    "sha256": "4852452a35b6e3eda459a3c3248ac0ce15ec3ffd75ee997253cdc346f7cdafe4",
+    "original_size": 800,
+    "compressed_size": 370
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_binary-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_binary-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "557ea2f154a0d631eff40c64aaf1f0e50f252c54ac598e8b3a93789143b7a98c",
+    "original_size": 218988,
+    "compressed_size": 7514
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_binary-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_binary-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "b52dc4a2d34d45edfd250b56d15e90d9d494cf5e65c9b7d21a15d1f75fc65a98",
+    "original_size": 2210,
+    "compressed_size": 886
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_binary-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_binary-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "bcf59ead3c84c5261bd6009181c8ed8d8408c3530620c1d12f24b128d5015320",
+    "original_size": 1919,
+    "compressed_size": 948
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_binary-wrong-radix.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_binary-wrong-radix.json",
+    "kind": "diagnostic",
+    "sha256": "72b2483c7b5fdb43850a833512082fa1134cbd46d1d0de01df859f047e72778b",
+    "original_size": 801,
+    "compressed_size": 371
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_decimal-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_decimal-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "83917905547fac0160909fb1bfef86c3476d07a315065523d882f28d42e019e7",
+    "original_size": 98589,
+    "compressed_size": 5820
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_decimal-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_decimal-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "512fc99afe0326686d29da6b50b88f14aae0714d1669fbda15a5e0e8e9376a9b",
+    "original_size": 2209,
+    "compressed_size": 885
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_decimal-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_decimal-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "fbc2ac23e0dc72123a1ae8bfbba16ae9798d0201c6f9c8d6a87c121d7464c95b",
+    "original_size": 1918,
+    "compressed_size": 947
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_decimal-wrong-radix.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_decimal-wrong-radix.json",
+    "kind": "diagnostic",
+    "sha256": "1da3f34684a486041968fda984a20fdfb59bdd0430eba1b59fbb44bfa18adad1",
+    "original_size": 801,
+    "compressed_size": 372
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_hex-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_hex-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "e190324b763e58d9a4e15e2e1802a3b216dd820321b5633bd488fc6d3f946c5c",
+    "original_size": 99981,
+    "compressed_size": 5821
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_hex-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_hex-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "67253d6c7732bf6f1df37e548a52b2262c8523709815636bc347831ebf752d79",
+    "original_size": 2211,
+    "compressed_size": 884
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_hex-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_hex-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "e2bfd521055812789c8eb659fb0ef991e42cdd0c81426126d285b90cfed7f2b5",
+    "original_size": 1920,
+    "compressed_size": 948
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_hex-wrong-radix.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/int_to_string_hex-wrong-radix.json",
+    "kind": "diagnostic",
+    "sha256": "95baed098e7c08ae7a7af289da84bbb578e1964ba19fc8e48b8389db01e34a5b",
+    "original_size": 1357,
+    "compressed_size": 368
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/source-order-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/source-order-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "ca81a39950123b364ccc268587bf61304c3ba8146135e1bb72450444f88ec2c5",
+    "original_size": 2264,
+    "compressed_size": 827
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/source-order-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/source-order-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "091e74de949817549d268e734d3f42b337d401e28ba194251ec509e34cebe46c",
+    "original_size": 2001,
+    "compressed_size": 898
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/source-order.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/source-order.json",
+    "kind": "diagnostic",
+    "sha256": "fdc852739c204bd6c187dbc4b2bbcb1cd40c6c932d138b02e5ed69b68bafd1a2",
+    "original_size": 1353,
+    "compressed_size": 687
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/summary.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation-artifacts/observations/summary.json",
+    "kind": "diagnostic",
+    "sha256": "cdaef38c5241cfdefc4b117e5049e3a4d5ec5d2433e9460b80204af9d9377ede",
+    "original_size": 2348,
+    "compressed_size": 884
+  },
+  "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/0-seal-runtime.py": {
+    "path": "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/0-seal-runtime.py",
+    "kind": "diagnostic",
+    "sha256": "6fc1563700aa564392234a2f984134b7dac685ab1f1d86b977219b67315a175d",
+    "original_size": 7022,
+    "compressed_size": 2955
+  },
+  "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/1-runtime-freeze.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/1-runtime-freeze.json",
+    "kind": "diagnostic",
+    "sha256": "dcae702122c669fc87b7dcea74ba378d57641ab02fc27b490205c13108793e01",
+    "original_size": 22942,
+    "compressed_size": 9335
+  },
+  "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/10-report-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/10-report-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "a24b79484ff7d2ed1255c750259f5fcfd933a4a7c1f33ba9db994497850370d8",
+    "original_size": 461,
+    "compressed_size": 301
+  },
+  "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/11-runtime-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/11-runtime-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "e5aa720d967c9f281eac7fcddc9e36e3e06440b666776a1b3edc09bc571ed774",
+    "original_size": 579,
+    "compressed_size": 351
+  },
+  "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/12-runtime-seal-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/12-runtime-seal-start.json",
+    "kind": "diagnostic",
+    "sha256": "7aec750118b5ca44b455116433744d9cd6c57d2c67ac832a3db59826bea64f17",
+    "original_size": 387,
+    "compressed_size": 251
+  },
+  "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/13-profile-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/13-profile-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "3d9ccefa557ffcb737395b96e5781144f1a47ceacc9a83074aed4c4a73a8df7c",
+    "original_size": 566,
+    "compressed_size": 348
+  },
+  "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/14-int_to_string_decimal.rs": {
+    "path": "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/14-int_to_string_decimal.rs",
+    "kind": "diagnostic",
+    "sha256": "7db7109095905043246a45fe7ab34aa5c176516bba9425bbb16c6ff05aa0cfb7",
+    "original_size": 21744,
+    "compressed_size": 5626
+  },
+  "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/15-int_to_string_decimal.rs": {
+    "path": "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/15-int_to_string_decimal.rs",
+    "kind": "diagnostic",
+    "sha256": "da34f00d37c5dbc6cf4fc2511bc89df76c015e847451e86fa521b0df0fe6ca3e",
+    "original_size": 24476,
+    "compressed_size": 6343
+  },
+  "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/16-int_to_string_binary.rs": {
+    "path": "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/16-int_to_string_binary.rs",
+    "kind": "diagnostic",
+    "sha256": "2ec8b94cb11174c19a1d2115d722bc6db341ebb7c7341ec018427884ae194ca4",
+    "original_size": 21743,
+    "compressed_size": 5627
+  },
+  "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/17-int_to_string_binary.rs": {
+    "path": "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/17-int_to_string_binary.rs",
+    "kind": "diagnostic",
+    "sha256": "35b4aeaa10931b29ef4aa9cf2a4ec22e43d88da3710359283459671543b2e21b",
+    "original_size": 24475,
+    "compressed_size": 6344
+  },
+  "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/18-int_to_string_hex.rs": {
+    "path": "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/18-int_to_string_hex.rs",
+    "kind": "diagnostic",
+    "sha256": "4b8cb86f70aaad59debdb74499d34262e6ec65a0a67998bc48fc2ad18e8c8024",
+    "original_size": 21744,
+    "compressed_size": 5627
+  },
+  "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/19-int_to_string_hex.rs": {
+    "path": "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/19-int_to_string_hex.rs",
+    "kind": "diagnostic",
+    "sha256": "f39f1aff6f879801d093bdb0a8424860ce3e5bcb96ad820531de9fc2fa4fa64d",
+    "original_size": 24476,
+    "compressed_size": 6344
+  },
+  "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/2-BENCHMARKS.md": {
+    "path": "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/2-BENCHMARKS.md",
+    "kind": "diagnostic",
+    "sha256": "31aa05fab21ae04eba2bd190c694f5c0c62eb745ff378957cb64c0928df1061e",
+    "original_size": 891197,
+    "compressed_size": 130154
+  },
+  "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/20-int_to_string_base36.rs": {
+    "path": "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/20-int_to_string_base36.rs",
+    "kind": "diagnostic",
+    "sha256": "d160887796102b3b3e2b11c57a80f7686a37d6cd547a469aefd3e3c31c6292df",
+    "original_size": 21744,
+    "compressed_size": 5627
+  },
+  "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/21-int_to_string_base36.rs": {
+    "path": "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/21-int_to_string_base36.rs",
+    "kind": "diagnostic",
+    "sha256": "ed2238d1bba9279c32b41c9188a749e22a1e7bf80c0da4b60eca0df2b4a1493c",
+    "original_size": 24476,
+    "compressed_size": 6344
+  },
+  "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/3-report-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/3-report-start.json",
+    "kind": "diagnostic",
+    "sha256": "7647a89a8d3172c18817f7f61909cf46d308f3027aad258f067be812b8412ada",
+    "original_size": 258,
+    "compressed_size": 194
+  },
+  "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/4-runtime-seal.log": {
+    "path": "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/4-runtime-seal.log",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/5-report.log": {
+    "path": "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/5-report.log",
+    "kind": "diagnostic",
+    "sha256": "a3a0d3b911bb28198da95b0f3c1dd5a2e15c3e79474e1e9b03e9f6f247fecc04",
+    "original_size": 68,
+    "compressed_size": 76
+  },
+  "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/6-profile-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/6-profile-start.json",
+    "kind": "diagnostic",
+    "sha256": "dc230425f6d36cba9f8a1471d497c05a0bfc045fc58d17bab4ffbc080b5ca9ae",
+    "original_size": 362,
+    "compressed_size": 244
+  },
+  "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/7-runtime-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/7-runtime-start.json",
+    "kind": "diagnostic",
+    "sha256": "592e0a05d20986b2ba2225d83c9831c013f2b577fc3488ba822a8d723ea70653",
+    "original_size": 375,
+    "compressed_size": 245
+  },
+  "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/8-profile.log": {
+    "path": "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/8-profile.log",
+    "kind": "diagnostic",
+    "sha256": "72f32f549355fa370acc55d6e527e9ecf12d6a60d7cbba61154dfcf8e29b8bac",
+    "original_size": 390,
+    "compressed_size": 186
+  },
+  "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/9-runtime.log": {
+    "path": "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-artifacts/9-runtime.log",
+    "kind": "diagnostic",
+    "sha256": "a32dd8342244409d1600a7e26d592b22d285c4ffaaf01377f21f72327ef6f80b",
+    "original_size": 853,
+    "compressed_size": 243
+  },
+  "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-proof-closure-artifacts/close-docs.py": {
+    "path": "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-proof-closure-artifacts/close-docs.py",
+    "kind": "diagnostic",
+    "sha256": "997c3afbd5bd3a94a617d88dd4db0c78fe8b93102a6200f399938c4bfd24106d",
+    "original_size": 7754,
+    "compressed_size": 3115
+  },
+  "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-proof-closure-artifacts/completed-acceptance.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-proof-closure-artifacts/completed-acceptance.json",
+    "kind": "diagnostic",
+    "sha256": "b2f469190c2e15a185dab7cb17b3d83e1619e7c1e39506f8ae1bf7dd359dcad1",
+    "original_size": 3344,
+    "compressed_size": 1422
+  },
+  "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-proof-closure-artifacts/docs-closure-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-proof-closure-artifacts/docs-closure-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "2909f2085c28bb2113cba3a1acc436cb87d323f870f1f33eed6cd7195c22d467",
+    "original_size": 423,
+    "compressed_size": 274
+  },
+  "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-proof-closure-artifacts/docs-closure.log": {
+    "path": "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-proof-closure-artifacts/docs-closure.log",
+    "kind": "diagnostic",
+    "sha256": "bc40aab61d50bcd33cb9418f0ae0d732819303a7d22af2b7f0e315390bb03d89",
+    "original_size": 150,
+    "compressed_size": 131
+  }
+}

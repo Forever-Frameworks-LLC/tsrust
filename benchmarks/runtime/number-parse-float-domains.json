@@ -1,0 +1,1147 @@
+{
+  "scope": "Strict Number.parseFloat(String), decimal longest prefix with incomplete exponent rollback and exact JS leading whitespace; no coercion.",
+  "oracle": "Declared literal IEEE tokens selected by input identity. No Number.parseFloat, parseFloat, Number(string), or Rust parser is used to derive expected outputs.",
+  "nan": "Payload/sign normalized by existing observer, signed zero preserved.",
+  "workloadPools": {
+    "number_parse_float_decimal": [
+      "literal_000",
+      "literal_001",
+      "literal_002",
+      "literal_003",
+      "literal_004",
+      "literal_005",
+      "literal_006",
+      "literal_007",
+      "literal_008",
+      "literal_009",
+      "literal_010",
+      "literal_011",
+      "literal_012",
+      "literal_013",
+      "literal_014",
+      "literal_015"
+    ],
+    "number_parse_float_exponent": [
+      "literal_016",
+      "literal_017",
+      "literal_018",
+      "literal_019",
+      "literal_020",
+      "literal_021",
+      "literal_022",
+      "literal_023",
+      "literal_024",
+      "literal_025",
+      "literal_026",
+      "literal_027",
+      "literal_028",
+      "literal_029",
+      "literal_030",
+      "literal_031"
+    ],
+    "number_parse_float_whitespace": [
+      "literal_032",
+      "literal_033",
+      "literal_034",
+      "literal_035",
+      "literal_036",
+      "literal_037",
+      "literal_038",
+      "literal_039",
+      "literal_040",
+      "literal_041",
+      "literal_042",
+      "literal_043",
+      "literal_044",
+      "literal_045",
+      "literal_046",
+      "literal_047"
+    ],
+    "number_parse_float_trailing": [
+      "literal_048",
+      "literal_049",
+      "literal_050",
+      "literal_051",
+      "literal_052",
+      "literal_053",
+      "literal_054",
+      "literal_055",
+      "literal_056",
+      "literal_057",
+      "literal_058",
+      "literal_059",
+      "literal_060",
+      "literal_061",
+      "literal_062",
+      "literal_063"
+    ],
+    "number_parse_float_nonfinite_invalid": [
+      "literal_064",
+      "literal_065",
+      "literal_066",
+      "literal_059",
+      "literal_067",
+      "literal_068",
+      "literal_069",
+      "literal_070",
+      "literal_071",
+      "literal_072",
+      "literal_073",
+      "literal_074",
+      "literal_075",
+      "literal_076",
+      "literal_077",
+      "literal_078"
+    ],
+    "number_parse_float_mixed": [
+      "literal_079",
+      "literal_002",
+      "literal_049",
+      "literal_051",
+      "literal_027",
+      "literal_025",
+      "literal_070",
+      "literal_059",
+      "literal_080",
+      "literal_044",
+      "literal_030",
+      "literal_009",
+      "literal_081",
+      "literal_082",
+      "literal_011",
+      "literal_083"
+    ]
+  },
+  "externalInputs": {
+    "number_parse_float_decimal": [
+      "-123.625",
+      "0",
+      "-0",
+      "+17"
+    ],
+    "number_parse_float_exponent": [
+      "-1.234e2",
+      "1e3",
+      "1e-3",
+      "1E+3"
+    ],
+    "number_parse_float_whitespace": [
+      "﻿\t  -0.0",
+      "\n\r\f\u000b123.5",
+      " -1.5",
+      " +2.5"
+    ],
+    "number_parse_float_trailing": [
+      "123.5tail",
+      "0x1",
+      "1_2",
+      "1e+tail"
+    ],
+    "number_parse_float_nonfinite_invalid": [
+      "Infinity",
+      "-Infinity",
+      "+Infinity",
+      "Infinitytail"
+    ],
+    "number_parse_float_mixed": [
+      "  -45.5e-2tail",
+      "-0",
+      "0x1",
+      "1e+tail"
+    ]
+  },
+  "jsWhitespaceCodePoints": [
+    9,
+    10,
+    11,
+    12,
+    13,
+    32,
+    160,
+    5760,
+    8192,
+    8193,
+    8194,
+    8195,
+    8196,
+    8197,
+    8198,
+    8199,
+    8200,
+    8201,
+    8202,
+    8232,
+    8233,
+    8239,
+    8287,
+    12288,
+    65279
+  ],
+  "rejectedWhitespaceCodePoints": [
+    133,
+    6158,
+    8203
+  ],
+  "cells": [
+    {
+      "id": "literal_000",
+      "input": "-123.625",
+      "bits": "c05ee80000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_001",
+      "input": "0",
+      "bits": "0000000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_002",
+      "input": "-0",
+      "bits": "8000000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_003",
+      "input": "+17",
+      "bits": "4031000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_004",
+      "input": "0012",
+      "bits": "4028000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_005",
+      "input": "0.5",
+      "bits": "3fe0000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_006",
+      "input": ".5",
+      "bits": "3fe0000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_007",
+      "input": "5.",
+      "bits": "4014000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_008",
+      "input": "123.456",
+      "bits": "405edd2f1a9fbe77",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_009",
+      "input": "9007199254740991",
+      "bits": "433fffffffffffff",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_010",
+      "input": "-9007199254740991",
+      "bits": "c33fffffffffffff",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_011",
+      "input": "1.0000000000000002",
+      "bits": "3ff0000000000001",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_012",
+      "input": "-0.000",
+      "bits": "8000000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_013",
+      "input": "3.141592653589793",
+      "bits": "400921fb54442d18",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_014",
+      "input": "12345678901234567890",
+      "bits": "43e56a95319d63e1",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_015",
+      "input": "000000.125",
+      "bits": "3fc0000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_016",
+      "input": "-1.234e2",
+      "bits": "c05ed9999999999a",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_017",
+      "input": "1e3",
+      "bits": "408f400000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_018",
+      "input": "1e-3",
+      "bits": "3f50624dd2f1a9fc",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_019",
+      "input": "1E+3",
+      "bits": "408f400000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_020",
+      "input": "-2.5E-2",
+      "bits": "bf9999999999999a",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_021",
+      "input": ".5e-2",
+      "bits": "3f747ae147ae147b",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_022",
+      "input": "1.e2",
+      "bits": "4059000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_023",
+      "input": "0e9999",
+      "bits": "0000000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_024",
+      "input": "-0e9999",
+      "bits": "8000000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_025",
+      "input": "1e309",
+      "bits": "7ff0000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_026",
+      "input": "-1e309",
+      "bits": "fff0000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_027",
+      "input": "5e-324",
+      "bits": "0000000000000001",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_028",
+      "input": "-5e-324",
+      "bits": "8000000000000001",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_029",
+      "input": "1e-9999",
+      "bits": "0000000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_030",
+      "input": "-1e-9999",
+      "bits": "8000000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_031",
+      "input": "2.2250738585072014e-308",
+      "bits": "0010000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_032",
+      "input": "﻿\t  -0.0",
+      "bits": "8000000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_033",
+      "input": "\n\r\f\u000b123.5",
+      "bits": "405ee00000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_034",
+      "input": " -1.5",
+      "bits": "bff8000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_035",
+      "input": " +2.5",
+      "bits": "4004000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_036",
+      "input": " .5",
+      "bits": "3fe0000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_037",
+      "input": " -2",
+      "bits": "c000000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_038",
+      "input": " +3",
+      "bits": "4008000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_039",
+      "input": " -3",
+      "bits": "c008000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_040",
+      "input": " 4",
+      "bits": "4010000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_041",
+      "input": " -4",
+      "bits": "c010000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_042",
+      "input": "　5",
+      "bits": "4014000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_043",
+      "input": "﻿6",
+      "bits": "4018000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_044",
+      "input": "12",
+      "bits": "nan",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_045",
+      "input": "᠎12",
+      "bits": "nan",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_046",
+      "input": "​12",
+      "bits": "nan",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_047",
+      "input": " \t Infinity",
+      "bits": "7ff0000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_048",
+      "input": "123.5tail",
+      "bits": "405ee00000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_049",
+      "input": "0x1",
+      "bits": "0000000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_050",
+      "input": "1_2",
+      "bits": "3ff0000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_051",
+      "input": "1e+tail",
+      "bits": "3ff0000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_052",
+      "input": "1e-tail",
+      "bits": "3ff0000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_053",
+      "input": "1e",
+      "bits": "3ff0000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_054",
+      "input": "1E+",
+      "bits": "3ff0000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_055",
+      "input": "1e2tail",
+      "bits": "4059000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_056",
+      "input": ".5e-2tail",
+      "bits": "3f747ae147ae147b",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_057",
+      "input": "1.2.3",
+      "bits": "3ff3333333333333",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_058",
+      "input": "-0tail",
+      "bits": "8000000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_059",
+      "input": "Infinitytail",
+      "bits": "7ff0000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_060",
+      "input": "+Infinityx",
+      "bits": "7ff0000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_061",
+      "input": "-Infinity!",
+      "bits": "fff0000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_062",
+      "input": "12\u0000junk",
+      "bits": "4028000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_063",
+      "input": "12 34",
+      "bits": "4028000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_064",
+      "input": "Infinity",
+      "bits": "7ff0000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_065",
+      "input": "-Infinity",
+      "bits": "fff0000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_066",
+      "input": "+Infinity",
+      "bits": "7ff0000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_067",
+      "input": "inf",
+      "bits": "nan",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_068",
+      "input": "infinity",
+      "bits": "nan",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_069",
+      "input": "INFINITY",
+      "bits": "nan",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_070",
+      "input": "NaN",
+      "bits": "nan",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_071",
+      "input": "nan",
+      "bits": "nan",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_072",
+      "input": "",
+      "bits": "nan",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_073",
+      "input": " ",
+      "bits": "nan",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_074",
+      "input": "+",
+      "bits": "nan",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_075",
+      "input": "-",
+      "bits": "nan",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_076",
+      "input": ".",
+      "bits": "nan",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_077",
+      "input": ".e1",
+      "bits": "nan",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_078",
+      "input": "--1",
+      "bits": "nan",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_079",
+      "input": "  -45.5e-2tail",
+      "bits": "bfdd1eb851eb851f",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_080",
+      "input": "﻿.5",
+      "bits": "3fe0000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_081",
+      "input": "1.7976931348623157e308",
+      "bits": "7fefffffffffffff",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_082",
+      "input": "-1.7976931348623157e308",
+      "bits": "ffefffffffffffff",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_083",
+      "input": "12\u0000tail",
+      "bits": "4028000000000000",
+      "expectation": "Declared decimal-prefix result; literal binary64 expectation independent of parsing under test."
+    },
+    {
+      "id": "literal_084",
+      "input": "\t+1.25tail",
+      "bits": "3ff4000000000000",
+      "expectation": "JS whitespace U+0009 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_085",
+      "input": "\t-0e9999tail",
+      "bits": "8000000000000000",
+      "expectation": "JS whitespace U+0009 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_086",
+      "input": "\n+1.25tail",
+      "bits": "3ff4000000000000",
+      "expectation": "JS whitespace U+000A is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_087",
+      "input": "\n-0e9999tail",
+      "bits": "8000000000000000",
+      "expectation": "JS whitespace U+000A is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_088",
+      "input": "\u000b+1.25tail",
+      "bits": "3ff4000000000000",
+      "expectation": "JS whitespace U+000B is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_089",
+      "input": "\u000b-0e9999tail",
+      "bits": "8000000000000000",
+      "expectation": "JS whitespace U+000B is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_090",
+      "input": "\f+1.25tail",
+      "bits": "3ff4000000000000",
+      "expectation": "JS whitespace U+000C is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_091",
+      "input": "\f-0e9999tail",
+      "bits": "8000000000000000",
+      "expectation": "JS whitespace U+000C is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_092",
+      "input": "\r+1.25tail",
+      "bits": "3ff4000000000000",
+      "expectation": "JS whitespace U+000D is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_093",
+      "input": "\r-0e9999tail",
+      "bits": "8000000000000000",
+      "expectation": "JS whitespace U+000D is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_094",
+      "input": " +1.25tail",
+      "bits": "3ff4000000000000",
+      "expectation": "JS whitespace U+0020 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_095",
+      "input": " -0e9999tail",
+      "bits": "8000000000000000",
+      "expectation": "JS whitespace U+0020 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_096",
+      "input": " +1.25tail",
+      "bits": "3ff4000000000000",
+      "expectation": "JS whitespace U+00A0 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_097",
+      "input": " -0e9999tail",
+      "bits": "8000000000000000",
+      "expectation": "JS whitespace U+00A0 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_098",
+      "input": " +1.25tail",
+      "bits": "3ff4000000000000",
+      "expectation": "JS whitespace U+1680 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_099",
+      "input": " -0e9999tail",
+      "bits": "8000000000000000",
+      "expectation": "JS whitespace U+1680 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_100",
+      "input": " +1.25tail",
+      "bits": "3ff4000000000000",
+      "expectation": "JS whitespace U+2000 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_101",
+      "input": " -0e9999tail",
+      "bits": "8000000000000000",
+      "expectation": "JS whitespace U+2000 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_102",
+      "input": " +1.25tail",
+      "bits": "3ff4000000000000",
+      "expectation": "JS whitespace U+2001 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_103",
+      "input": " -0e9999tail",
+      "bits": "8000000000000000",
+      "expectation": "JS whitespace U+2001 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_104",
+      "input": " +1.25tail",
+      "bits": "3ff4000000000000",
+      "expectation": "JS whitespace U+2002 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_105",
+      "input": " -0e9999tail",
+      "bits": "8000000000000000",
+      "expectation": "JS whitespace U+2002 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_106",
+      "input": " +1.25tail",
+      "bits": "3ff4000000000000",
+      "expectation": "JS whitespace U+2003 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_107",
+      "input": " -0e9999tail",
+      "bits": "8000000000000000",
+      "expectation": "JS whitespace U+2003 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_108",
+      "input": " +1.25tail",
+      "bits": "3ff4000000000000",
+      "expectation": "JS whitespace U+2004 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_109",
+      "input": " -0e9999tail",
+      "bits": "8000000000000000",
+      "expectation": "JS whitespace U+2004 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_110",
+      "input": " +1.25tail",
+      "bits": "3ff4000000000000",
+      "expectation": "JS whitespace U+2005 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_111",
+      "input": " -0e9999tail",
+      "bits": "8000000000000000",
+      "expectation": "JS whitespace U+2005 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_112",
+      "input": " +1.25tail",
+      "bits": "3ff4000000000000",
+      "expectation": "JS whitespace U+2006 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_113",
+      "input": " -0e9999tail",
+      "bits": "8000000000000000",
+      "expectation": "JS whitespace U+2006 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_114",
+      "input": " +1.25tail",
+      "bits": "3ff4000000000000",
+      "expectation": "JS whitespace U+2007 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_115",
+      "input": " -0e9999tail",
+      "bits": "8000000000000000",
+      "expectation": "JS whitespace U+2007 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_116",
+      "input": " +1.25tail",
+      "bits": "3ff4000000000000",
+      "expectation": "JS whitespace U+2008 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_117",
+      "input": " -0e9999tail",
+      "bits": "8000000000000000",
+      "expectation": "JS whitespace U+2008 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_118",
+      "input": " +1.25tail",
+      "bits": "3ff4000000000000",
+      "expectation": "JS whitespace U+2009 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_119",
+      "input": " -0e9999tail",
+      "bits": "8000000000000000",
+      "expectation": "JS whitespace U+2009 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_120",
+      "input": " +1.25tail",
+      "bits": "3ff4000000000000",
+      "expectation": "JS whitespace U+200A is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_121",
+      "input": " -0e9999tail",
+      "bits": "8000000000000000",
+      "expectation": "JS whitespace U+200A is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_122",
+      "input": " +1.25tail",
+      "bits": "3ff4000000000000",
+      "expectation": "JS whitespace U+2028 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_123",
+      "input": " -0e9999tail",
+      "bits": "8000000000000000",
+      "expectation": "JS whitespace U+2028 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_124",
+      "input": " +1.25tail",
+      "bits": "3ff4000000000000",
+      "expectation": "JS whitespace U+2029 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_125",
+      "input": " -0e9999tail",
+      "bits": "8000000000000000",
+      "expectation": "JS whitespace U+2029 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_126",
+      "input": " +1.25tail",
+      "bits": "3ff4000000000000",
+      "expectation": "JS whitespace U+202F is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_127",
+      "input": " -0e9999tail",
+      "bits": "8000000000000000",
+      "expectation": "JS whitespace U+202F is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_128",
+      "input": " +1.25tail",
+      "bits": "3ff4000000000000",
+      "expectation": "JS whitespace U+205F is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_129",
+      "input": " -0e9999tail",
+      "bits": "8000000000000000",
+      "expectation": "JS whitespace U+205F is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_130",
+      "input": "　+1.25tail",
+      "bits": "3ff4000000000000",
+      "expectation": "JS whitespace U+3000 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_131",
+      "input": "　-0e9999tail",
+      "bits": "8000000000000000",
+      "expectation": "JS whitespace U+3000 is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_132",
+      "input": "﻿+1.25tail",
+      "bits": "3ff4000000000000",
+      "expectation": "JS whitespace U+FEFF is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_133",
+      "input": "﻿-0e9999tail",
+      "bits": "8000000000000000",
+      "expectation": "JS whitespace U+FEFF is skipped; signed prefix retained."
+    },
+    {
+      "id": "literal_134",
+      "input": "1.25",
+      "bits": "nan",
+      "expectation": "U+0085 is not JS whitespace, so no initial decimal prefix exists."
+    },
+    {
+      "id": "literal_135",
+      "input": "-0",
+      "bits": "nan",
+      "expectation": "U+0085 is not JS whitespace, so no initial decimal prefix exists."
+    },
+    {
+      "id": "literal_136",
+      "input": "᠎1.25",
+      "bits": "nan",
+      "expectation": "U+180E is not JS whitespace, so no initial decimal prefix exists."
+    },
+    {
+      "id": "literal_137",
+      "input": "᠎-0",
+      "bits": "nan",
+      "expectation": "U+180E is not JS whitespace, so no initial decimal prefix exists."
+    },
+    {
+      "id": "literal_138",
+      "input": "​1.25",
+      "bits": "nan",
+      "expectation": "U+200B is not JS whitespace, so no initial decimal prefix exists."
+    },
+    {
+      "id": "literal_139",
+      "input": "​-0",
+      "bits": "nan",
+      "expectation": "U+200B is not JS whitespace, so no initial decimal prefix exists."
+    },
+    {
+      "id": "literal_140",
+      "input": "1e+\u0000tail",
+      "bits": "3ff0000000000000",
+      "expectation": "Incomplete exponent rolls back at e; NUL ends suffix."
+    },
+    {
+      "id": "literal_141",
+      "input": "1e-foo",
+      "bits": "3ff0000000000000",
+      "expectation": "Incomplete signed exponent rolls back."
+    },
+    {
+      "id": "literal_142",
+      "input": "1e.",
+      "bits": "3ff0000000000000",
+      "expectation": "Incomplete exponent rolls back."
+    },
+    {
+      "id": "literal_143",
+      "input": "1ee2",
+      "bits": "3ff0000000000000",
+      "expectation": "Incomplete exponent rolls back."
+    },
+    {
+      "id": "literal_144",
+      "input": "+.5tail",
+      "bits": "3fe0000000000000",
+      "expectation": "Leading sign and fractional-only prefix."
+    },
+    {
+      "id": "literal_145",
+      "input": "-.5tail",
+      "bits": "bfe0000000000000",
+      "expectation": "Negative fractional-only prefix."
+    },
+    {
+      "id": "literal_146",
+      "input": "0b11",
+      "bits": "0000000000000000",
+      "expectation": "Only decimal prefix zero; no binary extension."
+    },
+    {
+      "id": "literal_147",
+      "input": "0o77",
+      "bits": "0000000000000000",
+      "expectation": "Only decimal prefix zero; no octal extension."
+    },
+    {
+      "id": "literal_148",
+      "input": "-0x1",
+      "bits": "8000000000000000",
+      "expectation": "Signed decimal zero before hex suffix."
+    },
+    {
+      "id": "literal_149",
+      "input": "+.e1",
+      "bits": "nan",
+      "expectation": "No significand digit."
+    },
+    {
+      "id": "literal_150",
+      "input": "++1",
+      "bits": "nan",
+      "expectation": "Only one sign permitted."
+    },
+    {
+      "id": "literal_151",
+      "input": "-Infinitye1",
+      "bits": "fff0000000000000",
+      "expectation": "Exact Infinity prefix ignores following exponent text."
+    },
+    {
+      "id": "literal_152",
+      "input": "infinite",
+      "bits": "nan",
+      "expectation": "Case-sensitive exact Infinity spelling required."
+    },
+    {
+      "id": "literal_153",
+      "input": "\u0000 1",
+      "bits": "nan",
+      "expectation": "NUL is not leading whitespace."
+    },
+    {
+      "id": "literal_154",
+      "input": "1 2",
+      "bits": "3ff0000000000000",
+      "expectation": "Whitespace in tail ends prefix."
+    },
+    {
+      "id": "literal_155",
+      "input": "2.4703282292062327e-324",
+      "bits": "0000000000000000",
+      "expectation": "Decimal below half minimum subnormal rounds to positive zero."
+    },
+    {
+      "id": "literal_156",
+      "input": "-2.4703282292062327e-324",
+      "bits": "8000000000000000",
+      "expectation": "Decimal below half minimum subnormal rounds to negative zero."
+    },
+    {
+      "id": "literal_157",
+      "input": "2.4703282292062328e-324",
+      "bits": "0000000000000001",
+      "expectation": "Decimal above half minimum subnormal rounds to minimum subnormal."
+    },
+    {
+      "id": "literal_158",
+      "input": "1.7976931348623159e308",
+      "bits": "7ff0000000000000",
+      "expectation": "Out-of-range decimal overflows."
+    },
+    {
+      "id": "literal_159",
+      "input": "-1.7976931348623159e308",
+      "bits": "fff0000000000000",
+      "expectation": "Negative out-of-range decimal overflows."
+    }
+  ]
+}

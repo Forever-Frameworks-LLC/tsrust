@@ -1,0 +1,12 @@
+type int=number;
+type EntryRow={text:string;values:int[];};
+function workload(n: int, seed: int, input: string): string[][] {
+ const output:string[][]=[];let i=0;
+ while (i < n) {
+  const base=(i*13+seed)%97;const source:EntryRow[]=[{text:input.repeat(base%3+1),values:[base,base+1]},{text:input.slice(),values:[base+2]}];
+  const pairs=Array.from(source.entries(),(pair:[int,EntryRow]):[int,EntryRow]=>{return [pair[0],{text:pair[1].text.slice(),values:pair[1].values.slice()}];});pairs[0][1].values[0]=base+9;pairs[0][1].text=input.slice();
+  output.push([String(pairs[0][0]),String(pairs[1][0]),source[0].text.slice(),source[0].values.join(","),pairs[0][1].text.slice(),pairs[0][1].values.join(","),String(pairs.length)]);
+  i=i+1;
+ } return output;
+}
+function main(){const result=workload(3,0,"abc");}

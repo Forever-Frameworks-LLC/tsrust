@@ -1,0 +1,12 @@
+import {observeSliceTree} from './slice-observation.mjs';import {observeNumber} from './number-observation.mjs';import {validateArrayRemovalCase} from './array-removal-oracle.mjs';
+export const spliceFamilies=['int','number','boolean','string','nested','record','null','undefined'],spliceIds=spliceFamilies.map(f=>'array_splice_'+f);
+export function validateSpliceCase(id,n,seed,input){if(!spliceIds.includes(id))throw Error('splice ID');return validateArrayRemovalCase(id.replace('array_splice_','array_pop_'),n,seed,input);}
+function digits(v){if(v===0)return'0';let result='';while(v>0){result='0123456789'[v%10]+result;v=Math.floor(v/10);}return result;}
+export function expectedSpliceValues(id,n,seed,input){input=validateSpliceCase(id,n,seed,input);const f=id.slice(13),out=[];
+ function old(j){if(f==='int')return digits(seed+j);if(f==='number')return [-0,seed/4,NaN,Infinity][j%4];if(f==='boolean')return (seed+j)%2===0?'true':'false';if(f==='string')return input+':'+digits(j);if(f==='nested')return '2:'+digits(seed+j)+','+digits(j);if(f==='record')return digits(seed+j)+':'+input+':'+digits(j);return f;}
+ function inserted(j){if(f==='int')return digits(seed+101+j);if(f==='number')return [-0,seed/4,NaN][j];if(f==='boolean')return ['false','true','true'][j];if(f==='string')return [input+':A',input+':B','é😀e\u0301\u0000:C'][j];if(f==='nested')return ['2:'+digits(seed)+',1','0:','2:'+digits(seed+2)+',3'][j];if(f==='record')return [digits(seed+101)+':'+input+':A',digits(seed+102)+':'+input+':B',digits(seed+103)+':é😀e\u0301\u0000:C'][j];return f;}
+ // Independent signed range arithmetic and output index partition, no tested splice calls.
+ for(let i=0;i<n;i++){const count=[0,1,4,5,17][(i+seed)%5],mode=(i*7+seed)%6,rawStart=[-9007199254740991,-3,-1,0,1,3,9007199254740991][(i*11+seed)%7],rawDelete=[-9007199254740991,-1,0,1,3,17,9007199254740991][(i*3+seed)%7];const start=mode===0?0:rawStart<0?Math.max(count+rawStart,0):Math.min(rawStart,count),deleted=mode===0?0:mode===1?count-start:Math.min(Math.max(rawDelete,0),count-start),added=mode===3||mode===5?1:mode===4?3:0,remaining=count-deleted+added;
+ out.push(f==='number'?deleted:digits(deleted),f==='number'?remaining:digits(remaining));for(let j=0;j<deleted;j++)out.push(old(start+j));for(let j=0;j<remaining;j++)out.push(j<start?old(j):j<start+added?inserted(j-start):old(j-added+deleted));}return out;
+}
+export function expectedSpliceObservation(id,n,seed,input){const v=expectedSpliceValues(id,n,seed,input);return id==='array_splice_number'?observeNumber(v):observeSliceTree(v);}

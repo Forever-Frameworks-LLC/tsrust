@@ -1,0 +1,19 @@
+function total(rows: int[][]): int {
+  let sum = 0;
+  for (const row of rows) {
+    for (const value of row) {
+      sum = sum + value;
+    }
+  }
+  return sum;
+}
+function main() {
+  const rows = [[1, 2], [3]];
+  rows[1].push(4);
+  rows[0][0] = 7;
+  console.log(total(rows));
+  const copy = clone(rows);
+  copy[0][0] = 9;
+  console.log(rows[0][0]);
+  console.log(copy[0][0]);
+}

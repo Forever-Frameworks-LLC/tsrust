@@ -1,0 +1,16 @@
+type int = number;
+function workload(n: int, seed: int, input: string): string[] {
+    const values: string[] = [clone(input), 'plain single', "plain double", '\x41\x00Z', "\u0042\u0000Y", '\u{43}\u{0}X', 'quote\' slash\\', "quote\" slash\\", '\q\$\_', "\b\f\n\r\t\v\0", 'join\
+ed', "join\ed", 'join\
+ed', "join\ ed", 'join\ ed', ''];
+    const output: string[] = []; let i = 0;
+    while (i < n) {
+        const at = (i * 13 + seed) % 16;
+        const selected: string = clone(values[at]);
+        output.push(selected);
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7, "dynamic ASCII"); }
+function clone<T>(value: T): T { return value; }

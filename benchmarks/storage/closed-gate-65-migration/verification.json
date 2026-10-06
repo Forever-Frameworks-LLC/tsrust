@@ -1,0 +1,8 @@
+{
+  "exactPathsAndBytes": 987,
+  "independentBlobChecks": 466,
+  "closedProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T19-00-25-000Z-native-int-runtime-proof.json",
+    "sha256": "9b8c8898556b30c6f42cfbfc988f6a3b03964529ec68f865be36abf7a20ca03d"
+  }
+}

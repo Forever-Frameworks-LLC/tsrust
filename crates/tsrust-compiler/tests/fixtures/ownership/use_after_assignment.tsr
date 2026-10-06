@@ -1,0 +1,12 @@
+type User = {
+    name: string;
+};
+
+function main() {
+    const user: User = {
+        name: "Pat"
+    };
+    const backup = user;
+    console.log(backup.name);
+    console.log(user.name);
+}

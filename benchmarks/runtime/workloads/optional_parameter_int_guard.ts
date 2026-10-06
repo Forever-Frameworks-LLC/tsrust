@@ -1,0 +1,17 @@
+type int = number;
+function clone<T>(value: T): T { return value; }
+type Trace = { calls: int; defaults: int; };
+function apply(trace: Trace, value?: int): int {
+    trace.calls = trace.calls + 1; if (value !== undefined) { return value + 3; } return 1000;
+}
+function workload(n: int, seed: int, input: string): int[] {
+    const output: int[] = []; const trace: Trace = { calls: 0, defaults: 0 };
+    let i = 0; while (i < n) {
+        const mode = (i + seed) % 4; const value = (i * 13 + seed) % 97;
+        const beforeCalls = trace.calls; const beforeDefaults = trace.defaults;
+        const observed = mode === 0 ? apply(trace) : mode === 1 ? apply(trace, undefined) : apply(trace, value);
+        output.push(observed); output.push(trace.calls - beforeCalls);
+        i = i + 1;
+    } return output;
+}
+function main() { const result = workload(3, 0, "abc"); }

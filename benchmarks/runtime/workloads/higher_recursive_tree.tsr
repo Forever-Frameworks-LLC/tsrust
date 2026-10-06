@@ -1,0 +1,5 @@
+type Node={code:int;text:string;children:Node[];};
+function workload(n:int,seed:int,input:string):Node[]{const consumer=copying;const output:Node[]=[];let i=0;while(i<n){const value:Node={code:seed+i,text:clone(input),children:[{code:i,text:"a\u0000b",children:[]},{code:i+1,text:"😀",children:[{code:seed,text:"leaf",children:[]}]}]};output.push(consumer(duplicate,value));i=i+1;}return output;}
+function duplicate(value:Node):Node{return clone(value);}
+function copying(f:Mutable<Function<Node, [value:ReadOnly<Node>]>>,value:Node):Node{return f(value);}
+function main(){const result=workload(2,7," xé😀e\u0301 ");}

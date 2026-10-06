@@ -1,0 +1,12 @@
+function workload(n: int, seed: int): number[] {
+    const values: number[] = [0.0, -0.0, 5e-324, -2.5, 0.5, 1.0 / 0.0, -1.0 / 0.0, 0.0 / 0.0];
+    const output: number[] = []; let i = 0;
+    while (i < n) {
+        const at = (i * 13 + seed) % 8;
+        const selected: number = values[at].valueOf();
+        output.push(selected);
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7); }

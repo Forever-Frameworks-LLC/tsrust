@@ -1,0 +1,19 @@
+type int = number;
+type Trace = { count: int; };
+function stringReceiver(trace: Trace): string { trace.count = trace.count + 1; return "é\u0000\uFEFF😀"; }
+function boolReceiver(trace: Trace): boolean { trace.count = trace.count + 1; return true; }
+function numberReceiver(trace: Trace): number { trace.count = trace.count + 1; return -0.0; }
+function intReceiver(trace: Trace): int { trace.count = trace.count + 1; return -7; }
+function main() {
+    const trace: Trace = { count: 0 };
+    console.log(stringReceiver(trace).toString()); console.log(trace.count);
+    console.log(stringReceiver(trace).valueOf()); console.log(trace.count);
+    console.log(boolReceiver(trace).toString()); console.log(trace.count);
+    console.log(boolReceiver(trace).valueOf()); console.log(trace.count);
+    const numeric: number = numberReceiver(trace).valueOf();
+    console.log(numeric === 0.0); console.log(1.0 / numeric < 0.0); console.log(trace.count);
+    console.log(intReceiver(trace).valueOf()); console.log(trace.count);
+    const reusable = clone("é😀");
+    console.log(reusable.toString()); console.log(reusable.valueOf()); console.log(reusable);
+}
+function clone<T>(value: T): T { return value; }

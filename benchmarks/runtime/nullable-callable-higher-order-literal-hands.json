@@ -1,0 +1,284 @@
+{
+  "literalExpectedValues": true,
+  "executionStatus": "Accepted untimed TypeScript/Node and native O0/O3 complete outputs; original prepared metadata retained in source proof.",
+  "cells": [
+    {
+      "id": "nullable_callable_higher_order_factory",
+      "n": 1,
+      "seed": 0,
+      "input": "abc",
+      "expected": [
+        [
+          16
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_higher_order_factory",
+      "n": 1,
+      "seed": 1,
+      "input": "abc",
+      "expected": [
+        [],
+        [
+          1,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_higher_order_factory",
+      "n": 1,
+      "seed": 2,
+      "input": "abc",
+      "expected": [
+        [],
+        [
+          1,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_higher_order_factory",
+      "n": 1,
+      "seed": 3,
+      "input": "abc",
+      "expected": [
+        [
+          28
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_higher_order_factory",
+      "n": 0,
+      "seed": 7,
+      "input": "abc",
+      "expected": []
+    },
+    {
+      "id": "nullable_callable_higher_order_factory",
+      "n": 1,
+      "seed": 0,
+      "input": "",
+      "expected": [
+        [
+          7
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_absent_higher_order_factory",
+      "n": 1,
+      "seed": 0,
+      "input": "abc",
+      "expected": [
+        [
+          16
+        ],
+        [
+          3,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_absent_higher_order_factory",
+      "n": 1,
+      "seed": 1,
+      "input": "abc",
+      "expected": [
+        [
+          20
+        ],
+        [
+          3,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_absent_higher_order_factory",
+      "n": 1,
+      "seed": 2,
+      "input": "abc",
+      "expected": [
+        [
+          24
+        ],
+        [
+          3,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_absent_higher_order_factory",
+      "n": 1,
+      "seed": 3,
+      "input": "abc",
+      "expected": [
+        [
+          28
+        ],
+        [
+          3,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_absent_higher_order_factory",
+      "n": 0,
+      "seed": 7,
+      "input": "abc",
+      "expected": []
+    },
+    {
+      "id": "nullable_callable_absent_higher_order_factory",
+      "n": 1,
+      "seed": 0,
+      "input": "",
+      "expected": [
+        [
+          7
+        ],
+        [
+          3,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_higher_order_factory",
+      "n": 3,
+      "seed": 0,
+      "input": "abc",
+      "expected": [
+        [
+          16
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          0
+        ],
+        [],
+        [
+          1,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [],
+        [
+          1,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "nullable_callable_absent_higher_order_factory",
+      "n": 3,
+      "seed": 0,
+      "input": "abc",
+      "expected": [
+        [
+          16
+        ],
+        [
+          3,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          56
+        ],
+        [
+          3,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          96
+        ],
+        [
+          3,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      ]
+    }
+  ]
+}

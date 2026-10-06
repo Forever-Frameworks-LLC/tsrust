@@ -1,0 +1,7 @@
+type int = number;
+function workload(n: int, seed: int, input: string): string[][] {
+ const output: string[][] = [];  let i = 0;
+ while (i < n) { const mode = (i + seed) % 3; const base = (i * 13 + seed) % 97; const count = mode === 0 ? 0 : mode === 1 ? 1 : 5;
+ const text = input.repeat(mode); output.push(Array.from(text, (letter: string, index: int): string => { return letter + String(index); })); i = i + 1; } return output;
+}
+function main() { const result = workload(3, 0, "abc"); }

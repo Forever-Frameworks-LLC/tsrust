@@ -1,0 +1,25 @@
+type int = number;
+function compound_value_int_add(left: int, right: int): int[] { let target: int = left; const observed: int = (target += right); return [observed, target]; }
+function compound_value_int_subtract(left: int, right: int): int[] { let target: int = left; const observed: int = (target -= right); return [observed, target]; }
+function compound_value_int_multiply(left: int, right: int): int[] { let target: int = left; const observed: int = (target *= right); return [observed, target]; }
+function compound_value_int_divide(left: int, right: int): int[] { let target: int = left; const observed: int = (target /= right); return [observed, target]; }
+function compound_value_int_remainder(left: int, right: int): int[] { let target: int = left; const observed: int = (target %= right); return [observed, target]; }
+function compound_value_int_power(left: int, right: int): int[] { let target: int = left; const observed: int = (target **= right); return [observed, target]; }
+function compound_value_int_and(left: int, right: int): int[] { let target: int = left; const observed: int = (target &= right); return [observed, target]; }
+function compound_value_int_or(left: int, right: int): int[] { let target: int = left; const observed: int = (target |= right); return [observed, target]; }
+function compound_value_int_xor(left: int, right: int): int[] { let target: int = left; const observed: int = (target ^= right); return [observed, target]; }
+function compound_value_int_shift_left(left: int, right: int): int[] { let target: int = left; const observed: int = (target <<= right); return [observed, target]; }
+function compound_value_int_shift_right(left: int, right: int): int[] { let target: int = left; const observed: int = (target >>= right); return [observed, target]; }
+function compound_value_int_shift_right_unsigned(left: int, right: int): int[] { let target: int = left; const observed: int = (target >>>= right); return [observed, target]; }
+function compound_value_number_add(left: number, right: number): number[] { let target: number = left; const observed: number = (target += right); return [observed, target]; }
+function compound_value_number_subtract(left: number, right: number): number[] { let target: number = left; const observed: number = (target -= right); return [observed, target]; }
+function compound_value_number_multiply(left: number, right: number): number[] { let target: number = left; const observed: number = (target *= right); return [observed, target]; }
+function compound_value_number_divide(left: number, right: number): number[] { let target: number = left; const observed: number = (target /= right); return [observed, target]; }
+function compound_value_number_remainder(left: number, right: number): number[] { let target: number = left; const observed: number = (target %= right); return [observed, target]; }
+function compound_value_number_power(left: number, right: number): number[] { let target: number = left; const observed: number = (target **= right); return [observed, target]; }
+function compound_value_number_and(left: number, right: number): number[] { let target: number = left; const observed: number = (target &= right); return [observed, target]; }
+function compound_value_number_or(left: number, right: number): number[] { let target: number = left; const observed: number = (target |= right); return [observed, target]; }
+function compound_value_number_xor(left: number, right: number): number[] { let target: number = left; const observed: number = (target ^= right); return [observed, target]; }
+function compound_value_number_shift_left(left: number, right: number): number[] { let target: number = left; const observed: number = (target <<= right); return [observed, target]; }
+function compound_value_number_shift_right(left: number, right: number): number[] { let target: number = left; const observed: number = (target >>= right); return [observed, target]; }
+function compound_value_number_shift_right_unsigned(left: number, right: number): number[] { let target: number = left; const observed: number = (target >>>= right); return [observed, target]; }

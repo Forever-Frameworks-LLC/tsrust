@@ -1,0 +1,14 @@
+type int = number;
+function workload(n: int, seed: int): number[] {
+    const left: number[] = [-8589934592.0, -4294967297.0, -4294967296.0, -4294967295.0, -2147483649.0, -2147483648.0, -1.0, 0.0, 0.0, 1.0, 2147483647.0, 2147483648.0, 4294967295.0, 4294967296.0, 4294967297.0, 8589934591.0];
+    const right: number[] = [-4294967297.0, -4294967296.0, -4294967295.0, -2147483649.0, -2147483648.0, -1.0, 0.0, 1.0, 2.0, 31.0, 32.0, 33.0, 2147483647.0, 2147483648.0, 4294967295.0, 4294967296.0];
+    const output: number[] = []; let i = 0;
+    while (i < n) {
+        let value: number = left[(i * 13 + seed) % 16];
+        const rhs: number = right[(i * 7 + seed) % 16];
+        const observed: number = (value &= rhs);
+        output.push(observed); output.push(value);
+        i = i + 1;
+    }
+    return output;
+}

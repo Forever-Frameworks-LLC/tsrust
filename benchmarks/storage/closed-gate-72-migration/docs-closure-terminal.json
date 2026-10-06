@@ -1,0 +1,18 @@
+{
+  "gate": 72,
+  "argv": [
+    "python3",
+    "/tmp/tsrust-gate72-close-docs.py",
+    "--runtime-proof",
+    "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T01-55-51-000Z-primitive-identity-runtime-proof.json",
+    "--runtime-proof-sha",
+    "2add80e4ed3bc43a47736b432f9d257e4396cab396b56ab7b03c4c2d160dcc5e"
+  ],
+  "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+  "pid": 2900,
+  "startedUtc": "2026-10-03T01:56:00.027553+00:00",
+  "finishedUtc": "2026-10-03T01:56:00.518950+00:00",
+  "exitCode": 0,
+  "log": "/private/tmp/tsrust-gate72-root-acceptance/docs-closure.log",
+  "logSha256": "bd0ccb88999536f521c75387d77a17b65b450bbefede303e31d72b20176204cc"
+}

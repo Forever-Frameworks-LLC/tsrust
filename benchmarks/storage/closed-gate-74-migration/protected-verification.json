@@ -1,0 +1,10 @@
+{
+  "files": 495,
+  "allPathStatIdentitiesExact": true,
+  "newRecordsAndReportHashesExact": true,
+  "priorLedger": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-gate-73-migration/protected-files.json",
+    "sha256": "6ae8f458767d9b631b74b34f2f9b761c1aee57f66ec70ceac8e349bf2d626c67"
+  },
+  "priorOriginalBytesRehashed": false
+}

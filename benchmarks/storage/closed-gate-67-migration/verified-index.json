@@ -1,0 +1,2284 @@
+{
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/000-parent.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/000-parent.json",
+    "kind": "diagnostic",
+    "sha256": "56966e6bec1cd8121edd8b0fcc06cb55245d48189ce702a0b48a07cb98d98fce",
+    "original_size": 24863,
+    "compressed_size": 9692
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/001-tsrust-gate67-candidate-source.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/001-tsrust-gate67-candidate-source.json",
+    "kind": "diagnostic",
+    "sha256": "f344271252f0c54fe5bf94d4da2b4bf46e7133c90dca22da3e6719ae135e3cb6",
+    "original_size": 3953,
+    "compressed_size": 1697
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/002-tsrust-gate67-candidate.diff": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/002-tsrust-gate67-candidate.diff",
+    "kind": "diagnostic",
+    "sha256": "51bd66a49d2f797f41cfb3c0365ab09aa50fa740b25e0c3d9747c4cccc1d640c",
+    "original_size": 35143,
+    "compressed_size": 7575
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/003-compiler-source-review.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/003-compiler-source-review.json",
+    "kind": "diagnostic",
+    "sha256": "b39f21a1b6909d724d285db6b5204490cf3eaeaf77c986363e17f8288cd4b83c",
+    "original_size": 1474,
+    "compressed_size": 831
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/004-integrated-source.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/004-integrated-source.json",
+    "kind": "diagnostic",
+    "sha256": "a2c3f857b2c2a2c2d099123b3e9ed14daf3dcdd99a319e3010873d5522bcb225",
+    "original_size": 2040,
+    "compressed_size": 909
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/005-focused-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/005-focused-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "499371a0a9e41bdc933666486f62352e23b97bd4fa303dbe5029da660a4af697",
+    "original_size": 661,
+    "compressed_size": 373
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/006-doctests-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/006-doctests-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "6bb79e443cdd582b07f3f989e3f1e28321cb8f527320f2ff4d017636eadc64f9",
+    "original_size": 501,
+    "compressed_size": 304
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/007-final-checks.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/007-final-checks.json",
+    "kind": "diagnostic",
+    "sha256": "180c3b04d54922be4e42b6e1e5b3f18b65f51a1ae7331b86eb781b8773df9c73",
+    "original_size": 2176,
+    "compressed_size": 577
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/008-fresh-cli.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/008-fresh-cli.json",
+    "kind": "diagnostic",
+    "sha256": "5232cd66ecb5687642cbf6dafdd351f408bec3c0480220e227dfd8217dedce64",
+    "original_size": 3057,
+    "compressed_size": 786
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/009-assignment-value-source-order.tsr": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/009-assignment-value-source-order.tsr",
+    "kind": "diagnostic",
+    "sha256": "852511b90c16e6405621a09a9ab1aa25d977a64e213da5f8174e5bafe710f72e",
+    "original_size": 1531,
+    "compressed_size": 490
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/010-tsrust-gate67-seal-compiler.py": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/010-tsrust-gate67-seal-compiler.py",
+    "kind": "diagnostic",
+    "sha256": "2b3229cb66e270897c67749584c578014c91bb495ca6526d9c997df87c40383a",
+    "original_size": 27134,
+    "compressed_size": 7100
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/011-regression-union.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/011-regression-union.json",
+    "kind": "diagnostic",
+    "sha256": "3bad6d42512d9cab25fc5719c7ef308435ef1466fb2039a82197a0e44b760995",
+    "original_size": 97779,
+    "compressed_size": 16804
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/012-regression-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/012-regression-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "5a9d3b22f0767cb35449757b2f4aa9f52673c27a141bec2b413ba94307442fe0",
+    "original_size": 971,
+    "compressed_size": 495
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/013-preserved-concurrent-changes.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/013-preserved-concurrent-changes.json",
+    "kind": "diagnostic",
+    "sha256": "8f5d5b7668ee56af7d10b4626d769c80efba70879cc078dcd51b50b5581796ec",
+    "original_size": 1109,
+    "compressed_size": 576
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/014-format-attempt1-assignment_values.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/014-format-attempt1-assignment_values.rs",
+    "kind": "diagnostic",
+    "sha256": "0da657c52f43d6b1477fcf12a12b985e4b27300909d6ad53f7df76cb719384d7",
+    "original_size": 18178,
+    "compressed_size": 4330
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/015-integrated-indexed-record-repair.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/015-integrated-indexed-record-repair.json",
+    "kind": "diagnostic",
+    "sha256": "9ab821bd7efecf818e36fe3fb0fe216436e7849e7e13f5db88296d165e63e822",
+    "original_size": 1747,
+    "compressed_size": 592
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/016-repair.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/016-repair.json",
+    "kind": "diagnostic",
+    "sha256": "5ab948801263c1ccf625cc5172cba734b0363a51f72e7354cc73358a9798d857",
+    "original_size": 3808,
+    "compressed_size": 1563
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/017-indexed-record-repair-review.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/017-indexed-record-repair-review.json",
+    "kind": "diagnostic",
+    "sha256": "4ef7fed274011e664e2657ddd5492278f6cca2b8591559d09c91b745ac12e9be",
+    "original_size": 820,
+    "compressed_size": 511
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/018-source.diff": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/018-source.diff",
+    "kind": "diagnostic",
+    "sha256": "c31890dae0f6452e7a2d1b29d78658f4644fd62276c402bf882b9ddccbec401f",
+    "original_size": 5593,
+    "compressed_size": 1658
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/019-failed-focused-assignment_values.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/019-failed-focused-assignment_values.rs",
+    "kind": "diagnostic",
+    "sha256": "12ce4a785ab1eb78d165f31881ea1f0d4218c773afd2c279f9e30d2d9ffb54b9",
+    "original_size": 23481,
+    "compressed_size": 4985
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/020-tsrust-gate67-seal-compiler-before-retained-resumption.py": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/020-tsrust-gate67-seal-compiler-before-retained-resumption.py",
+    "kind": "diagnostic",
+    "sha256": "e88ed10bfa34f3f4f167a8aba3b00597c15f3ab09af8e732effae559fb1079f5",
+    "original_size": 15552,
+    "compressed_size": 4585
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/021-tsrust-gate67-seal-compiler-revision.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/021-tsrust-gate67-seal-compiler-revision.json",
+    "kind": "diagnostic",
+    "sha256": "be85692b3f4e5289939f11f0640ad5b8e1ced42b558f135cc8a7bad8bd9a1b4b",
+    "original_size": 629,
+    "compressed_size": 383
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/022-tsrust-gate67-seal-compiler-before-second-resumption.py": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/022-tsrust-gate67-seal-compiler-before-second-resumption.py",
+    "kind": "diagnostic",
+    "sha256": "06e55106279d9c4ff6d58d1c72a9d7a2effdc7182cd7a6854070ea022c941b29",
+    "original_size": 19529,
+    "compressed_size": 5525
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/023-tsrust-gate67-seal-compiler-revision-before-second-resumption.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/023-tsrust-gate67-seal-compiler-revision-before-second-resumption.json",
+    "kind": "diagnostic",
+    "sha256": "338b8229e914090cf968c76adce58047de43fce65dc21d8ae60c4eb7ad2dd8d3",
+    "original_size": 577,
+    "compressed_size": 352
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/024-tsrust-gate67-seal-compiler-before-settled-regression.py": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/024-tsrust-gate67-seal-compiler-before-settled-regression.py",
+    "kind": "diagnostic",
+    "sha256": "643fa404cdb4fe39a3ee2f8bee6032779e4d721a71ab8eae636d382107b763a6",
+    "original_size": 22733,
+    "compressed_size": 6039
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/025-tsrust-gate67-seal-compiler-revision-before-settled-regression.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/025-tsrust-gate67-seal-compiler-revision-before-settled-regression.json",
+    "kind": "diagnostic",
+    "sha256": "8eaffec078d4a5f5b56dccdbca88f8f42aba9f195c5e88c2961c2c50b3c5e6ce",
+    "original_size": 824,
+    "compressed_size": 444
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/026-remaining-plan.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/026-remaining-plan.json",
+    "kind": "diagnostic",
+    "sha256": "876a41c76948f75a398dbd376fa79ab7d2d14dd54f1258127d9a2647a5797821",
+    "original_size": 2265,
+    "compressed_size": 762
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/027-remaining-plan-2.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/027-remaining-plan-2.json",
+    "kind": "diagnostic",
+    "sha256": "66c7d6010e6ffb2284295c204971f2fb11c0ee7801375dcdef7df0fa6d8e983f",
+    "original_size": 1472,
+    "compressed_size": 579
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/028-remaining-plan-3.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/028-remaining-plan-3.json",
+    "kind": "diagnostic",
+    "sha256": "c112d62436502b8a49a3c1c0da621477a968ec12bbd002f1acfdee5b76a875c6",
+    "original_size": 1196,
+    "compressed_size": 476
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/029-remaining-plan-4.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/029-remaining-plan-4.json",
+    "kind": "diagnostic",
+    "sha256": "053cb458700f1797b7b6bd55eae93cc3c89e8b0114e0dc9faa76a84bfce5b71f",
+    "original_size": 1064,
+    "compressed_size": 454
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/030-full-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/030-full-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "88510dbc5cab7d5541a14c72f9adb890bc9d759ee0970f28bc315f5110c8d23b",
+    "original_size": 501,
+    "compressed_size": 307
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/031-contract-repair-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/031-contract-repair-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "4af9be2e1f60669c2b41ec7e558f1ccb4fa8c077a0152bce118cb8afc6531725",
+    "original_size": 638,
+    "compressed_size": 379
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/032-resume-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/032-resume-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "940fcd609f67dbd472efd8b865156356fd59939446c82d16cbf496f36e97f71d",
+    "original_size": 3224,
+    "compressed_size": 831
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/033-fixed-contract-repair-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/033-fixed-contract-repair-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "89bec7eba13cfcea0c3bf1bdc6f49a5dbdc1f3e08921917b519398db0f472e3d",
+    "original_size": 650,
+    "compressed_size": 377
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/034-resume-2-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/034-resume-2-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "51ce1a2cc12b8e805ab228733a4551e32467c34c20b516556bbc0ccbe8723f1a",
+    "original_size": 2116,
+    "compressed_size": 663
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/035-nested-array-contract-repair-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/035-nested-array-contract-repair-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "98fde5f5806db44f45c15233d242dfe38942006ad122f3dd4452d561b96d3898",
+    "original_size": 648,
+    "compressed_size": 377
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/036-resume-3-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/036-resume-3-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "c87b8c4a012466c674cdaa850f864b821596694650c043926e5eca4d6f88db07",
+    "original_size": 1654,
+    "compressed_size": 555
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/037-indexed-record-repair-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/037-indexed-record-repair-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "6afb464d155df8ec9df4a6f20d8c03ebc7009588aac543f96bdde00c1079996b",
+    "original_size": 724,
+    "compressed_size": 409
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/038-resume-4-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/038-resume-4-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "a1898c2db4eda4ade39f424107e46faf4c0b06a186ff409f14a37637c20fbbbe",
+    "original_size": 1408,
+    "compressed_size": 516
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/039-remaining-lsp-units-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/039-remaining-lsp-units-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "744edb87ee5b3402bace581139b438c189115e340c5ae9079702ba5ee3536d7e",
+    "original_size": 552,
+    "compressed_size": 321
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/040-repair-before-format.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/040-repair-before-format.json",
+    "kind": "diagnostic",
+    "sha256": "4ba1d9ba704f4ac07a0a37d204129564aae25843f518e24276897c20a1066659",
+    "original_size": 3207,
+    "compressed_size": 1368
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/041-repair-before-wrapper-fix.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/041-repair-before-wrapper-fix.json",
+    "kind": "diagnostic",
+    "sha256": "58a27e8c2cdaf6128081a8c4fc9f61cf4256b8b794886221ee992e5760f995b0",
+    "original_size": 3309,
+    "compressed_size": 1390
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/042-source-before-wrapper-fix.diff": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/042-source-before-wrapper-fix.diff",
+    "kind": "diagnostic",
+    "sha256": "683ad86f3ba07db3d7391f6a42d7df1da5607bbf3d9394f459935acca9e9a840",
+    "original_size": 5602,
+    "compressed_size": 1653
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/043-check-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/043-check-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "56007b4764bdf09e7e78407b61b56bcefd33f61af67297548695864480b87b57",
+    "original_size": 516,
+    "compressed_size": 294
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/044-check.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/044-check.log",
+    "kind": "diagnostic",
+    "sha256": "48bf55a80d3abc5ba1b39e4240aefa06f5ef62fc579a61540bb05273a32f22f8",
+    "original_size": 187,
+    "compressed_size": 152
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/045-format-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/045-format-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "ca5553a5a6ba131255fad97a753fd82648575ed27a29bd66c7fe4961e15c81ee",
+    "original_size": 412,
+    "compressed_size": 261
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/046-format.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/046-format.log",
+    "kind": "diagnostic",
+    "sha256": "a3c58d035aff1c9b3bddac8ef75aea1fb0976d42cf5f6f3da22583ba9f1309dc",
+    "original_size": 15621,
+    "compressed_size": 1219
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/047-format-repaired-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/047-format-repaired-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "32062e0c61912c009613241e71651e6f48c007f7dae53e2c876e9ecc7535b7ea",
+    "original_size": 421,
+    "compressed_size": 266
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/048-format-repaired.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/048-format-repaired.log",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/049-Cargo.lock": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/049-Cargo.lock",
+    "kind": "diagnostic",
+    "sha256": "4e08580a5e3590ebc7e0b766f0a1d43ae8d006aadf7e19deb63f213fc4e1f723",
+    "original_size": 4645,
+    "compressed_size": 1378
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/050-Cargo.toml": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/050-Cargo.toml",
+    "kind": "diagnostic",
+    "sha256": "3f5088d52be74200a579642f035586af4148979636ceb94e6686ce5e76a36194",
+    "original_size": 228,
+    "compressed_size": 164
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/051-intelligence.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/051-intelligence.rs",
+    "kind": "diagnostic",
+    "sha256": "6c13036f772262a4ad2a06cb54c0579062050a7b5e2fd80f5cd044fcc160fb9b",
+    "original_size": 38239,
+    "compressed_size": 8214
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/052-builtins.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/052-builtins.json",
+    "kind": "diagnostic",
+    "sha256": "e67522eceae9ff8c270adf05ed607c168838bbe6386497916ea2ea53141154e2",
+    "original_size": 25457,
+    "compressed_size": 2482
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/053-analysis.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/053-analysis.rs",
+    "kind": "diagnostic",
+    "sha256": "34792a98a67df08c2345be266f217dae85f8d553d1030917017bd4fbf5a4391f",
+    "original_size": 259964,
+    "compressed_size": 42576
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/054-emit.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/054-emit.rs",
+    "kind": "diagnostic",
+    "sha256": "83288736db3481f430f99b2564bc63087de9bb4be07ff592b774e10d5b50d13f",
+    "original_size": 136507,
+    "compressed_size": 22424
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/055-fixed_storage.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/055-fixed_storage.rs",
+    "kind": "diagnostic",
+    "sha256": "6607a97db2bb5f8f667217cc61349585064a23f892e985d788d112c04f983972",
+    "original_size": 40440,
+    "compressed_size": 7273
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/056-syntax.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/056-syntax.rs",
+    "kind": "diagnostic",
+    "sha256": "4a4e59f719c9959ecd2affa865a5ddb0d04df54c8df017075f08c3c85da1c67c",
+    "original_size": 53351,
+    "compressed_size": 10391
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/057-assignment_values.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/057-assignment_values.rs",
+    "kind": "diagnostic",
+    "sha256": "59e3275ca21743cc0b0bd4bbf7214eac5c96c7f5891d3016515c1d20599d406d",
+    "original_size": 19584,
+    "compressed_size": 4406
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/058-logical_assignment.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/058-logical_assignment.rs",
+    "kind": "diagnostic",
+    "sha256": "bddbcf1996b82dbb7419ba1696be2a30435b214237bf211381c92a111ab21b29",
+    "original_size": 16910,
+    "compressed_size": 3993
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/059-analysis.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/059-analysis.rs",
+    "kind": "diagnostic",
+    "sha256": "1db9a89b7fcb83a331fc8943fe43b11fec4f2ade80ab82b6e9799277f3de4321",
+    "original_size": 260289,
+    "compressed_size": 42669
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/060-analysis.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/060-analysis.rs",
+    "kind": "diagnostic",
+    "sha256": "1db9a89b7fcb83a331fc8943fe43b11fec4f2ade80ab82b6e9799277f3de4321",
+    "original_size": 260289,
+    "compressed_size": 42669
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/061-assignment_values.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/061-assignment_values.rs",
+    "kind": "diagnostic",
+    "sha256": "cfc3a259423d19db411442c15f379f01a8a9bf2200ffe1be9be543facd7a90a5",
+    "original_size": 23472,
+    "compressed_size": 4991
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/062-assignment_values.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/062-assignment_values.rs",
+    "kind": "diagnostic",
+    "sha256": "cfc3a259423d19db411442c15f379f01a8a9bf2200ffe1be9be543facd7a90a5",
+    "original_size": 23472,
+    "compressed_size": 4991
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/063-contract-expectation-repair.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/063-contract-expectation-repair.json",
+    "kind": "diagnostic",
+    "sha256": "d6043e2f1da84c08a7165d7e32e01e0f5969d304945561815339d7dd2f5ff782",
+    "original_size": 715,
+    "compressed_size": 424
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/064-array_fields-before-contract-expectation.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/064-array_fields-before-contract-expectation.rs",
+    "kind": "diagnostic",
+    "sha256": "ccff765d6d1f3326c617569324135bbf37b42c22c2915435b467729922fa6548",
+    "original_size": 13040,
+    "compressed_size": 3033
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/065-array_fields.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/065-array_fields.rs",
+    "kind": "diagnostic",
+    "sha256": "a130139b258173fc58451707933029364135dc854511d28cae9fccc3d215085c",
+    "original_size": 13115,
+    "compressed_size": 3076
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/066-nested-contract-expectation-repair.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/066-nested-contract-expectation-repair.json",
+    "kind": "diagnostic",
+    "sha256": "b03d776098b035289f2c0d433965a043a4cddfd6a89a701ea85000d0b57b99ba",
+    "original_size": 526,
+    "compressed_size": 333
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/067-nested_records-before-contract-expectation.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/067-nested_records-before-contract-expectation.rs",
+    "kind": "diagnostic",
+    "sha256": "f0ea2b2a4f84973cead2b0324fe1a923bed1ac0a2fdf1e9ff71b0d143a17f834",
+    "original_size": 15348,
+    "compressed_size": 3593
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/068-nested_records.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/068-nested_records.rs",
+    "kind": "diagnostic",
+    "sha256": "3d41cba09c7458af0458aa21a3576ed3e160749a3bc20da908c0bdf0bce91588",
+    "original_size": 15345,
+    "compressed_size": 3594
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/069-fixed-contract-expectation-repair.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/069-fixed-contract-expectation-repair.json",
+    "kind": "diagnostic",
+    "sha256": "8cab160f5557057cbfc4a0d1c121b42c7744c7ee50a8142f30217b51df711e41",
+    "original_size": 709,
+    "compressed_size": 420
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/070-fixed_storage-before-contract-expectation.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/070-fixed_storage-before-contract-expectation.rs",
+    "kind": "diagnostic",
+    "sha256": "84c7dcaa7b2a6e7e5e836b0371289d15f8d579240e0dc468f530d1a5dc3be269",
+    "original_size": 32017,
+    "compressed_size": 6556
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/071-fixed_storage.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/071-fixed_storage.rs",
+    "kind": "diagnostic",
+    "sha256": "305fcd3a206687c3c0a37baddc288b6897c8dfd6cf7d721ef8751895c6b8d5d0",
+    "original_size": 32014,
+    "compressed_size": 6556
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/072-nested-array-contract-expectation-repair.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/072-nested-array-contract-expectation-repair.json",
+    "kind": "diagnostic",
+    "sha256": "3dce3b1d2c3e3acbb9b7355bb669f1e12153b25979d5c18f79c0bc980778eefd",
+    "original_size": 696,
+    "compressed_size": 419
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/073-nested_arrays-before-contract-expectation.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/073-nested_arrays-before-contract-expectation.rs",
+    "kind": "diagnostic",
+    "sha256": "4ef87f387b70463f4d354ee66870814d89a0bcc186eaa89d4bcf6791735c7574",
+    "original_size": 12714,
+    "compressed_size": 3239
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/074-nested_arrays.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/074-nested_arrays.rs",
+    "kind": "diagnostic",
+    "sha256": "5ec73dbe633bf1664ced6d1648462435b51c2b3e764df72be69a0104368ab46c",
+    "original_size": 12711,
+    "compressed_size": 3235
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/075-indexed-record-format-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/075-indexed-record-format-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "4525cb309f0237019aac5e53a0bf6944c30139371d2af08d1278a6a024fae4c8",
+    "original_size": 571,
+    "compressed_size": 346
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/076-indexed-record-focused-repair-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/076-indexed-record-focused-repair-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "91d87c88d67dae81012cd4ab934ed850a1b4b3ded25edded8339b9f3906cd595",
+    "original_size": 758,
+    "compressed_size": 428
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/077-indexed-record-focused-repaired-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/077-indexed-record-focused-repaired-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "8f781a839e78144d46b15935e7210492815db620379aaa0570f8de3defb16cb8",
+    "original_size": 758,
+    "compressed_size": 430
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/078-indexed-record-format.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/078-indexed-record-format.log",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/079-indexed-record-focused-repair.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/079-indexed-record-focused-repair.log",
+    "kind": "diagnostic",
+    "sha256": "c4035a8600d4ed4f98cba61dfede017bf004069cc23676f8fcad543aba39fb70",
+    "original_size": 2089,
+    "compressed_size": 892
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/080-indexed-record-focused-repaired.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/080-indexed-record-focused-repaired.log",
+    "kind": "diagnostic",
+    "sha256": "aebb70613ffe655876fd49a58b1441ef03d25b83daf1fec0ed537812dd83e25a",
+    "original_size": 520,
+    "compressed_size": 307
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/081-focused.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/081-focused.log",
+    "kind": "diagnostic",
+    "sha256": "5eda8175d5675bdedcdff10f9d2947c604e6c59c7afb6cc4e5ed1a34bb9890a9",
+    "original_size": 795,
+    "compressed_size": 430
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/082-full.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/082-full.log",
+    "kind": "diagnostic",
+    "sha256": "284398fd39e829ba6151da71447394f4f6080b301ef0de70392e45cd9e6a0d25",
+    "original_size": 5714,
+    "compressed_size": 1986
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/083-contract-repair.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/083-contract-repair.log",
+    "kind": "diagnostic",
+    "sha256": "23c80898d2df0af7730c7e853da8176ff5796831bf6f24358ca479577291e999",
+    "original_size": 454,
+    "compressed_size": 302
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/084-resume.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/084-resume.log",
+    "kind": "diagnostic",
+    "sha256": "c5217a4381028aa59bd708ae74e263801813331eb637c9f58f71a8129966dde0",
+    "original_size": 25646,
+    "compressed_size": 6906
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/085-fixed-contract-repair.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/085-fixed-contract-repair.log",
+    "kind": "diagnostic",
+    "sha256": "ba985ead5adf611fd829ab2fb1b04feeff8af882a13d02e2306ef7115c226722",
+    "original_size": 460,
+    "compressed_size": 300
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/086-resume-2.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/086-resume-2.log",
+    "kind": "diagnostic",
+    "sha256": "95a55e9b5dc629c6e14bfc11f22c55271e8e9941fc7a737a8a168fba7c0e50ea",
+    "original_size": 10355,
+    "compressed_size": 3308
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/087-nested-array-contract-repair.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/087-nested-array-contract-repair.log",
+    "kind": "diagnostic",
+    "sha256": "fb3f8cb5e10f0ae2dd2a8e52e484e55921f6bd07103db372ba4d1f3f1edf8525",
+    "original_size": 451,
+    "compressed_size": 291
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/088-resume-3.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/088-resume-3.log",
+    "kind": "diagnostic",
+    "sha256": "db540aad3982b4a34bc995628e62a59b79c35df41ec26eea72f5181b29a32c91",
+    "original_size": 8560,
+    "compressed_size": 2660
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/089-indexed-record-repair.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/089-indexed-record-repair.log",
+    "kind": "diagnostic",
+    "sha256": "525ef54c2e2846d7fe103c9ad0ac0a29647c323caa3eb4dacc227b532b594875",
+    "original_size": 492,
+    "compressed_size": 297
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/090-resume-4.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/090-resume-4.log",
+    "kind": "diagnostic",
+    "sha256": "e0c3ec0355a3b93808088b4f6d0958bc04c5481d3e819917b7b6ad16ee7724f6",
+    "original_size": 19050,
+    "compressed_size": 5097
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/091-remaining-lsp-units.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/091-remaining-lsp-units.log",
+    "kind": "diagnostic",
+    "sha256": "8ec3b7d42f2af6c0807a1de8c71b9dbbac3066a80070dd08ab4bb4a0c916deb8",
+    "original_size": 883,
+    "compressed_size": 443
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/092-doctests.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/092-doctests.log",
+    "kind": "diagnostic",
+    "sha256": "753e9a6f142e2c3986917d5babfb0cfc757ec1b96dd1f8e44cf11795f32e219f",
+    "original_size": 352,
+    "compressed_size": 167
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/093-final-0.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/093-final-0.log",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/094-final-1.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/094-final-1.log",
+    "kind": "diagnostic",
+    "sha256": "7216a151221b430787fe72340590d489fa3425227d263edc528fe63bdc54e9bd",
+    "original_size": 277,
+    "compressed_size": 160
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/095-final-2.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/095-final-2.log",
+    "kind": "diagnostic",
+    "sha256": "45f75b19e5718ce74d75d27dc949e2b0cc21908a1e53dca4d31c24e03ebe8e09",
+    "original_size": 72,
+    "compressed_size": 79
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/096-final-3.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/096-final-3.log",
+    "kind": "diagnostic",
+    "sha256": "ce37abdbb284900ffb2b823c393225faebf3ea68fbef6d152c6d82a1b6b0d994",
+    "original_size": 266,
+    "compressed_size": 151
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/097-final-0-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/097-final-0-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "f6d32c6469cb16d32cf9a40f87f5273d0907967340104692b99277c4003e4654",
+    "original_size": 462,
+    "compressed_size": 291
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/098-final-1-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/098-final-1-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "5bfb553d8c02e0f7b3c8019ceba8e6ce305c574540de67ecde7129234c21ae66",
+    "original_size": 546,
+    "compressed_size": 322
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/099-final-2-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/099-final-2-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "4952bff472dddd5ef75e8c7fedf866fe650efb57d8fa4e57e218d8bfceb2804b",
+    "original_size": 488,
+    "compressed_size": 301
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/100-final-3-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/100-final-3-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "fdd1e0df82d08cbae66435ff5dd8f490aa95dd742f36d5e8ca6e88aa7531f96a",
+    "original_size": 505,
+    "compressed_size": 308
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/101-fresh-debug.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/101-fresh-debug.stdout",
+    "kind": "diagnostic",
+    "sha256": "a438e3af1199c9c479507d9912a5d3fc180973d37a730c2572711447d5be0e79",
+    "original_size": 8377,
+    "compressed_size": 1734
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/102-fresh-debug.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/102-fresh-debug.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/103-fresh-release.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/103-fresh-release.stdout",
+    "kind": "diagnostic",
+    "sha256": "a438e3af1199c9c479507d9912a5d3fc180973d37a730c2572711447d5be0e79",
+    "original_size": 8377,
+    "compressed_size": 1734
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/104-fresh-release.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/104-fresh-release.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/105-fresh-saved66.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/105-fresh-saved66.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/106-fresh-saved66.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof-artifacts/106-fresh-saved66.stderr",
+    "kind": "diagnostic",
+    "sha256": "2a8d7f7e171c1361184fb4217018c2c4028c7bd4ede0e97725119b938dcabc54",
+    "original_size": 270,
+    "compressed_size": 187
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/assignment-value-check-drafts.mjs": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/assignment-value-check-drafts.mjs",
+    "kind": "diagnostic",
+    "sha256": "78747d1285c5234b7c1696c26cb0e9843d440be8d289c7211524e569fbb44544",
+    "original_size": 8351,
+    "compressed_size": 2917
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/assignment-value-hand-probes.ts": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/assignment-value-hand-probes.ts",
+    "kind": "diagnostic",
+    "sha256": "fb8a1457d10764d35ded4ff9fd966bfce2d52886b4b10cb99242cfa3d84b0236",
+    "original_size": 539,
+    "compressed_size": 193
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/assignment-value-harness.test.mjs": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/assignment-value-harness.test.mjs",
+    "kind": "diagnostic",
+    "sha256": "c5fc7f0ccd8c5ff7323a94574729e052bf57a2940a469644f87c50706d79c7e9",
+    "original_size": 4062,
+    "compressed_size": 1369
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/assignment-value-manifest-entries.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/assignment-value-manifest-entries.json",
+    "kind": "diagnostic",
+    "sha256": "731cd217773c750822298d30bccb38434a695607f6f866c2f159d9b64e50f908",
+    "original_size": 4150,
+    "compressed_size": 1070
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/assignment-value-oracle.mjs": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/assignment-value-oracle.mjs",
+    "kind": "diagnostic",
+    "sha256": "3d3f61bfac53a095de4428a17486158ea0c2c907e45a5afba464c99fa53fa578",
+    "original_size": 1759,
+    "compressed_size": 767
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/assignment-value-source-order-expected.txt": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/assignment-value-source-order-expected.txt",
+    "kind": "diagnostic",
+    "sha256": "8f581b401d3fc0c0fcb9fa12f4f70dd5d2713aa5948e6e65984f72e0a45ce528",
+    "original_size": 46,
+    "compressed_size": 40
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/assignment-value-source-order.ts": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/assignment-value-source-order.ts",
+    "kind": "diagnostic",
+    "sha256": "00e01fd8f0f1d3a7195f8db00767166fe197c20172a9809c2b47153ff95741c2",
+    "original_size": 1550,
+    "compressed_size": 497
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/assignment-value-source-order.tsr": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/assignment-value-source-order.tsr",
+    "kind": "diagnostic",
+    "sha256": "852511b90c16e6405621a09a9ab1aa25d977a64e213da5f8174e5bafe710f72e",
+    "original_size": 1531,
+    "compressed_size": 490
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/manifest.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/manifest.json",
+    "kind": "diagnostic",
+    "sha256": "3cb3c20a3521d2fe0031c2410049e81aaf888f4476fd64480d41596cb238c46e",
+    "original_size": 843632,
+    "compressed_size": 50027
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/oracle.mjs": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/oracle.mjs",
+    "kind": "diagnostic",
+    "sha256": "328612520f988cd78f29cb38410fa52d2e10a6f2f96a335d53876dcbbf812aa8",
+    "original_size": 37100,
+    "compressed_size": 8757
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/profile-native.mjs": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/profile-native.mjs",
+    "kind": "diagnostic",
+    "sha256": "ec0a8d63b5a33c7e25233fb7bc8a15d759b68b5f7d4c6e2cc942a9fc818878f3",
+    "original_size": 11019,
+    "compressed_size": 3213
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/report.mjs": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/report.mjs",
+    "kind": "diagnostic",
+    "sha256": "117dda6f71739c386053fb86b45c27552a29c1d3fedb8972905a0e28c8eff0a6",
+    "original_size": 37230,
+    "compressed_size": 10131
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/run.mjs": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/run.mjs",
+    "kind": "diagnostic",
+    "sha256": "82c77504b107812e3fb183c5c5e571ef7ecf0b62d1b99ea53cf991e6442dfb65",
+    "original_size": 22281,
+    "compressed_size": 6190
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/workloads/boolean_assignment_value.ts": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/workloads/boolean_assignment_value.ts",
+    "kind": "diagnostic",
+    "sha256": "0f17105e74ea273b8e043a1a31946d5b0fe8a899ba689dd7e9cfcc45834950bb",
+    "original_size": 644,
+    "compressed_size": 285
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/workloads/boolean_assignment_value.tsr": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/workloads/boolean_assignment_value.tsr",
+    "kind": "diagnostic",
+    "sha256": "391b866bba12d68c04483d6f74ff243feeb6a8ce2b81c68a3b3a145ae1c8a314",
+    "original_size": 676,
+    "compressed_size": 295
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/workloads/int_assignment_value.ts": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/workloads/int_assignment_value.ts",
+    "kind": "diagnostic",
+    "sha256": "00ae27b2e08d7f576a4479eaace87906c6136d08f76cea8933163fc47861959b",
+    "original_size": 514,
+    "compressed_size": 263
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/workloads/int_assignment_value.tsr": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/workloads/int_assignment_value.tsr",
+    "kind": "diagnostic",
+    "sha256": "fffc4415e3c1a2d8210f75aa85588ac0ade08d4ae65faa48cd7de3d67f824829",
+    "original_size": 546,
+    "compressed_size": 276
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/workloads/number_assignment_value.ts": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/workloads/number_assignment_value.ts",
+    "kind": "diagnostic",
+    "sha256": "1b1f649040470a6409b08e4363856b7f2de894a43397d2c1e3850a936583f0c7",
+    "original_size": 593,
+    "compressed_size": 283
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/workloads/number_assignment_value.tsr": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/current/benchmarks/runtime/workloads/number_assignment_value.tsr",
+    "kind": "diagnostic",
+    "sha256": "495b6aec6c85d29c04fb13c6976af12f4d6c698671a184f7aa6400a800ef0bc5",
+    "original_size": 625,
+    "compressed_size": 298
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations-index.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations-index.json",
+    "kind": "diagnostic",
+    "sha256": "92942f65accc47b2acfeae45831c227cc9c9d6c19b184ab0daad7dcef4471351",
+    "original_size": 6775,
+    "compressed_size": 1218
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/bindings.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/bindings.json",
+    "kind": "diagnostic",
+    "sha256": "e738f9810b74478cb0e2e84ab7c5b5acd020feb1be97367b0e8c3f548ff610be",
+    "original_size": 1845,
+    "compressed_size": 659
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/boolean_assignment_value-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/boolean_assignment_value-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "a8b275d86e8e30b13e174d9e744b12e5f613f6ff6291a1018472d78698b6a078",
+    "original_size": 104860,
+    "compressed_size": 3175
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/boolean_assignment_value-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/boolean_assignment_value-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "82b64ada60d8d91ffe4ad9753c3fd57efed5ee6a4168cb1e243c3ff36f5a1892",
+    "original_size": 3040,
+    "compressed_size": 980
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/boolean_assignment_value-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/boolean_assignment_value-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "67f3847fa2b6721ef04ca626085727dc7252a877b830b850b1d46237b8b5575d",
+    "original_size": 2798,
+    "compressed_size": 1140
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/hand-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/hand-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "347bb344147d8ceacb08b93a974406da6331fdd8f0c924aaf610afb79af8064b",
+    "original_size": 2871,
+    "compressed_size": 916
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/hand-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/hand-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "9b7ddc2835518436b63423b5d107c254aec0c9d8b837052b18dffe28c62ed35e",
+    "original_size": 2693,
+    "compressed_size": 1069
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/int_assignment_value-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/int_assignment_value-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "a8bf1837b8525111fac1fc04e1e6f5ec90060d11ef6e242f19ee9c09ce63963e",
+    "original_size": 134586,
+    "compressed_size": 5524
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/int_assignment_value-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/int_assignment_value-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "f2ba93772483e7edf08b68c575ae81df19d2a2a7e8e7b247df42d0f5e715021c",
+    "original_size": 2870,
+    "compressed_size": 969
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/int_assignment_value-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/int_assignment_value-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "41c38b3981a85b36693d57006e1356114382d8fe68dd79e10cdbdf5eddfa6dd3",
+    "original_size": 2668,
+    "compressed_size": 1127
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/manual-hand-cells.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/manual-hand-cells.json",
+    "kind": "diagnostic",
+    "sha256": "d5f60fa20b9785f6feca3b72d09aa517e0d270fb299620901562ff73594c08b5",
+    "original_size": 6442,
+    "compressed_size": 968
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/number_assignment_value-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/number_assignment_value-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "1499ed8c392ef78921147ad4c6fd4bb106503cb60f97edfaa5023d4434935be3",
+    "original_size": 634945,
+    "compressed_size": 12307
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/number_assignment_value-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/number_assignment_value-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "3709cde0a6ea49f62377b4d5cded12d7a364283c8f7c4877c5440d946bfd70f1",
+    "original_size": 2931,
+    "compressed_size": 986
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/number_assignment_value-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/number_assignment_value-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "51ce11e6bb9cff977188e92cd544084e78efa832e905eda940ba305662efcd91",
+    "original_size": 2747,
+    "compressed_size": 1145
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/source-order-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/source-order-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "075bc7f6c7deed06b0e5d1c4682cb0aae8dc50ed013881c2955c98c4a4f8c574",
+    "original_size": 3836,
+    "compressed_size": 1158
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/source-order-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/source-order-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "7bbca109a1160e6bd3fc21e551344e52b6da66384f0577a0a13230577d034c35",
+    "original_size": 3704,
+    "compressed_size": 1360
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/source-order.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/source-order.json",
+    "kind": "diagnostic",
+    "sha256": "baafa62dc0c9911bbe5fe11669000908d699c0c426742df479cff7a06af51c72",
+    "original_size": 1726,
+    "compressed_size": 743
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/summary.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/observations/summary.json",
+    "kind": "diagnostic",
+    "sha256": "10cebf4033c9e0c0a852352cb5d82c662145f1d4a4f93384f3e835cbbe2d1097",
+    "original_size": 1989,
+    "compressed_size": 735
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/records/before-BENCHMARKS.md": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/records/before-BENCHMARKS.md",
+    "kind": "diagnostic",
+    "sha256": "6bb40fbd1d72f4e27609cde464b371cf5800a17d7a6dfff57956b172f0881afd",
+    "original_size": 774185,
+    "compressed_size": 112877
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/records/before-manifest.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/records/before-manifest.json",
+    "kind": "diagnostic",
+    "sha256": "fd4458a964defdf44e796fedd09200cd40acfaf8db8f67090fa6a17f1ff26b9e",
+    "original_size": 839365,
+    "compressed_size": 49422
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/records/benchmark-parent.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/records/benchmark-parent.json",
+    "kind": "diagnostic",
+    "sha256": "edcbfcaa7dbc2be6ccfafe238c03498bf4a29c26f45b8168a1195667be78978f",
+    "original_size": 128499,
+    "compressed_size": 47588
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/records/candidate-source.diff": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/records/candidate-source.diff",
+    "kind": "diagnostic",
+    "sha256": "4bb81f21b2ff1eb02fcb3e767e3190dd3a7d1de81c94ba925422df3776be484c",
+    "original_size": 61708,
+    "compressed_size": 11243
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/records/candidate-source.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/records/candidate-source.json",
+    "kind": "diagnostic",
+    "sha256": "02531fdb9667abe38a476efaadbd6cc72e4048662d59180e8e5ffb8bebb502a4",
+    "original_size": 8650,
+    "compressed_size": 2382
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/records/integrated-benchmarks.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/records/integrated-benchmarks.json",
+    "kind": "diagnostic",
+    "sha256": "052960108371b6c0b513b911c28fa24b54852d03c418c72dbbfc7ff9dbbae76c",
+    "original_size": 6827,
+    "compressed_size": 1617
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/records/node-focused-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/records/node-focused-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "8d5811930f56e94510a5a3d0b29e10628d260d0d72acd6c00d6662d7dba1350a",
+    "original_size": 512,
+    "compressed_size": 327
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/records/node-focused.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/records/node-focused.log",
+    "kind": "diagnostic",
+    "sha256": "10549df0e763294d9295181bafe4534afedb49417a8ae4df25b92875146bafeb",
+    "original_size": 376,
+    "compressed_size": 263
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/records/source-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/records/source-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "c9987f6124b38af6f86f0505a1675bde8528430807b7f4c76822acf1a60ffa67",
+    "original_size": 3469,
+    "compressed_size": 1177
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/records/ts-source-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/records/ts-source-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "458536ca703bc1e69d076991da7cc501f97f319672be79ea44ae02fcd75b4098",
+    "original_size": 551,
+    "compressed_size": 348
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/records/ts-source.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/records/ts-source.log",
+    "kind": "diagnostic",
+    "sha256": "1eb9997e9f2e80ad2f5f401f2d8804591f773f8a68bc40a39204dd1cd769c765",
+    "original_size": 1721,
+    "compressed_size": 708
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/records/tsrust-gate67-seal-source.py": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/records/tsrust-gate67-seal-source.py",
+    "kind": "diagnostic",
+    "sha256": "7d54676600abb4ea95dd297dc066e9eeee85d9f76946029577bb45cd50ed2ae0",
+    "original_size": 11305,
+    "compressed_size": 3811
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/adapters.mjs": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/adapters.mjs",
+    "kind": "diagnostic",
+    "sha256": "a2bddce334b593655df79ee2a2ed7bdd4f9206497d535ec2cd94aae6ec689f29",
+    "original_size": 18809,
+    "compressed_size": 4189
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/allocation-driver.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/allocation-driver.rs",
+    "kind": "diagnostic",
+    "sha256": "d64e7f057f5e09f6d75f53b27e29a26e264ef00bf65b22247955ddaeca6990dd",
+    "original_size": 4000,
+    "compressed_size": 1258
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/driver.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/driver.rs",
+    "kind": "diagnostic",
+    "sha256": "0f49cb626ff34b2348bcb9d138f3f9851a1139b6b42a18aad6652459d9e6a8eb",
+    "original_size": 1387,
+    "compressed_size": 556
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/number-driver.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/number-driver.rs",
+    "kind": "diagnostic",
+    "sha256": "fe51c80edf23df0560067a08f732b2beec4721667f20b3210b50790def97bccb",
+    "original_size": 1240,
+    "compressed_size": 524
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/number-driver.ts": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/number-driver.ts",
+    "kind": "diagnostic",
+    "sha256": "da49559fced688eff36cc6296a660333457ec40586fbfd94a9567bd81f38896d",
+    "original_size": 1180,
+    "compressed_size": 544
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/number-observation.mjs": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/number-observation.mjs",
+    "kind": "diagnostic",
+    "sha256": "097f81a0141318a0f7b64be6a8569795f423dad6b612bd1afaa5b0eef45bea89",
+    "original_size": 1387,
+    "compressed_size": 702
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/number-observation.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/number-observation.rs",
+    "kind": "diagnostic",
+    "sha256": "bf8356720bc60f10628b92e890b29b48b047243eb2dcd3f8ff77eff4a6afd800",
+    "original_size": 1555,
+    "compressed_size": 612
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/number-observation.ts": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/number-observation.ts",
+    "kind": "diagnostic",
+    "sha256": "3700455fa27d4087304121a9bd17f089b78e39aedfe51f7171fdfbff02e4e064",
+    "original_size": 831,
+    "compressed_size": 443
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/number-oracle.mjs": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/number-oracle.mjs",
+    "kind": "diagnostic",
+    "sha256": "bf5efafa4b241414e395dfef141ceb94cb96e46cf99623e7fa29b5a9b0c6210c",
+    "original_size": 4292,
+    "compressed_size": 1653
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/result-observation.mjs": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/result-observation.mjs",
+    "kind": "diagnostic",
+    "sha256": "cb80c77b95b7bf1f50b0fb0939548399a2ac0c973935a5895297d291482dac4d",
+    "original_size": 2892,
+    "compressed_size": 965
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/slice-driver.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/slice-driver.rs",
+    "kind": "diagnostic",
+    "sha256": "3246d55473ec8db48534cd77a79570ec73244e116e4fc3a21184f51d535551b2",
+    "original_size": 1275,
+    "compressed_size": 545
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/slice-driver.ts": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/slice-driver.ts",
+    "kind": "diagnostic",
+    "sha256": "8c4e4c636d32516ea4c2d457a7e016e0f512893d7179d49bf6f0ff6a49db4436",
+    "original_size": 1192,
+    "compressed_size": 569
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/slice-observation.mjs": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/slice-observation.mjs",
+    "kind": "diagnostic",
+    "sha256": "213f50a29a07515b0d73b0b1a86e833a0da2677daf99db2c82342e3d5b1830e4",
+    "original_size": 1293,
+    "compressed_size": 684
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/slice-observation.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/slice-observation.rs",
+    "kind": "diagnostic",
+    "sha256": "8d0f9e3a2241888ede5182e432951044e32604f1888ea654a9e1d74e1dcc27ed",
+    "original_size": 3114,
+    "compressed_size": 1011
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/slice-observation.ts": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/slice-observation.ts",
+    "kind": "diagnostic",
+    "sha256": "49f21d7bb1920f90fd4113bf139d5556743f312184b89f6abea5181e0bef78f0",
+    "original_size": 1321,
+    "compressed_size": 695
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/tsconfig.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/tsconfig.json",
+    "kind": "diagnostic",
+    "sha256": "484100178c33af6b1bf93543134d3068ebf907e28c7456f82b7f29415fdb1802",
+    "original_size": 173,
+    "compressed_size": 132
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/versions.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation-artifacts/support/versions.json",
+    "kind": "diagnostic",
+    "sha256": "237f74c54470bdcaa3197d4699a44ed215807c7efbb7d3f1b7ff28935848eb1c",
+    "original_size": 151,
+    "compressed_size": 105
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/0-tsrust-gate67-seal-runtime.py": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/0-tsrust-gate67-seal-runtime.py",
+    "kind": "diagnostic",
+    "sha256": "25fdc6b6402f9994224c0bb7f2eeee3a0fa56860542b3ba04c63eaac3c0fd6b2",
+    "original_size": 20465,
+    "compressed_size": 6591
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/1-tsrust-gate67-runtime-freeze.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/1-tsrust-gate67-runtime-freeze.json",
+    "kind": "diagnostic",
+    "sha256": "d4e364b74305d66cfcfcd8c2c7ffddbb235d721b670bb71adfac50008678d99c",
+    "original_size": 10318,
+    "compressed_size": 3391
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/10-command-0003.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/10-command-0003.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/100-command-0048.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/100-command-0048.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/101-command-0049.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/101-command-0049.stdout",
+    "kind": "diagnostic",
+    "sha256": "b05627eb7afc5a3f7925258fa64ce33b3174f232a0456ab2500bcee9cc637325",
+    "original_size": 145,
+    "compressed_size": 84
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/102-command-0049.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/102-command-0049.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/103-command-0050.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/103-command-0050.stdout",
+    "kind": "diagnostic",
+    "sha256": "9d39b2b8724471770c575173c8121f36bf4f7b556c735384aa9ba9ae2788869a",
+    "original_size": 8268,
+    "compressed_size": 113
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/104-command-0050.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/104-command-0050.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/105-command-0051.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/105-command-0051.stdout",
+    "kind": "diagnostic",
+    "sha256": "6c7dc098b035a22662518eefad8883dd95950254f1c16f610402ae89a80ee1d8",
+    "original_size": 242,
+    "compressed_size": 144
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/106-command-0051.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/106-command-0051.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/107-command-0052.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/107-command-0052.stdout",
+    "kind": "diagnostic",
+    "sha256": "a438e3af1199c9c479507d9912a5d3fc180973d37a730c2572711447d5be0e79",
+    "original_size": 8377,
+    "compressed_size": 1734
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/108-command-0052.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/108-command-0052.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/109-command-0053.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/109-command-0053.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/11-command-0004.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/11-command-0004.stdout",
+    "kind": "diagnostic",
+    "sha256": "3790e948f86c37c7809ad7128f8f4dc226206efd67ab50ccd47c100224252a86",
+    "original_size": 75,
+    "compressed_size": 71
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/110-command-0053.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/110-command-0053.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/111-command-0054.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/111-command-0054.stdout",
+    "kind": "diagnostic",
+    "sha256": "8f581b401d3fc0c0fcb9fa12f4f70dd5d2713aa5948e6e65984f72e0a45ce528",
+    "original_size": 46,
+    "compressed_size": 40
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/112-command-0054.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/112-command-0054.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/113-command-0055.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/113-command-0055.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/114-command-0055.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/114-command-0055.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/115-command-0056.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/115-command-0056.stdout",
+    "kind": "diagnostic",
+    "sha256": "8f581b401d3fc0c0fcb9fa12f4f70dd5d2713aa5948e6e65984f72e0a45ce528",
+    "original_size": 46,
+    "compressed_size": 40
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/116-command-0056.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/116-command-0056.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/117-preflight.mjs": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/117-preflight.mjs",
+    "kind": "diagnostic",
+    "sha256": "8a23593dd2a2dd0ddebab0bc29d89c3f3c820c7f7044a3e274573aac042088a4",
+    "original_size": 9753,
+    "compressed_size": 3319
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/118-tsrust-gate67-run-measurement.py": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/118-tsrust-gate67-run-measurement.py",
+    "kind": "diagnostic",
+    "sha256": "8b745587e1df5a6dc4651779378287c78deb1ab76d10f51f1ef64442d3c1f97f",
+    "original_size": 1286,
+    "compressed_size": 638
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/119-tsrust-gate67-freeze-runtime.py": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/119-tsrust-gate67-freeze-runtime.py",
+    "kind": "diagnostic",
+    "sha256": "c679ff01c5ca5716d17b0127084f8830b8665f7dfd3032cba15f1c2711a9a43f",
+    "original_size": 5654,
+    "compressed_size": 2045
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/12-command-0004.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/12-command-0004.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/120-source-order.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/120-source-order.rs",
+    "kind": "diagnostic",
+    "sha256": "096ae36af4e60e78f1f42eed8da9ac60b3a723bad383da8a247c0b4d6d5f28e7",
+    "original_size": 8376,
+    "compressed_size": 1734
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/121-int_assignment_value.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/121-int_assignment_value.rs",
+    "kind": "diagnostic",
+    "sha256": "e168f521df084366f5eab7bcd493b1d6897afe1efc244e1db6b83b805c09fd51",
+    "original_size": 8843,
+    "compressed_size": 2656
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/122-int_assignment_value.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/122-int_assignment_value.rs",
+    "kind": "diagnostic",
+    "sha256": "6af4ab57a22c6dfd62189ceeff59b119b7c3a34bde2132083da567eaa3e1944d",
+    "original_size": 11575,
+    "compressed_size": 3380
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/123-number_assignment_value.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/123-number_assignment_value.rs",
+    "kind": "diagnostic",
+    "sha256": "ee1a4236810b90cd32be10ec1458087a3ff968d5b98dffd11edec0356d540724",
+    "original_size": 5087,
+    "compressed_size": 1645
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/124-number_assignment_value.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/124-number_assignment_value.rs",
+    "kind": "diagnostic",
+    "sha256": "202dbda0df943a9d60d01b0bee7165988ec1153d67d5c900ec51e8fc1eceaf69",
+    "original_size": 7847,
+    "compressed_size": 2383
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/125-boolean_assignment_value.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/125-boolean_assignment_value.rs",
+    "kind": "diagnostic",
+    "sha256": "ad9645c815b13e31810c63ec201fb28aecfd012d1f08c11c9a1532bd5272f9e9",
+    "original_size": 9143,
+    "compressed_size": 2681
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/126-boolean_assignment_value.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/126-boolean_assignment_value.rs",
+    "kind": "diagnostic",
+    "sha256": "656ba6e2a1987d078d3e4ee2bad2f3a20b465f8335e7fa43c06f2f01c3ec7ee2",
+    "original_size": 11875,
+    "compressed_size": 3400
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/127-int_assignment_value_emitted.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/127-int_assignment_value_emitted.rs",
+    "kind": "diagnostic",
+    "sha256": "20312fc15418c9b4002eea9fc02a1732c529f055deed1d453f1d734249d46a6e",
+    "original_size": 4634,
+    "compressed_size": 1339
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/128-int_assignment_value_scalar.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/128-int_assignment_value_scalar.rs",
+    "kind": "diagnostic",
+    "sha256": "e168f521df084366f5eab7bcd493b1d6897afe1efc244e1db6b83b805c09fd51",
+    "original_size": 8843,
+    "compressed_size": 2656
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/129-int_assignment_value_allocation.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/129-int_assignment_value_allocation.rs",
+    "kind": "diagnostic",
+    "sha256": "6af4ab57a22c6dfd62189ceeff59b119b7c3a34bde2132083da567eaa3e1944d",
+    "original_size": 11575,
+    "compressed_size": 3380
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/13-command-0005.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/13-command-0005.stdout",
+    "kind": "diagnostic",
+    "sha256": "8461e7945745f8f965f45018e37725be225118c258df4e3af6338f421c404843",
+    "original_size": 73,
+    "compressed_size": 77
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/130-int_assignment_value_accepted-row.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/130-int_assignment_value_accepted-row.json",
+    "kind": "diagnostic",
+    "sha256": "82493629cdb0292e23f1159dbbef5f70b298c6f6101c64ee0b8f91bee3ed5e20",
+    "original_size": 8479,
+    "compressed_size": 1831
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/131-number_assignment_value_emitted.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/131-number_assignment_value_emitted.rs",
+    "kind": "diagnostic",
+    "sha256": "189cd51b32d5a8b26919a39354c220c561b395c4ef1df192d33c2c7d0078357a",
+    "original_size": 2283,
+    "compressed_size": 696
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/132-number_assignment_value_scalar.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/132-number_assignment_value_scalar.rs",
+    "kind": "diagnostic",
+    "sha256": "ee1a4236810b90cd32be10ec1458087a3ff968d5b98dffd11edec0356d540724",
+    "original_size": 5087,
+    "compressed_size": 1645
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/133-number_assignment_value_allocation.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/133-number_assignment_value_allocation.rs",
+    "kind": "diagnostic",
+    "sha256": "202dbda0df943a9d60d01b0bee7165988ec1153d67d5c900ec51e8fc1eceaf69",
+    "original_size": 7847,
+    "compressed_size": 2383
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/134-number_assignment_value_accepted-row.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/134-number_assignment_value_accepted-row.json",
+    "kind": "diagnostic",
+    "sha256": "970620f190562becdfcfdcc78469f7610e353247fd988d89fb9e611dd03ea0e3",
+    "original_size": 8468,
+    "compressed_size": 1816
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/135-boolean_assignment_value_emitted.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/135-boolean_assignment_value_emitted.rs",
+    "kind": "diagnostic",
+    "sha256": "90982e2ec88b5586e64c733f33fa6d2312f28037cf489edb7926bd46e72cd090",
+    "original_size": 4934,
+    "compressed_size": 1370
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/136-boolean_assignment_value_scalar.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/136-boolean_assignment_value_scalar.rs",
+    "kind": "diagnostic",
+    "sha256": "ad9645c815b13e31810c63ec201fb28aecfd012d1f08c11c9a1532bd5272f9e9",
+    "original_size": 9143,
+    "compressed_size": 2681
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/137-boolean_assignment_value_allocation.rs": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/137-boolean_assignment_value_allocation.rs",
+    "kind": "diagnostic",
+    "sha256": "656ba6e2a1987d078d3e4ee2bad2f3a20b465f8335e7fa43c06f2f01c3ec7ee2",
+    "original_size": 11875,
+    "compressed_size": 3400
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/138-boolean_assignment_value_accepted-row.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/138-boolean_assignment_value_accepted-row.json",
+    "kind": "diagnostic",
+    "sha256": "bd25a6904b01ec0c0223cad1b28288e5cc38582a0d1ad21743e7f9171fddfeb1",
+    "original_size": 8499,
+    "compressed_size": 1826
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/139-native-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/139-native-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "33ef1564c3ff10ca8f069e4b2fe484232e3a9351cbe7eee179991fd381986594",
+    "original_size": 1142,
+    "compressed_size": 540
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/14-command-0005.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/14-command-0005.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/140-native.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/140-native.log",
+    "kind": "diagnostic",
+    "sha256": "e56acd403724abefe284124e83559a36c70f428bbaca2db1f7409a208d33ee61",
+    "original_size": 261,
+    "compressed_size": 137
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/141-tsrust-gate67-runtime-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/141-tsrust-gate67-runtime-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "f41082bf71c3fb77c4e003e8daed125b61fc3e70014062da8d78992903477f28",
+    "original_size": 545,
+    "compressed_size": 335
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/142-tsrust-gate67-runtime.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/142-tsrust-gate67-runtime.log",
+    "kind": "diagnostic",
+    "sha256": "31d9210ebd561a78bcef0a7aa94089ef3c4d81ebc4b1a3c1d4ae885d4e248d16",
+    "original_size": 718,
+    "compressed_size": 226
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/143-tsrust-gate67-profile-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/143-tsrust-gate67-profile-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "ea838702473a1ab3d88cd51e03d656831a754e28f8a3e724161344a8c505f4ad",
+    "original_size": 532,
+    "compressed_size": 331
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/144-tsrust-gate67-profile.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/144-tsrust-gate67-profile.log",
+    "kind": "diagnostic",
+    "sha256": "ea7f46d2f53e75ad7dc7b62785af5c5d8360ac956d78840d1d665c20608b86e3",
+    "original_size": 326,
+    "compressed_size": 182
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/15-command-0006.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/15-command-0006.stdout",
+    "kind": "diagnostic",
+    "sha256": "46f1414bb39c2f4fae2d315dcf5950bfa126d2676ca19922deb842c6a5dff59f",
+    "original_size": 71,
+    "compressed_size": 78
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/16-command-0006.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/16-command-0006.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/17-command-0007.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/17-command-0007.stdout",
+    "kind": "diagnostic",
+    "sha256": "6fe630ac52270e5ed74de93d2f34ef7154f4ecb28fe67216146c5bb760709d17",
+    "original_size": 156,
+    "compressed_size": 101
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/18-command-0007.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/18-command-0007.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/19-command-0008.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/19-command-0008.stdout",
+    "kind": "diagnostic",
+    "sha256": "53273b484935b5187c1edd84ed1056bfbc96780595c4698a127a4f76cb05664d",
+    "original_size": 11328,
+    "compressed_size": 149
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/2-before-BENCHMARKS.md": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/2-before-BENCHMARKS.md",
+    "kind": "diagnostic",
+    "sha256": "6bb40fbd1d72f4e27609cde464b371cf5800a17d7a6dfff57956b172f0881afd",
+    "original_size": 774185,
+    "compressed_size": 112877
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/20-command-0008.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/20-command-0008.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/21-command-0009.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/21-command-0009.stdout",
+    "kind": "diagnostic",
+    "sha256": "12a234fb7fbc24a3d382fb05be2bece9aa481b6d62013c8fa29b26b17bbe218f",
+    "original_size": 242,
+    "compressed_size": 143
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/22-command-0009.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/22-command-0009.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/23-command-0010.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/23-command-0010.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/24-command-0010.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/24-command-0010.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/25-command-0011.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/25-command-0011.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/26-command-0011.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/26-command-0011.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/27-command-0012.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/27-command-0012.stdout",
+    "kind": "diagnostic",
+    "sha256": "4b71a2fa748d48fa3252652c945a0191af94fc1592ae0c1dae9f28ef89659794",
+    "original_size": 61,
+    "compressed_size": 68
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/28-command-0012.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/28-command-0012.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/29-command-0013.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/29-command-0013.stdout",
+    "kind": "diagnostic",
+    "sha256": "0be35611bac076b003dd7e105700154f337a1c74a747d72b53c0b11619c795ab",
+    "original_size": 74,
+    "compressed_size": 78
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/3-BENCHMARKS.md": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/3-BENCHMARKS.md",
+    "kind": "diagnostic",
+    "sha256": "2ea8e905e69598d14b6b348951fea69d3af62bb1402f0bb74fce383835bc8829",
+    "original_size": 780407,
+    "compressed_size": 113754
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/30-command-0013.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/30-command-0013.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/31-command-0014.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/31-command-0014.stdout",
+    "kind": "diagnostic",
+    "sha256": "f40f06dc75c8e0e7ad4d14e4e54c67169d30af449aff930288e0594cbda24683",
+    "original_size": 70,
+    "compressed_size": 77
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/32-command-0014.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/32-command-0014.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/33-command-0015.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/33-command-0015.stdout",
+    "kind": "diagnostic",
+    "sha256": "39f330a2d42b7bad0b05f3ab6be1759b43538688cf82aec6037f248656a95195",
+    "original_size": 156,
+    "compressed_size": 101
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/34-command-0015.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/34-command-0015.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/35-command-0016.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/35-command-0016.stdout",
+    "kind": "diagnostic",
+    "sha256": "494ad8d9f4d16844de19a3e3a2a1718b82f1fc15c432bf2196281c7737ccf9b7",
+    "original_size": 11328,
+    "compressed_size": 149
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/36-command-0016.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/36-command-0016.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/37-command-0017.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/37-command-0017.stdout",
+    "kind": "diagnostic",
+    "sha256": "12a234fb7fbc24a3d382fb05be2bece9aa481b6d62013c8fa29b26b17bbe218f",
+    "original_size": 242,
+    "compressed_size": 143
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/38-command-0017.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/38-command-0017.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/39-command-0018.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/39-command-0018.stdout",
+    "kind": "diagnostic",
+    "sha256": "d371458e9478540596a47b5f487f9026f453bdbd1557511823d98746b351c9ee",
+    "original_size": 2285,
+    "compressed_size": 696
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/4-native-abi-complete-order-disposal-proof.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/4-native-abi-complete-order-disposal-proof.json",
+    "kind": "diagnostic",
+    "sha256": "f3614c9d02b87815d7ef0a090c7f303ab987135a8d53013edd6bddaf69358e5c",
+    "original_size": 72447,
+    "compressed_size": 8161
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/40-command-0018.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/40-command-0018.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/41-command-0019.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/41-command-0019.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/42-command-0019.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/42-command-0019.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/43-command-0020.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/43-command-0020.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/44-command-0020.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/44-command-0020.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/45-command-0021.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/45-command-0021.stdout",
+    "kind": "diagnostic",
+    "sha256": "877a8b368a6932bff53aac506d0696c8ad1cdf0d24a99a2a7fb9d29e48d434f0",
+    "original_size": 55,
+    "compressed_size": 62
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/46-command-0021.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/46-command-0021.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/47-command-0022.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/47-command-0022.stdout",
+    "kind": "diagnostic",
+    "sha256": "c5d2d888848fad2ebff6bfcd18b456101f5671f0a88613c58a6e6ec2003b83e1",
+    "original_size": 96,
+    "compressed_size": 77
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/48-command-0022.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/48-command-0022.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/49-command-0023.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/49-command-0023.stdout",
+    "kind": "diagnostic",
+    "sha256": "935fe4ca0a56ea5943ffbae6a8dda4824dfe2dee45db026d7e3bc17bd74f8f81",
+    "original_size": 130,
+    "compressed_size": 84
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/5-command-0001.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/5-command-0001.stdout",
+    "kind": "diagnostic",
+    "sha256": "cd00f6edd979e37df4c9d05a01f4416050a7ea00965f439cc0da87132fc1e359",
+    "original_size": 4635,
+    "compressed_size": 1340
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/50-command-0023.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/50-command-0023.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/51-command-0024.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/51-command-0024.stdout",
+    "kind": "diagnostic",
+    "sha256": "f8cd276d86277340ab8948a355a9a7f8338c6566e5629ed54709983247680aec",
+    "original_size": 601,
+    "compressed_size": 122
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/52-command-0024.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/52-command-0024.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/53-command-0025.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/53-command-0025.stdout",
+    "kind": "diagnostic",
+    "sha256": "549f72fa4d9b3c454521eb8dd19857a4fd7915c7487856af97b977485c53d0a2",
+    "original_size": 63049,
+    "compressed_size": 686
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/54-command-0025.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/54-command-0025.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/55-command-0026.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/55-command-0026.stdout",
+    "kind": "diagnostic",
+    "sha256": "080feaf74e1839311db063d7472dde976d0255915f75c4c9ea619a40392d7691",
+    "original_size": 243,
+    "compressed_size": 143
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/56-command-0026.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/56-command-0026.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/57-command-0027.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/57-command-0027.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/58-command-0027.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/58-command-0027.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/59-command-0028.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/59-command-0028.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/6-command-0001.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/6-command-0001.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/60-command-0028.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/60-command-0028.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/61-command-0029.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/61-command-0029.stdout",
+    "kind": "diagnostic",
+    "sha256": "a1b017b7907e2facd22172886cdac0b5d77904fd4691ed73530be3b6b6a77222",
+    "original_size": 53,
+    "compressed_size": 60
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/62-command-0029.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/62-command-0029.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/63-command-0030.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/63-command-0030.stdout",
+    "kind": "diagnostic",
+    "sha256": "9cdfe9146a3503f14a389c0edd5a4810d8ee1ad8a17f183c419bfad1d078abec",
+    "original_size": 96,
+    "compressed_size": 78
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/64-command-0030.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/64-command-0030.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/65-command-0031.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/65-command-0031.stdout",
+    "kind": "diagnostic",
+    "sha256": "9647818ef863d8fc362864bfb5045eb73e66c93cbf90c0d67d4ac5ae73b02f5a",
+    "original_size": 130,
+    "compressed_size": 86
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/66-command-0031.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/66-command-0031.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/67-command-0032.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/67-command-0032.stdout",
+    "kind": "diagnostic",
+    "sha256": "b8c4a0e0191fcd5b8a39ab06fef8bd70ae296c95a92626c9e0831511c3f91c9b",
+    "original_size": 585,
+    "compressed_size": 116
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/68-command-0032.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/68-command-0032.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/69-command-0033.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/69-command-0033.stdout",
+    "kind": "diagnostic",
+    "sha256": "03de4826bbed33777ba13408dd881be00494988e70bd7f80139dcb864f70076c",
+    "original_size": 63038,
+    "compressed_size": 683
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/7-command-0002.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/7-command-0002.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/70-command-0033.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/70-command-0033.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/71-command-0034.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/71-command-0034.stdout",
+    "kind": "diagnostic",
+    "sha256": "080feaf74e1839311db063d7472dde976d0255915f75c4c9ea619a40392d7691",
+    "original_size": 243,
+    "compressed_size": 143
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/72-command-0034.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/72-command-0034.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/73-command-0035.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/73-command-0035.stdout",
+    "kind": "diagnostic",
+    "sha256": "7f1b95a068a5c6af4854da8d346447cd5ae4ea521a7c37b4c5a76dcf648aa1c8",
+    "original_size": 4935,
+    "compressed_size": 1370
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/74-command-0035.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/74-command-0035.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/75-command-0036.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/75-command-0036.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/76-command-0036.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/76-command-0036.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/77-command-0037.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/77-command-0037.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/78-command-0037.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/78-command-0037.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/79-command-0038.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/79-command-0038.stdout",
+    "kind": "diagnostic",
+    "sha256": "0e7de8a54c1dcf26d623ca5f6b8a64d9a86c8cf5f7f32e5b2c0c7db8255b79c2",
+    "original_size": 61,
+    "compressed_size": 68
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/8-command-0002.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/8-command-0002.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/80-command-0038.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/80-command-0038.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/81-command-0039.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/81-command-0039.stdout",
+    "kind": "diagnostic",
+    "sha256": "2e3e6778be81d765e93b3a6d65a5238909381dea7e997206a5b0510784305bfb",
+    "original_size": 68,
+    "compressed_size": 75
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/82-command-0039.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/82-command-0039.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/83-command-0040.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/83-command-0040.stdout",
+    "kind": "diagnostic",
+    "sha256": "5838906f632aaff1abb9936247cdacd8f182c9d97a8f3c374529b435167e1621",
+    "original_size": 70,
+    "compressed_size": 77
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/84-command-0040.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/84-command-0040.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/85-command-0041.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/85-command-0041.stdout",
+    "kind": "diagnostic",
+    "sha256": "7f8d7e2269cd05744526ce4552fea537e6b7e601ea17ddde9689c7d50294b6a2",
+    "original_size": 145,
+    "compressed_size": 84
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/86-command-0041.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/86-command-0041.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/87-command-0042.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/87-command-0042.stdout",
+    "kind": "diagnostic",
+    "sha256": "2cc1585697742afb12a18369addfce4edbec73a7834d569bf63f1dd995537d06",
+    "original_size": 8254,
+    "compressed_size": 105
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/88-command-0042.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/88-command-0042.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/89-command-0043.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/89-command-0043.stdout",
+    "kind": "diagnostic",
+    "sha256": "6c7dc098b035a22662518eefad8883dd95950254f1c16f610402ae89a80ee1d8",
+    "original_size": 242,
+    "compressed_size": 144
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/9-command-0003.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/9-command-0003.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/90-command-0043.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/90-command-0043.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/91-command-0044.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/91-command-0044.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/92-command-0044.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/92-command-0044.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/93-command-0045.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/93-command-0045.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/94-command-0045.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/94-command-0045.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/95-command-0046.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/95-command-0046.stdout",
+    "kind": "diagnostic",
+    "sha256": "68dca03fc6d920d5b74541ad2a6e346ae14bc554c8ab040ad98638320a6b9f5e",
+    "original_size": 59,
+    "compressed_size": 66
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/96-command-0046.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/96-command-0046.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/97-command-0047.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/97-command-0047.stdout",
+    "kind": "diagnostic",
+    "sha256": "6d306ae2bc1cd2dc07742cf3f27e33b1fe7f0699dfe4f4684563e5d7929fe8fa",
+    "original_size": 68,
+    "compressed_size": 75
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/98-command-0047.stderr": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/98-command-0047.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/99-command-0048.stdout": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-artifacts/99-command-0048.stdout",
+    "kind": "diagnostic",
+    "sha256": "eb11f6f5222c383822a9b40906db166094f996631dc3195cb7393655b29b4b7d",
+    "original_size": 70,
+    "compressed_size": 77
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-proof-closure-artifacts/actual-documentation-closure-history.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-proof-closure-artifacts/actual-documentation-closure-history.json",
+    "kind": "diagnostic",
+    "sha256": "6eee2df97a35be0acda3d263f03240b8905efee216d8f6facdf8ead768276bb0",
+    "original_size": 1475,
+    "compressed_size": 504
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-proof-closure-artifacts/docs-closure-quoting-failure.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-proof-closure-artifacts/docs-closure-quoting-failure.json",
+    "kind": "diagnostic",
+    "sha256": "3d659e9af781196be353b2a4208474803c77b1cacbf84b2cec089bdb1aea711d",
+    "original_size": 380,
+    "compressed_size": 273
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-proof-closure-artifacts/docs-closure-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-proof-closure-artifacts/docs-closure-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "fe72f893130ac60be5dd901231637f17f5da137747deb361eadab02fff83f21b",
+    "original_size": 685,
+    "compressed_size": 399
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-proof-closure-artifacts/docs-closure.log": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-proof-closure-artifacts/docs-closure.log",
+    "kind": "diagnostic",
+    "sha256": "afc22e57c83d2886749086c5f257391aae87e6882392b521b1e354bce3152d2b",
+    "original_size": 1958,
+    "compressed_size": 1024
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-proof-closure-artifacts/tsrust-gate67-close-docs-failed-quoting.py": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-proof-closure-artifacts/tsrust-gate67-close-docs-failed-quoting.py",
+    "kind": "diagnostic",
+    "sha256": "196bd30da1b62e04cd404a67497a34acdb5dd3dd3a61b5cd0ca00775f2b920cc",
+    "original_size": 23478,
+    "compressed_size": 7531
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-proof-closure-artifacts/tsrust-gate67-close-docs.py": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-proof-closure-artifacts/tsrust-gate67-close-docs.py",
+    "kind": "diagnostic",
+    "sha256": "8dff9fd73e091069f919a8f947d0306b9a18d9d5428e03058a053c184223f4e9",
+    "original_size": 23478,
+    "compressed_size": 7534
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-proof-closure-artifacts/tsrust-gate67-completed-acceptance.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-proof-closure-artifacts/tsrust-gate67-completed-acceptance.json",
+    "kind": "diagnostic",
+    "sha256": "220eb4ede82d8027abf4f181715f51795fea2d545a446d53002eb443e485a6c6",
+    "original_size": 9221,
+    "compressed_size": 2904
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-proof-closure-artifacts/tsrust-gate67-postclosure-readme-supplement.json": {
+    "path": "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-proof-closure-artifacts/tsrust-gate67-postclosure-readme-supplement.json",
+    "kind": "diagnostic",
+    "sha256": "87a8a53d000390425fb9ef5e681fe9b7a209714d30510e6700365bbbf9ef3eba",
+    "original_size": 3168,
+    "compressed_size": 1330
+  }
+}

@@ -1,0 +1,14 @@
+function workload(n: int, seed: int, input: string): int {
+    const values: string[] = ["", "alpha", "alpha\u0000", "é", "e\u0301", "😀", clone(input)];
+    let sum = seed;
+    let i = 0;
+    while (i < n) {
+        const left = (i * 13 + seed) % 7;
+        const right = (i * 17 + seed * 3) % 7;
+        if (values[left] === values[right]) { sum = sum + 1; }
+        if (values[(left + 1) % 7] !== values[(right + 2) % 7]) { sum = sum + 2; }
+        i = i + 1;
+    }
+    return sum;
+}
+function main() { console.log(workload(17, 7, "é")); }

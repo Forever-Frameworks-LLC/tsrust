@@ -1,0 +1,1472 @@
+{
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/0-before.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/0-before.json",
+    "kind": "diagnostic",
+    "sha256": "eae094ec4032d752584291019af773635603e375f2e0ca6970b7725a25cb2520",
+    "original_size": 892,
+    "compressed_size": 523
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/1-seal-compiler.py": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/1-seal-compiler.py",
+    "kind": "diagnostic",
+    "sha256": "7d671f54f3117aff2fbeb69a844b54f1b4a0bf2012590aaa9c04ebfa02c31cd9",
+    "original_size": 2993,
+    "compressed_size": 1428
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/10-candidate-debug-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/10-candidate-debug-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "2d52f794eaceb115cf082b7b74b15c68e0b26ca1e020bc6053d878eee9f82baa",
+    "original_size": 463,
+    "compressed_size": 292
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/100-RATIONALE.md": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/100-RATIONALE.md",
+    "kind": "diagnostic",
+    "sha256": "4645d047af37f491827c0ac6b744285873b8262ba7baa52a8558b59eec683f32",
+    "original_size": 2496,
+    "compressed_size": 1225
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/101-freeze.py": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/101-freeze.py",
+    "kind": "diagnostic",
+    "sha256": "df737e8efddc8ef4ec31bb02996581cc055f6c30c750d70e5b0cdd0ef70b5718",
+    "original_size": 2416,
+    "compressed_size": 1150
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/102-candidate.diff": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/102-candidate.diff",
+    "kind": "diagnostic",
+    "sha256": "f67222411a0ed1545faa0f19cc1a2c7d2bf46d786d0bfb43550226fd6a2a3851",
+    "original_size": 21501,
+    "compressed_size": 5427
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/103-candidate-source.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/103-candidate-source.json",
+    "kind": "diagnostic",
+    "sha256": "f82b4d552241577a6547ab4f4c3601c90991d18a20dee88666548661ce164213",
+    "original_size": 9136,
+    "compressed_size": 1944
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/104-prepare.py": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/104-prepare.py",
+    "kind": "diagnostic",
+    "sha256": "1f76b54230f44f8d5346c67b73f0b7b5f9d38d4c50c632b0772c274c6623f3ab",
+    "original_size": 4460,
+    "compressed_size": 1464
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/105-write-tests.py": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/105-write-tests.py",
+    "kind": "diagnostic",
+    "sha256": "083d94950b16dde325bdafa76bf0d9836d8bd719678932a3f41d7afa2e2fb2ba",
+    "original_size": 13312,
+    "compressed_size": 3450
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/106-intelligence.rs": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/106-intelligence.rs",
+    "kind": "diagnostic",
+    "sha256": "f5b6caa19fee38db4597af8a8119cc2ad18dae3827a0847e492d1891463704d4",
+    "original_size": 26194,
+    "compressed_size": 4705
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/107-intelligence.rs": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/107-intelligence.rs",
+    "kind": "diagnostic",
+    "sha256": "81ae0eb89e2c02a73f20f5cfcaf6de76d4e00336f9b0dab95f28cfd24bc572e9",
+    "original_size": 41809,
+    "compressed_size": 8852
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/108-builtins.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/108-builtins.json",
+    "kind": "diagnostic",
+    "sha256": "48cd8b6d8268ce17d2c9fc2ca203e1a111a2ab6ffe2d1486f7f4a797be74cb42",
+    "original_size": 30388,
+    "compressed_size": 3355
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/109-fixed_storage.rs": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/109-fixed_storage.rs",
+    "kind": "diagnostic",
+    "sha256": "73801a09efd03f1bae63c9e4431e01564cbb84d30168530f07c2d5a01ece1beb",
+    "original_size": 44853,
+    "compressed_size": 7768
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/11-seal-runtime.py": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/11-seal-runtime.py",
+    "kind": "diagnostic",
+    "sha256": "b1c72b33a61758455f79bf25f1db7f9804dc487da820a14af2732223b8bfff44",
+    "original_size": 15243,
+    "compressed_size": 5695
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/110-analysis.rs": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/110-analysis.rs",
+    "kind": "diagnostic",
+    "sha256": "aa27d1e9fc79c83e923b7ba90fab2b720ac6b9c065dbe01aadb4f1ccc9b21f2e",
+    "original_size": 282660,
+    "compressed_size": 45795
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/111-emit.rs": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/111-emit.rs",
+    "kind": "diagnostic",
+    "sha256": "fc94635acf73c1da0b197e09d5858aa61960c601732af67122fb661b7b891850",
+    "original_size": 150564,
+    "compressed_size": 24485
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/112-syntax.rs": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/112-syntax.rs",
+    "kind": "diagnostic",
+    "sha256": "09bf92596f74b3d8d33b2d6b5542c9c31b211508c892282cec36b10eb16fe8cc",
+    "original_size": 56253,
+    "compressed_size": 10851
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/113-intelligence.rs": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/113-intelligence.rs",
+    "kind": "diagnostic",
+    "sha256": "b13817dbffa8721ec5bdcdf673c0d088c22331b490079c13a5b116aa9248aeff",
+    "original_size": 28023,
+    "compressed_size": 4985
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/114-intelligence.rs": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/114-intelligence.rs",
+    "kind": "diagnostic",
+    "sha256": "c96b02ddaf52955bb66db8ce241c6b3472e8e221b38c43386edb8353cff0ca96",
+    "original_size": 41986,
+    "compressed_size": 8891
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/115-builtins.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/115-builtins.json",
+    "kind": "diagnostic",
+    "sha256": "7eefc394dc5a45d3c0876c90f8f29228d4dfc4b1931a3d7a3496fbc4ca2c76f1",
+    "original_size": 30924,
+    "compressed_size": 3468
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/116-string_well_formed.rs": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/116-string_well_formed.rs",
+    "kind": "diagnostic",
+    "sha256": "306ff0f114f7545bd1d10abab6780e015dd660d77dbc0a6d5130e5e789e85e8e",
+    "original_size": 12778,
+    "compressed_size": 3254
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/117-fixed_storage.rs": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/117-fixed_storage.rs",
+    "kind": "diagnostic",
+    "sha256": "61f0ffd2f30c6fff0292f2d90db4d31d21de598f8628122bd43c9d8fd598562b",
+    "original_size": 44943,
+    "compressed_size": 7789
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/118-analysis.rs": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/118-analysis.rs",
+    "kind": "diagnostic",
+    "sha256": "7afc1fc06984d5549a3a38f259a280b685a3c544dde58944068ba5efceab8f85",
+    "original_size": 283737,
+    "compressed_size": 45945
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/119-emit.rs": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/119-emit.rs",
+    "kind": "diagnostic",
+    "sha256": "4e2773a2dde137a0405bc08ea15113975b053677d4d4e24160fe83aa1ded74f4",
+    "original_size": 151080,
+    "compressed_size": 24606
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/12-source-node-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/12-source-node-start.json",
+    "kind": "diagnostic",
+    "sha256": "792d9fb5f659ad624a8aba0d9ee9c31bf971bcffc640d46ae9350c6f4d318084",
+    "original_size": 297,
+    "compressed_size": 216
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/120-syntax.rs": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/120-syntax.rs",
+    "kind": "diagnostic",
+    "sha256": "bd38faee03679fb7ecddb15247e3a12820e1d15b14a15cdd651d5012d8c5bf55",
+    "original_size": 56277,
+    "compressed_size": 10864
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/121-0.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/121-0.stderr",
+    "kind": "diagnostic",
+    "sha256": "03638e8b22a1c8939738a7a6d858928c2478b39de3106a85b5d11c48a1e4375c",
+    "original_size": 53,
+    "compressed_size": 58
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/122-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/122-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "943374269b6c60fcc85b3c58db6ed2cc7701cf72a92aca4e18c3d1205b5608b7",
+    "original_size": 2745,
+    "compressed_size": 689
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/123-2.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/123-2.stderr",
+    "kind": "diagnostic",
+    "sha256": "03638e8b22a1c8939738a7a6d858928c2478b39de3106a85b5d11c48a1e4375c",
+    "original_size": 53,
+    "compressed_size": 58
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/124-2.tsr": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/124-2.tsr",
+    "kind": "diagnostic",
+    "sha256": "bc378fdc84dc8052d2a375d5e59724667b4cf3d5aa0c3321a67aeb113f7f9145",
+    "original_size": 51,
+    "compressed_size": 59
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/125-2.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/125-2.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/126-3.tsr": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/126-3.tsr",
+    "kind": "diagnostic",
+    "sha256": "d2aa9f2d7d15478a5fff52cfb8306d7073ebfb7727a38d68ca55cfb419bcfc5e",
+    "original_size": 52,
+    "compressed_size": 60
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/127-1.tsr": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/127-1.tsr",
+    "kind": "diagnostic",
+    "sha256": "76f30c4e4da6e792c9ffa46b34c1a05d0dc800a70e6830d62e8bdbe50178e810",
+    "original_size": 50,
+    "compressed_size": 58
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/128-0.tsr": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/128-0.tsr",
+    "kind": "diagnostic",
+    "sha256": "430cb1718e11016ee5e25495086a39a952ba39abd04f56d5c5d33814098a27fe",
+    "original_size": 49,
+    "compressed_size": 57
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/129-0.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/129-0.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/13-release-pool-hands-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/13-release-pool-hands-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/130-1.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/130-1.stderr",
+    "kind": "diagnostic",
+    "sha256": "03638e8b22a1c8939738a7a6d858928c2478b39de3106a85b5d11c48a1e4375c",
+    "original_size": 53,
+    "compressed_size": 58
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/131-3.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/131-3.stderr",
+    "kind": "diagnostic",
+    "sha256": "03638e8b22a1c8939738a7a6d858928c2478b39de3106a85b5d11c48a1e4375c",
+    "original_size": 53,
+    "compressed_size": 58
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/132-3.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/132-3.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/133-1.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/133-1.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/14-source-node-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/14-source-node-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "07797e8188f6bc81e60097304bf7fdc245660008b6502d7b380907a15a4c43a5",
+    "original_size": 505,
+    "compressed_size": 324
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/15-run-command.py": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/15-run-command.py",
+    "kind": "diagnostic",
+    "sha256": "e24ef403968f633c65e3767b0f6b89fbcd36591d9e33e9142d67798d3fef8109",
+    "original_size": 1684,
+    "compressed_size": 786
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/16-active-run.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/16-active-run.json",
+    "kind": "diagnostic",
+    "sha256": "b8b470686c911fbf16c81aa99dcf9c106486c53b9d9f7569c788d04dc508bff0",
+    "original_size": 1032,
+    "compressed_size": 526
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/17-source-typescript-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/17-source-typescript-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "b13e39204f56c760528d95c18af48ef23112c1b5f2b7861375fbd07c4c918478",
+    "original_size": 553,
+    "compressed_size": 351
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/18-format.log": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/18-format.log",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/19-format-check.log": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/19-format-check.log",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/2-candidate-debug-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/2-candidate-debug-start.json",
+    "kind": "diagnostic",
+    "sha256": "cd779a5dbfe2da6baa52104c73095376bd91b4f420bb08161ceca388e61a6591",
+    "original_size": 251,
+    "compressed_size": 181
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/20-fresh-cli.py": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/20-fresh-cli.py",
+    "kind": "diagnostic",
+    "sha256": "39531120bcfdfee8e8314e3a6e6c7a291317772d0f1521e1aaf4c2452f0f49a6",
+    "original_size": 1293,
+    "compressed_size": 647
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/21-lsp-catalog-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/21-lsp-catalog-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "b11ced5a7407d968c8ed646863ef99a53fc3fa6748ca487102545196e79b432d",
+    "original_size": 570,
+    "compressed_size": 339
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/22-full.log": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/22-full.log",
+    "kind": "diagnostic",
+    "sha256": "0adc8845660f1beb00b5038e8baf767dd22c00d555edd9c37181e92b489306dc",
+    "original_size": 70964,
+    "compressed_size": 16833
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/23-focused-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/23-focused-start.json",
+    "kind": "diagnostic",
+    "sha256": "d688604490d73756487070e04c46c5073fde0a3ec06aad94fce104d05158a0a5",
+    "original_size": 319,
+    "compressed_size": 205
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/24-parent.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/24-parent.json",
+    "kind": "diagnostic",
+    "sha256": "31d5c5a96fa1e7fc34d8bbc2d49707e3be26f2f85114f29d5ce66979ccbdfef7",
+    "original_size": 226,
+    "compressed_size": 185
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/25-candidate-application.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/25-candidate-application.json",
+    "kind": "diagnostic",
+    "sha256": "8acd043710d4f6de52128992d48c94e837c3cf40534830b0b52cec11b64933e7",
+    "original_size": 3828,
+    "compressed_size": 1120
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/26-clippy-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/26-clippy-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "6dc65bd31375ee819d8647c4006f8932164e09b37e5ec3b09ab6435f48cc0382",
+    "original_size": 498,
+    "compressed_size": 304
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/27-fresh-cli.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/27-fresh-cli.json",
+    "kind": "diagnostic",
+    "sha256": "0f8a1805049826e8f4ff627103adcb94a1bee2a1e84221bf6a4c6034b5238ec1",
+    "original_size": 1484,
+    "compressed_size": 464
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/28-native-hands.log": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/28-native-hands.log",
+    "kind": "diagnostic",
+    "sha256": "230291e2b2c435018f24fab90483fa2070ece04347c18db7100014679a84bbf8",
+    "original_size": 67,
+    "compressed_size": 64
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/29-clippy.log": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/29-clippy.log",
+    "kind": "diagnostic",
+    "sha256": "7c44caae8189273d201db968d87c39fc67fd3b3887fd8f7392bb4612316632c1",
+    "original_size": 277,
+    "compressed_size": 158
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/3-candidate-debug.log": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/3-candidate-debug.log",
+    "kind": "diagnostic",
+    "sha256": "a13905646e2aed93ec6ea9ed6ac91490a4e01f91af0215c3965279a910612149",
+    "original_size": 72,
+    "compressed_size": 79
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/30-focused-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/30-focused-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "41a35e23c0f183d4cce70d0a132c3274dc93d53adc06364793869d20f9b36274",
+    "original_size": 726,
+    "compressed_size": 387
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/31-apply-candidate.py": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/31-apply-candidate.py",
+    "kind": "diagnostic",
+    "sha256": "32e59c92ac55a32a12c8f6d3ccf8161bb802ba93e49c6f832490151b2b6849e5",
+    "original_size": 1046,
+    "compressed_size": 570
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/32-release-pool-hands-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/32-release-pool-hands-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "064746371e511719af70cf4a908941357ad3cce39ffe9b29722f8fa3f69a22bd",
+    "original_size": 22974,
+    "compressed_size": 4648
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/33-native-hands-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/33-native-hands-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "9cbee402763a323eedd92a8d1857ca0bb865becbd95119c8b35a62ac266ec324",
+    "original_size": 425,
+    "compressed_size": 269
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/34-debug-source-order-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/34-debug-source-order-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "326a517ee931614479293d9f52c00ea4723ca95322cc68515d82f49784913e79",
+    "original_size": 18754,
+    "compressed_size": 4610
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/35-source-node.log": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/35-source-node.log",
+    "kind": "diagnostic",
+    "sha256": "bc2f314bd307963947f44504fbaee729108c5d514817e7d91871c1410bee4f8c",
+    "original_size": 352,
+    "compressed_size": 251
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/36-lsp-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/36-lsp-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "178de358895ae65f651fbbac290beb1771e928030e7997bd137467913e0c08a9",
+    "original_size": 569,
+    "compressed_size": 344
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/37-native-hands-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/37-native-hands-start.json",
+    "kind": "diagnostic",
+    "sha256": "151857bf605b10c067e2aa0fb87e728c9f2506ab85fe4691249f1e2116af55b5",
+    "original_size": 216,
+    "compressed_size": 172
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/38-focused-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/38-focused-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "832a4f8b9a611bb2dde65d7c6a5d812d492cae74d1966730a162c5308b738124",
+    "original_size": 523,
+    "compressed_size": 317
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/39-benchmark-integration.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/39-benchmark-integration.json",
+    "kind": "diagnostic",
+    "sha256": "d0e258d7246cd88b56f4436c7b2b041490e233b59010060badbecc055e18567c",
+    "original_size": 9690,
+    "compressed_size": 2351
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/4-release.log": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/4-release.log",
+    "kind": "diagnostic",
+    "sha256": "aa69fc0188e35e5cc3c3012858c4b42680a3cb1c3e70d41525b0b0d96ae4bf59",
+    "original_size": 169,
+    "compressed_size": 136
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/40-native-hands.py": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/40-native-hands.py",
+    "kind": "diagnostic",
+    "sha256": "b55a6d5e5fa54cecab2740722b5cb9c4020d24de1395cf93703a5aedeb769e4b",
+    "original_size": 2402,
+    "compressed_size": 1040
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/41-full-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/41-full-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "04c24b07202afffeca862e8319e0e6b9e6eb25c498097fc98f2875a3ab70566e",
+    "original_size": 452,
+    "compressed_size": 290
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/42-doctests-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/42-doctests-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "5bc788d8bbb04793dd2c8a8cefeb70a245f6b5d483ba4cce0cce469d2841051a",
+    "original_size": 454,
+    "compressed_size": 286
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/43-regression-union.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/43-regression-union.json",
+    "kind": "diagnostic",
+    "sha256": "a2eb7aef5f4a7201f22ddbcf8f9a2b7a37372e2028dc05cc812ead450adabccf",
+    "original_size": 89756,
+    "compressed_size": 16142
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/44-accept-full.py": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/44-accept-full.py",
+    "kind": "diagnostic",
+    "sha256": "9fac7b24b1af4058ccd05f9e81ddd1155166cebe891b3254008a198543dd76a5",
+    "original_size": 2530,
+    "compressed_size": 1111
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/45-debug-pool-hands-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/45-debug-pool-hands-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "064746371e511719af70cf4a908941357ad3cce39ffe9b29722f8fa3f69a22bd",
+    "original_size": 22974,
+    "compressed_size": 4648
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/46-source-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/46-source-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "37ec621563774f6fbb0a277dbbdadd2599b3e8ecaa37ee0c477bc750f29c29aa",
+    "original_size": 1463,
+    "compressed_size": 574
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/47-release-source-order-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/47-release-source-order-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "326a517ee931614479293d9f52c00ea4723ca95322cc68515d82f49784913e79",
+    "original_size": 18754,
+    "compressed_size": 4610
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/48-archive.py": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/48-archive.py",
+    "kind": "diagnostic",
+    "sha256": "ddfad005068c05f61711fb164c19c78914bcfa936ad3842e2b26ba79c85d8f74",
+    "original_size": 10424,
+    "compressed_size": 3659
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/49-format-check-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/49-format-check-start.json",
+    "kind": "diagnostic",
+    "sha256": "c262e4d2c0e5b6b318133864e46f146252166c9176529d1d29fb47c79571c29f",
+    "original_size": 221,
+    "compressed_size": 164
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/5-freeze-source.py": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/5-freeze-source.py",
+    "kind": "diagnostic",
+    "sha256": "e557794044705ae263f39e007014639447f53b50dd890ff084d2433d665935de",
+    "original_size": 573,
+    "compressed_size": 378
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/50-lsp.log": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/50-lsp.log",
+    "kind": "diagnostic",
+    "sha256": "97f07c6ef04394fd55804ffc10a407401358cdf351350386c7269b51a96be979",
+    "original_size": 439,
+    "compressed_size": 296
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/51-freeze-runtime.py": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/51-freeze-runtime.py",
+    "kind": "diagnostic",
+    "sha256": "74b5f857cfdb3413e43033e5c13e7d088fc30903a47d171064e674462740499f",
+    "original_size": 1589,
+    "compressed_size": 750
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/52-runtime-seal-plan.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/52-runtime-seal-plan.json",
+    "kind": "diagnostic",
+    "sha256": "b11a1ec1c140ad8405d502e65f35a790edb4c5ddae601ccda1628f73a7d98769",
+    "original_size": 1452,
+    "compressed_size": 785
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/53-source-proof.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/53-source-proof.json",
+    "kind": "diagnostic",
+    "sha256": "25031567b53d24fa525e932f982be969c8084aabdb53078f1ad034f7cf2f0021",
+    "original_size": 240,
+    "compressed_size": 199
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/54-clippy-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/54-clippy-start.json",
+    "kind": "diagnostic",
+    "sha256": "f67877932636d398cd8c59ef243ff42b74ad5f639e4a4ac2d18d1b4a300da969",
+    "original_size": 295,
+    "compressed_size": 195
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/55-format-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/55-format-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "cdb6b1303a6ce889c56f2ecc366fa5174be5ea839b8cdb0d1a7b89a6f2104661",
+    "original_size": 399,
+    "compressed_size": 266
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/56-full-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/56-full-start.json",
+    "kind": "diagnostic",
+    "sha256": "bb67c04bcc0bfa1f511a0128f51024e48e2525e9bff6d0125845e3b45d2464ce",
+    "original_size": 251,
+    "compressed_size": 177
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/57-debug-pool-hands-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/57-debug-pool-hands-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/58-review.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/58-review.json",
+    "kind": "diagnostic",
+    "sha256": "9903a1664a69baa40d0e1175a9333ce52ef39e9a00e54b1228de97fe06c1207f",
+    "original_size": 2165,
+    "compressed_size": 1108
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/59-close-docs.py": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/59-close-docs.py",
+    "kind": "diagnostic",
+    "sha256": "e6685ff64afb0b739a52e28f38c59b13e4a32075c986f50ea45209d6367a4a3c",
+    "original_size": 12854,
+    "compressed_size": 4615
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/6-lsp-catalog.log": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/6-lsp-catalog.log",
+    "kind": "diagnostic",
+    "sha256": "ab4b6f1f2b105157fb9da7bbf7ae75c480c728b84c708394f01ddae4e9c3d7b7",
+    "original_size": 334,
+    "compressed_size": 232
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/60-format-check-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/60-format-check-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "fd06ff023c21af6f0ab7060cda1952e7b51b61eed01a1356d74ee5e4ed868e8f",
+    "original_size": 430,
+    "compressed_size": 275
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/61-final-checks.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/61-final-checks.json",
+    "kind": "diagnostic",
+    "sha256": "9ece4b6c5d3aac7a380d4d0dc7d3d95ee858b57c68c9c05442b1428d4555adcd",
+    "original_size": 2511,
+    "compressed_size": 676
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/62-doctests-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/62-doctests-start.json",
+    "kind": "diagnostic",
+    "sha256": "855732ce54717cd9a7aa11586d3ed16541e431fb1e9f9e9faeb00ef3a096f942",
+    "original_size": 249,
+    "compressed_size": 176
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/63-release-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/63-release-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "a40b117db083cc455bf8cc0a7c2f5d170eaeb31fc151e3b3d0437785f2d26f9d",
+    "original_size": 472,
+    "compressed_size": 293
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/64-release-source-order-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/64-release-source-order-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/65-regression-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/65-regression-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "e53fc4aad18049c8571f97821ee38adb79b014a5e01e01709166594176106bab",
+    "original_size": 492,
+    "compressed_size": 289
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/66-release-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/66-release-start.json",
+    "kind": "diagnostic",
+    "sha256": "28f4e7c2c09e20dc2816ab9a08314808fdc696ebff7f743498667ca553ce94a9",
+    "original_size": 268,
+    "compressed_size": 186
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/67-source-typescript-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/67-source-typescript-start.json",
+    "kind": "diagnostic",
+    "sha256": "76d5ea366ab2f08951be2e8a669bf7c6040a2af6141999a4c957d23896b1d36f",
+    "original_size": 339,
+    "compressed_size": 244
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/68-seal-source.py": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/68-seal-source.py",
+    "kind": "diagnostic",
+    "sha256": "abe4e5582389a3f0a714467861c66b4dde4e8c0f3bcf7ae649945c7b587025eb",
+    "original_size": 2792,
+    "compressed_size": 1168
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/69-source-typescript.log": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/69-source-typescript.log",
+    "kind": "diagnostic",
+    "sha256": "6308ae906a1b849c74f52a69e4a4001ffe164af970c79e01b583adb01e2506f8",
+    "original_size": 2302,
+    "compressed_size": 910
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/7-format-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/7-format-start.json",
+    "kind": "diagnostic",
+    "sha256": "f9fd46a0f95cb5e5d5bcb0761c8822c5f6f26718b29ed5a7dcd297d641c0edbc",
+    "original_size": 196,
+    "compressed_size": 156
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/70-lsp-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/70-lsp-start.json",
+    "kind": "diagnostic",
+    "sha256": "aedf230762a2f6345a2543e776c246ba66e62861b365db17dc5f2159f485cba5",
+    "original_size": 369,
+    "compressed_size": 238
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/71-lsp-catalog-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/71-lsp-catalog-start.json",
+    "kind": "diagnostic",
+    "sha256": "9ee7c1389378bc520b3687f4719cce13e6ee4c8198e7b94b6cef3b545748e04d",
+    "original_size": 362,
+    "compressed_size": 230
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/72-archive-source-plan.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/72-archive-source-plan.json",
+    "kind": "diagnostic",
+    "sha256": "1d7b6816058152eb145baea55eb8eb8a97aecf3dadcf5796342c27dd04372727",
+    "original_size": 1328,
+    "compressed_size": 712
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/73-focused.log": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/73-focused.log",
+    "kind": "diagnostic",
+    "sha256": "5e5ff42a35b4f03fb87629ace08232eaf0ab0315297929e2cf31a14500dd6e28",
+    "original_size": 786,
+    "compressed_size": 455
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/74-doctests.log": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/74-doctests.log",
+    "kind": "diagnostic",
+    "sha256": "872a820c81a63ecd96cf2b3887950fcd294ce4d416d85cb9866222414d276963",
+    "original_size": 352,
+    "compressed_size": 167
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/75-pool-hands-run-o3.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/75-pool-hands-run-o3.stdout",
+    "kind": "diagnostic",
+    "sha256": "012bad7afa9cbe32b4ae78f1c9c4891722e1d1f163b0a63a70cc68ac9b15c4f6",
+    "original_size": 175,
+    "compressed_size": 16
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/76-source-order.rs": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/76-source-order.rs",
+    "kind": "diagnostic",
+    "sha256": "326a517ee931614479293d9f52c00ea4723ca95322cc68515d82f49784913e79",
+    "original_size": 18754,
+    "compressed_size": 4610
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/77-source-order-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/77-source-order-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "326a517ee931614479293d9f52c00ea4723ca95322cc68515d82f49784913e79",
+    "original_size": 18754,
+    "compressed_size": 4610
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/78-pool-hands-build-o3.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/78-pool-hands-build-o3.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/79-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/79-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "c070e7cd269475690d79638b90e5cc7b80649c9d36017a13da163455d8bcb804",
+    "original_size": 9721,
+    "compressed_size": 1216
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/8-full-source-freeze.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/8-full-source-freeze.json",
+    "kind": "diagnostic",
+    "sha256": "9bb2596101fe2c3e97a30f26dd7d9271ba067fdc43a28fe17199ca70c7901d65",
+    "original_size": 18201,
+    "compressed_size": 7271
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/80-source-order-build-o3.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/80-source-order-build-o3.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/81-source-order-run-o0.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/81-source-order-run-o0.stdout",
+    "kind": "diagnostic",
+    "sha256": "1ab4813eff588febb5dceef931f3d820dba9d912220f62d76cb4365129c27181",
+    "original_size": 77,
+    "compressed_size": 57
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/82-source-order-build-o3.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/82-source-order-build-o3.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/83-source-order-run-o0.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/83-source-order-run-o0.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/84-pool-hands.rs": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/84-pool-hands.rs",
+    "kind": "diagnostic",
+    "sha256": "064746371e511719af70cf4a908941357ad3cce39ffe9b29722f8fa3f69a22bd",
+    "original_size": 22974,
+    "compressed_size": 4648
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/85-pool-hands-run-o3.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/85-pool-hands-run-o3.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/86-commands.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/86-commands.json",
+    "kind": "diagnostic",
+    "sha256": "450468576ca5725c32e49ebc92dea66913e1c7cd3e542ba8aafc83caab66bff3",
+    "original_size": 7055,
+    "compressed_size": 870
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/87-pool-hands-build-o3.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/87-pool-hands-build-o3.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/88-source-order-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/88-source-order-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/89-source-order-run-o3.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/89-source-order-run-o3.stdout",
+    "kind": "diagnostic",
+    "sha256": "1ab4813eff588febb5dceef931f3d820dba9d912220f62d76cb4365129c27181",
+    "original_size": 77,
+    "compressed_size": 57
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/9-debug-source-order-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/9-debug-source-order-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/90-source-order-build-o0.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/90-source-order-build-o0.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/91-pool-hands-build-o0.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/91-pool-hands-build-o0.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/92-pool-hands-run-o0.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/92-pool-hands-run-o0.stdout",
+    "kind": "diagnostic",
+    "sha256": "012bad7afa9cbe32b4ae78f1c9c4891722e1d1f163b0a63a70cc68ac9b15c4f6",
+    "original_size": 175,
+    "compressed_size": 16
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/93-pool-hands-emit.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/93-pool-hands-emit.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/94-pool-hands-emit.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/94-pool-hands-emit.stdout",
+    "kind": "diagnostic",
+    "sha256": "064746371e511719af70cf4a908941357ad3cce39ffe9b29722f8fa3f69a22bd",
+    "original_size": 22974,
+    "compressed_size": 4648
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/95-pool-hands-build-o0.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/95-pool-hands-build-o0.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/96-pool-hands-run-o0.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/96-pool-hands-run-o0.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/97-source-order-run-o3.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/97-source-order-run-o3.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/98-source-order-build-o0.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/98-source-order-build-o0.stdout",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/99-parent.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof-artifacts/99-parent.json",
+    "kind": "diagnostic",
+    "sha256": "6c46bdc373b6c2afcce1f1bd02b75ef375db412c8f9395cb3f11f927231445f5",
+    "original_size": 1141,
+    "compressed_size": 495
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/0-source-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/0-source-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "37ec621563774f6fbb0a277dbbdadd2599b3e8ecaa37ee0c477bc750f29c29aa",
+    "original_size": 1463,
+    "compressed_size": 574
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/1-candidate-source.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/1-candidate-source.json",
+    "kind": "diagnostic",
+    "sha256": "780df52a6b7ea4b95e2d1bb484c277676f77c44b1d3dae70d1026819a80d9be9",
+    "original_size": 13111,
+    "compressed_size": 3513
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/10-source-typescript.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/10-source-typescript.log",
+    "kind": "diagnostic",
+    "sha256": "6308ae906a1b849c74f52a69e4a4001ffe164af970c79e01b583adb01e2506f8",
+    "original_size": 2302,
+    "compressed_size": 910
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/2-candidate-source.diff": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/2-candidate-source.diff",
+    "kind": "diagnostic",
+    "sha256": "cbb471f4a523cf24c6023f75fc6c4ee7e35873dcf8a8c40068c3a37b196efb9a",
+    "original_size": 90546,
+    "compressed_size": 14637
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/3-benchmark-integration.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/3-benchmark-integration.json",
+    "kind": "diagnostic",
+    "sha256": "d0e258d7246cd88b56f4436c7b2b041490e233b59010060badbecc055e18567c",
+    "original_size": 9690,
+    "compressed_size": 2351
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/4-seal-source.py": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/4-seal-source.py",
+    "kind": "diagnostic",
+    "sha256": "abe4e5582389a3f0a714467861c66b4dde4e8c0f3bcf7ae649945c7b587025eb",
+    "original_size": 2792,
+    "compressed_size": 1168
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/5-source-node-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/5-source-node-start.json",
+    "kind": "diagnostic",
+    "sha256": "792d9fb5f659ad624a8aba0d9ee9c31bf971bcffc640d46ae9350c6f4d318084",
+    "original_size": 297,
+    "compressed_size": 216
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/6-source-node-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/6-source-node-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "07797e8188f6bc81e60097304bf7fdc245660008b6502d7b380907a15a4c43a5",
+    "original_size": 505,
+    "compressed_size": 324
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/7-source-node.log": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/7-source-node.log",
+    "kind": "diagnostic",
+    "sha256": "bc2f314bd307963947f44504fbaee729108c5d514817e7d91871c1410bee4f8c",
+    "original_size": 352,
+    "compressed_size": 251
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/8-source-typescript-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/8-source-typescript-start.json",
+    "kind": "diagnostic",
+    "sha256": "76d5ea366ab2f08951be2e8a669bf7c6040a2af6141999a4c957d23896b1d36f",
+    "original_size": 339,
+    "compressed_size": 244
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/9-source-typescript-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/9-source-typescript-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "b13e39204f56c760528d95c18af48ef23112c1b5f2b7861375fbd07c4c918478",
+    "original_size": 553,
+    "compressed_size": 351
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/pool-hands-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/pool-hands-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "feadb72f23fdda2ca4ea08c3ed505b1f7ff1146b5bf3e3c6b0ebe615f661b2e0",
+    "original_size": 3528,
+    "compressed_size": 1037
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/pool-hands-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/pool-hands-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "379937a82852483bbcddf0448679c0340da274d12b17814355f312e881fc148f",
+    "original_size": 3204,
+    "compressed_size": 1086
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/pool-hands.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/pool-hands.json",
+    "kind": "diagnostic",
+    "sha256": "fde6b080f72217630403f7e283d0537a29c64fcd2a3cd6b4985b7188842a6cad",
+    "original_size": 2144,
+    "compressed_size": 743
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/source-order-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/source-order-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "6a563100a4c5ac9ba08d6af4cdad3c0fab7ae4fc275ad03d3b0ec6559c587086",
+    "original_size": 2528,
+    "compressed_size": 938
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/source-order-duplicate-receiver.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/source-order-duplicate-receiver.json",
+    "kind": "diagnostic",
+    "sha256": "4b6efdc82d59693da6ab1d6cb568b301f66f44b9deba63a3d5b377d70894eef6",
+    "original_size": 560,
+    "compressed_size": 310
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/source-order-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/source-order-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "9d22ec23811489b2132f076374e262997fba4421c18b0b6015abbb6361f8a772",
+    "original_size": 2239,
+    "compressed_size": 1006
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/source-order.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/source-order.json",
+    "kind": "diagnostic",
+    "sha256": "c92bd3b05c0a287ba756150740332b2d9af216ae92eca9a8716eb247984c8548",
+    "original_size": 1784,
+    "compressed_size": 818
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_is_well_formed_ascii-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_is_well_formed_ascii-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "6c20a554ae3b96406d3dbbbe221502a99c936bf9e115afaa6dc52117c1c66ba8",
+    "original_size": 69629,
+    "compressed_size": 3830
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_is_well_formed_ascii-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_is_well_formed_ascii-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "4d36347989cea625481e639d2a56dffb5ffa95a7e70bb9f15fa3e4b34b222468",
+    "original_size": 2260,
+    "compressed_size": 922
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_is_well_formed_ascii-literal-hands.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_is_well_formed_ascii-literal-hands.json",
+    "kind": "diagnostic",
+    "sha256": "91f3bc3e7ae605004362a3c4b5637725167b7bc8166e2571b3fa3ffc112a0fbc",
+    "original_size": 4697,
+    "compressed_size": 466
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_is_well_formed_ascii-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_is_well_formed_ascii-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "8db93b6c5e67855b5a8559b76045bfe98bd759eed26fec2b627469d8b4f14490",
+    "original_size": 1992,
+    "compressed_size": 992
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_is_well_formed_ascii-wrong-result.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_is_well_formed_ascii-wrong-result.json",
+    "kind": "diagnostic",
+    "sha256": "beb9cc4d185476b9a3b2a31d35cf2bc3c888c423f4eab39f155614eed4266b34",
+    "original_size": 505,
+    "compressed_size": 300
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_is_well_formed_unicode-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_is_well_formed_unicode-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "0c2928ef70b9a279f9ea97e24cb148e9d23c266bee7d67cddd2fc975242943f6",
+    "original_size": 70313,
+    "compressed_size": 3875
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_is_well_formed_unicode-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_is_well_formed_unicode-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "2041a1fca57dbb07faf7cbd5c02677661ca5e2bc200d86b1720f6421c202a06c",
+    "original_size": 2283,
+    "compressed_size": 968
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_is_well_formed_unicode-literal-hands.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_is_well_formed_unicode-literal-hands.json",
+    "kind": "diagnostic",
+    "sha256": "807a25956e13222e839e0158f68cad55e58fec5d0b2212d69fb84dde753882dd",
+    "original_size": 4729,
+    "compressed_size": 493
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_is_well_formed_unicode-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_is_well_formed_unicode-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "21f19ed15ec4acbb79ba8ca4b5530df344b19d1e1ec35adb44d9c7a938137b7f",
+    "original_size": 2015,
+    "compressed_size": 1039
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_is_well_formed_unicode-wrong-result.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_is_well_formed_unicode-wrong-result.json",
+    "kind": "diagnostic",
+    "sha256": "c219a8388b8d243cc498b10231d775fb84c9b25ee0400fddf0a709f6c24fef2e",
+    "original_size": 505,
+    "compressed_size": 298
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_to_well_formed_ascii-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_to_well_formed_ascii-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "a4c9c9c44bde7aa2356ad95d6063f20787cc5a164a6cb25e9094e2628194e61d",
+    "original_size": 211631,
+    "compressed_size": 8935
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_to_well_formed_ascii-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_to_well_formed_ascii-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "1e700650b0ec6b87479b592f880f89c4fac22e76fa5acc56ec9083be6fdc3472",
+    "original_size": 2260,
+    "compressed_size": 923
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_to_well_formed_ascii-literal-hands.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_to_well_formed_ascii-literal-hands.json",
+    "kind": "diagnostic",
+    "sha256": "8153f988c40a98a43d0ae16f8bf8ff92c682807f330ca11f80e7df5703080106",
+    "original_size": 5130,
+    "compressed_size": 980
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_to_well_formed_ascii-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_to_well_formed_ascii-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "78666b9c2ae82faf3b870dc7a38d0c99f6270aedd562c1fc661ddd446da31168",
+    "original_size": 1989,
+    "compressed_size": 989
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_to_well_formed_ascii-wrong-result.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_to_well_formed_ascii-wrong-result.json",
+    "kind": "diagnostic",
+    "sha256": "8c353878362a3f16e946fe93fe364057dc2fff489c12a3385e06a7e106b19b46",
+    "original_size": 877,
+    "compressed_size": 367
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_to_well_formed_unicode-accepted.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_to_well_formed_unicode-accepted.json",
+    "kind": "diagnostic",
+    "sha256": "4bc8b2695753145aa53491060b6f7711021da2882de73fb50f5673178070944e",
+    "original_size": 210534,
+    "compressed_size": 8919
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_to_well_formed_unicode-compiled.js": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_to_well_formed_unicode-compiled.js",
+    "kind": "diagnostic",
+    "sha256": "210962fde0e6052be5dfee103c95ca54f053dee024ed20a5933551dd6eba6b77",
+    "original_size": 2283,
+    "compressed_size": 967
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_to_well_formed_unicode-literal-hands.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_to_well_formed_unicode-literal-hands.json",
+    "kind": "diagnostic",
+    "sha256": "929055736a366b9abe27596f62482057bd1a81f276240706d4c85075c06dfdaa",
+    "original_size": 5270,
+    "compressed_size": 1107
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_to_well_formed_unicode-prepared.ts": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_to_well_formed_unicode-prepared.ts",
+    "kind": "diagnostic",
+    "sha256": "d8102c2df2183ac08ac0c9563c499c40abc153721fdf8080ac95ac653d4d6ce4",
+    "original_size": 2012,
+    "compressed_size": 1036
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_to_well_formed_unicode-wrong-result.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/string_to_well_formed_unicode-wrong-result.json",
+    "kind": "diagnostic",
+    "sha256": "2a26725c54120221ff8af64447f190c420e17dcd2aae68bfbdaa5b8f34ec8713",
+    "original_size": 908,
+    "compressed_size": 373
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/summary.json": {
+    "path": "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation-artifacts/actual-source/summary.json",
+    "kind": "diagnostic",
+    "sha256": "0e31025c9bc4598fdea5ad76edcf9ed61b429672d85a8d5fc1166d2fb82bb6d5",
+    "original_size": 2728,
+    "compressed_size": 948
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/0-seal-runtime.py": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/0-seal-runtime.py",
+    "kind": "diagnostic",
+    "sha256": "b1c72b33a61758455f79bf25f1db7f9804dc487da820a14af2732223b8bfff44",
+    "original_size": 15243,
+    "compressed_size": 5695
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/1-runtime-freeze.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/1-runtime-freeze.json",
+    "kind": "diagnostic",
+    "sha256": "5295c566f057b3d21a40d0dc7a738de0a35ccb17c328bdc4f533677465179dde",
+    "original_size": 55942,
+    "compressed_size": 21734
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/10-string_to_well_formed_ascii.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/10-string_to_well_formed_ascii.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/11-string_to_well_formed_unicode.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/11-string_to_well_formed_unicode.stdout",
+    "kind": "diagnostic",
+    "sha256": "cdef8c7544e270b9caf60abd1fe67c5a7f619e3ee02236bb5eaa737212fb348c",
+    "original_size": 23522,
+    "compressed_size": 5757
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/12-string_to_well_formed_unicode.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/12-string_to_well_formed_unicode.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/13-report-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/13-report-start.json",
+    "kind": "diagnostic",
+    "sha256": "ca9286083d7a6f032211fe60a90ce296cb975cf6290356b18f7e38295c559e03",
+    "original_size": 258,
+    "compressed_size": 196
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/14-profiles.log": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/14-profiles.log",
+    "kind": "diagnostic",
+    "sha256": "c80b4fe1f317b603bf7347caa66d4136e2d99e14077c52691cd6d200989b2e25",
+    "original_size": 416,
+    "compressed_size": 192
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/15-report.log": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/15-report.log",
+    "kind": "diagnostic",
+    "sha256": "a3a0d3b911bb28198da95b0f3c1dd5a2e15c3e79474e1e9b03e9f6f247fecc04",
+    "original_size": 68,
+    "compressed_size": 76
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/16-profiles-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/16-profiles-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "30cc88a4cd9bc698a311f2292a3c12f380770dd416ee708c22953731ba68d05d",
+    "original_size": 601,
+    "compressed_size": 353
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/17-runtime-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/17-runtime-start.json",
+    "kind": "diagnostic",
+    "sha256": "6d999b02921068b9c4247969fc952eff3a097ae714555f1a5ff5128884c4244e",
+    "original_size": 409,
+    "compressed_size": 251
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/18-runtime-seal-plan.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/18-runtime-seal-plan.json",
+    "kind": "diagnostic",
+    "sha256": "b11a1ec1c140ad8405d502e65f35a790edb4c5ddae601ccda1628f73a7d98769",
+    "original_size": 1452,
+    "compressed_size": 785
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/19-runtime.log": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/19-runtime.log",
+    "kind": "diagnostic",
+    "sha256": "fcc734fde85b6d3aeb72d0917d704d88084b79d1bcad9efaf10d2c13548d6424",
+    "original_size": 989,
+    "compressed_size": 242
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/2-BENCHMARKS.md": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/2-BENCHMARKS.md",
+    "kind": "diagnostic",
+    "sha256": "9f41efae5ddeead0bc8ef150de8291ca2b2bc053be33720576d57c0bf05c70d4",
+    "original_size": 920159,
+    "compressed_size": 134609
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/20-report-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/20-report-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "d4e9fcdc891e651c7a730dfaac099b8f32e0a8bc7d6c8759639b64a6b64a1550",
+    "original_size": 461,
+    "compressed_size": 302
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/21-runtime-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/21-runtime-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "b42e72e2b548257886d90f2df5fde967bcde54909413c94b259a4e696ad6db43",
+    "original_size": 613,
+    "compressed_size": 357
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/22-profiles-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/22-profiles-start.json",
+    "kind": "diagnostic",
+    "sha256": "aea3368f9943ef6346aabe4e81fd0d08a875eaced63e2d9fd2e720990b207af4",
+    "original_size": 396,
+    "compressed_size": 248
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/23-string_is_well_formed_ascii.rs": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/23-string_is_well_formed_ascii.rs",
+    "kind": "diagnostic",
+    "sha256": "306ebf9599cd4259f695bdd32d24d012da8f3ff60318d2a81726b66e0702773a",
+    "original_size": 30519,
+    "compressed_size": 7319
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/24-string_is_well_formed_ascii.rs": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/24-string_is_well_formed_ascii.rs",
+    "kind": "diagnostic",
+    "sha256": "2f4a899b978d3048704685c3a43fd3045ccc2434c261c2faed0e20d49e06e933",
+    "original_size": 33243,
+    "compressed_size": 8035
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/25-string_is_well_formed_unicode.rs": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/25-string_is_well_formed_unicode.rs",
+    "kind": "diagnostic",
+    "sha256": "de92700f6c59a0b6e917035706e956374651f9e67ca0222f46ae18f4559ea528",
+    "original_size": 30573,
+    "compressed_size": 7366
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/26-string_is_well_formed_unicode.rs": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/26-string_is_well_formed_unicode.rs",
+    "kind": "diagnostic",
+    "sha256": "355aefb7dfaaed0703c71f4111469c03364be1f39430155530b14aa1ba712903",
+    "original_size": 33297,
+    "compressed_size": 8083
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/27-string_to_well_formed_ascii.rs": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/27-string_to_well_formed_ascii.rs",
+    "kind": "diagnostic",
+    "sha256": "7dfc3c237149a88896a1bc22c22fa9b5ad40eab9257879c6dbbd761cf4115c2d",
+    "original_size": 27996,
+    "compressed_size": 7012
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/28-string_to_well_formed_ascii.rs": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/28-string_to_well_formed_ascii.rs",
+    "kind": "diagnostic",
+    "sha256": "921d592772ee8d86e40ba83c8ed85ca19384de68f169ce86f8be1106e60c2d3a",
+    "original_size": 30720,
+    "compressed_size": 7727
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/29-string_to_well_formed_unicode.rs": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/29-string_to_well_formed_unicode.rs",
+    "kind": "diagnostic",
+    "sha256": "5a580d2dcf741a703f484bac0d4259211a0e11a33b720b50fa3c2a1dd7d6a4a7",
+    "original_size": 28050,
+    "compressed_size": 7058
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/3-BENCHMARKS.md": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/3-BENCHMARKS.md",
+    "kind": "diagnostic",
+    "sha256": "a7d9ff20ba850860b26adf6f5efacfd3036a137a1822c8a482079d1c888cffcc",
+    "original_size": 912615,
+    "compressed_size": 133556
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/30-string_to_well_formed_unicode.rs": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/30-string_to_well_formed_unicode.rs",
+    "kind": "diagnostic",
+    "sha256": "21803ff66bc85c359b5e4eb1cc03d4e5328a2627733a73309297ed8b8e690132",
+    "original_size": 30774,
+    "compressed_size": 7775
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/4-commands.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/4-commands.json",
+    "kind": "diagnostic",
+    "sha256": "2294a8ab95a1109c7dc48b84db42087e70d1b9b4c0d449d414c0a13cd6b09671",
+    "original_size": 3543,
+    "compressed_size": 631
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/5-string_is_well_formed_ascii.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/5-string_is_well_formed_ascii.stdout",
+    "kind": "diagnostic",
+    "sha256": "c142fce163ac34a49d0947354bf1762377932d71840afec8ff4c26a00e408988",
+    "original_size": 25971,
+    "compressed_size": 5996
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/6-string_is_well_formed_ascii.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/6-string_is_well_formed_ascii.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/7-string_is_well_formed_unicode.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/7-string_is_well_formed_unicode.stdout",
+    "kind": "diagnostic",
+    "sha256": "91f515fbc816e3da4f8c574c75f1346a66f030c0fc8ecff5e899e6f55a8207d8",
+    "original_size": 26025,
+    "compressed_size": 6044
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/8-string_is_well_formed_unicode.stderr": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/8-string_is_well_formed_unicode.stderr",
+    "kind": "diagnostic",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_size": 0,
+    "compressed_size": 8
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/9-string_to_well_formed_ascii.stdout": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-artifacts/9-string_to_well_formed_ascii.stdout",
+    "kind": "diagnostic",
+    "sha256": "2494062b0891ac6a6524d2d642f76f8c6366dbad35b64464de90dfad923d29ae",
+    "original_size": 23468,
+    "compressed_size": 5709
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-proof-closure-artifacts/archive.py": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-proof-closure-artifacts/archive.py",
+    "kind": "diagnostic",
+    "sha256": "ddfad005068c05f61711fb164c19c78914bcfa936ad3842e2b26ba79c85d8f74",
+    "original_size": 10424,
+    "compressed_size": 3659
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-proof-closure-artifacts/close-docs.py": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-proof-closure-artifacts/close-docs.py",
+    "kind": "diagnostic",
+    "sha256": "e6685ff64afb0b739a52e28f38c59b13e4a32075c986f50ea45209d6367a4a3c",
+    "original_size": 12854,
+    "compressed_size": 4615
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-proof-closure-artifacts/completed-acceptance.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-proof-closure-artifacts/completed-acceptance.json",
+    "kind": "diagnostic",
+    "sha256": "77b230e5566073030b2090101033e7640df2df38e28cc26ef2e7d8ec40eb5940",
+    "original_size": 3566,
+    "compressed_size": 1481
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-proof-closure-artifacts/docs-closure-start.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-proof-closure-artifacts/docs-closure-start.json",
+    "kind": "diagnostic",
+    "sha256": "4b6012c9e0a91d28dcf5e48114952817b9d1e1d7dd260760bf7a641f8c8fe514",
+    "original_size": 480,
+    "compressed_size": 296
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-proof-closure-artifacts/docs-closure-terminal.json": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-proof-closure-artifacts/docs-closure-terminal.json",
+    "kind": "diagnostic",
+    "sha256": "626faa160dbaf5e54d784f2a46adb7fc1f05cac3f87adf8f83a957d0a3fc58b4",
+    "original_size": 689,
+    "compressed_size": 395
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-proof-closure-artifacts/docs-closure.log": {
+    "path": "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-proof-closure-artifacts/docs-closure.log",
+    "kind": "diagnostic",
+    "sha256": "1277a5515fe5df67bf23fae741bd6c2990192b6eadc7fe7e70eeceeab700187d",
+    "original_size": 283,
+    "compressed_size": 210
+  }
+}

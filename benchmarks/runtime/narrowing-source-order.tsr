@@ -1,0 +1,4 @@
+type NarrowingOrderPayload = { tag: int; text: string; };
+type NarrowingOrderHolder = { item: NarrowingOrderPayload | null | undefined; };
+function main() { const trace: int[] = []; const value: string | null | undefined = fresh(trace); if (value !== null && value !== undefined) { console.log(value.concat("!")); } console.log(trace[0]); const holder: NarrowingOrderHolder = {item: {tag: 7, text: "é😀".repeat(1)}}; if (holder.item !== null && holder.item !== undefined) { console.log(holder.item.tag); console.log(holder.item.text.concat("!")); } }
+function fresh(trace: int[]): string | null | undefined { trace.push(1); return "owned".repeat(1); }

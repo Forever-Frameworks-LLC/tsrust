@@ -1,0 +1,45 @@
+{
+  "gate": 99,
+  "accepted": true,
+  "cleanup": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/gate99-artifact-import/cleanup.json",
+    "sha256": "90fa00fcbda79f1aeae56d23dfa376343e805142288e5dce9739d35eea3ca32f",
+    "bytes": 1986
+  },
+  "firstGuardFailure": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/gate99-artifact-import/cleanup-attempt1-failure.json",
+    "sha256": "80cd1bab1a84d129518bb605802c2b272a2f179dcf1d6d3128cc18ce146fc373",
+    "bytes": 985
+  },
+  "actualStart": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/gate99-artifact-import/cleanup-start.json",
+    "sha256": "affd05baac7705ab198bb05770f9ec6807337255d0e5749c4fb3abf4da78fb13",
+    "bytes": 223
+  },
+  "cleanupScript": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/gate99-artifact-import/cleanup-verified-objects.py",
+    "sha256": "2c1b788175e18797dd17fa0cb890afa4e4f2ca1aa5a385bcdf52f143c90a85ec",
+    "bytes": 4653
+  },
+  "actualStdout": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/gate99-artifact-import/cleanup.attempt2.stdout",
+    "sha256": "4b1cd93950506621a526f32821319b06cfea69c51af3c7dc25a38070a80148fd",
+    "bytes": 543
+  },
+  "actualStderr": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/gate99-artifact-import/cleanup.attempt2.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "READMEBefore": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/gate99-artifact-import/README.before-cleanup.md",
+    "sha256": "47b57a2aa530a1039976dbe370db077ff0de955c78344376a0d7f5f48323cb78",
+    "bytes": 17949
+  },
+  "READMEAfter": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/README.md",
+    "sha256": "0efde23ac5f6a9985b6de65df2971ecb505956c8d9a45d95f160734d64e6ef25",
+    "bytes": 18251
+  },
+  "scope": "First path guard failure retained with zero deletions; exact canonical-parent retry passed. Only approved duplicate payload copies were removed. Original import and root acceptance indexes remain immutable."
+}

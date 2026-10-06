@@ -1,0 +1,94 @@
+{
+  "gate": 62,
+  "compilerAccepted": true,
+  "runtimeAccepted": true,
+  "namedGroups": 605,
+  "releasePath": "/Users/seancotter/Desktop/dev/learning/tsrust/target/release/tsrust",
+  "releaseSha256": "c7c73f64c11ff05d7ec7191e3521165d3373ca5b62bb2c6985c81577dea18223",
+  "compilerProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof.json",
+    "sha256": "a680910cee886b7b3543bda888261c67d62108703a70d271d4ed208754655356"
+  },
+  "sourceProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation.json",
+    "sha256": "c006fa3d9397d1881622a52b53f9804e519ef30da0eee36130c8c943a0678173"
+  },
+  "runtimeProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-proof.json",
+    "sha256": "21c47032d22bbe3d5f7b9104c7ac7b38b905f29b1353c19cf5d124af8ad487f1"
+  },
+  "measuredRows": 362,
+  "verification": {
+    "uniqueRegressionGroups": 605,
+    "focusedGroups": 4,
+    "fullAttempts": 1,
+    "fullRestarts": 0,
+    "sourcePrograms": 4,
+    "sourceCases": 992,
+    "sourceMutationNegatives": 16,
+    "independentSourceHandCells": 16,
+    "sourceOrder": true,
+    "uniqueNodeGroups": 2,
+    "runtimeScope": {
+      "newWorkloads": 4,
+      "engines": 8,
+      "materialInputsExact": 323,
+      "priorRawRecordsExact": 427,
+      "oldSourcePairFilesExact": 716,
+      "old358MeasurementTablesByteExact": true,
+      "old9PrimitiveMemoryTablesByteExact": true,
+      "auxiliaryTablesByteExact": true,
+      "measurementScope": "execution-only",
+      "startupCompilerMeasurements": 0,
+      "processCells": 96,
+      "processesPerEngineRow": 3,
+      "samplesPerProcess": 31,
+      "warmupsPerProcess": 8,
+      "timedBatches": 2976,
+      "independentEngineCorrectnessPreparationsBeforeTiming": 160,
+      "actualSourceTypeScriptCases": 992,
+      "actualSourceTypeScriptPrograms": 4,
+      "actualNodeUniqueGroups": 2,
+      "independentSourceHandCells": 16,
+      "sourceObserverMutationNegatives": 16,
+      "nativePreflightBuilds": 18,
+      "nativeO0O3CompleteOutputCases": 40,
+      "nativeUntimedAllocationCases": 8,
+      "nativeCompleteOrderCases": 2,
+      "nativeProfileSamples": 12,
+      "allAfterOutputAndFinalDisposalsZero": true,
+      "groupedReportMeasuredRows": 362,
+      "groupedPrimitiveRows": 9,
+      "old358RowsMemory9AuxiliaryBaselinesNotRetimed": true,
+      "combined362WorkloadRunClaimed": false,
+      "realCompleteStringArrayResultABI": true,
+      "naturalOutputConstructionAndRetentionTimed": true,
+      "completeObserverTraversalTimed": false,
+      "ownedCloningSharingIdentityEquivalenceClaimed": false,
+      "nativeStdoutStoredOnce": true
+    },
+    "publishedRateCells": 32,
+    "oldMeasurementsRepeated": false,
+    "allStringResultsRetained": true,
+    "chainIntermediatesConstructed": true,
+    "resourceNormalization": {
+      "operationsPerSample": 2048,
+      "samples": 3,
+      "statistics": [
+        "min",
+        "avg",
+        "max"
+      ],
+      "rawCountersRetained": true,
+      "inputAdaptationSeparate": true,
+      "peak": "retained-batch peak divided by operations; not an isolated-call peak"
+    }
+  },
+  "rateLeads": {
+    "nativeNode": 0,
+    "nativeFastestScripting": 0,
+    "rows": 4
+  },
+  "readmeSha256": "7db393bace1114998dedda8bde9cab8e28834c979daa58dde9c24265c54eaa11",
+  "documentationOnlyCompilerSupplement": "/tmp/tsrust-gate62-postclosure-readme-supplement.json"
+}

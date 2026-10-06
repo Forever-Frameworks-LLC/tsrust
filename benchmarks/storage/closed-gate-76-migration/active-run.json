@@ -1,0 +1,49 @@
+{
+  "gate": 76,
+  "status": "complete",
+  "startedUtc": "2026-10-03T04:33:28.536868+00:00",
+  "previousGate": 75,
+  "operations": [
+    "String.isWellFormed",
+    "String.toWellFormed"
+  ],
+  "gateComplete": true,
+  "goalComplete": false,
+  "fullRegressionStarted": true,
+  "fullRestarts": 0,
+  "measuredRows": 488,
+  "focusedAccepted": true,
+  "sourceAccepted": true,
+  "nativeHandsAccepted": true,
+  "lspAccepted": true,
+  "fullOwnerSession": 76642,
+  "fullPid": 53426,
+  "fullOwnerLive": false,
+  "clippyAccepted": true,
+  "formatAccepted": true,
+  "lastObservationUtc": "2026-10-03T05:17:22.731823+00:00",
+  "observedNamedPasses": 661,
+  "observedFailures": 0,
+  "expectedCompilerGroups": 661,
+  "expectedWorkspaceGroups": 680,
+  "sourceProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation.json",
+    "sha256": "8e7c56a7469a7c76d77a0aaba7600ba9fa5b5768ae4366ae25f17e49d044e169"
+  },
+  "runtimeAccepted": true,
+  "fullRegressionAccepted": true,
+  "compilerGroups": 661,
+  "workspaceGroups": 680,
+  "compilerProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof.json",
+    "sha256": "7b77934fa2edc03f075d9f7623724f145737e4d1abce555ae22e47b4c34346e4"
+  },
+  "runtimeOwnerLive": false,
+  "profileOwnerLive": false,
+  "reportOwnerLive": false,
+  "archiveOwnerLive": false,
+  "runtimeProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-proof.json",
+    "sha256": "26cb5c6cf1bc78bb5d54f93a137a50d0f719ad743bf5063d1fc179dd658ddbd8"
+  }
+}

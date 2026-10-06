@@ -1,0 +1,13 @@
+# Milestone 94: nullish coalescing
+
+Status: focused compiler, editor, executable language documentation and comparison sources accepted. Combined regression and measurements are accepted at checkpoint 96.
+
+`left ?? fallback` evaluates the left operand once and evaluates the fallback only for null or undefined. Zero, false and empty strings select the left value. Results follow the existing canonical single-payload nullable domain, strict native types and owning or scoped-read contracts; no heterogeneous or nullable callable union is introduced. Statically selected callable values keep their existing invocation contract. Parentheses are required when mixing `??` with `&&` or `||`.
+
+A stable nullable name or record-field path is absent inside its fallback. Writes invalidate this fact, and it does not escape the fallback. Cached compiler facts supply precise inferred, grouped and chained editor results; conflicting specializations remain conservative. [Language behavior and examples](../nullish-coalescing.md) explain ownership transfer and remaining limits. `??=`, optional chaining and broader nullable capabilities remain separate work.
+
+[Accepted implementation evidence](../../benchmarks/runtime/diagnostics/2026-10-03T20-48-38-000Z-nullish-coalescing-implementation.json) binds four retained unique compiler groups and scoped repairs, one editor group plus an RHS-only supplement, and six language snippets with six exact O0/O3 output lines. Final compiler emission matches the executed documentation and comparison inputs byte-for-byte. Actual failures, fixture corrections, compatible staged project support and peer-preserving integration remain recorded; ongoing peer project/generic revisions are outside this tested-revision claim.
+
+Eight comparison pairs are registered across 656 source rows. Source acceptance covers 320 cases, 96 hand cells, 96 negative cells, 32 executed semantic mutants and twelve order lines; native source compatibility is accepted. Full regression and measurements are accepted at checkpoint 96. SQLite is canonical analytics; Markdown reports are optional exports.
+
+[Checkpoint96 completed evidence](../../benchmarks/runtime/diagnostics/2026-10-04T01-06-08-000Z-checkpoint96-completed-proof.json) binds 1,033 retained baseline checks plus six focused concat-refinement groups, with targeted repairs and no full restart. The 48 new comparisons are measured; 18 older affected workloads have fresh measurements. Whole-workload native/compiled-Node results and normalized resources remain in SQLite, with original records preserved. Native owned copying and retained serialization costs differ from JavaScript sharing; measurements do not imply allocation parity or universal wins.

@@ -1,0 +1,8 @@
+{
+  "exactPathsAndBytes": 326,
+  "independentBlobChecks": 234,
+  "closedProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-proof.json",
+    "sha256": "4c72062bea73a0a782cab0a532841efa01855e99ebeab8a392e83535c9b58e67"
+  }
+}

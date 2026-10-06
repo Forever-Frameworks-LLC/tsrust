@@ -1,0 +1,15 @@
+type int = number;
+function main() {
+    const v0: int[] = []; console.log(v0.join());
+    const v1: int[] = [0, 17, 9001]; console.log(v1.join());
+    const v2: int[] = [1, 2, 3]; console.log(v2.join(""));
+    const v3: boolean[] = [true, false, true]; console.log(v3.join("|"));
+    const v4: string[] = ["", "é😀", "﻿\u0000"]; console.log(v4.join("é\u0000"));
+    const v5: int[][] = [[1, 2], [], [3]]; console.log(v5.join("|"));
+    const v6: int[][] = [[1], [], [2, 3]]; console.log(v6.join(""));
+    const v7: null[] = [null, null, null]; console.log(v7.join("|"));
+    const v8: undefined[] = [undefined, undefined, undefined]; console.log(v8.join(" 😀 "));
+    const v9: number[] = [0.0, -0.0, 0.5, -2.5, 17.0, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]; console.log(v9.join("|"));
+    const v10: string[] = ["a,b", "&<>", ""]; console.log(v10.join(","));
+    const v11: string[] = ["﻿", "é", "😀"]; console.log(v11.join(""));
+}

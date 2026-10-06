@@ -1,0 +1,221 @@
+[
+  {
+    "id": "conditional_int_value",
+    "category": "numbers",
+    "family": "int",
+    "conditionalKind": "primitive-value",
+    "selectedType": "int",
+    "conditionalExpression": "const selected: int = predicate(trace, (i + seed) % 2 === 0) ? leftValue(trace, left) : rightValue(trace, right);",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual lazy conditional selection with visible predicate/branch call counters and complete output retention",
+    "specification": "Evaluate a strict Boolean predicate once and call only the selected same-type branch. Retain every selected payload and complete predicate/left/right call markers in order. Both outcomes and owned sizes0..3 are selected dynamically.",
+    "notes": "Whole workload includes setup, selection, per-operation predicate/branch call-counter instrumentation, chosen-branch computation/construction, loop and complete output/counter-marker construction. This is instrumented workload throughput, not pure branch latency. Complete independent observation is outside timing. ",
+    "sourceSha256": "26ef78dec60e25c60550d625c8f26ce15eb5c3903e9e83eb13fc28149a2a10f2",
+    "counterpartSha256": "0e4840067e91419cf12a7a78defed61e60fd28d0a3ef57444eabf047628c3ede"
+  },
+  {
+    "id": "conditional_number_value",
+    "category": "numbers",
+    "family": "number",
+    "conditionalKind": "primitive-value",
+    "selectedType": "number",
+    "conditionalExpression": "const selected: number = predicate(trace, (i + seed) % 3 === 0) ? leftValue(trace, at) : rightValue(trace, at);",
+    "result": "number[]",
+    "resultEncoding": "ieee-f64-bits-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual lazy conditional selection with visible predicate/branch call counters and complete output retention",
+    "specification": "Evaluate a strict Boolean predicate once and call only the selected same-type branch. Retain every selected payload and complete predicate/left/right call markers in order. Both outcomes and owned sizes0..3 are selected dynamically. Number predicates use period3, independent of the period8 operand pool, so the timed2048/seed7 fixture exercises all8 exact IEEE tokens and both branches.",
+    "notes": "Whole workload includes setup, selection, per-operation predicate/branch call-counter instrumentation, chosen-branch computation/construction, loop and complete output/counter-marker construction. This is instrumented workload throughput, not pure branch latency. Complete independent observation is outside timing. Number complete output preserves signed zero, canonical NaN and both infinities. ",
+    "sourceSha256": "b4f294ea5ab064a054cb927cbeda6fe69780240f2732ccd8545250796590079b",
+    "counterpartSha256": "4860e263b405781ae3e396285a3cffd2a30f67fab2ace8b978eb2dcddac5fa84"
+  },
+  {
+    "id": "conditional_boolean_value",
+    "category": "booleans",
+    "family": "boolean",
+    "conditionalKind": "primitive-value",
+    "selectedType": "boolean",
+    "conditionalExpression": "const selected: boolean = predicate(trace, (i + seed) % 2 === 0) ? leftValue(trace, left) : rightValue(trace, right);",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual lazy conditional selection with visible predicate/branch call counters and complete output retention",
+    "specification": "Evaluate a strict Boolean predicate once and call only the selected same-type branch. Retain every selected payload and complete predicate/left/right call markers in order. Both outcomes and owned sizes0..3 are selected dynamically.",
+    "notes": "Whole workload includes setup, selection, per-operation predicate/branch call-counter instrumentation, chosen-branch computation/construction, loop and complete output/counter-marker construction. This is instrumented workload throughput, not pure branch latency. Complete independent observation is outside timing. Boolean scalar selection precedes explicit timed0/1 retention. ",
+    "sourceSha256": "f8b6e6f561e8cca22996885168827b58e2dc7d0845a18a90a5c11c674c6899e8",
+    "counterpartSha256": "a969ebf7e30640e057dbcbd552f27606722f9231e5309336dac74b5b49a1e8c4"
+  },
+  {
+    "id": "conditional_string_ascii",
+    "category": "strings",
+    "family": "string",
+    "conditionalKind": "primitive-value",
+    "selectedType": "string",
+    "conditionalExpression": "const selected: string = predicate(trace, (i + seed) % 2 === 0) ? leftValue(trace, input) : rightValue(trace, input);",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual lazy conditional selection with visible predicate/branch call counters and complete output retention",
+    "specification": "Evaluate a strict Boolean predicate once and call only the selected same-type branch. Retain every selected payload and complete predicate/left/right call markers in order. Both outcomes and owned sizes0..3 are selected dynamically.",
+    "notes": "Whole workload includes setup, selection, per-operation predicate/branch call-counter instrumentation, chosen-branch computation/construction, loop and complete output/counter-marker construction. This is instrumented workload throughput, not pure branch latency. Complete independent observation is outside timing. Fresh owner branches measure selected construction/selection/retention, not existing-owner move cost or JavaScript alias/ownership/allocation parity. ",
+    "sourceSha256": "8905005f8d42be5cf8a4e7955ee84dfe18dbeb509599df315ae2e6d1cf2f4719",
+    "counterpartSha256": "0d7c9be97c05658c39f01773d5f07359a6371febe7fd100bb8213dc1bf62d952",
+    "inputText": " A alpha Z ",
+    "inputFamily": "ascii"
+  },
+  {
+    "id": "conditional_string_unicode",
+    "category": "strings",
+    "family": "string",
+    "conditionalKind": "primitive-value",
+    "selectedType": "string",
+    "conditionalExpression": "const selected: string = predicate(trace, (i + seed) % 2 === 0) ? leftValue(trace, input) : rightValue(trace, input);",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual lazy conditional selection with visible predicate/branch call counters and complete output retention",
+    "specification": "Evaluate a strict Boolean predicate once and call only the selected same-type branch. Retain every selected payload and complete predicate/left/right call markers in order. Both outcomes and owned sizes0..3 are selected dynamically.",
+    "notes": "Whole workload includes setup, selection, per-operation predicate/branch call-counter instrumentation, chosen-branch computation/construction, loop and complete output/counter-marker construction. This is instrumented workload throughput, not pure branch latency. Complete independent observation is outside timing. Fresh owner branches measure selected construction/selection/retention, not existing-owner move cost or JavaScript alias/ownership/allocation parity. ",
+    "sourceSha256": "8905005f8d42be5cf8a4e7955ee84dfe18dbeb509599df315ae2e6d1cf2f4719",
+    "counterpartSha256": "0d7c9be97c05658c39f01773d5f07359a6371febe7fd100bb8213dc1bf62d952",
+    "inputText": " \u00e9\ud83d\ude00e\u0301 Z ",
+    "inputFamily": "unicode"
+  },
+  {
+    "id": "conditional_array_int",
+    "category": "arrays",
+    "family": "int",
+    "conditionalKind": "owned-array-construction",
+    "selectedType": "int[]",
+    "conditionalExpression": "const selected: int[] = predicate(trace, (i + seed) % 2 === 0) ? leftValue(trace, at, size) : rightValue(trace, at, size);",
+    "result": "int[][]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual lazy conditional selection with visible predicate/branch call counters and complete output retention",
+    "specification": "Evaluate a strict Boolean predicate once and call only the selected same-type branch. Retain every selected payload and complete predicate/left/right call markers in order. Both outcomes and owned sizes0..3 are selected dynamically.",
+    "notes": "Whole workload includes setup, selection, per-operation predicate/branch call-counter instrumentation, chosen-branch computation/construction, loop and complete output/counter-marker construction. This is instrumented workload throughput, not pure branch latency. Complete independent observation is outside timing. Fresh owner branches measure selected construction/selection/retention, not existing-owner move cost or JavaScript alias/ownership/allocation parity. ",
+    "sourceSha256": "741f7358e4c4da9e9355cff901a84af29a312307d313f2ecb116302881d1cb61",
+    "counterpartSha256": "bc2e56b4d7b646e61065f7113c330b8003c6b486a1394eb7b7383712ed8149d4"
+  },
+  {
+    "id": "conditional_array_number",
+    "category": "arrays",
+    "family": "number",
+    "conditionalKind": "owned-array-construction",
+    "selectedType": "number[]",
+    "conditionalExpression": "const selected: number[] = predicate(trace, (i + seed) % 3 === 0) ? leftValue(trace, at, size) : rightValue(trace, at, size);",
+    "result": "number[][]",
+    "resultEncoding": "ieee-f64-tree-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual lazy conditional selection with visible predicate/branch call counters and complete output retention",
+    "specification": "Evaluate a strict Boolean predicate once and call only the selected same-type branch. Retain every selected payload and complete predicate/left/right call markers in order. Both outcomes and owned sizes0..3 are selected dynamically. Number predicates use period3, independent of the period8 operand pool, so the timed2048/seed7 fixture exercises all8 exact IEEE tokens and both branches.",
+    "notes": "Whole workload includes setup, selection, per-operation predicate/branch call-counter instrumentation, chosen-branch computation/construction, loop and complete output/counter-marker construction. This is instrumented workload throughput, not pure branch latency. Complete independent observation is outside timing. Fresh owner branches measure selected construction/selection/retention, not existing-owner move cost or JavaScript alias/ownership/allocation parity. Number complete output preserves signed zero, canonical NaN and both infinities. ",
+    "sourceSha256": "0bf17b3107719e9caecf59022125fc729b416f57336de2417b5a059a00c607d9",
+    "counterpartSha256": "6685f4c4998e55f678333327b6551db1b01d7a2bf7324b4cfab41976cc8cf953"
+  },
+  {
+    "id": "conditional_array_boolean",
+    "category": "arrays",
+    "family": "boolean",
+    "conditionalKind": "owned-array-construction",
+    "selectedType": "boolean[]",
+    "conditionalExpression": "const selected: boolean[] = predicate(trace, (i + seed) % 2 === 0) ? leftValue(trace, at, size) : rightValue(trace, at, size);",
+    "result": "int[][]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual lazy conditional selection with visible predicate/branch call counters and complete output retention",
+    "specification": "Evaluate a strict Boolean predicate once and call only the selected same-type branch. Retain every selected payload and complete predicate/left/right call markers in order. Both outcomes and owned sizes0..3 are selected dynamically.",
+    "notes": "Whole workload includes setup, selection, per-operation predicate/branch call-counter instrumentation, chosen-branch computation/construction, loop and complete output/counter-marker construction. This is instrumented workload throughput, not pure branch latency. Complete independent observation is outside timing. Boolean array selection remains truly boolean[]; the selected owner is then projected per leaf to0/1 in int[][], with projection cost timed. Fresh owner branches measure selected construction/selection/retention, not existing-owner move cost or JavaScript alias/ownership/allocation parity. ",
+    "sourceSha256": "b7feb1b8afcb2b0a12ce0c32102011dacbff8e5f08b665b9c312fac533fd8b22",
+    "counterpartSha256": "aa18db5a8e06d7ef24a3a9142314162ce5f0223d010b81f8f93d60896c772806"
+  },
+  {
+    "id": "conditional_array_string",
+    "category": "arrays",
+    "family": "string",
+    "conditionalKind": "owned-array-construction",
+    "selectedType": "string[]",
+    "conditionalExpression": "const selected: string[] = predicate(trace, (i + seed) % 2 === 0) ? leftValue(trace, at, size, input) : rightValue(trace, at, size, input);",
+    "result": "string[][]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual lazy conditional selection with visible predicate/branch call counters and complete output retention",
+    "specification": "Evaluate a strict Boolean predicate once and call only the selected same-type branch. Retain every selected payload and complete predicate/left/right call markers in order. Both outcomes and owned sizes0..3 are selected dynamically.",
+    "notes": "Whole workload includes setup, selection, per-operation predicate/branch call-counter instrumentation, chosen-branch computation/construction, loop and complete output/counter-marker construction. This is instrumented workload throughput, not pure branch latency. Complete independent observation is outside timing. Fresh owner branches measure selected construction/selection/retention, not existing-owner move cost or JavaScript alias/ownership/allocation parity. ",
+    "sourceSha256": "dfe27ea6acae514be975ca7d51c19c3ed40950f88e227d017f6912bc403eb829",
+    "counterpartSha256": "19a527aaa65eebad544fa33391662fb727b15536932b8c0cda03baab074a7f9a",
+    "inputText": " \u00e9\ud83d\ude00e\u0301 Z ",
+    "inputFamily": "unicode"
+  },
+  {
+    "id": "conditional_record_value",
+    "category": "records",
+    "family": "record",
+    "conditionalKind": "owned-record-construction",
+    "selectedType": "Choice",
+    "conditionalExpression": "const selected: Choice = predicate(trace, (i + seed) % 2 === 0) ? leftValue(trace, at, size) : rightValue(trace, at, size);",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "one actual lazy conditional selection with visible predicate/branch call counters and complete output retention",
+    "specification": "Evaluate a strict Boolean predicate once and call only the selected same-type branch. Retain every selected payload and complete predicate/left/right call markers in order. Both outcomes and owned sizes0..3 are selected dynamically.",
+    "notes": "Whole workload includes setup, selection, per-operation predicate/branch call-counter instrumentation, chosen-branch computation/construction, loop and complete output/counter-marker construction. This is instrumented workload throughput, not pure branch latency. Complete independent observation is outside timing. Fresh owner branches measure selected construction/selection/retention, not existing-owner move cost or JavaScript alias/ownership/allocation parity. All named-record fields are observed: tag, payload length and every payload leaf; no record ABI is introduced. ",
+    "sourceSha256": "f8a22d2aa81e1ae386e8be1b5d67da610e2d3d9c3777b80b31ac1b4510a04677",
+    "counterpartSha256": "1061614ad94e7d02638ce07d0f8809aea91a0cddd790839769cd81ba49db35fe"
+  }
+]

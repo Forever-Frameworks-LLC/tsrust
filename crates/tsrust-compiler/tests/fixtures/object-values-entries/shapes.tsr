@@ -1,0 +1,83 @@
+type Size = {
+    w: int;
+    h: int;
+};
+
+type Pair<T> = {
+    first: T;
+    second: T;
+};
+
+type Holder = {
+    size: Size;
+    rows: int[] [];
+    flag: boolean | undefined;
+    code: int | string;
+};
+
+type One = {
+    only: string;
+};
+
+function sum(values: int[]): int {
+    let total = 0;
+    for (const value of values) {
+        total += value;
+    }
+
+    return total;
+}
+
+function names(holder: ReadOnly<Holder>): string {
+    return Object.entries(holder).map((entry) => entry[0].toUpperCase()).join(",");
+}
+
+function main() {
+    const pair: Pair<int> = {
+        second: 2, first: 1
+    };
+    console.log(Object.values(pair), sum(Object.values(pair)), Object.entries(pair));
+    const texts: Pair<string> = {
+        first: "a", second: "b"
+    };
+    console.log(Object.values(texts).join("+"), Object.entries(texts).length);
+    const holder: Holder = {
+        code: "c7", flag: undefined, rows: [[1], [2, 3]], size: {
+            w: 1, h: 2
+        }
+    };
+    console.log(Object.values(holder.size), Object.entries(holder.size), names(holder));
+    const all = Object.values(holder);
+    console.log(all.length, all);
+    for (const value of all) {
+        if (typeof value === "string") {
+            console.log("text", value);
+        } else if (typeof value === "undefined") {
+            console.log("missing");
+        } else {
+            console.log("object");
+        }
+    }
+
+    holder.rows.push([4]);
+    holder.code = 9;
+    console.log(Object.values(holder).length, holder.rows.length, String(holder.code), all.length);
+    const one: One = {
+        only: "x"
+    };
+    const single = Object.values(one);
+    single.push("y");
+    console.log(single, Object.entries(one), one.only);
+    const read =(): int => {
+        return Object.values(holder.size).length + Object.entries(pair).length;
+    };
+    console.log(read(), read());
+    const sizes: Size[] = [{
+        w: 1, h: 2
+    }, {
+        w: 3, h: 4
+    }];
+    console.log(sizes.map((size) => sum(Object.values(size))).join(","), Object.values(sizes[1]));
+    const copy = clone(holder);
+    console.log(Object.keys(copy).join(","), Object.entries(copy).length);
+}

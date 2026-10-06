@@ -1,0 +1,2667 @@
+{
+  "runtime/results/2026-09-30T23-10-06-553Z.json": {
+    "bytes": 730008,
+    "mtimeNs": 1790809806561851111,
+    "inode": 282305816
+  },
+  "runtime/results/2026-10-01T01-44-28-709Z-allocations.json": {
+    "bytes": 40959,
+    "mtimeNs": 1790819068778054284,
+    "inode": 282601612
+  },
+  "runtime/results/2026-10-01T04-51-41-594Z.json": {
+    "bytes": 1046014,
+    "mtimeNs": 1790830301602923904,
+    "inode": 282768057
+  },
+  "runtime/results/2026-10-01T00-12-07-277Z.json": {
+    "bytes": 288782,
+    "mtimeNs": 1790813527283597669,
+    "inode": 282385590
+  },
+  "runtime/results/2026-10-02T19-52-01-680Z.json": {
+    "bytes": 1239242,
+    "mtimeNs": 1790970721699940519,
+    "inode": 285069134
+  },
+  "runtime/results/2026-10-02T01-34-37-644Z-allocations.json": {
+    "bytes": 9256,
+    "mtimeNs": 1790904877654712348,
+    "inode": 283768461
+  },
+  "runtime/results/2026-10-02T21-34-16-303Z.json": {
+    "bytes": 26154412,
+    "mtimeNs": 1790976856403817945,
+    "inode": 285178627
+  },
+  "runtime/results/2026-10-01T12-02-42-828Z.json": {
+    "bytes": 1464885,
+    "mtimeNs": 1790856162839974994,
+    "inode": 283157481
+  },
+  "runtime/results/2026-10-02T00-13-46-688Z.json": {
+    "bytes": 407246,
+    "mtimeNs": 1790900026695684205,
+    "inode": 283663328
+  },
+  "runtime/results/2026-09-30T23-46-19-030Z.json": {
+    "bytes": 732370,
+    "mtimeNs": 1790811979037748074,
+    "inode": 282336046
+  },
+  "runtime/results/2026-09-30T23-12-25-749Z-allocations.json": {
+    "bytes": 40662,
+    "mtimeNs": 1790809945757260685,
+    "inode": 282307072
+  },
+  "runtime/results/2026-10-01T10-43-19-261Z-allocations.json": {
+    "bytes": 41343,
+    "mtimeNs": 1790851399263679897,
+    "inode": 283085223
+  },
+  "runtime/results/2026-10-01T01-39-21-007Z.json": {
+    "bytes": 1010588,
+    "mtimeNs": 1790818761015962993,
+    "inode": 282589059
+  },
+  "runtime/results/2026-10-01T02-22-39-793Z.json": {
+    "bytes": 1046334,
+    "mtimeNs": 1790821359801792592,
+    "inode": 282638379
+  },
+  "runtime/results/2026-10-02T08-30-03-080Z.json": {
+    "bytes": 1038191,
+    "mtimeNs": 1790929803095046988,
+    "inode": 284178794
+  },
+  "runtime/results/2026-10-03T05-08-58-108Z.json": {
+    "bytes": 3730023,
+    "mtimeNs": 1791004138136876251,
+    "inode": 285583373
+  },
+  "runtime/results/2026-10-01T00-32-23-935Z.json": {
+    "bytes": 85296,
+    "mtimeNs": 1790814743941663109,
+    "inode": 282389171
+  },
+  "runtime/results/2026-10-01T20-36-35-590Z.json": {
+    "bytes": 2062395,
+    "mtimeNs": 1790886995604122762,
+    "inode": 283424812
+  },
+  "runtime/results/2026-10-02T01-08-44-019Z.json": {
+    "bytes": 704616,
+    "mtimeNs": 1790903324028823870,
+    "inode": 283734195
+  },
+  "runtime/results/2026-10-03T02-25-37-882Z.json": {
+    "bytes": 6854495,
+    "mtimeNs": 1790994337918311419,
+    "inode": 285440703
+  },
+  "runtime/results/2026-10-02T03-32-12-893Z.json": {
+    "bytes": 29762814,
+    "mtimeNs": 1790911933026155743,
+    "inode": 283921658
+  },
+  "runtime/results/2026-10-01T01-18-55-321Z.json": {
+    "bytes": 1010431,
+    "mtimeNs": 1790817535330186242,
+    "inode": 282539468
+  },
+  "runtime/results/2026-10-01T15-46-43-695Z.json": {
+    "bytes": 1739899,
+    "mtimeNs": 1790869603710258612,
+    "inode": 283237606
+  },
+  "runtime/results/2026-10-01T23-20-28-895Z.json": {
+    "bytes": 2055256,
+    "mtimeNs": 1790896828908631894,
+    "inode": 283590672
+  },
+  "runtime/results/2026-10-02T17-03-02-587Z.json": {
+    "bytes": 18240194,
+    "mtimeNs": 1790960582673717617,
+    "inode": 284763591
+  },
+  "runtime/results/2026-10-02T07-46-32-501Z.json": {
+    "bytes": 13353444,
+    "mtimeNs": 1790927192558900436,
+    "inode": 284142638
+  },
+  "runtime/results/2026-10-01T23-21-47-473Z-allocations.json": {
+    "bytes": 45165,
+    "mtimeNs": 1790896907484035599,
+    "inode": 283591229
+  },
+  "runtime/results/2026-10-03T03-11-33-512Z.json": {
+    "bytes": 8906394,
+    "mtimeNs": 1790997093564844206,
+    "inode": 285487594
+  },
+  "runtime/results/2026-10-02T12-06-21-206Z.json": {
+    "bytes": 2600094,
+    "mtimeNs": 1790942781230917679,
+    "inode": 284385601
+  },
+  "runtime/results/2026-10-01T18-50-50-099Z.json": {
+    "bytes": 2024166,
+    "mtimeNs": 1790880650112841952,
+    "inode": 283376697
+  },
+  "runtime/results/2026-10-03T00-52-08-089Z.json": {
+    "bytes": 5428534,
+    "mtimeNs": 1790988728126403193,
+    "inode": 285335680
+  },
+  "runtime/results/2026-10-02T01-33-56-966Z.json": {
+    "bytes": 7657242,
+    "mtimeNs": 1790904837008642744,
+    "inode": 283768140
+  },
+  "runtime/results/2026-10-02T05-09-07-504Z.json": {
+    "bytes": 23311237,
+    "mtimeNs": 1790917747600054639,
+    "inode": 284012580
+  },
+  "runtime/results/2026-09-30T23-49-48-956Z-allocations.json": {
+    "bytes": 40744,
+    "mtimeNs": 1790812188958336250,
+    "inode": 282355166
+  },
+  "runtime/results/2026-10-01T05-30-20-821Z.json": {
+    "bytes": 1255601,
+    "mtimeNs": 1790832620830424434,
+    "inode": 282832520
+  },
+  "runtime/results/2026-10-02T04-02-21-910Z.json": {
+    "bytes": 19007554,
+    "mtimeNs": 1790913741973756357,
+    "inode": 283952253
+  },
+  "runtime/results/2026-10-01T10-35-32-300Z-allocations.json": {
+    "bytes": 41343,
+    "mtimeNs": 1790850932311752027,
+    "inode": 283065780
+  },
+  "runtime/results/2026-10-02T18-58-45-231Z.json": {
+    "bytes": 3844437,
+    "mtimeNs": 1790967525261620994,
+    "inode": 284961126
+  },
+  "runtime/results/2026-10-01T08-14-04-568Z.json": {
+    "bytes": 1327601,
+    "mtimeNs": 1790842444577717592,
+    "inode": 282960783
+  },
+  "runtime/results/2026-10-01T22-37-39-295Z.json": {
+    "bytes": 368619,
+    "mtimeNs": 1790894259303918996,
+    "inode": 283523482
+  },
+  "runtime/results/2026-10-02T15-34-33-010Z.json": {
+    "bytes": 18294049,
+    "mtimeNs": 1790955273117610333,
+    "inode": 284645913
+  },
+  "runtime/results/2026-10-01T23-55-50-833Z.json": {
+    "bytes": 410125,
+    "mtimeNs": 1790898950841152002,
+    "inode": 283638659
+  },
+  "runtime/results/2026-10-01T06-20-37-081Z.json": {
+    "bytes": 126963,
+    "mtimeNs": 1790835637087646905,
+    "inode": 282917243
+  },
+  "runtime/results/2026-10-01T16-18-45-208Z-allocations.json": {
+    "bytes": 41347,
+    "mtimeNs": 1790871525211922331,
+    "inode": 283264018
+  },
+  "runtime/results/2026-10-03T08-38-59-974Z.json": {
+    "bytes": 86592780,
+    "mtimeNs": 1791016740586455046,
+    "inode": 285842979
+  },
+  "runtime/results/2026-10-03T18-02-58-195Z.json": {
+    "bytes": 170940513,
+    "mtimeNs": 1791050579260744640,
+    "inode": 286347891
+  },
+  "runtime/results/2026-10-02T06-20-44-810Z.json": {
+    "bytes": 69813510,
+    "mtimeNs": 1790922045482559975,
+    "inode": 284072326
+  },
+  "runtime/results/2026-10-01T17-06-06-666Z-allocations.json": {
+    "bytes": 41343,
+    "mtimeNs": 1790874366670243362,
+    "inode": 283308911
+  },
+  "runtime/results/2026-10-02T02-18-13-833Z.json": {
+    "bytes": 507452,
+    "mtimeNs": 1790907493842308634,
+    "inode": 283833044
+  },
+  "runtime/results/2026-10-02T13-43-31-564Z.json": {
+    "bytes": 4598898,
+    "mtimeNs": 1790948611596068379,
+    "inode": 284527591
+  },
+  "runtime/results/2026-10-02T18-10-32-031Z.json": {
+    "bytes": 9256196,
+    "mtimeNs": 1790964632077061845,
+    "inode": 284826333
+  },
+  "runtime/results/2026-10-03T03-30-37-236Z.json": {
+    "bytes": 8906482,
+    "mtimeNs": 1790998237284808331,
+    "inode": 285494461
+  },
+  "runtime/results/2026-10-02T13-14-05-967Z.json": {
+    "bytes": 9131410,
+    "mtimeNs": 1790946846012150180,
+    "inode": 284489310
+  },
+  "runtime/results/2026-10-01T06-16-41-224Z.json": {
+    "bytes": 1256332,
+    "mtimeNs": 1790835401233029617,
+    "inode": 282916866
+  },
+  "runtime/results/2026-10-01T17-21-00-518Z.json": {
+    "bytes": 1944834,
+    "mtimeNs": 1790875260538554638,
+    "inode": 283322147
+  },
+  "runtime/results/2026-10-01T22-19-50-919Z.json": {
+    "bytes": 2061865,
+    "mtimeNs": 1790893190933442078,
+    "inode": 283488057
+  },
+  "runtime/results/2026-10-01T02-57-37-372Z.json": {
+    "bytes": 1045885,
+    "mtimeNs": 1790823457380570604,
+    "inode": 282666850
+  },
+  "runtime/results/2026-10-02T14-55-24-143Z.json": {
+    "bytes": 1299263,
+    "mtimeNs": 1790952924164143433,
+    "inode": 284606347
+  },
+  "runtime/results/2026-10-02T05-39-50-064Z.json": {
+    "bytes": 638886,
+    "mtimeNs": 1790919590072607926,
+    "inode": 284041199
+  },
+  "runtime/results/2026-10-01T11-49-08-613Z-allocations.json": {
+    "bytes": 41341,
+    "mtimeNs": 1790855348620031083,
+    "inode": 283137988
+  },
+  "runtime/results/2026-10-01T23-37-48-752Z.json": {
+    "bytes": 405508,
+    "mtimeNs": 1790897868760131132,
+    "inode": 283614977
+  },
+  "runtime/results/2026-10-03T01-52-33-396Z.json": {
+    "bytes": 8051895,
+    "mtimeNs": 1790992353441900714,
+    "inode": 285388488
+  },
+  "runtime/results/2026-10-01T03-04-10-862Z-allocations.json": {
+    "bytes": 40991,
+    "mtimeNs": 1790823850866387534,
+    "inode": 282686616
+  },
+  "runtime/results/2026-10-01T20-38-54-270Z-allocations.json": {
+    "bytes": 45216,
+    "mtimeNs": 1790887134280117353,
+    "inode": 283440992
+  },
+  "runtime/results/2026-09-30T23-52-32-298Z.json": {
+    "bytes": 731374,
+    "mtimeNs": 1790812352305893993,
+    "inode": 282356955
+  },
+  "runtime/results/2026-09-30T23-02-37-068Z-verify.json": {
+    "bytes": 21259,
+    "mtimeNs": 1790809357073634136,
+    "inode": 282303375
+  },
+  "runtime/results/2026-10-01T08-02-30-016Z-allocations.json": {
+    "bytes": 41099,
+    "mtimeNs": 1790841750025388204,
+    "inode": 282946568
+  },
+  "runtime/results/2026-10-02T10-37-47-527Z.json": {
+    "bytes": 4490136,
+    "mtimeNs": 1790937467552371529,
+    "inode": 284262040
+  },
+  "runtime/results/2026-10-02T23-06-23-051Z.json": {
+    "bytes": 15947678,
+    "mtimeNs": 1790982383117664829,
+    "inode": 285236003
+  },
+  "runtime/results/2026-10-01T06-09-54-430Z-allocations.json": {
+    "bytes": 41100,
+    "mtimeNs": 1790834994439667355,
+    "inode": 282913902
+  },
+  "runtime/results/2026-10-02T09-37-35-119Z.json": {
+    "bytes": 38186752,
+    "mtimeNs": 1790933855327569112,
+    "inode": 284222616
+  },
+  "runtime/results/2026-10-01T01-49-06-507Z.json": {
+    "bytes": 118959,
+    "mtimeNs": 1790819346512945572,
+    "inode": 282609681
+  },
+  "runtime/results/2026-10-02T20-50-01-477Z.json": {
+    "bytes": 2929316,
+    "mtimeNs": 1790974201501373361,
+    "inode": 285132264
+  },
+  "runtime/results/2026-10-01T10-55-24-253Z.json": {
+    "bytes": 1466520,
+    "mtimeNs": 1790852124265488486,
+    "inode": 283096167
+  },
+  "runtime/results/2026-10-02T12-44-47-209Z.json": {
+    "bytes": 9112692,
+    "mtimeNs": 1790945087253392993,
+    "inode": 284442094
+  },
+  "runtime/results/2026-10-02T04-35-52-687Z.json": {
+    "bytes": 23720159,
+    "mtimeNs": 1790915752783250140,
+    "inode": 283982839
+  },
+  "runtime/results/2026-10-02T03-08-58-857Z.json": {
+    "bytes": 2190380,
+    "mtimeNs": 1790910538874322621,
+    "inode": 283892681
+  },
+  "runtime/results/2026-10-02T02-43-58-188Z.json": {
+    "bytes": 7753175,
+    "mtimeNs": 1790909038227092641,
+    "inode": 283866600
+  },
+  "runtime/results/2026-10-01T18-34-39-115Z-allocations.json": {
+    "bytes": 45235,
+    "mtimeNs": 1790879679121478551,
+    "inode": 283370472
+  },
+  "runtime/results/2026-10-02T07-01-29-093Z.json": {
+    "bytes": 3752076,
+    "mtimeNs": 1790924489121389493,
+    "inode": 284106220
+  },
+  "runtime/results/2026-10-02T01-59-12-737Z.json": {
+    "bytes": 464540,
+    "mtimeNs": 1790906352747470860,
+    "inode": 283806393
+  },
+  "runtime/results/2026-10-01T22-20-57-653Z-allocations.json": {
+    "bytes": 45235,
+    "mtimeNs": 1790893257659828025,
+    "inode": 283488804
+  },
+  "runtime/results/2026-10-02T00-34-53-278Z.json": {
+    "bytes": 571359,
+    "mtimeNs": 1790901293286947621,
+    "inode": 283688149
+  },
+  "runtime/results/2026-10-01T08-50-08-509Z.json": {
+    "bytes": 1326824,
+    "mtimeNs": 1790844608518183258,
+    "inode": 283000099
+  },
+  "runtime/results/2026-10-01T02-04-04-351Z.json": {
+    "bytes": 85028,
+    "mtimeNs": 1790820244357158930,
+    "inode": 282616245
+  },
+  "runtime/results/2026-10-02T16-06-20-223Z.json": {
+    "bytes": 14950326,
+    "mtimeNs": 1790957180291288273,
+    "inode": 284690724
+  },
+  "runtime/results/2026-10-01T15-37-32-637Z-allocations.json": {
+    "bytes": 41345,
+    "mtimeNs": 1790869052640439061,
+    "inode": 283233159
+  },
+  "runtime/results/2026-10-01T03-10-52-503Z.json": {
+    "bytes": 1045911,
+    "mtimeNs": 1790824252511713206,
+    "inode": 282688833
+  },
+  "runtime/results/2026-10-02T14-20-09-288Z.json": {
+    "bytes": 2164742,
+    "mtimeNs": 1790950809311853681,
+    "inode": 284566132
+  },
+  "runtime/results/2026-09-30T23-10-43-349Z-allocations.json": {
+    "bytes": 37488,
+    "mtimeNs": 1790809843352033669,
+    "inode": 282305951
+  },
+  "runtime/results/2026-10-01T16-45-01-348Z.json": {
+    "bytes": 1739625,
+    "mtimeNs": 1790873101362675847,
+    "inode": 283269825
+  },
+  "runtime/results/2026-10-01T04-02-12-386Z.json": {
+    "bytes": 1045912,
+    "mtimeNs": 1790827332399292632,
+    "inode": 282716187
+  },
+  "runtime/results/2026-10-01T08-42-24-351Z-allocations.json": {
+    "bytes": 41099,
+    "mtimeNs": 1790844144357272742,
+    "inode": 282996536
+  },
+  "runtime/results/2026-10-03T04-25-53-760Z.json": {
+    "bytes": 5635447,
+    "mtimeNs": 1791001553800122525,
+    "inode": 285539639
+  },
+  "runtime/results/2026-10-03T00-10-31-567Z.json": {
+    "bytes": 15855583,
+    "mtimeNs": 1790986231632003936,
+    "inode": 285287486
+  },
+  "runtime/diagnostics/2026-10-02T13-46-43-899Z-native-allocations.json": {
+    "bytes": 676981,
+    "mtimeNs": 1790948803942217273,
+    "inode": 284528330
+  },
+  "runtime/diagnostics/2026-10-02T21-15-11-000Z-numeric-compound-assignment-value-source-validation.json": {
+    "bytes": 168977,
+    "mtimeNs": 1790975720600405670,
+    "inode": 285137775
+  },
+  "runtime/diagnostics/2026-10-01T02-31-32-183Z-primitive-emission-equivalence.json": {
+    "bytes": 2952,
+    "mtimeNs": 1790821892189931004,
+    "inode": 282639050
+  },
+  "runtime/diagnostics/2026-10-02T09-30-42-000Z-array-concat-record-layout-repair.json": {
+    "bytes": 34923,
+    "mtimeNs": 1790933442457730735,
+    "inode": 284218841
+  },
+  "runtime/diagnostics/2026-10-01T18-30-16-429Z-inline-ascii13-correctness-evidence.json": {
+    "bytes": 140713,
+    "mtimeNs": 1790879416431440150,
+    "inode": 283368390
+  },
+  "runtime/diagnostics/2026-10-01T22-35-45-121Z-fixed-scalar-array-assessment.json": {
+    "bytes": 45063,
+    "mtimeNs": 1790894145125107697,
+    "inode": 283522932
+  },
+  "runtime/diagnostics/2026-10-02T21-37-19-000Z-numeric-compound-assignment-value-runtime-proof.json": {
+    "bytes": 448518,
+    "mtimeNs": 1790977039765423233,
+    "inode": 285179955
+  },
+  "runtime/diagnostics/2026-10-03T09-36-55-000Z-array-to-string-implementation.json": {
+    "bytes": 68359,
+    "mtimeNs": 1791020215372387906,
+    "inode": 285861421
+  },
+  "runtime/diagnostics/2026-10-03T06-37-34-000Z-split-storage-implementation.json": {
+    "bytes": 40940,
+    "mtimeNs": 1791009455019524161,
+    "inode": 285676219
+  },
+  "runtime/diagnostics/2026-10-02T23-12-32-000Z-conditional-expression-runtime-proof.json": {
+    "bytes": 201133,
+    "mtimeNs": 1790982752592437909,
+    "inode": 285237070
+  },
+  "runtime/diagnostics/2026-10-01T07-54-57-642Z-prototype-allocations.json": {
+    "bytes": 40833,
+    "mtimeNs": 1790841297681247749,
+    "inode": 282935524
+  },
+  "runtime/diagnostics/2026-10-01T14-19-59-759Z-string-prototype.json": {
+    "bytes": 1877599,
+    "mtimeNs": 1790864399802817930,
+    "inode": 283179700
+  },
+  "runtime/diagnostics/2026-09-30T23-40-56-691Z-native-allocations.json": {
+    "bytes": 26938,
+    "mtimeNs": 1790811656720272246,
+    "inode": 282315647
+  },
+  "runtime/diagnostics/2026-10-02T05-09-41-000Z-native-string-construction-runtime-proof.json": {
+    "bytes": 568173,
+    "mtimeNs": 1790917781349120510,
+    "inode": 284012717
+  },
+  "runtime/diagnostics/2026-10-01T22-32-08-719Z-fixed-scalar-array-correctness.json": {
+    "bytes": 242177,
+    "mtimeNs": 1790893928720496717,
+    "inode": 283521111
+  },
+  "runtime/diagnostics/2026-10-01T23-24-46-000Z-gate34-comparison-benchmark-source.json": {
+    "bytes": 341287,
+    "mtimeNs": 1790897086435415065,
+    "inode": 283593065
+  },
+  "runtime/diagnostics/2026-10-01T12-47-23-927Z-string-prototype.json": {
+    "bytes": 1517705,
+    "mtimeNs": 1790858843995484726,
+    "inode": 283165457
+  },
+  "runtime/diagnostics/2026-10-02T17-43-26-000Z-update-expression-source-validation.json": {
+    "bytes": 81206,
+    "mtimeNs": 1790963027140762081,
+    "inode": 284774796
+  },
+  "runtime/diagnostics/2026-10-01T18-01-58-595Z-prototype-allocations.json": {
+    "bytes": 78414,
+    "mtimeNs": 1790877718637905188,
+    "inode": 283339360
+  },
+  "runtime/diagnostics/2026-10-02T07-21-48-943Z-array-reduction-source-validation.json": {
+    "bytes": 220129,
+    "mtimeNs": 1790925709022193506,
+    "inode": 284131914
+  },
+  "runtime/diagnostics/2026-10-01T05-54-07-279Z-emission-prototype.json": {
+    "bytes": 1047198,
+    "mtimeNs": 1790834047314491887,
+    "inode": 282871078
+  },
+  "runtime/diagnostics/2026-10-03T16-42-24-000Z-array-splice-implementation.json": {
+    "bytes": 2261,
+    "mtimeNs": 1791045744447468599,
+    "inode": 286259844
+  },
+  "runtime/diagnostics/2026-10-02T14-56-48-730Z-native-allocations.json": {
+    "bytes": 678989,
+    "mtimeNs": 1790953008773190324,
+    "inode": 284606471
+  },
+  "runtime/diagnostics/2026-10-01T09-38-10-178Z-recursive-followup-proof.json": {
+    "bytes": 17821,
+    "mtimeNs": 1790847490185085309,
+    "inode": 283006437
+  },
+  "runtime/diagnostics/2026-10-02T00-15-08-000Z-native-array-reverse-runtime-proof.json": {
+    "bytes": 98843,
+    "mtimeNs": 1790900108995525870,
+    "inode": 283663403
+  },
+  "runtime/diagnostics/2026-10-02T04-02-54-173Z-native-allocations.json": {
+    "bytes": 394657,
+    "mtimeNs": 1790913774209457033,
+    "inode": 283952458
+  },
+  "runtime/diagnostics/2026-10-01T16-18-56-864Z-string-contract.json": {
+    "bytes": 4581193,
+    "mtimeNs": 1790871536931818103,
+    "inode": 283264035
+  },
+  "runtime/diagnostics/2026-10-01T10-59-00-445Z-string-prototype.json": {
+    "bytes": 1709690,
+    "mtimeNs": 1790852340484802683,
+    "inode": 283097079
+  },
+  "runtime/diagnostics/2026-10-02T02-18-53-000Z-native-math-unary-runtime-proof.json": {
+    "bytes": 148741,
+    "mtimeNs": 1790907533173360652,
+    "inode": 283833114
+  },
+  "runtime/diagnostics/2026-10-01T03-24-10-570Z-prototype-allocations.json": {
+    "bytes": 8494,
+    "mtimeNs": 1790825050594827566,
+    "inode": 282691606
+  },
+  "runtime/diagnostics/2026-10-01T15-00-46-187Z-primitive-assessment.json": {
+    "bytes": 6970,
+    "mtimeNs": 1790866846194019835,
+    "inode": 283203994
+  },
+  "runtime/diagnostics/2026-10-02T04-36-28-000Z-native-array-predicates-runtime-proof.json": {
+    "bytes": 826658,
+    "mtimeNs": 1790915788824686628,
+    "inode": 283983074
+  },
+  "runtime/diagnostics/2026-10-01T04-11-10-838Z-primitive-emission-equivalence.json": {
+    "bytes": 3672,
+    "mtimeNs": 1790827870841529603,
+    "inode": 282718942
+  },
+  "runtime/diagnostics/2026-10-03T03-10-28-000Z-number-format-compiler-proof.json": {
+    "bytes": 95240,
+    "mtimeNs": 1790997028407776849,
+    "inode": 285487226
+  },
+  "runtime/diagnostics/2026-10-02T20-49-01-000Z-scalar-assignment-compiler-proof.json": {
+    "bytes": 210936,
+    "mtimeNs": 1790974141440382962,
+    "inode": 285132081
+  },
+  "runtime/diagnostics/2026-10-02T00-14-04-697Z-native-allocations.json": {
+    "bytes": 314108,
+    "mtimeNs": 1790900044724384332,
+    "inode": 283663368
+  },
+  "runtime/diagnostics/2026-10-01T10-35-44-170Z-string-contract.json": {
+    "bytes": 4577901,
+    "mtimeNs": 1790850944221716616,
+    "inode": 283066101
+  },
+  "runtime/diagnostics/2026-10-02T16-38-33-000Z-compound-source-validation.json": {
+    "bytes": 105034,
+    "mtimeNs": 1790959128656963818,
+    "inode": 284720921
+  },
+  "runtime/diagnostics/2026-10-02T12-08-28-609Z-native-allocations.json": {
+    "bytes": 655391,
+    "mtimeNs": 1790942908645232450,
+    "inode": 284386848
+  },
+  "runtime/diagnostics/2026-10-01T00-17-48-812Z-array-prototype.json": {
+    "bytes": 163834,
+    "mtimeNs": 1790813868845962555,
+    "inode": 282386961
+  },
+  "runtime/diagnostics/2026-10-03T10-48-34-000Z-nullable-type-foundation-implementation.json": {
+    "bytes": 167161,
+    "mtimeNs": 1791024514265954759,
+    "inode": 285897999
+  },
+  "runtime/diagnostics/2026-10-02T13-25-52-000Z-array-to-spliced-compiler-proof.json": {
+    "bytes": 176640,
+    "mtimeNs": 1790947552235365424,
+    "inode": 284524838
+  },
+  "runtime/diagnostics/2026-10-01T08-59-16-703Z-record-storage-prototype.json": {
+    "bytes": 290126,
+    "mtimeNs": 1790845156733360578,
+    "inode": 283002700
+  },
+  "runtime/diagnostics/2026-10-01T10-43-32-812Z-string-semantics.json": {
+    "bytes": 330421,
+    "mtimeNs": 1790851412843067766,
+    "inode": 283085622
+  },
+  "runtime/diagnostics/2026-10-01T06-01-58-370Z-emission-prototype.json": {
+    "bytes": 1052173,
+    "mtimeNs": 1790834518403787928,
+    "inode": 282893101
+  },
+  "runtime/diagnostics/2026-10-01T20-39-54-995Z-production-50-native-resource-proof.json": {
+    "bytes": 25755,
+    "mtimeNs": 1790887194999548134,
+    "inode": 283442428
+  },
+  "runtime/diagnostics/2026-10-03T00-49-43-000Z-string-substring-compiler-proof.json": {
+    "bytes": 168395,
+    "mtimeNs": 1790988583898722191,
+    "inode": 285334829
+  },
+  "runtime/diagnostics/2026-10-02T00-37-25-000Z-native-string-search-runtime-proof.json": {
+    "bytes": 117546,
+    "mtimeNs": 1790901445862196946,
+    "inode": 283689419
+  },
+  "runtime/diagnostics/2026-10-03T05-56-16-000Z-quoted-string-literals-implementation.json": {
+    "bytes": 27699,
+    "mtimeNs": 1791006976228551798,
+    "inode": 285638441
+  },
+  "runtime/diagnostics/2026-10-01T09-12-09-025Z-record-storage-prototype.json": {
+    "bytes": 292039,
+    "mtimeNs": 1790845929053451845,
+    "inode": 283004667
+  },
+  "runtime/diagnostics/2026-10-03T00-15-54-000Z-string-concat-padding-runtime-proof.json": {
+    "bytes": 201030,
+    "mtimeNs": 1790986554170454444,
+    "inode": 285288910
+  },
+  "runtime/diagnostics/2026-10-01T17-00-17-790Z-bidirectional-correctness.json": {
+    "bytes": 22644,
+    "mtimeNs": 1790874017805543583,
+    "inode": 283296714
+  },
+  "runtime/diagnostics/2026-10-01T19-34-45-621Z-primary-unit-assembly-audit.json": {
+    "bytes": 2949200,
+    "mtimeNs": 1790883285631816317,
+    "inode": 283383542
+  },
+  "runtime/diagnostics/2026-10-02T15-52-00-000Z-string-add-source-validation.json": {
+    "bytes": 46686,
+    "mtimeNs": 1790956315477387486,
+    "inode": 284652932
+  },
+  "runtime/diagnostics/2026-10-01T22-37-02-654Z-fixed-array-production-integration-proof.json": {
+    "bytes": 29395,
+    "mtimeNs": 1790894222661683402,
+    "inode": 283523333
+  },
+  "runtime/diagnostics/2026-10-01T00-14-39-670Z-array-prototype.json": {
+    "bytes": 164002,
+    "mtimeNs": 1790813679698134366,
+    "inode": 282386339
+  },
+  "runtime/diagnostics/2026-10-01T19-47-22-364Z-primary-units-correctness.json": {
+    "bytes": 1708367,
+    "mtimeNs": 1790884042370146695,
+    "inode": 283384593
+  },
+  "runtime/diagnostics/2026-10-01T21-40-05-681Z-cli-release-profile-proof.json": {
+    "bytes": 16996,
+    "mtimeNs": 1790890805688846297,
+    "inode": 283458856
+  },
+  "runtime/diagnostics/2026-10-02T16-04-00-000Z-string-addition-compiler-proof.json": {
+    "bytes": 309259,
+    "mtimeNs": 1790957052054862550,
+    "inode": 284689990
+  },
+  "runtime/diagnostics/2026-10-01T11-26-55-751Z-string-prototype.json": {
+    "bytes": 1689874,
+    "mtimeNs": 1790854015788326857,
+    "inode": 283122627
+  },
+  "runtime/diagnostics/2026-10-02T02-45-21-000Z-native-array-slice-runtime-proof.json": {
+    "bytes": 314751,
+    "mtimeNs": 1790909121572019440,
+    "inode": 283866679
+  },
+  "runtime/diagnostics/2026-10-02T06-23-17-000Z-approximate-math-runtime-proof.json": {
+    "bytes": 2486056,
+    "mtimeNs": 1790922197610382465,
+    "inode": 284072981
+  },
+  "runtime/diagnostics/2026-10-02T21-36-34-662Z-native-allocations.json": {
+    "bytes": 839074,
+    "mtimeNs": 1790976994700026705,
+    "inode": 285178946
+  },
+  "runtime/diagnostics/2026-10-01T23-01-46-000Z-native-utf8-benchmark-migration.json": {
+    "bytes": 320762,
+    "mtimeNs": 1790895706388985361,
+    "inode": 283561889
+  },
+  "runtime/diagnostics/2026-10-01T23-05-37-467603Z-native-utf8-compiler-migration.json": {
+    "bytes": 65636,
+    "mtimeNs": 1790895937470555221,
+    "inode": 283583427
+  },
+  "runtime/diagnostics/2026-10-01T23-41-23-000Z-gate35-uppercase-benchmark-source.json": {
+    "bytes": 344990,
+    "mtimeNs": 1790898083913242634,
+    "inode": 283616594
+  },
+  "runtime/diagnostics/2026-10-01T19-08-04-464Z-prototype-allocations.json": {
+    "bytes": 84593,
+    "mtimeNs": 1790881684499573226,
+    "inode": 283379886
+  },
+  "runtime/diagnostics/2026-10-03T05-16-49-000Z-string-well-formed-runtime-proof.json": {
+    "bytes": 33552,
+    "mtimeNs": 1791004609907725563,
+    "inode": 285584171
+  },
+  "runtime/diagnostics/2026-10-02T08-32-59-000Z-array-for-each-runtime-proof.json": {
+    "bytes": 605670,
+    "mtimeNs": 1790929980090219118,
+    "inode": 284180149
+  },
+  "runtime/diagnostics/2026-10-01T15-19-25-313Z-string-prototype.json": {
+    "bytes": 1954936,
+    "mtimeNs": 1790867965357956699,
+    "inode": 283210727
+  },
+  "runtime/diagnostics/2026-10-01T23-21-05-187Z-native-allocations.json": {
+    "bytes": 379475,
+    "mtimeNs": 1790896865222529412,
+    "inode": 283591133
+  },
+  "runtime/diagnostics/2026-10-02T20-52-04-000Z-scalar-assignment-runtime-proof.json": {
+    "bytes": 67683,
+    "mtimeNs": 1790974324489802157,
+    "inode": 285132798
+  },
+  "runtime/diagnostics/2026-10-01T20-26-40-538Z-production-50-refresh-history-inventory.json": {
+    "bytes": 452363,
+    "mtimeNs": 1790886400776806339,
+    "inode": 283415585
+  },
+  "runtime/diagnostics/2026-10-01T19-10-56-085Z-ascii13-outline-verification.json": {
+    "bytes": 5626632,
+    "mtimeNs": 1790881856097882127,
+    "inode": 283380042
+  },
+  "runtime/diagnostics/2026-10-01T01-40-57-431Z-record-drop-prototype.json": {
+    "bytes": 169931,
+    "mtimeNs": 1790818857467604462,
+    "inode": 282589852
+  },
+  "runtime/diagnostics/2026-10-01T03-40-55-247Z-native-allocations.json": {
+    "bytes": 54828,
+    "mtimeNs": 1790826055280983860,
+    "inode": 282705805
+  },
+  "runtime/diagnostics/2026-10-01T21-28-40-381Z-inline-whole-text-rejection-assessment.json": {
+    "bytes": 117324,
+    "mtimeNs": 1790890120386158518,
+    "inode": 283456743
+  },
+  "runtime/diagnostics/2026-10-02T03-54-19.029Z-fixed-number-array-compiler-proof.json": {
+    "bytes": 209748,
+    "mtimeNs": 1790913259033405833,
+    "inode": 283950741
+  },
+  "runtime/diagnostics/2026-10-02T04-40-43-000Z-string-construction-benchmark-source.json": {
+    "bytes": 1390227,
+    "mtimeNs": 1790916043189992249,
+    "inode": 283994136
+  },
+  "runtime/diagnostics/2026-10-03T08-41-44-220Z-native-allocations.json": {
+    "bytes": 1038299,
+    "mtimeNs": 1791016904272326774,
+    "inode": 285845500
+  },
+  "runtime/diagnostics/2026-10-01T11-49-02-914Z-native-allocations.json": {
+    "bytes": 79886,
+    "mtimeNs": 1790855342961306377,
+    "inode": 283137886
+  },
+  "runtime/diagnostics/2026-10-02T02-23-39-000Z-native-array-slice-benchmark-source.json": {
+    "bytes": 629203,
+    "mtimeNs": 1790907819975929107,
+    "inode": 283835684
+  },
+  "runtime/diagnostics/2026-10-01T10-43-14-317Z-native-allocations.json": {
+    "bytes": 79752,
+    "mtimeNs": 1790851394348777302,
+    "inode": 283085161
+  },
+  "runtime/diagnostics/2026-10-02T00-08-20-000Z-gate36-execution-only-source-proof.json": {
+    "bytes": 515520,
+    "mtimeNs": 1790899685749279510,
+    "inode": 283659845
+  },
+  "runtime/diagnostics/2026-10-01T15-37-44-691Z-string-contract.json": {
+    "bytes": 4581084,
+    "mtimeNs": 1790869064758525616,
+    "inode": 283233214
+  },
+  "runtime/diagnostics/2026-10-01T04-47-57-833Z-emission-equivalence.json": {
+    "bytes": 15719,
+    "mtimeNs": 1790830077837224327,
+    "inode": 282767303
+  },
+  "runtime/diagnostics/2026-10-02T05-40-06-108Z-native-allocations.json": {
+    "bytes": 419563,
+    "mtimeNs": 1790919606137576651,
+    "inode": 284041269
+  },
+  "runtime/diagnostics/2026-10-01T12-59-28-288Z-string-search-codegen.json": {
+    "bytes": 9298197,
+    "mtimeNs": 1790859568464332848,
+    "inode": 283167848
+  },
+  "runtime/diagnostics/2026-10-02T04-29-08-000Z-array-predicates-compiler-acceptance.json": {
+    "bytes": 95173,
+    "mtimeNs": 1790915348264369812,
+    "inode": 283979930
+  },
+  "runtime/diagnostics/2026-10-01T11-03-42-139Z-string-prototype.json": {
+    "bytes": 1709265,
+    "mtimeNs": 1790852622180831092,
+    "inode": 283117631
+  },
+  "runtime/diagnostics/2026-10-02T19-53-28-863Z-native-allocations.json": {
+    "bytes": 762925,
+    "mtimeNs": 1790970808897997664,
+    "inode": 285069236
+  },
+  "runtime/diagnostics/2026-10-02T02-02-22-000Z-native-math-benchmark-source.json": {
+    "bytes": 572019,
+    "mtimeNs": 1790906542473026472,
+    "inode": 283808040
+  },
+  "runtime/diagnostics/2026-10-02T05-09-29-570Z-native-allocations.json": {
+    "bytes": 422173,
+    "mtimeNs": 1790917769599633999,
+    "inode": 284012709
+  },
+  "runtime/diagnostics/2026-10-02T15-19-00-000Z-string-trim-source-validation.json": {
+    "bytes": 107795,
+    "mtimeNs": 1790954351030914972,
+    "inode": 284642380
+  },
+  "runtime/diagnostics/2026-10-01T10-56-03-669Z-utf16-string-proof.json": {
+    "bytes": 16333,
+    "mtimeNs": 1790852163671545337,
+    "inode": 283096194
+  },
+  "runtime/diagnostics/2026-10-02T21-29-16-000Z-numeric-compound-assignment-values-compiler-proof.json": {
+    "bytes": 157774,
+    "mtimeNs": 1790976595340177364,
+    "inode": 285175651
+  },
+  "runtime/diagnostics/2026-10-01T03-17-18-985Z-record-storage-prototype.json": {
+    "bytes": 175556,
+    "mtimeNs": 1790824639011102774,
+    "inode": 282690785
+  },
+  "runtime/diagnostics/2026-10-02T13-40-00-000Z-array-to-spliced-source-validation.json": {
+    "bytes": 122052,
+    "mtimeNs": 1790948362885020795,
+    "inode": 284526413
+  },
+  "runtime/diagnostics/2026-10-02T09-40-32-000Z-array-concat-runtime-proof.json": {
+    "bytes": 6961881,
+    "mtimeNs": 1790934033395631464,
+    "inode": 284223798
+  },
+  "runtime/diagnostics/2026-10-02T06-48-49-000Z-number-operators-source-reference-validation.json": {
+    "bytes": 157280,
+    "mtimeNs": 1790923729696696158,
+    "inode": 284103443
+  },
+  "runtime/diagnostics/2026-10-02T01-29-22-000Z-native-number-compiler-acceptance.json": {
+    "bytes": 108712,
+    "mtimeNs": 1790904563457886382,
+    "inode": 283764658
+  },
+  "runtime/diagnostics/2026-10-02T05-51-36-000Z-approximate-math-reference-source-validation.json": {
+    "bytes": 905271,
+    "mtimeNs": 1790920296022561358,
+    "inode": 284042313
+  },
+  "runtime/diagnostics/2026-10-02T01-09-31-341Z-native-allocations.json": {
+    "bytes": 341871,
+    "mtimeNs": 1790903371376678789,
+    "inode": 283734352
+  },
+  "runtime/diagnostics/2026-10-03T16-15-35-000Z-array-unshift-implementation.json": {
+    "bytes": 2265,
+    "mtimeNs": 1791044135582487897,
+    "inode": 286232877
+  },
+  "runtime/diagnostics/2026-10-03T05-08-16-000Z-string-well-formed-compiler-proof.json": {
+    "bytes": 81326,
+    "mtimeNs": 1791004096524472646,
+    "inode": 285583091
+  },
+  "runtime/diagnostics/2026-10-03T00-07-33-000Z-string-concat-padding-compiler-proof.json": {
+    "bytes": 189441,
+    "mtimeNs": 1790986053991426213,
+    "inode": 285286001
+  },
+  "runtime/diagnostics/2026-10-03T15-09-13-000Z-array-at-implementation.json": {
+    "bytes": 2063,
+    "mtimeNs": 1791040153701050456,
+    "inode": 286174600
+  },
+  "runtime/diagnostics/2026-10-02T14-53-46-000Z-string-last-index-of-native-borrow-source-supplement.json": {
+    "bytes": 109320,
+    "mtimeNs": 1790952826550557527,
+    "inode": 284605840
+  },
+  "runtime/diagnostics/2026-10-01T18-28-57-063Z-long-slice-construction-correctness.json": {
+    "bytes": 161219,
+    "mtimeNs": 1790879337065837042,
+    "inode": 283367659
+  },
+  "runtime/diagnostics/2026-10-01T02-06-43-172Z-native-allocations.json": {
+    "bytes": 18575,
+    "mtimeNs": 1790820403202703370,
+    "inode": 282616737
+  },
+  "runtime/diagnostics/2026-10-01T15-11-11-537Z-string-prototype.json": {
+    "bytes": 879353,
+    "mtimeNs": 1790867471570923567,
+    "inode": 283208703
+  },
+  "runtime/diagnostics/2026-10-01T16-03-39-120Z-string-prototype.json": {
+    "bytes": 878800,
+    "mtimeNs": 1790870619163032885,
+    "inode": 283239788
+  },
+  "runtime/diagnostics/2026-10-01T08-51-06-150Z-literal-slice-proof.json": {
+    "bytes": 20115,
+    "mtimeNs": 1790844666154447110,
+    "inode": 283000133
+  },
+  "runtime/diagnostics/2026-10-01T04-41-44-255Z-emission-prototype.json": {
+    "bytes": 195238,
+    "mtimeNs": 1790829704292139017,
+    "inode": 282743713
+  },
+  "runtime/diagnostics/2026-10-01T18-32-02-264Z-string-prototype.json": {
+    "bytes": 2361882,
+    "mtimeNs": 1790879522317822223,
+    "inode": 283369723
+  },
+  "runtime/diagnostics/2026-10-01T20-47-28-829Z-accepted-production-58-proof.json": {
+    "bytes": 128331,
+    "mtimeNs": 1790887648837550574,
+    "inode": 283450253
+  },
+  "runtime/diagnostics/2026-10-03T08-44-00-000Z-checkpoint81-runtime-proof.json": {
+    "bytes": 254673,
+    "mtimeNs": 1791017040304404076,
+    "inode": 285845787
+  },
+  "runtime/diagnostics/2026-10-03T07-15-42-000Z-string-html-wrappers-implementation.json": {
+    "bytes": 58657,
+    "mtimeNs": 1791011742073570436,
+    "inode": 285716343
+  },
+  "runtime/diagnostics/2026-10-01T00-12-50-231Z-native-allocations.json": {
+    "bytes": 36275,
+    "mtimeNs": 1790813570259418329,
+    "inode": 282385819
+  },
+  "runtime/diagnostics/2026-10-01T18-26-23-000Z-short-raw-slice-correctness.json": {
+    "bytes": 58694,
+    "mtimeNs": 1790879202407141187,
+    "inode": 283366540
+  },
+  "runtime/diagnostics/2026-10-03T03-33-39-344Z-native-allocations.json": {
+    "bytes": 907852,
+    "mtimeNs": 1790998419378865147,
+    "inode": 285494815
+  },
+  "runtime/diagnostics/2026-10-01T14-28-56-883Z-string-prototype.json": {
+    "bytes": 1889726,
+    "mtimeNs": 1790864936933045522,
+    "inode": 283180820
+  },
+  "runtime/diagnostics/2026-10-01T11-10-59-597Z-string-prototype.json": {
+    "bytes": 1715701,
+    "mtimeNs": 1790853059644917316,
+    "inode": 283118634
+  },
+  "runtime/diagnostics/2026-10-03T02-29-01-000Z-int-to-string-runtime-proof.json": {
+    "bytes": 21381,
+    "mtimeNs": 1790994541071278368,
+    "inode": 285440976
+  },
+  "runtime/diagnostics/2026-10-02T10-27-23-650Z-declared-function-values-compiler-proof.json": {
+    "bytes": 116674,
+    "mtimeNs": 1790936843752896267,
+    "inode": 284259314
+  },
+  "runtime/diagnostics/2026-10-01T21-32-35-805Z-merged-unit-view-assembly-rejection.json": {
+    "bytes": 242841,
+    "mtimeNs": 1790890355810520956,
+    "inode": 283457120
+  },
+  "runtime/diagnostics/2026-10-02T03-39-47-000Z-fixed-number-array-benchmark-source.json": {
+    "bytes": 778397,
+    "mtimeNs": 1790912387915259143,
+    "inode": 283939999
+  },
+  "runtime/diagnostics/2026-10-01T15-34-32-721Z-string-prototype.json": {
+    "bytes": 1953181,
+    "mtimeNs": 1790868872763847623,
+    "inode": 283231948
+  },
+  "runtime/diagnostics/2026-10-01T06-33-55-565Z-array-prototype.json": {
+    "bytes": 519947,
+    "mtimeNs": 1790836435607426639,
+    "inode": 282919579
+  },
+  "runtime/diagnostics/2026-10-01T19-24-22-864Z-eager-current-correctness-evidence.json": {
+    "bytes": 622189,
+    "mtimeNs": 1790882662882713448,
+    "inode": 283382173
+  },
+  "runtime/diagnostics/2026-10-02T12-42-00-000Z-array-fill-copy-within-source-validation.json": {
+    "bytes": 233955,
+    "mtimeNs": 1790944810857010947,
+    "inode": 284440211
+  },
+  "runtime/diagnostics/2026-10-01T18-21-07-000Z-exact-slice-correctness.json": {
+    "bytes": 143945,
+    "mtimeNs": 1790878990227461033,
+    "inode": 283360790
+  },
+  "runtime/diagnostics/2026-10-01T23-52-06-751Z-native-uppercase-compiler-acceptance.json": {
+    "bytes": 100213,
+    "mtimeNs": 1790898726753485786,
+    "inode": 283637759
+  },
+  "runtime/diagnostics/2026-10-01T17-03-09-281Z-string-prototype.json": {
+    "bytes": 2207170,
+    "mtimeNs": 1790874189321034865,
+    "inode": 283297733
+  },
+  "runtime/diagnostics/2026-10-02T01-57-36-000Z-number-predicates-compiler-acceptance.json": {
+    "bytes": 95685,
+    "mtimeNs": 1790906256295055208,
+    "inode": 283802072
+  },
+  "runtime/diagnostics/2026-10-03T14-02-43-000Z-checkpoint86-completed-proof.json": {
+    "bytes": 16281,
+    "mtimeNs": 1791036163283761973,
+    "inode": 286095968
+  },
+  "runtime/diagnostics/2026-10-02T04-06-49-000Z-array-predicate-benchmark-source.json": {
+    "bytes": 1007269,
+    "mtimeNs": 1790914009995710110,
+    "inode": 283953700
+  },
+  "runtime/diagnostics/2026-10-01T22-20-34-366Z-standard-view-production-50-refresh-assessment.json": {
+    "bytes": 44140,
+    "mtimeNs": 1790893234371850228,
+    "inode": 283488532
+  },
+  "runtime/diagnostics/2026-10-01T14-55-02-375Z-retired-harness.json": {
+    "bytes": 19672,
+    "mtimeNs": 1790866502377233718,
+    "inode": 283185382
+  },
+  "runtime/diagnostics/2026-10-01T17-06-01-569Z-tail-index-correctness.json": {
+    "bytes": 24050,
+    "mtimeNs": 1790874361572468659,
+    "inode": 283308540
+  },
+  "runtime/diagnostics/2026-10-01T22-37-47-939Z-native-allocations.json": {
+    "bytes": 302774,
+    "mtimeNs": 1790894267989698077,
+    "inode": 283523507
+  },
+  "runtime/diagnostics/2026-10-01T20-38-55-816Z-native-allocations.json": {
+    "bytes": 377893,
+    "mtimeNs": 1790887135849035264,
+    "inode": 283441019
+  },
+  "runtime/diagnostics/2026-10-02T09-21-22-843Z-array-concat-compiler-proof.json": {
+    "bytes": 45111,
+    "mtimeNs": 1790932882896522832,
+    "inode": 284215458
+  },
+  "runtime/diagnostics/2026-10-01T20-19-32-760Z-bounded-view-outlined-drop-rejection.json": {
+    "bytes": 252273,
+    "mtimeNs": 1790885972769563757,
+    "inode": 283414970
+  },
+  "runtime/diagnostics/2026-10-02T01-34-50-000Z-native-number-runtime-proof.json": {
+    "bytes": 185057,
+    "mtimeNs": 1790904890109207463,
+    "inode": 283768541
+  },
+  "runtime/diagnostics/2026-10-02T12-40-00-000Z-array-fill-copy-within-compiler-proof.json": {
+    "bytes": 136347,
+    "mtimeNs": 1790944627391422269,
+    "inode": 284438471
+  },
+  "runtime/diagnostics/2026-10-01T22-34-40-647Z-fixed-scalar-array-assessment.json": {
+    "bytes": 9464,
+    "mtimeNs": 1790894080648426438,
+    "inode": 283522439
+  },
+  "runtime/diagnostics/2026-10-01T10-29-21-627Z-string-contract.json": {
+    "bytes": 4577893,
+    "mtimeNs": 1790850561690587801,
+    "inode": 283032950
+  },
+  "runtime/diagnostics/2026-10-01T14-10-24-497Z-string-prototype.json": {
+    "bytes": 1884296,
+    "mtimeNs": 1790863824541187586,
+    "inode": 283178595
+  },
+  "runtime/diagnostics/2026-10-02T13-15-38-000Z-array-copying-updates-runtime-proof.json": {
+    "bytes": 3157473,
+    "mtimeNs": 1790946939118288458,
+    "inode": 284489921
+  },
+  "runtime/diagnostics/2026-10-01T15-47-51-386Z-primitive-followup-proof.json": {
+    "bytes": 17730,
+    "mtimeNs": 1790869671394410091,
+    "inode": 283237888
+  },
+  "runtime/diagnostics/2026-10-02T07-03-33-000Z-native-number-operators-runtime-proof.json": {
+    "bytes": 381198,
+    "mtimeNs": 1790924613769793804,
+    "inode": 284106767
+  },
+  "runtime/diagnostics/2026-10-01T02-38-49-693Z-native-allocations.json": {
+    "bytes": 18566,
+    "mtimeNs": 1790822329725650337,
+    "inode": 282642165
+  },
+  "runtime/diagnostics/2026-10-01T08-02-41-626Z-native-allocations.json": {
+    "bytes": 71977,
+    "mtimeNs": 1790841761662048762,
+    "inode": 282946941
+  },
+  "runtime/diagnostics/2026-10-02T14-48-00-000Z-string-last-index-of-source-validation.json": {
+    "bytes": 95186,
+    "mtimeNs": 1790952489693240095,
+    "inode": 284605379
+  },
+  "runtime/diagnostics/2026-10-01T21-33-04-984Z-merged-unit-view-correctness-evidence.json": {
+    "bytes": 122371,
+    "mtimeNs": 1790890384987891020,
+    "inode": 283457424
+  },
+  "runtime/diagnostics/2026-10-01T00-28-46-009Z-array-prototype.json": {
+    "bytes": 164380,
+    "mtimeNs": 1790814526041054394,
+    "inode": 282388699
+  },
+  "runtime/diagnostics/2026-10-03T15-50-48-000Z-array-find-implementation.json": {
+    "bytes": 2301,
+    "mtimeNs": 1791042648719916658,
+    "inode": 286212994
+  },
+  "runtime/diagnostics/2026-10-01T05-55-47-599Z-prototype-allocations.json": {
+    "bytes": 45685,
+    "mtimeNs": 1790834147630161784,
+    "inode": 282871457
+  },
+  "runtime/diagnostics/2026-10-01T23-57-07-000Z-native-uppercase-runtime-proof.json": {
+    "bytes": 100515,
+    "mtimeNs": 1790899027062836068,
+    "inode": 283638729
+  },
+  "runtime/diagnostics/2026-10-01T18-13-50-746Z-prototype-allocations.json": {
+    "bytes": 78399,
+    "mtimeNs": 1790878430779572829,
+    "inode": 283345571
+  },
+  "runtime/diagnostics/2026-10-01T17-06-19-084Z-string-contract.json": {
+    "bytes": 4582002,
+    "mtimeNs": 1790874379134605265,
+    "inode": 283309489
+  },
+  "runtime/diagnostics/2026-10-01T20-07-48-604Z-emission-prototype.json": {
+    "bytes": 2520419,
+    "mtimeNs": 1790885268650666073,
+    "inode": 283410366
+  },
+  "runtime/diagnostics/2026-10-03T01-55-51-000Z-primitive-identity-runtime-proof.json": {
+    "bytes": 166465,
+    "mtimeNs": 1790992551666305991,
+    "inode": 285389126
+  },
+  "runtime/diagnostics/2026-10-02T10-47-54.269Z-higher-order-source-validation.json": {
+    "bytes": 247612,
+    "mtimeNs": 1790938074555657629,
+    "inode": 284264858
+  },
+  "runtime/diagnostics/2026-10-02T07-49-56-000Z-array-reduction-runtime-proof.json": {
+    "bytes": 2755989,
+    "mtimeNs": 1790927396893857532,
+    "inode": 284143736
+  },
+  "runtime/diagnostics/2026-10-03T12-38-17-000Z-array-pop-shift-implementation.json": {
+    "bytes": 214234,
+    "mtimeNs": 1791031097406759431,
+    "inode": 286010629
+  },
+  "runtime/diagnostics/2026-10-03T06-19-03-000Z-template-literals-implementation.json": {
+    "bytes": 49627,
+    "mtimeNs": 1791008343925703529,
+    "inode": 285665083
+  },
+  "runtime/diagnostics/2026-10-02T04-36-18-227Z-native-allocations.json": {
+    "bytes": 428804,
+    "mtimeNs": 1790915778271266964,
+    "inode": 283983063
+  },
+  "runtime/diagnostics/2026-10-01T20-04-13-248Z-primary-owned-emission-baseline.json": {
+    "bytes": 1348975,
+    "mtimeNs": 1790885053263732757,
+    "inode": 283409283
+  },
+  "runtime/diagnostics/2026-10-02T12-57-58-000Z-array-copying-updates-compiler-proof.json": {
+    "bytes": 175824,
+    "mtimeNs": 1790945878731486371,
+    "inode": 284485770
+  },
+  "runtime/diagnostics/2026-10-01T05-26-51-374Z-search-emission-equivalence.json": {
+    "bytes": 11213,
+    "mtimeNs": 1790832411378114424,
+    "inode": 282831885
+  },
+  "runtime/diagnostics/2026-10-03T01-54-05-699Z-native-allocations.json": {
+    "bytes": 890615,
+    "mtimeNs": 1790992445736691617,
+    "inode": 285388711
+  },
+  "runtime/diagnostics/2026-10-01T17-06-00-830Z-native-allocations.json": {
+    "bytes": 354381,
+    "mtimeNs": 1790874360870298822,
+    "inode": 283308527
+  },
+  "runtime/diagnostics/2026-10-02T18-12-00-702Z-native-allocations.json": {
+    "bytes": 746226,
+    "mtimeNs": 1790964720751196043,
+    "inode": 284826707
+  },
+  "runtime/diagnostics/2026-10-02T03-34-15.105Z-fixed-number-array-compiler-inputs.json": {
+    "bytes": 260409,
+    "mtimeNs": 1790912055107773850,
+    "inode": 283922006
+  },
+  "runtime/diagnostics/2026-10-03T13-57-02-000Z-checkpoint86-runtime-proof.json": {
+    "bytes": 337433,
+    "mtimeNs": 1791035822288232745,
+    "inode": 286092496
+  },
+  "runtime/diagnostics/2026-10-01T04-57-24-535Z-emission-equivalence.json": {
+    "bytes": 16066,
+    "mtimeNs": 1790830644540269603,
+    "inode": 282799684
+  },
+  "runtime/diagnostics/2026-10-01T17-06-20-143Z-string-semantics.json": {
+    "bytes": 297491,
+    "mtimeNs": 1790874380167581872,
+    "inode": 283309515
+  },
+  "runtime/diagnostics/2026-10-02T12-46-47-000Z-array-fill-copy-within-runtime-proof.json": {
+    "bytes": 3224976,
+    "mtimeNs": 1790945208128127780,
+    "inode": 284442808
+  },
+  "runtime/diagnostics/2026-10-01T13-38-20-896Z-string-prototype.json": {
+    "bytes": 1532031,
+    "mtimeNs": 1790861900945885908,
+    "inode": 283174793
+  },
+  "runtime/diagnostics/2026-10-02T07-48-00-274Z-native-allocations.json": {
+    "bytes": 549198,
+    "mtimeNs": 1790927280309672184,
+    "inode": 284142949
+  },
+  "runtime/diagnostics/2026-10-02T00-14-40-000Z-gate36-fixture-source-repair.json": {
+    "bytes": 517466,
+    "mtimeNs": 1790899988471150597,
+    "inode": 283663170
+  },
+  "runtime/diagnostics/2026-10-01T22-20-42-736Z-native-allocations.json": {
+    "bytes": 377857,
+    "mtimeNs": 1790893242778759373,
+    "inode": 283488715
+  },
+  "runtime/diagnostics/2026-10-01T05-31-29-648Z-native-allocations.json": {
+    "bytes": 67468,
+    "mtimeNs": 1790832689685002143,
+    "inode": 282832884
+  },
+  "runtime/diagnostics/2026-10-02T03-07-20-000Z-temporary-array-index-compiler-acceptance.json": {
+    "bytes": 123757,
+    "mtimeNs": 1790910440456051684,
+    "inode": 283892395
+  },
+  "runtime/diagnostics/2026-10-02T10-39-37-000Z-declared-function-runtime-proof.json": {
+    "bytes": 1176440,
+    "mtimeNs": 1790937577285358905,
+    "inode": 284262619
+  },
+  "runtime/diagnostics/2026-10-02T02-18-33-441Z-native-allocations.json": {
+    "bytes": 347875,
+    "mtimeNs": 1790907513472515119,
+    "inode": 283833102
+  },
+  "runtime/diagnostics/2026-10-02T23-10-46-064Z-native-allocations.json": {
+    "bytes": 834799,
+    "mtimeNs": 1790982646103381251,
+    "inode": 285236258
+  },
+  "runtime/diagnostics/2026-10-02T18-48-35-000Z-native-int-compiler-proof.json": {
+    "bytes": 148682,
+    "mtimeNs": 1790966915237930543,
+    "inode": 284954366
+  },
+  "runtime/diagnostics/2026-10-01T12-46-20-847Z-string-prototype.json": {
+    "bytes": 1510522,
+    "mtimeNs": 1790858780888137058,
+    "inode": 283164436
+  },
+  "runtime/diagnostics/2026-10-03T04-27-22-231Z-native-allocations.json": {
+    "bytes": 923129,
+    "mtimeNs": 1791001642268155182,
+    "inode": 285541782
+  },
+  "runtime/diagnostics/2026-10-01T12-45-23-210Z-string-prototype.json": {
+    "bytes": 1512159,
+    "mtimeNs": 1790858723253271887,
+    "inode": 283163627
+  },
+  "runtime/diagnostics/2026-10-01T03-27-54-236Z-prototype-allocations.json": {
+    "bytes": 8494,
+    "mtimeNs": 1790825274259304201,
+    "inode": 282692266
+  },
+  "runtime/diagnostics/2026-10-02T16-53-53-000Z-compound-assignment-compiler-proof.json": {
+    "bytes": 138932,
+    "mtimeNs": 1790960034082401218,
+    "inode": 284752496
+  },
+  "runtime/diagnostics/2026-10-01T22-24-19-166Z-standard-view-production-resource-proof.json": {
+    "bytes": 124091,
+    "mtimeNs": 1790893459171026189,
+    "inode": 283491883
+  },
+  "runtime/diagnostics/2026-10-01T18-09-52-334Z-emission-prototype.json": {
+    "bytes": 2287346,
+    "mtimeNs": 1790878192382140698,
+    "inode": 283344811
+  },
+  "runtime/diagnostics/2026-10-01T02-49-15-806Z-string-prototype.json": {
+    "bytes": 176733,
+    "mtimeNs": 1790822955837252683,
+    "inode": 282645294
+  },
+  "runtime/diagnostics/2026-10-01T17-35-01-606Z-emission-prototype.json": {
+    "bytes": 2307310,
+    "mtimeNs": 1790876101660330420,
+    "inode": 283329408
+  },
+  "runtime/diagnostics/2026-10-01T22-45-05-861Z-current50-runtime-baseline-snapshot.json": {
+    "bytes": 329517,
+    "mtimeNs": 1790894705877914349,
+    "inode": 283529905
+  },
+  "runtime/diagnostics/2026-10-02T08-21-48-495Z-array-for-each-compiler-proof.json": {
+    "bytes": 40866,
+    "mtimeNs": 1790929308538401480,
+    "inode": 284176263
+  },
+  "runtime/diagnostics/2026-10-01T11-23-23-298Z-string-prototype.json": {
+    "bytes": 1689140,
+    "mtimeNs": 1790853803329873562,
+    "inode": 283121675
+  },
+  "runtime/diagnostics/2026-10-01T05-59-46-140Z-emission-prototype.json": {
+    "bytes": 1051239,
+    "mtimeNs": 1790834386178583363,
+    "inode": 282891313
+  },
+  "runtime/diagnostics/2026-10-01T08-57-33-779Z-record-storage-prototype.json": {
+    "bytes": 291746,
+    "mtimeNs": 1790845053826674557,
+    "inode": 283001833
+  },
+  "runtime/diagnostics/2026-10-03T09-12-23-000Z-array-join-implementation.json": {
+    "bytes": 76913,
+    "mtimeNs": 1791018743727999354,
+    "inode": 285855680
+  },
+  "runtime/diagnostics/2026-10-02T02-39-37-000Z-array-slice-compiler-acceptance.json": {
+    "bytes": 88441,
+    "mtimeNs": 1790908777510132150,
+    "inode": 283866055
+  },
+  "runtime/diagnostics/2026-10-02T22-58-28-000Z-conditional-expressions-compiler-proof.json": {
+    "bytes": 204681,
+    "mtimeNs": 1790981908680631718,
+    "inode": 285234459
+  },
+  "runtime/diagnostics/2026-10-01T04-19-06-550Z-verification-prototype.json": {
+    "bytes": 101669,
+    "mtimeNs": 1790828346580980952,
+    "inode": 282719658
+  },
+  "runtime/diagnostics/2026-10-03T11-59-10-000Z-nullable-flow-narrowing-implementation.json": {
+    "bytes": 408784,
+    "mtimeNs": 1791028820556297654,
+    "inode": 285927752
+  },
+  "runtime/diagnostics/2026-10-03T06-58-56-000Z-string-substr-implementation.json": {
+    "bytes": 44146,
+    "mtimeNs": 1791010736544313908,
+    "inode": 285701636
+  },
+  "runtime/diagnostics/2026-10-01T10-38-11-948Z-string-semantics.json": {
+    "bytes": 328937,
+    "mtimeNs": 1790851091989746092,
+    "inode": 283072295
+  },
+  "runtime/diagnostics/2026-10-03T08-24-00-000Z-checkpoint81-regression.json": {
+    "bytes": 443820,
+    "mtimeNs": 1791015852039154592,
+    "inode": 285840736
+  },
+  "runtime/diagnostics/2026-10-02T14-09-00-000Z-array-last-index-of-compiler-proof.json": {
+    "bytes": 169821,
+    "mtimeNs": 1790950153816927658,
+    "inode": 284564204
+  },
+  "runtime/diagnostics/2026-10-02T14-22-23-000Z-array-last-index-of-runtime-proof.json": {
+    "bytes": 938212,
+    "mtimeNs": 1790950944008987831,
+    "inode": 284566555
+  },
+  "runtime/diagnostics/2026-10-03T03-29-54-000Z-number-format-buffer-compiler-proof.json": {
+    "bytes": 59899,
+    "mtimeNs": 1790998194162537029,
+    "inode": 285494170
+  },
+  "runtime/diagnostics/2026-10-01T03-19-46-455Z-record-storage-prototype.json": {
+    "bytes": 237061,
+    "mtimeNs": 1790824786480562848,
+    "inode": 282691444
+  },
+  "runtime/diagnostics/2026-10-01T02-24-50-112Z-native-allocations.json": {
+    "bytes": 54837,
+    "mtimeNs": 1790821490142111198,
+    "inode": 282638698
+  },
+  "runtime/diagnostics/2026-10-03T13-43-00-000Z-checkpoint86-regression-proof.json": {
+    "bytes": 513581,
+    "mtimeNs": 1791034501461753044,
+    "inode": 286073312
+  },
+  "runtime/diagnostics/2026-10-02T18-13-02-000Z-update-expression-runtime-proof.json": {
+    "bytes": 157301,
+    "mtimeNs": 1790964782682293260,
+    "inode": 284827234
+  },
+  "runtime/diagnostics/2026-10-01T13-21-54-988Z-string-prototype.json": {
+    "bytes": 1512862,
+    "mtimeNs": 1790860915035323770,
+    "inode": 283173268
+  },
+  "runtime/diagnostics/2026-10-01T15-38-16-607Z-primitive-candidate-review.json": {
+    "bytes": 57304,
+    "mtimeNs": 1790869096615094342,
+    "inode": 283233274
+  },
+  "runtime/diagnostics/2026-10-02T12-46-21-287Z-native-allocations.json": {
+    "bytes": 664063,
+    "mtimeNs": 1790945181330448616,
+    "inode": 284442415
+  },
+  "runtime/diagnostics/2026-10-01T13-13-10-383Z-string-prototype.json": {
+    "bytes": 1530312,
+    "mtimeNs": 1790860390421421370,
+    "inode": 283171371
+  },
+  "runtime/diagnostics/2026-10-03T01-46-40-000Z-primitive-identity-compiler-proof.json": {
+    "bytes": 185770,
+    "mtimeNs": 1790992000583341668,
+    "inode": 285387139
+  },
+  "runtime/diagnostics/2026-10-01T16-45-29-551Z-primitive-followup-proof.json": {
+    "bytes": 17730,
+    "mtimeNs": 1790873129553226679,
+    "inode": 283269838
+  },
+  "runtime/diagnostics/2026-10-01T21-18-59-160Z-standard-view-rejections-assessment.json": {
+    "bytes": 424187,
+    "mtimeNs": 1790889539167581113,
+    "inode": 283453853
+  },
+  "runtime/diagnostics/2026-10-02T14-22-04-443Z-native-allocations.json": {
+    "bytes": 678934,
+    "mtimeNs": 1790950924479604390,
+    "inode": 284566343
+  },
+  "runtime/diagnostics/2026-10-01T21-48-36-112Z-emission-prototype.json": {
+    "bytes": 3038025,
+    "mtimeNs": 1790891316163082205,
+    "inode": 283460329
+  },
+  "runtime/diagnostics/2026-10-01T06-04-51-958Z-emission-prototype.json": {
+    "bytes": 1053748,
+    "mtimeNs": 1790834691993564139,
+    "inode": 282894828
+  },
+  "runtime/diagnostics/2026-10-01T19-49-59-746Z-primary-unit-normalization-replication.json": {
+    "bytes": 190757,
+    "mtimeNs": 1790884199752073864,
+    "inode": 283384711
+  },
+  "runtime/diagnostics/2026-10-01T02-12-15-336Z-native-allocations.json": {
+    "bytes": 18575,
+    "mtimeNs": 1790820735367347001,
+    "inode": 282635823
+  },
+  "runtime/diagnostics/2026-10-01T06-41-29-972Z-search-final-proof.json": {
+    "bytes": 21737,
+    "mtimeNs": 1790836889973669796,
+    "inode": 282920429
+  },
+  "runtime/diagnostics/2026-09-30T23-49-44-348Z-native-allocations.json": {
+    "bytes": 26734,
+    "mtimeNs": 1790812184376116982,
+    "inode": 282355104
+  },
+  "runtime/diagnostics/2026-10-01T02-58-24-075Z-array-prototype.json": {
+    "bytes": 177441,
+    "mtimeNs": 1790823504103234122,
+    "inode": 282667409
+  },
+  "runtime/diagnostics/2026-10-01T15-02-59-158Z-string-prototype.json": {
+    "bytes": 1962679,
+    "mtimeNs": 1790866979197364497,
+    "inode": 283206087
+  },
+  "runtime/diagnostics/2026-10-03T03-38-36-000Z-number-format-buffer-runtime-proof.json": {
+    "bytes": 37982,
+    "mtimeNs": 1790998716807476314,
+    "inode": 285495535
+  },
+  "runtime/diagnostics/2026-10-01T03-16-04-154Z-record-storage-prototype.json": {
+    "bytes": 177026,
+    "mtimeNs": 1790824564205704688,
+    "inode": 282690187
+  },
+  "runtime/diagnostics/2026-10-01T18-56-10-825Z-primitive-followup-proof.json": {
+    "bytes": 19071,
+    "mtimeNs": 1790880970837637726,
+    "inode": 283377257
+  },
+  "runtime/diagnostics/2026-10-02T03-29-45-000Z-array-transform-compiler-acceptance.json": {
+    "bytes": 83395,
+    "mtimeNs": 1790911785875034432,
+    "inode": 283919808
+  },
+  "runtime/diagnostics/2026-10-03T01-34-29-000Z-primitive-identity-source-validation.json": {
+    "bytes": 93397,
+    "mtimeNs": 1790991269645740940,
+    "inode": 285374699
+  },
+  "runtime/diagnostics/2026-10-01T20-41-03-688Z-current50-memory-proof.json": {
+    "bytes": 85891,
+    "mtimeNs": 1790887263693453606,
+    "inode": 283444135
+  },
+  "runtime/diagnostics/2026-10-02T00-22-33-000Z-native-string-search-benchmark-source.json": {
+    "bytes": 451823,
+    "mtimeNs": 1790900553386981560,
+    "inode": 283677445
+  },
+  "runtime/diagnostics/2026-10-03T00-12-33-015Z-native-allocations.json": {
+    "bytes": 852752,
+    "mtimeNs": 1790986353052320974,
+    "inode": 285287659
+  },
+  "runtime/diagnostics/2026-10-01T20-07-37-288Z-primary-static-literals-correctness.json": {
+    "bytes": 137250,
+    "mtimeNs": 1790885257290462622,
+    "inode": 283410345
+  },
+  "runtime/diagnostics/2026-10-01T17-58-07-416Z-prototype-allocations.json": {
+    "bytes": 78405,
+    "mtimeNs": 1790877487455112667,
+    "inode": 283336702
+  },
+  "runtime/diagnostics/2026-10-01T16-47-40-653Z-string-prototype.json": {
+    "bytes": 1949180,
+    "mtimeNs": 1790873260697255078,
+    "inode": 283270906
+  },
+  "runtime/diagnostics/2026-10-01T23-44-44-000Z-grouped-benchmark-report-proof.json": {
+    "bytes": 38555,
+    "mtimeNs": 1790898284444703496,
+    "inode": 283629659
+  },
+  "runtime/diagnostics/2026-10-02T14-57-40-000Z-string-last-index-of-runtime-proof.json": {
+    "bytes": 662292,
+    "mtimeNs": 1790953060919312990,
+    "inode": 284606822
+  },
+  "runtime/diagnostics/2026-10-01T13-04-13-710Z-string-prototype.json": {
+    "bytes": 1541829,
+    "mtimeNs": 1790859853750315721,
+    "inode": 283168804
+  },
+  "runtime/diagnostics/2026-10-01T20-03-19-000Z-bounded-view-correctness.json": {
+    "bytes": 134285,
+    "mtimeNs": 1790885020305632623,
+    "inode": 283409209
+  },
+  "runtime/diagnostics/2026-10-01T02-50-48-420Z-native-allocations.json": {
+    "bytes": 18566,
+    "mtimeNs": 1790823048452714694,
+    "inode": 282656170
+  },
+  "runtime/diagnostics/2026-09-30T23-39-00-016Z-native-allocations.json": {
+    "bytes": 27051,
+    "mtimeNs": 1790811540047056636,
+    "inode": 282312177
+  },
+  "runtime/diagnostics/2026-10-01T01-48-15-023Z-emission-equivalence.json": {
+    "bytes": 14276,
+    "mtimeNs": 1790819295030120165,
+    "inode": 282608878
+  },
+  "runtime/diagnostics/2026-10-01T08-41-57-368Z-prototype-allocations.json": {
+    "bytes": 8284,
+    "mtimeNs": 1790844117393394896,
+    "inode": 282996282
+  },
+  "runtime/diagnostics/2026-10-01T11-49-22-872Z-string-semantics.json": {
+    "bytes": 295477,
+    "mtimeNs": 1790855362897625273,
+    "inode": 283138867
+  },
+  "runtime/diagnostics/2026-10-02T07-02-51-562Z-native-allocations.json": {
+    "bytes": 2885850,
+    "mtimeNs": 1790924571602124895,
+    "inode": 284106687
+  },
+  "runtime/diagnostics/2026-10-02T13-02-23-000Z-array-copying-source-validation.json": {
+    "bytes": 243916,
+    "mtimeNs": 1790946145052168523,
+    "inode": 284486567
+  },
+  "runtime/diagnostics/2026-10-02T02-44-23-297Z-native-allocations.json": {
+    "bytes": 350661,
+    "mtimeNs": 1790909063325951906,
+    "inode": 283866653
+  },
+  "runtime/diagnostics/2026-10-03T05-42-17-000Z-builtin-documentation-examples.json": {
+    "bytes": 45882,
+    "mtimeNs": 1791006137115179102,
+    "inode": 285629958
+  },
+  "runtime/diagnostics/2026-10-01T23-35-58-133Z-native-string-operators-compiler-acceptance.json": {
+    "bytes": 99418,
+    "mtimeNs": 1790897758134719463,
+    "inode": 283614631
+  },
+  "runtime/diagnostics/2026-10-01T14-51-43-780Z-string-contract.json": {
+    "bytes": 4595273,
+    "mtimeNs": 1790866304099148223,
+    "inode": 283184149
+  },
+  "runtime/diagnostics/2026-10-02T03-56-46.843Z-fixed-number-array-release-correction.json": {
+    "bytes": 65452,
+    "mtimeNs": 1790913406845313877,
+    "inode": 283950935
+  },
+  "runtime/diagnostics/2026-10-02T16-08-49-077Z-native-allocations.json": {
+    "bytes": 699640,
+    "mtimeNs": 1790957329118632053,
+    "inode": 284691173
+  },
+  "runtime/diagnostics/2026-10-01T12-03-01-380Z-utf16-string-proof.json": {
+    "bytes": 16346,
+    "mtimeNs": 1790856181382877789,
+    "inode": 283157505
+  },
+  "runtime/diagnostics/2026-10-01T07-06-31-022Z-string-prototype.json": {
+    "bytes": 1142863,
+    "mtimeNs": 1790838391058430710,
+    "inode": 282923143
+  },
+  "runtime/diagnostics/2026-10-01T11-38-09-056Z-string-prototype.json": {
+    "bytes": 1692045,
+    "mtimeNs": 1790854689117839562,
+    "inode": 283123992
+  },
+  "runtime/diagnostics/2026-10-03T03-18-37-000Z-number-format-baseline-runtime-proof.json": {
+    "bytes": 28873,
+    "mtimeNs": 1790997517291196303,
+    "inode": 285488599
+  },
+  "runtime/diagnostics/2026-10-02T05-16-36-000Z-exact-math-benchmark-source.json": {
+    "bytes": 698545,
+    "mtimeNs": 1790918196502920853,
+    "inode": 284015680
+  },
+  "runtime/diagnostics/2026-10-01T14-54-40-036Z-string-prototype.json": {
+    "bytes": 1907124,
+    "mtimeNs": 1790866480075338644,
+    "inode": 283185365
+  },
+  "runtime/diagnostics/2026-10-01T04-54-38-322Z-native-allocations.json": {
+    "bytes": 54895,
+    "mtimeNs": 1790830478355696272,
+    "inode": 282781821
+  },
+  "runtime/diagnostics/2026-10-02T04-38-48-904Z-benchmark-presentation.json": {
+    "bytes": 1039,
+    "mtimeNs": 1790915928911245394,
+    "inode": 283984488
+  },
+  "runtime/diagnostics/2026-10-01T03-03-44-917Z-native-allocations.json": {
+    "bytes": 54828,
+    "mtimeNs": 1790823824948705540,
+    "inode": 282686530
+  },
+  "runtime/diagnostics/2026-10-03T02-09-32-000Z-int-to-string-source-validation.json": {
+    "bytes": 26200,
+    "mtimeNs": 1790993372407752998,
+    "inode": 285424911
+  },
+  "runtime/diagnostics/2026-10-01T20-14-44.931Z-bounded-view-drop-assembly-audit.json": {
+    "bytes": 240188,
+    "mtimeNs": 1790885684936899811,
+    "inode": 283413714
+  },
+  "runtime/diagnostics/2026-10-03T04-25-02-000Z-number-parse-float-compiler-proof.json": {
+    "bytes": 90130,
+    "mtimeNs": 1791001502452635905,
+    "inode": 285539271
+  },
+  "runtime/diagnostics/2026-10-02T03-33-27-000Z-native-array-map-filter-runtime-proof.json": {
+    "bytes": 290058,
+    "mtimeNs": 1790912007312149185,
+    "inode": 283921979
+  },
+  "runtime/diagnostics/2026-10-01T13-08-09-921Z-string-prototype.json": {
+    "bytes": 1550563,
+    "mtimeNs": 1790860089959888621,
+    "inode": 283170370
+  },
+  "runtime/diagnostics/2026-10-02T22-20-19-000Z-conditional-expression-source-validation.json": {
+    "bytes": 91685,
+    "mtimeNs": 1790979626057962312,
+    "inode": 285188817
+  },
+  "runtime/diagnostics/2026-10-02T13-15-31-044Z-native-allocations.json": {
+    "bytes": 686809,
+    "mtimeNs": 1790946931079073673,
+    "inode": 284489536
+  },
+  "runtime/diagnostics/2026-10-01T16-18-58-267Z-string-semantics.json": {
+    "bytes": 296682,
+    "mtimeNs": 1790871538294940846,
+    "inode": 283264053
+  },
+  "runtime/diagnostics/2026-10-02T06-22-55-371Z-native-allocations.json": {
+    "bytes": 55006581,
+    "mtimeNs": 1790922175703179338,
+    "inode": 284072815
+  },
+  "runtime/diagnostics/2026-10-01T23-38-12-064Z-native-allocations.json": {
+    "bytes": 307620,
+    "mtimeNs": 1790897892090798328,
+    "inode": 283615018
+  },
+  "runtime/diagnostics/2026-10-02T11-58-38-000Z-storage-support-review.json": {
+    "bytes": 4751,
+    "mtimeNs": 1790942318784363868,
+    "inode": 284381862
+  },
+  "runtime/diagnostics/2026-10-01T21-26-04-788Z-inline-span-trial-assessment.json": {
+    "bytes": 235042,
+    "mtimeNs": 1790889964793498231,
+    "inode": 283455375
+  },
+  "runtime/diagnostics/2026-10-02T01-00-12-000Z-native-control-flow-compiler-acceptance.json": {
+    "bytes": 87924,
+    "mtimeNs": 1790902812569299940,
+    "inode": 283732862
+  },
+  "runtime/diagnostics/2026-10-01T09-44-27-620Z-string-semantics.json": {
+    "bytes": 21285,
+    "mtimeNs": 1790847867653370259,
+    "inode": 283007196
+  },
+  "runtime/diagnostics/2026-10-02T01-09-41-000Z-native-control-flow-primitive-runtime-proof.json": {
+    "bytes": 132267,
+    "mtimeNs": 1790903381892061627,
+    "inode": 283734362
+  },
+  "runtime/diagnostics/2026-10-01T10-43-31-677Z-string-contract.json": {
+    "bytes": 4579385,
+    "mtimeNs": 1790851411728466500,
+    "inode": 283085601
+  },
+  "runtime/diagnostics/2026-10-01T01-50-06-850Z-native-allocations.json": {
+    "bytes": 52898,
+    "mtimeNs": 1790819406875128674,
+    "inode": 282609984
+  },
+  "runtime/diagnostics/2026-10-01T18-33-53-099Z-native-allocations.json": {
+    "bytes": 375481,
+    "mtimeNs": 1790879633134713303,
+    "inode": 283370331
+  },
+  "runtime/diagnostics/2026-10-01T18-19-32-039Z-string-prototype.json": {
+    "bytes": 2233412,
+    "mtimeNs": 1790878772083486450,
+    "inode": 283346995
+  },
+  "runtime/diagnostics/2026-10-03T17-35-53-000Z-array-sorting-implementation.json": {
+    "bytes": 2300,
+    "mtimeNs": 1791048954110340229,
+    "inode": 286304477
+  },
+  "runtime/diagnostics/2026-10-01T16-57-54-959Z-string-prototype.json": {
+    "bytes": 2207324,
+    "mtimeNs": 1790873875003776401,
+    "inode": 283290836
+  },
+  "runtime/diagnostics/2026-10-01T20-09-23-319Z-prototype-allocations.json": {
+    "bytes": 84551,
+    "mtimeNs": 1790885363354534096,
+    "inode": 283411108
+  },
+  "runtime/diagnostics/2026-10-03T18-03-45-893Z-native-allocations.json": {
+    "bytes": 1329467,
+    "mtimeNs": 1791050625938274237,
+    "inode": 286348649
+  },
+  "runtime/diagnostics/2026-10-01T21-16-44-180Z-emission-prototype.json": {
+    "bytes": 2993567,
+    "mtimeNs": 1790889404246455102,
+    "inode": 283453752
+  },
+  "runtime/diagnostics/2026-10-01T01-27-42-343Z-string-prototype.json": {
+    "bytes": 169348,
+    "mtimeNs": 1790818062380094920,
+    "inode": 282565480
+  },
+  "runtime/diagnostics/2026-10-03T02-27-17-868Z-native-allocations.json": {
+    "bytes": 892229,
+    "mtimeNs": 1790994437923163518,
+    "inode": 285440802
+  },
+  "runtime/diagnostics/2026-10-01T21-46-38-326Z-cli-profile-emission-baseline.json": {
+    "bytes": 322056,
+    "mtimeNs": 1790891198337215261,
+    "inode": 283459253
+  },
+  "runtime/diagnostics/2026-10-02T14-42-00-000Z-string-last-index-of-compiler-proof.json": {
+    "bytes": 181427,
+    "mtimeNs": 1790952108076316088,
+    "inode": 284604729
+  },
+  "runtime/diagnostics/2026-10-02T17-05-47-543Z-native-allocations.json": {
+    "bytes": 751440,
+    "mtimeNs": 1790960747577915198,
+    "inode": 284763962
+  },
+  "runtime/diagnostics/2026-10-02T11-53-51-000Z-higher-order-function-values-compiler-proof.json": {
+    "bytes": 409264,
+    "mtimeNs": 1790942031478877808,
+    "inode": 284380533
+  },
+  "runtime/diagnostics/2026-10-01T01-26-30-241Z-string-prototype.json": {
+    "bytes": 170842,
+    "mtimeNs": 1790817990277547653,
+    "inode": 282563375
+  },
+  "runtime/diagnostics/2026-10-01T22-37-22-407Z-fixed-array-target-refresh-history-inventory.json": {
+    "bytes": 71227,
+    "mtimeNs": 1790894242797689593,
+    "inode": 283523348
+  },
+  "runtime/diagnostics/2026-10-03T00-40-49-000Z-string-substring-source-validation.json": {
+    "bytes": 76452,
+    "mtimeNs": 1790988049316187870,
+    "inode": 285325697
+  },
+  "runtime/diagnostics/2026-10-01T20-59-48-625Z-emission-prototype.json": {
+    "bytes": 3032209,
+    "mtimeNs": 1790888388680595555,
+    "inode": 283452038
+  },
+  "runtime/diagnostics/2026-10-01T00-23-53-346Z-array-prototype.json": {
+    "bytes": 164052,
+    "mtimeNs": 1790814233370996874,
+    "inode": 282388068
+  },
+  "runtime/diagnostics/2026-10-01T17-21-30-164Z-primitive-followup-proof.json": {
+    "bytes": 18428,
+    "mtimeNs": 1790875290172406804,
+    "inode": 283322194
+  },
+  "runtime/diagnostics/2026-10-03T03-14-32-401Z-native-allocations.json": {
+    "bytes": 907888,
+    "mtimeNs": 1790997272437097501,
+    "inode": 285487887
+  },
+  "runtime/diagnostics/2026-10-01T01-41-54-354Z-native-allocations.json": {
+    "bytes": 52898,
+    "mtimeNs": 1790818914398813674,
+    "inode": 282590415
+  },
+  "runtime/diagnostics/2026-10-01T06-30-12-232Z-native-allocations.json": {
+    "bytes": 71977,
+    "mtimeNs": 1790836212265665498,
+    "inode": 282918606
+  },
+  "runtime/diagnostics/2026-10-01T17-57-36-437Z-full-index-correctness.json": {
+    "bytes": 158475,
+    "mtimeNs": 1790877456438788695,
+    "inode": 283335922
+  },
+  "runtime/diagnostics/2026-10-02T02-48-48-000Z-temporary-array-index-benchmark-source.json": {
+    "bytes": 599660,
+    "mtimeNs": 1790909328770060923,
+    "inode": 283870129
+  },
+  "runtime/diagnostics/2026-10-01T18-40-04-884Z-ascii13-rejection-assembly-evidence.json": {
+    "bytes": 11950278,
+    "mtimeNs": 1790880004914752647,
+    "inode": 283372547
+  },
+  "runtime/diagnostics/2026-10-01T09-32-33-904Z-prototype-allocations.json": {
+    "bytes": 8404,
+    "mtimeNs": 1790847153936589060,
+    "inode": 283005731
+  },
+  "runtime/diagnostics/2026-10-01T15-37-46-008Z-string-semantics.json": {
+    "bytes": 296573,
+    "mtimeNs": 1790869066037020612,
+    "inode": 283233237
+  },
+  "runtime/diagnostics/2026-10-01T06-06-15-272Z-prototype-allocations.json": {
+    "bytes": 45685,
+    "mtimeNs": 1790834775304154439,
+    "inode": 282904529
+  },
+  "runtime/diagnostics/2026-10-01T15-08-43-173Z-string-prototype.json": {
+    "bytes": 1964272,
+    "mtimeNs": 1790867323215598228,
+    "inode": 283207647
+  },
+  "runtime/diagnostics/2026-10-02T17-06-35-000Z-compound-assignment-runtime-proof.json": {
+    "bytes": 319110,
+    "mtimeNs": 1790960795275946597,
+    "inode": 284764765
+  },
+  "runtime/diagnostics/2026-10-02T08-31-27-294Z-native-allocations.json": {
+    "bytes": 530810,
+    "mtimeNs": 1790929887333060494,
+    "inode": 284179014
+  },
+  "runtime/diagnostics/2026-10-03T02-24-30-000Z-int-to-string-compiler-proof.json": {
+    "bytes": 148854,
+    "mtimeNs": 1790994270346774646,
+    "inode": 285440415
+  },
+  "runtime/diagnostics/2026-10-01T20-59-13-768Z-shared-data-correctness.json": {
+    "bytes": 148210,
+    "mtimeNs": 1790888353769559783,
+    "inode": 283451555
+  },
+  "runtime/diagnostics/2026-10-02T19-00-18-789Z-native-allocations.json": {
+    "bytes": 781420,
+    "mtimeNs": 1790967618841571774,
+    "inode": 284961619
+  },
+  "runtime/diagnostics/2026-10-01T09-50-50-930Z-string-semantics.json": {
+    "bytes": 320630,
+    "mtimeNs": 1790848250959897679,
+    "inode": 283007445
+  },
+  "runtime/diagnostics/2026-10-01T19-26-37-646Z-prototype-allocations.json": {
+    "bytes": 84577,
+    "mtimeNs": 1790882797685335283,
+    "inode": 283382835
+  },
+  "runtime/diagnostics/2026-10-01T09-07-08-103Z-record-storage-prototype.json": {
+    "bytes": 292821,
+    "mtimeNs": 1790845628132850099,
+    "inode": 283003774
+  },
+  "runtime/diagnostics/2026-10-02T19-50-44-000Z-logical-assignment-compiler-proof.json": {
+    "bytes": 199123,
+    "mtimeNs": 1790970644778827318,
+    "inode": 285068785
+  },
+  "runtime/diagnostics/2026-10-02T15-36-57-000Z-string-trim-runtime-proof.json": {
+    "bytes": 4892976,
+    "mtimeNs": 1790955417272207850,
+    "inode": 284646485
+  },
+  "runtime/diagnostics/2026-10-01T23-15-44-gate34-node-draft-validation.json": {
+    "bytes": 6508,
+    "mtimeNs": 1790896544119771900,
+    "inode": 283589325
+  },
+  "runtime/diagnostics/2026-10-02T01-59-44-104Z-native-allocations.json": {
+    "bytes": 342393,
+    "mtimeNs": 1790906384131827462,
+    "inode": 283806444
+  },
+  "runtime/diagnostics/2026-10-02T23-57-28-000Z-string-concat-padding-source-validation.json": {
+    "bytes": 94594,
+    "mtimeNs": 1790985484791036229,
+    "inode": 285278439
+  },
+  "runtime/diagnostics/2026-10-02T00-02-59-000Z-gate36-reversal-benchmark-source.json": {
+    "bytes": 376487,
+    "mtimeNs": 1790899379623709207,
+    "inode": 283653607
+  },
+  "runtime/diagnostics/2026-10-01T09-06-21-706Z-prototype-allocations.json": {
+    "bytes": 8404,
+    "mtimeNs": 1790845581730469550,
+    "inode": 283003067
+  },
+  "runtime/diagnostics/2026-10-01T06-10-04-685Z-native-allocations.json": {
+    "bytes": 67468,
+    "mtimeNs": 1790835004714170604,
+    "inode": 282914192
+  },
+  "runtime/diagnostics/2026-10-01T15-37-27-631Z-native-allocations.json": {
+    "bytes": 218869,
+    "mtimeNs": 1790869047665789490,
+    "inode": 283233087
+  },
+  "runtime/diagnostics/2026-10-01T06-55-23-995Z-string-prototype.json": {
+    "bytes": 226052,
+    "mtimeNs": 1790837724029087584,
+    "inode": 282921560
+  },
+  "runtime/diagnostics/2026-10-01T09-08-27-885Z-prototype-allocations.json": {
+    "bytes": 8404,
+    "mtimeNs": 1790845707912646153,
+    "inode": 283003874
+  },
+  "runtime/diagnostics/2026-10-01T04-56-47-050Z-emission-equivalence.json": {
+    "bytes": 15719,
+    "mtimeNs": 1790830607053619059,
+    "inode": 282798639
+  },
+  "runtime/diagnostics/2026-10-02T01-03-21-000Z-control-flow-primitive-fixture-preflight.json": {
+    "bytes": 576566,
+    "mtimeNs": 1790903001020662005,
+    "inode": 283733469
+  },
+  "runtime/diagnostics/2026-10-02T11-53-17-000Z-higher-order-storage-support-source.json": {
+    "bytes": 249366,
+    "mtimeNs": 1790941997644704248,
+    "inode": 284379844
+  },
+  "runtime/diagnostics/2026-10-01T16-18-40-379Z-native-allocations.json": {
+    "bytes": 218869,
+    "mtimeNs": 1790871520412275464,
+    "inode": 283263957
+  },
+  "runtime/diagnostics/2026-10-03T04-01-58-000Z-number-parse-float-source-validation.json": {
+    "bytes": 25508,
+    "mtimeNs": 1791000118326573187,
+    "inode": 285517871
+  },
+  "runtime/diagnostics/2026-10-02T18-03-13-000Z-update-expression-compiler-proof.json": {
+    "bytes": 152344,
+    "mtimeNs": 1790964206278152719,
+    "inode": 284824754
+  },
+  "runtime/diagnostics/2026-10-02T00-32-06-449Z-native-string-search-compiler-acceptance.json": {
+    "bytes": 181135,
+    "mtimeNs": 1790901126452128065,
+    "inode": 283687448
+  },
+  "runtime/diagnostics/2026-10-03T18-01-10-000Z-checkpoint91-regression-proof.json": {
+    "bytes": 1748,
+    "mtimeNs": 1791050470890776304,
+    "inode": 286347340
+  },
+  "runtime/diagnostics/2026-10-02T03-09-13-046Z-native-allocations.json": {
+    "bytes": 354023,
+    "mtimeNs": 1790910553075000819,
+    "inode": 283892727
+  },
+  "runtime/diagnostics/2026-10-01T23-38-46-000Z-native-string-operators-runtime-proof.json": {
+    "bytes": 92104,
+    "mtimeNs": 1790897926089708631,
+    "inode": 283615113
+  },
+  "runtime/diagnostics/2026-10-01T21-21-30-666Z-emission-prototype.json": {
+    "bytes": 2984714,
+    "mtimeNs": 1790889690721563083,
+    "inode": 283455141
+  },
+  "runtime/diagnostics/2026-10-01T12-59-11-087Z-string-prototype.json": {
+    "bytes": 1539843,
+    "mtimeNs": 1790859551131762293,
+    "inode": 283167798
+  },
+  "runtime/diagnostics/2026-10-01T21-56-17.732Z-merged-unit-view-assessment.json": {
+    "bytes": 56528,
+    "mtimeNs": 1790891777733428152,
+    "inode": 283462256
+  },
+  "runtime/diagnostics/2026-10-02T05-00-07-000Z-string-construction-compiler-acceptance.json": {
+    "bytes": 99121,
+    "mtimeNs": 1790917207109264168,
+    "inode": 284011154
+  },
+  "runtime/diagnostics/2026-10-01T11-11-31-865Z-string-contract.json": {
+    "bytes": 4596431,
+    "mtimeNs": 1790853091952548720,
+    "inode": 283118704
+  },
+  "runtime/diagnostics/2026-10-02T09-56-59.893Z-declared-function-source-validation.json": {
+    "bytes": 125513,
+    "mtimeNs": 1790935020010456615,
+    "inode": 284229619
+  },
+  "runtime/diagnostics/2026-10-02T09-44-00-000Z-array-concat-presentation-supplement.json": {
+    "bytes": 2352,
+    "mtimeNs": 1790934416966534417,
+    "inode": 284224154
+  },
+  "runtime/diagnostics/2026-10-01T19-23-37-502Z-string-prototype.json": {
+    "bytes": 2380893,
+    "mtimeNs": 1790882617549567613,
+    "inode": 283382148
+  },
+  "runtime/diagnostics/2026-10-02T20-51-49-297Z-native-allocations.json": {
+    "bytes": 768975,
+    "mtimeNs": 1790974309333410721,
+    "inode": 285132629
+  },
+  "runtime/diagnostics/2026-10-01T08-40-22-656Z-emission-prototype.json": {
+    "bytes": 826815,
+    "mtimeNs": 1790844022689314087,
+    "inode": 282996179
+  },
+  "runtime/diagnostics/2026-10-01T12-55-01-424Z-string-prototype.json": {
+    "bytes": 1539340,
+    "mtimeNs": 1790859301463916439,
+    "inode": 283166839
+  },
+  "runtime/diagnostics/2026-10-02T14-17-00-000Z-array-last-index-of-source-validation.json": {
+    "bytes": 108032,
+    "mtimeNs": 1790950644074182536,
+    "inode": 284565036
+  },
+  "runtime/diagnostics/2026-10-02T08-51-48-000Z-array-concat-source-validation.json": {
+    "bytes": 869187,
+    "mtimeNs": 1790931108655738243,
+    "inode": 284183073
+  },
+  "runtime/diagnostics/2026-10-02T10-39-26-251Z-native-allocations.json": {
+    "bytes": 596292,
+    "mtimeNs": 1790937566283927466,
+    "inode": 284262252
+  },
+  "runtime/diagnostics/2026-10-01T22-39-13-866Z-fixed-array-current-report-resource-proof.json": {
+    "bytes": 10083,
+    "mtimeNs": 1790894353873508897,
+    "inode": 283523686
+  },
+  "runtime/diagnostics/2026-10-02T03-12-33-000Z-array-map-filter-benchmark-source.json": {
+    "bytes": 605983,
+    "mtimeNs": 1790910753038719571,
+    "inode": 283894610
+  },
+  "runtime/diagnostics/2026-10-02T20-22-22-000Z-scalar-assignment-source-validation.json": {
+    "bytes": 58254,
+    "mtimeNs": 1790972542626273222,
+    "inode": 285107356
+  },
+  "runtime/diagnostics/2026-10-02T00-11-32-972Z-native-array-reverse-compiler-acceptance.json": {
+    "bytes": 129699,
+    "mtimeNs": 1790899892974674387,
+    "inode": 283662707
+  },
+  "runtime/diagnostics/2026-10-02T01-59-58-000Z-native-number-predicates-runtime-proof.json": {
+    "bytes": 142947,
+    "mtimeNs": 1790906398964287535,
+    "inode": 283806449
+  },
+  "runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-proof.json": {
+    "bytes": 81250,
+    "mtimeNs": 1791001772241030889,
+    "inode": 285542101
+  },
+  "runtime/diagnostics/2026-10-02T15-36-24-203Z-native-allocations.json": {
+    "bytes": 699867,
+    "mtimeNs": 1790955384246903473,
+    "inode": 284646113
+  },
+  "runtime/diagnostics/2026-10-03T02-54-36-000Z-number-format-source-validation.json": {
+    "bytes": 26045,
+    "mtimeNs": 1790996076727218533,
+    "inode": 285476311
+  },
+  "runtime/diagnostics/2026-10-02T00-33-24-000Z-native-string-search-source-preflight.json": {
+    "bytes": 455341,
+    "mtimeNs": 1790901204405395525,
+    "inode": 283687686
+  },
+  "runtime/diagnostics/2026-10-01T11-49-21-826Z-string-contract.json": {
+    "bytes": 4579988,
+    "mtimeNs": 1790855361878088953,
+    "inode": 283138842
+  },
+  "runtime/diagnostics/2026-10-01T22-00-16-891Z-merged-views-production-refresh-history-inventory.json": {
+    "bytes": 371987,
+    "mtimeNs": 1790892016918310995,
+    "inode": 283465422
+  },
+  "runtime/diagnostics/2026-10-01T20-18-04-656Z-static-literal-integration-proof.json": {
+    "bytes": 2263476,
+    "mtimeNs": 1790885884661348538,
+    "inode": 283414885
+  },
+  "runtime/diagnostics/2026-10-02T01-16-58-000Z-native-number-benchmark-source.json": {
+    "bytes": 603812,
+    "mtimeNs": 1790903818014264184,
+    "inode": 283751385
+  },
+  "runtime/diagnostics/2026-10-02T05-37-36-000Z-exact-math-compiler-acceptance.json": {
+    "bytes": 100124,
+    "mtimeNs": 1790919456141222226,
+    "inode": 284040720
+  },
+  "runtime/diagnostics/2026-10-02T09-39-24-356Z-native-allocations.json": {
+    "bytes": 601307,
+    "mtimeNs": 1790933964395265768,
+    "inode": 284222915
+  },
+  "runtime/diagnostics/2026-10-01T22-09-43-536Z-standard-view-integration-proof.json": {
+    "bytes": 58333,
+    "mtimeNs": 1790892583545992460,
+    "inode": 283484193
+  },
+  "runtime/diagnostics/2026-10-03T00-54-02-870Z-native-allocations.json": {
+    "bytes": 871150,
+    "mtimeNs": 1790988842905848067,
+    "inode": 285335831
+  },
+  "runtime/diagnostics/2026-10-01T11-22-48-406Z-string-prototype.json": {
+    "bytes": 1721741,
+    "mtimeNs": 1790853768456925697,
+    "inode": 283120869
+  },
+  "runtime/diagnostics/2026-10-01T17-57-36-411Z-sparse-index-correctness.json": {
+    "bytes": 163902,
+    "mtimeNs": 1790877456426615287,
+    "inode": 283335921
+  },
+  "runtime/diagnostics/2026-10-02T08-10-44-000Z-array-for-each-source-validation.json": {
+    "bytes": 364896,
+    "mtimeNs": 1790928644631440506,
+    "inode": 284169911
+  },
+  "runtime/diagnostics/2026-10-02T03-32-48-558Z-native-allocations.json": {
+    "bytes": 368874,
+    "mtimeNs": 1790911968589712892,
+    "inode": 283921951
+  },
+  "runtime/diagnostics/2026-10-02T16-10-53-000Z-string-addition-runtime-proof.json": {
+    "bytes": 76007,
+    "mtimeNs": 1790957453581472211,
+    "inode": 284691500
+  },
+  "runtime/diagnostics/2026-10-02T07-34-04-372Z-array-reduction-compiler-proof.json": {
+    "bytes": 44771,
+    "mtimeNs": 1790926444429926882,
+    "inode": 284138666
+  },
+  "runtime/diagnostics/2026-10-02T19-00-25-000Z-native-int-runtime-proof.json": {
+    "bytes": 328659,
+    "mtimeNs": 1790967625872373779,
+    "inode": 284962440
+  },
+  "runtime/diagnostics/2026-10-02T04-03-15-000Z-native-fixed-number-array-runtime-proof.json": {
+    "bytes": 449249,
+    "mtimeNs": 1790913795808505754,
+    "inode": 283952501
+  },
+  "runtime/diagnostics/2026-10-02T06-53-02-123Z-number-operators-compiler-proof.json": {
+    "bytes": 42066,
+    "mtimeNs": 1790923982195085965,
+    "inode": 284105022
+  },
+  "runtime/diagnostics/2026-10-01T20-51-01-869Z-owning-slot-view-assembly-criterion.json": {
+    "bytes": 298522,
+    "mtimeNs": 1790887861878881304,
+    "inode": 283450608
+  },
+  "runtime/diagnostics/2026-10-01T04-42-18-144Z-prototype-allocations.json": {
+    "bytes": 3291,
+    "mtimeNs": 1790829738169919820,
+    "inode": 282743755
+  },
+  "runtime/diagnostics/2026-10-02T00-39-59-000Z-control-flow-primitive-catchup-benchmark-source.json": {
+    "bytes": 572993,
+    "mtimeNs": 1790901599575589007,
+    "inode": 283702911
+  },
+  "runtime/diagnostics/2026-10-02T19-53-46-000Z-logical-assignment-runtime-proof.json": {
+    "bytes": 50761,
+    "mtimeNs": 1790970827019821806,
+    "inode": 285069352
+  },
+  "runtime/diagnostics/2026-10-01T06-27-08-205Z-string-prototype.json": {
+    "bytes": 1130290,
+    "mtimeNs": 1790836028245198398,
+    "inode": 282918087
+  },
+  "runtime/diagnostics/2026-10-02T02-16-44-000Z-math-unary-compiler-acceptance.json": {
+    "bytes": 79675,
+    "mtimeNs": 1790907405090138857,
+    "inode": 283832749
+  },
+  "runtime/diagnostics/2026-10-02T18-47-23-000Z-native-int-source-validation.json": {
+    "bytes": 147624,
+    "mtimeNs": 1790966851667550483,
+    "inode": 284953894
+  },
+  "runtime/diagnostics/2026-10-01T23-56-12-477Z-native-allocations.json": {
+    "bytes": 309685,
+    "mtimeNs": 1790898972504370170,
+    "inode": 283638701
+  },
+  "runtime/diagnostics/2026-10-01T07-00-36-385Z-string-prototype.json": {
+    "bytes": 1137536,
+    "mtimeNs": 1790838036419630027,
+    "inode": 282922342
+  },
+  "runtime/diagnostics/2026-10-03T08-45-55-000Z-checkpoint81-completed-proof.json": {
+    "bytes": 94085,
+    "mtimeNs": 1791017155340336439,
+    "inode": 285845917
+  },
+  "runtime/diagnostics/2026-10-02T12-09-41-000Z-higher-order-function-runtime-proof.json": {
+    "bytes": 1507953,
+    "mtimeNs": 1790942982071801827,
+    "inode": 284387954
+  },
+  "runtime/diagnostics/2026-10-01T00-23-34-720Z-array-prototype.json": {
+    "bytes": 163258,
+    "mtimeNs": 1790814214763142178,
+    "inode": 282387643
+  },
+  "runtime/diagnostics/2026-10-01T08-18-39-840Z-string-efficiency-proof.json": {
+    "bytes": 21604,
+    "mtimeNs": 1790842719842575093,
+    "inode": 282960919
+  },
+  "runtime/diagnostics/2026-10-01T15-23-52-533Z-string-prototype.json": {
+    "bytes": 1951545,
+    "mtimeNs": 1790868232577267481,
+    "inode": 283211765
+  },
+  "runtime/diagnostics/2026-10-01T21-22-59-427Z-inline-spans-correctness.json": {
+    "bytes": 158132,
+    "mtimeNs": 1790889779428710337,
+    "inode": 283455203
+  },
+  "runtime/diagnostics/2026-10-02T00-06-02-000Z-gate36-execution-only-source-proof.json": {
+    "bytes": 405442,
+    "mtimeNs": 1790899562163837915,
+    "inode": 283657333
+  },
+  "runtime/diagnostics/2026-10-01T22-32-03-744Z-emission-prototype.json": {
+    "bytes": 617403,
+    "mtimeNs": 1790893923789851354,
+    "inode": 283521102
+  },
+  "runtime/diagnostics/2026-10-01T08-42-30-232Z-native-allocations.json": {
+    "bytes": 71941,
+    "mtimeNs": 1790844150256777125,
+    "inode": 282996704
+  },
+  "runtime/diagnostics/2026-10-03T04-43-42-000Z-string-well-formed-source-validation.json": {
+    "bytes": 23600,
+    "mtimeNs": 1791002622856380095,
+    "inode": 285547664
+  },
+  "runtime/diagnostics/2026-10-01T13-44-34-662Z-string-prototype.json": {
+    "bytes": 1529242,
+    "mtimeNs": 1790862274707601970,
+    "inode": 283176458
+  },
+  "runtime/diagnostics/2026-10-01T23-22-32-000Z-native-utf8-current50-proof.json": {
+    "bytes": 140890,
+    "mtimeNs": 1790896952664237288,
+    "inode": 283591266
+  },
+  "runtime/diagnostics/2026-10-01T18-20-59-555Z-eager-index-correctness-evidence.json": {
+    "bytes": 5085612,
+    "mtimeNs": 1790878859583378852,
+    "inode": 283357416
+  },
+  "runtime/diagnostics/2026-10-01T20-37-16-182Z-production-50-refresh-assessment.json": {
+    "bytes": 44144,
+    "mtimeNs": 1790887036190823548,
+    "inode": 283424836
+  },
+  "runtime/diagnostics/2026-10-01T09-48-11-049Z-string-semantics.json": {
+    "bytes": 285905,
+    "mtimeNs": 1790848091080370471,
+    "inode": 283007312
+  },
+  "runtime/diagnostics/2026-10-01T17-59-52-220Z-emission-prototype.json": {
+    "bytes": 2284093,
+    "mtimeNs": 1790877592262312721,
+    "inode": 283338534
+  },
+  "runtime/diagnostics/2026-10-01T03-25-49-949Z-record-storage-prototype.json": {
+    "bytes": 237553,
+    "mtimeNs": 1790825149973928150,
+    "inode": 282692163
+  },
+  "runtime/diagnostics/2026-10-01T02-51-46-363Z-primitive-emission-equivalence.json": {
+    "bytes": 3672,
+    "mtimeNs": 1790823106365092204,
+    "inode": 282664506
+  },
+  "runtime/diagnostics/2026-10-02T00-35-15-345Z-native-allocations.json": {
+    "bytes": 327639,
+    "mtimeNs": 1790901315373424705,
+    "inode": 283688247
+  },
+  "runtime/diagnostics/2026-10-03T05-33-34-000Z-quoted-string-literals-source-validation.json": {
+    "bytes": 40098,
+    "mtimeNs": 1791005614776143435,
+    "inode": 285620052
+  },
+  "runtime/diagnostics/2026-10-02T03-09-58-000Z-native-temporary-array-index-runtime-proof.json": {
+    "bytes": 205474,
+    "mtimeNs": 1790910598666601015,
+    "inode": 283892750
+  },
+  "runtime/diagnostics/2026-10-02T06-15-27-000Z-approximate-math-compiler-acceptance.json": {
+    "bytes": 101901,
+    "mtimeNs": 1790921728021643478,
+    "inode": 284069540
+  },
+  "runtime/diagnostics/2026-10-02T05-40-43-000Z-native-exact-math-runtime-proof.json": {
+    "bytes": 250677,
+    "mtimeNs": 1790919643238422960,
+    "inode": 284041293
+  },
+  "runtime/diagnostics/2026-10-03T05-10-08-444Z-native-allocations.json": {
+    "bytes": 928649,
+    "mtimeNs": 1791004208483367218,
+    "inode": 285583498
+  },
+  "runtime/diagnostics/2026-10-01T09-26-33-170Z-string-semantics.json": {
+    "bytes": 16459,
+    "mtimeNs": 1790846793205962682,
+    "inode": 283005079
+  },
+  "runtime/diagnostics/2026-10-02T01-34-23-961Z-native-allocations.json": {
+    "bytes": 357381,
+    "mtimeNs": 1790904864007424200,
+    "inode": 283768421
+  },
+  "runtime/diagnostics/2026-09-30T23-58-40-552Z-emission-equivalence.json": {
+    "bytes": 8035,
+    "mtimeNs": 1790812720553762476,
+    "inode": 282382850
+  },
+  "runtime/diagnostics/2026-10-01T16-50-53-774Z-normalization-correctness.json": {
+    "bytes": 22028,
+    "mtimeNs": 1790873453783707422,
+    "inode": 283281292
+  },
+  "runtime/diagnostics/2026-10-01T16-07-10-057Z-string-prototype.json": {
+    "bytes": 1943708,
+    "mtimeNs": 1790870830098058870,
+    "inode": 283243180
+  },
+  "runtime/diagnostics/2026-10-02T13-50-12-000Z-array-to-spliced-runtime-proof.json": {
+    "bytes": 1791999,
+    "mtimeNs": 1790949012871694101,
+    "inode": 284528678
+  },
+  "runtime/diagnostics/2026-10-02T19-21-36-000Z-logical-assignment-source-validation.json": {
+    "bytes": 46836,
+    "mtimeNs": 1790968897136933423,
+    "inode": 284972617
+  },
+  "runtime/diagnostics/2026-10-01T19-04-00-946Z-emission-prototype.json": {
+    "bytes": 2427023,
+    "mtimeNs": 1790881440992293668,
+    "inode": 283379023
+  },
+  "runtime/diagnostics/2026-10-03T18-11-33-000Z-checkpoint91-runtime-proof.json": {
+    "bytes": 159809,
+    "mtimeNs": 1791051093245961306,
+    "inode": 286354303
+  },
+  "runtime/diagnostics/2026-10-03T00-56-53-000Z-string-substring-runtime-proof.json": {
+    "bytes": 126017,
+    "mtimeNs": 1790989014038637249,
+    "inode": 285336752
+  },
+  "runtime/diagnostics/2026-10-01T13-18-49-915Z-string-prototype.json": {
+    "bytes": 1533164,
+    "mtimeNs": 1790860729959508533,
+    "inode": 283172414
+  },
+  "runtime/diagnostics/2026-10-01T11-14-19-336Z-string-prototype.json": {
+    "bytes": 1712920,
+    "mtimeNs": 1790853259378996394,
+    "inode": 283119580
+  },
+  "runtime/diagnostics/2026-10-02T15-18-00-000Z-string-side-trimming-compiler-proof.json": {
+    "bytes": 184409,
+    "mtimeNs": 1790954288460568240,
+    "inode": 284641922
+  },
+  "runtime/diagnostics/2026-10-02T01-36-47-000Z-native-number-predicate-benchmark-source.json": {
+    "bytes": 549824,
+    "mtimeNs": 1790905007312279097,
+    "inode": 283770469
+  },
+  "runtime/diagnostics/2026-10-02T15-25-00-000Z-string-trim-repeat-pool-source-supplement.json": {
+    "bytes": 218414,
+    "mtimeNs": 1790955147667205981,
+    "inode": 284644719
+  },
+  "runtime/diagnostics/2026-10-01T09-05-22-684Z-prototype-allocations.json": {
+    "bytes": 8404,
+    "mtimeNs": 1790845522708841043,
+    "inode": 283002972
+  },
+  "runtime/diagnostics/2026-10-01T21-27-12-872Z-emission-prototype.json": {
+    "bytes": 2989979,
+    "mtimeNs": 1790890032924107490,
+    "inode": 283456458
+  },
+  "runtime/diagnostics/2026-10-01T20-10-25-000Z-bounded-view-assessment.json": {
+    "bytes": 36539,
+    "mtimeNs": 1790885553748833643,
+    "inode": 283411539
+  }
+}

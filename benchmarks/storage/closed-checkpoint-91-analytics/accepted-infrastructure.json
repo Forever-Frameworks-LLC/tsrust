@@ -1,0 +1,74 @@
+{
+  "gate": 91,
+  "accepted": true,
+  "runtimeAccepted": true,
+  "profilesAccepted": true,
+  "sqliteIngestionAccepted": true,
+  "exactRestoreCleanupAccepted": true,
+  "retiming": false,
+  "markdownRendered": false,
+  "proof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T18-11-33-000Z-checkpoint91-runtime-proof.json",
+    "sha256": "aff99bf249cef51932388e9e7b59efe22578efba570beb1fa208e23aaaf6daac"
+  },
+  "migration": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-91-analytics/postmigration-stats.json",
+    "sha256": "01cd9604ea8840a284a36b7e93171e0a8245e912d44df8f89d026aaa2bd40e79"
+  },
+  "query": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/closed-checkpoint-91-analytics/checkpoint-query.json",
+    "sha256": "57dd1b771bd2ea1ef532a1fbc1aca4aaed6d9079d3502399da24de88ce32df01"
+  },
+  "methodReview": {
+    "array_at": {
+      "rows": 8,
+      "nativeWins": 1,
+      "meanRatio": 0.6856948741872644
+    },
+    "array_find": {
+      "rows": 8,
+      "nativeWins": 1,
+      "meanRatio": 0.9006016751763678
+    },
+    "array_find_last": {
+      "rows": 8,
+      "nativeWins": 1,
+      "meanRatio": 1.0539392891912962
+    },
+    "array_sort_compare": {
+      "rows": 8,
+      "nativeWins": 7,
+      "meanRatio": 3.9098321544962085
+    },
+    "array_sort_default": {
+      "rows": 6,
+      "nativeWins": 6,
+      "meanRatio": 4.953900770640577
+    },
+    "array_splice": {
+      "rows": 8,
+      "nativeWins": 2,
+      "meanRatio": 0.9314304539399738
+    },
+    "array_to_sorted_compare": {
+      "rows": 8,
+      "nativeWins": 7,
+      "meanRatio": 2.6933290057743258
+    },
+    "array_to_sorted_default": {
+      "rows": 6,
+      "nativeWins": 6,
+      "meanRatio": 3.4928315518794517
+    },
+    "array_unshift": {
+      "rows": 8,
+      "nativeWins": 3,
+      "meanRatio": 0.9064237033216639
+    }
+  },
+  "sourceGuideFiles": {
+    "benchmarks/storage/README.md": "3c8ca2d5228ac3cd22041c83dc57a014b50b8ee32ab4ad135173c04b1c624afe",
+    "benchmarks/storage/HISTORICAL_ARCHIVE.md": "f4217287671b8e805d84f36dd38c67e570517bde5bc4dd5d06b531f1a8a41f33"
+  },
+  "scope": "68source-matched rows/two engines/12648timings/204profiles; previous source proofs, raw history and BENCHMARKS preserved."
+}

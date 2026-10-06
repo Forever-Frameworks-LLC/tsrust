@@ -1,0 +1,4 @@
+function workload(n:int,seed:int):int[][]{const consumer=drive;const output:int[][]=[];let i=0;while(i<n){const values=[seed+i,2,3];const result=consumer(change,values);output.push(result);output.push(clone(values));i=i+1;}return output;}
+function change(values:int[]):int[]{values[0]=values[0]+1;return clone(values);}
+function drive(f:Mutable<Function<int[], [values:Mutable<int[]>]>>,values:int[]):int[]{return f(values);}
+function main(){const result=workload(2,7);}

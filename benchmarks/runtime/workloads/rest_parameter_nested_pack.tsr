@@ -1,0 +1,10 @@
+function item(base: int, ordinal: int, input: string): int[] { const value = base + ordinal; if (value % 3 === 0) { return []; } return [value, value + 1]; }
+function pack(...values: int[][]): int[][] { return values; }
+function workload(n: int, seed: int, input: string): int[][][] {
+    const output: int[][][] = []; let i = 0;
+    while (i < n) { const mode = (i + seed) % 3; const base = (i * 13 + seed) % 97;
+        const values = mode === 0 ? pack() : mode === 1 ? pack(item(base, 0, input)) : pack(item(base, 0, input), item(base, 1, input), item(base, 2, input), item(base, 3, input), item(base, 4, input));
+        output.push(values); i = i + 1;
+    } return output;
+}
+function main() { const result = workload(3, 0, "abc"); }

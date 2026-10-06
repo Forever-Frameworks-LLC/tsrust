@@ -1,0 +1,178 @@
+[
+  {
+    "id": "string_trim_start_ascii",
+    "category": "strings",
+    "family": "ascii",
+    "method": "trimStart",
+    "trimSide": "start",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": " A alpha Z ",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "complete directional-trimming iteration including runtime receiver selection, one trim call and retaining its complete string result; receiver pool setup runs once per invocation",
+    "specification": "Use actual trimStart over eight ascii receiver variants constructed with input clones, one-, two- and three-copy repetition, and literals selected by runtime iteration and seed. Preserve the opposite edge and interior contents, retaining every result in order. The timed whitespace domain is shared by pinned Rust and JavaScript; U+0085 and U+FEFF are excluded.",
+    "notes": "Receiver pool setup, runtime selection, trimming and complete output retention are timed; full content observation runs outside timing. Pool setup explicitly clones runtime input twice and constructs one-, two- and three-copy owned repetitions, alongside empty, whitespace-only and padded payload literals. Repeated input preserves interior whitespace. Native Cow literals can retain borrowed static trim slices; owned receivers produce independent owned results. JavaScript may reuse immutable string storage. No isolated-call latency or allocation-parity claim.",
+    "sourceSha256": "1d374a297f41fc38029c5da56d870bfa38fc73f5652833ee6dbdae71bb05e494",
+    "counterpartSha256": "6816789adf04280e243012341d26937c21b0fba483358a5cc9f52f96f0e845ac"
+  },
+  {
+    "id": "string_trim_start_unicode",
+    "category": "strings",
+    "family": "unicode",
+    "method": "trimStart",
+    "trimSide": "start",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": " é😀é Z ",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "complete directional-trimming iteration including runtime receiver selection, one trim call and retaining its complete string result; receiver pool setup runs once per invocation",
+    "specification": "Use actual trimStart over eight unicode receiver variants constructed with input clones, one-, two- and three-copy repetition, and literals selected by runtime iteration and seed. Preserve the opposite edge and interior contents, retaining every result in order. The timed whitespace domain is shared by pinned Rust and JavaScript; U+0085 and U+FEFF are excluded.",
+    "notes": "Receiver pool setup, runtime selection, trimming and complete output retention are timed; full content observation runs outside timing. Pool setup explicitly clones runtime input twice and constructs one-, two- and three-copy owned repetitions, alongside empty, whitespace-only and padded payload literals. Repeated input preserves interior whitespace. Native Cow literals can retain borrowed static trim slices; owned receivers produce independent owned results. JavaScript may reuse immutable string storage. No isolated-call latency or allocation-parity claim.",
+    "sourceSha256": "435bd828b690626f33e73eecf63daf1da0ef40e04a1df6994724caf2e9eb925e",
+    "counterpartSha256": "776d9ea74cd35be7971a6e5e238ba6e907ec9ad8277190894bea033f9dfd9639"
+  },
+  {
+    "id": "string_trim_end_ascii",
+    "category": "strings",
+    "family": "ascii",
+    "method": "trimEnd",
+    "trimSide": "end",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": " A alpha Z ",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "complete directional-trimming iteration including runtime receiver selection, one trim call and retaining its complete string result; receiver pool setup runs once per invocation",
+    "specification": "Use actual trimEnd over eight ascii receiver variants constructed with input clones, one-, two- and three-copy repetition, and literals selected by runtime iteration and seed. Preserve the opposite edge and interior contents, retaining every result in order. The timed whitespace domain is shared by pinned Rust and JavaScript; U+0085 and U+FEFF are excluded.",
+    "notes": "Receiver pool setup, runtime selection, trimming and complete output retention are timed; full content observation runs outside timing. Pool setup explicitly clones runtime input twice and constructs one-, two- and three-copy owned repetitions, alongside empty, whitespace-only and padded payload literals. Repeated input preserves interior whitespace. Native Cow literals can retain borrowed static trim slices; owned receivers produce independent owned results. JavaScript may reuse immutable string storage. No isolated-call latency or allocation-parity claim.",
+    "sourceSha256": "a01eaf0cba473563e4a68593b67003969b5254ffd55f6083bde9502de8f6e234",
+    "counterpartSha256": "54e2ebddf9922714d5880b0f39154da04f8215e071c161752dee992b0c69c2d2"
+  },
+  {
+    "id": "string_trim_end_unicode",
+    "category": "strings",
+    "family": "unicode",
+    "method": "trimEnd",
+    "trimSide": "end",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": " é😀é Z ",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "complete directional-trimming iteration including runtime receiver selection, one trim call and retaining its complete string result; receiver pool setup runs once per invocation",
+    "specification": "Use actual trimEnd over eight unicode receiver variants constructed with input clones, one-, two- and three-copy repetition, and literals selected by runtime iteration and seed. Preserve the opposite edge and interior contents, retaining every result in order. The timed whitespace domain is shared by pinned Rust and JavaScript; U+0085 and U+FEFF are excluded.",
+    "notes": "Receiver pool setup, runtime selection, trimming and complete output retention are timed; full content observation runs outside timing. Pool setup explicitly clones runtime input twice and constructs one-, two- and three-copy owned repetitions, alongside empty, whitespace-only and padded payload literals. Repeated input preserves interior whitespace. Native Cow literals can retain borrowed static trim slices; owned receivers produce independent owned results. JavaScript may reuse immutable string storage. No isolated-call latency or allocation-parity claim.",
+    "sourceSha256": "72abb3dec5140ea260bbe268d838ce0b5d29af06c0fb7b5cedd8bde0094e9b94",
+    "counterpartSha256": "eb0b59f489556885b37850e352a013ff9d1dfbbf72133213efa18f94a386bbb7"
+  },
+  {
+    "id": "string_trim_left_ascii",
+    "category": "strings",
+    "family": "ascii",
+    "method": "trimLeft",
+    "trimSide": "left",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": " A alpha Z ",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "complete directional-trimming iteration including runtime receiver selection, one trim call and retaining its complete string result; receiver pool setup runs once per invocation",
+    "specification": "Use actual trimLeft over eight ascii receiver variants constructed with input clones, one-, two- and three-copy repetition, and literals selected by runtime iteration and seed. Preserve the opposite edge and interior contents, retaining every result in order. The timed whitespace domain is shared by pinned Rust and JavaScript; U+0085 and U+FEFF are excluded.",
+    "notes": "Receiver pool setup, runtime selection, trimming and complete output retention are timed; full content observation runs outside timing. Pool setup explicitly clones runtime input twice and constructs one-, two- and three-copy owned repetitions, alongside empty, whitespace-only and padded payload literals. Repeated input preserves interior whitespace. Native Cow literals can retain borrowed static trim slices; owned receivers produce independent owned results. JavaScript may reuse immutable string storage. No isolated-call latency or allocation-parity claim.",
+    "sourceSha256": "38d3b6739a3c6668abf64c740bf28deb3bb91615a10f8250728285710cf6e27e",
+    "counterpartSha256": "626fcddf58cd7033548b8937b6b8e5641938528e47c754816e95bd518510c865"
+  },
+  {
+    "id": "string_trim_left_unicode",
+    "category": "strings",
+    "family": "unicode",
+    "method": "trimLeft",
+    "trimSide": "left",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": " é😀é Z ",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "complete directional-trimming iteration including runtime receiver selection, one trim call and retaining its complete string result; receiver pool setup runs once per invocation",
+    "specification": "Use actual trimLeft over eight unicode receiver variants constructed with input clones, one-, two- and three-copy repetition, and literals selected by runtime iteration and seed. Preserve the opposite edge and interior contents, retaining every result in order. The timed whitespace domain is shared by pinned Rust and JavaScript; U+0085 and U+FEFF are excluded.",
+    "notes": "Receiver pool setup, runtime selection, trimming and complete output retention are timed; full content observation runs outside timing. Pool setup explicitly clones runtime input twice and constructs one-, two- and three-copy owned repetitions, alongside empty, whitespace-only and padded payload literals. Repeated input preserves interior whitespace. Native Cow literals can retain borrowed static trim slices; owned receivers produce independent owned results. JavaScript may reuse immutable string storage. No isolated-call latency or allocation-parity claim.",
+    "sourceSha256": "8cb756fff6eb1e99248faa02b7002be3a298eac9a02e259a0302a5896a9e1d21",
+    "counterpartSha256": "e953c720704951d584109c92f8a8426f90ad54fdba5791c8d8c3a9936e71830f"
+  },
+  {
+    "id": "string_trim_right_ascii",
+    "category": "strings",
+    "family": "ascii",
+    "method": "trimRight",
+    "trimSide": "right",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": " A alpha Z ",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "complete directional-trimming iteration including runtime receiver selection, one trim call and retaining its complete string result; receiver pool setup runs once per invocation",
+    "specification": "Use actual trimRight over eight ascii receiver variants constructed with input clones, one-, two- and three-copy repetition, and literals selected by runtime iteration and seed. Preserve the opposite edge and interior contents, retaining every result in order. The timed whitespace domain is shared by pinned Rust and JavaScript; U+0085 and U+FEFF are excluded.",
+    "notes": "Receiver pool setup, runtime selection, trimming and complete output retention are timed; full content observation runs outside timing. Pool setup explicitly clones runtime input twice and constructs one-, two- and three-copy owned repetitions, alongside empty, whitespace-only and padded payload literals. Repeated input preserves interior whitespace. Native Cow literals can retain borrowed static trim slices; owned receivers produce independent owned results. JavaScript may reuse immutable string storage. No isolated-call latency or allocation-parity claim.",
+    "sourceSha256": "840a7a8a71a631c839a6d519b666a8b75d6037194dc88918954a34e9ad035cab",
+    "counterpartSha256": "7fff5ee28b5d7a57dc1416398d06d0152bb975d3c28b68b30dbcba5d10cc5981"
+  },
+  {
+    "id": "string_trim_right_unicode",
+    "category": "strings",
+    "family": "unicode",
+    "method": "trimRight",
+    "trimSide": "right",
+    "result": "string[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "inputText": " é😀é Z ",
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "complete directional-trimming iteration including runtime receiver selection, one trim call and retaining its complete string result; receiver pool setup runs once per invocation",
+    "specification": "Use actual trimRight over eight unicode receiver variants constructed with input clones, one-, two- and three-copy repetition, and literals selected by runtime iteration and seed. Preserve the opposite edge and interior contents, retaining every result in order. The timed whitespace domain is shared by pinned Rust and JavaScript; U+0085 and U+FEFF are excluded.",
+    "notes": "Receiver pool setup, runtime selection, trimming and complete output retention are timed; full content observation runs outside timing. Pool setup explicitly clones runtime input twice and constructs one-, two- and three-copy owned repetitions, alongside empty, whitespace-only and padded payload literals. Repeated input preserves interior whitespace. Native Cow literals can retain borrowed static trim slices; owned receivers produce independent owned results. JavaScript may reuse immutable string storage. No isolated-call latency or allocation-parity claim.",
+    "sourceSha256": "63ca235561ed639c4e8f8d63b40d3f6ae6b80cb97832fe01fbd07c0bab2b7f20",
+    "counterpartSha256": "488e15754c8b6d2f23537538930cdc4a87193f427f5da24a3af683019d8fff8b"
+  }
+]

@@ -1,0 +1,4 @@
+function workload(n:number,seed:number):boolean{const consumer=(f:(value:boolean)=>boolean,value:boolean):boolean=>{return f(value);};let parity=false;let i=0;while(i<n){const value=consumer(invert,(seed+i)%3===0);if(value){parity=!parity;}i=i+1;}return parity;}
+function invert(value:boolean):boolean{return !value;}
+function main(){const result=workload(2,7);}
+function clone<T>(value:T):T{return value;}

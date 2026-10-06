@@ -1,0 +1,19 @@
+function left(trace: int[], tag: int): int | null | undefined { trace.push(1); if (tag === 0) { return null; } if (tag === 1) { return undefined; } return 0; }
+function right(trace: int[]): int { trace.push(2); return 7; }
+function boolLeft(value: boolean | null | undefined): boolean | null | undefined { return value; }
+function boolRight(trace: int[]): boolean { trace.push(99); return true; }
+function numberLeft(value: number | null | undefined): number | null | undefined { return value; }
+function numberRight(trace: int[]): number { trace.push(99); return 9.0; }
+function stringLeft(value: string | null | undefined): string | null | undefined { return value; }
+function stringRight(trace: int[]): string { trace.push(99); return "fallback"; }
+function nullableRight(): int | null { return null; }
+function main() {
+    const first: int[] = []; const zero = left(first, 2) ?? right(first); console.log(zero); console.log(first.join(","));
+    const second: int[] = []; const chosen = left(second, 0) ?? right(second); console.log(chosen); console.log(second.join(","));
+    const skip: int[] = [];
+    const flag = boolLeft(false) ?? boolRight(skip); console.log(flag);
+    const negativeZero = numberLeft(-0.0) ?? numberRight(skip); console.log(1.0 / negativeZero);
+    const nan = numberLeft(0.0 / 0.0) ?? numberRight(skip); console.log(Number.isNaN(nan));
+    const empty = stringLeft("") ?? stringRight(skip); console.log(empty.length); console.log(skip.length);
+    const third: int[] = []; const residual = left(third, 1) ?? nullableRight(); console.log(String(residual)); console.log(typeof residual); console.log(third.join(","));
+}

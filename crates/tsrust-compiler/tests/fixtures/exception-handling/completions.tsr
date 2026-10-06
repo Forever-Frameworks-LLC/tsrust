@@ -1,0 +1,127 @@
+import { strictEqual } from "std:testing";
+
+function returnWins(): int {
+    try {
+        return 1;
+    } finally {
+        return 2;
+    }
+}
+
+function returnReplacesThrow(): int {
+    try {
+        throw "body";
+    } finally {
+        return 3;
+    }
+}
+
+function throwWins(): int {
+    try {
+        return 1;
+    } finally {
+        throw "final";
+    }
+}
+
+function nestedFinal(trace: int[]): int {
+    try {
+        try {
+            return 4;
+        } finally {
+            trace.push(5);
+        }
+    } finally {
+        trace.push(6);
+    }
+}
+
+function closureFinal(): int {
+    const action = (): int => {
+        try {
+            return 9;
+        } finally {
+            return 10;
+        }
+    };
+    return action();
+}
+
+function main() {
+    strictEqual(closureFinal(), 10);
+    strictEqual(returnWins(), 2);
+    strictEqual(returnReplacesThrow(), 3);
+    let seen = 0;
+    try {
+        throwWins();
+    } catch (error) {
+        strictEqual(error, "final");
+        seen = 1;
+    }
+
+    strictEqual(seen, 1);
+    const nested: int[] = [];
+    strictEqual(nestedFinal(nested), 4);
+    strictEqual(nested.join(","), "5,6");
+    const trace: int[] = [];
+    let total = 0;
+    let updates = 0;
+    outer: for (let row = 0; row < 4; row++, updates++) {
+        for (let col = 0; col < 2; col++) {
+            try {
+                if (row === 0) continue outer;
+                if (row === 2) break outer;
+                total += row * 10 + col;
+            } finally {
+                trace.push(row);
+            }
+        }
+    }
+
+    strictEqual(total, 21);
+    strictEqual(updates, 2);
+    strictEqual(trace.join(","), "0,1,1,2");
+    let count = 0;
+    while (count < 3) {
+        try {
+            count++;
+            continue;
+        } finally {
+            if (count === 2) break;
+        }
+    }
+
+    strictEqual(count, 2);
+    let steps = 0;
+    for (let i = 0; i < 3; i++) {
+        steps++;
+        try {
+            break;
+        } finally {
+            if (i === 0) continue;
+        }
+    }
+
+    strictEqual(steps, 2);
+    let last = 0;
+    try {
+        try {
+            throw "first";
+        } finally {
+            throw "last";
+        }
+    } catch (error) {
+        strictEqual(error, "last");
+        last = 1;
+    }
+
+    strictEqual(last, 1);
+    let cleanup = 0;
+    try {
+        cleanup = 1;
+    } finally {
+        cleanup = 2;
+    }
+
+    strictEqual(cleanup, 2);
+}

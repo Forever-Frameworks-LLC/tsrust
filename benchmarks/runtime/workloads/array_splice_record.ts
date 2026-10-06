@@ -1,0 +1,32 @@
+type int = number;
+interface Array<T> { splice(): T[]; }
+type SpliceRecord = { id: int; label: string; };
+function workload(n: int, seed: int, input: string): string[] {
+    const output: string[] = [];
+    const sizes: int[] = [0, 1, 4, 5, 17];
+    const starts: int[] = [-9007199254740991, -3, -1, 0, 1, 3, 9007199254740991];
+    const deletes: int[] = [-9007199254740991, -1, 0, 1, 3, 17, 9007199254740991];
+    let i = 0;
+    while (i < n) {
+        const count = sizes[(i + seed) % 5];
+        const mode = (i * 7 + seed) % 6;
+        const start = starts[(i * 11 + seed) % 7];
+        const deleteCount = deletes[(i * 3 + seed) % 7];
+        const values: SpliceRecord[] = []; let j = 0;
+        while (j < count) { values.push({ id: seed + j, label: input.concat(":", String(j)) }); j = j + 1; }
+        let removed: SpliceRecord[] = [];
+        if (mode === 0) { removed = values.splice(); }
+        else if (mode === 1) { removed = values.splice(start); }
+        else if (mode === 2) { removed = values.splice(start, deleteCount); }
+        else if (mode === 3) { removed = values.splice(start, deleteCount, { id: seed + 101, label: input.concat(":A") }); }
+        else if (mode === 4) { removed = values.splice(start, deleteCount, { id: seed + 101, label: input.concat(":A") }, { id: seed + 102, label: input.concat(":B") }, { id: seed + 103, label: "é😀e\u0301\u0000:C" }); }
+        else { removed = values.splice(start, deleteCount, { id: seed + 101, label: input.concat(":A") }); }
+        output.push(String(removed.length)); output.push(String(values.length));
+        let at = 0; while (at < removed.length) { output.push(describe(removed[at])); at = at + 1; }
+        let remain = 0; while (remain < values.length) { output.push(describe(values[remain])); remain = remain + 1; }
+        i = i + 1;
+    }
+    return output;
+}
+function describe(value: SpliceRecord): string { return String(value.id).concat(":", value.label); }
+function main() { const result = workload(2, 7, "dynamic text"); }

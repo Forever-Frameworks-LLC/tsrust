@@ -1,0 +1,22 @@
+import {strictEqual} from "std:testing";
+enum State{Ready,Busy}
+function make(trace:Mutable<int[]>,value:int):Set<int>{trace.push(value);return new Set<int>([value]);}
+function main(){
+ const empty=new Set<int>();const small=new Set<int>([1,2]);const large=new Set<int>([1,2,3]);const apart=new Set<int>([7]);
+ strictEqual(small.isSubsetOf(large),true);strictEqual(large.isSubsetOf(small),false);
+ strictEqual(large.isSupersetOf(small),true);strictEqual(small.isSupersetOf(large),false);
+ strictEqual(small.isDisjointFrom(apart),true);strictEqual(small.isDisjointFrom(large),false);
+ strictEqual(empty.isSubsetOf(large),true);strictEqual(empty.isSupersetOf(empty),true);strictEqual(empty.isDisjointFrom(large),true);
+ strictEqual(small.isSubsetOf(small),true);strictEqual(small.isSupersetOf(small),true);strictEqual(small.isDisjointFrom(small),false);
+ const names=new Set<string>(["one","two"]);const labels=new Set<string>(["two","three"]);
+ strictEqual(names.isSubsetOf(labels),false);strictEqual(names.isDisjointFrom(labels),false);
+ strictEqual(names.isDisjointFrom(small),true);strictEqual(names.isSubsetOf(small),false);
+ const trace:int[]=[];strictEqual(make(trace,1).isDisjointFrom(make(trace,2)),true);strictEqual(trace.join(","),"1,2");
+ const mixed=new Set<int|string>([1,"one"]);strictEqual(mixed.isSupersetOf(new Set<string>(["one"])),true);strictEqual(new Set<int>([1]).isSubsetOf(mixed),true);
+ strictEqual(mixed.isDisjointFrom(new Set<string|boolean>(["one",true])),false);
+ strictEqual(new Set<null|undefined>([null]).isSubsetOf(new Set<null>([null])),true);
+ const numbers=new Set<number>([NaN,-0,1]);strictEqual(numbers.isSubsetOf(new Set<number>([NaN,0,1,2])),true);strictEqual(numbers.isDisjointFrom(new Set<number>([NaN])),false);
+ strictEqual(new Set<int>([1]).isSubsetOf(new Set<number>([1])),true);
+ strictEqual(new Set<State>([State.Ready]).isSubsetOf(new Set<State>([State.Ready,State.Busy])),true);
+ strictEqual(small.values().join(","),"1,2");strictEqual(names.values().join(","),"one,two");
+}

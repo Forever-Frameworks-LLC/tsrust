@@ -1,0 +1,16 @@
+function workload(n: int, seed: int, input: string): string[] {
+    const values: string[] = [clone(input), "", "é😀e\u0301", "\uFEFF\u0000", input.repeat(2)];
+    const separators: string[] = ["|", "", "é\u0000", " 😀 "];
+    const output: string[] = []; let i = 0;
+    while (i < n) {
+        const count = (i + seed) % 6;
+        const mode = (i * 7 + seed) % 5;
+        let joined: string = "";
+        const receiver = values.slice(0, count);
+        if (mode === 0) { joined = receiver.join(); } else { joined = receiver.join(separators[mode - 1]); }
+        output.push(joined);
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7, "dynamic text"); }

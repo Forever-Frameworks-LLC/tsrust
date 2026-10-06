@@ -1,0 +1,13 @@
+# Milestone 93: Array.of
+
+Status: focused implementation, executable IntelliSense documentation and comparison sources accepted. Combined regression and measurements are accepted at checkpoint 96.
+
+`Array.of(...items)` constructs a dense homogeneous array using inferred or contextual element types. `Array.of<T>(...items)` explicitly selects the element type, including nested arrays and nominal generic records. Empty calls require a result annotation or explicit type argument. The eight existing dense families include null and undefined leaves; mixed or nullable union elements and callable elements remain unsupported. Result rank is bounded at 128, with checked native length and ordinary Rust capacity limits.
+
+Arguments evaluate once in source order. Named owned elements transfer into the new array; borrowed indexed owners require explicit clone. Existing int/Number types remain strict. Checked constructor-result metadata supplies concrete editor types for generic calls and chains, while conflicting specializations stay conservative. Newly discovered generic fields reuse compiler-checked types without another compiler pass.
+
+[Accepted implementation evidence](../../benchmarks/runtime/diagnostics/2026-10-03T19-34-31-000Z-array-of-implementation.json) preserves four unique compiler groups across retained passes and affected retries, plus one repaired editor group. Six exact catalog snippets produce six lines at O0/O3. Original failed checks, fixture repairs and the editor field-discovery repair remain recorded. Concurrent peer compiler changes are excluded from the accepted tested revision; no full regression was repeated.
+
+Eight comparison pairs are registered, bringing the source inventory to 648. Source checks cover 296 cases, 64 independent hand cells, 96 negative cells, 24 executed semantic mutants and six order lines; native source compatibility is accepted. Measurements are accepted at checkpoint 96. SQLite is canonical analytics; Markdown reports remain optional exports.
+
+[Checkpoint96 completed evidence](../../benchmarks/runtime/diagnostics/2026-10-04T01-06-08-000Z-checkpoint96-completed-proof.json) binds 1,033 retained baseline checks plus six focused concat-refinement groups, with targeted repairs and no full restart. The 48 new comparisons are measured; 18 older affected workloads have fresh measurements. Whole-workload native/compiled-Node results and normalized resources remain in SQLite, with original records preserved. Native owned copying and retained serialization costs differ from JavaScript sharing; measurements do not imply allocation parity or universal wins.

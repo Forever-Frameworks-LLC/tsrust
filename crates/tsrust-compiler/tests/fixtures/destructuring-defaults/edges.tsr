@@ -1,0 +1,13 @@
+import { strictEqual } from "std:testing";
+type Row={value:int;};
+function source(trace:int[]):[int|undefined,string|null]{trace.push(1);return [undefined,null];}
+function main(){
+ const trace:int[]=[];
+ const [first=4,second="changed",third=7]=source(trace);
+ strictEqual(first,4);strictEqual(String(second),"null");strictEqual(third,7);strictEqual(trace.length,1);
+ const row:Row={value:3};const {missing=8,value=9}=row;strictEqual(missing,8);strictEqual(value,3);strictEqual(row.value,3);
+ const words:string[]=[];const backup="stable".repeat(1);
+ {const [text=backup]=words;strictEqual(text,"stable");strictEqual(backup,"stable");}
+ const packs:int[][]=[[],[5]];const factory=():int=>{return 12;};let index=0;for(const [loopValue=factory()] of packs){strictEqual(loopValue,index===0?12:5);index=index+1;}strictEqual(index,2);
+ let [mutable=3]:int[]=[];mutable=4;strictEqual(mutable,4);
+}

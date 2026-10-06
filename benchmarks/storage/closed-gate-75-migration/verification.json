@@ -1,0 +1,8 @@
+{
+  "exactPathsAndBytes": 372,
+  "independentBlobChecks": 258,
+  "closedProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-03T04-29-32-000Z-number-parse-float-runtime-proof.json",
+    "sha256": "a2b148e9a843e5593e30f442875b5046efa06cbec0c54c49e5efaedb191a6773"
+  }
+}

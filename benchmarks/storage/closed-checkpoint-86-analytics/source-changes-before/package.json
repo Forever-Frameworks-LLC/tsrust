@@ -1,0 +1,18 @@
+{
+  "name": "tsrust-runtime-comparisons",
+  "private": true,
+  "scripts": {
+    "bench": "node run.mjs",
+    "verify": "node run.mjs --verify",
+    "allocations": "node allocations.mjs",
+    "test": "node --test *.test.mjs",
+    "report": "node report.mjs",
+    "profile:native": "node profile-native.mjs"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "tsx": "4.23.15",
+    "ts-node": "10.9.2",
+    "deno": "2.9.6"
+  }
+}

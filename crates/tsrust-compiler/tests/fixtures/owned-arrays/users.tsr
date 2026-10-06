@@ -1,0 +1,17 @@
+type User = { name: string; active: boolean; };
+function activate(user: User) {
+  user.active = true;
+}
+function main() {
+  const users: User[] = [{ name: "Pat", active: false }];
+  users.push({ name: "Sam", active: false });
+  activate(users[0]);
+  for (const user of users) {
+    console.log(user.name);
+    console.log(user.active);
+  }
+  const saved = clone(users[0]);
+  users[0].name = "Alex";
+  console.log(saved.name);
+  console.log(users[0].name);
+}

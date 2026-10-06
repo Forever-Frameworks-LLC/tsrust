@@ -1,0 +1,29 @@
+{
+  "kind": "executed-closed-gate-artifact-compaction",
+  "timestamp": "2026-10-03T14:04:44.147841+00:00",
+  "planSHA256": "36d6b60eab7039102e04bea747f40dc3b7f2944422f7c9c6e0e4f4a50191a264",
+  "selection": [
+    "runtime/diagnostics/2026-10-03T09-12-23-000Z-array-join-implementation-artifacts",
+    "runtime/diagnostics/2026-10-03T09-36-55-000Z-array-to-string-implementation-artifacts",
+    "runtime/diagnostics/2026-10-03T10-48-34-000Z-nullable-type-foundation-artifacts",
+    "runtime/diagnostics/2026-10-03T11-59-10-000Z-nullable-flow-narrowing-artifacts",
+    "runtime/diagnostics/2026-10-03T12-38-17-000Z-array-pop-shift-artifacts",
+    "runtime/diagnostics/2026-10-03T13-43-00-000Z-checkpoint86-regression-proof-artifacts",
+    "runtime/diagnostics/2026-10-03T13-57-02-000Z-checkpoint86-runtime-artifacts",
+    "runtime/diagnostics/2026-10-03T14-02-43-000Z-checkpoint86-completed-artifacts",
+    "runtime/diagnostics/2026-10-03T14-02-43-000Z-checkpoint86-completed-proof-closure-artifacts"
+  ],
+  "files": 2580,
+  "originalLogicalBytes": 91946366,
+  "originalAllocatedBytes": 98238464,
+  "database": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/records.sqlite",
+    "sha256": "613aea62b4cc24f166329c627b1a701c92b72349447063a134a48aac9cf94fac",
+    "logicalBytes": 134262784,
+    "allocatedBytes": 134262784
+  },
+  "databaseGrowthBytes": 7467008,
+  "grossAllocatedBytesReclaimed": 90771456,
+  "verification": "original/restored/archive paths, sizes and SHA256; independent zlib; rehash each leaf before unlink",
+  "rollbackOnFailure": true
+}

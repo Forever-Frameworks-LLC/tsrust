@@ -1,0 +1,1348 @@
+{
+  "rawSha256": "42399f159bb3b4ac6a022a6e500f8342d42de6201d8f3a89788c03182c447cb8",
+  "timestamp": "2026-10-04T00:51:36.247Z",
+  "semanticEpoch": "rust-native-utf8-v1",
+  "measurementScope": "execution-only",
+  "provenance": {
+    "adapterSha256": "4352cc0dd8dca930b682b6b402b479bdf98d5cacb32920ef5415dd0e78fc14bb",
+    "compilerInputs": [
+      [
+        "analysis.rs",
+        "60b9e965e4ad5e1133261123117e536f94f10df0eb7c3fb5348a54cc5a258e66"
+      ],
+      [
+        "callable_annotations.rs",
+        "d0534bd9dfe190ddbc03e85ec5b8deea2ce69f6c0ee8fcc523692be4770ec43c"
+      ],
+      [
+        "callable_compatibility.rs",
+        "1c577b11ce96c642f0844d755df8182daf7de188f8842b39659cb5ea8952b437"
+      ],
+      [
+        "callable_contracts.rs",
+        "e2985a223fb2d499548426cf81c5950adf51aa06e82c86f5a55a1716049ac82a"
+      ],
+      [
+        "callable_dispatch.rs",
+        "558da1e0a983a5e22a0d3d77071f5e50e94b2a3a7d53b79f198e053e939cd241"
+      ],
+      [
+        "callable_layout.rs",
+        "09f4f3813a3825b3ae0577fee2b73c0179cde30365d8d9853a354690c1cfc257"
+      ],
+      [
+        "callable_resolution.rs",
+        "d8ff19d9deeb954e69ddb1fd5c4a204ec780336aad4afa7c72ac865653314e12"
+      ],
+      [
+        "callable_storage.rs",
+        "ee9390c7e48553d5ae6d30531b9e48437e65ddbd69ec7daab515dc960b657c01"
+      ],
+      [
+        "cloneability.rs",
+        "767bb0b5c8abf45f71004c5ec79efd8a339f25cf829f8c6e5fe9c588bceea72a"
+      ],
+      [
+        "diagnostic.rs",
+        "3a98c0f4081482c84ea6064bf94758b2bd87d0e3adea49f5d552da7605a56c8a"
+      ],
+      [
+        "emit.rs",
+        "f6169dfcb3782c3a7eea1c638e3ee8d1e60ebe9de9e117546f34cd52b7f0e0e2"
+      ],
+      [
+        "fixed_storage.rs",
+        "d7a8c50244d03e1cc7fcace7c6d5b0d77659960516a7ced96af6f5957bba8939"
+      ],
+      [
+        "flow.rs",
+        "7da966282a1d8fb68e73e1cb204c2c141a0e3b6524b198a1ceb3625ac49b652e"
+      ],
+      [
+        "formatting.rs",
+        "fa2dbbf9e10cd6fbf01d39713244b31518dd7b960f8320dcc0a904c5a441081a"
+      ],
+      [
+        "generic_calls.rs",
+        "f6589a133cd486b2eb5b64bb7beba2fe65ee9d97bd1e508034144f14a22bd5b1"
+      ],
+      [
+        "generic_functions.rs",
+        "76c41b1b9efa674baa5e9ef269511d7640eb01c75d0ea51eff0f69145e447a55"
+      ],
+      [
+        "generic_inference.rs",
+        "bed58184e16eb21c96728fa71db9743e3758bac5e56ed0a1f14150be51c3b8de"
+      ],
+      [
+        "generic_records.rs",
+        "543d6bb364da6d0edcb37794b6c4081867c2c3c680ec8a35e1b3fc92eebc0d6d"
+      ],
+      [
+        "generic_validation.rs",
+        "5c0939791855e0fb409828b550ae3d81f54003fb412afc3485cf552548caeaf8"
+      ],
+      [
+        "lib.rs",
+        "9150d5540c894f0e522a5aab0a565e8d74514f56f60cdd53f76c320292eef04f"
+      ],
+      [
+        "main.rs",
+        "173942fc978cafbc064946405839e51bf524d0e79a38f9cace81e20c9ab5ec8f"
+      ],
+      [
+        "native_bindings.rs",
+        "b21f41698cb4a63e43df029c08f58d6ed1f3529f82138c9b6f59e446ba87c111"
+      ],
+      [
+        "native_cache.rs",
+        "3be9f457bab3c9220fa527a0069c4c9cdd0ef04921a2d023f2a63946dbba3f5e"
+      ],
+      [
+        "native_emit.rs",
+        "7adb7d3c977d7b9a9a2fcdc9bf2597417368acfb3c3129cd7e199db7396f3061"
+      ],
+      [
+        "native_path.rs",
+        "2f4f006f911605391e6723cd2be3811c3a6144c1592463e175801742df7e3a72"
+      ],
+      [
+        "optional_chain.rs",
+        "c2f9ea9396c6a5bc1ed662b4e7f4aebbabf403f1764c4ddb37a6c5abb9cdf2a0"
+      ],
+      [
+        "project.rs",
+        "2c281affb1e1492d7341a90f2a7fbed1c7d6b598ba2236ff0361a5fef2d6b2bb"
+      ],
+      [
+        "project_cli.rs",
+        "6e517db313009827d55fdb3c83d5f91c92ac6a8ea051770e0a2530334267cf3c"
+      ],
+      [
+        "project_facts.rs",
+        "fc418eef2dafed1b15961aec1737463e3a43137d2d709ce4cbf6aa07085ef9a2"
+      ],
+      [
+        "project_link.rs",
+        "fa6619caa3a18c7688754804932e5b5c801442e216bee82795acc066f3c33e30"
+      ],
+      [
+        "project_runtime.rs",
+        "d10fccb609accb1f4db72c2c0c94fc5c234346eb11308cbd62332fe20433ba93"
+      ],
+      [
+        "projections.rs",
+        "d622cd5b2bebefd1e832b73c78289ff65f4ed75bf798d423ea5a842a021b01e9"
+      ],
+      [
+        "record_runtime.rs",
+        "a59f65cd07630a3db43090a056663bbc59d8eeebbf2ac0d546125c437feb283e"
+      ],
+      [
+        "runtime.rs",
+        "0aed99c23290996905c3278ef23702a162e9592f4b58419e829aa28d7c882c25"
+      ],
+      [
+        "runtime_console.rs",
+        "b89efd510135fce8466e8c408b8bb1fda36f1bba812de6807cede4ceb40b2796"
+      ],
+      [
+        "runtime_join.rs",
+        "6671a77a99b81ead1d3fb7b45f1dcc7a24c7b6705a1a5f428f5ac1b89b68534b"
+      ],
+      [
+        "runtime_math.rs",
+        "edad89c1e5df2d4d539264a08407ebef33199c06caf79136b5a3d88634fae375"
+      ],
+      [
+        "runtime_strings.rs",
+        "64a85a026912f47a83a5463af32a8166038e017d005c382d28ac6f36dc3e0a0c"
+      ],
+      [
+        "runtime_values.rs",
+        "4c7917649ac5f1b7e32afe0bbebe8a7d0dbd46b7c289a7a69564f22cf5b4d521"
+      ],
+      [
+        "source_walk.rs",
+        "b3fca4fac61c3e7b21b7ef89b0919d09325c742042c77c47230e1b09a5074eac"
+      ],
+      [
+        "storage.rs",
+        "5f6487bc590fe62f6b2257817aa51446a41b02a49fa3e27d74b35bec11e455e2"
+      ],
+      [
+        "syntax.rs",
+        "157ff338d2eebcbc2c1dd4169b479bf5a418c279eec5816b4dfba4b369443d4b"
+      ],
+      [
+        "type_substitution.rs",
+        "03e40ecbc26cf0e81d07c86f183ca4dfc4804be5da11228cc4b9486b7601a981"
+      ],
+      [
+        "type_syntax.rs",
+        "96b9e31d17db046cc2158a2497f239422178827699848b9e1e2c37ee2694a075"
+      ],
+      [
+        "unions.rs",
+        "fb4d9852161262d5dfaa693957a90b2e660656366e00eba15e1369dcb1b68cd9"
+      ]
+    ],
+    "harnessSha256": "701353159819bcb7be3a74457b272a26622d34a23f07d29bba36e6c5d33aada0",
+    "lockSha256": "0ae02705cbf1b0552d5f057f61e3889f2787d42445ed53128f338f1802e7c6db",
+    "machine": {
+      "architecture": "arm64",
+      "cpu": "Apple M3",
+      "logicalCPUs": 8,
+      "platform": "darwin",
+      "release": "27.0.0",
+      "totalMemoryBytes": 8589934592
+    },
+    "measuredEngines": [
+      "native",
+      "node-tsc"
+    ],
+    "measurementPlanSha256": "eaac37969d15fac62d4002aa6e4b274514d8b9fae23bea1d798f86ec8cf69e3d",
+    "nodeComponents": {
+      "acorn": "8.15.0",
+      "ada": "3.3.0",
+      "amaro": "1.1.4",
+      "ares": "1.34.5",
+      "brotli": "1.1.0",
+      "cjs_module_lexer": "2.1.0",
+      "cldr": "47.0",
+      "icu": "77.1",
+      "llhttp": "9.3.0",
+      "modules": "137",
+      "napi": "10",
+      "nbytes": "0.1.1",
+      "ncrypto": "0.0.1",
+      "nghttp2": "1.66.0",
+      "node": "24.11.1",
+      "openssl": "3.5.4",
+      "simdjson": "4.0.7",
+      "simdutf": "6.4.0",
+      "sqlite": "3.50.4",
+      "tz": "2025b",
+      "undici": "7.16.0",
+      "unicode": "16.0",
+      "uv": "1.51.0",
+      "uvwasi": "0.0.23",
+      "v8": "13.6.233.10-node.28",
+      "zlib": "1.3.1-470d3a2",
+      "zstd": "1.5.7"
+    },
+    "numberAdapterInputs": [
+      [
+        "number-driver.rs",
+        "5213db7704f714849a07b9e76c903d2ac88065e38355d47a28abbf084f5be0a2"
+      ],
+      [
+        "number-driver.ts",
+        "da49559fced688eff36cc6296a660333457ec40586fbfd94a9567bd81f38896d"
+      ],
+      [
+        "number-observation.rs",
+        "bf8356720bc60f10628b92e890b29b48b047243eb2dcd3f8ff77eff4a6afd800"
+      ],
+      [
+        "number-observation.ts",
+        "3700455fa27d4087304121a9bd17f089b78e39aedfe51f7171fdfbff02e4e064"
+      ],
+      [
+        "number-observation.mjs",
+        "097f81a0141318a0f7b64be6a8569795f423dad6b612bd1afaa5b0eef45bea89"
+      ],
+      [
+        "number-oracle.mjs",
+        "bf5efafa4b241414e395dfef141ceb94cb96e46cf99623e7fa29b5a9b0c6210c"
+      ]
+    ],
+    "oracleInputs": [
+      [
+        "optional-chain-source-contract.mjs",
+        "ac5a95ad5f0d1b07a08adcb7f7c34a0855f97e2a7cae941c6ba46d130850a0fe"
+      ],
+      [
+        "optional-chain-oracle.mjs",
+        "f940350c9d898a49d506366aef80b35397e6cabdd27cf545dca5b0137af6d604"
+      ],
+      [
+        "nullish-assignment-source-contract.mjs",
+        "1f26f5fec84c856f65d8a3dda04392e864021fda553a46eb32fdb471ae93a5dc"
+      ],
+      [
+        "nullish-assignment-oracle.mjs",
+        "f3fda8e28c712eef2d35a6b0a9d9d84e1d52d41d086f262c4d3d92da2c263723"
+      ],
+      [
+        "nullish-source-contract.mjs",
+        "631ba4b751a1d4ee4479b665f7c0b0a34eb22569bfd69f094747546a96031e12"
+      ],
+      [
+        "nullish-oracle.mjs",
+        "3487272d9842b8ae083b59804700f7e617756477c617a1a6e8b8e3926f9f27bf"
+      ],
+      [
+        "array-of-source-contract.mjs",
+        "979f02d5ef0c5e492122328b9c27d092d2f3a8b4f719d80f591b9b39195cdabe"
+      ],
+      [
+        "array-of-oracle.mjs",
+        "a3e92ec67de9736cc44d3507eda9d0f55b51439a4a2d339a09b397e3d7dd91c2"
+      ],
+      [
+        "array-flat-source-contract.mjs",
+        "843225411d6910108dfcb325d6790eda800c303be4c4845b4dc63e8b3e65ded0"
+      ],
+      [
+        "array-flat-oracle.mjs",
+        "006786478b99de77fd79e8b8b5438f3409e324bab18ef2ccd7895bc675d54e81"
+      ],
+      [
+        "array-sorting-source-contract.mjs",
+        "37eed612ef28ea37f171d901618ab072676c09a76877bfaa35a102490ff4208c"
+      ],
+      [
+        "array-sorting-oracle.mjs",
+        "b5369c9bb0bf2ccd7e4fc2ae3f9c4a79fd8c1a7d4ab16f55f0350bc4ce372bdd"
+      ],
+      [
+        "array-splice-source-contract.mjs",
+        "a936b1c5fc6ce15bcae00abcc478477b0f15b572d17699c86e6c3b49572805b6"
+      ],
+      [
+        "array-splice-oracle.mjs",
+        "db89bec1ff71f070038b98d0af63617f7efaffd0e7d82538ac3dc980c570eb45"
+      ],
+      [
+        "array-unshift-source-contract.mjs",
+        "59d5fa7d4b6021b64236ceea6fe1544fe8248ea1b9fd3bfb63288c0f4cbf5c1e"
+      ],
+      [
+        "array-unshift-oracle.mjs",
+        "6e74c1bae87911f5063332717f19ab0ec503e4cb7cd95f94c826155f3d1f419d"
+      ],
+      [
+        "array-find-values-source-contract.mjs",
+        "056ad2b3533eebf0f56c1d8573eddcf132a77e9a6e71473376952dcbf42e921e"
+      ],
+      [
+        "array-find-values-oracle.mjs",
+        "79605cb91b1adf0a1331ff05a02773483fca3977f2721881e779a0263406894e"
+      ],
+      [
+        "array-at-source-contract.mjs",
+        "086d4bf62fbad3c1567717d3c897fd07bd8ca293b7b6c8593ba7162448319725"
+      ],
+      [
+        "array-at-oracle.mjs",
+        "4cc2c09f94189d875639d8bbbf8bda529c180d9be2066f2dd206e4679922fff1"
+      ],
+      [
+        "array-removal-source-contract.mjs",
+        "ce92c775eccaf8381270c706a0ed25cc172660836dcc5c4cfa079612ee9b5d17"
+      ],
+      [
+        "array-removal-oracle.mjs",
+        "533e0d5cda923d5cb2df74db6955d7d870efdcb19ba8c2139d4ce82f03422760"
+      ],
+      [
+        "narrowing-source-contract.mjs",
+        "82da23594780621735bcc9757b97f3298358361c2424b6e4a017cec05bbf23bc"
+      ],
+      [
+        "narrowing-oracle.mjs",
+        "00cddd928ab2db47cf5ba2662b6f85de237c673f78457f24af4e34d6f76e1622"
+      ],
+      [
+        "nullable-transport-source-contract.mjs",
+        "0de78ffb83a81d21892cbe064dd10a605e55ca98e559703ff57a759ff40d35ce"
+      ],
+      [
+        "nullable-transport-oracle.mjs",
+        "02ac9358740c2243378c8312e40682f22370d5d86aad824befb6f51aec015f3a"
+      ],
+      [
+        "array-to-string-source-contract.mjs",
+        "4efca814b9818dbae7d7e5351f1a1f0efe90069a5e7c455b026e0877b7864089"
+      ],
+      [
+        "array-to-string-oracle.mjs",
+        "c97db2740b3f585796bd66cdbd98298fc164fb828c29f4c846e12f210b269b4e"
+      ],
+      [
+        "array-join-source-contract.mjs",
+        "346a7db8def33220a6f1ecb30003426a734cfdd6a2e0e25b51c4b7f0597cce82"
+      ],
+      [
+        "array-join-oracle.mjs",
+        "2e3debe2871e53bf229ccb73eb04e07a9ec7056cd6cc5f2c93a9cec2a733f496"
+      ],
+      [
+        "value-types-source-contract.mjs",
+        "ed83653bd57bfbb8376ebea30f754e5880b45024a0a6c19128e3f720cfbf6ed0"
+      ],
+      [
+        "value-types-oracle.mjs",
+        "fb56eb970226dbf13f677151125569cfca4cc66fce133a23becaf7ebda5ea998"
+      ],
+      [
+        "html-string-source-contract.mjs",
+        "9a499943d962c12b7d91c954e82dd4c5fb65ba2164f60e99396ce43c9ee1d8ba"
+      ],
+      [
+        "html-string-oracle.mjs",
+        "b3efdddb3e990ec8bb0e0777e7c7db50244af6240f4fa8a1358e3e4dd5e8c0d8"
+      ],
+      [
+        "string-substr-source-contract.mjs",
+        "353622d5fde8985065107480efc357dc8ced4beaa92ef647761436b161538a04"
+      ],
+      [
+        "string-substr-oracle.mjs",
+        "504984301935ec2c1c08515afb11f2942bae0e8de017690ebe99f17b686bc5e6"
+      ],
+      [
+        "split-ownership-source-contract.mjs",
+        "023ae1c267d56deef85319fe7b21be37f740df87856b6f1f9b8fe5ffc95d7019"
+      ],
+      [
+        "split-ownership-oracle.mjs",
+        "5595920f787defa7cc1558d6c5d3fe94347aaa418b4aa5b0764d6f4dc56c3f2a"
+      ],
+      [
+        "template-string-source-contract.mjs",
+        "3652120f490a87d309c0270c8cd474e49178db61725f4b4ab10008a95d4b13a2"
+      ],
+      [
+        "template-string-oracle.mjs",
+        "42a6ffbb84c3dc56151bdd6b661a205bd2383fb18c78ebdc8179d924be97eb88"
+      ],
+      [
+        "quoted-string-literals-source-contract.mjs",
+        "e4dad131eb99992bc27f10bad26d972e5e316edaf80a16ab64e72d6c8c11b2e4"
+      ],
+      [
+        "quoted-string-literals-oracle.mjs",
+        "02ed18da7bd3cf7976b1c3ccf1ef6ff8f328682325d14a3986651cdea147bd4a"
+      ],
+      [
+        "quoted-string-literals-domains.json",
+        "a00657433c3aeded9c5bf9b8825c8c1f4145ad6346047c3ea95558fe9ea19860"
+      ],
+      [
+        "string-well-formed-source-contract.mjs",
+        "0876a8260a1f7002031ca7a8ed5858a1c89307ad236a73ce8b8ab2fdc68847df"
+      ],
+      [
+        "string-well-formed-oracle.mjs",
+        "df18b4ee880f96c6ece50256caabe6715a3499758919c129dbcd0c822672c42d"
+      ],
+      [
+        "number-parse-float-source-contract.mjs",
+        "1433558de54f29d1ccfbf20200e268f448b318b3b7a93db0fd1ce8d02b8d16f3"
+      ],
+      [
+        "number-parse-float-oracle.mjs",
+        "179976ce330c5582ac039313623d5f67399b36e5ca291b2fe537a3aed855ecba"
+      ],
+      [
+        "number-parse-float-domains.json",
+        "186a32042013bb389f52fc6d01d2b56ed594b320d0d4b649ae52a496155cccbb"
+      ],
+      [
+        "number-format-source-contract.mjs",
+        "792b5757270512c84c8ba956d50382e7ebffe310a925975a60175894250287c5"
+      ],
+      [
+        "number-format-oracle.mjs",
+        "4149a7b1eb44f665e4f529f221d9cbc240a285aca0b0339ef0fc18dff1d74ac4"
+      ],
+      [
+        "number-format-domains.json",
+        "b447ad5bce4781fdb4a4fdf6dd01e25dd3c11011aade3cb90e90e746b47fdaf9"
+      ],
+      [
+        "int-to-string-source-contract.mjs",
+        "7726f46aacaf998a12660294173490ac48a17e333d2f96c28f5969973eee8da8"
+      ],
+      [
+        "int-to-string-oracle.mjs",
+        "31adf2ac891c3cb58f56379517f9ce2d48222e2279cb29491fe55b3457b4524e"
+      ],
+      [
+        "primitive-identity-source-contract.mjs",
+        "7c8626a1e8e09d16e64d01e6579a223d19fc56b748b3316b42b2ff78f77ae97c"
+      ],
+      [
+        "primitive-identity-oracle.mjs",
+        "dd1d6ad0680ce69aee4cff955672e7e4447af95e771d3142b85552c71279b63f"
+      ],
+      [
+        "string-substring-source-contract.mjs",
+        "4f5f8267d5613c3054a27a5be2bfaa7b3a84e5462877c599f2cd4910cb62f58e"
+      ],
+      [
+        "string-substring-oracle.mjs",
+        "c4b953809150f42fe4f617f9a2e640d1c2c8627245c2d1f03382d520a1a5bdf9"
+      ],
+      [
+        "string-concat-padding-source-contract.mjs",
+        "785ecfb016562cd426b95f02661a5a180bef72de3efc2f50145c849bd0365ccb"
+      ],
+      [
+        "string-concat-padding-oracle.mjs",
+        "093a378a9bcbd10ac6b84f389142460f4ac0e17a826fd8eb163eee4e58a00401"
+      ],
+      [
+        "conditional-source-contract.mjs",
+        "6dacb6d18e64fbac7cc4c767f23cbc282008cecb364e238d3108eed7f0a034ed"
+      ],
+      [
+        "conditional-oracle.mjs",
+        "36dcb6e00697072a35e8b2b1a199fa60baf9c1284406dad2bb299601ba9f2b71"
+      ],
+      [
+        "compound-value-oracle.mjs",
+        "b701f54ea67f03b9111c8202cd97c92ec4f562a128ad681d7601a0abc2c4dba3"
+      ],
+      [
+        "assignment-value-oracle.mjs",
+        "3d3f61bfac53a095de4428a17486158ea0c2c907e45a5afba464c99fa53fa578"
+      ],
+      [
+        "logical-assignment-oracle.mjs",
+        "59c90c74d4fbb81ab3563a6783acfedce8ebdd5d184004bd17c70105f5ee3e0a"
+      ],
+      [
+        "int-native-oracle.mjs",
+        "ac0d884553cfd46eda486802e56f6d4644fdd11840b4bf19674469cee3e8a0c8"
+      ],
+      [
+        "int-native-domains.json",
+        "7996d57d980ec0e38065f43c0c630dad7616599dd86a8ba214c6f9e6b64fb7a5"
+      ],
+      [
+        "oracle.mjs",
+        "aac5edc72fd7ec7a807773fd6c941077a05f2690458a416720e173dd9be80d83"
+      ],
+      [
+        "number-oracle.mjs",
+        "bf5efafa4b241414e395dfef141ceb94cb96e46cf99623e7fa29b5a9b0c6210c"
+      ],
+      [
+        "number-operators-oracle.mjs",
+        "1d36560dc443f00f914e8bc8ab627f9c8887e1f1c2d9e915fdca4d49d8b15406"
+      ],
+      [
+        "number-operators-domains.json",
+        "12ae55543018ab66f59cfa514c4b70f5c02e68425deffd92d784193d014ffa0c"
+      ],
+      [
+        "number-predicate-oracle.mjs",
+        "054b5fdb1c1f8ed0a8f968ddf95eade2281f77d3cf81cd19bc3f6699bebdfce5"
+      ],
+      [
+        "math-oracle.mjs",
+        "22ce948ec938a3f3a368257317f2d892095738e644cb13402d3e3e448ce80105"
+      ],
+      [
+        "exact-math-oracle.mjs",
+        "8134610234ed2efefdd9263c0f54adefed99f19a1fc0efcb228e8b0f6e71b908"
+      ],
+      [
+        "slice-oracle.mjs",
+        "6e58edd0cb0e25805d53737a892ccb441e523d9f993e2038ed01084c98237fdb"
+      ],
+      [
+        "temporary-index-oracle.mjs",
+        "70cd296ed963e3b12c0ba28820b25966e0ec4bd115221163a7009d6e8d92d658"
+      ],
+      [
+        "map-filter-oracle.mjs",
+        "054ed31662f897fe9ef39531b21891e818cf7ee71333aa62d3fbc347cf0c35be"
+      ],
+      [
+        "fixed-number-oracle.mjs",
+        "06ca613f578378456ea50749a408d6772c77efaf807e198ecf60b4eeec793992"
+      ],
+      [
+        "array-predicate-oracle.mjs",
+        "ae70cc09dc4bf30eb268d67f1ba876a37ccc387b8cd638aa91a364bbb7cf8ab9"
+      ],
+      [
+        "string-construction-oracle.mjs",
+        "8be25294b51702274ec9991f98bd002a3029ccb36007710612b2bb9e4554f546"
+      ],
+      [
+        "reduction-oracle.mjs",
+        "7ce2ce30d2362db7df4978de6924c4509ca602d5eaa29b3d2cc53e674aacbecf"
+      ],
+      [
+        "reduction-results.mjs",
+        "9761fcb76b2d3867b798582db77952093fc1e0f14538f857f1923137abf8047a"
+      ],
+      [
+        "for-each-oracle.mjs",
+        "8ca91e84f4fffda9bae0a7694301bc930980a2d3885c50d2ce7df8407972483d"
+      ],
+      [
+        "concat-oracle.mjs",
+        "3a9a6c2251e575e913831e82f53959f9d9f246356666815aa8f96c2241a4773d"
+      ],
+      [
+        "declared-value-oracle.mjs",
+        "d2f5cf7bd4bdd88634ae75b83eedc26bbd2b895a20e943be04af199c9e10122b"
+      ],
+      [
+        "higher-order-oracle.mjs",
+        "fc779ef325deab312f6029646bfc397795b8de6e64c2fb42c04a4311f862a2af"
+      ],
+      [
+        "range-mutation-oracle.mjs",
+        "01cea960981398e0e52ae0333976231e94c0e3eac57c0167259426640c7841cd"
+      ],
+      [
+        "copying-array-oracle.mjs",
+        "aed48f4d6c0d33a2b93e3fffdac3cbd681409d67a87a6a668ede2894750f4655"
+      ],
+      [
+        "to-spliced-oracle.mjs",
+        "30d2833e30e996e507eca9c09fc80440fae9cd30832d0d60c020c7e7c736cec1"
+      ],
+      [
+        "last-index-of-oracle.mjs",
+        "4c82aed410cb82cd8701e6654a39bf6dc50db0a1ba790969e94de4669a3be0e2"
+      ],
+      [
+        "string-last-index-of-oracle.mjs",
+        "4790626ba96316b830dc83f7ad157baa3a4de250ab3b29d275c58740d4cf2206"
+      ],
+      [
+        "string-trim-oracle.mjs",
+        "06f215b4bca76fc1805c9ccf8f714009ee45c3dd71db33b604a8b85dcd36225a"
+      ],
+      [
+        "string-add-oracle.mjs",
+        "ba8df28e8c1f5ee478706d4d3245b106fda2ceb37f9848939cb1227c3d2cd6bb"
+      ],
+      [
+        "compound-oracle.mjs",
+        "9d5abc2e33953bf210448b467ed9531efee89cdf045562ee878aebd3f12a8dc9"
+      ],
+      [
+        "update-oracle.mjs",
+        "2228e1d85f6b2150a7383f2274eda0eb3f8ad11060381eb78aeeac42b56e4d6b"
+      ]
+    ],
+    "release": {
+      "bytes": 2614416,
+      "path": "/tmp/tsrust-checkpoint96-workspace/target/release/tsrust",
+      "sha256": "aa5163474849fdbb6f9a64720c91047a67eb2920f359f386629033da45ecbf43"
+    },
+    "sliceAdapterInputs": [
+      [
+        "slice-driver.rs",
+        "3246d55473ec8db48534cd77a79570ec73244e116e4fc3a21184f51d535551b2"
+      ],
+      [
+        "slice-driver.ts",
+        "8c4e4c636d32516ea4c2d457a7e016e0f512893d7179d49bf6f0ff6a49db4436"
+      ],
+      [
+        "slice-observation.rs",
+        "30f627ef79f70661ee7cfd9946abe42f18bc5e53225239416206635e54092970"
+      ],
+      [
+        "slice-observation.ts",
+        "1f380fc5c827e939dc7e82b3363fb8cb1caf69bafe0405c36373107461c4225d"
+      ],
+      [
+        "slice-observation.mjs",
+        "0eab27f2c01225f4e958ebf046a1ff771de6dd5f195cfdcef96f6a37faa4b0e9"
+      ],
+      [
+        "slice-oracle.mjs",
+        "6e58edd0cb0e25805d53737a892ccb441e523d9f993e2038ed01084c98237fdb"
+      ],
+      [
+        "result-observation.mjs",
+        "067f682afb2e3773420b663abc0f9d870ce7286e50a2910763deacf360e1ed80"
+      ]
+    ],
+    "versions": {
+      "bun": "1.3.11",
+      "deno": "deno 2.9.6 (stable, release, aarch64-apple-darwin)\nv8 15.0.245.2-rusty\ntypescript 6.0.3",
+      "node": "v24.11.1",
+      "rust": "rustc 1.96.1 (31fca3adb 2026-06-26)",
+      "ts-node": "10.9.2",
+      "tsx": "4.23.15",
+      "typescript": "5.9.3"
+    }
+  },
+  "comparedRows": 33,
+  "nativeWins": 2,
+  "rows": [
+    {
+      "id": "array_at_nested",
+      "sourceSha256": "f7c0d5ade26de73b95180871efca4f9563f4c3baf482b6798e20e2bbfc5c6231",
+      "counterpartSha256": "58e83fea111672de8b51943bbb7b1ecd6d723d2ea460ad8116d737bf32e9e578",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 6922801.300729464,
+        "avg": 7401455.756316597,
+        "max": 8047151.277013753
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 3639006.309624682,
+        "avg": 9011991.091980588,
+        "max": 10516046.21309376
+      },
+      "nativeNodeRatio": 0.8212897328430404,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_at_record",
+      "sourceSha256": "b5ffea216a6828169ad102d3e10f48d9af042b5fd9af73f02e3f444eccc379b8",
+      "counterpartSha256": "1e604e5b46165cd1c9b3d0c59d0735d3f32390e4669a51078f5fc017b318c8ad",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 7962396.33916387,
+        "avg": 8659488.922343435,
+        "max": 9434136.094783586
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 2010060.1153232567,
+        "avg": 13523383.027702596,
+        "max": 16990069.76879195
+      },
+      "nativeNodeRatio": 0.6403345157498317,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_find_last_nested",
+      "sourceSha256": "e02445a19b340ca888e99ff84d667a98449a23a88738e16532dde75cb3f2467d",
+      "counterpartSha256": "f620d8b8ea94eb0b5a92db46e957ff5e2e4fe7a966aaa80ebe350b6db8dbd019",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 4408652.842267958,
+        "avg": 4891247.646860734,
+        "max": 5318320.158718618
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 779497.6883402399,
+        "avg": 5348588.19658674,
+        "max": 6658365.384302905
+      },
+      "nativeNodeRatio": 0.9144932208432379,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_find_last_record",
+      "sourceSha256": "40639e1598d1ac1f1ab2d4d61f689d9daacdc63e2ea5ea6bd51d273585904c5d",
+      "counterpartSha256": "7e5aa09fa17931baad60a37b06765ec7480fed9a7f8471566c267ec5af6398fc",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 4880059.666354515,
+        "avg": 5780465.55816352,
+        "max": 6367664.205207927
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 827377.4679421536,
+        "avg": 7202532.797241709,
+        "max": 9075359.159110524
+      },
+      "nativeNodeRatio": 0.8025601161270954,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_find_nested",
+      "sourceSha256": "e1067b26b6c8d55a590b6981f26f2ac0c62e602d72f45e947a74a9b2b4d95b67",
+      "counterpartSha256": "c4a55d022ebec012735743dac86c1d50c51a8bd72c1cf7cb682546570f808756",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 4512255.576976039,
+        "avg": 4909245.185322527,
+        "max": 5401912.298054731
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1275482.4007717578,
+        "avg": 6314876.412905755,
+        "max": 7351463.113459625
+      },
+      "nativeNodeRatio": 0.7774095428517761,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_find_record",
+      "sourceSha256": "3c35d3f484489ff5b527b0b5aa373cd14fe8c4107c14d24c73afcfcc10d3bc3c",
+      "counterpartSha256": "99011f789b52071c4e33fbfa9e8cdbb0771c4e69f9e3e6e377b10b7a8da57c2a",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 5354822.346970525,
+        "avg": 5743872.208193089,
+        "max": 6276605.851831648
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 632139.3472173478,
+        "avg": 8309421.217253467,
+        "max": 10669000.510528365
+      },
+      "nativeNodeRatio": 0.6912481697602068,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_flat_map_record",
+      "sourceSha256": "a9f34d1332110f160a65956bc887cbc93f762217b1d93b3036016d63e6182e30",
+      "counterpartSha256": "e96bfb356be910c081607dfbfcbce0c2404294327ec803f95798bfc6ef33c7e9",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 1280166.4216348124,
+        "avg": 1360984.4389252684,
+        "max": 1486706.031467643
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 623242.1861923841,
+        "avg": 2418210.823796363,
+        "max": 3012686.2334360825
+      },
+      "nativeNodeRatio": 0.5628063630898199,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_flat_map_string",
+      "sourceSha256": "b1f86992bc90bb31945cb601e988692e55dbdd528930053b99697af2fc415cab",
+      "counterpartSha256": "9d940688ced220f7be92e25f8eb5d4bac47214ead0e3c4210672a0eb28abe4eb",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 2057431.2649183858,
+        "avg": 2283808.184125094,
+        "max": 2490220.897671133
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1198536.942209211,
+        "avg": 3799978.8378622024,
+        "max": 4704898.562111253
+      },
+      "nativeNodeRatio": 0.6010055007069256,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_flat_record",
+      "sourceSha256": "a417e356d729f5e3b6881f748539fcd59af9cf8f2d9d3c6bbd664d78ada28575",
+      "counterpartSha256": "d70328025be59ad57833fd6477afc54becfe7ddef6da29dad92f21d2bc44d112",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 586021.8899778238,
+        "avg": 1464149.1647504424,
+        "max": 1617214.4901786596
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1199911.8814711994,
+        "avg": 2491728.7687587477,
+        "max": 3023623.535247656
+      },
+      "nativeNodeRatio": 0.5876037484929818,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_flat_string",
+      "sourceSha256": "55d7bcf749b85996ee9ad0a0ea17a79165d7aa270f5d2eccf1d9d5c52f7993d1",
+      "counterpartSha256": "2bbfe8931524cc10c5890ae62ea04526368815d1b365e67f50acbe3ff7e2b720",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 2402346.041055719,
+        "avg": 2546899.4443309065,
+        "max": 2794473.8188640624
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 974503.5052148761,
+        "avg": 3432001.139961839,
+        "max": 4329425.294160256
+      },
+      "nativeNodeRatio": 0.7421033212008856,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_of_record",
+      "sourceSha256": "e05f5656d2c7df52b0f631fd78294d49c32b0a99346bea2c0f846e1429e11350",
+      "counterpartSha256": "53188a93d7f7db36f9072b2e643738086da04ae8ebbc23106e5182f5d4faa3fd",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 6400000,
+        "avg": 6911179.275649494,
+        "max": 7641791.044776119
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 3551960.42894085,
+        "avg": 6084054.694945818,
+        "max": 7032749.674632087
+      },
+      "nativeNodeRatio": 1.1359495636011934,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_of_string",
+      "sourceSha256": "d7739c3adc91e0b0c47cc3ef25a53ab14f4ef653ad292c26ac5b9f12bb880988",
+      "counterpartSha256": "e3eb3bf294ea56ef44980b2808c2dd6b68b3e38cec099a6f23ab8a57ae1fb5fc",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 16752556.237218816,
+        "avg": 18480440.36597777,
+        "max": 20678096.16122453
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 7721017.907634049,
+        "avg": 8675648.33811853,
+        "max": 9573806.663331626
+      },
+      "nativeNodeRatio": 2.130150928868284,
+      "signal": "native-at-least-as-fast"
+    },
+    {
+      "id": "array_pop_nested",
+      "sourceSha256": "5769942ab5c338a48d2688906fa135f1c6cd76864193a1519c6e08adde3fd8a6",
+      "counterpartSha256": "bff700a093a34e90b6d2c96dbc4b3b4446b14775d392890547babdd18a99a73d",
+      "operationsPerBatch": 4096,
+      "native": {
+        "samples": 93,
+        "min": 9256497.175141243,
+        "avg": 11200203.166012093,
+        "max": 12346646.571213264
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 2561801.2665155306,
+        "avg": 13287296.236121083,
+        "max": 15974042.18145504
+      },
+      "nativeNodeRatio": 0.8429256762985915,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_pop_record",
+      "sourceSha256": "94368a1d4360591687f39989f01404f7624d2d6f89f1baeed123178bc164b8da",
+      "counterpartSha256": "70c1ce4924b9ef011e07e0432244349f786165a76e47055ad00ce14a5e3ff05c",
+      "operationsPerBatch": 4096,
+      "native": {
+        "samples": 93,
+        "min": 12599859.112903474,
+        "avg": 13626498.133338265,
+        "max": 14948905.109489053
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 4167539.9914938784,
+        "avg": 20693225.10848855,
+        "max": 25999581.06143883
+      },
+      "nativeNodeRatio": 0.6585004542258882,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_shift_nested",
+      "sourceSha256": "b0960d2ac95aa4669fa72f0dc1b9a9f6c39dc71d3d224945f5e8bfc2edf70c09",
+      "counterpartSha256": "6357122d42416d0b6b4e7ac51b168ce8b2f3e75d5b4e7bade45c14ac9c0a82b2",
+      "operationsPerBatch": 4096,
+      "native": {
+        "samples": 93,
+        "min": 9926688.882156922,
+        "avg": 11173635.772651283,
+        "max": 12277257.399775196
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1602478.2075091952,
+        "avg": 12667577.83359022,
+        "max": 15606247.070972366
+      },
+      "nativeNodeRatio": 0.8820656892292781,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_shift_record",
+      "sourceSha256": "88a34cc18668af753391d55a9ad00989fb79c56fe8f37ab410c47a5b493fa4f3",
+      "counterpartSha256": "974f5b38a68b3744c809df41031571e8b4c239120623df39a78bb7ecdacf5df6",
+      "operationsPerBatch": 4096,
+      "native": {
+        "samples": 93,
+        "min": 11447992.12950541,
+        "avg": 13187171.336884303,
+        "max": 14365629.110039456
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 350203.94078612135,
+        "avg": 16518175.17501886,
+        "max": 21440423.78337811
+      },
+      "nativeNodeRatio": 0.7983431097660124,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_sort_compare_record",
+      "sourceSha256": "c0c6d07c7a0aa7371880dda35ecee0b2f2bc5165edc74ffe4220483675ed72cc",
+      "counterpartSha256": "45b33a46d2e49924087eafbc85d50f495e5ed267f5f7c06e5dd1594b6a79aa67",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 2113427.4881790467,
+        "avg": 2449632.15338951,
+        "max": 2678146.4297483484
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 1091175.491175484,
+        "avg": 2903919.6515973276,
+        "max": 3554531.1594228013
+      },
+      "nativeNodeRatio": 0.8435605826910766,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_splice_nested",
+      "sourceSha256": "73cc677ae5c0a65dda34a69d395d57748e942ae6375da24d2347c150bd207688",
+      "counterpartSha256": "b2cb9fa10622d1aef77ebd72c222128325719a92d094d18c1b9998dbaab092ec",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 1589496.9024989563,
+        "avg": 1799262.1404996787,
+        "max": 1980178.8735798886
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 919467.9836129994,
+        "avg": 2137024.6393471193,
+        "max": 2503156.4460556265
+      },
+      "nativeNodeRatio": 0.8419473071912591,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_splice_record",
+      "sourceSha256": "c9801a21453495d9230ed5d59f40bd2b56c6da9e94e9a08fc3c24be1ce17de88",
+      "counterpartSha256": "a43a8bd89b68492ec6c0c315e0a215a26a6b79f0a1831e890acdff41e6b80779",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 1743843.9668363112,
+        "avg": 1959602.209454953,
+        "max": 2137508.15394651
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 368458.51207529067,
+        "avg": 3354773.2323786537,
+        "max": 4094976.2559358077
+      },
+      "nativeNodeRatio": 0.58412359754806,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_splice_string",
+      "sourceSha256": "367ccea1a479285dae4b4e3a4f110cfb92d0ee30fe9041ec6cf96a5cfeef434d",
+      "counterpartSha256": "e0f17419a17cc4386aa0a2439f2236411822407a333830e0fedcdfdd79b08dca",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 2156736.167349247,
+        "avg": 2400122.4514463847,
+        "max": 2623679.9930308503
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 820266.3462501373,
+        "avg": 5145589.9169326415,
+        "max": 6346294.482938581
+      },
+      "nativeNodeRatio": 0.4664426217775884,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_to_sorted_compare_record",
+      "sourceSha256": "848f4ade940436fbf8d3bcca9a1e882879bbb211e24721d15048beb1c2729264",
+      "counterpartSha256": "61ad2551f1fc6c737bcfe000a88b45cd8c322054073ff85f66ad032357a682a0",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 218575.73574535074,
+        "avg": 1279456.8147802425,
+        "max": 1458819.3393286439
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 680700.1240083929,
+        "avg": 2206774.2168195983,
+        "max": 2678580.770719717
+      },
+      "nativeNodeRatio": 0.5797860084772039,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_unshift_nested",
+      "sourceSha256": "c877ab17e0f511eed259a6daa5af7a8d0ae46289bf1e4c1f115c3b55789af695",
+      "counterpartSha256": "664c0bdd4f8d247efbf5fdb9d7fb77ae6d309a11e78ea1dfb20280a01f66aedb",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 1556181.337677673,
+        "avg": 1844128.5490146943,
+        "max": 2006531.0233406194
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 537280.1034264243,
+        "avg": 2060471.4222563377,
+        "max": 2472432.617760432
+      },
+      "nativeNodeRatio": 0.8950032158151773,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_unshift_record",
+      "sourceSha256": "f773c1566e4483a1169d7b9f2e953a182d5c459cbd753f7c00c042fef6f84de5",
+      "counterpartSha256": "37d4874b2c4f952adc664864233759845f8fec5c9853259fee422605c7365ce2",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 1804669.2291559824,
+        "avg": 1955670.440147375,
+        "max": 2124390.9750726367
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 672320.3291218055,
+        "avg": 3544286.0497509786,
+        "max": 4318397.469689132
+      },
+      "nativeNodeRatio": 0.551781208597647,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "array_unshift_string",
+      "sourceSha256": "134456c6db1bbc83401bb8712b10af386685a2752d85d11d25cc27b6377efe29",
+      "counterpartSha256": "4e981cb9355c3d54d9add7ac89af4c7cc7ce07a7f08d4156c1c3aacf6491005f",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 2237231.7752455985,
+        "avg": 2465363.5186099824,
+        "max": 2702292.5944252023
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 560028.30768086,
+        "avg": 5672000.285047508,
+        "max": 7215485.107492076
+      },
+      "nativeNodeRatio": 0.434655041380932,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "nullish_assign_nullable_string_value",
+      "sourceSha256": "d1eef160e2f9b6c3ef2dfb03685fb2900467721c5be059841b6a0d7d04b1bd84",
+      "counterpartSha256": "5413e1e66776a815fe038b54526248341c45f3ddf3efd664f96ffd9800861e27",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 12823322.417647094,
+        "avg": 13771928.911611196,
+        "max": 15222012.457076602
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 3662866.0854013325,
+        "avg": 30485395.5163997,
+        "max": 42704032.695280224
+      },
+      "nativeNodeRatio": 0.4517549691688451,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "nullish_assign_record_value",
+      "sourceSha256": "7a68b897cc32842da419d4ff10a69572078cb1adbe14ebd1afa7fb5b64ce6e97",
+      "counterpartSha256": "a45aea84a462431b95e16e434194c358efe0e24186db69d6050440a61e737dce",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 8722614.058400627,
+        "avg": 9375556.715458428,
+        "max": 10240000
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 4482626.538987721,
+        "avg": 17630676.77797249,
+        "max": 24000093.750368617
+      },
+      "nativeNodeRatio": 0.5317752025930231,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "nullish_assign_string_value",
+      "sourceSha256": "4f487debeb0a6e111d5031d01ab17a5c31fb7c7aad6facffebf36bfeeaefed7b",
+      "counterpartSha256": "3d22b5b28373a241f174d59853048be43f3ab04ec06606e0b2216cb2efe41cae",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 12337349.397590362,
+        "avg": 13443578.90454431,
+        "max": 14967149.737270981
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 2675228.7921499377,
+        "avg": 28089315.763469543,
+        "max": 55475797.058262035
+      },
+      "nativeNodeRatio": 0.47860115275673,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "nullish_null_undefined_value",
+      "sourceSha256": "a784b86ccc04304915a9c4642706093a505375ef31229d445dd0fced9d711e84",
+      "counterpartSha256": "2a73c37a1c80df50ce0fb3139250491e7784c32e774a83fb381d24a25fc13c69",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 15855442.953695603,
+        "avg": 22621314.205219366,
+        "max": 25193130.9353934
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 9594393.2764296,
+        "avg": 41246805.79571695,
+        "max": 50777279.15106239
+      },
+      "nativeNodeRatio": 0.5484379643179146,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "nullish_record_value",
+      "sourceSha256": "dbf992ca0b0616e8844ad578fbe691146a8d10b2e4852662b186ee18ace26102",
+      "counterpartSha256": "416aaf1a40be8459d120729e2a2c2e0e8bddee60168df3f2c370a932726b6713",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 11097804.82386028,
+        "avg": 12380139.826409433,
+        "max": 12786653.929960603
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 7641791.0447761,
+        "avg": 24905784.705565274,
+        "max": 29988871.31728479
+      },
+      "nativeNodeRatio": 0.4970788904170947,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "nullish_string_value",
+      "sourceSha256": "97810f2d50dd069cecd8ad2ef9d5acac54f147f7da011f904355c034fb1071c4",
+      "counterpartSha256": "01a4b145f6f4b4999d2137ecb3139fcbf963831a4b21d6b5e43713f7b8edd97f",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 19582345.291822843,
+        "avg": 21719413.674245507,
+        "max": 23574100.719424464
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 13020452.537017314,
+        "avg": 47001077.645613566,
+        "max": 55414254.01807683
+      },
+      "nativeNodeRatio": 0.46210458913323443,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "optional_chain_array_join",
+      "sourceSha256": "5bcb918a4996f7cc4b097b98695fc392172a4b2e8dfa04767f2d98d051993bce",
+      "counterpartSha256": "ac4fdc6506cf218dd763e44752ea6dbd4973585c842dc4898401fdab67e9da11",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 8386293.651313635,
+        "avg": 9117003.355176356,
+        "max": 10043301.931668278
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 6696443.168516158,
+        "avg": 16546604.657841973,
+        "max": 20202219.482119955
+      },
+      "nativeNodeRatio": 0.550989374781219,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "optional_chain_nullable_chain",
+      "sourceSha256": "a78d1d12ac292e0fc5c95037803caa38491572c189c804d281e481ed2e6430c4",
+      "counterpartSha256": "aebfb33da438c9e528c61234301f1a063f86bc0c17adc58973475afc4f2dd8ef",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 12160292.607040858,
+        "avg": 12953272.001991615,
+        "max": 14275855.81943273
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 6161714.930424991,
+        "avg": 30180585.40668605,
+        "max": 36408888.88888521
+      },
+      "nativeNodeRatio": 0.4291922051028876,
+      "signal": "review-native-slower"
+    },
+    {
+      "id": "optional_chain_record_field",
+      "sourceSha256": "db9f465601c3c6772c1a72e5e0b8963969e431888f308652475cc58b9a5e6c5a",
+      "counterpartSha256": "a131bbf1a990f42c42027dde38f77e55539277075ad4774cfdf94b5d24546c49",
+      "operationsPerBatch": 2048,
+      "native": {
+        "samples": 93,
+        "min": 9789300.600359451,
+        "avg": 10962586.881056523,
+        "max": 11636363.636363637
+      },
+      "compiledNode": {
+        "samples": 93,
+        "min": 6752568.481859089,
+        "avg": 27384653.383149162,
+        "max": 41165829.1457261
+      },
+      "nativeNodeRatio": 0.400318628381918,
+      "signal": "review-native-slower"
+    }
+  ],
+  "policy": "Same accepted original run and captured source pair; no cross-run/toolchain/hardware aggregation. Rates are reciprocal per actual sample; complete workload scope applies."
+}

@@ -1,0 +1,24 @@
+{
+  "kind": "executed-closed-gate-artifact-compaction",
+  "timestamp": "2026-10-02T21:45:23.356888+00:00",
+  "planSHA256": "55979f8325f2354be6a45051fd5dc5d2b8a2c8e1ddb224e317fd8bacab03434a",
+  "selection": [
+    "runtime/diagnostics/2026-10-02T21-29-16-000Z-numeric-compound-assignment-values-compiler-proof-artifacts",
+    "runtime/diagnostics/2026-10-02T21-15-11-000Z-numeric-compound-assignment-value-source-validation-artifacts",
+    "runtime/diagnostics/2026-10-02T21-37-19-000Z-numeric-compound-assignment-value-runtime-artifacts",
+    "runtime/diagnostics/2026-10-02T21-37-19-000Z-numeric-compound-assignment-value-runtime-proof-closure-artifacts"
+  ],
+  "files": 1237,
+  "originalLogicalBytes": 20748668,
+  "originalAllocatedBytes": 22863872,
+  "database": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/records.sqlite",
+    "sha256": "54e20a6f2dbe88ec2715f6035175b70ee03c0f38df9825a7e7848a09041a3852",
+    "logicalBytes": 113442816,
+    "allocatedBytes": 113442816
+  },
+  "databaseGrowthBytes": 1912832,
+  "grossAllocatedBytesReclaimed": 20951040,
+  "verification": "original/restored/archive paths, sizes and SHA256; independent zlib; rehash each leaf before unlink",
+  "rollbackOnFailure": true
+}

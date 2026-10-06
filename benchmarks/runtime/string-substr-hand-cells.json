@@ -1,0 +1,510 @@
+[
+  {
+    "id": "string_substr_default_ascii",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "dynamic ASCII"
+    ]
+  },
+  {
+    "id": "string_substr_default_ascii",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_substr_default_ascii",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "ABC"
+    ]
+  },
+  {
+    "id": "string_substr_default_ascii",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "a\u0000b"
+    ]
+  },
+  {
+    "id": "string_substr_default_ascii",
+    "n": 1,
+    "seed": 4,
+    "expected": [
+      " x "
+    ]
+  },
+  {
+    "id": "string_substr_default_ascii",
+    "n": 1,
+    "seed": 5,
+    "expected": [
+      "quote\""
+    ]
+  },
+  {
+    "id": "string_substr_default_ascii",
+    "n": 1,
+    "seed": 6,
+    "expected": [
+      "slash\\"
+    ]
+  },
+  {
+    "id": "string_substr_default_ascii",
+    "n": 1,
+    "seed": 7,
+    "expected": [
+      "dynamic ASCIIdynamic ASCII"
+    ]
+  },
+  {
+    "id": "string_substr_default_ascii",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  },
+  {
+    "id": "string_substr_default_ascii",
+    "n": 3,
+    "seed": 0,
+    "expected": [
+      "dynamic ASCII",
+      "quote\"",
+      "ABC"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_ascii",
+    "n": 1,
+    "seed": 40,
+    "expected": [
+      "yna"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_ascii",
+    "n": 1,
+    "seed": 49,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_substr_bounded_ascii",
+    "n": 1,
+    "seed": 18,
+    "expected": [
+      "ABC"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_ascii",
+    "n": 1,
+    "seed": 10,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_substr_bounded_ascii",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_substr_bounded_ascii",
+    "n": 1,
+    "seed": 66,
+    "expected": [
+      "ABC"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_ascii",
+    "n": 1,
+    "seed": 58,
+    "expected": [
+      "BC"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_ascii",
+    "n": 1,
+    "seed": 50,
+    "expected": [
+      "AB"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_ascii",
+    "n": 1,
+    "seed": 42,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_substr_bounded_ascii",
+    "n": 1,
+    "seed": 34,
+    "expected": [
+      "C"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_ascii",
+    "n": 1,
+    "seed": 26,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_substr_bounded_ascii",
+    "n": 1,
+    "seed": 67,
+    "expected": [
+      "\u0000b"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_ascii",
+    "n": 1,
+    "seed": 59,
+    "expected": [
+      "a\u0000"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_ascii",
+    "n": 1,
+    "seed": 4,
+    "expected": [
+      "x "
+    ]
+  },
+  {
+    "id": "string_substr_bounded_ascii",
+    "n": 1,
+    "seed": 68,
+    "expected": [
+      " x"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_ascii",
+    "n": 1,
+    "seed": 13,
+    "expected": [
+      "uot"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_ascii",
+    "n": 1,
+    "seed": 61,
+    "expected": [
+      "ote\""
+    ]
+  },
+  {
+    "id": "string_substr_bounded_ascii",
+    "n": 1,
+    "seed": 22,
+    "expected": [
+      "las"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_ascii",
+    "n": 1,
+    "seed": 14,
+    "expected": [
+      "sh"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_ascii",
+    "n": 1,
+    "seed": 31,
+    "expected": [
+      "yna"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_ascii",
+    "n": 1,
+    "seed": 23,
+    "expected": [
+      "CI"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_ascii",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  },
+  {
+    "id": "string_substr_default_unicode",
+    "n": 1,
+    "seed": 0,
+    "expected": [
+      "dynamic é😀"
+    ]
+  },
+  {
+    "id": "string_substr_default_unicode",
+    "n": 1,
+    "seed": 1,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_substr_default_unicode",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      "é😀Z"
+    ]
+  },
+  {
+    "id": "string_substr_default_unicode",
+    "n": 1,
+    "seed": 3,
+    "expected": [
+      "a\u0000é😀"
+    ]
+  },
+  {
+    "id": "string_substr_default_unicode",
+    "n": 1,
+    "seed": 4,
+    "expected": [
+      "é"
+    ]
+  },
+  {
+    "id": "string_substr_default_unicode",
+    "n": 1,
+    "seed": 5,
+    "expected": [
+      "﻿中Z"
+    ]
+  },
+  {
+    "id": "string_substr_default_unicode",
+    "n": 1,
+    "seed": 6,
+    "expected": [
+      "dynamic é😀dynamic é😀"
+    ]
+  },
+  {
+    "id": "string_substr_default_unicode",
+    "n": 1,
+    "seed": 7,
+    "expected": [
+      "﷐￿􏿿"
+    ]
+  },
+  {
+    "id": "string_substr_default_unicode",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  },
+  {
+    "id": "string_substr_default_unicode",
+    "n": 3,
+    "seed": 0,
+    "expected": [
+      "dynamic é😀",
+      "﻿中Z",
+      "é😀Z"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_unicode",
+    "n": 1,
+    "seed": 40,
+    "expected": [
+      "dynamic é😀"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_unicode",
+    "n": 1,
+    "seed": 49,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_substr_bounded_unicode",
+    "n": 1,
+    "seed": 18,
+    "expected": [
+      "é😀Z"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_unicode",
+    "n": 1,
+    "seed": 10,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_substr_bounded_unicode",
+    "n": 1,
+    "seed": 2,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_substr_bounded_unicode",
+    "n": 1,
+    "seed": 66,
+    "expected": [
+      "é😀Z"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_unicode",
+    "n": 1,
+    "seed": 58,
+    "expected": [
+      "😀"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_unicode",
+    "n": 1,
+    "seed": 50,
+    "expected": [
+      "Z"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_unicode",
+    "n": 1,
+    "seed": 42,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_substr_bounded_unicode",
+    "n": 1,
+    "seed": 34,
+    "expected": [
+      "😀Z"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_unicode",
+    "n": 1,
+    "seed": 26,
+    "expected": [
+      ""
+    ]
+  },
+  {
+    "id": "string_substr_bounded_unicode",
+    "n": 1,
+    "seed": 67,
+    "expected": [
+      "é"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_unicode",
+    "n": 1,
+    "seed": 59,
+    "expected": [
+      "😀"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_unicode",
+    "n": 1,
+    "seed": 4,
+    "expected": [
+      "́"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_unicode",
+    "n": 1,
+    "seed": 68,
+    "expected": [
+      "́"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_unicode",
+    "n": 1,
+    "seed": 13,
+    "expected": [
+      "中"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_unicode",
+    "n": 1,
+    "seed": 61,
+    "expected": [
+      "中Z"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_unicode",
+    "n": 1,
+    "seed": 22,
+    "expected": [
+      "dynamic é😀"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_unicode",
+    "n": 1,
+    "seed": 14,
+    "expected": [
+      "dynamic é😀"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_unicode",
+    "n": 1,
+    "seed": 31,
+    "expected": [
+      "􏿿"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_unicode",
+    "n": 1,
+    "seed": 23,
+    "expected": [
+      "􏿿"
+    ]
+  },
+  {
+    "id": "string_substr_bounded_unicode",
+    "n": 0,
+    "seed": 7,
+    "expected": []
+  }
+]

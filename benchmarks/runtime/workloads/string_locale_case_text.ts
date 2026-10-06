@@ -1,0 +1,7 @@
+type int = number;
+function workload(n: int, seed: int, input: string): string[][] {
+ const output: string[][] = [];  const words = ["Ab", "Éé", "ßs", "Ωω"];  let i = 0;
+ while (i < n) { const base = (i * 13 + seed) % 97; const text = words[i % 4].repeat(base % 3 + 1);
+ output.push([text.toLocaleLowerCase(), text.toLocaleUpperCase()]); i = i + 1; } return output;
+}
+function main() { const result = workload(3, 0, "abc"); }

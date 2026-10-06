@@ -1,0 +1,16 @@
+function workload(n: int, seed: int): int[] {
+    const leftValues = [false, false, true, true];
+    const rightValues = [false, true, false, true];
+    const output: int[] = []; let i = 0;
+    while (i < n) {
+        const at = (i * 13 + seed) % 4;
+        let target = leftValues[at];
+        const observed = (target &&= rightValues[at]);
+        let resultBit = 0; if (observed) { resultBit = 1; }
+        let targetBit = 0; if (target) { targetBit = 1; }
+        output.push(resultBit); output.push(targetBit);
+        i = i + 1;
+    }
+    return output;
+}
+function main() { console.log(workload(17, 7)[0]); }

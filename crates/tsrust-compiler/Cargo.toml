@@ -1,0 +1,13 @@
+[package]
+name = "tsrust-compiler"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+name = "tsrust_compiler"
+path = "src/lib.rs"
+
+[[bin]]
+name = "tsrust"
+path = "src/main.rs"

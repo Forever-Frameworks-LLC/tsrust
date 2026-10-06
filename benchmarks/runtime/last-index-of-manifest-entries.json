@@ -1,0 +1,166 @@
+[
+  {
+    "id": "array_last_index_of_default_int",
+    "category": "arrays",
+    "family": "int",
+    "method": "lastIndexOf",
+    "searchMode": "default",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "complete search iteration including needle and bound selection and retaining index + 1; the 129-element receiver is built once per workload invocation",
+    "specification": "Search a 129-element runtime-derived int receiver with omitted fromIndex. Retain every index as index + 1, a lossless encoding of -1 through 128 into 0 through 129.",
+    "notes": "Receiver setup, query support, one lastIndexOf call and complete index output retention are timed. Complete tree encoding runs outside timing. This measures complete search iterations rather than isolated-call latency.",
+    "sourceSha256": "4180c170ac7048020f968d0ac016133a355a198dc029a93f5614860837dbc56c",
+    "counterpartSha256": "fce91c7890f32c9b60cbf47347c3265528afabf580b090f74fdd8105cff9365e"
+  },
+  {
+    "id": "array_last_index_of_default_number",
+    "category": "arrays",
+    "family": "number",
+    "method": "lastIndexOf",
+    "searchMode": "default",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "complete search iteration including needle and bound selection and retaining index + 1; the 129-element receiver is built once per workload invocation",
+    "specification": "Search a 129-element runtime-derived number receiver with omitted fromIndex. Retain every index as index + 1, a lossless encoding of -1 through 128 into 0 through 129.",
+    "notes": "Receiver setup, query support, one lastIndexOf call and complete index output retention are timed. Complete tree encoding runs outside timing. This measures complete search iterations rather than isolated-call latency.",
+    "sourceSha256": "7979e873b9f64dd2ad06e186533d55068794d208657a8204176bc187fceeda13",
+    "counterpartSha256": "f1209c526ebe96e3760888ddf4ff2160a2a2fe668ea2c77edb5d230f5cdd852d"
+  },
+  {
+    "id": "array_last_index_of_default_boolean",
+    "category": "arrays",
+    "family": "boolean",
+    "method": "lastIndexOf",
+    "searchMode": "default",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "complete search iteration including needle and bound selection and retaining index + 1; the 129-element receiver is built once per workload invocation",
+    "specification": "Search a 129-element runtime-derived boolean receiver with omitted fromIndex. Retain every index as index + 1, a lossless encoding of -1 through 128 into 0 through 129.",
+    "notes": "Receiver setup, query support, one lastIndexOf call and complete index output retention are timed. Complete tree encoding runs outside timing. This measures complete search iterations rather than isolated-call latency.",
+    "sourceSha256": "b920ed07270d7ea578124d5bfacfd7282dc6ecbfcb69df24dea9e81fa4eed64f",
+    "counterpartSha256": "db84b9a308780608805b561f89147de091f456fdc0d8185b3a5e1be3836ece5c"
+  },
+  {
+    "id": "array_last_index_of_default_string",
+    "category": "arrays",
+    "family": "string",
+    "method": "lastIndexOf",
+    "searchMode": "default",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "complete search iteration including needle and bound selection and retaining index + 1; the 129-element receiver is built once per workload invocation",
+    "specification": "Search a 129-element runtime-derived string receiver with omitted fromIndex. Retain every index as index + 1, a lossless encoding of -1 through 128 into 0 through 129.",
+    "notes": "Receiver setup, query support, one lastIndexOf call and complete index output retention are timed. Complete tree encoding runs outside timing. This measures complete search iterations rather than isolated-call latency. Native string setup owns independent copies while JavaScript may share immutable references; equal allocation is not claimed.",
+    "sourceSha256": "a0c8f413ddd24130ab15929c18cbbf23c2bd114b4272f0412cb8707725d5c636",
+    "counterpartSha256": "9e25e04719a935df6ec9579d85921c829e9a63dc2161a40ec90989efd51c92f5",
+    "inputText": " xé😀é "
+  },
+  {
+    "id": "array_last_index_of_bounded_int",
+    "category": "arrays",
+    "family": "int",
+    "method": "lastIndexOf",
+    "searchMode": "bounded",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "complete search iteration including needle and bound selection and retaining index + 1; the 129-element receiver is built once per workload invocation",
+    "specification": "Search a 129-element runtime-derived int receiver with signed extreme, negative, zero, in-range and beyond-end fromIndex. Retain every index as index + 1, a lossless encoding of -1 through 128 into 0 through 129.",
+    "notes": "Receiver setup, query support, one lastIndexOf call and complete index output retention are timed. Complete tree encoding runs outside timing. This measures complete search iterations rather than isolated-call latency.",
+    "sourceSha256": "24ce9adf56088f33966d67362e730ed104c3930b860e611dca88a5e24cb01903",
+    "counterpartSha256": "1150e1c1d6d293db8534ed04cfca7c6cecf9ab719766cc3a63ee15680a9f0d1a"
+  },
+  {
+    "id": "array_last_index_of_bounded_number",
+    "category": "arrays",
+    "family": "number",
+    "method": "lastIndexOf",
+    "searchMode": "bounded",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "complete search iteration including needle and bound selection and retaining index + 1; the 129-element receiver is built once per workload invocation",
+    "specification": "Search a 129-element runtime-derived number receiver with signed extreme, negative, zero, in-range and beyond-end fromIndex. Retain every index as index + 1, a lossless encoding of -1 through 128 into 0 through 129.",
+    "notes": "Receiver setup, query support, one lastIndexOf call and complete index output retention are timed. Complete tree encoding runs outside timing. This measures complete search iterations rather than isolated-call latency.",
+    "sourceSha256": "e88fcc6e0127a7410a3134f3dac99f1ff45a2bd1bba7676776c15a998a62fcd3",
+    "counterpartSha256": "9b046301d0ec468da43d8ecf0a7920008f62b27b5ca2f5f0e5e76fe1acbd350d"
+  },
+  {
+    "id": "array_last_index_of_bounded_boolean",
+    "category": "arrays",
+    "family": "boolean",
+    "method": "lastIndexOf",
+    "searchMode": "bounded",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "complete search iteration including needle and bound selection and retaining index + 1; the 129-element receiver is built once per workload invocation",
+    "specification": "Search a 129-element runtime-derived boolean receiver with signed extreme, negative, zero, in-range and beyond-end fromIndex. Retain every index as index + 1, a lossless encoding of -1 through 128 into 0 through 129.",
+    "notes": "Receiver setup, query support, one lastIndexOf call and complete index output retention are timed. Complete tree encoding runs outside timing. This measures complete search iterations rather than isolated-call latency.",
+    "sourceSha256": "979faafd8cbf9e6e0af1a57d7a0916f023450ed88aa1ce22fcc1275e96f33a22",
+    "counterpartSha256": "794965b9d844f98127768ec9169fdf8085ae99491d5cc2dd20a70e64f83a3292"
+  },
+  {
+    "id": "array_last_index_of_bounded_string",
+    "category": "arrays",
+    "family": "string",
+    "method": "lastIndexOf",
+    "searchMode": "bounded",
+    "result": "int[]",
+    "resultEncoding": "array-shape-scalar-v1",
+    "parameters": [
+      "int",
+      "int",
+      "string"
+    ],
+    "iterations": 2048,
+    "operationsPerIteration": 1,
+    "operationUnit": "complete search iteration including needle and bound selection and retaining index + 1; the 129-element receiver is built once per workload invocation",
+    "specification": "Search a 129-element runtime-derived string receiver with signed extreme, negative, zero, in-range and beyond-end fromIndex. Retain every index as index + 1, a lossless encoding of -1 through 128 into 0 through 129.",
+    "notes": "Receiver setup, query support, one lastIndexOf call and complete index output retention are timed. Complete tree encoding runs outside timing. This measures complete search iterations rather than isolated-call latency. Native string setup owns independent copies while JavaScript may share immutable references; equal allocation is not claimed.",
+    "sourceSha256": "bb83100e2c75df529c9a4ac2b58f7c3d6813c5c123cd2b1a668d061d046d7454",
+    "counterpartSha256": "865a16147902880c35e43f7ef82b4c9f434a1a1b50134ac1dc66ad6ba03874ed",
+    "inputText": " xé😀é "
+  }
+]

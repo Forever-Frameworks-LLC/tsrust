@@ -1,0 +1,12 @@
+function workload(n: int, seed: int): int[] {
+    const operands: int[] = [-1, -2, -3, -8, -16, -256, -1024, -65536];
+    const output: int[] = []; let i = 0;
+    while (i < n) {
+        const value: int = operands[(i * 13 + seed) % 8];
+        const observed: int = ~value;
+        output.push(observed);
+        i = i + 1;
+    }
+    return output;
+}
+function main() { const result = workload(2, 7); }

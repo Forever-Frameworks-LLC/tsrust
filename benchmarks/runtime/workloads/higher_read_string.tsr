@@ -1,0 +1,4 @@
+function workload(n:int,seed:int,input:string):string[]{const consumer=drive;const output:string[]=[];let i=0;while(i<n){output.push(consumer(copy,input));i=i+1;}return output;}
+function copy(text:string):string{return clone(text);}
+function drive(f:Mutable<Function<string, [text:ReadOnly<string>]>>,text:string):string{return f(text);}
+function main(){const result=workload(2,7," xé😀e\u0301 ");}

@@ -1,0 +1,312 @@
+{
+  "gate": 65,
+  "compilerAccepted": true,
+  "runtimeAccepted": true,
+  "completedUtc": "2026-10-02T19:07:46.792088+00:00",
+  "namedGroups": 617,
+  "releasePath": "/Users/seancotter/Desktop/dev/learning/tsrust/target/release/tsrust",
+  "releaseSha256": "b3d5f09ac79454665b337fa0cd48d2715a2c2827178fbff36202cdb796edb5dd",
+  "compilerProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T18-48-35-000Z-native-int-compiler-proof.json",
+    "sha256": "8b2807fb8d5b52ac7e10ae6fbf36e1e348c68abb734c0a0b374f182490eaa95f"
+  },
+  "sourceProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T18-47-23-000Z-native-int-source-validation.json",
+    "sha256": "80891483fedefd7d69b4c48b5bd55015b517ad213712cbc9de06daf697d4e03b"
+  },
+  "runtimeProof": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T19-00-25-000Z-native-int-runtime-proof.json",
+    "sha256": "9b8c8898556b30c6f42cfbfc988f6a3b03964529ec68f865be36abf7a20ca03d"
+  },
+  "measuredRows": 405,
+  "verification": {
+    "uniqueRegressionGroups": 617,
+    "focusedGroups": 4,
+    "focusedCommands": 1,
+    "fullAttempts": 1,
+    "fullRestarts": 0,
+    "failedRegressionCommands": 1,
+    "retainedGroupsAfterFailedFull": 439,
+    "targetedResumptionCommands": 2,
+    "separateDoctestCommands": 1,
+    "fixtureOnlyRepair": {
+      "gate": 65,
+      "fixtureOnly": true,
+      "path": "crates/tsrust-compiler/tests/operators.rs",
+      "beforeSha256": "39744963e4a61182b17ccfd8ce1253857bb5228899d7a45c8b4bb2aed84a4e52",
+      "afterSha256": "8910d98ecc541e78a8b7c210472054bb3055deaa1949176eaa9e1ecc3f4adeb2",
+      "reason": "Obsolete unsupported unary+1 cell; supported identity already covered by accepted focused group. All other negative cells unchanged.",
+      "diff": {
+        "path": "/tmp/tsrust-gate65-root-acceptance/operators-stale-negative-fix.diff",
+        "sha256": "b8a5f2cdeccd2ebbb10df80879b5fe440083878cc35145ec96a9d51c334c6e37"
+      },
+      "failedFullOwnerSession": 21807,
+      "compilerCodeChanged": false,
+      "fullRestarts": 0,
+      "durableRepairRecord": {
+        "originalPath": "/private/tmp/tsrust-gate65-root-acceptance/operators-stale-negative-fix.json",
+        "path": "benchmarks/runtime/diagnostics/2026-10-02T18-48-35-000Z-native-int-compiler-proof-artifacts/021-operators-stale-negative-fix.json",
+        "sha256": "1846fcb928f43be6b5ce23279b50e17eea1f8e9e9b655f6bd69c912aef554969",
+        "bytes": 684
+      }
+    },
+    "regressionHistory": {
+      "soleFullOwnerSession": 21807,
+      "soleFullExitCode": 101,
+      "acceptedRetainedGroups": 439,
+      "acceptedFailedGroupRerun": 1,
+      "resumedUnstartedTargets": [
+        "owned_arrays",
+        "owned_closure_arguments",
+        "primitive_storage",
+        "recursion",
+        "recursive_callable_results",
+        "recursive_callbacks",
+        "recursive_owned_callbacks",
+        "recursive_storage",
+        "retained_callbacks",
+        "single_use_callbacks",
+        "string_addition",
+        "string_construction",
+        "string_last_index_of",
+        "string_operators",
+        "string_search",
+        "string_side_trimming",
+        "strings",
+        "temporary_array_index",
+        "temporary_array_length",
+        "update_expressions",
+        "uppercase",
+        "utf8_storage",
+        "witnesses"
+      ],
+      "fullRestarts": 0
+    },
+    "sourcePrograms": 16,
+    "sourceCases": 1120,
+    "sourceMutationNegatives": 40,
+    "independentSourceHandCells": 128,
+    "auxiliarySourcePrograms": 2,
+    "sourceOrder": true,
+    "uniqueNodeGroups": 2,
+    "runtimeScope": {
+      "newWorkloads": 16,
+      "engines": 8,
+      "currentSourceInputsExact": 69,
+      "publishedRateCells": 128,
+      "priorRawRecordsRehashed": false,
+      "old389MeasurementTablesByteExact": true,
+      "old389ReportSectionsByteExact": true,
+      "old9PrimitiveMemoryTablesByteExact": true,
+      "auxiliaryTablesByteExact": true,
+      "measurementScope": "execution-only",
+      "startupCompilerMeasurements": 0,
+      "processCells": 384,
+      "processesPerEngineRow": 3,
+      "samplesPerProcess": 31,
+      "warmupsPerProcess": 8,
+      "timedBatches": 11904,
+      "independentEngineCorrectnessPreparationsBeforeTiming": 640,
+      "actualSourceTypeScriptCases": 1120,
+      "actualSourceTypeScriptPrograms": 16,
+      "actualNodeUniqueGroups": 2,
+      "independentSourceHandCells": 128,
+      "sourceObserverMutationNegatives": 40,
+      "nativePreflightBuilds": 66,
+      "nativeO0O3CompleteOutputCases": 160,
+      "nativeUntimedAllocationCases": 32,
+      "nativeCompleteOrderCases": 2,
+      "nativeOnlySupplementScope": {
+        "nativeOnly": true,
+        "nativeBuilds": 22,
+        "exactWideScalarLinesPerOptimization": 18,
+        "checkedTrapRuns": 18,
+        "acceptedNoCommitCases": 8,
+        "additionalInlineToHeapNoCommitCases": 8,
+        "rustImplicitOverflowChecks": false,
+        "noThroughputRecord": true,
+        "completeOutputsStoredOnce": true,
+        "allocationTestsRepeated": false
+      },
+      "nativeProfileSamples": 48,
+      "allAfterOutputAndFinalDisposalsZero": true,
+      "groupedReportMeasuredRows": 405,
+      "groupedPrimitiveRows": 9,
+      "old389RowsMemory9AuxiliaryBaselinesNotRetimed": true,
+      "combined405WorkloadRunClaimed": false,
+      "realCompleteIntArrayResultABI": true,
+      "naturalOutputConstructionAndRetentionTimed": true,
+      "retainedScalarResultsPerOperation": 1,
+      "completeObserverTraversalTimed": false,
+      "ownedCloningSharingIdentityEquivalenceClaimed": false,
+      "nativeStdoutStoredOnce": true
+    },
+    "nativeOnlySupplementScope": {
+      "nativeOnly": true,
+      "nativeBuilds": 22,
+      "exactWideScalarLinesPerOptimization": 18,
+      "checkedTrapRuns": 18,
+      "acceptedNoCommitCases": 8,
+      "additionalInlineToHeapNoCommitCases": 8,
+      "rustImplicitOverflowChecks": false,
+      "noThroughputRecord": true,
+      "completeOutputsStoredOnce": true,
+      "allocationTestsRepeated": false
+    },
+    "publishedRateCells": 128,
+    "retainedScalarResultsPerOperation": 1,
+    "oldMeasurementsRepeated": false,
+    "resourceNormalization": {
+      "operationsPerSample": 2048,
+      "samples": 3,
+      "statistics": [
+        "min",
+        "avg",
+        "max"
+      ],
+      "rawCountersRetained": true,
+      "inputAdaptationSeparate": true,
+      "outputAllocationsPerBatch": 1,
+      "outputReallocationsPerBatch": 6,
+      "requestedBytesPerOperation": 15.875,
+      "retainedBytesPerOperation": 8,
+      "peak": "retained-batch peak divided by operations; not an isolated-call peak"
+    }
+  },
+  "measurementHistory": {
+    "acceptedRecordSuppliesAllPublishedRates": true,
+    "failedMeasurementAttempts": []
+  },
+  "sessions": {
+    "nativePreflight": {
+      "session": 71332,
+      "terminal": {
+        "path": "/private/tmp/tsrust-gate65-root-acceptance/native-preflight-terminal.json",
+        "sha256": "2d337b5e3e6a4fbedb004489c18d21925b55575d85c8f6306bb8fe91e3b4bcb2"
+      },
+      "actual": {
+        "gate": 65,
+        "argv": [
+          "/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node",
+          "/tmp/tsrust-gate65-native-source-plan/preflight.mjs",
+          "--release-sha=b3d5f09ac79454665b337fa0cd48d2715a2c2827178fbff36202cdb796edb5dd",
+          "--source-proof=/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/2026-10-02T18-47-23-000Z-native-int-source-validation.json",
+          "--source-proof-sha=80891483fedefd7d69b4c48b5bd55015b517ad213712cbc9de06daf697d4e03b",
+          "--output=/tmp/tsrust-gate65-native-preflight",
+          "--fixture-source=/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/int-native-source-order.tsr",
+          "--fixture-expected=/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/int-native-source-order-expected.txt"
+        ],
+        "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+        "pid": 6100,
+        "startedUtc": "2026-10-02T18:48:52.969206+00:00",
+        "finishedUtc": "2026-10-02T18:49:12.401558+00:00",
+        "exitCode": 0,
+        "log": "/tmp/tsrust-gate65-root-acceptance/native-preflight.log",
+        "logSha256": "0c4ac12b1c75a18650e693604d9f1b4bb87bc36dbe3a076213434c84143bf2c4"
+      }
+    },
+    "nativeSupplement": {
+      "session": 37876,
+      "terminal": {
+        "path": "/private/tmp/tsrust-gate65-root-acceptance/native-supplement-terminal.json",
+        "sha256": "69454a153ba57e0a237eaaf3095232a32a255b9f244750b222350590075e05e1"
+      },
+      "actual": {
+        "gate": 65,
+        "argv": [
+          "/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node",
+          "/tmp/tsrust-gate65-native-witness-source-plan/witnesses.mjs",
+          "--release-sha=b3d5f09ac79454665b337fa0cd48d2715a2c2827178fbff36202cdb796edb5dd",
+          "--source-proof=benchmarks/runtime/diagnostics/2026-10-02T18-47-23-000Z-native-int-source-validation.json",
+          "--source-proof-sha=80891483fedefd7d69b4c48b5bd55015b517ad213712cbc9de06daf697d4e03b",
+          "--output=/tmp/tsrust-gate65-native-witnesses"
+        ],
+        "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+        "pid": 22183,
+        "startedUtc": "2026-10-02T18:56:27.176267+00:00",
+        "finishedUtc": "2026-10-02T18:56:33.872364+00:00",
+        "exitCode": 0,
+        "log": "/tmp/tsrust-gate65-root-acceptance/native-supplement.log",
+        "logSha256": "f04b956ba1e0b4357b000a4f29745e1f1b4edca6b1167aa213f8ff4b130b9eec"
+      }
+    },
+    "runtime": {
+      "session": 23042,
+      "terminal": {
+        "path": "/private/tmp/tsrust-gate65-runtime-terminal.json",
+        "sha256": "e10d9386d87e755de98a4f77bda1e4c4db360027cec4a9e326727d7504c99d91"
+      },
+      "actual": {
+        "argv": [
+          "/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node",
+          "benchmarks/runtime/run.mjs",
+          "--execution-only",
+          "--only=int_native_unary_plus,int_native_bit_not,int_native_bit_and,int_native_bit_or,int_native_bit_xor,int_native_shift_left,int_native_shift_right,int_native_shift_right_unsigned,int_native_power,int_native_compound_bit_and,int_native_compound_bit_or,int_native_compound_bit_xor,int_native_compound_shift_left,int_native_compound_shift_right,int_native_compound_shift_right_unsigned,int_native_compound_power"
+        ],
+        "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+        "pid": 25108,
+        "startedUtc": "2026-10-02T18:57:15.276315+00:00",
+        "finishedUtc": "2026-10-02T19:00:03.353279+00:00",
+        "exitCode": 0,
+        "log": "/tmp/tsrust-gate65-runtime.log",
+        "logSha256": "43bc5b47674be041f477897d7bea9b53f1d0ffea7c026009314060f1a5fc3784"
+      }
+    },
+    "profile": {
+      "session": 82187,
+      "terminal": {
+        "path": "/private/tmp/tsrust-gate65-profile-terminal.json",
+        "sha256": "41312cfa2976baeced64f3b48e652dc3eae2445a3bac686d4ee2c290a44c2c9c"
+      },
+      "actual": {
+        "argv": [
+          "/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node",
+          "benchmarks/runtime/profile-native.mjs",
+          "--only=int_native_unary_plus,int_native_bit_not,int_native_bit_and,int_native_bit_or,int_native_bit_xor,int_native_shift_left,int_native_shift_right,int_native_shift_right_unsigned,int_native_power,int_native_compound_bit_and,int_native_compound_bit_or,int_native_compound_bit_xor,int_native_compound_shift_left,int_native_compound_shift_right,int_native_compound_shift_right_unsigned,int_native_compound_power"
+        ],
+        "cwd": "/Users/seancotter/Desktop/dev/learning/tsrust",
+        "pid": 33005,
+        "startedUtc": "2026-10-02T19:00:10.308903+00:00",
+        "finishedUtc": "2026-10-02T19:00:18.863741+00:00",
+        "exitCode": 0,
+        "log": "/tmp/tsrust-gate65-profile.log",
+        "logSha256": "e34c3c2c3b97f7be372c9d4711ceb9482b3930ee540cf41d22e108df48697b86"
+      }
+    }
+  },
+  "rateLeads": {
+    "nativeNode": 16,
+    "nativeFastestScripting": 16,
+    "rows": 16,
+    "nativeNodeAverageRatioRange": [
+      2.1757274167270135,
+      3.91146936547033
+    ],
+    "nativeFastestAverageRatioRange": [
+      1.8741850975389411,
+      2.9904770252853816
+    ]
+  },
+  "inventoryOperations": 1894,
+  "inventoryFamilies": 28,
+  "readmeSha256": "10ea2570609eb1f2c7183287f8671c8c6649acaed0c743921f33fbe85c146d7a",
+  "documentationOnlyCompilerSupplement": "/tmp/tsrust-gate65-postclosure-readme-supplement.json",
+  "documentationSupplementSha256": "2e614569c42aac65b2a678c129bd110644ec4da30553628805668b4dc5284d2a",
+  "closureArtifacts": [
+    {
+      "originalPath": "/tmp/tsrust-gate65-close-docs.py",
+      "path": "benchmarks/runtime/diagnostics/2026-10-02T19-00-25-000Z-native-int-runtime-proof-closure-artifacts/tsrust-gate65-close-docs.py",
+      "sha256": "ceedc87881583c96e1c89678b008500bc3fe95ec6888076f2d929681aab33494"
+    },
+    {
+      "originalPath": "/tmp/tsrust-gate65-root-acceptance/supplement-runtime-archive-review.json",
+      "path": "benchmarks/runtime/diagnostics/2026-10-02T19-00-25-000Z-native-int-runtime-proof-closure-artifacts/supplement-runtime-archive-review.json",
+      "sha256": "d764969ed66ca763ee40ba31096212a81b3dc763899ad2c7a02b7c5c97fca8d8"
+    }
+  ],
+  "archivedDocumentationSupplement": {
+    "path": "benchmarks/runtime/diagnostics/2026-10-02T19-00-25-000Z-native-int-runtime-proof-closure-artifacts/tsrust-gate65-postclosure-readme-supplement.json",
+    "sha256": "2e614569c42aac65b2a678c129bd110644ec4da30553628805668b4dc5284d2a"
+  },
+  "historicalCompilerProofUnchanged": true
+}

@@ -1,0 +1,761 @@
+//! AST-level module linking with explicit source coordinate segments.
+use crate::project::{ProjectDiagnostic, ProjectGraph, SourceId, SourceLocation};
+use crate::syntax::*;
+use crate::{Analysis, Diagnostic, Span};
+use std::collections::{BTreeMap, BTreeSet};
+
+/// Pattern names are locals for later parameter defaults, even though the
+/// declarations remain in the leading body for checked source traversal.
+#[inline(never)]
+fn parameter_pattern_names(parameter: &Token, body: &[Stmt], locals: &mut BTreeSet<String>) {
+    if !parameter.text.starts_with("pattern#") { return; }
+    for stmt in body {
+        if stmt.span.start >= parameter.span.start && stmt.span.end <= parameter.span.end {
+            if let StmtKind::Let { name, .. } = &stmt.kind { locals.insert(name.text.clone()); }
+        }
+    }
+}
+
+
+pub struct ProjectAnalysis {
+    pub graph: ProjectGraph,
+    pub(crate) analysis: Analysis,
+    segments: Vec<(SourceId, usize, usize)>,
+}
+impl ProjectAnalysis {
+    pub fn emit_rust(&self) -> String {
+        self.emit_rust_with_native_features().0
+    }
+    pub fn emit_rust_with_native_features(&self) -> (String, Vec<&'static str>) {
+        crate::emit::emit_with_source_segments(
+            &self.analysis.program,
+            &crate::project_runtime::setup(&self.segments),
+            &self.segments,
+        )
+    }
+    fn source_name(&self, name: &str) -> String {
+        for (module, source) in self.graph.order.iter().enumerate() {
+            let prefix = format!("__tsrust_module_{module}_");
+            if let Some(name) = name.strip_prefix(&prefix) {
+                return format!("{}::{name}", source.0);
+            }
+        }
+        format!("{}::{name}", self.graph.entry.0)
+    }
+    pub fn contracts(&self) -> BTreeMap<String, crate::Mode> {
+        self.analysis
+            .contracts()
+            .into_iter()
+            .map(|(name, mode)| (self.source_name(&name), mode))
+            .collect()
+    }
+    pub fn closures(&self) -> Vec<crate::ClosureInfo> {
+        self.analysis
+            .closures()
+            .into_iter()
+            .map(|mut closure| {
+                closure.function = self.source_name(&closure.function);
+                if let Some(location) = self.source_location(closure.span) {
+                    closure.span = location.span;
+                }
+                for capture in &mut closure.captures {
+                    if let Some(location) = self.source_location(capture.span) {
+                        capture.span = location.span;
+                    }
+                }
+                closure
+            })
+            .collect()
+    }
+    pub fn to_json(&self) -> String {
+        let contracts = self
+            .contracts()
+            .iter()
+            .map(|(name, mode)| {
+                format!(
+                    "{}:{}",
+                    crate::json_string(name),
+                    crate::json_string(mode.as_str())
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(",");
+        let closures = self.analysis.closures().iter().map(|closure| {
+            let source=self.source_location(closure.span).expect("checked closure source");
+            let captures=closure.captures.iter().map(|capture| {
+                let location=self.source_location(capture.span).expect("checked capture source");
+                format!("{{\"name\":{},\"storage\":{},\"access\":{},\"file\":{},\"start\":{},\"end\":{}}}",crate::json_string(&capture.name),crate::json_string(capture.storage.as_str()),crate::json_string(capture.access.as_str()),crate::json_string(&location.source.0),location.span.start,location.span.end)
+            }).collect::<Vec<_>>().join(",");
+            let parameters=closure.parameters.iter().map(|param|format!("{{\"name\":{},\"access\":{}}}",crate::json_string(&param.name),crate::json_string(param.access.as_str()))).collect::<Vec<_>>().join(",");
+            format!("{{\"id\":{},\"template\":{},\"depth\":{},\"function\":{},\"file\":{},\"start\":{},\"end\":{},\"escapes\":{},\"invocation\":{},\"captures\":[{captures}],\"parameters\":[{parameters}]}}",closure.id,closure.template,closure.depth,crate::json_string(&self.source_name(&closure.function)),crate::json_string(&source.source.0),source.span.start,source.span.end,closure.escapes,crate::json_string(closure.invocation.as_str()))
+        }).collect::<Vec<_>>().join(",");
+        format!(
+            "{{\"ok\":true,\"contracts\":{{{contracts}}},\"closures\":[{closures}],\"diagnostics\":[]}}"
+        )
+    }
+    pub fn source_location(&self, span: Span) -> Option<SourceLocation> {
+        locate(&self.segments, span)
+    }
+}
+fn locate(segments: &[(SourceId, usize, usize)], span: Span) -> Option<SourceLocation> {
+    segments
+        .iter()
+        .find(|(_, start, len)| span.start >= *start && span.end <= start + len)
+        .map(|(source, start, _)| SourceLocation {
+            source: source.clone(),
+            span: Span::new(span.start - start, span.end - start),
+        })
+}
+fn diagnostic(
+    graph: &ProjectGraph,
+    segments: &[(SourceId, usize, usize)],
+    value: Diagnostic,
+) -> ProjectDiagnostic {
+    ProjectDiagnostic {
+        fixes: value
+            .fixes
+            .into_iter()
+            .filter_map(|fix| {
+                locate(segments, fix.span).map(|location| crate::project::ProjectFix {
+                    title: readable(&fix.title),
+                    location,
+                    replacement: fix.replacement,
+                })
+            })
+            .collect(),
+        code: value.code,
+        message: readable(&value.message),
+        location: locate(segments, value.span).unwrap_or(SourceLocation {
+            source: graph.entry.clone(),
+            span: Span::default(),
+        }),
+        related: value
+            .related
+            .into_iter()
+            .filter_map(|(span, message)| {
+                locate(segments, span).map(|location| (location, readable(&message)))
+            })
+            .collect(),
+    }
+}
+fn symbol(module: usize, name: &str) -> String {
+    format!("__tsrust_module_{module}_{name}")
+}
+
+/// Link independently parsed ASTs; internal checker coordinates are mapped to files explicitly.
+pub fn check_graph(graph: ProjectGraph) -> Result<ProjectAnalysis, ProjectDiagnostic> {
+    let test_entry = crate::project::is_test_entry(&graph.entry.0);
+    let entries = if test_entry { vec![graph.entry.clone()] } else { Vec::new() };
+    check_graph_entry(graph, &entries)
+}
+pub(crate) fn check_test_graph(graph: ProjectGraph) -> Result<ProjectAnalysis, ProjectDiagnostic> {
+    let entry = graph.entry.clone();
+    check_graph_entry(graph, &[entry])
+}
+pub(crate) fn check_test_graph_entries(graph: ProjectGraph, entries: &[SourceId]) -> Result<ProjectAnalysis, ProjectDiagnostic> {
+    check_graph_entry(graph, entries)
+}
+fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId]) -> Result<ProjectAnalysis, ProjectDiagnostic> {
+    let mut programs = BTreeMap::new();
+    let mut globals = BTreeMap::new();
+    let mut segments = vec![];
+    let mut offset = 1;
+    for (module, id) in graph.order.iter().enumerate() {
+        let source = &graph.modules[id];
+        segments.push((id.clone(), offset, source.source.text.len()));
+        offset += source.source.text.len() + 1;
+        let parsed = if entries.contains(id) {
+            crate::syntax::parse_test_entry(&source.declaration_source)
+        } else { crate::syntax::parse(&source.declaration_source) };
+        let mut program = parsed.map_err(|value| {
+            ProjectDiagnostic {
+                code: value.code,
+                message: readable(&value.message),
+                location: SourceLocation {
+                    source: id.clone(),
+                    span: value.span,
+                },
+                related: vec![],
+                fixes: Box::new([]),
+            }
+        })?;
+        if entries.contains(id) {
+            let registration = program.functions.iter_mut().find(|function| function.name.text == "main").expect("synthetic test registration");
+            registration.name.text = "@testRegistration".into();
+            registration.body.pop(); // Execution follows all files' registration, in one registry.
+        }
+        for function in &program.functions {
+            if [
+                "clone", "String", "Boolean", "Array", "Set", "Map", "Object", "console", "Number", "Math", "null",
+                "typeof", "void",
+            ]
+            .contains(&function.name.text.as_str())
+            {
+                return Err(ProjectDiagnostic {
+                    code: "duplicate",
+                    message: format!("Function name {:?} is unavailable.", function.name.text),
+                    location: SourceLocation {
+                        source: id.clone(),
+                        span: function.name.span,
+                    },
+                    related: vec![],
+                    fixes: Box::new([]),
+                });
+            }
+        }
+        let names = program
+            .records
+            .iter()
+            .map(|r| &r.name)
+            .chain(program.functions.iter().map(|f| &f.name))
+            .map(|name| {
+                let linked = if id == &graph.entry
+                    && name.text == "main"
+                    && program.functions.iter().any(|f| f.name.span == name.span)
+                {
+                    "main".into()
+                } else {
+                    symbol(module, &name.text)
+                };
+                (name.text.clone(), linked)
+            })
+            .collect::<BTreeMap<_, _>>();
+        globals.insert(id.clone(), names);
+        programs.insert(id.clone(), program);
+    }
+    let mut linked = Program {
+        type_argument_checks: vec![],
+        call_type_arguments: vec![],
+        records: vec![],
+        functions: vec![],
+    };
+    let mut closure_id = 0;
+    for (module, id) in graph.order.iter().enumerate() {
+        let mut names = globals[id].clone();
+        for import in &graph.modules[id].imports {
+            for binding in &import.bindings {
+                names.insert(
+                    binding.local.clone(),
+                    if let Some(native) = import.native {
+                        format!("@native:{native}#{}", binding.exported)
+                    } else {
+                        globals[import.target.as_ref().expect("loaded target")][&binding.exported]
+                            .clone()
+                    },
+                );
+            }
+        }
+        let mut program = programs.remove(id).unwrap();
+        let mut visitor = Linker {
+            names: &names,
+            testing_types: id.0 == "std:testing",
+            module,
+            offset: segments[module].1,
+            closure_id: &mut closure_id,
+            type_parameters: BTreeSet::new(),
+        };
+        for record in &mut program.records {
+            visitor.type_parameters = record.type_parameters.iter().map(|parameter| parameter.text.clone()).collect();
+            for parameter in &mut record.type_parameters { visitor.span(&mut parameter.span); }
+            record.name.text = names[&record.name.text].clone();
+            visitor.token_span(&mut record.name);
+            for field in &mut record.fields {
+                visitor.token_span(&mut field.name);
+                visitor.value_annotation(&mut field.annotation);
+            }
+        }
+        for (span, arguments) in &mut program.call_type_arguments {
+            visitor.type_parameters = program.functions.iter().find(|function| {
+                function.scope_span.start <= span.start && span.end <= function.scope_span.end
+            }).map(|function| function.type_parameters.iter().map(|parameter| parameter.text.clone()).collect()).unwrap_or_default();
+            visitor.span(span);
+            for argument in arguments { visitor.value_annotation(argument); }
+        }
+        for function in &mut program.functions {
+            visitor.span(&mut function.scope_span);
+            visitor.type_parameters = function.type_parameters.iter().map(|parameter| parameter.text.clone()).collect();
+            for parameter in &mut function.type_parameters { visitor.span(&mut parameter.span); }
+            function.name.text = names[&function.name.text].clone();
+            visitor.token_span(&mut function.name);
+            let mut locals = BTreeSet::new();
+            for ((name, annotation, callback), initializer) in function.params.iter_mut().zip(&mut function.parameter_initializers) {
+                visitor.initializer(initializer, &locals);
+                parameter_pattern_names(name, &function.body, &mut locals);
+                locals.insert(name.text.clone());
+                visitor.token_span(name);
+                if let Some(callback) = callback {
+                    visitor.value_annotation(annotation);
+                    visitor.callback(callback);
+                } else {
+                    visitor.value_annotation(annotation);
+                }
+            }
+            if let Some(result) = &mut function.result {
+                visitor.result(result);
+            }
+            visitor.body(&mut function.body, &mut locals);
+        }
+        linked.call_type_arguments.extend(program.call_type_arguments);
+        linked.records.extend(program.records);
+        linked.functions.extend(program.functions);
+    }
+    if !entries.is_empty() {
+        let mut entry = crate::syntax::parse_test_entry("").expect("empty synthetic entry").functions.pop().unwrap();
+        let mut body = Vec::new();
+        for id in entries {
+            let segment = segments.iter().find(|(source, _, _)| source == id).expect("test source segment");
+            let span = Span::new(segment.1, segment.1);
+            body.push(Stmt { labels: Vec::new(), control_target: None, span, kind: StmtKind::Expr(Expr::new(ExprKind::Call(
+                Box::new(Expr::new(ExprKind::Name("@native:std:testing-runtime#beginFile".into()), span)), vec![Expr::new(ExprKind::String(id.0.clone()), span)]
+            ), span)) });
+            body.push(Stmt { labels: Vec::new(), control_target: None, span, kind: StmtKind::Expr(Expr::new(ExprKind::Call(
+                Box::new(Expr::new(ExprKind::Name(globals[id]["@testRegistration"].clone()), span)), Vec::new()
+            ), span)) });
+            body.push(Stmt { labels: Vec::new(), control_target: None, span, kind: StmtKind::Expr(Expr::new(ExprKind::Call(
+                Box::new(Expr::new(ExprKind::Name("@native:std:testing-runtime#endSuite".into()), span)), Vec::new()
+            ), span)) });
+        }
+        body.append(&mut entry.body);
+        entry.body = body;
+        linked.functions.push(entry);
+    }
+    let checked = match crate::analysis::analyze(linked.clone()) {
+        Err(value) if value.code == "recursion-inference" => {
+            crate::analysis::analyze_recursive(linked)
+        }
+        result => result,
+    }
+    .map_err(|value| diagnostic(&graph, &segments, value))?;
+    Ok(ProjectAnalysis {
+        graph,
+        analysis: Analysis { program: checked },
+        segments,
+    })
+}
+struct Linker<'a> {
+    testing_types: bool,
+    names: &'a BTreeMap<String, String>,
+    module: usize,
+    offset: usize,
+    closure_id: &'a mut usize,
+    type_parameters: BTreeSet<String>,
+}
+impl Linker<'_> {
+    fn span(&self, span: &mut Span) {
+        span.start += self.offset;
+        span.end += self.offset;
+    }
+    fn token_span(&self, token: &mut Token) {
+        self.span(&mut token.span);
+    }
+    fn annotation(&self, token: &mut Token) {
+        token.text = token
+            .text
+            .split('|')
+            .map(|part| {
+                let base = part.trim_end_matches("[]");
+                let suffix = &part[base.len()..];
+                let name = if self.type_parameters.contains(base) {
+                    base.into()
+                } else { self.names.get(base).cloned().unwrap_or_else(|| {
+                    if matches!(
+                        base,
+                        "int" | "number" | "boolean" | "string" | "void" | "null" | "undefined" | "Set" | "Map"
+                    ) {
+                        base.into()
+                    } else {
+                        symbol(self.module, base)
+                    }
+                }) };
+                format!("{name}{suffix}")
+            })
+            .collect::<Vec<_>>()
+            .join("|");
+        self.token_span(token);
+    }
+    fn value_annotation(&self, annotation: &mut crate::type_syntax::ValueAnnotation) {
+        use crate::type_syntax::ValueAnnotationKind as Kind;
+        self.span(&mut annotation.span);
+        match &mut annotation.kind {
+            Kind::Applied { name, .. } if self.testing_types && name.text == "ContainmentValue" && !self.type_parameters.contains(&name.text) && !self.names.contains_key(&name.text) => {
+                name.text = "@testing:element".into();
+                self.span(&mut name.span);
+            }
+            Kind::Named(name) | Kind::Applied { name, .. } => {
+                let mut token = Token { text: std::mem::take(&mut name.text), span: name.span, kind: TokenKind::Name };
+                self.annotation(&mut token);
+                name.text = token.text;
+                name.span = token.span;
+            }
+            _ => {}
+        }
+        match &mut annotation.kind {
+            Kind::Named(_) => {}
+            Kind::Applied { arguments, .. } | Kind::Union(arguments) | Kind::Tuple(arguments) => {
+                for argument in arguments { self.value_annotation(argument); }
+            }
+            Kind::Array(inner) | Kind::Group(inner) => self.value_annotation(inner),
+            Kind::Callable { parameters, result, .. } => {
+                for parameter in parameters {
+                    self.span(&mut parameter.span);
+                    self.span(&mut parameter.name.span);
+                    if let Some(access) = &mut parameter.access { self.span(&mut access.span); }
+                    self.value_annotation(&mut parameter.annotation);
+                }
+                self.value_annotation(result);
+            }
+        }
+    }
+    fn parameter(&self, param: &mut CallableParameter) {
+        self.token_span(&mut param.name);
+        if let Some(access) = &mut param.access {
+            self.token_span(access);
+        }
+        match &mut param.ty {
+            ParameterAnnotation::Named(token) => self.value_annotation(token),
+            ParameterAnnotation::Callback(callback) => self.callback(callback),
+            ParameterAnnotation::Inferred(token) => self.token_span(token),
+        }
+    }
+    fn initializer(&mut self, initializer: &mut ParameterInitializer, locals: &BTreeSet<String>) {
+        match initializer {
+            ParameterInitializer::Required => {},
+            ParameterInitializer::Optional(span) => self.span(span),
+            ParameterInitializer::Default { value, span } => { self.span(span); self.expr(value, locals); }
+        }
+    }
+    fn callback(&self, callback: &mut CallbackAnnotation) {
+        self.span(&mut callback.span);
+        for param in &mut callback.params {
+            self.parameter(param);
+        }
+        self.result(&mut callback.result);
+    }
+    fn result(&self, result: &mut ResultAnnotation) {
+        match result {
+            ResultAnnotation::Inferred(_) => {},
+            ResultAnnotation::Named(token) => self.value_annotation(token),
+            ResultAnnotation::Callable {
+                params,
+                result,
+                span,
+                ..
+            } => {
+                self.span(span);
+                for param in params {
+                    self.parameter(param);
+                }
+                self.result(result);
+            }
+        }
+    }
+    fn body(&mut self, body: &mut [Stmt], locals: &mut BTreeSet<String>) {
+        for stmt in body {
+            self.span(&mut stmt.span);
+            for label in &mut stmt.labels {self.token_span(label);}
+            match &mut stmt.kind {
+                StmtKind::Throw(value) => self.expr(value,locals),
+                StmtKind::Try(region) => {
+                    self.body(&mut region.body,&mut locals.clone());
+                    if let Some(handler)=&mut region.catch {
+                        let mut scope=locals.clone();
+                        if let Some(name)=&mut handler.name {scope.insert(name.text.clone());self.token_span(name);}
+                        self.body(&mut handler.body,&mut scope);
+                    }
+                    if let Some(body)=&mut region.finally {self.body(body,&mut locals.clone());}
+                }
+
+                StmtKind::Let {
+                    name,
+                    annotation,
+                    value,
+                    ..
+                } => {
+                    self.expr(value, locals);
+                    if let Some(annotation) = annotation {
+                        self.value_annotation(annotation);
+                    }
+                    locals.insert(name.text.clone());
+                    self.token_span(name);
+                }
+                StmtKind::Block(body) => self.body(body, &mut locals.clone()),
+                StmtKind::If {
+                    condition,
+                    then_body,
+                    else_body,
+                } => {
+                    self.expr(condition, locals);
+                    self.body(then_body, &mut locals.clone());
+                    self.body(else_body, &mut locals.clone());
+                }
+                StmtKind::While { condition, body } => {
+                    self.expr(condition, locals);
+                    self.body(body, &mut locals.clone());
+                }
+                StmtKind::Loop {
+                    condition,
+                    body,
+                    update,
+                    ..
+                } => {
+                    if let Some(condition) = condition {
+                        self.expr(condition, locals);
+                    }
+                    self.body(body, &mut locals.clone());
+                    self.body(update, &mut locals.clone());
+                }
+                StmtKind::ForOf {
+                    name,
+                    iterable,
+                    body,
+                    ..
+                } => {
+                    self.expr(iterable, locals);
+                    let mut scope = locals.clone();
+                    scope.insert(name.text.clone());
+                    self.token_span(name);
+                    self.body(body, &mut scope);
+                }
+                StmtKind::Assign {
+                    target,
+                    value,
+                    operator,
+                } => {
+                    self.expr(target, locals);
+                    self.expr(value, locals);
+                    if let Some((_, span)) = operator {
+                        self.span(span);
+                    }
+                }
+                StmtKind::Return(value) => {
+                    if let Some(value) = value {
+                        self.expr(value, locals);
+                    }
+                }
+                StmtKind::Expr(value) => self.expr(value, locals),
+                StmtKind::Break | StmtKind::Continue => {}
+            }
+        }
+    }
+    fn expr(&mut self, expr: &mut Expr, locals: &BTreeSet<String>) {
+        self.span(&mut expr.span);
+        match &mut expr.kind {
+            ExprKind::SpreadCall(plan) => { for value in plan.expressions_mut() { self.expr(value, locals); } }
+            ExprKind::SpreadValue(selected) => self.span(&mut selected.source.span),
+            ExprKind::Name(name) => {
+                if !locals.contains(name) {
+                    if let Some(linked) = self.names.get(name) {
+                        *name = linked.clone();
+                    } else if crate::native_bindings::by_symbol(name).is_none()
+                        && crate::syntax::global_number_member(name, false).is_none()
+                        && crate::syntax::global_number_member(name, true).is_none()
+                        && !matches!(
+                        name.as_str(),
+                        "Object#in" | "console" | "Math" | "Number" | "Array" | "Set" | "Map" | "Object" | "String" | "Boolean" | "clone" | "undefined"
+                    ) {
+                        *name = symbol(self.module, name);
+                    }
+                }
+            }
+            ExprKind::Optional { base, body, .. } => {
+                self.expr(base, locals);
+                self.expr(body, locals);
+            }
+            ExprKind::Selected { source, .. } => self.span(&mut source.span),
+            ExprKind::Conditional {
+                predicate,
+                consequent,
+                alternate,
+            } => {
+                self.expr(predicate, locals);
+                self.expr(consequent, locals);
+                self.expr(alternate, locals);
+            }
+            ExprKind::CoalesceAssign {
+                target,
+                value,
+                operator,
+                ..
+            }
+            | ExprKind::Assign {
+                target,
+                value,
+                operator,
+            }
+            | ExprKind::CompoundAssign {
+                target,
+                value,
+                operator,
+                ..
+            }
+            | ExprKind::LogicalAssign {
+                target,
+                value,
+                operator,
+                ..
+            } => {
+                self.span(operator);
+                self.expr(target, locals);
+                self.expr(value, locals);
+            }
+            ExprKind::Update {
+                target, operator, ..
+            } => {
+                self.span(operator);
+                self.expr(target, locals);
+            }
+            ExprKind::Unary {
+                value, operator, ..
+            } => {
+                self.span(operator);
+                self.expr(value, locals);
+            }
+            ExprKind::Binary {
+                left,
+                right,
+                operator,
+                ..
+            } => {
+                self.span(operator);
+                self.expr(left, locals);
+                self.expr(right, locals);
+            }
+            ExprKind::Closure {
+                id,
+                params,
+                result,
+                body,
+            } => {
+                *id = *self.closure_id;
+                *self.closure_id += 1;
+                let mut scope = locals.clone();
+                for param in params {
+                    self.initializer(&mut param.initializer, &scope);
+                    parameter_pattern_names(&param.name, body, &mut scope);
+                    scope.insert(param.name.text.clone());
+                    self.parameter(param);
+                }
+                self.result(result);
+                self.body(body, &mut scope);
+            }
+            ExprKind::TypeAssertion {value,annotation,..} => {
+                self.value_annotation(annotation);
+                self.expr(value,locals);
+            }
+            ExprKind::ArrayOf(values, element) | ExprKind::SetConstructor(values, element) | ExprKind::MapConstructor(values, element) => {
+                if let Some(element) = element { self.value_annotation(element); }
+                for value in values { self.expr(value, locals); }
+            }
+            ExprKind::Sequence(values) | ExprKind::Template(values) | ExprKind::Array(values) => {
+                for value in values {
+                    self.expr(value, locals);
+                }
+            }
+            ExprKind::OptionalChain(value)
+            | ExprKind::Field(value, _)
+            | ExprKind::Inject { value, .. }
+            | ExprKind::Project { value, .. } => self.expr(value, locals),
+            ExprKind::Record(fields) => {
+                for (name, value) in fields {
+                    self.token_span(name);
+                    self.expr(value, locals);
+                }
+            }
+            ExprKind::Index(left, right) => {
+                self.expr(left, locals);
+                self.expr(right, locals);
+            }
+            ExprKind::Call(value, args) => {
+                self.expr(value, locals);
+                for arg in args {
+                    self.expr(arg, locals);
+                }
+            }
+            ExprKind::String(_)
+            | ExprKind::Integer(_)
+            | ExprKind::EnumMember { .. } | ExprKind::Number(_)
+            | ExprKind::Boolean(_)
+            | ExprKind::Null
+            | ExprKind::Undefined => {}
+        }
+    }
+}
+
+fn readable(message: &str) -> String {
+    let mut result = String::new();
+    let mut remaining = message;
+    while let Some(index) = remaining.find("__tsrust_module_") {
+        result.push_str(&remaining[..index]);
+        let tail = &remaining[index + "__tsrust_module_".len()..];
+        let digits = tail.bytes().take_while(u8::is_ascii_digit).count();
+        if digits > 0 && tail.as_bytes().get(digits) == Some(&b'_') {
+            remaining = &tail[digits + 1..];
+        } else {
+            result.push_str("__tsrust_module_");
+            remaining = tail;
+        }
+    }
+    result.push_str(remaining);
+    result
+}
+
+#[cfg(test)]
+mod annotation_tests {
+    use super::*;
+    use crate::type_syntax::{ValueAnnotationKind as Kind, parse};
+
+    #[test]
+    fn generic_parameters_shadow_imports_only_inside_their_declaration() {
+        let names = BTreeMap::from([
+            ("T".into(), "__tsrust_module_0_ImportedT".into()),
+            ("Box".into(), "__tsrust_module_0_Box".into()),
+        ]);
+        let mut closure_id = 0;
+        let mut linker = Linker {
+            names: &names, testing_types: false, module: 1, offset: 17,
+            closure_id: &mut closure_id,
+            type_parameters: BTreeSet::from(["T".into()]),
+        };
+        let mut annotation = parse("Box<T>").unwrap();
+        linker.value_annotation(&mut annotation);
+        let Kind::Applied { name, arguments } = &annotation.kind else { panic!("application") };
+        assert_eq!(name.text, "__tsrust_module_0_Box");
+        let Kind::Named(parameter) = &arguments[0].kind else { panic!("parameter") };
+        assert_eq!(parameter.text, "T");
+        assert_eq!(parameter.span, Span::new(21, 22));
+        linker.type_parameters.clear();
+        let mut annotation = parse("T").unwrap();
+        linker.value_annotation(&mut annotation);
+        let Kind::Named(name) = annotation.kind else { panic!("nominal") };
+        assert_eq!(name.text, "__tsrust_module_0_ImportedT");
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn containment_projection_links_only_inside_the_bundled_testing_scope() {
+    use crate::type_syntax::{parse,ValueAnnotationKind as Kind};
+    let names=BTreeMap::new();let mut closure_id=0;
+    for (testing_types,shadowed,wanted) in [(true,false,"@testing:element"),(false,false,"__tsrust_module_1_ContainmentValue"),(true,true,"ContainmentValue")] {
+        let linker=Linker {testing_types,names:&names,module:1,offset:17,closure_id:&mut closure_id,type_parameters:if shadowed {BTreeSet::from(["ContainmentValue".into(),"T".into()])}else{BTreeSet::from(["T".into()])}};
+        let mut value=parse("ContainmentValue<T>").unwrap();linker.value_annotation(&mut value);
+        let Kind::Applied{name,arguments}=&value.kind else {panic!("projection")};assert_eq!(name.text,wanted);
+        assert_eq!(name.span,Span::new(17,33));
+        let Kind::Named(argument)=&arguments[0].kind else {panic!("argument")};assert_eq!(argument.text,"T");
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn bundled_containment_projection_links_specializes_and_executes() {
+    use crate::project::{ModuleSource,SourceFile,ModuleImport,ImportBinding};
+    let standard=SourceId("std:testing".into());let entry=SourceId("main.tsr".into());
+    let library="type Probe<T>={contains:Function<void,[expected:ReadOnly<ContainmentValue<T>>]>;};function make<T>(actual:T):Probe<T>{return {contains:(expected:int):void=>{console.log(expected);}};}function exercise(){const probe=make([1,2]);probe.contains(7);}";
+    let main="function main(){exercise();}";
+    let graph=ProjectGraph {entry:entry.clone(),order:vec![standard.clone(),entry.clone()],modules:BTreeMap::from([
+        (standard.clone(),ModuleSource{source:SourceFile{id:standard.clone(),text:library.into()},declaration_source:library.into(),imports:vec![],exports:BTreeMap::from([("exercise".into(),Span::default())])}),
+        (entry.clone(),ModuleSource{source:SourceFile{id:entry,text:main.into()},declaration_source:main.into(),imports:vec![ModuleImport{path:"std:testing".into(),span:Span::default(),bindings:vec![ImportBinding{exported:"exercise".into(),local:"exercise".into(),span:Span::default()}],target:Some(standard),native:None}],exports:BTreeMap::new()})
+    ])};
+    let checked=check_graph(graph).unwrap();
+    crate::callable_dispatch::tests::execute(&checked.emit_rust(),"7\n");
+}

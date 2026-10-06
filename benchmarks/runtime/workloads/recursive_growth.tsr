@@ -1,0 +1,4 @@
+type Tree = { value: int; children: Tree[]; };
+function workload(n: int, seed: int): int { let sum = seed; let i = 0; while (i < n) { const tree: Tree = {value: i, children: []}; const width = (i + seed) % 33; let j = 0; while (j < width) { tree.children.push({value: seed + j, children: []}); j = j + 1; } if (width > 0) { const removed = tree.children.remove(width / 2); sum = sum + removed.value; } sum = sum + total(tree); i = i + 1; } return sum; }
+function total(tree: Tree): int { let sum = tree.value; for (const child of tree.children) { sum = sum + total(child); } return sum; }
+function main() { console.log(workload(2, 7)); }

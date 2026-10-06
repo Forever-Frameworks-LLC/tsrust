@@ -1,0 +1,57 @@
+{
+  "gate": 99,
+  "accepted": true,
+  "kind": "artifact",
+  "analyticsSamplesAdded": 0,
+  "importedPaths": 2107,
+  "narrowVerifiedPaths": 2107,
+  "originalsRetained": true,
+  "deletedFiles": 0,
+  "restorationMap": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/runtime/diagnostics/gate99-closure-evidence/restoration-map.json",
+    "sha256": "40d161e363ca971baf25d7e4d23bdf9e5a923cc9e409663fde8e93a2a210f2a3",
+    "bytes": 4136223
+  },
+  "plan": {
+    "path": "/tmp/tsrust-gate99-bundle-storage/import-plan.json",
+    "sha256": "1c3fa6f9fe07fadbcf417a9b0b2d184161a29cec746b3af80dab761420bf20a1",
+    "bytes": 551893
+  },
+  "verification": {
+    "path": "/tmp/tsrust-gate99-bundle-storage/verified-records.json",
+    "sha256": "8221599dc67160ff22c86d8eea129009e052e374172083ef46cef77814eeaf28",
+    "bytes": 836035
+  },
+  "before": {
+    "analyticsSamples": 58218,
+    "analyticsProfiles": 570,
+    "records": 23976,
+    "blobs": 16536,
+    "databaseBytes": 179654656,
+    "databaseSha256": "80005d023394ab1c3c15384dbdaf35635aa1c6755d8cfc16993d4c11233eb45d"
+  },
+  "after": {
+    "analyticsSamples": 58218,
+    "analyticsProfiles": 570,
+    "records": 26083,
+    "blobs": 18390,
+    "databaseBytes": 186728448,
+    "databaseSha256": "3f3da2f5e82b595e6ba1f3024c1c0d6c455f3282133a1237715f1dd25460e066"
+  },
+  "newRecords": 2107,
+  "newBlobs": 1854,
+  "databaseGrowthBytes": 7073792,
+  "selectedOriginalBytes": 44361900,
+  "selectedCompressedBytes": 6392564,
+  "store": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/store.py",
+    "sha256": "9f9f7ab732f02b01a845830abe8dfb808de040e8730a2c61db7d01cd2138f77f",
+    "bytes": 14901
+  },
+  "analytics": {
+    "path": "/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/storage/analytics.py",
+    "sha256": "a96524b9dbc661591389c1e892c7459cd8737e01139abe05caecb5cd7d6f61c7",
+    "bytes": 14254
+  },
+  "restoration": "Use store.py export with the recorded relative path and an existing scratch --root. The original absolute path aliases remain in each durable restoration map; no proof bytes were rewritten."
+}

@@ -1,0 +1,23 @@
+type int = number;
+type Probe = { trace: int; calls: int; };
+function workload(n: int, seed: int): number {
+    const table0: number[] = [-8589934592.0, -4294967297.0, -4294967296.0, -4294967295.0, -2147483649.0, -2147483648.0, -1.0, -0.0, 0.0, 1.0, 2147483647.0, 2147483648.0, 4294967295.0, 4294967296.0, 4294967297.0, 8589934591.0];
+    const table1: number[] = [-4294967297.0, -4294967296.0, -4294967295.0, -2147483649.0, -2147483648.0, -1.0, 0.0, 1.0, 2.0, 31.0, 32.0, 33.0, 2147483647.0, 2147483648.0, 4294967295.0, 4294967296.0];
+    const probe: Probe = {trace: seed % 1009, calls: 0};
+    let sum: number = Number(seed); let i = 0;
+    while (i < n) {
+        const jitter = (i * 17 + seed) % 5;
+        const argument0: number = table0[(i * 13 + seed) % 16] + Number(jitter) * 0.25;
+        const argument1: number = table1[(i * 7 + seed) % 16] - Number(jitter) * 0.25;
+        const value_result: number = mark(probe, argument0, 1) & mark(probe, argument1, 2);
+        sum = sum + value_result;
+        i = i + 1;
+    }
+    return sum + Number(probe.trace) + Number(probe.calls);
+}
+function mark(probe: Probe, value: number, tag: int): number {
+    probe.trace = (probe.trace * 17 + tag) % 1009;
+    probe.calls = probe.calls + 1;
+    return value;
+}
+function main() { console.log(workload(2, 7)); }

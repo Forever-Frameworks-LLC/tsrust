@@ -1,0 +1,25 @@
+# Milestone 48: Math rounding, reductions, integer functions, and constants
+
+[Roadmap](../roadmap.md) · [Number coverage](../feature-coverage.md)
+
+## Scope
+
+Add `Math.round`, `sign`, `fround`, `min`, `max`, `clz32`, and `imul`, plus the eight standard Math constants and eight Number constants. All methods and constants return primitive `number`, including integer-valued results. Unary methods accept one number, `imul` accepts two, and `min`/`max` accept zero or more explicit number arguments. Preserve contextual number literals and explicit `Number(int)` conversion.
+
+Use standard Rust floating-point operations, casts, comparisons, `leading_zeros`, and wrapping multiplication. Small helpers preserve JavaScript's rounding ties toward positive infinity, signed zeros, NaN propagation, and finite truncation modulo 2^32. Do not introduce custom numeric storage or a numerical runtime dependency. Explicit variadic calls use ordinary stack arrays rather than allocating argument storage.
+
+Evaluate all arguments exactly once in source order before reducing, including arguments after NaN. Empty min/max return positive/negative infinity. Constants are readonly namespace members; namespace objects, reflection, implicit coercion, spread arguments, and callable aliases remain separate capabilities. `Number.MIN_VALUE` is the smallest positive subnormal, not the smallest normal value.
+
+## Acceptance
+
+Focused native programs at optimization levels 0 and 3 cover typing, arity, contextual literals, argument effects, zero-argument reductions, signed zeros, NaN/infinities, rounding boundaries, f32 ties/subnormals/overflow, Uint32 wrapping, signed multiplication, and exact constant bits. Use independent rational and bit expectations. After implementation settles, run one full regression; preserve passed suites and resume remaining suites after any affected-case repair.
+
+Each callable method receives a matched whole-iteration benchmark using its actual TypeScript counterpart, complete observed results, and independent exact validation. Record throughput and native allocation/disposal evidence without repeating unrelated rows. Constants receive semantic coverage without constant-folded throughput claims.
+
+## Dependencies and status
+
+The reviewed compiler candidate is integrated after milestone 47 acceptance. All five focused groups pass at optimization levels 0 and 3, along with affected depth, Math operand-order and loan/type checks. One depth fixture needed spaces between repeated minus tokens to exercise unary nesting instead of the existing rejected update token; the other four focused groups were retained and only that failed group reran. Compiler logic did not change during verification. The single settled regression passes all 544 groups and doctests without a restart. Formatting, Clippy with warnings denied, and fresh release verification pass. The saved gate 47 compiler rejects the new feature program; current debug and release compilers emit identical Rust, and the actual release program runs successfully. The [compiler acceptance proof](../../benchmarks/runtime/diagnostics/2026-10-02T05-37-36-000Z-exact-math-compiler-acceptance.json) records sources, commands and artifacts. Native comparison acceptance is complete.
+
+Seven matched source pairs and independent rational/bit oracles are integrated. Light validation covers 147 Node workload cases, 35 input guards, 31 direct IEEE edge cases, and 112 prepared TypeScript driver cases without timing. Seven actual TypeScript preparations also pass. The [source proof](../../benchmarks/runtime/diagnostics/2026-10-02T05-16-36-000Z-exact-math-benchmark-source.json) preserves 156 prior pairs, 349 raw records and existing exact IEEE protocols. All seven actual native wrappers pass 28 independent exact cases, including full-size inputs. The targeted execution-only run passes 280 engine correctness cases and records 5,208 timed batches across eight runtimes. All 21 allocation profiles report zero allocations, retained bytes, and live bytes after disposal. [Runtime acceptance](../../benchmarks/runtime/diagnostics/2026-10-02T05-40-43-000Z-native-exact-math-runtime-proof.json) links the immutable timing and profile records. BENCHMARKS.md now contains 163 dated rows; the prior 156 comparisons, nine memory probes, and auxiliary measurements were not repeated. Native leads Node and the fastest other runtime on round, sign, fround, and clz32; min, max, and imul remain slower in these matched workloads. Standard Rust operations remain the implementation contract.
+
+The remaining transcendental functions, `atan2`, `pow`, and `hypot` form a subsequent numerical gate. Their ordinary Rust implementations can differ from JavaScript in their last bits. Independent reference fixtures and an explicit approximate comparison mode must be ready before claiming matched throughput; exact hashes must not be manufactured by quantizing outputs or selecting only special answers. The compiler runtime will continue to use standard Rust methods.

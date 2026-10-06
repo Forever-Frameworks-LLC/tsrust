@@ -1,0 +1,16 @@
+type int = number;
+function workload(n: int, seed: int): int {
+    let sum = seed; let state = seed; let i = 0;
+    while (i < n) {
+        const value = (state + i) % 13;
+        let code = 0;
+        if (value < 3) { code = 11; }
+        else if (value < 7) { code = 23; }
+        else if (value < 11) { code = 37; }
+        else { code = 49; }
+        state = (state * 17 + code + seed) % 997;
+        sum = (sum * 131 + state) % 1000000007;
+        i = i + 1;
+    } return sum;
+}
+function main() { console.log(workload(17, 7)); }

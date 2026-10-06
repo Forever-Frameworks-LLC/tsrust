@@ -1,0 +1,47 @@
+{
+  "timestamp": "2026-10-03T15:32:49.949025+00:00",
+  "accepted": true,
+  "sources": [
+    {
+      "path": "benchmarks/runtime/measurement-plan.mjs",
+      "snapshot": "benchmarks/storage/checkpoint-engine-selection/source/measurement-plan.mjs",
+      "sha256": "eaac37969d15fac62d4002aa6e4b274514d8b9fae23bea1d798f86ec8cf69e3d"
+    },
+    {
+      "path": "benchmarks/runtime/measurement-plan.test.mjs",
+      "snapshot": "benchmarks/storage/checkpoint-engine-selection/source/measurement-plan.test.mjs",
+      "sha256": "b5db1eeb2daed4048063411c2c7aac9e31549326b36bbc30b4d61f3740067be5"
+    },
+    {
+      "path": "benchmarks/runtime/run.mjs",
+      "snapshot": "benchmarks/storage/checkpoint-engine-selection/source/run.mjs",
+      "sha256": "edb0d042058e8e520809c34021dd080c70b0d139aad44d5a9c6ba3a8c02c5662"
+    }
+  ],
+  "focusedChecks": [
+    {
+      "command": "node --test benchmarks/runtime/measurement-plan.test.mjs",
+      "exitCode": 0,
+      "passed": 3,
+      "toolChunkId": "949f33"
+    },
+    {
+      "command": "node --check benchmarks/runtime/run.mjs",
+      "exitCode": 0,
+      "toolChunkId": "ced995"
+    }
+  ],
+  "measurementsExecuted": false,
+  "defaultManualEngines": 8,
+  "routineCheckpointEngines": [
+    "native",
+    "node-tsc"
+  ],
+  "selectionFlag": "--engines=native,node-tsc",
+  "recordProvenance": [
+    "measuredEngines",
+    "measurementPlanSha256"
+  ],
+  "unchangedPerEngine": "All correctness cases, warmups, process counts and sample counts. Existing run records are unchanged.",
+  "analyticsSupplement": "Future ingestions retain the two new provenance keys. Existing indexed records and original bytes are unchanged."
+}

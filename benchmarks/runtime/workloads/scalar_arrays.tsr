@@ -1,0 +1,10 @@
+function workload(n: int, seed: int): int {
+ let sum = seed; let i = 0;
+ while (i < n) { const values: int[] = []; let j = 0;
+ while (j < 32) { values.push(seed + i + j); j = j + 1; }
+ values[3] = i; const saved = clone(values);
+ for (const value of saved) { if (value === seed) { continue; } if (value > 20000) { break; } sum = sum + value; }
+ const flags = [true, false]; flags[1] = i % 2 === 0; if (flags[1]) { sum = sum + flags.length - 1; }
+ i = i + 1; } return sum;
+}
+function main() { console.log(workload(2, 7)); }

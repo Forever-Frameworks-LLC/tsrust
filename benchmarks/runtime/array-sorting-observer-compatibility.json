@@ -1,0 +1,27 @@
+[
+  {
+    "label": "old-Boolean-flat",
+    "expected": [
+      false,
+      true
+    ],
+    "exactBits": "t:[b0,b1]",
+    "checksum": 580007604
+  },
+  {
+    "label": "new-Boolean-rank2",
+    "expected": [
+      [
+        false,
+        true
+      ],
+      [],
+      [
+        true,
+        false
+      ]
+    ],
+    "exactBits": "t:[[b0,b1],[],[b1,b0]]",
+    "checksum": 945527745
+  }
+]

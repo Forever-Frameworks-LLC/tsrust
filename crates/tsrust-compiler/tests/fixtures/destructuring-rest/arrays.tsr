@@ -1,0 +1,13 @@
+import {strictEqual} from "std:testing";
+function tail([, ...rest]:string[]):string[]{return rest;}
+function main(){
+ const words=["one","two","three"];
+ {const [first,...rest]=words;strictEqual(first,"one");strictEqual(rest.join(","),"two,three");rest.push("four");strictEqual(words.length,3);}
+ words.push("four");strictEqual(words.length,4);
+ const [...all]=words;all.push("five");strictEqual(words.length,4);strictEqual(all.length,5);
+ const values=[1];const [a,,...empty]=values;strictEqual(a,1);strictEqual(empty.length,0);
+ strictEqual(tail(words).join(","),"two,three,four");
+ const rows=[[1,2,3],[4,5]];const results:int[]=[];
+ for(const [first,...rest] of rows){results.push(first+rest.length);}
+ strictEqual(results.join(","),"3,5");
+}

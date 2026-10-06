@@ -1,0 +1,21 @@
+type Cell={x:int;y:int;label:string;};
+function ends(base:int,input:string):[int,string]{return [base+2,input+"?"];}
+function workload(n: int, seed: int, input: string): string[][] {
+ const output:string[][]=[];let i=0;
+ while (i < n) {
+  const base=(i*13+seed)%97;
+  let left=input.repeat(1),right=String(base);
+  [left,right]=[right,left];
+  let f0=0,f1=1;
+  for(let turn=0;turn<base%4+2;[f0,f1]=[f1,f0+f1],turn++){}
+  let count=0,word="";
+  [count,word]=ends(base,input);
+  const x=base,y=count,label=word+"!";
+  const cell:Cell={x,y,label};
+  let cx=0,text="";
+  ({x:cx,label:text}=cell);
+  output.push([left,right,String(f0),String(count),word,String(cx+cell.y),text]);
+  i=i+1;
+ }return output;
+}
+function main(){const result=workload(3,0,"abc");}
