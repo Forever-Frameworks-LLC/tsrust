@@ -6879,85 +6879,9 @@ impl Analyzer {
         Ok(result)
     }
 
-    fn expression_kind(&mut self, context: &mut Context, expr: &mut Expr, mode: Mode, loans: &Loans, expected: Option<Type>) -> Result<Type, Diagnostic> {
-        // Aggregate nesting must not retain the larger general-expression frame.
-        let previous_view = expr.ty;
+    #[inline(never)]
+    fn wrapper_expression(&mut self, context: &mut Context, expr: &mut Expr, mode: Mode, loans: &Loans, expected: Option<Type>, previous_view: Option<Type>) -> Result<Type, Diagnostic> {
         match &mut expr.kind {
-            ExprKind::Unary { op: UnaryOp::PatternSelection, .. } => self.pattern_selection(context,expr,mode,loans,expected),
-            ExprKind::Unary { op: UnaryOp::NonNull, .. } => self.non_null_assertion(context, expr, mode, loans, expected),
-            ExprKind::OptionalChain(_) => self.optional_chain(context, expr, mode, loans, expected),
-            ExprKind::Selected { .. } => {
-                self.selected_expression(context, expr, mode, loans, expected)
-            }
-            ExprKind::CoalesceAssign { .. } => {
-                self.coalesce_assignment(context, expr, mode, loans, expected)
-            }
-            ExprKind::Binary {
-                op: BinaryOp::Coalesce | BinaryOp::PatternDefault,
-                ..
-            } => self.coalesce(context, expr, mode, loans, expected),
-            ExprKind::Binary {
-                op,
-                operator,
-                left,
-                right,
-            } if matches!(op, BinaryOp::And | BinaryOp::Or) => {
-                if self.expression_type_hint(context, left) == Some(Type::Boolean)
-                    && self.expression_type_hint(context, right).is_none_or(|ty| ty == Type::Boolean) {
-                    self.logical_expression(context, (expr.span, *operator), *op, left, right, loans)
-                } else { self.logical_value_expression(context, expr, mode, loans, expected) }
-            }
-            ExprKind::Conditional {
-                predicate,
-                consequent,
-                alternate,
-            } => self.conditional(
-                context,
-                predicate,
-                (consequent, alternate),
-                mode,
-                loans,
-                expected,
-            ),
-            ExprKind::CompoundAssign {
-                target,
-                value,
-                op,
-                operator,
-            } => self.compound_assignment_value(
-                context,
-                target,
-                value,
-                (*op, *operator),
-                loans,
-                false,
-            ),
-            ExprKind::Assign {
-                target,
-                value,
-                operator,
-            } => self.scalar_assignment(context, target, value, loans, *operator),
-            ExprKind::LogicalAssign {
-                target,
-                value,
-                operator,
-                ..
-            } => self.logical_assignment(context, target, value, loans, *operator),
-            ExprKind::Update {
-                target, operator, ..
-            } => self.update_expression(context, target, loans, *operator),
-            ExprKind::Record(fields) if fields.iter().any(|(key,_)|key.text=="record#spread") => self.object_spread(context,expr,loans,expected),
-            ExprKind::Record(fields) => {
-                self.record_literal(context, fields, loans, expected, expr.span)
-            }
-            ExprKind::ArrayOf(_, _) => self.array_constructor(context, expr, loans, expected),
-            ExprKind::SetConstructor(_, _) => self.set_constructor(context, expr, loans, expected),
-            ExprKind::MapConstructor(_, _) => self.map_constructor(context, expr, loans, expected),
-            ExprKind::Array(values) if values.iter().any(|value| matches!(value.kind, ExprKind::Unary { op: UnaryOp::Spread, .. })) => self.spread_array_construction(context, expr, loans, expected),
-            ExprKind::Array(values) => {
-                self.array_literal(context, values, loans, expected, expr.span)
-            }
-            ExprKind::Template(parts) => self.template_literal(context, parts, loans),
             ExprKind::Unary {
                 op: UnaryOp::CallableStore,
                 value,
@@ -7045,6 +6969,106 @@ impl Analyzer {
                 let actual = self.expression(context, value, mode, loans, None)?;
                 self.require(actual, Some(Type::Union(*union)), value.span)?;
                 Ok(Type::Union(*union))
+            }
+            _ => self.expression_inner(context, expr, mode, loans, expected),
+        }
+    }
+
+    fn expression_kind(&mut self, context: &mut Context, expr: &mut Expr, mode: Mode, loans: &Loans, expected: Option<Type>) -> Result<Type, Diagnostic> {
+        // Aggregate nesting must not retain the larger general-expression frame.
+        let previous_view = expr.ty;
+        match &mut expr.kind {
+            ExprKind::Unary { op: UnaryOp::PatternSelection, .. } => self.pattern_selection(context,expr,mode,loans,expected),
+            ExprKind::Unary { op: UnaryOp::NonNull, .. } => self.non_null_assertion(context, expr, mode, loans, expected),
+            ExprKind::OptionalChain(_) => self.optional_chain(context, expr, mode, loans, expected),
+            ExprKind::Selected { .. } => {
+                self.selected_expression(context, expr, mode, loans, expected)
+            }
+            ExprKind::CoalesceAssign { .. } => {
+                self.coalesce_assignment(context, expr, mode, loans, expected)
+            }
+            ExprKind::Binary {
+                op: BinaryOp::Coalesce | BinaryOp::PatternDefault,
+                ..
+            } => self.coalesce(context, expr, mode, loans, expected),
+            ExprKind::Binary {
+                op,
+                operator,
+                left,
+                right,
+            } if matches!(op, BinaryOp::And | BinaryOp::Or) => {
+                if self.expression_type_hint(context, left) == Some(Type::Boolean)
+                    && self.expression_type_hint(context, right).is_none_or(|ty| ty == Type::Boolean) {
+                    self.logical_expression(context, (expr.span, *operator), *op, left, right, loans)
+                } else { self.logical_value_expression(context, expr, mode, loans, expected) }
+            }
+            ExprKind::Conditional {
+                predicate,
+                consequent,
+                alternate,
+            } => self.conditional(
+                context,
+                predicate,
+                (consequent, alternate),
+                mode,
+                loans,
+                expected,
+            ),
+            ExprKind::CompoundAssign {
+                target,
+                value,
+                op,
+                operator,
+            } => self.compound_assignment_value(
+                context,
+                target,
+                value,
+                (*op, *operator),
+                loans,
+                false,
+            ),
+            ExprKind::Assign {
+                target,
+                value,
+                operator,
+            } => self.scalar_assignment(context, target, value, loans, *operator),
+            ExprKind::LogicalAssign {
+                target,
+                value,
+                operator,
+                ..
+            } => self.logical_assignment(context, target, value, loans, *operator),
+            ExprKind::Update {
+                target, operator, ..
+            } => self.update_expression(context, target, loans, *operator),
+            ExprKind::Record(fields) if fields.iter().any(|(key,_)|key.text=="record#spread") => self.object_spread(context,expr,loans,expected),
+            ExprKind::Record(fields) => {
+                self.record_literal(context, fields, loans, expected, expr.span)
+            }
+            ExprKind::ArrayOf(_, _) => self.array_constructor(context, expr, loans, expected),
+            ExprKind::SetConstructor(_, _) => self.set_constructor(context, expr, loans, expected),
+            ExprKind::MapConstructor(_, _) => self.map_constructor(context, expr, loans, expected),
+            ExprKind::Array(values) if values.iter().any(|value| matches!(value.kind, ExprKind::Unary { op: UnaryOp::Spread, .. })) => self.spread_array_construction(context, expr, loans, expected),
+            ExprKind::Array(values) => {
+                self.array_literal(context, values, loans, expected, expr.span)
+            }
+            ExprKind::Template(parts) => self.template_literal(context, parts, loans),
+            // Synthesized wrappers and other unary forms keep their
+            // temporaries out of this recursively retained dispatcher.
+            ExprKind::Unary {
+                op: UnaryOp::CallableStore
+                    | UnaryOp::CallableRestAdapter
+                    | UnaryOp::CallableOnce
+                    | UnaryOp::ParameterDefaultStore
+                    | UnaryOp::ParameterMutableInput
+                    | UnaryOp::RestPack
+                    | UnaryOp::CoalesceSelected
+                    | UnaryOp::OptionalSelected,
+                ..
+            }
+            | ExprKind::Project { .. }
+            | ExprKind::Inject { .. } => {
+                self.wrapper_expression(context, expr, mode, loans, expected, previous_view)
             }
             ExprKind::Index(_, _) => self.index_expression(context,expr,mode,loans,expected),
             ExprKind::Field(base, name) => {

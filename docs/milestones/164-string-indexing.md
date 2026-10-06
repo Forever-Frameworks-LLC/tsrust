@@ -81,4 +81,23 @@ target/editor/string-indexing-optional.log.
 - Five consumers rebuilt and replaced by atomic rename; hashes in
   target/editor/string-indexing-consumers.log.
 
+## Follow-up: optional positions and dispatcher frame
+
+- Optional positions: see the section above. `string_indexing` passes 5 checks with
+  the extended fixture and the bounds witness.
+- The depth canary `nullish_assignment` overflowed the test stack (not caused by this
+  gate: `coalesce_assignment` 9.9 KB and `expression_kind` 7.7 KB per level). The
+  synthesized wrapper arms of `Analyzer::expression_kind` (callable store, once, rest
+  adapter, parameter stores, selected wrappers, projection, injection) moved to
+  `wrapper_expression`. The dispatcher frame is 1.7 KB. A first version sent every
+  unary expression through the helper and made `higher_order_function_values` and
+  `number_operators` overflow; only the synthesized operators use the helper now.
+  `nullish_coalescing` passes at a 1.7 MB stack.
+- Batch after the follow-up: 37 compiler suites, 341 checks, 0 failures
+  (target/editor/string-indexing-followup-compiler.log), including all depth canaries
+  (`closures`, `for_of`, `owned_arrays`, `nullish_coalescing`, `nullish_assignment`,
+  `higher_order_function_values`, `number_operators`, `type_syntax`).
+- Consumers rebuilt and replaced again; five matched cases verified untimed again
+  (record 2026-10-06T14-44-52-198Z-verify.json, imported into SQLite).
+
 No full regression or timing was performed. The workload is unmeasured.
