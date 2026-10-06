@@ -1064,14 +1064,22 @@ impl SourceIndex {
                     );
                     let mut n = header + 2;
                     while n < end {
-                        if name(self.text(n)) && self.text(n + 1) == ":" {
-                            let end_type = self.end_type(n + 2).min(end);
-                            let ty = self.written_type(&self.snippet(n + 2, end_type));
+                        // `name?: Type` is a field that a literal may omit.
+                        let optional = name(self.text(n)) && self.text(n + 1) == "?" && self.text(n + 2) == ":";
+                        if name(self.text(n)) && (self.text(n + 1) == ":" || optional) {
+                            let colon = n + 1 + usize::from(optional);
+                            let end_type = self.end_type(colon + 1).min(end);
+                            let written = self.written_type(&self.snippet(colon + 1, end_type));
+                            let ty = if optional && !written.split('|').any(|member| member.trim() == "undefined") {
+                                canonical_data_type(&format!("{written} | undefined"))
+                            } else {
+                                written.clone()
+                            };
                             let field = self.add(
                                 n,
                                 8,
                                 ty.clone(),
-                                format!("{}: {ty}", self.text(n)),
+                                format!("{}{}: {ty}", self.text(n), if optional { "?" } else { "" }),
                                 self.tokens[n].span,
                                 self.tokens[n].span.start,
                                 self.tokens[n].scope,
