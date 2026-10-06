@@ -15,3 +15,7 @@
 /benchmarks/records.sqlite
 /benchmarks/records.sqlite-wal
 /benchmarks/records.sqlite-shm
+
+# Python bytecode is rebuildable.
+__pycache__/
+*.py[cod]

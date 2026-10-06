@@ -110,6 +110,23 @@ discard another agent's changes. Do not create archive directories or snapshots;
 the owner deleted the historical archives.
 
 Generated executables, run artifacts and the canonical SQLite analytics store are
-ignored by Git. Rebuild binaries from the relevant source commit when needed. Retain existing
-analytics evidence on disk; a source commit is not its backup. Do not create archive
+ignored by Git. Rebuild binaries from the relevant source commit when needed. Preserve analytics evidence in SQLite, not duplicate loose trees; a source commit
+is not its backup. Import and verify closed records before removing their loose copies. Do not create archive
 directories or snapshots.
+
+
+## Generated-file retention
+
+SQLite is the durable home for closed benchmark records and diagnostic evidence.
+Import original bytes, verify hashes and database integrity, then remove loose copies.
+When a path already names different immutable bytes, preserve the new version under
+an explicit content-addressed SQLite record path; never overwrite historical data.
+Do not create filesystem archives, source snapshots or duplicate evidence trees.
+Keep concise logs for the current gate only, and preserve the five current executable
+consumers during cache cleanup.
+
+Reuse the documented single Cargo target with CARGO_INCREMENTAL=0. At handoffs,
+inspect workspace and scratch target growth and remove obsolete test/native executables,
+intermediate build trees and expired cache variants. Do not keep a target tree per gate.
+A cleanup may make the next build cold; report that honestly and do not start a rebuild
+merely to repopulate caches after cleanup. Historical measurements remain in SQLite.
