@@ -87,6 +87,14 @@ impl Analyzer {
         expected: Option<Type>,
     ) -> Option<Type> {
         if let ExprKind::Unary{op:UnaryOp::RestPack,value,..}=&argument.kind {return self.generic_argument_hint(context,value,expected);}
+        if let ExprKind::Call(callee, _) = &argument.kind
+            && let ExprKind::Name(name) = &callee.kind
+            && !context.names.contains_key(name)
+            && (self.function_names.get(name).is_some_and(|&index| self.signatures[index].inferred_result && self.checked[index].is_none())
+                || self.generic_functions.template(name).is_some_and(|function| function.result.is_none())) {
+            // An unchecked omitted result is unknown, not a void constraint.
+            return None;
+        }
         match (expected, &argument.kind) {
             (Some(Type::Number), _) if number_literal_context(argument) => Some(Type::Number),
             (Some(Type::Array(element)), ExprKind::Array(values))
@@ -140,10 +148,13 @@ impl Analyzer {
         let Some((name, _)) = Self::generic_call_name(callee) else {
             return Ok(());
         };
-        if context.names.contains_key(name)
-            || context.pending_names.contains(name)
-            || self.generic_functions.template(name).is_none()
-        {
+        if context.names.contains_key(name) || context.pending_names.contains(name) {
+            return Ok(());
+        }
+        if self.generic_functions.template(name).is_none() {
+            if let Some(&index) = self.function_names.get(name) {
+                self.prepare_named_result_hint(context, index)?;
+            }
             return Ok(());
         }
         self.prepare_named_generic_call(context, expr, expected)
@@ -269,7 +280,8 @@ impl Analyzer {
             expr.span,
             self.function_stack.len(),
         )?;
-        if self.function_names.contains_key(&concrete) {
+        if let Some(&index) = self.function_names.get(&concrete) {
+            self.prepare_named_result_hint(context, index)?;
             *name = concrete;
             return Ok(());
         }
@@ -333,6 +345,7 @@ impl Analyzer {
                     }
                 })
                 .collect::<Result<Vec<_>, _>>()?;
+            let inferred_result = function.result.is_none() && function.name.text != "main" && return_type_inference::has_value_return(&function.body);
             let result = function
                 .result
                 .take()
@@ -358,7 +371,7 @@ impl Analyzer {
             for (ty, initializer) in params.iter_mut().zip(&function.parameter_initializers) {
                 if initializer.omission().is_omittable() { *ty = self.unions.intern([*ty,Type::Undefined], function.name.span)?; }
             }
-            self.signatures.push(Signature { params, body_params, result });
+            self.signatures.push(Signature { params, body_params, result, inferred_result });
             self.checked.push(None);
             self.visiting.push(false);
             self.program.functions.push(function);
@@ -368,6 +381,7 @@ impl Analyzer {
             &self.record_names,
             &self.unions,
         )?;
+        self.prepare_named_result_hint(context, self.function_names[&concrete])?;
         *name = concrete;
         Ok(())
     }

@@ -7582,3 +7582,15 @@ fn unused_inner_capture_keeps_editor_symbols_without_outer_runtime_requirements(
     let definition=ask(source,"textDocument/definition","outer();",0);
     assert!(!definition.is_null());
 }
+
+#[test]
+fn inferred_named_results_drive_call_values_hover_and_signature_help() {
+    let source="function main(){function answer(){return 'hello';}function twice(value:int){return value+value;}const text=answer();console.log(text.toUpperCase());const value=twice(3);}";
+    tsrust_compiler::check(source).unwrap();
+    let hover=ask(source,"textDocument/hover","text.toUpperCase",0);
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("string"),"{hover}");
+    let function=ask(source,"textDocument/hover","answer();",0);
+    assert!(function["contents"]["value"].as_str().unwrap().contains("answer(): string"),"{function}");
+    let signature=ask(source,"textDocument/signatureHelp","3);",0);
+    assert!(signature["signatures"][0]["label"].as_str().unwrap().ends_with(": int"),"{signature}");
+}

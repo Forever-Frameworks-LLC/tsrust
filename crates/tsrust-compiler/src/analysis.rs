@@ -1,5 +1,7 @@
 #[path = "inferred_callable_arrays.rs"]
 mod inferred_callable_arrays;
+#[path = "return_type_inference.rs"]
+mod return_type_inference;
 #[path = "named_capture_layout.rs"]
 mod named_capture_layout;
 #[path = "named_capture_access.rs"]
@@ -232,6 +234,7 @@ struct Signature {
     params: Vec<Type>,
     body_params: Vec<Type>,
     result: Type,
+    inferred_result: bool,
 }
 /// State carried between the phases of one conditional expression check.
 struct ConditionalPlan {
@@ -335,7 +338,7 @@ struct Context {
     capture_boundary: usize,
     named_capture_range: (usize, usize),
     closure_depth: usize,
-    inferred_arrow_result: bool,
+    inferred_body_result: bool,
     returning_closure: bool,
     returned_callable: Option<Type>,
     function_name: String,
@@ -381,7 +384,7 @@ impl Context {
             capture_boundary: 0,
             named_capture_range: (0, 0),
             closure_depth: 0,
-            inferred_arrow_result: false,
+            inferred_body_result: false,
             returning_closure: false,
             returned_callable: None,
             function_name,
@@ -1529,7 +1532,7 @@ impl Analyzer {
             for (ty, initializer) in params.iter_mut().zip(&analyzer.program.functions[index].parameter_initializers) {
                 if initializer.omission().is_omittable() { *ty = analyzer.unions.intern([*ty, Type::Undefined], analyzer.program.functions[index].name.span)?; }
             }
-            analyzer.signatures.push(Signature { params, body_params, result });
+            analyzer.signatures.push(Signature { params, body_params, result, inferred_result: annotation.is_none() && analyzer.program.functions[index].name.text != "main" && return_type_inference::has_value_return(&analyzer.program.functions[index].body) });
         }
         Ok(analyzer)
     }
@@ -1888,23 +1891,6 @@ impl Analyzer {
         Ok(())
     }
 
-    fn inferred_arrow_result(&self, body: &[Stmt]) -> Result<Type, Diagnostic> {
-            let mut pending = body.iter().collect::<Vec<_>>();
-            let mut inferred = None;
-            while let Some(statement) = pending.pop() {
-                match &statement.kind {
-                    StmtKind::Return(value) => {
-                        let actual = value.as_ref().and_then(|value| value.ty).unwrap_or(Type::Void);
-                        if let Some(previous) = inferred { self.require(actual, Some(previous), statement.span)?; } else { inferred = Some(actual); }
-                    }
-                    StmtKind::Block(statements) | StmtKind::While { body: statements, .. } | StmtKind::ForOf { body: statements, .. } | StmtKind::Loop { body: statements, .. } => pending.extend(statements),
-                    StmtKind::Try(region) => pending.extend(region.statements()),
-                    StmtKind::If { then_body, else_body, .. } => { pending.extend(then_body); pending.extend(else_body); }
-                    _ => {}
-                }
-            }
-        Ok(inferred.unwrap_or(Type::Void))
-    }
 
     fn closure(
         &mut self,
@@ -1932,7 +1918,7 @@ impl Analyzer {
         if hidden_captures {
             context.names = outer.names.iter().map(|(name, slot)| (name.clone(), visible.binary_search(slot).expect("visible name"))).collect();
         }
-        context.inferred_arrow_result = inferred_result;
+        context.inferred_body_result = inferred_result;
         if self.discovering_results {
             context.pending_names = outer.pending_names.clone();
         }
@@ -2033,7 +2019,7 @@ impl Analyzer {
                 Self::stated_parameter_access(&param.name.text, &mut context.bindings[binding], declared, access.span)?;
             }
         }
-        if inferred_result { result = self.inferred_arrow_result(body)?; }
+        if inferred_result { result = self.inferred_body_result(body)?; }
         if result != Type::Void && !returned {
             return Err(Diagnostic::new(
                 "type",
@@ -3881,6 +3867,9 @@ impl Analyzer {
         }
         let name = self.program.functions[index].name.clone();
         if self.visiting[index] {
+            if self.signatures[index].inferred_result {
+                return Err(Diagnostic::new("result-inference", "A recursive function needs an explicit result type. Add a result annotation to establish the recursive checking boundary.", name.span));
+            }
             let start = self
                 .function_stack
                 .iter()
@@ -3929,10 +3918,15 @@ impl Analyzer {
             }
         }
         // Move the body into analysis rather than clone the syntax tree.
-        let result_type = self.signatures[index].result;
+        let mut result_type = self.signatures[index].result;
+        context.inferred_body_result = self.signatures[index].inferred_result;
         let returned = self
             .check_source_callable_body(&mut context, Self::uninitialized_body(&mut body), result_type)
             .map_err(|error| self.filter_ownership_fixes(&context, error))?;
+        if context.inferred_body_result {
+            result_type = self.inferred_body_result(&body)?;
+            self.signatures[index].result = result_type;
+        }
         if result_type != Type::Void && !returned {
             return Err(Diagnostic::new(
                 "type",
@@ -5210,7 +5204,7 @@ impl Analyzer {
                 value,
                 Mode::Consume,
                 &Loans::new(),
-                if context.inferred_arrow_result { None } else { Some(result_type) },
+                if context.inferred_body_result { None } else { Some(result_type) },
             )?,
             None => Type::Void,
         };
@@ -5224,7 +5218,7 @@ impl Analyzer {
             value.wrap_once(origin);
         }
         actual = converted;
-        if !context.inferred_arrow_result { self.require(actual, Some(result_type), span)?; }
+        if !context.inferred_body_result { self.require(actual, Some(result_type), span)?; }
         if self.discovering_results && self.has_pending_result(actual) {
             return Ok(());
         }
@@ -12474,8 +12468,8 @@ self.names_materialized_type(element.with_depth(0).ty())
                 span,
             ));
         }
-        let result = if context.inferred_arrow_result {
-            self.inferred_arrow_result(&body)?
+        let result = if context.inferred_body_result {
+            self.inferred_body_result(&body)?
         } else if self.callable_result_type(source.result) {
             context
                 .returned_callable

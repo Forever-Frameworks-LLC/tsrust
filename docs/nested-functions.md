@@ -19,8 +19,12 @@ function main() {
 Capture-free declarations support self recursion, mutual recursion and use as
 callable values. Parameter and result annotations use ordinary declaration syntax.
 Basic generic, default and rest signatures share the top-level implementation.
-Write the result annotation when returning a value: an omitted named-declaration
-result currently means void. Nonrecursive result inference remains planned.
+A nonrecursive declaration can omit its result annotation. The compiler infers
+its result from checked return expressions, including scalar, generic, captured and
+array values. All return paths must agree on a type, and a function returning a
+value must return on every reaching path. Write an explicit result type when a
+recursive value-returning function needs a checking boundary. A body without
+value returns remains void; main remains the void program entry.
 The native fixtures in tests/fixtures/nested-function-declarations verify forward
 calls, factorial, mutually recursive even/odd functions, block shadowing, Array.map
 callbacks and generic/default/rest signatures with assertions.

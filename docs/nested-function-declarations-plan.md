@@ -196,3 +196,9 @@ factory/storage/disposal/failure/recursion evidence and independent matched unti
 verification. Runtime captures now follow live call/value edges; unused bodies use
 completed lexical contexts without adding outer-call borrows or readiness demands.
 Gate173 omitted-result inference and full signature/context coverage remain open.
+
+Gate173 has a focused result-inference checkpoint. The original omitted-result
+native witness now passes. Scalar, generic, captured and array returns infer from
+checked bodies, and outer generic calls no longer constrain unknown results to
+void. Recursive value-returning inference requires an explicit boundary. Full
+function-value/signature/context coverage and the family audit remain incomplete.

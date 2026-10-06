@@ -19610,6 +19610,34 @@
       "specification": "Retain eight scalar observations from independently checked factory/storage/failure scenarios.",
       "sourceSha256": "e201d1cbd340e80913183df11639c3f70c6d51fcafa0e6bb60317ac2b1c0d84a",
       "counterpartSha256": "fa85ca3ebd82a6a9f92ee6269969251a8532aa13a38ce050565d2ad78496a4b2"
+    },
+    {
+      "id": "nested_function_results",
+      "family": "nested-function-results",
+      "source": "workloads/nested_function_results.tsr",
+      "counterpart": "workloads/nested_function_results.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One inferred named result scenario",
+      "inputText": "infer",
+      "category": "callbacks",
+      "implementationGate": 173,
+      "measurementStatus": "pending-language-milestone",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": false,
+      "measured": false,
+      "notes": "Inferred scalar, generic, captured and array returns. Untimed support; full gate173 signature/context acceptance pending.",
+      "specification": "Retain six independent observations from checked inferred named results.",
+      "sourceSha256": "b25627a145d7bf1d9636be9e6ad9fcd2800f5aa6f7ae22c89200e05950678fae",
+      "counterpartSha256": "b61ebede20e7b6ff680519e5bea851e75da2b0d985328111e57d7663fe629343"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",
