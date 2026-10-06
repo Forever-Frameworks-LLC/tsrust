@@ -129,3 +129,29 @@ scalar removal borrows its array with Mutable<int[]>. Their corrected controls
 retain transfer/mutation observations. Unannotated polymorphism and inferred generic
 factory environments remain genuine red witnesses; this is an interim checkpoint,
 not full generic-value or gate173 acceptance.
+
+## Deferred data specialization boundary
+
+The next implementation must extend data-slot substitution rather than reuse the
+current callable substitution unchanged. materialize_closure_method_types replaces
+Type::Callback parameter slots and optional callback payloads. Its source Context
+has already checked data bindings; an unresolved generic data parameter cannot be
+passed through that code as an ordinary void binding. Introduce explicit deferred
+source metadata for the original declaration and parameter positions, then solve
+its template before constructing the concrete method context. Keep argument
+preparation separate from argument evaluation and preserve supplied-count metadata.
+
+The native emitter's closure_method currently selects its receiver from the global
+closure.invocation. Audit that boundary when methods require different access to
+the same retained owners. Do not silently make every invocation consuming because
+one materialized method consumes. A mode-dependent extension needs source flow and
+native receiver evidence; the existing callback methods' uniform contract is not
+proof that arbitrary data specialization is covered.
+
+Two further native witnesses are red, with committed strict TypeScript counterparts
+passing Node-after-tsc. array-patterns checks T[] inference, mutation of both int[]
+and string[] callers and exactly two writes to one borrowed captured counter.
+rest-prefix checks a T fallback, defaulted int offset, explicit undefined and T[]
+rest across scalar/string calls, with exactly three writes to one environment.
+Keep these alongside the three original polymorphic red tests. Their passing Node
+references do not establish Tsrust implementation acceptance.

@@ -1,3 +1,5 @@
+Current continuation: [deferred data boundary](handoff-2026-10-06-gate173-generic-data-boundary.md).
+
 # Handoff: contextual generic function values
 
 Read AGENTS.md, docs/development-workflow.md, docs/nested-function-declarations-plan.md,
