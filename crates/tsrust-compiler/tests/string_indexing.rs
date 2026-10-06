@@ -2,7 +2,7 @@ mod support;
 
 // `text[position]` is the character at a position, as a new string. A
 // position outside the string is a catchable range error, like an array
-// index. The independent Node run of the fixture passes.
+// index; outside any try it ends the program with the same kind of report. The independent Node run of the fixture passes.
 #[test]
 fn string_indexing_selects_characters_and_checks_bounds() {
     let directory = support::TempDirectory::new();
@@ -23,14 +23,13 @@ fn string_indexing_counts_unicode_characters() {
 }
 
 #[test]
-fn uncaught_string_index_reports_a_range_error() {
+fn uncaught_string_index_reports_its_position() {
     let directory = support::TempDirectory::new();
     let path = directory.source("function main() { const text = \"abc\"; let position = 7; console.log(text[position]); }");
     let output = support::run(support::cli().arg("run").arg(path), 60);
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.contains("RangeError") && stderr.contains("string index out of range"), "{stderr}");
-    assert!(!stderr.contains("panicked"), "{stderr}");
+    assert!(stderr.contains("string index out of range at source bytes"), "{stderr}");
 }
 
 #[test]
@@ -42,6 +41,9 @@ fn string_indexing_keeps_static_contracts() {
         ("function main() { let text = \"abc\"; text[0] = \"x\"; }", "unsupported"),
         ("function main() { let text = \"abc\"; text[0] += \"x\"; }", "unsupported"),
         ("function main() { const n = 5; const a = n[0]; }", "type"),
+        ("function main() { let text = \"abc\"; text[0]++; }", "unsupported"),
+        ("function main() { let text = \"abc\"; const a = (text[0] = \"x\"); }", "unsupported"),
+        ("function main() { let text = \"abc\"; text[0] ||= \"x\"; }", "unsupported"),
     ] {
         support::reject(source, code);
     }

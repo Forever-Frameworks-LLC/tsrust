@@ -1922,6 +1922,12 @@ impl SourceIndex {
                 end = close + 1;
                 continue;
             }
+            if self.text(end) == "[" && ty == "string" {
+                // A string position is a one-character string.
+                let close = self.pairs.get(end).copied().flatten()?;
+                end = close + 1;
+                continue;
+            }
             if self.text(end) == "[" {
                 let close = self.pairs.get(end).copied().flatten()?;
                 ty = if let Ok(annotation) = tsrust_compiler::type_syntax::parse(&ty) {
@@ -1972,12 +1978,33 @@ impl SourceIndex {
         }
         Some((ty, end))
     }
+    /// Token after a comparison operator that starts at `id`. The scanner
+    /// splits operators into single symbols, so adjacent spans are required.
+    fn after_comparison(&self, id: usize) -> Option<usize> {
+        let joined = |count: usize| {
+            (0..count).all(|step| self.tokens.get(id + step + 1).is_some())
+                && (1..count).all(|step| self.tokens[id + step - 1].span.end == self.tokens[id + step].span.start)
+        };
+        for operator in [["=", "=", "="].as_slice(), &["!", "=", "="], &["=", "="], &["!", "="], &["<", "="], &[">", "="], &["<"], &[">"]] {
+            if operator.iter().enumerate().all(|(step, text)| self.text(id + step) == *text) && joined(operator.len()) {
+                return Some(id + operator.len());
+            }
+        }
+        None
+    }
     fn initializer_type(&self, id: usize, offset: usize) -> String {
         let Some((ty, end)) = self.simple_expression_type(id, offset, 0) else {
             return String::new();
         };
         if matches!(self.text(end), ";" | "," | "}" | "") {
             ty
+        } else if let Some(right) = self.after_comparison(end)
+            && self
+                .simple_expression_type(right, offset, 0)
+                .is_some_and(|(_, after)| matches!(self.text(after), ";" | "," | "}" | ""))
+        {
+            // One comparison of two typed operands.
+            "boolean".into()
         } else {
             String::new()
         }
@@ -2203,6 +2230,10 @@ impl SourceIndex {
                 let receiver = self.receiver_type_end(open - 1, depth + 1);
                 if let Some(element) = array_element_type(&receiver) {
                     return element.into();
+                }
+                // A string position is a one-character string.
+                if receiver == "string" {
+                    return receiver;
                 }
                 if !receiver.is_empty() {
                     return String::new();

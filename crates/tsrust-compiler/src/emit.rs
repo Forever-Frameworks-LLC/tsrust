@@ -6183,6 +6183,23 @@ impl Emitter<'_> {
         format!("{reference}{dereference}value{index}")
     }
 
+    /// The character at a position of a string, as a new string. Operands
+    /// are bound by a match scrutinee so a temporary text outlives the read.
+    #[inline(never)]
+    fn string_index(&self, fun: &CheckedFunction, expr: &Expr, base: &Expr, index: &Expr, mode: Mode) -> String {
+        let failure = format!(
+            "string index out of range at source bytes {}..{}",
+            expr.span.start, expr.span.end
+        );
+        let failed = self.runtime_failure_exit("RangeError", "bounds", &failure, expr.span)
+            .unwrap_or_else(|| format!("panic!({failure:?})"));
+        let text = self.expr(fun, base, Mode::Read);
+        let position = self.expr(fun, index, Mode::Copy);
+        Self::access_wrapped(expr, mode, format!(
+            "(match ({text}, {position}) {{ (indexed_text, indexed_position) => {{ let indexed_text: &str = indexed_text.as_ref(); let indexed_position: i64 = indexed_position; match usize::try_from(indexed_position).ok().and_then(|position| indexed_text.chars().nth(position)) {{ Some(character) => String::Owned(character.to_string()), None => {failed} }} }} }})"
+        ))
+    }
+
     fn array_failure(span: crate::diagnostic::Span) -> String {
         format!(
             "array index out of bounds at source bytes {}..{}",
@@ -7021,6 +7038,7 @@ impl Emitter<'_> {
                 prefix,
                 operator,
             } => self.update_expression(fun, target, *increment, *prefix, *operator),
+            ExprKind::Index(base, index) if base.ty == Some(Type::String) => self.string_index(fun, expr, base, index, mode),
             ExprKind::Index(base, index)
                 if self.expression_shape(base)
                     == Some(crate::fixed_storage::Shape::LiteralStrings) =>

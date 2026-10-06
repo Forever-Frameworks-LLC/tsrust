@@ -4391,6 +4391,7 @@ impl Analyzer {
     }
     #[inline(never)]
     fn assign_statement_with_loans(&mut self,context:&mut Context,target:&mut Expr,value:&mut Expr,operator:Option<(BinaryOp,Span)>,loans:&Loans)->Result<(),Diagnostic>{
+        self.reject_string_position_write(context, target)?;
         if let Some((op, span)) = operator {
             self.compound_assignment_value(context,target,value,(op,span),loans,true)?;
             return Ok(());
@@ -5255,6 +5256,7 @@ impl Analyzer {
         loans: &Loans,
         operator: Span,
     ) -> Result<Type, Diagnostic> {
+        self.reject_string_position_write(context, target)?;
         let named = matches!(target.kind, ExprKind::Name(_));
         if named {
             self.rebind_target(context, target)?;
@@ -5637,6 +5639,7 @@ impl Analyzer {
         loans: &Loans,
         operator: Span,
     ) -> Result<Type, Diagnostic> {
+        self.reject_string_position_write(context, target)?;
         let named = matches!(target.kind, ExprKind::Name(_));
         if named {
             self.rebind_target(context, target)?;
@@ -5702,6 +5705,7 @@ impl Analyzer {
         loans: &Loans,
         allow_owned_statement: bool,
     ) -> Result<Type, Diagnostic> {
+        self.reject_string_position_write(context, target)?;
         let (op, operator) = operation;
         let named = matches!(target.kind, ExprKind::Name(_));
         if named {
@@ -9078,6 +9082,7 @@ impl Analyzer {
                 let result=match receiver {
                     Type::Record(id) if self.program.records[id].is_tuple()=>self.fields[id].get(&Self::flat_literal_depth(index)?.to_string()).copied(),
                     Type::Array(element)=>Some(element.ty()),
+                    Type::String=>Some(Type::String),
                     _=>None,
                 }?;
                 if optional{self.unions.intern([result,Type::Undefined],expr.span).ok()}else{Some(result)}
@@ -9764,8 +9769,39 @@ impl Analyzer {
         let name=position.to_string();Ok(Some((name.clone(),self.fields[id][&name])))
     }
 
+    /// A string position is a value, not storage: it cannot be assigned.
+    #[inline(never)]
+    fn reject_string_position_write(&mut self, context: &Context, target: &Expr) -> Result<(), Diagnostic> {
+        if let ExprKind::Index(base, _) = &target.kind
+            && self.expression_type_hint(context, base) == Some(Type::String)
+        {
+            return Err(Diagnostic::new(
+                "unsupported",
+                "A string cannot be changed in place. Build a new string, for example with slice() and +.",
+                target.span,
+            ));
+        }
+        Ok(())
+    }
+
+    /// `text[position]`: the character at a position as a new string. The
+    /// text is only read; the result owns its character.
+    #[inline(never)]
+    fn string_index(&mut self,context:&mut Context,base:&mut Expr,index:&mut Expr,loans:&Loans)->Result<Type,Diagnostic> {
+        let ty=self.expression(context,base,Mode::Read,loans,None)?;
+        debug_assert_eq!(ty,Type::String);
+        let mut active=loans.clone();
+        for root in Self::loan_roots(base,Mode::Read){active.entry(root).or_default().push((Mode::Read,base.span));}
+        let actual=self.expression(context,index,Mode::Copy,&active,Some(Type::Int))?;
+        self.require(actual,Some(Type::Int),index.span)?;
+        Ok(Type::String)
+    }
+
     fn index_expression(&mut self,context:&mut Context,expr:&mut Expr,mode:Mode,loans:&Loans,expected:Option<Type>)->Result<Type,Diagnostic> {
         let ExprKind::Index(base,index)=&mut expr.kind else {unreachable!()};
+        if !Self::optional_hint_boundary(base) && self.expression_type_hint(context,base)==Some(Type::String) {
+            return self.string_index(context,base,index,loans);
+        }
         let result=if Self::named_storage(base) {self.array_index(context,base,index,mode,loans,expr.span)} else {self.temporary_array_index(context,base,index,mode,loans,expected)}?;
         if let Some((name,_))=self.checked_tuple_index(base.ty.expect("checked index receiver"),index)? {
             let span=base.span;let receiver=std::mem::replace(base,Box::new(Expr::new(ExprKind::Undefined,span)));
@@ -9803,7 +9839,7 @@ impl Analyzer {
         let Type::Array(element) = ty else {
             return Err(Diagnostic::new(
                 "type",
-                "Indexing requires an array.",
+                "Indexing requires an array, a tuple or a string.",
                 base.span,
             ));
         };
@@ -9912,7 +9948,7 @@ impl Analyzer {
         let Type::Array(element) = ty else {
             return Err(Diagnostic::new(
                 "type",
-                "Indexing requires an array.",
+                "Indexing requires an array, a tuple or a string.",
                 base.span,
             ));
         };
