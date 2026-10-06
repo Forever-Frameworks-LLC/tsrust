@@ -30,4 +30,32 @@ ECMAScript admits U+FEFF but excludes U+0085 and U+200B. No allocation is necess
 for trimming, validating or reading radix bits. Decimal conversion delegates to the
 standard correctly rounded floating-point parser only after grammar validation.
 
-Status: red witnesses added; implementation and acceptance remain pending.
+## Implementation and evidence
+
+The shared helper is runtime_numeric_string.rs. It scans borrowed UTF-8 slices,
+validates whole decimal syntax, and converts radix digits with a 53-bit mantissa,
+guard and sticky bits. Integer overflow and invalid tails are checked without a
+parsing buffer. Decimal parsing delegates to f64 after syntax validation. Emission
+routes all string and enum/union conversion paths to the same helper.
+
+Acceptance also found an existing exponential hint traversal: a member receiver
+was inferred separately for Map, Set and primitive methods. One cached receiver
+hint replaces repeated traversal in expression_type_hint. The existing 48-member
+diagnostic witness timed out twice before this repair; the focused identity-chain
+witness and depth suite now pass without raising the timeout or stack size.
+
+Final affected compiler/native checks and all eight depth canaries pass (80).
+The whole editor crate passes 267 checks. The Number constructor catalog example
+pair executes with identical native and Node output. Grammar fixtures cover radix
+rounding ties, maximum finite overflow, long leading zeros, invalid tails after
+overflow, excluded whitespace, signed zero, unions and enums. Old Rust-parser
+expectations were replaced with independent explicit numeric values.
+
+The benchmark family retains four observations over ten grammar cases. Its oracle
+uses a fixed expected-value table, without parsing the text under test. ABI and
+source guards, fingerprints and runner/profile/report hooks are registered; the
+registration/report batch passes 17 checks. Input copying is explicit so the
+ordinary borrowed-input ABI remains unchanged. Five matched cases are verified
+untimed, with no new timing claim. Records and closed logs are retained in SQLite
+with exact read-back hashes; loose verification copies and generated outputs are
+removed before handoff.

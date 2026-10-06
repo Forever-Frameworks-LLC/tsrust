@@ -871,9 +871,9 @@ impl Emitter<'_> {
                         Type::Int => "*payload as f64".into(),
                         Type::Number => "*payload".into(),
                         Type::Boolean => "if *payload {1.0f64} else {0.0f64}".into(),
-                        Type::String => "{let text = payload.trim(); if text.is_empty() {0.0f64} else {text.parse::<f64>().unwrap_or(f64::NAN)}}".into(),
+                        Type::String => "tsr_number_from_text(payload.as_ref())".into(),
                         Type::Enum(_, crate::syntax::EnumKind::Number) => "payload.tsr_value()".into(),
-                        Type::Enum(_, crate::syntax::EnumKind::String) => "{let text = payload.tsr_value().trim(); if text.is_empty() {0.0f64} else {text.parse::<f64>().unwrap_or(f64::NAN)}}".into(),
+                        Type::Enum(_, crate::syntax::EnumKind::String) => "tsr_number_from_text(payload.tsr_value())".into(),
                         _ => unreachable!("checked scalar Number union"),
                     },
                     CallTarget::ArrayIsArray => (matches!(member, Type::Array(_)) || matches!(member,Type::Record(id) if self.program.records[*id].is_tuple())).to_string(),
@@ -2551,6 +2551,7 @@ impl Emitter<'_> {
             || output.contains("tsr_number_precision(")
             || output.contains("tsr_number_parse_float(")
             || output.contains("tsr_number_parse_int(")
+            || output.contains("tsr_number_from_text(")
             || output.contains("tsr_string_normalize(")
             || output.contains("tsr_array_locale(")
             || output.contains("tsr_array_join(")
@@ -7978,7 +7979,7 @@ impl Emitter<'_> {
                             self.expr(fun, argument, Mode::Copy)
                         ),
                         Type::Enum(_, crate::syntax::EnumKind::Number) => format!("({}).tsr_value()", self.expr(fun, argument, Mode::Copy)),
-                        Type::Enum(_, crate::syntax::EnumKind::String) => format!("{{ let text = ({}).tsr_value().trim(); if text.is_empty() {{0.0f64}} else {{text.parse::<f64>().unwrap_or(f64::NAN)}} }}", self.expr(fun, argument, Mode::Copy)),
+                        Type::Enum(_, crate::syntax::EnumKind::String) => format!("tsr_number_from_text(({}).tsr_value())", self.expr(fun, argument, Mode::Copy)),
                         Type::Number => self.expr(fun, argument, Mode::Copy),
                         Type::Int => format!("({}) as f64", self.expr(fun, argument, Mode::Copy)),
                         Type::Boolean => format!(
@@ -7986,7 +7987,7 @@ impl Emitter<'_> {
                             self.expr(fun, argument, Mode::Copy)
                         ),
                         Type::String => format!(
-                            "{{ let number_text: &String = {}; let number_text = number_text.trim(); if number_text.is_empty() {{ 0.0f64 }} else {{ number_text.parse::<f64>().unwrap_or(f64::NAN) }} }}",
+                            "{{ let number_text: &String = {}; tsr_number_from_text(number_text.as_ref()) }}",
                             self.expr(fun, argument, Mode::Read)
                         ),
                         _ => unreachable!("checked Number argument"),

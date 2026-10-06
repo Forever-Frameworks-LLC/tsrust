@@ -14,9 +14,9 @@ console.log(parsed, enabled, empty); // 12.5 1 0
 
 String conversion trims whitespace and reads the whole decimal value or Infinity.
 Empty text converts to zero. Invalid text and undefined convert to NaN; use
-`Number.isNaN` rather than equality to test NaN. Signed zero is preserved. The
-existing Number conversion does not accept radix-prefixed text or custom valueOf
-objects. Conversion uses 64-bit floating-point precision, so large integers may
+`Number.isNaN` rather than equality to test NaN. Signed zero is preserved. Unsigned 0b/0o/0x integer prefixes are accepted with either case; a sign before
+a radix prefix, separators and trailing text produce NaN. Custom valueOf objects
+are unsupported. Conversion uses 64-bit floating-point precision, so large integers may
 round when converted to number.
 
 ```tsrust

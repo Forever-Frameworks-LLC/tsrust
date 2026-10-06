@@ -2981,11 +2981,15 @@
   "parameters": [
     "value?: int | number | boolean | string | null | undefined"
   ],
-  "documentation": "Converts scalar data to a number. Omission returns 0; null returns 0, undefined returns NaN, true returns 1 and false returns 0. Strings are trimmed and parsed as a whole decimal or Infinity; empty text returns 0 and invalid text returns NaN. Signed zero is preserved. A scalar union converts its active alternative without narrowing or changing the source. Use it to normalize numeric input before arithmetic.\n\n@param value - Optional primitive scalar: int, number, boolean, string, null, undefined or scalar union. At most one argument; arrays, records and functions are type errors. Enums convert their underlying scalar value.\n\n```tsrust\nconst value:string|undefined=\"12.5\";console.log(Number(value),Number(true),Number(null),Number.isNaN(Number(undefined))); // 12.5 1 0 true\n```\n\nReturns a number using 64-bit floating-point precision; converting large int values may round. Radix-prefixed text is not supported. Unary + provides the same scalar conversion; an existing int expression keeps its int type under unary +. No boxed objects or custom valueOf conversion.\n\nOwnership: The argument is borrowed, remains reusable and evaluates once; the result is a copied scalar.",
+  "documentation": "Converts scalar data to a number. Omission returns 0; null returns 0, undefined returns NaN, true returns 1 and false returns 0. Strings are trimmed using numeric whitespace and parsed as a whole decimal, signed Infinity or unsigned 0b/0o/0x integer; empty text returns 0 and invalid text returns NaN. Signed zero is preserved. A scalar union converts its active alternative without narrowing or changing the source. Use it to normalize numeric input before arithmetic.\n\n@param value - Optional primitive scalar: int, number, boolean, string, null, undefined or scalar union. At most one argument; arrays, records and functions are type errors. Enums convert their underlying scalar value.\n\n```tsrust\nconst value:string|undefined=\"12.5\";console.log(Number(value),Number(true),Number(null),Number.isNaN(Number(undefined))); // 12.5 1 0 true\n```\n\nReturns a number using 64-bit floating-point precision; converting large int values may round. Radix prefixes accept either case, require at least one digit and cannot have a sign. Separators, BigInt suffixes and trailing text are invalid. BOM whitespace is accepted; U+0085 and U+200B are not whitespace. Unary + provides the same scalar conversion; an existing int expression keeps its int type under unary +. No boxed objects or custom valueOf conversion.\n\n```tsrust\nconsole.log(Number(\"0x10\"),+\"0b11\",Number(\"0o17\"),Number.isNaN(Number(\"12tail\"))); // 16 3 15 true\n```\n\nOwnership: The argument is borrowed, remains reusable and evaluates once; the result is a copied scalar.",
   "examples": [
     {
       "source": "const value:string|undefined=\"12.5\";console.log(Number(value),Number(true),Number(null),Number.isNaN(Number(undefined)));",
       "output": "12.5 1 0 true\n"
+    },
+    {
+      "source": "console.log(Number(\"0x10\"),+\"0b11\",Number(\"0o17\"),Number.isNaN(Number(\"12tail\")));",
+      "output": "16 3 15 true\n"
     }
   ]
 },

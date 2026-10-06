@@ -7487,3 +7487,12 @@ fn scalar_unary_plus_and_number_union_have_number_hover() {
     let hover=ask(source,"textDocument/hover","Number(value)",0);
     assert!(hover["contents"]["value"].as_str().unwrap().contains("scalar union"));
 }
+
+#[test]
+fn numeric_string_conversion_help_explains_whole_radix_and_invalid_text() {
+    let source="function main(){const value=Number(\"0x10\");console.log(value);}";
+    tsrust_compiler::check(source).unwrap();
+    let hover=ask(source,"textDocument/hover","Number",0);
+    let docs=hover["contents"]["value"].as_str().unwrap();
+    for text in ["0b/0o/0x", "cannot have a sign", "U+0085", "16 3 15 true"] { assert!(docs.contains(text),"{text}: {docs}"); }
+}

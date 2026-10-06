@@ -25,7 +25,7 @@ impl LiteralStringArray {
 "#;
 
 // String support carries the number text tie helper so it stands alone.
-pub(crate) const STRINGS: &str = concat!(include_str!("runtime_strings.rs"), include_str!("runtime_number_tie.rs"));
+pub(crate) const STRINGS: &str = concat!(include_str!("runtime_strings.rs"), include_str!("runtime_number_tie.rs"), include_str!("runtime_numeric_string.rs"));
 pub(crate) const ARRAY_JOIN: &str = include_str!("runtime_join.rs");
 pub(crate) const MATH_EXACT: &str = include_str!("runtime_math.rs");
 pub(crate) const NUMBER_TIE: &str = include_str!("runtime_number_tie.rs");

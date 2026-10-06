@@ -1301,13 +1301,15 @@
   "number.unaryPlus": {
     "implementation": "implemented",
     "comparison": "paired group",
-    "note": "Standard Rust f64 accepted by 509 compiler groups and required checks; IEEE boundary behavior is covered by native correctness tests. Gate168 accepts scalar unary conversion and scalar unions through Number, preserving existing numeric domains and borrowed once-only sources. The matched seven-observation scenario is verified untimed; no new measurement.",
+    "note": "Standard Rust f64 accepted by 509 compiler groups and required checks; IEEE boundary behavior is covered by native correctness tests. Gate168 accepts scalar unary conversion and scalar unions through Number, preserving existing numeric domains and borrowed once-only sources. The matched seven-observation scenario is verified untimed; no new measurement. Gate169 shares whole-string scalar/union/enum conversion with exact power-of-two radix rounding. Matched retained observations verified untimed; no new timing.",
     "evidence": [
       "./milestones/39-native-number.md",
-      "./milestones/168-scalar-unary-plus.md"
+      "./milestones/168-scalar-unary-plus.md",
+      "./milestones/169-numeric-string-conversion.md"
     ],
     "workloads": [
-      "scalar_unary_plus"
+      "scalar_unary_plus",
+      "numeric_string_conversion"
     ]
   },
   "number.less": {
@@ -1491,12 +1493,14 @@
     "workloads": [
       "number_from_int",
       "number_from_boolean",
-      "number_parse_decimal"
+      "number_parse_decimal",
+      "numeric_string_conversion"
     ],
     "evidence": [
-      "./milestones/39-native-number.md"
+      "./milestones/39-native-number.md",
+      "./milestones/169-numeric-string-conversion.md"
     ],
-    "note": "Primitive Number() and Number(int|number|boolean|string) are implemented. Three matched conversion workloads pass across eight runtimes. Empty construction and number identity have native correctness coverage, without fabricated folded throughput. Rust string parsing intentionally differs for some whitespace and numeric spellings; object/array coercion is unsupported."
+    "note": "Primitive Number() and Number(int|number|boolean|string) are implemented. Three matched conversion workloads pass across eight runtimes. Empty construction and number identity have native correctness coverage, without fabricated folded throughput. Whole numeric strings follow the supported decimal/radix grammar and exact numeric whitespace; object/array coercion is unsupported. Gate169 shares whole-string scalar/union/enum conversion with exact power-of-two radix rounding. Matched retained observations verified untimed; no new timing."
   },
   "Math.abs": {
     "implementation": "implemented",

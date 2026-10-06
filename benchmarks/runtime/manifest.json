@@ -9,6 +9,34 @@
   "compileSamples": 3,
   "workloads": [
     {
+      "id": "numeric_string_conversion",
+      "family": "numeric-string-conversion",
+      "source": "workloads/numeric_string_conversion.tsr",
+      "counterpart": "workloads/numeric_string_conversion.ts",
+      "result": "string[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One complete numeric text conversion scenario",
+      "inputText": "0x10",
+      "category": "numbers",
+      "implementationGate": 169,
+      "measurementStatus": "pending-language-milestone",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": true,
+      "measured": false,
+      "notes": "Four retained observations across ten grammar/boundary cases. Untimed verification; no measurement.",
+      "specification": "Whole numeric text through Number, unary plus and nullable union; signed-zero identity. Retain all observations.",
+      "sourceSha256": "d610ee4587dda681a4e9f4a6878b3669e427163427c2701c4c8a3ef5619d1b61",
+      "counterpartSha256": "e2a505d5fa305cef74441eeedd2d574a74c6abafbda957024eb9633b2f20edfa"
+    },
+    {
       "id": "scalar_unary_plus",
       "family": "scalar-unary-plus",
       "source": "workloads/scalar_unary_plus.tsr",

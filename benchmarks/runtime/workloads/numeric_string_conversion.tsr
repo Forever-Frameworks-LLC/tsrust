@@ -1,0 +1,11 @@
+function workload(n: int, seed: int, input: string): string[][] {
+  const texts=[String(input),"0b101","0o17","\uFEFF12\u00A0","-0","inf","1e999","-1e-999","0x20000000000003","12tail"];
+  const output:string[][]=[];let i=0;
+  while(i<n){
+    const k=i+seed;const text=texts[k%texts.length];
+    const value:string|null=k%2===0?String(text):null;
+    output.push([String(Number(text)),String(+text),String(Number(value)),String(Object.is(Number(text),-0.0))]);i+=1;
+  }
+  return output;
+}
+function main(){const result=workload(3,0,"0x10");}

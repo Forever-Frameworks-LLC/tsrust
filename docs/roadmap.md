@@ -1,3 +1,5 @@
+**Gate 169 accepted:** [Whole numeric string conversion](./milestones/169-numeric-string-conversion.md): shared decimal/radix grammar, exact numeric whitespace and radix rounding across scalars, unions and enums. Exponential member-hint traversal repaired. Compiler 80, editor 267, harness/report 17 and five matched cases pass untimed. SQLite records verified; consumers refreshed; outputs pruned. No timing.
+
 **Gate 168 accepted:** [Scalar unary plus](./milestones/168-scalar-unary-plus.md): scalar conversion and Number scalar unions, enum payloads, borrowing and editor result types; catalog constructor documentation and direct type diagnostics. Compiler 72, editor 266, harness/report 17 and five matched cases pass untimed. Five consumers refreshed; SQLite evidence retained. No timing.
 
 **Gate 167 accepted:** [Scalar string concatenation](./milestones/167-string-concatenation.md): scalar operands and scalar unions in string addition and compound addition, preserving source ordering and string editor results. Compiler 65, editor 265, registration 1 and five matched cases pass untimed. Five consumers refreshed; verification retained in SQLite. No timing.

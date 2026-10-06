@@ -9258,11 +9258,12 @@ impl Analyzer {
                         .map(|id| self.signatures[*id].result);
                 }
                 if let ExprKind::Field(base, name) = &callee.kind {
-                    if let Some(Type::Map(id)) = self.expression_type_hint(context, base) {
+                    let receiver_hint = self.expression_type_hint(context, base);
+                    if let Some(Type::Map(id)) = receiver_hint {
                         let result = self.map_method_type(id, name, expr.span).ok()?;
                         return Some(if name == "get" && Self::stable_at_receiver(base) && !result.is_copy() { Type::BorrowedUnion(result.union()?) } else { result });
                     }
-                    if let Some(Type::Set(id)) = self.expression_type_hint(context, base) {
+                    if let Some(Type::Set(id)) = receiver_hint {
                         return self.set_call_type_hint(context,id,name,arguments);
                     }
                     if name == "isArray"
@@ -9308,11 +9309,10 @@ impl Analyzer {
                         STRING_CODE_POINT_SLOT => Some(Type::Array(ArrayElement::Int(0))),
                         "charCodeAt" => Some(Type::Number),
                         method if string_html_target(method).is_some() => Some(Type::String),
-                        "valueOf" => self.expression_type_hint(context, base).filter(|ty| {
+                        "valueOf" => receiver_hint.filter(|ty| {
                             matches!(ty, Type::String | Type::Boolean | Type::Number | Type::Int)
                         }),
-                        "toString" => self
-                            .expression_type_hint(context, base)
+                        "toString" => receiver_hint
                             .filter(|ty| {
                                 matches!(
                                     ty,
@@ -9324,20 +9324,18 @@ impl Analyzer {
                         "join" => Some(Type::String),
                         "some" | "every" => Some(Type::Boolean),
                         "findIndex" | "findLastIndex" | "unshift" => Some(Type::Int),
-                        "concat" => self
-                            .expression_type_hint(context, base)
+                        "concat" => receiver_hint
                             .filter(|ty| matches!(ty, Type::String | Type::Array(_))),
                         "entries" => {
-                            let Type::Array(element) = self.expression_type_hint(context, base)? else { return None; };
+                            let Type::Array(element) = receiver_hint? else { return None; };
                             let label = format!("[int,{}]",self.type_name(element.ty()));
                             self.record_names.get(&label).copied().map(|pair|Type::Array(ArrayElement::Record(pair,0)))
                         }
-                        "keys" => self
-                            .expression_type_hint(context, base)
+                        "keys" => receiver_hint
                             .filter(|ty| matches!(ty, Type::Array(_)))
                             .map(|_| Type::Array(ArrayElement::Int(0))),
                         "filter" | "toReversed" | "toSorted" | "with" | "toSpliced" | "splice" | "values" => {
-                            self.expression_type_hint(context, base)
+                            receiver_hint
                                 .filter(|ty| matches!(ty, Type::Array(_)))
                         }
                         "reduce" | "reduceRight" => {
@@ -9356,7 +9354,7 @@ impl Analyzer {
                             }
                         }
                         "flat" => {
-                            let Type::Array(element) = self.expression_type_hint(context, base)?
+                            let Type::Array(element) = receiver_hint?
                             else {
                                 return None;
                             };
@@ -9389,11 +9387,10 @@ impl Analyzer {
                                 Self::transform_array_type(result, argument.span).ok()
                             }
                         }
-                        "slice" => self
-                            .expression_type_hint(context, base)
+                        "slice" => receiver_hint
                             .filter(|ty| matches!(ty, Type::String | Type::Array(_))),
                         "at" | "find" | "findLast" => {
-                            match self.expression_type_hint(context, base)? {
+                            match receiver_hint? {
                                 Type::Array(element) => {
                                     let result = self
                                         .unions
@@ -9408,14 +9405,14 @@ impl Analyzer {
                                 _ => None,
                             }
                         }
-                        "pop" | "shift" => match self.expression_type_hint(context, base)? {
+                        "pop" | "shift" => match receiver_hint? {
                             Type::Array(element) => self
                                 .unions
                                 .intern([element.ty(), Type::Undefined], expr.span)
                                 .ok(),
                             _ => None,
                         },
-                        "remove" => match self.expression_type_hint(context, base)? {
+                        "remove" => match receiver_hint? {
                             Type::Array(element) => Some(element.ty()),
                             _ => None,
                         },

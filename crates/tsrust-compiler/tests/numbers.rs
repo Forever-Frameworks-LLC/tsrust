@@ -249,10 +249,9 @@ fn explicit_number_conversion_uses_standard_casts_and_trimmed_f64_parsing() {
             const text=" 2.5 ";const read=():number=>{return Number(text);};console.log(read());console.log(read());console.log(text);
         }
     "#,
-        "0\n1\n0\n1.5\n3\n0\n0\n-0\n25\nInfinity\nfalse\nfalse\nfalse\ntrue\ntrue\ntrue\n2.5\n2.5\n 2.5 \n",
+        "0\n1\n0\n1.5\n3\n0\n0\n-0\n25\nInfinity\nfalse\ntrue\ntrue\ntrue\ntrue\ntrue\n2.5\n2.5\n 2.5 \n",
         r#"
-        for text in [""," ","\u{0085}2\u{0085}","-0","+0","2.5e1","1e309","inf","Infinity","NaN","0x10","invalid","\u{feff}2"] {
-            let expected=if text.trim().is_empty(){0.0}else{text.trim().parse::<f64>().unwrap_or(f64::NAN)};
+        for (text, expected) in [("",0.0),(" ",0.0),("\u{0085}2\u{0085}",f64::NAN),("-0",-0.0),("+0",0.0),("2.5e1",25.0),("1e309",f64::INFINITY),("inf",f64::NAN),("Infinity",f64::INFINITY),("NaN",f64::NAN),("0x10",16.0),("invalid",f64::NAN),("\u{feff}2",2.0)] {
             for value in [String::Borrowed(text),String::Owned(text.to_owned())] {
                 let actual=function0(&value);
                 if expected.is_nan(){assert!(actual.is_nan());}else{assert_eq!(actual.to_bits(),expected.to_bits());}
