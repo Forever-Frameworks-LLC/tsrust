@@ -47,6 +47,7 @@ mod record_runtime;
 mod runtime;
 mod storage;
 mod syntax;
+mod local_function_values;
 mod local_functions;
 mod local_capture_plan;
 mod local_readiness;

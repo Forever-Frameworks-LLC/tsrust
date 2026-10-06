@@ -1917,8 +1917,18 @@ impl Analyzer {
         let mut result = if inferred_result { Type::Void } else { self.resolve_result(result)? };
         let escapes = self.escaping.contains(&origin);
         let mut visible = outer.names.values().copied().collect::<Vec<_>>();
+        // A nested function called in the body can need a variable that has no
+        // visible name here: a shadowed one, or one that only a called function uses.
+        let hidden_captures = !self.program.local_capture_plans.is_empty();
+        if hidden_captures {
+            visible.extend(outer.source_bindings.values().copied());
+        }
         visible.sort_unstable();
+        visible.dedup();
         let mut context = capture_context::project(outer, &visible);
+        if hidden_captures {
+            context.names = outer.names.iter().map(|(name, slot)| (name.clone(), visible.binary_search(slot).expect("visible name"))).collect();
+        }
         context.inferred_arrow_result = inferred_result;
         if self.discovering_results {
             context.pending_names = outer.pending_names.clone();

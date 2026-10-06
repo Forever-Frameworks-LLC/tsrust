@@ -27,6 +27,8 @@ struct Resolver {
     lifted: Vec<Function>,
     capture_plan: crate::local_capture_plan::Planner,
     local_owners: HashMap<usize, usize>,
+    /// A local function name occurs outside the callee position of a call.
+    value_uses: bool,
 }
 
 pub(crate) fn resolve(program: &mut Program) -> Result<(), Diagnostic> {
@@ -40,6 +42,7 @@ pub(crate) fn resolve(program: &mut Program) -> Result<(), Diagnostic> {
         lifted: Vec::new(),
         capture_plan: Default::default(),
         local_owners: HashMap::new(),
+        value_uses: false,
     };
     for (owner, function) in program.functions.iter_mut().enumerate() {
         resolver
@@ -47,11 +50,26 @@ pub(crate) fn resolve(program: &mut Program) -> Result<(), Diagnostic> {
             .owner(owner, function.name.text.clone());
         resolver.function(function, &Environment::new(), owner, false)?;
     }
-    if resolver.capture_plan.has_captures() {
-        program
-            .local_capture_plans
-            .push(resolver.capture_plan.finish());
+    let plan = resolver
+        .capture_plan
+        .has_captures()
+        .then(|| resolver.capture_plan.finish());
+    if resolver.value_uses {
+        let ids: HashMap<&str, usize> = resolver
+            .declarations
+            .iter()
+            .map(|declaration| (declaration.emitted_name.as_str(), declaration.id))
+            .collect();
+        crate::local_function_values::lower(
+            &mut program.functions,
+            &mut resolver.lifted,
+            &|name| {
+                plan.as_ref()
+                    .is_some_and(|plan| !plan.requirements(ids[name]).is_empty())
+            },
+        )?;
     }
+    program.local_capture_plans.extend(plan);
     program.functions.extend(resolver.lifted);
     program.local_declarations = resolver.declarations;
     program.unresolved_local_function = None;
@@ -272,7 +290,9 @@ impl Resolver {
                     if let Some(&source) = self.local_owners.get(&owner) {
                         self.capture_plan.dependency(source, *id);
                     }
-                    *name = emitted.clone();
+                    // The value form is chosen once every capture is known.
+                    *name = format!("{emitted}{}", crate::local_function_values::VALUE_MARK);
+                    self.value_uses = true;
                 }
                 Some(Symbol::Variable {
                     owner: defining,
@@ -376,7 +396,21 @@ impl Resolver {
                 }
             }
             ExprKind::Call(callee, arguments) => {
-                self.expression(callee, env, owner, pending)?;
+                let called = match &callee.kind {
+                    ExprKind::Name(name) => match env.get(name) {
+                        Some(Symbol::Function { emitted, id }) => Some((emitted.clone(), *id)),
+                        _ => None,
+                    },
+                    _ => None,
+                };
+                if let Some((emitted, id)) = called {
+                    if let Some(&source) = self.local_owners.get(&owner) {
+                        self.capture_plan.dependency(source, id);
+                    }
+                    callee.kind = ExprKind::Name(emitted);
+                } else {
+                    self.expression(callee, env, owner, pending)?;
+                }
                 for value in arguments {
                     self.expression(value, env, owner, pending)?;
                 }

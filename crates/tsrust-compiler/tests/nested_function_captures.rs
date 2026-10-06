@@ -127,6 +127,11 @@ fn direct_calls_borrow_captures_for_each_call() {
 }
 
 #[test]
+fn function_values_borrow_captures_like_arrows() {
+    native(include_str!("fixtures/nested-function-captures/function-values.tsr"));
+}
+
+#[test]
 fn capture_borrows_follow_argument_and_view_rules() {
     for (source, code) in [
         // The function changes `counts` while an argument lends it too.
@@ -137,9 +142,8 @@ fn capture_borrows_follow_argument_and_view_rules() {
         ("function main(){const counts=[0];function tick():int{counts[0]+=1;return counts[0];}const run=():int=>tick();console.log(run(),counts);}", "capture-conflict"),
         // A const scalar cannot be changed through a nested function either.
         ("function main(){const total=0;function add():void{total+=1;}add();}", "unsupported"),
-        // A capturing function is not a value yet; the message names the arrow form.
-        ("function main(){const counts=[0];function tick():int{counts[0]+=1;return counts[0];}const run=tick;console.log(run());}", "unsupported"),
-        ("function main(){const base=[1];function add(n:int):int{return n+base[0];}console.log([1].map(add));}", "unsupported"),
+        // A function value holds the captures like the arrow that calls the function.
+        ("function main(){const counts=[0];function tick():int{counts[0]+=1;return counts[0];}const run=tick;console.log(run(),counts);}", "capture-conflict"),
     ] {
         let error = tsrust_compiler::check(source).err().unwrap_or_else(|| panic!("must be rejected: {source}"));
         assert_eq!(error.code, code, "{source}: {}", error.message);
