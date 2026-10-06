@@ -54,3 +54,15 @@ the diagnostic marks that function use and links the binding declaration. Initia
 the binding on every reaching path before using the function. This initialization
 precheck is available while captured named-function execution remains under development;
 passing it does not yet make those captured functions executable.
+
+
+Direct calls now let the checker inspect captured named bodies against the defining
+binding's type. An invalid field such as user.missing on a User record reports the
+ordinary field type error at that expression, including through a forwarder or when
+the caller has another local named user. Capture environments and execution remain
+under development.
+
+Inner block variables can shadow outer variables, and leaving the block restores
+the outer binding. Arrow parameters can shadow names in their enclosing scope.
+A local in a function's own body still cannot redeclare one of its parameters.
+These scope rules preserve each binding's identity and ownership independently.

@@ -1653,3 +1653,19 @@ fn retained_capture_plans_map_diagnostics_after_prior_module_declarations() {
     assert_eq!(&captured[error.location.span.start..error.location.span.end], "data");
     assert!(error.related.iter().any(|(location, _)| location.source == SourceId("captured.tsr".into()) && &captured[location.span.start..location.span.end] == "data"));
 }
+
+#[test]
+fn typed_capture_context_keeps_private_types_and_rebased_error_locations() {
+    let captured = "type User={name:string;};export function run():string{const user:User={name:'Pat'};function read():string{return user.missing;}return read();}";
+    let memory = Memory::new(&[
+        ("main.tsr", "import { free } from './free.tsr';import { run } from './captured.tsr';function main(){console.log(free(),run());}"),
+        ("free.tsr", "export function free():int{function one():int{return 1;}return one();}"),
+        ("captured.tsr", captured),
+    ]);
+    let graph = load_project(&memory, "main.tsr").unwrap();
+    let error = tsrust_compiler::project::check_graph(graph).err().expect("invalid captured private field");
+    assert_eq!(error.code, "type", "{}", error.message);
+    assert!(error.message.contains("missing") && error.message.contains("User"));
+    assert_eq!(error.location.source, SourceId("captured.tsr".into()));
+    assert_eq!(&captured[error.location.span.start..error.location.span.end], "user.missing");
+}

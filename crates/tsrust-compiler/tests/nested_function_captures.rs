@@ -80,3 +80,34 @@ fn checked_call_failure_keeps_capture_unassigned_on_the_catch_path() {
     assert_eq!(error.code, "unassigned");
     assert_eq!(&source[error.span.start..error.span.end], "read");
 }
+
+#[test]
+fn captured_body_uses_the_typed_defining_binding_before_environment_lowering() {
+    for source in [
+        "type User={name:string;};function main(){const user:User={name:\"Pat\"};function label():string{return user.missing;}console.log(label());}",
+        "type User={name:string;};function main(){const user:User={name:\"Pat\"};function label():string{return user.missing;}{const user=3;console.log(label());}}",
+        "type User={name:string;};function main(){const user:User={name:\"Pat\"};function label():string{return user.missing;}function forward():string{return label();}console.log(forward());}",
+        "type User={name:string;};function main(){const user:User={name:\"Pat\"};function label():string{return user.missing;}function forward(user:int):string{return label();}console.log(forward(3));}",
+        "type User={name:string;};function main(){const user:User={name:\"Pat\"};function label(count:int=user.missing):int{return count;}console.log(label());}",
+    ] {
+        let error = tsrust_compiler::check(source).err().expect("invalid captured field");
+        assert_eq!(error.code, "type", "{}", error.message);
+        assert!(error.message.contains("missing") && error.message.contains("User"), "{}", error.message);
+        assert!(source[error.span.start..error.span.end].contains("missing"));
+    }
+}
+
+#[test]
+fn typed_scopes_restore_outer_bindings_and_allow_arrow_parameter_shadowing() {
+    native(r#"import { strictEqual } from "std:testing";
+function main(){
+    let value=1;
+    {let value=2;value+=1;strictEqual(value,3);}
+    strictEqual(value,1);
+    const base=4;
+    const increment=(base:int):int=>base+1;
+    strictEqual(increment(5),6);
+    strictEqual(base,4);
+}"#);
+    assert_eq!(tsrust_compiler::check("function bad(value:int){const value=3;}function main(){}").err().unwrap().code, "duplicate");
+}

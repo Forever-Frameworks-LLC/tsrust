@@ -270,3 +270,16 @@ fn named_capture_readiness_diagnostic_marks_use_and_related_binding() {
     assert_eq!(error["relatedInformation"][0]["location"]["uri"], uri);
     assert_eq!(error["relatedInformation"][0]["location"]["range"]["start"], json!({"line":3,"character":10}));
 }
+
+#[test]
+fn named_capture_body_reports_its_actual_field_type_error() {
+    let source = "type User = { name: string; };\nfunction main() {\n  const user: User = { name: \"Pat\" };\n  function label(): string { return user.missing; }\n  console.log(label());\n}";
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(source, "file:///captured-body.tsr").unwrap()).unwrap();
+    let error = &diagnostics[0];
+    assert_eq!(error["code"], "type");
+    assert!(error["message"].as_str().unwrap().contains("User"));
+    assert!(error["message"].as_str().unwrap().contains("missing"));
+    assert_eq!(error["range"]["start"]["line"], 3);
+    assert_eq!(error["range"]["start"]["character"], 36);
+    assert_eq!(error["range"]["end"]["character"], 48);
+}

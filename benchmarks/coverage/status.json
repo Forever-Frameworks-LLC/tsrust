@@ -837,7 +837,7 @@
       "recursive_factory",
       "nested_function_declarations"
     ],
-    "note": "Existing bounded callable/ownership contracts; broader TS signatures pending. Gate170 accepts capture-free nested declarations, lexical hoisting, self/mutual recursion, block shadowing and source/editor identity. The matched six-observation scenario passes five native/Node-after-tsc cases untimed. Captures, owned escape and comprehensive signatures/result inference remain pending stages; this is not full named-function parity or measurement.",
+    "note": "Existing bounded callable/ownership contracts; broader TS signatures pending. Gate170 accepts capture-free nested declarations, lexical hoisting, self/mutual recursion, block shadowing and source/editor identity. The matched seven-observation scenario also covers typed variable and arrow-parameter shadowing with outer-binding restoration; five native/Node-after-tsc cases are verified untimed. Captures, owned escape and comprehensive signatures/result inference remain pending stages; this is not full named-function parity or measurement.",
     "evidence": [
       "./milestones/170-nested-function-foundation.md"
     ]
@@ -869,7 +869,7 @@
       "recursive_factory",
       "nested_function_declarations"
     ],
-    "note": "Existing bounded callable/ownership contracts; broader TS signatures pending. Gate170 accepts capture-free nested declarations, lexical hoisting, self/mutual recursion, block shadowing and source/editor identity. The matched six-observation scenario passes five native/Node-after-tsc cases untimed. Captures, owned escape and comprehensive signatures/result inference remain pending stages; this is not full named-function parity or measurement.",
+    "note": "Existing bounded callable/ownership contracts; broader TS signatures pending. Gate170 accepts capture-free nested declarations, lexical hoisting, self/mutual recursion, block shadowing and source/editor identity. The matched seven-observation scenario also covers typed variable and arrow-parameter shadowing with outer-binding restoration; five native/Node-after-tsc cases are verified untimed. Captures, owned escape and comprehensive signatures/result inference remain pending stages; this is not full named-function parity or measurement.",
     "evidence": [
       "./milestones/170-nested-function-foundation.md"
     ]
@@ -883,7 +883,7 @@
       "recursive_factory",
       "nested_function_declarations"
     ],
-    "note": "Existing bounded callable/ownership contracts; broader TS signatures pending. Gate170 accepts capture-free nested declarations, lexical hoisting, self/mutual recursion, block shadowing and source/editor identity. The matched six-observation scenario passes five native/Node-after-tsc cases untimed. Captures, owned escape and comprehensive signatures/result inference remain pending stages; this is not full named-function parity or measurement.",
+    "note": "Existing bounded callable/ownership contracts; broader TS signatures pending. Gate170 accepts capture-free nested declarations, lexical hoisting, self/mutual recursion, block shadowing and source/editor identity. The matched seven-observation scenario also covers typed variable and arrow-parameter shadowing with outer-binding restoration; five native/Node-after-tsc cases are verified untimed. Captures, owned escape and comprehensive signatures/result inference remain pending stages; this is not full named-function parity or measurement.",
     "evidence": [
       "./milestones/170-nested-function-foundation.md"
     ]
@@ -2432,7 +2432,7 @@
       "./milestones/54-declared-function-values.md",
       "./milestones/170-nested-function-foundation.md"
     ],
-    "note": "Declared functions bind, move, return and capture as zero-capture native callable values through exact existing data-argument contracts. One 571-group regression, actual O0/O3 complete output/order/IEEE checks, twelve matched comparisons and 36 zero-final-disposal profiles pass. Higher-order consumers remain separately scoped. Gate170 accepts capture-free nested declarations, lexical hoisting, self/mutual recursion, block shadowing and source/editor identity. The matched six-observation scenario passes five native/Node-after-tsc cases untimed. Captures, owned escape and comprehensive signatures/result inference remain pending stages; this is not full named-function parity or measurement."
+    "note": "Declared functions bind, move, return and capture as zero-capture native callable values through exact existing data-argument contracts. One 571-group regression, actual O0/O3 complete output/order/IEEE checks, twelve matched comparisons and 36 zero-final-disposal profiles pass. Higher-order consumers remain separately scoped. Gate170 accepts capture-free nested declarations, lexical hoisting, self/mutual recursion, block shadowing and source/editor identity. The matched seven-observation scenario also covers typed variable and arrow-parameter shadowing with outer-binding restoration; five native/Node-after-tsc cases are verified untimed. Captures, owned escape and comprehensive signatures/result inference remain pending stages; this is not full named-function parity or measurement."
   },
   "function.higherOrderValue": {
     "implementation": "implemented",
@@ -6346,7 +6346,7 @@
     "evidence": [
       "./milestones/170-nested-function-foundation.md"
     ],
-    "note": "Gate170 accepts capture-free nested declarations, lexical hoisting, self/mutual recursion, block shadowing and source/editor identity. The matched six-observation scenario passes five native/Node-after-tsc cases untimed. Captures, owned escape and comprehensive signatures/result inference remain pending stages; this is not full named-function parity or measurement."
+    "note": "Gate170 accepts capture-free nested declarations, lexical hoisting, self/mutual recursion, block shadowing and source/editor identity. The matched seven-observation scenario also covers typed variable and arrow-parameter shadowing with outer-binding restoration; five native/Node-after-tsc cases are verified untimed. Captures, owned escape and comprehensive signatures/result inference remain pending stages; this is not full named-function parity or measurement."
   },
   "function.declarationHoisting": {
     "implementation": "native variant",
@@ -6357,6 +6357,6 @@
     "evidence": [
       "./milestones/170-nested-function-foundation.md"
     ],
-    "note": "Gate170 accepts capture-free nested declarations, lexical hoisting, self/mutual recursion, block shadowing and source/editor identity. The matched six-observation scenario passes five native/Node-after-tsc cases untimed. Captures, owned escape and comprehensive signatures/result inference remain pending stages; this is not full named-function parity or measurement."
+    "note": "Gate170 accepts capture-free nested declarations, lexical hoisting, self/mutual recursion, block shadowing and source/editor identity. The matched seven-observation scenario also covers typed variable and arrow-parameter shadowing with outer-binding restoration; five native/Node-after-tsc cases are verified untimed. Captures, owned escape and comprehensive signatures/result inference remain pending stages; this is not full named-function parity or measurement."
   }
 }

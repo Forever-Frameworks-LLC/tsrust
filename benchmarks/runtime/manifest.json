@@ -33,8 +33,8 @@
       "measured": false,
       "notes": "Capture-free hoisting, self/mutual recursion, block shadowing and declared callback use. Five matched cases verified untimed; no measurement.",
       "specification": "Retain six independent scalar observations per scenario with deterministic seed and iteration inputs.",
-      "sourceSha256": "e81736c3386a9e04c52b3aa72bae4456afa1aa2d4d397cb7a629b1ca3e395a54",
-      "counterpartSha256": "77cd1210fe5818aa498e35b4608fbece0c9fec612364ae73d1b46438c5334d1b"
+      "sourceSha256": "0ba6c088e4730f9c6d57f3de65c04d00e3cdfb9403b51e25a6d7be0bf5a6b36e",
+      "counterpartSha256": "fb4818709826d964d7f99fc43b80b0659ac97366bb2d8e764e6f5a537715a9f0"
     },
     {
       "id": "numeric_string_conversion",

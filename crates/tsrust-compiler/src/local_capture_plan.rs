@@ -1,6 +1,6 @@
 //! Lexical capture dependencies; checked types and access modes are assigned later.
 use crate::Span;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct BindingId {
@@ -224,6 +224,51 @@ impl Plan {
             )
             .related(capture.declaration, "Captured binding declared here."),
         )
+    }
+
+    // The condensed graph is acyclic. Propagate binding identities once in reverse
+    // dependency order; avoid repeated graph walks for each callable use.
+    pub fn group_requirements(&self) -> Vec<BTreeSet<BindingId>> {
+        let plan = self;
+        let mut values: Vec<BTreeSet<BindingId>> = plan
+            .groups
+            .iter()
+            .map(|group| {
+                group
+                    .captures
+                    .iter()
+                    .map(|capture| capture.binding)
+                    .collect()
+            })
+            .collect();
+        let mut remaining: Vec<usize> = plan
+            .groups
+            .iter()
+            .map(|group| group.dependencies.len())
+            .collect();
+        let mut parents = vec![Vec::new(); plan.groups.len()];
+        for (group, data) in plan.groups.iter().enumerate() {
+            for &dependency in &data.dependencies {
+                parents[dependency].push(group);
+            }
+        }
+        let mut ready: VecDeque<usize> = remaining
+            .iter()
+            .enumerate()
+            .filter_map(|(group, &count)| (count == 0).then_some(group))
+            .collect();
+        while let Some(group) = ready.pop_front() {
+            for &parent in &parents[group] {
+                let inherited = values[group].clone();
+                values[parent].extend(inherited);
+                remaining[parent] -= 1;
+                if remaining[parent] == 0 {
+                    ready.push_back(parent);
+                }
+            }
+        }
+        debug_assert!(remaining.iter().all(|&count| count == 0));
+        values
     }
 
     pub fn requirements(&self, function: usize) -> Vec<Capture> {

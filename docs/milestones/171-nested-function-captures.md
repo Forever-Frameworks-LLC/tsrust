@@ -1,6 +1,6 @@
 # Gate 171: nonescaping nested function captures
 
-Status: capture-planner checkpoint; capture execution is not implemented or accepted. Gate 170 remains the accepted
+Status: typed named-body checkpoint; capture execution is not implemented or accepted. Gate 170 remains the accepted
 lexical foundation. Existing capture ownership is the settled language contract.
 
 The focused nested_function_captures suite separates this stage from owned escape.
@@ -228,3 +228,60 @@ read back exactly in SQLite under target/editor/capture-context-* and that resul
 path. Five consumers were atomically refreshed and hash verified. Thirty-one
 example directories and 51 scratch executables were pruned; libraries and current
 consumers remain. No full compiler regression or timing was performed.
+
+## Typed named-body checkpoint
+
+named_capture_context.rs connects planned direct and transitive captures to typed
+defining slots on direct calls. Group requirements are propagated once through the
+shared planner helper; preparing an actual used body selects its external source
+identities on demand. Dependencies owned by that named invocation are excluded from its projected slots.
+Captured slots follow reserved source parameters, preserving the ordinary contiguous
+argument ABI. The checker recognizes the separate named-capture range for existing
+scalar, array and callable access rules. Parameter defaults can see direct captured
+names; transitive slots retain identity without injecting their names into the body's
+lexical scope. This prevents a peer's capture from replacing an explicit parameter
+with the same spelling.
+
+Ready direct bodies now reach normal field/type checking. Five source scenarios
+cover a captured private record, caller shadowing, transitive forwarding, a
+forwarder's same-named scalar parameter and a captured parameter default. A module check verifies rebased locations
+and private record types. An editor check verifies the actual field error and exact
+source range. Checked-context witnesses verify read access, array mutation and
+scalar mutation separately from the source parameter ABI.
+
+The environment guard now follows typed body checking, with guards for unresolved
+defining contexts and captured callable-value transport. Captured checked trees do
+not reach emission. No declaration creates a runtime borrow or transfer during this
+stage. Four native capture positives and typed call-failure readiness remain pending;
+recursive capture access still needs its group lattice and finite layout. Gate171 is
+not accepted, and owned escape/result inference remain later stages.
+
+A shadowing witness exposed two ordinary checker defects. Inner blocks rejected
+same-named outer variables, and arrow parameters rejected capture spellings. Block
+entry now keeps a narrow shadow journal and restores outer names at exit; the source
+slots remain distinct. Arrow parameter reservation uses its own name map before
+default visibility is restored. Function-body parameter redeclarations remain errors.
+Native assertions verify outer scalar restoration and arrow parameter independence.
+The matched lexical workload now retains a seventh observation for block shadowing,
+arrow parameter shadowing and restoration. Both source fingerprints, source guard,
+registration checks, independent oracle and coverage exports are updated. Existing
+measurement protocols and iteration counts are preserved; this workload is unmeasured.
+
+Typed named-body checkpoint evidence: 21 focused library tests, five module/capture checks,
+63 checks across all eight depth canaries, 274 editor tests, one registration test and five matched lexical
+cases pass. The whole editor result combines retained passed suites with the repaired
+stdio suite and previously unrun suites. The editor assertion's expected column and
+the unit scalar slot's source let flag were corrected; original failed logs remain.
+Captures retain six passes and five pending feature failures. The lexical declaration
+suite retains five passes and two pending future-stage failures. No pending witness
+was weakened or converted into an accepted unsupported contract.
+
+Canonical final untimed result is
+benchmarks/runtime/results/2026-10-06T18-23-58-402Z-verify.json. All 107 compiler source
+fingerprints match current files, and no startup/compilation/execution samples exist.
+The earlier untimed result 2026-10-06T18-16-08-756Z-verify.json is also preserved.
+Thirty-two original logs/results are imported into SQLite and read back byte for
+byte before loose-copy removal; logs use target/editor/named-context-* paths.
+Five consumers are atomically refreshed and hash verified. Thirty-one example
+directories, 52 scratch executables and the small runtime-comparisons build tree are
+pruned; libraries and current consumers remain. No full compiler regression or timing.

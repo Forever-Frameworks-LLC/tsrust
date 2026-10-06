@@ -1,3 +1,5 @@
+#[path = "named_capture_context.rs"]
+mod named_capture_context;
 #[path = "capture_context.rs"]
 mod capture_context;
 #[path = "callable_expression.rs"]
@@ -310,6 +312,7 @@ struct Context {
     replacement: Option<Span>,
     pending_names: HashSet<String>,
     lexical_scopes: Vec<HashSet<String>>,
+    callable_scope_depth: usize,
     effects_only: bool,
     loops: Vec<LoopFrame>,
     template: bool,
@@ -320,6 +323,7 @@ struct Context {
     capture_loans: Vec<(usize, Mode, Span)>,
     iteration_loans: Vec<(usize, Span)>,
     capture_boundary: usize,
+    named_capture_range: (usize, usize),
     closure_depth: usize,
     inferred_arrow_result: bool,
     returning_closure: bool,
@@ -330,6 +334,11 @@ struct Context {
     readonly_parameters: HashSet<usize>,
 }
 impl Context {
+    #[inline]
+    fn is_capture(&self, slot: usize) -> bool {
+        slot < self.capture_boundary || (slot >= self.named_capture_range.0 && slot < self.named_capture_range.1)
+    }
+
     fn new(function_name: String) -> Self {
         Self {
             region_loop_depth:None,
@@ -350,6 +359,7 @@ impl Context {
             replacement: None,
             pending_names: HashSet::new(),
             lexical_scopes: Vec::new(),
+            callable_scope_depth: 0,
             effects_only: false,
             loops: Vec::new(),
             template: false,
@@ -359,6 +369,7 @@ impl Context {
             capture_loans: Vec::new(),
             iteration_loans: Vec::new(),
             capture_boundary: 0,
+            named_capture_range: (0, 0),
             closure_depth: 0,
             inferred_arrow_result: false,
             returning_closure: false,
@@ -503,6 +514,7 @@ mod exception_escape_tests {
 }
 
 struct Analyzer {
+    named_captures: named_capture_context::Contexts,
     program: Program,
     // Retained source specialization state for the checked-inference handoff.
     generic_functions: crate::generic_functions::Cache,
@@ -1274,9 +1286,6 @@ fn remap_function_closures(
 impl Analyzer {
     fn new(mut program: Program) -> Result<Self, Diagnostic> {
         crate::local_readiness::check(&mut program)?;
-        if let Some(error) = program.local_capture_plans.iter().find_map(crate::local_capture_plan::Plan::pending_diagnostic) {
-            return Err(error);
-        }
         if let Some(base) = program.unresolved_bases.first() {
             return Err(Diagnostic::new(
                 "type",
@@ -1384,7 +1393,9 @@ impl Analyzer {
             })
             .map(|(id, fun)| (id, fun.clone()))
             .collect();
+        let named_captures = named_capture_context::Contexts::new(&program, &function_names);
         let mut analyzer = Self {
+            named_captures,
             generic_functions,
             generic_records,
             unions,
@@ -1903,6 +1914,8 @@ impl Analyzer {
         let mut parameters = Vec::new();
         let mut declared = Vec::new();
         let inherited_names = context.names.clone();
+        // Parameter names shadow captures, but must remain unique among themselves.
+        context.names.clear();
         for (position, param) in params.iter().enumerate() {
             let ty = match &param.ty {
                 ParameterAnnotation::Named(annotation) => self.callable_resolver().resolve_value_annotation(annotation,true)?,
@@ -2312,6 +2325,9 @@ impl Analyzer {
                 "The entry point cannot be used as a callable value.",
                 span,
             ));
+        }
+        if self.named_captures.needs_context(index) {
+            return Err(self.program.local_capture_plans.iter().find_map(crate::local_capture_plan::Plan::pending_diagnostic).expect("pending named capture"));
         }
         let higher = self.signatures[index]
             .params
@@ -2870,6 +2886,11 @@ impl Analyzer {
                 &self.recursive_callbacks,
                 &self.program.functions,
             )?;
+        }
+        // Typed captured bodies can report real source errors before lowering.
+        // No captured checked tree reaches emission until environments exist.
+        if let Some(error) = self.program.local_capture_plans.iter().find_map(crate::local_capture_plan::Plan::pending_diagnostic) {
+            return Err(error);
         }
         let checked = CheckedProgram {
             local_declarations: self.program.local_declarations,
@@ -3668,6 +3689,7 @@ impl Analyzer {
             Self::bind(&mut context, param, body_ty, true)?;
         }
         context.names.clear();
+        self.named_captures.attach(index, &mut context);
         for (position, ((param, _, annotation), input_ty)) in parameters.iter().zip(&signature.params).enumerate() {
             let initializer = &initializers[position];
             let binding = position;
@@ -3748,6 +3770,9 @@ impl Analyzer {
         }
         if self.checked[index].is_some() {
             return Ok(());
+        }
+        if self.named_captures.needs_context(index) && !self.named_captures.ready(index) {
+            return Err(self.program.local_capture_plans.iter().find_map(crate::local_capture_plan::Plan::pending_diagnostic).expect("pending named capture"));
         }
         let name = self.program.functions[index].name.clone();
         if self.visiting[index] {
@@ -4488,6 +4513,7 @@ impl Analyzer {
 
     #[inline(never)]
     fn check_source_callable_body(&mut self,context:&mut Context,body:&mut [Stmt],result:Type)->Result<bool,Diagnostic> {
+        context.callable_scope_depth = context.lexical_scopes.len();
         if has_exception_syntax(body) {self.check_exception_callable_body(context,body,result)}else{self.block(context,body,result)}
     }
 
@@ -4774,6 +4800,16 @@ impl Analyzer {
                 })
                 .collect(),
         );
+        // Remove only names actually shadowed by this block. Their typed slots
+        // and source identities remain available to captured named bodies.
+        let mut shadowed = Vec::new();
+        for name in context.lexical_scopes.last().expect("entered lexical scope") {
+            if let Some(&slot) = context.names.get(name)
+                && (context.lexical_scopes.len() != context.callable_scope_depth + 1 || context.is_capture(slot)) {
+                shadowed.push((name.clone(), slot));
+            }
+        }
+        for (name, _) in &shadowed { context.names.remove(name); }
         self.depth += 1;
         let first_local = context.bindings.len();
         let first_loan = context.capture_loans.len();
@@ -4896,6 +4932,9 @@ impl Analyzer {
             for binding in &context.bindings[first_local..] {
                 context.names.remove(&binding.name);
             }
+        }
+        if !keep_names {
+            context.names.extend(shadowed);
         }
         self.depth -= 1;
         Ok(exited)
@@ -5181,7 +5220,7 @@ impl Analyzer {
                 value.span,
             ));
         }
-        if id < context.capture_boundary {
+        if context.is_capture(id) {
             context.bindings[id].used.get_or_insert(target.span);
             context.bindings[id].mode = context.bindings[id].mode.max(Mode::Mutate);
         }
@@ -5263,7 +5302,7 @@ impl Analyzer {
         }
         if named {
             let id = target.binding.expect("checked update name");
-            if id < context.capture_boundary {
+            if context.is_capture(id) {
                 context.bindings[id].mode = context.bindings[id].mode.max(Mode::Mutate);
             }
         }
@@ -5592,7 +5631,7 @@ impl Analyzer {
         Self::storage_access(context, target, Mode::Mutate, target.span, loans)?;
         if named {
             let id = target.binding.expect("checked scalar assignment target");
-            if id < context.capture_boundary {
+            if context.is_capture(id) {
                 context.bindings[id].used.get_or_insert(target.span);
                 context.bindings[id].mode = context.bindings[id].mode.max(Mode::Mutate);
             }
@@ -5670,7 +5709,7 @@ impl Analyzer {
         }
         if named {
             let id = target.binding.expect("checked logical target");
-            if id < context.capture_boundary {
+            if context.is_capture(id) {
                 context.bindings[id].mode = context.bindings[id].mode.max(Mode::Mutate);
             }
         }
@@ -5781,7 +5820,7 @@ impl Analyzer {
         }
         if named {
             let id = target.binding.expect("checked compound name");
-            if id < context.capture_boundary {
+            if context.is_capture(id) {
                 context.bindings[id].mode = context.bindings[id].mode.max(Mode::Mutate);
             }
         }
@@ -13314,7 +13353,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 return self.shared_callback_call(context, expr, loans);
             }
             if let Some((local, _)) = stored_native {
-                if local < context.capture_boundary
+                if context.is_capture(local)
                     && context.bindings[local]
                         .callback_kind
                         .is_some_and(|kind| !kind.is_owned())
@@ -13363,7 +13402,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             return Err(Self::pending_result(span));
         }
         if let Some(&binding) = context.names.get(name) {
-            if binding < context.capture_boundary
+            if context.is_capture(binding)
                 && context.bindings[binding]
                     .callback_kind
                     .is_some_and(|kind| !kind.is_owned())
@@ -13422,7 +13461,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                     )
                 }
                 Type::Callback(id) => {
-                    if binding < context.capture_boundary
+                    if context.is_capture(binding)
                         && !self.callables.callbacks[id].kind.is_owned()
                     {
                         return Err(Diagnostic::new(
@@ -13616,6 +13655,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 callee.span,
             ));
         }
+        self.named_captures.prepare(index, context, &self.program)?;
         self.function(index)?;
         let params = if let Some(target) = &self.checked[index] {
             target.bindings[..target.parameter_count]
@@ -14536,10 +14576,10 @@ self.names_materialized_type(element.with_depth(0).ty())
             .ok_or_else(|| Diagnostic::new("name", format!("Unknown value {name:?}."), span))?;
         let callback_argument = matches!(expected, Some(Type::Callback(_)));
         let observation =
-            self.observing_values && mode == Mode::Read && index >= context.capture_boundary;
+            self.observing_values && mode == Mode::Read && !context.is_capture(index);
         if let Some(kind) = context.bindings[index].callback_kind {
             if !kind.is_owned()
-                && (index < context.capture_boundary
+                && (context.is_capture(index)
                     || (context.returning_closure && !callback_argument))
             {
                 return Err(Diagnostic::new(
@@ -14563,7 +14603,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 || observation
                 || (matches!(expected, Some(Type::Callable(_)))
                     && self.callables.callbacks[id].kind.is_owned()))
-                || (index < context.capture_boundary
+                || (context.is_capture(index)
                     && !self.callables.callbacks[id].kind.is_owned()))
         {
             return Err(Diagnostic::new(
