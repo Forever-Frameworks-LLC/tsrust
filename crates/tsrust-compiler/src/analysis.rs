@@ -1,3 +1,5 @@
+#[path = "named_capture_layout.rs"]
+mod named_capture_layout;
 #[path = "named_capture_access.rs"]
 mod named_capture_access;
 #[path = "named_capture_context.rs"]
@@ -189,6 +191,7 @@ impl CallbackContract {
 }
 
 pub struct CheckedProgram {
+    pub(crate) named_capture_layouts: Vec<named_capture_layout::Layout>,
     pub(crate) named_capture_access: HashMap<usize, Vec<named_capture_access::Access>>,
     pub(crate) local_capture_plans: Vec<crate::local_capture_plan::Plan>,
     pub(crate) local_declarations: Vec<crate::local_functions::Declaration>,
@@ -407,6 +410,7 @@ pub fn analyze(program: Program) -> Result<CheckedProgram, Diagnostic> {
 // Incomplete capture layouts stay private, even after typed flow checking.
 fn finish_analysis(mut checked: CheckedProgram) -> Result<CheckedProgram, Diagnostic> {
     definitely_assigned(&mut checked)?;
+    checked.named_capture_layouts = named_capture_layout::build(&checked)?;
     if let Some(error) = checked.local_capture_plans.iter().find_map(crate::local_capture_plan::Plan::pending_diagnostic) {
         return Err(error);
     }
@@ -2904,6 +2908,7 @@ impl Analyzer {
             )?;
         }
         let checked = CheckedProgram {
+            named_capture_layouts: Vec::new(),
             named_capture_access: self.named_captures.summaries(&self.checked),
             local_capture_plans: self.program.local_capture_plans,
             local_declarations: self.program.local_declarations,

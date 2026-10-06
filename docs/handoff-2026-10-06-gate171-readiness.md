@@ -167,3 +167,29 @@ and no timing samples. 9 exact original records, including failed compile
 evidence, are imported/read back in SQLite before loose removal. Five consumers
 are refreshed atomically; 50 scratch executables and runtime comparison output
 are pruned. Library caches remain; tests will relink. Gate171 is not accepted.
+
+
+## Finite typed group layout checkpoint
+
+named_capture_layout.rs derives deterministic fields and member-slot mappings from
+settled capture access. Each recursive group deduplicates external BindingId values,
+checks their typed slots agree and joins access modes. Read scalars use Copy storage,
+mutable scalars use Mutate storage and owned values retain their read/mutate/consume
+requirements. Recursive peers are static members, not fields containing each other.
+Fields are ordered by defining identity, so shadowed spellings cannot merge.
+
+Captures whose owner is a group member are explicitly Invocation sources rather than
+shared fields. A recursive outer/child parameter witness verifies that a fresh
+invocation-local value is not incorrectly hoisted into group storage. Another
+witness checks two recursive peers share one mutable scalar field and one readonly
+array field, with source parameter counts unchanged. Layout construction is called
+only after final typed readiness and retained privately before the environment barrier.
+
+This checkpoint does not instantiate native environments or remove the emission
+barrier. Next implement ready-use placement and native group dispatch, with existing
+lexical loans, mutable reentry and drop-order checks. Cross-group forwarding must
+reborrow correctly without creating duplicate retained mutable references. Invocation
+sources need explicit forwarding from their defining activation. The four positive
+native witnesses remain pending. Owned escape remains gate172.
+
+The next authoritative handoff is docs/handoff-2026-10-06-gate171-layout.md.
