@@ -55,3 +55,23 @@ of the same name (`duplicate`).
   target/editor/interfaces-consumers.log.
 
 No full regression or timing was performed. The workload is unmeasured.
+
+## Editor presentation repair, 2026-10-06
+
+The formatter now keeps interface declaration and constructor generic brackets tight,
+including `interface Box<T>` and `new Map<string, int>()`. Direct comma-separated
+interface fields each receive their own line; inherited interface lists remain on
+one line. Nested tuple/function/generic commas retain their ordinary spacing.
+Formatting is idempotent and the formatted witness passes compiler checking.
+
+TextMate assigns interface names a type scope and inherited names an inherited-class
+scope, including multiline headers. Interface keywords and extends were already
+registered in source, but the installed grammar was stale. The repaired local VSIX
+was built and installed; Developer: Reload Window activates its contributions.
+Existing user documents are preserved and Format Document applies the repair.
+
+All 17 compiler formatting tests, three LSP formatting protocol tests and real
+TextMate grammar tokenization pass. Compiler/LSP consumers are atomically refreshed.
+No parser/analyzer dispatch, runtime semantics or benchmark sources changed, so no
+new timing or runtime workload is claimed. Original red and successful logs are
+retained in SQLite under target/editor/interface-* with byte-exact read-back.

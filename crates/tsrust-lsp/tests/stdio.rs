@@ -230,3 +230,29 @@ fn formatting_exception_handlers_returns_joined_idempotent_edit() {
     assert!(matches!(server.response(),Message::Response(r) if r.error.is_none()));
     server.finish(0);
 }
+
+#[test]
+fn formatting_interfaces_returns_tight_generics_and_separate_fields() {
+    let mut server = Server::start();
+    server.request(1, "initialize", json!({"capabilities":{}}));
+    assert!(matches!(server.response(), Message::Response(r) if r.error.is_none()));
+    server.notify("initialized", json!({}));
+    let source = "interface Box < T > { value: T, label?: string } function main() { const values = new Map < string, int >(); }";
+    let uri = "file:///formatter-generics.tsr";
+    server.notify("textDocument/didOpen", json!({"textDocument":{"uri":uri,"languageId":"tsrust","version":1,"text":source}}));
+    server.request(2, "textDocument/formatting", json!({"textDocument":{"uri":uri},"options":{"tabSize":4,"insertSpaces":true}}));
+    let Message::Response(response) = server.response() else { panic!("format response"); };
+    assert!(response.error.is_none(), "{:?}", response.error);
+    let edits = response.result.unwrap();
+    let formatted = edits[0]["newText"].as_str().unwrap();
+    assert!(formatted.contains("interface Box<T>"), "{formatted}");
+    assert!(formatted.contains("value: T,\n    label?: string"), "{formatted}");
+    assert!(formatted.contains("new Map<string, int>()"), "{formatted}");
+    assert!(tsrust_compiler::check(formatted).is_ok());
+    server.notify("textDocument/didChange", json!({"textDocument":{"uri":uri,"version":2},"contentChanges":[{"text":formatted}]}));
+    server.request(3, "textDocument/formatting", json!({"textDocument":{"uri":uri},"options":{"tabSize":4,"insertSpaces":true}}));
+    assert!(matches!(server.response(), Message::Response(r) if r.error.is_none() && r.result == Some(json!([]))));
+    server.request(4, "shutdown", Value::Null);
+    assert!(matches!(server.response(), Message::Response(r) if r.error.is_none()));
+    server.finish(0);
+}

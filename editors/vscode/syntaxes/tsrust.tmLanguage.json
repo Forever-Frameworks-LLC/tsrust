@@ -74,6 +74,52 @@
       }
     },
     {
+      "name": "meta.interface.tsrust",
+      "begin": "\\b(interface)\\s+([A-Za-z_][A-Za-z_0-9]*)",
+      "beginCaptures": {
+        "1": {
+          "name": "storage.type.tsrust"
+        },
+        "2": {
+          "name": "entity.name.type.interface.tsrust"
+        }
+      },
+      "end": "(?=\\{)",
+      "patterns": [
+        {
+          "begin": "<",
+          "end": ">",
+          "beginCaptures": {
+            "0": {
+              "name": "keyword.operator.tsrust"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "keyword.operator.tsrust"
+            }
+          },
+          "patterns": [
+            {
+              "name": "entity.name.type.parameter.tsrust",
+              "match": "\\b[A-Za-z_][A-Za-z_0-9]*\\b"
+            }
+          ]
+        },
+        {
+          "name": "storage.modifier.tsrust",
+          "match": "\\bextends\\b"
+        },
+        {
+          "name": "entity.other.inherited-class.tsrust",
+          "match": "\\b[A-Za-z_][A-Za-z_0-9]*\\b"
+        },
+        {
+          "include": "$self"
+        }
+      ]
+    },
+    {
       "name": "storage.type.tsrust",
       "match": "\\b(?:type|interface|enum|function|const|let|new)\\b"
     },

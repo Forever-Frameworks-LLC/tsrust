@@ -241,3 +241,15 @@ fn formatting_nested_declarations_keeps_blocks_and_blank_lines() {
     assert_eq!(format(&formatted).unwrap(),formatted);
     check(&formatted).unwrap();
 }
+
+#[test]
+fn interfaces_keep_generic_brackets_and_separate_comma_fields() {
+    let source = "interface Named{name:string;} interface Positioned{x:int;y?:int;} interface Player extends Named, Positioned{score:int,tags:string[]} interface Box < T >{value:T;label?:string;} function main(){const values=new Map < string, int >();values.set(\"a\",1);console.log(values.size);}";
+    let result = format(source).unwrap();
+    assert!(result.contains("interface Box<T>"), "{result}");
+    assert!(result.contains("new Map<string, int>()"), "{result}");
+    assert!(result.contains("    score: int,\n    tags: string[]\n"), "{result}");
+    assert!(result.contains("extends Named, Positioned"), "{result}");
+    assert_eq!(format(&result).unwrap(), result);
+    assert!(check(&result).is_ok(), "{result}");
+}

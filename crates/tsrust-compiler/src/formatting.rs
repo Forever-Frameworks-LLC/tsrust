@@ -17,7 +17,7 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
         }
         let previous = i.checked_sub(1).map(|n| real[n].text.as_str());
         let alias_result = previous == Some("=") && i >= 3 && real[i - 3].text == "type";
-        let type_position = matches!(previous, Some(":" | "function" | "type"))
+        let type_position = matches!(previous, Some(":" | "function" | "type" | "interface" | "new" | "extends"))
             || alias_result
             || matches!(token.text.as_str(), "Function" | "Mutable" | "ReadOnly" | "Once" | "Owned");
         if type_position {
@@ -222,6 +222,30 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
             }
         }
     }
+    // Only commas separating direct interface fields end a line. Commas in
+    // inherited type lists, generic arguments and tuple/function types stay tight.
+    let mut interface_field_comma = vec![false; real.len()];
+    for (i, token) in real.iter().enumerate() {
+        if token.kind != TokenKind::Name || token.text != "interface" {
+            continue;
+        }
+        let Some(open) = (i + 1..real.len()).find(|&at| real[at].text == "{") else {
+            continue;
+        };
+        let close = closing(open);
+        let mut nesting = 0usize;
+        for at in open + 1..close {
+            if generic(real[at].span.start) || real[at].kind != TokenKind::Symbol {
+                continue;
+            }
+            match real[at].text.as_str() {
+                "(" | "[" | "{" => nesting += 1,
+                ")" | "]" | "}" => nesting = nesting.saturating_sub(1),
+                "," if nesting == 0 => interface_field_comma[at] = true,
+                _ => {}
+            }
+        }
+    }
     let mut switch_depths: Vec<usize> = Vec::new();
     let mut output = String::new();
     let mut depth: usize = 0;
@@ -254,7 +278,7 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
             let exception_handler = previous_symbol && prev == "}" && matches!(current,"catch"|"finally");
             let newline = if pattern[i - 1] {
                 false
-            } else if label_colon[i - 1] {
+            } else if label_colon[i - 1] || interface_field_comma[i - 1] {
                 true
             } else if import && prev != ";" {
                 existing_newlines > 0 && (prev == "{" || prev == "," || current == "}")
