@@ -31,6 +31,7 @@ test('real TextMate tokenization covers lexer syntax and multiline state', async
     ['const action: Mutable<Function<string, [user: ReadOnly<User>, text: Owned<string>]>> = make;', [['Mutable', 'support.type.builtin'], ['Function', 'support.type.builtin'], ['ReadOnly', 'support.type.builtin'], ['Owned', 'support.type.builtin'], ['string', 'support.type.primitive']]],
     ['const last: Once<Function<int>> = finish; const Function = 1;', [['Once', 'support.type.builtin'], ['int', 'support.type.primitive']]],
     ['try { throw 1; } catch (error) { switch (error) { case 1: break; default: } } finally { }', [['try', 'keyword.control'], ['throw', 'keyword.control'], ['catch', 'keyword.control'], ['switch', 'keyword.control'], ['case', 'keyword.control'], ['default', 'keyword.control'], ['finally', 'keyword.control']]],
+    ['interface Player extends Named { score: int; }', [['interface', 'storage.type'], ['extends', 'storage.modifier'], ['score', 'source.tsrust']]],
     ['for (;;) { if (true) count &&= false; }', [['for', 'keyword.control'], ['true', 'constant.language'], ['&&=', 'keyword.operator']]],
   ];
   for (const [line, expectations] of cases) {
