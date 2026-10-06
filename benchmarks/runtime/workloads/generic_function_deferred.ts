@@ -1,0 +1,28 @@
+function identity<T>(value: T): T { return value; }
+function first<T>(...values: T[]): T { return values.shift()!; }
+function size<T>(values: T[]): number { return values.length; }
+function offset<T>(value: T, index: number = 0): T { return value; }
+
+function workload(n: number, seed: number, input: string): number[][] {
+    const output: number[][] = [];
+    const action = identity;
+    const pick = first;
+    const length = size;
+    const choose = offset;
+    let i = 0;
+    while (i < n) {
+        const base = i % 5 + seed % 5 + 1;
+        const numberResult = action(base);
+        const stringLength = action("owner").length;
+        const result = action([base + 1, base + 2]);
+        const arrayFirst = result[0];
+        const headResult = pick(base + 2, base + 3);
+        const selected = choose(base + 4);
+        const values = [base, base + 1];
+        const remaining = length(values);
+        output.push([numberResult, stringLength, arrayFirst, headResult, selected, remaining, input.length]);
+        i += 1;
+    }
+    return output;
+}
+function main() {}

@@ -41,6 +41,7 @@ impl Analyzer {
 
     pub(super) fn checked_generic_callable_shape(&self, ty: Type) -> Option<(Vec<Type>, Type)> {
         match ty {
+            Type::Closure(id) if self.deferred_generic_values.contains_key(&id) => None,
             Type::Closure(id) => {
                 let closure = &self.closures[id];
                 Some((
@@ -93,6 +94,15 @@ impl Analyzer {
             && (self.function_names.get(name).is_some_and(|&index| self.signatures[index].inferred_result && self.checked[index].is_none())
                 || self.generic_functions.template(name).is_some_and(|function| function.result.is_none())) {
             // An unchecked omitted result is unknown, not a void constraint.
+            return None;
+        }
+        if let ExprKind::Call(callee, _) = &argument.kind
+            && let ExprKind::Name(name) = &callee.kind
+            && let Some(&binding) = context.names.get(name)
+            && let Type::Closure(origin) = context.bindings[binding].ty
+            && self.deferred_generic_values.contains_key(&origin) {
+            // An unsolved invocation has no result hint. Its empty environment
+            // prototype must never contribute a void constraint to its caller.
             return None;
         }
         match (expected, &argument.kind) {

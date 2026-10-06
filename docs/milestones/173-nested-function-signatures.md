@@ -173,3 +173,30 @@ controls cover conflicting types, missing arguments, result-only inference, arra
 patterns, defaults/rest and no instance allocation. The paired executable
 context-default-rest fixture checks omitted/undefined defaults and a generic rest
 pack under a concrete callable context.
+
+## Capture-free deferred invocation checkpoint
+
+Capture-free generic declarations can now be stored without a concrete callable
+context. Explicit source metadata distinguishes these origins from ordinary
+closure contracts. Each call prepares the original generic template, checks its
+concrete parameter access and ownership, and reuses a bounded method keyed by
+checked argument types. The empty origin retains no captures or unresolved data
+bindings. Its prototype is excluded from result hints and editor type projections;
+ordinary void checking remains strict.
+
+Native witnesses cover scalar/string/array types, repeated method reuse, borrowed
+arrays, transferred owners, defaults evaluated once, rest packs and caught failures.
+Invalid same-type constraints, arity, result types and reused owners are rejected.
+A structural check retains one empty origin with three methods for three argument
+types; repeated int calls reuse their method. The paired strict TypeScript/Node
+fixture checks the same output and values. Actual call results retain concrete
+editor types and source navigation. Generic alias parameter help, result-only
+context propagation and polymorphic callback/storage adaptation remain pending.
+
+The generic_function_deferred workload is appended at manifest end with an
+independent seven-value oracle, matched native/TypeScript sources, fingerprints,
+mutation guards, registration, existing array ABI/driver support and all
+oracle/run/profile/report hooks. Verification is untimed. Captured polymorphic
+values and inferred generic factory environments remain red; full generic values
+and gate173 are not accepted. Continue that scope rather than treating this
+capture-free subset as the final deliverable.

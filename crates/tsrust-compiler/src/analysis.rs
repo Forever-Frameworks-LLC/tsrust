@@ -32,6 +32,8 @@ mod logical_values;
 pub(crate) mod generic_function_values;
 #[path = "closure_methods.rs"]
 mod closure_methods;
+#[path = "deferred_generic_values.rs"]
+mod deferred_generic_values;
 #[path = "generic_calls.rs"]
 mod generic_calls;
 #[path = "optional_chain.rs"]
@@ -208,6 +210,7 @@ pub struct CheckedProgram {
     pub(crate) stored_contracts: crate::callable_storage::Registry,
     pub(crate) callable_shapes: crate::callable_contracts::Contracts,
     pub(crate) function_specializations: HashMap<usize,usize>,
+    pub(crate) deferred_generic_values: HashSet<usize>,
     pub generic_declarations: HashMap<usize, Token>,
     pub generic_parameter_types: HashMap<usize, Vec<Type>>,
     pub records: Vec<Record>,
@@ -574,6 +577,7 @@ struct Analyzer {
     rest_adapters: HashMap<(Type,Type,Mode),usize>,
     abstract_returns: HashMap<usize, usize>,
     function_values: HashMap<usize, usize>,
+    deferred_generic_values: HashMap<usize, deferred_generic_values::Source>,
     closure_method_sources: HashMap<usize, ClosureMethodSource>,
     closure_specializations: HashMap<(usize, Vec<Type>, bool, bool), usize>,
     callables: crate::callable_resolution::Tables,
@@ -1451,6 +1455,7 @@ impl Analyzer {
             rest_adapters: HashMap::new(),
             abstract_returns: HashMap::new(),
             function_values: HashMap::new(),
+            deferred_generic_values: HashMap::new(),
             closure_method_sources: HashMap::new(),
             closure_specializations: HashMap::new(),
             callables,
@@ -2835,6 +2840,9 @@ impl Analyzer {
     }
 
     fn require(&self, actual: Type, expected: Option<Type>, span: Span) -> Result<(), Diagnostic> {
+        if !self.deferred_generic_values.is_empty() {
+            self.deferred_generic_requirement(actual, expected, span)?;
+        }
         if expected.is_some_and(|ty| self.unions.accepts(ty.owning(), actual.owning())) {
             return Ok(());
         }
@@ -3019,6 +3027,7 @@ impl Analyzer {
                     Some((id, self.signatures[*declaration].params.clone()))
                 })
                 .collect(),
+            deferred_generic_values: self.deferred_generic_values.keys().copied().collect(),
             generic_declarations: self
                 .program
                 .functions
@@ -9358,6 +9367,7 @@ impl Analyzer {
                         }
                 ) {
                     return match self.expression_type_hint(context, callee)? {
+                        Type::Closure(id) if self.deferred_generic_values.contains_key(&id) => None,
                         Type::Closure(id) => Some(self.closures[id].function.result),
                         Type::Callback(id) => Some(self.callables.callbacks[id].result),
                         _ => None,
@@ -9395,7 +9405,8 @@ impl Analyzer {
                     }
                     if let Some(id) = context.names.get(name) {
                         return match context.bindings[*id].ty {
-                            Type::Closure(id) => Some(self.closures[id].function.result),
+                            Type::Closure(id) if self.deferred_generic_values.contains_key(&id) => None,
+                        Type::Closure(id) => Some(self.closures[id].function.result),
                             Type::Callback(id) => Some(self.callables.callbacks[id].result),
                             Type::StoredCallable(id) => self
                                 .callables
@@ -9499,7 +9510,8 @@ impl Analyzer {
                                     ..
                                 } => self.resolve_value_annotation(token, true).ok(),
                                 _ => match self.expression_type_hint(context, argument)? {
-                                    Type::Closure(id) => Some(self.closures[id].function.result),
+                                    Type::Closure(id) if self.deferred_generic_values.contains_key(&id) => None,
+                        Type::Closure(id) => Some(self.closures[id].function.result),
                                     Type::Callback(id) => Some(self.callables.callbacks[id].result),
                                     Type::Callable(id) => Some(self.callables.results[id].result),
                                     _ => None,
@@ -9528,6 +9540,7 @@ impl Analyzer {
                                     ..
                                 } => self.resolve_value_annotation(token, true).ok()?,
                                 _ => match self.expression_type_hint(context, argument)? {
+                                    Type::Closure(id) if self.deferred_generic_values.contains_key(&id) => return None,
                                     Type::Closure(id) => self.closures[id].function.result,
                                     Type::Callback(id) => self.callables.callbacks[id].result,
                                     Type::Callable(id) => self.callables.results[id].result,
@@ -9573,7 +9586,8 @@ impl Analyzer {
                     };
                 }
                 match self.expression_type_hint(context, callee)? {
-                    Type::Closure(id) => Some(self.closures[id].function.result),
+                    Type::Closure(id) if self.deferred_generic_values.contains_key(&id) => None,
+                        Type::Closure(id) => Some(self.closures[id].function.result),
                     Type::Callback(id) => Some(self.callables.callbacks[id].result),
                     Type::Callable(id) => Some(self.callables.results[id].result),
                     Type::StoredCallable(id) => self
@@ -12362,6 +12376,9 @@ self.names_materialized_type(element.with_depth(0).ty())
             Some(ClosureForward::Once(inner)) => (inner, true),
             _ => (origin, false),
         };
+        if self.deferred_generic_values.contains_key(&origin) {
+            return self.deferred_generic_call(context, binding, origin, callee, args, loans, span, once);
+        }
         let closure = &self.closures[origin];
         let invocation = if once {
             Mode::Consume

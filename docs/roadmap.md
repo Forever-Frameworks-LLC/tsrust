@@ -404,3 +404,8 @@ Gate173 now has contextual generic function values with checked type relations, 
 Gate173 now isolates concrete generic value signature solving before environment
 construction. Default forwarding removes only undefined from generic inference,
 preserving null checks. Deferred polymorphic values and the full audit remain open.
+
+Gate173 now has capture-free deferred generic origins with checked concrete
+methods across data types. Ownership/default/rest/failure witnesses and matched
+workload support are ready. Captured environments, complete generic editor help
+and full signature/context acceptance remain open.

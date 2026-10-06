@@ -43,7 +43,10 @@ impl Analyzer {
         let ExprKind::Name(name) = &expression.kind else { unreachable!() };
         let template = self.generic_functions.template(name).expect("generic value template").clone();
         let Some((parameters, result)) = expected.and_then(|ty| self.checked_generic_callable_shape(self.unions.payload(ty).unwrap_or(ty))) else {
-            return Err(self.generic_value_pending(name, expression.span));
+            if self.named_captures.declaration_needs_context(name) {
+                return Err(self.generic_value_pending(name, expression.span));
+            }
+            return self.deferred_generic_value(context, expression);
         };
         let hints = parameters.iter().copied().map(Some).collect::<Vec<_>>();
         let types = crate::generic_inference::Types {
@@ -72,6 +75,6 @@ impl Analyzer {
         let written = self.program.local_declarations.iter()
             .find(|declaration| declaration.emitted_name == name)
             .map_or(name, |declaration| declaration.source_name.text.as_str());
-        Diagnostic::new("unsupported", format!("The generic function {written:?} needs a concrete callable context when used as a value. Unannotated polymorphic values are not implemented yet."), span)
+        Diagnostic::new("unsupported", format!("The generic function {written:?} needs a concrete callable context when used as a value. Unannotated polymorphic values with captures are not implemented yet."), span)
     }
 }

@@ -71,3 +71,26 @@ fn contextual_borrowed_and_owned_values_keep_distinct_capture_storage() {
 fn capture_free_contexts_keep_defaults_and_rest_after_source_solving() {
     native(include_str!("fixtures/generic-function-values/context-default-rest.tsr"), "");
 }
+
+#[test]
+fn capture_free_deferred_values_keep_distinct_types_and_argument_ownership() {
+    native(include_str!("fixtures/generic-function-values/deferred-capture-free.tsr"), "default\n");
+}
+
+#[test]
+fn deferred_values_reject_inconsistent_types_and_reused_owners() {
+    let cases = [
+        ("function identity<T>(value:T):T{return value;}function accept(action:()=>void):void{}function main(){const action=identity;accept(action);}", &["unsupported", "type"][..]),
+        ("type Holder={action:()=>void;};function identity<T>(value:T):T{return value;}function main(){const action=identity;const holder:Holder={action:action};}", &["unsupported", "type"][..]),
+        ("function identity<T>(value:T):T{return value;}function main(){const action=identity;const invalid:()=>void=action;}", &["unsupported", "type"][..]),
+        ("function same<T>(left:T,right:T):T{return left;}function main(){const action=same;action(1,'wrong');}", &["type", "generic-inference"][..]),
+        ("function identity<T>(value:T):T{return value;}function main(){const action=identity;const values=[1,2];const returned=action(values);console.log(values.length);}", &["transferred"][..]),
+        ("function identity<T>(value:T):T{return value;}function main(){const action=identity;const other=action;action(1);}", &["closure-consumed"][..]),
+        ("function identity<T>(value:T):T{return value;}function main(){const action=identity;const value:string=action(1);}", &["type"][..]),
+        ("function identity<T>(value:T):T{return value;}function main(){const action=identity;action();}", &["arity"][..]),
+    ];
+    for (source, codes) in cases {
+        let error=tsrust_compiler::check(source).err().expect("invalid generic value");
+        assert!(codes.contains(&error.code), "{}: {}",error.code,error.message);
+    }
+}

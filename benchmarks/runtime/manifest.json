@@ -19722,6 +19722,34 @@
       "specification": "Retain seven independent observations from concrete generic callable contexts and capture state.",
       "sourceSha256": "6669043e65a703685adc6fcd16b263ee8a05fb06a9035c226b06f53810a35940",
       "counterpartSha256": "261b294054f018bef319815d31b3082d35c94f54d4bd703825f1b38db75ea291"
+    },
+    {
+      "id": "generic_function_deferred",
+      "family": "generic-function-deferred",
+      "source": "workloads/generic_function_deferred.tsr",
+      "counterpart": "workloads/generic_function_deferred.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One deferred generic callable scenario",
+      "inputText": "deferred",
+      "category": "callbacks",
+      "implementationGate": 173,
+      "measurementStatus": "pending-language-milestone",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": false,
+      "measured": false,
+      "notes": "Capture-free polymorphic aliases across scalar/string/array, rest, defaults and borrowed arrays. Untimed support; captured polymorphism and full gate173 acceptance pending.",
+      "specification": "Retain seven independently checked observations from capture-free deferred generic values.",
+      "sourceSha256": "0fbccb45829494958dcfb955126599022d2a14a389a2b9fb52ade59856bbb6b5",
+      "counterpartSha256": "f0bf9de5762e3cd861b635c6ddd01c3055606605ca51bd0741b4f15743c78353"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

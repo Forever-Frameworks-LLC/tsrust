@@ -272,8 +272,11 @@ array factory assigned to () => int[]. Different typed values are separate calla
 values; captured local borrows keep the existing scope rules, while explicitly
 returned fixed values retain their independent owned factory environments.
 
-Unannotated polymorphic generic values remain unsupported. Assigning a concrete
-context does not provide a callable that accepts every future argument type.
+A capture-free generic declaration can also be stored without a fixed callable
+annotation and called with different argument types. Each invocation checks the
+original generic constraints and preserves argument ownership. Generic values with
+captures still require a concrete context. A concrete annotation specializes the
+value; it does not provide a callable accepting every future argument type.
 
 Concrete contexts also retain default and rest arguments. A default runs in the
 original function when its argument is omitted or undefined. Null is a supplied
@@ -291,3 +294,17 @@ const picked = pick(3, 4); // 3
 The rest pack belongs to the invocation. It does not copy an existing caller
 array implicitly. These examples have an executable assertion counterpart in
 context-default-rest.tsr.
+
+```tsr
+function identity<T>(value: T): T { return value; }
+const action = identity;
+const one = action(7); // int
+const text = action("text"); // string
+const values = action([3, 4]); // int[]
+```
+
+Default arguments and homogeneous rest packs also work for these capture-free
+values. An owning argument is transferred; a read-only array argument remains
+available to its caller. Result-only type inference through an unannotated value,
+polymorphic callback adaptation and retained generic capture environments remain
+unsupported.

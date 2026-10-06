@@ -7642,3 +7642,17 @@ fn contextual_generic_defaults_and_rest_keep_concrete_signature_help() {
     let definition=ask(source,"textDocument/definition","offset;",0);
     assert_eq!(definition["range"]["start"],json!(at(source,"offset<T>",0)),"{definition}");
 }
+
+#[test]
+fn deferred_generic_calls_report_concrete_results_without_void_prototype_facts() {
+    let source="function identity<T>(value:T):T{return value;}function main(){const action=identity;const one=action(7);const text=action('x');const values=action([1,2]);}";
+    tsrust_compiler::check(source).unwrap();
+    for (needle,ty) in [("one=", "int"),("text=", "string"),("values=", "int[]")] {
+        let hover=ask(source,"textDocument/hover",needle,0);
+        let value=hover["contents"]["value"].as_str().expect("concrete deferred call result");
+        assert!(value.contains(ty),"{hover}");
+        assert!(!value.contains("void"),"{hover}");
+    }
+    let definition=ask(source,"textDocument/definition","identity;",0);
+    assert_eq!(definition["range"]["start"],json!(at(source,"identity<T>",0)),"{definition}");
+}

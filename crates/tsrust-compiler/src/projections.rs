@@ -684,7 +684,7 @@ fn type_name(
         Type::Void => Some("void".into()),
         Type::Closure(id) => {
             let closure = &program.closures[id];
-            if closure.function.template {
+            if closure.function.template || program.deferred_generic_values.contains(&id) {
                 None
             } else {
                 // Reject recursive/abstract callable shapes conservatively.

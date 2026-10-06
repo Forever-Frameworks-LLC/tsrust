@@ -158,6 +158,9 @@ impl Contexts {
         }
         Ok(ready)
     }
+    pub(super) fn declaration_needs_context(&self, name: &str) -> bool {
+        self.declared.contains_key(name)
+    }
     pub(super) fn needs_context(&self, index: usize) -> bool {
         self.requests.contains_key(&index)
     }
