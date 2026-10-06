@@ -7656,3 +7656,16 @@ fn deferred_generic_calls_report_concrete_results_without_void_prototype_facts()
     let definition=ask(source,"textDocument/definition","identity;",0);
     assert_eq!(definition["range"]["start"],json!(at(source,"identity<T>",0)),"{definition}");
 }
+
+#[test]
+fn captured_deferred_generic_calls_keep_concrete_results_and_source_navigation() {
+    let source="function make(start:int){let calls=start;function select<T>(value:T):T{calls+=1;return value;}return select;}function main(){const action=make(0);const one=action(7);const text=action('x');const values=action([1,2]);}";
+    tsrust_compiler::check(source).unwrap();
+    for (needle,ty) in [("one=","int"),("text=","string"),("values=","int[]")] {
+        let hover=ask(source,"textDocument/hover",needle,0);
+        let value=hover["contents"]["value"].as_str().expect("concrete captured result");
+        assert!(value.contains(ty),"{hover}");assert!(!value.contains("void"),"{hover}");
+    }
+    let definition=ask(source,"textDocument/definition","select;",0);
+    assert_eq!(definition["range"]["start"],json!(at(source,"select<T>",0)),"{definition}");
+}

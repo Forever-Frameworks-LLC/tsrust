@@ -249,3 +249,26 @@ per-method source-flow checking and method-specific capture representation still
 need integration before the five captured generic witnesses can pass. Do not
 infer that the backend witness proves ownership rejection after a source-level
 consuming specialization.
+
+## Captured deferred invocation checkpoint
+
+Captured generic values now retain typed lexical binding identities before solving
+any invocation types. Capture access converges by original declaration and binding
+identity across concrete instances. The public single-file checker requests this
+same finite inference instead of exposing a provisional capture layout.
+
+Concrete method bindings remain distinct from stable environment fields. Each
+method retains its own receiver access and capture-slot mapping. Native witnesses
+verify borrowed shared state across data types, independent inferred factories,
+array patterns, defaults and rest packs. Ownership controls reject owner reuse and
+live mutable-capture conflicts. Five owners drop exactly once at O0/O3 across
+multiple types, caught failures, consuming captures and recursive groups.
+Concrete call results and original declaration navigation have editor witnesses.
+
+The five original captured witnesses now pass. Full generic values and gate173
+remain open: result-only context through aliases, polymorphic callback/storage
+adaptation, complete alias IntelliSense and the wider context/inference audit still
+require implementation and evidence. The generic_function_captures workload is
+appended at manifest end with a matched TypeScript source, independent nine-value
+oracle, fingerprints, guards, registration and all runtime hooks. Verification is
+untimed; implementationAccepted and measured remain false.

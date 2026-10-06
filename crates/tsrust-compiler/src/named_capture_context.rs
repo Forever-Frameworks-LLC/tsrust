@@ -158,9 +158,6 @@ impl Contexts {
         }
         Ok(ready)
     }
-    pub(super) fn declaration_needs_context(&self, name: &str) -> bool {
-        self.declared.contains_key(name)
-    }
     pub(super) fn needs_context(&self, index: usize) -> bool {
         self.requests.contains_key(&index)
     }
@@ -186,7 +183,6 @@ impl Contexts {
     }
     /// Project a generic declaration's lexical captures before selecting any
     /// invocation types. This does not allocate instances or materialize loans.
-    #[allow(dead_code)] // Deferred captured origins will use this pre-instance boundary.
     pub(super) fn source_context(
         &self, declaration: &str, outer: &Context, program: &Program,
     ) -> Result<Option<(Context, Vec<crate::local_capture_plan::BindingId>)>, Diagnostic> {

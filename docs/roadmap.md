@@ -409,3 +409,10 @@ Gate173 now has capture-free deferred generic origins with checked concrete
 methods across data types. Ownership/default/rest/failure witnesses and matched
 workload support are ready. Captured environments, complete generic editor help
 and full signature/context acceptance remain open.
+
+Gate173 now retains captured deferred generic environments across data types and
+independent inferred factory instances. Five original red witnesses pass; O0/O3
+cleanup, ownership rejection and concrete editor facts have focused controls.
+Matched captured-environment support is ready for untimed verification. Full alias
+help, result-only contexts, callback/storage adaptation and the wider audit remain
+open. Family measurement remains deferred.

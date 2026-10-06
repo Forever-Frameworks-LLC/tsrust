@@ -118,8 +118,10 @@ impl Analyzer {
         }
         let method = self.closures[origin].methods.len();
         let invocation = self.closures[origin].invocation;
+        let captures = self.closures[origin].captures.iter().map(|capture| capture.inner).collect();
         self.closures[origin].methods.push(CheckedClosureMethod {
             invocation,
+            captures,
             parameters: source.parameters.clone(),
             function: CheckedFunction {
                 template: context.template,

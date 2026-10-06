@@ -131,6 +131,8 @@ pub enum ClosureForward {
 pub struct CheckedClosureMethod {
     /// Receiver access belongs to this invocation body, not its environment.
     pub invocation: Mode,
+    /// Method binding slots paired with the environment capture fields.
+    pub captures: Vec<usize>,
     pub parameters: Vec<usize>,
     pub function: CheckedFunction,
 }
@@ -505,7 +507,10 @@ pub fn analyze_recursive(program: Program) -> Result<CheckedProgram, Diagnostic>
             remaining += added.len().saturating_mul(2) + 1;
             modes.push(added);
         }
-        let (mut changed, discovered) = capture_access.observe(&inferred.named_capture_access);
+        let (mut changed, mut discovered) = capture_access.observe(&inferred.named_capture_access);
+        let (generic_changed, generic_discovered) = capture_access.observe_declarations(&inferred.named_capture_access, &inferred.generic_declarations);
+        changed |= generic_changed;
+        discovered += generic_discovered;
         remaining += discovered.saturating_mul(2) + usize::from(discovered != 0);
         for (current, function) in modes.iter_mut().zip(&inferred.functions) {
             for (mode, binding) in current.iter_mut().zip(&function.bindings) {
@@ -1919,10 +1924,10 @@ impl Analyzer {
             && call.span == span && callee.span == span
             && let ExprKind::Name(name) = &callee.kind
             && self.generic_functions.template(name).is_some() { Some(name.as_str()) } else { None };
-        if let Some(name) = generic_wrapper
-            && contextual.is_none()
-            && params.iter().any(|parameter| matches!(parameter.ty, ParameterAnnotation::Inferred(_))) {
-            return Err(self.generic_value_pending(name, span));
+        if let Some(name) = generic_wrapper && contextual.is_none()
+            && (params.iter().any(|parameter| matches!(parameter.ty, ParameterAnnotation::Inferred(_)))
+                || (params.is_empty() && matches!(result, ResultAnnotation::Inferred(_)))) {
+            return self.deferred_captured_generic_value(outer, name, origin, span, loans);
         }
         let contextual_result = generic_wrapper.and_then(|_| contextual)
             .and_then(|ty| self.checked_generic_callable_shape(self.unions.payload(ty).unwrap_or(ty)))

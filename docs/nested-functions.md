@@ -275,7 +275,7 @@ returned fixed values retain their independent owned factory environments.
 A capture-free generic declaration can also be stored without a fixed callable
 annotation and called with different argument types. Each invocation checks the
 original generic constraints and preserves argument ownership. Generic values with
-captures still require a concrete context. A concrete annotation specializes the
+captures retain one environment across their concrete calls. A concrete annotation specializes the
 value; it does not provide a callable accepting every future argument type.
 
 Concrete contexts also retain default and rest arguments. A default runs in the
@@ -306,5 +306,36 @@ const values = action([3, 4]); // int[]
 Default arguments and homogeneous rest packs also work for these capture-free
 values. An owning argument is transferred; a read-only array argument remains
 available to its caller. Result-only type inference through an unannotated value,
-polymorphic callback adaptation and retained generic capture environments remain
+polymorphic callback adaptation and complete generic alias parameter help remain
 unsupported.
+
+A captured generic declaration can also be stored without a fixed annotation.
+Local borrowed captures retain their existing scope rules. Returned factories
+retain their own environment; two factory calls have independent state, while
+calls with different argument types use the same state within each value.
+
+```tsr
+function make(start: int) {
+    let calls = start;
+    function select<T>(value: T): T {
+        calls += 1;
+        console.log(calls);
+        return value;
+    }
+    return select;
+}
+function main() {
+    const first = make(10);
+    const second = make(20);
+    first(1);       // prints 11
+    second("x");   // prints 21
+    first("y");    // prints 12
+}
+```
+
+An environment that returns an owned capture consumes that owner and cannot be
+called again. Arguments retain their declared access; changing the argument type
+does not clone the environment or its owners. Defaults run in the original function
+once when omitted or undefined. Generic rest packs belong to each invocation.
+The generic_function_values and generic_value_signatures fixtures check these
+behaviors, including exact native cleanup after success and caught failures.

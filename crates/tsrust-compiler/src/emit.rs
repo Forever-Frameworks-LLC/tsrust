@@ -603,12 +603,13 @@ impl Emitter<'_> {
             "impl{lifetime} Closure{index}{lifetime} {{\n    fn call{method}{generics}({receiver}{parameters}) -> {} {{",
             native_result
         );
-        for capture in &closure.captures {
-            let binding = &checked.function.bindings[capture.inner];
+        for (capture, &slot) in closure.captures.iter().zip(&checked.captures) {
+            let binding = &checked.function.bindings[slot];
             let reference = match (capture.storage, checked.invocation) {
-                (Mode::Copy, Mode::Mutate) if capture.access == Mode::Mutate => "&mut ",
+                (Mode::Copy, Mode::Mutate) if binding.capture_reference => "&mut ",
                 (Mode::Consume, Mode::Read) => "&",
                 (Mode::Consume, Mode::Mutate) => "&mut ",
+                (Mode::Mutate, Mode::Read) => "&*",
                 (Mode::Mutate, Mode::Mutate) => "&mut *",
                 _ => "",
             };
@@ -620,7 +621,7 @@ impl Emitter<'_> {
             let _ = writeln!(
                 output,
                 "        let {mutable}value{} = {reference}self.capture{};",
-                capture.inner, capture.inner
+                slot, capture.inner
             );
         }
         if let Some(name)=&error_name {
@@ -8751,6 +8752,24 @@ impl Emitter<'_> {
 
 #[cfg(test)]
 mod exception_region_tests {
+    #[test]
+    fn read_method_reborrows_an_exclusively_stored_capture() {
+        let mut checked=crate::check("function main(){let calls=0;function select<T>(value:T):T{calls+=1;return value;}{const action=select;const one=action(1);const text=action('x');}console.log(calls);}").unwrap();
+        let origin=*checked.program.deferred_generic_values.iter().next().unwrap();
+        let method=&mut checked.program.closures[origin].methods[0];
+        method.invocation=crate::Mode::Read;
+        method.function.body.remove(0);
+        let slot=method.captures[0];
+        method.function.bindings[slot].mode=crate::Mode::Read;
+        method.function.bindings[slot].mutable=false;
+        let rust=super::emit(&checked.program);
+        let directory=std::env::temp_dir().join(format!("tsrust-method-reborrow-{}",std::process::id()));std::fs::create_dir_all(&directory).unwrap();
+        let source=directory.join("source.rs");let binary=directory.join("source");std::fs::write(&source,rust).unwrap();
+        let compiler=std::env::var_os("RUSTC").unwrap_or_else(||"rustc".into());
+        let compiled=std::process::Command::new(compiler).arg("--edition=2024").arg(source).arg("-o").arg(&binary).output().unwrap();
+        assert!(compiled.status.success(),"{}",String::from_utf8_lossy(&compiled.stderr));
+        let output=std::process::Command::new(binary).output().unwrap();assert!(output.status.success());assert_eq!(output.stdout,b"1\n");std::fs::remove_dir_all(directory).unwrap();
+    }
     #[test]
     fn materialized_methods_use_their_own_receiver_access() {
         let mut checked = crate::check("function identity<T>(value:T):T{return value;}function main(){const action=identity;console.log(action(1));console.log(action(true));console.log(action('text'));}").unwrap();

@@ -11,10 +11,36 @@ pub(crate) struct Access {
 #[derive(Clone, Default)]
 pub(super) struct Lattice {
     modes: HashMap<(usize, BindingId), Mode>,
+    declarations: HashMap<(String, BindingId), Mode>,
 }
 impl Lattice {
     pub(super) fn mode(&self, function: usize, binding: BindingId, initial: Mode) -> Mode {
         self.modes.get(&(function, binding)).copied().unwrap_or(initial)
+    }
+    pub(super) fn declaration_mode(&self, declaration: &str, binding: BindingId, initial: Mode) -> Mode {
+        self.declarations.get(&(declaration.to_owned(), binding)).copied().unwrap_or(initial)
+    }
+    pub(super) fn observe_declarations(
+        &mut self, summaries: &HashMap<usize, Vec<Access>>, declarations: &HashMap<usize, Token>,
+    ) -> (bool, usize) {
+        let mut changed = false;
+        let mut discovered = 0;
+        for (&index, accesses) in summaries {
+            let Some(declaration) = declarations.get(&index) else { continue; };
+            for access in accesses {
+                let key = (declaration.text.clone(), access.binding);
+                match self.declarations.entry(key) {
+                    std::collections::hash_map::Entry::Vacant(entry) => {
+                        entry.insert(access.mode); discovered += 1; changed = true;
+                    }
+                    std::collections::hash_map::Entry::Occupied(mut entry) => {
+                        let next = (*entry.get()).max(access.mode);
+                        changed |= next != *entry.get(); entry.insert(next);
+                    }
+                }
+            }
+        }
+        (changed, discovered)
     }
     /// Each discovered coordinate can rise at most twice beyond its initial mode.
     pub(super) fn observe(&mut self, summaries: &HashMap<usize, Vec<Access>>) -> (bool, usize) {

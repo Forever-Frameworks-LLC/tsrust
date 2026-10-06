@@ -94,3 +94,38 @@ fn deferred_values_reject_inconsistent_types_and_reused_owners() {
         assert!(codes.contains(&error.code), "{}: {}",error.code,error.message);
     }
 }
+
+#[test]
+fn deferred_captured_values_reject_owner_reuse_and_live_mutable_capture_conflicts() {
+    for source in [
+        "function main(){const saved='owner';function take<T>(value:T):string{return saved;}const action=take;action(1);action('again');}",
+        "type Item={id:int;};function make(item:Item){function read<T>(value:T):int{return item.id;}return read;}function main(){const item:Item={id:1};const action=make(item);console.log(item.id);}",
+        "function main(){let calls=0;function select<T>(value:T):T{calls+=1;return value;}{const action=select;console.log(calls);action(1);}}",
+    ] {
+        let error=tsrust_compiler::check(source).err().unwrap_or_else(||panic!("retained capture ownership must hold: {source}"));
+        assert!(matches!(error.code,"transferred"|"closure-consumed"|"borrow-conflict"|"capture-conflict"),"{}: {}",error.code,error.message);
+    }
+}
+
+#[test]
+fn deferred_captured_environments_drop_each_owner_once_across_types_and_failures() {
+    let source="type Item={id:int;};function make(item:Item){function read<T>(value:T):int{return item.id;}return read;}function failing(item:Item){function fail<T>(value:T):int{throw item.id;}return fail;}function take(item:Item){function move<T>(value:T):Item{return item;}return move;}function recursive(item:Item){function even<T>(value:T,n:int):int{if(n===0){return item.id;}return odd(value,n-1);}function odd<T>(value:T,n:int):int{if(n===0){return item.id+1;}return even(value,n-1);}return even;}function main(){{const first=make({id:1});const second=make({id:2});if(first(1)!==1||first('a')!==1||second('b')!==2){throw 99;}}{const fail=failing({id:3});let caught=0;try{fail(1);}catch(error){if(error===3){caught+=1;}}try{fail('x');}catch(error){if(error===3){caught+=1;}}if(caught!==2){throw 99;}}{const move=take({id:4});const item=move('x');if(item.id!==4){throw 99;}}{const rec=recursive({id:5});if(rec(1,4)!==5||rec('x',3)!==6){throw 99;}}}";
+    let rust=tsrust_compiler::check(source).unwrap().emit_rust().replace("fn main()","fn source_main()")+r#"
+static DROPS:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+static SEEN:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+impl Drop for Record0 {fn drop(&mut self){DROPS.fetch_add(1,std::sync::atomic::Ordering::SeqCst);SEEN.fetch_or(1<<self.field0,std::sync::atomic::Ordering::SeqCst);}}
+fn main(){source_main();assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCst),5);assert_eq!(SEEN.load(std::sync::atomic::Ordering::SeqCst),62);}
+"#;
+    let directory=support::TempDirectory::new();
+    let path=directory.0.join("deferred-disposal.rs");std::fs::write(&path,rust).unwrap();
+    for level in ["0","3"] {
+        let binary=directory.0.join(format!("deferred-disposal-{level}"));
+        support::success(&support::run(support::rustc().args(["--edition=2024","-C",&format!("opt-level={level}")]).arg(&path).arg("-o").arg(&binary),60));
+        let output=support::run(&mut std::process::Command::new(binary),10);support::success(&output);assert!(output.stdout.is_empty());
+    }
+}
+
+#[test]
+fn captured_result_only_generic_value_can_be_stored_before_invocation_context() {
+    native("function main(){const label='retained';function empty<T>():T[]{console.log(label);return [];}const action=empty;}","");
+}
