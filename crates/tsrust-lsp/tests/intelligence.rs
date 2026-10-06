@@ -7681,3 +7681,25 @@ fn generic_alias_result_context_keeps_array_types_and_source_navigation() {
     let definition=ask(source,"textDocument/definition","empty;",0);
     assert_eq!(definition["range"]["start"],json!(at(source,"empty<T>",0)),"{definition}");
 }
+
+#[test]
+fn deferred_generic_alias_hover_preserves_source_type_relation() {
+    let source="function identity<T>(value:T):T{return value;}function main(){const action=identity;const one=action(7);const text=action('x');}";
+    tsrust_compiler::check(source).unwrap();
+    let hover=ask(source,"textDocument/hover","action=",0);
+    let value=hover["contents"]["value"].as_str().expect("generic alias hover");
+    assert!(value.contains("<T>") && value.contains("value: T"),"{hover}");
+    assert!(!value.contains("void"),"{hover}");
+}
+
+#[test]
+fn deferred_generic_alias_signature_help_keeps_concrete_call_contract() {
+    let source="function identity<T>(value:T):T{return value;}function main(){const action=identity;const one=action(7);const text=action('x');}";
+    tsrust_compiler::check(source).unwrap();
+    for (needle,ty) in [("7);","int"),("'x');","string")] {
+        let help=ask(source,"textDocument/signatureHelp",needle,0);
+        let label=help["signatures"][0]["label"].as_str().expect("generic alias call signature");
+        assert!(label.contains("value") && label.contains(ty),"{help}");
+        assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),1,"{help}");
+    }
+}
