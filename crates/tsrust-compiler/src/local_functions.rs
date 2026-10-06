@@ -422,12 +422,18 @@ mod tests {
     #[test]
     fn transitive_capture_diagnostic_points_to_the_owner_not_a_sibling_function() {
         let source = "function main(){function forward():int{return read();}const data=[1];function read():int{return data[0];}console.log(forward());}";
-        let error = crate::check(source)
-            .err()
-            .expect("capture implementation pending");
+        // The capture is planned for its owner; the program checks now that
+        // captures lower to hidden arguments.
+        let parsed = crate::syntax::parse(source).unwrap();
+        let plan = &parsed.local_capture_plans[0];
+        assert!(plan.requirements(0).iter().all(|capture| capture.name == "data"));
+        assert!(plan.requirements(1).iter().all(|capture| capture.name == "data"));
+        assert!(crate::check(source).is_ok());
+        // The diagnostic for uses that are still pending names the captured
+        // owner binding, not the sibling function.
+        let error = plan.pending_diagnostic().expect("captured owner");
         assert_eq!(error.code, "unsupported");
         assert_eq!(&source[error.span.start..error.span.end], "data");
-        assert_eq!(error.related.len(), 1);
         let binding = error.related[0].0;
         assert_eq!(&source[binding.start..binding.end], "data");
     }
@@ -453,10 +459,7 @@ mod tests {
                 .iter()
                 .any(|function| function.name.text == declaration.emitted_name)
         );
-        let error = crate::analysis::analyze(parsed)
-            .err()
-            .expect("checked environment still pending");
-        assert_eq!(error.code, "unsupported");
-        assert_eq!(&source[error.span.start..error.span.end], "data");
+        // The retained plan reaches checking, which lowers the capture.
+        assert!(crate::analysis::analyze(parsed).is_ok());
     }
 }

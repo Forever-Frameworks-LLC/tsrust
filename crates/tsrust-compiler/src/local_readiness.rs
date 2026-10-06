@@ -185,9 +185,8 @@ mod typed_tests {
             "function fail():int{throw 1;}function main(){let value:int;function read():int{return value;}try{fail();}catch{value=3;console.log(read());}}",
             "function fail():int{throw 1;}function main(){let value:int;function read():int{return value;}try{fail();}finally{value=3;}console.log(read());}",
         ] {
-            let error = crate::check(source).err().expect("environment lowering remains pending");
-            assert_eq!(error.code, "unsupported", "{}", error.message);
-            assert!(error.message.contains("capture"));
+            // Assignment on the catch or finally path makes the capture ready.
+            assert!(crate::check(source).is_ok(), "{source}");
         }
     }
 }

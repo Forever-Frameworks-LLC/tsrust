@@ -377,3 +377,85 @@ Five consumers are atomically refreshed and hash verified. 50 scratch test/nativ
 executables and runtime-comparison output are pruned; library caches remain. No
 process is left running from these checks. Only the concise target/editor/gate171.log
 remains for this checkpoint. Gate171 stays incomplete, and hourly checks remain paused.
+
+
+## Native lowering checkpoint: hidden borrowed arguments
+
+Capturing nested functions now execute. The four native witnesses pass, together
+with a broader assertion fixture (`borrowed-calls.tsr`) that also passes the pinned
+Node reference.
+
+### Model
+
+A nested function that uses bindings of an enclosing function is emitted as an
+ordinary native function. Its captures are hidden parameters after its source
+parameters, in the order of the checked hidden slots that
+`named_capture_context.rs` already creates. A direct call passes each captured
+binding from the calling body: a copy for a scalar that is only read, `&` for an
+owner that is read, `&mut` for an owner or scalar that the function changes. A
+caller that is itself a nested function forwards its own hidden parameter by
+reborrow. `named_capture_lowering.rs` documents the model and validates uses;
+`Emitter::named_capture_arguments` builds the arguments.
+
+Consequences, each covered by a witness:
+
+- No environment value exists. A recursive group is a set of static functions that
+  forward the same hidden parameters, so its native types are finite.
+- A borrow lasts for one call. A capture declared after the function is borrowed
+  only at calls, which the readiness checks already require to follow
+  initialization. Every block or loop entry lends its own bindings.
+- A mutated scalar capture is a `&mut` hidden parameter; the hidden binding is
+  marked `capture_reference`, the form closures already use.
+- Calls inside arrow functions work: the arrow captures the bindings that the
+  called function needs, under the existing closure loan rules, and forwards them.
+
+The finite group layouts of `named_capture_layout.rs` are still derived and retained.
+They are not needed for direct calls; they remain the basis for an owned environment
+value when escaping callables are implemented (gate 172).
+
+### Checks at a call
+
+`Analyzer::named_capture_arguments` treats each hidden capture as an argument that
+is evaluated after the written arguments. Written arguments that keep a borrow into
+the call stay active while the captures are checked. Lending a binding as a mutable
+argument to a function that also changes it through capture is `conflicting-access`;
+an argument that only copies a value out of the binding (`tick(counts.length)`) is
+accepted. Existing view, iteration and closure loan conflicts apply unchanged.
+Taking ownership of a captured value is rejected until gate 172.
+
+The call expression stores the caller slots in `Expr::capture_slots`. A per-function
+table was tried first and replaced, because arrow bodies have their own slot
+numbering.
+
+### Order and unused functions
+
+A linked program can place a lifted function before the function that declares it.
+`Analyzer::capturing_function_is_unused` checks the declaring function first, so its
+calls prepare the typed capture context. A capturing function that no call reaches
+has no typed context: it is not emitted and its body is not type-checked. This is an
+open item, not accepted final behavior: check such bodies against the declaring
+function's final context.
+
+### Fixed array storage
+
+The fixed-shape array proof did not know the hidden arguments and kept a captured
+array as `[i64; 1]` while the callee expected a growable array. The proof is now
+conservative: a body that calls a capturing function keeps ordinary storage for its
+arrays. A precise rule per captured slot is a later optimization.
+
+### Still pending in gate 171
+
+- A capturing function used as a value (`values.map(add)`, `const run = tick`). It is
+  rejected with a message that names the arrow form `(value) => add(value)`. The
+  wrapper must be created in the lexical resolver, before the escape pre-pass sees
+  the program; a rewrite during analysis would bypass escape checking and could let
+  a borrowing wrapper escape.
+- Type checking of unused capturing functions (above).
+- Capturing functions with rest parameters or type parameters keep the pending
+  diagnostic.
+- A capture that only a nested member of a recursive group owns can make an outer
+  member require it (group-level requirements). That shape keeps the pending
+  diagnostic; the layout module's invocation sources describe the precise rule.
+- Guide, editor examples and the matched benchmark workload for captures.
+
+Evidence for this checkpoint is recorded in the handoff.

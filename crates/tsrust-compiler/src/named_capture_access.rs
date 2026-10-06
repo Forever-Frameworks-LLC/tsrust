@@ -75,7 +75,7 @@ mod tests {
             }
         }
         assert!(converged, "finite capture lattice must converge");
-        let error = crate::check(source).err().expect("capture lowering pending");
-        assert_eq!(error.code, "unsupported");
+        // The converged program lowers to hidden capture arguments.
+        assert!(crate::check(source).is_ok());
     }
 }
