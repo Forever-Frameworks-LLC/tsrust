@@ -155,3 +155,12 @@ rest-prefix checks a T fallback, defaulted int offset, explicit undefined and T[
 rest across scalar/string calls, with exactly three writes to one environment.
 Keep these alongside the three original polymorphic red tests. Their passing Node
 references do not establish Tsrust implementation acceptance.
+
+## Invocation replay module checkpoint
+
+Invocation argument-type collection and method materialization now live in
+`crates/tsrust-compiler/src/closure_methods.rs`. The extraction preserves the
+original bodies exactly, except for sibling-module visibility. It isolates the
+method cache, substitution, source replay and captured-layout checks before
+introducing deferred generic data metadata. It changes no supported behavior and
+does not close the five pending native witnesses or gate173.
