@@ -2375,32 +2375,43 @@ impl Analyzer {
         Ok(true)
     }
 
-    /// Checks one hidden capture argument of a direct local function call
-    /// and keeps its borrow active while the written arguments are checked.
+    /// Checks the hidden capture arguments of a direct nested function
+    /// call. Written arguments that keep a borrow into the call stay active,
+    /// so passing a captured binding with a conflicting access is rejected;
+    /// an argument that only copied a value out of it is not.
     #[inline(never)]
-    fn named_capture_argument(
+    fn named_capture_arguments(
         &mut self,
         context: &mut Context,
-        slot: usize,
-        mode: Mode,
+        captures: &[(usize, Mode)],
+        args: &[Expr],
+        params: &[ArgumentContract],
         span: Span,
         loans: &Loans,
-        capture_loans: &mut Option<Loans>,
     ) -> Result<(), Diagnostic> {
-        if mode == Mode::Consume {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "A nested function cannot take ownership of a captured value yet. Read or change it in place, or pass it as an argument.",
-                span,
-            ));
+        let mut active = loans.clone();
+        for (arg, contract) in args.iter().zip(params) {
+            if !arg.ty.is_some_and(Type::is_copy) {
+                for binding in Self::loan_roots(arg, contract.mode) {
+                    active.entry(binding).or_default().push((contract.mode, arg.span));
+                }
+            }
         }
-        let active = capture_loans.get_or_insert_with(|| loans.clone());
-        Self::access(context, slot, mode, span, active)?;
-        if mode == Mode::Mutate {
-            context.bindings[slot].mutable = true;
-        }
-        if !context.bindings[slot].ty.is_copy() || mode == Mode::Mutate {
-            active.entry(slot).or_default().push((mode, span));
+        for &(slot, mode) in captures {
+            if mode == Mode::Consume {
+                return Err(Diagnostic::new(
+                    "unsupported",
+                    "A nested function cannot take ownership of a captured value yet. Read or change it in place, or pass it as an argument.",
+                    span,
+                ));
+            }
+            Self::access(context, slot, mode, span, &active)?;
+            if mode == Mode::Mutate {
+                context.bindings[slot].mutable = true;
+            }
+            if !context.bindings[slot].ty.is_copy() || mode == Mode::Mutate {
+                active.entry(slot).or_default().push((mode, span));
+            }
         }
         Ok(())
     }
@@ -13752,10 +13763,12 @@ self.names_materialized_type(element.with_depth(0).ty())
         // Propagate body access through static named edges. Runtime loan formation
         // remains the separate environment-lowering stage behind the public guard.
         // A direct call passes each captured binding as a hidden argument:
-        // a copy, or a borrow that lasts for the call. The same access and
-        // loan rules apply as for a written argument.
-        let mut capture_loans = None;
-        for access in self.named_captures.access(index, self.checked[index].as_ref(), &self.assumed_capture_access, self.signatures[index].params.len()) {
+        // a copy, or a borrow that lasts for the call. Usage and forwarded
+        // access are recorded here; the borrows are checked after the
+        // written arguments, which are evaluated first.
+        let capture_accesses = self.named_captures.access(index, self.checked[index].as_ref(), &self.assumed_capture_access, self.signatures[index].params.len());
+        let mut capture_slots = Vec::with_capacity(capture_accesses.len());
+        for access in &capture_accesses {
             let Some(&slot) = context.source_bindings.get(&access.binding.declaration_start) else {
                 return Err(self.program.local_capture_plans.iter().find_map(crate::local_capture_plan::Plan::pending_diagnostic).expect("pending named capture"));
             };
@@ -13764,9 +13777,8 @@ self.names_materialized_type(element.with_depth(0).ty())
             if binding.parameter && (!binding.ty.is_copy() || access.mode == Mode::Mutate) {
                 binding.mode = binding.mode.max(access.mode);
             }
-            self.named_capture_argument(context, slot, access.mode, callee.span, loans, &mut capture_loans)?;
+            capture_slots.push((slot, access.mode));
         }
-        let loans = capture_loans.as_ref().unwrap_or(loans);
         let params = if let Some(target) = &self.checked[index] {
             target.bindings[..target.parameter_count]
                 .iter()
@@ -13785,6 +13797,9 @@ self.names_materialized_type(element.with_depth(0).ty())
         };
         Self::prepare_arguments(args, &params, span)?;
         self.check_call_arguments(context, args, &params, loans)?;
+        if !capture_slots.is_empty() {
+            self.named_capture_arguments(context, &capture_slots, args, &params, callee.span, loans)?;
+        }
         let (index, result) = self.resolved_call(context, index, args, span)?;
         for (argument, parameter) in args.iter_mut().zip(&self.signatures[index].params) {
             if parameter.union().is_some()
