@@ -13,7 +13,7 @@ pub(crate) struct Declaration {
 }
 #[derive(Clone)]
 enum Symbol {
-    Function(String),
+    Function { emitted: String, id: usize },
     Variable { owner: usize, span: Span },
 }
 type Environment = HashMap<String, Symbol>;
@@ -22,6 +22,8 @@ struct Resolver {
     next_scope: usize,
     declarations: Vec<Declaration>,
     lifted: Vec<Function>,
+    capture_plan: crate::local_capture_plan::Planner,
+    local_owners: HashMap<usize, usize>,
 }
 
 pub(crate) fn resolve(program: &mut Program) -> Result<(), Diagnostic> {
@@ -33,9 +35,32 @@ pub(crate) fn resolve(program: &mut Program) -> Result<(), Diagnostic> {
         next_scope: 0,
         declarations: Vec::new(),
         lifted: Vec::new(),
+        capture_plan: Default::default(),
+        local_owners: HashMap::new(),
     };
     for (owner, function) in program.functions.iter_mut().enumerate() {
         resolver.function(function, &Environment::new(), owner, false)?;
+    }
+    if resolver.capture_plan.has_captures() {
+        let plan = resolver.capture_plan.finish();
+        if let Some(group) = plan.groups.iter().find(|group| !group.captures.is_empty()) {
+            // Keep this staging diagnostic until checked capture environments land.
+            // The graph already separates callable edges from owner payloads.
+            let capture = plan
+                .requirements(group.members[0])
+                .into_iter()
+                .min_by_key(|capture| capture.usage.start)
+                .expect("captured group");
+            return Err(Diagnostic::new(
+                "unsupported",
+                format!(
+                    "Nested function capture of {:?} is pending capture-ownership implementation.",
+                    capture.name
+                ),
+                capture.usage,
+            )
+            .related(capture.declaration, "Captured binding declared here."));
+        }
     }
     program.functions.extend(resolver.lifted);
     program.local_declarations = resolver.declarations;
@@ -107,7 +132,8 @@ impl Resolver {
                 }
                 match &statement.kind {
                     StmtKind::LocalFunction(function) => {
-                        let id = self.declarations.len();
+                        let id = self.capture_plan.declaration();
+                        debug_assert_eq!(id, self.declarations.len());
                         let emitted = format!("local#{id}#{}", name.text);
                         self.declarations.push(Declaration {
                             id,
@@ -116,7 +142,7 @@ impl Resolver {
                             emitted_name: emitted.clone(),
                             function_scope: function.scope_span,
                         });
-                        env.insert(name.text.clone(), Symbol::Function(emitted));
+                        env.insert(name.text.clone(), Symbol::Function { emitted, id });
                     }
                     _ => {
                         env.insert(
@@ -138,12 +164,13 @@ impl Resolver {
                     else {
                         unreachable!()
                     };
-                    let Symbol::Function(emitted) = &env[&function.name.text] else {
+                    let Symbol::Function { emitted, id } = &env[&function.name.text] else {
                         unreachable!()
                     };
                     function.name.text = emitted.clone();
                     let local_owner = self.next_owner;
                     self.next_owner += 1;
+                    self.local_owners.insert(local_owner, *id);
                     self.function(&mut function, &env, local_owner, true)?;
                     self.lifted.push(*function);
                 }
@@ -246,13 +273,29 @@ impl Resolver {
     ) -> Result<(), Diagnostic> {
         match &mut expression.kind {
             ExprKind::Name(name) => match env.get(name) {
-                Some(Symbol::Function(emitted)) => *name = emitted.clone(),
+                Some(Symbol::Function { emitted, id }) => {
+                    if let Some(&source) = self.local_owners.get(&owner) {
+                        self.capture_plan.dependency(source, *id);
+                    }
+                    *name = emitted.clone();
+                }
                 Some(Symbol::Variable {
                     owner: defining,
                     span,
                 }) if pending && *defining != owner => {
-                    return Err(Diagnostic::new("unsupported", format!("Nested function capture of {name:?} is pending capture-ownership implementation."), expression.span)
-                        .related(*span, "Captured binding declared here."));
+                    let function = self.local_owners[&owner];
+                    self.capture_plan.capture(
+                        function,
+                        crate::local_capture_plan::Capture {
+                            binding: crate::local_capture_plan::BindingId {
+                                owner: *defining,
+                                declaration_start: span.start,
+                            },
+                            name: name.clone(),
+                            declaration: *span,
+                            usage: expression.span,
+                        },
+                    );
                 }
                 _ => {}
             },
@@ -376,5 +419,17 @@ mod tests {
                     .starts_with("value():int")
             );
         }
+    }
+    #[test]
+    fn transitive_capture_diagnostic_points_to_the_owner_not_a_sibling_function() {
+        let source = "function main(){function forward():int{return read();}const data=[1];function read():int{return data[0];}console.log(forward());}";
+        let error = crate::check(source)
+            .err()
+            .expect("capture implementation pending");
+        assert_eq!(error.code, "unsupported");
+        assert_eq!(&source[error.span.start..error.span.end], "data");
+        assert_eq!(error.related.len(), 1);
+        let binding = error.related[0].0;
+        assert_eq!(&source[binding.start..binding.end], "data");
     }
 }

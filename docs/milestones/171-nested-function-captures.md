@@ -1,6 +1,6 @@
 # Gate 171: nonescaping nested function captures
 
-Status: red checkpoint, not implemented or accepted. Gate 170 remains the accepted
+Status: capture-planner checkpoint; capture execution is not implemented or accepted. Gate 170 remains the accepted
 lexical foundation. Existing capture ownership is the settled language contract.
 
 The focused nested_function_captures suite separates this stage from owned escape.
@@ -62,3 +62,48 @@ milestone described in nested-function-declarations-plan.md.
 Original logs are SQLite gate-log records under target/editor/nested-capture-*,
 verified byte for byte before loose copies were removed. No archives. Keep all four
 unrelated worktree fixture edits unstaged, including interfaces/shapes.tsr.
+
+## Capture planner implementation checkpoint
+
+local_capture_plan.rs now records direct captures by defining owner and declaration
+start, with original spelling, declaration and use spans. Callable dependencies
+carry declaration identities and remain separate from owner payloads. The lexical
+resolver collects these facts for each local function instead of aborting at the
+first captured occurrence. Captured programs still receive the existing explicit
+pending diagnostic after planning; no new callable or ownership behavior is accepted.
+
+An iterative two-pass strongly connected component traversal forms finite recursive
+groups. Bindings are deduplicated within a group while retaining their earliest source
+use. A separate iterative requirements query follows the condensation graph on demand
+and deduplicates transitive bindings. It does not materialize an all-pairs dependency
+matrix or guess checked access modes. Binding owner identity stays available so the
+next checked stage can distinguish an enclosing capture from a group member's
+invocation-local parameter or local slot. Requirements are lexical dependencies,
+not proof of initialization or a storage layout. Files without local declarations
+retain the existing immediate return; capture-free declarations skip graph solving.
+
+Direct unit witnesses cover mutual recursion with a forwarder, repeated binding
+captures, distinct shadowed spellings and a 4,096-node chain without recursive graph
+frames. A resolver integration witness verifies that the pending diagnostic names the
+captured owner rather than a sibling function. This is the planned compiler module
+seam, not a replacement for the five positive capture/readiness witnesses.
+
+The next chunk must retain these plans and captured declarations into checked
+contexts rather than discard them at the staging diagnostic. Resolve binding types
+and modes there, partition group-external storage from invocation-local dependencies,
+and integrate reachable-use readiness before constructing borrowed environments.
+Then support recursive dispatch through that finite environment while preserving
+existing loan conflicts and lexical release. Owned escape remains separate.
+
+Planner checkpoint checks pass: 14 focused library tests (including all three new
+graph tests and resolver integration), five accepted lexical compiler tests, all
+63 tests across the eight depth-canary suites and all 272 editor tests. The capture
+suite still has one passing existing closure reference and five pending feature
+failures. These results prove the planner seam and preservation of accepted behavior,
+not borrowed named-function execution. Original red and final logs are retained as
+SQLite gate-log records under target/editor/nested-plan-*.
+
+The existing nested_function_declarations retained-result workload passes all five
+native/node-tsc cases after the resolver change, untimed. Exact runtime-result
+benchmarks/runtime/results/2026-10-06T17-05-38-605Z-verify.json is retained in SQLite.
+No new runtime feature landed, so no new workload or measured claim is registered.
