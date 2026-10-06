@@ -42,6 +42,9 @@ pub(crate) fn resolve(program: &mut Program) -> Result<(), Diagnostic> {
         local_owners: HashMap::new(),
     };
     for (owner, function) in program.functions.iter_mut().enumerate() {
+        resolver
+            .capture_plan
+            .owner(owner, function.name.text.clone());
         resolver.function(function, &Environment::new(), owner, false)?;
     }
     if resolver.capture_plan.has_captures() {
@@ -125,6 +128,7 @@ impl Resolver {
                         self.next_owner += 1;
                         self.local_owners.insert(function_owner, id);
                         let emitted = format!("local#{id}#{}", name.text);
+                        self.capture_plan.owner(function_owner, emitted.clone());
                         self.declarations.push(Declaration {
                             id,
                             scope,
@@ -273,20 +277,24 @@ impl Resolver {
                 Some(Symbol::Variable {
                     owner: defining,
                     span,
-                }) if pending && *defining != owner => {
-                    let function = self.local_owners[&owner];
-                    self.capture_plan.capture(
-                        function,
-                        crate::local_capture_plan::Capture {
-                            binding: crate::local_capture_plan::BindingId {
-                                owner: *defining,
-                                declaration_start: span.start,
+                }) => {
+                    let binding = crate::local_capture_plan::BindingId {
+                        owner: *defining,
+                        declaration_start: span.start,
+                    };
+                    self.capture_plan.variable_use(expression.span, binding);
+                    if pending && *defining != owner {
+                        let function = self.local_owners[&owner];
+                        self.capture_plan.capture(
+                            function,
+                            crate::local_capture_plan::Capture {
+                                binding,
+                                name: name.clone(),
+                                declaration: *span,
+                                usage: expression.span,
                             },
-                            name: name.clone(),
-                            declaration: *span,
-                            usage: expression.span,
-                        },
-                    );
+                        );
+                    }
                 }
                 _ => {}
             },

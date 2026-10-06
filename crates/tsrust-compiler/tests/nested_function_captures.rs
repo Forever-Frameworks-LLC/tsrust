@@ -55,3 +55,28 @@ function main() {
     strictEqual(counts[0], 2);
 }"#);
 }
+
+#[test]
+fn transitive_function_use_requires_later_capture_initialization() {
+    let source = "function main(){function read():int{return value;}function forward():int{return read();}console.log(forward());const value=3;}";
+    let error = tsrust_compiler::check(source).err().expect("uninitialized transitive capture");
+    assert_eq!(error.code, "unassigned");
+    assert_eq!(&source[error.span.start..error.span.end], "forward");
+    assert!(error.related.iter().any(|(span,_)| &source[span.start..span.end] == "value"));
+}
+
+#[test]
+fn assigning_a_shadow_does_not_initialize_the_captured_binding() {
+    let source = "function main(){let value:int;function read():int{return value;}{let value=0;value=3;}console.log(read());}";
+    let error = tsrust_compiler::check(source).err().expect("outer binding still unassigned");
+    assert_eq!(error.code, "unassigned");
+    assert_eq!(&source[error.span.start..error.span.end], "read");
+}
+
+#[test]
+fn checked_call_failure_keeps_capture_unassigned_on_the_catch_path() {
+    let source = "function fail():int{throw 1;}function main(){let value:int;function read():int{return value;}try{fail();value=3;}catch{console.log(read());}}";
+    let error = tsrust_compiler::check(source).err().expect("capture unavailable on exceptional path");
+    assert_eq!(error.code, "unassigned");
+    assert_eq!(&source[error.span.start..error.span.end], "read");
+}

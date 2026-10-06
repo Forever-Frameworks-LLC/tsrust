@@ -48,3 +48,9 @@ independent oracle for native and Node execution; it has not been measured.
 
 Gate 170 accepts this lexical foundation. The capture, escape and comprehensive
 signature stages in nested-function-declarations-plan.md remain open.
+
+If a call or retained function value needs a captured binding before initialization,
+the diagnostic marks that function use and links the binding declaration. Initialize
+the binding on every reaching path before using the function. This initialization
+precheck is available while captured named-function execution remains under development;
+passing it does not yet make those captured functions executable.

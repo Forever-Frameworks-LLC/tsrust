@@ -18,6 +18,8 @@ pub(crate) struct Capture {
 pub(crate) struct Planner {
     captures: Vec<BTreeMap<BindingId, Capture>>,
     edges: Vec<Vec<usize>>,
+    owners: BTreeMap<usize, String>,
+    uses: BTreeMap<usize, BindingId>,
 }
 #[derive(Clone, Debug)]
 pub(crate) struct Group {
@@ -28,11 +30,20 @@ pub(crate) struct Group {
 #[derive(Clone, Debug)]
 pub(crate) struct Plan {
     pub node_start: usize,
+    pub owners: BTreeMap<usize, String>,
+    pub uses: BTreeMap<usize, BindingId>,
     pub direct: Vec<Vec<Capture>>,
     pub groups: Vec<Group>,
     pub group_of: Vec<usize>,
 }
 impl Planner {
+    pub fn owner(&mut self, id: usize, name: String) {
+        self.owners.insert(id, name);
+    }
+    pub fn variable_use(&mut self, span: Span, binding: BindingId) {
+        self.uses.insert(span.start, binding);
+    }
+
     pub fn declaration(&mut self) -> usize {
         let id = self.edges.len();
         self.edges.push(Vec::new());
@@ -142,6 +153,8 @@ impl Planner {
         }
         Plan {
             node_start: 0,
+            owners: self.owners,
+            uses: self.uses,
             direct,
             groups,
             group_of,
@@ -151,6 +164,22 @@ impl Planner {
 impl Plan {
     pub fn rebase(&mut self, declarations: usize, owners: usize, source: usize) {
         self.node_start += declarations;
+        self.owners = std::mem::take(&mut self.owners)
+            .into_iter()
+            .map(|(owner, name)| (owner + owners, name))
+            .collect();
+        self.uses = std::mem::take(&mut self.uses)
+            .into_iter()
+            .map(|(start, binding)| {
+                (
+                    start + source,
+                    BindingId {
+                        owner: binding.owner + owners,
+                        declaration_start: binding.declaration_start + source,
+                    },
+                )
+            })
+            .collect();
         for captures in &mut self.direct {
             for capture in captures {
                 capture.binding.owner += owners;
@@ -285,8 +314,24 @@ mod tests {
         planner.declaration();
         planner.dependency(0, 1);
         planner.capture(1, capture(2, 10, 30));
+        planner.owner(2, "factory".into());
+        planner.variable_use(
+            Span::new(30, 35),
+            BindingId {
+                owner: 2,
+                declaration_start: 10,
+            },
+        );
         let mut plan = planner.finish();
         plan.rebase(7, 12, 100);
+        assert_eq!(plan.owners[&14], "factory");
+        assert_eq!(
+            plan.uses[&130],
+            BindingId {
+                owner: 14,
+                declaration_start: 110
+            }
+        );
         let captures = plan.requirements(7);
         assert_eq!(captures.len(), 1);
         assert_eq!(captures[0].binding.owner, 14);

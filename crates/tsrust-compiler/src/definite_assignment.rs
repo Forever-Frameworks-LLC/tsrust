@@ -21,6 +21,37 @@ struct Variable<'a> {
     name: &'a str,
     binding: Option<usize>,
     captures: &'a Captures,
+    named: Option<NamedCapture<'a>>,
+}
+
+#[derive(Clone, Copy)]
+struct NamedCapture<'a> {
+    capture: &'a crate::local_capture_plan::Capture,
+    functions: &'a std::collections::BTreeSet<String>,
+    uses: &'a std::collections::BTreeMap<usize, crate::local_capture_plan::BindingId>,
+}
+impl Variable<'_> {
+    fn matches(self, value: &Expr) -> bool {
+        if let Some(named) = self.named {
+            if !matches!(value.kind, ExprKind::Name(_)) { return false; }
+            return named.uses.get(&value.span.start) == Some(&named.capture.binding);
+        }
+        matches!(&value.kind, ExprKind::Name(text) if text == self.name) && self.binding.is_none_or(|binding| value.binding == Some(binding))
+    }
+    fn initialized_by(self, name: &crate::syntax::Token) -> bool {
+        self.named.is_some_and(|named| name.span == named.capture.declaration)
+    }
+}
+
+/// Validate named-callable uses against one captured binding using the shared
+/// completion/assignment flow. Checked loan and type analysis remain separate.
+pub(crate) fn check_named_capture(
+    body: &mut [Stmt], capture: &crate::local_capture_plan::Capture,
+    functions: &std::collections::BTreeSet<String>,
+    uses: &std::collections::BTreeMap<usize, crate::local_capture_plan::BindingId>,
+    initialized: bool,
+) -> Result<(), Diagnostic> {
+    flow(body, Variable { name: &capture.name, binding: None, captures: &[], named: Some(NamedCapture { capture, functions, uses }) }, initialized).map(|_| ())
 }
 
 struct Exit { kind:CompletionKind, assigned:bool }
@@ -44,7 +75,11 @@ fn unassigned(name: &str, span: crate::Span) -> Diagnostic {
 fn mention(statements: &mut [Stmt], variable: Variable) -> Option<crate::Span> {
     let mut found = None;
     let _ = crate::source_walk::body(statements, &mut |_| Ok(()), &mut |value: &mut Expr| {
-        let named = matches!(&value.kind, ExprKind::Name(text) if text == variable.name) && variable.binding.is_none_or(|binding| value.binding==Some(binding));
+        let named = match (&variable.named, &value.kind) {
+            (Some(required), ExprKind::Name(text)) => required.functions.contains(text),
+            (None, ExprKind::Name(text)) => text == variable.name && variable.binding.is_none_or(|binding| value.binding == Some(binding)),
+            _ => false,
+        };
         let captured = matches!(value.kind, ExprKind::Closure { .. })
             && variable.binding.is_some_and(|binding| {
                 variable.captures.iter().any(|(span, outer)| {
@@ -76,7 +111,14 @@ fn expression_mention(value: &mut Expr, variable: Variable) -> Option<crate::Spa
 }
 
 fn require_clear(value: &mut Expr, variable: Variable) -> Result<(), Diagnostic> {
-    expression_mention(value, variable).map_or(Ok(()), |span| Err(unassigned(variable.name, span)))
+    expression_mention(value, variable).map_or(Ok(()), |span| {
+        let mut error = unassigned(variable.name, span);
+        if let Some(named) = variable.named {
+            error.message = format!("This function use requires captured binding {:?} to be initialized on every reaching path. Initialize it before calling or retaining the function.", variable.name);
+            error.related.push((named.capture.declaration, "Captured binding declared here.".into()));
+        }
+        Err(error)
+    })
 }
 
 /// Keep targeted exits until their enclosing statement consumes them. A
@@ -96,11 +138,15 @@ fn flow(statements: &mut [Stmt], variable: Variable, assigned: bool) -> Result<F
                 next.normal=None;next.exits.push(Exit{kind:CompletionKind::Throw,assigned:before});
             }
             StmtKind::Assign {target,value,operator:None}
-                if matches!(&target.kind,ExprKind::Name(text) if text==variable.name) && variable.binding.is_none_or(|binding|target.binding==Some(binding)) => {
+                if variable.matches(target) => {
                 if !before {require_clear(value,variable)?;}
                 next.normal=Some(true);
             }
             StmtKind::Assign{target,value,..}=>{if !before {require_clear(target,variable)?;require_clear(value,variable)?;}}
+            StmtKind::Let{name,value,..} if variable.initialized_by(name) => {
+                if !before { require_clear(value,variable)?; }
+                next.normal=Some(!value.is_deferred());
+            }
             StmtKind::Let{value,..}|StmtKind::Expr(value)=>{if !before {require_clear(value,variable)?;}}
             StmtKind::Block(body)=>{
                 next=flow(body,variable,before)?;
@@ -125,9 +171,9 @@ fn flow(statements: &mut [Stmt], variable: Variable, assigned: bool) -> Result<F
                 let inner=flow(body,variable,before)?;
                 next.exits=inner.exits.into_iter().filter(|exit|!exit.kind.targets(ControlTarget::Loop(statement.span.start))).collect();
             }
-            StmtKind::ForOf{iterable,body,..}=>{
+            StmtKind::ForOf{name,iterable,body,..}=>{
                 if !before {require_clear(iterable,variable)?;}
-                let inner=flow(body,variable,before)?;
+                let inner=flow(body,variable,before || variable.initialized_by(name))?;
                 next.exits=inner.exits.into_iter().filter(|exit|!exit.kind.targets(ControlTarget::Loop(statement.span.start))).collect();
             }
             StmtKind::Loop{condition,body,update,post_test,..}=>{
@@ -174,7 +220,7 @@ pub(crate) fn check(statements: &mut [Stmt], captures: &Captures) -> Result<(), 
 
             StmtKind::Let { name, value, binding, .. } if value.is_deferred() => {
                 let name = name.text.clone();
-                flow(after, Variable { name: &name, binding: *binding, captures }, false)?;
+                flow(after, Variable { name: &name, binding: *binding, captures, named: None }, false)?;
             }
             StmtKind::Block(body) | StmtKind::While { body, .. } | StmtKind::ForOf { body, .. } => {
                 check(body, captures)?

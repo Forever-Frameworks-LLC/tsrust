@@ -26,7 +26,7 @@ pub(super) fn region_flow(region:&mut ExceptionRegion, variable:Variable, assign
         result.exits.retain(|exit| {
             if exit.kind==CompletionKind::Throw {caught=join_normal(caught,Some(exit.assigned));false}else{true}
         });
-        if let Some(assigned)=caught {merge(&mut result,flow(&mut handler.body,variable,assigned)?);}
+        if let Some(assigned)=caught {merge(&mut result,flow(&mut handler.body,variable,assigned || handler.name.as_ref().is_some_and(|name| variable.initialized_by(name)))?);}
     }
     let Some(finally)=&mut region.finally else{return Ok(result);};
     let mut completed=Flow{normal:None,exits:Vec::new()};

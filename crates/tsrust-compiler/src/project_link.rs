@@ -385,6 +385,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId]) -> Result<Projec
         let scope_offset = linked.local_declarations.iter().map(|declaration| declaration.scope + 1).max().unwrap_or(0);
         let owner_offset = linked.functions.len();
         for plan in &mut program.local_capture_plans {
+            for name in plan.owners.values_mut() { *name = names[name].clone(); }
             plan.rebase(declaration_offset, owner_offset, visitor.offset);
         }
         for declaration in &mut program.local_declarations {

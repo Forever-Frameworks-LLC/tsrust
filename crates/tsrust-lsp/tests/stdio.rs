@@ -256,3 +256,17 @@ fn formatting_interfaces_returns_tight_generics_and_separate_fields() {
     assert!(matches!(server.response(), Message::Response(r) if r.error.is_none()));
     server.finish(0);
 }
+
+#[test]
+fn named_capture_readiness_diagnostic_marks_use_and_related_binding() {
+    let source = "function main() {\n    function read(): int { return value; }\n    console.log(read());\n    const value = 3;\n}";
+    let uri = "file:///capture-readiness.tsr";
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(source, uri).unwrap()).unwrap();
+    let error = &diagnostics[0];
+    assert_eq!(error["code"], "unassigned");
+    assert_eq!(error["range"]["start"], json!({"line":2,"character":16}));
+    assert_eq!(error["range"]["end"], json!({"line":2,"character":20}));
+    assert!(error["message"].as_str().unwrap().contains("captured binding"));
+    assert_eq!(error["relatedInformation"][0]["location"]["uri"], uri);
+    assert_eq!(error["relatedInformation"][0]["location"]["range"]["start"], json!({"line":3,"character":10}));
+}

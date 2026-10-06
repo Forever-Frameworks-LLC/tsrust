@@ -142,3 +142,47 @@ benchmarks/runtime/results/2026-10-06T17-16-47-102Z-verify.json; original red, b
 successful logs are target/editor/nested-retain-* gate-log records. Every record is
 read back byte for byte before its loose copy is removed. Five consumers refreshed
 atomically and hash verified. No full compiler regression or timing was performed.
+
+## Source readiness precheck checkpoint
+
+local_readiness.rs now checks named function uses against the initialization of
+required captured bindings before the pending checked-environment guard. Condensed
+group requirements propagate binding identities once in reverse dependency order;
+uses of forwarders and mutual groups therefore carry transitive requirements without
+repeated graph searches. Planner retains logical owner names and resolved variable-use
+identities, rebased through modules. Assigning a shadowed binding cannot initialize
+its captured namesake, and indexed writes do not initialize a deferred whole array.
+
+The precheck reuses definite_assignment.rs completion flow through a small named
+capture adapter. Initializers, plain assignment, branch joins, early returns, loop
+entry bindings, catch parameters and explicit finally assignment use existing rules.
+Captures declared inside source closures are checked in their innermost invocation
+body; outer captured dependencies still follow existing creation-time borrowing.
+This adapter changes no ordinary deferred-variable assignment behavior.
+
+An early call or retained function value now reports unassigned at the function use,
+with the required captured binding location and a concrete initialization instruction.
+The original early-call witness, transitive forwarder and shadow-assignment witnesses
+pass. The existing native arrow-closure reference also passes. Four positive named
+capture execution cases remain red at the checked-environment guard.
+
+This is a source precheck, not final typed readiness or capture acceptance. Typed call
+failure effects and resolved control targets are unavailable at this point. A new
+positive diagnostic witness for fail() throwing into catch before assignment remains
+red, and must pass when readiness is integrated with typed contexts/effects. Do not
+replace it with accepted unsupported behavior or duplicate the checked effect engine
+with syntax guesses. Gate171 acceptance still requires that witness, typed captures,
+finite borrowed recursive environments, ownership/loans, native execution, editor,
+matched benchmark support and all other planned requirements.
+
+Readiness checkpoint evidence: library18 (including15 source-flow scenarios),
+lexical5, module-location1, all eight canary suites63 and whole editor273 pass.
+The compiler capture suite is4 passing checks and5 pending failures: three new
+initialization diagnostics plus the existing native closure reference pass; four
+native named-capture positives and the typed call-failure diagnostic remain red.
+The editor check verifies both function-use range and related binding location.
+Five existing lexical workload cases pass native/node-tsc untimed. Canonical result:
+benchmarks/runtime/results/2026-10-06T17-40-26-459Z-verify.json. Red/build/pass logs are
+target/editor/nested-readiness-* SQLite gate-log records, exact-readback verified
+before deleting loose copies. Five consumers refreshed and hash verified; generated
+examples/native outputs/test executables pruned. No timing/full compiler regression.
