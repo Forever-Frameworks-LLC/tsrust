@@ -934,6 +934,7 @@ impl SourceIndex {
             }
         }
         self.collect_type_aliases();
+        let mut interface_bases: Vec<(String, Vec<String>)> = Vec::new();
         for id in 0..self.tokens.len() {
             if self.text(id) == "type"
                 && self.text(id + 2) == "="
@@ -955,7 +956,7 @@ impl SourceIndex {
                 );
                 continue;
             }
-            if matches!(self.text(id), "function" | "type" | "enum") && name(self.text(id + 1)) {
+            if matches!(self.text(id), "function" | "type" | "enum" | "interface") && name(self.text(id + 1)) {
                 let name_id = id + 1;
                 let mut header = id + 2;
                 if self.text(header) == "<" {
@@ -1040,12 +1041,25 @@ impl SourceIndex {
                         }
                         n += 1;
                     }
-                } else if self.text(id) == "type"
-                    && self.text(header) == "="
-                    && self.text(header + 1) == "{"
-                {
-                    let end = self.pairs[header + 1].unwrap_or(self.tokens.len() - 1);
+                } else if let Some(open) = if self.text(id) == "type" && self.text(header) == "=" && self.text(header + 1) == "{" {
+                    Some(header + 1)
+                } else if self.text(id) == "interface" {
+                    // `interface Name extends Base, Other {`
+                    (header..self.tokens.len()).take_while(|&n| !matches!(self.text(n), ";" | "")).find(|&n| self.text(n) == "{")
+                } else {
+                    None
+                } {
+                    let end = self.pairs[open].unwrap_or(self.tokens.len() - 1);
                     let owner = self.text(name_id).to_string();
+                    if self.text(id) == "interface" {
+                        let bases = (header..open)
+                            .filter(|&n| name(self.text(n)) && self.text(n) != "extends")
+                            .map(|n| self.text(n).to_owned())
+                            .collect::<Vec<_>>();
+                        if !bases.is_empty() {
+                            interface_bases.push((owner.clone(), bases));
+                        }
+                    }
                     if header > id + 2 {
                         let parameters = (id + 3..header - 1)
                             .filter(|&n| name(self.text(n)))
@@ -1062,7 +1076,7 @@ impl SourceIndex {
                         self.tokens[id].span.start,
                         self.tokens[id].scope,
                     );
-                    let mut n = header + 2;
+                    let mut n = open + 1;
                     while n < end {
                         // `name?: Type` is a field that a literal may omit.
                         let optional = name(self.text(n)) && self.text(n + 1) == "?" && self.text(n + 2) == ":";
@@ -1269,6 +1283,34 @@ impl SourceIndex {
                         }
                     }
                 }
+            }
+        }
+        // An interface has the fields of the types it extends. Bases may be
+        // declared later, so repeat until no interface gains a field.
+        for _ in 0..16 {
+            let mut added = false;
+            for (owner, bases) in &interface_bases {
+                for base in bases {
+                    let inherited = self
+                        .symbols
+                        .iter()
+                        .filter(|symbol| symbol.kind == 8 && symbol.owner.as_deref() == Some(base.as_str()))
+                        .cloned()
+                        .collect::<Vec<_>>();
+                    for mut field in inherited {
+                        if self.symbols.iter().any(|symbol| {
+                            symbol.kind == 8 && symbol.owner.as_deref() == Some(owner.as_str()) && symbol.name == field.name
+                        }) {
+                            continue;
+                        }
+                        field.owner = Some(owner.clone());
+                        self.symbols.push(field);
+                        added = true;
+                    }
+                }
+            }
+            if !added {
+                break;
             }
         }
         // Every function expression declares its parameters in its body scope.
