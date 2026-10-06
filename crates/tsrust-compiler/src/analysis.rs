@@ -32,6 +32,8 @@ mod logical_values;
 pub(crate) mod generic_function_values;
 #[path = "closure_methods.rs"]
 mod closure_methods;
+#[path = "generic_value_adapters.rs"]
+mod generic_value_adapters;
 #[path = "generic_value_metadata.rs"]
 mod generic_value_metadata;
 #[path = "deferred_generic_values.rs"]
@@ -1950,9 +1952,9 @@ impl Analyzer {
         visible.sort_unstable();
         visible.dedup();
         let mut context = capture_context::project(outer, &visible);
-        if hidden_captures {
-            context.names = outer.names.iter().map(|(name, slot)| (name.clone(), visible.binary_search(slot).expect("visible name"))).collect();
-        }
+        // Preserve lexical aliases as well as binding declaration names. Adapter
+        // wrappers introduce a private alias to avoid parameter-name shadowing.
+        context.names = outer.names.iter().map(|(name, slot)| (name.clone(), visible.binary_search(slot).expect("visible name"))).collect();
         context.inferred_body_result = inferred_result;
         if self.discovering_results {
             context.pending_names = outer.pending_names.clone();
@@ -10991,13 +10993,11 @@ self.names_materialized_type(element.with_depth(0).ty())
             !(matches!(args[0].kind, ExprKind::Call(_, _))
                 && matches!(ty, Type::Closure(id) if self.closures[*id].polymorphic))
         });
-        let ty = self.expression(
-            context,
-            &mut args[0],
-            Mode::Mutate,
-            &active,
-            checked_callback_hint,
-        )?;
+        let ty = if let Some(ty) = self.adapt_generic_traversal(context, &mut args[0], &supplied_types, &active)? {
+            ty
+        } else {
+            self.expression(context, &mut args[0], Mode::Mutate, &active, checked_callback_hint)?
+        };
         let (parameters, mut result, once) = match ty {
             Type::Closure(id) => {
                 let closure = &self.closures[id];
@@ -14581,6 +14581,12 @@ self.names_materialized_type(element.with_depth(0).ty())
             .names
             .get(name)
             .ok_or_else(|| Diagnostic::new("name", format!("Unknown value {name:?}."), span))?;
+        if let Type::Closure(origin) = context.bindings[index].ty
+            && self.deferred_generic_values.contains_key(&origin)
+            && let Some(expected) = expected
+            && self.checked_generic_callable_shape(expected).is_some() {
+            return self.adapt_generic_value(context, expr, index, origin, expected, mode, loans);
+        }
         let callback_argument = matches!(expected, Some(Type::Callback(_)));
         let observation =
             self.observing_values && mode == Mode::Read && !context.is_capture(index);

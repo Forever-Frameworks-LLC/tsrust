@@ -436,3 +436,7 @@ Generic alias header progress: fixed nominal annotations now use source identiti
 for imported aliases, applied records and private results. Labels and default
 literals stay intact. Conditional/optional aliases and callable adapters remain
 open under gate173.
+
+Existing generic value adapters now support explicit contracts, array transform
+callbacks and typed record/array storage with ownership/disposal controls. The
+full adapter audit and benchmark family remain open; see generic-value-adapters-plan.md.

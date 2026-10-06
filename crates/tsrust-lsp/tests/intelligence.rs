@@ -7735,6 +7735,19 @@ fn deferred_generic_alias_parameter_help_preserves_checked_access() {
 }
 
 #[test]
+fn generic_value_adapter_keeps_concrete_help_and_alias_navigation() {
+    let source="function make(start:int){let calls=start;function select<T>(value:T):T{calls+=1;return value;}return select;}function main(){const action=make(0);const fixed:Function<int,[value:int]>=action;const number=fixed(7);}";
+    tsrust_compiler::check(source).unwrap();
+    let hover=ask(source,"textDocument/hover","fixed:",0);
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("int"),"{hover}");
+    let help=ask(source,"textDocument/signatureHelp","7);",0);
+    assert!(help["signatures"][0]["label"].as_str().unwrap().contains("value"),"{help}");
+    assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),1,"{help}");
+    let definition=ask(source,"textDocument/definition","action;",0);
+    assert_eq!(definition["range"]["start"],json!(at(source,"action=",0)),"{definition}");
+}
+
+#[test]
 fn captured_deferred_generic_alias_help_preserves_default_and_rest() {
     let source="function make(start:int){let calls=start;function select<T>(value:T,index:int=0,...extra:T[]):T{calls+=1;return value;}return select;}function main(){const action=make(0);const one=action(7,undefined,8);const text=action('x',0,'y');}";
     tsrust_compiler::check(source).unwrap();

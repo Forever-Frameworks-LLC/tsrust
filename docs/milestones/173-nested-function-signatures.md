@@ -267,3 +267,12 @@ Project hover and completion display visible imported aliases while preserving
 labels, literal defaults and generic placeholders. Applied and private nominal
 controls pass; conditional/optional contexts and actual callable adapters remain
 open. No gate173 or feature-family acceptance is claimed.
+
+## Existing generic environment adapters
+
+Explicit concrete contracts, array transform callbacks and typed record/array
+storage now adapt an existing generic value through a checked wrapper. Ownership,
+exclusive borrowing, consuming reuse and exact O0/O3 disposal controls pass. The
+original environment and state remain intact. Other callback and nullable contexts,
+default/rest/pattern audits and adapter-specific benchmark support remain pending.
+This source checkpoint does not accept gate173.

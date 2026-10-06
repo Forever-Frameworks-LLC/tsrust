@@ -351,3 +351,8 @@ observe exact shared/independent factory state. Native tests remain red at the
 explicit compatibility guard and missing replay-body boundary. Continue with
 docs/generic-value-adapters-plan.md; do not reconstruct a declaration to replace
 the already existing runtime environment.
+
+An initial implementation now passes those three witnesses through real checked
+wrappers retaining the existing environment. Ownership and native disposal controls
+also pass. See generic-value-adapters-plan.md for the exact implemented boundaries
+and remaining callback/context/benchmark work; gate173 remains open.

@@ -80,3 +80,26 @@ hooks. Run representative untimed native/Node-after-tsc checks. Run all eight de
 canaries after dispatch changes and the whole editor crate before acceptance.
 Preserve original red and repaired evidence in SQLite with byte-exact readback.
 Keep full gate173 open until its complete plan and context audit are fulfilled.
+
+## Initial implementation checkpoint
+
+generic_value_adapters.rs now solves concrete source contracts and builds normal
+checked wrappers around an existing generic value binding. A private lexical
+alias prevents source parameter names from shadowing that binding. Closure capture
+projection preserves lexical aliases as well as binding declaration names.
+Synthetic owned wrappers receive temporary escape classification during checking;
+borrowed wrappers retain existing loans. The source compatibility guard remains
+for contexts that have not received a real adapter.
+
+Array transform callbacks obtain source parameter hints from the supplied element,
+position and receiver tuple. Their checked adapter is consumed by callback analysis
+once, without rebuilding its environment or rechecking after the private lexical
+alias is removed. Reduction, search and other callback paths still need integration.
+
+The three original native witnesses now pass. Transfer, exclusive borrow, consuming
+reuse and incompatible type/access controls pass. Three retained owners drop
+exactly once at O0/O3 across successful and caught-failure paths. All eight depth
+canaries and whole editor checks pass, including concrete parameter help and alias
+navigation. Adapter-specific matched benchmark support and the broader default,
+rest, pattern, nullable and other callback audit remain pending. This is a source
+implementation checkpoint, not gate173 or full adapter acceptance.

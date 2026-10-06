@@ -364,3 +364,11 @@ and completion, including values imported from another module or returned from
 a captured factory. Parameter help at a checked call shows concrete argument
 types and ownership access. For example, an identity call with a string reports
 `value: Owned<string>` because returning that value transfers its ownership.
+
+An existing generic function value can also be assigned to a concrete callable
+annotation. A `Mutable<Function<...>>` view borrows its environment until the view
+leaves scope. A default owned `Function<...>` value transfers that environment;
+the original value then becomes unavailable. Adapters preserve captured state
+rather than constructing another factory instance. The executable examples in
+crates/tsrust-compiler/tests/fixtures/generic-value-adapters cover concrete contracts, map callbacks and
+record/array storage. Some other callback and nullable contexts remain unsupported.
