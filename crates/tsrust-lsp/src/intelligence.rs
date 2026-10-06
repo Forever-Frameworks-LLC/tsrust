@@ -340,6 +340,26 @@ impl SourceIndex {
             self.apply_local_function_result(span, &fact.name, fact.result);
         }
         let facts = analysis.checked_type_facts();
+        for &(mut span, mut declaration) in &facts.generic_values {
+            if facts.generic_values.iter().any(|(other_span, other_declaration)| *other_span == span && *other_declaration != declaration) { continue; }
+            let remap = |span: &mut Span| {
+                if let Some((start, added, original_end)) = inserted {
+                    if span.end <= start { return true; }
+                    if span.start >= start + added && span.end <= original_end + added {
+                        span.start -= added; span.end -= added;
+                    } else { return false; }
+                }
+                true
+            };
+            if !remap(&mut span) || !remap(&mut declaration) { continue; }
+            let Some(source) = self.symbols.iter().find(|symbol| symbol.span == declaration && symbol.kind == 12).cloned() else { continue; };
+            for symbol in self.symbols.iter_mut().filter(|symbol| symbol.span == span) {
+                symbol.signature = source.signature.replacen(&format!("function {}", source.name), &format!("function {}", symbol.name), 1);
+                symbol.kind = 12;
+                symbol.parameters = source.parameters.clone();
+                symbol.docs = source.docs.clone();
+            }
+        }
         for (owner,name,original_span,ty) in &facts.rest_record_fields {
             let mut span=*original_span;
             if let Some((start,added,original_end))=inserted {
@@ -3321,6 +3341,7 @@ impl SourceIndex {
                     callable_parameters(callable_type)
                 };
                 if callable.is_none()
+                    && self.checked_generic_signature(callee).is_none()
                     && !s.signature.starts_with("function ")
                     && (s.kind != 12 || !s.signature.contains(" = "))
                 {

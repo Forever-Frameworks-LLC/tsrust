@@ -215,6 +215,7 @@ pub struct CheckedProgram {
     pub(crate) callable_shapes: crate::callable_contracts::Contracts,
     pub(crate) function_specializations: HashMap<usize,usize>,
     pub(crate) deferred_generic_values: HashSet<usize>,
+    pub(crate) deferred_generic_sources: HashMap<usize, Token>,
     pub generic_declarations: HashMap<usize, Token>,
     pub generic_parameter_types: HashMap<usize, Vec<Type>>,
     pub records: Vec<Record>,
@@ -3035,6 +3036,7 @@ impl Analyzer {
                 })
                 .collect(),
             deferred_generic_values: self.deferred_generic_values.keys().copied().collect(),
+            deferred_generic_sources: self.deferred_generic_values.iter().map(|(origin, source)| (*origin, self.generic_functions.template(&source.declaration).expect("deferred generic source template").name.clone())).collect(),
             generic_declarations: self
                 .program
                 .functions

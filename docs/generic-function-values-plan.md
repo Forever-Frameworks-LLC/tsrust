@@ -289,3 +289,18 @@ generic_function_results workload is appended at manifest end with an independen
 six-value oracle, complete pair/guards/registration/ABI hooks and untimed verification
 support. Full generic alias help, callback/storage adaptation and the wider gate173
 audit remain open. No completed gate or family measurement is claimed.
+
+## Local generic alias editor contracts
+
+Checked deferred origins now retain the original declaration token. Checked value
+bindings expose that identity independently of their empty native prototype.
+Local hover and completion reuse the original generic source signature and
+documentation. Concrete invocation parameter help uses the selected checked
+method, including default omission and rest contracts. Conflicting declarations
+at one source span are excluded rather than selecting an arbitrary specialization.
+
+Focused editor witnesses cover capture-free aliases, captured factory results,
+default/rest parameters, generic hover and completion, and int/string invocation
+contracts. Cross-module alias metadata, explicit access presentation, unused
+aliases and richer documentation controls still need the wider editor audit.
+Callback/storage adaptation and full gate173 acceptance remain open.

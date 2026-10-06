@@ -66,6 +66,8 @@ pub struct GenericParameterInfo {
 /// Checked editor facts collected in one iterative walk, without reanalysis.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct CheckedTypeFacts {
+    /// Generic value bindings retain their original declaration identity.
+    pub generic_values: Vec<(Span, Span)>,
     pub(crate) identities: CheckedTypeIdentities,
     /// Initialized body types at exact checked parameter declaration spans.
     pub parameter_types: Vec<ProjectionInfo>,
@@ -178,6 +180,17 @@ impl Analysis {
                 }
             }
         }
+        let mut generic_values = Vec::new();
+        for function in program.functions.iter().chain(program.closures.iter().flat_map(|closure| std::iter::once(&closure.function).chain(closure.methods.iter().map(|method| &method.function)))) {
+            for binding in &function.bindings {
+                if let Type::Closure(origin) = binding.ty
+                    && let Some(declaration) = program.deferred_generic_sources.get(&origin)
+                    && let Some(span) = binding.declaration_span {
+                    let fact = (span, declaration.span);
+                    if !generic_values.contains(&fact) { generic_values.push(fact); }
+                }
+            }
+        }
         let mut views = BTreeMap::<(usize, usize), Vec<Type>>::new();
         let mut methods = BTreeMap::<(usize, usize), Vec<Type>>::new();
         // Types of destructured names. The synthesized position expression of a
@@ -242,8 +255,15 @@ impl Analysis {
                         }
                         pending.push(Node::Expression(value));
                     }
-                    StmtKind::Let { value, .. }
-                    | StmtKind::Expr(value)
+                    StmtKind::Let { name, value, .. } => {
+                        if let Some(Type::Closure(origin)) = value.ty
+                            && let Some(declaration) = program.deferred_generic_sources.get(&origin) {
+                            let fact = (name.span, declaration.span);
+                            if !generic_values.contains(&fact) { generic_values.push(fact); }
+                        }
+                        pending.push(Node::Expression(value));
+                    }
+                    StmtKind::Expr(value)
                     | StmtKind::Return(Some(value)) => pending.push(Node::Expression(value)),
                     StmtKind::Assign { target, value, .. } => {
                         pending.push(Node::Expression(value));
@@ -362,6 +382,10 @@ impl Analysis {
                         if !types.contains(&ty) {
                             types.push(ty);
                         }
+                    }
+                    if let Some(fact) = deferred_call_fact(program, expression, &mut generic_names) {
+                        let variants = generic_calls.entry((expression.span.start, expression.span.end)).or_default();
+                        if !variants.contains(&fact) { variants.push(fact); }
                     }
                     if let Some(CallTarget::Function(id) | CallTarget::ForwardFunction(id)) =
                         expression.target
@@ -612,6 +636,7 @@ impl Analysis {
             }
         }
         CheckedTypeFacts {
+            generic_values,
             rest_record_fields,
             identities,
             parameter_types: parameter_results,
@@ -791,4 +816,27 @@ fn stored_family_metadata_uses_checked_owned_signature_and_source_names() {
         type_name(program, Type::StoredCallable(99), &mut HashMap::new()),
         None
     );
+}
+
+// Deferred environments have no prototype parameter contract. Only a checked
+// concrete method may supply invocation facts.
+fn deferred_call_fact(program: &CheckedProgram, expression: &Expr, names: &mut HashMap<Type, Option<String>>) -> Option<GenericCallInfo> {
+    let CallTarget::ClosureMethod(method) = expression.target? else { return None; };
+    let ExprKind::Call(callee, _) = &expression.kind else { return None; };
+    let Type::Closure(origin) = callee.ty? else { return None; };
+    let declaration = program.deferred_generic_sources.get(&origin)?;
+    let method = program.closures[origin].methods.get(method)?;
+    let bindings = method.parameters.iter().map(|id| &method.function.bindings[*id]).collect::<Vec<_>>();
+    Some(GenericCallInfo {
+        span: expression.span, callee_span: callee.span, declaration_span: declaration.span,
+        parameter_types: bindings.iter().map(|binding| binding.input_ty.unwrap_or(binding.ty)).collect(),
+        body_parameter_types: bindings.iter().map(|binding| binding.ty).collect(),
+        result_type: method.function.result,
+        parameters: bindings.iter().map(|binding| GenericParameterInfo {
+            name: binding.name.clone(), ty: type_name(program, binding.input_ty.unwrap_or(binding.ty), names),
+            body_ty: type_name(program, binding.ty, names), omission: binding.omission,
+            rest: binding.rest, access: binding.mode,
+        }).collect(),
+        result: type_name(program, method.function.result, names)?,
+    })
 }

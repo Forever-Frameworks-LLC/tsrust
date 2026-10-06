@@ -7688,7 +7688,7 @@ fn deferred_generic_alias_hover_preserves_source_type_relation() {
     tsrust_compiler::check(source).unwrap();
     let hover=ask(source,"textDocument/hover","action=",0);
     let value=hover["contents"]["value"].as_str().expect("generic alias hover");
-    assert!(value.contains("<T>") && value.contains("value: T"),"{hover}");
+    assert!(value.contains("<T>") && value.replace(char::is_whitespace, "").contains("value:T"),"{hover}");
     assert!(!value.contains("void"),"{hover}");
 }
 
@@ -7702,4 +7702,37 @@ fn deferred_generic_alias_signature_help_keeps_concrete_call_contract() {
         assert!(label.contains("value") && label.contains(ty),"{help}");
         assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),1,"{help}");
     }
+}
+
+#[test]
+fn deferred_generic_alias_completion_retains_generic_contract() {
+    let source="function identity<T>(value:T):T{return value;}function main(){const action=identity;const one=action(7);}";
+    let completion=ask(source,"textDocument/completion","action(7)",0);
+    let item=completion.as_array().unwrap().iter().find(|item|item["label"]=="action").expect("alias completion");
+    assert!(item["detail"].as_str().unwrap().contains("<T>"),"{item}");
+}
+
+#[test]
+fn unused_deferred_generic_alias_keeps_source_documentation() {
+    let source="/** Return the supplied value unchanged. */\nfunction identity<T>(value:T):T{return value;}function main(){const action=identity;}";
+    tsrust_compiler::check(source).unwrap();
+    let hover=ask(source,"textDocument/hover","action=",0);
+    let value=hover["contents"]["value"].as_str().unwrap();
+    assert!(value.contains("<T>") && value.contains("Return the supplied value unchanged."),"{hover}");
+    let completion=ask(source,"textDocument/completion","action=",0);
+    let item=completion.as_array().unwrap().iter().find(|item|item["label"]=="action").expect("generic alias completion");
+    assert!(item["documentation"]["value"].as_str().unwrap().contains("Return the supplied value unchanged."),"{item}");
+}
+
+#[test]
+fn captured_deferred_generic_alias_help_preserves_default_and_rest() {
+    let source="function make(start:int){let calls=start;function select<T>(value:T,index:int=0,...extra:T[]):T{calls+=1;return value;}return select;}function main(){const action=make(0);const one=action(7,undefined,8);const text=action('x',0,'y');}";
+    tsrust_compiler::check(source).unwrap();
+    for (needle,ty) in [("8);","int"),("'y');","string")] {
+        let help=ask(source,"textDocument/signatureHelp",needle,0);
+        let label=help["signatures"][0]["label"].as_str().expect("captured generic signature");
+        assert!(label.contains(ty) && label.contains("index?") && label.contains("...extra"),"{help}");
+    }
+    let hover=ask(source,"textDocument/hover","action=",0);
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("<T>"),"{hover}");
 }
