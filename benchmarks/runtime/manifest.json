@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "gate": 163,
+  "gate": 164,
   "seed": 7,
   "warmups": 8,
   "samples": 31,
@@ -19358,6 +19358,34 @@
       "specification": "Declare union, array, primitive and tuple aliases; build an alias-typed union array and tuple, classify elements through an alias-typed parameter and retain five cells.",
       "sourceSha256": "486b7a8fca81ed35bb5369d85f363fe00d6e0fe04464f5dec25f8fa7f83270be",
       "counterpartSha256": "d171a28d33c27e03d0207df396144405d8ca9ebdd4b393e7fd445e7b961f4216"
+    },
+    {
+      "id": "string_indexing",
+      "family": "string-indexing",
+      "source": "workloads/string_indexing.tsr",
+      "counterpart": "workloads/string_indexing.ts",
+      "result": "string[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One complete string indexing scenario",
+      "inputText": "dynamic \u00e9\ud83d\ude42 text",
+      "category": "strings",
+      "implementationGate": 164,
+      "measurementStatus": "pending-language-milestone",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": true,
+      "measured": false,
+      "notes": "Gate 164: text[position] reads, a concatenation of two positions and a caught out-of-range position. The TypeScript counterpart states the range check explicitly because the platform returns undefined. Five observed cells per scenario. Verified untimed; unmeasured, language milestone pending.",
+      "specification": "Read characters of a ten-letter string by position, join two positions, catch an out-of-range position and retain five cells.",
+      "sourceSha256": "2272fc5b3a5b8a228d697238d550bc447decfa7bbcc916a9c164654e7dd9280e",
+      "counterpartSha256": "0d0f9d553040c3e3814027b56ee1d16deb606454d5dbf9b0ae0db777eb37c6d9"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

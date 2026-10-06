@@ -6271,5 +6271,18 @@
     ],
     "measured": false,
     "note": "Ordered discarded prefixes and final values, source ownership/provenance, guard outcomes and native temporary disposal; existing assignment/destructuring for headers preserved. Compiler 22, editor 1, harness 388 and matched five-case verification pass untimed. Language milestone measurements pending. Gate162 completes named receiver guards and selected sentinel/typeof operands with RHS mutation invalidation and indexed parent loans; matched cases verified untimed."
+  },
+  "String.[index]": {
+    "implementation": "native variant",
+    "comparison": "paired",
+    "workloads": [
+      "string_indexing"
+    ],
+    "evidence": [
+      "./milestones/164-string-indexing.md",
+      "./string-indexing.md"
+    ],
+    "measured": false,
+    "note": "text[position] gives the character at a Unicode character position as a new string. A missing position is a catchable range error, like an array index; JavaScript gives undefined. Writes through a position and the optional form are rejected. One matched scenario verified untimed."
   }
 }

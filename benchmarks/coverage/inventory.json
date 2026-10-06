@@ -22998,9 +22998,17 @@
       "declarationSources": [
         "lib.es5.d.ts"
       ],
-      "implementation": "pending",
-      "comparison": "missing",
-      "evidence": []
+      "implementation": "native variant",
+      "comparison": "paired",
+      "evidence": [
+        "./milestones/164-string-indexing.md",
+        "./string-indexing.md"
+      ],
+      "workloads": [
+        "string_indexing"
+      ],
+      "measured": false,
+      "note": "text[position] gives the character at a Unicode character position as a new string. A missing position is a catchable range error, like an array index; JavaScript gives undefined. Writes through a position and the optional form are rejected. One matched scenario verified untimed."
     },
     {
       "id": "String.[Symbol.iterator]",

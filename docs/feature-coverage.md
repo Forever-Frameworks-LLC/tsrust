@@ -43,7 +43,7 @@ Full compiler regression and accumulated performance comparisons run at complete
 | Regular expressions | 53 | 0 | 0 | 53 |
 | Resource management | 22 | 0 | 0 | 22 |
 | Serialization | 3 | 0 | 0 | 3 |
-| Strings | 77 | 66 | 0 | 11 |
+| Strings | 77 | 67 | 0 | 10 |
 | Symbols | 25 | 0 | 0 | 25 |
 | TypeScript types | 53 | 8 | 2 | 43 |
 
@@ -1975,7 +1975,7 @@ Full compiler regression and accumulated performance comparisons run at complete
 
 | Operation | Implementation | Comparison | Scope / evidence |
 | --- | --- | --- | --- |
-| `String.[index]` | pending | missing |  |
+| `String.[index]` | native variant | paired | text[position] gives the character at a Unicode character position as a new string. A missing position is a catchable range error, like an array index; JavaScript gives undefined. Writes through a position and the optional form are rejected. One matched scenario verified untimed.; [evidence](./milestones/164-string-indexing.md) · [evidence](./string-indexing.md) · [string_indexing](../benchmarks/runtime/workloads/string_indexing.tsr) |
 | `String.[Symbol.iterator]` | pending | missing |  |
 | `string.addAssign` | implemented | paired group | Matching String/String += reads an available mutable target before RHS evaluation, borrows both operands and commits a fresh independent owned result. Self-append, source order, existing loans and normal/unwind disposal pass. Separate ASCII/Unicode comparisons time cloning/repetition, target initialization, actual append and complete string[] retention. Native ownership costs differ from possible JavaScript immutable sharing; no allocation-parity claim.; [evidence](./milestones/63-compound-assignment.md) · [compound_string_add_ascii](../benchmarks/runtime/workloads/compound_string_add_ascii.tsr) · [compound_string_add_unicode](../benchmarks/runtime/workloads/compound_string_add_unicode.tsr) |
 | `String.anchor` | implemented | paired group | Legacy HTML wrapper with exact tag, raw UTF8 receiver and quote-only attributes where applicable. Strict signatures and independently owned output; complete IntelliSense/examples and focused O0/O3 native behavior/ownership/disposal accepted. Matched source comparison accepted; Checkpoint81 accepts matched execution comparisons and fully disposed allocation profiles.; [evidence](./milestones/81-string-html-wrappers.md) · [string_html_anchor](../benchmarks/runtime/workloads/string_html_anchor.tsr) |

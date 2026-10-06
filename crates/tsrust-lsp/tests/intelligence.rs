@@ -655,9 +655,21 @@ fn callback_parameter_signatures_and_folding_survive_incomplete_bodies() {
             "file:///test.tsr",
         )
         .unwrap();
+    // A comparison is a boolean: number members of its first literal must
+    // not be offered.
     assert!(
-        items.as_array().unwrap().is_empty(),
-        "must not infer compound expression from its first literal"
+        items.as_array().unwrap().iter().all(|item| !matches!(item["label"].as_str(), Some("toFixed" | "toExponential" | "toPrecision"))),
+        "must not infer compound expression from its first literal: {items}"
+    );
+    let arithmetic = "function main() { const value = 1 + 2 > 2 + 1; value.";
+    let mut position = at(arithmetic, "value.", 0);
+    position.character += 6;
+    let items = SourceIndex::new(arithmetic)
+        .request("textDocument/completion", &json!({"position":position}), "file:///test.tsr")
+        .unwrap();
+    assert!(
+        items.as_array().unwrap().iter().all(|item| !matches!(item["label"].as_str(), Some("toFixed" | "toExponential" | "toPrecision"))),
+        "{items}"
     );
 }
 
