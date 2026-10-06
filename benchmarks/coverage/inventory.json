@@ -20498,11 +20498,15 @@
       "kind": "language",
       "declarationSources": [],
       "implementation": "implemented",
-      "comparison": "missing",
+      "comparison": "paired group",
       "evidence": [
-        "./milestones/39-native-number.md"
+        "./milestones/39-native-number.md",
+        "./milestones/168-scalar-unary-plus.md"
       ],
-      "note": "Standard Rust f64 accepted by 509 compiler groups and required checks; IEEE boundary behavior is covered by native correctness tests."
+      "note": "Standard Rust f64 accepted by 509 compiler groups and required checks; IEEE boundary behavior is covered by native correctness tests. Gate168 accepts scalar unary conversion and scalar unions through Number, preserving existing numeric domains and borrowed once-only sources. The matched seven-observation scenario is verified untimed; no new measurement.",
+      "workloads": [
+        "scalar_unary_plus"
+      ]
     },
     {
       "id": "Number.valueOf",

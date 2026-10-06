@@ -297,7 +297,7 @@ fn number_conversion_evaluates_once_borrows_string_and_checks_arity_and_types() 
         ("function main(){Number(console.log(1));}", "type"),
         (
             "function main(){const action=():int=>{return 1;};Number(action);}",
-            "unsupported",
+            "type",
         ),
         ("function Number(){}function main(){}", "duplicate"),
         ("function main(){const Number=1;}", "duplicate"),

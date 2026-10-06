@@ -390,6 +390,7 @@ fn every_catalog_entry_has_a_current_compiler_witness() {
                     "void" => "void 0",
                     "String" => "String(null)",
                     "Boolean" => "Boolean(undefined)",
+                    "Number" => "Number(null)",
                     "Array" => "Array.isArray([])",
                     "Object" => "Object.is(1, 1)",
                     "parseInt" => "parseInt(\"4\", 10)",
@@ -2655,8 +2656,8 @@ fn nullable_union_help_and_observations_preserve_whole_value_types() {
     assert!(tsrust_compiler::check(rejected).is_err());
     assert!(ask(rejected, "textDocument/signatureHelp", "3);", 0).is_null());
 
-    let unsupported_conversion = "function main(){const value:number|null=1.0;Number(value);}";
-    assert_eq!(tsrust_compiler::check(unsupported_conversion).err().unwrap().code, "unsupported");
+    let supported_conversion = "function main(){const value:number|null=1.0;Number(value);}";
+    tsrust_compiler::check(supported_conversion).unwrap();
     for source in [
         "function main(){const value:string|null=null;console.log(value);}",
         "type Box={value:string|null;};function main(){const value:Box={value:null};console.log(value);}",
@@ -2670,7 +2671,7 @@ fn nullable_union_help_and_observations_preserve_whole_value_types() {
         ask(number, "textDocument/hover", "Number", 0)["contents"]["value"]
             .as_str()
             .unwrap()
-            .contains("Nullable unions cannot be passed directly")
+            .contains("A scalar union converts its active alternative")
     );
     let catalog: Value = serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
     let mut examples = CatalogExampleSource::default();
@@ -7473,4 +7474,16 @@ fn scalar_string_concatenation_has_string_hover_and_members() {
         assert!(hover["contents"]["value"].as_str().unwrap().contains("string"), "{hover}");
     }
     assert!(!ask(source, "textDocument/hover", "trim()", 0).is_null());
+}
+
+#[test]
+fn scalar_unary_plus_and_number_union_have_number_hover() {
+    let source = "function main(){const text=\"7\";const parsed=+text;const flag=+true;const value:string|undefined=\"2\";const normalized=Number(value);console.log(parsed,flag,normalized,text);}";
+    assert!(tsrust_compiler::check(source).is_ok());
+    for token in ["parsed=", "flag=", "normalized="] {
+        let hover=ask(source,"textDocument/hover",token,0);
+        assert!(hover["contents"]["value"].as_str().unwrap().contains(": number"),"{token}: {hover}");
+    }
+    let hover=ask(source,"textDocument/hover","Number(value)",0);
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("scalar union"));
 }

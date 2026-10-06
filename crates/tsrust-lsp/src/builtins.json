@@ -2975,6 +2975,20 @@
     }
   ],
   "globals": [
+{
+  "name": "Number",
+  "signature": "Number(value?: int | number | boolean | string | null | undefined): number",
+  "parameters": [
+    "value?: int | number | boolean | string | null | undefined"
+  ],
+  "documentation": "Converts scalar data to a number. Omission returns 0; null returns 0, undefined returns NaN, true returns 1 and false returns 0. Strings are trimmed and parsed as a whole decimal or Infinity; empty text returns 0 and invalid text returns NaN. Signed zero is preserved. A scalar union converts its active alternative without narrowing or changing the source. Use it to normalize numeric input before arithmetic.\n\n@param value - Optional primitive scalar: int, number, boolean, string, null, undefined or scalar union. At most one argument; arrays, records and functions are type errors. Enums convert their underlying scalar value.\n\n```tsrust\nconst value:string|undefined=\"12.5\";console.log(Number(value),Number(true),Number(null),Number.isNaN(Number(undefined))); // 12.5 1 0 true\n```\n\nReturns a number using 64-bit floating-point precision; converting large int values may round. Radix-prefixed text is not supported. Unary + provides the same scalar conversion; an existing int expression keeps its int type under unary +. No boxed objects or custom valueOf conversion.\n\nOwnership: The argument is borrowed, remains reusable and evaluates once; the result is a copied scalar.",
+  "examples": [
+    {
+      "source": "const value:string|undefined=\"12.5\";console.log(Number(value),Number(true),Number(null),Number.isNaN(Number(undefined)));",
+      "output": "12.5 1 0 true\n"
+    }
+  ]
+},
   {
     "name": "null",
     "signature": "null: null",

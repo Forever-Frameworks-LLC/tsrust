@@ -28,3 +28,7 @@ explicit String conversion and concat instead of the operators under test. Finge
 source guards, registration checks and execution/profile/report hooks are ready.
 All five native and Node cases pass untimed. The verification record is imported
 into benchmarks/records.sqlite, checked by reading it back, and its loose copy removed. No full regression, timing or allocation-parity claim is made.
+
+The named detailed logs are retained as gate-log records in SQLite; the concise
+current summary is target/editor/gates-167-168.log. Rebuildable example outputs
+and benchmark drivers were pruned after verification.

@@ -9,6 +9,34 @@
   "compileSamples": 3,
   "workloads": [
     {
+      "id": "scalar_unary_plus",
+      "family": "scalar-unary-plus",
+      "source": "workloads/scalar_unary_plus.tsr",
+      "counterpart": "workloads/scalar_unary_plus.ts",
+      "result": "string[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One complete scalar unary conversion scenario",
+      "inputText": "invalid",
+      "category": "numbers",
+      "implementationGate": 168,
+      "measurementStatus": "pending-language-milestone",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": true,
+      "measured": false,
+      "notes": "Seven retained conversion observations. Verified untimed; no timing.",
+      "specification": "Convert decimal text, booleans, null, undefined and scalar unions with unary plus and Number; preserve seven observations.",
+      "sourceSha256": "a9cf5158a398d370e5164e6f49fe367b9d0fa0780baabbf2161124e593f2fe09",
+      "counterpartSha256": "ca75c7d00e6f3c3f82c12b645d09b48517e5a2aaa434cb3456bcd01c962392d4"
+    },
+    {
       "id": "string_concatenation",
       "family": "string-concatenation",
       "source": "workloads/string_concatenation.tsr",

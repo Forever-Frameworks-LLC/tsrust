@@ -1,3 +1,5 @@
+**Gate 168 accepted:** [Scalar unary plus](./milestones/168-scalar-unary-plus.md): scalar conversion and Number scalar unions, enum payloads, borrowing and editor result types; catalog constructor documentation and direct type diagnostics. Compiler 72, editor 266, harness/report 17 and five matched cases pass untimed. Five consumers refreshed; SQLite evidence retained. No timing.
+
 **Gate 167 accepted:** [Scalar string concatenation](./milestones/167-string-concatenation.md): scalar operands and scalar unions in string addition and compound addition, preserving source ordering and string editor results. Compiler 65, editor 265, registration 1 and five matched cases pass untimed. Five consumers refreshed; verification retained in SQLite. No timing.
 
 **Gate 166 accepted:** [Interfaces](./milestones/166-interfaces.md): `interface` record types with `extends` over record types in any order and across modules, optional fields and type parameters; editor symbols with inherited fields. Compiler 4 focused plus 310 affected, editor 264, grammar 1, harness 393, five matched cases verified untimed. No timing.

@@ -1,4 +1,8 @@
 import { strictEqual } from "std:testing";
+enum Numeric { Fraction = 1.5 }
+enum Label { Decimal = "2.5" }
+function enumNumber(value: Numeric | null): number { return Number(value); }
+function enumText(value: Label | undefined): number { return +value; }
 function once(count: int[]): string { count[0] += 1; return " 12.5 "; }
 function convert(value: string | int | number | boolean | null | undefined): number { return +value; }
 function main() {
@@ -23,4 +27,8 @@ function main() {
     strictEqual(convert(null), 0.0);
     strictEqual(Number.isNaN(convert(undefined)), true);
     strictEqual(Number("2"), 2.0);
+    strictEqual(enumNumber(Numeric.Fraction), 1.5);
+    strictEqual(enumNumber(null), 0.0);
+    strictEqual(enumText(Label.Decimal), 2.5);
+    strictEqual(Number.isNaN(enumText(undefined)), true);
 }

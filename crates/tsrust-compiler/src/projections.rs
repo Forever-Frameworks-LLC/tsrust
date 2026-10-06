@@ -276,6 +276,7 @@ impl Analysis {
                         Some(
                             CallTarget::SetMethod(_) | CallTarget::MapMethod(_)
                                 | CallTarget::ArrayEntries(_)
+                                | CallTarget::Number
                                 | CallTarget::RecordSpread(_)
                                 | CallTarget::ObjectHasOwn
                                 | CallTarget::ObjectKeys

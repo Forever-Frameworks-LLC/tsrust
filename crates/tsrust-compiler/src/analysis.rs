@@ -6654,6 +6654,15 @@ impl Analyzer {
         Ok(result)
     }
 
+    #[inline(never)]
+    fn lower_scalar_unary_plus(&self, context: &Context, expr: &mut Expr) {
+        let ExprKind::Unary { op: UnaryOp::Positive, value, .. } = &mut expr.kind else { return; };
+        if self.expression_type_hint(context, value).is_none_or(|ty| matches!(ty, Type::Int | Type::Number)) { return; }
+        let span = expr.span;
+        let operand = std::mem::replace(value, Box::new(Expr::new(ExprKind::Undefined, span)));
+        expr.kind = ExprKind::Call(Box::new(Expr::new(ExprKind::Name("Number".to_owned()), span)), vec![*operand]);
+    }
+
     fn expression(
         &mut self,
         context: &mut Context,
@@ -6690,6 +6699,7 @@ impl Analyzer {
             && matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Name(name) if !context.names.contains_key(name) && self.function_names.contains_key(name) && self.generic_functions.template(name).is_none()))
             && self.expression_type_hint(context, expr) == expected
         { None } else { expected };
+        self.lower_scalar_unary_plus(context, expr);
         self.lower_tuple_expression(context, expr, expected)?;
         self.checked_expression(context, expr, mode, loans, expected)
     }
@@ -9089,7 +9099,9 @@ impl Analyzer {
                 if *op == UnaryOp::Void {
                     return Some(Type::Undefined);
                 }
-                if *op == UnaryOp::BitNot {
+                if *op == UnaryOp::Positive && self.expression_type_hint(context, value).is_some_and(|ty| !matches!(ty, Type::Int | Type::Number)) {
+                    Some(Type::Number)
+                } else if *op == UnaryOp::BitNot {
                     Some(self.bitwise_or_power_type(context, value, None, None))
                 } else if *op == UnaryOp::Not {
                     Some(Type::Boolean)
@@ -13805,30 +13817,16 @@ self.names_materialized_type(element.with_depth(0).ty())
                     ));
                 }
                 if let Some(argument) = args.first_mut() {
+                    let scalar = |ty| matches!(ty, Type::Int | Type::Number | Type::Boolean | Type::Null | Type::Undefined | Type::String | Type::Enum(_, _));
+                    let accepted = |ty: Type| ty.union().map(|id| self.unions.members(id).iter().copied().all(scalar)).unwrap_or_else(|| scalar(ty));
+                    if self.expression_type_hint(context, argument).is_some_and(|ty| !accepted(ty)) {
+                        return Err(Diagnostic::new("type", "Number() and unary + accept only scalar data, including scalar unions; arrays, records and functions need an explicit scalar value.", argument.span));
+                    }
                     let expected = number_literal_context(argument).then_some(Type::Number);
                     let actual = self.expression(context, argument, Mode::Read, loans, expected)?;
-                    if matches!(actual, Type::Union(_) | Type::BorrowedUnion(_)) {
-                        return Err(Diagnostic::new(
-                            "unsupported",
-                            "Number() conversion of nullable unions is not yet supported.",
-                            argument.span,
-                        ));
-                    }
-                    if !matches!(
-                        actual,
-                        Type::Int
-                            | Type::Number
-                            | Type::Boolean
-                            | Type::Null
-                            | Type::Undefined
-                            | Type::String
-                            | Type::Enum(_, _)
-                    ) {
-                        return Err(Diagnostic::new(
-                            "type",
-                            "Number() accepts int, number, boolean, or string.",
-                            argument.span,
-                        ));
+                    let accepted = actual.union().map(|id| self.unions.members(id).iter().copied().all(scalar)).unwrap_or_else(|| scalar(actual));
+                    if !accepted {
+                        return Err(Diagnostic::new("type", "Number() and unary + accept only scalar data, including scalar unions; arrays, records and functions need an explicit scalar value.", argument.span));
                     }
                 }
                 expr.target = Some(CallTarget::Number);

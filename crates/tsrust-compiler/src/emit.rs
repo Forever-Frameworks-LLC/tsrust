@@ -865,6 +865,17 @@ impl Emitter<'_> {
             .enumerate()
             .map(|(index, member)| {
                 let result = match target {
+                    CallTarget::Number => match member {
+                        Type::Null => "0.0f64".into(),
+                        Type::Undefined => "f64::NAN".into(),
+                        Type::Int => "*payload as f64".into(),
+                        Type::Number => "*payload".into(),
+                        Type::Boolean => "if *payload {1.0f64} else {0.0f64}".into(),
+                        Type::String => "{let text = payload.trim(); if text.is_empty() {0.0f64} else {text.parse::<f64>().unwrap_or(f64::NAN)}}".into(),
+                        Type::Enum(_, crate::syntax::EnumKind::Number) => "payload.tsr_value()".into(),
+                        Type::Enum(_, crate::syntax::EnumKind::String) => "{let text = payload.tsr_value().trim(); if text.is_empty() {0.0f64} else {text.parse::<f64>().unwrap_or(f64::NAN)}}".into(),
+                        _ => unreachable!("checked scalar Number union"),
+                    },
                     CallTarget::ArrayIsArray => (matches!(member, Type::Array(_)) || matches!(member,Type::Record(id) if self.program.records[*id].is_tuple())).to_string(),
                     CallTarget::BooleanConversion => match member {
                         Type::Null | Type::Undefined => "false".into(),
@@ -7957,6 +7968,7 @@ impl Emitter<'_> {
                 CallTarget::Number => match args.first() {
                     None => "0.0f64".into(),
                     Some(argument) => match argument.ty.expect("checked Number argument") {
+                        Type::Union(union) | Type::BorrowedUnion(union) => self.union_observation(union, &self.expr(fun, argument, Mode::Read), CallTarget::Number),
                         Type::Null => format!(
                             "{{ let _ = {}; 0.0f64 }}",
                             self.expr(fun, argument, Mode::Copy)

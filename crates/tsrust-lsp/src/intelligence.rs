@@ -2855,7 +2855,7 @@ impl SourceIndex {
         {
             // A global that is also a namespace lists what `Name.` offers.
             let mut entry = entry;
-            if matches!(self.text(token), "String" | "Object" | "Array" | "Map") {
+            if matches!(self.text(token), "String" | "Object" | "Array" | "Map" | "Number") {
                 let members = builtins_for(self.text(token))
                     .into_iter()
                     .filter_map(|member| member["name"].as_str().map(str::to_owned))
@@ -2881,11 +2881,6 @@ impl SourceIndex {
                 "namespace Math",
                 "Provides mathematical number functions and read-only constants. Angles use radians; arguments and results use native f64 number values. Convert int variables explicitly with Number(value). Transcendental results may vary slightly by platform.\n\n```tsrust\nconsole.log(Math.sqrt(9.0)); // prints 3\n```",
                 vec![],
-            ),
-            "Number" => (
-                "Number(value?: int | number | boolean | string): number",
-                "Converts a primitive to a native f64 number; omission returns zero. Booleans become 0/1; integers can lose precision outside the safe-integer range. null becomes zero and undefined becomes NaN. String conversion requires a whole numeric string, unlike Number.parseFloat prefix parsing. Invalid text produces NaN. Also provides parsing/classification methods and read-only numeric constants. Does not construct boxed objects. Nullable unions cannot be passed directly to Number(); no payload is implicitly selected.\n\n@param value - Optional primitive to convert, default zero; owned strings are borrowed.\n\n```tsrust\nconsole.log(Number(true)); // prints 1\n```",
-                vec!["value?: int | number | boolean | string"],
             ),
             "clone" => (
                 "clone(value: T): T",
