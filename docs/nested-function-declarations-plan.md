@@ -82,6 +82,37 @@ and emission. Each must either traverse the local body in its correct function
 context or consume the normalized declaration representation. Do not accidentally
 count a nested return/break as control flow of its enclosing function.
 
+## Statement-consumer inventory
+
+The initial source inventory finds 18 compiler files referencing StmtKind. These
+are integration obligations, not proof that every visitor has been updated:
+
+- syntax.rs owns parsing and registration-return validation. A declaration body
+  must create a new function boundary, not contribute returns to its enclosing body.
+- source_walk.rs owns iterative source annotation/expression traversal and body
+  extents. Visit declaration headers and bodies with their source identity intact.
+- project_link.rs rewrites module symbols and local scopes; local declarations
+  must survive qualification and imported type/callback resolution.
+- generic_functions.rs, generic_records.rs and generic_default_scope.rs specialize
+  signatures and resolve parameter initializer scopes. Nested declarations need
+  fresh parameter/type-parameter scope and stable specialization identity.
+- analysis.rs, callable_dispatch.rs, rest_calls.rs and fixed_storage.rs analyze
+  calls, captures and storage. Normalize static local declarations before ordinary
+  checking; retain declaration metadata and defer captures to their planned stages.
+- completion.rs, definite_assignment.rs, error_effects.rs and exception_state.rs
+  analyze completion, initialization and errors. Declaring a function does not run
+  its body or propagate its return/throw into the enclosing statement flow.
+- emit.rs and exception_contract_emit.rs emit ordinary and exceptional control
+  paths. Emit a declaration's function body independently from enclosing execution.
+- projections.rs and project_facts.rs expose checked editor facts and source spans.
+  Preserve lexical declaration identity, original names and local main semantics.
+
+The declaration header/body parser is now extracted into named_function_syntax.rs
+and called by top-level parsing. This is a preparatory module seam; it adds no nested
+syntax support and does not satisfy gate 170 acceptance. Its dedicated non-inlined
+helper shares generic/access/default/rest/pattern/result parsing for the forthcoming
+nested declaration path. No AST variant is introduced in this preparatory chunk.
+
 ## Milestone gates
 
 ### Gate 170: lexical declaration foundation and capture-free execution
@@ -148,8 +179,9 @@ but does not provide lexical declaration symbols or recursive capture groups.
 Red std:testing fixtures cover hoisting/recursion/shadowing/callbacks, borrowed and
 escaping captures, and generic/default/rest/deep declarations. Their independent
 Node runs pass. The compiler rejects the declarations before analysis; gate 170 has
-not been implemented or accepted. No shared compiler source changes accompany this
-planning checkpoint.
+not been implemented or accepted. The original planning checkpoint changes no compiler source. A subsequent
+preparatory chunk extracts shared named parsing and repairs ordinary call-stack
+retention; it does not implement nested declarations.
 
 One agent works in this tree. Preserve the three owner fixture edits. Use explicit
 Git paths and commits, one shared Cargo target with CARGO_INCREMENTAL=0, bounded

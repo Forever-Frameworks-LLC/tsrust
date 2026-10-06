@@ -13059,7 +13059,31 @@ self.names_materialized_type(element.with_depth(0).ty())
         Ok(())
     }
 
+    #[inline(never)]
     fn expression_call(
+        &mut self,
+        context: &mut Context,
+        expr: &mut Expr,
+        loans: &Loans,
+        expected: Option<Type>,
+    ) -> Result<Type, Diagnostic> {
+        // A direct nongeneric declaration needs no builtin or conditional state.
+        let declared = matches!(&expr.kind, ExprKind::Call(callee, args)
+            if matches!(&callee.kind, ExprKind::Name(name)
+                if self.function_names.contains_key(name)
+                    && self.generic_functions.template(name).is_none()
+                    && !context.names.contains_key(name)
+                    && !context.pending_names.contains(name)
+                    && !matches!(name.as_str(), "String" | "Boolean" | "Number" | "clone"))
+                && !args.iter().any(|argument| matches!(&argument.kind,
+                    ExprKind::Unary { op: UnaryOp::Spread, .. })));
+        if declared {
+            return self.declared_named_call(context, expr, loans);
+        }
+        self.expression_call_other(context, expr, loans, expected)
+    }
+
+    fn expression_call_other(
         &mut self,
         context: &mut Context,
         expr: &mut Expr,
@@ -13107,19 +13131,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         {
             return self.builtin_or_method_call(context, expr, loans, expected);
         }
-        if let ExprKind::Call(callee, args) = &mut expr.kind
-            && self
-                .flow_view(context, callee)
-                .is_some_and(|(_, _, payload)| {
-                    matches!(
-                        payload,
-                        Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_)
-                    )
-                })
-        {
-            let span = expr.span;
-            let (target, result) = self.conditional_call(context, callee, args, loans, span)?;
-            expr.target = Some(target);
+        if let Some(result) = self.conditional_value_call(context, expr, loans)? {
             return Ok(result);
         }
         // Recursive concat arguments must not retain the full builtin dispatch frame.
@@ -13137,6 +13149,32 @@ self.names_materialized_type(element.with_depth(0).ty())
         } else {
             self.builtin_or_method_call(context, expr, loans, expected)
         }
+    }
+
+    // Keep conditional-call target construction off ordinary recursive call frames.
+    #[inline(never)]
+    fn conditional_value_call(
+        &mut self,
+        context: &mut Context,
+        expr: &mut Expr,
+        loans: &Loans,
+    ) -> Result<Option<Type>, Diagnostic> {
+        if let ExprKind::Call(callee, args) = &mut expr.kind
+            && self
+                .flow_view(context, callee)
+                .is_some_and(|(_, _, payload)| {
+                    matches!(
+                        payload,
+                        Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_)
+                    )
+                })
+        {
+            let span = expr.span;
+            let (target, result) = self.conditional_call(context, callee, args, loans, span)?;
+            expr.target = Some(target);
+            return Ok(Some(result));
+        }
+        Ok(None)
     }
 
     fn concat_call(

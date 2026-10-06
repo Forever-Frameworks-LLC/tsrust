@@ -134,10 +134,10 @@ impl Analyzer {
         if matches!(&expr.kind,ExprKind::Call(_,args) if args.iter().any(|arg|matches!(arg.kind,ExprKind::Unary{op:UnaryOp::Spread,..}))) {
             return self.prepare_generic_spread(context,expr,expected);
         }
-        let ExprKind::Call(callee, args) = &mut expr.kind else {
+        let ExprKind::Call(callee, _) = &mut expr.kind else {
             return Ok(());
         };
-        let Some((name, callee_span)) = Self::generic_call_name(callee) else {
+        let Some((name, _)) = Self::generic_call_name(callee) else {
             return Ok(());
         };
         if context.names.contains_key(name)
@@ -146,6 +146,22 @@ impl Analyzer {
         {
             return Ok(());
         }
+        self.prepare_named_generic_call(context, expr, expected)
+    }
+
+    // Specialization state must not occupy the stack for nongeneric calls.
+    #[inline(never)]
+    fn prepare_named_generic_call(
+        &mut self,
+        context: &Context,
+        expr: &mut Expr,
+        expected: Option<Type>,
+    ) -> Result<(), Diagnostic> {
+        let ExprKind::Call(callee, args) = &mut expr.kind else {
+            unreachable!("generic call preparation");
+        };
+        let (name, callee_span) = Self::generic_call_name(callee)
+            .expect("generic call name checked by dispatch");
         let template=self.generic_functions.template(name).expect("generic template");
         if template.rest_parameter {
             let fixed=template.params.len()-1;

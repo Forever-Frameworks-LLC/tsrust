@@ -15,3 +15,20 @@ local generic/default/rest signatures. Pinned Node reference runs pass all three
 The focused compiler run is expected red at the existing statement syntax diagnostic.
 See the plan for exact compiler/editor/benchmark acceptance gates and dependency
 seams. No timing, consumer refresh or broad regression is part of this red checkpoint.
+
+A preparatory source chunk shares top-level named declaration parsing through the
+non-inlined named_function_syntax helper. Statement-consumer obligations are listed
+in the full plan. It does not yet add nested declaration syntax. A rest-call depth
+failure found during focused checking is repaired by separating generic and
+conditional preparation state from ordinary declared call frames, without changing
+worker-stack or source-depth limits. Feature acceptance remains pending.
+
+Preparatory checks pass: 137 affected compiler checks, including all eight depth
+canaries and generic/optional/rest contracts, and all 267 editor checks. The direct
+declared-call dispatch frame is now 288 bytes versus its former 4,672 bytes. Detailed
+failure, LLDB, compiled-frame and successful check logs are retained in SQLite under
+target/editor/nested-function-parser-* as gate-log records, verified by exact
+read-back. Five consumers are atomically refreshed and hash-verified. Generated
+example and scratch test executables are pruned; libraries remain cached and tests
+will relink. No timing or full compiler regression was performed. Nested declaration
+implementation and its matched benchmarks remain pending; gate 170 is not accepted.
