@@ -262,13 +262,13 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
             });
         } else if depth == 0 && token.kind == TokenKind::Name && token.text == "export" {
             if tokens[i + 1].kind != TokenKind::Name
-                || !matches!(tokens[i + 1].text.as_str(), "function" | "type" | "enum")
+                || !matches!(tokens[i + 1].text.as_str(), "function" | "type" | "enum" | "interface")
                 || tokens[i + 2].kind != TokenKind::Name
             {
                 return Err(error(
                     id,
                     "module-export",
-                    "Only export function, export type, and export enum declarations are supported.",
+                    "Only export function, export type, export interface, and export enum declarations are supported.",
                     token.span,
                 ));
             }
@@ -316,7 +316,7 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
         for pair in tokens.windows(2) {
             if depth == 0
                 && pair[0].kind == TokenKind::Name
-                && matches!(pair[0].text.as_str(), "function" | "type" | "enum")
+                && matches!(pair[0].text.as_str(), "function" | "type" | "enum" | "interface")
                 && pair[1].kind == TokenKind::Name
             {
                 declared.push(pair[1].clone());

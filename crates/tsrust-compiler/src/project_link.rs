@@ -163,6 +163,9 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId]) -> Result<Projec
     // Exported type aliases of each parsed module, with every type name
     // already in linked form. Modules are ordered dependencies first.
     let mut module_aliases: BTreeMap<SourceId, crate::type_aliases::Aliases> = BTreeMap::new();
+    // Fields of each module's plain record types, in linked form, for
+    // interfaces of importing modules that extend them.
+    let mut module_records: BTreeMap<SourceId, crate::type_aliases::ImportedRecords> = BTreeMap::new();
     for (module, id) in graph.order.iter().enumerate() {
         let source = &graph.modules[id];
         segments.push((id.clone(), offset, source.source.text.len()));
@@ -176,7 +179,16 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId]) -> Result<Projec
                 }
             }
         }
-        let parsed = crate::syntax::parse_module(&source.declaration_source, entries.contains(id), imported);
+        let mut imported_records = crate::type_aliases::ImportedRecords::new();
+        for import in &source.imports {
+            let Some(target) = import.target.as_ref().and_then(|target| module_records.get(target)) else { continue };
+            for binding in &import.bindings {
+                if let Some(fields) = target.get(&binding.exported) {
+                    imported_records.insert(binding.local.clone(), fields.clone());
+                }
+            }
+        }
+        let parsed = crate::syntax::parse_module(&source.declaration_source, entries.contains(id), imported, imported_records);
         let mut program = parsed.map_err(|value| {
             ProjectDiagnostic {
                 code: value.code,
@@ -189,6 +201,15 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId]) -> Result<Projec
                 fixes: Box::new([]),
             }
         })?;
+        if let Some(base) = program.unresolved_bases.first() {
+            return Err(ProjectDiagnostic {
+                code: "type",
+                message: format!("{:?} is not a record type that an interface can extend.", base.text),
+                location: SourceLocation { source: id.clone(), span: base.span },
+                related: vec![],
+                fixes: Box::new([]),
+            });
+        }
         if entries.contains(id) {
             let registration = program.functions.iter_mut().find(|function| function.name.text == "main").expect("synthetic test registration");
             registration.name.text = "@testRegistration".into();
@@ -252,6 +273,23 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId]) -> Result<Projec
             });
         }
         module_aliases.insert(id.clone(), exported);
+        let mut record_fields = crate::type_aliases::ImportedRecords::new();
+        for record in &program.records {
+            if record.type_parameters.is_empty()
+                && record.enum_definition.is_none()
+                && record.map_definition.is_none()
+                && record.set_definition.is_none()
+            {
+                let mut fields = record.fields.clone();
+                for field in &mut fields {
+                    crate::type_aliases::link_names(&mut field.annotation, &|name| {
+                        visible.get(name).cloned().unwrap_or_else(|| symbol(module, name))
+                    });
+                }
+                record_fields.insert(record.name.text.clone(), fields);
+            }
+        }
+        module_records.insert(id.clone(), record_fields);
         globals.insert(id.clone(), names);
         programs.insert(id.clone(), program);
     }
@@ -261,6 +299,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId]) -> Result<Projec
         records: vec![],
         functions: vec![],
         type_aliases: Default::default(),
+        unresolved_bases: Vec::new(),
     };
     let mut closure_id = 0;
     for (module, id) in graph.order.iter().enumerate() {

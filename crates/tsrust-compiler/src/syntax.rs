@@ -1739,6 +1739,9 @@ pub struct Program {
     /// Expanded `type Name = Type;` declarations of the file. Uses are
     /// already expanded; a project keeps these for importing modules.
     pub(crate) type_aliases: crate::type_aliases::Aliases,
+    /// `extends` names that no declaration or import of the file provides.
+    /// A standalone parse of a module keeps them; checking reports them.
+    pub(crate) unresolved_bases: Vec<Token>,
 }
 
 pub fn parse(source: &str) -> Result<Program, Diagnostic> {
@@ -1750,11 +1753,15 @@ pub(crate) fn parse_test_entry(source: &str) -> Result<Program, Diagnostic> {
 }
 
 /// Parses a module whose imports include type aliases of other modules.
-pub(crate) fn parse_module(source: &str, test_entry: bool, imported: crate::type_aliases::Aliases) -> Result<Program, Diagnostic> {
-    parse_entry(source, test_entry, imported)
+pub(crate) fn parse_module(source: &str, test_entry: bool, imported: crate::type_aliases::Aliases, records: crate::type_aliases::ImportedRecords) -> Result<Program, Diagnostic> {
+    parse_entry_with(source, test_entry, imported, records)
 }
 
 fn parse_entry(source: &str, test_entry: bool, imported: crate::type_aliases::Aliases) -> Result<Program, Diagnostic> {
+    parse_entry_with(source, test_entry, imported, Default::default())
+}
+
+fn parse_entry_with(source: &str, test_entry: bool, imported: crate::type_aliases::Aliases, records: crate::type_aliases::ImportedRecords) -> Result<Program, Diagnostic> {
     Parser {
         source,
         tokens: lex(source)?,
@@ -1767,6 +1774,7 @@ fn parse_entry(source: &str, test_entry: bool, imported: crate::type_aliases::Al
         parameter_patterns: Vec::new(),
         aliases: imported,
         local_aliases: Vec::new(),
+        imported_records: records,
     }
     .program(test_entry)
 }
@@ -1804,6 +1812,8 @@ struct Parser<'a> {
     aliases: std::collections::HashMap<String, crate::type_syntax::ValueAnnotation>,
     /// Names of the aliases this file declares, as opposed to imports.
     local_aliases: Vec<String>,
+    /// Fields of imported record types, for `interface ... extends`.
+    imported_records: crate::type_aliases::ImportedRecords,
 }
 
 impl Parser<'_> {
@@ -1944,6 +1954,148 @@ impl Parser<'_> {
         Ok(())
     }
 
+    /// `interface Name<T> extends Base { field: Type; }` after the keyword.
+    /// Fields end with `;` or `,`; the last separator is optional.
+    #[inline(never)]
+    fn interface_declaration(&mut self) -> Result<(Record, Vec<Token>), Diagnostic> {
+        let name = self.name()?;
+        if self.aliases.contains_key(&name.text) {
+            return Err(Diagnostic::new(
+                "duplicate",
+                format!("Type name {:?} is already declared.", name.text),
+                name.span,
+            ));
+        }
+        if matches!(name.text.as_str(), "Function" | "Mutable" | "ReadOnly" | "Once" | "Owned") {
+            return Err(Diagnostic::new(
+                "duplicate",
+                format!("Type name {:?} is reserved for built-in function and access types.", name.text),
+                name.span,
+            ));
+        }
+        let type_parameters = self.type_parameters()?;
+        let mut bases = Vec::new();
+        if self.accept("extends") {
+            loop {
+                let base = self.name()?;
+                if self.is("<") {
+                    return Err(Diagnostic::new(
+                        "unsupported",
+                        "An interface cannot extend a generic type with arguments. Declare the fields in this interface.",
+                        base.span,
+                    ));
+                }
+                bases.push(base);
+                if !self.accept(",") {
+                    break;
+                }
+            }
+        }
+        self.expect("{")?;
+        let mut fields = Vec::new();
+        while !self.accept("}") {
+            let field = self.name()?;
+            if self.is("(") || self.is("<") {
+                return Err(Diagnostic::new(
+                    "unsupported",
+                    format!(
+                        "An interface cannot declare a method. Declare a function-typed field, for example `{}: Function<int, [int]>;`.",
+                        field.text
+                    ),
+                    field.span,
+                ));
+            }
+            let optional = self.accept("?");
+            self.expect(":")?;
+            let annotation = self.value_annotation()?;
+            let annotation = if optional { Self::optional_field_type(annotation) } else { annotation };
+            fields.push(RecordField { name: field, annotation, ty: None, callable_declaration: None, optional });
+            if !self.accept(";") && !self.accept(",") && !self.is("}") {
+                self.expect(";")?;
+            }
+        }
+        self.accept(";");
+        Ok((
+            Record {
+                map_definition: None,
+                set_definition: None,
+                enum_definition: None,
+                name,
+                type_parameters,
+                fields,
+                application: None,
+            },
+            bases,
+        ))
+    }
+
+    /// Puts the fields of each `extends` base in front of an interface's own
+    /// fields, bases in written order. Bases may be declared later.
+    #[inline(never)]
+    fn inherit_interface_fields(records: &mut [Record], mut pending: Vec<(Token, Vec<Token>)>, imported: &crate::type_aliases::ImportedRecords) -> Result<Vec<Token>, Diagnostic> {
+        let mut unresolved = Vec::new();
+        while !pending.is_empty() {
+            let waiting = pending.iter().map(|(name, _)| name.text.clone()).collect::<Vec<_>>();
+            let ready = pending
+                .iter()
+                .position(|(_, bases)| bases.iter().all(|base| !waiting.contains(&base.text)));
+            let Some(ready) = ready else {
+                let (name, _) = &pending[0];
+                return Err(Diagnostic::new(
+                    "recursive-interface",
+                    format!("Interface {:?} extends itself.", name.text),
+                    name.span,
+                ));
+            };
+            let (name, bases) = pending.remove(ready);
+            let mut inherited: Vec<RecordField> = Vec::new();
+            for base in &bases {
+                if let Some(fields) = imported.get(&base.text) {
+                    // Spans of another file mean nothing here; use the base name.
+                    inherited.extend(fields.iter().cloned().map(|mut field| {
+                        field.name.span = base.span;
+                        crate::type_aliases::respan(&mut field.annotation, base.span);
+                        field
+                    }));
+                    continue;
+                }
+                let Some(found) = records.iter().find(|record| {
+                    record.name.text == base.text
+                        && record.enum_definition.is_none()
+                        && record.map_definition.is_none()
+                        && record.set_definition.is_none()
+                }) else {
+                    unresolved.push(base.clone());
+                    continue;
+                };
+                if !found.type_parameters.is_empty() {
+                    return Err(Diagnostic::new(
+                        "unsupported",
+                        "An interface cannot extend a generic type. Declare the fields in this interface.",
+                        base.span,
+                    ));
+                }
+                inherited.extend(found.fields.iter().cloned());
+            }
+            let record = records
+                .iter_mut()
+                .find(|record| record.name.span == name.span)
+                .expect("parsed interface");
+            inherited.append(&mut record.fields);
+            for (index, field) in inherited.iter().enumerate() {
+                if inherited[..index].iter().any(|earlier| earlier.name.text == field.name.text) {
+                    return Err(Diagnostic::new(
+                        "duplicate",
+                        format!("Field {:?} is already declared by this interface or a type it extends.", field.name.text),
+                        if field.name.span.start >= name.span.start { field.name.span } else { name.span },
+                    ));
+                }
+            }
+            record.fields = inherited;
+        }
+        Ok(unresolved)
+    }
+
     /// The type of `name?: Type`: the written type or `undefined`.
     #[inline(never)]
     fn optional_field_type(annotation: crate::type_syntax::ValueAnnotation) -> crate::type_syntax::ValueAnnotation {
@@ -2015,11 +2167,13 @@ impl Parser<'_> {
         let mut program = Program {
             type_argument_checks: Vec::new(),
             type_aliases: Default::default(),
+            unresolved_bases: Vec::new(),
             call_type_arguments: Vec::new(),
             records: Vec::new(),
             functions: Vec::new(),
         };
         self.collect_type_aliases()?;
+        let mut interface_bases: Vec<(Token, Vec<Token>)> = Vec::new();
         while self.peek().kind != TokenKind::End {
             if self.accept("enum") {
                 program.records.push(self.enum_declaration(&program.records)?);
@@ -2084,6 +2238,12 @@ impl Parser<'_> {
                     fields,
                     application: None,
                 });
+            } else if self.accept("interface") {
+                let (record, bases) = self.interface_declaration()?;
+                if !bases.is_empty() {
+                    interface_bases.push((record.name.clone(), bases));
+                }
+                program.records.push(record);
             } else if self.accept("function") {
                 let name = self.name()?;
                 let type_parameters = self.type_parameters()?;
@@ -2184,6 +2344,7 @@ impl Parser<'_> {
             });
         }
         program.call_type_arguments = self.call_type_arguments;
+        program.unresolved_bases = Self::inherit_interface_fields(&mut program.records, interface_bases, &self.imported_records)?;
         program.type_aliases = self
             .local_aliases
             .iter()

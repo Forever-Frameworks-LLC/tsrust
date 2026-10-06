@@ -127,3 +127,24 @@ pub(crate) fn link_names(annotation: &mut ValueAnnotation, linked: &dyn Fn(&str)
         }
     });
 }
+
+/// Gives the annotation and everything inside it one span, the place in the
+/// current file that brought it in.
+pub(crate) fn respan(annotation: &mut ValueAnnotation, span: crate::Span) {
+    each(annotation, &mut |inner| {
+        inner.span = span;
+        match &mut inner.kind {
+            Kind::Named(name) | Kind::Applied { name, .. } => name.span = span,
+            Kind::Callable { parameters, .. } => {
+                for parameter in parameters {
+                    parameter.span = span;
+                }
+            }
+            _ => {}
+        }
+    });
+}
+
+/// Fields of record types that a module imports, under their local names,
+/// with every type name already in linked form.
+pub(crate) type ImportedRecords = HashMap<String, Vec<crate::syntax::RecordField>>;

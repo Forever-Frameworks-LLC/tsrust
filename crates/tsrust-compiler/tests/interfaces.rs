@@ -41,3 +41,26 @@ fn interfaces_keep_static_contracts() {
         support::reject(source, code);
     }
 }
+
+// An interface can extend a record type that its file imports.
+#[test]
+fn interfaces_extend_imported_record_types() {
+    let directory = support::TempDirectory::new();
+    std::fs::write(
+        directory.0.join("types.tsr"),
+        "type Hidden = { depth: int; };\nexport interface Named { name: string; inner?: Hidden; }\nexport interface Player extends Named { score: int; }\nexport function top(): Player { return { name: \"Pat\", score: 3 }; }\n",
+    )
+    .unwrap();
+    let main = directory.0.join("main.tsr");
+    std::fs::write(
+        &main,
+        "import { strictEqual } from \"std:testing\";\nimport { Player, Named, top } from \"./types.tsr\";\ninterface Local extends Named { extra?: int; }\nfunction main() {\n    const player: Player = top();\n    const local: Local = { name: \"x\" };\n    strictEqual(player.name + String(player.score) + local.name, \"Pat3x\");\n    strictEqual(local.inner?.depth === undefined, true);\n}\n",
+    )
+    .unwrap();
+    support::success(&support::run(support::cli().arg("run").arg(&main), 60));
+    let bad = directory.0.join("bad.tsr");
+    std::fs::write(&bad, "import { top } from \"./types.tsr\";\ninterface Local extends Missing { extra: int; }\nfunction main() { top(); }\n").unwrap();
+    let output = support::run(support::cli().arg("check").arg(&bad), 60);
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("error[type]"), "{}", String::from_utf8_lossy(&output.stderr));
+}

@@ -1265,6 +1265,13 @@ fn remap_function_closures(
 
 impl Analyzer {
     fn new(mut program: Program) -> Result<Self, Diagnostic> {
+        if let Some(base) = program.unresolved_bases.first() {
+            return Err(Diagnostic::new(
+                "type",
+                format!("{:?} is not a record type that an interface can extend.", base.text),
+                base.span,
+            ));
+        }
         let mut generic_functions = crate::generic_functions::specialize(&mut program)?;
         if let Some((span, arguments)) = program.call_type_arguments.first() {
             return Err(Diagnostic::new(
