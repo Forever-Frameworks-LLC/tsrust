@@ -272,3 +272,20 @@ require implementation and evidence. The generic_function_captures workload is
 appended at manifest end with a matched TypeScript source, independent nine-value
 oracle, fingerprints, guards, registration and all runtime hooks. Verification is
 untimed; implementationAccepted and measured remain false.
+
+## Generic alias result-context checkpoint
+
+Expected result types now pass through named/bound callable dispatch into deferred
+generic preparation. The original solver checks both argument and result relations.
+Method cache identity includes the concrete result as well as argument types, so
+zero-argument int[] and string[] methods remain distinct while repeated int[] calls
+reuse their method. Captured environments remain shared across those methods.
+
+The native and strict TypeScript fixture checks distinct owning array results and
+exact captured counter output. Invalid result/argument constraints and missing
+arguments remain rejected. A cache witness checks two methods after three calls;
+editor controls retain result array types and source navigation. The matched
+generic_function_results workload is appended at manifest end with an independent
+six-value oracle, complete pair/guards/registration/ABI hooks and untimed verification
+support. Full generic alias help, callback/storage adaptation and the wider gate173
+audit remain open. No completed gate or family measurement is claimed.

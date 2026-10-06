@@ -12378,13 +12378,14 @@ self.names_materialized_type(element.with_depth(0).ty())
         args: &mut Vec<Expr>,
         loans: &Loans,
         span: Span,
+        expected: Option<Type>,
     ) -> Result<(usize, Type), Diagnostic> {
         let (origin, once) = match self.closures[origin].forward {
             Some(ClosureForward::Once(inner)) => (inner, true),
             _ => (origin, false),
         };
         if self.deferred_generic_values.contains_key(&origin) {
-            return self.deferred_generic_call(context, binding, origin, callee, args, loans, span, once);
+            return self.deferred_generic_call(context, binding, origin, callee, args, loans, span, once, expected);
         }
         let closure = &self.closures[origin];
         let invocation = if once {
@@ -13130,7 +13131,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 if !matches!(name.as_str(), "String" | "Boolean" | "Number" | "clone")));
         if ordinary_name {
             self.prepare_generic_call(context, expr, expected)?;
-            self.named_call(context, expr, loans)
+            self.named_call(context, expr, loans, expected)
         } else {
             self.builtin_or_method_call(context, expr, loans, expected)
         }
@@ -13253,6 +13254,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         context: &mut Context,
         expr: &mut Expr,
         loans: &Loans,
+        expected: Option<Type>,
     ) -> Result<Type, Diagnostic> {
         let ExprKind::Call(callee, _) = &expr.kind else {
             unreachable!("named call dispatch");
@@ -13264,7 +13266,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             || context.names.contains_key(name)
             || (self.discovering_results && context.pending_names.contains(name))
         {
-            return self.bound_named_call(context, expr, loans);
+            return self.bound_named_call(context, expr, loans, expected);
         }
         self.declared_named_call(context, expr, loans)
     }
@@ -13274,6 +13276,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         context: &mut Context,
         expr: &mut Expr,
         loans: &Loans,
+        expected: Option<Type>,
     ) -> Result<Type, Diagnostic> {
         let span = expr.span;
         let ExprKind::Call(callee, args) = &mut expr.kind else {
@@ -13406,7 +13409,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                     || matches!(self.closures[origin].forward, Some(ClosureForward::Once(inner)) if self.closures[inner].polymorphic))
             {
                 let (method, result) =
-                    self.closure_method_call(context, binding, origin, callee, args, loans, span)?;
+                    self.closure_method_call(context, binding, origin, callee, args, loans, span, expected)?;
                 expr.target = Some(CallTarget::ClosureMethod(method));
                 expr.ty = Some(result);
                 return Ok(result);
@@ -15024,7 +15027,7 @@ fn stored_named_calls_use_registered_signature_hints_and_consuming_access() {
         assert!(context.bindings[binding].used.is_none());
         assert_eq!(
             analyzer
-                .named_call(&mut context, &mut call, &Loans::new())
+                .named_call(&mut context, &mut call, &Loans::new(), None)
                 .unwrap(),
             Type::Int
         );
@@ -15032,14 +15035,14 @@ fn stored_named_calls_use_registered_signature_hints_and_consuming_access() {
         if once {
             assert_eq!(
                 analyzer
-                    .named_call(&mut context, &mut call, &Loans::new())
+                    .named_call(&mut context, &mut call, &Loans::new(), None)
                     .unwrap_err()
                     .code,
                 "closure-consumed"
             );
         } else {
             analyzer
-                .named_call(&mut context, &mut call, &Loans::new())
+                .named_call(&mut context, &mut call, &Loans::new(), None)
                 .unwrap();
             assert!(context.bindings[binding].mutable);
         }

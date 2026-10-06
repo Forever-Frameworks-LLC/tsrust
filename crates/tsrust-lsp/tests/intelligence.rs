@@ -7669,3 +7669,15 @@ fn captured_deferred_generic_calls_keep_concrete_results_and_source_navigation()
     let definition=ask(source,"textDocument/definition","select;",0);
     assert_eq!(definition["range"]["start"],json!(at(source,"select<T>",0)),"{definition}");
 }
+
+#[test]
+fn generic_alias_result_context_keeps_array_types_and_source_navigation() {
+    let source="function empty<T>():T[]{return [];}function main(){const action=empty;const numbers:int[]=action();const strings:string[]=action();}";
+    tsrust_compiler::check(source).unwrap();
+    for (needle,ty) in [("numbers:","int[]"),("strings:","string[]")] {
+        let hover=ask(source,"textDocument/hover",needle,0);
+        assert!(hover["contents"]["value"].as_str().unwrap().contains(ty),"{hover}");
+    }
+    let definition=ask(source,"textDocument/definition","empty;",0);
+    assert_eq!(definition["range"]["start"],json!(at(source,"empty<T>",0)),"{definition}");
+}

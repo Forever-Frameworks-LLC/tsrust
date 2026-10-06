@@ -305,9 +305,9 @@ const values = action([3, 4]); // int[]
 
 Default arguments and homogeneous rest packs also work for these capture-free
 values. An owning argument is transferred; a read-only array argument remains
-available to its caller. Result-only type inference through an unannotated value,
-polymorphic callback adaptation and complete generic alias parameter help remain
-unsupported.
+available to its caller. Expected result annotations can infer result-only generic types through an
+unannotated value. Polymorphic callback adaptation and complete generic alias
+parameter help remain unsupported.
 
 A captured generic declaration can also be stored without a fixed annotation.
 Local borrowed captures retain their existing scope rules. Returned factories
@@ -339,3 +339,22 @@ does not clone the environment or its owners. Defaults run in the original funct
 once when omitted or undefined. Generic rest packs belong to each invocation.
 The generic_function_values and generic_value_signatures fixtures check these
 behaviors, including exact native cleanup after success and caught failures.
+
+An expected result type also supplies generic inference when a stored function
+has no typed arguments. Different result types select different invocation methods
+while retaining the same captured environment.
+
+```tsr
+function empty<T>(): T[] { return []; }
+function main() {
+    const action = empty;
+    const numbers: int[] = action();
+    const strings: string[] = action();
+    numbers.push(7);
+    strings.push("text");
+}
+```
+
+The result-context fixture also checks a captured factory with two calls. Result
+context does not relax parameter types or required argument counts. A result-only
+call with neither argument nor expected result information still needs type context.

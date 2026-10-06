@@ -19778,6 +19778,34 @@
       "specification": "Retain nine independent observations of shared mutation, factory isolation and owning argument results.",
       "sourceSha256": "7a2b5ecba2fc9f4dc45ea22143daf198b1aed006601171bb32701ab022724038",
       "counterpartSha256": "6f40377fe179d2dada7c016b31be3d66b862c6bfcb098872c276c6a8acb1c070"
+    },
+    {
+      "id": "generic_function_results",
+      "family": "generic-function-results",
+      "source": "workloads/generic_function_results.tsr",
+      "counterpart": "workloads/generic_function_results.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One result-context generic alias scenario",
+      "inputText": "results",
+      "category": "callbacks",
+      "implementationGate": 173,
+      "measurementStatus": "pending-language-milestone",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": false,
+      "measured": false,
+      "notes": "Distinct result-only int/string array methods of capture-free and captured generic aliases. Untimed support; full generic editor/storage/context acceptance pending.",
+      "specification": "Retain six independent observations of result inference, owning arrays and shared captured calls.",
+      "sourceSha256": "ecfeb4959cd9c497055bc65b6f90aecc0b26176cab07c9e7e6dfd51c1e74e829",
+      "counterpartSha256": "b03ad02bef4dbdc813e281b115006e2f115d6cf2500c1674d18333b0db126cf8"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

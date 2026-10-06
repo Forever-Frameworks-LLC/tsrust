@@ -120,7 +120,7 @@ impl Analyzer {
     #[inline(never)]
     pub(super) fn deferred_generic_call(
         &mut self, context: &mut Context, binding: usize, origin: usize,
-        callee: &mut Expr, args: &mut Vec<Expr>, loans: &Loans, span: Span, once: bool,
+        callee: &mut Expr, args: &mut Vec<Expr>, loans: &Loans, span: Span, once: bool, expected: Option<Type>,
     ) -> Result<(usize, Type), Diagnostic> {
         let declaration = self.deferred_generic_values[&origin].declaration.clone();
         let mut source_call = Expr::new(ExprKind::Call(
@@ -139,7 +139,7 @@ impl Analyzer {
             preparation
         });
         let preparation = preparation.as_ref().unwrap_or(context);
-        self.prepare_generic_call(preparation, &mut source_call, None)?;
+        self.prepare_generic_call(preparation, &mut source_call, expected)?;
         let ExprKind::Call(target, prepared) = source_call.kind else { unreachable!() };
         let ExprKind::Name(name) = target.kind else { unreachable!() };
         let function = self.function_names[&name];
@@ -170,7 +170,10 @@ impl Analyzer {
         }
         context.capture_loans.truncate(first_capture);
         let (function, result) = self.resolved_call(context, function, args, span)?;
-        let types = args.iter().map(|argument| argument.ty.expect("checked generic value argument")).collect::<Vec<_>>();
+        let mut types = args.iter().map(|argument| argument.ty.expect("checked generic value argument")).collect::<Vec<_>>();
+        // Zero-argument generic calls can select different concrete results.
+        // Their environments remain shared; only invocation methods differ.
+        types.push(result);
         let key = (origin, types, self.effects_only, self.discovering_results);
         if let Some(&method) = self.closure_specializations.get(&key) { return Ok((method, result)); }
         if self.specializations.len() + self.closure_specializations.keys()
@@ -210,6 +213,15 @@ impl Analyzer {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn result_only_methods_reuse_each_concrete_result_in_one_environment() {
+        let checked=crate::check("function empty<T>():T[]{return [];}function main(){const action=empty;const one:int[]=action();const text:string[]=action();const two:int[]=action();}").unwrap();
+        let origin=*checked.program.deferred_generic_values.iter().next().unwrap();
+        let closure=&checked.program.closures[origin];
+        assert_eq!(closure.methods.len(),2);
+        assert!(closure.methods.iter().all(|method|method.parameters.is_empty()));
+        assert_ne!(closure.methods[0].function.result,closure.methods[1].function.result);
+    }
     #[test]
     fn captured_data_methods_keep_one_typed_layout_with_separate_binding_slots() {
         let checked=crate::check("function main(){let calls=0;function select<T>(value:T):T{calls+=1;return value;}{const action=select;const one=action(1);const text=action('x');}console.log(calls);}").unwrap();

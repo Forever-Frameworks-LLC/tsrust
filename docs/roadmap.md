@@ -416,3 +416,8 @@ cleanup, ownership rejection and concrete editor facts have focused controls.
 Matched captured-environment support is ready for untimed verification. Full alias
 help, result-only contexts, callback/storage adaptation and the wider audit remain
 open. Family measurement remains deferred.
+
+Gate173 now propagates expected result types through generic aliases and keeps
+zero-argument methods distinct by concrete result. Captured environments remain
+shared. Full alias help, callback/storage adaptation and the wider audit remain
+open; no family measurement is claimed.

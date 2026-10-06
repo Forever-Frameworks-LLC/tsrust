@@ -134,3 +134,15 @@ fn captured_result_only_generic_value_can_be_stored_before_invocation_context() 
 fn deferred_generic_aliases_infer_result_only_types_without_sharing_methods() {
     native(include_str!("fixtures/generic-function-values/result-context.tsr"),"11\n12\n3 x\n");
 }
+
+#[test]
+fn deferred_result_contexts_preserve_argument_constraints_and_arity() {
+    for source in [
+        "function identity<T>(value:T):T{return value;}function main(){const action=identity;const text:string=action(1);}",
+        "function empty<T>():T[]{return [];}function main(){const action=empty;const wrong:int=action();}",
+        "function identity<T>(value:T):T{return value;}function main(){const action=identity;const values:int[]=action();}",
+    ] {
+        let error=tsrust_compiler::check(source).err().expect("result context must not erase constraints");
+        assert!(matches!(error.code,"generic-inference"|"type"|"arity"),"{}: {}",error.code,error.message);
+    }
+}

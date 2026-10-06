@@ -1,0 +1,28 @@
+function empty<T>(): T[] { return []; }
+function workload(n: int, seed: int, input: string): int[][] {
+    const plain = empty;
+    const output: int[][] = [];
+    for (let i = 0; i < n; i += 1) {
+        const base = i % 5 + seed % 5 + 1;
+        const numbers: int[] = plain();
+        const strings: string[] = plain();
+        numbers.push(base);
+        strings.push("value");
+        let calls = 0;
+        let first = 0;
+        let length = 0;
+        function fresh<T>(): T[] { calls += 1; return []; }
+        {
+            const action = fresh;
+            const ownedNumbers: int[] = action();
+            const ownedStrings: string[] = action();
+            ownedNumbers.push(base + 1);
+            ownedStrings.push("owner");
+            first = ownedNumbers[0];
+            length = ownedStrings[0].length;
+        }
+        output.push([numbers[0], strings[0].length, first, length, calls, input.length]);
+    }
+    return output;
+}
+function main() {}
