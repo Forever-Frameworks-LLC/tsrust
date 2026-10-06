@@ -138,3 +138,32 @@ Final checkpoint evidence: matched lexical cases5 pass untimed; canonical result
 2026-10-06T18-53-10-079Z-verify.json. All107 compiler source hashes are verified.
 Ten exact logs/results are imported into SQLite and read back before removal.
 Readiness library3, depth canaries63, editor275; captures7 pass/4 pending.
+
+
+## Current recursive capture-access state
+
+named_capture_access.rs owns Access coordinates (BindingId, hidden slot, Mode) and
+a monotone Lattice keyed by function index plus binding identity. Contexts retains
+the capture identities in projected slot order and extracts summaries after checking.
+Static named edges propagate access and use metadata into typed caller capture or
+parameter slots; ordinary local owners acquire no loan or transfer in this phase.
+The recursive driver iterates capture and supplied-argument coordinates separately.
+New capture coordinates extend its finite budget. The final private checked program
+retains summaries for future group layout. No source arguments or public parameter
+contracts include captures.
+
+Forwarder mutation was genuinely red (Copy versus Mutate), and now passes. A mutual
+recursive scalar-mutation case proves convergence and exact hidden slots. Runtime
+environments remain absent and blocked at public finalization. Continue by deriving
+finite borrowed group layouts from these settled summaries, then placement and native
+dispatch with existing loan rules. Preserve recursion, lexical release, later
+initialization, block/loop freshness, defaults and source identities. Do not replace
+these pending requirements with ephemeral call borrows or eager arrow creation.
+
+Capture-access checkpoint evidence: library25, canaries63, editor275 pass;
+captures7 pass/4 pending. Matched lexical cases5 pass untimed. Canonical result
+2026-10-06T18-58-52-478Z-verify.json has 108 verified compiler fingerprints
+and no timing samples. 9 exact original records, including failed compile
+evidence, are imported/read back in SQLite before loose removal. Five consumers
+are refreshed atomically; 50 scratch executables and runtime comparison output
+are pruned. Library caches remain; tests will relink. Gate171 is not accepted.

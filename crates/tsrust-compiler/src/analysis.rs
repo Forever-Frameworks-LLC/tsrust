@@ -1,3 +1,5 @@
+#[path = "named_capture_access.rs"]
+mod named_capture_access;
 #[path = "named_capture_context.rs"]
 mod named_capture_context;
 #[path = "capture_context.rs"]
@@ -187,6 +189,7 @@ impl CallbackContract {
 }
 
 pub struct CheckedProgram {
+    pub(crate) named_capture_access: HashMap<usize, Vec<named_capture_access::Access>>,
     pub(crate) local_capture_plans: Vec<crate::local_capture_plan::Plan>,
     pub(crate) local_declarations: Vec<crate::local_functions::Declaration>,
     pub(crate) error_effects: crate::error_effects::ErrorEffects,
@@ -458,12 +461,14 @@ pub fn analyze_recursive(program: Program) -> Result<CheckedProgram, Diagnostic>
         })
         .collect::<Vec<_>>();
     let parameter_count = modes.iter().map(Vec::len).sum::<usize>();
+    let mut capture_access = named_capture_access::Lattice::default();
     // Every non-copy coordinate can rise from read to mutate to consume only.
     let mut remaining = parameter_count.saturating_mul(2) + 1;
     while remaining > 0 {
         remaining -= 1;
         let mut analyzer = Analyzer::new(program.clone())?;
         analyzer.assumed_modes = Some(modes.clone());
+        analyzer.assumed_capture_access = capture_access.clone();
         analyzer.effects_only = true;
         analyzer.speculative_access_run = true;
         let inferred = analyzer.run()?;
@@ -483,7 +488,8 @@ pub fn analyze_recursive(program: Program) -> Result<CheckedProgram, Diagnostic>
             remaining += added.len().saturating_mul(2) + 1;
             modes.push(added);
         }
-        let mut changed = false;
+        let (mut changed, discovered) = capture_access.observe(&inferred.named_capture_access);
+        remaining += discovered.saturating_mul(2) + usize::from(discovered != 0);
         for (current, function) in modes.iter_mut().zip(&inferred.functions) {
             for (mode, binding) in current.iter_mut().zip(&function.bindings) {
                 let next = (*mode).max(binding.mode);
@@ -494,6 +500,7 @@ pub fn analyze_recursive(program: Program) -> Result<CheckedProgram, Diagnostic>
         if !changed {
             let mut analyzer = Analyzer::new(program)?;
             analyzer.assumed_modes = Some(modes);
+            analyzer.assumed_capture_access = capture_access;
             return finish_analysis(analyzer.run()?);
         }
     }
@@ -522,6 +529,7 @@ mod exception_escape_tests {
 
 struct Analyzer {
     named_captures: named_capture_context::Contexts,
+    assumed_capture_access: named_capture_access::Lattice,
     program: Program,
     // Retained source specialization state for the checked-inference handoff.
     generic_functions: crate::generic_functions::Cache,
@@ -1403,6 +1411,7 @@ impl Analyzer {
         let named_captures = named_capture_context::Contexts::new(&program, &function_names);
         let mut analyzer = Self {
             named_captures,
+            assumed_capture_access: Default::default(),
             generic_functions,
             generic_records,
             unions,
@@ -2895,6 +2904,7 @@ impl Analyzer {
             )?;
         }
         let checked = CheckedProgram {
+            named_capture_access: self.named_captures.summaries(&self.checked),
             local_capture_plans: self.program.local_capture_plans,
             local_declarations: self.program.local_declarations,
             function_specializations:self.specializations.iter().map(|((origin,_),instance)|(*instance,*origin)).collect(),
@@ -13660,6 +13670,16 @@ self.names_materialized_type(element.with_depth(0).ty())
         }
         self.named_captures.prepare(index, context, &self.program)?;
         self.function(index)?;
+        // Propagate body access through static named edges. Runtime loan formation
+        // remains the separate environment-lowering stage behind the public guard.
+        for access in self.named_captures.access(index, self.checked[index].as_ref(), &self.assumed_capture_access, self.signatures[index].params.len()) {
+            let slot = context.source_bindings[&access.binding.declaration_start];
+            let binding = &mut context.bindings[slot];
+            binding.used.get_or_insert(callee.span);
+            if binding.parameter && (!binding.ty.is_copy() || access.mode == Mode::Mutate) {
+                binding.mode = binding.mode.max(access.mode);
+            }
+        }
         let params = if let Some(target) = &self.checked[index] {
             target.bindings[..target.parameter_count]
                 .iter()

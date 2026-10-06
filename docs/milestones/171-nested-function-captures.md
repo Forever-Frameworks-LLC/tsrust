@@ -308,3 +308,32 @@ Final checkpoint evidence: matched lexical cases5 pass untimed; canonical result
 2026-10-06T18-53-10-079Z-verify.json. All107 compiler source hashes are verified.
 Ten exact logs/results are imported into SQLite and read back before removal.
 Readiness library3, depth canaries63, editor275; captures7 pass/4 pending.
+
+
+## Recursive capture-access checkpoint
+
+Named capture summaries now retain defining binding identities, hidden checked slots
+and access modes separately from source parameter contracts. Static named call edges
+propagate capture access into enclosing capture/parameter coordinates. A forwarder
+previously left its captured scalar at Copy even when its leaf mutated it; a focused
+failing witness now checks Mutate without adding supplied arguments or creating loans.
+
+The recursive inference driver has a separate monotone capture lattice. New
+coordinates extend the finite iteration budget; read access can rise to mutation or
+consumption. Scalar reads remain copies, while scalar mutation propagates. A mutual
+recursion test proves convergence, stable defining identities and unchanged source
+argument contracts. These summaries are retained in the private checked tree for
+future layout work. This phase does not form environments or establish runtime loans;
+the public environment barrier remains mandatory.
+
+Next use the settled summaries to build finite borrowed group layouts and implement
+valid-use placement, reentry checks, lexical loan lifetime and native dispatch.
+The four native positive capture witnesses remain pending until that stage works.
+
+Capture-access checkpoint evidence: library25, canaries63, editor275 pass;
+captures7 pass/4 pending. Matched lexical cases5 pass untimed. Canonical result
+2026-10-06T18-58-52-478Z-verify.json has 108 verified compiler fingerprints
+and no timing samples. 9 exact original records, including failed compile
+evidence, are imported/read back in SQLite before loose removal. Five consumers
+are refreshed atomically; 50 scratch executables and runtime comparison output
+are pruned. Library caches remain; tests will relink. Gate171 is not accepted.

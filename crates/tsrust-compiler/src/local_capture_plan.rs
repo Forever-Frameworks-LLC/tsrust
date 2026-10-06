@@ -2,7 +2,7 @@
 use crate::Span;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct BindingId {
     pub owner: usize,
     pub declaration_start: usize,

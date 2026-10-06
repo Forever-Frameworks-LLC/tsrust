@@ -10,6 +10,7 @@ struct Request {
 pub(super) struct Contexts {
     requests: HashMap<usize, Request>,
     prepared: HashMap<usize, Context>,
+    identities: HashMap<usize, Vec<crate::local_capture_plan::BindingId>>,
 }
 impl Contexts {
     pub(super) fn new(program: &Program, functions: &HashMap<String, usize>) -> Self {
@@ -94,9 +95,29 @@ impl Contexts {
                 context.names.insert(capture.name.clone(), slot);
             }
         }
+        self.identities.insert(index, captures.iter().map(|capture| capture.binding).collect());
         self.prepared.insert(index, context);
         Ok(())
     }
+    pub(super) fn access(
+        &self, index: usize, checked: Option<&CheckedFunction>,
+        assumed: &named_capture_access::Lattice, parameter_count: usize,
+    ) -> Vec<named_capture_access::Access> {
+        let Some(source) = self.prepared.get(&index) else { return Vec::new(); };
+        self.identities[&index].iter().enumerate().map(|(inner, &binding)| {
+            let slot = parameter_count + inner;
+            let initial = if source.bindings[inner].ty.is_copy() { Mode::Copy } else { Mode::Read };
+            let mode = checked.map_or_else(|| assumed.mode(index, binding, initial), |function| function.bindings[slot].mode);
+            named_capture_access::Access { binding, slot, mode }
+        }).collect()
+    }
+    pub(super) fn summaries(&self, checked: &[Option<CheckedFunction>]) -> HashMap<usize, Vec<named_capture_access::Access>> {
+        self.prepared.keys().map(|&index| {
+            let function = checked[index].as_ref().expect("checked named capture body");
+            (index, self.access(index, Some(function), &Default::default(), function.parameter_count))
+        }).collect()
+    }
+
     pub(super) fn attach(&self, index: usize, target: &mut Context) {
         let Some(source) = self.prepared.get(&index) else {
             return;
@@ -130,6 +151,27 @@ impl Contexts {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn forwarder_inherits_mutating_capture_access_without_adding_source_arguments() {
+        let source = "function main(){let value=0;function leaf():int{value+=1;return value;}function forward():int{return leaf();}}";
+        let mut analyzer = Analyzer::new(crate::syntax::parse(source).unwrap()).unwrap();
+        let main = analyzer.function_names["main"];
+        let StmtKind::Let { name, .. } = &analyzer.program.functions[main].body[0].kind else { panic!("binding"); };
+        let mut outer = Context::new("main".into());
+        let slot = Analyzer::bind(&mut outer, name, Type::Int, false).unwrap();
+        outer.bindings[slot].rebindable = true;
+        let declaration = analyzer.program.local_declarations.iter().find(|declaration| declaration.source_name.text == "forward").unwrap();
+        let index = analyzer.function_names[&declaration.emitted_name];
+        analyzer.named_captures.prepare(index, &outer, &analyzer.program).unwrap();
+        analyzer.function(index).unwrap();
+        let checked = analyzer.checked[index].as_ref().unwrap();
+        assert_eq!(checked.parameter_count, 0);
+        assert_eq!(checked.bindings[0].mode, Mode::Mutate);
+        assert!(checked.bindings[0].used.is_some());
+        assert!(!outer.bindings[slot].mutable);
+        assert!(outer.capture_loans.is_empty());
+    }
 
     #[test]
     fn checked_capture_access_is_separate_from_the_source_parameter_abi() {
