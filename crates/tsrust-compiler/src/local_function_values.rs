@@ -41,7 +41,12 @@ fn wrapper(emitted: &str, header: &Header, id: usize, span: Span) -> Expr {
     // A parameter can share its spelling with a variable that the called
     // function captures. Captured variables are found by declaration, not
     // by name, so the declared parameter names are kept for messages.
-    let names: Vec<String> = header.params.iter().map(|(name, _)| name.text.clone()).collect();
+    // The source function performs destructuring. This wrapper forwards the
+    // complete argument and must not advertise a pattern initialization body.
+    let names: Vec<String> = header.params.iter().map(|(name, _)| {
+        name.text.strip_prefix("pattern#")
+            .map_or_else(|| name.text.clone(), |suffix| format!("forwarded-pattern#{suffix}"))
+    }).collect();
     let params = header
         .params
         .iter()

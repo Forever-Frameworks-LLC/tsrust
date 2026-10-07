@@ -1,3 +1,5 @@
+#[path = "owned_array_patterns.rs"]
+mod owned_array_patterns;
 #[path = "inferred_callable_arrays.rs"]
 mod inferred_callable_arrays;
 #[path = "return_type_inference.rs"]
@@ -2033,7 +2035,7 @@ impl Analyzer {
             if param.access.as_ref().is_some_and(|access|access.text=="read") && !body_ty.is_copy() {
                 context.readonly_parameters.insert(binding);
             }
-            self.initialize_parameter_pattern(&mut context,&param.name,body)?;
+            self.initialize_parameter_pattern(&mut context,&param.name,body,param.access.as_ref().is_some_and(|access|access.text=="consume"))?;
         }
         let method_template = parameters.iter().any(|&parameter| matches!(self.unions.payload(context.bindings[parameter].ty).unwrap_or(context.bindings[parameter].ty),Type::Callback(_)));
         let source_body=method_template.then(||body.clone());
@@ -3800,11 +3802,14 @@ impl Analyzer {
     /// Pattern declarations remain in the checked body for all source walkers,
     /// but are initialized alongside their parameter rather than with the body.
     #[inline(never)]
-    fn initialize_parameter_pattern(&mut self, context: &mut Context, parameter: &Token, body: &mut [Stmt]) -> Result<(), Diagnostic> {
+    fn initialize_parameter_pattern(&mut self, context: &mut Context, parameter: &Token, body: &mut [Stmt], owned: bool) -> Result<(), Diagnostic> {
         if !parameter.text.starts_with("pattern#") { return Ok(()); }
         let start=body.iter().position(|stmt| stmt.span.start>=parameter.span.start && stmt.span.end<=parameter.span.end);
         let Some(start)=start else { return Ok(()); };
         let count=body[start..].iter().take_while(|stmt| stmt.span.start>=parameter.span.start && stmt.span.end<=parameter.span.end).count();
+        if owned && context.names.get(&parameter.text).is_some_and(|&binding| matches!(context.bindings[binding].ty, Type::Array(_))) {
+            owned_array_patterns::lower(&mut body[start..start+count], &parameter.text, context.bindings[context.names[&parameter.text]].ty);
+        }
         self.block_with_scope(context, &mut body[start..start+count], Type::Void, true)?;
         Ok(())
     }
@@ -3898,7 +3903,7 @@ impl Analyzer {
             if matches!(self.program.functions[index].parameter_access[position],Some((Mode::Read,_))) && !body_ty.is_copy() {
                 context.readonly_parameters.insert(binding);
             }
-            self.initialize_parameter_pattern(&mut context,param,body)?;
+            self.initialize_parameter_pattern(&mut context,param,body,matches!(self.program.functions[index].parameter_access[position],Some((Mode::Consume,_))))?;
         }
         Ok(context)
     }

@@ -43,3 +43,37 @@ controls, then cover editor signatures, matched workload/oracle/source registrat
 guide and gate records. Run bounded adapter/generic suites, all eight depth canaries
 and whole editor before acceptance. Do not claim full Gate173 completion: remaining
 alias/editor, borrowed-result escape and unused-template validation audits still apply.
+
+## Implementation checkpoint after the original red audit
+
+The ordinary named Owned<string[]> pattern also fails, confirming a general array
+pattern defect rather than an adapter-only defect. Its red witness is committed at
+0be26f1. Current implementation introduces owned_array_patterns.rs, used only for
+explicit consuming array parameters. Direct positions lower to remove with offsets
+adjusted for previous extracted positions; skipped positions remain skipped. Default
+positions guard removal with length and yield undefined when missing, retaining lazy
+default evaluation. Explicit rest retains its existing independent-copy contract and
+uses the adjusted offset. Nested extracted array holders track their own offsets.
+Readonly parameters and ordinary array indexing retain existing borrow behavior.
+
+Both adapter pattern witnesses now pass. The bounded batch passes 151 tests: all 63
+adapter tests, destructuring/default suites and all eight depth suites. Additional
+arrow, readonly rejection, transferred-source and nested array controls pass. Final
+focused pattern run passes five tests. Whole editor regression passes before the
+nested holder tracking extension; this is supporting evidence rather than acceptance
+of the final source. No process remains live. All original red, compile-failure,
+repaired, bounded and editor logs under /private/tmp/tsrust-owned-array-pattern-*.log
+are imported and verified in SQLite, then removed. Five consumers are unchanged.
+
+The implementation remains provisional. Complete disposal and failure controls,
+record-to-array and rest-to-nested-pattern contexts, dedicated editor checks, strict
+TypeScript references for the added ordinary witnesses, matched workload/oracle/hash
+support and normal gate records. Recheck affected suites and whole editor on final
+source before acceptance. Sequential remove can shift remaining elements; benchmark
+support must expose that cost instead of claiming measured performance. No timing
+was performed. Full Gate173 remains open.
+
+Continuation prompt: Continue from this implementation checkpoint. Read AGENTS.md,
+workflow and generic value plans. Finish owned parameter-pattern semantic coverage,
+disposal/editor/Node/matched support, then bounded acceptance. Preserve the four
+owner fixture edits and keep source acceptance separate from unmeasured workloads.

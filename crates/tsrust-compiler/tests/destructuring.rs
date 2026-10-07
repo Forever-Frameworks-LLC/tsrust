@@ -103,3 +103,20 @@ fn destructuring_keeps_static_contracts() {
 fn owned_array_parameter_patterns_transfer_elements_without_cloning() {
     execute("function head([first]: Owned<string[]>): string { return first; } function main() { console.log(head(['owner', 'extra'])); }", "owner\n", None);
 }
+
+#[test]
+fn owned_array_parameter_patterns_keep_skips_defaults_and_rest_positions() {
+    execute("function select([first, , third = 'fallback', ...rest]: Owned<string[]>): string { return first + ':' + third + ':' + rest.join(','); } function main() { console.log(select(['a','skip','c','d','e'])); console.log(select(['a'])); }", "a:c:d,e\na:fallback:\n", None);
+}
+
+#[test]
+fn owned_array_patterns_keep_transfer_and_readonly_boundaries() {
+    execute("function main() { const take = ([first, second]: Owned<string[]>): string => first + second; console.log(take(['a', 'b'])); }", "ab\n", None);
+    reject("function head([first]: string[]): string { return first; } function main() {}", "borrowed-place");
+    reject("function head([first]: Owned<string[]>): string { return first; } function main() { const values=['owner']; head(values); console.log(values.length); }", "transferred");
+}
+
+#[test]
+fn owned_nested_array_parameter_patterns_transfer_nested_elements() {
+    execute("function head([[first]]: Owned<string[][]>): string { return first; } function main() { console.log(head([['owner']])); }", "owner\n", None);
+}
