@@ -228,6 +228,7 @@ impl CallbackContract {
 
 
 pub struct CheckedProgram {
+    pub(crate) scoped_records: crate::scoped_record_layout::Registry,
     pub(crate) named_capture_layouts: Vec<named_capture_layout::Layout>,
     pub(crate) named_capture_access: HashMap<usize, Vec<named_capture_access::Access>>,
     pub(crate) local_capture_plans: Vec<crate::local_capture_plan::Plan>,
@@ -3090,6 +3091,7 @@ impl Analyzer {
         }
         let deferred_generic_nominals = self.deferred_generic_nominal_uses();
         let checked = CheckedProgram {
+            scoped_records: self.scoped_records,
             named_capture_layouts: Vec::new(),
             named_capture_access: self.named_captures.summaries(&self.checked),
             local_capture_plans: self.program.local_capture_plans,

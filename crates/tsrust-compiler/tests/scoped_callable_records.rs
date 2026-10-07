@@ -288,3 +288,24 @@ fn record_capture_names_borrowed_family_lifetimes_and_keeps_empty_factory_owned(
         }
     "#);
 }
+
+#[test]
+fn scoped_record_parameter_invokes_without_retaining_owner() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int, [value: int]>>; };
+        function invoke(holder: ReadOnly<Holder>, value: int): int {
+            return holder.run(value);
+        }
+        function main() {
+            const offsets = [3, 7];
+            {
+                const holder: Holder = { run: (value: int): int => value + offsets[0] };
+                strictEqual(invoke(holder, 2), 5);
+                strictEqual(invoke(holder, 4), 7);
+            }
+            offsets[0] = 9;
+            strictEqual(offsets[0], 9);
+        }
+    "#);
+}

@@ -134,3 +134,39 @@ loan provenance across inner scopes, partial moves, mutation and disposal. Do no
 accept the complete record gate before the remaining guide, workload and whole-editor
 checks. The warm compiler is work in progress; installed/editor consumers remain
 on the preceding accepted commit. Preserve all 15 owner fixtures.
+
+## Record parameter boundary red witness
+
+After a62d8e7, scoped_record_parameter_invokes_without_retaining_owner adds a
+ReadOnly<Holder> parameter that invokes its scoped field twice and releases the
+owner loan before mutation. The first draft used the retired read keyword; that
+syntax was corrected, and the original failed log remains preserved.
+
+The current witness reaches native generation. callback_bounds now walks nominal
+record fields with a cycle guard and supplies the missing C0: ReadCallback bound.
+This removes the original E0425. The witness still fails E0308: its concrete
+Record1<Closure0> instance cannot pass to the declared Record0<C0> parameter.
+Do not classify this partial repair as accepted. Next unify native record family
+identity while keeping each instance's concrete payload slots, then exercise
+nested parameters and retention rejection. The Node extractor case count will
+need updating from nine to ten when this positive witness is accepted. Source
+changes remain uncommitted, and executable consumers remain on accepted f1dd284.
+
+## Native record parameter identity repair
+
+The parameter witness now passes. CheckedProgram retains the scoped record registry.
+Native record type rendering, named capture environments and record literals use
+the nominal declaration's identity while preserving concrete field payload slots.
+Concrete instances no longer emit redundant separate Rust record declarations.
+Record callback bounds traverse fields with a cycle guard. This repairs both the
+missing callback bound and mismatched nominal native record type.
+
+All twelve scoped record tests pass, including source rejection controls and native
+lifetime witnesses. All eight mandatory canaries pass (64 tests). Ten extracted
+positive source cases pass Node after TypeScript compilation. Whole-project
+formatting changes zero files and zero fingerprints. Exact logs are stored in
+SQLite under runtime/diagnostics/scoped-record-parameters/. This is a partial source
+checkpoint, not complete record gate acceptance. Next cover nested record parameters,
+retaining transfers, callable result boundaries and field loan provenance. Complete
+editor, guide and matched workload support remains owed. Installed consumers stay
+on f1dd284. Preserve all fifteen owner fixtures.

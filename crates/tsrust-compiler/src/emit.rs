@@ -281,7 +281,7 @@ impl Emitter<'_> {
                 let ty = field.ty.expect("checked field");
                 self.scoped_record_native_parameter(ty).then(|| self.native_type(ty))
             }).collect::<Vec<_>>();
-            if !parameters.is_empty() { return format!("Record{id}<{}>", parameters.join(", ")); }
+            if !parameters.is_empty() { let base = self.program.scoped_records.declaration(id); return format!("Record{base}<{}>", parameters.join(", ")); }
         }
         if let Type::BorrowedCallable(id)=value {return self.borrowed_family_type(id,"'_");}
         if let Type::Closure(id) = value {
@@ -373,7 +373,13 @@ impl Emitter<'_> {
         let mut walked = std::collections::BTreeSet::new();
         let mut bounds = Vec::new();
         let mut captured = std::collections::BTreeSet::new();
+        let mut records_seen = std::collections::BTreeSet::new();
         while let Some((ty, nested)) = pending.pop() {
+            if let Type::Record(id) = ty {
+                if records_seen.insert(id) {
+                    pending.extend(self.program.records[id].fields.iter().filter_map(|field| field.ty.map(|ty| (ty, true))));
+                }
+            }
             if let Type::Closure(id) = ty {
                 let closure = &self.program.closures[id];
                 if matches!(closure.forward, Some(ClosureForward::RestAdapter { .. })) && captured.insert(id) {
@@ -2101,6 +2107,7 @@ impl Emitter<'_> {
         self.set_types(&mut output);
         self.map_types(&mut output);
         for (index, record) in self.program.records.iter().enumerate() {
+            if self.program.scoped_records.declaration(index) != index { continue; }
             if let Some(definition) = &record.enum_definition {
                 let variants = (0..definition.members.len()).map(|member| format!("V{member}")).collect::<Vec<_>>().join(",");
                 let arms = definition.members.iter().enumerate().map(|(member, entry)| {
@@ -7390,7 +7397,7 @@ impl Emitter<'_> {
                 .collect::<Vec<_>>()
                 .join(", ");
             let values = self.order_values(index, fields, values);
-            format!("Record{index} {{ {values} }}")
+            format!("Record{} {{ {values} }}", self.program.scoped_records.declaration(index))
         };
         match mode {
             Mode::Read => format!("&({code})"),

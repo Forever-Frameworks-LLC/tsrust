@@ -48,7 +48,7 @@ impl Emitter<'_> {
                     let ty = field.ty.expect("checked record field");
                     self.scoped_record_native_parameter(ty).then(|| self.record_environment_type(ty, lifetimes, next))
                 }).collect::<Vec<_>>();
-                format!("Record{id}{}", lifetime_parameters(&arguments))
+                format!("Record{}{}", self.program.scoped_records.declaration(id), lifetime_parameters(&arguments))
             }
             Type::Union(id) | Type::BorrowedUnion(id) => {
                 if let Some(payload) = self.callback_payload(ty) {
