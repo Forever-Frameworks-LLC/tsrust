@@ -197,3 +197,36 @@ initialization and frame entry, and connect reader subscriptions to scheduling.
 Keep the missing-capture guard and the paired factory red intact. Native ownership,
 disposal, mutable instance updates, recursion convergence and feature acceptance
 remain pending.
+
+## Read-only factory environment entry WIP
+
+Engine now owns the environment store and includes producer call-site context and
+an optional correlated environment handle in contextual requests. Expression
+snapshots allocate environments for available nonmutable capture slots. Entry
+subscribes the request to record changes, restores the exact captured identities
+and retains the existing missing-capture guard. Changed records queue dependent
+readers. Invocation and forEach consume correlated body/environment alternatives;
+projected results remove producer slots from the original caller state.
+
+The retained paired named/arrow factory test now passes without exclusion. Repeated
+requests reuse the same request population. A compiler integration witness verifies
+that the second instance rejects wrong<T>(value) with an arity diagnostic and
+related declaration, while wrong<T>(value, value) passes. No source signature or
+runtime ownership rule was changed.
+
+This is read-only capture support, not complete factory acceptance. Mutable capture
+slots still follow the previous live-caller path. Environment-backed requests
+refuse contextual proof if captured slots change on any exit, or if live caller
+slots conflict with the retained snapshot. Returned environment snapshots are also
+checked against producer exit state; a new failing control exposed parameter
+reassignment after callback creation and is now guarded. These conservative guards
+must be replaced by verified ownership-aware local borrow and owned-instance
+updates, not removed merely to make mutable examples pass.
+
+The focused baseline passes 44 tests with no factory exclusion. All eight depth
+canaries and affected compiler flow suites pass, excluding the independently
+retained native common-carrier red. The whole editor crate passes. Exact logs are
+stored in SQLite. Whole-project formatting changes no files or fingerprints.
+Native factory ownership/disposal fixtures, mutable updates, recursive environment
+solver convergence, transitive environments and matched workload acceptance remain
+pending. Gate173 and the larger captured-effects plan remain open.

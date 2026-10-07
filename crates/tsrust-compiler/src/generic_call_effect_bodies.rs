@@ -125,6 +125,7 @@ impl Index {
         }
         Ok(index)
     }
+    pub(super) fn captures(&self, declaration: Span) -> Option<&HashSet<BindingId>> { self.required_captures.get(&(declaration.start,declaration.end)) }
     pub(super) fn captures_available(&self, declaration: Span, bindings: &[Binding]) -> bool {
         self.required_captures.get(&(declaration.start,declaration.end)).is_none_or(|captures| captures.iter().all(|capture| bindings.iter().any(|binding| binding.identity == Some(*capture))))
     }

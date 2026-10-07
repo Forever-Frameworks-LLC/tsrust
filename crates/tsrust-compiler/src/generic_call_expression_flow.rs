@@ -114,6 +114,8 @@ pub(super) struct Invocation {
     pub facts: Facts,
 }
 pub(super) trait Dispatch {
+    fn capture(&mut self, _: &Expr, _: &mut Value, _: &[Binding]) {}
+    fn validate_escape(&mut self, _: &Value, _: &[Binding]) -> bool {true}
     fn invoke(&mut self, expression: &Expr, callee: &Value, arguments: &[Value], state: &[Binding]) -> Option<Invocation>;
 }
 pub(super) struct UnknownDispatch;
@@ -202,7 +204,11 @@ pub(super) fn evaluate_with_dispatch(expression: &Expr, state: &mut Vec<Binding>
                     tasks.push(Task::Finish(expression, children.len()));
                     for (_, child) in children.iter().rev() { tasks.push(Task::Eval(child)); }
                 }
-                _ => values.push(snapshot(expression, state, declarations, effects)),
+                _ => {
+                    let mut value = snapshot(expression, state, declarations, effects);
+                    dispatch.capture(expression, &mut value, state);
+                    values.push(value);
+                }
             },
             Task::Discard => { values.pop().unwrap(); }
             Task::Commit(target) => { commit(target, values.last().unwrap(), state, effects); }

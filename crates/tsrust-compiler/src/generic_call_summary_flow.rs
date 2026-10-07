@@ -88,6 +88,7 @@ pub(super) fn invoke_with_dispatch(declaration: Span, caller: &[Binding], argume
         };
         outcome.facts.insert(key, value);
     }
+    if let (Some(value),Some(state))=(&outcome.returned_value,&outcome.returning) && !dispatch.validate_escape(value,state) {return None;}
     outcome.normal = outcome.normal.map(|state| frame.project(&state));
     outcome.returning = outcome.returning.map(|state| frame.project(&state));
     outcome.throwing = outcome.throwing.map(|state| frame.project(&state));

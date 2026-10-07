@@ -201,3 +201,19 @@ fn returned_callable_contracts_preserve_snapshots_and_finally_overrides() {
         else if let Err(error)=result {panic!("{}",error.render("return-snapshot.tsr",&source));}
     }
 }
+
+#[test]
+fn independent_factory_environments_reject_the_wrong_returned_contract() {
+    for factory in [
+        "function factory<A>(action:A){function select(){return action;}return select;}",
+        "function factory<A>(action:A){return ()=>action;}",
+    ] {
+        let source=tsrust_compiler::format(&format!("{DECLARATIONS}{factory}function unused<T>(value:T):T{{const first=factory(one);const second=factory(two);const saved=first();const wrong=second();saved<T>(value);wrong<T>(value);return value;}}function main(){{}}")).unwrap();
+        assert_eq!(tsrust_compiler::format(&source).unwrap(),source);
+        let error=tsrust_compiler::check(&source).err().expect("second instance requires two arguments");
+        assert_eq!(error.code,"arity","{}",error.render("factory.tsr",&source));
+        assert!(source[error.span.start..error.span.end].contains("wrong"),"{}",error.render("factory.tsr",&source));
+        assert!(!error.related.is_empty());
+        tsrust_compiler::check(&source.replace("wrong<T>(value)","wrong<T>(value, value)")).unwrap();
+    }
+}
