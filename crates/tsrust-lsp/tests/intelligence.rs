@@ -8094,3 +8094,19 @@ fn scoped_once_parameters_keep_public_hover_help_and_result_chains() {
     assert!(!hover.is_null());assert!(!hover["contents"]["value"].as_str().unwrap().contains("BorrowedCallable"));
     assert!(!ask(source,"textDocument/hover","toLowerCase()",0).is_null());
 }
+
+#[test]
+fn scoped_carrier_traversal_and_optional_calls_keep_public_editor_contracts() {
+    let source = "function main(){const offsets=[3,7];const flag=offsets.length===2;const selected=flag?((value:int):int=>value+offsets[0]):((value:int):int=>value+offsets[1]);const values=[1,2];const mapped=values.map(selected);const optional=flag?selected:null;const result=optional?.(3)??-1;console.log(mapped[0].toString(),result);}";
+    tsrust_compiler::check(source).unwrap();
+    for (needle,offset) in [("map(selected)",0),("optional=",0)] {
+        let hover=ask(source,"textDocument/hover",needle,offset);
+        assert!(!hover.is_null(),"{needle}");
+        assert!(!hover["contents"]["value"].as_str().unwrap().contains("BorrowedCallable"));
+    }
+    let help=ask(source,"textDocument/signatureHelp","3)??",0);
+    assert!(!help.is_null());
+    assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),1);
+    assert!(help["signatures"][0]["label"].as_str().unwrap().contains("int"));
+    assert!(!ask(source,"textDocument/hover","toString()",0).is_null());
+}

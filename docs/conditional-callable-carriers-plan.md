@@ -197,3 +197,19 @@ focused acceptance. See milestones/173-scoped-once-parameters.md. Native family
 identity accounting, owned failure adapters and higher-order input compatibility
 are verified. Public syntax remains Once. Scoped nullable/aggregate and builtin
 transport, polymorphic replacement and mutable environment restoration remain open.
+
+## Scoped traversal and nullable transport
+
+Scoped monomorphic families now pass array map/forEach, reduction, predicates, search,
+sort/toSorted, flatMap and Array.from, plus Set/Map forEach. Readonly native invocation
+uses shared borrowing; mutable invocation retains exclusive borrowing. Consuming
+traversal, receiver mutation conflicts and nullable return/throw escapes are rejected.
+Nullable families support typeof, optional invocation and result coalescing, including
+readonly/mutable callback parameter boundaries. Native nullable carriers use generic
+callable payloads, not data payload defaults containing unnamed lifetimes.
+
+The matched workload retains 136 observations with independent mapped, optional and
+mutable traversal values. A matched run exposes ambiguous Result protocol selection
+when multiple callback error bridges exist; traversal now selects the family's checked
+storage Result ABI explicitly. General scoped aggregate storage and combining distinct
+carrier families through coalescing remain open. See scoped-callable-transport.md.

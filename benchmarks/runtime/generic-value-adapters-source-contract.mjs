@@ -23,7 +23,7 @@ export function assertGenericAdapterSource(source,row,kind) {
         'const capturedOffset = base + 2;',
         `const capturedCarrier = base % 2 === 0 ? ((value: ${parameter}): ${parameter} => value + capturedOffset) : ((value: ${parameter}): ${parameter} => value * capturedOffset);`,
         'const capturedResult = capturedCarrier(base + 50);',
-        'commonResult, capturedResult, borrowedResult, borrowedMutation, consumedResult, retainedOnceResult]);',
+        'commonResult, capturedResult, borrowedResult, borrowedMutation, consumedResult, retainedOnceResult, traversalMapped[1], scopedOptionalResult, traversalTotal]);',
         'const borrowedValues = [base, base + 1];',
         'const borrowedReader = base % 2 === 0 ? (() => borrowedValues[0]) : (() => borrowedValues[1]);',
         'const borrowedResult = borrowedReader();',
@@ -45,6 +45,15 @@ export function assertGenericAdapterSource(source,row,kind) {
         'const retainedOnce = retainOnce(() => retainedPayload);',
         'const retainedRecord = retainedOnce();',
         'const retainedOnceResult = retainedRecord.value + retainedRecord.calls;',
+        `const traversalMapper = base % 2 === 0 ? ((value: ${parameter}): ${parameter} => value + borrowedValues[0]) : ((value: ${parameter}): ${parameter} => value + borrowedValues[1]);`,
+        'const traversalMapped = borrowedValues.map(traversalMapper);',
+        'const scopedOptional = base % 2 === 0 ? borrowedReader : null;',
+        'const scopedOptionalResult = scopedOptional?.() ?? 0;',
+        'let traversalTotal = 0;',
+        `const traversalObserver = base % 2 === 0 ? ((value: ${parameter}): void => { traversalTotal += value; }) : ((value: ${parameter}): void => { traversalTotal += value * 2; });`,
+        'borrowedValues.forEach(traversalObserver);',
+        'traversalMapped[1], scopedOptionalResult, traversalTotal',
+
 
     ])if(!containsCodeSnippet(tokens,snippet))throw Error('Common conditional carrier scenario changed: '+snippet);
 

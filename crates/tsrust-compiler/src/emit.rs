@@ -267,7 +267,7 @@ impl Emitter<'_> {
                 .find(|member| {
                     matches!(
                         member,
-                        Type::Callback(_) | Type::Closure(_) | Type::StoredCallable(_)
+                        Type::Callback(_) | Type::Closure(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)
                     )
                 })
         })
@@ -425,7 +425,7 @@ impl Emitter<'_> {
             let callable = union.members.iter().any(|member| {
                 matches!(
                     member,
-                    Type::Callback(_) | Type::Closure(_) | Type::StoredCallable(_) | Type::Callable(_)
+                    Type::Callback(_) | Type::Closure(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_) | Type::Callable(_)
                 )
             });
             if callable {
@@ -439,7 +439,7 @@ impl Emitter<'_> {
                     prior.members.iter().any(|ty| {
                         matches!(
                             ty,
-                            Type::Callback(_) | Type::Closure(_) | Type::StoredCallable(_) | Type::Callable(_)
+                            Type::Callback(_) | Type::Closure(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_) | Type::Callable(_)
                         )
                     }) && prior
                         .members
@@ -483,7 +483,7 @@ impl Emitter<'_> {
             let member_type = |member: Type| {
                 if matches!(
                     member,
-                    Type::Callback(_) | Type::Closure(_) | Type::StoredCallable(_) | Type::Callable(_)
+                    Type::Callback(_) | Type::Closure(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_) | Type::Callable(_)
                 ) {
                     "F".into()
                 } else if let Some(position) = data_payloads.iter().position(|payload| *payload == member) {
@@ -942,6 +942,7 @@ impl Emitter<'_> {
                     Type::Closure(_)
                     | Type::Callback(_)
                     | Type::StoredCallable(_)
+                    | Type::BorrowedCallable(_)
                     | Type::Callable(_) => "function",
                     _ => unreachable!("nullable data member"),
                 };
@@ -1179,7 +1180,7 @@ impl Emitter<'_> {
                             .position(|ty| {
                                 ty == member
                                     || matches!(ty, Type::Callback(_))
-                                        && matches!(member, Type::Closure(_) | Type::Callback(_))
+                                        && matches!(member, Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_))
                             })
                             .expect("view subset");
                         format!(
@@ -1197,7 +1198,7 @@ impl Emitter<'_> {
                 .position(|ty| {
                     *ty == actual
                         || matches!(ty, Type::Callback(_))
-                            && matches!(actual, Type::Closure(_) | Type::Callback(_))
+                            && matches!(actual, Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_))
                 })
                 .expect("view member");
             let source = if actual.is_copy() {
@@ -1241,7 +1242,7 @@ impl Emitter<'_> {
                         .position(|ty| {
                             ty == member
                                 || matches!(ty, Type::Callback(_))
-                                    && matches!(member, Type::Closure(_) | Type::Callback(_))
+                                    && matches!(member, Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_))
                         })
                         .expect("subset union widening");
                     format!(
@@ -1260,7 +1261,7 @@ impl Emitter<'_> {
                 .or_else(|| {
                     target.iter().position(|ty| {
                         matches!(ty, Type::Callback(_))
-                            && matches!(actual, Type::Closure(_) | Type::Callback(_))
+                            && matches!(actual, Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_))
                     })
                 })
                 .expect("union member injection");
@@ -1595,9 +1596,21 @@ impl Emitter<'_> {
 
     #[inline(never)]
     fn registered_traversal_call(&self,call:String,callback:&Expr)->String {
+        // A concrete family may implement multiple checked Result adapters.
+        // Traversal uses its canonical storage error ABI, not an inferred bridge.
+        let call = if let Some(Type::StoredCallable(family) | Type::BorrowedCallable(family)) = callback.ty
+            && let Some((error, _)) = self.result_storage.borrow().get(&family) {
+            let declaration = self.program.stored_contracts.declaration(family).expect("checked traversal family");
+            let result = format!("Result<{},{}>", self.native_type(self.program.callback_contracts[declaration].result), error);
+            if let Some(method) = call.strip_prefix("ReadCallback::") {
+                format!("ReadCallback::<_,{result}>::{method}")
+            } else if let Some(method) = call.strip_prefix("Callback::") {
+                format!("Callback::<_,{result}>::{method}")
+            } else { call }
+        } else { call };
         match callback.ty.expect("checked traversal callback") {
             Type::Callback(id)=>self.registered_callback_call(call,id,callback.span),
-            Type::StoredCallable(family)=>self.registered_storage_call(call,family,callback.span),
+            Type::StoredCallable(family)|Type::BorrowedCallable(family)=>self.registered_storage_call(call,family,callback.span),
             Type::Closure(origin)=>{
                 if let Some(method)=callback.traversal_method {
                     if let Some(name)=self.result_methods.borrow().get(&(origin,method.id)).cloned() {
@@ -4275,7 +4288,7 @@ impl Emitter<'_> {
                 parameters.last().is_some_and(|&id| function.bindings[id].rest)
             }
             Type::Callback(id) => self.program.callback_contracts[id].params.last().is_some_and(|parameter| parameter.rest),
-            Type::StoredCallable(family) => self.program.callback_contracts[self.program.stored_contracts.declaration(family).expect("checked traversal storage")].params.last().is_some_and(|parameter| parameter.rest),
+            Type::StoredCallable(family) | Type::BorrowedCallable(family) => self.program.callback_contracts[self.program.stored_contracts.declaration(family).expect("checked traversal storage")].params.last().is_some_and(|parameter| parameter.rest),
             _ => unreachable!("checked array callback"),
         };
         if rest { supplied } else { fixed }
@@ -4300,7 +4313,7 @@ impl Emitter<'_> {
                 parameters.iter().map(|&parameter| ArgumentContract::from(&function.bindings[parameter])).collect::<Vec<_>>()
             }
             Type::Callback(id) => self.program.callback_contracts[id].params.clone(),
-            Type::StoredCallable(family) => self.program.callback_contracts[self.program.stored_contracts.declaration(family).expect("checked traversal storage")].params.clone(),
+            Type::StoredCallable(family) | Type::BorrowedCallable(family) => self.program.callback_contracts[self.program.stored_contracts.declaration(family).expect("checked traversal storage")].params.clone(),
             _ => unreachable!("checked array callback"),
         };
         // Mutable callable elements use protected tuples without the source
@@ -4328,7 +4341,7 @@ impl Emitter<'_> {
                 };
             }
             let variant = self.program.unions[union.index()].members.iter().position(|member| {
-                *member == actual || matches!(member, Type::Callback(_) | Type::StoredCallable(_)) && matches!(actual, Type::Closure(_) | Type::StoredCallable(_))
+                *member == actual || matches!(member, Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)) && matches!(actual, Type::Closure(_) | Type::StoredCallable(_))
             }).expect("checked array input union member");
             let view = !union.copy && parameter.mode == Mode::Read;
             let value = if view && actual.is_copy() { format!("&({value})") } else { value };
@@ -4398,7 +4411,7 @@ impl Emitter<'_> {
         let mut fallible = false;
         let compare = if let Some(callback) = args.first() {
             let callback_type = callback.ty.expect("checked comparator");
-            let read_callback=matches!(callback_type,Type::Callback(id) if matches!(self.program.callback_contracts[id].kind,CallbackKind::Read|CallbackKind::SharedRead));
+            let read_callback=self.program.stored_contracts.callback_declaration(callback_type).is_some_and(|id| matches!(self.program.callback_contracts[id].kind,CallbackKind::Read|CallbackKind::SharedRead));
             let invocation=if read_callback{"ReadCallback::invoke_read"}else{"Callback::invoke"};
             let environment = self.expr(fun, callback, if read_callback{Mode::Read}else{Mode::Mutate});
             write!(code, "let sorting_callback = {environment}; ").unwrap();
@@ -4411,7 +4424,7 @@ impl Emitter<'_> {
                     self.program.callback_contracts[id].params.len(),
                     self.program.callback_contracts[id].result,
                 ),
-                Type::StoredCallable(family) => {
+                Type::StoredCallable(family) | Type::BorrowedCallable(family) => {
                     let contract = &self.program.callback_contracts[self.program.stored_contracts.declaration(family).expect("checked traversal storage")];
                     (contract.params.len(), contract.result)
                 },
@@ -4433,12 +4446,12 @@ impl Emitter<'_> {
             let call = if self.array_callback_counted_method(callback_type, callback.traversal_method) {
                 format!("sorting_callback.call{}_with_count({}{})", callback.traversal_method.expect("checked counted method").id, 2, if values.is_empty() { String::new() } else { format!(", {}", values.join(", ")) })
             } else if self.counted_calls && callback.traversal_method.is_none() {
-                if matches!(callback_type, Type::Callback(_) | Type::StoredCallable(_)) {
+                if matches!(callback_type, Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)) {
                     self.counted_invocation(invocation, "sorting_callback", &tuple(values.into_iter()), 2)
                 } else {
                     self.counted_call("sorting_callback", &values.join(", "), 2)
                 }
-            } else if matches!(callback_type, Type::Callback(_) | Type::StoredCallable(_)) {
+            } else if matches!(callback_type, Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)) {
                 format!(
                     "{invocation}(sorting_callback, {})",
                     tuple(values.into_iter())
@@ -4814,7 +4827,7 @@ impl Emitter<'_> {
             },
         );
         let callback_type = args[0].ty.expect("checked reduction callback");
-        let read_callback=matches!(callback_type,Type::Callback(id) if matches!(self.program.callback_contracts[id].kind,CallbackKind::Read|CallbackKind::SharedRead));
+        let read_callback=self.program.stored_contracts.callback_declaration(callback_type).is_some_and(|id| matches!(self.program.callback_contracts[id].kind,CallbackKind::Read|CallbackKind::SharedRead));
         let invocation=if read_callback{"ReadCallback::invoke_read"}else{"Callback::invoke"};
         let callback = self.expr(fun, &args[0], if read_callback{Mode::Read}else{Mode::Mutate});
         let parameters = match callback_type {
@@ -4826,7 +4839,7 @@ impl Emitter<'_> {
                 })
                 .collect::<Vec<_>>(),
             Type::Callback(id) => self.program.callback_contracts[id].params.clone(),
-            Type::StoredCallable(family) => self.program.callback_contracts[self.program.stored_contracts.declaration(family).expect("checked traversal storage")].params.clone(),
+            Type::StoredCallable(family) | Type::BorrowedCallable(family) => self.program.callback_contracts[self.program.stored_contracts.declaration(family).expect("checked traversal storage")].params.clone(),
             _ => unreachable!("checked reduction callback"),
         };
         let parameter_count = self.array_callback_supplied_count(callback_type, method, parameters.len(), if method.is_some_and(|method| method.access == Mode::Mutate) { 3 } else { 4 });
@@ -4867,12 +4880,12 @@ impl Emitter<'_> {
         let call = if self.array_callback_counted_method(callback_type, method) {
                 format!("reduce_callback.call{}_with_count({}{})", method.expect("checked counted method").id, if method.is_some_and(|method| method.access == Mode::Mutate) { 3 } else { 4 }, if arguments.is_empty() { String::new() } else { format!(", {}", arguments.join(", ")) })
             } else if self.counted_calls && method.is_none() {
-            if matches!(callback_type, Type::Callback(_) | Type::StoredCallable(_)) {
+            if matches!(callback_type, Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)) {
                 self.counted_invocation(invocation, "reduce_callback", &tuple(arguments.into_iter()), if method.is_some_and(|method| method.access == Mode::Mutate) { 3 } else { 4 })
             } else {
                 self.counted_call("reduce_callback", &arguments.join(", "), if method.is_some_and(|method| method.access == Mode::Mutate) { 3 } else { 4 })
             }
-        } else if matches!(callback_type, Type::Callback(_) | Type::StoredCallable(_)) {
+        } else if matches!(callback_type, Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)) {
             format!(
                 "{invocation}(reduce_callback, {})",
                 tuple(arguments.into_iter())
@@ -5033,7 +5046,7 @@ impl Emitter<'_> {
             },
         );
         let callback_type = callback.ty.expect("flatMap callback");
-        let read_callback=matches!(callback_type,Type::Callback(id) if matches!(self.program.callback_contracts[id].kind,CallbackKind::Read|CallbackKind::SharedRead));
+        let read_callback=self.program.stored_contracts.callback_declaration(callback_type).is_some_and(|id| matches!(self.program.callback_contracts[id].kind,CallbackKind::Read|CallbackKind::SharedRead));
         let invocation=if read_callback{"ReadCallback::invoke_read"}else{"Callback::invoke"};
         let environment = self.expr(fun, callback, if read_callback{Mode::Read}else{Mode::Mutate});
         let (parameter_count, returned) = match callback_type {
@@ -5047,7 +5060,7 @@ impl Emitter<'_> {
                 self.program.callback_contracts[id].params.len(),
                 self.program.callback_contracts[id].result,
             ),
-            Type::StoredCallable(family) => {
+            Type::StoredCallable(family) | Type::BorrowedCallable(family) => {
                 let contract = &self.program.callback_contracts[self.program.stored_contracts.declaration(family).expect("checked traversal storage")];
                 (contract.params.len(), contract.result)
             },
@@ -5089,12 +5102,12 @@ impl Emitter<'_> {
         let call = if self.array_callback_counted_method(callback_type, method) {
                 format!("flatmap_callback.call{}_with_count({}{})", method.expect("checked counted method").id, if method.is_some_and(|method| method.access == Mode::Mutate) { 2 } else { 3 }, if arguments.is_empty() { String::new() } else { format!(", {}", arguments.join(", ")) })
             } else if self.counted_calls && method.is_none() {
-            if matches!(callback_type, Type::Callback(_) | Type::StoredCallable(_)) {
+            if matches!(callback_type, Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)) {
                 self.counted_invocation(invocation, "flatmap_callback", &tuple(arguments.into_iter()), if method.is_some_and(|method| method.access == Mode::Mutate) { 2 } else { 3 })
             } else {
                 self.counted_call("flatmap_callback", &arguments.join(", "), if method.is_some_and(|method| method.access == Mode::Mutate) { 2 } else { 3 })
             }
-        } else if matches!(callback_type, Type::Callback(_) | Type::StoredCallable(_)) {
+        } else if matches!(callback_type, Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)) {
             format!(
                 "{invocation}(flatmap_callback,{})",
                 tuple(arguments.into_iter())
@@ -5149,13 +5162,13 @@ impl Emitter<'_> {
             },
         );
         let callback_type = callback.ty.expect("checked array callback");
-        let read_callback=matches!(callback_type,Type::Callback(id) if matches!(self.program.callback_contracts[id].kind,CallbackKind::Read|CallbackKind::SharedRead));
+        let read_callback=self.program.stored_contracts.callback_declaration(callback_type).is_some_and(|id| matches!(self.program.callback_contracts[id].kind,CallbackKind::Read|CallbackKind::SharedRead));
         let invocation=if read_callback{"ReadCallback::invoke_read"}else{"Callback::invoke"};
         let environment = self.expr(fun, callback, if read_callback{Mode::Read}else{Mode::Mutate});
         let parameter_count = match callback_type {
             Type::Closure(id) => self.program.closures[id].parameters.len(),
             Type::Callback(id) => self.program.callback_contracts[id].params.len(),
-            Type::StoredCallable(family) => self.program.callback_contracts[self.program.stored_contracts.declaration(family).expect("checked traversal storage")].params.len(),
+            Type::StoredCallable(family) | Type::BorrowedCallable(family) => self.program.callback_contracts[self.program.stored_contracts.declaration(family).expect("checked traversal storage")].params.len(),
             _ => unreachable!("checked reusable callback"),
         };
         let parameter_count = self.array_callback_supplied_count(callback_type, method, parameter_count, if from_array || method.is_some_and(|method| method.access == Mode::Mutate) { 2 } else { 3 });
@@ -5198,12 +5211,12 @@ impl Emitter<'_> {
         let call = if self.array_callback_counted_method(callback_type, method) {
                 format!("transform_callback.call{}_with_count({}{})", method.expect("checked counted method").id, if from_array || method.is_some_and(|method| method.access == Mode::Mutate) { 2 } else { 3 }, if arguments.is_empty() { String::new() } else { format!(", {}", arguments.join(", ")) })
             } else if self.counted_calls && method.is_none() {
-            if matches!(callback_type, Type::Callback(_) | Type::StoredCallable(_)) {
+            if matches!(callback_type, Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)) {
                 self.counted_invocation(invocation, "transform_callback", &tuple(arguments.into_iter()), if from_array || method.is_some_and(|method| method.access == Mode::Mutate) { 2 } else { 3 })
             } else {
                 self.counted_call("transform_callback", &arguments.join(", "), if from_array || method.is_some_and(|method| method.access == Mode::Mutate) { 2 } else { 3 })
             }
-        } else if matches!(callback_type, Type::Callback(_) | Type::StoredCallable(_)) {
+        } else if matches!(callback_type, Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)) {
             format!(
                 "{invocation}(transform_callback, {})",
                 tuple(arguments.into_iter())
@@ -5488,13 +5501,13 @@ impl Emitter<'_> {
             },
         );
         let callback_type = callback.ty.expect("checked array for_each callback");
-        let read_callback=matches!(callback_type,Type::Callback(id) if matches!(self.program.callback_contracts[id].kind,CallbackKind::Read|CallbackKind::SharedRead));
+        let read_callback=self.program.stored_contracts.callback_declaration(callback_type).is_some_and(|id| matches!(self.program.callback_contracts[id].kind,CallbackKind::Read|CallbackKind::SharedRead));
         let environment = self.expr(fun, callback, if read_callback{Mode::Read}else{Mode::Mutate});
         let invocation=if read_callback{"ReadCallback::invoke_read"}else{"Callback::invoke"};
         let parameter_count = match callback_type {
             Type::Closure(id) => self.program.closures[id].parameters.len(),
             Type::Callback(id) => self.program.callback_contracts[id].params.len(),
-            Type::StoredCallable(family) => self.program.callback_contracts[self.program.stored_contracts.declaration(family).expect("checked traversal storage")].params.len(),
+            Type::StoredCallable(family) | Type::BorrowedCallable(family) => self.program.callback_contracts[self.program.stored_contracts.declaration(family).expect("checked traversal storage")].params.len(),
             _ => unreachable!("checked reusable callback"),
         };
         let parameter_count = self.array_callback_supplied_count(callback_type, method, parameter_count, if method.is_some_and(|method| method.access == Mode::Mutate) { 2 } else { 3 });
@@ -5531,12 +5544,12 @@ impl Emitter<'_> {
         let call = if self.array_callback_counted_method(callback_type, method) {
                 format!("for_each_callback.call{}_with_count({}{})", method.expect("checked counted method").id, if method.is_some_and(|method| method.access == Mode::Mutate) { 2 } else { 3 }, if arguments.is_empty() { String::new() } else { format!(", {}", arguments.join(", ")) })
             } else if self.counted_calls && method.is_none() {
-            if matches!(callback_type, Type::Callback(_) | Type::StoredCallable(_)) {
+            if matches!(callback_type, Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)) {
                 self.counted_invocation(invocation, "for_each_callback", &tuple(arguments.into_iter()), if method.is_some_and(|method| method.access == Mode::Mutate) { 2 } else { 3 })
             } else {
                 self.counted_call("for_each_callback", &arguments.join(", "), if method.is_some_and(|method| method.access == Mode::Mutate) { 2 } else { 3 })
             }
-        } else if matches!(callback_type, Type::Callback(_) | Type::StoredCallable(_)) {
+        } else if matches!(callback_type, Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)) {
             format!(
                 "{invocation}(for_each_callback, {})",
                 tuple(arguments.into_iter())
@@ -5595,13 +5608,13 @@ impl Emitter<'_> {
             },
         );
         let callback_type = callback.ty.expect("checked array predicate callback");
-        let read_callback=matches!(callback_type,Type::Callback(id) if matches!(self.program.callback_contracts[id].kind,CallbackKind::Read|CallbackKind::SharedRead));
+        let read_callback=self.program.stored_contracts.callback_declaration(callback_type).is_some_and(|id| matches!(self.program.callback_contracts[id].kind,CallbackKind::Read|CallbackKind::SharedRead));
         let invocation=if read_callback{"ReadCallback::invoke_read"}else{"Callback::invoke"};
         let environment = self.expr(fun, callback, if read_callback{Mode::Read}else{Mode::Mutate});
         let parameter_count = match callback_type {
             Type::Closure(id) => self.program.closures[id].parameters.len(),
             Type::Callback(id) => self.program.callback_contracts[id].params.len(),
-            Type::StoredCallable(family) => self.program.callback_contracts[self.program.stored_contracts.declaration(family).expect("checked traversal storage")].params.len(),
+            Type::StoredCallable(family) | Type::BorrowedCallable(family) => self.program.callback_contracts[self.program.stored_contracts.declaration(family).expect("checked traversal storage")].params.len(),
             _ => unreachable!("checked reusable callback"),
         };
         let parameter_count = self.array_callback_supplied_count(callback_type, visitor_method, parameter_count, if visitor_method.is_some_and(|method| method.access == Mode::Mutate) { 2 } else { 3 });
@@ -5632,12 +5645,12 @@ impl Emitter<'_> {
         let call = if self.array_callback_counted_method(callback_type, visitor_method) {
                 format!("predicate_callback.call{}_with_count({}{})", visitor_method.expect("checked counted method").id, if visitor_method.is_some_and(|method| method.access == Mode::Mutate) { 2 } else { 3 }, if arguments.is_empty() { String::new() } else { format!(", {}", arguments.join(", ")) })
             } else if self.counted_calls && visitor_method.is_none() {
-            if matches!(callback_type, Type::Callback(_) | Type::StoredCallable(_)) {
+            if matches!(callback_type, Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)) {
                 self.counted_invocation(invocation, "predicate_callback", &tuple(arguments.into_iter()), if visitor_method.is_some_and(|method| method.access == Mode::Mutate) { 2 } else { 3 })
             } else {
                 self.counted_call("predicate_callback", &arguments.join(", "), if visitor_method.is_some_and(|method| method.access == Mode::Mutate) { 2 } else { 3 })
             }
-        } else if matches!(callback_type, Type::Callback(_) | Type::StoredCallable(_)) {
+        } else if matches!(callback_type, Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)) {
             format!(
                 "{invocation}(predicate_callback, {})",
                 tuple(arguments.into_iter())

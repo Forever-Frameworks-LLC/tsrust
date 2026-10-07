@@ -5006,7 +5006,7 @@ impl Analyzer {
                 .related(self.closures[origin].span,"Borrowed callable is created here."));
         }
         let ty=self.expression(context,value,Mode::Consume,&Loans::new(),expected)?;
-        if matches!(ty,Type::BorrowedCallable(_)) {return Err(Diagnostic::new("closure-escape","A thrown callable must own its captured storage.",value.span));}
+        if matches!(self.unions.payload(ty).unwrap_or(ty),Type::BorrowedCallable(_)) {return Err(Diagnostic::new("closure-escape","A thrown callable must own its captured storage.",value.span));}
         if ty==Type::Void {return Err(Diagnostic::new("type","A thrown expression must produce a value.",value.span));}
         self.record_typed_completion(context,crate::completion::CompletionKind::Throw,ty,value.span);
         Ok(ty)
@@ -5321,7 +5321,7 @@ impl Analyzer {
             None => Type::Void,
         };
         context.returning_closure = false;
-        if matches!(actual,Type::BorrowedCallable(_)) {
+        if matches!(self.unions.payload(actual).unwrap_or(actual),Type::BorrowedCallable(_)) {
             return Err(Diagnostic::new("callback-escape","A scoped borrowed callable family cannot escape its captured storage.",span));
         }
         let converted =
@@ -9372,6 +9372,10 @@ impl Analyzer {
             } if matches!(op,BinaryOp::Coalesce|BinaryOp::PatternDefault) => self.coalesce_hint(context, left, right, expr.span,*op==BinaryOp::PatternDefault),
             ExprKind::Unary { op, value, .. } => {
                 if *op==UnaryOp::PatternSelection {return self.pattern_selection_hint(context,value);}
+                if *op == UnaryOp::OptionalBoundary {
+                    let ty = self.expression_type_hint(context, value)?;
+                    return self.unions.present(ty.owning(), expr.span).ok().flatten();
+                }
                 if *op == UnaryOp::Typeof {
                     return Some(Type::String);
                 }
@@ -9479,7 +9483,7 @@ impl Analyzer {
                             ..
                         }
                         | ExprKind::Unary {
-                            op: UnaryOp::RestPack | UnaryOp::CoalesceSelected | UnaryOp::OptionalSelected | UnaryOp::NonNull,
+                            op: UnaryOp::RestPack | UnaryOp::CoalesceSelected | UnaryOp::OptionalSelected | UnaryOp::NonNull | UnaryOp::OptionalBoundary,
                             ..
                         }
                 ) {
@@ -9487,6 +9491,7 @@ impl Analyzer {
                         Type::Closure(id) if self.deferred_generic_values.contains_key(&id) => None,
                         Type::Closure(id) => Some(self.closures[id].function.result),
                         Type::Callback(id) => Some(self.callables.callbacks[id].result),
+                        Type::StoredCallable(id) | Type::BorrowedCallable(id) => self.callables.storage.declaration(id).map(|id| self.callables.callbacks[id].result),
                         _ => None,
                     };
                 }
@@ -10917,6 +10922,7 @@ impl Analyzer {
                 closure.parameters.iter().position(|&id| closure.function.bindings[id].rest)
             }
             Some(Type::Callback(id)) => self.callables.callbacks[id].params.iter().position(|parameter| parameter.rest),
+            Some(ty @ (Type::StoredCallable(_) | Type::BorrowedCallable(_))) => self.callables.storage.callback_declaration(ty).and_then(|id| self.callables.callbacks[id].params.iter().position(|parameter| parameter.rest)),
             Some(Type::Callable(id)) => self.callables.results[id].params.iter().position(|parameter| parameter.rest),
             _ => None,
         }
@@ -11116,8 +11122,8 @@ self.names_materialized_type(element.with_depth(0).ty())
                     once,
                 )
             }
-            Type::Callback(id) | Type::StoredCallable(id) => {
-                let id = if matches!(ty, Type::StoredCallable(_)) {
+            Type::Callback(id) | Type::StoredCallable(id) | Type::BorrowedCallable(id) => {
+                let id = if matches!(ty, Type::StoredCallable(_) | Type::BorrowedCallable(_)) {
                     self.callables.storage.declaration(id).expect("checked traversal storage")
                 } else { id };
                 let contract = &self.callables.callbacks[id];
@@ -11476,8 +11482,8 @@ self.names_materialized_type(element.with_depth(0).ty())
                         }),
                 )
             }
-            Type::Callback(id) | Type::StoredCallable(id) => {
-                let id = if matches!(callback, Type::StoredCallable(_)) {
+            Type::Callback(id) | Type::StoredCallable(id) | Type::BorrowedCallable(id) => {
+                let id = if matches!(callback, Type::StoredCallable(_) | Type::BorrowedCallable(_)) {
                     self.callables.storage.declaration(id).expect("checked traversal storage")
                 } else { id };
                 let contract = &self.callables.callbacks[id];
@@ -11955,8 +11961,8 @@ self.names_materialized_type(element.with_depth(0).ty())
                             }),
                     )
                 }
-                Type::Callback(id) | Type::StoredCallable(id) => {
-                    let id = if matches!(callback_type, Type::StoredCallable(_)) {
+                Type::Callback(id) | Type::StoredCallable(id) | Type::BorrowedCallable(id) => {
+                    let id = if matches!(callback_type, Type::StoredCallable(_) | Type::BorrowedCallable(_)) {
                         self.callables.storage.declaration(id).expect("checked traversal storage")
                     } else { id };
                     let contract = &self.callables.callbacks[id];

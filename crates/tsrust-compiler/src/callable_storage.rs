@@ -312,6 +312,15 @@ impl Registry {
             .map(|(id, origins)| (id, self.declarations[id], origins.as_slice()))
     }
 
+    /// Resolve callback protocol metadata without changing storage ownership.
+    pub(crate) fn callback_declaration(&self, ty: crate::syntax::Type) -> Option<usize> {
+        match ty {
+            crate::syntax::Type::Callback(id) => Some(id),
+            crate::syntax::Type::StoredCallable(id) | crate::syntax::Type::BorrowedCallable(id) => self.declaration(id),
+            _ => None,
+        }
+    }
+
     pub(crate) fn declaration(&self, family: usize) -> Option<usize> {
         self.declarations.get(family).copied()
     }

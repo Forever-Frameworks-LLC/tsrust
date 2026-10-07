@@ -711,3 +711,10 @@ matched adapter scenario has 133 observations with untimed native/compiled-TypeS
 verification. Existing Once syntax remains sufficient. Scoped aggregate/builtin
 transport, polymorphic replacement and mutable environment restoration remain open.
 See milestones/173-scoped-once-parameters.md.
+
+Scoped monomorphic families now cross reusable collection traversals and nullable
+readonly/mutable callback boundaries. Optional invocation, typeof, failures and
+escape diagnostics have focused acceptance. Matched adapters retain 136 observations
+with untimed native/compiled-TypeScript verification. General scoped aggregate storage,
+distinct-family coalescing, polymorphic replacement and mutable restoration remain open.
+See milestones/173-scoped-callable-transport.md.

@@ -117,7 +117,7 @@ impl UnionArena {
             ));
         }
         let payloads = members.iter().filter(|ty| !matches!(ty, Type::Null | Type::Undefined)).count();
-        if payloads > 1 && members.iter().any(|ty| matches!(ty, Type::Closure(_) | Type::Callable(_) | Type::Callback(_) | Type::StoredCallable(_))) {
+        if payloads > 1 && members.iter().any(|ty| matches!(ty, Type::Closure(_) | Type::Callable(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_))) {
             return Err(Diagnostic::new("unsupported", "Callable unions support one callable payload with null, undefined, or both.", span));
         }
         // Canonical data alternatives precede absent tags, independent of spelling.
@@ -244,6 +244,8 @@ mod tests {
             vec![Type::Void, Type::Undefined],
             vec![Type::Closure(0), Type::Callback(0), Type::Null],
             vec![Type::Callable(0), Type::StoredCallable(0), Type::Undefined],
+            vec![Type::BorrowedCallable(0), Type::Int, Type::Null],
+            vec![Type::BorrowedCallable(0), Type::BorrowedCallable(1), Type::Null],
         ] {
             assert!(arena.intern(members, Span::new(0, 1)).is_err());
         }
@@ -264,6 +266,7 @@ mod tests {
             Type::Callable(0),
             Type::Callback(0),
             Type::StoredCallable(0),
+            Type::BorrowedCallable(0),
         ] {
             let narrow = intern(&arena, &[payload, Type::Null]);
             let wide = intern(&arena, &[Type::Undefined, narrow]);
@@ -279,7 +282,7 @@ mod tests {
             assert!(arena.accepts(wide, payload));
             assert!(!arena.accepts(narrow, wide));
         }
-        assert_eq!(arena.snapshot().len(), 8);
+        assert_eq!(arena.snapshot().len(), 10);
     }
 
     #[test]
