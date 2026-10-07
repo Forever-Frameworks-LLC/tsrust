@@ -7919,3 +7919,15 @@ fn unused_dynamic_spread_errors_explain_guaranteed_argument_counts() {
     assert_eq!(diagnostics[0]["message"],"Callable expects 1 argument, but this call supplies at least 2.","{diagnostics}");
     assert_eq!(diagnostics[0]["range"]["start"],json!(at(source,"alias(value",0)),"{diagnostics}");
 }
+
+#[test]
+fn selected_source_call_errors_retain_both_declarations() {
+    let source="function identity<T>(value:T):T{return value;}function other<T>(value:T):T{return value;}function unused<T>(flag:boolean,value:T):T{return (flag?identity:other)(value,value);}function main(){}";
+    let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(source,"file:///test.tsr").unwrap()).unwrap();
+    assert_eq!(diagnostics[0]["code"],"arity","{diagnostics}");
+    let related=diagnostics[0]["relatedInformation"].as_array().unwrap();
+    assert_eq!(related.len(),2,"{diagnostics}");
+    for declaration in ["identity<","other<"] {
+        assert!(related.iter().any(|item| item["location"]["range"]["start"]==json!(at(source,declaration,0))),"{diagnostics}");
+    }
+}

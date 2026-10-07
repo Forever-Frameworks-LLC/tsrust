@@ -620,3 +620,57 @@ fn unused_mutable_and_selected_aliases_validate_known_call_contracts() {
     }
     assert!(accepted.is_empty(),"Invalid mutable/selected calls accepted: {accepted:#?}");
 }
+
+#[test]
+fn source_target_joins_preserve_common_shapes_and_self_assignment() {
+    for source in [
+        "function identity<T>(value:T):T{return value;}function other<T>(value:T):T{return value;}function unused<T>(flag:boolean,value:T):T{let alias=identity;if(flag){alias=other;}return alias<T>(value);}function main(){}",
+        "function identity<T>(value:T):T{return value;}function unused<T>(value:T):T{let alias=identity;alias=alias;return alias<T>(value);}function main(){}",
+    ] { tsrust_compiler::check(source).unwrap_or_else(|error|panic!("{}",error.render("input.tsr",source))); }
+}
+
+#[test]
+fn unused_direct_selected_calls_validate_common_source_contracts() {
+    let source="function identity<T>(value:T):T{return value;}function other<T>(value:T):T{return value;}function unused<T>(flag:boolean,value:T):T{return (flag?identity:other)(value,value);}function main(){}";
+    let error=tsrust_compiler::check(source).err().expect("direct selected calls retain common source cardinality");
+    assert_eq!(error.code,"arity","{}",error.render("input.tsr",source));
+}
+
+#[test]
+fn mutable_source_contracts_cover_loops_closure_writes_and_shadowing() {
+    let mut accepted=Vec::new();
+    for source in [
+        "function identity<T>(value:T):T{return value;}function other<T>(value:T):T{return value;}function unused<T>(flag:boolean,value:T):T{let alias=identity;while(flag){alias=other;}return alias(value,value);}function main(){}",
+        "function identity<T>(value:T):T{return value;}function other<T>(value:T):T{return value;}function unused<T>(value:T):T{let alias=identity;const change=():void=>{alias=other;};return alias(value,value);}function main(){}",
+        "function identity<T>(value:T):T{return value;}function other<T>(value:T):T{return value;}function unused<T>(value:T):T{let alias=identity;const next=(alias=other);return alias(value,value);}function main(){}",
+    ] {
+        match tsrust_compiler::check(source) {
+            Ok(_)=>accepted.push(source),
+            Err(error)=>assert_eq!(error.code,"arity","{}",error.render("input.tsr",source)),
+        }
+    }
+    assert!(accepted.is_empty(),"Invalid calls accepted: {accepted:#?}");
+    let source="function identity<T>(value:T):T{return value;}function unused<T>(value:T):T{let alias=identity;{const alias=(left:T,right:T):T=>left;alias(value,value);}return alias(value);}function main(){}";
+    tsrust_compiler::check(source).unwrap_or_else(|error|panic!("{}",error.render("input.tsr",source)));
+}
+
+#[test]
+fn unused_mutable_calls_before_different_shape_writes_still_validate() {
+    let source="function one<T>(value:T):T{return value;}function two<T>(left:T,right:T):T{return left;}function unused<T>(value:T):T{let alias=one;const result=alias(value,value);alias=two;return result;}function main(){}";
+    let error=tsrust_compiler::check(source).err().expect("later writes cannot hide an invalid earlier call");
+    assert_eq!(error.code,"arity","{}",error.render("input.tsr",source));
+}
+
+#[test]
+fn unused_definite_callable_overwrite_uses_the_new_contract() {
+    let source="function one<T>(value:T):T{return value;}function two<T>(left:T,right:T):T{return left;}function unused<T>(value:T):T{let alias=one;alias=two;return alias(value);}function main(){}";
+    let error=tsrust_compiler::check(source).err().expect("definite overwrite changes the call contract");
+    assert_eq!(error.code,"arity","{}",error.render("input.tsr",source));
+}
+
+#[test]
+fn immutable_callable_snapshot_keeps_the_contract_at_initialization() {
+    let source="function one<T>(value:T):T{return value;}function two<T>(left:T,right:T):T{return left;}function unused<T>(value:T):T{let alias=one;const saved=alias;alias=two;return saved(value,value);}function main(){}";
+    let error=tsrust_compiler::check(source).err().expect("saved callable keeps its original contract");
+    assert_eq!(error.code,"arity","{}",error.render("input.tsr",source));
+}

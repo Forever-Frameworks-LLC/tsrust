@@ -1,7 +1,10 @@
 //! Source cardinality checks do not instantiate unused generic bodies.
 use crate::syntax::*;
 use crate::{Diagnostic, Span};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+#[path = "generic_call_targets.rs"]
+mod targets;
+use targets::Target;
 
 #[derive(Clone)]
 struct Contract {
@@ -9,11 +12,14 @@ struct Contract {
     required: usize,
     maximum: Option<usize>,
     declaration: Span,
+    alternatives: Vec<Span>,
 }
+#[derive(Clone)]
 struct Binding {
     name: String,
     scope: Span,
-    alias: Option<(String, Span)>,
+    targets: Vec<Target>,
+    mutable: bool,
     contract: Option<Contract>,
 }
 
@@ -32,6 +38,7 @@ fn contract(
             .count(),
         maximum: (!rest).then_some(fixed),
         declaration: span,
+        alternatives: Vec::new(),
     }
 }
 fn parameters(params: &[CallableParameter], span: Span) -> Contract {
@@ -45,6 +52,7 @@ fn parameters(params: &[CallableParameter], span: Span) -> Contract {
             .count(),
         maximum: (!rest).then_some(fixed),
         declaration: span,
+        alternatives: Vec::new(),
     }
 }
 
@@ -101,7 +109,8 @@ fn collect(body: &[Stmt], bindings: &mut Vec<Binding>) {
     bindings.extend(scopes.into_iter().map(|(name, scope)| Binding {
         name,
         scope,
-        alias: None,
+        targets: vec![Target::Unknown],
+        mutable: false,
         contract: None,
     }));
     let mut pending = body.iter().collect::<Vec<_>>();
@@ -136,34 +145,9 @@ fn collect(body: &[Stmt], bindings: &mut Vec<Binding>) {
                             .is_some_and(|parameter| parameter.rest),
                         local.span,
                     ));
-                } else if !rebindable {
-                    if let ExprKind::Closure { params, body, .. } = &value.kind {
-                        let forwarded = if let [statement] = body.as_slice()
-                            && let StmtKind::Return(Some(call)) = &statement.kind
-                            && let ExprKind::Call(callee, _) = &call.kind
-                            && call.span == value.span
-                            && callee.span == value.span
-                        {
-                            name(callee).map(|(name, span)| (name.to_owned(), span))
-                        } else {
-                            None
-                        };
-                        if let Some(alias) = forwarded {
-                            binding.alias = Some(alias);
-                        } else {
-                            binding.contract = Some(contract(
-                                0,
-                                &params
-                                    .iter()
-                                    .map(|parameter| parameter.initializer.clone())
-                                    .collect::<Vec<_>>(),
-                                params.last().is_some_and(|parameter| parameter.rest),
-                                local.span,
-                            ));
-                        }
-                    } else {
-                        binding.alias = name(value).map(|(name, span)| (name.to_owned(), span));
-                    }
+                } else {
+                    binding.mutable = *rebindable;
+                    binding.targets = targets::value(value);
                 }
             }
             StmtKind::Block(body) | StmtKind::While { body, .. } | StmtKind::ForOf { body, .. } => {
@@ -181,36 +165,67 @@ fn collect(body: &[Stmt], bindings: &mut Vec<Binding>) {
     }
 }
 fn resolve(
-    name: &str,
-    span: Span,
+    initial: Vec<Target>,
     bindings: &[Binding],
     declarations: &HashMap<String, Contract>,
 ) -> Option<Contract> {
-    let mut name = name;
-    let mut span = span;
-    for _ in 0..=bindings.len() {
-        let binding = bindings
-            .iter()
-            .filter(|binding| {
-                binding.name == name
-                    && binding.scope.start <= span.start
-                    && span.end <= binding.scope.end
-            })
-            .min_by_key(|binding| binding.scope.end - binding.scope.start);
-        let Some(binding) = binding else {
-            return declarations.get(name).cloned();
+    let mut pending = initial;
+    let mut visited = HashSet::new();
+    let mut joined: Option<Contract> = None;
+    while let Some(target) = pending.pop() {
+        let candidate = match target {
+            Target::Unknown => return None,
+            Target::Contract(contract) => contract,
+            Target::Name(name, span) => {
+                let binding = bindings
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, binding)| {
+                        binding.name == name
+                            && binding.scope.start <= span.start
+                            && span.end <= binding.scope.end
+                    })
+                    .min_by_key(|(_, binding)| binding.scope.end - binding.scope.start);
+                if let Some((index, binding)) = binding {
+                    if let Some(contract) = &binding.contract {
+                        contract.clone()
+                    } else {
+                        if visited.insert(index) {
+                            pending.extend(binding.targets.clone());
+                        }
+                        continue;
+                    }
+                } else {
+                    declarations.get(&name)?.clone()
+                }
+            }
         };
-        if let Some(contract) = &binding.contract {
-            return Some(contract.clone());
+        if let Some(contract) = &mut joined {
+            if (contract.generic, contract.required, contract.maximum)
+                != (candidate.generic, candidate.required, candidate.maximum)
+            {
+                return None;
+            }
+            for span in std::iter::once(candidate.declaration).chain(candidate.alternatives) {
+                if span != contract.declaration && !contract.alternatives.contains(&span) {
+                    contract.alternatives.push(span);
+                }
+            }
+        } else {
+            joined = Some(candidate);
         }
-        let Some((target, location)) = &binding.alias else {
-            return None;
-        };
-        name = target;
-        span = *location;
     }
-    None
+    joined
 }
+
+fn related(mut error: Diagnostic, contract: &Contract) -> Diagnostic {
+    error = error.related(contract.declaration, "Callable declared here.");
+    for &span in &contract.alternatives {
+        error = error.related(span, "Alternative callable declared here.");
+    }
+    error
+}
+
 pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
     let declarations = program
         .functions
@@ -227,6 +242,11 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
             )
         })
         .collect::<HashMap<_, _>>();
+    let writes = targets::writes(program)?;
+    let mut writes_by_name: HashMap<&str, Vec<&targets::Write>> = HashMap::new();
+    for write in &writes {
+        writes_by_name.entry(&write.name).or_default().push(write);
+    }
     let explicit = program
         .call_type_arguments
         .iter()
@@ -246,7 +266,8 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
                 Binding {
                     name: name.text.clone(),
                     scope: function.scope_span,
-                    alias: None,
+                    targets: vec![Target::Unknown],
+                    mutable: false,
                     contract: callback.map(|callback| {
                         contract(
                             0,
@@ -271,7 +292,8 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
                 bindings.extend(params.iter().map(|parameter| Binding {
                     name: parameter.name.text.clone(),
                     scope: expression.span,
-                    alias: None,
+                    targets: vec![Target::Unknown],
+                    mutable: false,
                     contract:
                         match &parameter.ty {
                             ParameterAnnotation::Callback(callback) => {
@@ -289,63 +311,126 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
             }
             Ok(())
         })?;
+        let function_scope = function.scope_span;
+        let direct_writes = function
+            .body
+            .iter()
+            .filter_map(|statement| {
+                if let StmtKind::Assign { target, .. } = &statement.kind {
+                    Some((target.span.start, target.span.end))
+                } else {
+                    None
+                }
+            })
+            .collect::<HashSet<_>>();
+        let mut linear = function.body.iter().all(|statement| {
+            matches!(
+                statement.kind,
+                StmtKind::Let { .. }
+                    | StmtKind::Assign { .. }
+                    | StmtKind::Return(_)
+                    | StmtKind::Expr(_)
+                    | StmtKind::Throw(_)
+            )
+        });
+        // Nested and expression writes may execute out of source order. Keep
+        // their whole-function over-approximation until structured flow exists.
+        linear &= writes
+            .iter()
+            .filter(|write| {
+                function_scope.start <= write.span.start && write.span.end <= function_scope.end
+            })
+            .all(|write| direct_writes.contains(&(write.span.start, write.span.end)));
+        crate::source_walk::function_body(function, &mut |_| Ok(()), &mut |expression| {
+            if matches!(expression.kind, ExprKind::Closure { .. }) {
+                linear = false;
+            }
+            Ok(())
+        })?;
         crate::source_walk::function_body(function, &mut |_| Ok(()), &mut |expression| {
             let ExprKind::Call(callee, args) = &expression.kind else {
                 return Ok(());
             };
-            let Some((name, span)) = name(callee) else {
-                return Ok(());
-            };
-            let Some(contract) = resolve(name, span, &bindings, &declarations) else {
+            let span = callee.span;
+            let mut bindings = bindings.clone();
+            for binding in &mut bindings {
+                if !binding.mutable || binding.contract.is_some() {
+                    continue;
+                }
+                for write in writes_by_name
+                    .get(binding.name.as_str())
+                    .into_iter()
+                    .flatten()
+                {
+                    if function_scope.start <= write.span.start
+                        && write.span.end <= function_scope.end
+                        && (!linear || write.span.start <= expression.span.start)
+                    {
+                        binding.targets.extend(write.targets.clone());
+                    }
+                }
+            }
+            let Some(contract) = resolve(targets::value(callee), &bindings, &declarations) else {
                 return Ok(());
             };
             if let Some(types) = explicit.get(&(expression.span.start, expression.span.end))
                 && (contract.generic == 0 || types.len() != contract.generic)
             {
-                return Err(Diagnostic::new(
-                    if contract.generic == 0 {
-                        "type"
-                    } else {
-                        "arity"
-                    },
-                    if contract.generic == 0 {
-                        "Explicit type arguments require a declared generic function.".to_owned()
-                    } else {
-                        format!("Generic function expects {} type argument{}, but this call supplies {}.",
-                            contract.generic, if contract.generic == 1 { "" } else { "s" }, types.len())
-                    },
-                    types.first().map_or(span, |value| value.span),
-                )
-                .related(contract.declaration, "Callable declared here."));
+                return Err(related(
+                    Diagnostic::new(
+                        if contract.generic == 0 {
+                            "type"
+                        } else {
+                            "arity"
+                        },
+                        if contract.generic == 0 {
+                            "Explicit type arguments require a declared generic function."
+                                .to_owned()
+                        } else {
+                            format!(
+                                "Generic function expects {} type argument{}, but this call supplies {}.",
+                                contract.generic,
+                                if contract.generic == 1 { "" } else { "s" },
+                                types.len()
+                            )
+                        },
+                        types.first().map_or(span, |value| value.span),
+                    ),
+                    &contract,
+                ));
             }
             let (supplied, exact) = cardinality(args);
             if (exact && supplied < contract.required)
                 || contract.maximum.is_some_and(|maximum| supplied > maximum)
             {
-                return Err(Diagnostic::new(
-                    "arity",
-                    format!(
-                        "Callable expects {}, but this call supplies {}{}.",
-                        match contract.maximum {
-                            Some(maximum) if maximum == contract.required => format!(
-                                "{} argument{}",
-                                maximum,
-                                if maximum == 1 { "" } else { "s" }
-                            ),
-                            Some(maximum) =>
-                                format!("between {} and {} arguments", contract.required, maximum),
-                            None => format!(
-                                "at least {} argument{}",
-                                contract.required,
-                                if contract.required == 1 { "" } else { "s" }
-                            ),
-                        },
-                        if exact { "" } else { "at least " },
-                        supplied
+                return Err(related(
+                    Diagnostic::new(
+                        "arity",
+                        format!(
+                            "Callable expects {}, but this call supplies {}{}.",
+                            match contract.maximum {
+                                Some(maximum) if maximum == contract.required => format!(
+                                    "{} argument{}",
+                                    maximum,
+                                    if maximum == 1 { "" } else { "s" }
+                                ),
+                                Some(maximum) => format!(
+                                    "between {} and {} arguments",
+                                    contract.required, maximum
+                                ),
+                                None => format!(
+                                    "at least {} argument{}",
+                                    contract.required,
+                                    if contract.required == 1 { "" } else { "s" }
+                                ),
+                            },
+                            if exact { "" } else { "at least " },
+                            supplied
+                        ),
+                        expression.span,
                     ),
-                    expression.span,
-                )
-                .related(contract.declaration, "Callable declared here."));
+                    &contract,
+                ));
             }
             Ok(())
         })?;
