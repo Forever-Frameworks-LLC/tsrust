@@ -18,6 +18,8 @@ mod checked_callable_storage;
 mod conditional_callable_carriers;
 #[path = "borrowed_conditional_carriers.rs"]
 mod borrowed_conditional_carriers;
+#[path = "record_storage_writes.rs"]
+mod record_storage_writes;
 #[path = "record_branch_carriers.rs"]
 mod record_branch_carriers;
 #[path = "named_capture_context.rs"]

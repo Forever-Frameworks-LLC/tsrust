@@ -805,3 +805,85 @@ fn record_store_condition_preserves_one_evaluation_and_new_origin() {
         }
     "#);
 }
+
+#[test]
+fn nested_record_rhs_store_preserves_both_origins_and_evaluation_order() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder={run:ReadOnly<Function<int>>;label:string;};
+        function main(){
+            const a=[3];const b=[7];const c=[11];
+            {
+                let first:Holder={run:():int=>a[0],label:"first"};
+                let second:Holder={run:():int=>b[0],label:"second"};
+                let evaluations=0;
+                first={run:():int=>c[0],label:((second={run:():int=>b[0]+1,label:"updated"}),evaluations++,"outer")};
+                strictEqual(evaluations,1);
+                strictEqual(first.run(),11);strictEqual(second.run(),8);
+                strictEqual(first.label,"outer");strictEqual(second.label,"updated");
+                a[0]=5;strictEqual(a[0],5);
+            }
+            b[0]=9;c[0]=13;strictEqual(b[0]+c[0],22);
+        }
+    "#);
+}
+
+#[test]
+fn moved_normalized_record_preserves_native_family_and_new_capture() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder={run:ReadOnly<Function<int>>;};
+        function main(){
+            const a=[3];const b=[7];const c=[11];
+            {
+                let source:Holder={run:():int=>a[0]};
+                source={run:():int=>b[0]};
+                let destination:Holder=source;
+                strictEqual(destination.run(),7);
+                destination={run:():int=>c[0]};
+                strictEqual(destination.run(),11);
+                a[0]=5;b[0]=9;strictEqual(a[0]+b[0],14);
+            }
+            c[0]=13;strictEqual(c[0],13);
+        }
+    "#);
+}
+
+#[test]
+fn nested_record_rhs_store_keeps_replacement_capture_conflict() {
+    let source=support::format_round_trip(r#"
+        type Holder={run:ReadOnly<Function<int>>;label:string;};
+        function main(){
+            const a=[3];const b=[7];const c=[11];
+            let first:Holder={run:():int=>a[0],label:"first"};
+            let second:Holder={run:():int=>b[0],label:"second"};
+            first={run:():int=>c[0],label:((second={run:():int=>b[0]+1,label:"updated"}),"outer")};
+            b[0]=9;
+            console.log(first.run(),second.run());
+        }
+    "#);
+    let error=match tsrust_compiler::check(&source){Ok(_)=>panic!("nested replacement lost its live capture loan"),Err(error)=>error};
+    assert_eq!(error.code,"capture-conflict","{error:?}");
+}
+
+#[test]
+fn normalized_record_moves_propagate_through_multiple_storage_bindings() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder={run:ReadOnly<Function<int>>;};
+        function main(){
+            const a=[3];const b=[7];const c=[11];
+            {
+                let source:Holder={run:():int=>a[0]};
+                source={run:():int=>b[0]};
+                const middle:Holder=source;
+                let destination:Holder=middle;
+                strictEqual(destination.run(),7);
+                destination={run:():int=>c[0]};
+                strictEqual(destination.run(),11);
+                a[0]=5;b[0]=9;strictEqual(a[0]+b[0],14);
+            }
+            c[0]=13;strictEqual(c[0],13);
+        }
+    "#);
+}

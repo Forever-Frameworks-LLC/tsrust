@@ -636,3 +636,37 @@ mutation traversal if the witness exposes that limitation. Preserve original
 capture origins and distinguish checked point types from finalized native storage
 types when normalized records move between bindings. Previously verified chunks
 must not be reopened because a user comment is repeated.
+
+
+## Nested RHS stores and native carrier transport
+
+An immutable, iterative write collector now records both an outer record store and
+stores nested inside its RHS. It records binding identities, static field paths,
+source spans, checked types and direct source-storage dependencies. Carrier planning
+no longer retains overlapping mutable AST references or clones source subtrees.
+A separate rewrite traversal applies the finalized destinations.
+
+Local carrier sets widen to a fixed point across record moves. Native conversion
+uses the actual independent source storage type rather than its narrower checked
+point type. Point-sensitive capture origins and ownership checking remain intact;
+this change adds neither shared capture cells nor implicit clones. A native witness
+observes both replacement callbacks, labels and exactly one nested side effect.
+Another witness retains the replacement capture conflict. Single-hop and multi-hop
+record moves retain the current callback and release replaced captures.
+
+All 39 scoped-record project tests and 64 depth canaries pass. The independent Node
+reference agrees on the nested-store and multi-binding move results. Project
+formatting changes zero files and fingerprints. Nine exact records are verified in
+SQLite under runtime/diagnostics/scoped-record-nested/. The first attempted red
+command selected zero tests because its filter was combined with --exact; the
+corrected focused command demonstrates the failing native callback type mismatch.
+Both records are retained with their actual outcomes.
+
+This is an implementation checkpoint, not whole scoped-record feature acceptance.
+Borrowed parameter and captured-carrier replacement, defaults and exception disposal,
+owning/opaque composition, fallible callback contracts, editor/guide and matched
+benchmark support remain open. Next test moving a callback field from normalized
+source storage into a record literal, including nested aggregate transport. Direct
+source dependencies are supported; physical types inside record-valued expression
+construction require their own boundary evidence. Fifteen owner fixtures stay
+untouched, and installed consumers remain f1dd284. No timing is claimed.

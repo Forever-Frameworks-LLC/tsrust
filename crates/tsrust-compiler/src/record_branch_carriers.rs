@@ -24,68 +24,61 @@ impl Analyzer {
         Ok(())
     }
     pub(super) fn record_sequence_carriers(&mut self,context:&mut Context,body:&mut[Stmt])->Result<(),Diagnostic>{
-        fn expression_writes(expr:&mut Expr)->Vec<(usize,Vec<String>,&mut Expr)>{
-            let mut result=Vec::new();
-            match &mut expr.kind{
-                ExprKind::Assign{target,value,..}=>{
-                    let selected=Analyzer::root_binding(target).zip(Analyzer::direct_fields(target)).filter(|(_,(_,path))|matches!(value.ty,Some(Type::Record(_))) || !path.is_empty() && matches!(value.ty,Some(Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_))));
-                    if let Some((id,(_,path)))=selected{result.push((id,path,value.as_mut()));}
-                    else{result.extend(expression_writes(target));result.extend(expression_writes(value));}
-                },
-                ExprKind::Sequence(values)|ExprKind::Array(values)|ExprKind::ArrayOf(values,_)|ExprKind::SetConstructor(values,_)|ExprKind::MapConstructor(values,_)|ExprKind::Template(values)=>{for value in values{result.extend(expression_writes(value));}},
-                ExprKind::Unary{value,..}|ExprKind::OptionalChain(value)|ExprKind::TypeAssertion{value,..}|ExprKind::Project{value,..}|ExprKind::Inject{value,..}|ExprKind::Field(value,_)|ExprKind::Update{target:value,..}=>result.extend(expression_writes(value)),
-                ExprKind::Binary{left,right,..}|ExprKind::Index(left,right)|ExprKind::CompoundAssign{target:left,value:right,..}|ExprKind::CoalesceAssign{target:left,value:right,..}|ExprKind::LogicalAssign{target:left,value:right,..}|ExprKind::Optional{base:left,body:right,..}=>{result.extend(expression_writes(left));result.extend(expression_writes(right));},
-                ExprKind::Conditional{predicate,consequent,alternate}=>{result.extend(expression_writes(predicate));result.extend(expression_writes(consequent));result.extend(expression_writes(alternate));},
-                ExprKind::Call(callee,args)=>{result.extend(expression_writes(callee));for value in args{result.extend(expression_writes(value));}},
-                ExprKind::Record(fields)=>{for(_,value)in fields{result.extend(expression_writes(value));}},
-                ExprKind::SpreadCall(plan)=>{for value in plan.expressions_mut(){result.extend(expression_writes(value));}},
-                _=>{}
-            }result
-        }
-        fn writes(body:&mut[Stmt])->Vec<(usize,Vec<String>,&mut Expr)>{
-            let mut result=Vec::new();
-            for stmt in body{match &mut stmt.kind{
-                StmtKind::Let{binding,value,..}=>{if let Some(id)=binding && matches!(value.ty,Some(Type::Record(_))) && !value.is_deferred(){result.push((*id,Vec::new(),value));}else{result.extend(expression_writes(value));}},
-                StmtKind::Expr(value)|StmtKind::Throw(value)|StmtKind::Return(Some(value))=>result.extend(expression_writes(value)),
-                StmtKind::Assign{target,value,operator:None}=>{if let(Some(id),Some((_,path)))=(Analyzer::root_binding(target),Analyzer::direct_fields(target)){if matches!(value.ty,Some(Type::Record(_))) || !path.is_empty() && matches!(value.ty,Some(Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_))){result.push((id,path,value));}}},
-                StmtKind::Block(body)=>result.extend(writes(body)),
-                StmtKind::While{condition,body}=>{result.extend(expression_writes(condition));result.extend(writes(body));},
-                StmtKind::ForOf{iterable,body,..}=>{result.extend(expression_writes(iterable));result.extend(writes(body));},
-                StmtKind::If{condition,then_body,else_body}=>{result.extend(expression_writes(condition));result.extend(writes(then_body));result.extend(writes(else_body));},
-                StmtKind::Loop{condition,body,update,post_test,..}=>{if !*post_test{if let Some(condition)=condition{result.extend(expression_writes(condition));}result.extend(writes(body));result.extend(writes(update));}else{result.extend(writes(body));result.extend(writes(update));if let Some(condition)=condition{result.extend(expression_writes(condition));}}},
-                StmtKind::Try(region)=>{result.extend(writes(&mut region.body));if let Some(catch)=&mut region.catch{result.extend(writes(&mut catch.body));}if let Some(finally)=&mut region.finally{result.extend(writes(finally));}},
-                _=>{}
-            }}result
-        }
-        let mut writes=writes(body);
-        for index in 0..writes.len(){let(before,after)=writes.split_at_mut(index);let(id,path,value)=&mut after[0];
-            if context.bindings[*id].parameter || context.bindings[*id].capture_reference{continue;}
-            for(previous,previous_path,initializer) in before{
-                if previous!=id{continue;}
-                if path.is_empty() && previous_path.is_empty(){if let Some(ty)=self.join_record_values(initializer,value)?{context.bindings[*id].ty=ty;}}
-                else if previous_path.is_empty(){if let Some(ty)=self.join_record_field_write(initializer,path,value)?{context.bindings[*id].ty=ty;}}
-                else if path.is_empty(){if let Some(ty)=self.join_record_field_write(value,previous_path,initializer)?{context.bindings[*id].ty=ty;}}
-                else if path==previous_path && let Some(family)=self.common_borrowed_conditional_family(initializer.ty.unwrap(),value.ty.unwrap(),value.span)?{
-                    for expr in [&mut **initializer,&mut **value]{Self::retarget_record_callback(expr,family);}
-                    if let Type::Record(record)=context.bindings[*id].ty && let Some(record)=self.record_type_with_field(record,path,Type::BorrowedCallable(family)){context.bindings[*id].ty=Type::Record(record);}
-                }
+        let writes=record_storage_writes::collect(body);
+        let mut plans=HashMap::new();
+        // Carrier sets only widen. A moved source can gain origins after its
+        // consumer was visited, so propagate storage dependencies to a fixed point.
+        loop {
+            let mut changed=false;
+            for write in &writes {
+                let binding=&context.bindings[write.binding];
+                if binding.parameter || binding.capture_reference{continue;}
+                let ty=*plans.entry(write.binding).or_insert(binding.ty);
+                let Type::Record(record)=ty else{continue;};
+                let incoming=write.source.as_ref().and_then(|(source,path)|{
+                    let binding=&context.bindings[*source];
+                    if binding.parameter || binding.capture_reference{return None;}
+                    self.record_field_type(*plans.get(source).unwrap_or(&binding.ty),path)
+                }).unwrap_or(write.ty);
+                let joined=if write.path.is_empty(){
+                    let Type::Record(incoming)=incoming else{continue;};
+                    self.join_record_types(record,incoming,write.span)?
+                }else{
+                    let Some(previous)=self.record_field_type(ty,&write.path)else{continue;};
+                    if previous==incoming{None}
+                    else if let Some(family)=self.common_borrowed_conditional_family(previous,incoming,write.span)?{
+                        self.record_type_with_field(record,&write.path,Type::BorrowedCallable(family)).map(Type::Record)
+                    }else{None}
+                };
+                if let Some(joined)=joined && joined!=ty{plans.insert(write.binding,joined);changed=true;}
             }
+            if !changed{break;}
         }
-        Ok(())
+        let mut destinations=HashMap::new();
+        for write in writes {
+            let Some(&plan)=plans.get(&write.binding)else{continue;};
+            let Some(destination)=self.record_field_type(plan,&write.path)else{continue;};
+            destinations.insert((write.span.start,write.span.end),destination);
+        }
+        for(id,ty)in plans{context.bindings[id].ty=ty;}
+        crate::source_walk::body(body,&mut |_|Ok(()),&mut |value|{
+            let Some(destination)=destinations.remove(&(value.span.start,value.span.end))else{return Ok(());};
+            if value.ty==Some(destination){return Ok(());}
+            match(value.ty,destination){
+                (Some(Type::Closure(_)),Type::BorrowedCallable(family))=>Self::retarget_record_callback(value,family),
+                (Some(Type::Record(_)),Type::Record(_))|(Some(Type::BorrowedCallable(_)),Type::BorrowedCallable(_))=>value.wrap_record_carrier(destination),
+                _=>{}
+            }
+            Ok(())
+        })
+    }
+    fn record_field_type(&self,mut ty:Type,path:&[String])->Option<Type>{
+        for name in path{let Type::Record(record)=ty else{return None;};ty=self.program.records[record].fields.iter().find(|field|field.name.text==*name)?.ty?;}
+        Some(ty)
     }
     fn retarget_record_callback(value:&mut Expr,family:usize){
         if !matches!(value.kind,ExprKind::Unary{op:UnaryOp::CallableStore,..}){value.wrap_storage(family);}
         value.ty=Some(Type::BorrowedCallable(family));
-    }
-    fn join_record_field_write(&mut self,record:&mut Expr,path:&[String],value:&mut Expr)->Result<Option<Type>,Diagnostic>{
-        let Some(Type::Record(root))=record.ty else{return Ok(None);};
-        let mut ty=Type::Record(root);
-        for name in path{let Type::Record(id)=ty else{return Ok(None);};let Some(field)=self.program.records[id].fields.iter().find(|field|&field.name.text==name) else{return Ok(None);};ty=field.ty.unwrap();}
-        let Some(family)=self.common_borrowed_conditional_family(ty,value.ty.unwrap(),value.span)? else{return Ok(None);};
-        let Some(id)=self.record_type_with_field(root,path,Type::BorrowedCallable(family))else{return Ok(None);};
-        let ty=Type::Record(id);if record.ty!=Some(ty){record.wrap_record_carrier(ty);}
-        Self::retarget_record_callback(value,family);
-        Ok(Some(ty))
     }
     pub(super) fn local_record_field_contract(&self,context:&Context,target:&Expr)->Option<Type>{
         let id=Self::root_binding(target)?;let binding=&context.bindings[id];

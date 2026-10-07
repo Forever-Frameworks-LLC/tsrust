@@ -1,6 +1,25 @@
 //! Independent owning record leaves for local storage and static projections.
 use super::*;
 impl Emitter<'_> {
+    /// A checked point type retains precise capture origins. Emitted owning
+    /// storage can have a wider carrier after whole-body planning.
+    pub(super) fn owned_record_source_type(&self,fun:&CheckedFunction,expr:&Expr)->Option<Type>{
+        let mut current=expr;
+        let mut fields=Vec::new();
+        loop{match &current.kind{
+            ExprKind::Sequence(values)=>current=values.last()?,
+            ExprKind::TypeAssertion{value,..}=>current=value,
+            ExprKind::Field(base,name)=>{fields.push(name);current=base;},
+            ExprKind::Name(_)=>break,
+            _=>return None,
+        }}
+        let id=current.binding?;
+        self.owned_record_layout(fun,id)?;
+        let mut ty=fun.bindings[id].ty;
+        for name in fields.into_iter().rev(){let Type::Record(record)=ty else{return None;};ty=self.program.records[record].fields.iter().find(|field|field.name.text==*name)?.ty?;}
+        Some(ty)
+    }
+
     pub(super) fn owned_record_layout(&self,fun:&CheckedFunction,id:usize)->Option<crate::scoped_record_places::Layout>{
         let binding=fun.bindings.get(id)?;
         if binding.parameter && id>=fun.parameter_count{return None;}

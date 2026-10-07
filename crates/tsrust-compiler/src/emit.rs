@@ -7074,7 +7074,8 @@ impl Emitter<'_> {
             } => self.coalesce(fun, expr, left, right, mode),
             ExprKind::Unary {op:UnaryOp::RecordCarrier,value,..}=>{
                 let input=self.expr(fun,value,Mode::Consume);
-                let converted=self.record_carrier_conversion(value.ty.unwrap(),expr.ty.unwrap(),"record_carrier_input");
+                let source=self.owned_record_source_type(fun,value).unwrap_or_else(||value.ty.unwrap());
+                let converted=self.record_carrier_conversion(source,expr.ty.unwrap(),"record_carrier_input");
                 let code=format!("{{let record_carrier_input={input};{converted}}}");
                 match mode{Mode::Read=>format!("&({code})"),Mode::Mutate=>format!("&mut ({code})"),_=>code}
             }
