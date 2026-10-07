@@ -429,3 +429,14 @@ stored in SQLite. Whole-project formatting changes no files or fingerprints.
 Native factory ownership/disposal fixtures, mutable updates, recursive environment
 solver convergence, transitive environments and matched workload acceptance remain
 pending. Gate173 and the larger captured-effects plan remain open.
+
+## Native polymorphic argument red
+
+A new executable std:testing fixture, callable-environments/retained.tsr, exposes
+an additional native prerequisite: factory(one) fails generic-inference for A.
+The passing source effect test does not establish native transport of polymorphic
+arguments. The integration test is retained failing and unskipped. Read
+polymorphic-callable-transport-plan.md before lifting mutable environment guards;
+it specifies checked argument identity, capture timing, point-sensitive instance
+state, ownership/disposal controls and acceptance requirements. No compiler source
+changed for this red checkpoint.

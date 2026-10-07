@@ -217,3 +217,15 @@ fn independent_factory_environments_reject_the_wrong_returned_contract() {
         tsrust_compiler::check(&source.replace("wrong<T>(value)","wrong<T>(value, value)")).unwrap();
     }
 }
+
+#[test]
+fn returned_factory_contracts_execute_from_distinct_native_environments() {
+    let directory=support::TempDirectory::new();
+    let source=include_str!("fixtures/callable-environments/retained.tsr");
+    let formatted=tsrust_compiler::format(source).unwrap();
+    assert_eq!(tsrust_compiler::format(&formatted).unwrap(),formatted);
+    let path=directory.source(&formatted);
+    let output=support::run(support::cli().arg("run").arg(path),60);
+    support::success(&output);
+    assert!(output.stdout.is_empty());
+}
