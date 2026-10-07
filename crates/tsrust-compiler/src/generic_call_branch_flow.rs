@@ -18,6 +18,8 @@ mod invocation_frame;
 mod parameter_entry;
 #[path = "generic_call_environment_store.rs"]
 pub(super) mod environment_store;
+#[path = "generic_call_environment_state.rs"]
+mod environment_state;
 #[path = "generic_call_invocation_worklist.rs"]
 mod invocation_worklist;
 

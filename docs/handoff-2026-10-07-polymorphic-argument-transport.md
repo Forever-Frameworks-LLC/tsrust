@@ -91,3 +91,36 @@ checked capture-mode sequence. This is infrastructure evidence, not native
 acceptance of heterogeneous assignment to an unconstrained generic parameter.
 Exact red, Node, guard and format logs are stored under
 runtime/diagnostics/mutable-environment-sequence in SQLite and verified by readback.
+
+
+## Flow-local state kernel WIP
+
+generic_call_environment_state.rs now isolates local bindings and a canonical
+handle-to-capture map from allocation records. Capture entries are live, consumed
+or unknown. A caller-provided single owned instance permits exact replacement;
+merged instances retain prior and incoming alternatives. Single-instance
+consumption records consumed state; merged-instance consumption records unknown
+availability instead of claiming all represented instances were disposed.
+Missing, consumed and unknown entries cannot be updated or reinstalled.
+
+Capture slot identities are canonicalized and validated before updates. Branch
+joins preserve missing and consumed possibilities, reject mismatched slots without
+partial mutation, and discard conflicting scalar contract certainty. Tests cover
+restoration, separate handles, weak updates, non-revival, availability joins and
+commutative, associative and idempotent joins. The caller still must prove checked
+ownership and unique instance identity; the enum is not itself that proof.
+
+The module is compiled but not yet wired into expression dispatch or summary
+states. The mutable factory sequence witness from dc4a184 remains red. Next thread
+this state through summary exits, expression Invocation, node transfer and graph
+edges, then request keys and captured updates. Keep guards until capture-mode
+facts and native controls prove their removal. No new language behavior is accepted
+by this internal kernel, and no new timing or editor acceptance is claimed.
+
+
+The kernel checkpoint passes seven focused tests after five initial stub failures.
+The extra join test initially used the wrong initializer helper types; compilation
+was repaired before the final seven-test run. Exact red, initial green, compilation
+correction, final and format logs are read back from SQLite under
+runtime/diagnostics/environment-state-kernel. Whole-project formatting changes
+zero files and fingerprints. Owner fixtures remain untouched and unstaged.
