@@ -1,5 +1,5 @@
 //! Nominal access contracts for owned records and borrowed field views.
-use crate::{scoped_record_places::Layout, syntax::Type};
+use crate::{scoped_record_places::Layout, scoped_record_places::Leaf};
 
 pub(crate) struct Types<'a> {
     pub(crate) read_trait: &'a str,
@@ -10,14 +10,14 @@ pub(crate) struct Types<'a> {
     pub(crate) parameters: &'a [String],
 }
 
-pub(crate) fn declarations(layout: &Layout, types: Types<'_>, native: impl Fn(Type) -> String) -> String {
+pub(crate) fn declarations(layout: &Layout, types: Types<'_>, native: impl Fn(&Leaf) -> String) -> String {
     use std::fmt::Write;
     let mut output = String::new();
     let fields = layout.leaves.iter().map(|leaf| {
         let associated = leaf.path.iter().map(|index| format!("Field{index}")).collect::<String>();
         let method = leaf.path.iter().map(|index| format!("field{index}")).collect::<Vec<_>>().join("_");
         let place = leaf.path.iter().map(|index| format!(".field{index}")).collect::<String>();
-        (associated, method, place, native(leaf.ty))
+        (associated, method, place, native(leaf))
     }).collect::<Vec<_>>();
     writeln!(output, "trait {} {{", types.read_trait).expect("string write");
     for (associated, method, _, _) in &fields {

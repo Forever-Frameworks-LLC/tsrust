@@ -27,8 +27,8 @@ enum Rendering {
     Value(crate::Mode),
 }
 impl Layout {
-    pub(crate) fn view_declarations(&self, records: &[Record], symbol: impl Fn(usize) -> String, native: impl Fn(Type) -> (String, Vec<String>), mutable: bool) -> String {
-        fn emit(id: usize, records: &[Record], symbol: &impl Fn(usize) -> String, native: &impl Fn(Type) -> (String, Vec<String>), mutable: bool, seen: &mut std::collections::BTreeMap<usize, Vec<String>>, output: &mut String) -> Vec<String> {
+    pub(crate) fn view_declarations(&self, records: &[Record], symbol: impl Fn(usize) -> String, native: impl Fn(usize, usize, Type) -> (String, Vec<String>), mutable: bool) -> String {
+        fn emit(id: usize, records: &[Record], symbol: &impl Fn(usize) -> String, native: &impl Fn(usize, usize, Type) -> (String, Vec<String>), mutable: bool, seen: &mut std::collections::BTreeMap<usize, Vec<String>>, output: &mut String) -> Vec<String> {
             use std::fmt::Write;
             if let Some(parameters) = seen.get(&id) { return parameters.clone(); }
             let mut parameters = Vec::new();
@@ -40,7 +40,7 @@ impl Layout {
                     let arguments = std::iter::once("'a".to_owned()).chain(child_parameters.iter().cloned()).collect::<Vec<_>>().join(", ");
                     (format!("{}<{arguments}>", symbol(child)), child_parameters)
                 } else {
-                    let (native_type, parameters) = native(ty);
+                    let (native_type, parameters) = native(id, index, ty);
                     (format!("&'a {}{native_type}", if mutable { "mut " } else { "" }), parameters)
                 };
                 for parameter in field_parameters {
@@ -163,6 +163,41 @@ mod tests {
         assert!(executed.stdout.is_empty());
     }
     #[test]
+    fn native_same_signature_fields_keep_distinct_view_environment_slots() {
+        let source = crate::format(r#"type Pair={left:ReadOnly<Function<int>>;right:ReadOnly<Function<int>>;};function main(){const a=[3];const b=[11];const pair:Pair={left:():int=>a[0],right:():int=>b[0]};console.log(pair.left(),pair.right());}"#).unwrap();
+        assert_eq!(crate::format(&source).unwrap(), source);
+        let checked = crate::check(&source).unwrap();
+        let mut binding = checked.program.functions[0].bindings.iter().find(|binding| binding.name == "pair").unwrap().clone();
+        let Type::Record(instance) = binding.ty else { panic!("record instance"); };
+        binding.ty = Type::Record(checked.program.scoped_records.declaration(instance));
+        let mut records = checked.program.records.clone();
+        let Type::Record(nominal) = binding.ty else { unreachable!() };
+        // Equivalent contracts may share a type identity; field slots must not.
+        records[nominal].fields[1].ty = records[nominal].fields[0].ty;
+        let layout = Layout::for_binding(&binding, &records, true).unwrap();
+        let native_type = |_, index, _| { let name=format!("F{index}"); (name.clone(),vec![name]) };
+        let shared_definitions = layout.view_declarations(&records, |id| format!("ReadRecord{id}"), native_type, false);
+        let mutable_definitions = layout.view_declarations(&records, |id| format!("MutRecord{id}"), native_type, true);
+        let bridges = crate::scoped_record_bridge::declarations(&layout, crate::scoped_record_bridge::Types {
+            read_trait:"ReadPair",mutate_trait:"MutatePair",owned:&format!("Record{}<F0,F1>",layout.record),shared:&format!("ReadRecord{}<'a,F0,F1>",layout.record),exclusive:&format!("MutRecord{}<'a,F0,F1>",layout.record),parameters:&["F0".into(),"F1".into()],
+        }, |leaf| format!("F{}",leaf.path[0]));
+        let declaration = layout.declaration(11, false, "initial", &records, |id| format!("Record{id}"));
+        let view = layout.view_value(11, false, &records, |id| format!("ReadRecord{id}"));
+        native(&format!(r#"
+            struct Record{id}<L,R> {{field0:L,field1:R}}
+            {shared_definitions}
+            {mutable_definitions}
+            {bridges}
+            fn inspect<V:ReadPair>(value:&V)->i64 where V::Field0:Fn()->i64,V::Field1:Fn()->i64 {{(value.tsr_field0())()+(value.tsr_field1())()}}
+            fn main() {{
+                let text=String::from("abc");let values=vec![11i64];
+                let initial=Record{id} {{field0:move ||text.len() as i64,field1:move ||values[0]}};
+                {declaration}
+                {{let borrowed={view};assert_eq!(inspect(&borrowed),14);}}
+            }}
+        "#,id=layout.record));
+    }
+    #[test]
     fn native_selected_callback_move_releases_only_its_capture() {
         let source = crate::format(r#"type Pair={left:ReadOnly<Function<int>>;right:ReadOnly<Function<int>>;};function main(){const leftValues=[3];const rightValues=[11];const pair:Pair={left:():int=>leftValues[0],right:():int=>rightValues[0]};{const left=pair.left;console.log(left());}leftValues[0]=5;console.log(pair.right());}"#).unwrap();
         assert_eq!(crate::format(&source).unwrap(), source);
@@ -193,13 +228,13 @@ mod tests {
         let checked = crate::check(&source).unwrap();
         let binding = checked.program.functions[0].bindings.iter().find(|binding| binding.name == "holder").unwrap();
         let layout = Layout::for_binding(binding, &checked.program.records, true).unwrap();
-        let native_type = |ty| if ty == Type::String { ("String".into(), vec![]) } else { ("F".into(), vec!["F".into()]) };
+        let native_type = |_, _, ty| if ty == Type::String { ("String".into(), vec![]) } else { ("F".into(), vec!["F".into()]) };
         let definitions = layout.view_declarations(&checked.program.records, |id| format!("MutRecord{id}"), native_type, true);
         let read_definitions = layout.view_declarations(&checked.program.records, |id| format!("ReadRecord{id}"), native_type, false);
         let bridges = crate::scoped_record_bridge::declarations(&layout, crate::scoped_record_bridge::Types {
             read_trait: "ReadHolder", mutate_trait: "MutateHolder",
             owned: &format!("Record{}<F>",layout.record), shared: &format!("ReadRecord{}<'a, F>",layout.record), exclusive: &format!("MutRecord{}<'a, F>",layout.record), parameters: &["F".into()],
-        }, |ty| if ty == Type::String { "String".into() } else { "F".into() });
+        }, |leaf| if leaf.ty == Type::String { "String".into() } else { "F".into() });
         let declaration = layout.declaration(9, true, "initial", &checked.program.records, |id| format!("Record{id}"));
         let view = layout.view_value(9, true, &checked.program.records, |id| format!("MutRecord{id}"));
         let owned = layout.owning_value(9, &checked.program.records, |id| format!("Record{id}"));
@@ -230,7 +265,7 @@ mod tests {
         let exclusive = layout.selected_value(8, &[], crate::Mode::Mutate, &checked.program.records, |id| format!("MutRecord{id}")).expect("whole exclusive selection");
         let owned = layout.owning_value(8, &checked.program.records, |id| format!("Record{id}"));
         let label = layout.leaves[1].native_name(8);
-        let native_type = |ty| match ty { Type::Int => ("i64".into(), vec![]), Type::String => ("S".into(), vec!["S".into()]), _ => panic!("unexpected leaf type") };
+        let native_type = |_, _, ty| match ty { Type::Int => ("i64".into(), vec![]), Type::String => ("S".into(), vec!["S".into()]), _ => panic!("unexpected leaf type") };
         let read_declarations = layout.view_declarations(&checked.program.records, |id| format!("ReadRecord{id}"), native_type, false);
         let mut_declarations = layout.view_declarations(&checked.program.records, |id| format!("MutRecord{id}"), native_type, true);
         assert!(read_declarations.contains(&format!("struct ReadRecord{outer}<'a, S>" , outer=layout.record)));
@@ -238,7 +273,7 @@ mod tests {
         let bridges = crate::scoped_record_bridge::declarations(&layout, crate::scoped_record_bridge::Types {
             read_trait: "ReadOuter", mutate_trait: "MutateOuter",
             owned: &format!("Record{}<S>",layout.record), shared: &format!("ReadRecord{}<'a, S>",layout.record), exclusive: &format!("MutRecord{}<'a, S>",layout.record), parameters: &["S".into()],
-        }, |ty| if ty == Type::String { "S".into() } else { "i64".into() });
+        }, |leaf| if leaf.ty == Type::String { "S".into() } else { "i64".into() });
         let source = format!(r#"
             struct Record{inner}<S> {{ field0: i64, field1: S }}
             struct Record{outer}<S> {{ field0: Record{inner}<S>, field1: i64 }}

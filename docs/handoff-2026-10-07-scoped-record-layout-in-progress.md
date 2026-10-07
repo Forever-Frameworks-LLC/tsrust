@@ -967,3 +967,42 @@ layout renderers. Keep the original project red and live-owner controls unchange
 Run bounded native/editor checks and dispatch depth canaries after routing changes.
 Use automatic project formatting, SQLite evidence and explicit Git paths; never
 stage the fifteen owner fixtures. Record acceptance and gate 173 remain open.
+
+## Independent generic slots for equal callback contracts
+
+Re-running the unchanged original project witness confirms native E0502 remains
+open. Parameter emission currently uses concrete native record carriers and existing
+callback generic bounds in emit.rs. Storage selection still starts from value{id}
+and walks native fields. These boundaries need production routing.
+
+Before routing, view and bridge metadata now receives field identity rather than
+only Type. View declarations receive record ID, direct field index and checked type.
+Bridge associated types receive the full Leaf, including numeric path. Equal callback
+contracts can therefore use different native environment slots. This is necessary
+for nominal declarations independently of whether a checked instance has distinct
+closure types.
+
+Eight component tests pass. The new witness starts from checked nominal Pair
+metadata, deliberately reuses an equivalent callback type identity for both fields,
+and creates native closures owning a String and a Vec respectively. Generated
+views carry separate F0/F1 slots. A generic nominal read consumer invokes both
+associated callback types and verifies result 14. The initial metadata identity
+assertion failed because this checker assigns distinct callback IDs at the two
+declaration sites; that diagnostic is retained. The corrected backend witness
+then failed native compilation before field-aware metadata was implemented.
+
+Exact diagnostics, native red and successful results are verified in SQLite under
+runtime/diagnostics/scoped-record-view-slots/. The original production E0502 proof
+is retained there too. Whole-project formatting changes zero files and fingerprints.
+No shared compiler dispatch changed. This repairs the renderer metadata boundary;
+production parameter, field and storage routing remains pending. Consumers stay
+f1dd284. Preserve fifteen owner fixtures.
+
+Continuation prompt: Continue Tsrust from this handoff and the scoped record field
+storage plan. Integrate field-aware nominal views and borrowing bridges into
+production parameter and storage emission. Preserve separate callback field slots,
+including equal contracts and distinct environments. Nested owned record carriers
+may use generic child records; their accessors need child trait constraints rather
+than assuming a generic child has concrete native fields. Keep the original project
+red and live-owner controls unchanged. Use bounded checks, dispatch depth canaries,
+formatting, SQLite evidence and explicit Git paths; never stage owner fixtures.
