@@ -108,23 +108,24 @@ fn fact(expression: &Expr, value: Value, facts: &mut Facts, declarations: &HashM
 }
 
 pub(super) struct Invocation {
-    pub normal: Option<Vec<Binding>>,
-    pub throwing: Vec<Vec<Binding>>,
+    pub normal: Option<FlowState>,
+    pub throwing: Vec<FlowState>,
     pub result: Value,
     pub facts: Facts,
 }
 pub(super) trait Dispatch {
-    fn capture(&mut self, _: &Expr, _: &mut Value, _: &[Binding]) {}
-    fn validate_escape(&mut self, _: &Value, _: &[Binding]) -> bool {true}
-    fn invoke(&mut self, expression: &Expr, callee: &Value, arguments: &[Value], state: &[Binding]) -> Option<Invocation>;
+    fn reject(&mut self) {}
+    fn capture(&mut self, _: &Expr, _: &mut Value, _: &mut FlowState) {}
+    fn validate_escape(&mut self, _: &Value, _: &FlowState) -> bool {true}
+    fn invoke(&mut self, expression: &Expr, callee: &Value, arguments: &[Value], state: &FlowState) -> Option<Invocation>;
 }
 pub(super) struct UnknownDispatch;
 impl Dispatch for UnknownDispatch {
-    fn invoke(&mut self, _: &Expr, _: &Value, _: &[Value], _: &[Binding]) -> Option<Invocation> { None }
+    fn invoke(&mut self, _: &Expr, _: &Value, _: &[Value], _: &FlowState) -> Option<Invocation> { None }
 }
 pub(super) struct Evaluation {
     pub value: Value,
-    pub failures: Vec<Vec<Binding>>,
+    pub failures: Vec<FlowState>,
     pub normal: bool,
 }
 
@@ -136,18 +137,18 @@ enum Task<'a> {
     Kill(&'a Expr),
     Select(&'a Expr, &'a Expr),
     Lazy(&'a Expr, BinaryOp, Option<&'a Expr>),
-    Between(&'a Expr, Vec<Binding>),
-    Join(Vec<Binding>, Value),
+    Between(&'a Expr, FlowState),
+    Join(FlowState, Value),
     Discard,
 }
 
 /// Returns the evaluated value snapshot and environments of possible failures.
-pub(super) fn evaluate(expression: &Expr, state: &mut Vec<Binding>, facts: &mut Facts,
-    declarations: &HashMap<String, Contract>, observe_failures: bool, effects: &effect_bodies::Index) -> (Value, Vec<Vec<Binding>>) {
+pub(super) fn evaluate(expression: &Expr, state: &mut FlowState, facts: &mut Facts,
+    declarations: &HashMap<String, Contract>, observe_failures: bool, effects: &effect_bodies::Index) -> (Value, Vec<FlowState>) {
     let evaluation = evaluate_with_dispatch(expression, state, facts, declarations, observe_failures, effects, &mut UnknownDispatch);
     (evaluation.value, evaluation.failures)
 }
-pub(super) fn evaluate_with_dispatch(expression: &Expr, state: &mut Vec<Binding>, facts: &mut Facts, declarations: &HashMap<String, Contract>, observe_failures: bool, effects: &effect_bodies::Index, dispatch: &mut dyn Dispatch) -> Evaluation {
+pub(super) fn evaluate_with_dispatch(expression: &Expr, state: &mut FlowState, facts: &mut Facts, declarations: &HashMap<String, Contract>, observe_failures: bool, effects: &effect_bodies::Index, dispatch: &mut dyn Dispatch) -> Evaluation {
     let mut normal = true;
     let mut tasks = vec![Task::Eval(expression)];
     let mut values = Vec::new();
@@ -293,7 +294,7 @@ pub(super) fn evaluate_with_dispatch(expression: &Expr, state: &mut Vec<Binding>
             }
             Task::Join(left_state, left) => {
                 let right = values.pop().unwrap();
-                join(state, &left_state, declarations);
+                if state.join(&left_state,declarations).is_none() {dispatch.reject();for fact in facts.values_mut(){*fact=None;}}
                 values.push(merge_value(left, right, declarations));
             }
         }
@@ -314,7 +315,7 @@ mod provenance_tests {
         let function=program.functions.iter().find(|function|function.name.text=="inspect").unwrap();
         let one=program.functions.iter().find(|function|function.name.text=="one").unwrap().name.span;
         let two=program.functions.iter().find(|function|function.name.text=="two").unwrap().name.span;
-        let mut bindings=Vec::new();collect(&function.body,&mut bindings,&effects);
+        let mut bindings=Vec::new();collect(&function.body,&mut bindings,&effects);let mut bindings:FlowState=bindings.into();
         let mut facts=HashMap::new();
         for statement in &function.body {
             let StmtKind::Let {name,value,..}=&statement.kind else {continue};
@@ -347,11 +348,11 @@ mod dispatch_tests {
     use super::*;
     struct ThrowingWriter { saved: Span, replacement: Span, seen: bool }
     impl Dispatch for ThrowingWriter {
-        fn invoke(&mut self, _: &Expr, callee: &Value, arguments: &[Value], state: &[Binding]) -> Option<Invocation> {
+        fn invoke(&mut self, _: &Expr, callee: &Value, arguments: &[Value], state: &FlowState) -> Option<Invocation> {
             assert_eq!(callee.origins,vec![body_origins::Origin::Body(self.saved)]);
             assert_eq!(arguments.len(),1);
             self.seen=true;
-            let mut outgoing=state.to_vec();
+            let mut outgoing=state.clone();
             let shared=outgoing.iter_mut().find(|binding|binding.name=="shared").unwrap();
             shared.origins=vec![body_origins::Origin::Body(self.replacement)];
             Some(Invocation { normal:None, throwing:vec![outgoing], result:Value::default(), facts:HashMap::new() })
@@ -366,7 +367,7 @@ mod dispatch_tests {
         let main=program.functions.iter().find(|function|function.name.text=="main").unwrap();
         let one=program.functions.iter().find(|function|function.name.text=="one").unwrap().name.span;
         let two=program.functions.iter().find(|function|function.name.text=="two").unwrap().name.span;
-        let mut state=Vec::new();collect(&main.body,&mut state,&effects);
+        let mut state=Vec::new();collect(&main.body,&mut state,&effects);let mut state:FlowState=state.into();
         let StmtKind::Let {value,..}=&main.body[2].kind else {panic!("result")};
         let mut dispatch=ThrowingWriter { saved:one,replacement:two,seen:false };
         let result=evaluate_with_dispatch(value,&mut state,&mut HashMap::new(),&declarations,true,&effects,&mut dispatch);
@@ -385,7 +386,7 @@ mod opaque_selection_tests {
         let program=crate::syntax::parse(&source).unwrap();let effects=effect_bodies::Index::new(&program).unwrap();
         let declarations=program.functions.iter().map(|function|(function.name.text.clone(),contract(0,&function.parameter_initializers,function.rest_parameter,function.name.span))).collect::<HashMap<_,_>>();
         let main=program.functions.iter().find(|function|function.name.text=="main").unwrap();
-        let mut state=Vec::new();collect(&main.body,&mut state,&effects);
+        let mut state=Vec::new();collect(&main.body,&mut state,&effects);let mut state:FlowState=state.into();
         state[0].selection.truth=Some(false);
         let StmtKind::Expr(call)=&main.body[1].kind else {panic!("call")};
         evaluate(call,&mut state,&mut HashMap::new(),&declarations,false,&effects);
@@ -405,7 +406,7 @@ mod environment_transport_tests {
         let declarations=program.functions.iter().map(|function|(function.name.text.clone(),contract(0,&function.parameter_initializers,function.rest_parameter,function.name.span))).collect::<HashMap<_,_>>();
         let main=program.functions.iter().find(|function|function.name.text=="main").unwrap();
         let one=program.functions.iter().find(|function|function.name.text=="one").unwrap().name.span;
-        let mut state=Vec::new();collect(&main.body,&mut state,&effects);
+        let mut state=Vec::new();collect(&main.body,&mut state,&effects);let mut state:FlowState=state.into();
         let mut store=environment_store::Store::default();
         let first=store.allocate(Span::new(900,901),Span::new(902,903),&[]).unwrap();
         let second=store.allocate(Span::new(904,905),Span::new(902,903),&[]).unwrap();

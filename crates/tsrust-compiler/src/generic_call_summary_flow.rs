@@ -2,20 +2,20 @@
 use super::*;
 #[derive(Default, Clone, PartialEq, Eq)]
 pub(super) struct Outcome {
-    pub normal: Option<Vec<Binding>>,
-    pub returning: Option<Vec<Binding>>,
-    pub throwing: Option<Vec<Binding>>,
+    pub normal: Option<FlowState>,
+    pub returning: Option<FlowState>,
+    pub throwing: Option<FlowState>,
     pub returned_value: Option<expression_flow::Value>,
     pub facts: HashMap<(usize, usize), Option<Vec<Contract>>>,
 }
 /// Evaluate a callee body without merging normal and exceptional completion.
 /// Invocation dispatch and contextual parameters are supplied by the next layer.
 pub(super) fn run(body: &[Stmt], initial: &[Binding], declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index) -> Option<Outcome> {
-    run_with_dispatch(body, initial, declarations, effects, &mut expression_flow::UnknownDispatch)
+    run_with_dispatch(body, &initial.to_vec().into(), declarations, effects, &mut expression_flow::UnknownDispatch)
 }
-pub(super) fn run_with_dispatch(body: &[Stmt], initial: &[Binding], declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index, dispatch: &mut dyn expression_flow::Dispatch) -> Option<Outcome> {
+pub(super) fn run_with_dispatch(body: &[Stmt], initial: &FlowState, declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index, dispatch: &mut dyn expression_flow::Dispatch) -> Option<Outcome> {
     let graph = flow_graph::summary_graph(body)?;
-    let mut seed = initial.to_vec();
+    let mut seed = initial.clone();
     let mut locals = Vec::new();
     collect(body, &mut locals, effects);
     for mut local in locals {
@@ -48,7 +48,7 @@ pub(super) fn run_with_dispatch(body: &[Stmt], initial: &[Binding], declarations
             .chain(node.exceptional.into_iter().flat_map(|next| transfer.failures.iter().map(move |state| (next, state, None))));
         for (successor, outgoing, pending) in successors {
             let existed = states[successor].is_some();
-            let mut changed = if let Some(previous) = &mut states[successor] { join(previous, outgoing, declarations) }
+            let mut changed = if let Some(previous) = &mut states[successor] { previous.join(outgoing,declarations)? }
                 else { states[successor] = Some(outgoing.clone()); true };
             let joined = if existed {
                 match (&pending_returns[successor], pending) {
@@ -69,15 +69,15 @@ pub(super) fn run_with_dispatch(body: &[Stmt], initial: &[Binding], declarations
 /// Parameter entry executes defaults and packs rest arguments before the body.
 /// Nested invocation dispatch remains the responsibility of the worklist engine.
 pub(super) fn invoke(declaration: Span, caller: &[Binding], arguments: &[expression_flow::Value], declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index) -> Option<Outcome> {
-    invoke_with_dispatch(declaration, caller, arguments, declarations, effects, &mut expression_flow::UnknownDispatch)
+    invoke_with_dispatch(declaration, &caller.to_vec().into(), arguments, declarations, effects, &mut expression_flow::UnknownDispatch)
 }
-pub(super) fn invoke_with_dispatch(declaration: Span, caller: &[Binding], arguments: &[expression_flow::Value], declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index, dispatch: &mut dyn expression_flow::Dispatch) -> Option<Outcome> {
+pub(super) fn invoke_with_dispatch(declaration: Span, caller: &FlowState, arguments: &[expression_flow::Value], declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index, dispatch: &mut dyn expression_flow::Dispatch) -> Option<Outcome> {
     if effects.aggregate_writes(declaration) { return None; }
-    let mut frame = invocation_frame::Frame::build(declaration, caller, arguments, effects)?;
+    let mut frame = invocation_frame::Frame::build_with_state(declaration, caller, arguments, effects)?;
     let entry = parameter_entry::prepare(declaration, arguments, &mut frame.state, declarations, effects, dispatch)?;
     let mut outcome = if entry.normal { run_with_dispatch(effects.body(declaration)?, &frame.state, declarations, effects, dispatch)? } else { Outcome::default() };
     for failure in entry.failures {
-        if let Some(previous) = &mut outcome.throwing { join(previous, &failure, declarations); }
+        if let Some(previous) = &mut outcome.throwing { previous.join(&failure,declarations)?; }
         else { outcome.throwing = Some(failure); }
     }
     for (key, incoming) in entry.facts {
@@ -116,7 +116,7 @@ mod tests {
             facts.sort_by_key(|(span,_)|*span);
             assert_eq!(facts.iter().map(|(_,required)|*required).collect::<Vec<_>>(),expected);
         }
-        let arity=|state:Option<Vec<Binding>>| state.map(|state| {
+        let arity=|state:Option<FlowState>| state.map(|state| {
             let binding=state.iter().find(|binding|binding.name=="action").unwrap();
             { let contracts=resolve_indexed(binding.targets.clone(),&state,&declarations,&effects).unwrap(); assert_eq!(contracts.len(),1); contracts[0].required }
         });
@@ -168,4 +168,49 @@ mod contextual_tests {
         assert_eq!(normal[0].origins,vec![body_origins::Origin::Body(two)]);
         assert!(outcome.returning.is_none());assert!(outcome.throwing.is_none());
     }
+}
+
+#[cfg(test)]
+mod environment_transport_tests {
+ use super::*;
+ struct Writer {handle:environment_store::Handle}
+ impl expression_flow::Dispatch for Writer {
+  fn invoke(&mut self,expression:&Expr,_:&expression_flow::Value,_:&[expression_flow::Value],state:&FlowState)->Option<expression_flow::Invocation> {
+   let ExprKind::Call(callee,_)=&expression.kind else {return None;};let (name,_)=name(callee)?;
+   let mut outgoing=state.clone();
+   let mut throwing=Vec::new();
+   if name=="step" {
+    let mut failed=state.clone();failed.consume(self.handle)?;throwing.push(failed);
+   }
+   if let Some(environment_state::Capture::Live {bindings,..})=outgoing.captures.get(&self.handle) {
+    let mut bindings=bindings.clone();bindings[0].origins=vec![body_origins::Origin::Body(Span::new(if name=="step" {9}else{11},12))];
+    outgoing.update(self.handle,&bindings,&HashMap::new())?;
+   }
+   Some(expression_flow::Invocation {normal:Some(outgoing),throwing,result:expression_flow::Value::undefined(),facts:HashMap::new()})
+  }
+ }
+ #[test] fn finally_preserves_distinct_returning_and_consumed_throwing_environments() {
+  let source=crate::format("function step():int{return 7;}function cleanup(){}function root(){try{return step();}finally{cleanup();}}function main(){}").unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+  let program=crate::syntax::parse(&source).unwrap();let effects=effect_bodies::Index::new(&program).unwrap();let declarations=HashMap::new();
+  let root=program.functions.iter().find(|function|function.name.text=="root").unwrap();
+  let binding=Binding {alternatives:None,identity:Some(crate::local_capture_plan::BindingId {owner:0,declaration_start:1}),name:"captured".into(),scope:Span::new(0,100),targets:vec![Target::Unknown],origins:vec![body_origins::Origin::Body(Span::new(5,6))],selection:Selection::default(),elements:None,mutable:true,contract:None};
+  let mut store=environment_store::Store::default();let handle=store.allocate(Span::new(20,21),Span::new(30,31),&[binding.clone()]).unwrap();let mut state=FlowState::default();state.install(handle,&[binding],environment_state::Instance::OwnedSingle).unwrap();
+  let outcome=run_with_dispatch(&root.body,&state,&declarations,&effects,&mut Writer {handle}).unwrap();
+  assert!(outcome.normal.is_none());
+  let returning=outcome.returning.unwrap();let throwing=outcome.throwing.unwrap();
+  let environment_state::Capture::Live {bindings,..}=&returning.captures[&handle] else {panic!("normal return retains live instance");};
+  assert_eq!(bindings[0].origins,vec![body_origins::Origin::Body(Span::new(11,12))]);assert!(matches!(throwing.captures[&handle],environment_state::Capture::Consumed));
+  assert!(matches!(state.captures[&handle],environment_state::Capture::Live {..}),"evaluation does not mutate incoming request state");
+ }
+ #[test] fn conditional_invocations_join_live_updates_and_keep_consumed_failures_separate() {
+  let source=crate::format("function step():int{return 7;}function cleanup():int{return 9;}function root(flag:boolean):int{return flag?step():cleanup();}function main(){}").unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+  let program=crate::syntax::parse(&source).unwrap();let effects=effect_bodies::Index::new(&program).unwrap();let root=program.functions.iter().find(|function|function.name.text=="root").unwrap();
+  let binding=Binding {alternatives:None,identity:Some(crate::local_capture_plan::BindingId {owner:0,declaration_start:1}),name:"captured".into(),scope:Span::new(0,100),targets:vec![Target::Unknown],origins:vec![body_origins::Origin::Body(Span::new(5,6))],selection:Selection::default(),elements:None,mutable:true,contract:None};
+  let mut store=environment_store::Store::default();let handle=store.allocate(Span::new(20,21),Span::new(30,31),&[binding.clone()]).unwrap();let mut initial=FlowState::default();initial.install(handle,&[binding],environment_state::Instance::OwnedSingle).unwrap();
+  let outcome=invoke_with_dispatch(root.name.span,&initial,&[expression_flow::Value::default()],&HashMap::new(),&effects,&mut Writer {handle}).unwrap();
+  let returning=outcome.returning.unwrap();let environment_state::Capture::Live {bindings,..}=&returning.captures[&handle] else {panic!("live joined state");};
+  assert_eq!(bindings[0].origins,vec![body_origins::Origin::Body(Span::new(9,12)),body_origins::Origin::Body(Span::new(11,12))]);
+  assert!(matches!(outcome.throwing.unwrap().captures[&handle],environment_state::Capture::Consumed));assert!(returning.bindings.is_empty(),"frame projects formal slots out without dropping environments");
+ }
+
 }

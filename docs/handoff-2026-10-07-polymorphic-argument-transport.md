@@ -124,3 +124,39 @@ was repaired before the final seven-test run. Exact red, initial green, compilat
 correction, final and format logs are read back from SQLite under
 runtime/diagnostics/environment-state-kernel. Whole-project formatting changes
 zero files and fingerprints. Owner fixtures remain untouched and unstaged.
+
+
+## Flow transport WIP
+
+Explicit FlowState now travels through expression dispatch, saved branch states,
+node failures, summary normal/return/throw exits, default-parameter evaluation,
+invocation frames and contextual request keys. Frame projection removes formal
+binding slots while retaining outgoing capture state. Console dispatch preserves
+the same complete state on possible normal and exceptional completion. forEach
+projection also preserves environment state. Summary and default joins reject
+incompatible slot layouts; worklist joins mark the request opaque on failure.
+
+New tests exercise finally after normal return and callback failure, consuming the
+failed instance without reviving it, and conditional invocation joins that preserve
+live capture updates separately from consumed failures. Evaluation leaves incoming
+request state unchanged. The source-flow batch passes 40 existing/kernel checks
+with the deliberately red mutable factory witness excluded; three focused transport
+checks pass after the added conditional case. The compiler/native batch passes
+80 checks including all eight depth canaries; the complete editor crate passes
+330 tests. The retained factory sequence still fails with no outcome.
+
+The state map has not yet been populated from checked capture-mode facts during
+real environment creation, nor read and updated by environment invocation. The
+read-only store and conflict guards remain. Next isolate capture-mode facts, install
+flow-local instance state, read it into callee frames and project capture changes
+onto the matching handle per exit. Do not derive OwnedSingle from a mutable flag,
+source spelling or the existence of one abstract handle. Keep factory instances,
+merged allocations, borrowing, consumption, exceptions and recursive convergence
+explicit. This is a refactor prerequisite, not gate 173 acceptance.
+
+
+Flow transport logs, including transitional compilation failures and the retained
+mutable factory red, are stored under runtime/diagnostics/environment-flow-transport
+in SQLite and verified by exact readback. Whole-project formatting changes zero
+files and fingerprints. The shared target contains no duplicate obsolete variants
+of the affected unit and integration test executables. No new timing was run.

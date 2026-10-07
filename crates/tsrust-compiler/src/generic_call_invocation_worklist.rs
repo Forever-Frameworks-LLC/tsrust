@@ -5,7 +5,7 @@ struct Request {
     declaration: Span,
     producer: Span,
     environment: Option<environment_store::Handle>,
-    caller: Vec<Binding>,
+    caller: FlowState,
     arguments: Vec<expression_flow::Value>,
 }
 struct Entry {
@@ -24,11 +24,12 @@ pub(super) struct Engine<'a> {
     current: Option<usize>,
     environments: environment_store::Store,
 }
-fn merge_state(current: &mut Option<Vec<Binding>>, incoming: Option<Vec<Binding>>, declarations: &HashMap<String, Contract>) {
-    if let Some(incoming) = incoming {
-        if let Some(current) = current { join(current, &incoming, declarations); }
-        else { *current = Some(incoming); }
+fn merge_state(current:&mut Option<FlowState>,incoming:Option<FlowState>,declarations:&HashMap<String,Contract>)->bool {
+    if let Some(incoming)=incoming {
+        if let Some(current)=current {return current.join(&incoming,declarations).is_some();}
+        *current=Some(incoming);
     }
+    true
 }
 fn merge_facts(current: &mut HashMap<(usize, usize), Option<Vec<Contract>>>, incoming: HashMap<(usize, usize), Option<Vec<Contract>>>, declarations: &HashMap<String, Contract>) {
     for (key, incoming) in incoming {
@@ -56,9 +57,9 @@ impl<'a> Engine<'a> {
         if let Some(parent) = self.current { self.entries[index].dependents.insert(parent); }
         index
     }
-    fn for_each(&mut self, expression: &Expr, callee: &expression_flow::Value, arguments: &[expression_flow::Value], state: &[Binding]) -> Option<expression_flow::Invocation> {
+    fn for_each(&mut self, expression: &Expr, callee: &expression_flow::Value, arguments: &[expression_flow::Value], state: &FlowState) -> Option<expression_flow::Invocation> {
         let (Some(elements), Some(callback)) = (&callee.elements, arguments.first()) else { return self.opaque_invocation(); };
-        let mut normal = Some(state.to_vec());
+        let mut normal = Some(state.clone());
         let mut throwing = None;
         let mut facts = HashMap::new();
         for (position, element) in elements.iter().enumerate() {
@@ -77,9 +78,9 @@ impl<'a> Engine<'a> {
                 for outgoing in [&mut outcome.normal,&mut outcome.returning,&mut outcome.throwing].into_iter().flatten() {
                     outgoing.retain(|binding|incoming.iter().any(|original|original.identity==binding.identity));
                 }
-                merge_state(&mut normal, outcome.normal, self.declarations);
-                merge_state(&mut normal, outcome.returning, self.declarations);
-                merge_state(&mut throwing, outcome.throwing, self.declarations);
+                if !merge_state(&mut normal, outcome.normal, self.declarations) {return self.opaque_invocation();}
+                if !merge_state(&mut normal, outcome.returning, self.declarations) {return self.opaque_invocation();}
+                if !merge_state(&mut throwing, outcome.throwing, self.declarations) {return self.opaque_invocation();}
                 merge_facts(&mut facts, outcome.facts, self.declarations);
             }
         }
@@ -95,7 +96,7 @@ impl<'a> Engine<'a> {
         if !self.entries[index].queued { self.entries[index].queued = true; self.work.push(index); }
     }
     pub(super) fn solve(&mut self, declaration: Span, caller: &[Binding], arguments: &[expression_flow::Value]) -> Option<summary_flow::Outcome> {
-        let root = self.request(Request { declaration, producer: declaration, environment: None, caller: caller.to_vec(), arguments: arguments.to_vec() });
+        let root = self.request(Request { declaration, producer: declaration, environment: None, caller: caller.to_vec().into(), arguments: arguments.to_vec() });
         while let Some(index) = self.work.pop() {
             self.entries[index].queued = false;
             let previous_opaque = self.entries[index].opaque;
@@ -124,10 +125,11 @@ impl<'a> Engine<'a> {
                 if let Some(captured)=&captured_before && [&incoming.normal,&incoming.returning,&incoming.throwing].into_iter().flatten().any(|state|captured.iter().any(|binding|state.iter().find(|outgoing|outgoing.identity==binding.identity)!=Some(binding))) {
                     self.entries[index].opaque=true;
                 }
-                let outcome = &mut self.entries[index].outcome;
-                merge_state(&mut outcome.normal, incoming.normal, declarations);
-                merge_state(&mut outcome.returning, incoming.returning, declarations);
-                merge_state(&mut outcome.throwing, incoming.throwing, declarations);
+                let entry=&mut self.entries[index];
+                let outcome = &mut entry.outcome;
+                if !merge_state(&mut outcome.normal, incoming.normal, declarations) {entry.opaque=true;}
+                if !merge_state(&mut outcome.returning, incoming.returning, declarations) {entry.opaque=true;}
+                if !merge_state(&mut outcome.throwing, incoming.throwing, declarations) {entry.opaque=true;}
                 if let Some(incoming) = incoming.returned_value {
                     outcome.returned_value = Some(if let Some(previous) = outcome.returned_value.take() { expression_flow::merge_value(previous, incoming, declarations) } else { incoming });
                 }
@@ -142,14 +144,15 @@ impl<'a> Engine<'a> {
     }
 }
 impl expression_flow::Dispatch for Engine<'_> {
-    fn validate_escape(&mut self, value: &expression_flow::Value, state: &[Binding]) -> bool {
+    fn reject(&mut self) {self.opaque_invocation();}
+    fn validate_escape(&mut self, value: &expression_flow::Value, state: &FlowState) -> bool {
         let alternatives=value.alternatives.iter().flatten().chain(value.elements.iter().flatten().flat_map(|element|element.alternatives.iter().flatten()));
         alternatives.into_iter().all(|alternative|match alternative {
             environment_store::Alternative::Body{environment:Some(handle),..}=>self.environments.get(*handle).is_some_and(|record|record.bindings.iter().all(|captured|state.iter().find(|binding|binding.identity==captured.identity).is_none_or(|binding|binding==captured))),
             _=>true,
         })
     }
-    fn capture(&mut self, expression: &Expr, value: &mut expression_flow::Value, state: &[Binding]) {
+    fn capture(&mut self, expression: &Expr, value: &mut expression_flow::Value, state: &mut FlowState) {
         if value.alternatives.is_some() { return; }
         let Some(current)=self.current else {return};
         let producer=self.entries[current].request.producer;
@@ -172,9 +175,9 @@ impl expression_flow::Dispatch for Engine<'_> {
         }
         if captured_any {value.alternatives=Some(environment_store::canonical_alternatives(alternatives));}
     }
-    fn invoke(&mut self, expression: &Expr, callee: &expression_flow::Value, arguments: &[expression_flow::Value], state: &[Binding]) -> Option<expression_flow::Invocation> {
+    fn invoke(&mut self, expression: &Expr, callee: &expression_flow::Value, arguments: &[expression_flow::Value], state: &FlowState) -> Option<expression_flow::Invocation> {
         if callee.console {
-            return Some(expression_flow::Invocation { normal: Some(state.to_vec()), throwing: vec![state.to_vec()], result: expression_flow::Value::undefined(), facts: HashMap::new() });
+            return Some(expression_flow::Invocation { normal: Some(state.clone()), throwing: vec![state.clone()], result: expression_flow::Value::undefined(), facts: HashMap::new() });
         }
         if callee.for_each { return self.for_each(expression, callee, arguments, state); }
         if callee.origins.is_empty() || callee.origins.iter().any(|origin| !matches!(origin, body_origins::Origin::Body(_))) { return self.opaque_invocation(); }
@@ -188,7 +191,7 @@ impl expression_flow::Dispatch for Engine<'_> {
         }).collect());
         for alternative in alternatives {
             let environment_store::Alternative::Body{declaration,environment}=alternative else {return self.opaque_invocation()};
-            let index = self.request(Request { declaration, producer: expression.span, environment, caller: state.to_vec(), arguments: arguments.to_vec() });
+            let index = self.request(Request { declaration, producer: expression.span, environment, caller: state.clone(), arguments: arguments.to_vec() });
             if self.entries[index].opaque { return self.opaque_invocation(); }
             let mut outcome = self.entries[index].outcome.clone();
             for outgoing in [&mut outcome.normal,&mut outcome.returning,&mut outcome.throwing].into_iter().flatten() {
@@ -198,9 +201,9 @@ impl expression_flow::Dispatch for Engine<'_> {
                 Some(outcome.returned_value.clone().map_or_else(expression_flow::Value::undefined, |value| expression_flow::merge_value(value, expression_flow::Value::undefined(), self.declarations)))
             } else { outcome.returned_value.clone() };
             if let Some(value) = returned { result = Some(result.map_or_else(|| value.clone(), |previous| expression_flow::merge_value(previous, value.clone(), self.declarations))); }
-            merge_state(&mut normal, outcome.normal, self.declarations);
-            merge_state(&mut normal, outcome.returning, self.declarations);
-            merge_state(&mut throwing, outcome.throwing, self.declarations);
+            if !merge_state(&mut normal, outcome.normal, self.declarations) {return self.opaque_invocation();}
+            if !merge_state(&mut normal, outcome.returning, self.declarations) {return self.opaque_invocation();}
+            if !merge_state(&mut throwing, outcome.throwing, self.declarations) {return self.opaque_invocation();}
             merge_facts(&mut facts, outcome.facts, self.declarations);
         }
         Some(expression_flow::Invocation { normal, throwing: throwing.into_iter().collect(), result: result.unwrap_or_default(), facts })

@@ -1,12 +1,15 @@
 //! Contextual invocation slots stay separate from captured caller bindings.
 use super::*;
 pub(super) struct Frame {
-    pub state: Vec<Binding>,
-    caller: Vec<Binding>,
+    pub state: FlowState,
+    caller: FlowState,
     owned: HashSet<crate::local_capture_plan::BindingId>,
 }
 impl Frame {
     pub(super) fn build(declaration: Span, caller: &[Binding], arguments: &[expression_flow::Value], effects: &effect_bodies::Index) -> Option<Self> {
+        Self::build_with_state(declaration,&caller.to_vec().into(),arguments,effects)
+    }
+    pub(super) fn build_with_state(declaration:Span,caller:&FlowState,arguments:&[expression_flow::Value],effects:&effect_bodies::Index)->Option<Self> {
         if !effects.captures_available(declaration, caller) { return None; }
         let parameters = effects.parameters(declaration)?;
         let body = effects.body(declaration)?;
@@ -32,15 +35,15 @@ impl Frame {
         let owned = slots.iter().filter_map(|binding| binding.identity).collect::<HashSet<_>>();
         let mut state = caller.iter().filter(|binding| !binding.identity.is_some_and(|identity| owned.contains(&identity))).cloned().collect::<Vec<_>>();
         state.extend(slots);
-        Some(Self { state, caller: caller.to_vec(), owned })
+        Some(Self { state:FlowState {bindings:state,captures:caller.captures.clone()}, caller: caller.clone(), owned })
     }
-    pub(super) fn project(&self, outgoing: &[Binding]) -> Vec<Binding> {
+    pub(super) fn project(&self, outgoing: &FlowState) -> FlowState {
         let mut updated_by_identity = HashMap::new();
-        for binding in outgoing {
+        for binding in outgoing.iter() {
             if let Some(identity) = binding.identity { updated_by_identity.entry(identity).or_insert(binding); }
         }
         let mut caller = self.caller.clone();
-        for binding in &mut caller {
+        for binding in caller.iter_mut() {
             let Some(identity) = binding.identity else { continue; };
             if self.owned.contains(&identity) { continue; }
             if let Some(updated) = updated_by_identity.get(&identity) {
@@ -51,6 +54,7 @@ impl Frame {
                 binding.targets = updated.targets.clone();
             }
         }
+        caller.captures=outgoing.captures.clone();
         caller
     }
 }
@@ -82,7 +86,7 @@ mod tests {
         let own=frame.state.iter().find(|binding|binding.name=="local" && binding.identity!=caller[0].identity).unwrap();
         assert_eq!(own.origins,vec![body_origins::Origin::Unknown]);
         let mut outgoing=frame.state.clone();
-        for binding in &mut outgoing {
+        for binding in outgoing.iter_mut() {
             if binding.name=="action" || binding.identity==own.identity || binding.name=="shared" { binding.origins=vec![body_origins::Origin::Body(two)]; }
         }
         let projected=frame.project(&outgoing);

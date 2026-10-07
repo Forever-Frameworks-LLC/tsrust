@@ -7,6 +7,9 @@ pub(super) enum Instance { OwnedSingle, Merged }
 pub(super) enum Capture { Live { bindings:Vec<Binding>, instance:Instance }, Consumed, Unknown }
 #[derive(Clone,Default,PartialEq,Eq,Hash)]
 pub(super) struct State { pub bindings:Vec<Binding>, pub captures:BTreeMap<environment_store::Handle,Capture> }
+impl From<Vec<Binding>> for State {fn from(bindings:Vec<Binding>)->Self {Self {bindings,captures:BTreeMap::new()}}}
+impl std::ops::Deref for State {type Target=Vec<Binding>;fn deref(&self)->&Self::Target {&self.bindings}}
+impl std::ops::DerefMut for State {fn deref_mut(&mut self)->&mut Self::Target {&mut self.bindings}}
 fn canonical(bindings:&[Binding])->Option<Vec<Binding>> {
     if bindings.iter().any(|binding|binding.identity.is_none()) {return None;}
     let mut result=bindings.to_vec();result.sort_by_key(|binding|binding.identity);

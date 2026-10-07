@@ -211,3 +211,32 @@ this state through summary exits, expression Invocation, node transfer and graph
 edges, then request keys and captured updates. Keep guards until capture-mode
 facts and native controls prove their removal. No new language behavior is accepted
 by this internal kernel, and no new timing or editor acceptance is claimed.
+
+
+## Flow transport WIP
+
+Explicit FlowState now travels through expression dispatch, saved branch states,
+node failures, summary normal/return/throw exits, default-parameter evaluation,
+invocation frames and contextual request keys. Frame projection removes formal
+binding slots while retaining outgoing capture state. Console dispatch preserves
+the same complete state on possible normal and exceptional completion. forEach
+projection also preserves environment state. Summary and default joins reject
+incompatible slot layouts; worklist joins mark the request opaque on failure.
+
+New tests exercise finally after normal return and callback failure, consuming the
+failed instance without reviving it, and conditional invocation joins that preserve
+live capture updates separately from consumed failures. Evaluation leaves incoming
+request state unchanged. The source-flow batch passes 40 existing/kernel checks
+with the deliberately red mutable factory witness excluded; three focused transport
+checks pass after the added conditional case. The compiler/native batch passes
+80 checks including all eight depth canaries; the complete editor crate passes
+330 tests. The retained factory sequence still fails with no outcome.
+
+The state map has not yet been populated from checked capture-mode facts during
+real environment creation, nor read and updated by environment invocation. The
+read-only store and conflict guards remain. Next isolate capture-mode facts, install
+flow-local instance state, read it into callee frames and project capture changes
+onto the matching handle per exit. Do not derive OwnedSingle from a mutable flag,
+source spelling or the existence of one abstract handle. Keep factory instances,
+merged allocations, borrowing, consumption, exceptions and recursive convergence
+explicit. This is a refactor prerequisite, not gate 173 acceptance.

@@ -2,7 +2,7 @@
 use super::*;
 pub(super) struct Entry {
     pub normal: bool,
-    pub failures: Vec<Vec<Binding>>,
+    pub failures: Vec<FlowState>,
     pub facts: HashMap<(usize, usize), Option<Vec<Contract>>>,
 }
 fn install(binding: &mut Binding, value: &expression_flow::Value) {
@@ -12,7 +12,7 @@ fn install(binding: &mut Binding, value: &expression_flow::Value) {
     binding.elements = value.elements.clone();
     binding.targets = value.contracts.clone().map_or_else(|| vec![Target::Unknown], |contracts| contracts.into_iter().map(Target::Contract).collect());
 }
-pub(super) fn prepare(declaration: Span, arguments: &[expression_flow::Value], state: &mut Vec<Binding>, declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index, dispatch: &mut dyn expression_flow::Dispatch) -> Option<Entry> {
+pub(super) fn prepare(declaration: Span, arguments: &[expression_flow::Value], state: &mut FlowState, declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index, dispatch: &mut dyn expression_flow::Dispatch) -> Option<Entry> {
     let parameters = effects.parameters(declaration)?;
     let mut entry = Entry { normal: true, failures: Vec::new(), facts: HashMap::new() };
     for parameter in parameters {
@@ -35,7 +35,7 @@ pub(super) fn prepare(declaration: Span, arguments: &[expression_flow::Value], s
                     *state = default_state;
                 } else {
                     install(&mut state[index], &value);
-                    if evaluation.normal { join(state, &default_state, declarations); }
+                    if evaluation.normal { state.join(&default_state,declarations)?; }
                 }
             }
             _ => install(&mut state[index], &value),

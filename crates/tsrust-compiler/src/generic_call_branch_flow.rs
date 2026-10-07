@@ -20,6 +20,7 @@ mod parameter_entry;
 pub(super) mod environment_store;
 #[path = "generic_call_environment_state.rs"]
 mod environment_state;
+use environment_state::State as FlowState;
 #[path = "generic_call_invocation_worklist.rs"]
 mod invocation_worklist;
 
@@ -114,10 +115,10 @@ pub(super) fn analyze(
         && write.span.end <= function.scope_span.end && !direct.contains(&(write.span.start, write.span.end))) {
         return Ok(None);
     }
-    let mut seed = initial.to_vec();
+    let mut seed = FlowState::from(initial.to_vec());
     // Locals become known only after their initializer executes. Parameters have
     // stable annotated contracts; lexical ranges still govern name lookup.
-    for binding in &mut seed {
+    for binding in seed.iter_mut() {
         if binding.scope.start > function.scope_span.start {
             binding.alternatives = None;
             binding.origins = vec![body_origins::Origin::Unknown];
@@ -146,7 +147,7 @@ pub(super) fn analyze(
                 continue;
             }
             let changed = if let Some(previous) = &mut states[successor] {
-                join(previous, outgoing, declarations)
+                match previous.join(outgoing,declarations) {Some(changed)=>changed,None=>return Ok(None)}
             } else {
                 states[successor] = Some(outgoing.clone());
                 true

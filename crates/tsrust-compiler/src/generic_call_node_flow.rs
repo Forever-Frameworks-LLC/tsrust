@@ -3,7 +3,7 @@ use super::*;
 
 pub(super) struct Transfer {
     pub value: expression_flow::Value,
-    pub failures: Vec<Vec<Binding>>,
+    pub failures: Vec<FlowState>,
     pub normal: bool,
 }
 impl Transfer {
@@ -15,10 +15,10 @@ impl Transfer {
     }
 }
 
-pub(super) fn apply(node: &flow_graph::Node<'_>, state: &mut Vec<Binding>, facts: &mut HashMap<(usize, usize), Option<Vec<Contract>>>, declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index) -> Transfer {
+pub(super) fn apply(node: &flow_graph::Node<'_>, state: &mut FlowState, facts: &mut HashMap<(usize, usize), Option<Vec<Contract>>>, declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index) -> Transfer {
     apply_with_dispatch(node, state, facts, declarations, effects, &mut expression_flow::UnknownDispatch)
 }
-pub(super) fn apply_with_dispatch(node: &flow_graph::Node<'_>, state: &mut Vec<Binding>, facts: &mut HashMap<(usize, usize), Option<Vec<Contract>>>, declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index, dispatch: &mut dyn expression_flow::Dispatch) -> Transfer {
+pub(super) fn apply_with_dispatch(node: &flow_graph::Node<'_>, state: &mut FlowState, facts: &mut HashMap<(usize, usize), Option<Vec<Contract>>>, declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index, dispatch: &mut dyn expression_flow::Dispatch) -> Transfer {
     let statement = node.statement;
         let mut failures = Vec::new();
         if let Some(StmtKind::Assign { target, .. }) = statement.map(|statement| &statement.kind)
