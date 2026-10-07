@@ -52,6 +52,17 @@ pub struct GenericCallInfo {
     pub result: String,
 }
 
+/// Checked parameters of a generic call whose result display remains unresolved.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct GenericParameterCallInfo {
+    pub(crate) parameter_types: Vec<Type>,
+    pub(crate) body_parameter_types: Vec<Type>,
+    pub span: Span,
+    pub callee_span: Span,
+    pub declaration_span: Span,
+    pub parameters: Vec<GenericParameterInfo>,
+}
+
 /// A concrete parameter contract. Unsupported display types remain unknown.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GenericParameterInfo {
@@ -79,6 +90,7 @@ pub struct CheckedTypeFacts {
     /// Checked fields of synthesized rest records: owner, name, source span, type.
     pub rest_record_fields: Vec<(String, String, Span, String)>,
     pub generic_calls: Vec<GenericCallInfo>,
+    pub generic_parameter_calls: Vec<GenericParameterCallInfo>,
 }
 
 // Preserve checked identities independently of display spelling. Project
@@ -199,6 +211,7 @@ impl Analysis {
         let mut pattern_names = BTreeMap::<(usize, usize), Vec<Type>>::new();
         let mut exact_views = std::collections::BTreeSet::new();
         let mut optional = BTreeMap::<(usize, usize), Vec<Option<Type>>>::new();
+        let mut generic_parameter_calls = Vec::new();
         let mut generic_calls = BTreeMap::<(usize, usize), Vec<GenericCallInfo>>::new();
         let mut generic_names = HashMap::new();
         while let Some(node) = pending.pop() {
@@ -391,8 +404,6 @@ impl Analysis {
                         expression.target
                         && let Some(declaration) = program.generic_declarations.get(&id)
                         && let ExprKind::Call(callee, _) = &expression.kind
-                        && let Some(result) =
-                            type_name(program, program.functions[id].result, &mut generic_names)
                     {
                         let function = &program.functions[id];
                         let parameter_types = program
@@ -407,10 +418,9 @@ impl Analysis {
                                     .map(|binding| binding.input_ty.unwrap_or(binding.ty))
                                     .collect()
                             });
-                        let fact = GenericCallInfo {
+                        let partial = GenericParameterCallInfo {
                             parameter_types: parameter_types.clone(),
                             body_parameter_types: function.bindings.iter().take(function.parameter_count).map(|binding| binding.ty).collect(),
-                            result_type: function.result,
                             span: expression.span,
                             callee_span: callee.span,
                             declaration_span: declaration.span,
@@ -428,13 +438,24 @@ impl Analysis {
                                     access: binding.mode,
                                 })
                                 .collect(),
-                            result,
                         };
-                        let variants = generic_calls
-                            .entry((expression.span.start, expression.span.end))
-                            .or_default();
-                        if !variants.contains(&fact) {
-                            variants.push(fact);
+                        if let Some(result) = type_name(program, function.result, &mut generic_names) {
+                            let fact = GenericCallInfo {
+                                parameter_types: partial.parameter_types,
+                                body_parameter_types: partial.body_parameter_types,
+                                result_type: function.result,
+                                span: partial.span, callee_span: partial.callee_span,
+                                declaration_span: partial.declaration_span,
+                                parameters: partial.parameters, result,
+                            };
+                            let variants = generic_calls
+                                .entry((expression.span.start, expression.span.end))
+                                .or_default();
+                            if !variants.contains(&fact) {
+                                variants.push(fact);
+                            }
+                        } else if !generic_parameter_calls.contains(&partial) {
+                            generic_parameter_calls.push(partial);
                         }
                     }
                     match &expression.kind {
@@ -644,6 +665,7 @@ impl Analysis {
             projections: output,
             method_results,
             generic_calls: generic_calls.into_values().flatten().collect(),
+            generic_parameter_calls,
         }
     }
 }

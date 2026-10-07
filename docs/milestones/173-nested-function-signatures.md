@@ -381,3 +381,24 @@ Matched workload expands to fifty-one observations; five native/Node cases and
 semantic mutation registration pass untimed. Canonical SQLite record:
 benchmarks/runtime/results/2026-10-07T00-20-42-729Z-verify.json.
 Generic factories, differing-origin selections and remaining contexts remain open.
+
+## Generic factory partial parameter facts
+
+Generic factory parameter help now consumes additive partial call facts when the
+returned generic environment has no concrete display contract. Checked seed types,
+parameter access and original declaration locations remain available. An unknown
+result adds no result annotation; it never becomes void or an empty callable.
+Conflicting specializations at one source span remain distinct and suppress
+ambiguous editor overrides. Source and project projection tests cover string/int
+variants and imported aliases with Unicode source offsets. Full Gate173 acceptance
+and the remaining adapter contexts are still open.
+
+Focused acceptance passes the retained factory argument-help witness, nine source
+and project projection tests, one existing project nominal-identity control and
+all 302 editor tests. Five consumers were refreshed atomically and SHA-256 checked.
+The unchanged fifty-eight-observation workload passes five matched native and
+Node-after-tsc cases untimed. Canonical SQLite record:
+benchmarks/runtime/results/2026-10-07T00-34-37-057Z-verify.json.
+Exact build, original test compile failure and repaired checks were imported and
+read back before loose copies were removed. No runtime semantics, timing or full
+Gate173 acceptance is claimed by this metadata repair.

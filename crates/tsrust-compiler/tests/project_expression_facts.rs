@@ -224,3 +224,43 @@ fn canonical_polymorphic_projection_has_one_callback_ownership_prefix() {
         "Function<string, [operation: ReadOnly<Function<string, [input: ReadOnly<string>]>>]>"
     );
 }
+
+#[test]
+fn deferred_generic_factory_keeps_parameters_without_inventing_a_result() {
+    let dependency = "export function make<T>(seed:T){function select<U>(value:U):U{console.log(seed);return value;}return select;}";
+    let entry = "// 🦀\nimport {make as factory} from './dep.tsr';function main(){const fixed:Function<int,[value:int]>=factory('owner');fixed(7);}";
+    let checked = project(entry, dependency);
+    let facts = checked.checked_type_facts();
+    let call = facts.generic_parameter_calls.iter()
+        .find(|fact| fact.callee.source.0 == "main.tsr").expect("partial factory fact");
+    assert_eq!(&entry[call.callee.span.start..call.callee.span.end], "factory");
+    assert_eq!(&entry[call.location.span.start..call.location.span.end], "factory('owner')");
+    assert_eq!(call.declaration.source.0, "dep.tsr");
+    assert_eq!(&dependency[call.declaration.span.start..call.declaration.span.end], "make");
+    assert_eq!(call.parameters.len(), 1);
+    assert_eq!(call.parameters[0].name, "seed");
+    assert_eq!(call.parameters[0].ty, Some(ProjectType::Named { name: "string".into(), declaration: None, arguments: Vec::new() }));
+    assert!(!facts.generic_calls.iter().any(|fact| fact.callee == call.callee));
+
+    let source = format!("{}function main(){{const fixed:Function<int,[value:int]>=make('owner');fixed(7);}}",
+        dependency.strip_prefix("export ").unwrap());
+    let facts = tsrust_compiler::check(&source).unwrap().checked_type_facts();
+    let call = facts.generic_parameter_calls.iter().find(|fact|
+        &source[fact.callee_span.start..fact.callee_span.end] == "make").unwrap();
+    assert_eq!(call.parameters[0].ty.as_deref(), Some("string"));
+    assert!(!facts.generic_calls.iter().any(|fact| fact.callee_span == call.callee_span));
+}
+
+#[test]
+fn partial_factory_facts_preserve_conflicting_specializations() {
+    let source = "function make<T>(seed:T){function select<U>(value:U):U{console.log(seed);return value;}return select;}function use<T>(seed:T):int{const fixed:Function<int,[value:int]>=make(seed);return fixed(7);}function main(){console.log(use('owner'),use(10));}";
+    let checked = tsrust_compiler::check(source).unwrap();
+    let facts = checked.checked_type_facts();
+    let variants = facts.generic_parameter_calls.iter().filter(|fact|
+        &source[fact.callee_span.start..fact.callee_span.end] == "make").collect::<Vec<_>>();
+    assert_eq!(variants.len(), 2);
+    assert_eq!(variants[0].callee_span, variants[1].callee_span);
+    let types = variants.iter().map(|fact| fact.parameters[0].ty.as_deref().unwrap())
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(types, ["int", "string"].into_iter().collect());
+}

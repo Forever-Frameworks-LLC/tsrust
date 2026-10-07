@@ -7803,6 +7803,7 @@ fn fresh_generic_factory_preserves_specialized_argument_help() {
     let help=ask(source,"textDocument/signatureHelp","'owner');",0);
     let label=help["signatures"][0]["label"].as_str().unwrap();
     assert!(label.contains("seed") && label.contains("string"),"{help}");
+    assert!(!label.contains(": void") && !label.contains("() =>"), "{help}");
     let definition=ask(source,"textDocument/definition","make('owner')",0);
     assert_eq!(definition["range"]["start"],json!(at(source,"make<T>",0)),"{definition}");
     let fixed=ask(source,"textDocument/signatureHelp","7);",0);

@@ -1,7 +1,7 @@
 //! Consume successful project facts; nominal aliases resolve by source declaration.
 use super::*;
 use tsrust_compiler::project::{
-    ProjectCheckedTypeFacts, ProjectGenericCallInfo, ProjectGraph, ProjectType, SourceId,
+    ProjectCheckedTypeFacts, ProjectGenericCallInfo, ProjectGenericParameterCallInfo, ProjectGraph, ProjectType, SourceId,
 };
 
 impl SourceIndex {
@@ -179,7 +179,7 @@ impl SourceIndex {
         facts: &ProjectCheckedTypeFacts,
         dependencies: &std::collections::BTreeMap<SourceId, SourceIndex>,
     ) {
-        self.apply_project_generic_facts(graph, current, &facts.generic_calls, dependencies);
+        self.apply_project_generic_facts(graph, current, &facts.generic_calls, &facts.generic_parameter_calls, dependencies);
         for (location, declaration) in facts.generic_values.iter().filter(|(location, _)| location.source == *current) {
             if facts.generic_values.iter().any(|(other, target)| other == location && target != declaration) { continue; }
             let source_index = if declaration.source == *current { &*self } else {
@@ -272,22 +272,19 @@ impl SourceIndex {
         graph: &ProjectGraph,
         current: &SourceId,
         facts: &[ProjectGenericCallInfo],
+        partial: &[ProjectGenericParameterCallInfo],
         dependencies: &std::collections::BTreeMap<SourceId, SourceIndex>,
     ) {
         let mut calls =
             std::collections::BTreeMap::<(usize, usize), Option<CheckedGenericCall>>::new();
         let mut results = std::collections::BTreeMap::<(usize, usize), Option<String>>::new();
-        for fact in facts
-            .iter()
-            .filter(|fact| fact.location.source == *current && fact.callee.source == *current)
+        for (location, callee, declaration, parameters, result) in facts.iter()
+            .map(|fact| (&fact.location, &fact.callee, &fact.declaration, &fact.parameters, Some(&fact.result)))
+            .chain(partial.iter().map(|fact| (&fact.location, &fact.callee, &fact.declaration, &fact.parameters, None)))
+            .filter(|(location, callee, _, _, _)| location.source == *current && callee.source == *current)
         {
-            let Some(result) =
-                self.project_type_spelling(graph, current, &fact.result, dependencies)
-            else {
-                continue;
-            };
-            let parameters = fact
-                .parameters
+            let result = result.and_then(|ty| self.project_type_spelling(graph, current, ty, dependencies));
+            let parameters = parameters
                 .iter()
                 .map(|parameter| tsrust_compiler::GenericParameterInfo {
                     name: parameter.name.clone(),
@@ -303,9 +300,9 @@ impl SourceIndex {
                 })
                 .collect();
             let call = CheckedGenericCall {
-                span: fact.location.span,
-                callee_span: fact.callee.span,
-                declaration_span: fact.declaration.span,
+                span: location.span,
+                callee_span: callee.span,
+                declaration_span: declaration.span,
                 parameters,
                 result: result.clone(),
             };
@@ -318,14 +315,16 @@ impl SourceIndex {
                     }
                 })
                 .or_insert(Some(call));
-            results
-                .entry((call_span.start, call_span.end))
-                .and_modify(|existing| {
-                    if existing.as_ref() != Some(&result) {
-                        *existing = None;
-                    }
-                })
-                .or_insert(Some(result));
+            if let Some(result) = result {
+                results
+                    .entry((call_span.start, call_span.end))
+                    .and_modify(|existing| {
+                        if existing.as_ref() != Some(&result) {
+                            *existing = None;
+                        }
+                    })
+                    .or_insert(Some(result));
+            }
         }
         self.checked_generic_calls = calls.into_values().flatten().collect();
         self.checked_method_results.extend(

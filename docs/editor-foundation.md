@@ -125,3 +125,13 @@ Compiler handoff: CheckedTypeFacts now includes generic_calls: Vec<GenericCallIn
 Project handoff: ProjectAnalysis::generic_calls() now returns original source-aware locations and structured ProjectType nominal/array/union data. Nominal declaration identity includes source and range, so imported aliases can resolve without reading generated names. The editor's successful project-analysis branch consumes these facts through ProjectIndex::checked; header-only/invalid projects retain declared-source assistance. Focused acceptance includes direct aliases, generic record result chains, dependency definitions/references, Unicode ranges and unsaved docs/result updates. Private/transitive identity and callable metadata coverage remain explicit follow-up requirements in S06.
 
 Callable parameter handoff: ProjectType::Callable retains CallableOwnership, ordered ProjectParameterInfo children and a boxed result. Successfully checked generic callback parameter facts preserve declared names/access and source-aware nominal children; the editor resolves local aliases and updates names from unsaved dependencies. Standalone owned parameter facts retain the declaration contract through concrete callback specialization. Abstract callable shapes and callable-result display/storage remain separate requirements. Focused evidence is recorded in generic-callable-inference-integration.md.
+
+
+Generic factory parameter help now consumes additive partial call facts when the
+returned generic environment has no concrete display contract. Checked seed types,
+parameter access and original declaration locations remain available. An unknown
+result adds no result annotation; it never becomes void or an empty callable.
+Conflicting specializations at one source span remain distinct and suppress
+ambiguous editor overrides. Source and project projection tests cover string/int
+variants and imported aliases with Unicode source offsets. Full Gate173 acceptance
+and the remaining adapter contexts are still open.

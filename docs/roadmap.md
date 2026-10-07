@@ -440,3 +440,13 @@ open under gate173.
 Existing generic value adapters now support explicit contracts, array transform
 callbacks and typed record/array storage with ownership/disposal controls. The
 full adapter audit and benchmark family remain open; see generic-value-adapters-plan.md.
+
+
+Generic factory parameter help now consumes additive partial call facts when the
+returned generic environment has no concrete display contract. Checked seed types,
+parameter access and original declaration locations remain available. An unknown
+result adds no result annotation; it never becomes void or an empty callable.
+Conflicting specializations at one source span remain distinct and suppress
+ambiguous editor overrides. Source and project projection tests cover string/int
+variants and imported aliases with Unicode source offsets. Full Gate173 acceptance
+and the remaining adapter contexts are still open.

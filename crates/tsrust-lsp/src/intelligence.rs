@@ -46,7 +46,7 @@ struct CheckedGenericCall {
     callee_span: Span,
     declaration_span: Span,
     parameters: Vec<tsrust_compiler::GenericParameterInfo>,
-    result: String,
+    result: Option<String>,
 }
 pub struct SourceIndex {
     /// `type Name = Type;` declarations: name to fully expanded type text.
@@ -372,14 +372,19 @@ impl SourceIndex {
             std::collections::BTreeMap::<(usize, usize), Option<String>>::new();
         let mut calls =
             std::collections::BTreeMap::<(usize, usize), Option<CheckedGenericCall>>::new();
-        for fact in facts.generic_calls {
-            let mut fact = CheckedGenericCall {
+        for mut fact in facts.generic_calls.into_iter().map(|fact| CheckedGenericCall {
                 span: fact.span,
                 callee_span: fact.callee_span,
                 declaration_span: fact.declaration_span,
                 parameters: fact.parameters,
-                result: fact.result,
-            };
+                result: Some(fact.result),
+            }).chain(facts.generic_parameter_calls.into_iter().map(|fact| CheckedGenericCall {
+                span: fact.span,
+                callee_span: fact.callee_span,
+                declaration_span: fact.declaration_span,
+                parameters: fact.parameters,
+                result: None,
+            })) {
             let remap = |span: &mut Span| {
                 if let Some((start, added, original_end)) = inserted {
                     if span.end <= start {
@@ -400,14 +405,16 @@ impl SourceIndex {
             {
                 continue;
             }
-            methods
-                .entry((fact.span.start, fact.span.end))
-                .and_modify(|existing| {
-                    if existing.as_ref() != Some(&fact.result) {
-                        *existing = None;
-                    }
-                })
-                .or_insert(Some(fact.result.clone()));
+            if let Some(result) = &fact.result {
+                methods
+                    .entry((fact.span.start, fact.span.end))
+                    .and_modify(|existing| {
+                        if existing.as_ref() != Some(result) {
+                            *existing = None;
+                        }
+                    })
+                    .or_insert(Some(result.clone()));
+            }
             calls
                 .entry((fact.callee_span.start, fact.callee_span.end))
                 .and_modify(|existing| {
@@ -559,10 +566,10 @@ impl SourceIndex {
             .collect::<Option<Vec<_>>>()?;
         Some((
             format!(
-                "function {}({}): {}",
+                "function {}({}){}",
                 self.text(token),
                 parameters.join(", "),
-                self.display_type(&fact.result)
+                fact.result.as_ref().map_or(String::new(), |result| format!(": {}", self.display_type(result)))
             ),
             parameters,
         ))
@@ -1873,7 +1880,7 @@ impl SourceIndex {
         let generic = self.tokens.get(id).and_then(|token| {
             self.checked_generic_calls
                 .iter()
-                .find(|fact| fact.callee_span == token.span)
+                .find(|fact| fact.callee_span == token.span && fact.result.is_some())
         });
         let (mut ty, mut end) = if let Some(result) = self.checked_expression_type(id) {
             result
@@ -1882,7 +1889,7 @@ impl SourceIndex {
                 .tokens
                 .iter()
                 .position(|token| token.span.end == fact.span.end)?;
-            (fact.result.clone(), close + 1)
+            (fact.result.clone()?, close + 1)
         } else if let Some(result) = self.set_constructor_type(id, offset, depth) {
             result
         } else if self.text(id).starts_with('`') {

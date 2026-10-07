@@ -236,3 +236,13 @@ no full unambiguous fact exists, and omit the result suffix when unknown. Preser
 ambiguity at shared specialization spans and nominal/access/default/rest metadata.
 Keep legacy/full call facts intact; add focused source/project/editor tests before
 accepting the generic factory increment. The existing failing editor witness stays.
+
+
+Generic factory parameter help now consumes additive partial call facts when the
+returned generic environment has no concrete display contract. Checked seed types,
+parameter access and original declaration locations remain available. An unknown
+result adds no result annotation; it never becomes void or an empty callable.
+Conflicting specializations at one source span remain distinct and suppress
+ambiguous editor overrides. Source and project projection tests cover string/int
+variants and imported aliases with Unicode source offsets. Full Gate173 acceptance
+and the remaining adapter contexts are still open.

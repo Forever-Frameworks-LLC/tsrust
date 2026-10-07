@@ -1,6 +1,6 @@
 //! Source-indexed module graph loading. This does not type-check or emit a project.
 pub use crate::project_link::{ProjectAnalysis, check_graph};
-pub use crate::project_facts::{ProjectLocalFunctionInfo, ProjectCheckedTypeFacts, ProjectExpressionTypeInfo, ProjectGenericCallInfo, ProjectParameterInfo, ProjectType};
+pub use crate::project_facts::{ProjectLocalFunctionInfo, ProjectCheckedTypeFacts, ProjectExpressionTypeInfo, ProjectGenericCallInfo, ProjectGenericParameterCallInfo, ProjectParameterInfo, ProjectType};
 use crate::syntax::{self, TokenKind};
 use crate::{Diagnostic, Span};
 use std::collections::{BTreeMap, BTreeSet};

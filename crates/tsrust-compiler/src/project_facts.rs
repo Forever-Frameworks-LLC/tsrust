@@ -51,6 +51,14 @@ pub struct ProjectGenericCallInfo {
     pub parameters: Vec<ProjectParameterInfo>,
     pub result: ProjectType,
 }
+/// Known generic parameters with no asserted concrete result shape.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProjectGenericParameterCallInfo {
+    pub location: SourceLocation,
+    pub callee: SourceLocation,
+    pub declaration: SourceLocation,
+    pub parameters: Vec<ProjectParameterInfo>,
+}
 /// Checked expression type in its original module's UTF-8 source coordinates.
 /// Distinct specializations at a shared span remain separate facts.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -72,6 +80,7 @@ pub struct ProjectCheckedTypeFacts {
     pub optional_receivers: Vec<ProjectExpressionTypeInfo>,
     pub method_results: Vec<ProjectExpressionTypeInfo>,
     pub generic_calls: Vec<ProjectGenericCallInfo>,
+    pub generic_parameter_calls: Vec<ProjectGenericParameterCallInfo>,
 }
 
 impl ProjectAnalysis {
@@ -155,6 +164,18 @@ impl ProjectAnalysis {
                 })
             })
             .collect();
+        let generic_parameter_calls = facts.generic_parameter_calls.into_iter().filter_map(|fact| {
+            Some(ProjectGenericParameterCallInfo {
+                location: self.source_location(fact.span)?,
+                callee: self.source_location(fact.callee_span)?,
+                declaration: self.source_location(fact.declaration_span)?,
+                parameters: fact.parameters.into_iter().zip(fact.parameter_types).zip(fact.body_parameter_types)
+                    .map(|((parameter, ty), body_ty)| ProjectParameterInfo {
+                        name: parameter.name, access: parameter.access, omission: parameter.omission,
+                        rest: parameter.rest, ty: self.project_type(ty, &names), body_ty: self.project_type(body_ty, &names),
+                    }).collect(),
+            })
+        }).collect();
         ProjectCheckedTypeFacts {
             generic_nominals: self.analysis.program.deferred_generic_nominals.iter().filter_map(|(span, declaration)|
                 Some((self.source_location(*span)?, self.source_location(*declaration)?))).collect(),
@@ -164,6 +185,7 @@ impl ProjectAnalysis {
             optional_receivers,
             method_results,
             generic_calls,
+            generic_parameter_calls,
         }
     }
 
