@@ -38,20 +38,21 @@ impl Analyzer {
     /// aggregate results too, so releasing a temporary never hides an escape.
     #[inline(never)]
     pub(super) fn expression_result_retains_captures(&self, ty:Type)->bool {
-        let mut pending=vec![ty];let mut seen=HashSet::new();
-        while let Some(ty)=pending.pop(){
-            if !seen.insert(ty){continue;}
-            match ty {
-                Type::Closure(_)|Type::Callback(_)|Type::Callable(_)|Type::StoredCallable(_)|Type::BorrowedCallable(_)=>return true,
-                Type::Array(element)=>pending.push(element.ty()),
-                Type::Record(id)=>{
-                    for field in &self.program.records[id].fields {
-                        let Some(ty)=field.ty else{return true;};pending.push(ty);
-                    }
-                }
-                _=>{if let Some(union)=ty.union(){pending.extend(self.unions.members(union));}}
-            }
-        }
-        false
+        let facts = self.aggregate_callable_facts(ty);
+        facts.retains || facts.unknown
     }
+
+    #[inline(never)]
+    pub(super) fn aggregate_callable_facts(&self, ty: Type) -> crate::aggregate_callable_facts::Facts {
+        crate::aggregate_callable_facts::inspect(
+            ty, &self.program.records, |id| self.unions.members(id),
+            |ty| match ty {
+                Type::BorrowedCallable(_) => true,
+                Type::Closure(id) => self.closures.get(id).is_none_or(|closure| closure.borrowed),
+                Type::Callback(id) => self.callables.callbacks.get(id).is_none_or(|contract| !contract.kind.is_owned()),
+                _ => false,
+            },
+        )
+    }
+
 }

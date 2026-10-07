@@ -92,3 +92,9 @@ assignment too. Source loan provenance must follow field moves and be released o
 when all live handles end. Test escape and conflicting owner mutation before accepting
 field admission, including nested and nullable fields. Do not rely on a later Rust
 compilation error to enforce a source lifetime contract.
+
+The aggregate escape traversal prerequisite is implemented in aggregate_callable_facts.
+It supplies retention, scoped-storage and unknown-layout facts independently. Return,
+throw and fresh-callee loan release now share this traversal. Concrete record layouts
+and field-level provenance remain the next implementation work; source construction
+is not accepted by this prerequisite.

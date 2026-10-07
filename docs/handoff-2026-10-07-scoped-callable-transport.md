@@ -110,3 +110,26 @@ witnesses remain red; this is preparatory implementation, not feature acceptance
 Next implement concrete scoped record layout specialization without mutating shared
 nominal declaration metadata, then aggregate loan/escape checks before admitting
 construction. No additional public callback variant or owner decision is needed.
+
+## Aggregate escape safety prerequisite
+
+aggregate_callable_facts now traverses checked records, arrays, Map/Set storage
+and nullable alternatives iteratively, with cycle detection. It reports callable
+retention, scoped storage and unknown layouts separately. Return and throw guards
+use these facts, so a future scoped record cannot hide borrowed callable storage.
+Fresh-callee capture release uses the same traversal and conservatively retains
+loans for unknown layouts. Concrete native record specialization remains unimplemented;
+the two scoped record construction tests are still expected reds.
+
+Four tests were red before implementation and now pass, covering nullable recursive
+layouts, collection containment, owning versus scoped storage, unresolved layouts
+and a 10,000-record chain on the ordinary worker stack. The affected compiler batch
+passes 94 tests, including all eight depth canaries. Complete editor verification
+passes 335 tests. Existing matched adapters pass five native/compiled-TypeScript
+cases with 136 observations. No benchmark protocol or measurement status changes.
+Exact logs are verified in SQLite under runtime/diagnostics/scoped-aggregate-facts/.
+
+Next implement concrete record environment specialization and projection. Keep the
+new source-contract resolver and aggregate escape traversal separate from native
+layout. Do not remove field admission guards before concrete construction, retention
+boundaries and field-loan provenance are checked. Full Gate173 remains open.

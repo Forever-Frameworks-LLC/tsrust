@@ -5006,7 +5006,8 @@ impl Analyzer {
                 .related(self.closures[origin].span,"Borrowed callable is created here."));
         }
         let ty=self.expression(context,value,Mode::Consume,&Loans::new(),expected)?;
-        if matches!(self.unions.payload(ty).unwrap_or(ty),Type::BorrowedCallable(_)) {return Err(Diagnostic::new("closure-escape","A thrown callable must own its captured storage.",value.span));}
+        let facts = self.aggregate_callable_facts(ty);
+        if facts.scoped || facts.unknown {return Err(Diagnostic::new("closure-escape","A thrown value must own any callable storage it contains.",value.span));}
         if ty==Type::Void {return Err(Diagnostic::new("type","A thrown expression must produce a value.",value.span));}
         self.record_typed_completion(context,crate::completion::CompletionKind::Throw,ty,value.span);
         Ok(ty)
@@ -5321,8 +5322,9 @@ impl Analyzer {
             None => Type::Void,
         };
         context.returning_closure = false;
-        if matches!(self.unions.payload(actual).unwrap_or(actual),Type::BorrowedCallable(_)) {
-            return Err(Diagnostic::new("callback-escape","A scoped borrowed callable family cannot escape its captured storage.",span));
+        let facts = self.aggregate_callable_facts(actual);
+        if facts.scoped || facts.unknown {
+            return Err(Diagnostic::new("callback-escape","A returned value cannot contain a callable that borrows local storage.",span));
         }
         let converted =
             self.callable_result_value(context, result_type, actual, span);
