@@ -1,47 +1,9 @@
 //! Iterative source flow for blocks and branches; runtime environments stay separate.
 use super::*;
 
-struct Node<'a> {
-    statement: Option<&'a Stmt>,
-    next: Vec<usize>,
-}
-
-fn graph(body: &[Stmt]) -> Option<Vec<Node<'_>>> {
-    let mut nodes = vec![Node {
-        statement: None,
-        next: vec![0],
-    }];
-    let mut pending = vec![(body, 0usize, 0usize, 0usize)];
-    while let Some((body, successor, parent, edge)) = pending.pop() {
-        let mut entry = successor;
-        for statement in body.iter().rev() {
-            let index = nodes.len();
-            let mut next = vec![entry];
-            match &statement.kind {
-                StmtKind::Block(body) => pending.push((body.as_slice(), entry, index, 0)),
-                StmtKind::If {
-                    then_body,
-                    else_body,
-                    ..
-                } => {
-                    next.push(entry);
-                    pending.push((then_body.as_slice(), entry, index, 0));
-                    pending.push((else_body.as_slice(), entry, index, 1));
-                }
-                StmtKind::Return(_) | StmtKind::Throw(_) => next.clear(),
-                StmtKind::Let { .. } | StmtKind::Assign { .. } | StmtKind::Expr(_) => {}
-                _ => return None,
-            }
-            nodes.push(Node {
-                statement: Some(statement),
-                next,
-            });
-            entry = index;
-        }
-        nodes[parent].next[edge] = entry;
-    }
-    Some(nodes)
-}
+#[path = "generic_call_flow_graph.rs"]
+mod flow_graph;
+use flow_graph::graph;
 
 fn binding_at(bindings: &[Binding], name: &str, span: Span) -> Option<usize> {
     bindings
@@ -88,13 +50,33 @@ pub(super) fn analyze(
     let Some(nodes) = graph(&function.body) else {
         return Ok(None);
     };
-    let direct = nodes
+    let updates = nodes
+        .iter()
+        .filter_map(|node| {
+            let statement = node.statement?;
+            if let StmtKind::Expr(expression) = &statement.kind {
+                flow_graph::standalone_update(expression)
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+    let update_spans = updates
+        .iter()
+        .map(|(_, span)| (span.start, span.end))
+        .collect::<HashSet<_>>();
+    let mut direct = nodes
         .iter()
         .filter_map(|node| match &node.statement?.kind {
             StmtKind::Assign { target, .. } => Some((target.span.start, target.span.end)),
             _ => None,
         })
         .collect::<HashSet<_>>();
+    direct.extend(
+        updates
+            .iter()
+            .map(|(target, _)| (target.span.start, target.span.end)),
+    );
     if writes.iter().any(|write| {
         function.scope_span.start <= write.span.start
             && write.span.end <= function.scope_span.end
@@ -112,8 +94,9 @@ pub(super) fn analyze(
                 | ExprKind::CompoundAssign { .. }
                 | ExprKind::CoalesceAssign { .. }
                 | ExprKind::LogicalAssign { .. }
-                | ExprKind::Update { .. }
-        ) {
+        ) || (matches!(expression.kind, ExprKind::Update { .. })
+            && !update_spans.contains(&(expression.span.start, expression.span.end)))
+        {
             supported = false;
         }
         Ok(())
@@ -139,19 +122,9 @@ pub(super) fn analyze(
     let mut facts: HashMap<(usize, usize), Option<Vec<Contract>>> = HashMap::new();
     while let Some(index) = work.pop() {
         let node = &nodes[index];
-        let Some(statement) = node.statement else {
-            continue;
-        };
+        let statement = node.statement;
         let mut state = states[index].as_ref().unwrap().clone();
-        let expression = match &statement.kind {
-            StmtKind::Let { value, .. }
-            | StmtKind::Assign { value, .. }
-            | StmtKind::Expr(value)
-            | StmtKind::Throw(value) => Some(value),
-            StmtKind::Return(value) => value.as_ref(),
-            StmtKind::If { condition, .. } => Some(condition),
-            _ => None,
-        };
+        let expression = node.expression;
         if let Some(expression) = expression {
             let mut body = vec![Stmt {
                 kind: StmtKind::Expr(expression.clone()),
@@ -187,19 +160,19 @@ pub(super) fn analyze(
                 Ok(())
             })?;
         }
-        let destination = match &statement.kind {
-            StmtKind::Let { name, value, .. } => state
+        let destination = match statement.map(|statement| &statement.kind) {
+            Some(StmtKind::Let { name, value, .. }) => state
                 .iter()
                 .position(|binding| {
                     binding.name == name.text && binding.scope.start == value.span.end
                 })
                 .map(|index| (index, targets::value(value))),
-            StmtKind::Assign {
+            Some(StmtKind::Assign {
                 target,
                 value,
                 operator,
                 ..
-            } => {
+            }) => {
                 if let ExprKind::Name(name) = &target.kind {
                     binding_at(&state, name, target.span).map(|index| {
                         (
@@ -214,6 +187,16 @@ pub(super) fn analyze(
                 } else {
                     None
                 }
+            }
+            Some(StmtKind::Expr(expression)) => {
+                flow_graph::standalone_update(expression).and_then(|(target, _)| {
+                    if let ExprKind::Name(name) = &target.kind {
+                        binding_at(&state, name, target.span)
+                            .map(|index| (index, vec![Target::Unknown]))
+                    } else {
+                        None
+                    }
+                })
             }
             _ => None,
         };
