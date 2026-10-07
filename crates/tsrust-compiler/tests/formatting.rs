@@ -351,3 +351,25 @@ fn generic_types_stay_tight_inside_unions_tuples_and_callback_results() {
     assert_eq!(format(&formatted).unwrap(),formatted);
     check(&formatted).unwrap();
 }
+
+#[test]
+fn generic_alias_closer_is_separated_from_assignment() {
+    for source in [
+        "type Box<T>={value:T;};",
+        "type Box<T> = {value:T;};",
+        "type Box<T >= {value:T;};",
+    ] {
+        let formatted = format(source).unwrap();
+        assert!(formatted.starts_with("type Box<T> = {"), "{formatted}");
+        assert_eq!(format(&formatted).unwrap(), formatted);
+        check(&format!("{formatted}function main(){{}} ")).unwrap();
+    }
+    let source = "type Nested<T>={value:T;};function main(){const value=2;console.log(value>=1,value>>1);}";
+    let formatted = format(source).unwrap();
+    assert!(formatted.contains("type Nested<T> = {"), "{formatted}");
+    assert!(formatted.contains("value >= 1"), "{formatted}");
+    assert!(formatted.contains("value >> 1"), "{formatted}");
+    support::execute("type Box<T >= {value:T;};function main(){const box:Box<int>={value:7};console.log(box.value);}", "7\n", None);
+    assert_eq!(format(&formatted).unwrap(), formatted);
+    check(&formatted).unwrap();
+}

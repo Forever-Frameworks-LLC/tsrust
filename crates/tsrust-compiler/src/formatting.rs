@@ -5,7 +5,20 @@ use crate::{Diagnostic, Span};
 mod types;
 
 pub fn format(source: &str) -> Result<String, Diagnostic> {
-    let tokens = lex(source)?;
+    let mut tokens = lex(source)?;
+    // Maximal lexing combines a generic closer and adjacent assignment into
+    // `>=`. Split only within a parsed type, before deciding whitespace.
+    // Expression comparisons and shift assignments retain their operator tokens.
+    let initial_spans = types::generic_spans(&tokens);
+    let mut index = 0;
+    while index < tokens.len() {
+        if matches!(tokens[index].text.as_str(), ">=" | ">>=" | ">>>=")
+            && initial_spans.iter().any(|span| span.start <= tokens[index].span.start && tokens[index].span.start < span.end)
+        {
+            crate::type_syntax::split_closer(&mut tokens, index);
+        }
+        index += 1;
+    }
     let real = &tokens[..tokens.len().saturating_sub(1)];
     let generic_spans = types::generic_spans(&tokens);
     let generic = |at: usize| generic_spans.iter().any(|span| span.start <= at && at < span.end);

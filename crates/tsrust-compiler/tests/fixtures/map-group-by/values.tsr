@@ -114,7 +114,7 @@ function main() {
         throw "entries";
     }
 
-    const named: Map<int, int[] >= Map.groupBy([2, 3], (value: int): int => {
+    const named: Map<int, int[]> = Map.groupBy([2, 3], (value: int): int => {
         return value % 2;
     });
     strictEqual(named.size, 2);

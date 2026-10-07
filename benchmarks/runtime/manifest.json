@@ -18059,7 +18059,7 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": true,
       "measured": false,
-      "sourceSha256": "ce8cb2affbca9efd9181f8ee8cb798248fea4aa5e90a63d02025869474f3f361",
+      "sourceSha256": "6c1a37133672e5211855a196fbfee338537b9164bcc9a2e37c3ad7139e31851b",
       "counterpartSha256": "40fb02a5cf5e7ce0348c88341fb15e98c54cfb0e546fb9ad3b7e8ea714235da5",
       "notes": "Canonical data unions retain active primitive and owned alternatives. The counterpart explicitly copies record fields, strings and array descendants to match native clone ownership; both retain complete scalar observations. Runtime allocation equivalence is not claimed. Verification is untimed; value-family measurements remain pending.",
       "specification": "Construct mixed tagged values and owners, clone a record, independently replace its copied owner, narrow string alternatives, select lazy fallbacks and borrow/copy through a defaulted mutable function. Retain six scalar cells."

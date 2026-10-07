@@ -15,7 +15,7 @@ function describe(value: ReadOnly<int | string | boolean | null>): string {
     return String(value ?? "missing");
 }
 
-function copiedText(value: Mutable<string | int[] >= [1]): string {
+function copiedText(value: Mutable<string | int[]> = [1]): string {
     return String(clone(value));
 }
 

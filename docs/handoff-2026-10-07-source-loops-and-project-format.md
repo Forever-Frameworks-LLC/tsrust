@@ -19,3 +19,16 @@ Closed source-loop and project-formatting logs, the token proof and both untimed
 Continue the source-validation audit with focused red witnesses for exception/finally flow, then expression evaluation order and capture writes. Finish stored fields, concrete environment replacement and lifetime/context coverage before accepting Gate173. Keep existing ownership rules, no implicit cloning and separate implementation acceptance from pending milestone measurements.
 
 Use CARGO_TARGET_DIR=/private/tmp/tsrust-gate100-editor-target and CARGO_INCREMENTAL=0, offline locked Cargo. Refresh the five executable consumers by sibling .refresh-tmp copy and atomic replacement. Preserve bounded checks and all eight depth canaries after parser/analyzer dispatch changes. Keep Node-only references as .ts. No archives, source snapshots or routine timing.
+
+## Generic closer formatting repair
+
+A later focused repair separates the generic closing bracket from adjacent
+assignment in headers such as `type Box<T>=...` and defaulted wrapper annotations.
+The formatter splits combined lexer tokens only within parsed type spans, leaving
+comparison and shift operators intact. Compact and previously formatted `T >=`
+headers now become `T> =`. The focused native witness prints 7; 25 formatter tests,
+three affected editor tests, the fixture corpus and the data-union registration
+checks pass. Project formatting updates seven files and one proven layout-only
+benchmark hash. Exact failed and repaired logs are stored in SQLite under
+`/private/tmp/tsrust-generic-closer-*.log`. Restart the language server to load
+the refreshed binary. This repair does not change Gate173 acceptance scope.

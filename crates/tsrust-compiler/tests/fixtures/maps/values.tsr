@@ -66,7 +66,7 @@ function main() {
     strictEqual(alternatives.get("1") ?? "", "string");
     const states = new Map<State, int>([[State.Ready, 1], [State.Busy, 2]]);
     strictEqual(states.get(State.Busy) ?? 0, 2);
-    const empty: Map<boolean, int >= new Map();
+    const empty: Map<boolean, int> = new Map();
     empty.set(true, 1);
     strictEqual(sizeOf(empty), 1);
     const missing = new Map<int, string>(undefined);

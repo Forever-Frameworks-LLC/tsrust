@@ -25,7 +25,7 @@ function main() {
     const copied = words.union(more);
     words.clear();
     strictEqual(copied.values().join(","), "b,a,c");
-    const mixed: Set<int | string >= right.union(more);
+    const mixed: Set<int | string> = right.union(more);
     strictEqual(mixed.size, 5);
     strictEqual(mixed.has(2), true);
     strictEqual(mixed.has("c"), true);
@@ -41,7 +41,7 @@ function main() {
     strictEqual(order.intersection(new Set<string>(["c", "a"])).values().join(","), "c,a");
     const mixedLeft = new Set<int | string>([1, "a"]);
     const mixedRight = new Set<string | boolean>(["a", true]);
-    const combined: Set<int | string | boolean >= mixedLeft.union(mixedRight);
+    const combined: Set<int | string | boolean> = mixedLeft.union(mixedRight);
     strictEqual(combined.size, 3);
     strictEqual(combined.has(true), true);
     strictEqual(mixedLeft.symmetricDifference(mixedRight).size, 2);

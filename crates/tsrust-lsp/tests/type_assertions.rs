@@ -22,3 +22,15 @@ fn assertion_operators_have_syntax_highlighting() {
     let rule = grammar["patterns"].as_array().unwrap().iter().find(|row| row["name"] == "keyword.operator.expression.tsrust").unwrap();
     assert!(rule["match"].as_str().unwrap().contains("as|satisfies"));
 }
+
+#[test]
+fn generic_alias_assignment_formats_without_a_comparison_operator() {
+    let source = "type Box<T >= {value:T;};function main(){const box:Box<int>={value:7};console.log(box.value);}";
+    let formatted = tsrust_compiler::format(source).unwrap();
+    assert!(formatted.starts_with("type Box<T> = {"), "{formatted}");
+    tsrust_compiler::check(&formatted).unwrap();
+    assert_eq!(tsrust_compiler::format(&formatted).unwrap(), formatted);
+    let index = SourceIndex::new(&formatted);
+    let hover = index.request("textDocument/hover", &json!({"position":{"line":0,"character":5}}), "file:///alias.tsr").unwrap();
+    assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("Box"), "{hover}");
+}
