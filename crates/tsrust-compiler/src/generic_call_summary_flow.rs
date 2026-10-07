@@ -5,6 +5,7 @@ pub(super) struct Outcome {
     pub normal: Option<Vec<Binding>>,
     pub returning: Option<Vec<Binding>>,
     pub throwing: Option<Vec<Binding>>,
+    pub returned_value: Option<expression_flow::Value>,
     pub facts: HashMap<(usize, usize), Option<Vec<Contract>>>,
 }
 /// Evaluate a callee body without merging normal and exceptional completion.
@@ -26,6 +27,7 @@ pub(super) fn run_with_dispatch(body: &[Stmt], initial: &[Binding], declarations
         seed.push(local);
     }
     let mut states = vec![None; graph.nodes.len()];
+    let mut pending_returns = vec![None; graph.nodes.len()];
     let entry = graph.nodes[0].next[0];
     states[entry] = Some(seed);
     let mut work = vec![entry];
@@ -36,15 +38,30 @@ pub(super) fn run_with_dispatch(body: &[Stmt], initial: &[Binding], declarations
         let mut state = states[index].as_ref().unwrap().clone();
         let transfer = node_flow::apply_with_dispatch(node, &mut state, &mut facts, declarations, effects, dispatch);
         let normal_edges = transfer.normal_edges(node);
-        let successors = normal_edges.iter().map(|&next| (next, &state))
-            .chain(node.exceptional.into_iter().flat_map(|next| transfer.failures.iter().map(move |state| (next, state))));
-        for (successor, outgoing) in successors {
-            let changed = if let Some(previous) = &mut states[successor] { join(previous, outgoing, declarations) }
+        let pending = match node.statement.map(|statement| &statement.kind) {
+            Some(StmtKind::Return(value)) if transfer.normal => Some(if value.is_some() { transfer.value.clone() } else { expression_flow::Value::undefined() }),
+            Some(StmtKind::Throw(_)) => None,
+            _ => pending_returns[index].clone(),
+        };
+        let successors = normal_edges.iter().map(|&next| (next, &state, pending.clone()))
+            .chain(node.exceptional.into_iter().flat_map(|next| transfer.failures.iter().map(move |state| (next, state, None))));
+        for (successor, outgoing, pending) in successors {
+            let existed = states[successor].is_some();
+            let mut changed = if let Some(previous) = &mut states[successor] { join(previous, outgoing, declarations) }
                 else { states[successor] = Some(outgoing.clone()); true };
+            let joined = if existed {
+                match (&pending_returns[successor], pending) {
+                    (Some(previous), Some(incoming)) => Some(expression_flow::merge_value(previous.clone(), incoming, declarations)),
+                    (None, None) => None,
+                    (Some(previous), None) => Some(expression_flow::merge_value(previous.clone(), expression_flow::Value::undefined(), declarations)),
+                    (None, Some(incoming)) => Some(expression_flow::merge_value(expression_flow::Value::undefined(), incoming, declarations)),
+                }
+            } else { pending };
+            if joined != pending_returns[successor] { pending_returns[successor] = joined; changed = true; }
             if changed { work.push(successor); }
         }
     }
-    Some(Outcome { normal: states[graph.exits.normal].take(), returning: states[graph.exits.returning].take(), throwing: states[graph.exits.throwing].take(), facts })
+    Some(Outcome { normal: states[graph.exits.normal].take(), returning: states[graph.exits.returning].take(), throwing: states[graph.exits.throwing].take(), returned_value: pending_returns[graph.exits.returning].take(), facts })
 }
 
 /// One contextual body evaluation projects captured state back to its caller.

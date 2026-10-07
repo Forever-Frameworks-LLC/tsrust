@@ -314,3 +314,14 @@ keeps this rule distinct from user callbacks and collection dispatch. Known writ
 and restoration survive output before or after the write, including collection
 callbacks. Unknown methods and shadowed names remain ineligible. Other opaque
 regions, aggregate mutation, return snapshots and carrier failures remain open.
+
+## Pending return snapshots
+
+Contextual summaries now preserve evaluated return Values separately from binding
+state. Normal finally cleanup retains the snapshot; a new return replaces it and
+exceptional completion clears it. The worklist joins returned Values and supplies
+them to caller expression evaluation, including flat returned-array elements.
+Compiler witnesses cover cardinality and cleanup, and direct summary tests cover
+throw/catch overrides. All 34 focused, 191 bounded compiler and 329 editor tests
+pass. Escaped captured environments still require context/lifetime identity; this
+checkpoint does not accept general factory effects or native carrier changes.

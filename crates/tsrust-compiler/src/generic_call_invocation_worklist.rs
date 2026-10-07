@@ -101,6 +101,9 @@ impl<'a> Engine<'a> {
                 merge_state(&mut outcome.normal, incoming.normal, declarations);
                 merge_state(&mut outcome.returning, incoming.returning, declarations);
                 merge_state(&mut outcome.throwing, incoming.throwing, declarations);
+                if let Some(incoming) = incoming.returned_value {
+                    outcome.returned_value = Some(if let Some(previous) = outcome.returned_value.take() { expression_flow::merge_value(previous, incoming, declarations) } else { incoming });
+                }
                 merge_facts(&mut outcome.facts, incoming.facts, declarations);
             } else { self.entries[index].opaque = true; }
             if previous != self.entries[index].outcome || previous_opaque != self.entries[index].opaque {
@@ -121,17 +124,22 @@ impl expression_flow::Dispatch for Engine<'_> {
         let mut normal = None;
         let mut throwing = None;
         let mut facts = HashMap::new();
+        let mut result = None;
         for origin in &callee.origins {
             let body_origins::Origin::Body(declaration) = origin else { unreachable!() };
             let index = self.request(Request { declaration: *declaration, caller: state.to_vec(), arguments: arguments.to_vec() });
             if self.entries[index].opaque { return self.opaque_invocation(); }
             let outcome = self.entries[index].outcome.clone();
+            let returned = if outcome.normal.is_some() {
+                Some(outcome.returned_value.clone().map_or_else(expression_flow::Value::undefined, |value| expression_flow::merge_value(value, expression_flow::Value::undefined(), self.declarations)))
+            } else { outcome.returned_value.clone() };
+            if let Some(value) = returned { result = Some(result.map_or_else(|| value.clone(), |previous| expression_flow::merge_value(previous, value.clone(), self.declarations))); }
             merge_state(&mut normal, outcome.normal, self.declarations);
             merge_state(&mut normal, outcome.returning, self.declarations);
             merge_state(&mut throwing, outcome.throwing, self.declarations);
             merge_facts(&mut facts, outcome.facts, self.declarations);
         }
-        Some(expression_flow::Invocation { normal, throwing: throwing.into_iter().collect(), result: expression_flow::Value::default(), facts })
+        Some(expression_flow::Invocation { normal, throwing: throwing.into_iter().collect(), result: result.unwrap_or_default(), facts })
     }
 }
 #[cfg(test)]
@@ -251,6 +259,32 @@ mod rest_tests {
             if let ExprKind::Call(callee,_) =&expression.kind && name(callee).is_some_and(|(name,_)|name=="action") {call=Some((expression.span.start,expression.span.end));} Ok(())
         }).unwrap();
         assert!(outcome.facts.get(&call.unwrap()).and_then(|contracts|contracts.as_ref()).is_some_and(|contracts|contracts.iter().all(|contract|contract.required==required.unwrap())));
+        }
+    }
+}
+
+#[cfg(test)]
+mod returned_value_tests {
+    use super::*;
+    #[test]
+    fn pending_returns_survive_cleanup_and_are_replaced_by_abrupt_completion() {
+        for (body, expected) in [
+            ("let action=one;try{return action;}finally{action=two;}",Some("one")),
+            ("try{return one;}finally{return two;}",Some("two")),
+            ("try{return one;}finally{throw 1;}",None),
+            ("try{try{return one;}finally{throw 1;}}catch(error){return two;}",Some("two")),
+        ] {
+            let source=crate::format(&format!("function one(){{}}function two(){{}}function pick(){{{body}}}function main(){{}}")).unwrap();
+            assert_eq!(crate::format(&source).unwrap(),source);
+            let program=crate::syntax::parse(&source).unwrap();let effects=effect_bodies::Index::new(&program).unwrap();
+            let declarations=program.functions.iter().map(|function|(function.name.text.clone(),contract(function.type_parameters.len(),&function.parameter_initializers,function.rest_parameter,function.name.span))).collect::<HashMap<_,_>>();
+            let pick=program.functions.iter().find(|function|function.name.text=="pick").unwrap();
+            let outcome=Engine::new(&declarations,&effects).solve(pick.name.span,&[],&[]).unwrap();
+            if let Some(expected)=expected {
+                let declaration=program.functions.iter().find(|function|function.name.text==expected).unwrap().name.span;
+                assert_eq!(outcome.returned_value.unwrap().origins,vec![body_origins::Origin::Body(declaration)],"{body}");
+                assert!(outcome.returning.is_some());
+            } else {assert!(outcome.returned_value.is_none());assert!(outcome.returning.is_none());assert!(outcome.throwing.is_some());}
         }
     }
 }

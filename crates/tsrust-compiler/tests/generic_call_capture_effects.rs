@@ -186,3 +186,18 @@ fn console_calls_preserve_known_capture_writes_and_restoration() {
         else if let Err(error)=result {panic!("{}",error.render("console-effects.tsr",&source));}
     }
 }
+
+#[test]
+fn returned_callable_contracts_preserve_snapshots_and_finally_overrides() {
+    for (body, invalid) in [
+        ("function pick(){return two;}const chosen=pick();return chosen<T>(value);",true),
+        ("function pick(){return [one,two];}const chosen=pick()[1];return chosen<T>(value);",true),
+        ("function pick(){return [one,two];}const chosen=pick()[0];return chosen<T>(value);",false),
+        ("function pick(){let action=one;try{return action;}finally{action=two;}}const chosen=pick();return chosen<T>(value);",false),
+        ("function pick(){try{return one;}finally{return two;}}const chosen=pick();return chosen<T>(value);",true),
+    ] {
+        let source=support::format_round_trip(&source(body));let result=tsrust_compiler::check(&source);
+        if invalid {let error=result.err().expect("returned callable must retain its actual contract");assert_eq!(error.code,"arity");assert!(!error.related.is_empty());}
+        else if let Err(error)=result {panic!("{}",error.render("return-snapshot.tsr",&source));}
+    }
+}

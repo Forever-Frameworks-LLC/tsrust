@@ -42,7 +42,7 @@ impl Value {
         Self { truth: Some(true), nullish: Some(false), undefined: Some(false), elements: Some(values.iter().map(|value| Element { origins: value.origins.clone(), contracts: value.contracts.clone(), selection: value.selection() }).collect()), ..Self::default() }
     }
 }
-fn merge_value(left: Value, right: Value, declarations: &HashMap<String, Contract>) -> Value {
+pub(super) fn merge_value(left: Value, right: Value, declarations: &HashMap<String, Contract>) -> Value {
     let contracts = match (left.contracts, right.contracts) {
         (Some(left), Some(right)) => resolve_all(left.into_iter().chain(right).map(Target::Contract).collect(), &[], declarations),
         _ => None,
