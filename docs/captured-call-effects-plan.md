@@ -41,3 +41,28 @@ This is implementation progress, not feature acceptance. Complete linked-module 
 ## Focused lexical transport acceptance
 
 The lexical dependency now has focused acceptance; see handoff-2026-10-07-lexical-generic-transport.md. Linking preserves inherited type names and validates nested explicit applications in the innermost function. Escaped ordinary and generic values retain independent owned captures, and O0/O3 failure disposal observes each original owner once. Public arity and repeated consumption rejection controls pass. Current bounded evidence is 177 compiler tests and the whole 327-test editor, plus five matched cases with 124 observations, all untimed. The original eight invocation-effect reds remain required implementation work.
+
+## Callable-body index WIP
+
+The isolated generic_call_effect_bodies module indexes named and arrow bodies by
+source declaration span without executing them. It records binding declarations
+and resolves uses to lexical BindingId values. Existing capture-plan provenance
+handles hoisted named uses that occur textually before initialization. Lexical
+ranges supply identities for ordinary locals, closure parameters, loop and catch
+bindings; declaration identities agree with planned uses when available.
+
+Two formatted-source tests pass after a retained failing stub. They distinguish
+hoisted captured writes from local shadowing, and arrow captures from parameter
+shadowing. The module is registered but not invoked by production validation yet.
+No invocation-effect witness is repaired by indexing alone. This is a prerequisite
+checkpoint, not source-flow or Gate173 acceptance.
+
+Next, attach the index to source validation and map existing flow bindings to its
+declaration identities. Known callee contracts must select indexed bodies through
+original declaration spans, including alternative provenance. Use ordered normal
+and exceptional summaries, preserving caller snapshots and explicit restoration.
+Local callee bindings must never overwrite caller bindings with the same spelling.
+Calls resolve after arguments using the saved callee; closure declarations do not
+execute indexed bodies. Unknown callable origins must not inherit a fabricated
+body. Recursive groups require a finite worklist rather than recursive evaluation.
+The eight invocation reds and all precision controls remain mandatory.

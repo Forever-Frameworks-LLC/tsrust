@@ -4,6 +4,8 @@ use crate::{Diagnostic, Span};
 use std::collections::{HashMap, HashSet};
 #[path = "generic_call_branch_flow.rs"]
 mod branch_flow;
+#[path = "generic_call_effect_bodies.rs"]
+mod effect_bodies;
 #[path = "generic_call_linear_flow.rs"]
 mod linear_flow;
 #[path = "generic_call_targets.rs"]
