@@ -48,6 +48,8 @@ mod generic_value_metadata;
 mod deferred_generic_values;
 #[path = "generic_calls.rs"]
 mod generic_calls;
+#[path = "polymorphic_argument_hints.rs"]
+mod polymorphic_argument_hints;
 #[path = "optional_chain.rs"]
 mod optional_chain;
 #[path = "rest_calls.rs"]

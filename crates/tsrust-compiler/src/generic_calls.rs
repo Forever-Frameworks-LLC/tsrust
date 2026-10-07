@@ -87,6 +87,7 @@ impl Analyzer {
         argument: &Expr,
         expected: Option<Type>,
     ) -> Option<Type> {
+        if let Some(Type::Closure(origin))=argument.ty && self.deferred_generic_values.contains_key(&origin) {return argument.ty;}
         if let ExprKind::Unary{op:UnaryOp::RestPack,value,..}=&argument.kind {return self.generic_argument_hint(context,value,expected);}
         if let ExprKind::Call(callee, _) = &argument.kind
             && let ExprKind::Name(name) = &callee.kind
@@ -201,6 +202,12 @@ impl Analyzer {
             let concrete = self.generic_functions.request_explicit_value(name, arguments, captures, expr.span, self.function_stack.len())?;
             *name = self.publish_generic_call(context, concrete)?;
             return Ok(());
+        }
+        let polymorphic_slots=self.generic_functions.template(name).expect("generic template").params.iter().map(|(_,annotation,_)| {
+            matches!(&annotation.kind,crate::type_syntax::ValueAnnotationKind::Named(variable) if self.generic_functions.template(name).unwrap().type_parameters.iter().any(|parameter|parameter.text==variable.text))
+        }).collect::<Vec<_>>();
+        for (argument,polymorphic) in args.iter_mut().zip(polymorphic_slots) {
+            if polymorphic && expected.is_none() {self.prepare_polymorphic_argument_hint(context,argument)?;}
         }
         let mut inline_shapes = HashMap::new();
         for ((_, pattern, _), argument) in self

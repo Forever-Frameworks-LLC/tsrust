@@ -440,3 +440,23 @@ polymorphic-callable-transport-plan.md before lifting mutable environment guards
 it specifies checked argument identity, capture timing, point-sensitive instance
 state, ownership/disposal controls and acceptance requirements. No compiler source
 changed for this red checkpoint.
+
+## Polymorphic argument hint WIP
+
+polymorphic_argument_hints.rs now prepares a deferred callable source identity for
+unshadowed generic declarations used as unconstrained generic arguments. It uses a
+separate compiler preparation context and leaves the original expression as a name;
+ordinary argument checking still owns evaluation and transfers. Repeated requests
+reuse source identity, and lexical or pending bindings prevent global fallback.
+The prototype retains the original template rather than inventing a concrete
+parameter/result signature. A focused failing stub witness preceded implementation.
+
+Generic call inference now consumes this hint for bare type-variable argument
+patterns when no result context supplies a concrete contract. Existing contextual
+adaptation stays on its current path. The native factory red advances from missing
+A inference to the unsupported checked-type annotation path. It remains failing:
+this checkpoint does not implement polymorphic type substitution or native carrier
+transport. Next provide a checked internal annotation identity that survives
+substitution and signature resolution without erasing polymorphism or rebuilding
+captures. Do not turn the prototype's empty parameter list and void result into a
+source callable contract.
