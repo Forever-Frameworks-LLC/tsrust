@@ -8016,3 +8016,10 @@ fn grouped_conditional_arrow_results_keep_editor_types() {
     let hover = ask(&source, "textDocument/hover", "result =", 0).to_string();
     assert!(hover.contains("int"), "{hover}");
 }
+
+#[test]
+fn literal_guards_do_not_publish_unreachable_generic_arity_errors() {
+    let source=tsrust_compiler::format("function one<T>(value:T):T{return value;}function two<T>(value:T,other:T):T{return other;}function unused<T>(value:T):T{let action=one;if(false){action=two;}return action<T>(value);}function main(){}").unwrap();
+    assert_eq!(tsrust_compiler::format(&source).unwrap(),source);
+    assert!(tsrust_lsp::diagnostics(&source,"file:///literal-guard.tsr").unwrap().is_empty());
+}

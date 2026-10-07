@@ -128,3 +128,26 @@ fn lexical_type_bindings_do_not_add_public_arity_or_reuse_consumed_captures() {
         assert_eq!(error.code, expected, "{}", error.render("input.tsr", &formatted));
     }
 }
+
+#[test]
+fn literal_guards_preserve_only_reachable_callable_contracts() {
+    for body in [
+        "let action=one;if(false){action=two;}return action<T>(value);",
+        "let action=two;if(true){action=one;}return action<T>(value);",
+    ] {
+        let source=support::format_round_trip(&source(body));
+        tsrust_compiler::check(&source).unwrap_or_else(|error|panic!("{}",error.render("literal-guard.tsr",&source)));
+
+    }
+}
+
+#[test]
+fn literal_guard_native_callable_replacement_has_common_carrier() {
+    for body in [
+        "let action=one;if(false){action=two;}return action<T>(value);",
+        "let action=two;if(true){action=one;}return action<T>(value);",
+    ] {
+        let executable=format!("{DECLARATIONS}function unused<T>(flag:boolean,value:T):T{{{body}}}function main(){{console.log(unused<int>(false,7));}}");
+        support::execute(&executable,"7\n",None);
+    }
+}

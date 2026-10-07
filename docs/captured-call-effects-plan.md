@@ -164,3 +164,35 @@ pass. The compiler pass explicitly skips invoked_capture_writes_reject_invalid_r
 Neither that red nor the conditional common-carrier red has been repaired. Body
 origins are ready for summary evaluation but calls still discard their body effects.
 No new workload observations, timings or executable-consumer refresh is claimed.
+
+## Separate completion graphs and ordered summary flow WIP
+
+Summary graphs now have distinct fallthrough, return and uncaught-throw terminals.
+Their cleanup entries preserve pending completion routes and permit finally to
+replace a return with a throw or a throw with a return. Existing diagnostic graphs
+retain their original terminal convention.
+
+The shared generic_call_node_flow module evaluates operands before committing a
+destination. Both ordinary source flow and the standalone summary runner use it.
+The runner maintains finite binding-state joins, separate completion states and
+saved call-signature facts. Tests cover ordered replacement/restoration, writes
+before throw, catch and cleanup overrides, local shadows, argument-side writes and
+callee snapshots before arguments. It is not yet called from expression invocation
+dispatch, and does not yet execute nested or recursive summaries.
+
+A retained red exposed literal guards including dead writes in source flow. Shared
+normal-edge selection now honors known Boolean predicates; uninstantiated generic
+source checks and editor diagnostics pass both guard controls. Native specialization
+exposed a separate unresolved carrier constraint: changing between generic named
+functions still fails callable-origin even when the assignment is unreachable.
+The literal_guard_native_callable_replacement_has_common_carrier test remains red.
+Do not claim end-to-end guard or generic replacement acceptance from source-flow
+checks alone. This joins the existing conditional-arrow common-carrier dependency.
+
+Twenty-one focused tests, 187 bounded compiler tests and all 329 editor tests pass.
+The original invocation-effect red was explicitly skipped in the compiler batch;
+the new native carrier red was added afterward and verified separately. The guard
+source check was rerun after separating that red. Node independently verifies the
+guard results. All eight depth canaries ran unfiltered. No new runtime observation,
+measurement or consumer refresh is claimed. Completion values, contextual parameter
+frames, caller-frame projection and finite inter-call recursion remain next work.

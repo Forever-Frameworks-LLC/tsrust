@@ -10,6 +10,21 @@ pub(super) struct Node<'a> {
     pub exceptional: Option<usize>,
 }
 
+#[derive(Clone, Copy)]
+pub(super) struct Exits {
+    pub normal: usize,
+    pub returning: usize,
+    pub throwing: usize,
+}
+pub(super) struct SummaryGraph<'a> {
+    pub nodes: Vec<Node<'a>>,
+    pub exits: Exits,
+}
+pub(super) fn summary_graph(body: &[Stmt]) -> Option<SummaryGraph<'_>> {
+    let exits = Exits { normal: 1, returning: 2, throwing: 3 };
+    Some(SummaryGraph { nodes: build(body, exits)?, exits })
+}
+
 #[derive(Clone)]
 struct Control<'a> {
     labels: &'a [Token],
@@ -65,20 +80,29 @@ pub(super) fn standalone_update(mut expression: &Expr) -> Option<(&Expr, Span)> 
 
 /// None leaves unsupported effect regions on the conservative validation path.
 pub(super) fn graph(body: &[Stmt]) -> Option<Vec<Node<'_>>> {
+    build(body, Exits { normal: 0, returning: 0, throwing: 0 })
+}
+
+fn build(body: &[Stmt], exits: Exits) -> Option<Vec<Node<'_>>> {
     let mut nodes = vec![Node {
         statement: None,
         expression: None,
         next: vec![0],
         exceptional: None,
     }];
+    // Node zero stays the entry sentinel. Separate summary terminals must not
+    // be re-enqueued as statements or collapsed into one completion class.
+    for _ in 0..exits.normal.max(exits.returning).max(exits.throwing) {
+        push(&mut nodes, None, Vec::new());
+    }
     let mut pending = vec![Body {
         body,
-        successor: 0,
+        successor: exits.normal,
         parent: 0,
         edge: 0,
         controls: Vec::new(),
-        returning: 0,
-        throwing: 0,
+        returning: exits.returning,
+        throwing: exits.throwing,
     }];
     let mut cleanups = HashMap::new();
     while let Some(task) = pending.pop() {
@@ -298,4 +322,45 @@ pub(super) fn graph(body: &[Stmt]) -> Option<Vec<Node<'_>>> {
         nodes[task.parent].next[task.edge] = entry;
     }
     Some(nodes)
+}
+
+#[cfg(test)]
+mod summary_exit_tests {
+    use super::*;
+    fn completions(body: &str) -> HashSet<&'static str> {
+        let source=crate::format(&format!("function inspect(){{{body}}}function main(){{}}")).unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let program=crate::syntax::parse(&source).unwrap();
+        let function=program.functions.iter().find(|function|function.name.text=="inspect").unwrap();
+        let graph=summary_graph(&function.body).unwrap();
+        assert_ne!(graph.exits.normal,graph.exits.returning);
+        assert_ne!(graph.exits.returning,graph.exits.throwing);
+        assert_ne!(graph.exits.normal,graph.exits.throwing);
+        let mut pending=vec![graph.nodes[0].next[0]];
+        let mut visited=HashSet::new();let mut result=HashSet::new();
+        while let Some(index)=pending.pop() {
+            if !visited.insert(index) {continue;}
+            let terminal=if index==graph.exits.normal {Some("normal")} else if index==graph.exits.returning {Some("return")} else if index==graph.exits.throwing {Some("throw")} else {None};
+            if let Some(terminal)=terminal {assert!(graph.nodes[index].next.is_empty());result.insert(terminal);continue;}
+            pending.extend(&graph.nodes[index].next);pending.extend(graph.nodes[index].exceptional);
+        }
+        result
+    }
+    #[test]
+    fn summary_distinguishes_fallthrough_return_and_uncaught_throw() {
+        for (body,expected) in [("const value=1;", "normal"),("return;","return"),("throw 1;","throw")] {
+            assert_eq!(completions(body),HashSet::from([expected]),"{body}");
+        }
+        assert_eq!(completions("unknown();"),HashSet::from(["normal","throw"]));
+    }
+    #[test]
+    fn cleanup_overrides_and_catches_keep_distinct_completions() {
+        for (body,expected) in [
+            ("try{return;}finally{throw 2;}",HashSet::from(["throw"])),
+            ("try{throw 1;}finally{return;}",HashSet::from(["return"])),
+            ("try{throw 1;}catch(error){const caught=1;}",HashSet::from(["normal"])),
+            ("try{unknown();}catch(error){return;}",HashSet::from(["normal","return"])),
+            ("try{unknown();}finally{}",HashSet::from(["normal","throw"])),
+        ] {assert_eq!(completions(body),expected,"{body}");}
+    }
 }

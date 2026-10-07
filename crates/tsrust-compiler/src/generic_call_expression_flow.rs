@@ -9,6 +9,10 @@ pub(super) struct Value {
     nullish: Option<bool>,
     undefined: Option<bool>,
 }
+impl Value {
+    pub(super) fn known_truth(&self) -> Option<bool> { self.truth }
+}
+
 impl Default for Value {
     fn default() -> Self {
         Self { origins: vec![body_origins::Origin::Unknown], contracts: None, truth: None, nullish: None, undefined: None }
