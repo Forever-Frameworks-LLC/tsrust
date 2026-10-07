@@ -24,6 +24,17 @@ impl Emitter<'_> {
         }
         family
     }
+    pub(super) fn record_order_paths(&self,root:usize)->Vec<(Vec<usize>,usize)> {
+        let mut result=Vec::new();let mut pending=vec![(root,Vec::new())];
+        while let Some((record,path))=pending.pop(){
+            if self.record_runtime.ordered.contains(&record) && !self.program.records[record].fields.is_empty(){result.push((path.clone(),self.program.records[record].fields.len()));}
+            for (field,item) in self.program.records[record].fields.iter().enumerate().rev(){if let Some(Type::Record(child))=item.ty && !self.program.records[child].fields.is_empty(){let mut next=path.clone();next.push(field);pending.push((child,next));}}
+        }
+        result
+    }
+    pub(super) fn record_order_member(path:&[usize])->String {
+        if path.is_empty(){"key_order".into()}else{format!("{}_key_order",path.iter().map(|index|format!("field{index}")).collect::<Vec<_>>().join("_"))}
+    }
     pub(super) fn record_borrowing_support_cached(&self, record: usize, cache: &mut SupportCache) -> Option<String> {
         self.record_borrowing_support_layout(record,cache)
     }
@@ -38,8 +49,9 @@ impl Emitter<'_> {
                 let name=format!("V{node}F{index}");(name.clone(),vec![name])
             }else{(self.native_type(ty),vec![])}
         };
-        let mut output=layout.view_declarations_cached(&self.program.records,|id|format!("TsrReadView{id}"),native_field,false,&mut cache.read);
-        output.push_str(&layout.view_declarations_cached(&self.program.records,|id|format!("TsrMutateView{id}"),native_field,true,&mut cache.mutate));
+        let metadata=|id,mutable|if self.record_runtime.ordered.contains(&id){format!(",key_order:&'a {}[usize;{}]",if mutable{"mut "}else{""},self.program.records[id].fields.len())}else{String::new()};
+        let mut output=layout.view_declarations_with_metadata(&self.program.records,|id|format!("TsrReadView{id}"),native_field,false,&mut cache.read,|id|metadata(id,false));
+        output.push_str(&layout.view_declarations_with_metadata(&self.program.records,|id|format!("TsrMutateView{id}"),native_field,true,&mut cache.mutate,|id|metadata(id,true)));
         let mut pending=vec![record];
         while let Some(node)=pending.pop(){
             if !cache.bridges.insert(node){continue;}
@@ -68,6 +80,14 @@ impl Emitter<'_> {
             let arguments=std::iter::once("'a".into()).chain(view_parameters.iter().cloned()).collect::<Vec<_>>();
             let shared=format!("TsrReadView{node}{}",lifetime_parameters(&arguments));
             let exclusive=format!("TsrMutateView{node}{}",lifetime_parameters(&arguments));
+            let orders=self.record_order_paths(node).into_iter().map(|(path,width)|{
+                let member=Self::record_order_member(&path);
+                let place=format!("{}.key_order",path.iter().map(|index|format!(".field{index}")).collect::<String>());
+                let owned=if let Some(&first)=path.first() && self.scoped_record_native_parameter(record.fields[first].ty.unwrap()){
+                    format!("self.field{first}.tsr_{}()",Self::record_order_member(&path[1..]))
+                }else{format!("&self{place}")};
+                (path,crate::scoped_record_bridge::OrderAccess{member,place,width,owned})
+            }).collect::<Vec<_>>();
             let transport_body=|mutable:bool| {
                 let mut prefix=String::new();
                 for (index,field) in record.fields.iter().enumerate() {
@@ -76,7 +96,7 @@ impl Emitter<'_> {
                         prefix.push_str(&format!("let child{index}=self.field{index}.{method}();"));
                     }
                 }
-                let members=layout.leaves.iter().map(|leaf|{
+                let mut members=layout.leaves.iter().map(|leaf|{
                     let name=leaf.path.iter().map(|index|format!("field{index}")).collect::<Vec<_>>().join("_");
                     let first=leaf.path[0];
                     let place=if leaf.path.len()>1 && self.scoped_record_native_parameter(record.fields[first].ty.unwrap()) {
@@ -89,6 +109,12 @@ impl Emitter<'_> {
                     };
                     format!("{name}:{place}")
                 }).collect::<Vec<_>>().join(",");
+                for (path,order) in &orders {
+                    let value=if let Some(&first)=path.first() && self.scoped_record_native_parameter(record.fields[first].ty.unwrap()) {
+                        format!("child{first}.{}",Self::record_order_member(&path[1..]))
+                    }else{format!("&{}self{}",if mutable{"mut "}else{""},order.place)};
+                    let _=write!(members,",{}:{value}",order.member);
+                }
                 let mode=if mutable{"Mutate"}else{"Read"};
                 format!("{prefix}Tsr{mode}Record{node}Fields{{{members}}}")
             };
@@ -106,7 +132,7 @@ impl Emitter<'_> {
                     let place=leaf.path.iter().map(|index|format!(".field{index}")).collect::<String>();
                     OwnedAccess{ty,read:format!("&self{place}"),mutate:format!("&mut self{place}")}
                 }
-            },Some(crate::scoped_record_bridge::OwnedTransport{read:transport_body(false),mutate:transport_body(true)})));
+            },Some(crate::scoped_record_bridge::OwnedTransport{read:transport_body(false),mutate:transport_body(true),orders:orders.iter().map(|(_,order)|crate::scoped_record_bridge::OrderAccess{member:order.member.clone(),place:order.place.clone(),width:order.width,owned:order.owned.clone()}).collect()})));
         }
         Some(output)
     }

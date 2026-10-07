@@ -8,6 +8,10 @@ mod scoped_record_emit;
 mod scoped_record_parameter_views;
 #[path = "record_join_emit.rs"]
 mod record_join_emit;
+#[path = "scoped_record_copy_emit.rs"]
+mod scoped_record_copy_emit;
+#[path = "scoped_record_console_emit.rs"]
+mod scoped_record_console_emit;
 #[path = "scoped_record_support_emit.rs"]
 mod scoped_record_support_emit;
 #[path = "exception_contract_emit.rs"]
@@ -94,6 +98,8 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
     for function in program.functions.iter().chain(program.closures.iter().map(|value| &value.function)).chain(program.closures.iter().flat_map(|value| value.methods.iter().map(|method| &method.function))) {
         crate::fixed_storage::visit_function_expressions(function, &mut inspect_keys);
     }
+    let ordered_declarations=record_runtime.ordered.iter().map(|&id|program.scoped_records.declaration(id)).collect::<HashSet<_>>();
+    for id in 0..program.records.len(){if ordered_declarations.contains(&program.scoped_records.declaration(id)){record_runtime.ordered.insert(id);}}
     let fixed = crate::fixed_storage::FixedStorage::new(program, &record_runtime);
     let callback_traits = !program.callback_contracts.is_empty()
         || program
@@ -2573,17 +2579,22 @@ impl Emitter<'_> {
                 if !self.record_inspectable(id) {
                     continue;
                 }
+                let borrowed_head=self.borrowed_record_console_head(id);
+                let borrowed_layout=borrowed_head.is_some();
+                if let Some(head)=borrowed_head{output.push_str(&head);}else{
                 let _ = writeln!(
                     output,
                     "fn tsr_console_record_{id}(value: &Record{id}, depth: usize) -> TsrConsoleValue {{ if depth >= 128 {{ return TsrConsoleValue::Truncated; }} let mut fields = Vec::new();"
                 );
+                }
                 let ordered = self.record_runtime.ordered.contains(&id);
                 if ordered {
                     output.push_str("for display_index in value.key_order.iter() { match *display_index {");
                 }
                 for (field, info) in record.fields.iter().enumerate() {
+                    let field_value=if borrowed_layout && !matches!(info.ty,Some(Type::Record(child)) if !self.program.records[child].fields.is_empty()){format!("value.field{field}")}else{format!("&value.field{field}")};
                     let cell = self.console_value(
-                        &format!("&value.field{field}"),
+                        &field_value,
                         info.ty.unwrap(),
                         "depth + 1",
                         true,
@@ -6065,6 +6076,7 @@ impl Emitter<'_> {
     }
 
     fn clone_argument(&self, fun: &CheckedFunction, value: &Expr) -> String {
+        if let Some(snapshot)=self.record_parameter_owned_clone(fun,value){return snapshot;}
         let argument = self.expr(fun, value, Mode::Read);
         match self.expression_shape(value) {
             Some(crate::fixed_storage::Shape::LiteralStrings) => format!("({argument}).clone_owned()"),
@@ -6131,7 +6143,10 @@ impl Emitter<'_> {
             .iter()
             .enumerate()
             .map(|(index, field)| {
-                let copied = format!("Clone::clone(&object_source.field{index})");
+                let copied = if matches!(field.ty,Some(Type::Record(_))) {
+                    let selected=Expr::checked(ExprKind::Field(Box::new(value.clone()),field.name.text.clone()),value.span,field.ty);
+                    self.record_parameter_owned_clone(fun,&selected).unwrap_or_else(||format!("Clone::clone(&object_source.field{index})"))
+                }else{format!("Clone::clone(&object_source.field{index})")};
                 let item = self.element_alternative(field.ty.expect("checked field"), element, &copied);
                 match pair {
                     Some(pair) => {
@@ -8431,10 +8446,10 @@ impl Emitter<'_> {
                     else if self.program.records[result].fields.is_empty(){format!("Record{result}{{key_order:[]}}")}
                     else {
                         let Type::Record(source)=base.ty.expect("checked rest source") else{unreachable!()};
-                        let raw=self.expr(fun,base,Mode::Consume);
+                        let order=self.record_parameter_order_access(fun,base).unwrap_or_else(||format!("({}).key_order",self.expr(fun,base,Mode::Consume)));
                         let count=self.program.records[result].fields.len();
                         let arms=self.program.records[result].fields.iter().enumerate().map(|(index,field)|format!("{}=>{{rest_order[rest_next]={index};rest_next+=1;}},",self.fields[source][field.name.text.as_str()])).collect::<String>();
-                        format!("{{let mut rest_order=[0usize;{count}];let mut rest_next=0usize;for rest_index in ({raw}).key_order {{match rest_index{{{arms}_=>{{}}}}}}Record{result}{{{fields},key_order:rest_order}}}}")
+                        format!("{{let mut rest_order=[0usize;{count}];let mut rest_next=0usize;for rest_index in ({order}).iter() {{match rest_index{{{arms}_=>{{}}}}}}Record{result}{{{fields},key_order:rest_order}}}}")
                     }
                 }
                 CallTarget::ArraySlice => {

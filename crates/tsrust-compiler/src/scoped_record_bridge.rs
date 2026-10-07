@@ -33,7 +33,14 @@ pub(crate) fn declarations_with_owned(layout: &Layout, types: Types<'_>, native:
 }
 
 /// Whole-record transport splits concrete storage once before generic access.
+pub(crate) struct OrderAccess {
+    pub(crate) member:String,
+    pub(crate) place:String,
+    pub(crate) width:usize,
+    pub(crate) owned:String,
+}
 pub(crate) struct OwnedTransport {
+    pub(crate) orders:Vec<OrderAccess>,
     pub(crate) read: String,
     pub(crate) mutate: String,
 }
@@ -53,7 +60,8 @@ pub(crate) fn declarations_with_transport(layout: &Layout, types: Types<'_>, nat
         let parameters=fields.iter().enumerate().map(|(index,_)|format!("F{index}:?Sized")).collect::<Vec<_>>().join(",");
         for (name,mutable) in [(&read_fields,false),(&mutate_fields,true)] {
             let modifier=if mutable{"mut "}else{""};
-            let members=fields.iter().enumerate().map(|(index,(_,method,_,_,_))|format!("{method}:&'a {modifier}F{index}")).collect::<Vec<_>>().join(",");
+            let mut members=fields.iter().enumerate().map(|(index,(_,method,_,_,_))|format!("{method}:&'a {modifier}F{index}")).collect::<Vec<_>>().join(",");
+            for order in &transport.as_ref().expect("transport").orders {let _=write!(members,",{}:&'a {modifier}[usize;{}]",order.member,order.width);}
             writeln!(output,"struct {name}<'a,{parameters}>{{{members}}}").expect("string write");
         }
     }
@@ -61,6 +69,7 @@ pub(crate) fn declarations_with_transport(layout: &Layout, types: Types<'_>, nat
     for (associated, method, _, _, _) in &fields {
         writeln!(output, "type {associated}: ?Sized; fn tsr_{method}(&self)->&Self::{associated};").expect("string write");
     }
+    if let Some(transport)=&transport{for order in &transport.orders{writeln!(output,"fn tsr_{}(&self)->&[usize;{}];",order.member,order.width).expect("string write");}}
     if transport.is_some(){writeln!(output,"fn tsr_fields(&self)->{};",transport_type(&read_fields)).expect("string write");}
     writeln!(output, "}} trait {}: {} {{", types.mutate_trait, types.read_trait).expect("string write");
     for (associated, method, _, _, _) in &fields {
@@ -78,8 +87,10 @@ pub(crate) fn declarations_with_transport(layout: &Layout, types: Types<'_>, nat
             writeln!(output, "type {associated}={ty}; fn tsr_{method}(&self)->&Self::{associated} {{ {read} }}").expect("string write");
         }
         if let Some(transport)=&transport {
+            for order in &transport.orders {let read=if borrowed{format!("&*self{}",order.place)}else{order.owned.clone()};writeln!(output,"fn tsr_{}(&self)->&[usize;{}]{{{read}}}",order.member,order.width).expect("string write");}
             let body=if borrowed {
-                let members=fields.iter().map(|(_,method,place,_,_)|format!("{method}:&*self{place}")).collect::<Vec<_>>().join(",");
+                let mut members=fields.iter().map(|(_,method,place,_,_)|format!("{method}:&*self{place}")).collect::<Vec<_>>().join(",");
+                for order in &transport.orders{let _=write!(members,",{}:&*self{}",order.member,order.place);}
                 format!("{read_fields}{{{members}}}")
             }else{transport.read.clone()};
             writeln!(output,"fn tsr_fields(&self)->{}{{{body}}}",transport_type(&read_fields)).expect("string write");
@@ -94,7 +105,8 @@ pub(crate) fn declarations_with_transport(layout: &Layout, types: Types<'_>, nat
             }
             if let Some(transport)=&transport {
                 let body=if borrowed {
-                    let members=fields.iter().map(|(_,method,place,_,_)|format!("{method}:&mut *self{place}")).collect::<Vec<_>>().join(",");
+                    let mut members=fields.iter().map(|(_,method,place,_,_)|format!("{method}:&mut *self{place}")).collect::<Vec<_>>().join(",");
+                    for order in &transport.orders{let _=write!(members,",{}:&mut *self{}",order.member,order.place);}
                     format!("{mutate_fields}{{{members}}}")
                 }else{transport.mutate.clone()};
                 writeln!(output,"fn tsr_fields_mut(&mut self)->{}{{{body}}}",transport_type(&mutate_fields)).expect("string write");

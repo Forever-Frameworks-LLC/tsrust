@@ -2,7 +2,7 @@
 use super::*;
 
 impl Emitter<'_> {
-    fn record_parameter_layout(&self,fun:&CheckedFunction,id:usize)->Option<crate::scoped_record_places::Layout> {
+    pub(super) fn record_parameter_layout(&self,fun:&CheckedFunction,id:usize)->Option<crate::scoped_record_places::Layout> {
         if id>=fun.parameter_count{return None;}
         let binding=fun.bindings.get(id)?;
         if !binding.parameter || !matches!(binding.mode,Mode::Read|Mode::Mutate) {return None;}
@@ -39,21 +39,22 @@ impl Emitter<'_> {
         let mut record=self.record_parameter_layout(fun,id)?.record;
         for &field in path {let Type::Record(child)=self.program.records[record].fields.get(field)?.ty? else{return None;};record=child;}
         if self.program.records[record].fields.is_empty(){return None;}
-        fn render(emitter:&Emitter<'_>,id:usize,record:usize,path:&mut Vec<usize>,mutable:bool)->String {
-            let fields=emitter.program.records[record].fields.iter().enumerate().map(|(index,field)| {
-                path.push(index);
-                let value=if let Some(Type::Record(child))=field.ty && !emitter.program.records[child].fields.is_empty() {
-                    render(emitter,id,child,path,mutable)
-                }else{
-                    let member=path.iter().map(|index|format!("field{index}")).collect::<Vec<_>>().join("_");
-                    format!("&{}*record_fields{id}.{member}",if mutable{"mut "}else{""})
-                };
-                path.pop();format!("field{index}:{value}")
-            }).collect::<Vec<_>>().join(",");
-            format!("Tsr{}View{record}{{{fields}}}",if mutable{"Mutate"}else{"Read"})
-        }
         let mutable=mode==Mode::Mutate;
-        Some(format!("&{}{}",if mutable{"mut "}else{""},render(self,id,record,&mut path.to_vec(),mutable)))
+        Some(format!("&{}{}",if mutable{"mut "}else{""},self.record_view_from_fields(record,&mut path.to_vec(),mutable,&format!("record_fields{id}"))))
+    }
+    pub(super) fn record_view_from_fields(&self,record:usize,path:&mut Vec<usize>,mutable:bool,fields_name:&str)->String {
+        let mut fields=self.program.records[record].fields.iter().enumerate().map(|(index,field)| {
+            path.push(index);
+            let value=if let Some(Type::Record(child))=field.ty && !self.program.records[child].fields.is_empty() {
+                self.record_view_from_fields(child,path,mutable,fields_name)
+            }else{
+                let member=path.iter().map(|index|format!("field{index}")).collect::<Vec<_>>().join("_");
+                format!("&{}*{fields_name}.{member}",if mutable{"mut "}else{""})
+            };
+            path.pop();format!("field{index}:{value}")
+        }).collect::<Vec<_>>().join(",");
+        if self.record_runtime.ordered.contains(&record){let _=write!(fields,",key_order:&{}*{fields_name}.{}",if mutable{"mut "}else{""},Emitter::record_order_member(path));}
+        format!("Tsr{}View{record}{{{fields}}}",if mutable{"Mutate"}else{"Read"})
     }
     /// Static leaf access starts at the entry view, never at the whole carrier.
     pub(super) fn record_parameter_leaf_place(&self, fun: &CheckedFunction, id: usize, path: &[usize]) -> Option<String> {
@@ -105,6 +106,65 @@ mod tests {
         assert_eq!(crate::format(&source).unwrap(),source);
         let checked=crate::check(&source).unwrap();
         crate::scoped_record_places::tests::native_output(&emit(&checked.program),"second first\n");
+    }
+    #[test]
+    fn repeated_children_keep_separate_order_through_mutable_views() {
+        let source=crate::format("type Plain={first:string;second:string;};type Holder={run:ReadOnly<Function<int>>;payload:Plain;};type Pair={left:Holder;right:Holder;};function keys(value:ReadOnly<Plain>):void{const names=Object.keys(value);console.log(names[0],names[1],value.first);}function change(value:Mutable<Plain>):void{value.first=\"z\";keys(value);}function relay(pair:Mutable<Pair>):void{change(pair.left.payload);keys(pair.right.payload);}function main(){const text=\"x\";const pair:Pair={left:{run:():int=>text.length,payload:{second:\"b\",first:\"a\"}},right:{run:():int=>text.length,payload:{first:\"c\",second:\"d\"}}};relay(pair);}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let checked=crate::check(&source).unwrap();
+        crate::scoped_record_places::tests::native_output(&emit(&checked.program),"second first z\nfirst second c\n");
+    }
+    #[test]
+    fn borrowed_ordered_child_values_and_entries_copy_owned_fields() {
+        let source=crate::format("type Plain={first:string;second:string;};type Holder={run:ReadOnly<Function<int>>;payload:Plain;};function show(value:ReadOnly<Plain>):void{const values=Object.values(value);console.log(values[0],values[1]);const entries=Object.entries(value);console.log(entries[0][0],entries[0][1]);values[0]=\"copy\";entries[0][1]=\"entry\";console.log(value.second,values[0]);console.log(value.second,entries[0][1]);}function main(){const text=\"x\";const holder:Holder={run:():int=>text.length,payload:{second:\"b\",first:\"a\"}};show(holder.payload);}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let checked=crate::check(&source).unwrap();
+        crate::scoped_record_places::tests::native_output(&emit(&checked.program),"b a\nsecond b\nb copy\nb entry\n");
+    }
+    #[test]
+    fn borrowed_ordered_child_console_inspection_keeps_constructor_order() {
+        let source=crate::format("type Plain={first:string;second:string;};type Holder={run:ReadOnly<Function<int>>;payload:Plain;};function show(value:ReadOnly<Plain>):void{console.log(value);}function main(){const text=\"x\";const holder:Holder={run:():int=>text.length,payload:{second:\"b\",first:\"a\"}};show(holder.payload);}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let checked=crate::check(&source).unwrap();
+        crate::scoped_record_places::tests::native_output(&emit(&checked.program),"{ second: 'b', first: 'a' }\n");
+    }
+    #[test]
+    fn borrowed_console_inspection_keeps_order_at_every_nested_node() {
+        let source=crate::format("type Detail={first:string;second:string;};type Plain={detail:Detail;count:int;};type Holder={run:ReadOnly<Function<int>>;payload:Plain;};function show(value:ReadOnly<Plain>):void{console.log(value);}function main(){const text=\"x\";const holder:Holder={run:():int=>text.length,payload:{count:4,detail:{second:\"b\",first:\"a\"}}};show(holder.payload);}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let checked=crate::check(&source).unwrap();
+        crate::scoped_record_places::tests::native_output(&emit(&checked.program),"{ count: 4, detail: { second: 'b', first: 'a' } }\n");
+    }
+    #[test]
+    fn borrowed_ordered_child_spread_and_rest_keep_order() {
+        let source=crate::format("type Plain={first:string;second:string;};type Holder={run:ReadOnly<Function<int>>;payload:Plain;};function show(value:ReadOnly<Plain>):void{const copy={...value};const {first,...tail}=value;const names=Object.keys(copy);const remaining=Object.keys(tail);console.log(names[0],names[1],copy.second);console.log(first,remaining[0],tail.second);}function main(){const text=\"x\";const holder:Holder={run:():int=>text.length,payload:{second:\"b\",first:\"a\"}};show(holder.payload);}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let checked=crate::check(&source).unwrap();
+        crate::scoped_record_places::tests::native_output(&emit(&checked.program),"second first b\na second b\n");
+    }
+    #[test]
+    fn borrowed_values_copy_nested_record_owners_and_their_order() {
+        let source=crate::format("type Detail={first:string;second:string;};type Plain={detail:Detail;tag:string;};type Holder={run:ReadOnly<Function<int>>;payload:Plain;};function show(value:ReadOnly<Plain>):void{const values=Object.values(value);const copied=values[1];if(typeof copied===\"object\"){const names=Object.keys(copied);console.log(names[0],names[1],copied.second);}else{console.log(\"wrong value\");}}function main(){const text=\"x\";const holder:Holder={run:():int=>text.length,payload:{tag:\"label\",detail:{second:\"b\",first:\"a\"}}};show(holder.payload);}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let checked=crate::check(&source).unwrap();
+        crate::scoped_record_places::tests::native_output(&emit(&checked.program),"second first b\n");
+    }
+    #[test]
+    fn mutable_order_transport_borrows_metadata_in_place() {
+        let source=crate::format("type Plain={first:string;second:string;};type Holder={run:ReadOnly<Function<int>>;payload:Plain;};function keys(value:ReadOnly<Plain>):string[]{return Object.keys(value);}function main(){}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let checked=crate::check(&source).unwrap();let mut rust=emit(&checked.program);
+        let plain=checked.program.records.iter().position(|record|record.name.text=="Plain").unwrap();
+        rust.push_str(&format!(r#"
+            fn verify_order_transport(){{
+                let mut value=Record{plain}{{field0:String::Owned("a".into()),field1:String::Owned("b".into()),key_order:[1,0]}};
+                let pointer=value.key_order.as_ptr();
+                {{let view=value.tsr_fields_mut();assert_eq!(view.key_order.as_ptr(),pointer);view.key_order.swap(0,1);}}
+                assert_eq!(value.key_order,[0,1]);
+            }}
+        "#));
+        rust=rust.replace("fn main() -> () {","fn main() -> () {verify_order_transport();");
+        crate::scoped_record_places::tests::native(&rust);
     }
     #[test]
     fn array_join_registration_accepts_scoped_record_metadata() {

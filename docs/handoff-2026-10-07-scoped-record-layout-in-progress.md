@@ -1430,3 +1430,42 @@ paths, bounded checks, required depth canaries, project formatting and SQLite.
 Exact native child success, controls, metadata, project/depth evidence, property-order
 red and join red/green are verified in SQLite under
 runtime/diagnostics/scoped-record-plain-child/.
+
+
+## Ordered borrowing views and explicit snapshots
+
+Ordered records now carry property-order metadata through readonly and mutable
+parameter transports at every nested record node. Mutable transports borrow the
+original metadata exclusively; readonly transports borrow it without allocation.
+Repeated child records retain separate order arrays. Nominal specializations agree
+on metadata presence before support declarations are emitted.
+
+Console inspection accepts borrowing views through the existing record traits.
+Explicit record copies, spread and rest reconstruct owned records from borrowed
+leaves and copy their order metadata. Object.values and Object.entries also copy
+nested record owners rather than attempting to clone borrowing views. These paths
+remain subject to the existing cloneability rules; callback-bearing snapshots are
+not newly supported. No implicit clone or public ownership capability is added.
+
+Fifteen parameter-view controls and four Object.values/entries integration tests
+pass. The retained rest batch passes 23 tests and the record console batch passes
+two tests. The project batch still passes 19 tests with the original independent
+owned-field storage E0502 failure. Original failed runs remain evidence, including
+metadata mutability, console view adaptation and nested snapshot failures.
+All 64 depth canaries pass after the snapshot changes. Project formatting changes
+zero files and zero benchmark fingerprints.
+
+This is a foundation checkpoint, not scoped-record feature acceptance. Independent
+local and owned-parameter field storage, captured-record transport, opaque
+composition, fallible callback contracts, editor/guide and matched benchmark
+acceptance remain open. Executable consumers remain at f1dd284. Fifteen protected
+owner fixtures remain unstaged and untouched. Diagnostic evidence is stored under
+runtime/diagnostics/scoped-record-order/ in benchmarks/records.sqlite.
+
+Continuation prompt: Continue Tsrust from this handoff and the scoped record field
+storage plan. Ordered metadata, borrowing-view console inspection, spread/rest and
+nested Object.values snapshots now pass. Finish independent owned-field storage
+next, retaining the original E0502 witness. Then complete captures, opaque
+composition and fallible contracts. Preserve fifteen owner fixtures and existing
+three callable capabilities. Use focused red tests, bounded checks, editor and
+benchmark acceptance, project formatting, SQLite evidence and explicit Git paths.

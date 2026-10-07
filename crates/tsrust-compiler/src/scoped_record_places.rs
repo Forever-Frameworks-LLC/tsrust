@@ -31,7 +31,10 @@ impl Layout {
         self.view_declarations_cached(records,symbol,native,mutable,&mut std::collections::BTreeMap::new())
     }
     pub(crate) fn view_declarations_cached(&self, records: &[Record], symbol: impl Fn(usize) -> String, native: impl Fn(usize, usize, Type) -> (String, Vec<String>), mutable: bool, seen: &mut std::collections::BTreeMap<usize,Vec<String>>) -> String {
-        fn emit(id: usize, records: &[Record], symbol: &impl Fn(usize) -> String, native: &impl Fn(usize, usize, Type) -> (String, Vec<String>), mutable: bool, seen: &mut std::collections::BTreeMap<usize, Vec<String>>, output: &mut String) -> Vec<String> {
+        self.view_declarations_with_metadata(records,symbol,native,mutable,seen,|_|String::new())
+    }
+    pub(crate) fn view_declarations_with_metadata(&self, records: &[Record], symbol: impl Fn(usize) -> String, native: impl Fn(usize, usize, Type) -> (String, Vec<String>), mutable: bool, seen: &mut std::collections::BTreeMap<usize,Vec<String>>, metadata: impl Fn(usize)->String) -> String {
+        fn emit(id: usize, records: &[Record], symbol: &impl Fn(usize) -> String, native: &impl Fn(usize, usize, Type) -> (String, Vec<String>), mutable: bool, seen: &mut std::collections::BTreeMap<usize, Vec<String>>, output: &mut String, metadata: &impl Fn(usize)->String) -> Vec<String> {
             use std::fmt::Write;
             if let Some(parameters) = seen.get(&id) { return parameters.clone(); }
             let mut parameters = Vec::new();
@@ -39,7 +42,7 @@ impl Layout {
                 let ty = field.ty.expect("checked field layout");
                 let (field_type, field_parameters) = if let Type::Record(child) = ty
                     && !records[child].fields.is_empty() {
-                    let child_parameters = emit(child, records, symbol, native, mutable, seen, output);
+                    let child_parameters = emit(child, records, symbol, native, mutable, seen, output,metadata);
                     // Each child occurrence has its own environment arguments,
                     // even when both occurrences use the same nominal view.
                     let child_parameters=child_parameters.into_iter().map(|parameter| {
@@ -57,12 +60,12 @@ impl Layout {
                 format!("field{index}: {field_type}")
             }).collect::<Vec<_>>().join(", ");
             let arguments = std::iter::once("'a".to_owned()).chain(parameters.iter().cloned()).collect::<Vec<_>>().join(", ");
-            writeln!(output, "struct {}<{arguments}> {{ {fields} }}", symbol(id)).expect("string write");
+            writeln!(output, "struct {}<{arguments}> {{ {fields}{} }}", symbol(id),metadata(id)).expect("string write");
             seen.insert(id, parameters.clone());
             parameters
         }
         let mut output = String::new();
-        emit(self.record, records, &symbol, &native, mutable, seen, &mut output);
+        emit(self.record, records, &symbol, &native, mutable, seen, &mut output,&metadata);
         output
     }
 
