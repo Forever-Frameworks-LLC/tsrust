@@ -133,6 +133,7 @@ impl CompletionStates {
 pub(super) struct ExitState {
     owners:Vec<Availability>,
     flow:crate::flow::Facts,
+    capture_loan_owners:crate::capture_loan_owners::Owners,
     capture_loans:Vec<(usize,Mode,Span)>,
 }
 impl ExitState {
@@ -155,6 +156,7 @@ impl ExitState {
         Self {
             owners:context.bindings[..outer].iter().map(Availability::of).collect(),
             flow:context.flow.iter().filter(|(place,_)|place.root<outer).map(|(place,fact)|(place.clone(),fact.clone())).collect(),
+            capture_loan_owners:context.capture_loan_owners.clone(),
             capture_loans:context.capture_loans.clone(),
         }
     }
@@ -162,6 +164,7 @@ impl ExitState {
         assert_eq!(self.owners.len(),other.owners.len(),"exit states must share an outer binding prefix");
         self.owners=self.owners.into_iter().zip(other.owners).map(|(left,right)|left.join(right)).collect();
         self.flow=crate::flow::join(&self.flow,&other.flow);
+        self.capture_loan_owners.join(&other.capture_loan_owners);
         for loan in other.capture_loans {if !self.capture_loans.contains(&loan) {self.capture_loans.push(loan);}}
         self
     }
@@ -169,11 +172,27 @@ impl ExitState {
         assert!(context.bindings.len()>=self.owners.len(),"exit binding prefix must still exist");
         for (state,binding) in self.owners.into_iter().zip(&mut context.bindings) {state.restore(binding);}
         context.flow=self.flow;context.capture_loans=self.capture_loans;
+        context.capture_loan_owners=self.capture_loan_owners;
     }
 }
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn capture_owner_snapshots_restore_and_join_every_reaching_owner() {
+        use crate::capture_loan_owners::Place;
+        let mut context = Context::new("main".into());
+        context.capture_loan_owners.attach(Place { binding: 0, fields: vec!["left".into()] }, [10]);
+        let left = ExitState::capture(&context, 0);
+        context.capture_loan_owners = Default::default();
+        context.capture_loan_owners.attach(Place { binding: 1, fields: vec!["right".into()] }, [11]);
+        let right = ExitState::capture(&context, 0);
+        context.capture_loan_owners = Default::default();
+        left.join(right).restore(&mut context);
+        assert_eq!(context.capture_loan_owners.live(), std::collections::BTreeSet::from([10, 11]));
+        assert_eq!(context.capture_loan_owners.leave_scope(1), std::collections::BTreeSet::from([11]));
+        assert_eq!(context.capture_loan_owners.live(), std::collections::BTreeSet::from([10]));
+    }
     use super::*;
     #[test]
     fn region_control_exits_do_not_commit_outer_loop_before_cleanup() {

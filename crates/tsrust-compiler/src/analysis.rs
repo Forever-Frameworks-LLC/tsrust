@@ -369,6 +369,7 @@ struct Context {
     /// Source declaration starts resolve independently of current lexical spelling.
     source_bindings: HashMap<usize, usize>,
     names: HashMap<String, usize>,
+    capture_loan_owners: crate::capture_loan_owners::Owners,
     capture_loans: Vec<(usize, Mode, Span)>,
     iteration_loans: Vec<(usize, Span)>,
     capture_boundary: usize,
@@ -415,6 +416,7 @@ impl Context {
             bindings: Vec::new(),
             source_bindings: HashMap::new(),
             names: HashMap::new(),
+            capture_loan_owners: Default::default(),
             capture_loans: Vec::new(),
             iteration_loans: Vec::new(),
             capture_boundary: 0,

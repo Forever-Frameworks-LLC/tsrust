@@ -272,3 +272,21 @@ through exception ExitState capture/restore/join and branch state restoration be
 allowing releases. Avoid releasing loans for moved values that remain live elsewhere.
 Exact module red/green/format evidence is stored in SQLite under
 runtime/diagnostics/capture-loan-owners/. Preserve all fifteen owner fixtures.
+
+## Exception snapshot provenance integration
+
+Context now carries capture_loan_owners. ExitState captures and restores this state,
+and its joins union every reaching loan owner. A focused snapshot test first failed
+because restoration discarded owners; it now verifies two independently captured
+branches, their joined owner set and subsequent independent scope disposal. All 85
+exception_state tests pass. No capture loan release behavior is enabled yet.
+
+Project_outer and unwind_capture_loans intentionally retain conservative provenance
+for now: payload ownership must be identified before pruning paths or loan identities.
+Ordinary branch/conditional/loop snapshots still need corresponding state handling.
+Do not attach and release production loans before those paths are covered. Stable
+loan identity allocation, record construction paths, declaration/assignment transfers
+and final scope-release wiring remain pending. The native field-loan witness remains
+red. Exact red/green/format logs are stored under
+runtime/diagnostics/capture-owner-snapshots/ in SQLite. Consumers remain f1dd284;
+all fifteen owner fixtures remain protected.
