@@ -497,3 +497,44 @@ fn scoped_record_destructuring_preserves_nested_and_readonly_parameter_callbacks
         }
     "#);
 }
+
+#[test]
+fn deferred_scoped_record_fields_release_independent_capture_loans() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Pair = { left: ReadOnly<Function<int>>; right: ReadOnly<Function<int>>; };
+        function main() {
+            const a = [3]; const b = [11];
+            {
+                let pair: Pair;
+                pair = { left: (): int => a[0], right: (): int => b[0] };
+                { const left = pair.left; strictEqual(left(), 3); }
+                a[0] = 5;
+                strictEqual(pair.right(), 11);
+            }
+            b[0] = 13; strictEqual(b[0], 13);
+        }
+    "#);
+}
+
+#[test]
+fn owned_record_parameter_entry_uses_independent_leaf_storage() {
+    let source=support::format_round_trip(r#"
+        import { strictEqual } from "std:testing";
+        type Pair = { left: ReadOnly<Function<int>>; right: ReadOnly<Function<int>>; };
+        function inspect(pair: Owned<Pair>): int {
+            const left = pair.left;
+            return left() + pair.right();
+        }
+        function main() {
+            const pair: Pair = { left: (): int => 3, right: (): int => 11 };
+            strictEqual(inspect(pair), 14);
+        }
+    "#);
+    let standalone=source.replace("import { strictEqual } from \"std:testing\";", "");
+    let declaration_only=format!("{} function main() {{}}",standalone.split("function main").next().unwrap());
+    let checked=tsrust_compiler::check(&declaration_only).unwrap();
+    let native=checked.emit_rust();
+    assert!(native.contains("field0:value0_field0"),"owned parameter lacks independent entry storage");
+    project(&source);
+}

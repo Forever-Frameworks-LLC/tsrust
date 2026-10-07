@@ -3,7 +3,7 @@ use super::*;
 impl Emitter<'_> {
     pub(super) fn owned_record_layout(&self,fun:&CheckedFunction,id:usize)->Option<crate::scoped_record_places::Layout>{
         let binding=fun.bindings.get(id)?;
-        if binding.parameter || binding.initializer.as_ref().is_some_and(|value|value.is_deferred()){return None;}
+        if binding.parameter && id>=fun.parameter_count{return None;}
         crate::scoped_record_places::Layout::for_binding(binding,&self.program.records,self.scoped_record_native_parameter(binding.ty))
     }
     pub(super) fn owned_record_value(&self,fun:&CheckedFunction,id:usize,path:&[usize],mode:Mode)->Option<String>{
@@ -22,6 +22,12 @@ impl Emitter<'_> {
         let target=self.owned_record_render(id,Type::Record(layout.record),&mut Vec::new(),Mode::Consume,false,false);
         // A destructuring assignment evaluates the replacement before committing fields.
         Some(format!("{target}={initializer};"))
+    }
+    pub(super) fn owned_record_deferred(&self,fun:&CheckedFunction,id:usize)->Option<String>{
+        let layout=self.owned_record_layout(fun,id)?;
+        let mut declarations=layout.leaves.iter().map(|leaf|format!("let mut {}:{};",leaf.native_name(id),if self.scoped_record_native_parameter(leaf.ty){"_".to_owned()}else{self.native_type(leaf.ty)})).collect::<String>();
+        for(path,width) in self.record_order_paths(layout.record){let name=crate::scoped_record_places::Leaf{path,ty:Type::Record(layout.record)}.native_name(id);let _=write!(declarations,"let mut {name}_key_order:[usize;{width}];");}
+        Some(declarations)
     }
     pub(super) fn owned_record_leaf_place(&self,fun:&CheckedFunction,id:usize,path:&[usize])->Option<String>{
         let layout=self.owned_record_layout(fun,id)?;

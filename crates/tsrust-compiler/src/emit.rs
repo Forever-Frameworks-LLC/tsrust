@@ -1496,11 +1496,15 @@ impl Emitter<'_> {
         code
     }
     fn parameter_initialization(&self, output: &mut String, fun: &CheckedFunction, indent: usize) {
+        for id in 0..fun.parameter_count {
+            if fun.bindings[id].input_ty.is_none(){if let Some(entry)=self.owned_record_declaration(fun,id,&format!("value{id}")){let _=writeln!(output,"{}{entry}","    ".repeat(indent));}}
+        }
         for id in 0..fun.bindings.len() {
             if let Some(entry)=self.record_parameter_entry_view(fun,id){let _=writeln!(output,"{}{entry}","    ".repeat(indent));}
         }
         for (id,binding) in fun.bindings.iter().enumerate().filter(|(_,binding)|binding.input_ty.is_some()) {
             self.parameter_default_initialization(output,fun,id,indent);
+            if id<fun.parameter_count{if let Some(entry)=self.owned_record_declaration(fun,id,&format!("value{id}")){let _=writeln!(output,"{}{entry}","    ".repeat(indent));}}
             if !binding.name.starts_with("pattern#") { continue; }
             let Some(span)=binding.declaration_span else {continue;};
             let patterns=fun.body.iter().take_while(|stmt| matches!(stmt.kind,StmtKind::Let{..})).filter(|stmt|stmt.span.start>=span.start && stmt.span.end<=span.end).cloned().collect::<Vec<_>>();
@@ -3353,6 +3357,7 @@ impl Emitter<'_> {
                     let index = binding.expect("checked binding");
                     let b = &fun.bindings[index];
                     if value.is_deferred() {
+                        if let Some(declarations)=self.owned_record_deferred(fun,index){let _=writeln!(output,"{indent}{declarations}");continue;}
                         // Assigned later; definite assignment was checked.
                         let _ = writeln!(output, "{indent}let mut value{index}: {};", self.native_type(b.ty));
                         continue;
@@ -8840,12 +8845,12 @@ impl Emitter<'_> {
                             self.counted_invocation(method,&receiver,&args,expr.supplied_count.unwrap_or(CallArgumentCount::Static(self.program.callback_contracts[id].params.len())))
                         )
                     } else if matches!(self.program.callback_contracts[id].kind, crate::syntax::CallbackKind::Read | crate::syntax::CallbackKind::SharedRead) {
-                        let receiver=if fun.bindings[binding].initializer.is_some() || matches!(fun.bindings[binding].mode,Mode::Consume | Mode::Copy){format!("&value{binding}")}else{format!("value{binding}")};
+                        let receiver=if fun.bindings[binding].initializer.is_some() || (!fun.bindings[binding].parameter && !fun.bindings[binding].capture_reference) || matches!(fun.bindings[binding].mode,Mode::Consume | Mode::Copy){format!("&value{binding}")}else{format!("value{binding}")};
                         self.counted_invocation("ReadCallback::invoke_read", &receiver, &args, expr.supplied_count.unwrap_or(CallArgumentCount::Static(self.program.callback_contracts[id].params.len())))
                     } else if self.program.callback_contracts[id].kind.is_once() {
                         self.counted_invocation("OnceCallback::invoke_once", &format!("value{binding}"), &args, expr.supplied_count.unwrap_or(CallArgumentCount::Static(self.program.callback_contracts[id].params.len())))
                     } else {
-                        let receiver=if fun.bindings[binding].initializer.is_some() || matches!(fun.bindings[binding].mode,Mode::Consume | Mode::Copy){format!("&mut value{binding}")}else{format!("value{binding}")};
+                        let receiver=if fun.bindings[binding].initializer.is_some() || (!fun.bindings[binding].parameter && !fun.bindings[binding].capture_reference) || matches!(fun.bindings[binding].mode,Mode::Consume | Mode::Copy){format!("&mut value{binding}")}else{format!("value{binding}")};
                         self.counted_invocation("Callback::invoke", &receiver, &args, expr.supplied_count.unwrap_or(CallArgumentCount::Static(self.program.callback_contracts[id].params.len())))
                     };
                     self.registered_callback_call(call,id,expr.span)

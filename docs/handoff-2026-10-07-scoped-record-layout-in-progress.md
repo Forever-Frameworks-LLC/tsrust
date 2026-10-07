@@ -1539,3 +1539,46 @@ editor/guide and matched benchmark support before feature acceptance.
 All 64 depth canaries pass. Project formatting changes zero files and zero
 fingerprints. Exact red/intermediate/green records are verified in SQLite under
 runtime/diagnostics/scoped-record-independent/.
+
+
+## Owned parameter entry and deferred record storage
+
+Scoped owned record parameters now destructure into independent leaves after
+parameter default initialization, preserving the existing nominal argument ABI.
+Inherited capture slots remain excluded from owned parameter entry. Deferred local
+records declare independent leaf variables and metadata arrays before assignment.
+Callback leaves use inferred native types so nominal callback slots do not name
+undeclared generic parameters. Existing definite-assignment checks still govern
+all reads and replacements; assigning the record commits leaves only after its
+replacement expression is evaluated.
+
+A new deferred declaration witness exposed missing independent locals, then
+undeclared callback generic types, and finally an incorrect local callback receiver.
+The repaired native witness proves the left capture is released independently of
+the right capture after a deferred record assignment. Local callbacks now borrow
+owned native receiver storage when invoked instead of assuming an existing native
+reference. The existing 20 project controls and this new deferred witness pass.
+An explicit Owned<Pair> parameter with readonly callback fields also passes native
+execution and an entry-storage source assertion. Its first proposed witness used
+ordinary owned callback fields, which are outside the scoped borrowing family;
+that witness was corrected rather than broadening claims from its failed assertion.
+
+This is another representation checkpoint, not full record acceptance. Defaulted
+and destructured owned parameter combinations, branch/loop/exception deferred
+initialization, mutable record captures, disposal, opaque composition and fallible
+callback contracts still need focused boundary coverage. Editor/guide and matched
+benchmark acceptance remain open. No consumers or protected owner fixtures change.
+
+Continuation prompt: Continue independent scoped-record storage from this checkpoint.
+Owned parameter entry and deferred local storage now have focused native coverage.
+Next add boundary witnesses for branch/loop/exception initialization, defaulted and
+destructured owned parameters, mutable captures and payload disposal. Repair every
+failure without weakening ownership. Finish opaque composition and fallible callback
+contracts, then editor/guide and matched benchmark acceptance. Preserve fifteen
+owner fixtures, use bounded checks and SQLite evidence, and format the whole project
+before explicit-path commits. Installed consumers remain f1dd284.
+
+All 15 view controls and 64 depth canaries pass. Formatting changes zero files
+and fingerprints. The parameter entry assertion is isolated from main local
+record storage. Exact evidence is verified in SQLite under
+runtime/diagnostics/scoped-record-entry/.
