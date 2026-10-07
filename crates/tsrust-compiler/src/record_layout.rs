@@ -19,12 +19,8 @@ pub(crate) fn append_checked_record_fields(
             Some(crate::scoped_record_fields::FieldContract::Owned { ty, declaration }) => {
                 return Ok((ty, Some(declaration)));
             }
-            Some(crate::scoped_record_fields::FieldContract::Scoped { .. }) => {
-                return Err(Diagnostic::new(
-                    "callback-escape",
-                    "A field stores a Function<...> or Once<Function<...>>; ReadOnly and Mutable functions are borrowed and belong in local bindings or parameters.",
-                    annotation.span,
-                ));
+            Some(crate::scoped_record_fields::FieldContract::Scoped { ty, declaration }) => {
+                return Ok((ty, Some(declaration)));
             }
             None => {}
         }
@@ -236,7 +232,7 @@ fn validate_inline_layout(
                     Type::Set(_) | Type::Map(_) => std::mem::size_of::<Vec<()>>() + std::mem::size_of::<std::collections::HashMap<u64, Vec<usize>>>() + std::mem::size_of::<usize>(),
                     Type::Array(element) => crate::storage::array_storage_bound(element),
                     Type::Record(child) => { depth = depth.max(depths[child] + 1); sizes[child] }
-                    Type::StoredCallable(_) => 0,
+                    Type::StoredCallable(_) | Type::BorrowedCallable(_) | Type::Callback(_) | Type::Closure(_) => 0,
                     _ => unreachable!("record field type"),
                 }).max().unwrap_or(0);
                 let bytes = tag + payload_bytes;

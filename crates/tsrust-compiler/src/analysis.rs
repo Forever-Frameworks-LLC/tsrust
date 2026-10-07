@@ -612,6 +612,7 @@ struct Analyzer {
     callables: crate::callable_resolution::Tables,
     absent_callback_payloads: HashMap<usize, usize>,
     record_cloneability: Option<(usize, crate::cloneability::Cloneability)>,
+    scoped_records: crate::scoped_record_layout::Registry,
     escaping: HashSet<usize>,
     discovering_results: bool,
     known_results: HashMap<usize, Type>,
@@ -1497,6 +1498,7 @@ impl Analyzer {
             callables,
             absent_callback_payloads: HashMap::new(),
             record_cloneability: None,
+            scoped_records: Default::default(),
             escaping,
             discovering_results: false,
             known_results: HashMap::new(),
@@ -2903,6 +2905,9 @@ impl Analyzer {
     fn require(&self, actual: Type, expected: Option<Type>, span: Span) -> Result<(), Diagnostic> {
         if !self.deferred_generic_values.is_empty() {
             self.deferred_generic_requirement(actual, expected, span)?;
+        }
+        if let (Type::Record(actual), Some(Type::Record(expected))) = (actual, expected) {
+            if self.scoped_records.declaration(actual) == expected { return Ok(()); }
         }
         if expected.is_some_and(|ty| self.unions.accepts(ty.owning(), actual.owning())) {
             return Ok(());
@@ -9131,6 +9136,8 @@ impl Analyzer {
         };
         self.fill_omitted_optional_fields(index, fields, span);
         let mut seen = HashSet::new();
+        let mut concrete = self.program.records[index].fields.iter().map(|field| field.ty.expect("checked field")).collect::<Vec<_>>();
+        let mut specialized = false;
         for (key, value) in fields {
             if !seen.insert(key.text.clone()) {
                 return Err(Diagnostic::new(
@@ -9153,9 +9160,18 @@ impl Analyzer {
             let actual = if let Type::StoredCallable(family) = field_type {
                 self.stored_callable_value(context, value, family, loans)?
             } else {
-                self.expression(context, value, Mode::Consume, loans, Some(field_type))?
+                let payload = self.unions.payload(field_type).unwrap_or(field_type);
+                let expected = if matches!(payload, Type::Callback(_)) && !matches!(value.kind, ExprKind::Closure { .. }) {
+                    None
+                } else { Some(if matches!(payload, Type::Callback(_)) { payload } else { field_type }) };
+                self.expression(context, value, Mode::Consume, loans, expected)?
             };
             self.require(actual, Some(field_type), value.span)?;
+            if matches!(self.unions.payload(field_type).unwrap_or(field_type), Type::Callback(_)) {
+                let position = self.program.records[index].fields.iter().position(|field| field.name.text == key.text).expect("checked field name");
+                concrete[position] = actual;
+                specialized = true;
+            }
         }
         let mut missing = self.fields[index]
             .keys()
@@ -9169,6 +9185,13 @@ impl Analyzer {
                 format!("Missing fields: {}.", missing.join(", ")),
                 span,
             ));
+        }
+        if specialized {
+            let instance = self.scoped_records.materialize(index, concrete, &mut self.program.records);
+            if self.fields.len() <= instance {
+                self.fields.push(self.program.records[instance].fields.iter().map(|field| (field.name.text.clone(), field.ty.expect("concrete field"))).collect());
+            }
+            return Ok(Type::Record(instance));
         }
         Ok(Type::Record(index))
     }
@@ -13864,7 +13887,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             unreachable!("call dispatched from expression")
         };
         if matches!(callee.kind, ExprKind::Field(_, _) | ExprKind::Index(_, _))
-            && let Some(Type::StoredCallable(family)) = self.expression_type_hint(context, callee)
+            && let Some(field_type @ (Type::StoredCallable(family) | Type::BorrowedCallable(family))) = self.expression_type_hint(context, callee)
         {
             let declaration = self
                 .callables
@@ -13881,7 +13904,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 callee,
                 invocation,
                 loans,
-                Some(Type::StoredCallable(family)),
+                Some(field_type),
             )?;
             let mut active = loans.clone();
             for root in Self::loan_roots(callee, invocation) {
@@ -13904,6 +13927,14 @@ self.names_materialized_type(element.with_depth(0).ty())
                 }
             }
             expr.target = Some(CallTarget::StoredCallableField(family));
+            expr.ty = Some(result);
+            return Ok(result);
+        }
+        if matches!(callee.kind, ExprKind::Field(_, _) | ExprKind::Index(_, _))
+            && self.expression_type_hint(context, callee).is_some_and(|ty| matches!(ty, Type::Closure(_) | Type::Callback(_)))
+        {
+            let (target, result) = self.conditional_call(context, callee, args, loans, span, expected)?;
+            expr.target = Some(target);
             expr.ty = Some(result);
             return Ok(result);
         }

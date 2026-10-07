@@ -65,8 +65,8 @@ polymorphic replacement and point-sensitive mutable environment restoration.
 
 The first persistent reds are scoped_callable_records.rs: a named readonly field
 with repeated invocation and original-array reuse, and a named mutable field that
-updates the original capture and releases its loan at scope exit. Both currently
-fail at declaration admission. Their independent TypeScript assertions pass in
+updates the original capture and releases its loan at scope exit. Both initially
+failed at declaration admission. Their independent TypeScript assertions pass in
 scoped-callable-records-reference.test.mjs. Anonymous inference is not needed for
 these witnesses and remains a separate dependency.
 
@@ -98,3 +98,8 @@ It supplies retention, scoped-storage and unknown-layout facts independently. Re
 throw and fresh-callee loan release now share this traversal. Concrete record layouts
 and field-level provenance remain the next implementation work; source construction
 is not accepted by this prerequisite.
+
+Concrete direct scoped record construction is implemented in the current work-in-progress
+checkpoint. Read docs/handoff-2026-10-07-scoped-record-layout-in-progress.md for verified
+behavior and outstanding lifetime, nested-layout, nullable-absence and acceptance work.
+The complete record gate remains open.

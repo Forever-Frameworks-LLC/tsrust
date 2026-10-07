@@ -103,7 +103,7 @@ pub(crate) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
                     }
                     total
                 }
-                Type::StoredCallable(_) | Type::Union(_) => {
+                Type::StoredCallable(_) | Type::BorrowedCallable(_) | Type::Union(_) => {
                     let largest = dependencies
                         .iter()
                         .map(|child| sizes[child])
@@ -149,6 +149,12 @@ fn dependencies(program: &CheckedProgram, ty: Type, span: Span) -> Result<Vec<Ty
             .fields
             .iter()
             .map(|field| field.ty.expect("checked field"))
+            // Declaration-only scoped fields are generic native parameters. A
+            // constructed record replaces them with concrete environment types.
+            .filter(|ty| {
+                let payload = ty.union().and_then(|id| program.unions[id.index()].members.iter().copied().find(|member| !matches!(member, Type::Null | Type::Undefined))).unwrap_or(*ty);
+                !matches!(payload, Type::Callback(_))
+            })
             .collect(),
         Type::Closure(id) => program.closures[id]
             .captures
@@ -156,7 +162,7 @@ fn dependencies(program: &CheckedProgram, ty: Type, span: Span) -> Result<Vec<Ty
             .filter(|capture| !matches!(capture.storage, Mode::Read | Mode::Mutate))
             .map(|capture| program.closures[id].function.bindings[capture.inner].ty)
             .collect(),
-        Type::StoredCallable(id) => program
+        Type::StoredCallable(id) | Type::BorrowedCallable(id) => program
             .stored_contracts
             .origins(id)
             .ok_or_else(|| {
@@ -178,7 +184,7 @@ fn dependencies(program: &CheckedProgram, ty: Type, span: Span) -> Result<Vec<Ty
 #[cfg(test)]
 #[test]
 fn duplicated_capture_layout_rejects_large_inline_storage_but_arrays_are_bounded() {
-    let mut checked = crate::check("type State={value:int;};function make(state:State):()=>int{return ():int=>{return state.value;};}function sink(action:Function<int>):int{return action();}function other(action:Once<Function<int>>):int{return action();}function main(){}").unwrap();
+    let mut checked = crate::check("type State={value:int;};function make(state:State):()=>int{return ():int=>{return state.value;};}function sink(action:Function<int>):int{return action();}function other(action:Once<Function<int>>):Once<Function<int>>{return action;}function main(){}").unwrap();
     let program = &mut checked.program;
     let Type::Closure(origin) = program.functions[0].result else {
         panic!("factory origin");

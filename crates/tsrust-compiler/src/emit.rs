@@ -274,6 +274,13 @@ impl Emitter<'_> {
     }
 
     fn native_type(&self, value: Type) -> String {
+        if let Type::Record(id) = value {
+            let parameters = self.program.records[id].fields.iter().filter_map(|field| {
+                let ty = field.ty.expect("checked field");
+                matches!(self.callback_payload(ty).unwrap_or(ty), Type::Callback(_) | Type::Closure(_) | Type::BorrowedCallable(_)).then(|| self.native_type(ty))
+            }).collect::<Vec<_>>();
+            if !parameters.is_empty() { return format!("Record{id}<{}>", parameters.join(", ")); }
+        }
         if let Type::BorrowedCallable(id)=value {return self.borrowed_family_type(id,"'_");}
         if let Type::Closure(id) = value {
             let closure = &self.program.closures[id];
@@ -2099,15 +2106,19 @@ impl Emitter<'_> {
                 if !definition.members.is_empty() { output.push_str("#[repr(u32)]\n"); }
                 let _ = writeln!(output, "#[derive(Clone, Copy, Debug)] enum Enum{index} {{ {variants} }} impl Enum{index} {{ fn tsr_value(self) -> {backing} {{ match self {{ {arms} }} }} }} impl PartialEq for Enum{index} {{ fn eq(&self, other: &Self) -> bool {{ self.tsr_value() == other.tsr_value() }} }} impl PartialOrd for Enum{index} {{ fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {{ self.tsr_value().partial_cmp(&other.tsr_value()) }} }}");
             }
+            let mut generic_fields = Vec::new();
             let fields = record
                 .fields
                 .iter()
                 .enumerate()
                 .map(|(index, field)| {
-                    format!(
-                        "field{index}: {}",
-                        self.native_type(field.ty.expect("checked record field"))
-                    )
+                    let ty = field.ty.expect("checked record field");
+                    let native = if matches!(self.callback_payload(ty).unwrap_or(ty), Type::Callback(_) | Type::Closure(_) | Type::BorrowedCallable(_)) {
+                        let parameter = format!("P{index}");
+                        generic_fields.push(parameter.clone());
+                        parameter
+                    } else { self.native_type(ty) };
+                    format!("field{index}: {native}")
                 })
                 .collect::<Vec<_>>()
                 .join(", ");
@@ -2118,7 +2129,8 @@ impl Emitter<'_> {
                     "#[derive(Clone)]\n"
                 };
             let fields = self.order_fields(index, fields);
-            let _ = writeln!(output, "{derive}struct Record{index} {{ {fields} }}\n");
+            let parameters = lifetime_parameters(&generic_fields);
+            let _ = writeln!(output, "{derive}struct Record{index}{parameters} {{ {fields} }}\n");
         }
         for (index, closure) in self.program.closures.iter().enumerate() {
             if closure.function.template {
