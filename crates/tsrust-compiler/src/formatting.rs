@@ -316,7 +316,7 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
                         // A call or grouped callee; an operator or keyword keeps its space.
                         && (!previous_symbol || matches!(prev, ")" | "]" | ">" | "?.") || unary_sign)
                         && !matches!(prev, "if" | "while" | "for" | "switch" | "catch" | "return" | "typeof" | "of" | "in" | "else" | "const" | "let" | "function" | "as" | "satisfies"))
-                    || (symbol && current == "[" && previous.kind == TokenKind::Name && !matches!(prev, "const" | "let" | "of" | "return"))
+                    || (symbol && current == "[" && ((previous.kind == TokenKind::Name && !matches!(prev, "const" | "let" | "of" | "return" | "as" | "satisfies")) || (previous_symbol && matches!(prev, "]" | ")" | ">" | ">>" | ">>>"))))
                     || (symbol && current == "}" && prev == "{")
                     || previous.kind == TokenKind::TemplateHead
                     || previous.kind == TokenKind::TemplateMiddle
@@ -378,6 +378,7 @@ mod fixture_tests {
         let mut pending = vec![root];
         let mut checked = 0;
         let mut lexical_rejections = 0;
+        let mut checked_contracts = 0;
         let mut failures = Vec::new();
         while let Some(path) = pending.pop() {
             if path.is_dir() {
@@ -390,7 +391,16 @@ mod fixture_tests {
             if super::lex(&source).is_err() { lexical_rejections += 1; continue; }
             match super::format(&source) {
                 Ok(formatted) => match super::format(&formatted) {
-                    Ok(second) if second == formatted => checked += 1,
+                    Ok(second) if second == formatted => {
+                        checked += 1;
+                        if let Ok(original) = crate::check(&source) {
+                            match crate::check(&formatted) {
+                                Ok(after) if original.contracts() == after.contracts() => checked_contracts += 1,
+                                Ok(_) => failures.push(format!("{}: formatting changed callable contracts",path.display())),
+                                Err(error) => failures.push(format!("{}: formatted source no longer checks: {}",path.display(),error.message)),
+                            }
+                        }
+                    },
                     Ok(_) => failures.push(format!("{}: second pass changed formatting",path.display())),
                     Err(error) => failures.push(format!("{}: {}",path.display(),error.message)),
                 },
@@ -399,6 +409,6 @@ mod fixture_tests {
         }
         assert!(checked > 0);
         assert!(failures.is_empty(),"Formatter corpus failures:\n{}",failures.join("\n"));
-        println!("Checked {checked} lexable fixtures; retained {lexical_rejections} lexical rejection witnesses");
+        println!("Checked {checked} lexable fixtures and {checked_contracts} standalone contracts; retained {lexical_rejections} lexical rejection witnesses");
     }
 }

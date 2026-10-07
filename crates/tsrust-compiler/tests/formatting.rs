@@ -321,3 +321,33 @@ fn cli_recursive_format_check_is_read_only_and_continues_after_bad_files() {
     assert!(String::from_utf8(output.stderr).unwrap().contains("bad.tsr"));
     assert_eq!(std::fs::read_to_string(dir.0.join("good.tsr")).unwrap(),tsrust_compiler::format(source).unwrap());
 }
+
+#[test]
+fn recursive_format_deduplicates_inputs_and_ignores_directory_symlinks() {
+    let dir=support::TempDirectory::new();
+    std::fs::create_dir_all(dir.0.join("src")).unwrap();
+    let path=dir.0.join("src/main.tsr");
+    let source="function main(){console.log(2);}";
+    std::fs::write(&path,source).unwrap();
+    #[cfg(unix)] {
+        std::os::unix::fs::symlink(&dir.0,dir.0.join("src/cycle")).unwrap();
+    }
+    let output=support::run(support::cli().arg("format").arg(&dir.0).arg(&path),10);
+    support::success(&output);
+    assert_eq!(String::from_utf8(output.stdout).unwrap(),"Formatted 1 file.\n");
+    assert_eq!(std::fs::read_to_string(&path).unwrap(),tsrust_compiler::format(source).unwrap());
+    let unchanged=support::run(support::cli().arg("format").arg(&dir.0),10);
+    support::success(&unchanged);
+    assert_eq!(String::from_utf8(unchanged.stdout).unwrap(),"Formatted 0 files.\n");
+}
+
+#[test]
+fn generic_types_stay_tight_inside_unions_tuples_and_callback_results() {
+    let source="interface Box<T>{value:T;}type Scores=int|Map < string,int >;interface Holder{rows:[Box < int >,Map < string,int >];make:(value:int)=>Map < string,int >;}function main(){}";
+    let formatted=format(source).unwrap();
+    for expected in ["int | Map<string, int>","[Box<int>, Map<string, int>]","(value: int) => Map<string, int>"] {
+        assert!(formatted.contains(expected),"Missing {expected}:\n{formatted}");
+    }
+    assert_eq!(format(&formatted).unwrap(),formatted);
+    check(&formatted).unwrap();
+}

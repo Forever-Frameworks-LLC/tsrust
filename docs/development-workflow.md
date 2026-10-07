@@ -25,6 +25,21 @@ Group related implementation changes into a coherent batch and run the affected 
 
 When backend witnesses can share a native compilation, compile them together in isolated modules with their original assertions and run them in one executable. Keep case identity in generated source so failures remain attributable. Preserve evaluation-order, ownership, failure and output assertions; batching must not reduce coverage.
 
+## Formatting acceptance
+
+Every added or modified Tsrust acceptance fixture must also exercise formatting.
+Format successful source in memory, require a stable second pass, then check or
+execute the formatted source with the original assertions and expected results.
+Use tests/support::format_round_trip for shared compiler fixtures. The shared
+native execute helper and generic adapter native helper apply this automatically.
+Project fixtures with imports must use the project CLI path after formatting.
+
+The formatter corpus check covers every lexable .tsr fixture for token preservation
+and idempotence, and rechecks standalone sources that originally pass analysis.
+Deliberately malformed lexical fixtures remain rejection witnesses. Keep native
+and module checks for semantic behavior; token preservation alone does not prove
+execution parity. Do not rewrite unrelated owner fixtures as a verification side effect.
+
 ## Native assertion-based fixtures
 
 Use the built-in std:testing library for new executable behavior checks wherever possible. Assert observed values directly instead of printing them solely for an external stdout comparison. Run through the compiler's project/module path so assertion imports and generated native execution are exercised. Keep stdout checks when output formatting itself is the behavior under test, and retain independent Node reference evidence for parity.

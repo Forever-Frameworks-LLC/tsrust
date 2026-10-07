@@ -117,6 +117,13 @@ pub(crate) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
                 Type::Boolean => std::mem::size_of::<bool>(),
                 Type::String => crate::storage::string_storage_bound(),
                 Type::Array(element) => crate::storage::array_storage_bound(element),
+                // Collection entries live on the heap. Only their native headers
+                // contribute to the containing record or callable environment.
+                Type::Map(_) | Type::Set(_) => {
+                    std::mem::size_of::<Vec<Option<usize>>>()
+                        + std::mem::size_of::<HashMap<u64, Vec<usize>>>()
+                        + std::mem::size_of::<usize>()
+                }
                 Type::Null | Type::Undefined | Type::Void => 0,
                 _ => {
                     return Err(Diagnostic::new(

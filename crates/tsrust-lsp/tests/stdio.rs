@@ -297,3 +297,25 @@ fn named_capture_failure_path_diagnostic_marks_call_and_binding() {
     assert_eq!(error["relatedInformation"][0]["location"]["uri"], uri);
     assert_eq!(error["relatedInformation"][0]["location"]["range"]["start"], json!({"line":2,"character":6}));
 }
+
+#[test]
+fn formatting_assertions_and_generic_calls_returns_a_stable_edit() {
+    let mut server=Server::start();
+    server.request(1,"initialize",json!({"capabilities":{}}));
+    server.response();
+    let uri="file:///format-types.tsr";
+    let source="interface Box<T>{value:T;}function identity<T>(value:T):T{return value;}function main(){const boxed={value:9}\n\nas Box < int >;const callback=((x:int):int=>x+1) satisfies(value:int)=>int;console.log(callback(identity < int >(boxed.value)));}";
+    server.notify("textDocument/didOpen",json!({"textDocument":{"uri":uri,"languageId":"tsrust","version":1,"text":source}}));
+    server.request(2,"textDocument/formatting",json!({"textDocument":{"uri":uri},"options":{"tabSize":4,"insertSpaces":true}}));
+    let Message::Response(response)=server.response() else {panic!("format response")};
+    let formatted=response.result.unwrap()[0]["newText"].as_str().unwrap().to_owned();
+    for expected in ["} as Box<int>;","satisfies (value: int) => int;","identity<int>(boxed.value)"] {
+        assert!(formatted.contains(expected),"{formatted}");
+    }
+    tsrust_compiler::check(&formatted).unwrap();
+    server.notify("textDocument/didChange",json!({"textDocument":{"uri":uri,"version":2},"contentChanges":[{"text":formatted}]}));
+    server.request(3,"textDocument/formatting",json!({"textDocument":{"uri":uri},"options":{"tabSize":4,"insertSpaces":true}}));
+    assert!(matches!(server.response(),Message::Response(response) if response.result==Some(json!([]))));
+    server.request(4,"shutdown",Value::Null);
+    server.response();server.finish(0);
+}

@@ -706,3 +706,15 @@ fn branch_contract_flow_preserves_valid_shadowing_and_owned_self_assignment() {
 fn branch_alias_contracts_match_the_typescript_reference() {
     native(include_str!("fixtures/generic-value-adapters/branch-alias-contracts.tsr"), "");
 }
+
+#[test]
+fn stored_callable_environments_accept_owned_map_and_set_headers() {
+    let sources=[
+        "function make(values:Map<string,int>):()=>int{return ():int=>values.size;}function main(){const action=make(new Map<string,int>([['a',1]]));const stored:Function<int>=action;console.log(stored(),stored());}",
+        "function make(values:Set<int>):()=>int{return ():int=>values.size;}function main(){const action=make(new Set<int>([1,2]));const stored:Function<int>=action;console.log(stored(),stored());}",
+    ];
+    let failures=sources.iter().filter_map(|source|tsrust_compiler::check(source).err().map(|error|error.render("input.tsr",source))).collect::<Vec<_>>();
+    assert!(failures.is_empty(),"Valid collection captures rejected:\n{}",failures.join("\n"));
+    native(sources[0],"1 1\n");
+    native(sources[1],"2 2\n");
+}

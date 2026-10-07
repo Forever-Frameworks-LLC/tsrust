@@ -21,16 +21,21 @@ tsrust run path/to/file.tsr
 tsrust run path/to/file.tsr --release
 tsrust lint path/to/file.tsr
 tsrust lint path/to/file.tsr --json
+tsrust format                           # recursively update .tsr files under cwd
+tsrust format src                       # recursively update .tsr files under src
+tsrust format --check                   # report files needing changes; do not write
 tsrust format path/to/file.tsr          # formatted text on stdout
 tsrust format path/to/file.tsr --write  # update source in place
 tsrust format path/to/file.tsr --check  # exit 1 if formatting differs
 ```
 
-Lint uses compiler syntax, type and ownership checks. Successful CLI lint is silent; check retains detailed contract output and lint --json retains structured results. A manual editor check shows one short result line; successful save-time checks stay silent and never reveal the Output panel. Files with errors return a nonzero exit code. Run preserves the program's exit code and terminal streams. This is single-file execution; named project/package scripts and module resolution remain separate future work.
+Recursive formatting skips `.git`, `node_modules`, `target` and symbolic links. It sorts and deduplicates discovered files, rewrites only changed files, and prints one short write summary. `--check` lists changed files and returns 1 when changes are needed. Lexical or filesystem failures return 1; an invalid source does not prevent other discovered files from being formatted. Explicit single-file printing, `--write` and `--check` retain their existing behavior.
+
+Lint uses compiler syntax, type and ownership checks. Successful CLI lint is silent; check retains detailed contract output and lint --json retains structured results. A manual editor check shows one short result line; successful save-time checks stay silent and never reveal the Output panel. Files with errors return a nonzero exit code. Run preserves the program's exit code and terminal streams. Named project/package scripts remain separate future work.
 
 ## Formatting contract
 
-The formatter normalizes spacing, expands braces and top-level semicolon boundaries, and uses four-space indentation. Intentional blank lines are preserved, including leading and trailing blank lines. It inserts blank lines between functions and after completed blocks where separation is missing. It preserves the exact spelling/content of string/template tokens and retains comment trivia; comment placement can limit surrounding layout normalization. The entire output must tokenize to the same token kinds and values as the input. Unsupported token-changing formatting and invalid lexical input fail before --write changes the file. Formatting is idempotent on accepted output. It does not fix syntax or ownership errors, impose stylistic lint warnings, or change program values. Layout options and sophisticated comment reflow remain future work.
+The formatter normalizes spacing, expands braces and top-level semicolon boundaries, and uses four-space indentation. Intentional blank lines between statements are preserved, including leading and trailing blank lines. It inserts blank lines between functions and after completed blocks where separation is missing. It preserves the exact spelling/content of string/template tokens and retains comment trivia; comment placement can limit surrounding layout normalization. The entire output must tokenize to the same token kinds and values as the input. Unsupported token-changing formatting and invalid lexical input fail before --write changes the file. `as` and `satisfies` stay attached to the preceding expression; callback types have a space after those keywords. Generic type applications and explicit generic calls keep tight brackets, while comparisons and shifts retain operator spacing. Nested array types and chained indexes stay attached. Blank lines inside these expression continuations are normalized. Formatting is idempotent on accepted output. It does not fix syntax or ownership errors, impose stylistic lint warnings, or change program values. Layout options and sophisticated comment reflow remain future work.
 
 ## Clone suggestions
 
@@ -40,7 +45,7 @@ On a transferred string, array or record, Cmd+. can offer **Clone before transfe
 
 Focused compiler tests cover formatter idempotence, strings, Unicode, comments, continuations, templates, loops, negative values, CLI format/check/write/lint/run with space-containing paths, and native mutation independence after applying the clone edit. Code-action tests check clone metadata, the exact earlier transfer and validation. Framed transport and earlier punctuation guards remain passing. The installed-VSIX E2E requests/applies clone fixes, invokes formatting and compiler checking, runs a file through a terminal task and verifies zero process exit, and verifies formatting before save. Existing editor lifecycle/navigation/diagnostic checks remain in that E2E run.
 
-Formatter and editor commands have no new generated runtime operation requiring throughput measurement. Full compiler regression remains at the scheduled gate86 checkpoint. Concurrent nullable-union compiler code currently triggers two unrelated Clippy warning classes (collapsible_if and nonminimal_bool); the changed editor code is checked with only these classes suppressed until that work settles. Do not describe that as a clean unrestricted workspace Clippy pass.
+Formatter and editor commands have no new generated runtime operation requiring throughput measurement. Full compiler regression and performance timing follow meaningful feature-family milestones in the development workflow. Concurrent nullable-union compiler code currently triggers two unrelated Clippy warning classes (collapsible_if and nonminimal_bool); the changed editor code is checked with only these classes suppressed until that work settles. Do not describe that as a clean unrestricted workspace Clippy pass.
 
 ## Terminal diagnostics
 

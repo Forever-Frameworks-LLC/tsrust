@@ -1,3 +1,4 @@
+mod format_cli;
 use std::env;
 use std::fs;
 use std::io::IsTerminal;
@@ -11,11 +12,12 @@ const USAGE: &str = "tsrust — native TypeScript-style programs
 Usage:
   tsrust <command> <input.tsr> [options]
   tsrust test [files/directories] [options]
+  tsrust format [files/directories] [--check | --write]
 
 Commands:
   check    Check types and ownership
   lint     Check quietly (alias of check)
-  format   Print formatted source
+  format   Format all .tsr project files; one explicit file prints source
   emit     Emit Rust source
   build    Build a native executable (requires -o)
   run      Build and run a program
@@ -36,6 +38,9 @@ Examples:
   tsrust run src/main.tsr --release
   tsrust test
   tsrust test tests --color always
+  tsrust format
+  tsrust format --check
+  tsrust format src
 
 check/emit need no external compiler. build/run/test use the pinned Rust backend.";
 
@@ -100,6 +105,7 @@ fn run() -> Result<u8, String> {
     if !["check", "lint", "format", "emit", "build", "run", "test"].contains(&command.as_str()) {
         return Err(format!("Unknown command: {command}. Run `tsrust --help` for usage."));
     }
+    if command == "format" { return format_cli::run(args); }
     let lint = command == "lint";
     let command = if command == "lint" {
         "check".to_owned()
@@ -124,8 +130,6 @@ fn run() -> Result<u8, String> {
     let mut json = false;
     let mut color_mode = "auto".to_owned();
     let mut release = false;
-    let mut write_format = false;
-    let mut check_format = false;
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "-o" | "--output" if output.is_none() => {
@@ -138,12 +142,6 @@ fn run() -> Result<u8, String> {
                     .ok_or("--color requires auto, always or never")?
             }
             _ if arg.starts_with("--color=") => color_mode = arg[8..].to_owned(),
-            "--write" if command == "format" && !write_format && !check_format => {
-                write_format = true
-            }
-            "--check" if command == "format" && !write_format && !check_format => {
-                check_format = true
-            }
             "--release" if !release => release = true,
             _ => return Err(format!("Unknown or repeated option: {arg}. Run `tsrust --help` for usage.")),
         }
@@ -185,24 +183,7 @@ fn run() -> Result<u8, String> {
         return Err("output must not overwrite the source".into());
     }
     let source = fs::read_to_string(&source_path).map_err(|e| e.to_string())?;
-    if command == "format" {
-        let formatted = match tsrust_compiler::format(&source) {
-            Ok(formatted) => formatted,
-            Err(error) => {
-                eprint!("{}", error.render_terminal(&display_path, &source, color));
-                return Ok(1);
-            }
-        };
-        if check_format {
-            return Ok(u8::from(formatted != source));
-        }
-        if write_format {
-            fs::write(&source_path, formatted).map_err(|e| e.to_string())?;
-        } else {
-            print!("{formatted}");
-        }
-        return Ok(0);
-    }
+
     let checked = if command == "test" {
         tsrust_compiler::project_cli::check_test_inputs(&test_paths)
     } else { tsrust_compiler::project_cli::check_input(&source_path, &source) };

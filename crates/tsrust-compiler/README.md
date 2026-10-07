@@ -305,3 +305,9 @@ contract, and saved aliases retain their initialization contract. These checks d
 not replace concrete type or ownership validation. Blocks and branches retain current and saved callable contracts on completing
 paths. Differing contract joins and loop/exception/expression flow remain
 conservative; replacement between distinct callable environments is restricted.
+
+`tsrust format` recursively rewrites changed `.tsr` project files under the current
+directory. `tsrust format src` selects a directory; `tsrust format --check` reports
+changes without writing. Discovery skips `.git`, `node_modules`, `target` and
+symlinks. One explicit file still prints formatted text unless `--write` or
+`--check` is supplied. See docs/editor-commands.md for error and formatting behavior.
