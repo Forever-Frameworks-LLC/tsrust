@@ -1,16 +1,68 @@
-type Trace = { predicates: int; left: int; right: int; };
+type Trace = {
+    predicates: int;
+    left: int;
+    right: int;
+};
+
 function workload(n: int, seed: int): int[][] {
-    const output: int[][] = []; const trace: Trace = { predicates: 0, left: 0, right: 0 }; let i = 0;
+    const output: int[][] = [];
+    const trace: Trace = {
+        predicates: 0, left: 0, right: 0
+    };
+    let i = 0;
     while (i < n) {
-        const size: int = (i * 7 + seed * 2) % 4; const at: int = (i * 13 + seed * 2) % 8;
+        const size: int = (i * 7 + seed * 2) % 4;
+        const at: int = (i * 13 + seed * 2) % 8;
         const selected: boolean[] = predicate(trace, (i + seed) % 2 === 0) ? leftValue(trace, at, size) : rightValue(trace, at, size);
-        const projected: int[] = []; let j = 0; while (j < selected.length) { let leaf: int = 0; if (selected[j]) { leaf = 1; } projected.push(leaf); j = j + 1; } output.push(projected);
+        const projected: int[] = [];
+        let j = 0;
+        while (j < selected.length) {
+            let leaf: int = 0;
+            if (selected[j]) {
+                leaf = 1;
+            }
+
+            projected.push(leaf);
+            j = j + 1;
+        }
+
+        output.push(projected);
         i = i + 1;
     }
+
     output.push([trace.predicates, trace.left, trace.right]);
     return output;
 }
-function predicate(trace: Trace, flag: boolean): boolean { trace.predicates = trace.predicates + 1; return flag; }
-function leftValue(trace: Trace, at: int, size: int): boolean[] { trace.left = trace.left + 1; const values: boolean[] = []; let j = 0; while (j < size) { values.push((at + j + 0) % 3 === 0); j = j + 1; } return values; }
-function rightValue(trace: Trace, at: int, size: int): boolean[] { trace.right = trace.right + 1; const values: boolean[] = []; let j = 0; while (j < size) { values.push((at + j + 1) % 3 === 0); j = j + 1; } return values; }
-function main() { const result = workload(2, 7); }
+
+function predicate(trace: Trace, flag: boolean): boolean {
+    trace.predicates = trace.predicates + 1;
+    return flag;
+}
+
+function leftValue(trace: Trace, at: int, size: int): boolean[] {
+    trace.left = trace.left + 1;
+    const values: boolean[] = [];
+    let j = 0;
+    while (j < size) {
+        values.push((at + j + 0) % 3 === 0);
+        j = j + 1;
+    }
+
+    return values;
+}
+
+function rightValue(trace: Trace, at: int, size: int): boolean[] {
+    trace.right = trace.right + 1;
+    const values: boolean[] = [];
+    let j = 0;
+    while (j < size) {
+        values.push((at + j + 1) % 3 === 0);
+        j = j + 1;
+    }
+
+    return values;
+}
+
+function main() {
+    const result = workload(2, 7);
+}

@@ -5,6 +5,11 @@ function workload(n: int, seed: int, input: string): string[] {
         results.push(input.toUpperCase());
         i = i + 1;
     }
+
     return results;
 }
-function main() { const results = workload(2, 7, "Straße ﬀi e\u0301 😀\u0000Z"); console.log(results.length); }
+
+function main() {
+    const results = workload(2, 7, "Straße ﬀi e\u0301 😀\u0000Z");
+    console.log(results.length);
+}

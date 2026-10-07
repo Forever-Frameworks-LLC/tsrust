@@ -1,6 +1,9 @@
 import { strictEqual } from "std:testing";
 
-type Account = { total: int; names: string[]; };
+type Account = {
+    total: int;
+    names: string[];
+};
 
 function append(values: int[], value: int): int {
     values.push(value);
@@ -14,10 +17,12 @@ function main() {
         total += amount;
         log.push("add");
     }
+
     function addTwice(amount: int): void {
         add(amount);
         add(amount);
     }
+
     addTwice(2);
     add(1);
     strictEqual(total, 5);
@@ -28,9 +33,11 @@ function main() {
         if (depth === 0) {
             return;
         }
+
         seen.push(depth);
         walk(depth - 1);
     }
+
     walk(3);
     strictEqual(seen.join(","), "3,2,1");
 
@@ -39,9 +46,11 @@ function main() {
         function inner(index: int): void {
             out.push(tag + String(index));
         }
+
         inner(1);
         inner(2);
     }
+
     outer("a");
     outer("b");
     strictEqual(out.join(","), "a1,a2,b1,b2");
@@ -51,16 +60,20 @@ function main() {
         counts[0] += step + 1;
         return counts[0];
     }
+
     strictEqual(tick(counts.length), 2);
     strictEqual(tick(counts[0]), 5);
     strictEqual(tick(append(counts, 4)), 10);
     strictEqual(counts.length, 2);
 
-    const account: Account = { total: 0, names: [] };
+    const account: Account = {
+        total: 0, names: []
+    };
     function deposit(name: string, amount: int): void {
         account.total += amount;
         account.names.push(name);
     }
+
     deposit("a", 2);
     deposit("b", 3);
     strictEqual(account.total, 5);
@@ -70,19 +83,24 @@ function main() {
     function shifted(value: int): int {
         return value + base[0];
     }
+
     const mapped = [1, 2].map((value: int): int => shifted(value));
     strictEqual(mapped.join(","), "11,12");
     let sum = 0;
     function accumulate(value: int): void {
         sum += value;
     }
-    [1, 2, 3].forEach((value: int): void => { accumulate(value); });
+
+    [1, 2, 3].forEach((value: int): void => {
+        accumulate(value);
+    });
     strictEqual(sum, 6);
 
     const greeting = "hi";
     function greet(name: string, punctuation: string = greeting.length === 2 ? "!" : "?"): string {
         return greeting + " " + name + punctuation;
     }
+
     strictEqual(greet("Pat"), "hi Pat!");
     strictEqual(greet("Sam", "."), "hi Sam.");
 
@@ -92,8 +110,10 @@ function main() {
         if (limit > 1) {
             throw "big";
         }
+
         return limit;
     }
+
     let caught = "";
     try {
         risky(1);
@@ -101,6 +121,7 @@ function main() {
     } catch (error) {
         caught = "caught";
     }
+
     strictEqual(caught, "caught");
     strictEqual(state, 2);
 
@@ -110,14 +131,17 @@ function main() {
         function size(): int {
             return row.length;
         }
+
         cells += size();
     }
+
     strictEqual(cells, 3);
 
     let later: int;
     function readLater(): int {
         return later * 2;
     }
+
     later = 21;
     strictEqual(readLater(), 42);
 

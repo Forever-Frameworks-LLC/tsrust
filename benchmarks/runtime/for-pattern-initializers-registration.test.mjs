@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -17,7 +18,7 @@ test('classic-for pattern registration binds complete scenarios and preserves pr
   assert.equal(row.measured,false);assert.equal(reportCategory(row.id),'other');
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertForPatternInitializersSource(source,row,kind);
-   for(const changed of [source.replace('tail.push("x")','tail.push("y")'),source.replace('{continue;}','{}'),source.replace('return output;','return [];')]){
+   for(const changed of [replaceCodeSnippet(source, 'tail.push("x")','tail.push("y")'),replaceCodeSnippet(source, '{continue;}','{}'),replaceCodeSnippet(source, 'return output;','return [];')]){
     const key=kind==='native'?'sourceSha256':'counterpartSha256';
     assert.throws(()=>assertForPatternInitializersSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
    }

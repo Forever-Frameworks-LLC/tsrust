@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -16,7 +17,7 @@ test('Object membership registration binds nine retained queries and untouched h
   assert.equal(row.measured,false);assert.equal(reportCategory(row.id),'other');
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertObjectHasOwnSource(source,row,kind);
-   for(const changed of [source+' ',source.replace('Object.hasOwn(row,"label")','true'),source.replace('return output;','return [];')])assert.throws(()=>assertObjectHasOwnSource(changed,row,kind));
+   for(const changed of [source+' ',replaceCodeSnippet(source, 'Object.hasOwn(row,"label")','true'),replaceCodeSnippet(source, 'return output;','return [];')])assert.throws(()=>assertObjectHasOwnSource(changed,row,kind));
    assert.throws(()=>assertObjectHasOwnSource(source,{...row,operationsPerIteration:1},kind));
   }
  }

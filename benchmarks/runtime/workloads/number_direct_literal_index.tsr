@@ -1,16 +1,38 @@
-type Probe = { trace: int; calls: int; };
+type Probe = {
+    trace: int;
+    calls: int;
+};
+
 function workload(n: int, seed: int): number[] {
-    const output: number[] = []; const probe: Probe = {trace: seed, calls: 0}; let i = 0;
+    const output: number[] = [];
+    const probe: Probe = {
+        trace: seed, calls: 0
+    };
+    let i = 0;
     while (i < n) {
-        const selected = [mark(probe, Number(seed) + Number(i) * 0.25, 1), mark(probe, -0.0, 2), mark(probe, 0.0 / 0.0, 3), mark(probe, 1.0 / 0.0, 4), mark(probe, -1.0 / 0.0, 5), mark(probe, 5e-324, 6), mark(probe, 1.7976931348623157e308, 7), mark(probe, -2.5, 8)][mark_index(probe, (i * 3 + seed) % 8)];
-        output.push(selected); i = i + 1;
+        const selected = [mark(probe, Number(seed) + Number(i) * 0.25, 1), mark(probe, - 0.0, 2), mark(probe, 0.0 / 0.0, 3), mark(probe, 1.0 / 0.0, 4), mark(probe, - 1.0 / 0.0, 5), mark(probe, 5e-324, 6), mark(probe, 1.7976931348623157e308, 7), mark(probe, - 2.5, 8)][mark_index(probe, (i * 3 + seed) % 8)];
+        output.push(selected);
+        i = i + 1;
     }
-    output.push(Number(probe.trace)); output.push(Number(probe.calls)); return output;
+
+    output.push(Number(probe.trace));
+    output.push(Number(probe.calls));
+    return output;
 }
-function main() { const result = workload(2, 7); console.log(result.length); }
+
+function main() {
+    const result = workload(2, 7);
+    console.log(result.length);
+}
+
 function mark(probe: Probe, value: number, tag: int): number {
-    probe.calls = probe.calls + 1; probe.trace = (probe.trace * 131 + tag) % 1000000007; return value;
+    probe.calls = probe.calls + 1;
+    probe.trace = (probe.trace * 131 + tag) % 1000000007;
+    return value;
 }
+
 function mark_index(probe: Probe, index: int): int {
-    probe.calls = probe.calls + 1; probe.trace = (probe.trace * 131 + 9) % 1000000007; return index;
+    probe.calls = probe.calls + 1;
+    probe.trace = (probe.trace * 131 + 9) % 1000000007;
+    return index;
 }

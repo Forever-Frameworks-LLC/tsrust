@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -17,7 +18,7 @@ test('in registration preserves prior rows and guards complete scenarios',()=>{
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertInOperatorSource(source,row,kind);
    for(const text of ['const present=wanted in sample;','const positioned=index in values;','const fractional=(Number(index)+0.5) in values;','const length="length" in values;','for(const key in sample){names+=key+",";}','for(const key in values){indices+=key;}','return output;']){
-    const changed=source.replace(text,'');const key=kind==='native'?'sourceSha256':'counterpartSha256';
+    const changed=replaceCodeSnippet(source, text,'');const key=kind==='native'?'sourceSha256':'counterpartSha256';
     assert.throws(()=>assertInOperatorSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
    }
    assert.throws(()=>assertInOperatorSource(source,{...row,operationsPerIteration:8},kind));assert.throws(()=>assertInOperatorSource(source+' ',row,kind));

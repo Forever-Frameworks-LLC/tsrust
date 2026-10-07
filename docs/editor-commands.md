@@ -62,3 +62,9 @@ This compiler increment does not supply project-aware live IntelliSense or unsav
 ## Missing native linker
 
 Build/run reports a missing native linker as an environment setup failure and includes the backend error, rather than calling it a compiler defect. Finding rustup under the Cargo home is independent of finding the platform linker on PATH. See [missing linker diagnostics](missing-linker-diagnostic.md) for setup and focused acceptance evidence.
+
+
+Contributor checkpoints run `node tools/format-project.mjs` to format the entire
+repository and refresh verified formatting fingerprints. Source and execution
+checks then consume formatted fixtures. The formatter is shared by CLI commands
+and the language server, so its output must preserve the program's behavior.

@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -16,8 +17,8 @@ test('Array.from pairs append to the manifest and bind actual guarded sources',(
   assert.equal(row.measured,false);assert.equal(row.measurementStatus,'pending-array-methods-milestone');assert.equal(reportCategory(row.id),'arrays');
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertArrayFromSource(source,row,kind);
-   assert.throws(()=>assertArrayFromSource(source.replace('Array.from(','copy('),row,kind));
-   assert.throws(()=>assertArrayFromSource(source.replace('return output;','return [];'),row,kind));
+   assert.throws(()=>assertArrayFromSource(replaceCodeSnippet(source, 'Array.from(','copy('),row,kind));
+   assert.throws(()=>assertArrayFromSource(replaceCodeSnippet(source, 'return output;','return [];'),row,kind));
    assert.throws(()=>assertArrayFromSource(source,{...row,operationsPerIteration:2},kind));
    assert.throws(()=>assertArrayFromSource(source+' ',row,kind));
   }

@@ -3,14 +3,29 @@ function workload(n: int, seed: int, input: string): int[][] {
     let i = 0;
     while (i < n) {
         const value = i % 5 + seed % 5 + 1;
-        function offset(extra: int) { return value + extra; }
+        function offset(extra: int) {
+            return value + extra;
+        }
+
         const values = pair(value);
         output.push([double(value), identity(value + 3), offset(2), values[0], values[1], input.length]);
         i += 1;
     }
+
     return output;
 }
-function double(value: int) { return value + value; }
-function identity<T>(value: T) { return value; }
-function pair(value: int) { return [value, value + 1]; }
-function main() {}
+
+function double(value: int) {
+    return value + value;
+}
+
+function identity<T>(value: T) {
+    return value;
+}
+
+function pair(value: int) {
+    return [value, value + 1];
+}
+
+function main() {
+}

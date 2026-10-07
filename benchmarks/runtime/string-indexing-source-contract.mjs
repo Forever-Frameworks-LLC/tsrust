@@ -1,3 +1,4 @@
+import {containsCodeSnippet} from './source-contract-tokens.mjs';
 import {createHash} from 'node:crypto';
 export function assertStringIndexingSource(source,row,kind){
  if(!['native','typescript'].includes(kind)||row.id!=='string_indexing'||row.family!=='string-indexing')throw Error('String indexing family');
@@ -9,6 +10,6 @@ export function assertStringIndexingSource(source,row,kind){
  const own=kind==='native'
   ?['const first=letters[position];','const pair=letters[position]+letters[9-position];','try{later=letters[position+5];}']
   :['const found=text[position];if(found===undefined)throw new RangeError("string index out of range");return found;','const first=at(letters,position);','const pair=at(letters,position)+at(letters,9-position);','try{later=at(letters,position+5);}'];
- for(const text of [...shared,...own])if(!source.includes(text))throw Error('String indexing scenario: '+text);
- if(kind==='native'&&(source.includes('charAt')||source.includes('.at(')))throw Error('String indexing scenario uses a method');
+ for(const text of [...shared,...own])if(!containsCodeSnippet(source, text))throw Error('String indexing scenario: '+text);
+ if(kind==='native'&&(containsCodeSnippet(source, 'charAt')||containsCodeSnippet(source, '.at(')))throw Error('String indexing scenario uses a method');
 }

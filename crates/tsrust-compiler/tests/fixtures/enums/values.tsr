@@ -1,17 +1,39 @@
-import {strictEqual} from 'std:testing';
-type Box<T> = { value: T; };
-enum Flag { Read = 1 << 0, Write = 1 << 1, Both = Flag.Read | Write, Inverse = ~0 }
-enum Phase { Ready, Busy = 4, Done, Duplicate = 4 }
-enum Label { Short = "s", Long = "long" }
-enum Fraction { Half = 0.5, Next }
-type Envelope = { phase: Phase; };
+import { strictEqual } from 'std:testing';
+
+type Box<T> = {
+    value: T;
+};
+enum Flag {
+    Read = 1 << 0, Write = 1 << 1, Both = Flag.Read | Write, Inverse = ~0
+}
+
+enum Phase {
+    Ready, Busy = 4, Done, Duplicate = 4
+}
+
+enum Label {
+    Short = "s", Long = "long"
+}
+
+enum Fraction {
+    Half = 0.5, Next
+}
+
+type Envelope = {
+    phase: Phase;
+};
+
 function advance(value: Phase): Phase {
-    if (value === Phase.Ready) { return Phase.Busy; }
+    if (value === Phase.Ready) {
+        return Phase.Busy;
+    }
+
     return Phase.Done;
 }
+
 function main() {
     strictEqual(Number(Flag.Both), 3.0);
-    strictEqual(Number(Flag.Inverse), -1.0);
+    strictEqual(Number(Flag.Inverse), - 1.0);
     const ready = Phase.Ready;
     strictEqual(Number(ready), 0.0);
     strictEqual(Number(Phase.Done), 5.0);
@@ -30,8 +52,11 @@ function main() {
     if (typeof choice === "number") {
         strictEqual(Number(choice), 0.0);
     }
+
     strictEqual(Number(Fraction.Next), 1.5);
-    const envelope: Envelope = { phase: ready };
+    const envelope: Envelope = {
+        phase: ready
+    };
     strictEqual(envelope.phase === Phase.Ready, true);
     const phases: Phase[] = [ready, Phase.Busy];
     phases.push(Phase.Done);
@@ -40,6 +65,9 @@ function main() {
     const mapped = phases.map((phase: Phase): number => Number(phase));
     strictEqual(mapped[2], 5.0);
     let count = 0;
-    for (const phase of phases) { count = count + 1; }
+    for (const phase of phases) {
+        count = count + 1;
+    }
+
     strictEqual(count, 3);
 }

@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -15,7 +16,7 @@ test('checked assertions have matched source, oracle, denominator and hooks',()=
   assert.throws(()=>assertTypeAssertionsSource(source+' ',row,kind));
   assert.throws(()=>assertTypeAssertionsSource(source,{...row,operationsPerIteration:2},kind));
   for(const text of ['function workload(','value satisfies number','value as number','String(widened+0.5)','input+rendered']){
-   const changed=source.replace(text,'0');const key=kind==='native'?'sourceSha256':'counterpartSha256';
+   const changed=replaceCodeSnippet(source, text,'0');const key=kind==='native'?'sourceSha256':'counterpartSha256';
    assert.throws(()=>assertTypeAssertionsSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   }
  }

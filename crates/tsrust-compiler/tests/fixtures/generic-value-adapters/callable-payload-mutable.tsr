@@ -4,12 +4,16 @@ function make() {
         calls += 1;
         console.log(calls, action());
     }
+
     return invoke;
 }
 
 function main() {
     let count = 0;
-    const action = (): int => { count += 1; return count; };
+    const action = (): int => {
+        count += 1;
+        return count;
+    };
     const fixed: Function<void, [action: Mutable<Function<int, []>>]> = make();
     fixed(action);
     fixed(action);

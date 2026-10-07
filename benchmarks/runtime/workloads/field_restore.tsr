@@ -1,11 +1,40 @@
-type Details = { name: string; scores: int[]; }; type User = { details: Details; score: int; };
+type Details = {
+    name: string;
+    scores: int[];
+};
+
+type User = {
+    details: Details;
+    score: int;
+};
+
 function workload(n: int, seed: int): int {
- let sum = seed; let i = 0;
- while (i < n) { const user: User = {details: {name: "Pat", scores: [i, seed]}, score: i + 1};
- const scores = user.details.scores; const name = user.details.name; sum = sum + user.score;
- user.details.scores = [i + 2]; user.details.name = "Sam";
- for (const score of scores) { sum = sum + score; }
- sum = sum + user.details.scores[0]; const restored = user; sum = sum + restored.score;
- i = i + 1; } return sum;
+    let sum = seed;
+    let i = 0;
+    while (i < n) {
+        const user: User = {
+            details: {
+                name: "Pat", scores: [i, seed]
+            }, score: i + 1
+        };
+        const scores = user.details.scores;
+        const name = user.details.name;
+        sum = sum + user.score;
+        user.details.scores = [i + 2];
+        user.details.name = "Sam";
+        for (const score of scores) {
+            sum = sum + score;
+        }
+
+        sum = sum + user.details.scores[0];
+        const restored = user;
+        sum = sum + restored.score;
+        i = i + 1;
+    }
+
+    return sum;
 }
-function main() { console.log(workload(2, 7)); }
+
+function main() {
+    console.log(workload(2, 7));
+}

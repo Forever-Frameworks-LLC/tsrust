@@ -1,8 +1,23 @@
-import {strictEqual} from "std:testing";
-type Row={label:string;};
-function main(){
- const rows:Row[]=[{label:"a"},{label:"bb"}];
- const groups=Map.groupBy(rows,(row:Row):int=>{return row.label.length;});
- rows[0].label="changed";
- const first=groups.get(1);if(first!==undefined){strictEqual(first[0].label,"a");}else{throw "missing copy";}
+import { strictEqual } from "std:testing";
+
+type Row = {
+    label: string;
+};
+
+function main() {
+    const rows: Row[] = [{
+        label: "a"
+    }, {
+        label: "bb"
+    }];
+    const groups = Map.groupBy(rows, (row: Row): int => {
+        return row.label.length;
+    });
+    rows[0].label = "changed";
+    const first = groups.get(1);
+    if (first !== undefined) {
+        strictEqual(first[0].label, "a");
+    } else {
+        throw "missing copy";
+    }
 }

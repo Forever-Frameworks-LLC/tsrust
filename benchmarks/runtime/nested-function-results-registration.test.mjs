@@ -1,3 +1,4 @@
+import {containsCodeSnippet, replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -21,7 +22,7 @@ test('Inferred named results retain matched sources and independent result evide
   assert.throws(()=>assertNestedResultSource(source,{...row,operationsPerIteration:2},kind));
   const key=kind==='native'?'sourceSha256':'counterpartSha256';
   for(const [from,to] of [['identity(value + 3)','identity(value + 4)'],['return value + value;','return value;'],['values[1]','values[0]']]){
-   assert.ok(source.includes(from));const changed=source.replace(from,to);
+   assert.ok(containsCodeSnippet(source, from));const changed=replaceCodeSnippet(source, from,to);
    assert.throws(()=>assertNestedResultSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   }
  }

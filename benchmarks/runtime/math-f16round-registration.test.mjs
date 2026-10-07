@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -16,8 +17,8 @@ test('Math.f16round pair appends to the manifest and binds actual guarded source
   assert.equal(row.measured,false);assert.equal(row.measurementStatus,'pending-math-functions-milestone');assert.equal(reportCategory(row.id),'numbers');
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertMathF16roundSource(source,row,kind);
-   assert.throws(()=>assertMathF16roundSource(source.replace('Math.f16round(65500.0 + scaled)','Math.fround(65500.0 + scaled)'),row,kind));
-   assert.throws(()=>assertMathF16roundSource(source.replace('return output;','return [];'),row,kind));
+   assert.throws(()=>assertMathF16roundSource(replaceCodeSnippet(source, 'Math.f16round(65500.0 + scaled)','Math.fround(65500.0 + scaled)'),row,kind));
+   assert.throws(()=>assertMathF16roundSource(replaceCodeSnippet(source, 'return output;','return [];'),row,kind));
    assert.throws(()=>assertMathF16roundSource(source,{...row,operationsPerIteration:2},kind));
    assert.throws(()=>assertMathF16roundSource(source+' ',row,kind));
   }

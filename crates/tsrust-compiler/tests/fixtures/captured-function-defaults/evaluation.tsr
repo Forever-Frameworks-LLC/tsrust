@@ -1,14 +1,24 @@
-import {strictEqual} from 'std:testing';
-function main(){
- let hits=0;
- function bump():int{hits+=1;return 3;}
- let total=10;
- function next(step:int=bump()):int{total+=step;return total;}
- {
- const action=next;
- strictEqual(action(),13);
- strictEqual(action(2),15);
- strictEqual(action(undefined),18);
- }
- strictEqual(hits,2);
+import { strictEqual } from 'std:testing';
+
+function main() {
+    let hits = 0;
+    function bump(): int {
+        hits += 1;
+        return 3;
+    }
+
+    let total = 10;
+    function next(step: int = bump()): int {
+        total += step;
+        return total;
+    }
+
+    {
+        const action = next;
+        strictEqual(action(), 13);
+        strictEqual(action(2), 15);
+        strictEqual(action(undefined), 18);
+    }
+
+    strictEqual(hits, 2);
 }

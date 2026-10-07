@@ -1,6 +1,135 @@
-function workload(n:int,seed:int,input:string):string[]{const output:string[]=[];let i=0;while(i<n){const values:string[]=[item(seed+i+0,input),item(seed+i+1,input),item(seed+i+2,input),item(seed+i+3,input),item(seed+i+4,input),item(seed+i+5,input)];if((i+seed)%8===7){values.copyWithin(target(i,seed),start(i,seed));}else{values.copyWithin(target(i,seed),start(i,seed),ending(i,seed));}for(const value of values){output.push(clone(value));}i=i+1;}return output;}
-function start(i:int,seed:int):int{const c=(i+seed)%8;if(c===0){return 0;}if(c===1){return 1;}if(c===2){return -6;}if(c===3){return -9;}if(c===4){return -9;}if(c===5){return 4;}if(c===6){return -3;}return -9;}
-function ending(i:int,seed:int):int{const c=(i+seed)%8;if(c===0){return 5;}if(c===1){return 6;}if(c===2){return -1;}if(c===3){return 9;}if(c===4){return 9;}if(c===5){return 1;}if(c===6){return 9;}return -1;}
-function target(i:int,seed:int):int{const c=(i+seed)%8;if(c===0){return 1;}if(c===1){return 0;}if(c===2){return -2;}if(c===3){return -9;}if(c===4){return 9;}if(c===5){return 2;}if(c===6){return -1;}return 0;}
-function item(base:int,input:string):string{if(base%3===0){return clone(input);}if(base%3===1){return "a\u0000b";}return "é😀e\u0301";}
-function main(){const result=workload(2,7," xé😀e\u0301 ");}
+function workload(n: int, seed: int, input: string): string[] {
+    const output: string[] = [];
+    let i = 0;
+    while (i < n) {
+        const values: string[] = [item(seed + i + 0, input), item(seed + i + 1, input), item(seed + i + 2, input), item(seed + i + 3, input), item(seed + i + 4, input), item(seed + i + 5, input)];
+        if ((i + seed) % 8 === 7) {
+            values.copyWithin(target(i, seed), start(i, seed));
+        } else {
+            values.copyWithin(target(i, seed), start(i, seed), ending(i, seed));
+        }
+
+        for (const value of values) {
+            output.push(clone(value));
+        }
+
+        i = i + 1;
+    }
+
+    return output;
+}
+
+function start(i: int, seed: int): int {
+    const c = (i + seed) % 8;
+    if (c === 0) {
+        return 0;
+    }
+
+    if (c === 1) {
+        return 1;
+    }
+
+    if (c === 2) {
+        return - 6;
+    }
+
+    if (c === 3) {
+        return - 9;
+    }
+
+    if (c === 4) {
+        return - 9;
+    }
+
+    if (c === 5) {
+        return 4;
+    }
+
+    if (c === 6) {
+        return - 3;
+    }
+
+    return - 9;
+}
+
+function ending(i: int, seed: int): int {
+    const c = (i + seed) % 8;
+    if (c === 0) {
+        return 5;
+    }
+
+    if (c === 1) {
+        return 6;
+    }
+
+    if (c === 2) {
+        return - 1;
+    }
+
+    if (c === 3) {
+        return 9;
+    }
+
+    if (c === 4) {
+        return 9;
+    }
+
+    if (c === 5) {
+        return 1;
+    }
+
+    if (c === 6) {
+        return 9;
+    }
+
+    return - 1;
+}
+
+function target(i: int, seed: int): int {
+    const c = (i + seed) % 8;
+    if (c === 0) {
+        return 1;
+    }
+
+    if (c === 1) {
+        return 0;
+    }
+
+    if (c === 2) {
+        return - 2;
+    }
+
+    if (c === 3) {
+        return - 9;
+    }
+
+    if (c === 4) {
+        return 9;
+    }
+
+    if (c === 5) {
+        return 2;
+    }
+
+    if (c === 6) {
+        return - 1;
+    }
+
+    return 0;
+}
+
+function item(base: int, input: string): string {
+    if (base % 3 === 0) {
+        return clone(input);
+    }
+
+    if (base % 3 === 1) {
+        return "a\u0000b";
+    }
+
+    return "é😀e\u0301";
+}
+
+function main() {
+    const result = workload(2, 7, " xé😀e\u0301 ");
+}

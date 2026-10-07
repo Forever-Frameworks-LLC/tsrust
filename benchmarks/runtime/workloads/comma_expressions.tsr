@@ -1,12 +1,25 @@
-function observe(trace:int[],value:int):int{trace.push(value);return value;}
-function selected(trace:int[],value:int):int{return observe(trace,value),value+1;}
-function workload(n: int, seed: int, input: string): string[][] {
- const output:string[][]=[];
- for(let i=0,j=seed;i<n;i++,j++){
-  const trace:int[]=[];const value=(observe(trace,j),observe(trace,j+2),j*3);
-  const result=selected(trace,value);const text=(observe(trace,j+4),String(input));
-  output.push([String(value),String(result),trace.join(","),text,String(i),String(j)]);
- }
- return output;
+function observe(trace: int[], value: int): int {
+    trace.push(value);
+    return value;
 }
-function main(){const result=workload(3,0,"abc");}
+
+function selected(trace: int[], value: int): int {
+    return observe(trace, value), value + 1;
+}
+
+function workload(n: int, seed: int, input: string): string[][] {
+    const output: string[][] = [];
+    for (let i = 0, j = seed; i < n; i++, j++) {
+        const trace: int[] = [];
+        const value = (observe(trace, j), observe(trace, j + 2), j * 3);
+        const result = selected(trace, value);
+        const text = (observe(trace, j + 4), String(input));
+        output.push([String(value), String(result), trace.join(","), text, String(i), String(j)]);
+    }
+
+    return output;
+}
+
+function main() {
+    const result = workload(3, 0, "abc");
+}

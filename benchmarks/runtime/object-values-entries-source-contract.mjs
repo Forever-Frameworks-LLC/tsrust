@@ -1,3 +1,4 @@
+import {containsCodeSnippet} from './source-contract-tokens.mjs';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {objectValuesIds} from './object-values-entries-oracle.mjs';
@@ -7,9 +8,9 @@ export function assertObjectValuesSource(source,row,kind) {
  if(createHash('sha256').update(source).digest('hex')!==(kind==='native'?row.sourceSha256:row.counterpartSha256))throw Error('Object values source fingerprint');
  if(row.operationsPerIteration!==1||row.iterations!==2048||row.operationUnit!=='One complete record values and entries scenario iteration')throw Error('Object values scenario denominator');
  if(row.resultEncoding!=='array-shape-scalar-v1')throw Error('Object values observer protocol');
- if(!source.includes('while (i < n)')||!source.includes('return output;')||!source.includes('output.push(['))throw Error('Actual object values scenario and complete retention');
+ if(!containsCodeSnippet(source, 'while (i < n)')||!containsCodeSnippet(source, 'return output;')||!containsCodeSnippet(source, 'output.push(['))throw Error('Actual object values scenario and complete retention');
  for(const needle of ['{ gamma: true, alpha: base, beta: input.slice() }','{ beta: input.slice(), gamma: false, alpha: base }','const values = Object.values(row);','for (const value of values)','const lengths = Object.values(sides);','for (const pair of Object.entries(row))','Object.entries(sides).length'])
-  if(!source.includes(needle))throw Error('Actual object values operation: '+needle);
+  if(!containsCodeSnippet(source, needle))throw Error('Actual object values operation: '+needle);
  if(kind==='typescript') {
   const file=ts.createSourceFile(row.id+'.ts',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TS);let values=0,entries=0,workload;
   function visit(node){

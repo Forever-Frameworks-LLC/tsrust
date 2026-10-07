@@ -1,4 +1,8 @@
-type UnshiftRecord = { id: int; label: string; };
+type UnshiftRecord = {
+    id: int;
+    label: string;
+};
+
 function workload(n: int, seed: int, input: string): string[] {
     const output: string[] = [];
     const sizes: int[] = [0, 1, 4, 5, 17];
@@ -6,17 +10,50 @@ function workload(n: int, seed: int, input: string): string[] {
     while (i < n) {
         const count = sizes[(i + seed) % 5];
         const arity = (i * 7 + seed) % 3;
-        const values: UnshiftRecord[] = []; let j = 0;
-        while (j < count) { values.push({ id: seed + j, label: input.concat(":", String(j)) }); j = j + 1; }
+        const values: UnshiftRecord[] = [];
+        let j = 0;
+        while (j < count) {
+            values.push({
+                id: seed + j, label: input.concat(":", String(j))
+            });
+            j = j + 1;
+        }
+
         let newLength = 0;
-        if (arity === 0) { newLength = values.unshift(); }
-        else if (arity === 1) { newLength = values.unshift({ id: seed + 101, label: input.concat(":A") }); }
-        else { newLength = values.unshift({ id: seed + 101, label: input.concat(":A") }, { id: seed + 102, label: input.concat(":B") }, { id: seed + 103, label: "é😀e\u0301\u0000:C" }); }
-        output.push(String(newLength)); output.push(String(values.length));
-        let at = 0; while (at < values.length) { output.push(describe(values[at])); at = at + 1; }
+        if (arity === 0) {
+            newLength = values.unshift();
+        } else if (arity === 1) {
+            newLength = values.unshift({
+                id: seed + 101, label: input.concat(":A")
+            });
+        } else {
+            newLength = values.unshift({
+                id: seed + 101, label: input.concat(":A")
+            }, {
+                id: seed + 102, label: input.concat(":B")
+            }, {
+                id: seed + 103, label: "é😀e\u0301\u0000:C"
+            });
+        }
+
+        output.push(String(newLength));
+        output.push(String(values.length));
+        let at = 0;
+        while (at < values.length) {
+            output.push(describe(values[at]));
+            at = at + 1;
+        }
+
         i = i + 1;
     }
+
     return output;
 }
-function describe(value: UnshiftRecord): string { return String(value.id).concat(":", value.label); }
-function main() { const result = workload(2, 7, "dynamic text"); }
+
+function describe(value: UnshiftRecord): string {
+    return String(value.id).concat(":", value.label);
+}
+
+function main() {
+    const result = workload(2, 7, "dynamic text");
+}

@@ -1,16 +1,31 @@
 import { strictEqual } from 'std:testing';
-type Box<T> = { value: T; };
+
+type Box<T> = {
+    value: T;
+};
+
 function make() {
     let calls = 0;
-    function take<T>({ value }: Owned<Box<T>>): T { calls += 1; console.log(calls); return value; }
+    function take<T>({ value }: Owned<Box<T>>): T {
+        calls += 1;
+        console.log(calls);
+        return value;
+    }
+
     return take;
 }
+
 function main() {
     const action = make();
     {
         const fixed: Mutable<Function<int, [box: Owned<Box<int>>]>> = action;
-        strictEqual(fixed({ value: 7 }), 7);
+        strictEqual(fixed({
+            value: 7
+        }), 7);
     }
-    const box: Box<string> = { value: 'owner' };
+
+    const box: Box<string> = {
+        value: 'owner'
+    };
     strictEqual(action(box), 'owner');
 }

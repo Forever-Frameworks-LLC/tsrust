@@ -1,26 +1,45 @@
 import { strictEqual } from "std:testing";
+
 function main() {
     strictEqual(double(3), 6);
-    function double(value: int): int { return value * 2; }
+    function double(value: int): int {
+        return value * 2;
+    }
+
     function factorial(value: int): int {
-        if (value === 0) { return 1; }
+        if (value === 0) {
+            return 1;
+        }
+
         return value * factorial(value - 1);
     }
+
     function even(value: int): boolean {
-        if (value === 0) { return true; }
+        if (value === 0) {
+            return true;
+        }
+
         return odd(value - 1);
     }
+
     function odd(value: int): boolean {
-        if (value === 0) { return false; }
+        if (value === 0) {
+            return false;
+        }
+
         return even(value - 1);
     }
+
     strictEqual(factorial(5), 120);
     strictEqual(even(8), true);
     strictEqual(odd(7), true);
     {
         strictEqual(double(3), 9);
-        function double(value: int): int { return value * 3; }
+        function double(value: int): int {
+            return value * 3;
+        }
     }
+
     strictEqual(double(4), 8);
     const mapped = [1, 2].map(double);
     strictEqual(mapped[0], 2);

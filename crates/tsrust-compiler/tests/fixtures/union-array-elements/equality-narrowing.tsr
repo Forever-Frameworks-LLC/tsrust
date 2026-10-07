@@ -1,19 +1,33 @@
 function label(value: ReadOnly<int | string | boolean>): string {
-    if (value === "yes") { return value.toUpperCase(); }
-    if (value !== 7) { return String(value); }
+    if (value === "yes") {
+        return value.toUpperCase();
+    }
+
+    if (value !== 7) {
+        return String(value);
+    }
+
     return String(value + 1);
 }
+
 function main() {
     console.log(label("yes"), label("no"), label(7), label(3), label(true));
     const values: (int | string)[] = [1, "b", 3, "b"];
     let total = 0;
     let text = "";
     for (const value of values) {
-        if (value === "b") { text += value.repeat(2); } else if (value === 3) { total += value * 10; }
+        if (value === "b") {
+            text += value.repeat(2);
+        } else if (value === 3) {
+            total += value * 10;
+        }
     }
+
     console.log(total, text);
     const maybe: number | string | null = 2.5;
-    console.log(maybe === 2.5 ? maybe * 2.0 : -1.0, maybe === "x" ? maybe.length : 0);
+    console.log(maybe === 2.5 ? maybe * 2.0 : - 1.0, maybe === "x" ? maybe.length : 0);
     const flag: int | boolean = true;
-    if (flag === true) { console.log(!flag); }
+    if (flag === true) {
+        console.log(!flag);
+    }
 }

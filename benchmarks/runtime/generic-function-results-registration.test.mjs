@@ -1,3 +1,4 @@
+import {containsCodeSnippet, replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -21,7 +22,7 @@ test('Result-context generic values retain matched sources and independent resul
   assert.throws(()=>assertGenericResultSource(source,{...row,operationsPerIteration:2},kind));
   const key=kind==='native'?'sourceSha256':'counterpartSha256';
   for(const [from,to] of [['function main() {}',''],['function fresh<T>(): T[] { calls += 1; return []; }','function fresh<T>(): T[] { return []; }'],['ownedNumbers.push(base + 1);','ownedNumbers.push(base);'],['ownedStrings.push("owner");','ownedStrings.push("different");']]){
-   assert.ok(source.includes(from));const changed=source.replace(from,to);
+   assert.ok(containsCodeSnippet(source, from));const changed=replaceCodeSnippet(source, from,to);
    assert.throws(()=>assertGenericResultSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   }
  }

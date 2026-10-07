@@ -1,26 +1,54 @@
-import {strictEqual} from "std:testing";
-function make(trace:Mutable<int[]>,value:int):Set<int>{trace.push(value);return new Set<int>([value]);}
-function main(){
- const left=new Set<int>([3,1,2]);const right=new Set<int>([2,4,1]);
- const joined=left.union(right);strictEqual(joined.values().join(","),"3,1,2,4");
- strictEqual(left.intersection(right).values().join(","),"1,2");
- strictEqual(left.difference(right).values().join(","),"3");
- strictEqual(left.symmetricDifference(right).values().join(","),"3,4");
- const smaller=new Set<int>([2,1]);strictEqual(left.intersection(smaller).values().join(","),"2,1");
- strictEqual(left.values().join(","),"3,1,2");strictEqual(right.values().join(","),"2,4,1");
- joined.add(9);strictEqual(left.has(9),false);strictEqual(right.has(9),false);
- const words=new Set<string>(["b","a"]);const more=new Set<string>(["a","c"]);
- const copied=words.union(more);words.clear();strictEqual(copied.values().join(","),"b,a,c");
- const mixed:Set<int|string>=right.union(more);strictEqual(mixed.size,5);strictEqual(mixed.has(2),true);strictEqual(mixed.has("c"),true);
- strictEqual(right.intersection(more).size,0);strictEqual(right.difference(more).size,3);
- strictEqual(new Set<int>().union(right).size,3);strictEqual(right.symmetricDifference(right).size,0);
- const numbers=new Set<number>([NaN,-0]);const other=new Set<number>([NaN,0,1]);strictEqual(numbers.union(other).size,3);strictEqual(numbers.intersection(other).size,2);
- const order=new Set<string>(["a","b","c"]);strictEqual(order.intersection(new Set<string>(["c","a"])).values().join(","),"c,a");
- const mixedLeft=new Set<int|string>([1,"a"]);const mixedRight=new Set<string|boolean>(["a",true]);
- const combined:Set<int|string|boolean>=mixedLeft.union(mixedRight);strictEqual(combined.size,3);strictEqual(combined.has(true),true);
- strictEqual(mixedLeft.symmetricDifference(mixedRight).size,2);
- strictEqual(right.union(more).values().length,5);
- strictEqual(right.union(more).difference(new Set<int>([2])).size,4);
- const trace:int[]=[];strictEqual(make(trace,1).union(make(trace,2)).size,2);strictEqual(trace.join(","),"1,2");
+import { strictEqual } from "std:testing";
+
+function make(trace: Mutable<int[]>, value: int): Set<int> {
+    trace.push(value);
+    return new Set<int>([value]);
+}
+
+function main() {
+    const left = new Set<int>([3, 1, 2]);
+    const right = new Set<int>([2, 4, 1]);
+    const joined = left.union(right);
+    strictEqual(joined.values().join(","), "3,1,2,4");
+    strictEqual(left.intersection(right).values().join(","), "1,2");
+    strictEqual(left.difference(right).values().join(","), "3");
+    strictEqual(left.symmetricDifference(right).values().join(","), "3,4");
+    const smaller = new Set<int>([2, 1]);
+    strictEqual(left.intersection(smaller).values().join(","), "2,1");
+    strictEqual(left.values().join(","), "3,1,2");
+    strictEqual(right.values().join(","), "2,4,1");
+    joined.add(9);
+    strictEqual(left.has(9), false);
+    strictEqual(right.has(9), false);
+    const words = new Set<string>(["b", "a"]);
+    const more = new Set<string>(["a", "c"]);
+    const copied = words.union(more);
+    words.clear();
+    strictEqual(copied.values().join(","), "b,a,c");
+    const mixed: Set<int | string >= right.union(more);
+    strictEqual(mixed.size, 5);
+    strictEqual(mixed.has(2), true);
+    strictEqual(mixed.has("c"), true);
+    strictEqual(right.intersection(more).size, 0);
+    strictEqual(right.difference(more).size, 3);
+    strictEqual(new Set<int>().union(right).size, 3);
+    strictEqual(right.symmetricDifference(right).size, 0);
+    const numbers = new Set<number>([NaN, - 0]);
+    const other = new Set<number>([NaN, 0, 1]);
+    strictEqual(numbers.union(other).size, 3);
+    strictEqual(numbers.intersection(other).size, 2);
+    const order = new Set<string>(["a", "b", "c"]);
+    strictEqual(order.intersection(new Set<string>(["c", "a"])).values().join(","), "c,a");
+    const mixedLeft = new Set<int | string>([1, "a"]);
+    const mixedRight = new Set<string | boolean>(["a", true]);
+    const combined: Set<int | string | boolean >= mixedLeft.union(mixedRight);
+    strictEqual(combined.size, 3);
+    strictEqual(combined.has(true), true);
+    strictEqual(mixedLeft.symmetricDifference(mixedRight).size, 2);
+    strictEqual(right.union(more).values().length, 5);
+    strictEqual(right.union(more).difference(new Set<int>([2])).size, 4);
+    const trace: int[] = [];
+    strictEqual(make(trace, 1).union(make(trace, 2)).size, 2);
+    strictEqual(trace.join(","), "1,2");
 
 }

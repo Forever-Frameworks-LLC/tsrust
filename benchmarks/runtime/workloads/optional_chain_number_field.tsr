@@ -1,21 +1,88 @@
-type Trace = { bases: int; indices: int; args: int; };
-type Carrier = { value: number; };
+type Trace = {
+    bases: int;
+    indices: int;
+    args: int;
+};
+
+type Carrier = {
+    value: number;
+};
+
 function workload(n: int, seed: int): number[][] {
-    const output: number[][] = []; const trace: Trace = { bases: 0, indices: 0, args: 0 }; let i = 0;
+    const output: number[][] = [];
+    const trace: Trace = {
+        bases: 0, indices: 0, args: 0
+    };
+    let i = 0;
     while (i < n) {
-        const value = i + seed; const bb = trace.bases; const bi = trace.indices; const ba = trace.args;
+        const value = i + seed;
+        const bb = trace.bases;
+        const bi = trace.indices;
+        const ba = trace.args;
         const carrier: Carrier | null | undefined = makeCarrier(trace, value);
-        const selected = carrier?.value;
-        const db = trace.bases - bb; const di = trace.indices - bi; const da = trace.args - ba;
-        if (selected === undefined) { output.push([]); } else { output.push([selected]); } output.push([Number(db), Number(di), Number(da)]);
+        const selected = carrier ?. value;
+        const db = trace.bases - bb;
+        const di = trace.indices - bi;
+        const da = trace.args - ba;
+        if (selected === undefined) {
+            output.push([]);
+        } else {
+            output.push([selected]);
+        }
+
+        output.push([Number(db), Number(di), Number(da)]);
         i = i + 1;
     }
+
     return output;
 }
+
 function makeCarrier(trace: Trace, value: int): Carrier | null | undefined {
-    trace.bases = trace.bases + 1; const tag = value % 5; if (tag === 0) { return null; } if (tag === 1) { return undefined; }
-    const at = value % 8; let payload: number = Number(value) / 4.0;
-    if (at === 0) { payload = -0.0; } if (at === 1) { payload = 0.0; } if (at === 2) { payload = 0.0 / 0.0; } if (at === 3) { payload = 1.0 / 0.0; } if (at === 4) { payload = -1.0 / 0.0; } if (at === 5) { payload = 2.5; } if (at === 6) { payload = -2.5; }
-    return { value: payload };
+    trace.bases = trace.bases + 1;
+    const tag = value % 5;
+    if (tag === 0) {
+        return null;
+    }
+
+    if (tag === 1) {
+        return undefined;
+    }
+
+    const at = value % 8;
+    let payload: number = Number(value) / 4.0;
+    if (at === 0) {
+        payload = - 0.0;
+    }
+
+    if (at === 1) {
+        payload = 0.0;
+    }
+
+    if (at === 2) {
+        payload = 0.0 / 0.0;
+    }
+
+    if (at === 3) {
+        payload = 1.0 / 0.0;
+    }
+
+    if (at === 4) {
+        payload = - 1.0 / 0.0;
+    }
+
+    if (at === 5) {
+        payload = 2.5;
+    }
+
+    if (at === 6) {
+        payload = - 2.5;
+    }
+
+    return {
+        value: payload
+    };
 }
-function main() { const result = workload(2, 7); }
+
+function main() {
+    const result = workload(2, 7);
+}

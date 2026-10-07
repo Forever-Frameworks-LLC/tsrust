@@ -1,3 +1,4 @@
+import {containsCodeSnippet} from './source-contract-tokens.mjs';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {mathRandomIds} from './math-random-oracle.mjs';
@@ -7,7 +8,7 @@ export function assertMathRandomSource(source,row,kind) {
  if(createHash('sha256').update(source).digest('hex')!==(kind==='native'?row.sourceSha256:row.counterpartSha256))throw Error('Math.random source fingerprint');
  if(row.operationsPerIteration!==1||row.iterations!==2048||row.operationUnit!=='One complete Math.random scenario iteration')throw Error('Math.random scenario denominator');
  if(row.resultEncoding!=='array-shape-scalar-v1')throw Error('Math.random observer protocol');
- if(!source.includes('while (i < n)')||!source.includes('return output;')||!source.includes('output.push(['))throw Error('Actual Math.random scenario and complete retention');
+ if(!containsCodeSnippet(source, 'while (i < n)')||!containsCodeSnippet(source, 'return output;')||!containsCodeSnippet(source, 'output.push(['))throw Error('Actual Math.random scenario and complete retention');
  if((source.match(/Math\.random\(\)/g)??[]).length!==2)throw Error('Two actual Math.random calls');
  if(kind==='typescript') {
   const file=ts.createSourceFile(row.id+'.ts',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TS);let calls=0,workload;

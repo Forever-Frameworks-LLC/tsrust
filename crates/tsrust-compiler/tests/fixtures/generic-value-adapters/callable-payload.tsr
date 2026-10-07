@@ -1,9 +1,16 @@
 import { strictEqual } from 'std:testing';
+
 function make() {
     let calls = 0;
-    function identity<T>(value: T): T { calls += 1; console.log(calls); return value; }
+    function identity<T>(value: T): T {
+        calls += 1;
+        console.log(calls);
+        return value;
+    }
+
     return identity;
 }
+
 function main() {
     const fixed: Function<Function<int, [value: int]>, [value: Function<int, [value: int]>]> = make();
     const first = fixed((value: int): int => value + 1);

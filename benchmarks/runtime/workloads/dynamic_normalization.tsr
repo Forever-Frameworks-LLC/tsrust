@@ -1,2 +1,17 @@
-function workload(n: int, seed: int, input: string): string[] { const output: string[] = []; let i = 0; while (i < n) { output.push(input.trim().toLowerCase()); i = i + 1; } return output; }
-function main() { const values = workload(2, 7, " Sample "); for (const value of values) { console.log(value); } }
+function workload(n: int, seed: int, input: string): string[] {
+    const output: string[] = [];
+    let i = 0;
+    while (i < n) {
+        output.push(input.trim().toLowerCase());
+        i = i + 1;
+    }
+
+    return output;
+}
+
+function main() {
+    const values = workload(2, 7, " Sample ");
+    for (const value of values) {
+        console.log(value);
+    }
+}

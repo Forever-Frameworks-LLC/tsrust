@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -16,9 +17,9 @@ test('union array pair appends to the manifest and binds actual guarded sources'
   assert.equal(row.measured,false);assert.equal(row.measurementStatus,'pending-value-types-milestone');assert.equal(reportCategory(row.id),'other');
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertUnionArraySource(source,row,kind);
-   assert.throws(()=>assertUnionArraySource(source.replace('values.includes(null)','true'),row,kind));
-   assert.throws(()=>assertUnionArraySource(source.replace('(int | string | null)[]','string[]'),row,kind));
-   assert.throws(()=>assertUnionArraySource(source.replace('return output;','return [];'),row,kind));
+   assert.throws(()=>assertUnionArraySource(replaceCodeSnippet(source, 'values.includes(null)','true'),row,kind));
+   assert.throws(()=>assertUnionArraySource(replaceCodeSnippet(source, '(int | string | null)[]','string[]'),row,kind));
+   assert.throws(()=>assertUnionArraySource(replaceCodeSnippet(source, 'return output;','return [];'),row,kind));
    assert.throws(()=>assertUnionArraySource(source,{...row,operationsPerIteration:2},kind));
    assert.throws(()=>assertUnionArraySource(source+' ',row,kind));
   }

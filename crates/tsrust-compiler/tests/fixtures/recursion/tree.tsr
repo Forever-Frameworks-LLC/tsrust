@@ -1,22 +1,35 @@
-type Node = { value: int; children: Node[]; };
+type Node = {
+    value: int;
+    children: Node[];
+};
+
 function total(node: Node): int {
-  let sum = node.value;
-  for (const child of node.children) {
-    sum = sum + total(child);
-  }
-  return sum;
+    let sum = node.value;
+    for (const child of node.children) {
+        sum = sum + total(child);
+    }
+
+    return sum;
 }
+
 function increment(node: Node) {
-  node.value = node.value + 1;
-  let i = 0;
-  while (i < node.children.length) {
-    increment(node.children[i]);
-    i = i + 1;
-  }
+    node.value = node.value + 1;
+    let i = 0;
+    while (i < node.children.length) {
+        increment(node.children[i]);
+        i = i + 1;
+    }
 }
+
 function main() {
-  const tree: Node = { value: 1, children: [{ value: 2, children: [] }, { value: 3, children: [] }] };
-  console.log(total(tree));
-  increment(tree);
-  console.log(total(tree));
+    const tree: Node = {
+        value: 1, children: [{
+            value: 2, children: []
+        }, {
+            value: 3, children: []
+        }]
+    };
+    console.log(total(tree));
+    increment(tree);
+    console.log(total(tree));
 }

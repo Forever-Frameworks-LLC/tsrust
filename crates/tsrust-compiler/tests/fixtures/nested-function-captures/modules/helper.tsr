@@ -5,6 +5,7 @@ export function shiftAll(values: int[], by: int): int[] {
         calls += 1;
         return value + base[0];
     }
+
     const first = [0].map((value: int): int => value);
     const result = values.map(shifted);
     return result.concat([calls + first.length]);

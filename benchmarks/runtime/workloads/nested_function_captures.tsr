@@ -1,41 +1,63 @@
 function workload(n: int, seed: int, input: string): int[][] {
-  const output: int[][] = [];
-  let total = 0;
-  const history: int[] = [];
-  function add(amount: int): void {
-    total += amount;
-    history.push(amount);
-  }
-  function addTwice(amount: int): void {
-    add(amount);
-    add(amount);
-  }
-  let i = 0;
-  while (i < n) {
-    const value = i % 5 + seed % 5 + 1;
-    const base = [value, value + 1];
-    function shifted(item: int): int { return item + base[0]; }
-    function depth(level: int): int {
-      if (level === 0) { return base[1]; }
-      return depth(level - 1) + 1;
+    const output: int[][] = [];
+    let total = 0;
+    const history: int[] = [];
+    function add(amount: int): void {
+        total += amount;
+        history.push(amount);
     }
-    addTwice(value);
-    const mapped = [1, 2].map(shifted);
-    let later: int;
-    function readLater(): int { return later * 2; }
-    later = value + 3;
-    const counts = [0];
-    {
-      function tick(): int { counts[0] += value; return counts[0]; }
-      {
-        const run = tick;
-        run();
-      }
-      tick();
+
+    function addTwice(amount: int): void {
+        add(amount);
+        add(amount);
     }
-    output.push([total, history.length, mapped[0], mapped[1], depth(3), readLater(), counts[0]]);
-    i += 1;
-  }
-  return output;
+
+    let i = 0;
+    while (i < n) {
+        const value = i % 5 + seed % 5 + 1;
+        const base = [value, value + 1];
+        function shifted(item: int): int {
+            return item + base[0];
+        }
+
+        function depth(level: int): int {
+            if (level === 0) {
+                return base[1];
+            }
+
+            return depth(level - 1) + 1;
+        }
+
+        addTwice(value);
+        const mapped = [1, 2].map(shifted);
+        let later: int;
+        function readLater(): int {
+            return later * 2;
+        }
+
+        later = value + 3;
+        const counts = [0];
+        {
+            function tick(): int {
+                counts[0] += value;
+                return counts[0];
+            }
+
+            {
+                const run = tick;
+                run();
+            }
+
+            tick();
+        }
+
+        output.push([total, history.length, mapped[0], mapped[1], depth(3), readLater(), counts[0]]);
+        i += 1;
+    }
+
+    return output;
 }
-function main() { const result = workload(3, 0, "captures"); }
+
+function main() {
+    const result = workload(3, 0, "captures");
+}

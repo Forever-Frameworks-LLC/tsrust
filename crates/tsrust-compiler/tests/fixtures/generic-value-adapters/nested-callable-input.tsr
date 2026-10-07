@@ -1,6 +1,9 @@
 import { strictEqual } from 'std:testing';
 
-function increment(value: int): int { return value + 1; }
+function increment(value: int): int {
+    return value + 1;
+}
+
 function make() {
     let calls = 0;
     function invoke<T>(action: Function<T, [value: T]>, value: T): T {
@@ -8,8 +11,10 @@ function make() {
         console.log(calls);
         return action(value);
     }
+
     return invoke;
 }
+
 function main() {
     const fixed: Function<int, [action: Function<int, [value: int]>, value: int]> = make();
     strictEqual(fixed(increment, 7), 8);

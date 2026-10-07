@@ -1,3 +1,4 @@
+import {containsCodeSnippet} from './source-contract-tokens.mjs';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {stringAtIds} from './string-at-oracle.mjs';
@@ -7,7 +8,7 @@ export function assertStringAtSource(source,row,kind) {
  if(createHash('sha256').update(source).digest('hex')!==(kind==='native'?row.sourceSha256:row.counterpartSha256))throw Error('String at source fingerprint');
  if(row.operationsPerIteration!==1||row.iterations!==2048||row.operationUnit!=='One complete string at scenario iteration')throw Error('String at scenario denominator');
  if(row.resultEncoding!=='array-shape-scalar-v1')throw Error('String at observer protocol');
- if(!source.includes('while (i < n)')||!source.includes('return output;')||!source.includes('output.push(['))throw Error('Actual at() scenario and complete retention');
+ if(!containsCodeSnippet(source, 'while (i < n)')||!containsCodeSnippet(source, 'return output;')||!containsCodeSnippet(source, 'output.push(['))throw Error('Actual at() scenario and complete retention');
  if(kind==='native'){if((source.match(/text\.at\(/g)??[]).length!==2)throw Error('Two native string at() selections');}
  else {
   const file=ts.createSourceFile(row.id+'.ts',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TS);let selections=0,points=0,workload;

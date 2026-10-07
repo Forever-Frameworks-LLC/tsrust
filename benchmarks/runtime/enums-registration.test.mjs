@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -15,7 +16,7 @@ test('enums have matched source, oracle, denominator and hooks',()=>{
   assert.throws(()=>assertEnumsSource(source+' ',row,kind));
   assert.throws(()=>assertEnumsSource(source,{...row,operationsPerIteration:2},kind));
   for(const text of ['function workload(','const phase=choose(i+seed);','const copy=phase;','String(Number(copy))','input+String(Number(phase))']){
-   const changed=source.replace(text,'0');const key=kind==='native'?'sourceSha256':'counterpartSha256';
+   const changed=replaceCodeSnippet(source, text,'0');const key=kind==='native'?'sourceSha256':'counterpartSha256';
    assert.throws(()=>assertEnumsSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   }
  }

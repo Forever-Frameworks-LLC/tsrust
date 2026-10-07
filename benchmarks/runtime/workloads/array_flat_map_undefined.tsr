@@ -7,18 +7,38 @@ function workload(n: int, seed: int): string[][] {
         const source: undefined[] = [];
         let j = 0;
         while (j < count) {
-            const ordinal = j; source.push(undefined);
+            const ordinal = j;
+            source.push(undefined);
             j = j + 1;
         }
+
         const flattened = source.flatMap(mapPiece);
         output.push(describe(flattened));
         i = i + 1;
     }
+
     return output;
 }
+
 function mapPiece(value: undefined, index: int, source: undefined[]): undefined[] {
-    if (index % 3 === 0) { return []; }
+    if (index % 3 === 0) {
+        return [];
+    }
+
     return [undefined, undefined];
 }
-function describe(values: undefined[]): string[] { const result: string[] = []; let at = 0; while (at < values.length) { result.push(String(values[at])); at = at + 1; } return result; }
-function main() { const result = workload(2, 7); }
+
+function describe(values: undefined[]): string[] {
+    const result: string[] = [];
+    let at = 0;
+    while (at < values.length) {
+        result.push(String(values[at]));
+        at = at + 1;
+    }
+
+    return result;
+}
+
+function main() {
+    const result = workload(2, 7);
+}

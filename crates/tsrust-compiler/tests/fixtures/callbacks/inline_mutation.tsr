@@ -1,4 +1,6 @@
-type State = { on: boolean; };
+type State = {
+    on: boolean;
+};
 
 function twice(action: Mutable<Function<boolean>>) {
     console.log(action());
@@ -7,16 +9,25 @@ function twice(action: Mutable<Function<boolean>>) {
 
 function use(state: State) {
     twice((): boolean => {
-        if (state.on) { state.on = false; } else { state.on = true; }
+        if (state.on) {
+            state.on = false;
+        } else {
+            state.on = true;
+        }
+
         return state.on;
     });
     console.log(state.on);
-    twice((): boolean => { state.on = true; return state.on; });
+    twice((): boolean => {
+        state.on = true; return state.on;
+    });
     console.log(state.on);
 }
 
 function main() {
-    const state: State = { on: false };
+    const state: State = {
+        on: false
+    };
     use(state);
     console.log(state.on);
 }

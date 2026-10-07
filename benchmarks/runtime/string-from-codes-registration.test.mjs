@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -16,9 +17,9 @@ test('string from codes pair appends to the manifest and binds actual guarded so
   assert.equal(row.measured,false);assert.equal(row.measurementStatus,'pending-string-methods-milestone');assert.equal(reportCategory(row.id),'strings');
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertStringFromCodesSource(source,row,kind);
-   assert.throws(()=>assertStringFromCodesSource(source.replace('String.fromCodePoint(...codes)','"x"'),row,kind));
-   assert.throws(()=>assertStringFromCodesSource(source.replace('String.fromCharCode(','String.fromCodePoint('),row,kind));
-   assert.throws(()=>assertStringFromCodesSource(source.replace('return output;','return [];'),row,kind));
+   assert.throws(()=>assertStringFromCodesSource(replaceCodeSnippet(source, 'String.fromCodePoint(...codes)','"x"'),row,kind));
+   assert.throws(()=>assertStringFromCodesSource(replaceCodeSnippet(source, 'String.fromCharCode(','String.fromCodePoint('),row,kind));
+   assert.throws(()=>assertStringFromCodesSource(replaceCodeSnippet(source, 'return output;','return [];'),row,kind));
    assert.throws(()=>assertStringFromCodesSource(source,{...row,operationsPerIteration:2},kind));
    assert.throws(()=>assertStringFromCodesSource(source+' ',row,kind));
   }

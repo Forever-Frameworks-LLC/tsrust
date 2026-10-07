@@ -1,30 +1,89 @@
-type Trace = { tag: int; };
-function index(trace: Trace): int { trace.tag = trace.tag * 10 + 1; return 0; }
-function rhs(values: boolean[], trace: Trace, value: boolean): boolean { trace.tag = trace.tag * 10 + 2; values[0] = !value; return value; }
-function bit(value: boolean): int { if (value) { return 1; } return 0; }
+type Trace = {
+    tag: int;
+};
+
+function index(trace: Trace): int {
+    trace.tag = trace.tag * 10 + 1;
+    return 0;
+}
+
+function rhs(values: boolean[], trace: Trace, value: boolean): boolean {
+    trace.tag = trace.tag * 10 + 2;
+    values[0] = !value;
+    return value;
+}
+
+function bit(value: boolean): int {
+    if (value) {
+        return 1;
+    }
+
+    return 0;
+}
+
 function main() {
-    const values0 = [false]; const trace0: Trace = { tag: 0 };
+    const values0 = [false];
+    const trace0: Trace = {
+        tag: 0
+    };
     const observed0 = (values0[index(trace0)] &&= rhs(values0, trace0, false));
-    console.log(bit(observed0)); console.log(bit(values0[0])); console.log(trace0.tag);
-    const values1 = [false]; const trace1: Trace = { tag: 0 };
+    console.log(bit(observed0));
+    console.log(bit(values0[0]));
+    console.log(trace0.tag);
+    const values1 = [false];
+    const trace1: Trace = {
+        tag: 0
+    };
     const observed1 = (values1[index(trace1)] &&= rhs(values1, trace1, true));
-    console.log(bit(observed1)); console.log(bit(values1[0])); console.log(trace1.tag);
-    const values2 = [true]; const trace2: Trace = { tag: 0 };
+    console.log(bit(observed1));
+    console.log(bit(values1[0]));
+    console.log(trace1.tag);
+    const values2 = [true];
+    const trace2: Trace = {
+        tag: 0
+    };
     const observed2 = (values2[index(trace2)] &&= rhs(values2, trace2, false));
-    console.log(bit(observed2)); console.log(bit(values2[0])); console.log(trace2.tag);
-    const values3 = [true]; const trace3: Trace = { tag: 0 };
+    console.log(bit(observed2));
+    console.log(bit(values2[0]));
+    console.log(trace2.tag);
+    const values3 = [true];
+    const trace3: Trace = {
+        tag: 0
+    };
     const observed3 = (values3[index(trace3)] &&= rhs(values3, trace3, true));
-    console.log(bit(observed3)); console.log(bit(values3[0])); console.log(trace3.tag);
-    const values4 = [false]; const trace4: Trace = { tag: 0 };
+    console.log(bit(observed3));
+    console.log(bit(values3[0]));
+    console.log(trace3.tag);
+    const values4 = [false];
+    const trace4: Trace = {
+        tag: 0
+    };
     const observed4 = (values4[index(trace4)] ||= rhs(values4, trace4, false));
-    console.log(bit(observed4)); console.log(bit(values4[0])); console.log(trace4.tag);
-    const values5 = [false]; const trace5: Trace = { tag: 0 };
+    console.log(bit(observed4));
+    console.log(bit(values4[0]));
+    console.log(trace4.tag);
+    const values5 = [false];
+    const trace5: Trace = {
+        tag: 0
+    };
     const observed5 = (values5[index(trace5)] ||= rhs(values5, trace5, true));
-    console.log(bit(observed5)); console.log(bit(values5[0])); console.log(trace5.tag);
-    const values6 = [true]; const trace6: Trace = { tag: 0 };
+    console.log(bit(observed5));
+    console.log(bit(values5[0]));
+    console.log(trace5.tag);
+    const values6 = [true];
+    const trace6: Trace = {
+        tag: 0
+    };
     const observed6 = (values6[index(trace6)] ||= rhs(values6, trace6, false));
-    console.log(bit(observed6)); console.log(bit(values6[0])); console.log(trace6.tag);
-    const values7 = [true]; const trace7: Trace = { tag: 0 };
+    console.log(bit(observed6));
+    console.log(bit(values6[0]));
+    console.log(trace6.tag);
+    const values7 = [true];
+    const trace7: Trace = {
+        tag: 0
+    };
     const observed7 = (values7[index(trace7)] ||= rhs(values7, trace7, true));
-    console.log(bit(observed7)); console.log(bit(values7[0])); console.log(trace7.tag);
+    console.log(bit(observed7));
+    console.log(bit(values7[0]));
+    console.log(trace7.tag);
 }

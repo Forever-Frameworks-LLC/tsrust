@@ -1,5 +1,35 @@
-type Node={code:int;text:string;children:Node[];};
-function workload(n:int,seed:int,input:string):Node[]{const output:Node[]=[];const action=take;let i=0;while(i<n){const root:Node={code:seed+i,text:clone(input),children:[{code:i,text:"a\u0000b",children:[]},{code:i+1,text:"e\u0301😀",children:[{code:seed,text:"leaf",children:[]}]}]};const moved=action(root);output.push(moved);i=i+1;}return output;}
-function take(root:Node):Node{return root;}
+type Node = {
+    code: int;
+    text: string;
+    children: Node[];
+};
 
-function main(){const result=workload(2,7," xé😀e\u0301 ");}
+function workload(n: int, seed: int, input: string): Node[] {
+    const output: Node[] = [];
+    const action = take;
+    let i = 0;
+    while (i < n) {
+        const root: Node = {
+            code: seed + i, text: clone(input), children: [{
+                code: i, text: "a\u0000b", children: []
+            }, {
+                code: i + 1, text: "e\u0301😀", children: [{
+                    code: seed, text: "leaf", children: []
+                }]
+            }]
+        };
+        const moved = action(root);
+        output.push(moved);
+        i = i + 1;
+    }
+
+    return output;
+}
+
+function take(root: Node): Node {
+    return root;
+}
+
+function main() {
+    const result = workload(2, 7, " xé😀e\u0301 ");
+}

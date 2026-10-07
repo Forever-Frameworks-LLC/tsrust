@@ -1,17 +1,53 @@
-function left(): int { console.log(1); return 6; }
-function right(): int { console.log(2); return 3; }
-function index(): int { console.log(3); return 0; }
-function rhs(values: int[]): int { console.log(4); values[0] = 100; return 3; }
+function left(): int {
+    console.log(1);
+    return 6;
+}
+
+function right(): int {
+    console.log(2);
+    return 3;
+}
+
+function index(): int {
+    console.log(3);
+    return 0;
+}
+
+function rhs(values: int[]): int {
+    console.log(4);
+    values[0] = 100;
+    return 3;
+}
+
 function main() {
-    console.log(+left()); console.log(~left());
-    console.log(left() & right()); console.log(left() | right()); console.log(left() ^ right());
-    console.log(left() << right()); console.log(left() >> right()); console.log(left() >>> right()); console.log(left() ** right());
+    console.log(+ left());
+    console.log(~left());
+    console.log(left() & right());
+    console.log(left() | right());
+    console.log(left() ^ right());
+    console.log(left() << right());
+    console.log(left() >> right());
+    console.log(left() >>> right());
+    console.log(left() ** right());
     const values: int[] = [6];
-    values[index()] &= rhs(values); console.log(values[0]); values[0] = 6;
-    values[index()] |= rhs(values); console.log(values[0]); values[0] = 6;
-    values[index()] ^= rhs(values); console.log(values[0]); values[0] = 6;
-    values[index()] <<= rhs(values); console.log(values[0]); values[0] = 6;
-    values[index()] >>= rhs(values); console.log(values[0]); values[0] = 6;
-    values[index()] >>>= rhs(values); console.log(values[0]); values[0] = 6;
-    values[index()] **= rhs(values); console.log(values[0]);
+    values[index()] &= rhs(values);
+    console.log(values[0]);
+    values[0] = 6;
+    values[index()] |= rhs(values);
+    console.log(values[0]);
+    values[0] = 6;
+    values[index()] ^= rhs(values);
+    console.log(values[0]);
+    values[0] = 6;
+    values[index()] <<= rhs(values);
+    console.log(values[0]);
+    values[0] = 6;
+    values[index()] >>= rhs(values);
+    console.log(values[0]);
+    values[0] = 6;
+    values[index()] >>>= rhs(values);
+    console.log(values[0]);
+    values[0] = 6;
+    values[index()] **= rhs(values);
+    console.log(values[0]);
 }

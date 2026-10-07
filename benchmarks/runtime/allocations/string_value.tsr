@@ -1,2 +1,6 @@
-function workload(n: int, seed: int): string { return "Pat"; }
-function main() { }
+function workload(n: int, seed: int): string {
+    return "Pat";
+}
+
+function main() {
+}

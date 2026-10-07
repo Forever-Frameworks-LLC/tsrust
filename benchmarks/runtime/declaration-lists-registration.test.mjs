@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -17,7 +18,7 @@ test('declaration list registration binds complete scenarios and preserves prior
   assert.equal(row.measured,false);assert.equal(reportCategory(row.id),'other');
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertDeclarationListsSource(source,row,kind);
-   for(const changed of [source.replace('a++,b--','a++'),source.replace('let sum=0,steps=0,text="";','let sum=0;let steps=0;let text="";'),source.replace('return output;','return [];')]){
+   for(const changed of [replaceCodeSnippet(source, 'a++,b--','a++'),replaceCodeSnippet(source, 'let sum=0,steps=0,text="";','let sum=0;let steps=0;let text="";'),replaceCodeSnippet(source, 'return output;','return [];')]){
     const key=kind==='native'?'sourceSha256':'counterpartSha256';
     assert.throws(()=>assertDeclarationListsSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
    }

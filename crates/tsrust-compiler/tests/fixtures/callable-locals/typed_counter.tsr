@@ -1,8 +1,19 @@
-type State = { value: int; };
-function increment(value: int): int { return value + 1; }
+type State = {
+    value: int;
+};
+
+function increment(value: int): int {
+    return value + 1;
+}
+
 function main() {
-    const state: State = { value: 0 };
-    const counter: ((() => int)) = (): int => { state.value = state.value + 1; return state.value; };
+    const state: State = {
+        value: 0
+    };
+    const counter: ((() => int)) = (): int => {
+        state.value = state.value + 1;
+        return state.value;
+    };
     console.log(counter(), counter());
     const moved: () => int = counter;
     console.log(moved());

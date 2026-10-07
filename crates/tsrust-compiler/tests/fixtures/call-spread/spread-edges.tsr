@@ -1,17 +1,17 @@
 function emptyInts(): int[] {
-    return[];
+    return [];
 }
 
 function emptyNumbers(): number[] {
-    return[];
+    return [];
 }
 
 function emptyStrings(): string[] {
-    return[];
+    return [];
 }
 
 function one(): int[] {
-    return[1];
+    return [1];
 }
 
 function main() {

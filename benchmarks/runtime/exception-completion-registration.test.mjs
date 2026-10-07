@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -25,7 +26,7 @@ test('exception source mutations and registration history stay guarded',async()=
  for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
   const source=read('./'+name);
   for(const text of ['throw value;','return value+1;','return error+2;','finally{trace.push(value);}','finally{return value+4;}','trace.join(",")']){
-   const changed=source.replace(text,'');
+   const changed=replaceCodeSnippet(source, text,'');
    const key=kind==='native'?'sourceSha256':'counterpartSha256';
    assert.throws(()=>assertExceptionCompletionSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   }

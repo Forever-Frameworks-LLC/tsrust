@@ -1,2 +1,6 @@
-function workload(n: int, seed: int): boolean { return n > seed; }
-function main() { }
+function workload(n: int, seed: int): boolean {
+    return n > seed;
+}
+
+function main() {
+}

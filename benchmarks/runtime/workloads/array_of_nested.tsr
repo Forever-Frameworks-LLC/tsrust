@@ -1,17 +1,33 @@
 function workload(n: int, seed: int): int[][][] {
-    const output: int[][][] = []; let i = 0;
+    const output: int[][][] = [];
+    let i = 0;
     while (i < n) {
         const values = makeItems(i + seed);
         output.push(values);
         i = i + 1;
     }
+
     return output;
 }
+
 function makeItems(seed: int): int[][] {
     const choice = seed % 3;
-    if (choice === 0) { const empty: int[][] = Array.of(); return empty; }
-    if (choice === 1) { return Array.of(item(seed, 0)); }
-    return Array.of(item(seed, 0), item(seed, 1), item(seed, 2), item(seed, 3), item(seed, 4));
+    if (choice === 0) {
+        const empty: int[][] = Array.of ();
+        return empty;
+    }
+
+    if (choice === 1) {
+        return Array.of (item(seed, 0));
+    }
+
+    return Array.of (item(seed, 0), item(seed, 1), item(seed, 2), item(seed, 3), item(seed, 4));
 }
-function item(seed: int, ordinal: int): int[] { return [seed + ordinal, ordinal]; }
-function main() { const result = workload(2, 7); }
+
+function item(seed: int, ordinal: int): int[] {
+    return [seed + ordinal, ordinal];
+}
+
+function main() {
+    const result = workload(2, 7);
+}

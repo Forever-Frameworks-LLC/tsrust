@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -14,7 +15,7 @@ test('Optional fields retain paired source forms, independent oracle and runtime
   const source=read('./'+name);assertOptionalFieldsSource(source,row,kind);
   assert.throws(()=>assertOptionalFieldsSource(source+' ',row,kind));
   assert.throws(()=>assertOptionalFieldsSource(source,{...row,operationsPerIteration:2},kind));
-  for(const changed of [source.replace('y?: int;','y: int | undefined;'),source.replace('const flat:Point={x:k};','const flat:Point={x:k,y:undefined};'),source.replace('return output;','return [];')]){
+  for(const changed of [replaceCodeSnippet(source, 'y?: int;','y: int | undefined;'),replaceCodeSnippet(source, 'const flat:Point={x:k};','const flat:Point={x:k,y:undefined};'),replaceCodeSnippet(source, 'return output;','return [];')]){
    const key=kind==='native'?'sourceSha256':'counterpartSha256';
    assert.throws(()=>assertOptionalFieldsSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   }

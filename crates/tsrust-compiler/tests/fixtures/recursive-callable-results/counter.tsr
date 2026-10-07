@@ -1,17 +1,18 @@
 function counter(start: int, depth: int): () => int {
-  if (depth > 0) {
-    return counter(start, depth - 1);
-  }
-  let value = start;
-  const next = (): int => {
-    value = value + 1;
-    return value;
-  };
-  return next;
+    if (depth > 0) {
+        return counter(start, depth - 1);
+    }
+
+    let value = start;
+    const next = (): int => {
+        value = value + 1;
+        return value;
+    };
+    return next;
 }
 
 function main() {
-  const action = counter(1, 3);
-  console.log(action());
-  console.log(action());
+    const action = counter(1, 3);
+    console.log(action());
+    console.log(action());
 }

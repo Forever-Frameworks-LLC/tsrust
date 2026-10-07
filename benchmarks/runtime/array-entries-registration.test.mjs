@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -16,8 +17,8 @@ test('array entries pairs append and bind actual native and explicit copied coun
   assert.equal(row.measured,false);assert.equal(row.measurementStatus,'pending-array-methods-milestone');assert.equal(reportCategory(row.id),'arrays');
   for(const [kind,path] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+path);assertArrayEntriesSource(source,row,kind);
-   assert.throws(()=>assertArrayEntriesSource(source.replace('source.entries()','source.values()'),row,kind));
-   assert.throws(()=>assertArrayEntriesSource(source.replace('return output;','return [];'),row,kind));
+   assert.throws(()=>assertArrayEntriesSource(replaceCodeSnippet(source, 'source.entries()','source.values()'),row,kind));
+   assert.throws(()=>assertArrayEntriesSource(replaceCodeSnippet(source, 'return output;','return [];'),row,kind));
    assert.throws(()=>assertArrayEntriesSource(source,{...row,operationsPerIteration:2},kind));
    assert.throws(()=>assertArrayEntriesSource(source+' ',row,kind));
   }

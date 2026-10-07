@@ -1,3 +1,4 @@
+mod support;
 use serde_json::json;
 use tsrust_lsp::intelligence::SourceIndex;
 #[test]
@@ -16,7 +17,7 @@ fn map_catalog_examples_match_native_fixture_and_constructor_highlighting(){
  let mut entries=catalog["Map"].as_array().unwrap().clone();
  entries.extend(catalog["globals"].as_array().unwrap().iter().filter(|entry|entry["name"]=="Map").cloned());
  for entry in entries {for example in entry["examples"].as_array().unwrap(){
-  let source=example["source"].as_str().unwrap();assert!(fixture.contains(source));
+  let source=example["source"].as_str().unwrap();assert!(support::contains_formatted_snippet(fixture,source));
   tsrust_compiler::check(&format!("function main(){{{source}}}")).unwrap();
   expected.push_str(example["output"].as_str().unwrap());
  }}

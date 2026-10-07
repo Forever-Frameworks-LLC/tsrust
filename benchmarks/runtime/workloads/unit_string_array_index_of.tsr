@@ -1,15 +1,37 @@
 function workload(n: int, seed: int, input: string, coordinates: int): int {
- const width = coordinates; const values: string[] = []; let j = 0;
- while (j < 129) { values.push(input.charAt((j * 37 + seed) % width)); j = j + 1; }
- let sum = seed; let i = 0;
- while (i < n) {
-  const from = (i * 13 + seed) % 387 - 193; const choice = (i + seed) % 4;
-  if (choice === 0) { sum = sum + values.indexOf("A", from); }
-  else { if (choice === 1) { sum = sum + values.indexOf("😀", from); }
-  else { if (choice === 2) { sum = sum + values.indexOf(input.charAt((i * 17 + seed) % (width + 2)), from); }
-  else { sum = sum + values.indexOf("missing", from); } } }
-  i = i + 1;
- }
- return sum;
+    const width = coordinates;
+    const values: string[] = [];
+    let j = 0;
+    while (j < 129) {
+        values.push(input.charAt((j * 37 + seed) % width));
+        j = j + 1;
+    }
+
+    let sum = seed;
+    let i = 0;
+    while (i < n) {
+        const from = (i * 13 + seed) % 387 - 193;
+        const choice = (i + seed) % 4;
+        if (choice === 0) {
+            sum = sum + values.indexOf("A", from);
+        } else {
+            if (choice === 1) {
+                sum = sum + values.indexOf("😀", from);
+            } else {
+                if (choice === 2) {
+                    sum = sum + values.indexOf(input.charAt((i * 17 + seed) % (width + 2)), from);
+                } else {
+                    sum = sum + values.indexOf("missing", from);
+                }
+            }
+        }
+
+        i = i + 1;
+    }
+
+    return sum;
 }
-function main() { console.log(workload(2, 7, "A😀e\u0301Z", 5)); }
+
+function main() {
+    console.log(workload(2, 7, "A😀e\u0301Z", 5));
+}

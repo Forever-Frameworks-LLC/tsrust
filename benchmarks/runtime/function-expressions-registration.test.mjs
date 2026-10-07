@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -17,7 +18,7 @@ test('function expression registration binds complete scenarios and preserves pr
   assert.equal(row.measured,false);assert.equal(reportCategory(row.id),'other');
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertFunctionExpressionsSource(source,row,kind);
-   for(const changed of [source.replace('tags.map(function (tag){return tag.length;})','tags.map((tag)=>{return tag.length;})'),source.replace('sizes.forEach(function (size:int){total+=size;});',''),source.replace('return output;','return [];')]){
+   for(const changed of [replaceCodeSnippet(source, 'tags.map(function (tag){return tag.length;})','tags.map((tag)=>{return tag.length;})'),replaceCodeSnippet(source, 'sizes.forEach(function (size:int){total+=size;});',''),replaceCodeSnippet(source, 'return output;','return [];')]){
     const key=kind==='native'?'sourceSha256':'counterpartSha256';
     assert.throws(()=>assertFunctionExpressionsSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
    }

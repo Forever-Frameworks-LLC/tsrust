@@ -1,7 +1,8 @@
 function workload(n: int, seed: int): number[] {
-    const left: number[] = [-3.0, -0.5, -0.25, -0.0, 0.0, 0.25, 0.75, 2.5];
-    const right: number[] = [-4.0, -2.0, -0.5, 0.5, 1.0, 2.0, 4.0, 8.0];
-    const output: number[] = []; let i = 0;
+    const left: number[] = [- 3.0, - 0.5, - 0.25, - 0.0, 0.0, 0.25, 0.75, 2.5];
+    const right: number[] = [- 4.0, - 2.0, - 0.5, 0.5, 1.0, 2.0, 4.0, 8.0];
+    const output: number[] = [];
+    let i = 0;
     while (i < n) {
         let value: number = left[(i * 13 + seed) % 8];
         const rhs: number = right[(i * 7 + seed) % 8];
@@ -9,6 +10,10 @@ function workload(n: int, seed: int): number[] {
         output.push(value);
         i = i + 1;
     }
+
     return output;
 }
-function main() { const result = workload(2, 7); }
+
+function main() {
+    const result = workload(2, 7);
+}

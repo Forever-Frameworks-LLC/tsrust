@@ -1,15 +1,26 @@
 function workload(n: int, seed: int, input: string): string[][] {
- const output:string[][]=[];let i=0;
- while(i<n){
-  const values=new Set<int>([i+seed,i+seed+1,i+seed]);
-  let total=0;
-  values.forEach((value,key,source)=>{total=total+value+key+source.size;});
-  const names=new Set<string>([String(input),"tail",String(input)]);
-  let text="";
-  names.forEach((value,key,source)=>{if(source.has(key)){text=text+value+"|";}});
-  output.push([String(total),String(values.size),text,String(names.size)]);
-  i=i+1;
- }
- return output;
+    const output: string[][] = [];
+    let i = 0;
+    while (i < n) {
+        const values = new Set<int>([i + seed, i + seed + 1, i + seed]);
+        let total = 0;
+        values.forEach((value, key, source) => {
+            total = total + value + key + source.size;
+        });
+        const names = new Set<string>([String(input), "tail", String(input)]);
+        let text = "";
+        names.forEach((value, key, source) => {
+            if (source.has(key)) {
+                text = text + value + "|";
+            }
+        });
+        output.push([String(total), String(values.size), text, String(names.size)]);
+        i = i + 1;
+    }
+
+    return output;
 }
-function main(){const result=workload(3,0,"abc");}
+
+function main() {
+    const result = workload(3, 0, "abc");
+}

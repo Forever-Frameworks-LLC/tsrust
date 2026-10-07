@@ -1,4 +1,8 @@
-type FlatRecord = { id: int; label: string; };
+type FlatRecord = {
+    id: int;
+    label: string;
+};
+
 function workload(n: int, seed: int, input: string): string[][] {
     const output: string[][] = [];
     const sizes: int[] = [0, 1, 4, 5, 17];
@@ -8,18 +12,44 @@ function workload(n: int, seed: int, input: string): string[][] {
         const source: FlatRecord[] = [];
         let j = 0;
         while (j < count) {
-            const ordinal = j; source.push({ id: seed + ordinal, label: input.concat(":", String(ordinal)) });
+            const ordinal = j;
+            source.push({
+                id: seed + ordinal, label: input.concat(":", String(ordinal))
+            });
             j = j + 1;
         }
+
         const flattened = source.flatMap(mapPiece);
         output.push(describe(flattened));
         i = i + 1;
     }
+
     return output;
 }
+
 function mapPiece(value: FlatRecord, index: int, source: FlatRecord[]): FlatRecord[] {
-    if (index % 3 === 0) { return []; }
-    return [{ id: value.id + index, label: value.label.concat(":a") }, { id: source.length, label: value.label.concat(":b") }];
+    if (index % 3 === 0) {
+        return [];
+    }
+
+    return [{
+        id: value.id + index, label: value.label.concat(":a")
+    }, {
+        id: source.length, label: value.label.concat(":b")
+    }];
 }
-function describe(values: FlatRecord[]): string[] { const result: string[] = []; let at = 0; while (at < values.length) { result.push(String(values[at].id).concat(":", values[at].label)); at = at + 1; } return result; }
-function main() { const result = workload(2, 7, "dynamic text"); }
+
+function describe(values: FlatRecord[]): string[] {
+    const result: string[] = [];
+    let at = 0;
+    while (at < values.length) {
+        result.push(String(values[at].id).concat(":", values[at].label));
+        at = at + 1;
+    }
+
+    return result;
+}
+
+function main() {
+    const result = workload(2, 7, "dynamic text");
+}

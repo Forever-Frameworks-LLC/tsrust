@@ -1,4 +1,24 @@
-function workload(n:int,seed:int):number{const consumer=apply;let total:number=0.0;let i=0;while(i<n){const value=Number((seed+i)%17)/4.0;total=total+consumer(identity,value);i=i+1;}return total;}
-function identity(value:number):number{return value;}
-function apply(f:Mutable<Function<number, [value:number]>>,value:number):number{return f(value);}
-function main(){const result=workload(2,7);}
+function workload(n: int, seed: int): number {
+    const consumer = apply;
+    let total: number = 0.0;
+    let i = 0;
+    while (i < n) {
+        const value = Number((seed + i) % 17) / 4.0;
+        total = total + consumer(identity, value);
+        i = i + 1;
+    }
+
+    return total;
+}
+
+function identity(value: number): number {
+    return value;
+}
+
+function apply(f: Mutable<Function<number, [value: number]>>, value: number): number {
+    return f(value);
+}
+
+function main() {
+    const result = workload(2, 7);
+}

@@ -1,20 +1,51 @@
-type Point = { x: int; y: int; label: string; };
-type Row = { id: int; name: string; };
-function describe({ x, y, label }: Point): string { return label + String(x + y); }
-function first([head, next]: [string, int], scale: int): string { return head.repeat(next * scale); }
-function take({ label }: Owned<Point>): string { return label; }
-function sum([a, b]: int[]): int { return a + b; }
+type Point = {
+    x: int;
+    y: int;
+    label: string;
+};
+
+type Row = {
+    id: int;
+    name: string;
+};
+
+function describe({ x, y, label }: Point): string {
+    return label + String(x + y);
+}
+
+function first([head, next]: [string, int], scale: int): string {
+    return head.repeat(next * scale);
+}
+
+function take({ label }: Owned<Point>): string {
+    return label;
+}
+
+function sum([a, b]: int[]): int {
+    return a + b;
+}
+
 function main() {
-    const point: Point = { x: 1, y: 2, label: "p" };
+    const point: Point = {
+        x: 1, y: 2, label: "p"
+    };
     console.log(describe(point), point.label, first(["ab", 2], 1), sum([3, 4]));
-    const row: Row = { id: 7, name: "ada" };
+    const row: Row = {
+        id: 7, name: "ada"
+    };
     console.log(Object.entries(row).map(([key, value]) => key + "=" + String(value)).join(";"));
-    const rows: Row[] = [row, { id: 8, name: "bob" }];
+    const rows: Row[] = [row, {
+        id: 8, name: "bob"
+    }];
     console.log(rows.map(({ id, name }) => name.length + id).join(","), rows.filter(({ id }) => id > 7).length);
-    const scale = ({ x, y }: Point, factor: int): int => { return (x + y) * factor; };
+    const scale = ({ x, y }: Point, factor: int): int => {
+        return (x + y) * factor;
+    };
     console.log(scale(point, 3), take(point));
     const pairs: [string, int][] = [["a", 1], ["b", 2]];
     let text = "";
-    pairs.forEach(([name, amount]) => { text += name.repeat(amount); });
+    pairs.forEach(([name, amount]) => {
+        text += name.repeat(amount);
+    });
     console.log(text, pairs.reduce((total, [, amount]) => total + amount, 0));
 }

@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -16,8 +17,8 @@ test('Borrowed optional fallback pair appends to the manifest and binds actual g
   assert.equal(row.measured,false);assert.equal(row.measurementStatus,'pending-value-types-milestone');assert.equal(reportCategory(row.id),'other');
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertBorrowedOptionalFallbackSource(source,row,kind);
-   assert.throws(()=>assertBorrowedOptionalFallbackSource(source.replace('label.slice()','source'),row,kind));
-   assert.throws(()=>assertBorrowedOptionalFallbackSource(source.replace('return output;','return [];'),row,kind));
+   assert.throws(()=>assertBorrowedOptionalFallbackSource(replaceCodeSnippet(source, 'label.slice()','source'),row,kind));
+   assert.throws(()=>assertBorrowedOptionalFallbackSource(replaceCodeSnippet(source, 'return output;','return [];'),row,kind));
    assert.throws(()=>assertBorrowedOptionalFallbackSource(source,{...row,operationsPerIteration:2},kind));
    assert.throws(()=>assertBorrowedOptionalFallbackSource(source+' ',row,kind));
   }

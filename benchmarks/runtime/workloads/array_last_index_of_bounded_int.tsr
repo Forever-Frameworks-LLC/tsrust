@@ -1,3 +1,72 @@
-function workload(n: int, seed: int): int[] { const values: int[] = []; let j = 0; while (j < 129) { values.push((j * 37 + seed) % 101); j = j + 1; } const output: int[] = []; let i = 0; while (i < n) { const needle = (i * 17 + seed) % 137; const at = values.lastIndexOf(needle, bound(i, seed)); output.push(at + 1); i = i + 1; } return output; }
-function bound(i: int, seed: int): int { const c = (i * 13 + seed) % 12; if (c === 0) { return -9223372036854775808; } if (c === 1) { return 9223372036854775807; } if (c === 2) { return -130; } if (c === 3) { return -129; } if (c === 4) { return -128; } if (c === 5) { return -1; } if (c === 6) { return 0; } if (c === 7) { return 1; } if (c === 8) { return 64; } if (c === 9) { return 128; } if (c === 10) { return 129; } return 193; }
-function main() { const result = workload(2, 7); }
+function workload(n: int, seed: int): int[] {
+    const values: int[] = [];
+    let j = 0;
+    while (j < 129) {
+        values.push((j * 37 + seed) % 101);
+        j = j + 1;
+    }
+
+    const output: int[] = [];
+    let i = 0;
+    while (i < n) {
+        const needle = (i * 17 + seed) % 137;
+        const at = values.lastIndexOf(needle, bound(i, seed));
+        output.push(at + 1);
+        i = i + 1;
+    }
+
+    return output;
+}
+
+function bound(i: int, seed: int): int {
+    const c = (i * 13 + seed) % 12;
+    if (c === 0) {
+        return - 9223372036854775808;
+    }
+
+    if (c === 1) {
+        return 9223372036854775807;
+    }
+
+    if (c === 2) {
+        return - 130;
+    }
+
+    if (c === 3) {
+        return - 129;
+    }
+
+    if (c === 4) {
+        return - 128;
+    }
+
+    if (c === 5) {
+        return - 1;
+    }
+
+    if (c === 6) {
+        return 0;
+    }
+
+    if (c === 7) {
+        return 1;
+    }
+
+    if (c === 8) {
+        return 64;
+    }
+
+    if (c === 9) {
+        return 128;
+    }
+
+    if (c === 10) {
+        return 129;
+    }
+
+    return 193;
+}
+
+function main() {
+    const result = workload(2, 7);
+}

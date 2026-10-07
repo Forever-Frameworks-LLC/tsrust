@@ -1,10 +1,16 @@
 function workload(n: int, seed: int, input: string): int[] {
     const needles: string[] = ["", "a", "aa", "aba", "alpha", "A", "Z", "missing\u0000", "a\u0000b"];
-    const output: int[] = []; let i = 0;
+    const output: int[] = [];
+    let i = 0;
     while (i < n) {
         const at = input.lastIndexOf(needles[(i * 17 + seed) % 9]);
-        output.push(at + 1); i = i + 1;
+        output.push(at + 1);
+        i = i + 1;
     }
+
     return output;
 }
-function main() { const result = workload(2, 7, "aaa ababa alpha A alpha Z"); }
+
+function main() {
+    const result = workload(2, 7, "aaa ababa alpha A alpha Z");
+}

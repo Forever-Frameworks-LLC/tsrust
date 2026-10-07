@@ -6,6 +6,11 @@ function workload(n: int, seed: int): string[] {
         results.push(labels[(i + seed) % 3].toUpperCase());
         i = i + 1;
     }
+
     return results;
 }
-function main() { const results = workload(2, 7); console.log(results.length); }
+
+function main() {
+    const results = workload(2, 7);
+    console.log(results.length);
+}

@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -17,7 +18,7 @@ test('global number name registration binds complete scenarios and preserves pri
   assert.equal(row.measured,false);assert.equal(reportCategory(row.id),'other');
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertGlobalNumberNamesSource(source,row,kind);
-   for(const changed of [source.replace('const missing=parseInt(input);','const missing=Number.parseInt(input);'),source.replace('let lowest=Infinity;','let lowest=1.0;'),source.replace('isNaN(missing)?NaN:','isNaN(missing)?0.0:'),source.replace('return output;','return [];')]){
+   for(const changed of [replaceCodeSnippet(source, 'const missing=parseInt(input);','const missing=Number.parseInt(input);'),replaceCodeSnippet(source, 'let lowest=Infinity;','let lowest=1.0;'),replaceCodeSnippet(source, 'isNaN(missing)?NaN:','isNaN(missing)?0.0:'),replaceCodeSnippet(source, 'return output;','return [];')]){
     const key=kind==='native'?'sourceSha256':'counterpartSha256';
     assert.throws(()=>assertGlobalNumberNamesSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
    }

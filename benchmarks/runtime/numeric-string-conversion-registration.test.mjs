@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -17,7 +18,7 @@ test('Numeric text retains sources, independent results and execution hooks',()=
   const source=read('./'+path);assertNumericStringConversionSource(source,row,kind);
   assert.throws(()=>assertNumericStringConversionSource(source+' ',row,kind));
   assert.throws(()=>assertNumericStringConversionSource(source,{...row,operationsPerIteration:2},kind));
-  const changed=source.replace('String(+text)','String(text)');
+  const changed=replaceCodeSnippet(source, 'String(+text)','String(text)');
   const key=kind==='native'?'sourceSha256':'counterpartSha256';
   assert.throws(()=>assertNumericStringConversionSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
  }

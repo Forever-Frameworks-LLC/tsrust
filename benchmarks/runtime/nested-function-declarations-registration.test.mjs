@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -17,11 +18,11 @@ test('Nested declarations retain sources, independent observations and execution
   const source=read('./'+path);assertNestedFunctionDeclarationsSource(source,row,kind);
   assert.throws(()=>assertNestedFunctionDeclarationsSource(source+' ',row,kind));
   assert.throws(()=>assertNestedFunctionDeclarationsSource(source,{...row,operationsPerIteration:2},kind));
-  const changed=source.replace('factorial(5)','factorial(4)');
+  const changed=replaceCodeSnippet(source, 'factorial(5)','factorial(4)');
   const key=kind==='native'?'sourceSha256':'counterpartSha256';
   assert.throws(()=>assertNestedFunctionDeclarationsSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   assert.ok(source.includes('let value = first + 3;'), 'Variable shadow scenario must be retained');
-  const missingShadow=source.replace('let value = first + 3;', 'let other = first + 3;');
+  const missingShadow=replaceCodeSnippet(source, 'let value = first + 3;', 'let other = first + 3;');
   assert.throws(()=>assertNestedFunctionDeclarationsSource(missingShadow,{...row,[key]:createHash('sha256').update(missingShadow).digest('hex')},kind));
  }
  assert.deepEqual(expectedNestedFunctionDeclarationValues(row.id,2,0,'nested'),[[2,120,0,3,2,4,7],[4,120,1,6,4,6,10]]);

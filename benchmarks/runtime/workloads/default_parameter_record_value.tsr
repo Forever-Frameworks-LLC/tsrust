@@ -1,16 +1,52 @@
-type Trace = { calls: int; defaults: int; };
-type Item = { id: int; label: string; };
-function fallback(trace: Trace, base: int, input: string): Item { trace.defaults = trace.defaults + 1; return { id: base + 100, label: input.repeat(base % 3 + 1).concat(":default") }; }
-function apply(trace: Trace, base: int, input: string, value: Item | null = fallback(trace, base, input)): Item | null { trace.calls = trace.calls + 1; return value; }
+type Trace = {
+    calls: int;
+    defaults: int;
+};
+
+type Item = {
+    id: int;
+    label: string;
+};
+
+function fallback(trace: Trace, base: int, input: string): Item {
+    trace.defaults = trace.defaults + 1;
+    return {
+        id: base + 100, label: input.repeat(base % 3 + 1).concat(":default")
+    };
+}
+
+function apply(trace: Trace, base: int, input: string, value: Item | null = fallback(trace, base, input)): Item | null {
+    trace.calls = trace.calls + 1;
+    return value;
+}
+
 function workload(n: int, seed: int, input: string): string[][] {
-    const output: string[][] = []; const trace: Trace = { calls: 0, defaults: 0 };
-    let i = 0; while (i < n) {
-        const mode = (i + seed) % 4; const value = (i * 13 + seed) % 97;
-        const beforeCalls = trace.calls; const beforeDefaults = trace.defaults;
-        const observed = mode === 0 ? apply(trace, value, input) : mode === 1 ? apply(trace, value, input, undefined) : mode === 2 ? apply(trace, value, input, { id: value, label: input.repeat(value % 3 + 1).concat(":present") }) : apply(trace, value, input, null);
-        if (observed !== null) { output.push(["record", String(observed.id), clone(observed.label)]); } else { output.push(["null"]); }
+    const output: string[][] = [];
+    const trace: Trace = {
+        calls: 0, defaults: 0
+    };
+    let i = 0;
+    while (i < n) {
+        const mode = (i + seed) % 4;
+        const value = (i * 13 + seed) % 97;
+        const beforeCalls = trace.calls;
+        const beforeDefaults = trace.defaults;
+        const observed = mode === 0 ? apply(trace, value, input) : mode === 1 ? apply(trace, value, input, undefined) : mode === 2 ? apply(trace, value, input, {
+            id: value, label: input.repeat(value % 3 + 1).concat(":present")
+        }) : apply(trace, value, input, null);
+        if (observed !== null) {
+            output.push(["record", String(observed.id), clone(observed.label)]);
+        } else {
+            output.push(["null"]);
+        }
+
         output.push([String(trace.calls - beforeCalls), String(trace.defaults - beforeDefaults)]);
         i = i + 1;
-    } return output;
+    }
+
+    return output;
 }
-function main() { const result = workload(3, 0, "abc"); }
+
+function main() {
+    const result = workload(3, 0, "abc");
+}

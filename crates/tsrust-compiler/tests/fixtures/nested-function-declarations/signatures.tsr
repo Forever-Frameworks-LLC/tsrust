@@ -1,18 +1,30 @@
 import { strictEqual } from "std:testing";
+
 function main() {
-    function identity<T>(value: T): T { return value; }
+    function identity<T>(value: T): T {
+        return value;
+    }
+
     function sum(first: int = 4, ...rest: int[]): int {
         let result = first;
-        for (const value of rest) { result += value; }
+        for (const value of rest) {
+            result += value;
+        }
+
         return result;
     }
+
     strictEqual(identity<int>(7), 7);
     strictEqual(identity<string>("value"), "value");
     strictEqual(sum(), 4);
     strictEqual(sum(1, 2, 3), 6);
     function outer(value: int): int {
-        function inner(next: int): int { return next + 1; }
+        function inner(next: int): int {
+            return next + 1;
+        }
+
         return inner(value);
     }
+
     strictEqual(outer(2), 3);
 }

@@ -21,7 +21,7 @@ function main() {
 
     let sum = 0;
     if (true) {
-        const add =(value: int): void => {
+        const add = (value: int): void => {
             sum = sum + value;
         };
         visit(tree, add);

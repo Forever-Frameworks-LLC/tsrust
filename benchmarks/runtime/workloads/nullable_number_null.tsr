@@ -1,6 +1,7 @@
 function workload(n: int, seed: int): string[] {
-    const values: number[] = [Number(seed), -0.0, 0.5, -2.5, 17.0, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY];
-    const output: string[] = []; let i = 0;
+    const values: number[] = [Number(seed), - 0.0, 0.5, - 2.5, 17.0, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY];
+    const output: string[] = [];
+    let i = 0;
     while (i < n) {
         const mode = (i + seed) % 3;
         const at = (i * 13 + seed) % 8;
@@ -12,7 +13,14 @@ function workload(n: int, seed: int): string[] {
         output.push(value === null ? "sentinel" : "payload");
         i = i + 1;
     }
+
     return output;
 }
-function pass(value: number | null): number | null { return value; }
-function main() { const result = workload(2, 7); }
+
+function pass(value: number | null): number | null {
+    return value;
+}
+
+function main() {
+    const result = workload(2, 7);
+}

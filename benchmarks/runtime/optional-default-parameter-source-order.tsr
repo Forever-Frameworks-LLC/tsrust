@@ -1,31 +1,60 @@
-type Trace = { events: string; };
+type Trace = {
+    events: string;
+};
+
 function mark(trace: Trace, event: string, value: int): int {
     trace.events += event;
     return value;
 }
+
 function apply(trace: Trace, first: int = mark(trace, "a", 10), second: int = mark(trace, "b", first + 1)): int {
     trace.events += "body";
     return first + second;
 }
+
 function choose(trace: Trace, argumentTrace: Trace): (trace: Trace, first?: int, second?: int) => int {
     trace.events += argumentTrace.events === "" ? "callee" : "late";
     return apply;
 }
-function nullable(value: int | null = 9): int { return value ?? -1; }
-function front(first: int = 5, required: int): int { return first + required; }
+
+function nullable(value: int | null = 9): int {
+    return value ?? - 1;
+}
+
+function front(first: int = 5, required: int): int {
+    return first + required;
+}
+
 function main() {
-    const empty: Trace = { events: "" };
+    const empty: Trace = {
+        events: ""
+    };
     console.log(apply(empty), empty.events);
-    const present: Trace = { events: "" };
-    const calleeTrace: Trace = { events: "" }; const argumentTrace: Trace = { events: "" };
+    const present: Trace = {
+        events: ""
+    };
+    const calleeTrace: Trace = {
+        events: ""
+    };
+    const argumentTrace: Trace = {
+        events: ""
+    };
     console.log(choose(calleeTrace, argumentTrace)(present, mark(argumentTrace, "x", 3), mark(argumentTrace, "y", 4)), calleeTrace.events.concat(argumentTrace.events, present.events));
-    const partial: Trace = { events: "" };
-    const partialArgumentTrace: Trace = { events: "" };
+    const partial: Trace = {
+        events: ""
+    };
+    const partialArgumentTrace: Trace = {
+        events: ""
+    };
     console.log(apply(partial, mark(partialArgumentTrace, "x", 3)), partialArgumentTrace.events.concat(partial.events));
-    const explicit: Trace = { events: "" };
+    const explicit: Trace = {
+        events: ""
+    };
     console.log(apply(explicit, undefined, undefined), explicit.events);
     console.log(nullable(), nullable(undefined), nullable(null), nullable(4));
     console.log(front(undefined, 2), front(3, 2));
-    const inferred = (first: int = 7, second: int = first + 1): int => { return first + second; };
+    const inferred = (first: int = 7, second: int = first + 1): int => {
+        return first + second;
+    };
     console.log(inferred(), inferred(2), inferred(undefined, 3));
 }

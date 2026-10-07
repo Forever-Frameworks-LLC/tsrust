@@ -1,8 +1,17 @@
 import { strictEqual } from "std:testing";
-type User = { name: string; };
+
+type User = {
+    name: string;
+};
+
 function main() {
-    function label(): string { return user.name.trim(); }
-    const user: User = { name: " Pat " };
+    function label(): string {
+        return user.name.trim();
+    }
+
+    const user: User = {
+        name: " Pat "
+    };
     strictEqual(label(), "Pat");
     strictEqual(label(), "Pat");
     strictEqual(user.name, " Pat ");

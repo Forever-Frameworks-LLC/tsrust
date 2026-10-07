@@ -1,9 +1,17 @@
-type User = { name: string; };
+type User = {
+    name: string;
+};
 
 function main() {
-    const user: User = { name: "Pat" };
-    const first = (): void => { user.name = "Sam"; };
-    const second = (): void => { user.name = "Sam"; };
+    const user: User = {
+        name: "Pat"
+    };
+    const first = (): void => {
+        user.name = "Sam";
+    };
+    const second = (): void => {
+        user.name = "Sam";
+    };
     first();
     second();
 }

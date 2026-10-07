@@ -1,18 +1,28 @@
-type User = { name: string; };
+type User = {
+    name: string;
+};
 
 function apply(action: Mutable<Function<void, [user: Mutable<User>]>>, user: User) {
     action(user);
 }
 
 function main() {
-    const rename = (target: User): void => { target.name = "Sam"; };
-    const user: User = { name: "Pat" };
+    const rename = (target: User): void => {
+        target.name = "Sam";
+    };
+    const user: User = {
+        name: "Pat"
+    };
     apply(rename, user);
     console.log(user.name);
 
-    const take = (input: User): User => { return input; };
+    const take = (input: User): User => {
+        return input;
+    };
     const saved = take(user);
     console.log(saved.name);
-    const another = take({ name: "Jo" });
+    const another = take({
+        name: "Jo"
+    });
     console.log(another.name);
 }

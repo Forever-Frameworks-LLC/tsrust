@@ -26,6 +26,7 @@ function main() {
         } else {
             throw error;
         }
+
         value = 2;
     }
 
@@ -50,6 +51,7 @@ function main() {
         } else {
             throw error;
         }
+
         trace.push(2);
     } finally {
         trace.push(4);

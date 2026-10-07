@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -14,7 +15,7 @@ test('Scalar unary plus retains sources, independent results and execution hooks
   const source=read('./'+path);assertScalarUnaryPlusSource(source,row,kind);
   assert.throws(()=>assertScalarUnaryPlusSource(source+' ',row,kind));
   assert.throws(()=>assertScalarUnaryPlusSource(source,{...row,operationsPerIteration:2},kind));
-  const changed=source.replace('String(+flag)','String(flag)');
+  const changed=replaceCodeSnippet(source, 'String(+flag)','String(flag)');
   const key=kind==='native'?'sourceSha256':'counterpartSha256';
   assert.throws(()=>assertScalarUnaryPlusSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
  }

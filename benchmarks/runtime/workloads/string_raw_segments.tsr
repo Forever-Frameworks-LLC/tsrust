@@ -1,10 +1,29 @@
-type Template = { raw: string[]; };
+type Template = {
+    raw: string[];
+};
+
 function workload(n: int, seed: int, input: string): string[][] {
- const output: string[][] = []; const empty: Template = {raw:[]};
- const single: Template = {raw:["only"]}; const inserts = ["X", "Y"]; let i = 0;
- while (i < n) { const base = (i * 13 + seed) % 97;
- const template: Template = {raw:["a", "é", input + "\\n"]};
- output.push([String.raw(template, base, true), String.raw(template, "X"), String.raw(template, ...inserts), String.raw(single, ...inserts), String.raw(empty, base)]);
- i = i + 1; } return output;
+    const output: string[][] = [];
+    const empty: Template = {
+        raw: []
+    };
+    const single: Template = {
+        raw: ["only"]
+    };
+    const inserts = ["X", "Y"];
+    let i = 0;
+    while (i < n) {
+        const base = (i * 13 + seed) % 97;
+        const template: Template = {
+            raw: ["a", "é", input + "\\n"]
+        };
+        output.push([String.raw(template, base, true), String.raw(template, "X"), String.raw(template, ...inserts), String.raw(single, ...inserts), String.raw(empty, base)]);
+        i = i + 1;
+    }
+
+    return output;
 }
-function main() { const result = workload(3, 0, "abc"); }
+
+function main() {
+    const result = workload(3, 0, "abc");
+}

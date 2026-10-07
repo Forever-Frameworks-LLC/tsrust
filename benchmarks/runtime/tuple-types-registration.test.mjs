@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -16,8 +17,8 @@ test('tuple types pair appends to manifest and binds actual guarded sources',()=
   assert.equal(row.measured,false);assert.equal(row.measurementStatus,'pending-array-methods-milestone');assert.equal(reportCategory(row.id),'arrays');
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertTupleTypesSource(source,row,kind);
-   assert.throws(()=>assertTupleTypesSource(source.replace('pair[0]=base+1;','pair[0]=base;'),row,kind));
-   assert.throws(()=>assertTupleTypesSource(source.replace('return output;','return [];'),row,kind));
+   assert.throws(()=>assertTupleTypesSource(replaceCodeSnippet(source, 'pair[0]=base+1;','pair[0]=base;'),row,kind));
+   assert.throws(()=>assertTupleTypesSource(replaceCodeSnippet(source, 'return output;','return [];'),row,kind));
    assert.throws(()=>assertTupleTypesSource(source,{...row,operationsPerIteration:2},kind));
    assert.throws(()=>assertTupleTypesSource(source+' ',row,kind));
   }

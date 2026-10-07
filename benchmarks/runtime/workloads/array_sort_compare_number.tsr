@@ -1,22 +1,37 @@
 function workload(n: int, seed: int): number[][] {
     const output: number[][] = [];
     const sizes: int[] = [0, 1, 4, 5, 17];
-    const numbers: number[] = [-0.0, 0.0, 0.0 / 0.0, 1.0 / 0.0, -1.0 / 0.0, Number(seed) / 4.0, -2.5];
+    const numbers: number[] = [- 0.0, 0.0, 0.0 / 0.0, 1.0 / 0.0, - 1.0 / 0.0, Number(seed) / 4.0, - 2.5];
     let i = 0;
     while (i < n) {
         const count = sizes[(i + seed) % 5];
-        const values: number[] = []; let j = 0;
+        const values: number[] = [];
+        let j = 0;
         while (j < count) {
             values.push(numbers[(j * 3 + seed) % 7]);
             j = j + 1;
         }
+
         values.sort(compare);
         output.push(values);
         i = i + 1;
     }
+
     return output;
 }
-function compare(left: number, right: number): number { if (Number.isNaN(left)) { return Number.isNaN(right) ? 0.0 : 1.0; }
-    if (Number.isNaN(right)) { return -1.0; }
-    return left < right ? -1.0 : left > right ? 1.0 : 0.0; }
-function main() { const result = workload(2, 7); }
+
+function compare(left: number, right: number): number {
+    if (Number.isNaN(left)) {
+        return Number.isNaN(right) ? 0.0 : 1.0;
+    }
+
+    if (Number.isNaN(right)) {
+        return - 1.0;
+    }
+
+    return left < right ? - 1.0 : left > right ? 1.0 : 0.0;
+}
+
+function main() {
+    const result = workload(2, 7);
+}

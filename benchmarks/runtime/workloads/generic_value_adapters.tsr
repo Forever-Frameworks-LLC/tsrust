@@ -1,135 +1,229 @@
 function sumPayload(value: int = 4, ...tail: int[]): int {
     let sum = value;
-    for (const item of tail) { sum += item; }
+    for (const item of tail) {
+        sum += item;
+    }
+
     return sum;
 }
-type PatternBox<T> = { value: T; };
+
+type PatternBox<T> = {
+    value: T;
+};
+
 function arrayPatternFactory(start: int) {
     let calls = start;
     function head<T>([first, second]: Owned<T[]>): Receipt<T> {
         calls += 1;
-        return { value: first, calls: calls };
+        return {
+            value: first, calls: calls
+        };
     }
+
     return head;
 }
+
 function recordPatternFactory(start: int) {
     let calls = start;
     function take<T>({ value }: Owned<PatternBox<T>>): Receipt<T> {
         calls += 1;
-        return { value: value, calls: calls };
+        return {
+            value: value, calls: calls
+        };
     }
+
     return take;
 }
+
 function optionalEmptyFactory() {
-    function empty<T>(): T[] { return []; }
+    function empty<T>(): T[] {
+        return [];
+    }
+
     return empty;
 }
+
 function payloadFactory(start: int) {
     let calls = start;
     function identity<T>(value: T): T {
         calls += 1;
-        if (typeof value === "boolean") { if (calls !== start + 3) { throw 99; } }
+        if (typeof value === "boolean") {
+            if (calls !== start + 3) {
+                throw 99;
+            }
+        }
+
         return value;
     }
+
     return identity;
 }
-function missingFactory(): Function<Receipt<int>, [value: int]> | undefined { return undefined; }
+
+function missingFactory(): Function<Receipt<int>, [value: int]> | undefined {
+    return undefined;
+}
+
 function scalarFactory() {
     let calls = 0;
-    function select<T>(value: T): T { calls += 1; return value; }
+    function select<T>(value: T): T {
+        calls += 1;
+        return value;
+    }
+
     return select;
 }
+
 function arrayFactory() {
     let calls = 0;
-    function select<T>(value: T): T[] { calls += 1; return [value]; }
+    function select<T>(value: T): T[] {
+        calls += 1;
+        return [value];
+    }
+
     return select;
 }
-function increment(value: int): int { return value + 1; }
+
+function increment(value: int): int {
+    return value + 1;
+}
+
 function callbackFactory(start: int) {
     let calls = start;
     function invoke<T>(action: Function<T, [value: T]>, value: T): Receipt<T> {
         calls += 1;
-        return { value: action(value), calls: calls };
+        return {
+            value: action(value), calls: calls
+        };
     }
+
     return invoke;
 }
-type Receipt<T> = { value: T; calls: int; };
-type Holder = { run: Function<Receipt<int>, [value: int]>; };
+
+type Receipt<T> = {
+    value: T;
+    calls: int;
+};
+
+type Holder = {
+    run: Function<Receipt<int>, [value: int]>;
+};
+
 function make(start: int) {
     let calls = start;
     function select<T>(value: T): Receipt<T> {
         calls += 1;
-        return { value: value, calls: calls };
+        return {
+            value: value, calls: calls
+        };
     }
+
     return select;
 }
+
 function doubleFactory(start: int) {
     let calls = start;
     function select<T>(value: T): Receipt<T> {
         calls += 2;
-        return { value: value, calls: calls };
+        return {
+            value: value, calls: calls
+        };
     }
+
     return select;
 }
+
 function inferredFactory(start: int) {
     let calls = start;
     function select<T>(left: T, right: T) {
         calls += 1;
-        if (calls === start + 1) { return left; }
+        if (calls === start + 1) {
+            return left;
+        }
+
         return right;
     }
+
     return select;
 }
+
 function reducer() {
     let calls = 0;
     function first<T>(left: T, right: T): T {
         calls += 1;
         return calls === 4 ? right : left;
     }
+
     return first;
 }
+
 function predicate() {
     let calls = 0;
     function accept<T>(value: T): boolean {
         calls += 1;
         return calls === 2;
     }
+
     return accept;
 }
+
 function comparator() {
     let seen = 0;
     function compare<T>(left: T, right: T): int {
-        if (typeof left === "string") { return seen; }
+        if (typeof left === "string") {
+            return seen;
+        }
+
         seen = 1;
         return 0;
     }
+
     return compare;
 }
+
 function defaultFactory() {
     let calls = 0;
-    function next(): int { calls += 1; return calls; }
-    function select<T>(value: T, offset: int = next()): Receipt<T> {
-        return { value: value, calls: offset };
+    function next(): int {
+        calls += 1;
+        return calls;
     }
+
+    function select<T>(value: T, offset: int = next()): Receipt<T> {
+        return {
+            value: value, calls: offset
+        };
+    }
+
     return select;
 }
+
 function restFactory() {
     let calls = 0;
     function select<T>(fallback: T, ...values: T[]): Receipt<T> {
         calls += 1;
-        return { value: fallback, calls: calls + values.length };
+        return {
+            value: fallback, calls: calls + values.length
+        };
     }
+
     return select;
 }
+
 function genericFactory<T>(seed: T, start: int) {
     let calls = start;
     function select<U>(value: U): Receipt<U> {
         calls += 1;
-        if (typeof seed === "string") { calls += 1; }
-        return { value: value, calls: calls };
+        if (typeof seed === "string") {
+            calls += 1;
+        }
+
+        return {
+            value: value, calls: calls
+        };
     }
+
     return select;
 }
+
 function workload(n: int, seed: int, input: string): int[][] {
     const output: int[][] = [];
     for (let i = 0; i < n; i += 1) {
@@ -143,6 +237,7 @@ function workload(n: int, seed: int, input: string): int[][] {
             firstValue = first.value;
             firstCalls = first.calls;
         }
+
         const generic = action("generic");
         const owned: Function<Receipt<string>, [value: Owned<string>]> = action;
         const last = owned("owner");
@@ -150,7 +245,9 @@ function workload(n: int, seed: int, input: string): int[][] {
         const mapped = [base, base + 1].map(mapper);
         const after = mapper(true);
         const recordAction = make(base + 20);
-        const holder: Holder = { run: recordAction };
+        const holder: Holder = {
+            run: recordAction
+        };
         const record = holder.run(base + 2);
         const arrayAction = make(base + 30);
         const actions: Function<Receipt<string>, [value: Owned<string>]>[] = [arrayAction];
@@ -182,6 +279,7 @@ function workload(n: int, seed: int, input: string): int[][] {
             overrideCalls = view(base, 9).calls;
             undefinedCalls = view(base, undefined).calls;
         }
+
         const defaultsAfter = defaults("after");
         const rest = restFactory();
         let emptyValue = 0;
@@ -194,6 +292,7 @@ function workload(n: int, seed: int, input: string): int[][] {
             emptyCalls = empty.calls;
             packedCalls = view(base + 1, base + 2, base + 3).calls;
         }
+
         const restAfter = rest("after", "one");
         const direct: Function<Receipt<int>, [value: int]> = make(base + 40);
         const directFirst = direct(base + 5);
@@ -209,21 +308,23 @@ function workload(n: int, seed: int, input: string): int[][] {
         const genericMapped = [base + 15, base + 16].map(genericFactory(base, base + 90));
         let selections = 0;
         let evaluations = 0;
-        const distinct: Function<Receipt<int>, [value: int]> = (selections++ === 0 ? make : doubleFactory)(base + 100 + evaluations++);
+        const distinct: Function<Receipt<int>, [value: int]> = (selections++=== 0 ? make : doubleFactory)(base + 100 + evaluations++);
         const distinctFirst = distinct(base + 17);
         const distinctSecond = distinct(base + 18);
-        const distinctMapped = [base + 19, base + 20].map((selections++ === 0 ? make : doubleFactory)(base + 110 + evaluations++));
+        const distinctMapped = [base + 19, base + 20].map((selections++=== 0 ? make : doubleFactory)(base + 110 + evaluations++));
         let nestedSelections = 0;
         let nestedEvaluations = 0;
-        const nested: Function<Receipt<int>, [value: int]> = (nestedSelections++ === 0 ? (nestedSelections++ === 1 ? make : doubleFactory) : doubleFactory)(base + 120 + nestedEvaluations++);
+        const nested: Function<Receipt<int>, [value: int]> = (nestedSelections++=== 0 ? (nestedSelections++=== 1 ? make : doubleFactory) : doubleFactory)(base + 120 + nestedEvaluations++);
         const nestedFirst = nested(base + 21);
         const nestedSecond = nested(base + 22);
-        const nestedMapped = [base + 23, base + 24].map((nestedSelections++ === 0 ? make : (nestedSelections++ === 3 ? doubleFactory : make))(base + 130 + nestedEvaluations++));
+        const nestedMapped = [base + 23, base + 24].map((nestedSelections++=== 0 ? make : (nestedSelections++=== 3 ? doubleFactory : make))(base + 130 + nestedEvaluations++));
         const inferred: Function<int, [left: int, right: int]> = inferredFactory(base + 140);
         const inferredFirst = inferred(base + 25, base + 26);
         const inferredSecond = inferred(base + 27, base + 28);
         const inferredMapped = [base + 29, base + 30].map(inferredFactory(base + 150));
-        const freshHolder: Holder = { run: make(base + 160) };
+        const freshHolder: Holder = {
+            run: make(base + 160)
+        };
         const freshRecord = freshHolder.run(base + 31);
         const freshActions: Function<Receipt<string>, [value: Owned<string>]>[] = [make(base + 170)];
         const freshStored = freshActions[0]("fresh");
@@ -231,18 +332,30 @@ function workload(n: int, seed: int, input: string): int[][] {
         const callbackFirst = callback(increment, base + 32);
         const callbackSecond = callback(increment, base + 33);
         const nullable: Function<Receipt<int>, [value: int]> | undefined = make(base + 190);
-        const nullableRecord = nullable?.(base + 35);
-        if (nullableRecord === undefined) { throw 99; }
+        const nullableRecord = nullable ?.(base + 35);
+        if (nullableRecord === undefined) {
+            throw 99;
+        }
+
         const absent = missingFactory();
         let skipped = 0;
-        const absentValue = absent?.(base + skipped++);
-        if (skipped !== 0) { throw 99; }
+        const absentValue = absent ?.(base + skipped++);
+        if (skipped !== 0) {
+            throw 99;
+        }
+
         const scalarView: Function<int | int[], [value: int]> = (true ? scalarFactory : arrayFactory)();
         const arrayView: Function<int | int[], [value: int]> = (false ? scalarFactory : arrayFactory)();
         const scalarResult = scalarView(base + 37);
         const arrayResult = arrayView(base + 38);
-        if (typeof scalarResult !== "number") { throw 99; }
-        if (typeof arrayResult === "number") { throw 99; }
+        if (typeof scalarResult !== "number") {
+            throw 99;
+        }
+
+        if (typeof arrayResult === "number") {
+            throw 99;
+        }
+
         const payload = payloadFactory(base + 200);
         let payloadInt = 0;
         let payloadString = 0;
@@ -251,23 +364,25 @@ function workload(n: int, seed: int, input: string): int[][] {
             const action = view((value: int): int => value + 1);
             payloadInt = action(base + 39);
         }
+
         {
             const view: Mutable<Function<Function<string, [value: Owned<string>]>, [value: Function<string, [value: Owned<string>]>]>> = payload;
             const action = view((value: Owned<string>): string => value + "!");
             payloadString = action(String(base)).length;
         }
+
         const payloadAfter = payload(true);
         const explicit = make(base + 210);
         const explicitInt = explicit<int>(base + 41);
         const explicitText = explicit<string>("typed");
         const explicitAfter = explicit(true);
         const optionalGeneric = true ? make(base + 230) : undefined;
-        const optionalResult = optionalGeneric?.<int>(base + 42);
+        const optionalResult = optionalGeneric ?. < int >(base + 42);
         const missingGeneric = false ? make(base + 240) : undefined;
         let optionalEffects = 0;
-        const optionalSkipped = missingGeneric?.<int>(optionalEffects++);
+        const optionalSkipped = missingGeneric ?. < int >(optionalEffects++);
         const optionalEmpty = true ? optionalEmptyFactory() : undefined;
-        const optionalValues: int[] | undefined = optionalEmpty?.();
+        const optionalValues: int[] | undefined = optionalEmpty ?.();
         const patterns = arrayPatternFactory(base + 260);
         let patternValue = 0;
         let patternCalls = 0;
@@ -277,10 +392,13 @@ function workload(n: int, seed: int, input: string): int[][] {
             patternValue = receipt.value;
             patternCalls = receipt.calls;
         }
+
         const patternText = patterns(["owner", "extra"]);
         const recordPatterns = recordPatternFactory(base + 270);
         const recordView: Mutable<Function<Receipt<int>, [box: Owned<PatternBox<int>>]>> = recordPatterns;
-        const patternRecord = recordView({ value: base + 44 });
+        const patternRecord = recordView({
+            value: base + 44
+        });
         const defaultPayload = payloadFactory(base + 280);
         let sumDefault = 0;
         let sumUndefined = 0;
@@ -293,36 +411,13 @@ function workload(n: int, seed: int, input: string): int[][] {
             sumSpread = sum(7, ...[3, 4]);
             view(sumPayload);
         }
+
         const defaultPayloadAfter = defaultPayload(true);
-        output.push([firstValue, firstCalls, generic.value.length, generic.calls, last.value.length, last.calls,
-            mapped[0].value, mapped[1].value, mapped[0].calls, mapped[1].calls, after.value ? 1 : 0, after.calls,
-            record.value, record.calls, stored.value.length, stored.calls, input.length,
-            reduced, reducedAfter.length, reversed, reversedAfter.length, found, searchedAfter ? 1 : 0,
-            sortable[0], copied[0], sortedAfter,
-            defaultValue, omittedCalls, overrideCalls, undefinedCalls, defaultsAfter.calls, defaultsAfter.value.length,
-            emptyValue, emptyCalls, packedCalls, restAfter.calls, restAfter.value.length,
-            directFirst.value, directFirst.calls, directSecond.value, directSecond.calls,
-            factoryMapped[0].value, factoryMapped[1].value, factoryMapped[0].calls, factoryMapped[1].calls,
-            aliasValue.value, aliasValue.calls, selectedMapped[0].value, selectedMapped[1].value,
-            selectedMapped[0].calls, selectedMapped[1].calls,
-            genericFirst.value, genericFirst.calls, genericSecond.calls, genericMapped[0].value, genericMapped[1].value,
-            genericMapped[0].calls, genericMapped[1].calls,
-            distinctFirst.value, distinctFirst.calls, distinctSecond.calls,
-            distinctMapped[0].value, distinctMapped[1].value, distinctMapped[0].calls, distinctMapped[1].calls,
-            selections, evaluations,
-            nestedFirst.value, nestedFirst.calls, nestedSecond.calls,
-            nestedMapped[0].value, nestedMapped[1].value, nestedMapped[0].calls, nestedMapped[1].calls,
-            nestedSelections, nestedEvaluations,
-            inferredFirst, inferredSecond, inferredMapped[0], inferredMapped[1],
-            freshRecord.value, freshRecord.calls, freshStored.value.length, freshStored.calls,
-            callbackFirst.value, callbackFirst.calls, callbackSecond.value, callbackSecond.calls,
-            nullableRecord.value, nullableRecord.calls, absentValue === undefined ? 1 : 0, scalarResult, arrayResult[0],
-            payloadInt, payloadString, payloadAfter ? 1 : 0,
-            explicitInt.value, explicitInt.calls, explicitText.value.length, explicitText.calls, explicitAfter.calls,
-            optionalResult?.value ?? -1, optionalResult?.calls ?? -1, optionalSkipped === undefined ? 1 : 0, optionalEffects, optionalValues?.length ?? -1,
-            patternValue, patternCalls, patternText.value.length, patternText.calls, patternRecord.value, patternRecord.calls,
-            sumDefault, sumUndefined, sumSpread, defaultPayloadAfter ? 1 : 0]);
+        output.push([firstValue, firstCalls, generic.value.length, generic.calls, last.value.length, last.calls, mapped[0].value, mapped[1].value, mapped[0].calls, mapped[1].calls, after.value ? 1 : 0, after.calls, record.value, record.calls, stored.value.length, stored.calls, input.length, reduced, reducedAfter.length, reversed, reversedAfter.length, found, searchedAfter ? 1 : 0, sortable[0], copied[0], sortedAfter, defaultValue, omittedCalls, overrideCalls, undefinedCalls, defaultsAfter.calls, defaultsAfter.value.length, emptyValue, emptyCalls, packedCalls, restAfter.calls, restAfter.value.length, directFirst.value, directFirst.calls, directSecond.value, directSecond.calls, factoryMapped[0].value, factoryMapped[1].value, factoryMapped[0].calls, factoryMapped[1].calls, aliasValue.value, aliasValue.calls, selectedMapped[0].value, selectedMapped[1].value, selectedMapped[0].calls, selectedMapped[1].calls, genericFirst.value, genericFirst.calls, genericSecond.calls, genericMapped[0].value, genericMapped[1].value, genericMapped[0].calls, genericMapped[1].calls, distinctFirst.value, distinctFirst.calls, distinctSecond.calls, distinctMapped[0].value, distinctMapped[1].value, distinctMapped[0].calls, distinctMapped[1].calls, selections, evaluations, nestedFirst.value, nestedFirst.calls, nestedSecond.calls, nestedMapped[0].value, nestedMapped[1].value, nestedMapped[0].calls, nestedMapped[1].calls, nestedSelections, nestedEvaluations, inferredFirst, inferredSecond, inferredMapped[0], inferredMapped[1], freshRecord.value, freshRecord.calls, freshStored.value.length, freshStored.calls, callbackFirst.value, callbackFirst.calls, callbackSecond.value, callbackSecond.calls, nullableRecord.value, nullableRecord.calls, absentValue === undefined ? 1 : 0, scalarResult, arrayResult[0], payloadInt, payloadString, payloadAfter ? 1 : 0, explicitInt.value, explicitInt.calls, explicitText.value.length, explicitText.calls, explicitAfter.calls, optionalResult ?. value ?? - 1, optionalResult ?. calls ?? - 1, optionalSkipped === undefined ? 1 : 0, optionalEffects, optionalValues ?. length ?? - 1, patternValue, patternCalls, patternText.value.length, patternText.calls, patternRecord.value, patternRecord.calls, sumDefault, sumUndefined, sumSpread, defaultPayloadAfter ? 1 : 0]);
     }
+
     return output;
 }
-function main() {}
+
+function main() {
+}

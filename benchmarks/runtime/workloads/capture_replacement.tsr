@@ -1,13 +1,44 @@
-type User = { name: string; value: int; };
+type User = {
+    name: string;
+    value: int;
+};
+
 function workload(n: int, seed: int): int {
- let sum = seed; let i = 0; while (i < n) { const action = make({name: "Pat", value: i}, seed);
- sum = sum + action() + action(); const take = onceValue({name: "Pat", value: seed}); sum = sum + take(); i = i + 1;
- } return sum;
+    let sum = seed;
+    let i = 0;
+    while (i < n) {
+        const action = make({
+            name: "Pat", value: i
+        }, seed);
+        sum = sum + action() + action();
+        const take = onceValue({
+            name: "Pat", value: seed
+        });
+        sum = sum + take();
+        i = i + 1;
+    }
+
+    return sum;
 }
+
 function make(user: User, step: int): () => int {
- let saved = user;
- return (): int => { const previous = saved.value; saved = {name: "Sam", value: previous + step};
- return previous + saved.value + 1; };
+    let saved = user;
+    return (): int => {
+        const previous = saved.value;
+        saved = {
+            name: "Sam", value: previous + step
+        };
+        return previous + saved.value + 1;
+    };
 }
-function onceValue(user: User): () => int { return (): int => { const moved = user; return moved.value; }; }
-function main() { console.log(workload(2, 7)); }
+
+function onceValue(user: User): () => int {
+    return (): int => {
+        const moved = user;
+        return moved.value;
+    };
+}
+
+function main() {
+    console.log(workload(2, 7));
+}

@@ -1,11 +1,32 @@
 function workload(n: int, seed: int, input: string): string[][] {
- const output:string[][]=[];let i=0;
- while(i<n){
-  let trace="";let count=0;let filtered="";let nested="";
-  for(const character of input){trace=trace+character+"|";count+=1;if(character!=="é"){filtered=filtered+character;}}
-  for(const outer of input){for(const inner of "ab"){nested=nested+outer+inner;}}
-  output.push([String(i+seed)+":"+trace,String(count),filtered,nested]);i=i+1;
- }
- return output;
+    const output: string[][] = [];
+    let i = 0;
+    while (i < n) {
+        let trace = "";
+        let count = 0;
+        let filtered = "";
+        let nested = "";
+        for (const character of input) {
+            trace = trace + character + "|";
+            count += 1;
+            if (character !== "é") {
+                filtered = filtered + character;
+            }
+        }
+
+        for (const outer of input) {
+            for (const inner of "ab") {
+                nested = nested + outer + inner;
+            }
+        }
+
+        output.push([String(i + seed) + ":" + trace, String(count), filtered, nested]);
+        i = i + 1;
+    }
+
+    return output;
 }
-function main(){const result=workload(3,0,"Aé🙂");}
+
+function main() {
+    const result = workload(3, 0, "Aé🙂");
+}

@@ -3,7 +3,7 @@ type Row = {
 };
 
 function main() {
-    const rows:(Row | null) [] = [{
+    const rows: (Row | null)[] = [{
         label: "first"
     }, null, {
         label: ""

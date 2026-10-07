@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -14,7 +15,7 @@ test('Type aliases retain paired source forms, independent oracle and runtime ho
   const source=read('./'+name);assertTypeAliasesSource(source,row,kind);
   assert.throws(()=>assertTypeAliasesSource(source+' ',row,kind));
   assert.throws(()=>assertTypeAliasesSource(source,{...row,operationsPerIteration:2},kind));
-  for(const changed of [source.replace('const ids:Ids=','const ids:(int|string)[]='),source.replace('type Pair = [Count, string];','type Pair = [int, string];'),source.replace('return output;','return [];')]){
+  for(const changed of [replaceCodeSnippet(source, 'const ids:Ids=','const ids:(int|string)[]='),replaceCodeSnippet(source, 'type Pair = [Count, string];','type Pair = [int, string];'),replaceCodeSnippet(source, 'return output;','return [];')]){
    const key=kind==='native'?'sourceSha256':'counterpartSha256';
    assert.throws(()=>assertTypeAliasesSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   }

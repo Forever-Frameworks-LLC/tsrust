@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -14,7 +15,7 @@ test('Scalar concatenation retains sources, independent results and execution ho
   const source=read('./'+path);assertStringConcatenationSource(source,row,kind);
   assert.throws(()=>assertStringConcatenationSource(source+' ',row,kind));
   assert.throws(()=>assertStringConcatenationSource(source,{...row,operationsPerIteration:2},kind));
-  const changed=source.replace('text+=k;text+=flag;','text+=k;');
+  const changed=replaceCodeSnippet(source, 'text+=k;text+=flag;','text+=k;');
   const key=kind==='native'?'sourceSha256':'counterpartSha256';
   assert.throws(()=>assertStringConcatenationSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
  }

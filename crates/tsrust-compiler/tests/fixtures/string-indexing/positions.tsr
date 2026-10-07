@@ -1,6 +1,8 @@
 import { strictEqual } from "std:testing";
 
-type Token = { text: string; };
+type Token = {
+    text: string;
+};
 
 function initial(word: string): string {
     return word[0];
@@ -15,15 +17,17 @@ function next(counter: int[]): int {
     return counter[0];
 }
 
-type Box = { label: string | undefined; };
+type Box = {
+    label: string | undefined;
+};
 
 function show(text: string | undefined): string {
-    const first = text?.[0];
+    const first = text ?. [0];
     return first ?? "none";
 }
 
 function second(text: string | null): string | undefined {
-    return text?.[1];
+    return text ?. [1];
 }
 
 function main() {
@@ -32,13 +36,15 @@ function main() {
     strictEqual(second("xy") === "y", true);
     strictEqual(second(null) === undefined, true);
     const maybe: string | undefined = "ok";
-    strictEqual(maybe?.[1] === "k", true);
+    strictEqual(maybe ?. [1] === "k", true);
     const absent: string | undefined = undefined;
-    strictEqual(absent?.[0] === undefined, true);
-    const box: Box = { label: "tag" };
-    strictEqual(box.label?.[2] === "g", true);
-    strictEqual((box.label?.[0] ?? "") + "!", "t!");
-    const upper = maybe?.[0]?.toUpperCase();
+    strictEqual(absent ?. [0] === undefined, true);
+    const box: Box = {
+        label: "tag"
+    };
+    strictEqual(box.label ?. [2] === "g", true);
+    strictEqual((box.label ?. [0] ?? "") + "!", "t!");
+    const upper = maybe ?. [0] ?. toUpperCase();
     strictEqual(upper === "O", true);
     const text = "abc";
     strictEqual(text[0], "a");
@@ -51,8 +57,10 @@ function main() {
     strictEqual(text, "abc");
     strictEqual(initial("word"), "w");
     strictEqual(make()[1], "y");
-    strictEqual("literal"[3], "e");
-    const token: Token = { text: "field" };
+    strictEqual("literal" [3], "e");
+    const token: Token = {
+        text: "field"
+    };
     strictEqual(token.text[4], "d");
     const words = ["one", "two"];
     strictEqual(words[1][0], "t");
@@ -66,6 +74,7 @@ function main() {
     for (let index = 2; index >= 0; index--) {
         spelled += text[index];
     }
+
     strictEqual(spelled, "cba");
     let caught = "";
     try {
@@ -75,14 +84,16 @@ function main() {
             caught = "range";
         }
     }
+
     strictEqual(caught, "range");
     let negative = "";
     try {
-        position = -1;
+        position = - 1;
         strictEqual(text[position], "never");
     } catch (error) {
         negative = "range";
     }
+
     strictEqual(negative, "range");
     const present: string | undefined = "ok";
     if (present !== undefined) {

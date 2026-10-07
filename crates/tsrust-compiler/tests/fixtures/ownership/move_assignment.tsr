@@ -1,7 +1,11 @@
-type User = { name: string; };
+type User = {
+    name: string;
+};
 
 function main() {
-    const user: User = { name: "Pat" };
+    const user: User = {
+        name: "Pat"
+    };
     const backup = user;
     console.log(backup.name);
 }

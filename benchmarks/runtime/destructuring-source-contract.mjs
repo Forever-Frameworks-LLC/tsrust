@@ -1,3 +1,4 @@
+import {containsCodeSnippet} from './source-contract-tokens.mjs';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {destructuringIds} from './destructuring-oracle.mjs';
@@ -7,9 +8,9 @@ export function assertDestructuringSource(source,row,kind) {
  if(createHash('sha256').update(source).digest('hex')!==(kind==='native'?row.sourceSha256:row.counterpartSha256))throw Error('Destructuring source fingerprint');
  if(row.operationsPerIteration!==1||row.iterations!==2048||row.operationUnit!=='One complete destructuring scenario iteration')throw Error('Destructuring scenario denominator');
  if(row.resultEncoding!=='array-shape-scalar-v1')throw Error('Destructuring observer protocol');
- if(!source.includes('while (i < n)')||!source.includes('return output;')||!source.includes('output.push(['))throw Error('Actual destructuring scenario and complete retention');
+ if(!containsCodeSnippet(source, 'while (i < n)')||!containsCodeSnippet(source, 'return output;')||!containsCodeSnippet(source, 'output.push(['))throw Error('Actual destructuring scenario and complete retention');
  for(const needle of ['const [count, word] = pair(base, input);','const { x, y, label } = point;','for (const [name, amount] of pairs)'])
-  if(!source.includes(needle))throw Error('Actual destructuring pattern: '+needle);
+  if(!containsCodeSnippet(source, needle))throw Error('Actual destructuring pattern: '+needle);
  if(kind==='typescript') {
   const file=ts.createSourceFile(row.id+'.ts',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TS);let arrays=0,objects=0,workload;
   function visit(node){

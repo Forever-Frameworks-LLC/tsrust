@@ -1,7 +1,18 @@
-function identity<T>(value: T): T { return value; }
-function first<T>(...values: T[]): T { return values.remove(0); }
-function size<T>(values: T[]): int { return values.length; }
-function offset<T>(value: T, index: int = 0): T { return value; }
+function identity<T>(value: T): T {
+    return value;
+}
+
+function first<T>(...values: T[]): T {
+    return values.remove(0);
+}
+
+function size<T>(values: T[]): int {
+    return values.length;
+}
+
+function offset<T>(value: T, index: int = 0): T {
+    return value;
+}
 
 function workload(n: int, seed: int, input: string): int[][] {
     const output: int[][] = [];
@@ -23,6 +34,9 @@ function workload(n: int, seed: int, input: string): int[][] {
         output.push([numberResult, stringLength, arrayFirst, headResult, selected, remaining, input.length]);
         i += 1;
     }
+
     return output;
 }
-function main() {}
+
+function main() {
+}

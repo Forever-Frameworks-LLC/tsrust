@@ -4,14 +4,19 @@ function main() {
     let calls = 0;
     function first<T>(fallback: T, offset: int = 0, ...values: T[]): T {
         calls += 1;
-        if (values.length === 0) { return fallback; }
+        if (values.length === 0) {
+            return fallback;
+        }
+
         return values.remove(offset);
     }
+
     {
         const action = first;
         strictEqual(action(7), 7);
         strictEqual(action("fallback", undefined, "a", "b"), "a");
         strictEqual(action(0, 1, 4, 5), 5);
     }
+
     strictEqual(calls, 3);
 }

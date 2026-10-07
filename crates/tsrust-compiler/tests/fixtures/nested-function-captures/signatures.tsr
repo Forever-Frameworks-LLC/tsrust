@@ -9,8 +9,10 @@ function main() {
             seen.push(value);
             total += value;
         }
+
         return values.length + label.length;
     }
+
     strictEqual(add("a"), 1);
     strictEqual(add("b", 1), 2);
     strictEqual(add("c", 2, 3), 3);
@@ -26,6 +28,7 @@ function main() {
         calls += 1;
         return run(base[0]);
     }
+
     strictEqual(each((value: int): int => value + 1), 11);
     const step = [5];
     strictEqual(each((value: int): int => value + step.length), 11);
@@ -40,6 +43,7 @@ function main() {
         count += 1;
         return value;
     }
+
     strictEqual(note<int>(1), 1);
     strictEqual(note("a"), "a");
     strictEqual(note(2), 2);
@@ -57,10 +61,13 @@ function main() {
                     descend(current[0] - 1);
                 }
             }
+
             visit();
         }
+
         level();
     }
+
     descend(2);
     strictEqual(log.join(","), "2,1,0");
 
@@ -70,15 +77,19 @@ function main() {
         if (value === 0) {
             return true;
         }
+
         return odd(value - 1);
     }
+
     function odd(value: int): boolean {
         hits += 1;
         if (value === 0) {
             return false;
         }
+
         return even(value - 1);
     }
+
     strictEqual(even(4), true);
     strictEqual(hits, 5);
 }

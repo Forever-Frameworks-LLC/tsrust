@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -16,8 +17,8 @@ test('numeric toLocaleString pair appends to the manifest and binds actual guard
   assert.equal(row.measured,false);assert.equal(row.measurementStatus,'pending-number-methods-milestone');assert.equal(reportCategory(row.id),'numbers');
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertNumberLocaleStringSource(source,row,kind);
-   assert.throws(()=>assertNumberLocaleStringSource(source.replace('value.toLocaleString()','value.toString()'),row,kind));
-   assert.throws(()=>assertNumberLocaleStringSource(source.replace('return output;','return [];'),row,kind));
+   assert.throws(()=>assertNumberLocaleStringSource(replaceCodeSnippet(source, 'value.toLocaleString()','value.toString()'),row,kind));
+   assert.throws(()=>assertNumberLocaleStringSource(replaceCodeSnippet(source, 'return output;','return [];'),row,kind));
    assert.throws(()=>assertNumberLocaleStringSource(source,{...row,operationsPerIteration:2},kind));
    assert.throws(()=>assertNumberLocaleStringSource(source+' ',row,kind));
   }

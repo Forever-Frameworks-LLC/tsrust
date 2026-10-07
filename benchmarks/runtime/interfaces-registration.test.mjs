@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -14,7 +15,7 @@ test('Interfaces retain paired source forms, independent oracle and runtime hook
   const source=read('./'+name);assertInterfacesSource(source,row,kind);
   assert.throws(()=>assertInterfacesSource(source+' ',row,kind));
   assert.throws(()=>assertInterfacesSource(source,{...row,operationsPerIteration:2},kind));
-  for(const changed of [source.replace('interface Player extends Named, Positioned { score: int, }','interface Player { name: string; x: int; y?: int; score: int, }'),source.replace('interface Named { name: string; }','type Named = { name: string; };'),source.replace('return output;','return [];')]){
+  for(const changed of [replaceCodeSnippet(source, 'interface Player extends Named, Positioned { score: int, }','interface Player { name: string; x: int; y?: int; score: int, }'),replaceCodeSnippet(source, 'interface Named { name: string; }','type Named = { name: string; };'),replaceCodeSnippet(source, 'return output;','return [];')]){
    const key=kind==='native'?'sourceSha256':'counterpartSha256';
    assert.throws(()=>assertInterfacesSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   }

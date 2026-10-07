@@ -1,20 +1,37 @@
-type State = { value: int; };
+type State = {
+    value: int;
+};
+
 function workload(n: int, seed: int): int {
     let checksum = seed;
     let i = 0;
     while (i < n) {
-        const left: State = { value: i + seed };
-        const right: State = { value: i + seed };
-        const actions: (() => int)[] = [
-            (): int => { left.value = left.value + 1; return left.value; },
-            (): int => { right.value = right.value + 2; return right.value; }
-        ];
-        const mapped = actions.map((action: Mutable<Function<int>>): int => { return action(); });
-        const flattened = actions.flatMap((action: Mutable<Function<int>>, index: int): int[] => { return [action(), index]; });
+        const left: State = {
+            value: i + seed
+        };
+        const right: State = {
+            value: i + seed
+        };
+        const actions: (() => int)[] = [(): int => {
+            left.value = left.value + 1;
+            return left.value;
+        }, (): int => {
+            right.value = right.value + 2;
+            return right.value;
+        }];
+        const mapped = actions.map((action: Mutable<Function<int>>): int => {
+            return action();
+        });
+        const flattened = actions.flatMap((action: Mutable<Function<int>>, index: int): int[] => {
+            return [action(), index];
+        });
         checksum = checksum + mapped[0] + mapped[1] + flattened[0] + flattened[1] + flattened[2] + flattened[3] + actions[0]() + actions[1]();
         i = i + 1;
     }
+
     return checksum;
 }
 
-function main() { console.log(workload(2, 7)); }
+function main() {
+    console.log(workload(2, 7));
+}

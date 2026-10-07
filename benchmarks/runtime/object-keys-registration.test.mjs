@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -16,8 +17,8 @@ test('Object.keys pair appends to the manifest and binds actual guarded sources'
   assert.equal(row.measured,false);assert.equal(row.measurementStatus,'pending-object-functions-milestone');assert.equal(reportCategory(row.id),'other');
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertObjectKeysSource(source,row,kind);
-   assert.throws(()=>assertObjectKeysSource(source.replace('Object.keys(source)','Object.values(source)'),row,kind));
-   assert.throws(()=>assertObjectKeysSource(source.replace('return output;','return [];'),row,kind));
+   assert.throws(()=>assertObjectKeysSource(replaceCodeSnippet(source, 'Object.keys(source)','Object.values(source)'),row,kind));
+   assert.throws(()=>assertObjectKeysSource(replaceCodeSnippet(source, 'return output;','return [];'),row,kind));
    assert.throws(()=>assertObjectKeysSource(source,{...row,operationsPerIteration:2},kind));
    assert.throws(()=>assertObjectKeysSource(source+' ',row,kind));
   }

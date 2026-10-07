@@ -27,6 +27,26 @@ When backend witnesses can share a native compilation, compile them together in 
 
 ## Formatting acceptance
 
+Run `node tools/format-project.mjs` before every source checkpoint, not only after
+editing formatter code. This formats every `.tsr` file in the project, excluding
+`.git`, `node_modules`, `target` and symlinks. Set `TSRUST` to the current verified
+compiler when using the shared warm target. The ordinary `tsrust format` command
+provides the same recursive formatting behavior for user projects.
+
+The checkpoint command holds pre-format benchmark sources in memory and refreshes
+manifest fingerprints only when the pinned source matches those bytes or the
+committed baseline and all code tokens remain unchanged. It preserves literal
+contents, template chunks and operators. Source fingerprints identify exact inputs
+in immutable benchmark evidence; formatting never changes operation counts, sample
+counts, oracles or measurement status. Register new workload hashes after formatting.
+Semantic source changes still require their ordinary implementation acceptance.
+
+Catalog excerpt and benchmark scenario checks compare code tokens or canonical
+formatting so layout changes do not create false failures. Keep their native output
+assertions and mutation rejection controls. Store Node-only references as `.ts`,
+not `.tsr`; intentionally malformed source can remain in inline rejection witnesses.
+Do not hide formatting failures or silently bypass the normal compiler checks.
+
 Every added or modified Tsrust acceptance fixture must also exercise formatting.
 Format successful source in memory, require a stable second pass, then check or
 execute the formatted source with the original assertions and expected results.

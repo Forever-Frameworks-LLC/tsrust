@@ -1,6 +1,15 @@
-type Item = { label: string; };
-function same(left: ReadOnly<int | string>, right: ReadOnly<int | string>): boolean { return left === right; }
-function isB(value: ReadOnly<int | string>): boolean { return value === "b"; }
+type Item = {
+    label: string;
+};
+
+function same(left: ReadOnly<int | string>, right: ReadOnly<int | string>): boolean {
+    return left === right;
+}
+
+function isB(value: ReadOnly<int | string>): boolean {
+    return value === "b";
+}
+
 function main() {
     const v: (int | string)[] = [3, "b", 1, "b"];
     console.log(v.findIndex((x) => x === "b"), v.findLastIndex((x) => x === "b"), v.filter((x) => x === 3).length, v.some((x) => x !== 3 && x !== "b"));
@@ -16,9 +25,18 @@ function main() {
     const u: int | string | undefined = undefined;
     const w: int | string | null = 4;
     console.log(u === w, w === 4, u === 4, w !== u);
-    const items: (Item | string)[] = [{ label: "L" }, "s"];
+    const items: (Item | string)[] = [{
+        label: "L"
+    }, "s"];
     console.log(items[1] === "s", items[0] === "s", items.findIndex((item) => item === "s"));
     let count = 0;
-    for (const x of v) { if (x === "b") { count += 1; } else if (x === 1) { count += 10; } }
+    for (const x of v) {
+        if (x === "b") {
+            count += 1;
+        } else if (x === 1) {
+            count += 10;
+        }
+    }
+
     console.log(count);
 }

@@ -10,7 +10,7 @@ type Pair<T> = {
 
 type Holder = {
     size: Size;
-    rows: int[] [];
+    rows: int[][];
     flag: boolean | undefined;
     code: int | string;
 };
@@ -68,7 +68,7 @@ function main() {
     const single = Object.values(one);
     single.push("y");
     console.log(single, Object.entries(one), one.only);
-    const read =(): int => {
+    const read = (): int => {
         return Object.values(holder.size).length + Object.entries(pair).length;
     };
     console.log(read(), read());

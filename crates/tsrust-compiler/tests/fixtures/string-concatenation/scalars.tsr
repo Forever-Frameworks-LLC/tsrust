@@ -1,6 +1,10 @@
 import { strictEqual } from "std:testing";
 
-type Item = { name: string; count: int; price: number; };
+type Item = {
+    name: string;
+    count: int;
+    price: number;
+};
 
 function label(item: Item): string {
     return item.name + " x" + item.count + " @ " + item.price;
@@ -26,7 +30,9 @@ function main() {
     strictEqual(count + 1 + "a", "4a");
     strictEqual("a" + count + 1, "a31");
     strictEqual("a" + (count + 1), "a4");
-    const item: Item = { name: "pen", count: 2, price: 1.5 };
+    const item: Item = {
+        name: "pen", count: 2, price: 1.5
+    };
     strictEqual(label(item), "pen x2 @ 1.5");
     let text = "id";
     text += 7;
@@ -40,7 +46,7 @@ function main() {
     strictEqual("u" + maybe, "uundefined");
     const counter = [0];
     strictEqual("" + step(counter) + step(counter), "12");
-    strictEqual("x" + -1, "x-1");
+    strictEqual("x" + - 1, "x-1");
     strictEqual("big " + 1e21, "big 1e+21");
     strictEqual("nan " + NaN + " " + Infinity, "nan NaN Infinity");
     const parts = [1, 2, 3].map((value) => "#" + value);

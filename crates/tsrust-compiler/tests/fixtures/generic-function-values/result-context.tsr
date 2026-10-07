@@ -1,16 +1,28 @@
-function empty<T>(): T[] { return []; }
+function empty<T>(): T[] {
+    return [];
+}
+
 function make(start: int) {
     let calls = start;
-    function fresh<T>(): T[] { calls += 1; console.log(calls); return []; }
+    function fresh<T>(): T[] {
+        calls += 1;
+        console.log(calls);
+        return [];
+    }
+
     return fresh;
 }
+
 function main() {
     const plain = empty;
     const plainNumbers: int[] = plain();
     const plainStrings: string[] = plain();
     plainNumbers.push(7);
     plainStrings.push("plain");
-    if (plainNumbers[0] !== 7 || plainStrings[0] !== "plain") { throw 99; }
+    if (plainNumbers[0] !== 7 || plainStrings[0] !== "plain") {
+        throw 99;
+    }
+
     const action = make(10);
     const numbers: int[] = action();
     const strings: string[] = action();

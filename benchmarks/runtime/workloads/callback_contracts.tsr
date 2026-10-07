@@ -1,9 +1,33 @@
 function workload(n: int, seed: int): int {
- let sum = 0; let i = 0; while (i < n) {
- const action = (value: int, flag: boolean): int => { if (flag) { return value + seed; } return value; };
- sum = sum + forward(action, i); const onceAction = (): int => { return seed; }; sum = sum + single(onceAction); i = i + 1;
- } return sum;
+    let sum = 0;
+    let i = 0;
+    while (i < n) {
+        const action = (value: int, flag: boolean): int => {
+            if (flag) {
+                return value + seed;
+            }
+
+            return value;
+        };
+        sum = sum + forward(action, i);
+        const onceAction = (): int => {
+            return seed;
+        };
+        sum = sum + single(onceAction);
+        i = i + 1;
+    }
+
+    return sum;
 }
-function forward(action: Mutable<Function<int, [value: int, flag: boolean]>>, value: int): int { return action(value, true); }
-function single(action: Once<Function<int>>): int { return action(); }
-function main() { console.log(workload(2, 7)); }
+
+function forward(action: Mutable<Function<int, [value: int, flag: boolean]>>, value: int): int {
+    return action(value, true);
+}
+
+function single(action: Once<Function<int>>): int {
+    return action();
+}
+
+function main() {
+    console.log(workload(2, 7));
+}

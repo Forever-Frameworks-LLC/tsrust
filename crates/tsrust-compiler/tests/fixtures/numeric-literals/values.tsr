@@ -1,14 +1,26 @@
-import {strictEqual} from "std:testing";
-enum Flags{Read=0x1,Write=0b10,All=Read|Write,High=0o10}
-function main(){
- strictEqual(String(Flags.All),"3");strictEqual(String(Flags.High),"8");
- strictEqual(7_654_321,7654321);
- strictEqual(0b1010_0011,163);strictEqual(0B1111,15);
- strictEqual(0o7_7,63);strictEqual(0O12,10);
- strictEqual(0xDE_AD,57005);strictEqual(0XfF,255);
- strictEqual(-0x80,-128);strictEqual(+0b11,3);
- const fraction:number=1_234.5_6e+0_1;strictEqual(fraction,12345.6);
- const wide:number=0xffff_ffff_ffff_ffff;strictEqual(wide,18446744073709551616.0);
- const ordinary:number=1_000;strictEqual(ordinary,1000.0);
- const tiny:number=.1_2e-0_1;strictEqual(tiny,0.012);
+import { strictEqual } from "std:testing";
+enum Flags {
+    Read = 0x1, Write = 0b10, All = Read | Write, High = 0o10
+}
+
+function main() {
+    strictEqual(String(Flags.All), "3");
+    strictEqual(String(Flags.High), "8");
+    strictEqual(7_654_321, 7654321);
+    strictEqual(0b1010_0011, 163);
+    strictEqual(0B1111, 15);
+    strictEqual(0o7_7, 63);
+    strictEqual(0O12, 10);
+    strictEqual(0xDE_AD, 57005);
+    strictEqual(0XfF, 255);
+    strictEqual(- 0x80, - 128);
+    strictEqual(+ 0b11, 3);
+    const fraction: number = 1_234.5_6e+0_1;
+    strictEqual(fraction, 12345.6);
+    const wide: number = 0xffff_ffff_ffff_ffff;
+    strictEqual(wide, 18446744073709551616.0);
+    const ordinary: number = 1_000;
+    strictEqual(ordinary, 1000.0);
+    const tiny: number = .1_2e-0_1;
+    strictEqual(tiny, 0.012);
 }

@@ -7,10 +7,12 @@ function defaults() {
         console.log(calls);
         return calls;
     }
+
     function select<T>(value: T, offset: int = next()): T {
         console.log(offset);
         return value;
     }
+
     return select;
 }
 
@@ -21,6 +23,7 @@ function rest() {
         console.log(calls, values.length);
         return fallback;
     }
+
     return select;
 }
 
@@ -32,6 +35,7 @@ function main() {
         strictEqual(view(8, 9), 8);
         strictEqual(view(10, undefined), 10);
     }
+
     strictEqual(action('after'), 'after');
     const packed = rest();
     {
@@ -39,5 +43,6 @@ function main() {
         strictEqual(view(1), 1);
         strictEqual(view(2, 3, 4), 2);
     }
+
     strictEqual(packed('after', 'one'), 'after');
 }

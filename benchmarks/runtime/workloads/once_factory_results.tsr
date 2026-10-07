@@ -1,4 +1,6 @@
-function main() { console.log(workload(2, 7)); }
+function main() {
+    console.log(workload(2, 7));
+}
 
 function workload(n: int, seed: int): int {
     let checksum = seed;
@@ -8,8 +10,12 @@ function workload(n: int, seed: int): int {
         checksum = checksum + action();
         i = i + 1;
     }
+
     return checksum;
 }
+
 function make<T>(value: T): Once<Function<T>> {
-    return (): T => { return value; };
+    return (): T => {
+        return value;
+    };
 }

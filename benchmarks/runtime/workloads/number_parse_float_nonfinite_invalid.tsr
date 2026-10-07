@@ -1,12 +1,17 @@
 function workload(n: int, seed: int, input: string): number[] {
     const values: string[] = [clone(input), "-Infinity", "+Infinity", "Infinitytail", "inf", "infinity", "INFINITY", "NaN", "nan", "", " ", "+", "-", ".", ".e1", "--1"];
-    const output: number[] = []; let i = 0;
+    const output: number[] = [];
+    let i = 0;
     while (i < n) {
         const at = (i * 13 + seed) % 16;
         const selected: number = Number.parseFloat(values[at]);
         output.push(selected);
         i = i + 1;
     }
+
     return output;
 }
-function main() { const result = workload(2, 7, "Infinity"); }
+
+function main() {
+    const result = workload(2, 7, "Infinity");
+}

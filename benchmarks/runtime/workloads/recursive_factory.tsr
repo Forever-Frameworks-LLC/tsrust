@@ -1,4 +1,40 @@
-function workload(n: int, seed: int): int { let sum = 0; let i = 0; while (i < n) { const action = counter(i, 8); sum = sum + action() + action(); const lazy = chain(seed, 4); sum = sum + lazy(); i = i + 1; } return sum; }
-function counter(start: int, depth: int): () => int { if (depth > 0) { return counter(start, depth - 1); } let value = start; return (): int => { value = value + 1; return value; }; }
-function chain(seed: int, depth: int): () => int { return (): int => { if (depth === 0) { return seed; } const next = chain(seed, depth - 1); return next(); }; }
-function main() { console.log(workload(2, 7)); }
+function workload(n: int, seed: int): int {
+    let sum = 0;
+    let i = 0;
+    while (i < n) {
+        const action = counter(i, 8);
+        sum = sum + action() + action();
+        const lazy = chain(seed, 4);
+        sum = sum + lazy();
+        i = i + 1;
+    }
+
+    return sum;
+}
+
+function counter(start: int, depth: int): () => int {
+    if (depth > 0) {
+        return counter(start, depth - 1);
+    }
+
+    let value = start;
+    return (): int => {
+        value = value + 1;
+        return value;
+    };
+}
+
+function chain(seed: int, depth: int): () => int {
+    return (): int => {
+        if (depth === 0) {
+            return seed;
+        }
+
+        const next = chain(seed, depth - 1);
+        return next();
+    };
+}
+
+function main() {
+    console.log(workload(2, 7));
+}

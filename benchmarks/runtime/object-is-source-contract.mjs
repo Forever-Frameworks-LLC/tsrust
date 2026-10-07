@@ -1,3 +1,4 @@
+import {containsCodeSnippet} from './source-contract-tokens.mjs';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {objectIsIds} from './object-is-oracle.mjs';
@@ -7,7 +8,7 @@ export function assertObjectIsSource(source,row,kind) {
  if(createHash('sha256').update(source).digest('hex')!==(kind==='native'?row.sourceSha256:row.counterpartSha256))throw Error('Object.is source fingerprint');
  if(row.operationsPerIteration!==1||row.iterations!==2048||row.operationUnit!=='One complete Object.is scenario iteration')throw Error('Object.is scenario denominator');
  if(row.resultEncoding!=='array-shape-scalar-v1')throw Error('Object.is observer protocol');
- if(!source.includes('while (i < n)')||!source.includes('return output;')||!source.includes('output.push(['))throw Error('Actual Object.is scenario and complete retention');
+ if(!containsCodeSnippet(source, 'while (i < n)')||!containsCodeSnippet(source, 'return output;')||!containsCodeSnippet(source, 'output.push(['))throw Error('Actual Object.is scenario and complete retention');
  if((source.match(/Object\.is\(/g)??[]).length!==6)throw Error('Six actual Object.is calls');
  if(kind==='typescript') {
   const file=ts.createSourceFile(row.id+'.ts',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TS);let calls=0,workload;

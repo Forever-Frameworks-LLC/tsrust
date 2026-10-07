@@ -1,7 +1,29 @@
-function integers(base: int, count: int): int[] { const values: int[] = []; let at = 0; while (at < count) { values.push(base + at); at = at + 1; } return values; }
-function workload(n: int, seed: int, input: string): int[][] {
- const output: int[][] = [];  let i = 0;
- while (i < n) { const mode = (i + seed) % 3; const base = (i * 13 + seed) % 97; const count = mode === 0 ? 0 : mode === 1 ? 1 : 5;
- const values = integers(base, count); output.push([...values]); i = i + 1; } return output;
+function integers(base: int, count: int): int[] {
+    const values: int[] = [];
+    let at = 0;
+    while (at < count) {
+        values.push(base + at);
+        at = at + 1;
+    }
+
+    return values;
 }
-function main() { const result = workload(3, 0, "abc"); }
+
+function workload(n: int, seed: int, input: string): int[][] {
+    const output: int[][] = [];
+    let i = 0;
+    while (i < n) {
+        const mode = (i + seed) % 3;
+        const base = (i * 13 + seed) % 97;
+        const count = mode === 0 ? 0 : mode === 1 ? 1 : 5;
+        const values = integers(base, count);
+        output.push([...values]);
+        i = i + 1;
+    }
+
+    return output;
+}
+
+function main() {
+    const result = workload(3, 0, "abc");
+}

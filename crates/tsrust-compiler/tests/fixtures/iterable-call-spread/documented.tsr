@@ -1,8 +1,40 @@
-function example0(){console.log("a".concat(..."bc"));}
-function example1(){console.log(String.fromCodePoint(...new Set<int>([65,128578])));}
-function example2(){console.log(String.fromCharCode(...new Set<int>([65,66])));}
-function example3(){const inserts=new Set<string>(["x","y"]);console.log(String.raw({raw:["<",":",">"]},...inserts),inserts.size);}
-function example4(){console.log(Math.min(...new Set<number>([3.0,1.0,2.0])));}
-function example5(){console.log(Math.max(...new Set<number>([3.0,1.0,2.0])));}
-function example6(){console.log(Math.hypot(...new Set<number>([3.0,4.0])));}
-function main(){example0();example1();example2();example3();example4();example5();example6();}
+function example0() {
+    console.log("a".concat(..."bc"));
+}
+
+function example1() {
+    console.log(String.fromCodePoint(...new Set<int>([65, 128578])));
+}
+
+function example2() {
+    console.log(String.fromCharCode(...new Set<int>([65, 66])));
+}
+
+function example3() {
+    const inserts = new Set<string>(["x", "y"]);
+    console.log(String.raw({
+        raw: ["<", ":", ">"]
+    }, ...inserts), inserts.size);
+}
+
+function example4() {
+    console.log(Math.min(...new Set<number>([3.0, 1.0, 2.0])));
+}
+
+function example5() {
+    console.log(Math.max(...new Set<number>([3.0, 1.0, 2.0])));
+}
+
+function example6() {
+    console.log(Math.hypot(...new Set<number>([3.0, 4.0])));
+}
+
+function main() {
+    example0();
+    example1();
+    example2();
+    example3();
+    example4();
+    example5();
+    example6();
+}

@@ -5,15 +5,21 @@ function workload(n: int, seed: int): int[][] {
     let i = 0;
     while (i < n) {
         const count = sizes[(i + seed) % 5];
-        const values: int[] = []; let j = 0;
+        const values: int[] = [];
+        let j = 0;
         while (j < count) {
             values.push(ints[j % 4]);
             j = j + 1;
         }
+
         values.sort();
         output.push(values);
         i = i + 1;
     }
+
     return output;
 }
-function main() { const result = workload(2, 7); }
+
+function main() {
+    const result = workload(2, 7);
+}

@@ -1,8 +1,13 @@
 function make() {
     let calls = 0;
-    function invoke<T>(action: T): void { calls += 1; console.log(calls, action()); }
+    function invoke<T>(action: T): void {
+        calls += 1;
+        console.log(calls, action());
+    }
+
     return invoke;
 }
+
 function main() {
     const text = "owner";
     const action = (): int => text.length;

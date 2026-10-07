@@ -1,52 +1,82 @@
 import { strictEqual } from 'std:testing';
 
 function first() {
-    function value<T>(value: T): T { return value; }
+    function value<T>(value: T): T {
+        return value;
+    }
+
     return value;
 }
 
 function second() {
-    function value<T>(value: T): T { return value; }
+    function value<T>(value: T): T {
+        return value;
+    }
+
     return value;
 }
 
 function truthFirst() {
-    function value<T>(value: T): boolean { return true; }
+    function value<T>(value: T): boolean {
+        return true;
+    }
+
     return value;
 }
 
 function truthSecond() {
-    function value<T>(value: T): boolean { return true; }
+    function value<T>(value: T): boolean {
+        return true;
+    }
+
     return value;
 }
 
 function reduceFirst() {
-    function value<T>(left: T, right: T): T { return left; }
+    function value<T>(left: T, right: T): T {
+        return left;
+    }
+
     return value;
 }
 
 function reduceSecond() {
-    function value<T>(left: T, right: T): T { return right; }
+    function value<T>(left: T, right: T): T {
+        return right;
+    }
+
     return value;
 }
 
 function flatFirst() {
-    function value<T>(value: T): T[] { return [value]; }
+    function value<T>(value: T): T[] {
+        return [value];
+    }
+
     return value;
 }
 
 function flatSecond() {
-    function value<T>(value: T): T[] { return [value]; }
+    function value<T>(value: T): T[] {
+        return [value];
+    }
+
     return value;
 }
 
 function compareFirst() {
-    function compare<T>(left: T, right: T): int { return 0; }
+    function compare<T>(left: T, right: T): int {
+        return 0;
+    }
+
     return compare;
 }
 
 function compareSecond() {
-    function compare<T>(left: T, right: T): int { return 0; }
+    function compare<T>(left: T, right: T): int {
+        return 0;
+    }
+
     return compare;
 }
 

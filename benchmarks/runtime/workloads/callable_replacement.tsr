@@ -1,3 +1,26 @@
-function workload(n: int, seed: int): int { let sum = 0; let i = 0; while (i < n) { let action = counter(i); sum = sum + action(); action = counter(seed); const moved = action; sum = sum + moved(); i = i + 1; } return sum; }
-function counter(start: int): () => int { let value = start; return (): int => { value = value + 1; return value; }; }
-function main() { console.log(workload(2, 7)); }
+function workload(n: int, seed: int): int {
+    let sum = 0;
+    let i = 0;
+    while (i < n) {
+        let action = counter(i);
+        sum = sum + action();
+        action = counter(seed);
+        const moved = action;
+        sum = sum + moved();
+        i = i + 1;
+    }
+
+    return sum;
+}
+
+function counter(start: int): () => int {
+    let value = start;
+    return (): int => {
+        value = value + 1;
+        return value;
+    };
+}
+
+function main() {
+    console.log(workload(2, 7));
+}

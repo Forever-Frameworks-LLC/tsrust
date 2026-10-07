@@ -1,4 +1,30 @@
-function workload(n:int,seed:int):boolean{const base:boolean[]=[true,false,seed%2===0,false,true];let total=false;let i=0;while(i<n){const mode=(seed+i)%4;let count=5;if(mode===0){count=0;}else if(mode===1){count=1;}else if(mode===2){count=4;}const values=base.slice(0,count);total=total!==values.reduce(flip,false);i=i+1;}return total;}
-function flip(a:boolean,v:boolean):boolean{return a!==v;}
+function workload(n: int, seed: int): boolean {
+    const base: boolean[] = [true, false, seed % 2 === 0, false, true];
+    let total = false;
+    let i = 0;
+    while (i < n) {
+        const mode = (seed + i) % 4;
+        let count = 5;
+        if (mode === 0) {
+            count = 0;
+        } else if (mode === 1) {
+            count = 1;
+        } else if (mode === 2) {
+            count = 4;
+        }
 
-function main(){const result=workload(2,7);}
+        const values = base.slice(0, count);
+        total = total !== values.reduce(flip, false);
+        i = i + 1;
+    }
+
+    return total;
+}
+
+function flip(a: boolean, v: boolean): boolean {
+    return a !== v;
+}
+
+function main() {
+    const result = workload(2, 7);
+}

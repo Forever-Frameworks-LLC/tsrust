@@ -392,3 +392,14 @@ compiler then checks the function body to infer its result. For example,
 when adapted for an integer array's map operation. Inference does not weaken an
 explicit result contract or execute default initializers early. Fresh factory
 results can also initialize typed record fields and callable arrays directly.
+
+
+Known callable argument counts are checked even inside generic declarations that
+are not instantiated. Loops retain contracts from previous iterations and from
+for updates. A `continue` runs the for update or post-test condition; a `break`
+reaches the loop exit. Labeled exits target their enclosing labeled loop or block.
+A saved alias retains its initializer's contract set, while a definite assignment
+replaces the current set. Each known reachable signature must accept the call.
+These source checks preserve ownership rules and do not make incompatible concrete
+callable environments interchangeable. Exception regions and expression writes
+still require the remaining source-flow audit.

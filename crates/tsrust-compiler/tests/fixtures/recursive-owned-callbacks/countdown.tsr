@@ -1,12 +1,12 @@
-function counter(start: int):() => int {
+function counter(start: int): () => int {
     let value = start;
-    return(): int => {
+    return (): int => {
         value = value + 1;
         return value;
     };
 }
 
-function countdown(action:() => int, remaining: int): int {
+function countdown(action: () => int, remaining: int): int {
     if (remaining === 0) {
         return action();
     }

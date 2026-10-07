@@ -1,16 +1,42 @@
-type Trace = { calls: int; defaults: int; };
-function fallback(trace: Trace, base: int): boolean { trace.defaults = trace.defaults + 1; return base % 3 === 0; }
-function apply(trace: Trace, base: int, value: boolean | null = fallback(trace, base)): boolean | null { trace.calls = trace.calls + 1; return value; }
+type Trace = {
+    calls: int;
+    defaults: int;
+};
+
+function fallback(trace: Trace, base: int): boolean {
+    trace.defaults = trace.defaults + 1;
+    return base % 3 === 0;
+}
+
+function apply(trace: Trace, base: int, value: boolean | null = fallback(trace, base)): boolean | null {
+    trace.calls = trace.calls + 1;
+    return value;
+}
+
 function workload(n: int, seed: int, input: string): boolean[] {
-    const output: boolean[] = []; const trace: Trace = { calls: 0, defaults: 0 };
-    let i = 0; while (i < n) {
-        const mode = (i + seed) % 4; const value = (i * 13 + seed) % 97;
-        const beforeCalls = trace.calls; const beforeDefaults = trace.defaults;
+    const output: boolean[] = [];
+    const trace: Trace = {
+        calls: 0, defaults: 0
+    };
+    let i = 0;
+    while (i < n) {
+        const mode = (i + seed) % 4;
+        const value = (i * 13 + seed) % 97;
+        const beforeCalls = trace.calls;
+        const beforeDefaults = trace.defaults;
         const observed = mode === 0 ? apply(trace, value) : mode === 1 ? apply(trace, value, undefined) : mode === 2 ? apply(trace, value, value % 3 === 0) : apply(trace, value, null);
         const delta = trace.defaults - beforeDefaults;
-        output.push(observed !== null && observed === true); output.push(observed !== null && observed === false); output.push(observed === null);
-        output.push(delta === 0); output.push(delta === 1);
+        output.push(observed !== null && observed === true);
+        output.push(observed !== null && observed === false);
+        output.push(observed === null);
+        output.push(delta === 0);
+        output.push(delta === 1);
         i = i + 1;
-    } return output;
+    }
+
+    return output;
 }
-function main() { const result = workload(3, 0, "abc"); }
+
+function main() {
+    const result = workload(3, 0, "abc");
+}

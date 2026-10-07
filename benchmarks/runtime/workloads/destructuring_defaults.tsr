@@ -1,16 +1,37 @@
-type Row={label:string|undefined;amount:int|null|undefined;};
-function fallback(trace:int[],value:string):string{trace.push(1);return value;}
-function describe({label="none",amount=7}:Row):string{return label+":"+String(amount);}
-function workload(n: int, seed: int, input: string): string[][] {
- const output:string[][]=[];const trace:int[]=[];let i=0;
- while (i < n) {
-  const base=(i*13+seed)%97;const mode=(i+seed)%3;
-  const row:Row={label:mode===0?undefined:input.repeat(base%3+1),amount:mode===1?null:mode===2?undefined:base};
-  const values:(string|undefined)[]=[(i+seed)%2===0?undefined:input.repeat(1)];
-  const [text=fallback(trace,input.repeat(1)),missing="tail"]=values;
-  const {amount=8}=row;
-  output.push([text.slice(),missing.slice(),describe(row),String(amount),String(trace.length)]);
-  i=i+1;
- } return output;
+type Row = {
+    label: string | undefined;
+    amount: int | null | undefined;
+};
+
+function fallback(trace: int[], value: string): string {
+    trace.push(1);
+    return value;
 }
-function main(){const result=workload(3,0,"abc");}
+
+function describe({ label = "none", amount = 7 }: Row): string {
+    return label + ":" + String(amount);
+}
+
+function workload(n: int, seed: int, input: string): string[][] {
+    const output: string[][] = [];
+    const trace: int[] = [];
+    let i = 0;
+    while (i < n) {
+        const base = (i * 13 + seed) % 97;
+        const mode = (i + seed) % 3;
+        const row: Row = {
+            label: mode === 0 ? undefined : input.repeat(base % 3 + 1), amount: mode === 1 ? null : mode === 2 ? undefined : base
+        };
+        const values: (string | undefined)[] = [(i + seed) % 2 === 0 ? undefined : input.repeat(1)];
+        const [text = fallback(trace, input.repeat(1)), missing = "tail"] = values;
+        const { amount = 8 } = row;
+        output.push([text.slice(), missing.slice(), describe(row), String(amount), String(trace.length)]);
+        i = i + 1;
+    }
+
+    return output;
+}
+
+function main() {
+    const result = workload(3, 0, "abc");
+}

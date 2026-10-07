@@ -1,3 +1,4 @@
+import {containsCodeSnippet, replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -19,7 +20,7 @@ test('Retained nested owners have matched sources, independent oracle and execut
   assert.throws(()=>assertNestedOwnedSource(source,{...row,operationsPerIteration:2},kind));
   const key=kind==='native'?'sourceSha256':'counterpartSha256';
   for(const [from,to] of [['const again = actions[0]();','const again = actions[1]();'],['const take = owner(value + 20);','const take = owner(value + 10);'],['caught = 1;','caught = 2;'],['const independentResult = independent();','const independentResult = 7;']]){
-   assert.ok(source.includes(from));const changed=source.replace(from,to);
+   assert.ok(containsCodeSnippet(source, from));const changed=replaceCodeSnippet(source, from,to);
    assert.throws(()=>assertNestedOwnedSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   }
  }

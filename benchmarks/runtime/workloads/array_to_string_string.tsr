@@ -1,6 +1,7 @@
 function workload(n: int, seed: int, input: string): string[] {
     const values: string[] = [clone(input), "", "é😀e\u0301", "\uFEFF\u0000", input.repeat(2)];
-    const output: string[] = []; let i = 0;
+    const output: string[] = [];
+    let i = 0;
     while (i < n) {
         const count = (i + seed) % 6;
         let joined: string = "";
@@ -9,6 +10,10 @@ function workload(n: int, seed: int, input: string): string[] {
         output.push(joined);
         i = i + 1;
     }
+
     return output;
 }
-function main() { const result = workload(2, 7, "dynamic text"); }
+
+function main() {
+    const result = workload(2, 7, "dynamic text");
+}

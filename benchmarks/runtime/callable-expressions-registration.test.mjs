@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -17,7 +18,7 @@ test('callable expression registration preserves history and complete scenarios'
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertCallableExpressionsSource(source,row,kind);
    for(const text of ['while (i < n)','const direct=make(base)(3);','const nested=chain(base)(2)(3);','trace.push(1);','trace.push(2);','return output;','input+String(base)']){
-    const changed=source.replace(text,'');const key=kind==='native'?'sourceSha256':'counterpartSha256';
+    const changed=replaceCodeSnippet(source, text,'');const key=kind==='native'?'sourceSha256':'counterpartSha256';
     assert.throws(()=>assertCallableExpressionsSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
    }
    assert.throws(()=>assertCallableExpressionsSource(source,{...row,operationsPerIteration:9},kind));

@@ -1,16 +1,25 @@
 function workload(n: int, seed: int, input: string): string[][] {
- const output:string[][]=[];let i=0;
- while(i<n){
-  const left=new Set<int>([i+seed+3,i+seed+1,i+seed+2]);
-  const right=new Set<int>([i+seed+2,i+seed+4,i+seed+1]);
-  const small=new Set<int>([i+seed+2,i+seed+1]);
-  const names=new Set<string>([String(input),"tail"]);
-  const more=new Set<string>(["tail","last"]);
-  const copied=names.union(more);names.clear();let text="";
-  copied.forEach((value)=>{text=text+value+"|";});
-  output.push([left.union(right).values().join(","),left.intersection(right).values().join(","),left.difference(right).values().join(","),left.symmetricDifference(right).values().join(","),left.intersection(small).values().join(","),text]);
-  i=i+1;
- }
- return output;
+    const output: string[][] = [];
+    let i = 0;
+    while (i < n) {
+        const left = new Set<int>([i + seed + 3, i + seed + 1, i + seed + 2]);
+        const right = new Set<int>([i + seed + 2, i + seed + 4, i + seed + 1]);
+        const small = new Set<int>([i + seed + 2, i + seed + 1]);
+        const names = new Set<string>([String(input), "tail"]);
+        const more = new Set<string>(["tail", "last"]);
+        const copied = names.union(more);
+        names.clear();
+        let text = "";
+        copied.forEach((value) => {
+            text = text + value + "|";
+        });
+        output.push([left.union(right).values().join(","), left.intersection(right).values().join(","), left.difference(right).values().join(","), left.symmetricDifference(right).values().join(","), left.intersection(small).values().join(","), text]);
+        i = i + 1;
+    }
+
+    return output;
 }
-function main(){const result=workload(3,0,"abc");}
+
+function main() {
+    const result = workload(3, 0, "abc");
+}

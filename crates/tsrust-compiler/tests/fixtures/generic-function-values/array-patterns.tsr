@@ -6,6 +6,7 @@ function main() {
         calls += 1;
         return values.remove(0);
     }
+
     {
         const action = first;
         const numbers = [7, 8];
@@ -15,5 +16,6 @@ function main() {
         strictEqual(action(strings), "a");
         strictEqual(strings.length, 1);
     }
+
     strictEqual(calls, 2);
 }

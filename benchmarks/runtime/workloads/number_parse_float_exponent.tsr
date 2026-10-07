@@ -1,12 +1,17 @@
 function workload(n: int, seed: int, input: string): number[] {
     const values: string[] = [clone(input), "1e3", "1e-3", "1E+3", "-2.5E-2", ".5e-2", "1.e2", "0e9999", "-0e9999", "1e309", "-1e309", "5e-324", "-5e-324", "1e-9999", "-1e-9999", "2.2250738585072014e-308"];
-    const output: number[] = []; let i = 0;
+    const output: number[] = [];
+    let i = 0;
     while (i < n) {
         const at = (i * 13 + seed) % 16;
         const selected: number = Number.parseFloat(values[at]);
         output.push(selected);
         i = i + 1;
     }
+
     return output;
 }
-function main() { const result = workload(2, 7, "-1.234e2"); }
+
+function main() {
+    const result = workload(2, 7, "-1.234e2");
+}

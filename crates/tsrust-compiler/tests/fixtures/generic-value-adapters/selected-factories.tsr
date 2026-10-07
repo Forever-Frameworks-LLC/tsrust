@@ -8,6 +8,7 @@ function left(start: int) {
         console.log(calls);
         return value;
     }
+
     return select;
 }
 
@@ -19,15 +20,16 @@ function right(start: int) {
         console.log(calls);
         return value;
     }
+
     return choose;
 }
 
 function main() {
     let checks = 0;
     let arguments = 0;
-    const fixed: Function<int, [value: int]> = (checks++ === 0 ? left : right)(++arguments);
+    const fixed: Function<int, [value: int]> = (checks++=== 0 ? left : right)(++arguments);
     strictEqual(fixed(7), 7);
-    const mapped = [3, 4].map((checks++ === 0 ? left : right)(++arguments));
+    const mapped = [3, 4].map((checks++=== 0 ? left : right)(++arguments));
     strictEqual(mapped[0], 3);
     strictEqual(mapped[1], 4);
     strictEqual(checks, 2);

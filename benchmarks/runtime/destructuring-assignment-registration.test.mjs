@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -17,7 +18,7 @@ test('destructuring assignment registration binds complete scenarios and preserv
   assert.equal(row.measured,false);assert.equal(reportCategory(row.id),'other');
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertDestructuringAssignmentSource(source,row,kind);
-   for(const changed of [source.replace('[left,right]=[right,left];',''),source.replace('const cell:Cell={x,y,label};','const cell:Cell={x:x,y:y,label:label};'),source.replace('return output;','return [];')]){
+   for(const changed of [replaceCodeSnippet(source, '[left,right]=[right,left];',''),replaceCodeSnippet(source, 'const cell:Cell={x,y,label};','const cell:Cell={x:x,y:y,label:label};'),replaceCodeSnippet(source, 'return output;','return [];')]){
     const key=kind==='native'?'sourceSha256':'counterpartSha256';
     assert.throws(()=>assertDestructuringAssignmentSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
    }

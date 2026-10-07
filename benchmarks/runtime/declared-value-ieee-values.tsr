@@ -1,3 +1,12 @@
-function ieeeValues():number[]{const action=identity;return[action(-0.0),action(0.0),action(1.0/0.0),action(-1.0/0.0),action(0.0/0.0),action(-0.25)];}
-function identity(value:number):number{return value;}
-function main(){const values=ieeeValues();}
+function ieeeValues(): number[] {
+    const action = identity;
+    return [action(- 0.0), action(0.0), action(1.0 / 0.0), action(- 1.0 / 0.0), action(0.0 / 0.0), action(- 0.25)];
+}
+
+function identity(value: number): number {
+    return value;
+}
+
+function main() {
+    const values = ieeeValues();
+}

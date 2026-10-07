@@ -1,24 +1,34 @@
 function workload(n: int, seed: int): number[][] {
     const output: number[][] = [];
     const sizes: int[] = [0, 1, 4, 5, 17];
-    const numbers: number[] = [-0.0, 0.0, 0.0 / 0.0, 1.0 / 0.0, -1.0 / 0.0, Number(seed) / 4.0, -2.5];
+    const numbers: number[] = [- 0.0, 0.0, 0.0 / 0.0, 1.0 / 0.0, - 1.0 / 0.0, Number(seed) / 4.0, - 2.5];
     let i = 0;
     while (i < n) {
         const count = sizes[(i + seed) % 5];
         const source: number[] = [];
         let j = 0;
         while (j < count) {
-            const ordinal = j; source.push(numbers[(ordinal * 3 + seed) % 7]);
+            const ordinal = j;
+            source.push(numbers[(ordinal * 3 + seed) % 7]);
             j = j + 1;
         }
+
         const flattened = source.flatMap(mapPiece);
         output.push(flattened);
         i = i + 1;
     }
+
     return output;
 }
+
 function mapPiece(value: number, index: int, source: number[]): number[] {
-    if (index % 3 === 0) { return []; }
+    if (index % 3 === 0) {
+        return [];
+    }
+
     return [value, Number(index + source.length) / 4.0];
 }
-function main() { const result = workload(2, 7); }
+
+function main() {
+    const result = workload(2, 7);
+}

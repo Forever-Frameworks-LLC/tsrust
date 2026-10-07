@@ -1,10 +1,16 @@
 import { strictEqual } from "std:testing";
+
 function main() {
     let total = 0;
     for (let i = 0; i < 3; i++) {
         const state = [i];
-        function tick(): int { state[0] += 1; return state[0]; }
+        function tick(): int {
+            state[0] += 1;
+            return state[0];
+        }
+
         total += tick();
     }
+
     strictEqual(total, 6);
 }

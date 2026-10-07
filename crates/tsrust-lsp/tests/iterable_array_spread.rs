@@ -1,3 +1,4 @@
+mod support;
 use serde_json::json;
 use tsrust_lsp::intelligence::SourceIndex;
 #[test]
@@ -12,5 +13,5 @@ fn iterable_array_spread_types_and_array_of_help(){
 fn array_of_documented_examples_match_spread_fixture(){
  let catalog:serde_json::Value=serde_json::from_str(include_str!("../src/builtins.json")).unwrap();let entry=catalog["ArrayConstructor"].as_array().unwrap().iter().find(|x|x["name"]=="of").unwrap();
  let fixture=include_str!("../../tsrust-compiler/tests/fixtures/iterable-array-spread/documented.tsr");let output=include_str!("../../tsrust-compiler/tests/fixtures/iterable-array-spread/documented.stdout");
- let mut expected=String::new();for example in entry["examples"].as_array().unwrap(){let source=example["source"].as_str().unwrap();let source=if source.starts_with("type "){source.split_once("};").unwrap().1}else{source};assert!(fixture.contains(source));expected.push_str(example["output"].as_str().unwrap());}assert_eq!(expected,output);tsrust_compiler::check(fixture).unwrap();
+ let mut expected=String::new();for example in entry["examples"].as_array().unwrap(){let source=example["source"].as_str().unwrap();let source=if source.starts_with("type "){source.split_once("};").unwrap().1}else{source};assert!(support::contains_formatted_snippet(fixture,source));expected.push_str(example["output"].as_str().unwrap());}assert_eq!(expected,output);tsrust_compiler::check(fixture).unwrap();
 }

@@ -1,29 +1,56 @@
 function workload(n: int, seed: int, input: string): string[][] {
     const values: string[] = [clone(input), "  Pat  ", clone(input), "", "é", "😀", "e\u0301", "a\u0000b"];
-    const output: string[][] = []; let trace = seed; let visits = 0; let i = 0;
+    const output: string[][] = [];
+    let trace = seed;
+    let visits = 0;
+    let i = 0;
     while (i < n) {
         const selected: string[] = values.map((value: string): string => {
-            trace = (trace * 131 + visits + i + seed) % 1000000007; visits = visits + 1;
-            return value.trim();
+            trace = (trace * 131 + visits + i + seed) % 1000000007; visits = visits + 1; return value.trim();
         });
-        output.push(selected); i = i + 1;
+        output.push(selected);
+        i = i + 1;
     }
+
     output.push(trace_row(trace, visits));
     return output;
 }
-function main() { const result = workload(2, 7, "  élán 😀 e\u0301  "); console.log(result.length); }
+
+function main() {
+    const result = workload(2, 7, "  élán 😀 e\u0301  ");
+    console.log(result.length);
+}
+
 function trace_row(trace: int, visits: int): string[] {
-    const row: string[] = ["trace"]; let word = trace; let i = 0;
+    const row: string[] = ["trace"];
+    let word = trace;
+    let i = 0;
     while (i < 31) {
         const bit = word % 2;
-        if (bit === 0) { row.push("0"); } else { row.push("1"); }
-        word = (word - bit) / 2; i = i + 1;
+        if (bit === 0) {
+            row.push("0");
+        } else {
+            row.push("1");
+        }
+
+        word = (word - bit) / 2;
+        i = i + 1;
     }
-    row.push("visits"); word = visits; i = 0;
+
+    row.push("visits");
+    word = visits;
+    i = 0;
     while (i < 16) {
         const bit = word % 2;
-        if (bit === 0) { row.push("0"); } else { row.push("1"); }
-        word = (word - bit) / 2; i = i + 1;
+        if (bit === 0) {
+            row.push("0");
+        } else {
+            row.push("1");
+        }
+
+        word = (word - bit) / 2;
+        i = i + 1;
     }
+
     return row;
 }

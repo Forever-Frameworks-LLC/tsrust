@@ -1,11 +1,40 @@
 import { strictEqual } from "std:testing";
-type Row={label:string|undefined;amount:int|undefined;};
-function describe({label="none",amount=3}:Row):string{return label.repeat(amount);}
-function sum([first=2,second=first+3]:int[]):int{return first+second;}
-function main(){
- strictEqual(describe({label:undefined,amount:undefined}),"nonenonenone");strictEqual(describe({label:"x",amount:2}),"xx");strictEqual(sum([]),7);strictEqual(sum([7]),17);
- const rows:Row[]=[{label:undefined,amount:undefined},{label:"z",amount:2}];
- strictEqual(rows.map(({label="none",amount=1})=>label.repeat(amount)).join("|"),"none|zz");
- const pairs:int[][]=[[],[4]];
- let index=0;for(const [first=5,second=first+1] of pairs){strictEqual(first,index===0?5:4);strictEqual(second,index===0?6:5);index=index+1;}strictEqual(index,2);
+
+type Row = {
+    label: string | undefined;
+    amount: int | undefined;
+};
+
+function describe({ label = "none", amount = 3 }: Row): string {
+    return label.repeat(amount);
+}
+
+function sum([first = 2, second = first + 3]: int[]): int {
+    return first + second;
+}
+
+function main() {
+    strictEqual(describe({
+        label: undefined, amount: undefined
+    }), "nonenonenone");
+    strictEqual(describe({
+        label: "x", amount: 2
+    }), "xx");
+    strictEqual(sum([]), 7);
+    strictEqual(sum([7]), 17);
+    const rows: Row[] = [{
+        label: undefined, amount: undefined
+    }, {
+        label: "z", amount: 2
+    }];
+    strictEqual(rows.map(({ label = "none", amount = 1 }) => label.repeat(amount)).join("|"), "none|zz");
+    const pairs: int[][] = [[], [4]];
+    let index = 0;
+    for (const [first = 5, second = first + 1] of pairs) {
+        strictEqual(first, index === 0 ? 5 : 4);
+        strictEqual(second, index === 0 ? 6 : 5);
+        index = index + 1;
+    }
+
+    strictEqual(index, 2);
 }

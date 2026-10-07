@@ -1,3 +1,4 @@
+import {containsCodeSnippet, replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -19,7 +20,7 @@ test('Nested captures retain sources, independent observations and execution hoo
   assert.throws(()=>assertNestedFunctionCapturesSource(source,{...row,operationsPerIteration:2},kind));
   const key=kind==='native'?'sourceSha256':'counterpartSha256';
   for(const [from,to] of [['depth(3)','depth(2)'],['const run = tick;','const run = (): int => tick();'],['later = value + 3;\n','']]){
-   assert.ok(source.includes(from));const changed=source.replace(from,to);
+   assert.ok(containsCodeSnippet(source, from));const changed=replaceCodeSnippet(source, from,to);
    assert.throws(()=>assertNestedFunctionCapturesSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   }
  }

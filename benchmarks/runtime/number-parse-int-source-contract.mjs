@@ -1,3 +1,4 @@
+import {containsCodeSnippet} from './source-contract-tokens.mjs';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {numberParseIntIds} from './number-parse-int-oracle.mjs';
@@ -7,7 +8,7 @@ export function assertNumberParseIntSource(source,row,kind) {
  if(createHash('sha256').update(source).digest('hex')!==(kind==='native'?row.sourceSha256:row.counterpartSha256))throw Error('Number.parseInt source fingerprint');
  if(row.operationsPerIteration!==1||row.iterations!==2048||row.operationUnit!=='One complete Number.parseInt scenario iteration')throw Error('Number.parseInt scenario denominator');
  if(row.resultEncoding!=='ieee-f64-tree-v1')throw Error('Number.parseInt observer protocol');
- if(!source.includes('while (i < n)')||!source.includes('return output;')||!source.includes('output.push(['))throw Error('Actual Number.parseInt scenario and complete retention');
+ if(!containsCodeSnippet(source, 'while (i < n)')||!containsCodeSnippet(source, 'return output;')||!containsCodeSnippet(source, 'output.push(['))throw Error('Actual Number.parseInt scenario and complete retention');
  if((source.match(/Number\.parseInt\(/g)??[]).length!==5)throw Error('Five actual Number.parseInt calls');
  if(kind==='typescript') {
   const file=ts.createSourceFile(row.id+'.ts',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TS);let calls=0,radixes=0,workload;

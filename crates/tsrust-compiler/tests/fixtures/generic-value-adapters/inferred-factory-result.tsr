@@ -8,6 +8,7 @@ function make(start: int) {
         console.log(calls);
         return value;
     }
+
     return select;
 }
 

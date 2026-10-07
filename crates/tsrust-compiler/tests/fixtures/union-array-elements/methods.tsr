@@ -1,8 +1,24 @@
-type Item = { label: string; };
-type Box = { values: (int | string)[]; extra: (Item | null)[]; };
-function show(value: ReadOnly<int | string>): string { return typeof value === "string" ? "s" + value : "n" + String(value); }
-function count<T>(values: ReadOnly<T[]>): int { return values.length; }
-function tail(...values: (int | string)[]): int { return values.length; }
+type Item = {
+    label: string;
+};
+
+type Box = {
+    values: (int | string)[];
+    extra: (Item | null)[];
+};
+
+function show(value: ReadOnly<int | string>): string {
+    return typeof value === "string" ? "s" + value : "n" + String(value);
+}
+
+function count<T>(values: ReadOnly<T[]>): int {
+    return values.length;
+}
+
+function tail(...values: (int | string)[]): int {
+    return values.length;
+}
+
 function main() {
     const v: (int | string)[] = [3, "b", 1, "a", "b", 3];
     console.log(v, v.join("-"), String(v), v.toString(), `${v.join("+")}`);
@@ -12,16 +28,28 @@ function main() {
     console.log(v.some((x) => typeof x === "number"), v.every((x) => typeof x === "number"), v.findIndex((x) => typeof x === "string"), v.findLastIndex((x) => typeof x === "number"));
     console.log(v.includes("a"), v.includes(3), v.includes("zz"), v.indexOf("b"), v.indexOf(7), v.indexOf(3, 1), v.lastIndexOf("b"), v.lastIndexOf(3, 4), v.includes("a", 4));
     console.log(v.reduce((sum, x) => sum + (typeof x === "number" ? x : 0), 0), count(v), tail(...clone(v)), tail(1, "a", ...clone(v)));
-    v.forEach((x) => { console.log(show(x)); });
+    v.forEach((x) => {
+        console.log(show(x));
+    });
     console.log(v.slice(1, 3).length, v.concat([9, "z"]).length, [...clone(v), 5].length, v.toReversed().join(""), v.with(1, "W").join(""), v.toSpliced(0, 1, "N", 9).join(""));
     console.log(String(v.pop()), String(v.shift()), v.length);
-    v.unshift("u"); v.splice(1, 1); v[0] = "first"; v[1] = 2;
-    v.sort((a, b) => String(a) < String(b) ? -1 : 1);
+    v.unshift("u");
+    v.splice(1, 1);
+    v[0] = "first";
+    v[1] = 2;
+    v.sort((a, b) => String(a) < String(b) ? - 1 : 1);
     console.log(v.join(","));
-    v.reverse(); v.fill("q", 0, 1); v.copyWithin(2, 0, 1);
+    v.reverse();
+    v.fill("q", 0, 1);
+    v.copyWithin(2, 0, 1);
     console.log(v.join(","), Array.isArray(v), Array.from(v).length);
-    const last = v.at(-1);
-    if (typeof last === "number") { console.log(last + 1); } else { console.log(String(last)); }
+    const last = v.at(- 1);
+    if (typeof last === "number") {
+        console.log(last + 1);
+    } else {
+        console.log(String(last));
+    }
+
     const zero = 0.0;
     const m: (number | string | boolean | null | undefined)[] = [1.5, "a", true, null, undefined, zero / zero, 2.0];
     console.log(m, m.join("|"));
@@ -30,14 +58,23 @@ function main() {
     console.log(String(w.at(0)), String(w.at(1)), String(w.pop()), String(w.pop()), String(w.pop()));
     const mix: (int | number)[] = [1, 2.5, 3];
     console.log(mix.includes(3.0), mix.indexOf(1.0), mix.includes(2), mix.lastIndexOf(2.5));
-    const b: Box = { values: [1, "x"], extra: [{ label: "e" }, null] };
+    const b: Box = {
+        values: [1, "x"], extra: [{
+            label: "e"
+        }, null]
+    };
     const c = clone(b);
     c.values.push("y");
     console.log(b.values.length, c.values.length, b.extra.length, c.extra[0] !== null, b);
     const arr: (int[] | string)[] = [[1, 2], "s"];
-    for (const a of arr) { console.log(typeof a === "string" ? a : String(a.length)); }
+    for (const a of arr) {
+        console.log(typeof a === "string" ? a : String(a.length));
+    }
+
     const nested: (int | string)[][] = [v.slice(0, 2), ["z"]];
     console.log(nested, nested.flat().length);
-    const items: (Item | string)[] = [{ label: "L" }, "s"];
+    const items: (Item | string)[] = [{
+        label: "L"
+    }, "s"];
     console.log(items, items.length);
 }

@@ -1,3 +1,4 @@
+import {containsCodeSnippet} from './source-contract-tokens.mjs';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {stringCodeAtIds} from './string-code-at-oracle.mjs';
@@ -7,7 +8,7 @@ export function assertStringCodeAtSource(source,row,kind) {
  if(createHash('sha256').update(source).digest('hex')!==(kind==='native'?row.sourceSha256:row.counterpartSha256))throw Error('String code at source fingerprint');
  if(row.operationsPerIteration!==1||row.iterations!==2048||row.operationUnit!=='One complete string code at scenario iteration')throw Error('String code at scenario denominator');
  if(row.resultEncoding!=='ieee-f64-tree-v1')throw Error('String code at observer protocol');
- if(!source.includes('while (i < n)')||!source.includes('return output;')||!source.includes('output.push(['))throw Error('Actual string code at scenario and complete retention');
+ if(!containsCodeSnippet(source, 'while (i < n)')||!containsCodeSnippet(source, 'return output;')||!containsCodeSnippet(source, 'output.push(['))throw Error('Actual string code at scenario and complete retention');
  if((source.match(/text\.codePointAt\(/g)??[]).length!==3||(source.match(/text\.charCodeAt\(/g)??[]).length!==2)throw Error('Actual codePointAt and charCodeAt calls');
  if(kind==='typescript') {
   const file=ts.createSourceFile(row.id+'.ts',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TS);let points=0,units=0,workload;

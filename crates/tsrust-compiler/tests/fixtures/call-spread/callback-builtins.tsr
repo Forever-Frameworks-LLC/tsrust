@@ -12,11 +12,11 @@ function double(value: int): int {
 
 function main() {
     const values: int[] = [3, 1, 2];
-    console.log(values.reduce(sum, ... []));
-    console.log(values.reduce(sum, ... [4]));
-    console.log(values.reduceRight(sum, ... [4]));
-    console.log(values.map(double, ... []).join(","));
-    console.log(values.toSorted(compare, ... []).join(","));
-    values.sort(compare, ... []);
+    console.log(values.reduce(sum, ...[]));
+    console.log(values.reduce(sum, ...[4]));
+    console.log(values.reduceRight(sum, ...[4]));
+    console.log(values.map(double, ...[]).join(","));
+    console.log(values.toSorted(compare, ...[]).join(","));
+    values.sort(compare, ...[]);
     console.log(values.join(","));
 }

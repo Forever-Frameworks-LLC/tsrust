@@ -1,4 +1,6 @@
-type User = { name: string; };
+type User = {
+    name: string;
+};
 
 function show(user: User, change: boolean) {
     if (change) {
@@ -6,11 +8,14 @@ function show(user: User, change: boolean) {
     } else {
         console.log(user.name);
     }
+
     console.log(user.name);
 }
 
 function main() {
-    const user: User = { name: "Pat" };
+    const user: User = {
+        name: "Pat"
+    };
     show(user, false);
     show(user, true);
     console.log(user.name);

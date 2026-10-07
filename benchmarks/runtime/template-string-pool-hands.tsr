@@ -8,7 +8,7 @@ function main() {
     console.log(`\u{10FFFF}` === "􏿿");
     console.log(`${"é"}` === "é");
     console.log(`${true}|${false}` === "true|false");
-    console.log(`${17}|${-17}` === "17|-17");
+    console.log(`${17}|${- 17}` === "17|-17");
     console.log(`${0.5}|${1.25}|${2.5}|${12.75}` === "0.5|1.25|2.5|12.75");
     console.log(`outer:${`inner:${3}`}` === "outer:inner:3");
     console.log(`a

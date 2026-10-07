@@ -1,24 +1,34 @@
 function main() {
     const values: string[] = ["a", "é", "a"];
-    let visits = 0; let trace = 0;
+    let visits = 0;
+    let trace = 0;
     const first = values.find((value: string, index: int, source: string[]): boolean => {
-        visits = visits + 1; trace = trace * 10 + index + 1;
-        return value === "a" && source.length === 3;
+        visits = visits + 1; trace = trace * 10 + index + 1; return value === "a" && source.length === 3;
     });
-    if (first !== undefined) { console.log(first); }
-    console.log(visits); console.log(trace);
-    let lastVisits = 0; let lastTrace = 0;
+    if (first !== undefined) {
+        console.log(first);
+    }
+
+    console.log(visits);
+    console.log(trace);
+    let lastVisits = 0;
+    let lastTrace = 0;
     const last = values.findLast((value: string, index: int, source: string[]): boolean => {
-        lastVisits = lastVisits + 1; lastTrace = lastTrace * 10 + index + 1;
-        return value === "a" && source.length === 3;
+        lastVisits = lastVisits + 1; lastTrace = lastTrace * 10 + index + 1; return value === "a" && source.length === 3;
     });
-    if (last !== undefined) { console.log(last); }
-    console.log(lastVisits); console.log(lastTrace);
+    if (last !== undefined) {
+        console.log(last);
+    }
+
+    console.log(lastVisits);
+    console.log(lastTrace);
     console.log(values.join("|"));
-    let missVisits = 0; let missTrace = 0;
+    let missVisits = 0;
+    let missTrace = 0;
     const missed = values.findLast((value: string, index: int): boolean => {
-        missVisits = missVisits + 1; missTrace = missTrace * 10 + index + 1;
-        return value === "missing";
+        missVisits = missVisits + 1; missTrace = missTrace * 10 + index + 1; return value === "missing";
     });
-    console.log(typeof missed); console.log(missVisits); console.log(missTrace);
+    console.log(typeof missed);
+    console.log(missVisits);
+    console.log(missTrace);
 }

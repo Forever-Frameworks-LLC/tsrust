@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -16,8 +17,8 @@ test('string normalization pair appends to the manifest and binds actual guarded
   assert.equal(row.measured,false);assert.equal(row.measurementStatus,'pending-string-methods-milestone');assert.equal(reportCategory(row.id),'strings');
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertStringNormalizeSource(source,row,kind);
-   assert.throws(()=>assertStringNormalizeSource(source.replace('text.normalize("NFC")','String(text)'),row,kind));
-   assert.throws(()=>assertStringNormalizeSource(source.replace('return output;','return [];'),row,kind));
+   assert.throws(()=>assertStringNormalizeSource(replaceCodeSnippet(source, 'text.normalize("NFC")','String(text)'),row,kind));
+   assert.throws(()=>assertStringNormalizeSource(replaceCodeSnippet(source, 'return output;','return [];'),row,kind));
    assert.throws(()=>assertStringNormalizeSource(source,{...row,operationsPerIteration:2},kind));
    assert.throws(()=>assertStringNormalizeSource(source+' ',row,kind));
   }

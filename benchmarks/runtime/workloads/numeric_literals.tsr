@@ -1,10 +1,21 @@
 function workload(n: int, seed: int, input: string): string[][] {
- const output:string[][]=[];let i=0;
- while(i<n){
-  const k=i+seed;const mask=0b1010_0011;const permissions=0o7_7;const code=0xDE_AD;const unit=1_000;
-  const fraction:number=.1_2e+0_1;const wide:number=0xffff_ffff_ffff_ffff;
-  output.push([String(k&mask),String(code+permissions+k),String(unit*k),String(Number(k)+fraction),String(wide),String(input)]);i+=1;
- }
- return output;
+    const output: string[][] = [];
+    let i = 0;
+    while (i < n) {
+        const k = i + seed;
+        const mask = 0b1010_0011;
+        const permissions = 0o7_7;
+        const code = 0xDE_AD;
+        const unit = 1_000;
+        const fraction: number = .1_2e+0_1;
+        const wide: number = 0xffff_ffff_ffff_ffff;
+        output.push([String(k & mask), String(code + permissions + k), String(unit * k), String(Number(k) + fraction), String(wide), String(input)]);
+        i += 1;
+    }
+
+    return output;
 }
-function main(){const result=workload(3,0,"abc");}
+
+function main() {
+    const result = workload(3, 0, "abc");
+}

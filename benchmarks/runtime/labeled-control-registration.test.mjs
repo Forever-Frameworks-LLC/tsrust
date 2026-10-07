@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -17,7 +18,7 @@ test('labeled control registration preserves prior rows and guards complete scen
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertLabeledControlSource(source,row,kind);
    for(const text of ["while (i < n)", "outer:for(let row=0;row<4;row++,updates++)", "if(row===skip)continue outer;", "if(row===3)break outer;", "trace+=String(row)+String(col);", "again:while(count<base%4+1)", "if(x===1)continue again;", "postLoop:do{post++;for(;;){continue postLoop;}}while(post<base%3+1);", "done:{if(base%2===0)break done;selected=2;}", "first:second:for(const value of [base,base+1])", "break first;", "output.push([trace,String(updates),String(count),String(post),String(selected),String(once),input+String(base)]);", "return output;"]){
-    const changed=source.replace(text,'');const key=kind==='native'?'sourceSha256':'counterpartSha256';
+    const changed=replaceCodeSnippet(source, text,'');const key=kind==='native'?'sourceSha256':'counterpartSha256';
     assert.throws(()=>assertLabeledControlSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
    }
    assert.throws(()=>assertLabeledControlSource(source,{...row,operationsPerIteration:8},kind));assert.throws(()=>assertLabeledControlSource(source+' ',row,kind));

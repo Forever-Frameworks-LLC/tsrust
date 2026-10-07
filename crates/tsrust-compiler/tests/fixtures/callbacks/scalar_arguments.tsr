@@ -4,7 +4,10 @@ function apply(action: Mutable<Function<int, [value: int, enabled: boolean]>>): 
 
 function main() {
     const choose = (value: int, enabled: boolean): int => {
-        if (enabled) { return value; }
+        if (enabled) {
+            return value;
+        }
+
         return 0;
     };
     console.log(apply(choose));

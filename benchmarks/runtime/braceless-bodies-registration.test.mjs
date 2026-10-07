@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -17,7 +18,7 @@ test('single-statement body registration binds complete scenarios and preserves 
   assert.equal(row.measured,false);assert.equal(reportCategory(row.id),'other');
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertBracelessBodiesSource(source,row,kind);
-   for(const changed of [source.replace('for(let k=0;k<base%5+1;k++)sum+=k;','for(let k=0;k<base%5+1;k++){sum+=k;}'),source.replace('else if(a+b===2)odd+=10;',''),source.replace('return output;','return [];')]){
+   for(const changed of [replaceCodeSnippet(source, 'for(let k=0;k<base%5+1;k++)sum+=k;','for(let k=0;k<base%5+1;k++){sum+=k;}'),replaceCodeSnippet(source, 'else if(a+b===2)odd+=10;',''),replaceCodeSnippet(source, 'return output;','return [];')]){
     const key=kind==='native'?'sourceSha256':'counterpartSha256';
     assert.throws(()=>assertBracelessBodiesSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
    }

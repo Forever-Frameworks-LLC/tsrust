@@ -1,3 +1,4 @@
+import {containsCodeSnippet} from './source-contract-tokens.mjs';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {numberToStringIds} from './number-to-string-oracle.mjs';
@@ -7,7 +8,7 @@ export function assertNumberToStringSource(source,row,kind) {
  if(createHash('sha256').update(source).digest('hex')!==(kind==='native'?row.sourceSha256:row.counterpartSha256))throw Error('Number toString source fingerprint');
  if(row.operationsPerIteration!==1||row.iterations!==2048||row.operationUnit!=='One complete number toString scenario iteration')throw Error('Number toString scenario denominator');
  if(row.resultEncoding!=='array-shape-scalar-v1')throw Error('Number toString observer protocol');
- if(!source.includes('while (i < n)')||!source.includes('return output;')||!source.includes('output.push(['))throw Error('Actual toString scenario and complete retention');
+ if(!containsCodeSnippet(source, 'while (i < n)')||!containsCodeSnippet(source, 'return output;')||!containsCodeSnippet(source, 'output.push(['))throw Error('Actual toString scenario and complete retention');
  if((source.match(/\.toString\(/g)??[]).length!==5)throw Error('Five actual toString calls');
  if(kind==='typescript') {
   const file=ts.createSourceFile(row.id+'.ts',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TS);let calls=0,radixes=0,workload;

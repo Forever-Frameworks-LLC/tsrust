@@ -1,14 +1,23 @@
-import {strictEqual} from 'std:testing';
+import { strictEqual } from 'std:testing';
+
 function main() {
     function outer(): int {
-        function unused(): int { return later.length; }
+        function unused(): int {
+            return later.length;
+        }
+
         return 7;
     }
+
     strictEqual(outer(), 7);
     const later = [1, 2];
     function consume(values: int[]): int {
-        function unused(): int { return later.length; }
+        function unused(): int {
+            return later.length;
+        }
+
         return values.length;
     }
+
     strictEqual(consume(later), 2);
 }

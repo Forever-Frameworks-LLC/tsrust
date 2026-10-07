@@ -1,8 +1,46 @@
-function integers(base: int, count: int): int[] { const values: int[] = []; let at = 0; while (at < count) { values.push(base + at); at = at + 1; } return values; }
-function collect<T>(...values: T[]): T[] { return values; }
-function workload(n: int, seed: int, input: string): int[][] {
- const output: int[][] = []; let state = seed % 5; const callback = (...values:int[]):int[] => { state = state + 1; const result:int[] = [state];let at=0;while(at < values.length){result.push(values[at]);at=at+1;}return result; }; let i = 0;
- while (i < n) { const mode = (i + seed) % 3; const base = (i * 13 + seed) % 97; const count = mode === 0 ? 0 : mode === 1 ? 1 : 5;
- const values = integers(base,count);output.push(callback(...values));output.push([1]); i = i + 1; } return output;
+function integers(base: int, count: int): int[] {
+    const values: int[] = [];
+    let at = 0;
+    while (at < count) {
+        values.push(base + at);
+        at = at + 1;
+    }
+
+    return values;
 }
-function main() { const result = workload(3, 0, "abc"); }
+
+function collect<T>(...values: T[]): T[] {
+    return values;
+}
+
+function workload(n: int, seed: int, input: string): int[][] {
+    const output: int[][] = [];
+    let state = seed % 5;
+    const callback = (...values: int[]): int[] => {
+        state = state + 1;
+        const result: int[] = [state];
+        let at = 0;
+        while (at < values.length) {
+            result.push(values[at]);
+            at = at + 1;
+        }
+
+        return result;
+    };
+    let i = 0;
+    while (i < n) {
+        const mode = (i + seed) % 3;
+        const base = (i * 13 + seed) % 97;
+        const count = mode === 0 ? 0 : mode === 1 ? 1 : 5;
+        const values = integers(base, count);
+        output.push(callback(...values));
+        output.push([1]);
+        i = i + 1;
+    }
+
+    return output;
+}
+
+function main() {
+    const result = workload(3, 0, "abc");
+}

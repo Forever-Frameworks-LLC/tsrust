@@ -1,4 +1,84 @@
-function workload(n:int,seed:int):boolean[][]{const output:boolean[][]=[];let i=0;while(i<n){const values:boolean[]=[item(seed+i+0),item(seed+i+1),item(seed+i+2),item(seed+i+3),item(seed+i+4),item(seed+i+5)];const mode=(i+seed)%10;if(mode===0){const result=values.toSpliced();output.push(result);}else if(mode===1){const result=values.toSpliced(start(i,seed));output.push(result);}else if(mode===2){const result=values.toSpliced(start(i,seed),0);output.push(result);}else if(mode===3){const result=values.toSpliced(start(i,seed),-3);output.push(result);}else if(mode===4){const result=values.toSpliced(start(i,seed),2);output.push(result);}else if(mode===5){const result=values.toSpliced(start(i,seed),99);output.push(result);}else if(mode===6){const result=values.toSpliced(start(i,seed),1,item(seed+i+11));output.push(result);}else if(mode===7){const result=values.toSpliced(start(i,seed),0,item(seed+i+11),item(seed+i+13));output.push(result);}else if(mode===8){const result=values.toSpliced(start(i,seed),3,item(seed+i+11),item(seed+i+13),item(seed+i+17));output.push(result);}else{const result=values.toSpliced(start(i,seed),99,item(seed+i+11),item(seed+i+13));output.push(result);}i=i+1;}return output;}
-function item(base:int):boolean{return base%3!==0;}
-function start(i:int,seed:int):int{const c=(i*3+seed)%8;if(c===0){return -9;}if(c===1){return -6;}if(c===2){return -1;}if(c===3){return 0;}if(c===4){return 2;}if(c===5){return 5;}if(c===6){return 6;}return 99;}
-function main(){const result=workload(2,7);}
+function workload(n: int, seed: int): boolean[][] {
+    const output: boolean[][] = [];
+    let i = 0;
+    while (i < n) {
+        const values: boolean[] = [item(seed + i + 0), item(seed + i + 1), item(seed + i + 2), item(seed + i + 3), item(seed + i + 4), item(seed + i + 5)];
+        const mode = (i + seed) % 10;
+        if (mode === 0) {
+            const result = values.toSpliced();
+            output.push(result);
+        } else if (mode === 1) {
+            const result = values.toSpliced(start(i, seed));
+            output.push(result);
+        } else if (mode === 2) {
+            const result = values.toSpliced(start(i, seed), 0);
+            output.push(result);
+        } else if (mode === 3) {
+            const result = values.toSpliced(start(i, seed), - 3);
+            output.push(result);
+        } else if (mode === 4) {
+            const result = values.toSpliced(start(i, seed), 2);
+            output.push(result);
+        } else if (mode === 5) {
+            const result = values.toSpliced(start(i, seed), 99);
+            output.push(result);
+        } else if (mode === 6) {
+            const result = values.toSpliced(start(i, seed), 1, item(seed + i + 11));
+            output.push(result);
+        } else if (mode === 7) {
+            const result = values.toSpliced(start(i, seed), 0, item(seed + i + 11), item(seed + i + 13));
+            output.push(result);
+        } else if (mode === 8) {
+            const result = values.toSpliced(start(i, seed), 3, item(seed + i + 11), item(seed + i + 13), item(seed + i + 17));
+            output.push(result);
+        } else {
+            const result = values.toSpliced(start(i, seed), 99, item(seed + i + 11), item(seed + i + 13));
+            output.push(result);
+        }
+
+        i = i + 1;
+    }
+
+    return output;
+}
+
+function item(base: int): boolean {
+    return base % 3 !== 0;
+}
+
+function start(i: int, seed: int): int {
+    const c = (i * 3 + seed) % 8;
+    if (c === 0) {
+        return - 9;
+    }
+
+    if (c === 1) {
+        return - 6;
+    }
+
+    if (c === 2) {
+        return - 1;
+    }
+
+    if (c === 3) {
+        return 0;
+    }
+
+    if (c === 4) {
+        return 2;
+    }
+
+    if (c === 5) {
+        return 5;
+    }
+
+    if (c === 6) {
+        return 6;
+    }
+
+    return 99;
+}
+
+function main() {
+    const result = workload(2, 7);
+}

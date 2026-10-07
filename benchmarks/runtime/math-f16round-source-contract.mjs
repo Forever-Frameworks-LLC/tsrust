@@ -1,3 +1,4 @@
+import {containsCodeSnippet} from './source-contract-tokens.mjs';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {mathF16roundIds} from './math-f16round-oracle.mjs';
@@ -7,7 +8,7 @@ export function assertMathF16roundSource(source,row,kind) {
  if(createHash('sha256').update(source).digest('hex')!==(kind==='native'?row.sourceSha256:row.counterpartSha256))throw Error('Math.f16round source fingerprint');
  if(row.operationsPerIteration!==1||row.iterations!==2048||row.operationUnit!=='One complete Math.f16round scenario iteration')throw Error('Math.f16round scenario denominator');
  if(row.resultEncoding!=='ieee-f64-tree-v1')throw Error('Math.f16round observer protocol');
- if(!source.includes('while (i < n)')||!source.includes('return output;')||!source.includes('output.push(['))throw Error('Actual Math.f16round scenario and complete retention');
+ if(!containsCodeSnippet(source, 'while (i < n)')||!containsCodeSnippet(source, 'return output;')||!containsCodeSnippet(source, 'output.push(['))throw Error('Actual Math.f16round scenario and complete retention');
  if((source.match(/Math\.f16round\(/g)??[]).length!==5)throw Error('Five actual Math.f16round calls');
  if(kind==='typescript') {
   const file=ts.createSourceFile(row.id+'.ts',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TS);let calls=0,workload;

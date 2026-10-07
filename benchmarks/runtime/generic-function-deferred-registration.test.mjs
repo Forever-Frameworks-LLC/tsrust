@@ -1,3 +1,4 @@
+import {containsCodeSnippet, replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -21,7 +22,7 @@ test('Deferred generic values retain matched sources and independent result evid
   assert.throws(()=>assertDeferredGenericSource(source,{...row,operationsPerIteration:2},kind));
   const key=kind==='native'?'sourceSha256':'counterpartSha256';
   for(const [from,to] of [['function identity<T>(value: T): T { return value; }','function identity<T>(value: T): T { return structuredClone(value); }'],['const action = identity;','const action = offset;'],['const numberResult = action(base);','const numberResult = action(base + 1);'],['const headResult = pick(base + 2, base + 3);','const headResult = pick(base, base + 3);']]){
-   assert.ok(source.includes(from));const changed=source.replace(from,to);
+   assert.ok(containsCodeSnippet(source, from));const changed=replaceCodeSnippet(source, from,to);
    assert.throws(()=>assertDeferredGenericSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   }
  }

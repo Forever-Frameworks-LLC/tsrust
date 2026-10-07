@@ -1,15 +1,21 @@
 function retain(action: Function<int>): () => int {
-  const next = action;
-  return (): int => { return next(); };
+    const next = action;
+    return (): int => {
+        return next();
+    };
 }
+
 function counter(): () => int {
-  let count = 0;
-  return retain((): int => { count = count + 1; return count; });
+    let count = 0;
+    return retain((): int => {
+        count = count + 1; return count;
+    });
 }
+
 function main() {
-  const first = counter();
-  const second = counter();
-  console.log(first());
-  console.log(first());
-  console.log(second());
+    const first = counter();
+    const second = counter();
+    console.log(first());
+    console.log(first());
+    console.log(second());
 }

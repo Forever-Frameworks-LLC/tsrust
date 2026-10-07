@@ -1,20 +1,54 @@
-type Trace = { calls: int; defaults: int; };
-function consumeText(text: string): string { return text; }
-function apply(trace: Trace, action?: Once<Function<string, [trace: Mutable<Trace>]>>): string[] { if (action !== undefined) { return [action(trace)]; } return []; }
+type Trace = {
+    calls: int;
+    defaults: int;
+};
+
+function consumeText(text: string): string {
+    return text;
+}
+
+function apply(trace: Trace, action?: Once<Function<string, [trace: Mutable<Trace>]>>): string[] {
+    if (action !== undefined) {
+        return [action(trace)];
+    }
+
+    return [];
+}
+
 function workload(n: int, seed: int, input: string): string[][] {
-    const output: string[][] = []; const trace: Trace = { calls: 0, defaults: 0 };
-    let i = 0; while (i < n) {
-        const mode = (i + seed) % 4; const value = (i * 13 + seed) % 97;
-        const beforeCalls = trace.calls; const beforeDefaults = trace.defaults;
-        if (mode === 0) { const missing = apply(trace); output.push(missing); }
-        else if (mode === 1) { const missing = apply(trace, undefined); output.push(missing); }
-        else {
+    const output: string[][] = [];
+    const trace: Trace = {
+        calls: 0, defaults: 0
+    };
+    let i = 0;
+    while (i < n) {
+        const mode = (i + seed) % 4;
+        const value = (i * 13 + seed) % 97;
+        const beforeCalls = trace.calls;
+        const beforeDefaults = trace.defaults;
+        if (mode === 0) {
+            const missing = apply(trace);
+            output.push(missing);
+        } else if (mode === 1) {
+            const missing = apply(trace, undefined);
+            output.push(missing);
+        } else {
             const text = input.repeat(value % 3 + 1).concat(":present:", String(value));
-            const action = (callTrace: Trace): string => { callTrace.calls = callTrace.calls + 1; return consumeText(text); };
-            const selected = apply(trace, action); output.push(selected);
+            const action = (callTrace: Trace): string => {
+                callTrace.calls = callTrace.calls + 1;
+                return consumeText(text);
+            };
+            const selected = apply(trace, action);
+            output.push(selected);
         }
+
         output.push([String(trace.calls - beforeCalls), String(trace.defaults - beforeDefaults)]);
         i = i + 1;
-    } return output;
+    }
+
+    return output;
 }
-function main() { const result = workload(3, 0, "abc"); }
+
+function main() {
+    const result = workload(3, 0, "abc");
+}

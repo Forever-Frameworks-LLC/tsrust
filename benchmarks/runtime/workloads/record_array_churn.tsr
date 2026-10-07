@@ -1,3 +1,47 @@
-type Wide = { name: string; values: int[]; a: int; b: int; c: int; d: int; };
-function workload(n: int, seed: int): int { let sum = seed; let i = 0; while (i < n) { const records: Wide[] = []; const width = (i + seed) % 17; let j = 0; while (j < width) { records.push({name: "Pat", values: [i, j], a: i + seed, b: j, c: seed, d: i}); j = j + 1; } const saved = clone(records); if (width > 0) { records[0].values[0] = seed; const item = saved.remove((i + seed) % width); sum = sum + item.values[0] + item.values[1] + item.a + item.b + item.c + item.d; } for (const record of saved) { sum = sum + record.values[0] + record.values[1] + record.a + record.b + record.c + record.d; } for (const record of records) { sum = sum + record.values[0] + record.values[1] + record.a + record.b + record.c + record.d; } i = i + 1; } return sum; }
-function main() { console.log(workload(2, 7)); }
+type Wide = {
+    name: string;
+    values: int[];
+    a: int;
+    b: int;
+    c: int;
+    d: int;
+};
+
+function workload(n: int, seed: int): int {
+    let sum = seed;
+    let i = 0;
+    while (i < n) {
+        const records: Wide[] = [];
+        const width = (i + seed) % 17;
+        let j = 0;
+        while (j < width) {
+            records.push({
+                name: "Pat", values: [i, j], a: i + seed, b: j, c: seed, d: i
+            });
+            j = j + 1;
+        }
+
+        const saved = clone(records);
+        if (width > 0) {
+            records[0].values[0] = seed;
+            const item = saved.remove((i + seed) % width);
+            sum = sum + item.values[0] + item.values[1] + item.a + item.b + item.c + item.d;
+        }
+
+        for (const record of saved) {
+            sum = sum + record.values[0] + record.values[1] + record.a + record.b + record.c + record.d;
+        }
+
+        for (const record of records) {
+            sum = sum + record.values[0] + record.values[1] + record.a + record.b + record.c + record.d;
+        }
+
+        i = i + 1;
+    }
+
+    return sum;
+}
+
+function main() {
+    console.log(workload(2, 7));
+}

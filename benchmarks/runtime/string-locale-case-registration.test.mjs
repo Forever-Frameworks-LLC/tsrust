@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -16,8 +17,8 @@ test('string locale case pair appends to the manifest and binds actual guarded s
   assert.equal(row.measured,false);assert.equal(row.measurementStatus,'pending-string-methods-milestone');assert.equal(reportCategory(row.id),'strings');
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertStringLocaleCaseSource(source,row,kind);
-   assert.throws(()=>assertStringLocaleCaseSource(source.replace('text.toLocaleLowerCase()','text.toLowerCase()'),row,kind));
-   assert.throws(()=>assertStringLocaleCaseSource(source.replace('return output;','return [];'),row,kind));
+   assert.throws(()=>assertStringLocaleCaseSource(replaceCodeSnippet(source, 'text.toLocaleLowerCase()','text.toLowerCase()'),row,kind));
+   assert.throws(()=>assertStringLocaleCaseSource(replaceCodeSnippet(source, 'return output;','return [];'),row,kind));
    assert.throws(()=>assertStringLocaleCaseSource(source,{...row,operationsPerIteration:2},kind));
    assert.throws(()=>assertStringLocaleCaseSource(source+' ',row,kind));
   }

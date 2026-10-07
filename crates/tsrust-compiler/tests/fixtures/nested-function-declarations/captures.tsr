@@ -1,19 +1,33 @@
 import { strictEqual } from "std:testing";
+
 function make(start: int): () => int {
     let value = start;
-    function next(): int { value += 1; return value; }
+    function next(): int {
+        value += 1;
+        return value;
+    }
+
     return next;
 }
+
 function main() {
-    function shifted(value: int): int { return value + offset; }
+    function shifted(value: int): int {
+        return value + offset;
+    }
+
     const offset = 3;
     strictEqual(shifted(4), 7);
     const counts = [0];
     {
-        function tick(): int { counts[0] += 1; return counts[0]; }
+        function tick(): int {
+            counts[0] += 1;
+            return counts[0];
+        }
+
         strictEqual(tick(), 1);
         strictEqual(tick(), 2);
     }
+
     strictEqual(counts[0], 2);
     const next = make(10);
     strictEqual(next(), 11);

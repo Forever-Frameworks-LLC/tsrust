@@ -1,14 +1,22 @@
 function workload(n: int, seed: int): int[][] {
     const values: int[] = [seed, seed + 1, 2, 3, seed + 4, 5, 6, 7];
-    const output: int[][] = []; let trace = seed; let visits = 0; let i = 0;
+    const output: int[][] = [];
+    let trace = seed;
+    let visits = 0;
+    let i = 0;
     while (i < n) {
         const selected: int[] = values.filter((value: int, index: int): boolean => {
-            trace = (trace * 131 + visits + i + seed) % 1000000007; visits = visits + 1;
-            return (value + i + index) % 3 !== 0;
+            trace = (trace * 131 + visits + i + seed) % 1000000007; visits = visits + 1; return (value + i + index) % 3 !== 0;
         });
-        output.push(selected); i = i + 1;
+        output.push(selected);
+        i = i + 1;
     }
+
     output.push([trace, visits]);
     return output;
 }
-function main() { const result = workload(2, 7); console.log(result.length); }
+
+function main() {
+    const result = workload(2, 7);
+    console.log(result.length);
+}

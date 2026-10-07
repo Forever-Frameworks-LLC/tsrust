@@ -1,10 +1,17 @@
-function index(trace: int[]): int { trace.push(1); return -1; }
+function index(trace: int[]): int {
+    trace.push(1);
+    return - 1;
+}
+
 function main() {
     const trace: int[] = [];
     const values: string[] = ["a", "é"];
     const selected = values.at(index(trace));
     console.log(typeof selected);
-    if (selected !== undefined) { console.log(selected); }
+    if (selected !== undefined) {
+        console.log(selected);
+    }
+
     console.log(trace.join(","));
     console.log(values.join("|"));
     const empty: string[] = [];

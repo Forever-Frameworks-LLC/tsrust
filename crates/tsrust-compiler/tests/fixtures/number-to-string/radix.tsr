@@ -1,11 +1,11 @@
 function main() {
     const v0: number = 0.0;
     console.log(v0.toString(), v0.toString(10), v0.toString(2), v0.toString(8), v0.toString(16), v0.toString(36), v0.toString(3));
-    const v1: number = -0.0;
+    const v1: number = - 0.0;
     console.log(v1.toString(), v1.toString(10), v1.toString(2), v1.toString(8), v1.toString(16), v1.toString(36), v1.toString(3));
     const v2: number = 1.0;
     console.log(v2.toString(), v2.toString(10), v2.toString(2), v2.toString(8), v2.toString(16), v2.toString(36), v2.toString(3));
-    const v3: number = -1.0;
+    const v3: number = - 1.0;
     console.log(v3.toString(), v3.toString(10), v3.toString(2), v3.toString(8), v3.toString(16), v3.toString(36), v3.toString(3));
     const v4: number = 255.0;
     console.log(v4.toString(), v4.toString(10), v4.toString(2), v4.toString(8), v4.toString(16), v4.toString(36), v4.toString(3));
@@ -15,7 +15,7 @@ function main() {
     console.log(v6.toString(), v6.toString(10), v6.toString(2), v6.toString(8), v6.toString(16), v6.toString(36), v6.toString(3));
     const v7: number = 0.1;
     console.log(v7.toString(), v7.toString(10), v7.toString(2), v7.toString(8), v7.toString(16), v7.toString(36), v7.toString(3));
-    const v8: number = -0.1;
+    const v8: number = - 0.1;
     console.log(v8.toString(), v8.toString(10), v8.toString(2), v8.toString(8), v8.toString(16), v8.toString(36), v8.toString(3));
     const v9: number = 1.5;
     console.log(v9.toString(), v9.toString(10), v9.toString(2), v9.toString(8), v9.toString(16), v9.toString(36), v9.toString(3));
@@ -29,9 +29,9 @@ function main() {
     console.log(v13.toString(), v13.toString(10), v13.toString(2), v13.toString(8), v13.toString(16), v13.toString(36), v13.toString(3));
     const v14: number = 9007199254740994.0;
     console.log(v14.toString(), v14.toString(10), v14.toString(2), v14.toString(8), v14.toString(16), v14.toString(36), v14.toString(3));
-    const v15: number = 1.0/3.0;
+    const v15: number = 1.0 / 3.0;
     console.log(v15.toString(), v15.toString(10), v15.toString(2), v15.toString(8), v15.toString(16), v15.toString(36), v15.toString(3));
-    const v16: number = -255.75;
+    const v16: number = - 255.75;
     console.log(v16.toString(), v16.toString(10), v16.toString(2), v16.toString(8), v16.toString(16), v16.toString(36), v16.toString(3));
     const v17: number = 0.000001;
     console.log(v17.toString(), v17.toString(10), v17.toString(2), v17.toString(8), v17.toString(16), v17.toString(36), v17.toString(3));
@@ -47,7 +47,7 @@ function main() {
     console.log(v22.toString(), v22.toString(10), v22.toString(2), v22.toString(8), v22.toString(16), v22.toString(36), v22.toString(3));
     const v23: number = 1.7976931348623157e308;
     console.log(v23.toString(), v23.toString(10), v23.toString(2), v23.toString(8), v23.toString(16), v23.toString(36), v23.toString(3));
-    const v24: number = 0.2+0.1;
+    const v24: number = 0.2 + 0.1;
     console.log(v24.toString(), v24.toString(10), v24.toString(2), v24.toString(8), v24.toString(16), v24.toString(36), v24.toString(3));
     const v25: number = 100.0;
     console.log(v25.toString(), v25.toString(10), v25.toString(2), v25.toString(8), v25.toString(16), v25.toString(36), v25.toString(3));
@@ -58,5 +58,7 @@ function main() {
     const v28: number = 7.25;
     console.log(v28.toString(), v28.toString(10), v28.toString(2), v28.toString(8), v28.toString(16), v28.toString(36), v28.toString(3));
     const radix = 16;
-    console.log((255.5).toString(radix), (0.75).toString(2).length, [1.5, 2.25].map((value: number): string => { return value.toString(4); }).join("|"));
+    console.log((255.5).toString(radix), (0.75).toString(2).length, [1.5, 2.25].map((value: number): string => {
+        return value.toString(4);
+    }).join("|"));
 }

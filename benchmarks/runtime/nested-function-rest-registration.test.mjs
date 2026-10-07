@@ -1,3 +1,4 @@
+import {containsCodeSnippet, replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -21,7 +22,7 @@ test('Captured rest values retain matched sources and independent result evidenc
   assert.throws(()=>assertNestedRestSource(source,{...row,operationsPerIteration:2},kind));
   const key=kind==='native'?'sourceSha256':'counterpartSha256';
   for(const [from,to] of [['supplied = action(2, 3);','supplied = action(2, 4);'],['const pack = [4, 5];','const pack = [4, 6];'],['undefinedFirst = prefix(undefined, 1, 2);','undefinedFirst = prefix(0, 1, 2);']]){
-   assert.ok(source.includes(from));const changed=source.replace(from,to);
+   assert.ok(containsCodeSnippet(source, from));const changed=replaceCodeSnippet(source, from,to);
    assert.throws(()=>assertNestedRestSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   }
  }

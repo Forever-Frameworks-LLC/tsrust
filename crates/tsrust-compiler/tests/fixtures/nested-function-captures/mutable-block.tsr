@@ -1,10 +1,16 @@
 import { strictEqual } from "std:testing";
+
 function main() {
     const counts = [0];
     {
-        function tick(): int { counts[0] += 1; return counts[0]; }
+        function tick(): int {
+            counts[0] += 1;
+            return counts[0];
+        }
+
         strictEqual(tick(), 1);
         strictEqual(tick(), 2);
     }
+
     strictEqual(counts[0], 2);
 }

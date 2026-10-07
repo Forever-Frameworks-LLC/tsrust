@@ -3,8 +3,11 @@ import { strictEqual } from "std:testing";
 function main() {
     const base = 10;
     function sum(...values: int[]): int {
-        return values.reduce((total: int, value: int): int => { return total + value; }, base);
+        return values.reduce((total: int, value: int): int => {
+            return total + value;
+        }, base);
     }
+
     const action = sum;
     strictEqual(action(), 10);
     strictEqual(action(2, 3), 15);

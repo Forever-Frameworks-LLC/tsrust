@@ -1,3 +1,4 @@
+mod support;
 use serde_json::json;
 use tsrust_lsp::intelligence::SourceIndex;
 #[test]
@@ -10,5 +11,5 @@ fn iterable_call_spread_preserves_results_help_and_recovery_types(){
 #[test]
 fn iterable_call_spread_catalog_examples_are_current(){
  let catalog:serde_json::Value=serde_json::from_str(include_str!("../src/builtins.json")).unwrap();let fixture=include_str!("../../tsrust-compiler/tests/fixtures/iterable-call-spread/documented.tsr");let output=include_str!("../../tsrust-compiler/tests/fixtures/iterable-call-spread/documented.stdout");let mut expected=String::new();
- for(family,name)in[("string","concat"),("StringConstructor","fromCodePoint"),("StringConstructor","fromCharCode"),("StringConstructor","raw"),("Math","min"),("Math","max"),("Math","hypot")]{let entry=catalog[family].as_array().unwrap().iter().find(|x|x["name"]==name).unwrap();let example=entry["examples"].as_array().unwrap().last().unwrap();assert!(fixture.contains(example["source"].as_str().unwrap()));expected.push_str(example["output"].as_str().unwrap());}assert_eq!(expected,output);tsrust_compiler::check(fixture).unwrap();
+ for(family,name)in[("string","concat"),("StringConstructor","fromCodePoint"),("StringConstructor","fromCharCode"),("StringConstructor","raw"),("Math","min"),("Math","max"),("Math","hypot")]{let entry=catalog[family].as_array().unwrap().iter().find(|x|x["name"]==name).unwrap();let example=entry["examples"].as_array().unwrap().last().unwrap();assert!(support::contains_formatted_snippet(fixture,example["source"].as_str().unwrap()));expected.push_str(example["output"].as_str().unwrap());}assert_eq!(expected,output);tsrust_compiler::check(fixture).unwrap();
 }

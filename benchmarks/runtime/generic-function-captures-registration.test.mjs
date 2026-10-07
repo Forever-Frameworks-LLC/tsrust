@@ -1,3 +1,4 @@
+import {containsCodeSnippet, replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -21,7 +22,7 @@ test('Captured generic values retain matched sources and independent result evid
   assert.throws(()=>assertCapturedGenericSource(source,{...row,operationsPerIteration:2},kind));
   const key=kind==='native'?'sourceSha256':'counterpartSha256';
   for(const [from,to] of [['function main() {}',''],['function select<T>(value: T): T { local += 1; return value; }','function select<T>(value: T): T { return value; }'],['const second = counter(base + 10);','const second = counter(base);'],['const sharedCount = first([base, base + 1]);','const sharedCount = second([base, base + 1]);'],['const finalCount = second(base);','const finalCount = first(base);']]){
-   assert.ok(source.includes(from));const changed=source.replace(from,to);
+   assert.ok(containsCodeSnippet(source, from));const changed=replaceCodeSnippet(source, from,to);
    assert.throws(()=>assertCapturedGenericSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   }
  }

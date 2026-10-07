@@ -1,14 +1,38 @@
-type Trace = { calls: int; defaults: int; };
-function fallback(trace: Trace, base: int, input: string): string { trace.defaults = trace.defaults + 1; return input.repeat(base % 3 + 1).concat(":default:", String(base)); }
-function apply(trace: Trace, base: int, input: string, value: string = fallback(trace, base, input)): string { trace.calls = trace.calls + 1; return value; }
-function workload(n: int, seed: int, input: string): string[] {
-    const output: string[] = []; const trace: Trace = { calls: 0, defaults: 0 };
-    let i = 0; while (i < n) {
-        const mode = (i + seed) % 4; const value = (i * 13 + seed) % 97;
-        const beforeCalls = trace.calls; const beforeDefaults = trace.defaults;
-        const observed = mode === 0 ? apply(trace, value, input) : mode === 1 ? apply(trace, value, input, undefined) : apply(trace, value, input, input.repeat(value % 3 + 1).concat(":present:", String(value)));
-        output.push(observed); output.push(String(trace.defaults - beforeDefaults));
-        i = i + 1;
-    } return output;
+type Trace = {
+    calls: int;
+    defaults: int;
+};
+
+function fallback(trace: Trace, base: int, input: string): string {
+    trace.defaults = trace.defaults + 1;
+    return input.repeat(base % 3 + 1).concat(":default:", String(base));
 }
-function main() { const result = workload(3, 0, "abc"); }
+
+function apply(trace: Trace, base: int, input: string, value: string = fallback(trace, base, input)): string {
+    trace.calls = trace.calls + 1;
+    return value;
+}
+
+function workload(n: int, seed: int, input: string): string[] {
+    const output: string[] = [];
+    const trace: Trace = {
+        calls: 0, defaults: 0
+    };
+    let i = 0;
+    while (i < n) {
+        const mode = (i + seed) % 4;
+        const value = (i * 13 + seed) % 97;
+        const beforeCalls = trace.calls;
+        const beforeDefaults = trace.defaults;
+        const observed = mode === 0 ? apply(trace, value, input) : mode === 1 ? apply(trace, value, input, undefined) : apply(trace, value, input, input.repeat(value % 3 + 1).concat(":present:", String(value)));
+        output.push(observed);
+        output.push(String(trace.defaults - beforeDefaults));
+        i = i + 1;
+    }
+
+    return output;
+}
+
+function main() {
+    const result = workload(3, 0, "abc");
+}

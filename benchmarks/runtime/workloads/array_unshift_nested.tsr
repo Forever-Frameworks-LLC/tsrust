@@ -5,17 +5,40 @@ function workload(n: int, seed: int): string[] {
     while (i < n) {
         const count = sizes[(i + seed) % 5];
         const arity = (i * 7 + seed) % 3;
-        const values: int[][] = []; let j = 0;
-        while (j < count) { values.push([seed + j, j]); j = j + 1; }
+        const values: int[][] = [];
+        let j = 0;
+        while (j < count) {
+            values.push([seed + j, j]);
+            j = j + 1;
+        }
+
         let newLength = 0;
-        if (arity === 0) { newLength = values.unshift(); }
-        else if (arity === 1) { newLength = values.unshift([seed, 1]); }
-        else { newLength = values.unshift([seed, 1], [], [seed + 2, 3]); }
-        output.push(String(newLength)); output.push(String(values.length));
-        let at = 0; while (at < values.length) { output.push(describe(values[at])); at = at + 1; }
+        if (arity === 0) {
+            newLength = values.unshift();
+        } else if (arity === 1) {
+            newLength = values.unshift([seed, 1]);
+        } else {
+            newLength = values.unshift([seed, 1], [], [seed + 2, 3]);
+        }
+
+        output.push(String(newLength));
+        output.push(String(values.length));
+        let at = 0;
+        while (at < values.length) {
+            output.push(describe(values[at]));
+            at = at + 1;
+        }
+
         i = i + 1;
     }
+
     return output;
 }
-function describe(value: int[]): string { return String(value.length).concat(":", value.join(",")); }
-function main() { const result = workload(2, 7); }
+
+function describe(value: int[]): string {
+    return String(value.length).concat(":", value.join(","));
+}
+
+function main() {
+    const result = workload(2, 7);
+}

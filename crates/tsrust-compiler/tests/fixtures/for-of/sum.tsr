@@ -1,17 +1,25 @@
 function sum(values: int[]): int {
-  let total = 0;
-  for (const value of values) {
-    if (value === 2) { continue; }
-    if (value > 4) { break; }
-    total = total + value;
-  }
-  return total;
+    let total = 0;
+    for (const value of values) {
+        if (value === 2) {
+            continue;
+        }
+
+        if (value > 4) {
+            break;
+        }
+
+        total = total + value;
+    }
+
+    return total;
 }
+
 function main() {
-  const values = [1, 2, 3, 4, 5];
-  console.log(sum(values));
-  console.log(values.length);
-  for (const flag of [true, false]) {
-    console.log(flag);
-  }
+    const values = [1, 2, 3, 4, 5];
+    console.log(sum(values));
+    console.log(values.length);
+    for (const flag of [true, false]) {
+        console.log(flag);
+    }
 }

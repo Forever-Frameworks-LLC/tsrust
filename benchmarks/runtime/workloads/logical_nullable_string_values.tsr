@@ -2,6 +2,7 @@ function fallback(trace: int[], value: string): string {
     trace[0] = trace[0] + 1;
     return value;
 }
+
 function workload(n: int, seed: int): string[] {
     const output: string[] = [];
     const trace: int[] = [0];
@@ -18,6 +19,10 @@ function workload(n: int, seed: int): string[] {
         output.push(String(trace[0]));
         i = i + 1;
     }
+
     return output;
 }
-function main() { const result = workload(2, 7); }
+
+function main() {
+    const result = workload(2, 7);
+}

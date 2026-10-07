@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -17,7 +18,7 @@ test('nested rest registration binds complete scenarios and preserves prior mani
   assert.equal(row.measured,false);assert.equal(reportCategory(row.id),'other');
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertNestedRestPatternsSource(source,row,kind);
-   for(const changed of [source.replace('tail.push("end")','tail.push("other")'),source.replace('return output;','return [];')]){
+   for(const changed of [replaceCodeSnippet(source, 'tail.push("end")','tail.push("other")'),replaceCodeSnippet(source, 'return output;','return [];')]){
     const key=kind==='native'?'sourceSha256':'counterpartSha256';
     assert.throws(()=>assertNestedRestPatternsSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
    }

@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -17,7 +18,7 @@ test('switch registration binds complete scenarios and preserves prior manifest 
   assert.equal(row.measured,false);assert.equal(reportCategory(row.id),'other');
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertSwitchStatementsSource(source,row,kind);
-   for(const changed of [source.replace('case 0:continue;','case 0:break;'),source.replace('default:steps+=1;','default:steps+=2;'),source.replace('return output;','return [];')]){
+   for(const changed of [replaceCodeSnippet(source, 'case 0:continue;','case 0:break;'),replaceCodeSnippet(source, 'default:steps+=1;','default:steps+=2;'),replaceCodeSnippet(source, 'return output;','return [];')]){
     const key=kind==='native'?'sourceSha256':'counterpartSha256';
     assert.throws(()=>assertSwitchStatementsSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
    }

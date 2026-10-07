@@ -8,13 +8,17 @@ function workload(n: int, seed: int): string[] {
         if ((i + seed) % 2 === 0) {
             path = "/var/log/archive.txt/";
         }
+
         values.push(basename(path, ".txt"));
         i = i + 1;
     }
+
     return values;
 }
 
 function main() {
     const values = workload(2, 7);
-    for (const value of values) { console.log(value); }
+    for (const value of values) {
+        console.log(value);
+    }
 }

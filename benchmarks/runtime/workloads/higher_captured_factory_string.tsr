@@ -1,4 +1,33 @@
-function workload(n:int,seed:int,input:string):string[]{const consumer=carry;const output:string[]=[];let i=0;while(i<n){const factory=make(clone(input));const carried=consumer(factory);const callback=carried();output.push(callback("xé"));i=i+1;}return output;}
-function carry(f:Function<(text:ReadOnly<string>)=>string>):()=>(text:ReadOnly<string>)=>string{return():(text:ReadOnly<string>)=>string=>{return f();};}
-function make(prefix:string):()=>(text:ReadOnly<string>)=>string{return():(text:ReadOnly<string>)=>string=>{const copied=clone(prefix);return(text:string):string=>{return text.replaceAll("x",copied);};};}
-function main(){const result=workload(2,7," xé😀e\u0301 ");}
+function workload(n: int, seed: int, input: string): string[] {
+    const consumer = carry;
+    const output: string[] = [];
+    let i = 0;
+    while (i < n) {
+        const factory = make(clone(input));
+        const carried = consumer(factory);
+        const callback = carried();
+        output.push(callback("xé"));
+        i = i + 1;
+    }
+
+    return output;
+}
+
+function carry(f: Function<(text: ReadOnly<string>) => string>): () => (text: ReadOnly<string>) => string {
+    return (): (text: ReadOnly<string>) => string => {
+        return f();
+    };
+}
+
+function make(prefix: string): () => (text: ReadOnly<string>) => string {
+    return (): (text: ReadOnly<string>) => string => {
+        const copied = clone(prefix);
+        return (text: string): string => {
+            return text.replaceAll("x", copied);
+        };
+    };
+}
+
+function main() {
+    const result = workload(2, 7, " xé😀e\u0301 ");
+}

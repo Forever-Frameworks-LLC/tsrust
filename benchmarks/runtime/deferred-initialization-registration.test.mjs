@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -17,7 +18,7 @@ test('deferred initialization registration binds complete scenarios and preserve
   assert.equal(row.measured,false);assert.equal(reportCategory(row.id),'other');
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertDeferredInitializationSource(source,row,kind);
-   for(const changed of [source.replace('let label:string;','let label:string="";'),source.replace('let size:int,step:int=base%5;','let size:int=0,step:int=base%5;'),source.replace('let note:string|undefined;','let note:string|undefined=undefined;'),source.replace('return output;','return [];')]){
+   for(const changed of [replaceCodeSnippet(source, 'let label:string;','let label:string="";'),replaceCodeSnippet(source, 'let size:int,step:int=base%5;','let size:int=0,step:int=base%5;'),replaceCodeSnippet(source, 'let note:string|undefined;','let note:string|undefined=undefined;'),replaceCodeSnippet(source, 'return output;','return [];')]){
     const key=kind==='native'?'sourceSha256':'counterpartSha256';
     assert.throws(()=>assertDeferredInitializationSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
    }

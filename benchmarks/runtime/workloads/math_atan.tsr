@@ -1,6 +1,7 @@
 function workload(n: int, seed: int): number {
-    const table0: number[] = [-7.5, -3.5, -1.5, -0.375, 0.375, 1.5, 3.5, 7.5];
-    let sum: number = Number(seed); let i = 0;
+    const table0: number[] = [- 7.5, - 3.5, - 1.5, - 0.375, 0.375, 1.5, 3.5, 7.5];
+    let sum: number = Number(seed);
+    let i = 0;
     while (i < n) {
         const position = (i * 13 + seed) % 8;
         const jitter = (i * 17 + seed) % 5;
@@ -8,7 +9,15 @@ function workload(n: int, seed: int): number {
         sum = sum + operation(argument0);
         i = i + 1;
     }
+
     return sum;
 }
-function operation(argument0: number): number { return Math.atan(argument0); }
-function main() { const result = workload(2, 7); console.log(result); }
+
+function operation(argument0: number): number {
+    return Math.atan(argument0);
+}
+
+function main() {
+    const result = workload(2, 7);
+    console.log(result);
+}

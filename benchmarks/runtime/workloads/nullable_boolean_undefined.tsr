@@ -1,6 +1,7 @@
 function workload(n: int, seed: int): string[] {
     const values: boolean[] = [true, false];
-    const output: string[] = []; let i = 0;
+    const output: string[] = [];
+    let i = 0;
     while (i < n) {
         const mode = (i + seed) % 3;
         const at = (i * 13 + seed) % 2;
@@ -12,7 +13,14 @@ function workload(n: int, seed: int): string[] {
         output.push(value === undefined ? "sentinel" : "payload");
         i = i + 1;
     }
+
     return output;
 }
-function pass(value: boolean | undefined): boolean | undefined { return value; }
-function main() { const result = workload(2, 7); }
+
+function pass(value: boolean | undefined): boolean | undefined {
+    return value;
+}
+
+function main() {
+    const result = workload(2, 7);
+}

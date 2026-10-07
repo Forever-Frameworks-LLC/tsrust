@@ -1,11 +1,17 @@
 function workload(n: int, seed: int, input: string): int[] {
     const needles: string[] = ["", "a", "aa", "aba", "alpha", "A", "Z", "missing\u0000", "a\u0000b"];
-    const positions: int[] = [-9223372036854775808, 9223372036854775807, -7, 0, input.length, input.indexOf("a"), input.indexOf("aa") + 1, input.indexOf("é"), input.indexOf("😀"), input.indexOf("é"), input.indexOf("\u0000")];
-    const output: int[] = []; let i = 0;
+    const positions: int[] = [- 9223372036854775808, 9223372036854775807, - 7, 0, input.length, input.indexOf("a"), input.indexOf("aa") + 1, input.indexOf("é"), input.indexOf("😀"), input.indexOf("é"), input.indexOf("\u0000")];
+    const output: int[] = [];
+    let i = 0;
     while (i < n) {
         const at = input.lastIndexOf(needles[(i * 17 + seed) % 9], positions[(i * 13 + seed) % 11]);
-        output.push(at + 1); i = i + 1;
+        output.push(at + 1);
+        i = i + 1;
     }
+
     return output;
 }
-function main() { const result = workload(2, 7, "aaa ababa alpha A alpha Z"); }
+
+function main() {
+    const result = workload(2, 7, "aaa ababa alpha A alpha Z");
+}

@@ -9,12 +9,14 @@ function main() {
     function shifted(value: int): int {
         return value + base[0];
     }
+
     strictEqual([1, 2].map(shifted).join(","), "11,12");
 
     let sum = 0;
     function accumulate(value: int): void {
         sum += value;
     }
+
     [1, 2, 3].forEach(accumulate);
     strictEqual(sum, 6);
 
@@ -23,23 +25,27 @@ function main() {
         counts[0] += 1;
         return counts[0];
     }
+
     {
         const run = tick;
         strictEqual(run(), 1);
         strictEqual(run(), 2);
     }
+
     strictEqual(counts[0], 2);
 
     const labels: string[] = [];
     function label(name: string, mark: int): void {
         labels.push(name + String(mark + base[0]));
     }
+
     function each(names: string[]): void {
         const write = label;
         for (const name of names) {
             write(name, names.length);
         }
     }
+
     each(["a", "b"]);
     strictEqual(labels.join(","), "a12,b12");
 
@@ -54,5 +60,6 @@ function main() {
     function offset(value: int): int {
         return value + offsets[0];
     }
+
     strictEqual(apply([3], offset).join(","), "103");
 }

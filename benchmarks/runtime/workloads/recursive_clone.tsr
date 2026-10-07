@@ -1,19 +1,69 @@
-type Tree = { value: int; children: Tree[]; };
+type Tree = {
+    value: int;
+    children: Tree[];
+};
+
 function workload(n: int, seed: int): int[][] {
- const roots: Tree[] = []; let i = 0;
- while (i < n) {
-  const children: Tree[] = []; let j = 0;
-  while (j < (i + seed) % 5) { children.push({ value: (3 * i + j + seed) % 1009, children: [] }); j = j + 1; }
-  let tree: Tree = { value: i % 1009, children: children }; let depth = 0;
-  while (depth < (i + seed) % 4) { tree = { value: (i + depth + seed) % 1009, children: [tree] }; depth = depth + 1; }
-  roots.push(tree); i = i + 1;
- }
- const copied = clone(roots); let index = 0;
- while (index < n) { roots[index].value = index + 2000; if (roots[index].children.length > 0) { roots[index].children[0].value = seed + 3000; } index = index + 1; }
- const output: int[][] = [];
- for (const tree of copied) { const row: int[] = []; project(tree, row); output.push(row); }
- for (const tree of roots) { const row: int[] = []; project(tree, row); output.push(row); }
- return output;
+    const roots: Tree[] = [];
+    let i = 0;
+    while (i < n) {
+        const children: Tree[] = [];
+        let j = 0;
+        while (j < (i + seed) % 5) {
+            children.push({
+                value: (3 * i + j + seed) % 1009, children: []
+            });
+            j = j + 1;
+        }
+
+        let tree: Tree = {
+            value: i % 1009, children: children
+        };
+        let depth = 0;
+        while (depth < (i + seed) % 4) {
+            tree = {
+                value: (i + depth + seed) % 1009, children: [tree]
+            };
+            depth = depth + 1;
+        }
+
+        roots.push(tree);
+        i = i + 1;
+    }
+
+    const copied = clone(roots);
+    let index = 0;
+    while (index < n) {
+        roots[index].value = index + 2000;
+        if (roots[index].children.length > 0) {
+            roots[index].children[0].value = seed + 3000;
+        }
+
+        index = index + 1;
+    }
+
+    const output: int[][] = [];
+    for (const tree of copied) {
+        const row: int[] = [];
+        project(tree, row);
+        output.push(row);
+    }
+
+    for (const tree of roots) {
+        const row: int[] = [];
+        project(tree, row);
+        output.push(row);
+    }
+
+    return output;
 }
-function project(tree: Tree, row: int[]) { row.push(tree.value); for (const child of tree.children) { project(child, row); } }
-function main() {}
+
+function project(tree: Tree, row: int[]) {
+    row.push(tree.value);
+    for (const child of tree.children) {
+        project(child, row);
+    }
+}
+
+function main() {
+}

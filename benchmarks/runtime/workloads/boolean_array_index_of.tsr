@@ -1,2 +1,23 @@
-function workload(n: int, seed: int): int { const values: boolean[] = []; let j = 0; while (j < 129) { values.push((j * 37 + seed) % 101 < 100); j = j + 1; } let sum = seed; let i = 0; while (i < n) { const needle = (i + seed) % 2 === 0; const from = (i * 13 + seed) % 387 - 193; sum = sum + values.indexOf(needle, from); i = i + 1; } return sum; }
-function main() { console.log(workload(2, 7)); }
+function workload(n: int, seed: int): int {
+    const values: boolean[] = [];
+    let j = 0;
+    while (j < 129) {
+        values.push((j * 37 + seed) % 101 < 100);
+        j = j + 1;
+    }
+
+    let sum = seed;
+    let i = 0;
+    while (i < n) {
+        const needle = (i + seed) % 2 === 0;
+        const from = (i * 13 + seed) % 387 - 193;
+        sum = sum + values.indexOf(needle, from);
+        i = i + 1;
+    }
+
+    return sum;
+}
+
+function main() {
+    console.log(workload(2, 7));
+}

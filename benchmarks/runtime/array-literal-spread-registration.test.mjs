@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -18,8 +19,8 @@ test('Gate101 appends guarded literal spread pairs while retaining every prior m
   assert.equal(row.pendingCheckpoint,101);assert.equal(row.measured,false);assert.equal(reportCategory(row.id),'arrays');
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertArrayLiteralSpreadSource(source,row,kind);
-   assert.throws(()=>assertArrayLiteralSpreadSource(source.replace('...',''),row,kind));
-   assert.throws(()=>assertArrayLiteralSpreadSource(source.replace('return output;','return [];'),row,kind));
+   assert.throws(()=>assertArrayLiteralSpreadSource(replaceCodeSnippet(source, '...',''),row,kind));
+   assert.throws(()=>assertArrayLiteralSpreadSource(replaceCodeSnippet(source, 'return output;','return [];'),row,kind));
    assert.throws(()=>assertArrayLiteralSpreadSource(source,{...row,operationsPerIteration:2},kind));
   }
  }

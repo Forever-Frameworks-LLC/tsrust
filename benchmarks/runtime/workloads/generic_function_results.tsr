@@ -1,4 +1,7 @@
-function empty<T>(): T[] { return []; }
+function empty<T>(): T[] {
+    return [];
+}
+
 function workload(n: int, seed: int, input: string): int[][] {
     const plain = empty;
     const output: int[][] = [];
@@ -11,7 +14,11 @@ function workload(n: int, seed: int, input: string): int[][] {
         let calls = 0;
         let first = 0;
         let length = 0;
-        function fresh<T>(): T[] { calls += 1; return []; }
+        function fresh<T>(): T[] {
+            calls += 1;
+            return [];
+        }
+
         {
             const action = fresh;
             const ownedNumbers: int[] = action();
@@ -21,8 +28,12 @@ function workload(n: int, seed: int, input: string): int[][] {
             first = ownedNumbers[0];
             length = ownedStrings[0].length;
         }
+
         output.push([numbers[0], strings[0].length, first, length, calls, input.length]);
     }
+
     return output;
 }
-function main() {}
+
+function main() {
+}

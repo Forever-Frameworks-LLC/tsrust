@@ -1,19 +1,37 @@
-enum Phase { Ready, Busy = 4, Done }
-enum Label { Short = "s", Long = "long" }
+enum Phase {
+    Ready, Busy = 4, Done
+}
+
+enum Label {
+    Short = "s", Long = "long"
+}
+
 function choose(value: int): Phase {
- if(value%3===0){return Phase.Ready;}
- if(value%3===1){return Phase.Busy;}
- return Phase.Done;
+    if (value % 3 === 0) {
+        return Phase.Ready;
+    }
+
+    if (value % 3 === 1) {
+        return Phase.Busy;
+    }
+
+    return Phase.Done;
 }
+
 function workload(n: int, seed: int, input: string): string[][] {
- const output:string[][]=[];let i=0;
- while(i<n){
-  const phase=choose(i+seed);
-  const copy=phase;
-  const label=phase===Phase.Ready?Label.Short:Label.Long;
-  output.push([String(Number(copy)),String(label),input+String(Number(phase))]);
-  i=i+1;
- }
- return output;
+    const output: string[][] = [];
+    let i = 0;
+    while (i < n) {
+        const phase = choose(i + seed);
+        const copy = phase;
+        const label = phase === Phase.Ready ? Label.Short : Label.Long;
+        output.push([String(Number(copy)), String(label), input + String(Number(phase))]);
+        i = i + 1;
+    }
+
+    return output;
 }
-function main(){const result=workload(3,0,"abc");}
+
+function main() {
+    const result = workload(3, 0, "abc");
+}

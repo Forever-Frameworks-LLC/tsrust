@@ -1,8 +1,21 @@
-function receiver(trace: int[]): int[] { trace.push(1); return [3, 1, 2]; }
-function comparator(trace: int[]): (left: int, right: int) => int { trace.push(2); return (left: int, right: int): int => { return left - right; }; }
+function receiver(trace: int[]): int[] {
+    trace.push(1);
+    return [3, 1, 2];
+}
+
+function comparator(trace: int[]): (left: int, right: int) => int {
+    trace.push(2);
+    return (left: int, right: int): int => {
+        return left - right;
+    };
+}
+
 function main() {
     const trace: int[] = [];
     const sorted = receiver(trace).toSorted(comparator(trace));
-    console.log(trace.join(",")); console.log(sorted.join(","));
-    const values: int[] = [3, 1, 2]; values.sort(); console.log(values.join(","));
+    console.log(trace.join(","));
+    console.log(sorted.join(","));
+    const values: int[] = [3, 1, 2];
+    values.sort();
+    console.log(values.join(","));
 }

@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -16,9 +17,9 @@ test('object values pair appends to the manifest and binds actual guarded source
   assert.equal(row.measured,false);assert.equal(row.measurementStatus,'pending-object-functions-milestone');assert.equal(reportCategory(row.id),'other');
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertObjectValuesSource(source,row,kind);
-   assert.throws(()=>assertObjectValuesSource(source.replace('const values = Object.values(row);','const values = [row.alpha];'),row,kind));
-   assert.throws(()=>assertObjectValuesSource(source.replace('Object.entries(sides).length','2'),row,kind));
-   assert.throws(()=>assertObjectValuesSource(source.replace('return output;','return [];'),row,kind));
+   assert.throws(()=>assertObjectValuesSource(replaceCodeSnippet(source, 'const values = Object.values(row);','const values = [row.alpha];'),row,kind));
+   assert.throws(()=>assertObjectValuesSource(replaceCodeSnippet(source, 'Object.entries(sides).length','2'),row,kind));
+   assert.throws(()=>assertObjectValuesSource(replaceCodeSnippet(source, 'return output;','return [];'),row,kind));
    assert.throws(()=>assertObjectValuesSource(source,{...row,operationsPerIteration:2},kind));
    assert.throws(()=>assertObjectValuesSource(source+' ',row,kind));
   }

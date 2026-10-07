@@ -1,6 +1,7 @@
 function workload(n: int, seed: int): string[] {
     const values: int[] = [seed, 0, 1, 17, 9001];
-    const output: string[] = []; let i = 0;
+    const output: string[] = [];
+    let i = 0;
     while (i < n) {
         const mode = (i + seed) % 3;
         const at = (i * 13 + seed) % 5;
@@ -12,7 +13,14 @@ function workload(n: int, seed: int): string[] {
         output.push(value === null ? "sentinel" : "payload");
         i = i + 1;
     }
+
     return output;
 }
-function pass(value: int | null): int | null { return value; }
-function main() { const result = workload(2, 7); }
+
+function pass(value: int | null): int | null {
+    return value;
+}
+
+function main() {
+    const result = workload(2, 7);
+}

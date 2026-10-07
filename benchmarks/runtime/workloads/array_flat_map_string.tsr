@@ -7,17 +7,27 @@ function workload(n: int, seed: int, input: string): string[][] {
         const source: string[] = [];
         let j = 0;
         while (j < count) {
-            const ordinal = j; source.push(input.concat(":", String(ordinal)));
+            const ordinal = j;
+            source.push(input.concat(":", String(ordinal)));
             j = j + 1;
         }
+
         const flattened = source.flatMap(mapPiece);
         output.push(flattened);
         i = i + 1;
     }
+
     return output;
 }
+
 function mapPiece(value: string, index: int, source: string[]): string[] {
-    if (index % 3 === 0) { return []; }
+    if (index % 3 === 0) {
+        return [];
+    }
+
     return [value.concat(":a"), value.concat(":b")];
 }
-function main() { const result = workload(2, 7, "dynamic text"); }
+
+function main() {
+    const result = workload(2, 7, "dynamic text");
+}

@@ -1,9 +1,11 @@
 type User = {
     name: string;
 };
+
 function take(user: User): User {
     return user;
 }
+
 function main() {
     const user: User = {
         name: "Pat"

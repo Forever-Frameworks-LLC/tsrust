@@ -9,6 +9,10 @@ function workload(n: int, seed: int): int {
         checksum = checksum + action(i);
         i = i + 1;
     }
+
     return checksum;
 }
-function main() { console.log(workload(2, 7)); }
+
+function main() {
+    console.log(workload(2, 7));
+}

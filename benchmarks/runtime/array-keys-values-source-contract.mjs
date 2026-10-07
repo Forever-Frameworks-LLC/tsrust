@@ -1,3 +1,4 @@
+import {containsCodeSnippet} from './source-contract-tokens.mjs';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {arrayKeysValuesIds} from './array-keys-values-oracle.mjs';
@@ -8,8 +9,8 @@ export function assertArrayKeysValuesSource(source,row,kind) {
  if(row.operationsPerIteration!==1||row.iterations!==2048||row.operationUnit!=='One complete array keys/values scenario iteration')throw Error('Array keys/values scenario denominator');
  if(row.resultEncoding!=='array-shape-scalar-v1')throw Error('Array keys/values observer protocol');
  const method=row.id==='array_keys_int'?'keys':'values';
- if(!source.includes('while (i < n)')||!source.includes('return output;')||!source.includes('values.'+method+'()'))throw Error('Actual '+method+'() call and complete retention');
- if(kind==='native'){if(!source.includes('output.push(values.'+method+'());'))throw Error('Native '+method+'() result retention');}
+ if(!containsCodeSnippet(source, 'while (i < n)')||!containsCodeSnippet(source, 'return output;')||!containsCodeSnippet(source, 'values.'+method+'()'))throw Error('Actual '+method+'() call and complete retention');
+ if(kind==='native'){if(!containsCodeSnippet(source, 'output.push(values.'+method+'());'))throw Error('Native '+method+'() result retention');}
  else {
   const file=ts.createSourceFile(row.id+'.ts',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TS);let collected=0,workload;
   function visit(node){

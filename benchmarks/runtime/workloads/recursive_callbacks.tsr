@@ -1,5 +1,43 @@
-function workload(n: int, seed: int): int { let sum = 0; let i = 0; while (i < n) { const action = (value: int): int => { return value + seed; }; sum = sum + visit(action, 8) + countdown(counter(i), 4); i = i + 1; } return sum; }
-function visit(action: Mutable<Function<int, [value: int]>>, depth: int): int { if (depth === 0) { return action(depth); } return action(depth) + visit(action, depth - 1); }
-function counter(start: int): () => int { let value = start; return (): int => { value = value + 1; return value; }; }
-function countdown(action: Function<int>, depth: int): int { if (depth === 0) { return action(); } const value = action(); const moved = action; return value + countdown(moved, depth - 1); }
-function main() { console.log(workload(2, 7)); }
+function workload(n: int, seed: int): int {
+    let sum = 0;
+    let i = 0;
+    while (i < n) {
+        const action = (value: int): int => {
+            return value + seed;
+        };
+        sum = sum + visit(action, 8) + countdown(counter(i), 4);
+        i = i + 1;
+    }
+
+    return sum;
+}
+
+function visit(action: Mutable<Function<int, [value: int]>>, depth: int): int {
+    if (depth === 0) {
+        return action(depth);
+    }
+
+    return action(depth) + visit(action, depth - 1);
+}
+
+function counter(start: int): () => int {
+    let value = start;
+    return (): int => {
+        value = value + 1;
+        return value;
+    };
+}
+
+function countdown(action: Function<int>, depth: int): int {
+    if (depth === 0) {
+        return action();
+    }
+
+    const value = action();
+    const moved = action;
+    return value + countdown(moved, depth - 1);
+}
+
+function main() {
+    console.log(workload(2, 7));
+}

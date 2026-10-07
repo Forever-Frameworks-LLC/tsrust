@@ -1,8 +1,31 @@
-type Counter = { value: int; active: boolean; };
+type Counter = {
+    value: int;
+    active: boolean;
+};
+
 function workload(n: int, seed: int): int {
- const counter: Counter = { value: seed, active: true }; let sum = 0; let i = 0;
- while (i < n) { increment(counter); if (counter.active) { sum = sum + counter.value; } i = i + 1; }
- return sum;
+    const counter: Counter = {
+        value: seed, active: true
+    };
+    let sum = 0;
+    let i = 0;
+    while (i < n) {
+        increment(counter);
+        if (counter.active) {
+            sum = sum + counter.value;
+        }
+
+        i = i + 1;
+    }
+
+    return sum;
 }
-function increment(counter: Counter) { counter.value = counter.value + 1; counter.active = counter.value % 2 === 0; }
-function main() { console.log(workload(2, 7)); }
+
+function increment(counter: Counter) {
+    counter.value = counter.value + 1;
+    counter.active = counter.value % 2 === 0;
+}
+
+function main() {
+    console.log(workload(2, 7));
+}

@@ -657,3 +657,12 @@ Gate173 source flow now preserves direct replacement through blocks and branches
 including snapshots, branch-local calls and abrupt completion. Distinct contract
 sets, loop/exception/expression flow and captured effects remain required. See
 unused-generic-call-validation-plan.md.
+
+
+The source-loop checkpoint and automatic project formatting are documented in
+milestones/project-formatting-and-source-loops.md. Finite callable contract sets
+now propagate through loops, updates and labeled control. Full Gate173 still needs
+exception/finally flow, expression evaluation order, capture writes, stored fields,
+concrete environment replacement and the remaining lifetime/context audit. Project
+formatting is required before every source checkpoint; exact benchmark source hashes
+refresh only after token preservation proof. No performance measurement is claimed.

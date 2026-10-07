@@ -5,17 +5,26 @@ function workload(n: int, seed: int): int[][] {
     let i = 0;
     while (i < n) {
         const count = sizes[(i + seed) % 5];
-        const values: int[] = []; let j = 0;
+        const values: int[] = [];
+        let j = 0;
         while (j < count) {
             values.push(ints[j % 4]);
             j = j + 1;
         }
+
         const sorted = values.toSorted(compare);
         output.push(values);
         output.push(sorted);
         i = i + 1;
     }
+
     return output;
 }
-function compare(left: int, right: int): int { return left - right; }
-function main() { const result = workload(2, 7); }
+
+function compare(left: int, right: int): int {
+    return left - right;
+}
+
+function main() {
+    const result = workload(2, 7);
+}

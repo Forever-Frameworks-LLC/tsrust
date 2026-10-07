@@ -1,12 +1,17 @@
 function workload(n: int, seed: int, input: string): string[] {
     const values: string[] = [clone(input), "", "é😀Z", "a\u0000é😀", "e\u0301", "\uFEFF中Z", input.repeat(2), "tail"];
-    const output: string[] = []; let i = 0;
+    const output: string[] = [];
+    let i = 0;
     while (i < n) {
         const at = (i * 13 + seed) % 8;
         const selected: string = values[at].toString();
         output.push(selected);
         i = i + 1;
     }
+
     return output;
 }
-function main() { const result = workload(2, 7, " é😀é Z "); }
+
+function main() {
+    const result = workload(2, 7, " é😀é Z ");
+}

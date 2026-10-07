@@ -1,14 +1,46 @@
-type Row = { id: int; name: string; tags: string[]; };
-function keep(value: string): string { return value; }
-function size(value: ReadOnly<string>): int { return value.length; }
+type Row = {
+    id: int;
+    name: string;
+    tags: string[];
+};
+
+function keep(value: string): string {
+    return value;
+}
+
+function size(value: ReadOnly<string>): int {
+    return value.length;
+}
+
 function main() {
-    const row: Row = { id: 1, name: "nm", tags: ["t", "u"] };
+    const row: Row = {
+        id: 1, name: "nm", tags: ["t", "u"]
+    };
     const pairs = Object.entries(row);
-    for (const pair of pairs) { const key = pair[0]; const value = pair[1]; console.log(key, key.length, size(key), typeof value, keep(clone(key))); }
-    for (const pair of Object.entries(row)) { const key = pair[0]; console.log(key.toUpperCase()); }
+    for (const pair of pairs) {
+        const key = pair[0];
+        const value = pair[1];
+        console.log(key, key.length, size(key), typeof value, keep(clone(key)));
+    }
+
+    for (const pair of Object.entries(row)) {
+        const key = pair[0];
+        console.log(key.toUpperCase());
+    }
+
     const rows: Row[] = [row];
-    for (const item of rows) { const name = item.name; const tags = item.tags; const id = item.id; console.log(name, tags.length, id, tags.join("+")); }
+    for (const item of rows) {
+        const name = item.name;
+        const tags = item.tags;
+        const id = item.id;
+        console.log(name, tags.length, id, tags.join("+"));
+    }
+
     const words = ["a", "bb"];
-    for (const word of words) { const alias = word; console.log(alias.length, alias); }
+    for (const word of words) {
+        const alias = word;
+        console.log(alias.length, alias);
+    }
+
     console.log(words.length, pairs.length);
 }

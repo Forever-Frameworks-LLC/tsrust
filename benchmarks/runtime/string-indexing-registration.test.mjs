@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -14,7 +15,7 @@ test('String indexing retains paired source forms, independent oracle and runtim
   const source=read('./'+name);assertStringIndexingSource(source,row,kind);
   assert.throws(()=>assertStringIndexingSource(source+' ',row,kind));
   assert.throws(()=>assertStringIndexingSource(source,{...row,operationsPerIteration:2},kind));
-  for(const changed of [source.replace('}catch(error){later="out";}','}catch(error){later="in";}'),source.replace('return output;','return [];')]){
+  for(const changed of [replaceCodeSnippet(source, '}catch(error){later="out";}','}catch(error){later="in";}'),replaceCodeSnippet(source, 'return output;','return [];')]){
    const key=kind==='native'?'sourceSha256':'counterpartSha256';
    assert.throws(()=>assertStringIndexingSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   }

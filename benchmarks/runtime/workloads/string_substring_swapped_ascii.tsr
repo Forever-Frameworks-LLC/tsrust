@@ -3,24 +3,63 @@ function workload(n: int, seed: int, input: string): string[] {
     const left: int[] = [0, 0, 1, 1, 1, 1, 0, 1];
     const right: int[] = [values[0].length, 0, 2, 2, 2, 3, values[6].length, 2];
     const equal: int[] = [0, 0, 1, 1, 1, 1, 0, 1];
-    const output: string[] = []; let i = 0;
+    const output: string[] = [];
+    let i = 0;
     while (i < n) {
         const at = (i * 13 + seed) % 8;
         const tag = (i * 7 + seed) % 9;
-        let from: int = -1; let to: int = 1000000000;
-        if (tag === 1) { from = left[at]; to = right[at]; }
-        if (tag === 2) { from = equal[at]; to = equal[at]; }
-        if (tag === 3) { from = 1000000000; to = 1000000000; }
-        if (tag === 4) { from = -10000; to = 0; }
-        if (tag === 5) { from = 0; to = right[at]; }
-        if (tag === 6) { from = left[at]; to = values[at].length; }
-        if (tag === 7) { from = right[at]; to = left[at]; }
-        if (tag === 8) { from = values[at].length; to = 0; }
-        const start: int = to; const end: int = from;
+        let from: int = - 1;
+        let to: int = 1000000000;
+        if (tag === 1) {
+            from = left[at];
+            to = right[at];
+        }
+
+        if (tag === 2) {
+            from = equal[at];
+            to = equal[at];
+        }
+
+        if (tag === 3) {
+            from = 1000000000;
+            to = 1000000000;
+        }
+
+        if (tag === 4) {
+            from = - 10000;
+            to = 0;
+        }
+
+        if (tag === 5) {
+            from = 0;
+            to = right[at];
+        }
+
+        if (tag === 6) {
+            from = left[at];
+            to = values[at].length;
+        }
+
+        if (tag === 7) {
+            from = right[at];
+            to = left[at];
+        }
+
+        if (tag === 8) {
+            from = values[at].length;
+            to = 0;
+        }
+
+        const start: int = to;
+        const end: int = from;
         const selected: string = values[at].substring(start, end);
         output.push(selected);
         i = i + 1;
     }
+
     return output;
 }
-function main() { const result = workload(2, 7, " A alpha Z "); }
+
+function main() {
+    const result = workload(2, 7, " A alpha Z ");
+}

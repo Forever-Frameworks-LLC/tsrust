@@ -1,3 +1,4 @@
+import {containsCodeSnippet, replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -21,7 +22,7 @@ test('Captured default values retain matched sources and independent result evid
   assert.throws(()=>assertNestedDefaultSource(source,{...row,operationsPerIteration:2},kind));
   const key=kind==='native'?'sourceSha256':'counterpartSha256';
   for(const [from,to] of [['second = action(3);','second = action(4);'],['hits += 1; return 2;','hits += 1; return 3;'],['third = action(undefined);','third = action(0);']]){
-   assert.ok(source.includes(from));const changed=source.replace(from,to);
+   assert.ok(containsCodeSnippet(source, from));const changed=replaceCodeSnippet(source, from,to);
    assert.throws(()=>assertNestedDefaultSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   }
  }

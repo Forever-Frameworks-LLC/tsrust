@@ -1,3 +1,4 @@
+import {containsCodeSnippet} from './source-contract-tokens.mjs';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {stringFromCodesIds} from './string-from-codes-oracle.mjs';
@@ -7,8 +8,8 @@ export function assertStringFromCodesSource(source,row,kind) {
  if(createHash('sha256').update(source).digest('hex')!==(kind==='native'?row.sourceSha256:row.counterpartSha256))throw Error('String from codes source fingerprint');
  if(row.operationsPerIteration!==1||row.iterations!==2048||row.operationUnit!=='One complete string from codes scenario iteration')throw Error('String from codes scenario denominator');
  if(row.resultEncoding!=='array-shape-scalar-v1')throw Error('String from codes observer protocol');
- if(!source.includes('while (i < n)')||!source.includes('return output;')||!source.includes('output.push(['))throw Error('Actual string from codes scenario and complete retention');
- if((source.match(/String\.fromCodePoint\(/g)??[]).length!==2||(source.match(/String\.fromCharCode\(/g)??[]).length!==1||!source.includes('String.fromCodePoint(...codes)'))throw Error('Actual String.fromCodePoint and String.fromCharCode calls');
+ if(!containsCodeSnippet(source, 'while (i < n)')||!containsCodeSnippet(source, 'return output;')||!containsCodeSnippet(source, 'output.push(['))throw Error('Actual string from codes scenario and complete retention');
+ if((source.match(/String\.fromCodePoint\(/g)??[]).length!==2||(source.match(/String\.fromCharCode\(/g)??[]).length!==1||!containsCodeSnippet(source, 'String.fromCodePoint(...codes)'))throw Error('Actual String.fromCodePoint and String.fromCharCode calls');
  if(kind==='typescript') {
   const file=ts.createSourceFile(row.id+'.ts',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TS);let points=0,units=0,spreads=0,workload;
   function visit(node){

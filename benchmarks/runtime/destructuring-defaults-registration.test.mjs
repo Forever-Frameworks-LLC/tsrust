@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -16,8 +17,8 @@ test('Destructuring defaults pair appends to the manifest and binds actual guard
   assert.equal(row.measured,false);assert.equal(row.measurementStatus,'pending-value-types-milestone');assert.equal(reportCategory(row.id),'other');
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertDestructuringDefaultsSource(source,row,kind);
-   assert.throws(()=>assertDestructuringDefaultsSource(source.replace('text.slice()','source'),row,kind));
-   assert.throws(()=>assertDestructuringDefaultsSource(source.replace('return output;','return [];'),row,kind));
+   assert.throws(()=>assertDestructuringDefaultsSource(replaceCodeSnippet(source, 'text.slice()','source'),row,kind));
+   assert.throws(()=>assertDestructuringDefaultsSource(replaceCodeSnippet(source, 'return output;','return [];'),row,kind));
    assert.throws(()=>assertDestructuringDefaultsSource(source,{...row,operationsPerIteration:2},kind));
    assert.throws(()=>assertDestructuringDefaultsSource(source+' ',row,kind));
   }

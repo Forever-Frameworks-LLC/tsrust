@@ -5,8 +5,16 @@ function workload(n: int, seed: int, input: string): int[][] {
         const value = i % 5 + seed % 5 + 1;
         let hits = 0;
         let total = value;
-        function defaultStep(): int { hits += 1; return 2; }
-        function next(step: int = defaultStep()): int { total += step; return total; }
+        function defaultStep(): int {
+            hits += 1;
+            return 2;
+        }
+
+        function next(step: int = defaultStep()): int {
+            total += step;
+            return total;
+        }
+
         let first = 0;
         let second = 0;
         let third = 0;
@@ -16,15 +24,25 @@ function workload(n: int, seed: int, input: string): int[][] {
             second = action(3);
             third = action(undefined);
         }
-        function optional(delta?: int): int { return value + (delta ?? 4); }
+
+        function optional(delta?: int): int {
+            return value + (delta ?? 4);
+        }
+
         const maybe = optional;
         const saved = "owner";
-        function take(text: string = saved): string { return text; }
+        function take(text: string = saved): string {
+            return text;
+        }
+
         const once = take;
         const text = once();
         output.push([first, second, third, hits, maybe(), maybe(1), text.length, input.length]);
         i += 1;
     }
+
     return output;
 }
-function main() {}
+
+function main() {
+}

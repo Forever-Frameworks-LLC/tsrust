@@ -1,22 +1,40 @@
-type Sample={name:string;amount:int;};
+type Sample = {
+    name: string;
+    amount: int;
+};
+
 function workload(n: int, seed: int, input: string): string[][] {
- const output:string[][]=[];let i=0;
- while (i < n) {
-  const base=(i*13+seed)%97;
-  const sample:Sample={name:input+String(base),amount:base};
-  const values=[base,base+1,base+2];
-  const wanted=base%2===0?"name":"missing";
-  const present=wanted in sample;
-  const index=base%5;
-  const positioned=index in values;
-  const fractional=(Number(index)+0.5) in values;
-  const length="length" in values;
-  let names="";
-  for(const key in sample){names+=key+",";}
-  let indices="";
-  for(const key in values){indices+=key;}
-  output.push([String(present),String(positioned),String(fractional),String(length),names,indices,sample.name,String(sample.amount)]);
-  i=i+1;
- }return output;
+    const output: string[][] = [];
+    let i = 0;
+    while (i < n) {
+        const base = (i * 13 + seed) % 97;
+        const sample: Sample = {
+            name: input + String(base), amount: base
+        };
+        const values = [base, base + 1, base + 2];
+        const wanted = base % 2 === 0 ? "name" : "missing";
+        const present = wanted in sample;
+        const index = base % 5;
+        const positioned = index in values;
+        const fractional = (Number(index) + 0.5) in values;
+        const length = "length" in values;
+        let names = "";
+        for (const key in sample) {
+            names += key + ",";
+        }
+
+        let indices = "";
+        for (const key in values) {
+            indices += key;
+        }
+
+        output.push([String(present), String(positioned), String(fractional), String(length), names, indices, sample.name, String(sample.amount)]);
+        i = i + 1;
+    }
+
+    return output;
 }
-function main(){const result=workload(3,0,"abc");}
+
+function main() {
+    const result = workload(3, 0, "abc");
+}
