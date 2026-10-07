@@ -165,3 +165,31 @@ source hashes match the accepted source. The manifest acceptance flag was promot
 after this verification; the final registration test verifies that metadata.
 All 20 original logs/results from the final repair were imported, read back
 byte-for-byte and removed from loose storage. Earlier red evidence remains intact.
+
+## Reconciliation against the plan (2026-10-07)
+
+Each requirement of gate 172 in
+[the nested function plan](../nested-function-declarations-plan.md) was checked
+against a current witness. All pass on the sources accepted with the scoped callable
+record gate (commit 5c5cc68).
+
+| Plan requirement | Witness |
+| --- | --- |
+| Return, pass and store nested functions through owned callable transport | `escaping_named_functions_transfer_independent_captured_owners`, `retained_named_callbacks_preserve_storage_recursion_and_failure` |
+| Transfer captured owners once; scalar captures copy | `take-owner.tsr`, `consuming_named_captures_reject_reuse_and_conflicting_argument_borrows` |
+| Once versus reusable invocation | `inferred_once_callable_arrays_move_each_retained_owner`, `inferred_callable_arrays_check_contracts_and_invocation` |
+| Reject escaping borrowed data | `borrowed_data_cannot_be_retained_by_an_owned_named_factory` |
+| Multiple factory instances | `take-owner.tsr`, `retained.tsr` |
+| Aggregate storage | `retained.tsr` (record), `retained-inferred.tsr` (arrays) |
+| Disposal | `retained_named_environments_drop_owners_once_on_success_and_failure` at optimization levels 0 and 3 |
+| Callback failures | `retained.tsr`, `unused_throwing_named_factory_emits_its_checked_error_contract` |
+| Recursive group lifetime | `retained.tsr` |
+| No shared capture cells, no implicit clone | generated code of the fixtures; `dead_inner_declarations_*` for unused bodies |
+| Editor and guide | hover and navigation witnesses in the editor crate (339 pass); `docs/nested-functions.md` |
+| Matched workload | `nested_function_owned_escape`, native and Node-after-tsc verified untimed again in `2026-10-07T23-32-57-916Z-verify.json` (SQLite) |
+
+One correction belongs to gate 171 rather than this gate: the project test
+`retained_capture_plans_map_diagnostics_after_prior_module_declarations` still
+expected the pending capture diagnostic. It now asserts the `unassigned` diagnostic
+for a capture read before initialization in a later module, with the same location
+mapping. No requirement of gate 172 is open.
