@@ -158,3 +158,16 @@ next, including version-based reader invalidation without versioned allocation
 keys. Capture ownership, strong update eligibility, lifetime/disposal and recursive
 solver convergence still require implementation and tests. No native/editor parity
 or measurements are claimed. Formatting changes zero files or fingerprints.
+
+## Environment reader scheduling WIP
+
+The environment store now records request-reader subscriptions separately from
+allocation identity. A changed state or edge record queues each subscribed reader
+once until the queue is drained. Unchanged and malformed merges queue nothing;
+subscriptions to invalid handles are rejected. Reader notification does not add
+versions or reader IDs to allocation keys. A failing stub witness preceded the
+implementation, and the focused baseline passes 41 tests with the retained paired
+factory red explicitly excluded. This kernel remains unused by Engine. Next connect
+record reads to request subscriptions and drain changed readers into Engine's work
+queue while wiring correlated value transport. No native or editor acceptance is
+claimed for this isolated store change.

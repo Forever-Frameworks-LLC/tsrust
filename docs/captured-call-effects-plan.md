@@ -357,3 +357,16 @@ canonical slots and atomic rejection of malformed inputs. All 40 focused checks
 excluding the paired factory red pass. The store is not connected to invocation
 and does not implement ownership, strong updates or disposal. Those requirements
 and the paired red remain required before factory acceptance.
+
+## Environment reader scheduling WIP
+
+The environment store now records request-reader subscriptions separately from
+allocation identity. A changed state or edge record queues each subscribed reader
+once until the queue is drained. Unchanged and malformed merges queue nothing;
+subscriptions to invalid handles are rejected. Reader notification does not add
+versions or reader IDs to allocation keys. A failing stub witness preceded the
+implementation, and the focused baseline passes 41 tests with the retained paired
+factory red explicitly excluded. This kernel remains unused by Engine. Next connect
+record reads to request subscriptions and drain changed readers into Engine's work
+queue while wiring correlated value transport. No native or editor acceptance is
+claimed for this isolated store change.

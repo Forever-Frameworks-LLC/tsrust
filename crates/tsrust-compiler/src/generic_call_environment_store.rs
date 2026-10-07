@@ -37,6 +37,8 @@ pub(super) struct Record {
 pub(super) struct Store {
     allocations: HashMap<Allocation, Handle>,
     records: Vec<Record>,
+    readers: HashMap<Handle, HashSet<usize>>,
+    pending_readers: HashSet<usize>,
 }
 fn canonical(bindings: &[Binding]) -> Option<Vec<Binding>> {
     if bindings.iter().any(|binding| binding.identity.is_none()) { return None; }
@@ -68,6 +70,16 @@ impl Store {
         Some(handle)
     }
     pub(super) fn get(&self, handle: Handle) -> Option<&Record> { self.records.get(handle.0) }
+    pub(super) fn subscribe(&mut self, handle: Handle, reader: usize) -> Option<()> {
+        self.get(handle)?;
+        self.readers.entry(handle).or_default().insert(reader);
+        Some(())
+    }
+    pub(super) fn take_changed_readers(&mut self) -> Vec<usize> {
+        let mut readers = self.pending_readers.drain().collect::<Vec<_>>();
+        readers.sort_unstable();
+        readers
+    }
     pub(super) fn merge(&mut self, handle: Handle, bindings: &[Binding], edges: &[(crate::local_capture_plan::BindingId, Vec<Alternative>)], declarations: &HashMap<String,Contract>) -> Option<bool> {
         let incoming = canonical(bindings)?;
         let record = self.get(handle)?;
@@ -88,7 +100,12 @@ impl Store {
             alternatives.dedup();
             if *previous != alternatives { *previous = alternatives; changed = true; }
         }
-        if changed { record.version += 1; }
+        if changed {
+            record.version += 1;
+            if let Some(readers) = self.readers.get(&handle) {
+                self.pending_readers.extend(readers.iter().copied());
+            }
+        }
         Some(changed)
     }
 }
@@ -97,6 +114,29 @@ mod tests {
     use super::*;
     fn binding(body: usize) -> Binding {
         Binding { identity: Some(crate::local_capture_plan::BindingId { owner: 0, declaration_start: 1 }), name: "action".into(), scope: Span::new(0,20), targets: vec![Target::Unknown], origins: vec![body_origins::Origin::Body(Span::new(body,body+1))], selection: Selection::default(), elements: None, mutable: true, contract: None }
+    }
+    #[test]
+    fn changed_records_schedule_only_subscribed_readers_once() {
+        let mut store = Store::default();
+        let original = binding(5);
+        let first = store.allocate(Span::new(30,31), Span::new(40,41), &[original.clone()]).unwrap();
+        let second = store.allocate(Span::new(32,33), Span::new(40,41), &[original.clone()]).unwrap();
+        assert_eq!(store.subscribe(first, 7), Some(()));
+        assert_eq!(store.subscribe(first, 7), Some(()));
+        assert_eq!(store.subscribe(second, 9), Some(()));
+        assert_eq!(store.subscribe(Handle(999), 11), None);
+        assert!(store.take_changed_readers().is_empty());
+        assert_eq!(store.merge(first, &[original.clone()], &[], &HashMap::new()), Some(false));
+        assert!(store.take_changed_readers().is_empty());
+        assert_eq!(store.merge(first, &[binding(6)], &[], &HashMap::new()), Some(true));
+        assert_eq!(store.merge(first, &[binding(8)], &[], &HashMap::new()), Some(true));
+        assert_eq!(store.take_changed_readers(), vec![7]);
+        assert!(store.take_changed_readers().is_empty());
+        assert_eq!(store.merge(first, &[], &[], &HashMap::new()), None);
+        assert!(store.take_changed_readers().is_empty());
+        assert_eq!(store.merge(second, &[binding(6)], &[], &HashMap::new()), Some(true));
+        assert_eq!(store.take_changed_readers(), vec![9]);
+        assert_eq!(store.allocate(Span::new(30,31), Span::new(40,41), &[original]), Some(first));
     }
     #[test]
     fn allocations_reuse_source_context_and_distinguish_sites_and_capture_facts() {

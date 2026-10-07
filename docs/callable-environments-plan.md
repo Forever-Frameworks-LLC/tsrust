@@ -109,3 +109,16 @@ and add environment-read dependencies so changed records schedule readers. Then
 implement creation/entry/projection using existing capture ownership rules. Do not
 claim recursive solver convergence from the store self-cycle test alone, and do
 not include record versions or recursively growing edge graphs in context keys.
+
+## Environment reader scheduling WIP
+
+The environment store now records request-reader subscriptions separately from
+allocation identity. A changed state or edge record queues each subscribed reader
+once until the queue is drained. Unchanged and malformed merges queue nothing;
+subscriptions to invalid handles are rejected. Reader notification does not add
+versions or reader IDs to allocation keys. A failing stub witness preceded the
+implementation, and the focused baseline passes 41 tests with the retained paired
+factory red explicitly excluded. This kernel remains unused by Engine. Next connect
+record reads to request subscriptions and drain changed readers into Engine's work
+queue while wiring correlated value transport. No native or editor acceptance is
+claimed for this isolated store change.
