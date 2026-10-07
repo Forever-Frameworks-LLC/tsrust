@@ -325,3 +325,14 @@ Compiler witnesses cover cardinality and cleanup, and direct summary tests cover
 throw/catch overrides. All 34 focused, 191 bounded compiler and 329 editor tests
 pass. Escaped captured environments still require context/lifetime identity; this
 checkpoint does not accept general factory effects or native carrier changes.
+
+## Capture availability guard
+
+Named and arrow contextual frames now require indexed captured binding identities
+to exist in the supplied context. Named recursive-group plans and direct arrow
+uses/defaults provide the requirements. Missing producer slots and unrelated
+same-spelled slots make the invocation opaque instead of fabricating a complete
+frame. Direct frame tests preserve live producer eligibility. This guards absent
+environments; contextual instance identity and lifetime projection still remain
+required for full escaped factory effects. Source IDs alone cannot distinguish
+multiple producer instances. No ownership-model change is introduced.

@@ -68,10 +68,14 @@ are pruned after checks; reuse the one warm non-incremental Cargo target.
 
 ## Next work and acceptance gates
 
-First audit returned bodies that capture producer-local bindings. They require
-contextual environment identity, captured-slot availability and lifetime projection;
-a body span alone must not certify an escaped environment. Add failing factory
-witnesses before implementing this. Preserve existing ownership rules and original
+Named and arrow frames now reject missing captured binding identities. Named
+requirements come from recursive-group capture plans; arrow requirements are
+indexed from direct lexical uses and parameter defaults. Missing producer slots
+or unrelated same-named slots make invocation opaque. This is necessary but not
+sufficient: repeated factory instances can share source binding IDs. Implement
+contextual environment identity and lifetime projection next; a body span or source
+ID alone must not certify the correct escaped instance. Add paired factory witnesses
+before implementing this. Preserve existing ownership rules and original
 owner disposal. Do not introduce shared JavaScript capture cells or implicit clone.
 
 Then finish opaque-region effects, shared aggregate storage, precise mutation,
@@ -99,3 +103,25 @@ Use CARGO_TARGET_DIR=/private/tmp/tsrust-gate100-editor-target,
 CARGO_INCREMENTAL=0 and offline locked Cargo. Node is
 /Users/seancotter/.nvm/versions/node/v24.11.1/bin/node. Refresh executable consumers
 atomically through .refresh-tmp and rename when needed; never overwrite live inodes.
+
+## Capture availability guard
+
+Retained failing frame witnesses exposed missing producer slots for both named
+callbacks and arrows. The body index now caches required capture IDs. Named
+recursive groups exclude their own member owners; a dedicated arrow requirements
+module separates owned parameter/local slots from external direct uses and
+defaults. Nested arrow bodies have their own requirements. Frame entry refuses
+missing IDs before installing parameters. A live producer frame remains eligible;
+unrelated same-spelled parameter slots do not substitute for the producer.
+
+All 36 focused tests pass. Earlier bounded compiler checks pass 191 tests before
+the arrow guard, followed by final affected compiler/canary and editor checks.
+Source capture availability is not instance identity or ownership transfer. No
+factory-effects acceptance, native carrier repair, timings or consumer refresh is
+claimed. Exact red and corrected evidence is retained in SQLite.
+
+Final capture-availability checks pass 76 compiler tests, including all eight
+unfiltered depth canaries, and 197 editor intelligence/stdio tests. The retained
+native-carrier red is explicitly excluded. Formatting changes zero files/hashes.
+Closed logs are imported and read back in SQLite before deletion; completed
+affected compiler test executables are pruned.

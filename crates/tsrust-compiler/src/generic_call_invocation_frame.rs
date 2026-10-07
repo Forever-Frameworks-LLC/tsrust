@@ -7,6 +7,7 @@ pub(super) struct Frame {
 }
 impl Frame {
     pub(super) fn build(declaration: Span, caller: &[Binding], arguments: &[expression_flow::Value], effects: &effect_bodies::Index) -> Option<Self> {
+        if !effects.captures_available(declaration, caller) { return None; }
         let parameters = effects.parameters(declaration)?;
         let body = effects.body(declaration)?;
         let mut slots = parameters.iter().enumerate().map(|(position, parameter)| {
@@ -114,5 +115,40 @@ mod parameter_metadata_tests {
         let arrow_frame=Frame::build(arrow.span,&[],&arguments,&effects).unwrap();
         assert_eq!(arrow_frame.state[0].contract.as_ref().unwrap().required,0);
         assert_eq!(arrow_frame.state[0].origins,arguments[0].origins);
+    }
+}
+
+#[cfg(test)]
+mod missing_capture_tests {
+    use super::*;
+    #[test]
+    fn named_capture_requires_its_producer_binding_identity() {
+        let source=crate::format("function factory(value:int){function take():int{return value;}return take;}function other(value:int){}function main(){}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let program=crate::syntax::parse(&source).unwrap();let effects=effect_bodies::Index::new(&program).unwrap();
+        let factory=program.functions.iter().find(|function|function.name.text=="factory").unwrap();
+        let take=program.functions.iter().find(|function|function.name.text.ends_with("#take")).unwrap();
+        let other=program.functions.iter().find(|function|function.name.text=="other").unwrap();
+        assert!(Frame::build(take.name.span,&[],&[],&effects).is_none(),"missing producer capture cannot become a complete frame");
+        let producer=Frame::build(factory.name.span,&[],&[expression_flow::Value::default()],&effects).unwrap();
+        assert!(Frame::build(take.name.span,&producer.state,&[],&effects).is_some());
+        let unrelated=Frame::build(other.name.span,&[],&[expression_flow::Value::default()],&effects).unwrap();
+        assert!(Frame::build(take.name.span,&unrelated.state,&[],&effects).is_none(),"same spelling cannot replace producer identity");
+    }
+}
+
+#[cfg(test)]
+mod missing_arrow_capture_tests {
+    use super::*;
+    #[test]
+    fn arrow_capture_requires_its_producer_binding_identity() {
+        let source=crate::format("function factory(value:int){return ():int=>value;}function main(){}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let program=crate::syntax::parse(&source).unwrap();let effects=effect_bodies::Index::new(&program).unwrap();
+        let factory=program.functions.iter().find(|function|function.name.text=="factory").unwrap();
+        let StmtKind::Return(Some(arrow))=&factory.body[0].kind else {panic!("returned arrow")};
+        assert!(Frame::build(arrow.span,&[],&[],&effects).is_none(),"missing arrow producer capture cannot become a complete frame");
+        let producer=Frame::build(factory.name.span,&[],&[expression_flow::Value::default()],&effects).unwrap();
+        assert!(Frame::build(arrow.span,&producer.state,&[],&effects).is_some());
     }
 }

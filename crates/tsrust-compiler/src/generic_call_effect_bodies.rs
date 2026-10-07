@@ -3,6 +3,8 @@ use super::*;
 use crate::local_capture_plan::BindingId;
 #[path = "generic_call_aggregate_eligibility.rs"]
 mod aggregate_eligibility;
+#[path = "generic_call_capture_requirements.rs"]
+mod capture_requirements;
 
 struct Scope {
     name: String,
@@ -23,6 +25,7 @@ pub(super) struct Index {
     declarations: HashMap<usize, BindingId>,
     scopes: Vec<Scope>,
     aggregate_writes: HashSet<(usize,usize)>,
+    required_captures: HashMap<(usize,usize), HashSet<BindingId>>,
 }
 impl Index {
     pub(super) fn new(program: &Program) -> Result<Self, Diagnostic> {
@@ -100,10 +103,30 @@ impl Index {
                 Ok(())
             })?;
         }
+        for plan in &program.local_capture_plans {
+            for group in &plan.groups {
+                let owners = group.members.iter().map(|&member| program.local_declarations[member].function_owner).collect::<HashSet<_>>();
+                let captures = group.captures.iter().filter(|capture| !owners.contains(&capture.binding.owner)).map(|capture| capture.binding).collect::<HashSet<_>>();
+                for &member in &group.members {
+                    let declaration = &program.local_declarations[member];
+                    if let Some(function) = program.functions.iter().find(|function| function.name.text == declaration.emitted_name) {
+                        index.required_captures.insert((function.name.span.start,function.name.span.end),captures.clone());
+                    }
+                }
+            }
+        }
+        let named = program.functions.iter().map(|function| (function.name.span.start,function.name.span.end)).collect::<HashSet<_>>();
+        let arrow_captures = index.bodies.iter().filter(|(key,_)| !named.contains(*key)).map(|(&key,body)| {
+            capture_requirements::arrow(body,index.parameters.get(&key).map(Vec::as_slice).unwrap_or(&[]),&index).map(|captures|(key,captures))
+        }).collect::<Result<Vec<_>,Diagnostic>>()?;
+        index.required_captures.extend(arrow_captures);
         for (&key, body) in &index.bodies {
             if aggregate_eligibility::writes(body, index.parameters.get(&key).map(Vec::as_slice).unwrap_or(&[]))? { index.aggregate_writes.insert(key); }
         }
         Ok(index)
+    }
+    pub(super) fn captures_available(&self, declaration: Span, bindings: &[Binding]) -> bool {
+        self.required_captures.get(&(declaration.start,declaration.end)).is_none_or(|captures| captures.iter().all(|capture| bindings.iter().any(|binding| binding.identity == Some(*capture))))
     }
     pub(super) fn aggregate_writes(&self, declaration: Span) -> bool { self.aggregate_writes.contains(&(declaration.start,declaration.end)) }
     fn add(&mut self, name: &Token, range: Span, owner: usize) {
