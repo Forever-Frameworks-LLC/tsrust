@@ -103,3 +103,28 @@ return, throw and call destination. Its API is currently private to that analysi
 expose a narrow source-fact adapter rather than duplicating name/range resolution.
 Source Once reds remain red and owned retention remains intact. No editor consumer
 or installed executable has been refreshed for this prerequisite.
+
+## Source fact bridge in progress
+
+once_environment_facts.rs reuses effect_bodies::Index source binding identities.
+Nine focused controls pass for immediate calls and alias moves, direct and wrapped
+returns, known forwarding, shadowed declarations, opaque callback destinations,
+unchecked local factory results, transitive nested captures and aggregate storage.
+The first five controls fail before implementation. Three additional boundary
+witnesses expose false scoped inferences and are repaired before integration.
+
+Known named callees propagate argument demands to the callee's parameter identities.
+Opaque destinations and unproved spread positions remain unknown. Local aggregate
+construction retains its existing owning storage requirement. Returned direct
+wrappers retain their capture origins. The direct capture index is not treated as
+proof of transitive nested environments. Uninvoked captured callback environments
+also need checked lifetime admission before a scoped parameter contract is emitted.
+Known ownership requirements stay owned while unresolved scoped capture admission
+becomes unknown. Alias classification uses an iterative worklist.
+
+The bridge is still private to source analysis and not used by parameter resolution.
+It must preserve unknown guards when connected; integration is not permission to
+claim complete transitive capture, higher-order result, spread or aggregate transport.
+The next change will expose one narrow parameter-demand adapter and select scoped
+Once only for proven concrete function parameters. Retainers and unknown cases keep
+OwnedOnce. Source and native witnesses must validate this choice before acceptance.
