@@ -16,6 +16,15 @@ function doubleFactory(start: number) {
     }
     return select;
 }
+function inferredFactory(start: number) {
+    let calls = start;
+    function select<T>(left: T, right: T) {
+        calls += 1;
+        if (calls === start + 1) { return left; }
+        return right;
+    }
+    return select;
+}
 function reducer() {
     let calls = 0;
     function first<T>(left: T, right: T): T {
@@ -155,6 +164,14 @@ function workload(n: number, seed: number, input: string): number[][] {
         const nestedFirst = nested(base + 21);
         const nestedSecond = nested(base + 22);
         const nestedMapped = [base + 23, base + 24].map((nestedSelections++ === 0 ? make : (nestedSelections++ === 3 ? doubleFactory : make))(base + 130 + nestedEvaluations++));
+        const inferred: (left: number, right: number) => number = inferredFactory(base + 140);
+        const inferredFirst = inferred(base + 25, base + 26);
+        const inferredSecond = inferred(base + 27, base + 28);
+        const inferredMapped = [base + 29, base + 30].map(inferredFactory(base + 150));
+        const freshHolder: Holder = { run: make(base + 160) };
+        const freshRecord = freshHolder.run(base + 31);
+        const freshActions: ((value: string) => Receipt<string>)[] = [make(base + 170)];
+        const freshStored = freshActions[0]("fresh");
         output.push([firstValue, firstCalls, generic.value.length, generic.calls, last.value.length, last.calls,
             mapped[0].value, mapped[1].value, mapped[0].calls, mapped[1].calls, after.value ? 1 : 0, after.calls,
             record.value, record.calls, stored.value.length, stored.calls, input.length,
@@ -173,7 +190,9 @@ function workload(n: number, seed: number, input: string): number[][] {
             selections, evaluations,
             nestedFirst.value, nestedFirst.calls, nestedSecond.calls,
             nestedMapped[0].value, nestedMapped[1].value, nestedMapped[0].calls, nestedMapped[1].calls,
-            nestedSelections, nestedEvaluations]);
+            nestedSelections, nestedEvaluations,
+            inferredFirst, inferredSecond, inferredMapped[0], inferredMapped[1],
+            freshRecord.value, freshRecord.calls, freshStored.value.length, freshStored.calls]);
     }
     return output;
 }

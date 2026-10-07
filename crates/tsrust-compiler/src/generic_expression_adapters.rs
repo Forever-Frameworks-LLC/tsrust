@@ -19,7 +19,11 @@ impl Analyzer {
         let types = crate::generic_inference::Types { callable_shapes: None, inline_shapes: None, records: &self.program.records, names: &self.record_names, unions: &self.unions };
         let hints = supplied.iter().take(template.params.len()).copied().map(Some).collect::<Vec<_>>();
         let contract = self.generic_functions.value_signature(&declaration, &hints, None, &types, expression.span)?;
-        let Some(mut result) = contract.result else { return Ok(None); };
+        let mut result = if let Some(result) = contract.result { result } else {
+            let result = self.deferred_generic_result_hint(context, origin, &hints, expression.span)?;
+            let types = crate::generic_inference::Types { callable_shapes: None, inline_shapes: None, records: &self.program.records, names: &self.record_names, unions: &self.unions };
+            ResultAnnotation::Named(Box::new(types.annotation(result, expression.span)?))
+        };
         let mut parameters = crate::local_function_values::value(&template, usize::MAX - expression.span.start, expression.span);
         let ExprKind::Closure { params, .. } = &mut parameters.kind else { unreachable!() };
         for (parameter, solved) in params.iter_mut().zip(contract.parameters) {

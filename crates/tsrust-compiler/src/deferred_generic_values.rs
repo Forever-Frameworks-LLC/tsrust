@@ -116,6 +116,24 @@ impl Analyzer {
         Ok(Type::Closure(origin))
     }
 
+    /// Check the original generic body with supplied type hints only. No source
+    /// argument or default initializer is executed and no environment is rebuilt.
+    #[inline(never)]
+    pub(super) fn deferred_generic_result_hint(&mut self, context: &Context, origin: usize, hints: &[Option<Type>], span: Span) -> Result<Type, Diagnostic> {
+        let source = &self.deferred_generic_values[&origin];
+        let declaration = source.declaration.clone();
+        let preparation = source.context.as_ref().map(|source| source.clone()).unwrap_or_else(|| context.clone());
+        let arguments = hints.iter().map(|hint| Expr::checked(ExprKind::Undefined, span, *hint)).collect();
+        let mut call = Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name(declaration), span)), arguments), span);
+        self.prepare_generic_call(&preparation, &mut call, None)?;
+        let ExprKind::Call(callee, _) = call.kind else { unreachable!() };
+        let ExprKind::Name(name) = callee.kind else { unreachable!() };
+        let function = self.function_names[&name];
+        self.named_captures.prepare(function, &preparation, &self.program)?;
+        self.function(function)?;
+        Ok(self.checked[function].as_ref().ok_or_else(|| Self::pending_result(span))?.result)
+    }
+
     #[allow(clippy::too_many_arguments)]
     #[inline(never)]
     pub(super) fn deferred_generic_call(

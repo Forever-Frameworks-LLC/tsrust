@@ -7809,3 +7809,15 @@ fn fresh_generic_factory_preserves_specialized_argument_help() {
     let fixed=ask(source,"textDocument/signatureHelp","7);",0);
     assert!(fixed["signatures"][0]["label"].as_str().unwrap().contains("int"),"{fixed}");
 }
+
+#[test]
+fn fresh_generic_factory_with_inferred_result_has_concrete_editor_results() {
+    let source = "function make(start:int){let calls=start;function select<T>(value:T){calls+=1;return value;}return select;}function main(){const fixed:Function<int,[value:int]>=make(10);fixed(7);const mapped=[3,4].map(make(20));}";
+    tsrust_compiler::check(source).unwrap();
+    let help = ask(source, "textDocument/signatureHelp", "7);", 0);
+    assert!(help["signatures"][0]["label"].as_str().unwrap().contains("int"), "{help}");
+    let hover = ask(source, "textDocument/hover", "mapped=", 0);
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("int[]"), "{hover}");
+    let definition = ask(source, "textDocument/definition", "make(20)", 0);
+    assert_eq!(definition["range"]["start"], json!(at(source, "make(start", 0)), "{definition}");
+}

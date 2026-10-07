@@ -218,3 +218,20 @@ fn fresh_generic_adapters_cannot_retain_borrowed_factory_data() {
 fn nested_selected_generic_factories_evaluate_only_selected_predicates() {
     native(include_str!("fixtures/generic-value-adapters/nested-selected-factories.tsr"), "left 1\n2\nright 2\n4\n6\n");
 }
+
+#[test]
+fn fresh_generic_factory_adapters_support_aggregate_destinations() {
+    native(include_str!("fixtures/generic-value-adapters/fresh-storage.tsr"), "10\n11\n20\n30\n21\n22\n32\n");
+}
+
+#[test]
+fn fresh_generic_factory_adapters_infer_omitted_results() {
+    native(include_str!("fixtures/generic-value-adapters/inferred-factory-result.tsr"), "10\n11\n12\n20\n21\n22\n");
+}
+
+#[test]
+fn fresh_generic_result_inference_does_not_relax_explicit_result_contracts() {
+    let source = "function make(){function identity<T>(value:T){return value;}return identity;}function main(){const fixed:Function<string,[value:int]>=make();}";
+    let error = tsrust_compiler::check(source).err().expect("inferred integer result cannot satisfy a string contract");
+    assert_eq!(error.code, "type", "{}: {}", error.code, error.message);
+}

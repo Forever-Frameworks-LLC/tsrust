@@ -1,0 +1,23 @@
+import { strictEqual } from 'node:assert';
+
+function make(start: number) {
+    console.log(start);
+    let calls = start;
+    function select<T>(value: T) {
+        calls += 1;
+        console.log(calls);
+        return value;
+    }
+    return select;
+}
+
+function main() {
+    const fixed: (value: number) => number = make(10);
+    strictEqual(fixed(7), 7);
+    strictEqual(fixed(8), 8);
+    const mapped = [3, 4].map(make(20));
+    strictEqual(mapped[0], 3);
+    strictEqual(mapped[1], 4);
+}
+
+main();

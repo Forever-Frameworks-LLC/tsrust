@@ -268,3 +268,14 @@ that contract. No recursive lowering frame or unchecked origin join is introduce
 The nested-selected-factories fixture observes four predicate evaluations, two
 argument evaluations and independent selected environments. Heterogeneous result
 joins and the remaining storage, inference and ownership context audit stay open.
+
+
+Fresh record fields and typed callable arrays pass native acceptance directly,
+including selected factory expressions and independent retained counters. No
+compiler repair was needed for those aggregate destinations. Fresh traversal of a
+generic function with an omitted result annotation did fail at its unresolved
+prototype. Result discovery now checks the original generic body using supplied
+type hints and its retained capture context before constructing the concrete
+adapter. It does not execute arguments, defaults or factory environments. Explicit
+result mismatches remain type errors. Nested callable results, parameter patterns,
+nullable/access contexts and heterogeneous result joins still require their audit.

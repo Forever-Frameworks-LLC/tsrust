@@ -450,3 +450,26 @@ benchmarks/runtime/results/2026-10-07T00-50-57-473Z-verify.json.
 Original red and intermediate compile failures remain exact SQLite records. Five
 consumers were refreshed atomically and SHA-256 verified. No timing or full Gate173
 acceptance is claimed.
+
+## Fresh aggregate storage and omitted factory results
+
+Fresh record fields and typed callable arrays pass native acceptance directly,
+including selected factory expressions and independent retained counters. No
+compiler repair was needed for those aggregate destinations. Fresh traversal of a
+generic function with an omitted result annotation did fail at its unresolved
+prototype. Result discovery now checks the original generic body using supplied
+type hints and its retained capture context before constructing the concrete
+adapter. It does not execute arguments, defaults or factory environments. Explicit
+result mismatches remain type errors. Nested callable results, parameter patterns,
+nullable/access contexts and heterogeneous result joins still require their audit.
+
+Twenty-seven adapter tests and all eight depth canaries (63 tests) pass, followed
+by the added explicit-result rejection control. Whole editor passes 304 tests on
+the final compiler source. Both strict TypeScript fixtures match native output.
+The matched workload now has eighty-four observations; registration mutations and
+five native/Node-after-tsc cases pass untimed. Original eighty-observation evidence
+is retained separately. Canonical final SQLite record:
+benchmarks/runtime/results/2026-10-07T00-58-44-644Z-verify.json.
+Original red and repaired checks were imported with exact readback before loose
+cleanup. Five consumers were refreshed atomically and SHA-256 verified. No timing
+or full Gate173 acceptance is claimed.

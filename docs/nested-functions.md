@@ -384,3 +384,11 @@ The selected-factories and selected-traversal fixtures demonstrate these cases.
 Factory selection may be nested, such as `(flag ? (otherFlag ? firstFactory :
 secondFactory) : thirdFactory)()`. Only predicates on the selected path execute.
 The resulting concrete adapter retains the selected factory environment.
+
+A generic function returned by a factory may omit its result annotation. A
+concrete callback annotation or traversal input supplies its argument types; the
+compiler then checks the function body to infer its result. For example,
+`function select<T>(value: T) { return value; }` retains the value's concrete type
+when adapted for an integer array's map operation. Inference does not weaken an
+explicit result contract or execute default initializers early. Fresh factory
+results can also initialize typed record fields and callable arrays directly.
