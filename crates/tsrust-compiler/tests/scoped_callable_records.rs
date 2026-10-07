@@ -309,3 +309,47 @@ fn scoped_record_parameter_invokes_without_retaining_owner() {
         }
     "#);
 }
+
+#[test]
+fn nested_scoped_record_parameter_preserves_callback_environment() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int, [value: int]>>; };
+        type Envelope = { holder: Holder; };
+        function invoke(envelope: ReadOnly<Envelope>, value: int): int {
+            return envelope.holder.run(value);
+        }
+        function main() {
+            const offsets = [3, 7];
+            {
+                const holder: Holder = { run: (value: int): int => value + offsets[0] };
+                const envelope: Envelope = { holder: holder };
+                strictEqual(invoke(envelope, 2), 5);
+                strictEqual(invoke(envelope, 4), 7);
+            }
+            offsets[0] = 9;
+            strictEqual(offsets[0], 9);
+        }
+    "#);
+}
+
+#[test]
+fn retaining_record_parameter_cannot_return_scoped_callback_storage() {
+    let source = r#"
+        type Holder = { run: ReadOnly<Function<int>>; };
+        type Envelope = { holder: Holder; };
+        function retain(envelope: Envelope): Envelope { return envelope; }
+        function main() {
+            const values = [3, 7];
+            const holder: Holder = { run: (): int => values[0] };
+            const envelope: Envelope = { holder: holder };
+            const retained = retain(envelope);
+            console.log(retained.holder.run());
+        }
+    "#;
+    let error = match tsrust_compiler::check(source) {
+        Ok(_) => panic!("accepted retaining scoped record parameter"),
+        Err(error) => error,
+    };
+    assert_eq!(error.code, "callback-escape", "{error:?}");
+}

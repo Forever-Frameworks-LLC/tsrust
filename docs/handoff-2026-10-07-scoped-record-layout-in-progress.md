@@ -170,3 +170,20 @@ checkpoint, not complete record gate acceptance. Next cover nested record parame
 retaining transfers, callable result boundaries and field loan provenance. Complete
 editor, guide and matched workload support remains owed. Installed consumers stay
 on f1dd284. Preserve all fifteen owner fixtures.
+
+## Nested parameter boundary witnesses
+
+The nested ReadOnly<Envelope> parameter witness passes native execution without
+further implementation changes. Its Holder callback borrows an array, receives
+two arguments on successive calls and releases the loan before the owner mutates.
+A separate source control rejects returning a consumed Envelope parameter retaining
+scoped callback storage with callback-escape. These two focused checks pass; the
+previous twelve-test batch is preserved rather than repeated. Eleven extracted
+positive cases pass Node after TypeScript compilation. Whole-project formatting
+changes zero files and fingerprints. Exact evidence is stored under
+runtime/diagnostics/scoped-record-boundaries/ in SQLite.
+
+Remaining work includes positive owned record results, scoped result transfers when
+lifetimes permit, field provenance through scope exits and assignment, disposal and
+failure paths, editor/guide and matched workload support. These witnesses do not
+establish complete record gate acceptance. Source consumers remain on f1dd284.
