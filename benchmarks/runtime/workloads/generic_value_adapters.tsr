@@ -8,6 +8,31 @@ function make(start: int) {
     }
     return select;
 }
+function reducer() {
+    let calls = 0;
+    function first<T>(left: T, right: T): T {
+        calls += 1;
+        return calls === 4 ? right : left;
+    }
+    return first;
+}
+function predicate() {
+    let calls = 0;
+    function accept<T>(value: T): boolean {
+        calls += 1;
+        return calls === 2;
+    }
+    return accept;
+}
+function comparator() {
+    let seen = 0;
+    function compare<T>(left: T, right: T): int {
+        if (typeof left === "string") { return seen; }
+        seen = 1;
+        return 0;
+    }
+    return compare;
+}
 function workload(n: int, seed: int, input: string): int[][] {
     const output: int[][] = [];
     for (let i = 0; i < n; i += 1) {
@@ -33,9 +58,25 @@ function workload(n: int, seed: int, input: string): int[][] {
         const arrayAction = make(base + 30);
         const actions: Function<Receipt<string>, [value: Owned<string>]>[] = [arrayAction];
         const stored = actions[0]("array");
+        const reduce = reducer();
+        const reduced = [base, base + 1, base + 2].reduce(reduce, base + 3);
+        const reducedAfter = reduce("before", "fourth");
+        const reduceRight = reducer();
+        const reversed = [base, base + 1, base + 2].reduceRight(reduceRight, base + 4);
+        const reversedAfter = reduceRight("before", "fourth");
+        const accept = predicate();
+        const found = [base, base + 1, base + 2].findIndex(accept);
+        const searchedAfter = accept("after");
+        const compare = comparator();
+        const sortable = [base + 2, base, base + 1];
+        sortable.sort(compare);
+        const copied = sortable.toSorted(compare);
+        const sortedAfter = compare("after", "unused");
         output.push([firstValue, firstCalls, generic.value.length, generic.calls, last.value.length, last.calls,
             mapped[0].value, mapped[1].value, mapped[0].calls, mapped[1].calls, after.value ? 1 : 0, after.calls,
-            record.value, record.calls, stored.value.length, stored.calls, input.length]);
+            record.value, record.calls, stored.value.length, stored.calls, input.length,
+            reduced, reducedAfter.length, reversed, reversedAfter.length, found, searchedAfter ? 1 : 0,
+            sortable[0], copied[0], sortedAfter]);
     }
     return output;
 }

@@ -122,3 +122,9 @@ benchmark expansion for these paths remains pending; the existing workload is
 not evidence of their coverage. An exploratory inferred record literal containing
 two callable fields failed for lack of a named record context; that distinct
 boundary remains in the audit and its original diagnostic is retained.
+
+Matched benchmark expansion now covers the implemented reduction/search/sort paths.
+Twenty-six observations retain independent expected values and captured-state
+checks, without requiring equal comparator counts across native and Node engines.
+Five untimed cases and semantic mutation registrations pass. Remaining context
+and ownership audits still prevent full adapter acceptance.

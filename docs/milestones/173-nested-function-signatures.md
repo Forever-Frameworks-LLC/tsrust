@@ -304,3 +304,16 @@ constraint. Search uses the existing shared transform path. Nine adapter tests,
 pass. Strict TypeScript references reproduce reduction and search outputs. Full
 context audit and matched benchmark expansion remain pending. This is a source
 checkpoint, not full adapter acceptance or performance evidence.
+
+## Matched callback adapter coverage
+
+The adapter workload now observes twenty-six values. Added reduction/reduceRight,
+stateful search and sort/toSorted scenarios invoke the original generic environment
+again after traversal. The independent oracle detects reconstructed state. Sort
+uses stable equal comparisons and a retained state marker, avoiding assumptions
+about engine-specific comparator invocation counts. Semantic mutation controls
+reject missing capture updates and replacing retained invocations with new factories.
+Five native/Node-after-tsc cases pass untimed. Exact verification is retained in
+SQLite at benchmarks/runtime/results/2026-10-07T00-02-45-912Z-verify.json; all
+oracle input fingerprints match current files. Registration passes. Loose records
+are removed after exact readback. Wider adapter contexts and Gate173 remain open.

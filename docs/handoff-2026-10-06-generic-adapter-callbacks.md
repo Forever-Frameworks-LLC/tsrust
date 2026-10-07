@@ -28,3 +28,12 @@ SQLite. Continue full Gate173 scope rather than accepting only current tests.
 Continuation prompt: Continue from this checkpoint. Complete matched callback
 adapter benchmark expansion, then audit remaining adapter contexts and ownership
 failures. Preserve owner fixtures and exact evidence; use explicit Git paths.
+
+Matched callback benchmark expansion is now complete for the implemented paths.
+The pair has twenty-six observations, independent oracle and semantic mutation
+guards. Five untimed native/Node cases pass. Canonical SQLite record:
+benchmarks/runtime/results/2026-10-07T00-02-45-912Z-verify.json. Registration passes;
+oracle hashes match current files; exact readback verified before loose cleanup.
+All processes are terminal. No compiler source changed in this support increment.
+Next move directly to defaults/rest/pattern/result-only/nullable and arbitrary
+callable expression audits; preserve the exploratory named-record boundary.
