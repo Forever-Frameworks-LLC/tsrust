@@ -110,3 +110,31 @@ pending. Installed consumers remain f1dd284.
 Record gate and gate 173 remain open. Preserve all fifteen owner fixtures and use
 explicit Git paths. A partial representation milestone does not close the record
 feature family.
+
+## Disjoint borrowing prerequisites before parameter routing
+
+Two focused red witnesses now establish separate gaps. The checker rejects
+`touch(pair.left, pair.right)` when both parameters use Mutable<Holder>, despite
+the statically distinct owning record fields. Temporary argument Loans currently
+records binding roots, modes and spans, without field paths. Preserve root-wide
+conflicts for whole values, ancestors, unknown indexed places and hidden captures,
+but track proven static field projections for disjoint sibling arguments. Isolate
+this access-loan representation and overlap logic in a dedicated module. Add
+same-field, ancestor/descendant, whole-root and hidden-capture rejection controls
+before changing shared access dispatch.
+
+The native bridge has a separate E0499 witness. Calling two mutable getters on
+one opaque generic carrier borrows its whole self twice. Routing mutable parameter
+bodies directly through those getters would therefore lose existing native field
+disjointness. Add whole-record read/mutate transport methods returning concrete
+view layouts, then establish one entry view for each borrowed parameter. Native
+record and view implementations must split their concrete fields in one borrow.
+Generic child carriers must obtain each child view once, not request multiple
+mutable child getters. Preserve callback associated types, fixed data constraints,
+property-order metadata and field restoration. Do not use unsafe references or
+weaken alias checks to make the native witness pass.
+
+Both witnesses remain red and are tracked independently of the original E0502
+partial-field disposal witness. These prerequisites are part of the full record
+plan, not a replacement for independent storage, capture/completion transport,
+editor acceptance or benchmark support.

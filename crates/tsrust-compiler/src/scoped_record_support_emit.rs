@@ -107,4 +107,41 @@ mod tests {
         rust=rust.replace("fn main() -> () {","fn main() -> () { verify();");
         crate::scoped_record_places::tests::native(&rust);
     }
+    #[test]
+    fn nominal_mutable_consumer_preserves_disjoint_sibling_fields() {
+        let source=crate::format(r#"type Holder={run:ReadOnly<Function<int>>;label:string;};type Pair={left:Holder;right:Holder;};function touch(left:Mutable<Holder>,right:Mutable<Holder>):void{left.label="left!";right.label="right!";}function probe(holder:ReadOnly<Holder>):int{return holder.run();}function main(){}"#).unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let checked=crate::check(&source).unwrap();
+        let outer=checked.program.records.iter().position(|record|record.name.text=="Pair").unwrap();
+        let Type::Record(inner)=checked.program.records[outer].fields[0].ty.unwrap() else{panic!("child record")};
+        let baseline=emit(&checked.program);
+        crate::scoped_record_places::tests::native(&baseline);
+        let mut rust=baseline;
+        rust.push_str(&format!(r#"
+            struct Action;
+            impl ReadCallback<(),i64> for Action{{fn invoke_read(&self,_:())->i64{{3}}}}
+            fn update<V:TsrMutateRecord{outer}<Field0Field1=String,Field1Field1=String>>(value:&mut V){{
+                let left=value.tsr_field0_field1_mut();
+                let right=value.tsr_field1_field1_mut();
+                *left=String::Owned("left!".into());
+                *right=String::Owned("right!".into());
+            }}
+            fn verify(){{
+                let mut value=Record{outer}{{field0:Record{inner}{{field0:Action,field1:String::Owned("left".into())}},field1:Record{inner}{{field0:Action,field1:String::Owned("right".into())}}}};
+                update(&mut value);
+                assert_eq!(value.field0.field1.as_ref(),"left!");assert_eq!(value.field1.field1.as_ref(),"right!");
+            }}
+        "#));
+        assert!(rust.contains("fn main() -> () {"));
+        rust=rust.replace("fn main() -> () {","fn main() -> () { verify();");
+        crate::scoped_record_places::tests::native(&rust);
+    }
+
+    #[test]
+    fn nested_mutable_arguments_borrow_disjoint_sibling_records() {
+        let source=crate::format(r#"type Holder={run:ReadOnly<Function<int>>;label:string;};type Pair={left:Holder;right:Holder;};function touch(left:Mutable<Holder>,right:Mutable<Holder>):void{left.label="left!";right.label="right!";}function relay(pair:Mutable<Pair>):void{touch(pair.left,pair.right);}function main(){}"#).unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        crate::check(&source).expect("disjoint record fields must not overlap");
+    }
+
 }

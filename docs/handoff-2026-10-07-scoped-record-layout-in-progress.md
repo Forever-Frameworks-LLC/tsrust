@@ -1155,3 +1155,39 @@ moves. Keep opaque composition, property ordering and capture/completion transpo
 in scope. Preserve original native red and live-owner controls. Use bounded checks,
 required depth canaries after dispatch changes, automatic formatting, SQLite
 evidence and explicit Git paths. Never stage the fifteen owner fixtures.
+
+## Disjoint mutable borrowing red checkpoint
+
+Two new focused tests remain intentionally red in scoped_record_support_emit.rs.
+The checker witness nested_mutable_arguments_borrow_disjoint_sibling_records
+requires touch(pair.left, pair.right) with Mutable<Holder> parameters to accept
+statically distinct record fields. It currently fails conflicting-access at the
+second argument. analysis.rs Loans is a binding-root map of (Mode, Span) entries;
+ordinary fully available field access does not establish a projection for that
+temporary loan check. Preserve source overlap rejection while adding field identity.
+
+The native witness nominal_mutable_consumer_preserves_disjoint_sibling_fields
+first compiles the ordinary emitted program successfully. Its additional generic
+mutable consumer holds two sibling string references from separate bridge getters.
+Native compilation then fails E0499 because both getters borrow the entire generic
+carrier. This confirms that mutable parameter bodies need one concrete view from
+a whole-record transport operation; direct repeated mutable getters are insufficient.
+The initial combined witness stopped at the checker gap, so the tests were separated
+to retain independent evidence for both boundaries.
+
+Exact checker and native red diagnostics are verified in SQLite under
+runtime/diagnostics/scoped-record-disjoint-borrowing/. Project formatting changes
+zero files and fingerprints. No production source changed this checkpoint; earlier
+64 depth, ten component and 19 accepted project cases remain the previous evidence.
+The original E0502 project witness is still red. Consumers remain f1dd284. Fifteen
+owner fixtures remain untouched. No gate or feature acceptance is claimed.
+
+Continuation prompt: Continue Tsrust from this handoff and the scoped record field
+storage plan. First implement place-aware temporary argument loans for static
+record fields, retaining same-field, ancestor, whole-root, opaque-index and hidden
+capture rejection controls. Run required depth canaries after analyzer dispatch
+changes. Then implement whole-record view transport and one concrete parameter
+entry view to preserve native disjoint mutation. Keep both new red witnesses and
+the original E0502 witness; never weaken them. Continue independent storage and
+full capture/completion/editor/benchmark scope. Use bounded checks, automatic
+formatting, SQLite evidence and explicit Git paths; never stage owner fixtures.
