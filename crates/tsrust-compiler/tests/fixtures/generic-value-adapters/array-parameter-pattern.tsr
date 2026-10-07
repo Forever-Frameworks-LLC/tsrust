@@ -1,0 +1,14 @@
+import { strictEqual } from 'std:testing';
+function make() {
+    let calls = 0;
+    function head<T>([first]: Owned<T[]>): T { calls += 1; console.log(calls); return first; }
+    return head;
+}
+function main() {
+    const action = make();
+    {
+        const fixed: Mutable<Function<int, [values: Owned<int[]>]>> = action;
+        strictEqual(fixed([7, 8]), 7);
+    }
+    strictEqual(action(['owner', 'extra']), 'owner');
+}

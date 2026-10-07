@@ -448,3 +448,25 @@ fn selected_generic_calls_keep_consuming_capture_ownership() {
     let error=tsrust_compiler::check(source).err().expect("a named optional selection cannot consume a borrowed owner");
     assert!(matches!(error.code,"borrowed-place"|"borrowed-view"|"type"),"{}",error.render("input.tsr",source));
 }
+
+#[test]
+fn callable_payload_results_keep_default_effects_and_spread_rest_contracts() {
+    native(include_str!("fixtures/generic-value-adapters/callable-payload-default-rest.tsr"), "1\ndefault\ndefault\n");
+}
+
+#[test]
+fn unused_generic_alias_applications_still_validate_type_annotations() {
+    let source="function identity<T>(value:T):T{return value;}function unused<T>(value:T):T{const alias=identity;return alias<Missing>(value);}function main(){}";
+    let error=tsrust_compiler::check(source).err().expect("unused templates still validate explicit annotations");
+    assert_eq!(error.code,"type","{}",error.render("input.tsr",source));
+}
+
+#[test]
+fn generic_adapters_preserve_owned_array_parameter_patterns() {
+    native(include_str!("fixtures/generic-value-adapters/array-parameter-pattern.tsr"), "1\n2\n");
+}
+
+#[test]
+fn generic_adapters_preserve_owned_record_parameter_patterns() {
+    native(include_str!("fixtures/generic-value-adapters/record-parameter-pattern.tsr"), "1\n2\n");
+}
