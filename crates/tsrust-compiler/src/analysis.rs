@@ -5209,6 +5209,8 @@ impl Analyzer {
         context.lexical_scopes.pop();
         if !keep_names {
             entry_loans.unwind(&mut context.capture_loans);
+            let _ = context.capture_loan_owners.leave_scope(first_local);
+            Self::restore_live_capture_loans(context);
             for binding in &context.bindings[first_local..] {
                 context.names.remove(&binding.name);
             }
@@ -13303,7 +13305,9 @@ self.names_materialized_type(element.with_depth(0).ty())
         if declared {
             return self.declared_named_call(context, expr, loans);
         }
-        self.expression_call_other(context, expr, loans, expected)
+        let result = self.expression_call_other(context, expr, loans, expected)?;
+        self.resolve_completed_capture_invocation(context, expr, result);
+        Ok(result)
     }
 
     fn expression_call_other(

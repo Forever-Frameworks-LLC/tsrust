@@ -3,6 +3,30 @@ use super::*;
 use crate::capture_loan_owners::Place;
 
 impl Analyzer {
+    pub(super) fn resolve_completed_capture_invocation(&self, context: &mut Context, expression: &Expr, result: Type) {
+        if self.expression_result_retains_captures(result) { return; }
+        let ExprKind::Call(callee, _) = &expression.kind else { return; };
+        let Some((name, fields)) = Self::direct_fields(callee) else { return; };
+        let Some(binding) = Self::root_binding(callee).or_else(|| context.names.get(&name).copied()) else { return; };
+        let ty = callee.ty.unwrap_or(context.bindings[binding].ty);
+        if !matches!(ty, Type::Closure(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_) | Type::Callback(_) | Type::Callable(_)) { return; }
+        let source = Place { binding, fields };
+        let moved = context.capture_loan_owners.loans_under(&source);
+        context.capture_loan_owners.resolve_consumption(&source, Self::capture_payload_site(callee), &moved);
+    }
+
+    #[inline(never)]
+    pub(super) fn restore_live_capture_loans(context: &mut Context) {
+        let mut present = context.capture_loans.iter().copied().collect::<std::collections::HashSet<_>>();
+        for id in context.capture_loan_owners.live() {
+            if let Some(loan) = context.capture_loan_ids.loan(id) {
+                if present.insert(loan) {
+                    context.capture_loans.push(loan);
+                }
+            }
+        }
+    }
+
     pub(super) fn attach_binding_capture_loans(
         &self,
         context: &mut Context,
@@ -155,6 +179,20 @@ mod tests {
         let formatted = crate::format(source).unwrap();
         assert_eq!(crate::format(&formatted).unwrap(), formatted);
         formatted
+    }
+
+    #[test]
+    fn restored_owner_snapshot_recovers_missing_raw_loans_without_dropping_unknown_borrows() {
+        let mut context = Context::new("main".into());
+        let retained = (0, Mode::Mutate, Span::new(1, 2));
+        let unknown = (1, Mode::Read, Span::new(3, 4));
+        let id = context.capture_loan_ids.intern(retained);
+        context.capture_loan_owners.attach(Place { binding: 2, fields: vec![] }, [id]);
+        context.capture_loans = vec![unknown];
+        Analyzer::restore_live_capture_loans(&mut context);
+        assert_eq!(context.capture_loans, vec![unknown, retained]);
+        Analyzer::restore_live_capture_loans(&mut context);
+        assert_eq!(context.capture_loans, vec![unknown, retained]);
     }
 
     #[test]

@@ -618,3 +618,44 @@ reconciliation from stable IDs with red restoration controls, then scoped field
 disposal and native live-owner controls. Keep three public wrappers and existing
 ownership rules. Use bounded checks, project formatting, SQLite evidence and
 explicit Git paths. Never stage protected owner fixtures.
+
+## Lexical live-loan restoration and completed Once invocation
+
+A red checker-state witness showed owner IDs surviving while raw loan tuples were
+missing. A dedicated non-inlined helper restores live tuples through Registry,
+keeps unknown raw borrows and avoids duplicates. Lexical block cleanup now disposes
+local owner paths before restoring loans carried by surviving owners or pending
+consumption. This restores surviving payloads without reviving dead local owners.
+The helper is not yet wired into every branch and exception snapshot restoration.
+Old tracked loan removal remains disabled.
+
+The first canary batch exposed a real regression: successful Once invocation was
+still pinned as opaque consumption, reviving a completed callback's exclusive
+capture after its lexical scope. A completed checked callable invocation now
+resolves its own receiver event when its result cannot retain captures. Direct
+named callees resolve their binding through Context because their syntax node is
+not necessarily annotated as an evaluated value. Opaque argument transfers and
+invocations with retaining results remain conservative. The original mixed-capture
+Once native witness passes after the repair.
+
+Final checks pass twenty loan unit tests, nineteen record source/native tests
+(excluding the deliberately red independent-field release case), and all eight
+depth canaries (64 tests). Independent field release was rerun separately and
+still fails capture-conflict. Project formatting changes zero files and fingerprints.
+All original failed and successful logs are verified in SQLite under
+runtime/diagnostics/capture-loan-reconciliation/.
+
+Next add tracked-ID history distinct from live ownership so removal never touches
+unknown borrows. Integrate stable raw-loan reconciliation at branch, loop, logical
+and exception owner-state restoration/join, with restoration and live-owner
+controls. Exception projection/unwind must dispose dead local paths while retaining
+outer assignments and pending payloads. Then enable tracked loan release and turn
+the independent native field witness green. Complete editor, guide, matched
+workload and gate records before acceptance. Record gate and gate 173 remain open;
+consumers remain f1dd284. Preserve fifteen owner fixtures.
+
+Continuation prompt: Inspect status and read this handoff, workflow and scoped
+callable aggregate plan. Continue tracked-ID history and branch/exception raw-loan
+restoration, then scoped field disposal. Keep three public wrappers and ownership
+rules. Preserve red evidence and passed checks. Use bounded tests, project formatting,
+SQLite evidence and explicit Git paths; never stage protected owner fixtures.
