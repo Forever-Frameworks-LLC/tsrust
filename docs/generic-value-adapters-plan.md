@@ -380,3 +380,35 @@ benchmarks/runtime/results/2026-10-07T02-10-49-964Z-verify.json is stored in SQL
 No timing or complete compiler regression is claimed. Full Gate173 remains open;
 field applications, parameter patterns, nested callable defaults/rest, alias contexts
 and unused generic source-validation controls still require the wider audit.
+
+
+## Owned parameter-pattern and callable-payload audit
+
+Focused pattern adapters now retain their original function body and concrete
+parameter/result contracts. Forwarding wrapper names no longer masquerade as
+pattern initialization bodies. Explicit consuming array parameters extract elements
+without implicit cloning, with independent offsets for nested holders. Record/array
+mixtures, skipped positions, lazy missing/undefined defaults and explicit rest are
+covered. Readonly patterns retain borrows, transferred sources remain unavailable,
+and missing required positions raise range errors. Successful and failed calls
+dispose three original records exactly once at O0/O3, with identity mask 14.
+
+Call statements can discard a returned callable without requiring an artificial
+binding. A separate O0/O3 control verifies the discarded environment disposes its
+original captured record once. Callable payload optional/default/rest contracts
+retain default effects and spread forwarding. Dedicated editor checks preserve
+concrete pattern-adapter result hover and argument help. Strict TypeScript/Node
+references match the ordinary successful pattern contracts, including undefined
+default selection. Native range failures are separate ownership/error controls.
+
+The matched pair retains the prior 106 observations and adds pattern values/counters
+and callable payload results for 116 observations per scenario. Independent oracle,
+source fingerprints and mutation guards pass. All five native/Node-after-tsc cases
+pass untimed in benchmarks/runtime/results/2026-10-07T02-33-38-582Z-verify.json.
+Sequential array extraction uses remove and can shift remaining elements; no measured
+performance claim is made. Full Gate173 remains open for wider alias/editor,
+borrowed-result escape and unused generic source-validation coverage.
+
+Final focused acceptance passes 159 bounded compiler tests and all 311 editor tests.
+Exact failed/repaired evidence and both matched records are imported and verified
+byte-for-byte in SQLite. See handoff-2026-10-06-owned-pattern-adapters-accepted.md.

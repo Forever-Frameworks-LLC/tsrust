@@ -120,3 +120,10 @@ fn owned_array_patterns_keep_transfer_and_readonly_boundaries() {
 fn owned_nested_array_parameter_patterns_transfer_nested_elements() {
     execute("function head([[first]]: Owned<string[][]>): string { return first; } function main() { console.log(head([['owner']])); }", "owner\n", None);
 }
+
+#[test]
+fn owned_mixed_parameter_patterns_transfer_nested_array_elements() {
+    execute("type Box={values:string[];}; function head({values:[first]}: Owned<Box>): string {return first;} function main(){console.log(head({values:['owner']}));}", "owner\n", None);
+    execute("type Box={value:string;}; function head([{value}]: Owned<Box[]>): string {return value;} function main(){console.log(head([{value:'owner'}]));}", "owner\n", None);
+    execute("function head([... [first]]: Owned<string[]>): string {return first;} function main(){console.log(head(['owner','tail']));}", "owner\n", None);
+}

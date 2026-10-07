@@ -628,3 +628,9 @@ benchmarks/runtime/results/2026-10-07T02-10-49-964Z-verify.json is stored in SQL
 No timing or complete compiler regression is claimed. Full Gate173 remains open;
 field applications, parameter patterns, nested callable defaults/rest, alias contexts
 and unused generic source-validation controls still require the wider audit.
+
+
+The Gate173 pattern audit adds owned nested array/record parameter extraction,
+concrete adapter editor contracts and discarded callable-call disposal controls.
+Matched support now observes 116 results per scenario and passes untimed native/
+Node verification. Broader Gate173 acceptance and milestone measurements remain open.

@@ -3807,8 +3807,8 @@ impl Analyzer {
         let start=body.iter().position(|stmt| stmt.span.start>=parameter.span.start && stmt.span.end<=parameter.span.end);
         let Some(start)=start else { return Ok(()); };
         let count=body[start..].iter().take_while(|stmt| stmt.span.start>=parameter.span.start && stmt.span.end<=parameter.span.end).count();
-        if owned && context.names.get(&parameter.text).is_some_and(|&binding| matches!(context.bindings[binding].ty, Type::Array(_))) {
-            owned_array_patterns::lower(&mut body[start..start+count], &parameter.text, context.bindings[context.names[&parameter.text]].ty);
+        if owned && context.names.get(&parameter.text).is_some_and(|&binding| matches!(context.bindings[binding].ty, Type::Array(_) | Type::Record(_))) {
+            owned_array_patterns::lower(&mut body[start..start+count], &parameter.text, context.bindings[context.names[&parameter.text]].ty, &self.fields);
         }
         self.block_with_scope(context, &mut body[start..start+count], Type::Void, true)?;
         Ok(())
@@ -5087,7 +5087,7 @@ impl Analyzer {
                     } else {
                         self.expression(context,value,if view || place_view {Mode::Read}else{Mode::Consume},&Loans::new(),None)?
                     };
-                    if matches!(ty, Type::Closure(_)) {
+                    if matches!(ty, Type::Closure(_)) && !matches!(value.kind, ExprKind::Call(..)) {
                         return Err(Diagnostic::new(
                             "unsupported",
                             "Bind a closure before using it.",

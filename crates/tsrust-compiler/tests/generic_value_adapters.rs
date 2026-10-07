@@ -470,3 +470,51 @@ fn generic_adapters_preserve_owned_array_parameter_patterns() {
 fn generic_adapters_preserve_owned_record_parameter_patterns() {
     native(include_str!("fixtures/generic-value-adapters/record-parameter-pattern.tsr"), "1\n2\n");
 }
+
+#[test]
+fn owned_pattern_adapters_dispose_each_original_record_once_on_failure() {
+    let source="type Item={id:int;};function make(){let calls=0;function first<T>([first,second]:Owned<T[]>):T{calls+=1;return first;}return first;}function main(){const action=make();{const fixed:Mutable<Function<Item,[values:Owned<Item[]>]>>=action;const values:Item[]=[{id:1},{id:2}];const result=fixed(values);if(result.id!==1){throw 99;}}let caught=0;try{const values:Item[]=[{id:3}];action(values);}catch(error){caught+=1;}if(caught!==1){throw 99;}}";
+    let rust=tsrust_compiler::check(source).unwrap().emit_rust().replace("fn main()","fn source_main()")+r#"
+static DROPS:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+static SEEN:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+impl Drop for Record0 {fn drop(&mut self){DROPS.fetch_add(1,std::sync::atomic::Ordering::SeqCst);SEEN.fetch_or(1<<self.field0,std::sync::atomic::Ordering::SeqCst);}}
+fn main(){source_main();assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCst),3);assert_eq!(SEEN.load(std::sync::atomic::Ordering::SeqCst),14);}
+"#;
+    let directory=support::TempDirectory::new();let path=directory.0.join("owned-pattern-disposal.rs");std::fs::write(&path,rust).unwrap();
+    for level in ["0","3"] {
+        let binary=directory.0.join(format!("owned-pattern-disposal-{level}"));
+        support::success(&support::run(support::rustc().args(["--edition=2024","-C",&format!("opt-level={level}")]).arg(&path).arg("-o").arg(&binary),60));
+        support::success(&support::run(&mut std::process::Command::new(binary),10));
+    }
+}
+
+#[test]
+fn pattern_adapters_supply_record_array_literal_context() {
+    native("type Item={id:int;};function make(){let calls=0;function first<T>([first,second]:Owned<T[]>):T{calls+=1;return first;}return first;}function main(){const action=make();const fixed:Mutable<Function<Item,[values:Owned<Item[]>]>>=action;const result=fixed([{id:7},{id:8}]);console.log(result.id);}", "7\n");
+}
+
+#[test]
+fn owned_pattern_contracts_match_the_typescript_reference() {
+    native(include_str!("fixtures/generic-value-adapters/owned-pattern-contracts.tsr"), "");
+}
+
+#[test]
+fn generic_adapters_allow_discarding_returned_callable_values() {
+    native("function sum(value:int=4,...tail:int[]):int{return value;}function make(){let calls=0;function identity<T>(value:T):T{calls+=1;console.log(calls);return value;}return identity;}function main(){const action=make();{const view:Mutable<Function<Function<int,[value?:int,...tail:int[]]>,[action:Function<int,[value?:int,...tail:int[]]>]>>=action;view(sum);}action(7);}", "1\n2\n");
+}
+
+#[test]
+fn discarded_factory_call_disposes_its_owned_environment_once() {
+    let source="type Item={id:int;};function make(item:Item){return ():int=>item.id;}function main(){make({id:1});}";
+    let rust=tsrust_compiler::check(source).unwrap().emit_rust().replace("fn main()","fn source_main()")+r#"
+static DROPS:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+impl Drop for Record0 {fn drop(&mut self){assert_eq!(self.field0,1);DROPS.fetch_add(1,std::sync::atomic::Ordering::SeqCst);}}
+fn main(){source_main();assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCst),1);}
+"#;
+    let directory=support::TempDirectory::new();let path=directory.0.join("discarded-factory.rs");std::fs::write(&path,rust).unwrap();
+    for level in ["0","3"] {
+        let binary=directory.0.join(format!("discarded-factory-{level}"));
+        support::success(&support::run(support::rustc().args(["--edition=2024","-C",&format!("opt-level={level}")]).arg(&path).arg("-o").arg(&binary),60));
+        support::success(&support::run(&mut std::process::Command::new(binary),10));
+    }
+}

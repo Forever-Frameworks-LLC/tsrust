@@ -7890,3 +7890,14 @@ fn optional_explicit_generic_calls_have_concrete_result_and_argument_help() {
     let help=ask(source,"textDocument/signatureHelp","7);",0);
     assert!(help["signatures"][0]["label"].as_str().unwrap().contains("int"),"{help}");
 }
+
+#[test]
+fn generic_pattern_adapters_keep_concrete_result_and_parameter_help() {
+    let source="function make(){let calls=0;function head<T>([first]:Owned<T[]>):T{calls+=1;return first;}return head;}function main(){const action=make();const fixed:Mutable<Function<string,[values:Owned<string[]>]>>=action;const result=fixed(['owner']);}";
+    tsrust_compiler::check(source).unwrap();
+    let hover=ask(source,"textDocument/hover","result=",0);
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("string"),"{hover}");
+    let help=ask(source,"textDocument/signatureHelp","'owner'",0);
+    let label=help["signatures"][0]["label"].as_str().expect("pattern adapter signature");
+    assert!(label.contains("string") && label.contains("values"),"{help}");
+}

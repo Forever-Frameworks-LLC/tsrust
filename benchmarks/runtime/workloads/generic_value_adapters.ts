@@ -1,3 +1,25 @@
+function sumPayload(value: number = 4, ...tail: number[]): number {
+    let sum = value;
+    for (const item of tail) { sum += item; }
+    return sum;
+}
+type PatternBox<T> = { value: T; };
+function arrayPatternFactory(start: number) {
+    let calls = start;
+    function head<T>([first, second]: T[]): Receipt<T> {
+        calls += 1;
+        return { value: first, calls: calls };
+    }
+    return head;
+}
+function recordPatternFactory(start: number) {
+    let calls = start;
+    function take<T>({ value }: PatternBox<T>): Receipt<T> {
+        calls += 1;
+        return { value: value, calls: calls };
+    }
+    return take;
+}
 function optionalEmptyFactory() {
     function empty<T>(): T[] { return []; }
     return empty;
@@ -246,6 +268,32 @@ function workload(n: number, seed: number, input: string): number[][] {
         const optionalSkipped = missingGeneric?.<number>(optionalEffects++);
         const optionalEmpty = true ? optionalEmptyFactory() : undefined;
         const optionalValues: number[] | undefined = optionalEmpty?.();
+        const patterns = arrayPatternFactory(base + 260);
+        let patternValue = 0;
+        let patternCalls = 0;
+        {
+            const view: (values: number[]) => Receipt<number> = patterns;
+            const receipt = view([base + 43, base + 99]);
+            patternValue = receipt.value;
+            patternCalls = receipt.calls;
+        }
+        const patternText = patterns(["owner", "extra"]);
+        const recordPatterns = recordPatternFactory(base + 270);
+        const recordView: (box: PatternBox<number>) => Receipt<number> = recordPatterns;
+        const patternRecord = recordView({ value: base + 44 });
+        const defaultPayload = payloadFactory(base + 280);
+        let sumDefault = 0;
+        let sumUndefined = 0;
+        let sumSpread = 0;
+        {
+            const view: (action: (value?: number, ...tail: number[]) => number) => (value?: number, ...tail: number[]) => number = defaultPayload;
+            const sum = view(sumPayload);
+            sumDefault = sum();
+            sumUndefined = sum(undefined, 1, 2);
+            sumSpread = sum(7, ...[3, 4]);
+            view(sumPayload);
+        }
+        const defaultPayloadAfter = defaultPayload(true);
         output.push([firstValue, firstCalls, generic.value.length, generic.calls, last.value.length, last.calls,
             mapped[0].value, mapped[1].value, mapped[0].calls, mapped[1].calls, after.value ? 1 : 0, after.calls,
             record.value, record.calls, stored.value.length, stored.calls, input.length,
@@ -271,7 +319,9 @@ function workload(n: number, seed: number, input: string): number[][] {
             nullableRecord.value, nullableRecord.calls, absentValue === undefined ? 1 : 0, scalarResult, arrayResult[0],
             payloadInt, payloadString, payloadAfter ? 1 : 0,
             explicitInt.value, explicitInt.calls, explicitText.value.length, explicitText.calls, explicitAfter.calls,
-            optionalResult?.value ?? -1, optionalResult?.calls ?? -1, optionalSkipped === undefined ? 1 : 0, optionalEffects, optionalValues?.length ?? -1]);
+            optionalResult?.value ?? -1, optionalResult?.calls ?? -1, optionalSkipped === undefined ? 1 : 0, optionalEffects, optionalValues?.length ?? -1,
+            patternValue, patternCalls, patternText.value.length, patternText.calls, patternRecord.value, patternRecord.calls,
+            sumDefault, sumUndefined, sumSpread, defaultPayloadAfter ? 1 : 0]);
     }
     return output;
 }

@@ -1,0 +1,24 @@
+import { strictEqual } from 'std:testing';
+type Box = { values: string[]; };
+type Item = { value: string; };
+function head([first]: Owned<string[]>): string { return first; }
+function nested([[first]]: Owned<string[][]>): string { return first; }
+function recordArray({ values: [first] }: Owned<Box>): string { return first; }
+function arrayRecord([{ value }]: Owned<Item[]>): string { return value; }
+function nestedRest([... [first]]: Owned<string[]>): string { return first; }
+function select([first, , third = 'fallback', ...rest]: Owned<string[]>): string {
+    return first + ':' + third + ':' + rest.join(',');
+}
+function defaultHead([first = 'fallback']: Owned<(string | undefined)[]>): string { return first; }
+function main() {
+    strictEqual(defaultHead([undefined]), 'fallback');
+    strictEqual(head(['owner', 'extra']), 'owner');
+    strictEqual(nested([['owner']]), 'owner');
+    strictEqual(recordArray({ values: ['owner'] }), 'owner');
+    strictEqual(arrayRecord([{ value: 'owner' }]), 'owner');
+    strictEqual(nestedRest(['owner', 'tail']), 'owner');
+    strictEqual(select(['a', 'skip', 'c', 'd', 'e']), 'a:c:d,e');
+    strictEqual(select(['a']), 'a:fallback:');
+    const action = ([first, second]: Owned<string[]>): string => first + second;
+    strictEqual(action(['a', 'b']), 'ab');
+}

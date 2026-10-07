@@ -1,18 +1,37 @@
 //! Owned parameter patterns extract array positions without copying elements.
 use super::*;
 
-pub(super) fn lower(body: &mut [Stmt], source: &str, source_type: Type) {
-    let mut arrays = HashMap::from([(source.to_owned(), (source_type, 0usize))]);
+pub(super) fn lower(body: &mut [Stmt], source: &str, source_type: Type, fields: &[HashMap<String, Type>]) {
+    let mut owners = HashMap::from([(source.to_owned(), (source_type, 0usize))]);
     for statement in body {
         let StmtKind::Let { name, value, .. } = &mut statement.kind else { continue; };
         let root = selection_root(value).map(str::to_owned);
         let Some(root) = root else { continue; };
-        let Some((Type::Array(element), removed)) = arrays.get_mut(&root) else { continue; };
-        let selected_type = if matches!(value.kind, ExprKind::Call(..)) { Type::Array(*element) } else { element.ty() };
-        lower_selection(value, &root, removed, false);
-        if name.text.starts_with("pattern#") && matches!(selected_type, Type::Array(_)) {
-            arrays.insert(name.text.clone(), (selected_type, 0));
+        let Some((source_type, removed)) = owners.get_mut(&root) else { continue; };
+        let selected_type = selected_type(value, *source_type, fields);
+        if matches!(source_type, Type::Array(_)) {
+            lower_selection(value, &root, removed, false);
         }
+        if name.text.starts_with("pattern#") && let Some(ty) = selected_type {
+            owners.insert(name.text.clone(), (ty, 0));
+        }
+    }
+}
+
+fn selected_type(value: &Expr, source: Type, fields: &[HashMap<String, Type>]) -> Option<Type> {
+    match &value.kind {
+        ExprKind::Binary { op: BinaryOp::PatternDefault, left, .. }
+        | ExprKind::Unary { op: UnaryOp::PatternSelection, value: left, .. } => selected_type(left, source, fields),
+        ExprKind::Index(_, index) => match source {
+            Type::Array(element) => Some(element.ty()),
+            Type::Record(id) => match &index.kind {
+                ExprKind::Integer(position) => fields[id].get(position).copied(), _ => None,
+            },
+            _ => None,
+        },
+        ExprKind::Field(_, name) => match source { Type::Record(id) => fields[id].get(name).copied(), _ => None },
+        ExprKind::Call(..) if matches!(source, Type::Array(_)) => Some(source),
+        _ => None,
     }
 }
 
@@ -20,7 +39,7 @@ fn selection_root(value: &Expr) -> Option<&str> {
     match &value.kind {
         ExprKind::Binary { op: BinaryOp::PatternDefault, left, .. }
         | ExprKind::Unary { op: UnaryOp::PatternSelection, value: left, .. } => selection_root(left),
-        ExprKind::Index(base, _) => match &base.kind { ExprKind::Name(name) => Some(name), _ => None },
+        ExprKind::Index(base, _) | ExprKind::Field(base, _) => match &base.kind { ExprKind::Name(name) => Some(name), _ => None },
         ExprKind::Call(callee, _) => match &callee.kind {
             ExprKind::Field(base, name) if name == "pattern#rest" => match &base.kind {
                 ExprKind::Name(name) => Some(name), _ => None,
