@@ -36,7 +36,9 @@ separately and preserve their current diagnostics until their own support is pro
 
 1. **Diagnosis complete.** Preserve original generated Rust and successful native
    experiment in SQLite. Retain the original failing project witness unchanged.
-2. **Field-place layout.** Add an isolated layout module identifying eligible owned
+2. **Field-place layout foundation implemented.** The isolated layout module
+   `scoped_record_places.rs` has three focused tests. Emitter integration remains
+   pending. The module identifies eligible owned
    scoped record storage and stable native names. Preserve field order, nested
    paths, nominal identity and cycle/depth limits. Borrowed parameters and borrowed
    aliases remain references to their original record storage.

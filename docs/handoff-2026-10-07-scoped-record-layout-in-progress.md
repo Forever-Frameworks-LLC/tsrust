@@ -769,3 +769,32 @@ field storage plan. Implement independent native field places with the original
 red project witness, preserving whole-record and borrowed parameter behavior.
 Use bounded compiler/native/editor checks, formatting and SQLite evidence. Keep
 three public wrappers. Never stage the fifteen owner fixtures.
+
+## Independent field-place layout foundation
+
+New scoped_record_places.rs computes independent leaf paths from checked static
+records in nominal declaration order, with stable native names based only on
+binding IDs and numeric paths. It excludes borrowed parameters, captured references,
+borrowed places/elements and non-scoped records. Nested records flatten iteratively;
+unions remain opaque leaves. Missing metadata, cycles and paths beyond 128 reject
+layout construction rather than guessing storage. Three focused tests pass, with
+formatted/idempotent source checking. Exact red and successful evidence is verified
+in SQLite under runtime/diagnostics/scoped-record-field-layout/.
+
+The module is not yet wired into emission. Whole-record read/mutate bridges must
+also support non-copy data fields: assembling a record of field references cannot
+pretend an &String is an owned String. Existing ReadCallback forwarding for &F
+handles callable fields, but data-field view layout and selection need explicit
+support. Plan this alongside declaration and selected access integration so existing
+borrowed parameter cases remain valid. Preserve nominal native ABI and ownership.
+No recursive checker/emitter dispatch changed; prior bounded evidence remains
+current. Project formatting changes zero files and fingerprints. Native independent
+field disposal remains red; record gate and gate 173 remain open. Consumers remain
+f1dd284. Preserve fifteen owner fixtures.
+
+Continuation prompt: Inspect status and read scoped-record-field-storage-plan.md.
+Continue emitter integration of the field-place module with whole-record transport
+and a borrowing bridge for callback and non-copy data fields. Use original native
+red and live-owner controls. Keep nominal types, three wrappers and no implicit
+clone. Follow bounded checks, formatting, SQLite evidence and explicit Git paths;
+never stage protected owner fixtures.

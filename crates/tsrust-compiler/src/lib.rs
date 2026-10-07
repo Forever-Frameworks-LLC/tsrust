@@ -52,6 +52,7 @@ mod stdlib;
 mod record_layout;
 mod scoped_record_fields;
 mod scoped_record_layout;
+mod scoped_record_places;
 mod aggregate_callable_facts;
 mod environment_lifetimes;
 mod record_runtime;
