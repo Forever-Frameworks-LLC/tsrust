@@ -138,3 +138,30 @@ Both witnesses remain red and are tracked independently of the original E0502
 partial-field disposal witness. These prerequisites are part of the full record
 plan, not a replacement for independent storage, capture/completion transport,
 editor acceptance or benchmark support.
+
+## Static argument field loans
+
+Temporary argument loans now retain proven static record field paths in the isolated
+argument_access_loans module. Legacy root loan insertion remains conservative and
+invalidates earlier field proofs for that binding. Two paths overlap when either is
+a prefix of the other. Unknown, indexed and hidden capture accesses remain root-wide.
+Ordinary field access establishes a projection while temporary loans are active;
+fully available reads without loans retain the previous allocation-free path.
+
+The committed disjoint sibling argument witness now passes analysis. Five controls
+pass for same-field and whole-root conflicts, ancestor paths, opaque indices, mixed
+mutable/shared access, hidden captures and broad-insertion invalidation. Mutable
+scalar contracts remain rejected with callback-access because scalars copy; the
+initial proposed scalar-loan witness was invalid and was corrected to preserve the
+existing language rule. All 64 tests across the eight required depth suites pass.
+Exact compilation diagnostics and red/green results are verified in SQLite under
+runtime/diagnostics/scoped-record-argument-loans/. Project formatting changes zero
+files and fingerprints. Fifteen owner fixtures remain unstaged and unchanged.
+
+This is an analyzer checkpoint, not feature acceptance. The native E0499 bridge
+witness and original E0502 independent-field witness remain unresolved. Implement
+whole-record view transport and one concrete mutable parameter entry view next;
+then complete declaration/access/store/whole-move routing and capture/completion,
+editor and matched benchmark support. Existing ReadOnly, Mutable and Once contracts
+remain the public capability model. No additional wrapper is introduced. Consumers
+remain f1dd284; no timing or full editor acceptance is claimed.

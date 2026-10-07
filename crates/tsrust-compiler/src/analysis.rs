@@ -438,7 +438,7 @@ impl Context {
         }
     }
 }
-type Loans = HashMap<usize, Vec<(Mode, Span)>>;
+use crate::argument_access_loans::Loans;
 
 /// Inspect statement bodies without adding recursive analyzer frames.
 pub(crate) fn has_exception_syntax(body:&[Stmt])->bool {
@@ -2487,7 +2487,7 @@ impl Analyzer {
         for (arg, contract) in args.iter().zip(params) {
             if !arg.ty.is_some_and(Type::is_copy) {
                 for binding in Self::loan_roots(arg, contract.mode) {
-                    active.entry(binding).or_default().push((contract.mode, arg.span));
+                    active.argument(binding, contract.mode, arg);
                 }
             }
         }
@@ -6355,7 +6355,8 @@ impl Analyzer {
             && let Some(active) = loans.get(&index)
         {
             for (previous, previous_span) in active {
-                if mode != Mode::Read || *previous != Mode::Read {
+                if (mode != Mode::Read || *previous != Mode::Read)
+                    && loans.overlaps(index, *previous, *previous_span, context.projection.as_ref().filter(|projection| projection.root == binding.name).map(|projection| projection.path.as_slice())) {
                     return Err(Diagnostic::new("conflicting-access", format!("Cannot access {:?} through overlapping shared, exclusive, or consuming access.", binding.name), span)
                         .related(*previous_span, "Earlier access starts here."));
                 }
@@ -10074,7 +10075,7 @@ impl Analyzer {
         } else {
             false
         };
-        let mut direct = if top_projection && partial {
+        let mut direct = if top_projection && (partial || !loans.is_empty()) {
             Self::direct_fields(base)
         } else {
             None
@@ -13847,7 +13848,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             self.require(actual, Some(ty), arg.span)?;
             if !actual.is_copy() {
                 for binding in Self::loan_roots(arg, mode) {
-                    active.entry(binding).or_default().push((mode, arg.span));
+                    active.argument(binding, mode, arg);
                 }
             }
         }
