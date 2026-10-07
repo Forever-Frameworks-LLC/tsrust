@@ -128,3 +128,13 @@ Twenty-six observations retain independent expected values and captured-state
 checks, without requiring equal comparator counts across native and Node engines.
 Five untimed cases and semantic mutation registrations pass. Remaining context
 and ownership audits still prevent full adapter acceptance.
+
+Default/rest forwarding audit exposed spread planning against an unresolved empty
+prototype. The adapter now forwards its already formed rest array using the checked
+RestPack representation. RestPack checking accepts a checked array expression as
+well as a literal, retaining the supplied access mode and expected type. It does
+not clone the pack or evaluate source elements again. The retained fixture checks
+omission, explicit undefined, an explicit override, empty/nonempty packs and a
+subsequent different generic instantiation of the original environment. Native and
+strict TypeScript output agree. Owned rest/disposal, patterns, nullable contexts
+and benchmark expansion still require their separate audit before full acceptance.

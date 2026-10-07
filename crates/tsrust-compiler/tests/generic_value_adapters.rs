@@ -80,3 +80,8 @@ fn generic_value_adapters_reduce_existing_environments() {
 fn generic_value_adapters_sort_and_search_existing_environments() {
     native(include_str!("fixtures/generic-value-adapters/sort-search.tsr"), "1\nfalse\n");
 }
+
+#[test]
+fn generic_value_adapters_preserve_default_effects_and_rest_packs() {
+    native(include_str!("fixtures/generic-value-adapters/default-rest.tsr"), "1\n1\n9\n2\n2\n3\n3\n1 0\n2 2\n3 1\n");
+}

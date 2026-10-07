@@ -6863,10 +6863,11 @@ impl Analyzer {
             ..
         } = &mut expr.kind
         {
-            let ExprKind::Array(values) = &mut value.kind else {
-                unreachable!("rest pack array")
+            let ty = if let ExprKind::Array(values) = &mut value.kind {
+                self.array_literal(context, values, loans, expected, expr.span)?
+            } else {
+                self.expression(context, value, mode, loans, expected)?
             };
-            let ty = self.array_literal(context, values, loans, expected, expr.span)?;
             value.ty = Some(ty);
             expr.ty = Some(ty);
             return Ok(ty);

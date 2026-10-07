@@ -66,8 +66,17 @@ impl Analyzer {
         let hidden = format!("#generic-adapter-{id}");
         let previous = context.names.insert(hidden.clone(), binding);
         let StmtKind::Return(Some(call)) = &mut body[0].kind else { unreachable!() };
-        let ExprKind::Call(callee, _) = &mut call.kind else { unreachable!() };
+        let ExprKind::Call(callee, arguments) = &mut call.kind else { unreachable!() };
         callee.kind = ExprKind::Name(hidden.clone());
+        // The wrapper already owns the checked rest pack. Forward that pack
+        // directly rather than planning a spread against an unsolved prototype.
+        if template.rest_parameter
+            && let Some(argument) = arguments.last_mut()
+            && let ExprKind::Unary { op, .. } = &mut argument.kind
+            && *op == UnaryOp::Spread
+        {
+            *op = UnaryOp::RestPack;
+        }
         let owned = match expected {
             Some(Type::Callback(id)) => self.callables.callbacks[id].kind.is_owned(),
             Some(Type::StoredCallable(family)) => self.callables.storage.declaration(family)

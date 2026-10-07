@@ -317,3 +317,16 @@ Five native/Node-after-tsc cases pass untimed. Exact verification is retained in
 SQLite at benchmarks/runtime/results/2026-10-07T00-02-45-912Z-verify.json; all
 oracle input fingerprints match current files. Registration passes. Loose records
 are removed after exact readback. Wider adapter contexts and Gate173 remain open.
+
+## Default and rest adapter forwarding checkpoint
+
+A retained default/rest fixture first failed because rest spread planning used the
+empty deferred prototype arity. Forwarding its formed pack directly then exposed
+an internal RestPack array-literal assumption; both failures are retained. The
+adapter now forwards its checked pack, and RestPack checks nonliteral array
+expressions with the original access and context. The native witness passes,
+matching strict TypeScript output. It verifies default evaluation once on omission
+and explicit undefined, no default evaluation on overrides, empty/nonempty rest
+packs and a subsequent different instantiation on the original environment.
+Owned rest/disposal, parameter patterns, nullable contexts and matched benchmark
+expansion remain open. This checkpoint does not accept the full adapter family.
