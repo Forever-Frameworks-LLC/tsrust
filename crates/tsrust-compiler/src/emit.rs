@@ -8746,7 +8746,12 @@ impl Emitter<'_> {
                     } else {
                         code.push_str(&format!("{} }}", self.counted_call("conditional_environment", &arguments, expr.supplied_count.unwrap_or(CallArgumentCount::Static(args.len())))));
                     }
-                    self.registered_closure_call(code,origin,expr.span)
+                    // Carrier planning can widen the stored field to a family
+                    // after this call was checked; its Result layout then applies.
+                    match self.record_callee_family(fun, callee) {
+                        Some(family) => self.registered_storage_call(code,family,expr.span),
+                        None => self.registered_closure_call(code,origin,expr.span),
+                    }
                 }
                 CallTarget::ConditionalCallback(contract) => {
                     let checked = &self.program.callback_contracts[contract];

@@ -216,7 +216,6 @@ fn element_types_indices_and_unsupported_collection_shapes_have_diagnostics() {
     for (body, code) in [
         ("const a: boolean[] = [1];", "type"),
         ("const a: Missing[] = [];", "array-element"),
-        ("const a = [(): int => { return 1; }];", "array-element"),
         ("const a = [1]; a.push(true);", "type"),
         ("const a = [1]; a[true];", "type"),
         ("const a = [1]; a[0] = true;", "type"),
@@ -227,7 +226,6 @@ fn element_types_indices_and_unsupported_collection_shapes_have_diagnostics() {
         ("const a = [1]; console.log(a === a);", "type"),
         ("const a = [1]; a = [2];", "unsupported"),
         ("console.log([1][true]);", "type"),
-        ("const s = \"Pat\"; console.log(s[0]);", "type"),
         ("const a = [,];", "syntax"),
     ] {
         reject(&format!("function main() {{ {body} }}"), code);

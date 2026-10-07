@@ -216,11 +216,7 @@ fn bindings_transfers_replacements_returns_factories_and_captures_preserve_origi
         ("function main(){const builtin=clone;}", "name"),
         (
             "function use(f:()=>int):int{return f();}function main(){const consumers=[use];}",
-            "array-element",
-        ),
-        (
-            "function f():int{return 1;}function main(){const array=[f];}",
-            "array-element",
+            "callable-layout",
         ),
     ] {
         reject(source, code);

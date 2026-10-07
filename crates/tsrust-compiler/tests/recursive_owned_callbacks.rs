@@ -241,7 +241,9 @@ fn finite_owned_type_permutations_and_fresh_factory_results_use_cached_functions
             "1\n",
             Some(&[("call.c", Mode::Consume), ("call.n", Mode::Copy)]),
         );
-        assert_eq!(rust.matches("fn function").count(), 2);
+        // A Once parameter that is only called is generic over its callback:
+        // one native function serves both closures.
+        assert_eq!(rust.matches("fn function").count(), if kind.starts_with("Once") { 1 } else { 2 });
         assert_eq!(check(&source).unwrap().closures().len(), 3);
     }
     // A swap and rotation generate all 120 vectors without unfolding those

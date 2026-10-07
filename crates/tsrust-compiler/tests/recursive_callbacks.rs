@@ -246,7 +246,13 @@ fn recursive_callback_type_errors_and_callable_result_deferrals_are_precise() {
         "function call(c: Function<int>, n: int): () => int { return call(c, n - 1); } function main() {}",
         "function call(c: Once<Function<int>>, n: int): () => int { return call(c, n - 1); } function main() {}",
     ] {
-        assert!(check(source).is_ok());
+        // A Once parameter is checked with its declaration, so the missing base
+        // case is reported there; other callbacks are checked for each use.
+        if source.contains("Once<") {
+            assert!(reject(source, "unsupported").message.contains("environment"));
+        } else {
+            assert!(check(source).is_ok());
+        }
         let concrete = source.replace(
             "function main() {}",
             "function main() { call((): int => { return 7; }, 1); }",

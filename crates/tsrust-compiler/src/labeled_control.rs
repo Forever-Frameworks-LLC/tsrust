@@ -33,8 +33,9 @@ impl Analyzer {
     #[inline(never)]
     fn commit_control_at(context:&mut Context,index:usize,continuing:bool)->Result<(),Diagnostic>{
         let flow=context.flow.clone();
-        let owners=context.capture_loan_owners.clone();
+        let mut owners=context.capture_loan_owners.clone();
         let frame=&mut context.loops[index];
+        let _=owners.leave_scope(frame.scope_start);
         let owner_slot=if continuing {&mut frame.continue_owners}else{&mut frame.break_owners};
         *owner_slot=Some(crate::capture_loan_owners::Owners::reaching(owner_slot.take(),Some(owners)));
         let slot=if continuing {&mut frame.continue_flow}else{&mut frame.break_flow};
@@ -70,7 +71,7 @@ impl Analyzer {
         Self::validate_control_labels(context,labels)?;
         let mut ids=context.names.values().copied().collect::<Vec<_>>();ids.sort_unstable();
         let entry=ids.into_iter().map(|id|(id,Availability::of(&context.bindings[id]))).collect::<Vec<_>>();
-        context.loops.push(LoopFrame{labels:labels.to_vec(),target:ControlTarget::Block(span.start),flow_entry:context.flow.clone(),flow_required:HashMap::new(),break_flow:None,continue_flow:None,breaks:vec![Availability::default();entry.len()],break_seen:false, break_owners:None, continue_owners:None,defer_continue:false,continues:None,entry,span});
+        context.loops.push(LoopFrame{labels:labels.to_vec(),target:ControlTarget::Block(span.start),flow_entry:context.flow.clone(),flow_required:HashMap::new(),break_flow:None,continue_flow:None,breaks:vec![Availability::default();entry.len()],break_seen:false, break_owners:None, continue_owners:None,scope_start:context.bindings.len(),defer_continue:false,continues:None,entry,span});
         let exits=self.block(context,body,result_type)?;
         let frame=context.loops.pop().expect("matching label frame");
         exception_state::consume_target(context,frame.target);

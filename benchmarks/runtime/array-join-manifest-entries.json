@@ -19,7 +19,7 @@
     "pendingCheckpoint": 86,
     "specification": "Matched built-in Array.join with default comma or dynamic strict String separator, zero/one/multiple elements and complete String[] retention.",
     "notes": "Workload includes pool construction, prefix slicing, dynamic receiver/separator selection, actual joining and complete output retention; observer outside timing. No isolated join latency or JavaScript/native allocation parity claim. Nested arrays retain internal commas, null/undefined leaves contribute empty text. Number shared pool uses exact common shortest strings; broader native formatting variants remain compiler evidence. Native owned/static String storage follows ordinary Cow behavior.",
-    "sourceSha256": "0529cdf78a4c339c23bc967e6894f8afc5e0515d94d375dce4c9ab6ef330cdbd",
+    "sourceSha256": "de78330a9b602374d761a825fcb78bd8fc6abbaea8f4b25f8b1d9a67ce2c428d",
     "counterpartSha256": "4352174b81704339746bb024032f1d5dd7ea4fee4ee38c3fa1192a06b9f9a83b",
     "sourceRequired": [
       {
@@ -100,7 +100,7 @@
     "pendingCheckpoint": 86,
     "specification": "Matched built-in Array.join with default comma or dynamic strict String separator, zero/one/multiple elements and complete String[] retention.",
     "notes": "Workload includes pool construction, prefix slicing, dynamic receiver/separator selection, actual joining and complete output retention; observer outside timing. No isolated join latency or JavaScript/native allocation parity claim. Nested arrays retain internal commas, null/undefined leaves contribute empty text. Number shared pool uses exact common shortest strings; broader native formatting variants remain compiler evidence. Native owned/static String storage follows ordinary Cow behavior.",
-    "sourceSha256": "1c5cd48ad3e3acdf008c11a926d79f325af39afd4c0111478336cee64112fcdd",
+    "sourceSha256": "5f7f6c0f88551447d440b264bf100d6a0d7d716bc664b8a5f501535cea008834",
     "counterpartSha256": "3967813d871fa947389d12547e9b4c8016d1aa8ebc7edd169a5ca72b592ffb21",
     "sourceRequired": [
       {
@@ -182,7 +182,7 @@
     "pendingCheckpoint": 86,
     "specification": "Matched built-in Array.join with default comma or dynamic strict String separator, zero/one/multiple elements and complete String[] retention.",
     "notes": "Workload includes pool construction, prefix slicing, dynamic receiver/separator selection, actual joining and complete output retention; observer outside timing. No isolated join latency or JavaScript/native allocation parity claim. Nested arrays retain internal commas, null/undefined leaves contribute empty text. Number shared pool uses exact common shortest strings; broader native formatting variants remain compiler evidence. Native owned/static String storage follows ordinary Cow behavior.",
-    "sourceSha256": "d13910eae1bac8a9d234702b6b8c72adfe122e143422f867111ca2123bfe8e5a",
+    "sourceSha256": "90d9981bcd1419007edf5c31f6f1cfd6adc953e9cd4e7f13afea49a23a83804e",
     "counterpartSha256": "0cf4529586c73a1511753936dc9082bf5a73a5ee832721d731d10b6e243f8e50",
     "sourceRequired": [
       {
@@ -264,7 +264,7 @@
     "pendingCheckpoint": 86,
     "specification": "Matched built-in Array.join with default comma or dynamic strict String separator, zero/one/multiple elements and complete String[] retention.",
     "notes": "Workload includes pool construction, prefix slicing, dynamic receiver/separator selection, actual joining and complete output retention; observer outside timing. No isolated join latency or JavaScript/native allocation parity claim. Nested arrays retain internal commas, null/undefined leaves contribute empty text. Number shared pool uses exact common shortest strings; broader native formatting variants remain compiler evidence. Native owned/static String storage follows ordinary Cow behavior.",
-    "sourceSha256": "240fd82a89fc2898d8ab616169088f4374b24ef29da640410dbc82c19faf6546",
+    "sourceSha256": "1ab13d14861614ff04901be9abcca6ed681b386d4c25ffa92fb525309f991a16",
     "counterpartSha256": "579ba49b68046962529cfadaead521a46e374e8133687fdab92fe349bca50433",
     "sourceRequired": [
       {
@@ -345,7 +345,7 @@
     "pendingCheckpoint": 86,
     "specification": "Matched built-in Array.join with default comma or dynamic strict String separator, zero/one/multiple elements and complete String[] retention.",
     "notes": "Workload includes pool construction, prefix slicing, dynamic receiver/separator selection, actual joining and complete output retention; observer outside timing. No isolated join latency or JavaScript/native allocation parity claim. Nested arrays retain internal commas, null/undefined leaves contribute empty text. Number shared pool uses exact common shortest strings; broader native formatting variants remain compiler evidence. Native owned/static String storage follows ordinary Cow behavior.",
-    "sourceSha256": "1425d7884d928aa91236e829063ec7039de77a01c67900b51714c51689cc9f53",
+    "sourceSha256": "7cd2a14858b5755296684e8d17c3c97061630d571175a19e3a12654b9e172154",
     "counterpartSha256": "e6e16857ac036eef9291afc88423674f6ffcc6375ff748ce252a14848c323b50",
     "sourceRequired": [
       {
@@ -426,7 +426,7 @@
     "pendingCheckpoint": 86,
     "specification": "Matched built-in Array.join with default comma or dynamic strict String separator, zero/one/multiple elements and complete String[] retention.",
     "notes": "Workload includes pool construction, prefix slicing, dynamic receiver/separator selection, actual joining and complete output retention; observer outside timing. No isolated join latency or JavaScript/native allocation parity claim. Nested arrays retain internal commas, null/undefined leaves contribute empty text. Number shared pool uses exact common shortest strings; broader native formatting variants remain compiler evidence. Native owned/static String storage follows ordinary Cow behavior.",
-    "sourceSha256": "ea813b5f7d8a21e850c527a4d19885e52e5ab12b0141cbd3031214bb678d4810",
+    "sourceSha256": "6d47fd1816fef05bf9efa4f33c344b7310c19bca9e83b5d9b36cbd9f2bb59313",
     "counterpartSha256": "657749f4b63b00dedc51903d0f445de954cef0fbb4082396ffcc67466e1fa0bf",
     "sourceRequired": [
       {

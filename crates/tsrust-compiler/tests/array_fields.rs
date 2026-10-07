@@ -106,14 +106,20 @@ fn field_iteration_holds_a_shared_loan_on_the_owner() {
 }
 
 #[test]
-fn field_argument_loans_conservatively_protect_the_whole_owner() {
+fn field_argument_loans_follow_static_field_paths() {
     execute(
         "type Box = { left: int[]; right: int[]; }; function pair(a: int[], b: int[]): int { return a[0] + b[0]; } function main() { const box: Box = { left: [1], right: [2] }; console.log(pair(box.left, box.right)); }",
         "3\n",
         None,
     );
+    // Sibling fields are separate places; one field lent twice is not.
+    execute(
+        "type Box = { left: int[]; right: int[]; }; function pair(a: int[], b: int[]) { a.push(b[0]); } function main() { const box: Box = { left: [1], right: [2] }; pair(box.left, box.right); console.log(box.left.length); }",
+        "2\n",
+        None,
+    );
     reject(
-        "type Box = { left: int[]; right: int[]; }; function pair(a: int[], b: int[]) { a.push(b[0]); } function main() { const box: Box = { left: [1], right: [2] }; pair(box.left, box.right); }",
+        "type Box = { left: int[]; right: int[]; }; function pair(a: int[], b: int[]) { a.push(b[0]); } function main() { const box: Box = { left: [1], right: [2] }; pair(box.left, box.left); }",
         "conflicting-access",
     );
     for body in [

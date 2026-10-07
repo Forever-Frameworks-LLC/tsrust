@@ -208,7 +208,8 @@ fn strict_targets_loans_and_single_operand_selection_survive_failed_commits() {
             assert_eq!(check(&source).err().unwrap().code, "type", "{source}");
         }
     }
-    for expression in ["+true", "+\"x\"", "~true", "~\"x\""] {
+    // Unary plus converts booleans and strings to numbers.
+    for expression in ["~true", "~\"x\""] {
         let source = format!("function main(){{console.log({expression});}}");
         assert_eq!(check(&source).err().unwrap().code, "type", "{source}");
     }

@@ -3835,6 +3835,16 @@ impl Parser<'_> {
                         token.span,
                     ));
                 }
+                // A statement keyword cannot stand where a value is expected.
+                if ["return", "break", "continue", "const", "throw", "try", "catch", "finally", "do", "switch", "case"]
+                    .contains(&token.text.as_str())
+                {
+                    return Err(Diagnostic::new(
+                        "syntax",
+                        format!("Expected an expression, found the keyword {:?}.", token.text),
+                        token.span,
+                    ));
+                }
                 Expr::new(ExprKind::Name(token.text), token.span)
             }
             _ => {
@@ -4049,8 +4059,11 @@ impl Parser<'_> {
     // conditional arm's separating colon for an outer closure annotation.
     fn annotated_arrow_follows(&self, start: usize) -> bool {
         let mut tokens = self.tokens.clone();
-        crate::type_syntax::parse_prefix(&mut tokens, start, 0)
-            .is_ok_and(|(_, end)| tokens.get(end).is_some_and(|token| token.text == "=>"))
+        match crate::type_syntax::parse_prefix(&mut tokens, start, 0) {
+            Ok((_, end)) => tokens.get(end).is_some_and(|token| token.text == "=>"),
+            // A type past the nesting limit is still a type; the arrow parser reports it.
+            Err(error) => error.code == "unsupported",
+        }
     }
 
     fn closure_header(&self) -> bool {

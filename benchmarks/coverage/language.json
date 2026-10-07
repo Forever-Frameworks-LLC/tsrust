@@ -359,6 +359,7 @@
       "function.nestedDeclaration",
       "function.declarationHoisting",
       "function.nestedCapture",
+      "record.borrowingCallableField",
       "function.declaredValue",
       "function.higherOrderValue",
       "function.arrow",

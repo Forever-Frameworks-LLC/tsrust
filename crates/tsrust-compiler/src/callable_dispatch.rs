@@ -373,7 +373,7 @@ pub(crate) mod tests {
     fn checked_factories_dispatch_multiple_owned_origins_and_singleton_at_o0_o3() {
         for once in [false, true] {
             let source = if once {
-                "type State = { value: int; }; function left(start: int): () => int { const state: State = { value: start }; return (): int => { const moved = state; return moved.value; }; } function right(start: int): () => int { const state: State = { value: start + 10 }; return (): int => { const moved = state; return moved.value; }; } function sink(action: Once<Function<int>>): int { return action(); } function main() {}"
+                "type State = { value: int; }; function left(start: int): () => int { const state: State = { value: start }; return (): int => { const moved = state; return moved.value; }; } function right(start: int): () => int { const state: State = { value: start + 10 }; return (): int => { const moved = state; return moved.value; }; } function sink(action: Once<Function<int>>, hold: (inner: Once<Function<int>>) => int): int { return hold(action); } function main() {}"
             } else {
                 "function left(start: int): () => int { let value = start; return (): int => { value = value + 1; return value; }; } function right(start: int): () => int { const value = start + 10; return (): int => { return value; }; } function sink(action: Function<int>): int { return action(); } function main() {}"
             };
@@ -389,8 +389,8 @@ pub(crate) mod tests {
             let contract = program
                 .callback_contracts
                 .iter()
-                .find(|contract| contract.kind.is_owned())
-                .unwrap();
+                .find(|contract| contract.kind.is_owned() && contract.kind.is_once() == once)
+                .unwrap_or_else(|| panic!("kinds {:?}", program.callback_contracts.iter().map(|contract| contract.kind).collect::<Vec<_>>()));
             let family = Family::checked(
                 contract,
                 &program.callable_shapes,
@@ -425,8 +425,9 @@ pub(crate) mod tests {
             .unwrap();
             singleton.emit(&mut rust, 1, |_| unreachable!(), |_| "i64".into());
             singleton.emit_mutable_adapter(&mut rust, 1, "", "()", "i64");
-            assert_eq!(rust.contains("Callback<(), i64> for StoredCallable0"), !once);
-            assert_eq!(rust.contains("Callback<(), i64> for StoredCallable1"), !once);
+            // "OnceCallback<...>" also ends with this text; match the reusable trait only.
+            assert_eq!(rust.contains(" Callback<(), i64> for StoredCallable0"), !once);
+            assert_eq!(rust.contains(" Callback<(), i64> for StoredCallable1"), !once);
             let mut run = format!(
                 "fn main() {{ let mut first = StoredCallable0::V{}(function0(2)); let mut second = StoredCallable0::V{}(function1(5)); let mut single = StoredCallable1(function0(8)); println!(\"{{}} {{}} {{}}\", first.call(), second.call(), single.call());",
                 ids[0], ids[1]

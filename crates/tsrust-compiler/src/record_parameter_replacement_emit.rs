@@ -33,6 +33,18 @@ impl Emitter<'_>{
         }
         result
     }
+    /// The borrowed family that a called record field holds in its current layout.
+    pub(super) fn record_callee_family(&self,fun:&CheckedFunction,callee:&Expr)->Option<usize>{
+        let(root,steps)=self.storage_steps(callee);
+        let mut ty=fun.bindings[root.binding?].ty;
+        if steps.is_empty(){return None;}
+        for step in &steps{match step{
+            StorageStep::Field(field)=>{let Type::Record(record)=ty else{return None;};ty=self.program.records[record].fields[*field].ty?;}
+            StorageStep::Discard(_)=>{}
+            _=>return None,
+        }}
+        match ty{Type::BorrowedCallable(family)=>Some(family),_=>None}
+    }
     pub(super) fn record_replacement_bounds(&self,function:usize,parameter:usize,path:&[usize])->Vec<String>{
         let fun=&self.program.functions[function];
         let Some(layout)=self.record_parameter_layout(fun,parameter)else{return Vec::new();};

@@ -151,7 +151,7 @@ fn main(){source_main();assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCs
 fn fresh_generic_adapters_reject_borrowed_temporary_escape() {
     let source="function make(){let calls=0;function select<T>(value:T):T{calls+=1;return value;}return select;}function main(){const view:Mutable<Function<int,[value:int]>>=make();view(7);}";
     let error=tsrust_compiler::check(source).err().expect("temporary owner cannot outlive borrowed facade");
-    assert_eq!(error.code,"closure-escape","{}",error.render("input.tsr",source));
+    assert_eq!(error.code,"callback-escape","{}",error.render("input.tsr",source));
 }
 
 #[test]

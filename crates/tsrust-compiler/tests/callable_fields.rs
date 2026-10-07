@@ -192,8 +192,10 @@ fn unused_source_callable_fields_need_no_environment_origin() {
 #[test]
 fn source_field_contract_and_ownership_errors_precede_native_emission() {
     for (source, code) in [
+        // A borrowing field is declared freely; a record that holds a borrowing
+        // callback still cannot leave the function that owns the borrowed variable.
         (
-            "type Handler={run:Mutable<Function<int>>;};function main(){}",
+            "type Handler={run:Mutable<Function<int>>;};function make():Handler{const a=[0];return {run:():int=>{a[0]+=1;return a[0];}};}function main(){}",
             "callback-escape",
         ),
         (

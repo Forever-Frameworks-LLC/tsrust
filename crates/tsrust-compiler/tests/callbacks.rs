@@ -398,7 +398,7 @@ fn explicit_mutate_callable_parameters_borrow_and_release_owned_environments() {
         "callback-escape",
     );
     reject(
-        "type Handler={run:Mutable<Function<int>>;};function main(){}",
+        "type Handler={run:Mutable<Function<int>>;};function make():Handler{const a=[0];return {run:():int=>{a[0]+=1;return a[0];}};}function main(){}",
         "callback-escape",
     );
 }

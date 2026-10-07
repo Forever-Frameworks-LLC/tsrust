@@ -1,3 +1,5 @@
+**Scoped callable records accepted:** [Borrowing callback fields](./milestones/173-scoped-callable-records.md). Record fields declared `ReadOnly<Function<...>>` or `Mutable<Function<...>>` borrow local variables with independent field storage, record parameters, replacement, moves and escape rejection. Whole compiler crate passes except two kept callable-replacement witnesses; editor 339; one matched workload verified untimed. Seven regressions in accepted features and about 30 stale expectations were repaired. Arrays, Maps, Sets and unions of such records stay rejected.
+
 **Gate 173 source-validation progress:** Distinct branch signatures and saved alias sets now retain arity checks and declaration links. Loop, exception and capture effects remain open. See [handoff](./handoff-2026-10-06-distinct-branch-contracts.md).
 
 **Formatter repair accepted:** Recursive `tsrust format` defaults to the working directory, with read-only `--check`, directory exclusions and stable type/assertion spacing. See [formatter handoff](./handoff-2026-10-06-recursive-format.md). Gate 173 remains in progress.

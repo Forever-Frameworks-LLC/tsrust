@@ -22,6 +22,8 @@ mod borrowed_conditional_carriers;
 mod record_call_capture_release;
 #[path = "record_parameter_carriers.rs"]
 mod record_parameter_carriers;
+#[path = "scoped_record_containers.rs"]
+mod scoped_record_containers;
 #[path = "record_value_carriers.rs"]
 mod record_value_carriers;
 #[path = "record_storage_writes.rs"]
@@ -350,6 +352,9 @@ struct LoopFrame {
     break_seen: bool,
     break_owners: Option<crate::capture_loan_owners::Owners>,
     continue_owners: Option<crate::capture_loan_owners::Owners>,
+    /// First binding declared inside the target. An exit leaves those
+    /// bindings, so the loans they hold do not reach the code after it.
+    scope_start: usize,
     // New loops execute a tail after continue, so ownership checks happen
     // after joining their fallthrough and continue states, not at continue.
     defer_continue: bool,
@@ -397,6 +402,8 @@ struct Context {
     inferred_body_result: bool,
     returning_closure: bool,
     returned_callable: Option<Type>,
+    /// The recorded return is a call in a template body; see `return_statement`.
+    returned_symbolic_call: bool,
     function_name: String,
     /// Parameters declared ReadOnly. A const taken from one of their
     /// positions borrows it for reading.
@@ -445,6 +452,7 @@ impl Context {
             inferred_body_result: false,
             returning_closure: false,
             returned_callable: None,
+            returned_symbolic_call: false,
             function_name,
             readonly_parameters: HashSet::new(),
         }
@@ -3113,7 +3121,7 @@ impl Analyzer {
                 &self.program.functions,
             )?;
         }
-        if !self.effects_only{self.record_parameter_carriers()?;}
+        if !self.effects_only{self.scoped_record_containers()?;self.record_parameter_carriers()?;}
         let record_call_releases=record_call_capture_release::summaries(&self.checked,&self.program.records,&self.closures);
         let deferred_generic_nominals = self.deferred_generic_nominal_uses();
         let checked = CheckedProgram {
@@ -4340,7 +4348,7 @@ impl Analyzer {
             break_flow: None,
             continue_flow: None,
             breaks: vec![Availability::default(); entry.len()],
-            break_seen: false, break_owners:None, continue_owners:None,
+            break_seen: false, break_owners:None, continue_owners:None, scope_start: context.bindings.len(),
             defer_continue: false,
             continues: None,
             entry,
@@ -4433,7 +4441,7 @@ impl Analyzer {
             break_flow: None,
             continue_flow: None,
             breaks: vec![Availability::default(); entry.len()],
-            break_seen: false, break_owners:None, continue_owners:None,
+            break_seen: false, break_owners:None, continue_owners:None, scope_start: context.bindings.len(),
             defer_continue: true,
             continues: None,
             entry,
@@ -4745,6 +4753,9 @@ impl Analyzer {
             _ => unreachable!("checked assignment target"),
         };
         let active = Self::selection_loans(selected, loans);
+        if self.local_record_nullable_callback(context,target) {
+            return Err(Diagnostic::new("unsupported","A callback field that can be null or undefined and borrows local variables cannot be replaced yet. Declare a new record with the new value.",target.span));
+        }
         let contract=self.local_record_field_contract(context,target).unwrap_or(ty);
         let actual = if let Type::StoredCallable(family) = contract {
             self.stored_callable_value(context, value, family, &active)?
@@ -5423,6 +5434,21 @@ impl Analyzer {
             self.unions.payload(actual).unwrap_or(actual),
             Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_)
         ) {
+            // A template body is symbolic: a call it returns names a concrete
+            // copy, whose closure literals have their own identities. The copy
+            // itself is checked against this rule.
+            let symbolic_call = context.template
+                && value.as_ref().is_some_and(|value| matches!(value.kind, ExprKind::Call(_, _)));
+            // A returned literal replaces a symbolic call; two literals must agree.
+            let symbolic = symbolic_call || context.returned_symbolic_call;
+            if symbolic && context.returned_callable.is_some() {
+                if !symbolic_call {
+                    context.returned_callable = Some(actual);
+                    context.returned_symbolic_call = false;
+                }
+                self.record_typed_completion(context,crate::completion::CompletionKind::Return,actual,span);
+                return Ok(());
+            }
             if !self.effects_only
                 && context.returned_callable.is_some_and(|previous| {
                     previous != actual
@@ -5439,6 +5465,7 @@ impl Analyzer {
             if !self.absent_callable_type(actual) || context.returned_callable.is_none()
             {
                 context.returned_callable = Some(actual);
+                context.returned_symbolic_call = symbolic_call;
             }
         }
         self.record_typed_completion(context,crate::completion::CompletionKind::Return,actual,span);
@@ -6390,7 +6417,8 @@ impl Analyzer {
             // Moving a reusable callback transfers the local &mut reference,
             // not ownership of the caller's environment.
             let parameter_mode = if binding.callback_reference && mode == Mode::Consume {
-                Mode::Mutate
+                // A read-only callback is a shared reference; moving it stays shared.
+                if binding.callback_kind == Some(CallbackKind::Read) { Mode::Read } else { Mode::Mutate }
             } else {
                 mode
             };

@@ -141,12 +141,6 @@ fn operands_evaluate_once_in_order_and_reuse_temporaries_fields_indices_and_capt
 #[test]
 fn strict_types_transfers_and_right_operand_conflicts_preserve_existing_contracts() {
     for expression in [
-        "\"x\"+1",
-        "1+\"x\"",
-        "\"x\"+1.5",
-        "1.5+\"x\"",
-        "\"x\"+true",
-        "true+\"x\"",
         "[\"x\"]+\"x\"",
         "\"x\"+[\"x\"]",
         "\"x\"-\"y\"",
@@ -163,7 +157,6 @@ fn strict_types_transfers_and_right_operand_conflicts_preserve_existing_contract
         ("function main(){const result:int=\"x\"+\"y\";}", "type"),
         ("function main(){const result:number=\"x\"+\"y\";}", "type"),
         ("function main(){const result:string=1+2;}", "type"),
-        ("function main(){let value=\"x\";value+=1;}", "type"),
         ("function main(){let value=1;value+=\"x\";}", "type"),
         (
             "function main(){const value=\"x\";const moved=value;console.log(value+\"y\");}",

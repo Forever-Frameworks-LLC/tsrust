@@ -2,15 +2,10 @@
 
 ## Current implementation status
 
-Layout, local declarations, owned parameter entry, deferred storage, static selected
-reads and stores, owning reconstruction, shared/mutable views and borrowed capture
-views are integrated for the tested scoped-record cases. Native control-flow carrier
-planning covers nested stores, direct and aggregate moves and callback field moves.
-The current focused batch has 42 passing project tests, all 64 depth canaries and
-editor coverage for record construction transport. Completion/capture mutation,
-defaults, disposal and owning/opaque/fallible composition still need boundary work.
-Milestone 8 remains open. The sections below retain the diagnostic and implementation
-sequence; the latest checkpoint section and handoff identify the next work.
+Accepted: see [the acceptance record](milestones/173-scoped-callable-records.md).
+All eight milestones are complete for records. The sections below keep the diagnostic
+and implementation sequence. Limits and the rejected array, Map, Set, union and
+nullable-replacement shapes are listed in the acceptance record.
 
 ## Original problem and verified evidence
 

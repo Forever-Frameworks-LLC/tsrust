@@ -103,3 +103,7 @@ Concrete direct scoped record construction is implemented in the current work-in
 checkpoint. Read docs/handoff-2026-10-07-scoped-record-layout-in-progress.md for verified
 behavior and outstanding lifetime, nested-layout, nullable-absence and acceptance work.
 The complete record gate remains open.
+
+The record gate is accepted: see milestones/173-scoped-callable-records.md. The
+array and composition gates remain open. Their shapes are rejected at source level
+with an `unsupported` diagnostic that names arrays, Maps, Sets and unions.

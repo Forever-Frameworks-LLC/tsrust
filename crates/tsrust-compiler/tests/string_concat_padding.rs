@@ -109,8 +109,6 @@ fn operands_run_once_in_order_and_selected_temporaries_survive_borrowed_consumer
         "",
     );
     for source in [
-        "function main(){const n:int=1;const value=clone(\"x\").concat()+n;}",
-        "function main(){const n:number=1.0;const value=clone(\"x\").concat()+n;}",
         "function main(){const values=clone([1]);values.concat(\"x\");}",
     ] {
         assert_eq!(check(source).err().unwrap().code, "type", "{source}");

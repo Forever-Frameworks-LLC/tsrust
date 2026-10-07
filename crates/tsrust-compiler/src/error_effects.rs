@@ -80,7 +80,7 @@ pub(crate) struct FailureSet {
 impl FailureSet {
     pub(crate) fn catch_type(&self,unions:&crate::unions::UnionArena,runtime:Option<Type>,span:crate::Span)->Result<Option<Type>,crate::Diagnostic> {
         if self.opaque {
-            return Err(crate::Diagnostic::new("error-effect","Catch value requires a resolved error contract for this callable.",span));
+            return Err(crate::Diagnostic::new("error-effect","Catch value requires a resolved error contract for this callable. A callback field of a record parameter has none yet; pass that callback as its own parameter.",span));
         }
         let mut members=self.explicit.clone();
         if self.runtime {
@@ -178,6 +178,18 @@ fn checked_statements(program:&mut CheckedProgram,visit:&mut impl FnMut(&mut Stm
 }
 
 pub(crate) fn materialize_catch_types(program:&mut CheckedProgram)->Result<(),crate::Diagnostic> {
+    // A handler whose try body cannot fail never runs. No failure state reached
+    // it, so its statements were not checked and there is nothing to emit.
+    checked_statements(program,&mut |statement| {
+        if let StmtKind::Try(region)=&mut statement.kind
+            && let Some(handler)=&mut region.catch
+            && handler.error_contract.as_deref().is_some_and(|contract|!contract.runtime && !contract.opaque && contract.explicit.is_empty())
+        {
+            handler.body.clear();
+            handler.binding=None;
+        }
+        Ok(())
+    })?;
     let mut named=false;let mut needs_runtime=false;
     checked_statements(program,&mut |statement| {
         if let StmtKind::Try(region)=&statement.kind {
@@ -185,7 +197,7 @@ pub(crate) fn materialize_catch_types(program:&mut CheckedProgram)->Result<(),cr
                 if let Some(name)=&handler.name {
                     named=true;
                     let contract=handler.error_contract.as_ref().ok_or_else(||crate::Diagnostic::new("error-effect","Catch error contract is missing.",name.span))?;
-                    if contract.opaque {return Err(crate::Diagnostic::new("error-effect","Catch value requires a resolved error contract for this callable.",name.span));}
+                    if contract.opaque {return Err(crate::Diagnostic::new("error-effect","Catch value requires a resolved error contract for this callable. A callback field of a record parameter has none yet; pass that callback as its own parameter.",name.span));}
                     needs_runtime |= contract.runtime;
                 }
             }

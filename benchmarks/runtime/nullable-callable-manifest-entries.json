@@ -4,7 +4,7 @@
     "category": "callbacks",
     "source": "workloads/nullable_callable_declared_guard.tsr",
     "counterpart": "workloads/nullable_callable_declared_guard.ts",
-    "sourceSha256": "3ae1143f6223da6cbcee7e2718839b15ed76c95d8d597131a23e4b8a15af9814",
+    "sourceSha256": "7234c2c86e4a448885053ecb1e95e9dd44fa1232eb2936644df7314027fc36c9",
     "counterpartSha256": "58362dc9c7ff02521b9a1bc13ac5aa05bb36c510ce6a62ca456667aa53bcfee0",
     "parameters": [
       "int",
@@ -33,7 +33,7 @@
     "category": "callbacks",
     "source": "workloads/nullable_callable_declared_optional.tsr",
     "counterpart": "workloads/nullable_callable_declared_optional.ts",
-    "sourceSha256": "5ac7b30ebd219618f349280d99b29fab2aa55d7d1794a14281207f72fe5d9f6f",
+    "sourceSha256": "261097991b0df85417df8b07250fb4fdfba9edc2df88987a9aca3fd1e031e1ec",
     "counterpartSha256": "8b63b0f9af70b821a3da1b9f598ec9fc9571b411c1f7306d933c70ad514da2ee",
     "parameters": [
       "int",
@@ -62,7 +62,7 @@
     "category": "callbacks",
     "source": "workloads/nullable_callable_read_forward.tsr",
     "counterpart": "workloads/nullable_callable_read_forward.ts",
-    "sourceSha256": "5960bf715b4a28de2a6ea2a0eeb1df068394d4061efdf2e2198fb0f7f0c86866",
+    "sourceSha256": "7d327594e04281d4133f068daa5d754b02931b783304f4f45066209abfd6e643",
     "counterpartSha256": "872c8f087cbc9a686f5f69f1c61cc36907581b617ab1911f41fe746185ae2562",
     "parameters": [
       "int",
@@ -91,7 +91,7 @@
     "category": "callbacks",
     "source": "workloads/nullable_callable_once_forward.tsr",
     "counterpart": "workloads/nullable_callable_once_forward.ts",
-    "sourceSha256": "1f98b33d5f9946b78b814498c73686d54b86572792a57949007ac054f9be557f",
+    "sourceSha256": "8eb53f697db18df4eadfc948a0cf6380cbec95a22dc2b0c898aa7aeba57f4070",
     "counterpartSha256": "7bb03b6ab9088b3d28fb8c62fe0f7cbf3d3114e5f11cf6fa1d18b5507b8957b4",
     "parameters": [
       "int",
@@ -120,7 +120,7 @@
     "category": "callbacks",
     "source": "workloads/nullable_callable_owned_record.tsr",
     "counterpart": "workloads/nullable_callable_owned_record.ts",
-    "sourceSha256": "6fb5cc8ec70d630d12b9d803123a5420f2fc515af6779ce94f4f02d49565cbd8",
+    "sourceSha256": "d143dea32d3664d28276b89f3b1483067ca7fdc3b5c9ea87808eadc84bdc4c93",
     "counterpartSha256": "6d204452dc8ce4db14457f5685e0d17d446fb67cc2c8f5b22ce4ac9501c27b08",
     "parameters": [
       "int",
@@ -149,7 +149,7 @@
     "category": "callbacks",
     "source": "workloads/nullable_callable_owned_once_return.tsr",
     "counterpart": "workloads/nullable_callable_owned_once_return.ts",
-    "sourceSha256": "3b1d0bb3b6dddc0e8cf2d75d619e129c8e2794b321faf028884d586a91b22d84",
+    "sourceSha256": "8409b73226e3f5b66346a2f98054996dd07bf77599440aca6e8b5675b1541486",
     "counterpartSha256": "c30bc2bad402dc9b32a505a4a4496b928fa504a739ad046c4ba31e2959f761e2",
     "parameters": [
       "int",
@@ -178,7 +178,7 @@
     "category": "callbacks",
     "source": "workloads/nullable_callable_generic_coalesce.tsr",
     "counterpart": "workloads/nullable_callable_generic_coalesce.ts",
-    "sourceSha256": "00eb14c19503a53b2bcff721175db726ebd13b8bbf0474fe206f2c9ec8445ca2",
+    "sourceSha256": "49715f408eed2d2f4158ede4353b1f4c348ca87af74e60c7fc72f57e563d2c96",
     "counterpartSha256": "5dcddd28e65a8e13552532875b4f945508471b05898ab139895cfdc2c2ff758b",
     "parameters": [
       "int",
@@ -207,7 +207,7 @@
     "category": "callbacks",
     "source": "workloads/nullable_callable_nullish_assign.tsr",
     "counterpart": "workloads/nullable_callable_nullish_assign.ts",
-    "sourceSha256": "8b28f1cb22f31e124566eb1fe52f1a07f33184f4ea85c4f6a83100fde2fe945f",
+    "sourceSha256": "69b35d553f269ef8bb06578527ead719c1a9f887632f07da7c771add4ce434c2",
     "counterpartSha256": "2a38ca948b74f3b5e14d0854dceac056c1e7e6417a650a5e7ef255cf6a696b3e",
     "parameters": [
       "int",
@@ -255,7 +255,7 @@
     "sourceAccepted": true,
     "nativeSourceAccepted": true,
     "measured": false,
-    "sourceSha256": "c98247a9b1358fc11b261f8207227fb3da479cceb1634d875a7d4bdb6552ce2e",
+    "sourceSha256": "1275a27b02ad9fabe4fe0eeb80fae88b829c9797e8720fa7eaaaae4ec5409721",
     "counterpartSha256": "42fce5b0048fd5a78e117cdcfacde78af0d969a3c96259852df157e2e1cc5f75",
     "specification": "One complete nullable-callable scenario per iteration. Retain the reached result values and exact argument, callback, fallback and factory counters; missing paths skip their effects. All setup, transport, guarding, invocation and output retention are included."
   },
@@ -283,7 +283,7 @@
     "sourceAccepted": true,
     "nativeSourceAccepted": true,
     "measured": false,
-    "sourceSha256": "0c29afde394b6f057ee3dd3f6fdce081074bda78562ed5f9c241706031d90adb",
+    "sourceSha256": "5558f2aace092d1cd2dab204079adb0cd8ac020d5ec43510ea1a248529cba103",
     "counterpartSha256": "5c5f7887f9fe70d3bc73a66926d468cd7adea3f17f4d75d6c1dae6a289003fc6",
     "specification": "One complete nullable-callable scenario per iteration. Retain the reached result values and exact argument, callback, fallback and factory counters; missing paths skip their effects. All setup, transport, guarding, invocation and output retention are included."
   }

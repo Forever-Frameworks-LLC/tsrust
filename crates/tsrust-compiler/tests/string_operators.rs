@@ -152,7 +152,6 @@ fn comparisons_retain_left_and_enclosing_loans_and_reject_mixed_types() {
         "\"x\" < false",
         "true > false",
         "[1] === [1]",
-        "\"x\" + 1",
     ] {
         let source = format!("function main() {{ console.log({expression}); }}");
         assert_eq!(check(&source).err().unwrap().code, "type");

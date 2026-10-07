@@ -238,7 +238,7 @@ mod tests {
         context.loops.push(LoopFrame { labels: vec![], target: ControlTarget::Loop(0),
             flow_entry: HashMap::new(), flow_required: HashMap::new(), break_flow: None,
             continue_flow: None, entry: vec![], breaks: vec![], break_seen: false,
-            break_owners: None, continue_owners: None, defer_continue: true, continues: None,
+            break_owners: None, continue_owners: None,scope_start:usize::MAX, defer_continue: true, continues: None,
             span: Span::new(0, 1) });
         context.capture_loan_owners.attach(Place { binding: 0, fields: vec![] }, [10]);
         analyzer.control_exit(&mut context, &[], &mut None, true, Span::new(2, 3)).unwrap();
@@ -271,7 +271,7 @@ mod tests {
             let mut analyzer=Analyzer::new(crate::syntax::parse("function main(){}").unwrap()).unwrap();
             let mut context=Context::new("main".into());
             Analyzer::bind(&mut context,&Token{text:"payload".into(),span:Span::new(0,7),kind:TokenKind::Name},Type::String,false).unwrap();
-            context.loops.push(LoopFrame{labels:vec![],target:ControlTarget::Loop(0),flow_entry:HashMap::new(),flow_required:HashMap::new(),break_flow:None,continue_flow:None,entry:vec![(0,Availability::of(&context.bindings[0]))],breaks:vec![Availability::default()],break_seen:false, break_owners:None, continue_owners:None,defer_continue:true,continues:None,span:Span::new(0,1)});
+            context.loops.push(LoopFrame{labels:vec![],target:ControlTarget::Loop(0),flow_entry:HashMap::new(),flow_required:HashMap::new(),break_flow:None,continue_flow:None,entry:vec![(0,Availability::of(&context.bindings[0]))],breaks:vec![Availability::default()],break_seen:false, break_owners:None, continue_owners:None,scope_start:usize::MAX,defer_continue:true,continues:None,span:Span::new(0,1)});
             let source=if continuing {"function main(){continue;}"}else{"function main(){break;}"};
             let mut parsed=crate::syntax::parse(source).unwrap();
             let (normal,frame,_)=analyzer.check_region_body(&mut context,&mut parsed.functions[0].body,Type::Void).unwrap();
@@ -287,7 +287,7 @@ mod tests {
         let mut analyzer=Analyzer::new(crate::syntax::parse("function main(){}").unwrap()).unwrap();
         let mut context=Context::new("main".into());
         Analyzer::bind(&mut context,&Token{text:"payload".into(),span:Span::new(0,7),kind:TokenKind::Name},Type::String,false).unwrap();
-        context.loops.push(LoopFrame{labels:vec![],target:ControlTarget::Loop(0),flow_entry:HashMap::new(),flow_required:HashMap::new(),break_flow:None,continue_flow:None,entry:vec![(0,Availability::of(&context.bindings[0]))],breaks:vec![Availability::default()],break_seen:false, break_owners:None, continue_owners:None,defer_continue:true,continues:None,span:Span::new(0,1)});
+        context.loops.push(LoopFrame{labels:vec![],target:ControlTarget::Loop(0),flow_entry:HashMap::new(),flow_required:HashMap::new(),break_flow:None,continue_flow:None,entry:vec![(0,Availability::of(&context.bindings[0]))],breaks:vec![Availability::default()],break_seen:false, break_owners:None, continue_owners:None,scope_start:usize::MAX,defer_continue:true,continues:None,span:Span::new(0,1)});
         let original=Availability::of(&context.bindings[0]);
         let state=ExitState::capture(&context,1);
         context.region_loop_depth=Some(1);
@@ -304,7 +304,7 @@ mod tests {
         let mut analyzer=Analyzer::new(crate::syntax::parse("function main(){}").unwrap()).unwrap();
         let mut context=Context::new("main".into());
         Analyzer::bind(&mut context,&Token{text:"payload".into(),span:Span::new(0,7),kind:TokenKind::Name},Type::String,false).unwrap();
-        context.loops.push(LoopFrame{labels:vec![],target:ControlTarget::Loop(0),flow_entry:HashMap::new(),flow_required:HashMap::new(),break_flow:None,continue_flow:None,entry:vec![(0,Availability::of(&context.bindings[0]))],breaks:vec![Availability::default()],break_seen:false, break_owners:None, continue_owners:None,defer_continue:true,continues:None,span:Span::new(0,1)});
+        context.loops.push(LoopFrame{labels:vec![],target:ControlTarget::Loop(0),flow_entry:HashMap::new(),flow_required:HashMap::new(),break_flow:None,continue_flow:None,entry:vec![(0,Availability::of(&context.bindings[0]))],breaks:vec![Availability::default()],break_seen:false, break_owners:None, continue_owners:None,scope_start:usize::MAX,defer_continue:true,continues:None,span:Span::new(0,1)});
         context.completion_frame=Some(Box::new(CompletionFrame{outer:1,exits:vec![]}));
         let normal=ExitState::capture(&context,1);
         context.bindings[0].transferred=Some(Span::new(10,17));
@@ -341,7 +341,7 @@ mod tests {
             let mut context=Context::new("main".into());
             Analyzer::bind(&mut context,&Token{text:"payload".into(),span:Span::new(0,7),kind:TokenKind::Name},Type::String,false).unwrap();
             context.bindings[0].rebindable=true;
-            context.loops.push(LoopFrame{labels:vec![],target:ControlTarget::Loop(0),flow_entry:HashMap::new(),flow_required:HashMap::new(),break_flow:None,continue_flow:None,entry:vec![(0,Availability::of(&context.bindings[0]))],breaks:vec![Availability::default()],break_seen:false, break_owners:None, continue_owners:None,defer_continue:false,continues:None,span:Span::new(0,1)});
+            context.loops.push(LoopFrame{labels:vec![],target:ControlTarget::Loop(0),flow_entry:HashMap::new(),flow_required:HashMap::new(),break_flow:None,continue_flow:None,entry:vec![(0,Availability::of(&context.bindings[0]))],breaks:vec![Availability::default()],break_seen:false, break_owners:None, continue_owners:None,scope_start:usize::MAX,defer_continue:false,continues:None,span:Span::new(0,1)});
             context.completion_frame=Some(Box::new(CompletionFrame{outer:1,exits:vec![]}));
             let mut parsed=crate::syntax::parse(&format!("function main(){{{source}}}")).unwrap();
             let StmtKind::Try(region)=&mut parsed.functions[0].body[0].kind else {panic!("region");};

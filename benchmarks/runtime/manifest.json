@@ -19834,6 +19834,34 @@
       "specification": "Retain 136 independent observations of values, ownership-preserving adapters, parameter patterns and shared/independent captured counters.",
       "sourceSha256": "9a9f5dd4b009e6ad114a33e9dadf216e3d54d8b99e7cbeb27631b7f757fde272",
       "counterpartSha256": "33682523bef4badbf2277ff3c9b064a0061f35942f6093700eb6b1ba9f77175c"
+    },
+    {
+      "id": "scoped_callable_records",
+      "family": "scoped-callable-records",
+      "source": "workloads/scoped_callable_records.tsr",
+      "counterpart": "workloads/scoped_callable_records.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One complete scoped callable record scenario",
+      "inputText": "records",
+      "category": "callbacks",
+      "implementationGate": 173,
+      "measurementStatus": "pending-language-milestone",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": true,
+      "measured": false,
+      "notes": "Record fields that hold borrowing callbacks: read-only and mutable calls, nested records, a record parameter, replacement inside a callee and locally, a moved field and release of the borrowed array at scope end. Verified untimed; no measurement.",
+      "specification": "Retain seven independent scalar observations per scenario with deterministic seed and iteration inputs.",
+      "sourceSha256": "a9215deccb3b17fb0ad27d079ecabf1fc570612bc854e58dd07d323ff317bd39",
+      "counterpartSha256": "6b5d71f98ac133f98feee78fed78c26555a04aa2af918edd2e3ae52ee8c3c523"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

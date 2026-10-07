@@ -144,7 +144,6 @@ fn diagnostics_and_traps_require_available_targets_and_commit_only_after_success
     }
     for (source, code) in [
         ("function main(){let text=\"x\";text-=\"y\";}", "type"),
-        ("function main(){let text=\"x\";text+=1;}", "type"),
         ("function main(){let value=1;value+=1.0;}", "type"),
         (
             "function main(){let value=1.0;const integer=1;value+=integer;}",

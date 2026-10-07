@@ -20,7 +20,7 @@
     "operationUnit": "one actual += expression and its retained result/committed-target pair",
     "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed int compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
     "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete independent observation is outside timing. Int domains give natural nonnegative exact common JavaScript/native results, exact division, shifts below32 without sign overflow, and small exact powers; signed/wide/trapping native cases are separate compiler evidence. No truncation, offset or encoding workaround.",
-    "sourceSha256": "3a0efb7e51bdd766ae1babc078fac0f8f5e1473910b1ee835a88910a145d92d4",
+    "sourceSha256": "9dbebc4a02b5cf5969f2ba58c974dea6e279e90d1e71582969d3bfe8c820eb68",
     "counterpartSha256": "97002cc8dab70228eda4af32545ba31cc7a64336d7a18d7366a526ec7cf365a6"
   },
   {
@@ -44,7 +44,7 @@
     "operationUnit": "one actual -= expression and its retained result/committed-target pair",
     "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed int compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
     "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete independent observation is outside timing. Int domains give natural nonnegative exact common JavaScript/native results, exact division, shifts below32 without sign overflow, and small exact powers; signed/wide/trapping native cases are separate compiler evidence. No truncation, offset or encoding workaround.",
-    "sourceSha256": "1133df50038953dd03a06b5c6bf5105ff5fd93b8de8b7c4777f638fbbf04a633",
+    "sourceSha256": "7f3a6dae39af100c948c9086c861a1cec92a817778bb590f798df97d67445128",
     "counterpartSha256": "9743bf8e115c267405a3fa58ebfbd304a7484782f23357e3feac210dae3fb51c"
   },
   {
@@ -68,7 +68,7 @@
     "operationUnit": "one actual *= expression and its retained result/committed-target pair",
     "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed int compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
     "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete independent observation is outside timing. Int domains give natural nonnegative exact common JavaScript/native results, exact division, shifts below32 without sign overflow, and small exact powers; signed/wide/trapping native cases are separate compiler evidence. No truncation, offset or encoding workaround.",
-    "sourceSha256": "8e65aefda2dce8644266ded22501e9d8e2154254dfe5ce6a3142ca7b015a84bc",
+    "sourceSha256": "c1474392966c509cf82d7b5600798ce80843d784b082776776e6ba044782fdc2",
     "counterpartSha256": "6226b0101e73824f2f353d8bc159f0ddd1c4d6da75a3700793854bd76c693cd9"
   },
   {
@@ -92,7 +92,7 @@
     "operationUnit": "one actual /= expression and its retained result/committed-target pair",
     "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed int compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
     "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete independent observation is outside timing. Int domains give natural nonnegative exact common JavaScript/native results, exact division, shifts below32 without sign overflow, and small exact powers; signed/wide/trapping native cases are separate compiler evidence. No truncation, offset or encoding workaround.",
-    "sourceSha256": "d8368f307b01e6c47251512a73ad1f916833d679dab7df08fff030799d8e6f52",
+    "sourceSha256": "1062e3f8d71d3d7aa0830fb11f658a4ff968b4a6643219fed4aaa6c1eabdd956",
     "counterpartSha256": "fac0b7cf50ecd5f80c0ec8f5eda8930d3ef00ad9e4200964f07c864d2ab363ce"
   },
   {
@@ -116,7 +116,7 @@
     "operationUnit": "one actual %= expression and its retained result/committed-target pair",
     "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed int compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
     "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete independent observation is outside timing. Int domains give natural nonnegative exact common JavaScript/native results, exact division, shifts below32 without sign overflow, and small exact powers; signed/wide/trapping native cases are separate compiler evidence. No truncation, offset or encoding workaround.",
-    "sourceSha256": "df0e7f0e98f7f7001cda5ac29884ed28b9cf6773bce12802876b3e838bd06fd7",
+    "sourceSha256": "16543faf064759cd8172710ee8cfecf927d6f09b27c5913237f9b350226d8752",
     "counterpartSha256": "b298d5d623826358c4776542e004e0d554f4a1ab389621d0f29e4b3c8d9f3b90"
   },
   {
@@ -140,7 +140,7 @@
     "operationUnit": "one actual **= expression and its retained result/committed-target pair",
     "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed int compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
     "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete independent observation is outside timing. Int domains give natural nonnegative exact common JavaScript/native results, exact division, shifts below32 without sign overflow, and small exact powers; signed/wide/trapping native cases are separate compiler evidence. No truncation, offset or encoding workaround.",
-    "sourceSha256": "8df53c051da43ca75d6b410f2a661f1501286cf74f4d87361cafa821b51a8469",
+    "sourceSha256": "a4b8a47da7c8cf4cef2e0a05d40a4abe5ea4e23706838917516c8c72e9b911d6",
     "counterpartSha256": "5e5fd72af053a130b44d0727d4b4ccae37b89fea3597017f71aaff9ba94eaf96"
   },
   {
@@ -164,7 +164,7 @@
     "operationUnit": "one actual &= expression and its retained result/committed-target pair",
     "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed int compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
     "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete independent observation is outside timing. Int domains give natural nonnegative exact common JavaScript/native results, exact division, shifts below32 without sign overflow, and small exact powers; signed/wide/trapping native cases are separate compiler evidence. No truncation, offset or encoding workaround.",
-    "sourceSha256": "5085deea9ad8a80e940d45a70cdb2cdc4b94d82384046a906df9f5d9c8297d2c",
+    "sourceSha256": "aaf0407710e51c5ffd2240316b607f7147e2930eb9fd44f8167a7acd4f0d6905",
     "counterpartSha256": "f535c786cdc0760b8a7a565d6bfb37776878cafd78876ce6d80593c29c85e104"
   },
   {
@@ -188,7 +188,7 @@
     "operationUnit": "one actual |= expression and its retained result/committed-target pair",
     "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed int compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
     "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete independent observation is outside timing. Int domains give natural nonnegative exact common JavaScript/native results, exact division, shifts below32 without sign overflow, and small exact powers; signed/wide/trapping native cases are separate compiler evidence. No truncation, offset or encoding workaround.",
-    "sourceSha256": "4e1fa10b5c555f994f9d134810729b27dab6c50f276c96487e0a386d22376ee4",
+    "sourceSha256": "9f6801251bffdca7fb1a03aa52df74f06f691fc29dddadb7e16b7787c3f28e87",
     "counterpartSha256": "54c5f9ad699f63007b2bbadc1c78a2cb0ed4133581b86e59e8a4c775b95208ba"
   },
   {
@@ -212,7 +212,7 @@
     "operationUnit": "one actual ^= expression and its retained result/committed-target pair",
     "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed int compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
     "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete independent observation is outside timing. Int domains give natural nonnegative exact common JavaScript/native results, exact division, shifts below32 without sign overflow, and small exact powers; signed/wide/trapping native cases are separate compiler evidence. No truncation, offset or encoding workaround.",
-    "sourceSha256": "6254e8908d49b818cd89b2f741ae8cab83ad6e720b9ee55a4079412f039377d7",
+    "sourceSha256": "c02e3cebe25eaf572d1b109cf5223d947c62e5a15574c3918481d204a0dd3207",
     "counterpartSha256": "8635c4dee532a17e5e532299fe7a8ef4d53ad03ccd3c772394853c87c9ea3855"
   },
   {
@@ -236,7 +236,7 @@
     "operationUnit": "one actual <<= expression and its retained result/committed-target pair",
     "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed int compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
     "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete independent observation is outside timing. Int domains give natural nonnegative exact common JavaScript/native results, exact division, shifts below32 without sign overflow, and small exact powers; signed/wide/trapping native cases are separate compiler evidence. No truncation, offset or encoding workaround.",
-    "sourceSha256": "454faf2fcc24aff7c4c33671dababa38d2fe42fe108c719a4f33b360ce243c5f",
+    "sourceSha256": "38d3815adf66f534b42167d383c214da70d4bd89237f050958144f6ce1af614e",
     "counterpartSha256": "656a47b105308c3d42ddf1c85b5a41c511de86fecad66a363c25a31996cbd511"
   },
   {
@@ -260,7 +260,7 @@
     "operationUnit": "one actual >>= expression and its retained result/committed-target pair",
     "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed int compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
     "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete independent observation is outside timing. Int domains give natural nonnegative exact common JavaScript/native results, exact division, shifts below32 without sign overflow, and small exact powers; signed/wide/trapping native cases are separate compiler evidence. No truncation, offset or encoding workaround.",
-    "sourceSha256": "fdcc1efbf653fddaaf0e2c99725f57e6cb787f7e0e2572843cad06b436b8706e",
+    "sourceSha256": "204d440991db43aff0ce940a4d8856dfb246a12284a96e3bfdec9016bfd1d7e6",
     "counterpartSha256": "aa9e65a5a9dd16d8603c93674d061cedb6df9d534cf1b1ffa87e3fe3c18dda82"
   },
   {
@@ -284,7 +284,7 @@
     "operationUnit": "one actual >>>= expression and its retained result/committed-target pair",
     "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed int compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
     "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete independent observation is outside timing. Int domains give natural nonnegative exact common JavaScript/native results, exact division, shifts below32 without sign overflow, and small exact powers; signed/wide/trapping native cases are separate compiler evidence. No truncation, offset or encoding workaround.",
-    "sourceSha256": "932b2b002c2ec91e665d7a7c4b73efc2937999546f1bdf592c815266ed54424d",
+    "sourceSha256": "59e5a6fb307d176462ffc4c4b2de1a6ee191d2856c60b672b9b1d2006f456cca",
     "counterpartSha256": "87692aca5b6be73246c7c2be8e8dbb8d736c70e718a594cd329146a8af412658"
   },
   {
@@ -308,7 +308,7 @@
     "operationUnit": "one actual += expression and its retained result/committed-target pair",
     "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed number compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
     "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete IEEE observation is outside timing, preserving signed zero and canonical NaN. Accepted exact-quarter arithmetic, small exact powers and ToInt32/ToUint32/count-modulo32 domains remain unchanged.",
-    "sourceSha256": "dc0046fb4a26615236f173c0288d0ae35c37f3a2bebdf3636485c0f9984d78ea",
+    "sourceSha256": "52d4a8c57eacad3cea456c508f44ddfea86d42e0d04bb925cd1c468f27a2ae9f",
     "counterpartSha256": "149399b0634f13686f5eee9a412aa6fd2226c0196ceb653d0f9bb5fda6358ad0"
   },
   {
@@ -332,7 +332,7 @@
     "operationUnit": "one actual -= expression and its retained result/committed-target pair",
     "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed number compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
     "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete IEEE observation is outside timing, preserving signed zero and canonical NaN. Accepted exact-quarter arithmetic, small exact powers and ToInt32/ToUint32/count-modulo32 domains remain unchanged.",
-    "sourceSha256": "ce1a7987f9ec3b9195e0c379aeca101595abc49b195f5df3de7649e31d5499d2",
+    "sourceSha256": "62f371618dde435f75587296e3b3d2889ed1f303214a204e602602000f2917e0",
     "counterpartSha256": "bf403a63137d52818c698b3ef006962f992aff7a2dbff59e7bb88c304b929b08"
   },
   {
@@ -356,7 +356,7 @@
     "operationUnit": "one actual *= expression and its retained result/committed-target pair",
     "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed number compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
     "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete IEEE observation is outside timing, preserving signed zero and canonical NaN. Accepted exact-quarter arithmetic, small exact powers and ToInt32/ToUint32/count-modulo32 domains remain unchanged.",
-    "sourceSha256": "8aa9de3d00d025bfc6b7b0b30cb89aa121d60182bb93cf64b5b87a1957e045b1",
+    "sourceSha256": "b337bda9da9cbb7d3cf2134ef362d1f3860c700a7a6ce2f9b8acd6c794bdf728",
     "counterpartSha256": "65faf35b3742fc671e4cf8c4189b87b40405bee4f57394e1a88b064e4cc0dac6"
   },
   {
@@ -380,7 +380,7 @@
     "operationUnit": "one actual /= expression and its retained result/committed-target pair",
     "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed number compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
     "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete IEEE observation is outside timing, preserving signed zero and canonical NaN. Accepted exact-quarter arithmetic, small exact powers and ToInt32/ToUint32/count-modulo32 domains remain unchanged.",
-    "sourceSha256": "6bdfd9d210263916ee5c10d82356abffe4b02118276db0d941ad7bd82771b17f",
+    "sourceSha256": "2f004f596387c07753c199a52a80799ac91743831b6a400ec9afc9675bf4e555",
     "counterpartSha256": "4095a9ed2b186733a302838537a68d1e747628d8de14b2e66bd8b2937be22aed"
   },
   {
@@ -404,7 +404,7 @@
     "operationUnit": "one actual %= expression and its retained result/committed-target pair",
     "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed number compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
     "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete IEEE observation is outside timing, preserving signed zero and canonical NaN. Accepted exact-quarter arithmetic, small exact powers and ToInt32/ToUint32/count-modulo32 domains remain unchanged.",
-    "sourceSha256": "a0f1dec41f8fa9e9ebce96efff7a0ad1df0d4548f5f511c422e163a000f886f6",
+    "sourceSha256": "b808289b94b9b7e92b6f51cad5e62ad11fae528f0c5cb80f12b6e26071f8defa",
     "counterpartSha256": "3803871f5fc6e7f3fe065a1d985c85eb831e890026442b372edec2f60d92b8a6"
   },
   {
@@ -428,7 +428,7 @@
     "operationUnit": "one actual **= expression and its retained result/committed-target pair",
     "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed number compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
     "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete IEEE observation is outside timing, preserving signed zero and canonical NaN. Accepted exact-quarter arithmetic, small exact powers and ToInt32/ToUint32/count-modulo32 domains remain unchanged.",
-    "sourceSha256": "59c802d8afbfcd680239d57e76fd78865dea1c3e3e82c303a7eca8c713d37aa9",
+    "sourceSha256": "4ebb282772c2c5c017242760f39fcbce93bb9381b37a44f4bc14b35c590d5ddd",
     "counterpartSha256": "0f31ff9268d5c2c561c16bb89066adf40224c4981bf44a2d9ca0fb2fe62d8458"
   },
   {
@@ -452,7 +452,7 @@
     "operationUnit": "one actual &= expression and its retained result/committed-target pair",
     "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed number compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
     "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete IEEE observation is outside timing, preserving signed zero and canonical NaN. Accepted exact-quarter arithmetic, small exact powers and ToInt32/ToUint32/count-modulo32 domains remain unchanged.",
-    "sourceSha256": "2d90d04b64efcf1fb0de3530ec6f94d6313929526e8de90512f1c5c5f59ffb1b",
+    "sourceSha256": "6f3dcbbe039fa27d0bf0cf9cde08db1b2a10613046865a2d0f1bfaf8d25fc660",
     "counterpartSha256": "cba1012241687421d62e49819503ef6f5db79bacc08be47785be57b311f1d07d"
   },
   {
@@ -476,7 +476,7 @@
     "operationUnit": "one actual |= expression and its retained result/committed-target pair",
     "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed number compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
     "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete IEEE observation is outside timing, preserving signed zero and canonical NaN. Accepted exact-quarter arithmetic, small exact powers and ToInt32/ToUint32/count-modulo32 domains remain unchanged.",
-    "sourceSha256": "0904763bf09dba5b34091c73cfe3436e6b3c124a98e570a5d1c1fe3f2dbf048d",
+    "sourceSha256": "cfa08ef35d400eb395d5a5958bc1a0cf130228d96ce96448b850f3851a90bcd3",
     "counterpartSha256": "44676458a46107266325c9b18f7669e7a7f162e207517573a8003fecaaa5b0b0"
   },
   {
@@ -500,7 +500,7 @@
     "operationUnit": "one actual ^= expression and its retained result/committed-target pair",
     "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed number compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
     "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete IEEE observation is outside timing, preserving signed zero and canonical NaN. Accepted exact-quarter arithmetic, small exact powers and ToInt32/ToUint32/count-modulo32 domains remain unchanged.",
-    "sourceSha256": "247000561ee5a95d5f6a057187b28e216e377f59a91a086091daa9669aac173e",
+    "sourceSha256": "98d93ab9c10456679f754debf98a9865c2ee0e33648cc6e06938d0195a41c44e",
     "counterpartSha256": "ba29a2187142657be1dc0361610fc59ccf940780970b77e1b19de58d3cb8d50e"
   },
   {
@@ -524,7 +524,7 @@
     "operationUnit": "one actual <<= expression and its retained result/committed-target pair",
     "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed number compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
     "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete IEEE observation is outside timing, preserving signed zero and canonical NaN. Accepted exact-quarter arithmetic, small exact powers and ToInt32/ToUint32/count-modulo32 domains remain unchanged.",
-    "sourceSha256": "e3bfb41b0ffe68a6bec0555b33d128bc16234628660597b1b53147aeae7a6790",
+    "sourceSha256": "9518dfd7c5fcd0171d49c3814f8ff2f05d2d3b78cc1acaf95607302f49bd465f",
     "counterpartSha256": "a108a5aeb54806120d373136cbf2324ab5d37d5aafa30b4e72da2d6a8cfbb1f2"
   },
   {
@@ -548,7 +548,7 @@
     "operationUnit": "one actual >>= expression and its retained result/committed-target pair",
     "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed number compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
     "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete IEEE observation is outside timing, preserving signed zero and canonical NaN. Accepted exact-quarter arithmetic, small exact powers and ToInt32/ToUint32/count-modulo32 domains remain unchanged.",
-    "sourceSha256": "3f64163c215afdf05a827f7e7d74aaa956345f0aa963ba38c7bfcba62e9728f1",
+    "sourceSha256": "e89afaba04cf1eab4b128cdf3a8e74ccbc5257ff49e1575ee89642d74170c724",
     "counterpartSha256": "1fdb0071fc59a4a019b2261c833f9ce4d15da70f0c17473b0d432d4eccc8fb48"
   },
   {
@@ -572,7 +572,7 @@
     "operationUnit": "one actual >>>= expression and its retained result/committed-target pair",
     "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed number compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
     "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete IEEE observation is outside timing, preserving signed zero and canonical NaN. Accepted exact-quarter arithmetic, small exact powers and ToInt32/ToUint32/count-modulo32 domains remain unchanged.",
-    "sourceSha256": "0f27a487470ecc8cd62e20a20c15440c1a23e5a7f2436ff449302883ee8ded13",
+    "sourceSha256": "e2443f3295fd18688a908b31a571467744d46227454ae0e383813c0921a0d745",
     "counterpartSha256": "8635fa0b944a05e700f6be262e8713284ed5bcca92b490d2f41b75886e4056f8"
   }
 ]

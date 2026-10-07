@@ -15,7 +15,7 @@
     "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, inserted value construction when applicable, and retaining the whole result array",
     "specification": "Copy six runtime-derived int elements with zero/one/two bounds and zero through three inserted values; retain each complete natural result array.",
     "notes": "Receiver setup, inserted value construction and whole result ownership transfer into retained output are timed. Native owned descendants copy independently; JavaScript shares references. No later alias mutation is compared. Complete observations run outside timing.",
-    "sourceSha256": "f6afb365e2aa9ab6bbf2b9dfd4d9dacb4ed9bb1282c7507400e9e89fdeb0c2e0",
+    "sourceSha256": "f297934d468a35b9441f641a27d6f63991d8036e6139f139da49602fff2ac272",
     "counterpartSha256": "f514d4f376769f85decb37e8f5977fd9a2f0a4b0dd6c51d6c9d4c18d9be2eb27"
   },
   {
@@ -34,7 +34,7 @@
     "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, inserted value construction when applicable, and retaining the whole result array",
     "specification": "Copy six runtime-derived number elements with zero/one/two bounds and zero through three inserted values; retain each complete natural result array.",
     "notes": "Receiver setup, inserted value construction and whole result ownership transfer into retained output are timed. Native owned descendants copy independently; JavaScript shares references. No later alias mutation is compared. Complete observations run outside timing.",
-    "sourceSha256": "b53dcf67abe307c541a4293045ebff6de15881d01aba621141c76d938fe29aa1",
+    "sourceSha256": "c65ee9d12e1a81dc39a77ed99fc0ea4751d4bfdf0aed90673e715001ee0d7938",
     "counterpartSha256": "144da4d3d771890c60ddd75c6b87976c9f7bce3260cec9d929fbb4fb450b1142"
   },
   {
@@ -53,7 +53,7 @@
     "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, inserted value construction when applicable, and retaining the whole result array",
     "specification": "Copy six runtime-derived boolean elements with zero/one/two bounds and zero through three inserted values; retain each complete natural result array.",
     "notes": "Receiver setup, inserted value construction and whole result ownership transfer into retained output are timed. Native owned descendants copy independently; JavaScript shares references. No later alias mutation is compared. Complete observations run outside timing.",
-    "sourceSha256": "96e7fdf239cde6d579fb09615bd10eedbbb0540fe210fc51ac926cf6c939e631",
+    "sourceSha256": "5d8410149aba11e0db6281b57510fe0099c4516e39946ac284cc16190270a3f7",
     "counterpartSha256": "514f884d82c9c30244dc752fcb6e500ed50d62b39797bdad464ec938e8d65715"
   },
   {
@@ -73,7 +73,7 @@
     "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, inserted value construction when applicable, and retaining the whole result array",
     "specification": "Copy six runtime-derived string elements with zero/one/two bounds and zero through three inserted values; retain each complete natural result array.",
     "notes": "Receiver setup, inserted value construction and whole result ownership transfer into retained output are timed. Native owned descendants copy independently; JavaScript shares references. No later alias mutation is compared. Complete observations run outside timing.",
-    "sourceSha256": "a615dbb6d1563c964274c0300d140b9074978c5b8b07714b66c50c5deb206086",
+    "sourceSha256": "8d16dd4d0785121fb6117657b3ca914056c22b54c8d6bfe4390c94194846afc4",
     "counterpartSha256": "71b367fc04dc60b0687bcabb6f6b43bf5cf51c692c38d59a98550dfc7c9b0c70",
     "inputText": " xé😀é "
   },
@@ -93,7 +93,7 @@
     "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, inserted value construction when applicable, and retaining the whole result array",
     "specification": "Copy six runtime-derived nested elements with zero/one/two bounds and zero through three inserted values; retain each complete natural result array.",
     "notes": "Receiver setup, inserted value construction and whole result ownership transfer into retained output are timed. Native owned descendants copy independently; JavaScript shares references. No later alias mutation is compared. Complete observations run outside timing.",
-    "sourceSha256": "763959fc5465b6ccfd7ee69857cc251b75730af05b7499ca404023ad5f3fc8ce",
+    "sourceSha256": "cd642c34fa559de7132124e0740b12290ab90997181503e154bb557c911b503c",
     "counterpartSha256": "6d70444894f8ee45ed7e27eae2390aecd7247fcbb17c5da2158a50742f333450"
   },
   {
@@ -113,7 +113,7 @@
     "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, inserted value construction when applicable, and retaining the whole result array",
     "specification": "Copy six runtime-derived record elements with zero/one/two bounds and zero through three inserted values; retain each complete natural result array.",
     "notes": "Receiver setup, inserted value construction and whole result ownership transfer into retained output are timed. Native owned descendants copy independently; JavaScript shares references. No later alias mutation is compared. Complete observations run outside timing.",
-    "sourceSha256": "cc1b4bb8d6a53d7ded19947ef53603c10fccbd259eff3005bb48fef39981b8fa",
+    "sourceSha256": "70f606deb0ddce3b39889c032c1df254d1bdde895d06b6ea8c5e18c4668a4f7c",
     "counterpartSha256": "aa2db15d464429ed34b7dcc22d4c8c736dc81a1934578ca99cc9dca0a4bfe488",
     "inputText": " xé😀é ",
     "recordSchemas": {
@@ -149,7 +149,7 @@
     "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, inserted value construction when applicable, and retaining the whole result array",
     "specification": "Copy six runtime-derived deep elements with zero/one/two bounds and zero through three inserted values; retain each complete natural result array.",
     "notes": "Receiver setup, inserted value construction and whole result ownership transfer into retained output are timed. Native owned descendants copy independently; JavaScript shares references. No later alias mutation is compared. Complete observations run outside timing.",
-    "sourceSha256": "777e78f3f5d30bfa7006ee9c95e86c30764600852d3e6a613716c2c88d2a5f51",
+    "sourceSha256": "fef9f355a5924aa91d00d9977d74bedb166bbcd42e08d69f3be6f990edd490d2",
     "counterpartSha256": "48144ad639ab8f3d6297497a13065a6fd52a846993409841866a468032599801"
   },
   {
@@ -169,7 +169,7 @@
     "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, inserted value construction when applicable, and retaining the whole result array",
     "specification": "Copy six runtime-derived recursive elements with zero/one/two bounds and zero through three inserted values; retain each complete natural result array.",
     "notes": "Receiver setup, inserted value construction and whole result ownership transfer into retained output are timed. Native owned descendants copy independently; JavaScript shares references. No later alias mutation is compared. Complete observations run outside timing.",
-    "sourceSha256": "f3f97edcdc8ddf64e98462e0689de016f960d5ee330f4efb3abd1c040dd8268c",
+    "sourceSha256": "ea96d5e174d56a71e9fe3f79f8631f14797d065e467efc7afe9ba43eb82c892e",
     "counterpartSha256": "bbb47e1e739b66188962f47bcd56f7ec7af956b6f323b2e8fe1bc49ca4700827",
     "inputText": " xé😀é ",
     "recordSchemas": {

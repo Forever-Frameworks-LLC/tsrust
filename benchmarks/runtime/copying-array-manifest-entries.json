@@ -15,7 +15,7 @@
     "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
     "specification": "Construct six runtime-derived int elements, perform one to_reversed operation, retain complete ordered natural output.",
     "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
-    "sourceSha256": "f357c459331ed8d417f1076b489360768a756de6a7f59b1b3508c59eac760606",
+    "sourceSha256": "2bbff3f6abeea94e28ea237726173b43fb2e45c0f27f3bab6b113f67f98af1fb",
     "counterpartSha256": "10a004f0488641c09379c13fa4a02c966b9dbc7685c733badda016fead618278",
     "status": "source-only, execution pending"
   },
@@ -35,7 +35,7 @@
     "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
     "specification": "Construct six runtime-derived number elements, perform one to_reversed operation, retain complete ordered natural output.",
     "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
-    "sourceSha256": "2b18c75f9c853e36b5ee6b2b8d477a19d55bc699292fd04866dacdb531a46cda",
+    "sourceSha256": "a8cb3ef39ae6539390869c53f4592417828de99282e080a9d0871360516de4cf",
     "counterpartSha256": "3af12b243cdbcde18fad796b34045762edf7aa3fae09aedd8d59cbfdd38950f2",
     "status": "source-only, execution pending"
   },
@@ -55,7 +55,7 @@
     "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
     "specification": "Construct six runtime-derived boolean elements, perform one to_reversed operation, retain complete ordered natural output.",
     "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
-    "sourceSha256": "05019229f0a7ea40664b2a5c63576b69e300948fe25f2709d1ebb48a4a7d9489",
+    "sourceSha256": "a28b8e19233d693671c009887e0df6a96bb9c71958699ed489dacf34d5e57d2a",
     "counterpartSha256": "3840c7198b5bbd96b76ac988da53abbf569a4ac874ce0faab9751e81bbb35e5f",
     "status": "source-only, execution pending"
   },
@@ -76,7 +76,7 @@
     "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
     "specification": "Construct six runtime-derived string elements, perform one to_reversed operation, retain complete ordered natural output.",
     "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
-    "sourceSha256": "d4d879393cc2d35b6908b41d306d774eace150f382a1726736afa49b97df79af",
+    "sourceSha256": "3989eb896f9bb2fab679a44ce85e156e00c1e7ea9870bab9ca44b1a622fb1c17",
     "counterpartSha256": "5a81e602469e260eae7192cfc480e8562edd4f805efced4c990ce16158135913",
     "status": "source-only, execution pending",
     "inputText": " xé😀é "
@@ -97,7 +97,7 @@
     "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
     "specification": "Construct six runtime-derived nested elements, perform one to_reversed operation, retain complete ordered natural output.",
     "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
-    "sourceSha256": "a1256df1f68bc5e4cd31aefb1a3c810393853999054f71c194fe3ebb7eba802e",
+    "sourceSha256": "02af74591511973269bdf17b1455352079a0d95de4884ac3b5702861ad7f5464",
     "counterpartSha256": "30065bcbba616d258228e848406d9d298c9db3a5e4ca5f8174b2a4e00eccd600",
     "status": "source-only, execution pending"
   },
@@ -118,7 +118,7 @@
     "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
     "specification": "Construct six runtime-derived record elements, perform one to_reversed operation, retain complete ordered natural output.",
     "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
-    "sourceSha256": "93d662528c6c983666468f918e107cc448314f0b84cbafa64382f0948673ac35",
+    "sourceSha256": "89ac1a030b5e8d3380fdc398a7573aa5387f92ddb8e93a673c6f828bc5d4c752",
     "counterpartSha256": "e3451a24fd51f761cf23bb3c62f6df3bdeab7bf6ff4ba513dae72d2790d6776e",
     "status": "source-only, execution pending",
     "inputText": " xé😀é ",
@@ -155,7 +155,7 @@
     "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
     "specification": "Construct six runtime-derived deep elements, perform one to_reversed operation, retain complete ordered natural output.",
     "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
-    "sourceSha256": "f890f969f0f5855e001dc90f66786485a934de238ad9a8320e46b776f148dfb0",
+    "sourceSha256": "2e70580b008aa944359b0a3ccb148cfb27a91598cccb336234381042128682af",
     "counterpartSha256": "f836ecd8520d0c45c5f74491a35ff386cec9cfcc7d7ca5cf3aae85217da3421e",
     "status": "source-only, execution pending"
   },
@@ -176,7 +176,7 @@
     "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
     "specification": "Construct six runtime-derived recursive elements, perform one to_reversed operation, retain complete ordered natural output.",
     "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
-    "sourceSha256": "d53b82a3d9dce08efc6e88233f9c2087573ff2c7a1313a9f27f3e35e99eb51f2",
+    "sourceSha256": "1d7e6088bfa561b6c4c75e29e0e850741057e0352bcf8638fe31ecc8680c8376",
     "counterpartSha256": "5dcd111a2ee9436975068f716bcc8320d15debde90f49be7fa88f0f791e7c9be",
     "status": "source-only, execution pending",
     "inputText": " xé😀é ",
@@ -216,7 +216,7 @@
     "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
     "specification": "Construct six runtime-derived int elements, perform one with operation, retain complete ordered natural output.",
     "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
-    "sourceSha256": "bd27c7d21d4758bdfd8e63a1bb25e4153f833da0306bdb6f54dbbd25762025bd",
+    "sourceSha256": "fc6a99f284b185ca95c013cb5fc2becbf31cca05ec8dac82ef48396dde6f062b",
     "counterpartSha256": "8ae09b67c95d0e4e372acf3ffe590ff6f6c5aaec732d3eca65f7349e96a57f69",
     "status": "source-only, execution pending"
   },
@@ -236,7 +236,7 @@
     "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
     "specification": "Construct six runtime-derived number elements, perform one with operation, retain complete ordered natural output.",
     "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
-    "sourceSha256": "97dd8f241afd6face11460e951b464d3c12577d7fded682dcca55187192847ea",
+    "sourceSha256": "a8240946d9b6a33f144b1fcfb13066a20c10871dc69e21b26eea1d4d82008ad6",
     "counterpartSha256": "1d1a4067bf49ea51bb48bcd366bc77dbb00df74430ffecbb38f855fc22fb77d9",
     "status": "source-only, execution pending"
   },
@@ -256,7 +256,7 @@
     "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
     "specification": "Construct six runtime-derived boolean elements, perform one with operation, retain complete ordered natural output.",
     "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
-    "sourceSha256": "ae7301f543c71bf12b6ef82e033503c640f3baaf40784691319d24d9704c28ba",
+    "sourceSha256": "051937bc2ee5b50b307f26931841fcf97b350d8db20269ae9fca2cbed2d4eebc",
     "counterpartSha256": "554a7a875be2cf75c829feabb4ddcaf9c2615e84313587d24f8392abce68e895",
     "status": "source-only, execution pending"
   },
@@ -277,7 +277,7 @@
     "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
     "specification": "Construct six runtime-derived string elements, perform one with operation, retain complete ordered natural output.",
     "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
-    "sourceSha256": "cdb7ac6cca6d391a87881b844b8899097498ec6a1b76563208626d22694d5aca",
+    "sourceSha256": "9641e7f485e38fd1c28f23536d172a9c1e4d5322d0c0a2775f17c9e175f64319",
     "counterpartSha256": "32bd91d5818559e7c26a3bc5aecf0ff4cd721d8155fbfcc1b0d799cfac027cd1",
     "status": "source-only, execution pending",
     "inputText": " xé😀é "
@@ -298,7 +298,7 @@
     "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
     "specification": "Construct six runtime-derived nested elements, perform one with operation, retain complete ordered natural output.",
     "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
-    "sourceSha256": "a30a11850b366eeb29e7fa8e718ea8eca6ce474496118574dee63ad435f8f3ed",
+    "sourceSha256": "04886a6714305d92c6dfbff51589d6940750947d624452a42735c0e36aec12f1",
     "counterpartSha256": "d06d72de0d6eceb2147a283a7e28f5d963378a0cbae134b2ffe60c8f23cb28ff",
     "status": "source-only, execution pending"
   },
@@ -319,7 +319,7 @@
     "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
     "specification": "Construct six runtime-derived record elements, perform one with operation, retain complete ordered natural output.",
     "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
-    "sourceSha256": "0db592b1599619563d6c36c353142a51c6d9aa151e7c228e9d027c4f0247711c",
+    "sourceSha256": "e149643f3ce992f143d6e219bd7ab614ad8a733678a9f64b032663f340e46519",
     "counterpartSha256": "fa800557deae1ee8b1000049c840890f529366ccf53f550446370972f3ad7814",
     "status": "source-only, execution pending",
     "inputText": " xé😀é ",
@@ -356,7 +356,7 @@
     "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
     "specification": "Construct six runtime-derived deep elements, perform one with operation, retain complete ordered natural output.",
     "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
-    "sourceSha256": "6f46b53a896ef7f1b9c7145eebb01d92751e03695e1ad601abe5b7370a1715f3",
+    "sourceSha256": "780a86d2053eae21b9cdbeb639c6cabbd0d7c5aaf953c5907bd240f16cf58ff4",
     "counterpartSha256": "97e466d7791f99d22c3ca7f785afbbb483ee8c291cf7dd32bc0c3e3e74a0f20a",
     "status": "source-only, execution pending"
   },
@@ -377,7 +377,7 @@
     "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
     "specification": "Construct six runtime-derived recursive elements, perform one with operation, retain complete ordered natural output.",
     "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
-    "sourceSha256": "e82a972a8eaaf1de1900b0b19f3922952dcb1abcf9778bc2e9a6b14ab6f299cc",
+    "sourceSha256": "afb384ce664572a0e1aabea855dc58593c95679dc3da265ac2aeca41d826bd1d",
     "counterpartSha256": "c43a630aca22615d1baad28f6b0b425362c734542fc76dca56ccf9cd1d11a6c1",
     "status": "source-only, execution pending",
     "inputText": " xé😀é ",

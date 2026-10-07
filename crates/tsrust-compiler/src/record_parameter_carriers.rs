@@ -16,6 +16,24 @@ fn calls(function:&CheckedFunction)->Vec<Call>{
 impl Analyzer {
     pub(super) fn record_parameter_carriers(&mut self)->Result<(),Diagnostic>{
         let mut functions=std::mem::take(&mut self.checked);
+        // The record outlives the call. A stored callback cannot keep a borrow
+        // of the callee's parameters or locals past it.
+        for function in functions.iter().flatten().filter(|function|!function.template){
+            for write in record_storage_writes::collect(&function.body){
+                let binding=&function.bindings[write.binding];
+                if write.binding>=function.parameter_count || !binding.parameter || binding.mode!=Mode::Mutate || write.path.is_empty(){continue;}
+                let origins=match write.value.ty{
+                    Some(Type::Closure(id))=>vec![id],
+                    Some(Type::BorrowedCallable(family))=>self.callables.storage.origins(family).map(<[usize]>::to_vec).unwrap_or_default(),
+                    // A callback parameter is lent for the call only.
+                    Some(Type::Callback(_))=>return Err(Diagnostic::new("callback-escape","A callback parameter cannot be stored through a record parameter; the record outlives the call. Build the record where the callback is created.",write.value.span)),
+                    _=>continue,
+                };
+                if origins.iter().any(|&id|self.closures[id].lifetime_count>0){
+                    return Err(Diagnostic::new("callback-escape","A callback stored through a record parameter cannot borrow a variable of this function. Capture numbers and booleans, or build the record where the variable is declared.",write.value.span));
+                }
+            }
+        }
         let mut replacements=functions.iter().map(|function|{
             let Some(function)=function.as_ref().filter(|function|!function.template)else{return Vec::new();};
             record_storage_writes::collect(&function.body).into_iter().filter_map(|write|{

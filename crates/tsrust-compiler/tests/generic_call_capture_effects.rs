@@ -254,7 +254,7 @@ fn main(){source_main();assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCs
 fn transported_polymorphic_arguments_preserve_borrow_and_consumption_rejections() {
     let factory="function factory<A>(action:A){function select(){return action;}return select;}";
     for (body,code) in [
-        ("function view(item:ReadOnly<Item>){function step<T>(value:T):T{console.log(item.id);return value;}const action=step;const selected=factory(action);}function main(){}","closure-escape"),
+        ("function view(item:ReadOnly<Item>){function step<T>(value:T):T{console.log(item.id);return value;}const action=step;const selected=factory(action);}function main(){}","callback-escape"),
         ("function main(){const action=make({id:1});const selected=factory(action);action<int>(7);}","closure-consumed"),
         ("function main(){const action=make({id:1});const selected=factory(action);const saved=selected();const first=saved<int>(7);const second=saved<int>(9);}","closure-consumed"),
     ] {

@@ -18,7 +18,7 @@
     "measurementStatus": "pending-checkpoint-81",
     "pendingCheckpoint": 81,
     "notes": "Setup, runtime selection, conversion and complete output construction/retention are inside the workload. Full-output observer must run outside timing. Native strings/arrays have independent ownership; JavaScript has immutable strings. No allocation parity or measured performance is claimed. New observer/source guards and disposal evidence must be integrated at the checkpoint before timing.",
-    "sourceSha256": "836161c8e05d182e3f0c2e2adfd9c79f47ef0fa7e6bf6dd5b65cee6fd2e6ebb7",
+    "sourceSha256": "f691e142d97e975ce95a24fb54bacdeece542ee44b433988dbeb88bf71a7a04c",
     "counterpartSha256": "0e6fb314ff03c07fcffea3e372a606af48eda5196229eebe5c1b7d9b75e4c69b"
   },
   {
@@ -39,7 +39,7 @@
     "measurementStatus": "pending-checkpoint-81",
     "pendingCheckpoint": 81,
     "notes": "Setup, runtime selection, conversion and complete output construction/retention are inside the workload. Full-output observer must run outside timing. Native strings/arrays have independent ownership; JavaScript has immutable strings. No allocation parity or measured performance is claimed. New observer/source guards and disposal evidence must be integrated at the checkpoint before timing.",
-    "sourceSha256": "c7312a1a9a09ca503133da346c49bd3fd0efbf268222e6def4e8c750be7d16ec",
+    "sourceSha256": "848de9591eb750a86240ab821ad82315276ab1e6b2f90552a32b839f52e2750d",
     "counterpartSha256": "13d82e3e22c21b84f681eaa2d103415a5f790d65da1b7d31b722e9f0f544a5fd"
   },
   {
@@ -61,7 +61,7 @@
     "measurementStatus": "pending-checkpoint-81",
     "pendingCheckpoint": 81,
     "notes": "Setup, runtime selection, conversion and complete output construction/retention are inside the workload. Full-output observer must run outside timing. Native strings/arrays have independent ownership; JavaScript has immutable strings. No allocation parity or measured performance is claimed. New observer/source guards and disposal evidence must be integrated at the checkpoint before timing.",
-    "sourceSha256": "6a2ed04c012a9a1b1df626e90fd43d40bacee5c53191c45d7f78d2efa01f4423",
+    "sourceSha256": "873c80fe2460a9ce02557ff6479ea7091e16158432c5c5544ac4e997c5d194d7",
     "counterpartSha256": "56b4e2291e081c13e54d1ecc91b506ce3e631923c97e52f8e2c35336ab46d258"
   }
 ]

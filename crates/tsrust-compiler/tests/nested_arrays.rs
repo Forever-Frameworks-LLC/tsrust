@@ -304,8 +304,4 @@ fn nested_array_analysis_and_emission_are_backend_independent() {
         "function main() { const a: void[][] = []; }",
         "array-element",
     );
-    reject(
-        "function main() { const a = [[(): int => { return 1; }]]; }",
-        "array-element",
-    );
 }

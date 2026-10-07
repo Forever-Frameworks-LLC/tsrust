@@ -871,7 +871,6 @@ fn native_function_storage_preserves_reassignment_and_move_rejections() {
         assert_eq!(native_stdout(&checked.emit_rust(), optimization), "first.txt\nsecond\nthird.txt\n");
     }
     for (body, code) in [
-        ("function main(){const handlers=[basename];}", "array-element"),
         ("function main(){const f=basename;const next=f;const wrapper=(path:string):string=>{return f(path);};}", "closure-consumed"),
         ("function main(){let f=basename;const next=f;console.log(f('/tmp/a'));}", "closure-consumed"),
     ] {
@@ -888,13 +887,23 @@ fn native_function_storage_preserves_reassignment_and_move_rejections() {
 
 #[test]
 fn borrowed_callable_record_fields_report_ownership_without_syntax_fixes() {
+    // A borrowing field contract is a valid declaration.
     for contract in ["Mutable<Function<string, [path:ReadOnly<string>]>>", "ReadOnly<Function<int>>"] {
         let source = format!("import {{basename}} from 'std:path';type Handler={{run:{contract};}};function main(){{}}");
         let memory = Memory::new(&[("main.tsr", &source)]);
-        let graph = load_project(&memory, "main.tsr").unwrap();
-        let error = tsrust_compiler::project::check_graph(graph).err().unwrap();
+        tsrust_compiler::project::check_graph(load_project(&memory, "main.tsr").unwrap())
+            .unwrap_or_else(|error| panic!("{}: {}", error.code, error.message));
+    }
+    // An owning field cannot hold a callback that borrows, and a record with a
+    // borrowing callback cannot leave the owner of the borrowed variable.
+    for body in [
+        "type Handler={run:Function<int>;};function main(){const text=\"Pat\";const read=():int=>{return text.length;};const handler:Handler={run:read};}",
+        "type Handler={run:ReadOnly<Function<int>>;};function make():Handler{const a=[3];return {run:():int=>a[0]};}function main(){}",
+    ] {
+        let source = format!("import {{basename}} from 'std:path';{body}");
+        let memory = Memory::new(&[("main.tsr", &source)]);
+        let error = tsrust_compiler::project::check_graph(load_project(&memory, "main.tsr").unwrap()).err().unwrap();
         assert_eq!(error.code, "callback-escape");
-        assert!(error.message.contains("A field stores a Function"));
         assert!(error.fixes.is_empty());
         assert_eq!(error.location.source.0, "main.tsr");
     }
@@ -1637,7 +1646,7 @@ fn array_literal_spread_crosses_imported_generic_record_and_function_boundaries(
 #[test]
 fn retained_capture_plans_map_diagnostics_after_prior_module_declarations() {
     let free = "export function free():int{function one():int{return 1;}return one();}";
-    let captured = "export function run():int{function read():int{return data[0];}const data=[7];return read();}function data():int{return 9;}";
+    let captured = "export function run():int{function read():int{return data[0];}const result=read();const data=[7];return result;}function data():int{return 9;}";
     let memory = Memory::new(&[
         ("main.tsr", "import { free } from './free.tsr';import { run } from './captured.tsr';function main(){console.log(free(),run());}"),
         ("free.tsr", free),
@@ -1647,10 +1656,10 @@ fn retained_capture_plans_map_diagnostics_after_prior_module_declarations() {
     let free_position = graph.order.iter().position(|id| id.0 == "free.tsr").unwrap();
     let captured_position = graph.order.iter().position(|id| id.0 == "captured.tsr").unwrap();
     assert!(free_position < captured_position, "witness needs earlier declaration offsets");
-    let error = tsrust_compiler::project::check_graph(graph).err().expect("checked capture execution still pending");
-    assert_eq!(error.code, "unsupported");
+    let error = tsrust_compiler::project::check_graph(graph).err().expect("capture read before initialization");
+    assert_eq!(error.code, "unassigned");
     assert_eq!(error.location.source, SourceId("captured.tsr".into()));
-    assert_eq!(&captured[error.location.span.start..error.location.span.end], "data");
+    assert_eq!(&captured[error.location.span.start..error.location.span.end], "read");
     assert!(error.related.iter().any(|(location, _)| location.source == SourceId("captured.tsr".into()) && &captured[location.span.start..location.span.end] == "data"));
 }
 

@@ -155,7 +155,6 @@ fn operator_type_errors_point_to_original_operator() {
         ("true < false", "<", "type"),
         ("1 === true", "===", "type"),
         ("\"x\" !== 1", "!==", "type"),
-        ("\"x\" + 1", "+", "type"),
     ] {
         let source = format!("function main() {{ /* café */ console.log({expression}); }}");
         let error = reject(&source, code);

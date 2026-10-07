@@ -18,7 +18,7 @@
     "operationUnit": "one actual + unary operation and retention of its result",
     "specification": "Select actual typed int operands from runtime iteration/seed, perform one unary + operation and retain every unmodified result in a flat int[] of length n. Nonnegative exact i32-safe operands/results.",
     "notes": "Operand tables/setup, dynamic selection, target initialization for compounds, actual operation and complete output construction/retention are timed. Independent full observation is outside timing. No offset, signed-output adaptation, custom protocol or JavaScript coercion emulation. Native64 differences, invalid counts and checked power overflow are separate untimed evidence.",
-    "sourceSha256": "d38336f51782382db41ce0d62809e0d8bf5cc6a0e4d128b55a833c54857f6171",
+    "sourceSha256": "682be0ed259bfe7f7fd5122dfc95e2c001a0814b1dd409beceea711f837fa3d5",
     "counterpartSha256": "1d5707999263771d626ff27681a8c54d038abb397fdf2571305aedf1649fb026"
   },
   {
@@ -40,7 +40,7 @@
     "operationUnit": "one actual ~ unary operation and retention of its result",
     "specification": "Select actual typed int operands from runtime iteration/seed, perform one unary ~ operation and retain every unmodified result in a flat int[] of length n. Exact i32-safe negative operands with natural nonnegative complements.",
     "notes": "Operand tables/setup, dynamic selection, target initialization for compounds, actual operation and complete output construction/retention are timed. Independent full observation is outside timing. No offset, signed-output adaptation, custom protocol or JavaScript coercion emulation. Native64 differences, invalid counts and checked power overflow are separate untimed evidence.",
-    "sourceSha256": "5612dc96b5e34b537511f1d12bce36c7a7571566480e6ac2eba4c79163e37419",
+    "sourceSha256": "520ef431821e0a710125d7f5579b15b6dace88be2c199b79c6ee36f6d29b9e2a",
     "counterpartSha256": "7769f6dda31fbe725de9d4a44d90b9411728b1d3c336d00c844f625a3a7c3721"
   },
   {
@@ -62,7 +62,7 @@
     "operationUnit": "one actual & binary operation and retention of its result",
     "specification": "Select actual typed int operands from runtime iteration/seed, perform one binary & operation and retain every unmodified result in a flat int[] of length n. Nonnegative exact i32-safe operands/results.",
     "notes": "Operand tables/setup, dynamic selection, target initialization for compounds, actual operation and complete output construction/retention are timed. Independent full observation is outside timing. No offset, signed-output adaptation, custom protocol or JavaScript coercion emulation. Native64 differences, invalid counts and checked power overflow are separate untimed evidence.",
-    "sourceSha256": "6c9943127ae899654899bb63537def2438646a335ad90782c0d7e09d2b7dba01",
+    "sourceSha256": "22c616e718a2af10374995c68a1b845c249d1ee5e9c83de4dfc2ecf8d4fc3e67",
     "counterpartSha256": "37749316ed497cfd099147bcafeda3162661502042da936596194eabce6ce76d"
   },
   {
@@ -84,7 +84,7 @@
     "operationUnit": "one actual | binary operation and retention of its result",
     "specification": "Select actual typed int operands from runtime iteration/seed, perform one binary | operation and retain every unmodified result in a flat int[] of length n. Nonnegative exact i32-safe operands/results.",
     "notes": "Operand tables/setup, dynamic selection, target initialization for compounds, actual operation and complete output construction/retention are timed. Independent full observation is outside timing. No offset, signed-output adaptation, custom protocol or JavaScript coercion emulation. Native64 differences, invalid counts and checked power overflow are separate untimed evidence.",
-    "sourceSha256": "d53a33a418dc3ec21a72f6aad988bc983e9507cbc4c9c28746c33e48711b1976",
+    "sourceSha256": "c11a634064cde357ce5cde57443a688dd555fdba2aa7039c6cf97d831ac0da52",
     "counterpartSha256": "1154daff1d100e0a2452149fed63fecc6dc5b71d4f2a92ca803b336515b6c48e"
   },
   {
@@ -106,7 +106,7 @@
     "operationUnit": "one actual ^ binary operation and retention of its result",
     "specification": "Select actual typed int operands from runtime iteration/seed, perform one binary ^ operation and retain every unmodified result in a flat int[] of length n. Nonnegative exact i32-safe operands/results.",
     "notes": "Operand tables/setup, dynamic selection, target initialization for compounds, actual operation and complete output construction/retention are timed. Independent full observation is outside timing. No offset, signed-output adaptation, custom protocol or JavaScript coercion emulation. Native64 differences, invalid counts and checked power overflow are separate untimed evidence.",
-    "sourceSha256": "b2ebbb1d04fd63dd39b873204b844fec05164acf65caa507f14f774832a5a197",
+    "sourceSha256": "2da859742362e587076af6ffc7a241cc20aff0ce53683365e9e7c2fb7e08050a",
     "counterpartSha256": "b14152d32e2a5d812ed173e5cb8bc1ed1820944c3c29bf799909b4c620fbac98"
   },
   {
@@ -128,7 +128,7 @@
     "operationUnit": "one actual << binary operation and retention of its result",
     "specification": "Select actual typed int operands from runtime iteration/seed, perform one binary << operation and retain every unmodified result in a flat int[] of length n. Nonnegative exactly represented common results; shift counts below32 with no sign overflow.",
     "notes": "Operand tables/setup, dynamic selection, target initialization for compounds, actual operation and complete output construction/retention are timed. Independent full observation is outside timing. No offset, signed-output adaptation, custom protocol or JavaScript coercion emulation. Native64 differences, invalid counts and checked power overflow are separate untimed evidence.",
-    "sourceSha256": "fbd96334ac6bae91dd370bfc21fd382139528a253367e143d681b48643addfd1",
+    "sourceSha256": "1e4575f04ac45978305d833f6a5e969071821ff718643b9741c41cc944fdcf40",
     "counterpartSha256": "f47d0da480e3ce229e335cbab4af25ca44bda9e617d13d5be38934413c8fc3f2"
   },
   {
@@ -150,7 +150,7 @@
     "operationUnit": "one actual >> binary operation and retention of its result",
     "specification": "Select actual typed int operands from runtime iteration/seed, perform one binary >> operation and retain every unmodified result in a flat int[] of length n. Nonnegative exactly represented common results; shift counts below32 with no sign overflow.",
     "notes": "Operand tables/setup, dynamic selection, target initialization for compounds, actual operation and complete output construction/retention are timed. Independent full observation is outside timing. No offset, signed-output adaptation, custom protocol or JavaScript coercion emulation. Native64 differences, invalid counts and checked power overflow are separate untimed evidence.",
-    "sourceSha256": "34928b7d8a19dd1f7fda4fb413816cb72cea3fe15921d83f7c8e2d09c9a42ad2",
+    "sourceSha256": "7e09397285ab4286b0b78f71e9820e1607d631b3215dcbd1199f9cdb4247277f",
     "counterpartSha256": "7a864ec262386ddcc80e4111be3e1f7471bdab8d86726e6052b944f14aace189"
   },
   {
@@ -172,7 +172,7 @@
     "operationUnit": "one actual >>> binary operation and retention of its result",
     "specification": "Select actual typed int operands from runtime iteration/seed, perform one binary >>> operation and retain every unmodified result in a flat int[] of length n. Nonnegative exactly represented common results; shift counts below32 with no sign overflow.",
     "notes": "Operand tables/setup, dynamic selection, target initialization for compounds, actual operation and complete output construction/retention are timed. Independent full observation is outside timing. No offset, signed-output adaptation, custom protocol or JavaScript coercion emulation. Native64 differences, invalid counts and checked power overflow are separate untimed evidence.",
-    "sourceSha256": "dcb65ff63c7b1dbd529a5c378657db3f7c34bd61e7d7befcdfa4b666d07632fd",
+    "sourceSha256": "6fa160bf0cac90ac9815fb3f88efa56d6ae168af9ffc5331222edec6705eab9d",
     "counterpartSha256": "7f8ca454169e4a94ebc0c088dbb3558d152378c307cbd07154b1f10812ee3435"
   },
   {
@@ -194,7 +194,7 @@
     "operationUnit": "one actual ** binary operation and retention of its result",
     "specification": "Select actual typed int operands from runtime iteration/seed, perform one binary ** operation and retain every unmodified result in a flat int[] of length n. Nonnegative exact small integer bases/exponents0..7 including0**0.",
     "notes": "Operand tables/setup, dynamic selection, target initialization for compounds, actual operation and complete output construction/retention are timed. Independent full observation is outside timing. No offset, signed-output adaptation, custom protocol or JavaScript coercion emulation. Native64 differences, invalid counts and checked power overflow are separate untimed evidence.",
-    "sourceSha256": "43bf962bd58f82275ab456dbc948bc7366d6c28101d4b419bd9b66e329087f05",
+    "sourceSha256": "ade21346fda6901e690831b790613c34df69d015fa8142fc4d5a26bf6f677ba2",
     "counterpartSha256": "53c9812651b18e4ec628c6e9654166b84694827f8cd680b20ebb283a498ebfa4"
   },
   {
@@ -216,7 +216,7 @@
     "operationUnit": "one actual &= compound operation and retention of its committed target",
     "specification": "Select actual typed int operands from runtime iteration/seed, perform one compound &= operation and retain every unmodified result in a flat int[] of length n. Nonnegative exact i32-safe operands/results.",
     "notes": "Operand tables/setup, dynamic selection, target initialization for compounds, actual operation and complete output construction/retention are timed. Independent full observation is outside timing. No offset, signed-output adaptation, custom protocol or JavaScript coercion emulation. Native64 differences, invalid counts and checked power overflow are separate untimed evidence.",
-    "sourceSha256": "b5bbaa497c93fe82a245c202034d41489b6e2b44a28695ec6a1b27c381bde565",
+    "sourceSha256": "630899a939197e1142c0e6e3d6c75234d493566f7750d54ebbf8526b1a1933e9",
     "counterpartSha256": "4167388322f6ed2ec561d15fcf9b49625a3c46dddb84ab74a45b2ff7f1170e74"
   },
   {
@@ -238,7 +238,7 @@
     "operationUnit": "one actual |= compound operation and retention of its committed target",
     "specification": "Select actual typed int operands from runtime iteration/seed, perform one compound |= operation and retain every unmodified result in a flat int[] of length n. Nonnegative exact i32-safe operands/results.",
     "notes": "Operand tables/setup, dynamic selection, target initialization for compounds, actual operation and complete output construction/retention are timed. Independent full observation is outside timing. No offset, signed-output adaptation, custom protocol or JavaScript coercion emulation. Native64 differences, invalid counts and checked power overflow are separate untimed evidence.",
-    "sourceSha256": "3c42f8502c73b148f17a7abfdbde8ade01e1d2296d3bbf11d14f5afb6647d1ad",
+    "sourceSha256": "32b445ad2469b058c2b432304684982ddbf592f73c340e676dcb06efe0e58540",
     "counterpartSha256": "b61bab67a8862b93c2a7203c61ada89961db16f816284c46b8abc8b799e4ae97"
   },
   {
@@ -260,7 +260,7 @@
     "operationUnit": "one actual ^= compound operation and retention of its committed target",
     "specification": "Select actual typed int operands from runtime iteration/seed, perform one compound ^= operation and retain every unmodified result in a flat int[] of length n. Nonnegative exact i32-safe operands/results.",
     "notes": "Operand tables/setup, dynamic selection, target initialization for compounds, actual operation and complete output construction/retention are timed. Independent full observation is outside timing. No offset, signed-output adaptation, custom protocol or JavaScript coercion emulation. Native64 differences, invalid counts and checked power overflow are separate untimed evidence.",
-    "sourceSha256": "e97857a4eabb4dcacf50930adee58af139ffa722b6fac9ccc43d1047e0bd1c6b",
+    "sourceSha256": "000670be7299d1d71755ea8909a8d2bef1a0e1946472865b9bafe80b9298a44e",
     "counterpartSha256": "ab27c70ff4494ab20751a1d8afff8528a5fa02a6e77ac86d584bdd341caa342c"
   },
   {
@@ -282,7 +282,7 @@
     "operationUnit": "one actual <<= compound operation and retention of its committed target",
     "specification": "Select actual typed int operands from runtime iteration/seed, perform one compound <<= operation and retain every unmodified result in a flat int[] of length n. Nonnegative exactly represented common results; shift counts below32 with no sign overflow.",
     "notes": "Operand tables/setup, dynamic selection, target initialization for compounds, actual operation and complete output construction/retention are timed. Independent full observation is outside timing. No offset, signed-output adaptation, custom protocol or JavaScript coercion emulation. Native64 differences, invalid counts and checked power overflow are separate untimed evidence.",
-    "sourceSha256": "3990f5ec32ac1eb0431f7c5bd599cca6138a1170bafb843429a4807492248c67",
+    "sourceSha256": "a4d94b8339be6108477b8c5d202d944dc8cb21dea78daed7e9474031b260c6a8",
     "counterpartSha256": "5b8c9fccbe8f1936f2727d4b5c77e044a8c6ad678548be23ee0464f3fa6e5c88"
   },
   {
@@ -304,7 +304,7 @@
     "operationUnit": "one actual >>= compound operation and retention of its committed target",
     "specification": "Select actual typed int operands from runtime iteration/seed, perform one compound >>= operation and retain every unmodified result in a flat int[] of length n. Nonnegative exactly represented common results; shift counts below32 with no sign overflow.",
     "notes": "Operand tables/setup, dynamic selection, target initialization for compounds, actual operation and complete output construction/retention are timed. Independent full observation is outside timing. No offset, signed-output adaptation, custom protocol or JavaScript coercion emulation. Native64 differences, invalid counts and checked power overflow are separate untimed evidence.",
-    "sourceSha256": "df3f94ac26484dda02421479478b3b868dd182604f3f2777ea26468a3379513c",
+    "sourceSha256": "936233eabd12903a391920dd2e0f415e4ee9be4c3583a3b9e4c4d3177fbd8195",
     "counterpartSha256": "672faf8d625f8d33eb500dde9df5ef0eb54881528df806a961f2c0781f09155f"
   },
   {
@@ -326,7 +326,7 @@
     "operationUnit": "one actual >>>= compound operation and retention of its committed target",
     "specification": "Select actual typed int operands from runtime iteration/seed, perform one compound >>>= operation and retain every unmodified result in a flat int[] of length n. Nonnegative exactly represented common results; shift counts below32 with no sign overflow.",
     "notes": "Operand tables/setup, dynamic selection, target initialization for compounds, actual operation and complete output construction/retention are timed. Independent full observation is outside timing. No offset, signed-output adaptation, custom protocol or JavaScript coercion emulation. Native64 differences, invalid counts and checked power overflow are separate untimed evidence.",
-    "sourceSha256": "e01a379be3aa72573eaf5a9e095030bd9cd8b70f4eaed0cbab3737aafb254915",
+    "sourceSha256": "b87a2d2ba7db63ebacd26ec49e5f78316aeea5299c10223cfb285db6029b3262",
     "counterpartSha256": "511982b48a9884b0b7e3ff15c091d7d2e21f0884cc19be03f750bf6a2c78a54c"
   },
   {
@@ -348,7 +348,7 @@
     "operationUnit": "one actual **= compound operation and retention of its committed target",
     "specification": "Select actual typed int operands from runtime iteration/seed, perform one compound **= operation and retain every unmodified result in a flat int[] of length n. Nonnegative exact small integer bases/exponents0..7 including0**0.",
     "notes": "Operand tables/setup, dynamic selection, target initialization for compounds, actual operation and complete output construction/retention are timed. Independent full observation is outside timing. No offset, signed-output adaptation, custom protocol or JavaScript coercion emulation. Native64 differences, invalid counts and checked power overflow are separate untimed evidence.",
-    "sourceSha256": "24451df2395db71fc77643093a2ae85697f67f79eb537f320fa438b5bbf01551",
+    "sourceSha256": "dfa453cf3affd35d5570dff7fdd313c58cc2499176ff7b28376cd63905d7b22f",
     "counterpartSha256": "b57853ae51e3f8ad22a8df79687edcc1292e55ec45197bb3b181ba6e3de657d3"
   }
 ]

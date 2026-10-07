@@ -23,6 +23,28 @@ impl Analyzer {
         }
         Ok(())
     }
+    /// A callback moved out of a field keeps the carrier that the field holds
+    /// once every store into that field is planned.
+    fn record_field_move_carriers(&self,context:&mut Context,body:&mut[Stmt]){
+        for stmt in body{match &mut stmt.kind{
+            StmtKind::Let{binding:Some(id),value,..}=>{
+                if !matches!(context.bindings[*id].ty,Type::Closure(_) | Type::BorrowedCallable(_)){continue;}
+                let(Some(root),Some((_,path)))=(Self::root_binding(value),Self::direct_fields(value))else{continue;};
+                if path.is_empty() || context.bindings[root].parameter || context.bindings[root].capture_reference{continue;}
+                let Some(carrier @ Type::BorrowedCallable(_))=self.record_field_type(context.bindings[root].ty,&path)else{continue;};
+                context.bindings[*id].ty=carrier;value.ty=Some(carrier);
+            }
+            StmtKind::Block(body)|StmtKind::While{body,..}|StmtKind::ForOf{body,..}=>self.record_field_move_carriers(context,body),
+            StmtKind::If{then_body,else_body,..}=>{self.record_field_move_carriers(context,then_body);self.record_field_move_carriers(context,else_body);}
+            StmtKind::Loop{body,update,..}=>{self.record_field_move_carriers(context,body);self.record_field_move_carriers(context,update);}
+            StmtKind::Try(region)=>{
+                self.record_field_move_carriers(context,&mut region.body);
+                if let Some(catch)=&mut region.catch{self.record_field_move_carriers(context,&mut catch.body);}
+                if let Some(finally)=&mut region.finally{self.record_field_move_carriers(context,finally);}
+            }
+            _=>{}
+        }}
+    }
     pub(super) fn record_sequence_carriers(&mut self,context:&mut Context,body:&mut[Stmt])->Result<(),Diagnostic>{
         let writes=record_storage_writes::collect(body);
         let mut plans=HashMap::new();
@@ -35,6 +57,7 @@ impl Analyzer {
                 if binding.parameter || binding.capture_reference{continue;}
                 let ty=*plans.entry(write.binding).or_insert(binding.ty);
                 let Type::Record(record)=ty else{continue;};
+                if write.value.ty.is_none(){continue;}
                 let incoming=self.record_value_carrier_type(context,write.value,&plans)?;
                 let joined=if write.path.is_empty(){
                     let Type::Record(incoming)=incoming else{continue;};
@@ -57,7 +80,19 @@ impl Analyzer {
             destinations.insert((write.span.start,write.span.end),destination);
         }
         for(&id,&ty)in &plans{context.bindings[id].ty=ty;}
+        self.record_field_move_carriers(context,body);
+        // Uses of a retyped local dispatch through its carrier.
         crate::source_walk::body(body,&mut |_|Ok(()),&mut |value|{
+            if let Some(CallTarget::Closure(binding))=value.target && matches!(context.bindings[binding].ty,Type::BorrowedCallable(_)){
+                value.target=Some(CallTarget::StoredCallable(binding));
+            }
+            if let(ExprKind::Name(_),Some(binding),Some(Type::Closure(_)))=(&value.kind,value.binding,value.ty) && let carrier @ Type::BorrowedCallable(_)=context.bindings[binding].ty{
+                value.ty=Some(carrier);
+            }
+            Ok(())
+        })?;
+        crate::source_walk::body(body,&mut |_|Ok(()),&mut |value|{
+            if value.ty.is_none(){return Ok(());}
             let stored_family=if let ExprKind::Unary{op:UnaryOp::CallableStore,value:inner,..}=&value.kind{
                 matches!(value.ty,Some(Type::BorrowedCallable(_))) && matches!(self.record_value_carrier_type(context,inner,&plans)?,Type::BorrowedCallable(_))
             }else{false};
@@ -91,6 +126,19 @@ impl Analyzer {
         let mut ty=binding.ty;
         for name in path{let Type::Record(record)=ty else{return None;};let record=self.scoped_records.declaration(record);ty=self.program.records[record].fields.iter().find(|field|field.name.text==name)?.ty?;}
         matches!(ty,Type::Callback(_)).then_some(ty)
+    }
+    /// A local record field declared as a borrowing callback or an absent value.
+    /// Its two states have different native layouts; replacement is not planned yet.
+    pub(super) fn local_record_nullable_callback(&self,context:&Context,target:&Expr)->bool{
+        let Some(id)=Self::root_binding(target)else{return false;};let binding=&context.bindings[id];
+        if binding.parameter || binding.capture_reference{return false;}
+        let Some((_,path))=Self::direct_fields(target)else{return false;};if path.is_empty(){return false;}
+        let mut ty=binding.ty;
+        for name in path{
+            let Type::Record(record)=ty else{return false;};let record=self.scoped_records.declaration(record);
+            let Some(next)=self.program.records[record].fields.iter().find(|field|field.name.text==name).and_then(|field|field.ty)else{return false;};ty=next;
+        }
+        ty.union().is_some_and(|union|self.unions.members(union).into_iter().any(|member|matches!(member,Type::Callback(callback) if !self.callables.callbacks[callback].kind.is_owned())))
     }
     pub(super) fn record_type_with_field(&mut self,record:usize,path:&[String],ty:Type)->Option<usize>{
         let name=path.first()?;let index=self.program.records[record].fields.iter().position(|field|&field.name.text==name)?;

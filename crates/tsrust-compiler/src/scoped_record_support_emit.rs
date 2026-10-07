@@ -174,7 +174,7 @@ mod tests {
         crate::scoped_record_places::tests::native(&rust);
     }
     #[test]
-    fn nominal_mutable_consumer_preserves_disjoint_sibling_fields() {
+    fn separate_mutable_getters_cannot_hold_sibling_fields_together() {
         let source=crate::format(r#"type Holder={run:ReadOnly<Function<int>>;label:string;};type Pair={left:Holder;right:Holder;};function touch(left:Mutable<Holder>,right:Mutable<Holder>):void{left.label="left!";right.label="right!";}function probe(holder:ReadOnly<Holder>):int{return holder.run();}function main(){}"#).unwrap();
         assert_eq!(crate::format(&source).unwrap(),source);
         let checked=crate::check(&source).unwrap();
@@ -200,7 +200,9 @@ mod tests {
         "#));
         assert!(rust.contains("fn main() -> () {"));
         rust=rust.replace("fn main() -> () {","fn main() -> () { verify();");
-        crate::scoped_record_places::tests::native(&rust);
+        // Each getter borrows the whole view. Sibling fields are reached together
+        // through tsr_fields_mut, which the next test exercises.
+        crate::scoped_record_places::tests::native_rejection(&rust,"E0499");
     }
 
     #[test]

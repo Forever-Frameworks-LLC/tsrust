@@ -209,8 +209,9 @@ function last(user: User, action: Once<Function<void>>) { console.log(user.name)
 function main() { const user: User = { name: "Pat" }; "#;
     for (body, code) in [
         (
+            // A Once callback that is only called borrows `user` for the call.
             "first((): void => { user.name = \"Sam\"; }, user);",
-            "transferred",
+            "capture-conflict",
         ),
         (
             "last(user, (): void => { user.name = \"Sam\"; });",

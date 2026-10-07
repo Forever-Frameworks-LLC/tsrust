@@ -16,7 +16,7 @@
     "operationUnit": "one actual strict-boolean &&= expression and retention of expression result and final target",
     "specification": "Select all four Boolean old/RHS combinations dynamically from iteration and seed; actual logical assignment alternates skipped/executed RHS paths and retains expression result and final target as interleaved 0/1 leaves of length 2*n.",
     "notes": "Boolean tables/setup, indexing, target initialization, actual short-circuit assignment, two branch-to-0/1 conversions and complete int-array construction/retention are timed. Conversion uses the existing boolean_or pattern; no boolean-array ABI or nullable/coercion equivalence is claimed. One assignment counts as one operation despite two retained leaves. Complete observation runs outside timing. Untimed source-order evidence observes selected index once, skipped RHS and committed state.",
-    "sourceSha256": "8840741cf72a652db3d942c3750edcec0713a8b57c06b472704a713158eb37cc",
+    "sourceSha256": "c1a4faad9ea0f009f32b3446852bfd9a3f4107d3596c45b1033035f2306e7d11",
     "counterpartSha256": "a1dd2c383c8bfecf4e67dbb4b4d553e9c72e816b908a8ced39660dca27f64aab"
   },
   {
@@ -36,7 +36,7 @@
     "operationUnit": "one actual strict-boolean ||= expression and retention of expression result and final target",
     "specification": "Select all four Boolean old/RHS combinations dynamically from iteration and seed; actual logical assignment alternates skipped/executed RHS paths and retains expression result and final target as interleaved 0/1 leaves of length 2*n.",
     "notes": "Boolean tables/setup, indexing, target initialization, actual short-circuit assignment, two branch-to-0/1 conversions and complete int-array construction/retention are timed. Conversion uses the existing boolean_or pattern; no boolean-array ABI or nullable/coercion equivalence is claimed. One assignment counts as one operation despite two retained leaves. Complete observation runs outside timing. Untimed source-order evidence observes selected index once, skipped RHS and committed state.",
-    "sourceSha256": "14096de56cdff09eeff78f4d2c8abc26b3a4fd77604bc30e217e6d8f1d2fe2fd",
+    "sourceSha256": "efcfa0d6fd97444f27f54396440fe139628dfd964b4636f41064d3e824b174b5",
     "counterpartSha256": "c3f0bd9b38ff5d90f6caa9b5a1a1b1717ed0e6c998e5777aca17c5d4d1a6ee80"
   }
 ]

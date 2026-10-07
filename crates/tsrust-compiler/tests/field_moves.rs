@@ -276,7 +276,7 @@ fn detached_argument_values_release_root_loans_and_borrows_remain_conservative()
         Some(&[("pair.a", Mode::Consume), ("pair.b", Mode::Consume)]),
     );
     reject(
-        "type Box = { left: string; right: string; }; function pair(a: string, b: string) { console.log(a); const s = b; } function main() { const box: Box = { left: \"Pat\", right: \"Sam\" }; pair(box.left, box.right); }",
+        "type Box = { left: string; right: string; }; function pair(a: string, b: string) { console.log(a); const s = b; } function main() { const box: Box = { left: \"Pat\", right: \"Sam\" }; pair(box.left, box.left); }",
         "conflicting-access",
     );
     reject(

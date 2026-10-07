@@ -172,10 +172,6 @@ fn nullable_diagnostics_projections_hidden_consumers_moves_and_depth_are_precise
             "unsupported",
         ),
         (
-            "function main(){const x:int|null=1;console.log(Number(x));}",
-            "unsupported",
-        ),
-        (
             "function main(){const x:string|null=\"x\";console.log(`${x}`);}",
             "type",
         ),

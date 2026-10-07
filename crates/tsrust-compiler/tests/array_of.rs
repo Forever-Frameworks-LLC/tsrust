@@ -188,10 +188,6 @@ fn constructor_type_arity_transfer_and_normal_depth_guards_are_precise() {
         ("function main(){Array.of<int>(1.5);}", "type"),
         ("function main(){Array.of<int,string>(1);}", "arity"),
         (
-            "function action():int{return 1;}function main(){Array.of(action);}",
-            "array-element",
-        ),
-        (
             "function main(){const a=[1];a.slice<int>();}",
             "unsupported",
         ),

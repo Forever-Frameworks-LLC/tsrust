@@ -13263,6 +13263,24 @@
       "evidence": []
     },
     {
+      "id": "record.borrowingCallableField",
+      "display": "record.borrowingCallableField",
+      "category": "Functions and classes",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/173-scoped-callable-records.md",
+        "./callable-fields.md"
+      ],
+      "workloads": [
+        "scoped_callable_records"
+      ],
+      "measured": false,
+      "note": "Record fields declared ReadOnly<Function<...>> or Mutable<Function<...>> hold callbacks that borrow local variables. Fields keep independent borrows through calls, sibling arguments, nested records, record parameters, replacement, moves and scope exit. One matched seven-observation scenario is verified untimed on native and Node-after-tsc; no measurement. Arrays, Maps, Sets and unions of such records, replacement of nullable borrowing fields and fallible callback fields behind record parameters in throwing programs are rejected with diagnostics."
+    },
+    {
       "id": "AsyncGenerator.[Symbol.asyncIterator]",
       "category": "Generators",
       "kind": "method",

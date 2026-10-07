@@ -9,7 +9,7 @@ const here=path.dirname(new URL(import.meta.url).pathname);
 const source=fs.readFileSync(path.resolve(here,'../../crates/tsrust-compiler/tests/scoped_callable_records.rs'),'utf8');
 const cases=[...source.matchAll(/project\(\s*r#"([\s\S]*?)"#\s*,?\s*\);/g)].map(match=>match[1]);
 test('scoped record source assertions also pass after TypeScript compilation',()=>{
-    assert.equal(cases.length,16);
+    assert.equal(cases.length,31);
     const temporary=fs.mkdtempSync(path.join(os.tmpdir(),'tsrust-scoped-reference-'));
     try {
         for(const [index,body] of cases.entries()) {

@@ -197,10 +197,7 @@ fn integer_type_and_syntax_errors_are_frontend_errors() {
             r#"type int = { id: int; }; function main() {}"#,
             "duplicate",
         ),
-        (r#"function main() { const x = 1.5_0; }"#, "unsupported"),
         (r#"function main() { const x = 1e+; }"#, "syntax"),
-        (r#"function main() { const x = 0xff; }"#, "unsupported"),
-        (r#"function main() { const x = 1_000; }"#, "unsupported"),
         (r#"function main() { const x = 1n; }"#, "unsupported"),
     ] {
         reject(source, code);

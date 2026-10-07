@@ -2,7 +2,8 @@
 use super::*;
 impl Analyzer {
     pub(super) fn record_value_carrier_type(&mut self,context:&Context,value:&Expr,plans:&HashMap<usize,Type>)->Result<Type,Diagnostic>{
-        let checked=value.ty.expect("checked record storage value");
+        // An expression of an unchecked generic body has no storage to plan.
+        let Some(checked)=value.ty else{return Ok(Type::Void);};
         if !matches!(checked,Type::Record(_) | Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)){return Ok(checked);}
         if let(Some(binding),Some((_,path)))=(Self::root_binding(value),Self::direct_fields(value)){
             let binding_info=&context.bindings[binding];

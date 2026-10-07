@@ -16,7 +16,7 @@
     "operationUnit": "complete search iteration including needle and bound selection and retaining index + 1; the 129-element receiver is built once per workload invocation",
     "specification": "Search a 129-element runtime-derived int receiver with omitted fromIndex. Retain every index as index + 1, a lossless encoding of -1 through 128 into 0 through 129.",
     "notes": "Receiver setup, query support, one lastIndexOf call and complete index output retention are timed. Complete tree encoding runs outside timing. This measures complete search iterations rather than isolated-call latency.",
-    "sourceSha256": "4180c170ac7048020f968d0ac016133a355a198dc029a93f5614860837dbc56c",
+    "sourceSha256": "aaf3c728766e1614ce65a077baacdc084bd9b22ab8ac4771fbbe68615d11c314",
     "counterpartSha256": "fce91c7890f32c9b60cbf47347c3265528afabf580b090f74fdd8105cff9365e"
   },
   {
@@ -36,7 +36,7 @@
     "operationUnit": "complete search iteration including needle and bound selection and retaining index + 1; the 129-element receiver is built once per workload invocation",
     "specification": "Search a 129-element runtime-derived number receiver with omitted fromIndex. Retain every index as index + 1, a lossless encoding of -1 through 128 into 0 through 129.",
     "notes": "Receiver setup, query support, one lastIndexOf call and complete index output retention are timed. Complete tree encoding runs outside timing. This measures complete search iterations rather than isolated-call latency.",
-    "sourceSha256": "7979e873b9f64dd2ad06e186533d55068794d208657a8204176bc187fceeda13",
+    "sourceSha256": "fe670131c9184808689556bc49904ae3f574aec2b225aacb5368b824943572e0",
     "counterpartSha256": "f1209c526ebe96e3760888ddf4ff2160a2a2fe668ea2c77edb5d230f5cdd852d"
   },
   {
@@ -56,7 +56,7 @@
     "operationUnit": "complete search iteration including needle and bound selection and retaining index + 1; the 129-element receiver is built once per workload invocation",
     "specification": "Search a 129-element runtime-derived boolean receiver with omitted fromIndex. Retain every index as index + 1, a lossless encoding of -1 through 128 into 0 through 129.",
     "notes": "Receiver setup, query support, one lastIndexOf call and complete index output retention are timed. Complete tree encoding runs outside timing. This measures complete search iterations rather than isolated-call latency.",
-    "sourceSha256": "b920ed07270d7ea578124d5bfacfd7282dc6ecbfcb69df24dea9e81fa4eed64f",
+    "sourceSha256": "c7f98189d76b4359766432c8289f201d0580ad92fd9ba280325bd0ee58dd4d28",
     "counterpartSha256": "db84b9a308780608805b561f89147de091f456fdc0d8185b3a5e1be3836ece5c"
   },
   {
@@ -77,7 +77,7 @@
     "operationUnit": "complete search iteration including needle and bound selection and retaining index + 1; the 129-element receiver is built once per workload invocation",
     "specification": "Search a 129-element runtime-derived string receiver with omitted fromIndex. Retain every index as index + 1, a lossless encoding of -1 through 128 into 0 through 129.",
     "notes": "Receiver setup, query support, one lastIndexOf call and complete index output retention are timed. Complete tree encoding runs outside timing. This measures complete search iterations rather than isolated-call latency. Native string setup owns independent copies while JavaScript may share immutable references; equal allocation is not claimed.",
-    "sourceSha256": "a0c8f413ddd24130ab15929c18cbbf23c2bd114b4272f0412cb8707725d5c636",
+    "sourceSha256": "3b1616398f49a42bd68d640b2068e7d4c90e1ced61dc9a43a69169aeed3c25e3",
     "counterpartSha256": "9e25e04719a935df6ec9579d85921c829e9a63dc2161a40ec90989efd51c92f5",
     "inputText": " xé😀é "
   },
@@ -98,7 +98,7 @@
     "operationUnit": "complete search iteration including needle and bound selection and retaining index + 1; the 129-element receiver is built once per workload invocation",
     "specification": "Search a 129-element runtime-derived int receiver with signed extreme, negative, zero, in-range and beyond-end fromIndex. Retain every index as index + 1, a lossless encoding of -1 through 128 into 0 through 129.",
     "notes": "Receiver setup, query support, one lastIndexOf call and complete index output retention are timed. Complete tree encoding runs outside timing. This measures complete search iterations rather than isolated-call latency.",
-    "sourceSha256": "24ce9adf56088f33966d67362e730ed104c3930b860e611dca88a5e24cb01903",
+    "sourceSha256": "250488adbb07f38ad23b1d09d319b446635957200460a6e993c4396d730f6698",
     "counterpartSha256": "1150e1c1d6d293db8534ed04cfca7c6cecf9ab719766cc3a63ee15680a9f0d1a"
   },
   {
@@ -118,7 +118,7 @@
     "operationUnit": "complete search iteration including needle and bound selection and retaining index + 1; the 129-element receiver is built once per workload invocation",
     "specification": "Search a 129-element runtime-derived number receiver with signed extreme, negative, zero, in-range and beyond-end fromIndex. Retain every index as index + 1, a lossless encoding of -1 through 128 into 0 through 129.",
     "notes": "Receiver setup, query support, one lastIndexOf call and complete index output retention are timed. Complete tree encoding runs outside timing. This measures complete search iterations rather than isolated-call latency.",
-    "sourceSha256": "e88fcc6e0127a7410a3134f3dac99f1ff45a2bd1bba7676776c15a998a62fcd3",
+    "sourceSha256": "3ff477799335e769f7d8fe50b3f011adf5ee04d6e2e605d10ad3d5da44977dd7",
     "counterpartSha256": "9b046301d0ec468da43d8ecf0a7920008f62b27b5ca2f5f0e5e76fe1acbd350d"
   },
   {
@@ -138,7 +138,7 @@
     "operationUnit": "complete search iteration including needle and bound selection and retaining index + 1; the 129-element receiver is built once per workload invocation",
     "specification": "Search a 129-element runtime-derived boolean receiver with signed extreme, negative, zero, in-range and beyond-end fromIndex. Retain every index as index + 1, a lossless encoding of -1 through 128 into 0 through 129.",
     "notes": "Receiver setup, query support, one lastIndexOf call and complete index output retention are timed. Complete tree encoding runs outside timing. This measures complete search iterations rather than isolated-call latency.",
-    "sourceSha256": "979faafd8cbf9e6e0af1a57d7a0916f023450ed88aa1ce22fcc1275e96f33a22",
+    "sourceSha256": "10bc8bdf78c823be5bf94d234213e16b326b0a02b4547a05f9fc964e192be612",
     "counterpartSha256": "794965b9d844f98127768ec9169fdf8085ae99491d5cc2dd20a70e64f83a3292"
   },
   {
@@ -159,7 +159,7 @@
     "operationUnit": "complete search iteration including needle and bound selection and retaining index + 1; the 129-element receiver is built once per workload invocation",
     "specification": "Search a 129-element runtime-derived string receiver with signed extreme, negative, zero, in-range and beyond-end fromIndex. Retain every index as index + 1, a lossless encoding of -1 through 128 into 0 through 129.",
     "notes": "Receiver setup, query support, one lastIndexOf call and complete index output retention are timed. Complete tree encoding runs outside timing. This measures complete search iterations rather than isolated-call latency. Native string setup owns independent copies while JavaScript may share immutable references; equal allocation is not claimed.",
-    "sourceSha256": "bb83100e2c75df529c9a4ac2b58f7c3d6813c5c123cd2b1a668d061d046d7454",
+    "sourceSha256": "66869deed128854d7b14b2c42ff1eed1a052d0dded0e68511d96aae1f02f4e2f",
     "counterpartSha256": "865a16147902880c35e43f7ef82b4c9f434a1a1b50134ac1dc66ad6ba03874ed",
     "inputText": " xé😀é "
   }
