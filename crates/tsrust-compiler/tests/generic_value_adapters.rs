@@ -574,3 +574,19 @@ fn unused_generic_calls_validate_callback_parameters_and_arrow_aliases() {
 fn unused_alias_contracts_match_the_typescript_reference() {
     native(include_str!("fixtures/generic-value-adapters/unused-alias-contracts.tsr"), "");
 }
+
+#[test]
+fn unused_closure_callbacks_and_dynamic_spreads_reject_guaranteed_excess() {
+    let mut accepted=Vec::new();
+    for source in [
+        "function unused<T>(value:T):void{const apply=(action:(item:T)=>T):T=>action(value,value);}function main(){}",
+        "function identity<T>(value:T):T{return value;}function unused<T>(value:T,tail:T[]):T{const alias=identity;return alias(value,value,...tail);}function main(){}",
+        "function identity<T>(value:T):T{return value;}function unused<T>(value:T,tail:T[]):T{const alias=identity;return alias(...[value,...tail,value]);}function main(){}",
+    ] {
+        match tsrust_compiler::check(source) {
+            Ok(_)=>accepted.push(source),
+            Err(error)=>assert_eq!(error.code,"arity","{}",error.render("input.tsr",source)),
+        }
+    }
+    assert!(accepted.is_empty(),"Invalid unused calls accepted: {accepted:#?}");
+}
