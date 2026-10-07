@@ -55,7 +55,11 @@ separately and preserve their current diagnostics until their own support is pro
    layout module. Preserve assignment evaluation order and failure behavior. Turn
    the existing independent-field native witness green with both live-field
    rejection controls unchanged.
-5. **Whole-record transport.** Reconstruct owning values from field places only on
+5. **Whole-record view rendering foundation implemented.** Shared and mutable
+   renderers borrow independent leaves. A native component test proves string
+   storage identity, in-place mutation and subsequent owning reconstruction. The
+   nominal borrowing bridge and main emitter integration remain pending.
+   **Whole-record transport.** Reconstruct owning values from field places only on
    a checked whole move. Borrowed whole-record consumers need a compatible view
    or bridge that references original fields and supports existing callable bounds.
    Whole mutation and replacement must commit fields after RHS checking and
@@ -83,7 +87,9 @@ cases. Run all eight depth canaries after analyzer/emitter dispatch changes, and
 focused exception/loan controls when ownership changes. Avoid routine full compiler
 or benchmark matrices and do not claim measurements for unmeasured workloads.
 
-The current source checkpoint remains 9c87e61. Installed consumers remain f1dd284.
+The declaration/owning renderer checkpoint is a7efe63. The subsequent view
+renderer component has five passing focused tests; main emitter integration remains
+pending. Installed consumers remain f1dd284.
 Record gate and gate 173 remain open. Preserve all fifteen owner fixtures and use
 explicit Git paths. A partial representation milestone does not close the record
 feature family.

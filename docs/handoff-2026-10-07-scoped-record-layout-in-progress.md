@@ -832,3 +832,34 @@ Continue whole-record view bridges and main emitter wiring using the tested layo
 renderers. Preserve non-copy data borrowing, nominal record ABI, three wrappers
 and no implicit clone. Use bounded checks, project formatting, SQLite evidence and
 explicit Git paths; never stage protected owner fixtures.
+
+## Shared and mutable view rendering foundation
+
+The layout module renders shared and mutable views by borrowing independent leaf
+places. A native component witness uses a non-copy String, checks pointer identity
+for the shared view, mutates the original string and numeric fields through the
+mutable view, and reconstructs an owning record afterward. The generic inspection
+helper accepts the owned record and shared view through a test-local trait. All
+five layout/rendering tests pass. Native test executables have unique names for
+parallel test workers and are removed on success or failure.
+
+Exact red and green evidence is verified in SQLite under
+runtime/diagnostics/scoped-record-views/. Whole-project formatting changes zero
+files and fingerprints. No shared compiler dispatch changed. This verifies view
+construction only: production nominal view declarations, borrowing parameter ABI,
+field selection and main emitter wiring remain pending. The original native
+independent-field disposal witness remains red. Record acceptance and gate 173
+remain open; consumers remain f1dd284. Preserve fifteen owner fixtures.
+
+Keep ReadOnly, Mutable and Once as the public callable model. Capture storage,
+lifetime and disposal are implementation obligations beneath those wrappers; no
+fourth public variant has been justified by the current witnesses.
+
+Continuation prompt: Continue Tsrust from this handoff. Read AGENTS.md,
+docs/development-workflow.md and docs/scoped-record-field-storage-plan.md. Connect
+the tested field layout and view renderers to nominal borrowing bridges and emitter
+storage paths. Preserve non-copy data borrowing, owning moves, field restoration,
+existing parameter/factory cases and both live-owner rejection controls. Use focused
+red tests, bounded native/editor checks, required dispatch depth canaries, automatic
+whole-project formatting, SQLite evidence and explicit Git paths. Never stage the
+fifteen owner fixtures. Keep three public wrappers and no implicit clone.
