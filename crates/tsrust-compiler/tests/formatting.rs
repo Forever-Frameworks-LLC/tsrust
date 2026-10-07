@@ -253,3 +253,23 @@ fn interfaces_keep_generic_brackets_and_separate_comma_fields() {
     assert_eq!(format(&result).unwrap(), result);
     assert!(check(&result).is_ok(), "{result}");
 }
+
+#[test]
+fn assertion_continuations_and_generic_calls_keep_type_spacing() {
+    let source="type Row={value:int;};interface Box<T>{value:T;}function identity<T>(value:T):T{return value;}function main(){const row={value:4}\n\nsatisfies Row;const callback=((x:int):int=>x+1) satisfies(value:int)=>int;const asserted=((x:int):int=>x+2) as(value:int)=>int;const boxed={value:9}\n\nas Box < int >;const value=identity < int >(boxed.value);console.log(row.value,callback(value),asserted(4));}";
+    let formatted=format(source).unwrap();
+    for expected in ["} satisfies Row;","satisfies (value: int) => int;","as (value: int) => int;","} as Box<int>;","identity<int>(boxed.value)"] {
+        assert!(formatted.contains(expected),"Missing {expected:?}:\n{formatted}");
+    }
+    assert_eq!(format(&formatted).unwrap(),formatted);
+    assert_eq!(check(source).unwrap().contracts(),check(&formatted).unwrap().contracts());
+}
+
+#[test]
+fn formatted_generic_calls_do_not_change_comparisons_or_nested_types() {
+    let source="function identity<T>(value:T):T{return value;}function main(){const a=1;const b=2;const lower=a < b;const higher=b > a;const shift=8 >> 1;const values=identity < int[] >([1]);console.log(lower,higher,shift,values[0]);}";
+    let formatted=format(source).unwrap();
+    for expected in ["identity<int[]>([1])","a < b","b > a","8 >> 1"] {assert!(formatted.contains(expected),"{formatted}");}
+    assert_eq!(format(&formatted).unwrap(),formatted);
+    check(&formatted).unwrap();
+}
