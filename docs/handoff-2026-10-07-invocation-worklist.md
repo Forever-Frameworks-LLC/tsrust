@@ -272,3 +272,31 @@ The hint checkpoint verifies its focused identity/shadowing test, 80 compiler
 checks including all eight depth canaries and generic function value controls,
 and 197 affected editor tests. Whole-project formatting changes zero files and
 fingerprints. The native factory red is deliberately retained.
+
+
+## Checked polymorphic argument transport
+
+The retained native factory witness now passes for named selectors and arrow
+selectors. A checked internal annotation retains deferred source identity across
+generic substitution, signature resolution and definitive closure compaction.
+Source syntax does not expose this annotation. Generic factories preserve the
+original callable contract instead of inventing a concrete signature or rebuilding
+captured owners. One retained callable can specialize for both integer and string
+arguments when its checked capture access permits reuse. Independent one-argument
+and two-argument factories retain their distinct contracts.
+
+Native disposal witnesses count the four original owners exactly once after
+success, callback failure and abandoned selectors, at optimization levels 0 and 3.
+Borrowed escaping captures, transferred callable reuse and consuming capture reuse
+remain rejected. Editor tests verify concrete signature help and integer/string
+results without displaying internal identities. Existing nullable generic inference
+now applies result context before retrying deferred null constraints; its existing
+regression witness passes.
+
+The bounded compiler batch passes 191 checks, including all eight depth canaries;
+78 generic unit checks and the whole editor crate pass. The existing matched generic
+value adapter family now observes 127 values, with independent oracle arithmetic
+and source mutation guards. Timing remains pending. This is a prerequisite within
+gate 173, not acceptance of the complete captured-effects or environment plans.
+Point-sensitive mutable environments, recursive convergence and common native
+callable carriers remain open.

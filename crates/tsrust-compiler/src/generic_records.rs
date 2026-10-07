@@ -153,6 +153,7 @@ impl Context<'_> {
         parameters: &[TypeName],
     ) -> Result<(), Diagnostic> {
         match &value.kind {
+            Kind::Polymorphic { .. } => Ok(()),
             Kind::Named(name) => {
                 if parameters
                     .iter()
@@ -252,6 +253,7 @@ impl Context<'_> {
             return self.annotation(value, &HashMap::new());
         }
         match &mut value.kind {
+            Kind::Polymorphic { .. } => {},
             Kind::Named(name) => {
                 if let Some(argument) = bindings.get(&name.text) {
                     *value = argument.clone();

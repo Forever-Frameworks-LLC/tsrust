@@ -20,7 +20,7 @@ fn may_defer(pattern: &ValueAnnotation) -> bool {
         Kind::Union(_) => true,
         Kind::Group(inner) | Kind::Array(inner) => may_defer(inner),
         Kind::Applied { arguments, .. } | Kind::Tuple(arguments) => arguments.iter().any(may_defer),
-        Kind::Named(_) | Kind::Callable { .. } => false,
+        Kind::Named(_) | Kind::Callable { .. } | Kind::Polymorphic { .. } => false,
     }
 }
 
@@ -100,9 +100,6 @@ impl Types<'_> {
                 Err(error) => return Err(error),
             }
         }
-        for (pattern, actual) in deferred {
-            self.unify(pattern, actual, &variables, bindings)?;
-        }
         if let (Some(pattern), Some(expected)) = (request.result, request.expected) {
             // Inputs establish the payload first. A contextual result can accept
             // that concrete result as one union member without changing it.
@@ -111,6 +108,9 @@ impl Types<'_> {
             if !accepted {
                 self.unify(pattern, expected, &variables, bindings)?;
             }
+        }
+        for (pattern, actual) in deferred {
+            self.unify(pattern, actual, &variables, bindings)?;
         }
         request.variables.iter().map(|variable| {
             bindings.get(&variable.text).copied().ok_or_else(|| Diagnostic::new(
@@ -136,6 +136,7 @@ impl Types<'_> {
             )
         };
         match &pattern.kind {
+            Kind::Polymorphic { origin, .. } => if actual==Type::Closure(*origin) {Ok(())} else {Err(mismatch())},
             Kind::Named(name) if variables.contains(&name.text) => {
                 if let Some(prior) = bindings.get(&name.text) {
                     let same_callable = *prior != actual
@@ -205,6 +206,7 @@ impl Types<'_> {
                 let mut unbound = false;
                 while let Some(value) = pending.pop() {
                     match &value.kind {
+                        Kind::Polymorphic { .. } => {},
                         Kind::Named(name) => {
                             unbound |=
                                 variables.contains(&name.text) && !bindings.contains_key(&name.text)
@@ -450,7 +452,7 @@ impl Types<'_> {
                     self.materialize_names(member)?;
                 }
             }
-            Kind::Callable { .. } | Kind::Named(_) => {}
+            Kind::Callable { .. } | Kind::Named(_) | Kind::Polymorphic { .. } => {}
         }
         Ok(())
     }

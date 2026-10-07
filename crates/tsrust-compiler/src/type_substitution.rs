@@ -25,6 +25,7 @@ pub(crate) fn apply(
             ));
         }
         match &mut value.kind {
+            Kind::Polymorphic { .. } => {},
             Kind::Named(name) => {
                 if let Some(argument) = bindings.get(&name.text) {
                     validate_depth(argument, depth)?;
@@ -104,7 +105,7 @@ pub(crate) fn apply(
                 ));
             }
             match &value.kind {
-                Kind::Named(_) => {}
+                Kind::Named(_) | Kind::Polymorphic { .. } => {}
                 Kind::Group(inner) | Kind::Array(inner) => pending.push((inner, depth + 1)),
                 Kind::Applied { arguments, .. } | Kind::Union(arguments) | Kind::Tuple(arguments) => {
                     pending.extend(arguments.iter().map(|value| (value, depth + 1)))

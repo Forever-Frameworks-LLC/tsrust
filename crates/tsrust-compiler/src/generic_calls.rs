@@ -225,7 +225,8 @@ impl Analyzer {
         let mut prepared = vec![false; args.len()];
         loop {
             let callable_shapes = self.generic_callable_shapes(context, args);
-            let annotations = self.checked_inference_callable_annotations(callable_shapes.keys().copied().chain(expected))?;
+            let mut annotations = self.checked_inference_callable_annotations(callable_shapes.keys().copied().chain(expected))?;
+            annotations.extend(self.polymorphic_argument_annotations(context,args)?);
             let types = crate::generic_inference::Types { callable_annotations: Some(&annotations),
                 callable_shapes: Some(&callable_shapes),
                 inline_shapes: Some(&inline_shapes),
@@ -277,7 +278,8 @@ impl Analyzer {
             }
         }
         let callable_shapes = self.generic_callable_shapes(context, args);
-            let annotations = self.checked_inference_callable_annotations(callable_shapes.keys().copied().chain(expected))?;
+            let mut annotations = self.checked_inference_callable_annotations(callable_shapes.keys().copied().chain(expected))?;
+            annotations.extend(self.polymorphic_argument_annotations(context,args)?);
         let types = crate::generic_inference::Types { callable_annotations: Some(&annotations),
             callable_shapes: Some(&callable_shapes),
             inline_shapes: Some(&inline_shapes),

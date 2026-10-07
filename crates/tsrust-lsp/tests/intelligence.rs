@@ -8023,3 +8023,19 @@ fn literal_guards_do_not_publish_unreachable_generic_arity_errors() {
     assert_eq!(tsrust_compiler::format(&source).unwrap(),source);
     assert!(tsrust_lsp::diagnostics(&source,"file:///literal-guard.tsr").unwrap().is_empty());
 }
+
+#[test]
+fn transported_polymorphic_factory_values_keep_concrete_call_help() {
+    let source="function one<T>(value:T):T{return value;}function two<T>(value:T,other:T):T{return other;}function factory<A>(action:A){function select(){return action;}return select;}function main(){const first=factory(one);const second=factory(two);const saved=first();const other=second();const number=saved<int>(7);const text=saved<string>('Pat');const chosen=other<int>(7,9);}";
+    tsrust_compiler::check(source).unwrap();
+    let first=ask(source,"textDocument/signatureHelp","7);",0);
+    assert_eq!(first["signatures"][0]["parameters"].as_array().unwrap().len(),1,"{first}");
+    assert!(first["signatures"][0]["label"].as_str().unwrap().contains("int"),"{first}");
+    let second=ask(source,"textDocument/signatureHelp","9);",0);
+    assert_eq!(second["signatures"][0]["parameters"].as_array().unwrap().len(),2,"{second}");
+    for (name,ty) in [("number=","int"),("text=","string"),("chosen=","int")] {
+        let hover=ask(source,"textDocument/hover",name,0);
+        let text=hover["contents"]["value"].as_str().unwrap();
+        assert!(text.contains(ty) && !text.contains('#') && !text.contains("Polymorphic"),"{hover}");
+    }
+}

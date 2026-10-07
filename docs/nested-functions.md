@@ -423,3 +423,30 @@ shadow enclosing parameters with the same name. Explicit and inferred calls,
 recursive peers, saved function values and module imports retain the same rule.
 Escaped functions retain their original owned captures; a consuming call transfers
 those values once. Failure disposes the original capture without an implicit clone.
+
+A generic callable can pass through another generic function without losing its
+own type parameters. For example, a factory can retain a callable and return a
+selector that transfers it to the caller:
+
+```tsr
+function identity<T>(value: T): T { return value; }
+function retain<A>(action: A) {
+    function select() { return action; }
+    return select;
+}
+function main() {
+    const select = retain(identity);
+    const saved = select();
+    console.log(saved<int>(7), saved<string>("Pat"));
+    // 7 Pat
+}
+```
+
+The returned callable keeps its original parameter counts, type relationships and
+capture ownership. Different factory calls retain independent environments. A
+selector that returns its owned captured callable transfers that callable when
+invoked; it cannot return the same owned value a second time. Calls to the
+transferred callable can use different type arguments if its capture access allows
+reuse. A callable that consumes a captured owner still permits only one call.
+Borrowed environments cannot escape through this factory. Returning a callable
+uses the existing ownership rules and does not copy its captured owners.

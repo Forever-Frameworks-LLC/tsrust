@@ -222,10 +222,44 @@ fn independent_factory_environments_reject_the_wrong_returned_contract() {
 fn returned_factory_contracts_execute_from_distinct_native_environments() {
     let directory=support::TempDirectory::new();
     let source=include_str!("fixtures/callable-environments/retained.tsr");
-    let formatted=tsrust_compiler::format(source).unwrap();
-    assert_eq!(tsrust_compiler::format(&formatted).unwrap(),formatted);
-    let path=directory.source(&formatted);
-    let output=support::run(support::cli().arg("run").arg(path),60);
-    support::success(&output);
-    assert!(output.stdout.is_empty());
+    for source in [source.to_owned(),source.replace("    function select() {\n        return action;\n    }\n\n    return select;","    return () => action;")] {
+        let formatted=tsrust_compiler::format(&source).unwrap();
+        assert_eq!(tsrust_compiler::format(&formatted).unwrap(),formatted);
+        let path=directory.source(&formatted);
+        let output=support::run(support::cli().arg("run").arg(path),60);
+        support::success(&output);
+        assert!(output.stdout.is_empty());
+    }
+}
+
+#[test]
+fn transported_polymorphic_factory_owners_drop_once_on_success_failure_and_abandonment() {
+    let source=tsrust_compiler::format("type Item={id:int;fail:boolean;};function make(item:Item){function run<T>(value:T):T{if(item.fail){throw item.id;}return value;}return run;}function factory<A>(action:A){function select(){return action;}return select;}function main(){{const action=make({id:1,fail:false});const first=factory(action);const saved=first();if(saved<int>(7)!==7||saved<string>('x')!=='x'){throw 99;}}{const action=make({id:2,fail:false});const second=factory(action);const saved=second();if(saved<int>(9)!==9){throw 99;}}{const action=make({id:3,fail:true});const third=factory(action);const saved=third();let caught=false;try{saved<int>(0);}catch(error){caught=error===3;}if(!caught){throw 99;}}{const action=make({id:4,fail:false});const abandoned=factory(action);}}").unwrap();
+    assert_eq!(tsrust_compiler::format(&source).unwrap(),source);
+    let rust=tsrust_compiler::check(&source).unwrap().emit_rust().replace("fn main()","fn source_main()")+r#"
+static DROPS:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+static SEEN:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+impl Drop for Record0 {fn drop(&mut self){DROPS.fetch_add(1,std::sync::atomic::Ordering::SeqCst);SEEN.fetch_or(1<<self.field0,std::sync::atomic::Ordering::SeqCst);}}
+fn main(){source_main();assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCst),4);assert_eq!(SEEN.load(std::sync::atomic::Ordering::SeqCst),30);}
+"#;
+    let directory=support::TempDirectory::new();let path=directory.0.join("transported-environments.rs");std::fs::write(&path,rust).unwrap();
+    for level in ["0","3"] {
+        let binary=directory.0.join(format!("transported-environments-{level}"));
+        support::success(&support::run(support::rustc().args(["--edition=2024","-C",&format!("opt-level={level}")]).arg(&path).arg("-o").arg(&binary),60));
+        support::success(&support::run(&mut std::process::Command::new(binary),10));
+    }
+}
+
+#[test]
+fn transported_polymorphic_arguments_preserve_borrow_and_consumption_rejections() {
+    let factory="function factory<A>(action:A){function select(){return action;}return select;}";
+    for (body,code) in [
+        ("function view(item:ReadOnly<Item>){function step<T>(value:T):T{console.log(item.id);return value;}const action=step;const selected=factory(action);}function main(){}","closure-escape"),
+        ("function main(){const action=make({id:1});const selected=factory(action);action<int>(7);}","closure-consumed"),
+        ("function main(){const action=make({id:1});const selected=factory(action);const saved=selected();const first=saved<int>(7);const second=saved<int>(9);}","closure-consumed"),
+    ] {
+        let source=tsrust_compiler::format(&format!("type Item={{id:int;}};function make(item:Item){{function take<T>(value:T):Item{{return item;}}return take;}}{factory}{body}")).unwrap();
+        let error=tsrust_compiler::check(&source).err().unwrap_or_else(||panic!("borrow or transferred owner must be rejected: {body}"));
+        assert_eq!(error.code,code,"{}",error.render("input.tsr",&source));
+    }
 }

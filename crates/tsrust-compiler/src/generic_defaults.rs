@@ -12,6 +12,7 @@ mod scope;
 
 #[derive(Clone, PartialEq, Eq)]
 enum Shape {
+    Polymorphic(usize),
     Named(String),
     Array(Box<Shape>),
     Applied(String, Vec<Shape>),
@@ -22,6 +23,7 @@ enum Shape {
 }
 fn annotation(value: &ValueAnnotation) -> Shape {
     match &value.kind {
+        Kind::Polymorphic { origin, .. } => Shape::Polymorphic(*origin),
         Kind::Named(name) => Shape::Named(name.text.clone()),
         Kind::Group(inner) => annotation(inner),
         Kind::Array(inner) => Shape::Array(Box::new(annotation(inner))),

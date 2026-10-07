@@ -33,6 +33,9 @@ impl Analyzer {
         if depth >= 128 {
             return Err(Diagnostic::new("unsupported", "Checked callable annotation nesting exceeds the limit of 128.", span));
         }
+        if let Type::Closure(origin)=ty && let Some(source)=self.deferred_generic_values.get(&origin) {
+            return Ok(ValueAnnotation {kind:Kind::Polymorphic {origin,declaration:TypeName {text:source.declaration.clone(),span}},span});
+        }
         let contract = match ty {
             Type::Callable(id) => {
                 let contract = &self.callables.results[id];

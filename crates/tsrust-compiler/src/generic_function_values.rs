@@ -18,7 +18,7 @@ pub(crate) fn parameter(
             Kind::Named(ty) if variables.iter().any(|variable| variable.text == ty.text) => {
                 return ParameterAnnotation::Inferred(name.clone());
             }
-            Kind::Named(_) => {}
+            Kind::Named(_) | Kind::Polymorphic { .. } => {}
             Kind::Array(value) | Kind::Group(value) => pending.push(value),
             Kind::Applied { arguments, .. } | Kind::Union(arguments) | Kind::Tuple(arguments) => pending.extend(arguments),
             Kind::Callable { parameters, result, .. } => {

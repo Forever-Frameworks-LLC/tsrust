@@ -717,6 +717,7 @@ pub(crate) fn resolve_value_type(
 ) -> Result<Type, Diagnostic> {
     use crate::type_syntax::ValueAnnotationKind as Kind;
     match &annotation.kind {
+        Kind::Polymorphic { origin, .. } => Ok(Type::Closure(*origin)),
         Kind::Group(inner) => resolve_value_type(inner, allow_void, record_names, unions),
         Kind::Union(members) => {
             let members = members
@@ -1179,6 +1180,7 @@ fn remap_function_closures(
     function: &mut CheckedFunction,
     ids: &[Option<usize>],
 ) -> Result<(), Diagnostic> {
+    crate::source_walk::body(&mut function.body,&mut |annotation|polymorphic_argument_hints::remap_annotation(annotation,ids),&mut |_|Ok(()))?;
     remap_closure_type(&mut function.result, ids)?;
     for binding in &mut function.bindings {
         remap_closure_type(&mut binding.ty, ids)?;
@@ -2970,6 +2972,18 @@ impl Analyzer {
                     next += 1;
                 }
             }
+            for (index,function) in self.program.functions.iter_mut().enumerate() {
+                if self.checked[index].as_ref().is_some_and(|checked|checked.template) {continue;}
+                let mut remap=|annotation:&mut crate::type_syntax::ValueAnnotation|polymorphic_argument_hints::remap_annotation(annotation,&ids);
+                crate::source_walk::function_annotations(function,&mut remap)?;
+                crate::source_walk::function_body(function,&mut remap,&mut |_|Ok(()))?;
+                if let Some(application)=&mut function.application {
+                    for annotation in application.arguments.iter_mut().chain(&mut application.patterns) {remap(annotation)?;}
+                }
+                for parameter in &mut self.signatures[index].params {remap_closure_type(parameter,&ids)?;}
+                remap_closure_type(&mut self.signatures[index].result,&ids)?;
+            }
+            self.deferred_generic_values=std::mem::take(&mut self.deferred_generic_values).into_iter().filter_map(|(origin,source)|ids[origin].map(|mapped|(mapped,source))).collect();
             self.callables.storage.remap_origins(&ids)?;
             self.unions.remap_closure_origins(&ids);
             self.closures = self
@@ -5254,7 +5268,8 @@ impl Analyzer {
         result_type: Type,
         span: Span,
     ) -> Result<(), Diagnostic> {
-        context.returning_closure = self.callable_result_type(result_type);
+        context.returning_closure = self.callable_result_type(result_type) || matches!(result_type,Type::Closure(_))
+            || (context.inferred_body_result && value.as_ref().and_then(|value|self.expression_type_hint(context,value)).is_some_and(|ty|matches!(self.unions.payload(ty).unwrap_or(ty),Type::Closure(_)) || self.callable_result_type(ty)));
         let mut actual = match value {
             Some(value) => self.expression(
                 context,

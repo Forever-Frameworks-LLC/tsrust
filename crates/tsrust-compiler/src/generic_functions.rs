@@ -11,6 +11,7 @@ use std::collections::{BTreeMap, HashMap};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 enum Key {
+    Polymorphic(usize, String),
     Named(String),
     Array(Box<Key>),
     Applied(String, Vec<Key>),
@@ -20,6 +21,7 @@ enum Key {
 }
 fn key(value: &ValueAnnotation) -> Result<Key, Diagnostic> {
     Ok(match &value.kind {
+        Kind::Polymorphic { origin, declaration } => Key::Polymorphic(*origin,declaration.text.clone()),
         Kind::Named(name) => Key::Named(name.text.clone()),
         Kind::Group(inner) => return key(inner),
         Kind::Array(inner) => Key::Array(Box::new(key(inner)?)),
@@ -212,7 +214,7 @@ impl Cache {
             let mut callable = false;
             while let Some(annotation) = pending.pop() {
                 match &annotation.kind {
-                    Kind::Callable { .. } => { callable = true; break; }
+                    Kind::Callable { .. } | Kind::Polymorphic { .. } => { callable = true; break; }
                     Kind::Array(inner) | Kind::Group(inner) => pending.push(inner),
                     Kind::Applied { arguments, .. } | Kind::Union(arguments) | Kind::Tuple(arguments) => pending.extend(arguments),
                     Kind::Named(_) => {},

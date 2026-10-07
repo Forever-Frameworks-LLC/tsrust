@@ -44,6 +44,8 @@ pub struct CallableParameter {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ValueAnnotationKind {
+    /// Checked polymorphic environment identity; never produced by source parsing.
+    Polymorphic { origin: usize, declaration: TypeName },
     Named(TypeName),
     Callable {
         ownership: CallableOwnership,
@@ -63,7 +65,7 @@ pub enum ValueAnnotationKind {
 impl ValueAnnotation {
     fn nesting(&self) -> usize {
         match &self.kind {
-            ValueAnnotationKind::Named(_) => 0,
+            ValueAnnotationKind::Named(_) | ValueAnnotationKind::Polymorphic { .. } => 0,
             ValueAnnotationKind::Callable {
                 parameters, result, ..
             } => {

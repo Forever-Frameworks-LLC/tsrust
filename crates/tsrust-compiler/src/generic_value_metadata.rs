@@ -17,6 +17,7 @@ impl Analyzer {
             let mut pending = annotations.iter().collect::<Vec<_>>();
             while let Some(annotation) = pending.pop() {
                 let name = match &annotation.kind {
+                    Kind::Polymorphic { .. } => None,
                     Kind::Named(name) => Some(name),
                     Kind::Applied { name, arguments } => { pending.extend(arguments); Some(name) }
                     Kind::Array(inner) | Kind::Group(inner) => { pending.push(inner); None }

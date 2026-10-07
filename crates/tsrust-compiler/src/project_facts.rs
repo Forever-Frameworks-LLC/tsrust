@@ -423,7 +423,7 @@ impl ProjectAnalysis {
                     .collect::<Option<_>>()?,
             )),
             Kind::Tuple(positions) => Some(ProjectType::Tuple(positions.iter().map(|position|self.project_annotation(position,names)).collect::<Option<_>>()?)),
-            Kind::Applied { .. } | Kind::Callable { .. } => None,
+            Kind::Applied { .. } | Kind::Callable { .. } | Kind::Polymorphic { .. } => None,
         }
     }
 }

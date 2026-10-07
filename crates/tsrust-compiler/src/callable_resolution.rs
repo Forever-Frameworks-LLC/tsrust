@@ -71,6 +71,7 @@ impl Resolver<'_> {
         }
         use crate::type_syntax::ValueAnnotationKind as Kind;
         match &annotation.kind {
+            Kind::Polymorphic { origin, .. } => Ok(Type::Closure(*origin)),
             Kind::Group(inner) => self.resolve_value_annotation(inner, allow_void),
             Kind::Union(members) => {
                 let mut types = Vec::with_capacity(members.len());
