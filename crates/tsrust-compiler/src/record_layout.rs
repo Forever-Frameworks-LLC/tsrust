@@ -13,11 +13,20 @@ pub(crate) fn append_checked_record_fields(
     callables: &mut crate::callable_resolution::Tables,
 ) -> Result<(), Diagnostic> {
     resolve_record_fields(records, record_names, fields, |annotation| {
-        if let Some((ty, declaration)) = callables
-            .resolver(record_names, unions)
-            .storage_declaration(annotation)?
-        {
-            return Ok((ty, Some(declaration)));
+        match crate::scoped_record_fields::resolve(
+            &mut callables.resolver(record_names, unions), annotation,
+        )? {
+            Some(crate::scoped_record_fields::FieldContract::Owned { ty, declaration }) => {
+                return Ok((ty, Some(declaration)));
+            }
+            Some(crate::scoped_record_fields::FieldContract::Scoped { .. }) => {
+                return Err(Diagnostic::new(
+                    "callback-escape",
+                    "A field stores a Function<...> or Once<Function<...>>; ReadOnly and Mutable functions are borrowed and belong in local bindings or parameters.",
+                    annotation.span,
+                ));
+            }
+            None => {}
         }
         callables
             .resolver(record_names, unions)

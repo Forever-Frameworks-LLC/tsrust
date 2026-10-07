@@ -93,3 +93,20 @@ aggregate plan identifies declaration resolution, construction specialization,
 native generic layouts and aggregate escape traversal as separate responsibilities.
 Run the red tests before continuing; this is a work-in-progress checkpoint, not
 record acceptance. Evidence lives under runtime/diagnostics/scoped-callable-records/.
+
+## Scoped field contract implementation checkpoint
+
+scoped_record_fields now resolves owning versus scoped declaration contracts in a
+dedicated module. Scoped contracts preserve invocation access and source parameter
+labels, including nullable payloads, without certifying environment ownership.
+record_layout uses this resolver but still rejects scoped field admission until
+construction specialization and aggregate lifetime enforcement are integrated.
+Existing storage_declaration guarantees remain unchanged.
+
+The focused owning-field editor protocol check passes. Two module tests were red
+before implementation and now pass. Three record-layout
+checks and eight callable-resolution checks pass. The two source/native record
+witnesses remain red; this is preparatory implementation, not feature acceptance.
+Next implement concrete scoped record layout specialization without mutating shared
+nominal declaration metadata, then aggregate loan/escape checks before admitting
+construction. No additional public callback variant or owner decision is needed.

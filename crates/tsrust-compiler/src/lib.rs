@@ -48,6 +48,7 @@ mod project_facts;
 mod project_runtime;
 mod stdlib;
 mod record_layout;
+mod scoped_record_fields;
 mod record_runtime;
 mod runtime;
 mod storage;
