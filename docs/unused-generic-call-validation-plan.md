@@ -232,3 +232,34 @@ generic_value_adapters family is verified untimed. No artificial runtime workloa
 is introduced for a source-only rejection repair. Full Gate173 remains open for
 loop/exception flow, expression ordering, captured writes, stored fields, concrete
 environment replacement and the remaining lifetime/context audit.
+
+## Exception source-flow red checkpoint
+
+Eight focused witnesses currently accept invalid known-target calls in try bodies,
+catch bodies, normal cleanup, cleanup after return, catch after explicit throw,
+cleanup during break/continue and nested cleanup. Six valid controls preserve saved
+snapshots, definite cleanup/catch replacement, non-completing branches, cleanup
+return overriding throw and lexical shadowing. These are source-validation tests
+in generic_call_exceptions.rs; no implementation acceptance is claimed.
+
+Extend the iterative graph with explicit normal and exceptional successors.
+Evaluation failure must propagate the incoming environment before a destination
+assignment commits. Explicit throw enters the closest catch; failures inside that
+catch enter outer handlers after cleanup. Return, break and continue must execute
+each intervening finally in order, then resume their own completion destination.
+An abrupt completion inside finally replaces the suspended completion.
+
+Represent cleanup with continuation-specific graph entries, preserving lexical
+control destinations and outer handler context. Repeated cleanup copies must join
+call facts by source span, as the existing analyzer does, rather than overwrite
+facts from another completion. Audit implicit failures from call/index/member and
+operator expressions alongside explicit throws. Do not route all try paths into
+catch indiscriminately or join returned states into the normal successor. Retain
+iterative traversal and bounded growth for nested cleanup graphs.
+
+Add editor diagnostics and formatted native/strict TypeScript controls for cleanup
+ordering and target snapshots. Reuse the existing registered generic adapter family
+for untimed matched verification; this source-only rejection repair does not need
+an artificial runtime benchmark. Run affected generic suites and the eight depth
+canaries after dispatch changes. Full Gate173 and performance measurements remain
+open.
