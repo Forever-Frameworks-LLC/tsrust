@@ -308,3 +308,29 @@ identities and payload attachments/transfers remain pending before the field-loa
 witness can turn green. Keep the full safety controls in the field-loan section.
 Current branch unit/canary/format evidence is stored in SQLite under
 runtime/diagnostics/capture-owner-branches/. Consumers remain on f1dd284.
+
+## Loop and labeled destination provenance
+
+LoopFrame now stores independent break_owners and continue_owners. The common
+control destination commit joins only the relevant destination; cleaned exception
+control exits inherit this through ExitState restore. A red destination test now
+passes and proves break and continue owner sets do not contaminate each other.
+Labeled blocks select normal fallthrough and break owners only.
+
+Legacy loop checking conservatively retains entry owners plus reaching fallthrough,
+continue and break paths. Tail loops track zero-body exits separately, join normal
+body and continue owners before the update, add condition exits after the update,
+and join break owners at the final exit. An unreachable update checks an isolated
+Context clone. A focused post-test loop witness verifies break, continue and return:
+break/continue preserve normal-reaching owners, while return yields no normal owner
+state. Production loan attachments and releases remain disabled.
+
+The original 86 exception-state tests pass, and the added post-test loop witness
+passes separately. Seventeen loop/labeled source and native tests pass. All eight
+mandatory canaries pass (64 tests). Whole-project formatting changes zero files and
+fingerprints. Exact failed and successful logs are preserved under
+runtime/diagnostics/capture-owner-loops/ in SQLite. Next implement stable loan
+identities, attach concrete field environments, transfer on moves and wire scope
+release, with the existing safety controls. The record field-loan witness remains
+red; gate acceptance and consumer refresh remain pending. Preserve fifteen owner
+fixtures and installed consumers at f1dd284.

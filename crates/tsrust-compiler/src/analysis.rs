@@ -334,6 +334,8 @@ struct LoopFrame {
     entry: Vec<(usize, Availability)>,
     breaks: Vec<Availability>,
     break_seen: bool,
+    break_owners: Option<crate::capture_loan_owners::Owners>,
+    continue_owners: Option<crate::capture_loan_owners::Owners>,
     // New loops execute a tail after continue, so ownership checks happen
     // after joining their fallthrough and continue states, not at continue.
     defer_continue: bool,
@@ -4306,6 +4308,7 @@ impl Analyzer {
     ) -> Result<bool, Diagnostic> {
         let (entry, baseline) = availability;
         let (flow_entry, flow_required, zero_flow) = flows;
+        let entry_owners = context.capture_loan_owners.clone();
         Self::validate_control_labels(context,labels)?;
         context.loops.push(LoopFrame {
             labels: labels.to_vec(),
@@ -4315,7 +4318,7 @@ impl Analyzer {
             break_flow: None,
             continue_flow: None,
             breaks: vec![Availability::default(); entry.len()],
-            break_seen: false,
+            break_seen: false, break_owners:None, continue_owners:None,
             defer_continue: false,
             continues: None,
             entry,
@@ -4326,6 +4329,10 @@ impl Analyzer {
             Self::check_loop_back(context)?;
         }
         let frame = context.loops.pop().expect("matching loop frame");
+        context.capture_loan_owners = crate::capture_loan_owners::Owners::reaching(
+            Some(entry_owners), (!exits).then(||context.capture_loan_owners.clone()));
+        if let Some(owners) = &frame.continue_owners { context.capture_loan_owners.join(owners); }
+        if let Some(owners) = &frame.break_owners { context.capture_loan_owners.join(owners); }
         exception_state::consume_target(context,frame.target);
         context.flow = crate::flow::join(&zero_flow, &context.flow);
         if let Some(breaks) = frame.break_flow {
@@ -4393,6 +4400,7 @@ impl Analyzer {
                 .map(|(id, _)| Availability::of(&context.bindings[*id]))
                 .collect::<Vec<_>>()
         });
+        let mut exit_owners = exit_state.as_ref().map(|_|context.capture_loan_owners.clone());
         Self::validate_control_labels(context,labels)?;
         context.loops.push(LoopFrame {
             labels: labels.to_vec(),
@@ -4402,7 +4410,7 @@ impl Analyzer {
             break_flow: None,
             continue_flow: None,
             breaks: vec![Availability::default(); entry.len()],
-            break_seen: false,
+            break_seen: false, break_owners:None, continue_owners:None,
             defer_continue: true,
             continues: None,
             entry,
@@ -4411,6 +4419,8 @@ impl Analyzer {
         let body_exits = self.block(context, body, result_type)?;
         let frame = context.loops.last_mut().expect("new loop frame");
         let mut continuing = frame.continues.take();
+        let continuing_owners = crate::capture_loan_owners::Owners::reaching(
+            (!body_exits).then(||context.capture_loan_owners.clone()),frame.continue_owners.take());
         if !body_exits {
             let states = frame
                 .entry
@@ -4428,6 +4438,7 @@ impl Analyzer {
         }
         *tail_reachable = continuing.is_some();
         if let Some(states) = continuing {
+            context.capture_loan_owners = continuing_owners;
             if let Some(continues) = context
                 .loops
                 .last()
@@ -4462,6 +4473,8 @@ impl Analyzer {
             }
             Self::check_loop_back(context)?;
             if condition.is_some() {
+                exit_owners = Some(crate::capture_loan_owners::Owners::reaching(
+                    exit_owners.take(),Some(context.capture_loan_owners.clone())));
                 let states = context
                     .loops
                     .last()
@@ -4497,6 +4510,7 @@ impl Analyzer {
             }
         }
         let frame = context.loops.pop().expect("matching new loop frame");
+        context.capture_loan_owners = crate::capture_loan_owners::Owners::reaching(exit_owners,frame.break_owners);
         exception_state::consume_target(context,frame.target);
         if let Some(zero) = zero_flow {
             context.flow = crate::flow::join(&zero, &context.flow);

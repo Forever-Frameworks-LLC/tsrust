@@ -179,6 +179,43 @@ impl ExitState {
 #[cfg(test)]
 mod tests {
     #[test]
+    fn post_test_loop_keeps_break_and_continue_owners_but_not_return_exits() {
+        use crate::capture_loan_owners::Place;
+        for (body_source, normal) in [("break;", true), ("continue;", true), ("return;", false)] {
+            let source = format!("function main(){{ do {{ {body_source} }} while(false); }}");
+            let mut analyzer = Analyzer::new(crate::syntax::parse(&source).unwrap()).unwrap();
+            let mut context = Context::new("main".into());
+            context.capture_loan_owners.attach(Place { binding: 0, fields: vec![] }, [10]);
+            let mut statements = std::mem::take(&mut analyzer.program.functions[0].body);
+            let statement = &mut statements[0];
+            let StmtKind::Loop { condition, body, update, post_test, tail_reachable } = &mut statement.kind else { panic!("post-test loop"); };
+            let abrupt = analyzer.tail_loop(&mut context, condition, body, update, *post_test,
+                tail_reachable, Type::Void, statement.span, &statement.labels).unwrap();
+            assert_eq!(!abrupt, normal, "{body_source}");
+            assert_eq!(context.capture_loan_owners.live(), if normal { std::collections::BTreeSet::from([10]) } else { Default::default() }, "{body_source}");
+        }
+    }
+
+    #[test]
+    fn control_destinations_keep_break_and_continue_owner_sets_separate() {
+        use crate::capture_loan_owners::Place;
+        let mut analyzer = Analyzer::new(crate::syntax::parse("function main(){}").unwrap()).unwrap();
+        let mut context = Context::new("main".into());
+        context.loops.push(LoopFrame { labels: vec![], target: ControlTarget::Loop(0),
+            flow_entry: HashMap::new(), flow_required: HashMap::new(), break_flow: None,
+            continue_flow: None, entry: vec![], breaks: vec![], break_seen: false,
+            break_owners: None, continue_owners: None, defer_continue: true, continues: None,
+            span: Span::new(0, 1) });
+        context.capture_loan_owners.attach(Place { binding: 0, fields: vec![] }, [10]);
+        analyzer.control_exit(&mut context, &[], &mut None, true, Span::new(2, 3)).unwrap();
+        context.capture_loan_owners = Default::default();
+        context.capture_loan_owners.attach(Place { binding: 0, fields: vec![] }, [11]);
+        analyzer.control_exit(&mut context, &[], &mut None, false, Span::new(4, 5)).unwrap();
+        let frame = &context.loops[0];
+        assert_eq!(frame.continue_owners.as_ref().expect("continue owners").live(), std::collections::BTreeSet::from([10]));
+        assert_eq!(frame.break_owners.as_ref().expect("break owners").live(), std::collections::BTreeSet::from([11]));
+    }
+    #[test]
     fn capture_owner_snapshots_restore_and_join_every_reaching_owner() {
         use crate::capture_loan_owners::Place;
         let mut context = Context::new("main".into());
@@ -200,7 +237,7 @@ mod tests {
             let mut analyzer=Analyzer::new(crate::syntax::parse("function main(){}").unwrap()).unwrap();
             let mut context=Context::new("main".into());
             Analyzer::bind(&mut context,&Token{text:"payload".into(),span:Span::new(0,7),kind:TokenKind::Name},Type::String,false).unwrap();
-            context.loops.push(LoopFrame{labels:vec![],target:ControlTarget::Loop(0),flow_entry:HashMap::new(),flow_required:HashMap::new(),break_flow:None,continue_flow:None,entry:vec![(0,Availability::of(&context.bindings[0]))],breaks:vec![Availability::default()],break_seen:false,defer_continue:true,continues:None,span:Span::new(0,1)});
+            context.loops.push(LoopFrame{labels:vec![],target:ControlTarget::Loop(0),flow_entry:HashMap::new(),flow_required:HashMap::new(),break_flow:None,continue_flow:None,entry:vec![(0,Availability::of(&context.bindings[0]))],breaks:vec![Availability::default()],break_seen:false, break_owners:None, continue_owners:None,defer_continue:true,continues:None,span:Span::new(0,1)});
             let source=if continuing {"function main(){continue;}"}else{"function main(){break;}"};
             let mut parsed=crate::syntax::parse(source).unwrap();
             let (normal,frame,_)=analyzer.check_region_body(&mut context,&mut parsed.functions[0].body,Type::Void).unwrap();
@@ -216,7 +253,7 @@ mod tests {
         let mut analyzer=Analyzer::new(crate::syntax::parse("function main(){}").unwrap()).unwrap();
         let mut context=Context::new("main".into());
         Analyzer::bind(&mut context,&Token{text:"payload".into(),span:Span::new(0,7),kind:TokenKind::Name},Type::String,false).unwrap();
-        context.loops.push(LoopFrame{labels:vec![],target:ControlTarget::Loop(0),flow_entry:HashMap::new(),flow_required:HashMap::new(),break_flow:None,continue_flow:None,entry:vec![(0,Availability::of(&context.bindings[0]))],breaks:vec![Availability::default()],break_seen:false,defer_continue:true,continues:None,span:Span::new(0,1)});
+        context.loops.push(LoopFrame{labels:vec![],target:ControlTarget::Loop(0),flow_entry:HashMap::new(),flow_required:HashMap::new(),break_flow:None,continue_flow:None,entry:vec![(0,Availability::of(&context.bindings[0]))],breaks:vec![Availability::default()],break_seen:false, break_owners:None, continue_owners:None,defer_continue:true,continues:None,span:Span::new(0,1)});
         let original=Availability::of(&context.bindings[0]);
         let state=ExitState::capture(&context,1);
         context.region_loop_depth=Some(1);
@@ -233,7 +270,7 @@ mod tests {
         let mut analyzer=Analyzer::new(crate::syntax::parse("function main(){}").unwrap()).unwrap();
         let mut context=Context::new("main".into());
         Analyzer::bind(&mut context,&Token{text:"payload".into(),span:Span::new(0,7),kind:TokenKind::Name},Type::String,false).unwrap();
-        context.loops.push(LoopFrame{labels:vec![],target:ControlTarget::Loop(0),flow_entry:HashMap::new(),flow_required:HashMap::new(),break_flow:None,continue_flow:None,entry:vec![(0,Availability::of(&context.bindings[0]))],breaks:vec![Availability::default()],break_seen:false,defer_continue:true,continues:None,span:Span::new(0,1)});
+        context.loops.push(LoopFrame{labels:vec![],target:ControlTarget::Loop(0),flow_entry:HashMap::new(),flow_required:HashMap::new(),break_flow:None,continue_flow:None,entry:vec![(0,Availability::of(&context.bindings[0]))],breaks:vec![Availability::default()],break_seen:false, break_owners:None, continue_owners:None,defer_continue:true,continues:None,span:Span::new(0,1)});
         context.completion_frame=Some(Box::new(CompletionFrame{outer:1,exits:vec![]}));
         let normal=ExitState::capture(&context,1);
         context.bindings[0].transferred=Some(Span::new(10,17));
@@ -270,7 +307,7 @@ mod tests {
             let mut context=Context::new("main".into());
             Analyzer::bind(&mut context,&Token{text:"payload".into(),span:Span::new(0,7),kind:TokenKind::Name},Type::String,false).unwrap();
             context.bindings[0].rebindable=true;
-            context.loops.push(LoopFrame{labels:vec![],target:ControlTarget::Loop(0),flow_entry:HashMap::new(),flow_required:HashMap::new(),break_flow:None,continue_flow:None,entry:vec![(0,Availability::of(&context.bindings[0]))],breaks:vec![Availability::default()],break_seen:false,defer_continue:false,continues:None,span:Span::new(0,1)});
+            context.loops.push(LoopFrame{labels:vec![],target:ControlTarget::Loop(0),flow_entry:HashMap::new(),flow_required:HashMap::new(),break_flow:None,continue_flow:None,entry:vec![(0,Availability::of(&context.bindings[0]))],breaks:vec![Availability::default()],break_seen:false, break_owners:None, continue_owners:None,defer_continue:false,continues:None,span:Span::new(0,1)});
             context.completion_frame=Some(Box::new(CompletionFrame{outer:1,exits:vec![]}));
             let mut parsed=crate::syntax::parse(&format!("function main(){{{source}}}")).unwrap();
             let StmtKind::Try(region)=&mut parsed.functions[0].body[0].kind else {panic!("region");};
