@@ -1940,3 +1940,41 @@ independent disposal and public ownership rules. Do not reopen verified chunks.
 Preserve fifteen owner fixtures, bounded checks, the shared nonincremental target,
 project formatting, SQLite evidence and explicit Git paths. Installed consumers
 remain f1dd284.
+
+
+## Next boundary witness: borrowed parameter replacement
+
+The source implementation checkpoint is fc17347. The next isolated native probe
+passes source analysis but fails generated Rust E0308: assigning a capture-free
+Closure1 through Mutable<Holder> requires the generic associated field type
+<R0 as TsrReadRecord0>::Field0. This is separate from an invalid escaping borrowed
+capture: the replacement closure captures nothing. It replaces an original callback
+borrowing an array, observes 11 through the caller's retained record, then mutates
+the array after record disposal.
+
+Exact probe source and failure are imported and read back from SQLite under
+runtime/diagnostics/scoped-record-parameter-next/; disposable copies are removed.
+Promote this source into a focused formatting/native integration witness before
+implementation. Connect callee replacement obligations to caller slot carrier
+planning, and supply a checked native conversion for generic associated field
+storage. Preserve capture lifetimes, alias rules and nominal identity. Do not fix
+this by cloning, erasing storage types, unsafe casts or rejecting a valid mutable
+replacement. Add read-only replacement rejection and live-capture controls, then
+cover capturing replacements separately from invalid borrow escapes.
+
+At this handoff the repository retains only the fifteen protected owner fixture
+changes. Closed logs are in SQLite. Obsolete test executable variants in the shared
+Cargo target are pruned while the newest executable for each test group and all
+current consumers are retained. No cache refill or timing is performed.
+
+Handoff prompt: Continue Tsrust after source checkpoint fc17347. Read AGENTS.md,
+docs/development-workflow.md, docs/scoped-record-field-storage-plan.md and this
+handoff. Local nested stores, direct/multi-hop moves, record-literal construction
+and field-to-field transport are verified: 42 project tests, 64 depth canaries and
+focused editor coverage. Do not reopen those chunks. Start the capture-free
+Mutable<Holder> replacement red stored in SQLite under
+runtime/diagnostics/scoped-record-parameter-next/, then finish captured carriers,
+defaults, disposal and owning/opaque/fallible composition. Whole editor, guide,
+matched benchmarks and acceptance records remain owed. Preserve fifteen owner
+fixtures, the shared nonincremental target, bounded checks, project formatting,
+SQLite evidence and explicit Git paths. Installed consumers remain f1dd284.
