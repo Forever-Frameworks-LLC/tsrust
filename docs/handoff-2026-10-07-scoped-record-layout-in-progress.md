@@ -527,3 +527,33 @@ and scoped callable aggregate plan. Convert exception and conditional loan
 boundaries to stable membership with red tests; verify branch restoration before
 enabling scoped field release. Keep three public wrappers. Use the warm target,
 bounded checks, whole-project formatting, SQLite evidence and explicit Git paths.
+
+## Stable exception region membership
+
+A red exception-state witness shows an old entry-count boundary retaining a new
+local loan after an earlier entry disappears, even with an explicit pending payload.
+ExitState unwind now accepts stable entry membership and separately preserves
+unique payload loans. Context stores region boundaries in shared immutable snapshots.
+Nested region entry and diagnostic restoration tests compare the exact membership
+instead of a count. Break, continue, error-point and capture-free completion unwind
+use these snapshots. All 88 exception-state tests, three native-region tests and
+eight depth canaries (64 tests) pass. Project formatting changes zero files and
+fingerprints. Exact evidence is verified in SQLite under
+runtime/diagnostics/capture-loan-exception-boundaries/.
+
+Audit found more positional temporary loan cleanup than the conditional plan alone:
+analysis.rs, generic_expression_adapters.rs, deferred_generic_values.rs,
+optional_chain.rs and spread_calls.rs still truncate by saved capture-loan lengths.
+Convert or prove each boundary safe before enabling removal. Conditional branches
+also slice new loans by the old index and require exact entry restoration plus
+branch delta membership. Then use reverse identities to reconcile owner snapshots
+with raw loans, preserve surviving outer payloads through unwind, and turn the
+independent field-disposal source/native witness green with live-owner controls.
+Actual owner-based release stays disabled. Record gate and gate 173 remain open.
+Consumers remain f1dd284; preserve fifteen owner fixtures.
+
+Next-agent prompt: Continue from this handoff and inspect Git status first. Convert
+remaining positional capture-loan boundaries with red tests, then integrate stable
+raw-loan restoration and scoped disposal. Keep existing ownership rules and three
+public wrappers. Run bounded checks, project formatting and SQLite evidence; use
+explicit Git paths and never stage owner fixtures.

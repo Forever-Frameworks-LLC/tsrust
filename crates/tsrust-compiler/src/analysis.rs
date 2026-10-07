@@ -350,7 +350,7 @@ type CallbackMetadata = (Option<Mode>, bool, Option<CallbackKind>);
 #[derive(Clone)]
 struct Context {
     region_loop_depth:Option<usize>,
-    region_entry_loans:Option<usize>,
+    region_entry_loans:Option<std::rc::Rc<crate::capture_loan_identity::Boundary>>,
     exception_environment:Option<std::rc::Rc<exception_state::CheckEnvironment>>,
     completion_frame:Option<Box<exception_state::CompletionFrame>>,
     error_frame:Option<Box<exception_state::ErrorFrame>>,
@@ -5006,8 +5006,8 @@ impl Analyzer {
     #[inline(never)]
     fn check_with_exit_frames(&mut self,context:&mut Context,check:impl FnOnce(&mut Self,&mut Context)->Result<bool,Diagnostic>)->Result<(Option<exception_state::ExitState>,exception_state::CompletionFrame,exception_state::ErrorFrame),Diagnostic> {
         let outer=context.bindings.len();
-        let entry_loans=context.capture_loans.len();
-        let previous_entry_loans=context.region_entry_loans.replace(entry_loans);
+        let entry_loans=std::rc::Rc::new(crate::capture_loan_identity::Boundary::capture(&context.capture_loans));
+        let previous_entry_loans=context.region_entry_loans.replace(entry_loans.clone());
         let previous_loop_depth=context.region_loop_depth.replace(context.loops.len());
         let previous_completions=context.completion_frame.replace(Box::new(exception_state::CompletionFrame{outer,exits:vec![]}));
         let previous_errors=context.error_frame.replace(Box::new(exception_state::ErrorFrame{outer,points:vec![]}));
@@ -5020,10 +5020,10 @@ impl Analyzer {
         // These exits carry no borrowed payload; region-local loans end here.
         for (kind,_,state) in &mut completions.exits {
             if matches!(kind,crate::completion::CompletionKind::Break(_)|crate::completion::CompletionKind::Continue(_)) {
-                state.unwind_capture_loans(entry_loans,&[]);
+                state.unwind_capture_loans(&entry_loans,&[]);
             }
         }
-        for (_,state) in &mut errors.points {state.unwind_capture_loans(entry_loans,&[]);}
+        for (_,state) in &mut errors.points {state.unwind_capture_loans(&entry_loans,&[]);}
         let normal=(!exited).then(||exception_state::ExitState::capture(context,outer));
         Ok((normal,completions,errors))
     }
@@ -5037,7 +5037,7 @@ impl Analyzer {
                 capture.storage==Mode::Consume && !self.expression_result_retains_captures(closure.function.bindings[capture.inner].ty))
         }else{false};
         if (capture_free || !self.expression_result_retains_captures(ty))
-            && let Some(entry)=context.region_entry_loans
+            && let Some(entry)=context.region_entry_loans.as_ref()
             && let Some(frame)=&mut context.completion_frame
             && let Some((_,_,state))=frame.exits.last_mut()
         {state.unwind_capture_loans(entry,&[]);}

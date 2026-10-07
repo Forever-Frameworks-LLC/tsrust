@@ -5,6 +5,7 @@ use std::{cell::RefCell, collections::{HashMap, HashSet}, rc::Rc};
 pub(crate) type Loan = (usize, Mode, Span);
 
 /// Lexical membership remains valid when earlier loans are removed or reordered.
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct Boundary(HashSet<Loan>);
 impl Boundary {
     pub(crate) fn capture(loans: &[Loan]) -> Self {

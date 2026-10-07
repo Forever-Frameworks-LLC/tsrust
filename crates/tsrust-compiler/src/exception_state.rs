@@ -146,8 +146,8 @@ impl ExitState {
     }
     /// Release loans of discarded locals, retaining loans carried by the pending payload.
     /// The caller must identify payload loans before removing its local bindings.
-    pub(super) fn unwind_capture_loans(&mut self,entry_count:usize,payload_loans:&[(usize,Mode,Span)]) {
-        self.capture_loans.truncate(entry_count);
+    pub(super) fn unwind_capture_loans(&mut self,entry:&crate::capture_loan_identity::Boundary,payload_loans:&[(usize,Mode,Span)]) {
+        entry.unwind(&mut self.capture_loans);
         for loan in payload_loans {
             if !self.capture_loans.contains(loan) {self.capture_loans.push(*loan);}
         }
@@ -358,25 +358,26 @@ mod tests {
     fn nested_region_boundaries_restore_after_inner_diagnostic() {
         let mut analyzer=Analyzer::new(crate::syntax::parse("function main(){}").unwrap()).unwrap();
         let mut context=Context::new("main".into());
-        context.region_entry_loans=Some(9);
+        let previous = std::rc::Rc::new(crate::capture_loan_identity::Boundary::capture(&[(9,Mode::Read,Span::new(9,10))]));
+        context.region_entry_loans=Some(previous.clone());
         context.region_loop_depth=Some(7);
         context.capture_loans.push((0,Mode::Read,Span::new(1,2)));
         analyzer.check_with_exit_frames(&mut context,|analyzer,context|{
-            assert_eq!(context.region_entry_loans,Some(1));
+            assert_eq!(context.region_entry_loans.as_deref(),Some(&crate::capture_loan_identity::Boundary::capture(&[(0,Mode::Read,Span::new(1,2))])));
             assert_eq!(context.region_loop_depth,Some(0));
             context.capture_loans.push((0,Mode::Read,Span::new(3,4)));
             let diagnostic=analyzer.check_with_exit_frames(context,|_,context|{
-                assert_eq!(context.region_entry_loans,Some(2));
+                assert_eq!(context.region_entry_loans.as_deref(),Some(&crate::capture_loan_identity::Boundary::capture(&[(0,Mode::Read,Span::new(1,2)),(0,Mode::Read,Span::new(3,4))])));
                 Err(Diagnostic::new("type","inner failure",Span::new(5,6)))
             }).err().unwrap();
             assert_eq!(diagnostic.code,"type");
-            assert_eq!(context.region_entry_loans,Some(1));
+            assert_eq!(context.region_entry_loans.as_deref(),Some(&crate::capture_loan_identity::Boundary::capture(&[(0,Mode::Read,Span::new(1,2))])));
             assert_eq!(context.region_loop_depth,Some(0));
             record_completion(context,CompletionKind::Return,Span::new(7,8));
             assert_eq!(context.completion_frame.as_ref().unwrap().exits.len(),1);
             Ok(true)
         }).unwrap();
-        assert_eq!(context.region_entry_loans,Some(9));
+        assert_eq!(context.region_entry_loans,Some(previous));
         assert_eq!(context.region_loop_depth,Some(7));
         assert!(context.completion_frame.is_none());
         assert!(context.error_frame.is_none());
@@ -1270,13 +1271,13 @@ mod tests {
         let StmtKind::Try(region)=&mut parsed.functions[0].body[0].kind else {panic!("region");};
         let (normal,frame,errors)=analyzer.check_region_body(&mut context,&mut region.body,Type::Int).unwrap();
         assert!(errors.points.is_empty());
-        let pending=CompletionStates::from_completions(normal,frame,&mut |_,state|state.unwind_capture_loans(0,&[]));
+        let pending=CompletionStates::from_completions(normal,frame,&mut |_,state|state.unwind_capture_loans(&crate::capture_loan_identity::Boundary::capture(&[]),&[]));
         let mut cleaned=0;
         let completed=pending.finally(&mut |state| {
             cleaned+=1;state.restore(&mut context);
             let (normal,frame,errors)=analyzer.check_region_body(&mut context,region.finally.as_mut().unwrap(),Type::Int)?;
             assert!(errors.points.is_empty());
-            Ok(CompletionStates::from_completions(normal,frame,&mut |_,state|state.unwind_capture_loans(0,&[])))
+            Ok(CompletionStates::from_completions(normal,frame,&mut |_,state|state.unwind_capture_loans(&crate::capture_loan_identity::Boundary::capture(&[]),&[])))
         }).unwrap();
         assert_eq!(cleaned,1);
         assert!(completed.normal.is_none());
@@ -1452,7 +1453,7 @@ mod tests {
         assert_eq!(frame.points.len(),2);
         let mut completions=CompletionStates::default();
         let mut visited=vec![];
-        completions.record_failures(frame,&mut |span,state|{visited.push(span);state.unwind_capture_loans(0,&[]);});
+        completions.record_failures(frame,&mut |span,state|{visited.push(span);state.unwind_capture_loans(&crate::capture_loan_identity::Boundary::capture(&[]),&[]);});
         assert_eq!(visited.len(),2);
         let mut handled=0;
         let output=completions.catch(&mut |state|{
@@ -1466,6 +1467,19 @@ mod tests {
         assert!(output.exits.is_empty());
     }
     #[test]
+    fn exception_unwind_does_not_keep_local_loan_in_removed_entry_position() {
+        let mut context = Context::new("main".into());
+        let first = (0, Mode::Read, Span::new(1, 2));
+        let outer = (1, Mode::Read, Span::new(3, 4));
+        let local = (2, Mode::Mutate, Span::new(5, 6));
+        let payload = (3, Mode::Read, Span::new(7, 8));
+        context.capture_loans = vec![outer, local, payload];
+        let mut state = ExitState::capture(&context, 0);
+        let entry = crate::capture_loan_identity::Boundary::capture(&[first, outer]);
+        state.unwind_capture_loans(&entry, &[payload]);
+        assert_eq!(state.capture_loans, vec![outer, payload]);
+    }
+    #[test]
     fn lexical_unwind_releases_local_capture_loans_but_preserves_payload_loans() {
         let mut context=Context::new("main".to_owned());
         Analyzer::bind(&mut context,&Token{text:"owner".to_owned(),span:Span::new(0,5),kind:TokenKind::Name},Type::String,false).unwrap();
@@ -1475,12 +1489,12 @@ mod tests {
         context.capture_loans=vec![outer,local,payload];
         context.bindings[0].transferred=Some(Span::new(7,8));
         let mut state=ExitState::capture(&context,1);
-        state.unwind_capture_loans(1,&[outer,payload,payload]);
+        state.unwind_capture_loans(&crate::capture_loan_identity::Boundary::capture(&[outer]),&[outer,payload,payload]);
         state.restore(&mut context);
         assert_eq!(context.capture_loans,vec![outer,payload]);
         assert_eq!(context.bindings[0].transferred,Some(Span::new(7,8)));
         let mut discarded=ExitState::capture(&context,1);
-        discarded.unwind_capture_loans(1,&[]);
+        discarded.unwind_capture_loans(&crate::capture_loan_identity::Boundary::capture(&[outer]),&[]);
         discarded.restore(&mut context);
         assert_eq!(context.capture_loans,vec![outer]);
     }
