@@ -152,7 +152,7 @@ pub(crate) mod tests {
         crate::check(&source).unwrap()
     }
     pub(crate) fn native(source: &str) { native_expectation(source, None); }
-    fn native_rejection(source: &str, diagnostic: &str) { native_expectation(source, Some(diagnostic)); }
+    pub(crate) fn native_rejection(source: &str, diagnostic: &str) { native_expectation(source, Some(diagnostic)); }
     fn native_expectation(source: &str, rejection: Option<&str>) {
         use std::{io::Write, process::{Command, Stdio}};
         static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);

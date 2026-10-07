@@ -29,6 +29,15 @@ pub(crate) struct OwnedAccess {
     pub(crate) mutate: String,
 }
 pub(crate) fn declarations_with_owned(layout: &Layout, types: Types<'_>, native: impl Fn(&Leaf) -> String, owned: OwnedParameters<'_>, access: impl Fn(&Leaf) -> OwnedAccess) -> String {
+    declarations_with_transport(layout, types, native, owned, access, None)
+}
+
+/// Whole-record transport splits concrete storage once before generic access.
+pub(crate) struct OwnedTransport {
+    pub(crate) read: String,
+    pub(crate) mutate: String,
+}
+pub(crate) fn declarations_with_transport(layout: &Layout, types: Types<'_>, native: impl Fn(&Leaf) -> String, owned: OwnedParameters<'_>, access: impl Fn(&Leaf) -> OwnedAccess, transport: Option<OwnedTransport>) -> String {
     use std::fmt::Write;
     let mut output = String::new();
     let fields = layout.leaves.iter().map(|leaf| {
@@ -37,14 +46,27 @@ pub(crate) fn declarations_with_owned(layout: &Layout, types: Types<'_>, native:
         let place = leaf.path.iter().map(|index| format!(".field{index}")).collect::<String>();
         (associated, method, place, native(leaf), access(leaf))
     }).collect::<Vec<_>>();
+    let read_fields=format!("{}Fields",types.read_trait);
+    let mutate_fields=format!("{}Fields",types.mutate_trait);
+    let transport_type=|name:&str|format!("{name}<'_,{}>",fields.iter().map(|(associated,_,_,_,_)|format!("Self::{associated}")).collect::<Vec<_>>().join(","));
+    if transport.is_some() {
+        let parameters=fields.iter().enumerate().map(|(index,_)|format!("F{index}:?Sized")).collect::<Vec<_>>().join(",");
+        for (name,mutable) in [(&read_fields,false),(&mutate_fields,true)] {
+            let modifier=if mutable{"mut "}else{""};
+            let members=fields.iter().enumerate().map(|(index,(_,method,_,_,_))|format!("{method}:&'a {modifier}F{index}")).collect::<Vec<_>>().join(",");
+            writeln!(output,"struct {name}<'a,{parameters}>{{{members}}}").expect("string write");
+        }
+    }
     writeln!(output, "trait {} {{", types.read_trait).expect("string write");
     for (associated, method, _, _, _) in &fields {
         writeln!(output, "type {associated}: ?Sized; fn tsr_{method}(&self)->&Self::{associated};").expect("string write");
     }
+    if transport.is_some(){writeln!(output,"fn tsr_fields(&self)->{};",transport_type(&read_fields)).expect("string write");}
     writeln!(output, "}} trait {}: {} {{", types.mutate_trait, types.read_trait).expect("string write");
     for (associated, method, _, _, _) in &fields {
         writeln!(output, "fn tsr_{method}_mut(&mut self)->&mut Self::{associated};").expect("string write");
     }
+    if transport.is_some(){writeln!(output,"fn tsr_fields_mut(&mut self)->{};",transport_type(&mutate_fields)).expect("string write");}
     output.push_str("}\n");
     let owned_parameters = if owned.parameters.is_empty() { String::new() } else { format!("<{}>",owned.parameters.join(", ")) };
     let view_parameters = format!("<{}>",std::iter::once("'a".to_owned()).chain(types.parameters.iter().cloned()).collect::<Vec<_>>().join(", "));
@@ -55,6 +77,13 @@ pub(crate) fn declarations_with_owned(layout: &Layout, types: Types<'_>, native:
             let (ty,read)=if borrowed{(ty.clone(),format!("&*self{place}"))}else{(owner.ty.clone(),owner.read.clone())};
             writeln!(output, "type {associated}={ty}; fn tsr_{method}(&self)->&Self::{associated} {{ {read} }}").expect("string write");
         }
+        if let Some(transport)=&transport {
+            let body=if borrowed {
+                let members=fields.iter().map(|(_,method,place,_,_)|format!("{method}:&*self{place}")).collect::<Vec<_>>().join(",");
+                format!("{read_fields}{{{members}}}")
+            }else{transport.read.clone()};
+            writeln!(output,"fn tsr_fields(&self)->{}{{{body}}}",transport_type(&read_fields)).expect("string write");
+        }
         output.push_str("}\n");
         if mutable {
             let bounds=if borrowed || owned.mutate_bounds.is_empty(){String::new()}else{format!(" where {}",owned.mutate_bounds.join(", "))};
@@ -62,6 +91,13 @@ pub(crate) fn declarations_with_owned(layout: &Layout, types: Types<'_>, native:
             for (associated, method, place, _, owner) in &fields {
                 let mutate=if borrowed{format!("&mut *self{place}")}else{owner.mutate.clone()};
                 writeln!(output, "fn tsr_{method}_mut(&mut self)->&mut Self::{associated} {{ {mutate} }}").expect("string write");
+            }
+            if let Some(transport)=&transport {
+                let body=if borrowed {
+                    let members=fields.iter().map(|(_,method,place,_,_)|format!("{method}:&mut *self{place}")).collect::<Vec<_>>().join(",");
+                    format!("{mutate_fields}{{{members}}}")
+                }else{transport.mutate.clone()};
+                writeln!(output,"fn tsr_fields_mut(&mut self)->{}{{{body}}}",transport_type(&mutate_fields)).expect("string write");
             }
             output.push_str("}\n");
         }

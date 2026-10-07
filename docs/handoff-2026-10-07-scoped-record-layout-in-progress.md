@@ -1225,3 +1225,47 @@ controls. Implement whole-record native view transport and one parameter entry v
 then independent storage and remaining capture/completion/editor/benchmark scope.
 Keep native red witnesses unchanged. Preserve fifteen owner fixtures and use explicit
 Git paths, bounded checks, required depth canaries, project formatting and SQLite.
+
+## Whole-record native view transport
+
+Production nominal borrowing bridges now provide tsr_fields and tsr_fields_mut.
+Each operation borrows the carrier once and returns a concrete flat view containing
+separate references to its static leaves. These internal view structs parameterize
+all leaves with associated types, including unsized leaves, so callback environments
+remain distinct and concrete scalar constraints remain expressible. Existing nested
+view declarations and single-field accessors remain available.
+
+Owned parent records request one child transport per generic child field, then move
+the child's independent references into the parent transport view. They do not call
+multiple mutable getters on the same generic child. Shared views implement read
+transport only; mutable views reborrow their concrete fields for both operations.
+No cloning, allocation, unsafe erasure or new public ownership wrapper is introduced.
+
+The new native transport witness was red on missing tsr_fields_mut, then passed.
+It holds sibling string references simultaneously, checks mutations, exercises owned,
+shared and mutable carriers with distinct String and Vec callback environments,
+checks callback result 14, and verifies shared string pointer identity. A generated
+native rejection control confirms shared views cannot invoke a mutable consumer.
+Ten layout/rendering controls and the existing production metadata adapter pass.
+The original separate-getter E0499 witness and independent-storage E0502 witness
+remain retained; transport support alone does not route ordinary parameter bodies.
+No shared parser/analyzer dispatch changed in this checkpoint.
+
+Next, establish one concrete transport view at each eligible borrowed parameter
+entry. Route selected field access through its independent references and rebuild
+nested views only when needed for borrowed child arguments. Then integrate independent
+local and owned-parameter storage, stores, whole moves, property ordering and all
+capture/completion boundaries. Complete editor and matched benchmark acceptance
+before claiming the record feature accepted. Consumers remain f1dd284 and fifteen
+owner fixtures remain untouched. Project formatting changes zero files and hashes.
+No performance timing or full editor acceptance is claimed.
+
+Continuation prompt: Continue Tsrust from this handoff and the scoped record field
+storage plan. Static argument loans and whole-record native transport now exist.
+Implement parameter entry transport and selected access, then independent storage,
+assignment and full capture/completion/editor/benchmark scope. Preserve original
+red witnesses, fifteen owner fixtures, bounded checks, automatic formatting and
+SQLite evidence. Do not refresh consumers from incomplete feature source.
+
+Exact native red/green, rejection, component and retained storage diagnostics are
+verified in SQLite under runtime/diagnostics/scoped-record-whole-transport/.

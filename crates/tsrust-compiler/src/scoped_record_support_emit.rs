@@ -52,7 +52,31 @@ impl Emitter<'_> {
             let arguments=std::iter::once("'a".into()).chain(view_parameters.iter().cloned()).collect::<Vec<_>>();
             let shared=format!("TsrReadView{node}{}",lifetime_parameters(&arguments));
             let exclusive=format!("TsrMutateView{node}{}",lifetime_parameters(&arguments));
-            output.push_str(&crate::scoped_record_bridge::declarations_with_owned(&layout,Types{
+            let transport_body=|mutable:bool| {
+                let mut prefix=String::new();
+                for (index,field) in record.fields.iter().enumerate() {
+                    if let Some(Type::Record(child))=field.ty && self.scoped_record_native_parameter(Type::Record(child)) {
+                        let method=if mutable{"tsr_fields_mut"}else{"tsr_fields"};
+                        prefix.push_str(&format!("let child{index}=self.field{index}.{method}();"));
+                    }
+                }
+                let members=layout.leaves.iter().map(|leaf|{
+                    let name=leaf.path.iter().map(|index|format!("field{index}")).collect::<Vec<_>>().join("_");
+                    let first=leaf.path[0];
+                    let place=if leaf.path.len()>1 && self.scoped_record_native_parameter(record.fields[first].ty.unwrap()) {
+                        let child_name=leaf.path[1..].iter().map(|index|format!("field{index}")).collect::<Vec<_>>().join("_");
+                        format!("child{first}.{child_name}")
+                    }else{
+                        let modifier=if mutable{"mut "}else{""};
+                        let path=leaf.path.iter().map(|index|format!(".field{index}")).collect::<String>();
+                        format!("&{modifier}self{path}")
+                    };
+                    format!("{name}:{place}")
+                }).collect::<Vec<_>>().join(",");
+                let mode=if mutable{"Mutate"}else{"Read"};
+                format!("{prefix}Tsr{mode}Record{node}Fields{{{members}}}")
+            };
+            output.push_str(&crate::scoped_record_bridge::declarations_with_transport(&layout,Types{
                 read_trait:&format!("TsrReadRecord{node}"),mutate_trait:&format!("TsrMutateRecord{node}"),owned:&owned,shared:&shared,exclusive:&exclusive,parameters:&view_parameters,
             },|leaf|view_leaf(leaf).0,OwnedParameters{parameters:&owner_parameters,read_bounds:&read_bounds,mutate_bounds:&mutate_bounds},|leaf|{
                 let first=leaf.path[0];let field_type=record.fields[first].ty.unwrap();
@@ -66,7 +90,7 @@ impl Emitter<'_> {
                     let place=leaf.path.iter().map(|index|format!(".field{index}")).collect::<String>();
                     OwnedAccess{ty,read:format!("&self{place}"),mutate:format!("&mut self{place}")}
                 }
-            }));
+            },Some(crate::scoped_record_bridge::OwnedTransport{read:transport_body(false),mutate:transport_body(true)})));
         }
         Some(output)
     }
@@ -135,6 +159,49 @@ mod tests {
         assert!(rust.contains("fn main() -> () {"));
         rust=rust.replace("fn main() -> () {","fn main() -> () { verify();");
         crate::scoped_record_places::tests::native(&rust);
+    }
+
+    #[test]
+    fn nominal_whole_view_transport_preserves_disjoint_sibling_fields() {
+        let source=crate::format(r#"type Holder={run:ReadOnly<Function<int>>;label:string;};type Pair={left:Holder;right:Holder;};function touch(left:Mutable<Holder>,right:Mutable<Holder>):void{left.label="left!";right.label="right!";}function probe(holder:ReadOnly<Holder>):int{return holder.run();}function main(){}"#).unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let checked=crate::check(&source).unwrap();
+        let outer=checked.program.records.iter().position(|record|record.name.text=="Pair").unwrap();
+        let Type::Record(inner)=checked.program.records[outer].fields[0].ty.unwrap() else{panic!("child record")};
+        let baseline=emit(&checked.program);
+        crate::scoped_record_places::tests::native(&baseline);
+        let mut rust=baseline;
+        rust.push_str(&format!(r#"
+            struct Left(std::string::String);struct Right(Vec<i64>);
+            impl ReadCallback<(),i64> for Left{{fn invoke_read(&self,_:())->i64{{self.0.len() as i64}}}}
+            impl ReadCallback<(),i64> for Right{{fn invoke_read(&self,_:())->i64{{self.0[0]}}}}
+            fn inspect<V:TsrReadRecord{outer}<Field0Field1=String,Field1Field1=String>>(value:&V)->i64 where V::Field0Field0:ReadCallback<(),i64>,V::Field1Field0:ReadCallback<(),i64>{{
+                let fields=value.tsr_fields();
+                ReadCallback::invoke_read(fields.field0_field0,())+ReadCallback::invoke_read(fields.field1_field0,())
+            }}
+            fn update<V:TsrMutateRecord{outer}<Field0Field1=String,Field1Field1=String>>(value:&mut V){{
+                let fields=value.tsr_fields_mut();
+                let left=fields.field0_field1;
+                let right=fields.field1_field1;
+                *left=String::Owned("left!".into());
+                *right=String::Owned("right!".into());
+            }}
+            fn verify(){{
+                let mut value=Record{outer}{{field0:Record{inner}{{field0:Left("abc".into()),field1:String::Owned("left".into())}},field1:Record{inner}{{field0:Right(vec![11]),field1:String::Owned("right".into())}}}};
+                assert_eq!(inspect(&value),14);
+                let left_pointer=value.field0.field1.as_ref().as_ptr();
+                {{let shared=value.tsr_fields();assert_eq!(shared.field0_field1.as_ref().as_ptr(),left_pointer);}}
+                {{let shared=TsrReadView{outer}{{field0:TsrReadView{inner}{{field0:&value.field0.field0,field1:&value.field0.field1}},field1:TsrReadView{inner}{{field0:&value.field1.field0,field1:&value.field1.field1}}}};assert_eq!(inspect(&shared),14);}}
+                {{let mut exclusive=TsrMutateView{outer}{{field0:TsrMutateView{inner}{{field0:&mut value.field0.field0,field1:&mut value.field0.field1}},field1:TsrMutateView{inner}{{field0:&mut value.field1.field0,field1:&mut value.field1.field1}}}};update(&mut exclusive);assert_eq!(inspect(&exclusive),14);}}
+                update(&mut value);
+                assert_eq!(value.field0.field1.as_ref(),"left!");assert_eq!(value.field1.field1.as_ref(),"right!");
+            }}
+        "#));
+        assert!(rust.contains("fn main() -> () {"));
+        rust=rust.replace("fn main() -> () {","fn main() -> () { verify();");
+        crate::scoped_record_places::tests::native(&rust);
+        let invalid=rust.replace("let shared=TsrReadView", "let mut shared=TsrReadView").replace("assert_eq!(inspect(&shared),14);", "update(&mut shared);");
+        crate::scoped_record_places::tests::native_rejection(&invalid,&format!("TsrMutateRecord{outer}"));
     }
 
     #[test]
