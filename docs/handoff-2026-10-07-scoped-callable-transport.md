@@ -133,3 +133,8 @@ Next implement concrete record environment specialization and projection. Keep t
 new source-contract resolver and aggregate escape traversal separate from native
 layout. Do not remove field admission guards before concrete construction, retention
 boundaries and field-loan provenance are checked. Full Gate173 remains open.
+
+The aggregate escape safety implementation is accepted at f1dd284. All six debug,
+editor, release and installed consumers are rebuilt from that commit and atomically
+refreshed, with hashes and build evidence verified in SQLite. No additional native
+cache variants were created for the current scoped-record witness.
