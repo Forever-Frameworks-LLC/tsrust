@@ -16,6 +16,8 @@ mod summary_flow;
 mod invocation_frame;
 #[path = "generic_call_parameter_entry.rs"]
 mod parameter_entry;
+#[path = "generic_call_environment_store.rs"]
+mod environment_store;
 #[path = "generic_call_invocation_worklist.rs"]
 mod invocation_worklist;
 

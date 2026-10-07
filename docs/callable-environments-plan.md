@@ -84,3 +84,28 @@ explicit paths after whole-project formatting.
 This environment work does not replace the remaining aggregate mutation, spread,
 collection callback, opaque-region and native common-carrier requirements. Gate173
 and feature-family acceptance remain open until those requirements are verified.
+
+## Environment store kernel WIP
+
+generic_call_environment_store.rs now provides stable abstract handles. Allocation
+keys contain callback creation site, producer call site and explicit source leaf
+capture facts; correlated environment edges are absent from keys. Capture slots
+are ordered by BindingId, duplicate or missing IDs are rejected, and duplicate
+source targets do not grow allocation keys. Context records retain binding state,
+correlated body/environment alternatives and a change version. Version counters
+are notification metadata, not allocation or request identity.
+
+Weak state and edge joins are monotone. Cyclic references reuse existing handles.
+Unknown alternatives remain explicit, and joins do not fabricate cross-product
+pairs. Malformed capture shapes, missing handle references and unknown edge slots
+are rejected before record mutation. Four focused controls verify allocation,
+correlation/cycles, canonical slot order and atomic rejection. All 40 other focused
+checks pass with the paired factory red explicitly excluded.
+
+The store is not connected to Engine, Values or callback creation yet. It has no
+strong-update uniqueness or disposal policy. Next wire correlated alternatives
+through source values and bindings, retain producer call-site context in requests,
+and add environment-read dependencies so changed records schedule readers. Then
+implement creation/entry/projection using existing capture ownership rules. Do not
+claim recursive solver convergence from the store self-cycle test alone, and do
+not include record versions or recursively growing edge graphs in context keys.

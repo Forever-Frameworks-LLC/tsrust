@@ -346,3 +346,14 @@ docs/callable-environments-plan.md specifies finite correlated environment handl
 capture semantics and native lifetime gates before implementation. All other 36
 focused tests pass with the new red explicitly excluded. No implementation or
 factory acceptance is claimed by this test checkpoint.
+
+## Environment store kernel WIP
+
+A separate source environment store allocates stable handles from creation sites,
+producer call sites and leaf capture facts. Correlated cyclic edges remain in
+records, outside allocation keys. Weak joins preserve explicit unknowns and report
+record changes. Controls verify distinct contexts, stable reuse, pair correlation,
+canonical slots and atomic rejection of malformed inputs. All 40 focused checks
+excluding the paired factory red pass. The store is not connected to invocation
+and does not implement ownership, strong updates or disposal. Those requirements
+and the paired red remain required before factory acceptance.

@@ -141,3 +141,20 @@ finite allocation keys, live borrowing versus owned escape, callback entry and
 projection, recursion convergence and lifetime/native acceptance gates. Implement
 that plan next; do not weaken the missing-capture guard to make the new test pass.
 No benchmark observations, timing, native Tsrust parity or editor change is claimed.
+
+## Environment store kernel WIP
+
+A dedicated store now interns source creation/producer-site capture facts into
+stable handles. Records keep weakly joined binding state, correlated body/context
+edges, explicit unknowns and change versions. Keys exclude handle edges; cyclic
+records reuse addresses. Missing IDs, duplicate slots, malformed shapes and bad
+edge references cannot partially mutate records. Four store controls pass, and
+all 40 focused tests excluding the paired factory red pass.
+
+No compiler dispatch or source behavior is changed by this isolated kernel. The
+paired named/arrow factory red remains unskipped and unrepaired. Wire the store
+into correlated Value/Binding/Element alternatives and producer call-site requests
+next, including version-based reader invalidation without versioned allocation
+keys. Capture ownership, strong update eligibility, lifetime/disposal and recursive
+solver convergence still require implementation and tests. No native/editor parity
+or measurements are claimed. Formatting changes zero files or fingerprints.
