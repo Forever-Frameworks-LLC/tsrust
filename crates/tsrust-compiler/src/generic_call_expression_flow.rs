@@ -1,7 +1,7 @@
 //! Iterative expression evaluation keeps callable values separate from bindings.
 use super::*;
 type Facts = HashMap<(usize, usize), Option<Vec<Contract>>>;
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub(super) struct Value {
     pub(super) origins: Vec<body_origins::Origin>,
     pub(super) contracts: Option<Vec<Contract>>,
@@ -11,6 +11,7 @@ pub(super) struct Value {
 }
 impl Value {
     pub(super) fn from_origins(origins: Vec<body_origins::Origin>) -> Self { Self { origins: body_origins::canonical(origins), ..Self::default() } }
+    pub(super) fn selection(&self) -> Selection { Selection { truth: self.truth, nullish: self.nullish, undefined: self.undefined } }
     pub(super) fn known_truth(&self) -> Option<bool> { self.truth }
 }
 
@@ -35,7 +36,7 @@ fn snapshot(expression: &Expr, state: &[Binding], declarations: &HashMap<String,
             state[index].contract.clone().map(|contract| vec![contract]).or_else(|| resolve_indexed(state[index].targets.clone(), state, declarations, effects))
         })
     } else { resolve_indexed(targets::value(expression), state, declarations, effects) };
-    let (truth, nullish) = match &expression.kind {
+    let (mut truth, mut nullish) = match &expression.kind {
         ExprKind::Boolean(value) => (Some(*value), Some(false)),
         ExprKind::Null | ExprKind::Undefined => (Some(false), Some(true)),
         ExprKind::String(value) => (Some(!value.is_empty()), Some(false)),
@@ -47,8 +48,14 @@ fn snapshot(expression: &Expr, state: &[Binding], declarations: &HashMap<String,
         }) => (Some(true), Some(false)),
         _ => (None, None),
     };
-    let undefined = if matches!(expression.kind, ExprKind::Undefined) { Some(true) }
+    let mut undefined = if matches!(expression.kind, ExprKind::Undefined) { Some(true) }
         else if nullish == Some(false) || matches!(expression.kind, ExprKind::Null) { Some(false) } else { None };
+    if let Some((name, span)) = name(expression) && let Some(index) = binding_at(state, name, span, effects) {
+        let selection = state[index].selection;
+        truth = selection.truth.or(truth);
+        nullish = selection.nullish.or(nullish);
+        undefined = selection.undefined.or(undefined);
+    }
     Value { origins: body_origins::resolve(body_origins::value(expression), state, declarations, effects), contracts, truth, nullish, undefined }
 }
 fn commit(target: &Expr, value: &Value, state: &mut [Binding], effects: &effect_bodies::Index) {
@@ -56,6 +63,7 @@ fn commit(target: &Expr, value: &Value, state: &mut [Binding], effects: &effect_
         && let Some(index) = binding_at(state, name, target.span, effects)
     {
         state[index].origins = body_origins::canonical(value.origins.clone());
+        state[index].selection = value.selection();
         if state[index].contract.is_some() { return; }
         state[index].targets = value.contracts.clone().map_or_else(|| vec![Target::Unknown], |values| values.into_iter().map(Target::Contract).collect());
     }
@@ -66,6 +74,25 @@ fn fact(expression: &Expr, value: Value, facts: &mut Facts, declarations: &HashM
         merge_value(Value { contracts: previous.clone(), ..Value::default() }, value, declarations)
     } else { value };
     facts.insert(key, value.contracts);
+}
+
+pub(super) struct Invocation {
+    pub normal: Option<Vec<Binding>>,
+    pub throwing: Vec<Vec<Binding>>,
+    pub result: Value,
+    pub facts: Facts,
+}
+pub(super) trait Dispatch {
+    fn invoke(&mut self, expression: &Expr, callee: &Value, arguments: &[Value], state: &[Binding]) -> Option<Invocation>;
+}
+pub(super) struct UnknownDispatch;
+impl Dispatch for UnknownDispatch {
+    fn invoke(&mut self, _: &Expr, _: &Value, _: &[Value], _: &[Binding]) -> Option<Invocation> { None }
+}
+pub(super) struct Evaluation {
+    pub value: Value,
+    pub failures: Vec<Vec<Binding>>,
+    pub normal: bool,
 }
 
 enum Task<'a> {
@@ -84,6 +111,11 @@ enum Task<'a> {
 /// Returns the evaluated value snapshot and environments of possible failures.
 pub(super) fn evaluate(expression: &Expr, state: &mut Vec<Binding>, facts: &mut Facts,
     declarations: &HashMap<String, Contract>, observe_failures: bool, effects: &effect_bodies::Index) -> (Value, Vec<Vec<Binding>>) {
+    let evaluation = evaluate_with_dispatch(expression, state, facts, declarations, observe_failures, effects, &mut UnknownDispatch);
+    (evaluation.value, evaluation.failures)
+}
+pub(super) fn evaluate_with_dispatch(expression: &Expr, state: &mut Vec<Binding>, facts: &mut Facts, declarations: &HashMap<String, Contract>, observe_failures: bool, effects: &effect_bodies::Index, dispatch: &mut dyn Dispatch) -> Evaluation {
+    let mut normal = true;
     let mut tasks = vec![Task::Eval(expression)];
     let mut values = Vec::new();
     let mut failures = Vec::new();
@@ -157,11 +189,34 @@ pub(super) fn evaluate(expression: &Expr, state: &mut Vec<Binding>, facts: &mut 
                 values.push(value);
             }
             Task::Call(expression, count) => {
-                values.truncate(values.len() - count);
+                let arguments = values.split_off(values.len() - count);
                 let callee = values.pop().unwrap();
-                fact(expression, callee, facts, declarations);
-                if observe_failures { failures.push(state.clone()); }
-                values.push(Value::default());
+                fact(expression, callee.clone(), facts, declarations);
+                if let Some(invocation) = dispatch.invoke(expression, &callee, &arguments, state) {
+                    for (key, candidates) in invocation.facts {
+                        let merged = if let Some(previous) = facts.get(&key) {
+                            match (previous, candidates) {
+                                (Some(previous), Some(candidates)) => resolve_all(previous.iter().cloned().chain(candidates).map(Target::Contract).collect(), &[], declarations),
+                                _ => None,
+                            }
+                        } else { candidates };
+                        facts.insert(key, merged);
+                    }
+                    if observe_failures { failures.extend(invocation.throwing); }
+                    if let Some(outgoing) = invocation.normal {
+                        *state = outgoing;
+                        values.push(invocation.result);
+                    } else {
+                        normal = false;
+                        tasks.clear();
+                        values.clear();
+                        values.push(Value::default());
+                    }
+                } else {
+                    for binding in state.iter_mut().filter(|binding| binding.mutable) { binding.selection = Selection::default(); }
+                    if observe_failures { failures.push(state.clone()); }
+                    values.push(Value::default());
+                }
             }
             Task::Select(consequent, alternate) => {
                 let predicate = values.pop().unwrap();
@@ -197,7 +252,7 @@ pub(super) fn evaluate(expression: &Expr, state: &mut Vec<Binding>, facts: &mut 
             }
         }
     }
-    (values.pop().unwrap(), failures)
+    Evaluation { value: values.pop().unwrap(), failures, normal }
 }
 
 #[cfg(test)]
@@ -238,5 +293,56 @@ mod provenance_tests {
         let right=Value::default();
         let joined=merge_value(left,right,&HashMap::new());
         assert_eq!(joined.origins,vec![body_origins::Origin::Unknown,body]);
+    }
+}
+
+#[cfg(test)]
+mod dispatch_tests {
+    use super::*;
+    struct ThrowingWriter { saved: Span, replacement: Span, seen: bool }
+    impl Dispatch for ThrowingWriter {
+        fn invoke(&mut self, _: &Expr, callee: &Value, arguments: &[Value], state: &[Binding]) -> Option<Invocation> {
+            assert_eq!(callee.origins,vec![body_origins::Origin::Body(self.saved)]);
+            assert_eq!(arguments.len(),1);
+            self.seen=true;
+            let mut outgoing=state.to_vec();
+            let shared=outgoing.iter_mut().find(|binding|binding.name=="shared").unwrap();
+            shared.origins=vec![body_origins::Origin::Body(self.replacement)];
+            Some(Invocation { normal:None, throwing:vec![outgoing], result:Value::default(), facts:HashMap::new() })
+        }
+    }
+    #[test]
+    fn dispatcher_receives_saved_callee_after_arguments_and_throw_stops_remaining_expression() {
+        let source=crate::format("function one(value:int):int{return value;}function two(value:int):int{return value+1;}function main(){let action=one;let shared=one;const result=(action((action=two,0)),action=one);}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let program=crate::syntax::parse(&source).unwrap();let effects=effect_bodies::Index::new(&program).unwrap();
+        let declarations=program.functions.iter().map(|function|(function.name.text.clone(),contract(0,&function.parameter_initializers,function.rest_parameter,function.name.span))).collect::<HashMap<_,_>>();
+        let main=program.functions.iter().find(|function|function.name.text=="main").unwrap();
+        let one=program.functions.iter().find(|function|function.name.text=="one").unwrap().name.span;
+        let two=program.functions.iter().find(|function|function.name.text=="two").unwrap().name.span;
+        let mut state=Vec::new();collect(&main.body,&mut state,&effects);
+        let StmtKind::Let {value,..}=&main.body[2].kind else {panic!("result")};
+        let mut dispatch=ThrowingWriter { saved:one,replacement:two,seen:false };
+        let result=evaluate_with_dispatch(value,&mut state,&mut HashMap::new(),&declarations,true,&effects,&mut dispatch);
+        assert!(dispatch.seen);assert!(!result.normal);assert_eq!(result.failures.len(),1);
+        assert_eq!(result.failures[0].iter().find(|binding|binding.name=="shared").unwrap().origins,vec![body_origins::Origin::Body(two)]);
+        assert_eq!(state.iter().find(|binding|binding.name=="action").unwrap().origins,vec![body_origins::Origin::Body(two)]);
+    }
+}
+
+#[cfg(test)]
+mod opaque_selection_tests {
+    use super::*;
+    #[test]
+    fn opaque_call_does_not_preserve_mutable_guard_assumptions() {
+        let source=crate::format("function opaque(value:boolean){}function main(){let flag=false;opaque(flag);}").unwrap();
+        let program=crate::syntax::parse(&source).unwrap();let effects=effect_bodies::Index::new(&program).unwrap();
+        let declarations=program.functions.iter().map(|function|(function.name.text.clone(),contract(0,&function.parameter_initializers,function.rest_parameter,function.name.span))).collect::<HashMap<_,_>>();
+        let main=program.functions.iter().find(|function|function.name.text=="main").unwrap();
+        let mut state=Vec::new();collect(&main.body,&mut state,&effects);
+        state[0].selection.truth=Some(false);
+        let StmtKind::Expr(call)=&main.body[1].kind else {panic!("call")};
+        evaluate(call,&mut state,&mut HashMap::new(),&declarations,false,&effects);
+        assert_eq!(state[0].selection.truth,None);
     }
 }

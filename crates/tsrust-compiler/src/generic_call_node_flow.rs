@@ -4,9 +4,11 @@ use super::*;
 pub(super) struct Transfer {
     pub value: expression_flow::Value,
     pub failures: Vec<Vec<Binding>>,
+    pub normal: bool,
 }
 impl Transfer {
     pub(super) fn normal_edges(&self, node: &flow_graph::Node<'_>) -> Vec<usize> {
+        if !self.normal { return Vec::new(); }
         if node.next.len() == 2 && let Some(truth) = self.value.known_truth() {
             vec![node.next[usize::from(!truth)]]
         } else { node.next.clone() }
@@ -14,18 +16,23 @@ impl Transfer {
 }
 
 pub(super) fn apply(node: &flow_graph::Node<'_>, state: &mut Vec<Binding>, facts: &mut HashMap<(usize, usize), Option<Vec<Contract>>>, declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index) -> Transfer {
+    apply_with_dispatch(node, state, facts, declarations, effects, &mut expression_flow::UnknownDispatch)
+}
+pub(super) fn apply_with_dispatch(node: &flow_graph::Node<'_>, state: &mut Vec<Binding>, facts: &mut HashMap<(usize, usize), Option<Vec<Contract>>>, declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index, dispatch: &mut dyn expression_flow::Dispatch) -> Transfer {
     let statement = node.statement;
         let mut failures = Vec::new();
         if let Some(StmtKind::Assign { target, .. }) = statement.map(|statement| &statement.kind)
             && !matches!(target.kind, ExprKind::Name(_))
         {
-            let (_, failed) = expression_flow::evaluate(target, state, facts, declarations, node.exceptional.is_some(), effects);
-            failures.extend(failed);
+            let evaluation = expression_flow::evaluate_with_dispatch(target, state, facts, declarations, node.exceptional.is_some(), effects, dispatch);
+            failures.extend(evaluation.failures);
+            if !evaluation.normal { return Transfer { value: expression_flow::Value::default(), failures, normal: false }; }
         }
         let expression_value = if let Some(expression) = node.expression {
-            let (value, failed) = expression_flow::evaluate(expression, state, facts, declarations, node.exceptional.is_some(), effects);
-            failures.extend(failed);
-            value
+            let evaluation = expression_flow::evaluate_with_dispatch(expression, state, facts, declarations, node.exceptional.is_some(), effects, dispatch);
+            failures.extend(evaluation.failures);
+            if !evaluation.normal { return Transfer { value: evaluation.value, failures, normal: false }; }
+            evaluation.value
         } else { expression_flow::Value::default() };
         if node.exceptional.is_some() && matches!(statement.map(|statement| &statement.kind), Some(StmtKind::Assign { operator: Some(_), .. })) {
             failures.push(state.clone());
@@ -70,6 +77,7 @@ pub(super) fn apply(node: &flow_graph::Node<'_>, state: &mut Vec<Binding>, facts
             _ => None,
         };
         if let Some((destination, candidates)) = destination {
+            state[destination].selection = candidates.selection();
             state[destination].origins = body_origins::canonical(candidates.origins);
             if state[destination].contract.is_none() {
                 state[destination].targets = candidates.contracts.map_or_else(
@@ -78,5 +86,5 @@ pub(super) fn apply(node: &flow_graph::Node<'_>, state: &mut Vec<Binding>, facts
                 );
             }
         }
-    Transfer { value: expression_value, failures }
+    Transfer { value: expression_value, failures, normal: true }
 }

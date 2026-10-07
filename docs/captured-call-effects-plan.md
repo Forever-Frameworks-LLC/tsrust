@@ -222,3 +222,34 @@ tests. This is metadata WIP, not acceptance; the preceding whole-editor 329-test
 record remains preserved, and full editor verification is still required before
 accepting the eventual invocation implementation. Formatting changes zero files
 and fingerprints. No measurements, new observations or consumer refresh is claimed.
+
+## Finite inter-call worklist WIP
+
+Expression dispatch now saves the callee before arguments, supplies evaluated
+argument Values, merges nested signature facts and distinguishes an absent normal
+exit from an ordinary unknown result. A definite throwing invocation stops the
+remaining expression and destination commit while preserving its exceptional state.
+Node and summary evaluators carry the dispatch interface without recursively
+executing another Rust evaluator.
+
+The standalone invocation engine caches contextual requests and schedules reverse
+dependencies on an explicit worklist. New known requests start at bottom: no exit
+is fabricated while their bodies are pending. Normal, return, throw and signature
+facts grow through finite joins. Recursive and transitive tests converge, and a
+repeated request reuses the completed cache. Seven original effect scenarios now
+have correct facts through this standalone engine: named, arrow, transitive,
+recursive, conditional, caught throw and argument-side writes. Compiler validation
+is not connected to it yet; the original integration red remains unchanged.
+
+A supplied-false guard witness exposed missing scalar context. Bindings now carry
+finite truth, nullish and undefined facts independently of bodies/signatures; frame
+installation and projection preserve them, and joins retain only agreed facts.
+Opaque dispatch invalidates mutable selection assumptions rather than guessing
+that an unknown call preserves them. No concrete numeric domain was added.
+
+Twenty-eight focused tests, 187 bounded compiler tests and 197 affected editor tests
+pass. Both existing integration reds are explicitly excluded. Full editor remains
+required before accepting actual invocation integration. Formatting changes zero
+files/hashes. No observation, timing or consumer refresh is claimed. Default/rest
+materialization, unsupported/unknown-region eligibility, return-value snapshots,
+collection rules and root-validator integration remain required before acceptance.

@@ -17,7 +17,7 @@ use targets::Target;
 mod contract_sets;
 use contract_sets::{resolve_all, resolve_indexed};
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 struct Contract {
     generic: usize,
     required: usize,
@@ -25,13 +25,20 @@ struct Contract {
     declaration: Span,
     alternatives: Vec<Span>,
 }
-#[derive(Clone)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, Hash)]
+struct Selection {
+    truth: Option<bool>,
+    nullish: Option<bool>,
+    undefined: Option<bool>,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
 struct Binding {
     identity: Option<crate::local_capture_plan::BindingId>,
     name: String,
     scope: Span,
     targets: Vec<Target>,
     origins: Vec<body_origins::Origin>,
+    selection: Selection,
     mutable: bool,
     contract: Option<Contract>,
 }
@@ -125,6 +132,7 @@ fn collect(body: &[Stmt], bindings: &mut Vec<Binding>, effects: &effect_bodies::
         scope,
         targets: vec![Target::Unknown],
         origins: vec![body_origins::Origin::Unknown],
+        selection: Selection::default(),
         mutable: false,
         contract: None,
     }));
@@ -261,6 +269,7 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
                     scope: function.scope_span,
                     targets: vec![Target::Unknown],
                     origins: vec![body_origins::Origin::Unknown],
+        selection: Selection::default(),
                     mutable: false,
                     contract: callback.map(|callback| {
                         contract(
@@ -289,6 +298,7 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
                     scope: expression.span,
                     targets: vec![Target::Unknown],
                     origins: vec![body_origins::Origin::Unknown],
+        selection: Selection::default(),
                     mutable: false,
                     contract:
                         match &parameter.ty {

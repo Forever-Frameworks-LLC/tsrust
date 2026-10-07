@@ -1,7 +1,7 @@
 //! Body provenance does not inherit a declared callback signature's identity.
 use super::*;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub(super) enum Origin {
     Name(String, Span),
     Body(Span),

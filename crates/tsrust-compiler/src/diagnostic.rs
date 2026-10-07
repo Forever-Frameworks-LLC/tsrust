@@ -1,7 +1,7 @@
 use std::fmt::Write;
 
 /// Half-open UTF-8 byte offsets in the original source.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct Span {
     pub start: usize,
     pub end: usize,

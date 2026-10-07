@@ -12,6 +12,8 @@ mod node_flow;
 mod summary_flow;
 #[path = "generic_call_invocation_frame.rs"]
 mod invocation_frame;
+#[path = "generic_call_invocation_worklist.rs"]
+mod invocation_worklist;
 
 pub(super) fn binding_at(bindings: &[Binding], name: &str, span: Span, effects: &effect_bodies::Index) -> Option<usize> {
     if let Some(identity) = effects.binding(name, span) {
@@ -36,6 +38,12 @@ fn join(
 ) -> bool {
     let mut changed = false;
     for (current, incoming) in current.iter_mut().zip(incoming) {
+        let selection = Selection {
+            truth: (current.selection.truth == incoming.selection.truth).then_some(current.selection.truth).flatten(),
+            nullish: (current.selection.nullish == incoming.selection.nullish).then_some(current.selection.nullish).flatten(),
+            undefined: (current.selection.undefined == incoming.selection.undefined).then_some(current.selection.undefined).flatten(),
+        };
+        if selection != current.selection { current.selection = selection; changed = true; }
         let origins = body_origins::canonical(current.origins.iter().chain(&incoming.origins).cloned().collect());
         if origins != current.origins { current.origins = origins; changed = true; }
         let mut candidates = current.targets.clone();
@@ -96,6 +104,7 @@ pub(super) fn analyze(
     for binding in &mut seed {
         if binding.scope.start > function.scope_span.start {
             binding.origins = vec![body_origins::Origin::Unknown];
+            binding.selection = Selection::default();
             if binding.contract.is_none() { binding.targets = vec![Target::Unknown]; }
         }
     }

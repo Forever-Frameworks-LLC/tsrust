@@ -1,6 +1,6 @@
 //! Callable summaries preserve distinct normal, return and exceptional states.
 use super::*;
-#[derive(Default)]
+#[derive(Default, Clone, PartialEq, Eq)]
 pub(super) struct Outcome {
     pub normal: Option<Vec<Binding>>,
     pub returning: Option<Vec<Binding>>,
@@ -10,6 +10,9 @@ pub(super) struct Outcome {
 /// Evaluate a callee body without merging normal and exceptional completion.
 /// Invocation dispatch and contextual parameters are supplied by the next layer.
 pub(super) fn run(body: &[Stmt], initial: &[Binding], declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index) -> Option<Outcome> {
+    run_with_dispatch(body, initial, declarations, effects, &mut expression_flow::UnknownDispatch)
+}
+pub(super) fn run_with_dispatch(body: &[Stmt], initial: &[Binding], declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index, dispatch: &mut dyn expression_flow::Dispatch) -> Option<Outcome> {
     let graph = flow_graph::summary_graph(body)?;
     let mut seed = initial.to_vec();
     let mut locals = Vec::new();
@@ -17,6 +20,7 @@ pub(super) fn run(body: &[Stmt], initial: &[Binding], declarations: &HashMap<Str
     for mut local in locals {
         if seed.iter().any(|binding| binding.identity == local.identity && binding.name == local.name && binding.scope == local.scope) { continue; }
         local.origins = vec![body_origins::Origin::Unknown];
+        local.selection = Selection::default();
         local.targets = vec![Target::Unknown];
         seed.push(local);
     }
@@ -29,7 +33,7 @@ pub(super) fn run(body: &[Stmt], initial: &[Binding], declarations: &HashMap<Str
         if index == graph.exits.normal || index == graph.exits.returning || index == graph.exits.throwing { continue; }
         let node = &graph.nodes[index];
         let mut state = states[index].as_ref().unwrap().clone();
-        let transfer = node_flow::apply(node, &mut state, &mut facts, declarations, effects);
+        let transfer = node_flow::apply_with_dispatch(node, &mut state, &mut facts, declarations, effects, dispatch);
         let normal_edges = transfer.normal_edges(node);
         let successors = normal_edges.iter().map(|&next| (next, &state))
             .chain(node.exceptional.into_iter().flat_map(|next| transfer.failures.iter().map(move |state| (next, state))));
@@ -46,8 +50,11 @@ pub(super) fn run(body: &[Stmt], initial: &[Binding], declarations: &HashMap<Str
 /// Arguments must already include evaluated defaults; rest packing is deferred.
 /// Nested invocation dispatch remains the responsibility of the worklist engine.
 pub(super) fn invoke(declaration: Span, caller: &[Binding], arguments: &[expression_flow::Value], declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index) -> Option<Outcome> {
+    invoke_with_dispatch(declaration, caller, arguments, declarations, effects, &mut expression_flow::UnknownDispatch)
+}
+pub(super) fn invoke_with_dispatch(declaration: Span, caller: &[Binding], arguments: &[expression_flow::Value], declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index, dispatch: &mut dyn expression_flow::Dispatch) -> Option<Outcome> {
     let frame = invocation_frame::Frame::build(declaration, caller, arguments, effects)?;
-    let mut outcome = run(effects.body(declaration)?, &frame.state, declarations, effects)?;
+    let mut outcome = run_with_dispatch(effects.body(declaration)?, &frame.state, declarations, effects, dispatch)?;
     outcome.normal = outcome.normal.map(|state| frame.project(&state));
     outcome.returning = outcome.returning.map(|state| frame.project(&state));
     outcome.throwing = outcome.throwing.map(|state| frame.project(&state));
