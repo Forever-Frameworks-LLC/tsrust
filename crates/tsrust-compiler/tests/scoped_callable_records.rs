@@ -675,3 +675,59 @@ fn replacing_record_keeps_capture_loan_owned_by_moved_out_callback() {
     let error=match tsrust_compiler::check(&source){Ok(_)=>panic!("replacement released a separately owned callback capture"),Err(error)=>error};
     assert_eq!(error.code,"capture-conflict","{error:?}");
 }
+
+#[test]
+fn callback_field_replacement_releases_old_capture_and_preserves_sibling() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Pair={left:ReadOnly<Function<int>>;right:ReadOnly<Function<int>>;};
+        function main(){
+            const a=[3]; const b=[7]; const c=[11];
+            {
+                let pair:Pair={left:():int=>a[0],right:():int=>c[0]};
+                strictEqual(pair.left(),3);
+                pair.left=():int=>b[0];
+                a[0]=5; strictEqual(a[0],5);
+                strictEqual(pair.left(),7); strictEqual(pair.right(),11);
+            }
+            b[0]=9; c[0]=13; strictEqual(b[0]+c[0],22);
+        }
+    "#);
+}
+
+#[test]
+fn cross_block_record_replacement_releases_old_capture() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder={run:ReadOnly<Function<int>>;};
+        function main(){
+            const a=[3]; const b=[11];
+            {
+                let holder:Holder={run:():int=>a[0]};
+                strictEqual(holder.run(),3);
+                { holder={run:():int=>b[0]}; }
+                a[0]=5; strictEqual(a[0],5); strictEqual(holder.run(),11);
+            }
+            b[0]=13; strictEqual(b[0],13);
+        }
+    "#);
+}
+
+#[test]
+fn callback_field_replacement_keeps_moved_sibling_and_new_capture_conflicts() {
+    for owner in ["a","b","c"] {
+        let source=support::format_round_trip(&format!(r#"
+            type Pair={{left:ReadOnly<Function<int>>;right:ReadOnly<Function<int>>;}};
+            function main(){{
+                const a=[3];const b=[7];const c=[11];
+                let pair:Pair={{left:():int=>a[0],right:():int=>c[0]}};
+                const saved=pair.left;
+                pair.left=():int=>b[0];
+                {owner}[0]=99;
+                console.log(saved(),pair.left(),pair.right());
+            }}
+        "#));
+        let error=match tsrust_compiler::check(&source){Ok(_)=>panic!("replacement lost live capture conflict for {owner}"),Err(error)=>error};
+        assert_eq!(error.code,"capture-conflict","{owner}: {error:?}");
+    }
+}

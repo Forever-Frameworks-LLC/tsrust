@@ -4729,12 +4729,13 @@ impl Analyzer {
             _ => unreachable!("checked assignment target"),
         };
         let active = Self::selection_loans(selected, loans);
-        let actual = if let Type::StoredCallable(family) = ty {
+        let contract=self.local_record_field_contract(context,target).unwrap_or(ty);
+        let actual = if let Type::StoredCallable(family) = contract {
             self.stored_callable_value(context, value, family, &active)?
         } else {
-            self.expression(context, value, Mode::Consume, &active, Some(ty))?
+            self.expression(context, value, Mode::Consume, &active, Some(contract))?
         };
-        self.require(actual, Some(ty), value.span)?;
+        self.require(actual, Some(contract), value.span)?;
         let binding = Self::root_binding(target).expect("checked field has a binding");
         if let Some((_, path)) = Self::direct_fields(target) {
             Self::availability(
@@ -4750,6 +4751,7 @@ impl Analyzer {
             return Err(Self::transferred(&context.bindings[binding], target.span));
         }
         Self::storage_access(context, target, Mode::Mutate, target.span, loans)?;
+        self.update_local_record_field_type(context,target,actual)?;
         self.replace_target_capture_loans(context, target, value);
         Ok(())
     }

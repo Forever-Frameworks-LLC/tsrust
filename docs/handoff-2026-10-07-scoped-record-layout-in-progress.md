@@ -1757,3 +1757,48 @@ A separate rejection control verifies that replacement cannot release a capture
 owned by a moved-out callback. Formatting changes zero files and fingerprints.
 Exact red/intermediate/green evidence is verified in SQLite under
 runtime/diagnostics/scoped-record-conversion/.
+
+
+## Callback field replacement and cross-block local writes
+
+Local callback field replacement now checks the declared nominal callback contract,
+rather than demanding the preceding concrete environment origin. After access checks,
+analysis materializes the replacement field instance at that program point while
+preserving the types of sibling fields. Existing capture ownership replacement keeps
+its field path, so releasing the old field does not release the sibling or another
+owner of a moved-out callback.
+
+The storage normalizer now collects relevant whole-record and callback-field writes
+through nested blocks, branches, loops and exception regions. It ignores scalar writes.
+Whole and selected-field writes join compatible carriers by binding identity and static
+field names. A whole record initializer can convert its selected callback to the common
+carrier while forwarding the remaining leaves and order metadata. Subsequent field
+writes wrap their original environments in that same carrier. Ordinary source callback
+ownership capabilities and nominal record identity remain unchanged.
+
+The new field native witness observes 3 before replacement, 7 after replacement and
+11 from the unchanged sibling. The released first array can mutate while both remaining
+callbacks stay usable. The cross-block whole-record replacement witness also passes.
+Thirty project tests and seven capture-loan unit controls pass. Three separate rejection
+cases retain conflicts for the moved-out original callback, the new callback and the
+unchanged sibling. This is a representation checkpoint, not whole record acceptance.
+
+Borrowed parameter replacement, captured carrier replacement, expression-level stores,
+loop-dependent origin changes, defaults/exception disposal and owning callback carrier
+composition still require focused coverage. Native conversion currently preserves the
+existing borrowed family representation; do not claim all owning or opaque callbacks
+are supported. Finish those boundaries and fallible contracts, then editor/guide and
+matched benchmark acceptance. No consumer refresh or timing is claimed.
+
+Continuation prompt: Continue after callback field replacement and cross-block local
+writes. Add boundary witnesses for expression-level stores, loop-dependent origins,
+borrowed parameter and captured carrier replacement, defaults and exception disposal.
+Keep one evaluation, original sibling fields, constructor order, point-sensitive loans
+and moved-out owners. Finish owning/opaque composition and fallible callback contracts
+before editor/guide and matched benchmarks. Do not reopen verified chunks. Preserve
+fifteen owner fixtures, use bounded checks and depth canaries, format before explicit
+Git commits, and import closed evidence into SQLite. Consumers remain f1dd284.
+
+All 64 depth canaries pass. Formatting changes zero files and fingerprints.
+Exact red/green and retained-conflict evidence is verified in SQLite under
+runtime/diagnostics/scoped-record-writes/.
