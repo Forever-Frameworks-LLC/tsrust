@@ -21,6 +21,7 @@ pub(super) fn run_with_dispatch(body: &[Stmt], initial: &[Binding], declarations
         if seed.iter().any(|binding| binding.identity == local.identity && binding.name == local.name && binding.scope == local.scope) { continue; }
         local.origins = vec![body_origins::Origin::Unknown];
         local.selection = Selection::default();
+        local.elements = None;
         local.targets = vec![Target::Unknown];
         seed.push(local);
     }

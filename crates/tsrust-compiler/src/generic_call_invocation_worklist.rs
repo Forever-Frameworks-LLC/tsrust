@@ -204,3 +204,27 @@ mod default_tests {
         }
     }
 }
+
+#[cfg(test)]
+mod rest_tests {
+    use super::*;
+    #[test]
+    fn indexed_rest_callback_projects_its_capture_write() {
+        for (invocation, required) in [("relay(change)",Some(2)), ("const callbacks=[change];callbacks[0]()",Some(2)), ("const callbacks=[change];const saved=callbacks;saved[0]()",Some(2)), ("const callbacks=[noop,change];callbacks[0]()",Some(1)), ("const callbacks=[noop,change];callbacks[1]()",Some(2)), ("const callbacks=[change];const saved=callbacks;callbacks[0]=noop;saved[0]()",None)] {
+        let source=crate::format("function one<T>(value:T):T{return value;}function two<T>(value:T,other:T):T{return other;}function noop(){}function relay(...callbacks:Function<void>[]){callbacks[0]();}function outer<T>(value:T):T{let action=one;function change(){action=two;}INVOCATION;return action<T>(value);}function main(){}".replace("INVOCATION", invocation).as_str()).unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let program=crate::syntax::parse(&source).unwrap();let effects=effect_bodies::Index::new(&program).unwrap();
+        let declarations=program.functions.iter().map(|function|(function.name.text.clone(),contract(function.type_parameters.len(),&function.parameter_initializers,function.rest_parameter,function.name.span))).collect::<HashMap<_,_>>();
+        let outer=program.functions.iter().find(|function|function.name.text=="outer").unwrap();
+        let outcome=Engine::new(&declarations,&effects).solve(outer.name.span,&[],&[expression_flow::Value::default()]);
+        if required.is_none() { assert!(outcome.is_none(), "alias mutation must invalidate stale element provenance"); continue; }
+        assert!(outcome.is_some(),"rest callback body must be traceable");
+        let outcome=outcome.unwrap();
+        let mut probe=outer.clone();let mut call=None;
+        crate::source_walk::function_body(&mut probe,&mut |_|Ok(()),&mut |expression| {
+            if let ExprKind::Call(callee,_) =&expression.kind && name(callee).is_some_and(|(name,_)|name=="action") {call=Some((expression.span.start,expression.span.end));} Ok(())
+        }).unwrap();
+        assert!(outcome.facts.get(&call.unwrap()).and_then(|contracts|contracts.as_ref()).is_some_and(|contracts|contracts.iter().all(|contract|contract.required==required.unwrap())));
+        }
+    }
+}

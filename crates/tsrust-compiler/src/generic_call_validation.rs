@@ -32,6 +32,12 @@ struct Selection {
     undefined: Option<bool>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
+struct Element {
+    origins: Vec<body_origins::Origin>,
+    contracts: Option<Vec<Contract>>,
+    selection: Selection,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
 struct Binding {
     identity: Option<crate::local_capture_plan::BindingId>,
     name: String,
@@ -39,6 +45,7 @@ struct Binding {
     targets: Vec<Target>,
     origins: Vec<body_origins::Origin>,
     selection: Selection,
+    elements: Option<Vec<Element>>,
     mutable: bool,
     contract: Option<Contract>,
 }
@@ -132,7 +139,7 @@ fn collect(body: &[Stmt], bindings: &mut Vec<Binding>, effects: &effect_bodies::
         scope,
         targets: vec![Target::Unknown],
         origins: vec![body_origins::Origin::Unknown],
-        selection: Selection::default(),
+        selection: Selection::default(), elements: None,
         mutable: false,
         contract: None,
     }));
@@ -269,7 +276,7 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
                     scope: function.scope_span,
                     targets: vec![Target::Unknown],
                     origins: vec![body_origins::Origin::Unknown],
-        selection: Selection::default(),
+        selection: Selection::default(), elements: None,
                     mutable: false,
                     contract: callback.map(|callback| {
                         contract(
@@ -298,7 +305,7 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
                     scope: expression.span,
                     targets: vec![Target::Unknown],
                     origins: vec![body_origins::Origin::Unknown],
-        selection: Selection::default(),
+        selection: Selection::default(), elements: None,
                     mutable: false,
                     contract:
                         match &parameter.ty {

@@ -274,3 +274,13 @@ for the ordinary arity validator. Rest entry remains explicitly opaque until
 aggregate element provenance exists. Focused tests exercise omitted and explicit
 undefined arguments, supplied values and throwing defaults. Compiler integration
 and native/editor acceptance remain open.
+
+## Flat rest/array element provenance WIP
+
+Rest entry packs trailing argument snapshots into flat element facts. Arrays,
+aliases, frames and joins retain individual positions; constant indexing supplies
+the selected callback body to invocation dispatch. Shapes do not recursively nest.
+Unknown indices and writes invalidate the proof rather than retaining stale alias
+contents. Storage identity, precise mutation, spread, iteration and returned
+aggregate snapshots remain required before acceptance. The root compiler path is
+still unchanged. Focused witnesses cover packing, aliasing and separate positions.

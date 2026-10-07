@@ -8,6 +8,7 @@ pub(super) struct Value {
     truth: Option<bool>,
     nullish: Option<bool>,
     undefined: Option<bool>,
+    pub(super) elements: Option<Vec<Element>>,
 }
 impl Value {
     pub(super) fn from_origins(origins: Vec<body_origins::Origin>) -> Self { Self { origins: body_origins::canonical(origins), ..Self::default() } }
@@ -18,10 +19,26 @@ impl Value {
 
 impl Default for Value {
     fn default() -> Self {
-        Self { origins: vec![body_origins::Origin::Unknown], contracts: None, truth: None, nullish: None, undefined: None }
+        Self { origins: vec![body_origins::Origin::Unknown], contracts: None, truth: None, nullish: None, undefined: None, elements: None }
     }
 }
 
+pub(super) fn merge_elements(left: Option<Vec<Element>>, right: Option<Vec<Element>>, declarations: &HashMap<String, Contract>) -> Option<Vec<Element>> {
+    let (left, right) = (left?, right?);
+    if left.len() != right.len() { return None; }
+    Some(left.into_iter().zip(right).map(|(left,right)| {
+        let value = merge_value(Value::element(&left), Value::element(&right), declarations);
+        Element { origins: value.origins.clone(), contracts: value.contracts.clone(), selection: value.selection() }
+    }).collect())
+}
+impl Value {
+    fn element(element: &Element) -> Self {
+        Self { origins: element.origins.clone(), contracts: element.contracts.clone(), truth: element.selection.truth, nullish: element.selection.nullish, undefined: element.selection.undefined, elements: None }
+    }
+    pub(super) fn array(values: &[Value]) -> Self {
+        Self { truth: Some(true), nullish: Some(false), undefined: Some(false), elements: Some(values.iter().map(|value| Element { origins: value.origins.clone(), contracts: value.contracts.clone(), selection: value.selection() }).collect()), ..Self::default() }
+    }
+}
 fn merge_value(left: Value, right: Value, declarations: &HashMap<String, Contract>) -> Value {
     let contracts = match (left.contracts, right.contracts) {
         (Some(left), Some(right)) => resolve_all(left.into_iter().chain(right).map(Target::Contract).collect(), &[], declarations),
@@ -29,7 +46,7 @@ fn merge_value(left: Value, right: Value, declarations: &HashMap<String, Contrac
     };
     Value { origins: body_origins::canonical(left.origins.into_iter().chain(right.origins).collect()), contracts, truth: (left.truth == right.truth).then_some(left.truth).flatten(),
         nullish: (left.nullish == right.nullish).then_some(left.nullish).flatten(),
-        undefined: (left.undefined == right.undefined).then_some(left.undefined).flatten() }
+        undefined: (left.undefined == right.undefined).then_some(left.undefined).flatten(), elements: merge_elements(left.elements, right.elements, declarations) }
 }
 fn snapshot(expression: &Expr, state: &[Binding], declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index) -> Value {
     let contracts = if let Some((name, span)) = name(expression) && effects.binding(name, span).is_some() {
@@ -58,14 +75,20 @@ fn snapshot(expression: &Expr, state: &[Binding], declarations: &HashMap<String,
         nullish = selection.nullish.or(nullish);
         undefined = selection.undefined.or(undefined);
     }
-    Value { origins: body_origins::resolve(body_origins::value(expression), state, declarations, effects), contracts, truth, nullish, undefined }
+    Value { origins: body_origins::resolve(body_origins::value(expression), state, declarations, effects), contracts, truth, nullish, undefined, elements: name(expression).and_then(|(name,span)| binding_at(state,name,span,effects)).and_then(|index|state[index].elements.clone()) }
 }
 fn commit(target: &Expr, value: &Value, state: &mut [Binding], effects: &effect_bodies::Index) {
+    if !matches!(target.kind, ExprKind::Name(_)) {
+        // Array aliases have no storage identity yet; a write invalidates all
+        // element snapshots rather than retaining stale callable provenance.
+        for binding in state.iter_mut() { binding.elements = None; }
+    }
     if let ExprKind::Name(name) = &target.kind
         && let Some(index) = binding_at(state, name, target.span, effects)
     {
         state[index].origins = body_origins::canonical(value.origins.clone());
         state[index].selection = value.selection();
+        state[index].elements = value.elements.clone();
         if state[index].contract.is_some() { return; }
         state[index].targets = value.contracts.clone().map_or_else(|| vec![Target::Unknown], |values| values.into_iter().map(Target::Contract).collect());
     }
@@ -182,12 +205,19 @@ pub(super) fn evaluate_with_dispatch(expression: &Expr, state: &mut Vec<Binding>
                 let preserved = if count == 1 && matches!(expression.kind, ExprKind::TypeAssertion { .. } | ExprKind::Unary { op: UnaryOp::NonNull | UnaryOp::OptionalSelected, .. }) {
                     values.last().map(|value| value.origins.clone())
                 } else { None };
-                values.truncate(values.len() - count);
+                let operands = values.split_off(values.len() - count);
                 if matches!(expression.kind, ExprKind::Index(..) | ExprKind::Binary { .. } | ExprKind::Unary { .. } | ExprKind::Update { .. } | ExprKind::CompoundAssign { .. }) {
                     if observe_failures { failures.push(state.clone()); }
                 }
                 let mut value = snapshot(expression, state, declarations, effects);
-                if let Some(origins) = preserved { value.origins = origins; }
+                if let Some(origins) = preserved { value.origins = origins; value.elements = operands[0].elements.clone(); }
+                match &expression.kind {
+                    ExprKind::Array(_) => value = Value::array(&operands),
+                    ExprKind::Index(_, index) => {
+                        value = if let ExprKind::Integer(index) = &index.kind { index.parse::<usize>().ok().and_then(|index| operands[0].elements.as_ref()?.get(index)).map(Value::element).unwrap_or_default() } else { Value::default() };
+                    }
+                    _ => {}
+                }
                 values.push(value);
             }
             Task::Call(expression, count) => {
@@ -215,7 +245,7 @@ pub(super) fn evaluate_with_dispatch(expression: &Expr, state: &mut Vec<Binding>
                         values.push(Value::default());
                     }
                 } else {
-                    for binding in state.iter_mut().filter(|binding| binding.mutable) { binding.selection = Selection::default(); }
+                    for binding in state.iter_mut() { binding.elements = None; if binding.mutable { binding.selection = Selection::default(); } }
                     if observe_failures { failures.push(state.clone()); }
                     values.push(Value::default());
                 }

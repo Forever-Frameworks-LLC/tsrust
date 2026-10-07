@@ -194,7 +194,7 @@ impl Index {
         Parameter { binding: Binding {
             identity: self.declared(name.span), name: name.text.clone(), scope,
             targets: vec![Target::Unknown], origins: vec![body_origins::Origin::Unknown],
-            selection: Selection::default(), mutable: false, contract: callback.map(|callback| parameters(&callback.params, name.span)),
+            selection: Selection::default(), elements: None, mutable: false, contract: callback.map(|callback| parameters(&callback.params, name.span)),
         }, initializer, rest }
     }
     pub(super) fn parameters(&self, declaration: Span) -> Option<&[Parameter]> {

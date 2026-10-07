@@ -40,6 +40,8 @@ fn join(
 ) -> bool {
     let mut changed = false;
     for (current, incoming) in current.iter_mut().zip(incoming) {
+        let elements = expression_flow::merge_elements(current.elements.clone(), incoming.elements.clone(), declarations);
+        if elements != current.elements { current.elements = elements; changed = true; }
         let selection = Selection {
             truth: (current.selection.truth == incoming.selection.truth).then_some(current.selection.truth).flatten(),
             nullish: (current.selection.nullish == incoming.selection.nullish).then_some(current.selection.nullish).flatten(),

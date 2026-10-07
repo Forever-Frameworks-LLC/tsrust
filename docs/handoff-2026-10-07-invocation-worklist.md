@@ -51,9 +51,12 @@ unsupported regions conservatively; opacity currently rejects the summary proof.
 installs supplied values in order, executes omitted/undefined defaults, joins both
 branches when undefined status is uncertain and carries failures before body entry.
 A missing required argument retains undefined for source diagnostics; ordinary
-arity validation remains responsible for rejecting the call. Rest parameters
-currently refuse summary entry because aggregate element provenance is absent.
-Implement rest storage/projection before enabling these calls. Unknown
+arity validation remains responsible for rejecting the call. Rest parameters now pack trailing argument snapshots into flat element provenance.
+Constant integer indexing preserves the selected callback. Arrays and aliases carry
+these snapshots through bindings and frame projection. Unknown indices, nested
+aggregate elements and element writes remain conservative; array aliases have no
+storage identity yet. Mutation invalidates all element snapshots. Implement precise
+mutation, spread, iteration and return snapshots before full aggregate acceptance. Unknown
 callee alternatives and callbacks passed to unknown/built-in callees still need
 proper effects/cardinality handling. Do not activate these cases by pretending they
 have no effects. Collection callbacks, optional regions and stored fields remain
@@ -79,3 +82,15 @@ facts for invalid calls with missing required arguments; corrected evidence is
 retained alongside the original red. No editor acceptance, native parity, root
 activation, timing or consumer refresh is claimed. Rest arrays, return snapshots
 and original integration/carrier reds remain open.
+
+## Flat rest/array element provenance WIP
+
+The finite domain stores a fixed vector of flat element facts, with no recursive
+aggregate shape. Equal-length joins merge each position; differing shapes become
+unknown. The vectors come from source array literals or source call argument lists.
+Rest packing and constant indexing preserve captured callback bodies. Witnesses
+cover rest invocation, literal arrays, aliases, separate indices and mutation
+invalidating aliases. Dynamic indices, nested aggregate elements, spread and
+collection iteration remain unsupported by this proof. No compiler-path acceptance
+or editor/native parity is claimed. Thirty-one focused tests and all eight depth
+canaries (63 tests) pass; exact red and passing evidence is retained in SQLite.

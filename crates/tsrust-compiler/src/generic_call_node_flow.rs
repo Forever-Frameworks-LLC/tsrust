@@ -76,8 +76,12 @@ pub(super) fn apply_with_dispatch(node: &flow_graph::Node<'_>, state: &mut Vec<B
             }
             _ => None,
         };
+        if matches!(node.statement.map(|statement| &statement.kind), Some(StmtKind::Assign { target, .. }) if !matches!(target.kind, ExprKind::Name(_))) {
+            for binding in state.iter_mut() { binding.elements = None; }
+        }
         if let Some((destination, candidates)) = destination {
             state[destination].selection = candidates.selection();
+            state[destination].elements = candidates.elements.clone();
             state[destination].origins = body_origins::canonical(candidates.origins);
             if state[destination].contract.is_none() {
                 state[destination].targets = candidates.contracts.map_or_else(

@@ -14,6 +14,7 @@ impl Frame {
             if !parameter.rest && let Some(argument) = arguments.get(position) {
                 binding.origins = body_origins::canonical(argument.origins.clone());
                 binding.selection = argument.selection();
+                binding.elements = argument.elements.clone();
                 binding.targets = argument.contracts.clone().map_or_else(|| vec![Target::Unknown], |contracts| contracts.into_iter().map(Target::Contract).collect());
             }
             binding
@@ -22,6 +23,7 @@ impl Frame {
         for local in &mut slots[parameters.len()..] {
             local.origins = vec![body_origins::Origin::Unknown];
             local.selection = Selection::default();
+        local.elements = None;
             local.targets = vec![Target::Unknown];
         }
         let owned = slots.iter().filter_map(|binding| binding.identity).collect::<HashSet<_>>();
@@ -41,6 +43,7 @@ impl Frame {
             if let Some(updated) = updated_by_identity.get(&identity) {
                 binding.origins = updated.origins.clone();
                 binding.selection = updated.selection;
+                binding.elements = updated.elements.clone();
                 binding.targets = updated.targets.clone();
             }
         }

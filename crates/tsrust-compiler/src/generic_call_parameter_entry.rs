@@ -8,13 +8,11 @@ pub(super) struct Entry {
 fn install(binding: &mut Binding, value: &expression_flow::Value) {
     binding.origins = body_origins::canonical(value.origins.clone());
     binding.selection = value.selection();
+    binding.elements = value.elements.clone();
     binding.targets = value.contracts.clone().map_or_else(|| vec![Target::Unknown], |contracts| contracts.into_iter().map(Target::Contract).collect());
 }
 pub(super) fn prepare(declaration: Span, arguments: &[expression_flow::Value], state: &mut Vec<Binding>, declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index, dispatch: &mut dyn expression_flow::Dispatch) -> Option<Entry> {
     let parameters = effects.parameters(declaration)?;
-    // Aggregate element provenance is not represented yet. Refuse a proof rather
-    // than treating a callable rest array as an effect-free parameter.
-    if parameters.iter().any(|parameter| parameter.rest) { return None; }
     let mut entry = Entry { normal: true, failures: Vec::new(), facts: HashMap::new() };
     for parameter in parameters {
         let index = state.iter().position(|binding| binding.identity == parameter.binding.identity)?;
@@ -22,6 +20,7 @@ pub(super) fn prepare(declaration: Span, arguments: &[expression_flow::Value], s
     }
     for (position, parameter) in parameters.iter().enumerate() {
         let index = state.iter().position(|binding| binding.identity == parameter.binding.identity)?;
+        if parameter.rest { install(&mut state[index], &expression_flow::Value::array(arguments.get(position..).unwrap_or(&[]))); continue; }
         let supplied = arguments.get(position);
         let value = supplied.cloned().unwrap_or_else(expression_flow::Value::undefined);
         match &parameter.initializer {
