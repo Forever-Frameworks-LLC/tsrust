@@ -6,6 +6,8 @@ mod borrowed_callable_emit;
 mod scoped_record_emit;
 #[path = "scoped_record_parameter_views.rs"]
 mod scoped_record_parameter_views;
+#[path = "record_join_emit.rs"]
+mod record_join_emit;
 #[path = "scoped_record_support_emit.rs"]
 mod scoped_record_support_emit;
 #[path = "exception_contract_emit.rs"]
@@ -99,7 +101,7 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
             .iter()
             .any(|closure| matches!(closure.forward, Some(ClosureForward::Once(_))));
     let counted_calls = program.closures.iter().any(|closure| matches!(closure.forward, Some(ClosureForward::RestAdapter { counted: true, .. })));
-    let emitter = Emitter {
+    let mut emitter = Emitter {
         callback_traits,
         counted_calls,
         program,
@@ -107,6 +109,7 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
         source_segments: &[],
         fields,
         record_runtime,
+        borrowing_records: HashSet::new(),
         fixed,
         active_plan: Cell::new(None),
         exception_regions: exception_contract_emit::RegionStack::default(),
@@ -122,6 +125,7 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
         expression_depth: Cell::new(0),
         native_bindings: RefCell::new(HashSet::new()),
     };
+    emitter.borrowing_records=emitter.record_borrowing_family();
     emitter
 }
 
@@ -172,6 +176,7 @@ struct Emitter<'a> {
     source_segments: &'a [(crate::project::SourceId,usize,usize)],
     fields: Vec<HashMap<&'a str, usize>>,
     record_runtime: crate::record_runtime::RecordRuntime,
+    borrowing_records: HashSet<usize>,
     fixed: crate::fixed_storage::FixedStorage,
     active_plan: Cell<Option<usize>>,
     exception_regions: exception_contract_emit::RegionStack,
@@ -2151,7 +2156,7 @@ impl Emitter<'_> {
             let fields = self.order_fields(index, fields);
             let parameters = lifetime_parameters(&generic_fields);
             let _ = writeln!(output, "{derive}struct Record{index}{parameters} {{ {fields} }}\n");
-            if self.scoped_record_native_parameter(Type::Record(index))
+            if self.borrowing_records.contains(&index)
                 && let Some(support)=self.record_borrowing_support_cached(index,&mut record_support_cache) {
                 output.push_str(&support);
             }
@@ -2803,29 +2808,7 @@ impl Emitter<'_> {
                 output.push_str("}\n");
             }
             for index in 0..self.program.records.len() {
-                if self.program.records[index].is_tuple() {
-                    let _ = write!(output,"impl TsrJoinText for Record{index} {{");
-                    for method in ["append_join_text","append_locale_text"] {
-                        let _ = write!(output,"fn {method}(&self, output: &mut std::string::String) {{");
-                        for field in 0..self.program.records[index].fields.len() {
-                            if field != 0 { output.push_str("output.push(',');"); }
-                            if let Some(union) = self.program.records[index].fields[field].ty.unwrap().union() {
-                                let _ = write!(output,"match &self.field{field} {{");
-                                for (variant,ty) in self.program.unions[union.index()].members.iter().enumerate() {
-                                    let body = if matches!(ty,Type::Null|Type::Undefined) { String::from("{}") } else { format!("payload.{method}(output)") };
-                                    let _ = write!(output,"Union{}::V{variant}(payload)=>{body},",union.index());
-                                }
-                                output.push_str("};");
-                            } else {
-                                let _ = write!(output,"self.field{field}.{method}(output);");
-                            }
-                        }
-                        output.push_str("}");
-                    }
-                    output.push_str("}\n");
-                } else {
-                    let _ = writeln!(output,"impl TsrJoinText for Record{index} {{ fn append_join_text(&self, output: &mut std::string::String) {{ output.push_str(\"[object Object]\"); }} }}");
-                }
+                if let Some(registration)=self.record_join_registration(index){output.push_str(&registration);}
                 if output.contains(&format!("struct RecordArray{index}(")) {
                     let _ = writeln!(
                         output,

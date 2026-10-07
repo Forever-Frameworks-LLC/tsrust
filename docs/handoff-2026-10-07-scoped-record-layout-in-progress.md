@@ -1378,3 +1378,55 @@ Exact routing red/green, corrected regressions, completion boundaries, plain-chi
 red and depth evidence are verified in SQLite under
 runtime/diagnostics/scoped-record-parameter-routing/. Project formatting changes
 zero files and fingerprints.
+
+## Plain child borrowing compatibility and nominal join registration
+
+Native emission now computes the nominal borrowing family once. It includes each
+validated scoped record root and its static record descendants, including ordinary
+callback-free children. Parameter eligibility uses that family set, so a function
+accepting a plain child can also accept its reconstructed shared or mutable view.
+Unrelated ordinary record parameters retain their previous ABI. Empty descendants
+remain opaque leaves and retain their owned-record parameter representation. The
+family set and support declaration caches belong to one emission.
+
+The previous E0308 plain-child witness now passes. It checks mutable child updates,
+readonly length access, direct and deeper nested children, and exact native output
+7/changed. Six parameter controls pass, including empty children, ownership/mode
+boundaries, distinct callbacks and pure completion routing. The production metadata
+adapter passes. All 64 required depth controls pass. The project scoped-record batch
+remains 19 passed with its original E0502 independent-storage failure.
+
+A property-order witness exposed two independent boundaries. The isolated witness
+borrowed_plain_child_preserves_constructor_property_order still fails E0609 because
+the borrowed view lacks key_order. It requires constructor order second,first to
+survive the child view, not declaration order. Implement metadata transport for each
+ordered nested node before claiming this borrowing family complete; Object.keys,
+values/entries, console inspection and spread/rest must retain observable ordering.
+
+The other failure was stale array join registration for generic/scoped record
+metadata. The new record_join_emit module emits only nominal record registrations,
+with the same generic field slots as the owned struct declarations. Tuple generic
+slots receive TsrJoinText bounds, and tuple fields delegate nullable formatting to
+the existing union join implementations. This removes references to nonexistent
+specialized record names and missing generic arguments. Its new native witness
+passes exact output a,b and 1; all four array_join integration tests pass, including
+nullable leaves, nested commas, captures, allocation/disposal and argument loans.
+
+The property-order witness was separated from join so each boundary has independent
+evidence. No new public ownership wrapper, cloning or unsafe erasure is introduced.
+Fallible callback contracts, captured-record entry transport, independent local and
+owned-parameter storage, opaque composition, editor/guide and matched benchmark
+acceptance remain open. Consumers remain f1dd284. Fifteen owner fixtures remain
+untouched. This is an implementation checkpoint, not record feature acceptance.
+
+Continuation prompt: Continue Tsrust from this handoff and the scoped record field
+storage plan. Plain child borrowing and nominal array join registration now pass.
+Fix the retained property-order view witness next by transporting ordered metadata
+for every nested node. Then finish independent storage, captures and fallible
+callback contracts. Keep all original native failures and fifteen owner fixtures.
+Complete editor/guide and matched benchmarks before acceptance. Use explicit Git
+paths, bounded checks, required depth canaries, project formatting and SQLite.
+
+Exact native child success, controls, metadata, project/depth evidence, property-order
+red and join red/green are verified in SQLite under
+runtime/diagnostics/scoped-record-plain-child/.

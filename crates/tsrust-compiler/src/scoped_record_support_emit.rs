@@ -8,6 +8,22 @@ pub(super) struct SupportCache {
     bridges: HashSet<usize>,
 }
 impl Emitter<'_> {
+    /// Compute nominal borrowing families once, including ordinary record children.
+    pub(super) fn record_borrowing_family(&self)->HashSet<usize> {
+        let mut family=HashSet::new();
+        for id in 0..self.program.records.len() {
+            let root=self.program.scoped_records.declaration(id);
+            if family.contains(&root) || !self.scoped_record_native_parameter(Type::Record(root)) {continue;}
+            if crate::scoped_record_places::Layout::for_record(root,&self.program.records).is_none(){continue;}
+            let mut pending=vec![root];
+            while let Some(record)=pending.pop() {
+                let record=self.program.scoped_records.declaration(record);
+                if !family.insert(record){continue;}
+                pending.extend(self.program.records[record].fields.iter().filter_map(|field|if let Some(Type::Record(child))=field.ty{Some(child)}else{None}));
+            }
+        }
+        family
+    }
     pub(super) fn record_borrowing_support_cached(&self, record: usize, cache: &mut SupportCache) -> Option<String> {
         self.record_borrowing_support_layout(record,cache)
     }

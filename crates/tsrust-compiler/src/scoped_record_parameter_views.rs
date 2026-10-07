@@ -7,8 +7,8 @@ impl Emitter<'_> {
         let binding=fun.bindings.get(id)?;
         if !binding.parameter || !matches!(binding.mode,Mode::Read|Mode::Mutate) {return None;}
         let Type::Record(record)=binding.input_ty.unwrap_or(binding.ty) else{return None;};
-        if !self.scoped_record_native_parameter(Type::Record(record)){return None;}
         let declaration=self.program.scoped_records.declaration(record);
+        if !self.borrowing_records.contains(&declaration) || self.program.records[declaration].fields.is_empty(){return None;}
         let layout=crate::scoped_record_places::Layout::for_record(declaration,&self.program.records)?;
         (!layout.leaves.is_empty()).then_some(layout)
     }
@@ -90,10 +90,38 @@ mod tests {
     }
     #[test]
     fn scoped_parameter_can_borrow_a_plain_nested_record() {
-        let source=crate::format("type Plain={label:string;};type Holder={run:ReadOnly<Function<int>>;payload:Plain;};function touch(value:Mutable<Plain>):void{value.label=\"changed\";}function relay(holder:Mutable<Holder>):void{touch(holder.payload);}function main(){const text=\"x\";const holder:Holder={run:():int=>text.length,payload:{label:\"old\"}};relay(holder);console.log(holder.payload.label);}").unwrap();
+        let source=crate::format("type Plain={label:string;};type Holder={run:ReadOnly<Function<int>>;payload:Plain;};function touch(value:Mutable<Plain>):void{value.label=\"changed\";}function read(value:ReadOnly<Plain>):int{return value.label.length;}function relay(holder:Mutable<Holder>):void{touch(holder.payload);console.log(read(holder.payload));}function main(){const text=\"x\";const holder:Holder={run:():int=>text.length,payload:{label:\"old\"}};relay(holder);console.log(holder.payload.label);}").unwrap();
         assert_eq!(crate::format(&source).unwrap(),source);
         let checked=crate::check(&source).unwrap();
-        crate::scoped_record_places::tests::native_output(&emit(&checked.program),"changed\n");
+        crate::scoped_record_places::tests::native_output(&emit(&checked.program),"7\nchanged\n");
+        let nested=source.replace("payload: Plain", "payload: Branch").replace("type Holder", "type Branch = { leaf: Plain; }; type Holder").replace("holder.payload", "holder.payload.leaf").replace("payload: {", "payload: { leaf: {").replace("label: \"old\"", "label: \"old\" }");
+        let nested=crate::format(&nested).unwrap();assert_eq!(crate::format(&nested).unwrap(),nested);
+        let checked=crate::check(&nested).unwrap();
+        crate::scoped_record_places::tests::native_output(&emit(&checked.program),"7\nchanged\n");
+    }
+    #[test]
+    fn borrowed_plain_child_preserves_constructor_property_order() {
+        let source=crate::format("type Plain={first:string;second:string;};type Holder={run:ReadOnly<Function<int>>;payload:Plain;};function keys(value:ReadOnly<Plain>):void{const names=Object.keys(value);console.log(names[0],names[1]);}function main(){const text=\"x\";const holder:Holder={run:():int=>text.length,payload:{second:\"b\",first:\"a\"}};keys(holder.payload);}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let checked=crate::check(&source).unwrap();
+        crate::scoped_record_places::tests::native_output(&emit(&checked.program),"second first\n");
+    }
+    #[test]
+    fn array_join_registration_accepts_scoped_record_metadata() {
+        let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function main(){const text=\"x\";const holder:Holder={run:():int=>text.length};console.log([\"a\",\"b\"].join(\",\"));console.log(holder.run());}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let checked=crate::check(&source).unwrap();
+        crate::scoped_record_places::tests::native_output(&emit(&checked.program),"a,b\n1\n");
+    }
+    #[test]
+    fn empty_record_children_keep_their_opaque_owned_abi() {
+        let source=crate::format("type Empty={};type Holder={run:ReadOnly<Function<int>>;empty:Empty;};function marker(value:ReadOnly<Empty>):void{}function relay(holder:ReadOnly<Holder>):void{marker(holder.empty);}function main(){const text=\"x\";const holder:Holder={run:():int=>text.length,empty:{}};relay(holder);}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let checked=crate::check(&source).unwrap();
+        let emitter=emitter_for(&checked.program,"");
+        let marker=checked.program.functions.iter().find(|function|function.name=="marker").unwrap();
+        assert!(emitter.record_parameter_entry_view(marker,0).is_none());
+        crate::scoped_record_places::tests::native(&emit(&checked.program));
     }
     #[test]
     fn parameter_entry_preserves_existing_mode_boundaries() {
