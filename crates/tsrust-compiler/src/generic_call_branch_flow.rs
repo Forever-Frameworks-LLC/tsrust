@@ -7,7 +7,7 @@ use flow_graph::graph;
 #[path = "generic_call_expression_flow.rs"]
 mod expression_flow;
 
-fn binding_at(bindings: &[Binding], name: &str, span: Span, effects: &effect_bodies::Index) -> Option<usize> {
+pub(super) fn binding_at(bindings: &[Binding], name: &str, span: Span, effects: &effect_bodies::Index) -> Option<usize> {
     if let Some(identity) = effects.binding(name, span) {
         return bindings.iter().position(|binding| binding.identity == Some(identity));
     }

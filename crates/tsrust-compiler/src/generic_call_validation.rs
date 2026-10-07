@@ -13,7 +13,7 @@ mod targets;
 use targets::Target;
 #[path = "generic_call_contract_sets.rs"]
 mod contract_sets;
-use contract_sets::resolve_all;
+use contract_sets::{resolve_all, resolve_indexed};
 
 #[derive(Clone, PartialEq, Eq)]
 struct Contract {
@@ -180,8 +180,9 @@ fn resolve(
     initial: Vec<Target>,
     bindings: &[Binding],
     declarations: &HashMap<String, Contract>,
+    effects: &effect_bodies::Index,
 ) -> Option<Contract> {
-    let candidates = resolve_all(initial, bindings, declarations)?;
+    let candidates = resolve_indexed(initial, bindings, declarations, effects)?;
     let mut joined: Option<Contract> = None;
     for candidate in candidates {
         if let Some(contract) = &mut joined {
@@ -353,6 +354,7 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
                         function_scope,
                         expression.span.start,
                         &declarations,
+                        &effects,
                     )
                 } else {
                     bindings.clone()
@@ -371,13 +373,14 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
                     {
                         if function_scope.start <= write.span.start
                             && write.span.end <= function_scope.end
+                            && effects.binding(&write.name, write.span).is_none_or(|identity| binding.identity == Some(identity))
                             && (!linear || write.span.start <= expression.span.start)
                         {
                             binding.targets.extend(write.targets.clone());
                         }
                     }
                 }
-                resolve(targets::value(callee), &bindings, &declarations)
+                resolve(targets::value(callee), &bindings, &declarations, &effects)
                     .map(|contract| vec![contract])
             };
             let Some(contracts) = resolved else {

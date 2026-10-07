@@ -20,9 +20,9 @@ fn merge_value(left: Value, right: Value, declarations: &HashMap<String, Contrac
 fn snapshot(expression: &Expr, state: &[Binding], declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index) -> Value {
     let contracts = if let Some((name, span)) = name(expression) && effects.binding(name, span).is_some() {
         binding_at(state, name, span, effects).and_then(|index| {
-            state[index].contract.clone().map(|contract| vec![contract]).or_else(|| resolve_all(state[index].targets.clone(), state, declarations))
+            state[index].contract.clone().map(|contract| vec![contract]).or_else(|| resolve_indexed(state[index].targets.clone(), state, declarations, effects))
         })
-    } else { resolve_all(targets::value(expression), state, declarations) };
+    } else { resolve_indexed(targets::value(expression), state, declarations, effects) };
     let (truth, nullish) = match &expression.kind {
         ExprKind::Boolean(value) => (Some(*value), Some(false)),
         ExprKind::Null | ExprKind::Undefined => (Some(false), Some(true)),

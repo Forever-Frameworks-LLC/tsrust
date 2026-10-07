@@ -101,3 +101,25 @@ Whole-editor continuation passes all 327 tests. Candidate alias traversal and th
 legacy conservative paths still need identity-aware resolution alongside summary
 frames; binding selection alone is not complete alias provenance. Preserve these
 remaining requirements in the next implementation chunk.
+
+## Alias candidate identity WIP
+
+Candidate traversal now accepts the effect index for every source-name resolution
+path. Expression snapshots, straight-line assignment snapshots and conservative
+call reconstruction use lexical identity. A known captured/local declaration that
+is absent from the supplied frame cannot fall back to a same-named global function.
+Conservative write accumulation excludes a different known declaration with the
+same spelling. Pure contract-set joins retain their index-free helper because they
+do not resolve source names.
+
+Two retained reds are repaired: hoisted captured aliases were unresolved by textual
+ranges, and an empty candidate set was reported as a known callable. Empty sets now
+remain unknown. The identity witness also covers local shadows and absent frames
+with a real same-named global declaration. Six unit tests, 186 bounded integration
+tests including all depth canaries, and the whole 327-test editor pass.
+
+No invocation summary executes yet. The eight invoked-write reds remain required.
+Next preserve known body provenance independently of annotated signatures and type
+assertions, then apply ordered normal/exception summaries after arguments using the
+saved callee. Reuse the identity index across summary frames, retain unknown origins,
+and use a finite worklist for recursive calls. This remains WIP, not Gate173 acceptance.
