@@ -639,3 +639,7 @@ Node verification. Broader Gate173 acceptance and milestone measurements remain 
 Gate173 adds source cardinality checks for unused immutable generic aliases and
 known callback contracts. Mutable/selected target flow and the broader generic
 context audit remain open. Compile-time acceptance is separate from runtime timing.
+
+
+Gate173 source validation now preserves closure callback arity and known argument
+bounds through nested dynamic spreads. Mutable/selected callable flow remains open.

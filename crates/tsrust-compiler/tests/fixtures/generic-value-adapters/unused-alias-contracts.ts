@@ -26,6 +26,12 @@ function staticSpread<T>(value: T): T {
     const alias = identity;
     return alias(...[value]);
 }
+function closureRest<T>(value: T): void {
+    const apply = (action: (item: T, ...tail: T[]) => T): T => action(value, ...[value]);
+}
+function closureOptional<T>(value: T): void {
+    const apply = (action: (item?: T) => T): T => action();
+}
 function main() { strictEqual(identity(7), 7); }
 
 main();

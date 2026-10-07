@@ -34,6 +34,46 @@ fn contract(
         declaration: span,
     }
 }
+fn parameters(params: &[CallableParameter], span: Span) -> Contract {
+    let rest = params.last().is_some_and(|parameter| parameter.rest);
+    let fixed = params.len().saturating_sub(usize::from(rest));
+    Contract {
+        generic: 0,
+        required: params[..fixed]
+            .iter()
+            .filter(|parameter| !parameter.initializer.omission().is_omittable())
+            .count(),
+        maximum: (!rest).then_some(fixed),
+        declaration: span,
+    }
+}
+
+/// Known positions remain a lower bound even around unknown spread lengths.
+fn cardinality(args: &[Expr]) -> (usize, bool) {
+    let mut pending = args.iter().map(|value| (value, false)).collect::<Vec<_>>();
+    let mut minimum = 0;
+    let mut exact = true;
+    while let Some((value, spread)) = pending.pop() {
+        if spread {
+            if let ExprKind::Array(values) = &value.kind {
+                pending.extend(values.iter().map(|value| (value, false)));
+            } else {
+                exact = false;
+            }
+        } else if let ExprKind::Unary {
+            op: UnaryOp::Spread,
+            value,
+            ..
+        } = &value.kind
+        {
+            pending.push((value, true));
+        } else {
+            minimum += 1;
+        }
+    }
+    (minimum, exact)
+}
+
 fn name(mut value: &Expr) -> Option<(&str, Span)> {
     loop {
         match &value.kind {
@@ -232,7 +272,18 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
                     name: parameter.name.text.clone(),
                     scope: expression.span,
                     alias: None,
-                    contract: None,
+                    contract:
+                        match &parameter.ty {
+                            ParameterAnnotation::Callback(callback) => {
+                                Some(parameters(&callback.params, parameter.name.span))
+                            }
+                            ParameterAnnotation::Named(annotation) => {
+                                crate::callable_annotations::callback(annotation).map(|callback| {
+                                    parameters(&callback.params, parameter.name.span)
+                                })
+                            }
+                            ParameterAnnotation::Inferred(_) => None,
+                        },
                 }));
                 collect(body, &mut bindings);
             }
@@ -258,48 +309,40 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
                         "arity"
                     },
                     if contract.generic == 0 {
-                        "Explicit type arguments require a declared generic function."
+                        "Explicit type arguments require a declared generic function.".to_owned()
                     } else {
-                        "Wrong number of generic function type arguments."
+                        format!("Generic function expects {} type argument{}, but this call supplies {}.",
+                            contract.generic, if contract.generic == 1 { "" } else { "s" }, types.len())
                     },
                     types.first().map_or(span, |value| value.span),
                 )
                 .related(contract.declaration, "Callable declared here."));
             }
-            // A dynamic spread has an unknown cardinality at declaration time.
-            let mut supplied = 0;
-            for argument in args {
-                if let ExprKind::Unary {
-                    op: UnaryOp::Spread,
-                    value,
-                    ..
-                } = &argument.kind
-                {
-                    let ExprKind::Array(values) = &value.kind else {
-                        return Ok(());
-                    };
-                    if values.iter().any(|value| {
-                        matches!(
-                            value.kind,
-                            ExprKind::Unary {
-                                op: UnaryOp::Spread,
-                                ..
-                            }
-                        )
-                    }) {
-                        return Ok(());
-                    }
-                    supplied += values.len();
-                } else {
-                    supplied += 1
-                }
-            }
-            if supplied < contract.required
+            let (supplied, exact) = cardinality(args);
+            if (exact && supplied < contract.required)
                 || contract.maximum.is_some_and(|maximum| supplied > maximum)
             {
                 return Err(Diagnostic::new(
                     "arity",
-                    "Argument count does not match the declared callable contract.",
+                    format!(
+                        "Callable expects {}, but this call supplies {}{}.",
+                        match contract.maximum {
+                            Some(maximum) if maximum == contract.required => format!(
+                                "{} argument{}",
+                                maximum,
+                                if maximum == 1 { "" } else { "s" }
+                            ),
+                            Some(maximum) =>
+                                format!("between {} and {} arguments", contract.required, maximum),
+                            None => format!(
+                                "at least {} argument{}",
+                                contract.required,
+                                if contract.required == 1 { "" } else { "s" }
+                            ),
+                        },
+                        if exact { "" } else { "at least " },
+                        supplied
+                    ),
                     expression.span,
                 )
                 .related(contract.declaration, "Callable declared here."));

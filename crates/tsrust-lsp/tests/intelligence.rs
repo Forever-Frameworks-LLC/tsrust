@@ -7910,3 +7910,12 @@ fn unused_generic_alias_errors_point_to_calls_and_source_declarations() {
     assert_eq!(diagnostics[0]["range"]["start"],json!(at(source,"T,T>",0)),"{diagnostics}");
     assert_eq!(diagnostics[0]["relatedInformation"][0]["location"]["range"]["start"],json!(at(source,"identity<",0)),"{diagnostics}");
 }
+
+#[test]
+fn unused_dynamic_spread_errors_explain_guaranteed_argument_counts() {
+    let source="function identity<T>(value:T):T{return value;}function unused<T>(value:T,tail:T[]):T{const alias=identity;return alias(value,value,...tail);}function main(){}";
+    let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(source,"file:///test.tsr").unwrap()).unwrap();
+    assert_eq!(diagnostics[0]["code"],"arity","{diagnostics}");
+    assert_eq!(diagnostics[0]["message"],"Callable expects 1 argument, but this call supplies at least 2.","{diagnostics}");
+    assert_eq!(diagnostics[0]["range"]["start"],json!(at(source,"alias(value",0)),"{diagnostics}");
+}

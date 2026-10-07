@@ -293,5 +293,8 @@ reusable environment's state at the point reached before the failure.
 
 Unused generic declarations validate explicit type-argument and static value-argument
 counts for known declarations, immutable aliases and concrete callback contracts.
-Errors include the original callable declaration. Dynamic spreads and unknown mutable
-alias flow retain deferred concrete checking; broader source validation remains open.
+Errors state expected/supplied counts and include the original callable declaration.
+Unknown spread lengths remain deferred; known positions still establish a lower bound.
+For example, a one-argument callable rejects `alias(value, value, ...tail)` because
+it supplies at least two arguments. Closure callback parameters retain optional/rest
+contracts. Unknown mutable alias flow and broader source validation remain open.

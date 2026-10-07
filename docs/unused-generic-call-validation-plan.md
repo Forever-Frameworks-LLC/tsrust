@@ -100,3 +100,24 @@ Initial known-contract checkpoint passes 152 bounded compiler tests, a paired fi
 separately and all 312 editor tests. Existing five matched native/Node cases pass
 untimed in 2026-10-07T02-44-10-712Z-verify.json, stored exactly in SQLite. Full validation
 remains open; see handoff-2026-10-06-unused-immutable-alias-validation.md.
+
+
+## Closure callback and dynamic spread cardinality checkpoint
+
+Source validation retains declared callback contracts for closure parameters,
+including required/optional/default/rest slots. An iterative cardinality helper
+counts known positions through nested literal spreads and separately records unknown
+lengths. Unknown lengths cannot prove too few arguments, but cannot erase an already
+provable excess. Exact nested empty spreads retain zero cardinality.
+
+Fresh red controls reject excess closure callback arguments, known excess before a
+dynamic spread and known excess around a nested dynamic spread. Positive controls
+preserve unknown lengths that may fit, optional/rest closure callbacks and existing
+paired TypeScript/native source contracts. Arity diagnostics state expected counts
+and distinguish exact supplied counts from a known lower bound; editor ranges retain
+source call/declaration locations. Mutable and selected/field target flow remain open.
+
+This focused extension passes 155 bounded compiler tests and all 313 editor tests.
+Existing five native/Node cases pass untimed in 2026-10-07T02-49-56-230Z-verify.json,
+stored exactly in SQLite. Full validation remains open; see
+handoff-2026-10-06-source-call-cardinality.md.

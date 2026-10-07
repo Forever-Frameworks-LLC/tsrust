@@ -590,3 +590,16 @@ fn unused_closure_callbacks_and_dynamic_spreads_reject_guaranteed_excess() {
     }
     assert!(accepted.is_empty(),"Invalid unused calls accepted: {accepted:#?}");
 }
+
+#[test]
+fn unused_call_cardinality_keeps_unknown_lengths_and_callback_rest_contracts() {
+    for source in [
+        "function identity<T>(value:T):T{return value;}function unused<T>(values:T[]):T{const alias=identity;return alias(...values);}function main(){}",
+        "function identity<T>(value:T):T{return value;}function unused<T>(value:T,tail:T[]):T{const alias=identity;return alias(...[...tail,value]);}function main(){}",
+        "function unused<T>(value:T):void{const apply=(action:(item:T,...tail:T[])=>T):T=>action(value,...[value]);}function main(){}",
+        "function unused<T>(value:T):void{const apply=(action:(item?:T)=>T):T=>action();}function main(){}",
+    ] { tsrust_compiler::check(source).unwrap_or_else(|error|panic!("{}",error.render("input.tsr",source))); }
+    let source="function identity<T>(value:T):T{return value;}function unused<T>():T{const alias=identity;return alias(...[...[]]);}function main(){}";
+    let error=tsrust_compiler::check(source).err().expect("nested empty literal spreads have exact zero cardinality");
+    assert_eq!(error.code,"arity","{}",error.render("input.tsr",source));
+}

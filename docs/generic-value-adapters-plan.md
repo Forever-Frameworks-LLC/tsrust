@@ -438,3 +438,19 @@ Editor diagnostics name invalid type arguments and related source declarations.
 Borrowed-result escape controls reject consumption of ReadOnly inputs using the
 precise parameter-access diagnostic. Existing runtime workload/oracle support is
 retained: compile-time rejections do not receive artificial timing scenarios.
+
+
+## Closure callback and dynamic spread cardinality checkpoint
+
+Source validation retains declared callback contracts for closure parameters,
+including required/optional/default/rest slots. An iterative cardinality helper
+counts known positions through nested literal spreads and separately records unknown
+lengths. Unknown lengths cannot prove too few arguments, but cannot erase an already
+provable excess. Exact nested empty spreads retain zero cardinality.
+
+Fresh red controls reject excess closure callback arguments, known excess before a
+dynamic spread and known excess around a nested dynamic spread. Positive controls
+preserve unknown lengths that may fit, optional/rest closure callbacks and existing
+paired TypeScript/native source contracts. Arity diagnostics state expected counts
+and distinguish exact supplied counts from a known lower bound; editor ranges retain
+source call/declaration locations. Mutable and selected/field target flow remain open.
