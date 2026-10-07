@@ -12,6 +12,7 @@ pub(super) struct Write {
     pub span: Span,
     pub completed: usize,
     pub targets: Vec<Target>,
+    pub origins: Vec<body_origins::Origin>,
 }
 
 pub(super) fn value(value: &Expr) -> Vec<Target> {
@@ -83,6 +84,7 @@ fn body_writes(body: &[Stmt], writes: &mut Vec<Write>) {
                         name: name.clone(),
                         span: target.span,
                         completed: assigned.span.end,
+                        origins: if matches!(&statement.kind, StmtKind::Assign { operator: None, .. }) { body_origins::value(assigned) } else { vec![body_origins::Origin::Unknown] },
                         targets: if operator.is_none() {
                             value(assigned)
                         } else {
@@ -124,6 +126,7 @@ pub(super) fn writes(program: &mut Program) -> Result<Vec<Write>, Diagnostic> {
                             span: target.span,
                             completed: assigned.span.end,
                             targets: value(assigned),
+                            origins: body_origins::value(assigned),
                         });
                     }
                 }
@@ -137,6 +140,7 @@ pub(super) fn writes(program: &mut Program) -> Result<Vec<Write>, Diagnostic> {
                             span: target.span,
                             completed: expression.span.end,
                             targets: vec![Target::Unknown],
+                            origins: vec![body_origins::Origin::Unknown],
                         });
                     }
                 }

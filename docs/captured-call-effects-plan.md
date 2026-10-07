@@ -143,3 +143,24 @@ still red: ordinary conditional locals reject distinct arrow origins even when
 both signatures match. A Function annotation on the local also does not supply
 the common storage carrier. Do not hide this dependency by claiming general
 conditional-arrow acceptance. Retain it for the callable carrier implementation.
+
+## Body provenance state wiring WIP
+
+Bindings and expression values now carry origins separately from signature
+contracts. Annotated initializers retain actual bodies; typed reassignment changes
+body provenance without rewriting the declared call signature. Straight-line
+initializer snapshots preserve saved aliases, and expression assertions keep the
+already evaluated operand's body rather than re-reading a mutable name.
+
+Branch state joins canonicalize finite body sets and retain unknown alternatives.
+Alias resolution uses lexical binding identities; an absent captured frame cannot
+resolve to a same-named global. Cycle detection is path-local, so repeated paths to
+one known alias do not become unknown, while a genuine cycle retains an unknown
+alternative. Parameters remain unknown until supplied contextual arguments are
+installed by invocation summaries.
+
+Fifteen focused metadata tests, 186 bounded compiler tests and all 328 editor tests
+pass. The compiler pass explicitly skips invoked_capture_writes_reject_invalid_reachable_calls.
+Neither that red nor the conditional common-carrier red has been repaired. Body
+origins are ready for summary evaluation but calls still discard their body effects.
+No new workload observations, timings or executable-consumer refresh is claimed.

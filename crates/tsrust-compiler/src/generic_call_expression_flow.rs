@@ -1,19 +1,26 @@
 //! Iterative expression evaluation keeps callable values separate from bindings.
 use super::*;
 type Facts = HashMap<(usize, usize), Option<Vec<Contract>>>;
-#[derive(Clone, Default)]
-struct Value {
-    contracts: Option<Vec<Contract>>,
+#[derive(Clone)]
+pub(super) struct Value {
+    pub(super) origins: Vec<body_origins::Origin>,
+    pub(super) contracts: Option<Vec<Contract>>,
     truth: Option<bool>,
     nullish: Option<bool>,
     undefined: Option<bool>,
 }
+impl Default for Value {
+    fn default() -> Self {
+        Self { origins: vec![body_origins::Origin::Unknown], contracts: None, truth: None, nullish: None, undefined: None }
+    }
+}
+
 fn merge_value(left: Value, right: Value, declarations: &HashMap<String, Contract>) -> Value {
     let contracts = match (left.contracts, right.contracts) {
         (Some(left), Some(right)) => resolve_all(left.into_iter().chain(right).map(Target::Contract).collect(), &[], declarations),
         _ => None,
     };
-    Value { contracts, truth: (left.truth == right.truth).then_some(left.truth).flatten(),
+    Value { origins: body_origins::canonical(left.origins.into_iter().chain(right.origins).collect()), contracts, truth: (left.truth == right.truth).then_some(left.truth).flatten(),
         nullish: (left.nullish == right.nullish).then_some(left.nullish).flatten(),
         undefined: (left.undefined == right.undefined).then_some(left.undefined).flatten() }
 }
@@ -37,13 +44,14 @@ fn snapshot(expression: &Expr, state: &[Binding], declarations: &HashMap<String,
     };
     let undefined = if matches!(expression.kind, ExprKind::Undefined) { Some(true) }
         else if nullish == Some(false) || matches!(expression.kind, ExprKind::Null) { Some(false) } else { None };
-    Value { contracts, truth, nullish, undefined }
+    Value { origins: body_origins::resolve(body_origins::value(expression), state, declarations, effects), contracts, truth, nullish, undefined }
 }
 fn commit(target: &Expr, value: &Value, state: &mut [Binding], effects: &effect_bodies::Index) {
     if let ExprKind::Name(name) = &target.kind
         && let Some(index) = binding_at(state, name, target.span, effects)
-        && state[index].contract.is_none()
     {
+        state[index].origins = body_origins::canonical(value.origins.clone());
+        if state[index].contract.is_some() { return; }
         state[index].targets = value.contracts.clone().map_or_else(|| vec![Target::Unknown], |values| values.into_iter().map(Target::Contract).collect());
     }
 }
@@ -70,7 +78,7 @@ enum Task<'a> {
 
 /// Returns the evaluated value snapshot and environments of possible failures.
 pub(super) fn evaluate(expression: &Expr, state: &mut Vec<Binding>, facts: &mut Facts,
-    declarations: &HashMap<String, Contract>, observe_failures: bool, effects: &effect_bodies::Index) -> (Option<Vec<Contract>>, Vec<Vec<Binding>>) {
+    declarations: &HashMap<String, Contract>, observe_failures: bool, effects: &effect_bodies::Index) -> (Value, Vec<Vec<Binding>>) {
     let mut tasks = vec![Task::Eval(expression)];
     let mut values = Vec::new();
     let mut failures = Vec::new();
@@ -132,11 +140,16 @@ pub(super) fn evaluate(expression: &Expr, state: &mut Vec<Binding>, facts: &mut 
             Task::Commit(target) => { commit(target, values.last().unwrap(), state, effects); }
             Task::Kill(target) => { commit(target, &Value::default(), state, effects); }
             Task::Finish(expression, count) => {
+                let preserved = if count == 1 && matches!(expression.kind, ExprKind::TypeAssertion { .. } | ExprKind::Unary { op: UnaryOp::NonNull | UnaryOp::OptionalSelected, .. }) {
+                    values.last().map(|value| value.origins.clone())
+                } else { None };
                 values.truncate(values.len() - count);
                 if matches!(expression.kind, ExprKind::Index(..) | ExprKind::Binary { .. } | ExprKind::Unary { .. } | ExprKind::Update { .. } | ExprKind::CompoundAssign { .. }) {
                     if observe_failures { failures.push(state.clone()); }
                 }
-                values.push(snapshot(expression, state, declarations, effects));
+                let mut value = snapshot(expression, state, declarations, effects);
+                if let Some(origins) = preserved { value.origins = origins; }
+                values.push(value);
             }
             Task::Call(expression, count) => {
                 values.truncate(values.len() - count);
@@ -179,5 +192,46 @@ pub(super) fn evaluate(expression: &Expr, state: &mut Vec<Binding>, facts: &mut 
             }
         }
     }
-    (values.pop().unwrap().contracts, failures)
+    (values.pop().unwrap(), failures)
+}
+
+#[cfg(test)]
+mod provenance_tests {
+    use super::*;
+    #[test]
+    fn annotated_assignment_and_assertion_preserve_saved_body_snapshots() {
+        let source=crate::format("function one():int{return 1;}function two():int{return 2;}function inspect<T>(flag:boolean){let action:Function<int>=one;const saved=action;const change=(action=two) as Function<int>;const selected=flag?saved:action;}function main(){}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let program=crate::syntax::parse(&source).unwrap();
+        let effects=effect_bodies::Index::new(&program).unwrap();
+        let declarations=program.functions.iter().map(|function|(function.name.text.clone(),contract(0,&function.parameter_initializers,function.rest_parameter,function.name.span))).collect::<HashMap<_,_>>();
+        let function=program.functions.iter().find(|function|function.name.text=="inspect").unwrap();
+        let one=program.functions.iter().find(|function|function.name.text=="one").unwrap().name.span;
+        let two=program.functions.iter().find(|function|function.name.text=="two").unwrap().name.span;
+        let mut bindings=Vec::new();collect(&function.body,&mut bindings,&effects);
+        let mut facts=HashMap::new();
+        for statement in &function.body {
+            let StmtKind::Let {name,value,..}=&statement.kind else {continue};
+            let (snapshot,_) = evaluate(value,&mut bindings,&mut facts,&declarations,false,&effects);
+            let expected = match name.text.as_str() {
+                "action" | "saved" => vec![body_origins::Origin::Body(one)],
+                "change" => vec![body_origins::Origin::Body(two)],
+                "selected" => vec![body_origins::Origin::Body(one),body_origins::Origin::Body(two)],
+                _=>unreachable!(),
+            };
+            assert_eq!(snapshot.origins,body_origins::canonical(expected),"{}",name.text);
+            let destination=bindings.iter().position(|binding|binding.name==name.text).unwrap();
+            bindings[destination].origins=snapshot.origins;
+        }
+        assert_eq!(bindings.iter().find(|binding|binding.name=="action").unwrap().origins,vec![body_origins::Origin::Body(two)]);
+        assert_eq!(bindings.iter().find(|binding|binding.name=="saved").unwrap().origins,vec![body_origins::Origin::Body(one)]);
+    }
+    #[test]
+    fn uncertain_value_join_retains_known_body_and_unknown_alternative() {
+        let body=body_origins::Origin::Body(Span::new(4,9));
+        let left=Value {origins:vec![body.clone()],..Value::default()};
+        let right=Value::default();
+        let joined=merge_value(left,right,&HashMap::new());
+        assert_eq!(joined.origins,vec![body_origins::Origin::Unknown,body]);
+    }
 }

@@ -30,6 +30,8 @@ fn join(
 ) -> bool {
     let mut changed = false;
     for (current, incoming) in current.iter_mut().zip(incoming) {
+        let origins = body_origins::canonical(current.origins.iter().chain(&incoming.origins).cloned().collect());
+        if origins != current.origins { current.origins = origins; changed = true; }
         let mut candidates = current.targets.clone();
         candidates.extend(incoming.targets.clone());
         let joined = resolve_all(candidates, &[], declarations);
@@ -86,8 +88,9 @@ pub(super) fn analyze(
     // Locals become known only after their initializer executes. Parameters have
     // stable annotated contracts; lexical ranges still govern name lookup.
     for binding in &mut seed {
-        if binding.scope.start > function.scope_span.start && binding.contract.is_none() {
-            binding.targets = vec![Target::Unknown];
+        if binding.scope.start > function.scope_span.start {
+            binding.origins = vec![body_origins::Origin::Unknown];
+            if binding.contract.is_none() { binding.targets = vec![Target::Unknown]; }
         }
     }
     let mut states = vec![None; nodes.len()];
@@ -109,11 +112,11 @@ pub(super) fn analyze(
             let (_, failed) = expression_flow::evaluate(target, &mut state, &mut facts, declarations, node.exceptional.is_some(), effects);
             failures.extend(failed);
         }
-        let expression_contracts = if let Some(expression) = node.expression {
+        let expression_value = if let Some(expression) = node.expression {
             let (value, failed) = expression_flow::evaluate(expression, &mut state, &mut facts, declarations, node.exceptional.is_some(), effects);
             failures.extend(failed);
             value
-        } else { None };
+        } else { expression_flow::Value::default() };
         if node.exceptional.is_some() && matches!(statement.map(|statement| &statement.kind), Some(StmtKind::Assign { operator: Some(_), .. })) {
             failures.push(state.clone());
         }
@@ -123,7 +126,7 @@ pub(super) fn analyze(
                 .position(|binding| {
                     binding.name == name.text && binding.scope.start == value.span.end
                 })
-                .map(|index| (index, expression_contracts.clone())),
+                .map(|index| (index, expression_value.clone())),
             Some(StmtKind::Assign {
                 target,
                 operator,
@@ -134,9 +137,9 @@ pub(super) fn analyze(
                         (
                             index,
                             if operator.is_none() {
-                                expression_contracts.clone()
+                                expression_value.clone()
                             } else {
-                                None
+                                expression_flow::Value::default()
                             },
                         )
                     })
@@ -148,7 +151,7 @@ pub(super) fn analyze(
                 flow_graph::standalone_update(expression).and_then(|(target, _)| {
                     if let ExprKind::Name(name) = &target.kind {
                         binding_at(&state, name, target.span, effects)
-                            .map(|index| (index, None))
+                            .map(|index| (index, expression_flow::Value::default()))
                     } else {
                         None
                     }
@@ -157,8 +160,9 @@ pub(super) fn analyze(
             _ => None,
         };
         if let Some((destination, candidates)) = destination {
+            state[destination].origins = body_origins::canonical(candidates.origins);
             if state[destination].contract.is_none() {
-                state[destination].targets = candidates.map_or_else(
+                state[destination].targets = candidates.contracts.map_or_else(
                     || vec![Target::Unknown],
                     |contracts| contracts.into_iter().map(Target::Contract).collect(),
                 );
@@ -203,5 +207,26 @@ mod identity_tests {
             }).unwrap();
             assert_eq!(binding_at(&bindings, "action", target.span, &effects), expected, "{suffix}");
         }
+    }
+}
+
+#[cfg(test)]
+mod provenance_join_tests {
+    use super::*;
+    #[test]
+    fn body_join_is_finite_and_keeps_unknown_without_changing_signature() {
+        let source=crate::format("function main(){let action:Function<int>=():int=>7;}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let program=crate::syntax::parse(&source).unwrap();
+        let effects=effect_bodies::Index::new(&program).unwrap();
+        let mut current=Vec::new();collect(&program.functions[0].body,&mut current,&effects);
+        let mut incoming=current.clone();
+        incoming[0].origins=vec![body_origins::Origin::Unknown];
+        let contract=current[0].contract.clone();
+        assert!(join(&mut current,&incoming,&HashMap::new()));
+        assert_eq!(current[0].origins.len(),2);
+        assert!(current[0].origins.contains(&body_origins::Origin::Unknown));
+        assert!(!join(&mut current,&incoming,&HashMap::new()));
+        assert!(current[0].contract==contract);
     }
 }

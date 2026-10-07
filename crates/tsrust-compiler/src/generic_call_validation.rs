@@ -31,6 +31,7 @@ struct Binding {
     name: String,
     scope: Span,
     targets: Vec<Target>,
+    origins: Vec<body_origins::Origin>,
     mutable: bool,
     contract: Option<Contract>,
 }
@@ -123,6 +124,7 @@ fn collect(body: &[Stmt], bindings: &mut Vec<Binding>, effects: &effect_bodies::
         name,
         scope,
         targets: vec![Target::Unknown],
+        origins: vec![body_origins::Origin::Unknown],
         mutable: false,
         contract: None,
     }));
@@ -141,6 +143,8 @@ fn collect(body: &[Stmt], bindings: &mut Vec<Binding>, effects: &effect_bodies::
                 }) else {
                     continue;
                 };
+                binding.origins = body_origins::value(value);
+                binding.mutable = *rebindable;
                 if let Some(callback) = annotation
                     .as_ref()
                     .and_then(crate::callable_annotations::callback)
@@ -256,6 +260,7 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
                     name: name.text.clone(),
                     scope: function.scope_span,
                     targets: vec![Target::Unknown],
+                    origins: vec![body_origins::Origin::Unknown],
                     mutable: false,
                     contract: callback.map(|callback| {
                         contract(
@@ -283,6 +288,7 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
                     name: parameter.name.text.clone(),
                     scope: expression.span,
                     targets: vec![Target::Unknown],
+                    origins: vec![body_origins::Origin::Unknown],
                     mutable: false,
                     contract:
                         match &parameter.ty {
@@ -365,7 +371,7 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
                     if linear {
                         continue;
                     }
-                    if !binding.mutable || binding.contract.is_some() {
+                    if !binding.mutable {
                         continue;
                     }
                     for write in writes_by_name
@@ -378,7 +384,9 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
                             && effects.binding(&write.name, write.span).is_none_or(|identity| binding.identity == Some(identity))
                             && (!linear || write.span.start <= expression.span.start)
                         {
-                            binding.targets.extend(write.targets.clone());
+                            binding.origins.extend(write.origins.clone());
+                            binding.origins = body_origins::canonical(std::mem::take(&mut binding.origins));
+                            if binding.contract.is_none() { binding.targets.extend(write.targets.clone()); }
                         }
                     }
                 }
