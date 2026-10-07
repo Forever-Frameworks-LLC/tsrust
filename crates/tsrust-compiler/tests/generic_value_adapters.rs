@@ -1,6 +1,8 @@
 mod support;
 
 fn native(source: &str, expected: &str) {
+    let formatted = support::format_round_trip(source);
+    let source = formatted.as_str();
     let directory = support::TempDirectory::new();
     let path = directory.source(source);
     let output = support::run(support::cli().arg("run").arg(path), 60);

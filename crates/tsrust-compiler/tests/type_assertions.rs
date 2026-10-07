@@ -3,7 +3,8 @@ mod support;
 #[test]
 fn assignable_assertions_contextualize_without_losing_satisfies_type(){
  let directory=support::TempDirectory::new();
- let path=directory.source(include_str!("fixtures/type-assertions/assignable.tsr"));
+ let formatted=support::format_round_trip(include_str!("fixtures/type-assertions/assignable.tsr"));
+ let path=directory.source(&formatted);
  let output=support::run(support::cli().arg("run").arg(path),60);
  support::success(&output);
  assert!(output.stdout.is_empty());

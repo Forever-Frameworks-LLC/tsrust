@@ -125,7 +125,19 @@ pub fn reject(source: &str, code: &str) -> Diagnostic {
     diagnostic
 }
 
+/// Format in memory and require a stable second pass. Native fixtures execute
+/// this result so feature acceptance exercises the editor's whitespace output.
+pub fn format_round_trip(source: &str) -> String {
+    let formatted = tsrust_compiler::format(source)
+        .unwrap_or_else(|error| panic!("{}", error.render("input.tsr", source)));
+    assert_eq!(tsrust_compiler::format(&formatted).unwrap(), formatted,
+        "Formatter must be idempotent for executable fixture");
+    formatted
+}
+
 pub fn execute(source: &str, expected: &str, contracts: Option<&[(&str, Mode)]>) -> String {
+    let formatted = format_round_trip(source);
+    let source = formatted.as_str();
     let analysis =
         check(source).unwrap_or_else(|error| panic!("{}", error.render("input.tsr", source)));
     if let Some(contracts) = contracts {

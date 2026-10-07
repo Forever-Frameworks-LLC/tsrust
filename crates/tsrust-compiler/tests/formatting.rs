@@ -273,3 +273,51 @@ fn formatted_generic_calls_do_not_change_comparisons_or_nested_types() {
     assert_eq!(format(&formatted).unwrap(),formatted);
     check(&formatted).unwrap();
 }
+
+#[test]
+fn nested_array_types_and_chained_indexes_stay_attached() {
+    let source="interface Box<T>{value:T;}function main(){const matrix:Box<int>[][]=[[{value:1}]];console.log(matrix[0][0].value);}";
+    let formatted=format(source).unwrap();
+    assert!(formatted.contains("matrix: Box<int>[][]"),"{formatted}");
+    assert!(formatted.contains("matrix[0][0].value"),"{formatted}");
+    assert_eq!(format(&formatted).unwrap(),formatted);
+    check(&formatted).unwrap();
+}
+
+#[test]
+fn cli_format_recursively_writes_project_sources_from_working_directory() {
+    let dir=support::TempDirectory::new();
+    std::fs::create_dir_all(dir.0.join("src/nested")).unwrap();
+    std::fs::create_dir_all(dir.0.join("target")).unwrap();
+    std::fs::create_dir_all(dir.0.join("node_modules")).unwrap();
+    let source="function main(){console.log(1);}";
+    for path in ["root.tsr","src/nested/main.tsr","target/generated.tsr","node_modules/vendor.tsr"] {
+        std::fs::write(dir.0.join(path),source).unwrap();
+    }
+    std::fs::write(dir.0.join("notes.txt"),source).unwrap();
+    let output=support::run(support::cli().arg("format").current_dir(&dir.0),10);
+    support::success(&output);
+    assert_eq!(String::from_utf8(output.stdout).unwrap(),"Formatted 2 files.\n");
+    for path in ["root.tsr","src/nested/main.tsr"] {
+        assert_eq!(std::fs::read_to_string(dir.0.join(path)).unwrap(),tsrust_compiler::format(source).unwrap());
+    }
+    for path in ["target/generated.tsr","node_modules/vendor.tsr","notes.txt"] {
+        assert_eq!(std::fs::read_to_string(dir.0.join(path)).unwrap(),source);
+    }
+    support::success(&support::run(support::cli().arg("format").arg("--check").current_dir(&dir.0),10));
+}
+
+#[test]
+fn cli_recursive_format_check_is_read_only_and_continues_after_bad_files() {
+    let dir=support::TempDirectory::new();
+    let source="function main(){console.log(1);}";
+    std::fs::write(dir.0.join("good.tsr"),source).unwrap();
+    let check=support::run(support::cli().args(["format","--check"]).current_dir(&dir.0),10);
+    assert_eq!(check.status.code(),Some(1));
+    assert_eq!(std::fs::read_to_string(dir.0.join("good.tsr")).unwrap(),source);
+    std::fs::write(dir.0.join("bad.tsr"),"function main(){const text='unterminated;}").unwrap();
+    let output=support::run(support::cli().arg("format").arg(&dir.0),10);
+    assert_eq!(output.status.code(),Some(1));
+    assert!(String::from_utf8(output.stderr).unwrap().contains("bad.tsr"));
+    assert_eq!(std::fs::read_to_string(dir.0.join("good.tsr")).unwrap(),tsrust_compiler::format(source).unwrap());
+}

@@ -1,34 +1,13 @@
 //! Whitespace-only formatting; token spelling and comment trivia remain intact.
 use crate::syntax::{TokenKind, lex};
 use crate::{Diagnostic, Span};
+#[path = "formatting_types.rs"]
+mod types;
 
 pub fn format(source: &str) -> Result<String, Diagnostic> {
     let tokens = lex(source)?;
     let real = &tokens[..tokens.len().saturating_sub(1)];
-    // Recognize type applications through the shared annotation parser, rather
-    // than treating comparison and shift operators as generic punctuation.
-    let mut generic_spans = Vec::new();
-    for (i, token) in real.iter().enumerate() {
-        if generic_spans.iter().any(|span: &Span| span.start <= token.span.start && token.span.start < span.end) {
-            continue;
-        }
-        if token.kind != TokenKind::Name || real.get(i + 1).is_none_or(|t| t.text != "<") {
-            continue;
-        }
-        let previous = i.checked_sub(1).map(|n| real[n].text.as_str());
-        let alias_result = previous == Some("=") && i >= 3 && real[i - 3].text == "type";
-        let type_position = matches!(previous, Some(":" | "function" | "type" | "interface" | "new" | "extends"))
-            || alias_result
-            || matches!(token.text.as_str(), "Function" | "Mutable" | "ReadOnly" | "Once" | "Owned");
-        if type_position {
-            let mut annotation_tokens = tokens.clone();
-            if let Ok((_, annotation, end)) = crate::type_syntax::parse_parameter_prefix(&mut annotation_tokens, i, 0) {
-                // Data ownership wrappers return the inner type's span. Include
-                // the wrapper and its closing delimiter in formatting detection.
-                generic_spans.push(Span::new(token.span.start, annotation_tokens[end - 1].span.end.max(annotation.span.end)));
-            }
-        }
-    }
+    let generic_spans = types::generic_spans(&tokens);
     let generic = |at: usize| generic_spans.iter().any(|span| span.start <= at && at < span.end);
     if real.is_empty() {
         return Ok(source.to_owned());
@@ -276,6 +255,7 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
             let previous_symbol = previous.kind == TokenKind::Symbol;
             let existing_newlines = gap.bytes().filter(|&byte| byte == b'\n').count();
             let exception_handler = previous_symbol && prev == "}" && matches!(current,"catch"|"finally");
+            let type_continuation = previous_symbol && prev == "}" && matches!(current, "as" | "satisfies");
             let newline = if pattern[i - 1] {
                 false
             } else if label_colon[i - 1] || interface_field_comma[i - 1] {
@@ -287,7 +267,7 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
                     || (symbol && current == "}" && prev != "{")
                     || (previous_symbol
                         && prev == "}"
-                        && !matches!(current, ";" | "," | ")" | "]" | "." | "else" | "catch" | "finally" | "("))
+                        && !matches!(current, ";" | "," | ")" | "]" | "." | "else" | "catch" | "finally" | "(" | "as" | "satisfies"))
             };
             let separate_blocks =
                 !import && previous_symbol && prev == "}" && newline && current != "}";
@@ -295,7 +275,7 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
                 && prev == ";"
                 && depth == 0
                 && matches!(current, "function" | "type" | "export");
-            if newline || (!exception_handler && existing_newlines > 1 && (!import || prev == ";")) {
+            if newline || (!exception_handler && !type_continuation && existing_newlines > 1 && (!import || prev == ";")) {
                 let required = if separate_blocks || separate_declarations {
                     2
                 } else {
@@ -335,7 +315,7 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
                         && current == "("
                         // A call or grouped callee; an operator or keyword keeps its space.
                         && (!previous_symbol || matches!(prev, ")" | "]" | ">" | "?.") || unary_sign)
-                        && !matches!(prev, "if" | "while" | "for" | "switch" | "catch" | "return" | "typeof" | "of" | "in" | "else" | "const" | "let" | "function"))
+                        && !matches!(prev, "if" | "while" | "for" | "switch" | "catch" | "return" | "typeof" | "of" | "in" | "else" | "const" | "let" | "function" | "as" | "satisfies"))
                     || (symbol && current == "[" && previous.kind == TokenKind::Name && !matches!(prev, "const" | "let" | "of" | "return"))
                     || (symbol && current == "}" && prev == "{")
                     || previous.kind == TokenKind::TemplateHead
@@ -388,4 +368,37 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
         ));
     }
     Ok(output)
+}
+
+#[cfg(test)]
+mod fixture_tests {
+    #[test]
+    fn lexable_fixtures_preserve_tokens_and_format_idempotently() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+        let mut pending = vec![root];
+        let mut checked = 0;
+        let mut lexical_rejections = 0;
+        let mut failures = Vec::new();
+        while let Some(path) = pending.pop() {
+            if path.is_dir() {
+                pending.extend(std::fs::read_dir(path).unwrap().map(|entry| entry.unwrap().path()));
+                continue;
+            }
+            if path.extension().is_none_or(|extension| extension != "tsr") { continue; }
+            let source = std::fs::read_to_string(&path).unwrap();
+            // Deliberately malformed lexical fixtures remain rejection witnesses.
+            if super::lex(&source).is_err() { lexical_rejections += 1; continue; }
+            match super::format(&source) {
+                Ok(formatted) => match super::format(&formatted) {
+                    Ok(second) if second == formatted => checked += 1,
+                    Ok(_) => failures.push(format!("{}: second pass changed formatting",path.display())),
+                    Err(error) => failures.push(format!("{}: {}",path.display(),error.message)),
+                },
+                Err(error) => failures.push(format!("{}: {}",path.display(),error.message)),
+            }
+        }
+        assert!(checked > 0);
+        assert!(failures.is_empty(),"Formatter corpus failures:\n{}",failures.join("\n"));
+        println!("Checked {checked} lexable fixtures; retained {lexical_rejections} lexical rejection witnesses");
+    }
 }
