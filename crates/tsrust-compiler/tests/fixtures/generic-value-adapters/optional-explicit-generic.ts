@@ -10,13 +10,15 @@ function make() {
     return identity;
 }
 
+function enabled(flag: boolean): boolean { return flag; }
+
 function main() {
     let effects = 0;
-    const missing = false ? make() : undefined;
+    const missing = enabled(false) ? make() : undefined;
     const absent = missing?.<number>(effects++);
     strictEqual(absent ?? -1, -1);
     strictEqual(effects, 0);
-    const present = true ? make() : undefined;
+    const present = enabled(true) ? make() : undefined;
     const first = present?.<number>(++effects);
     const second = present?.<number>(++effects);
     strictEqual(first ?? -1, 1);

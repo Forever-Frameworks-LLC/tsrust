@@ -593,3 +593,38 @@ failed/repaired logs are retained byte-for-byte in SQLite. No timing or complete
 compiler regression is claimed. Full Gate173 and the broader context audit remain
 open, including field/optional generic applications and remaining parameter-pattern
 and borrowed-result contexts.
+
+## Optional and selected generic invocation
+
+Focused optional/selected generic invocation now preserves the original deferred
+environment instead of reading its empty prototype. Named receiver access and
+selected-expression access share specialization and argument checking, while
+selected receivers retain real ownership roots and selected_access checks. A fresh
+receiver already checked during construction is not checked again; an owned factory
+argument is transferred once. Conditional invocation forwards expected result context.
+
+Nullable factory alternatives prepare original omitted results before conditional
+hint joining, without executing runtime arguments or factories. Optional result-only
+context remains complete until the optional checker gives payload context to its
+present branch. Real void-union rejection remains intact. Dynamic absent calls skip
+argument effects, and present calls retain captured state. Failures propagate without
+rebuilding that state. Fresh consuming environments work; named optional selections
+still cannot consume a borrowed owner. Type, arity and receiver-loan failures remain
+checked even for absent invocation branches.
+
+Editor initializer inference now prefers the complete checked expression type over
+selected-method return metadata at the same span. Optional results retain int |
+undefined, while signature help reports the concrete invoked method. The original
+red witnesses and dynamic strict TypeScript counterpart pass. All 58 adapters pass
+in the batch; one additional consuming-capture control passes separately, covering
+59 unique tests. Seventeen generic-value controls, two signature controls and all
+63 depth canaries pass. Whole editor passes 310 tests. Native O0/O3 disposal observes
+three original records exactly once, with identity mask 14, across success/failure.
+
+The matched pair observes 106 values per scenario, retaining the prior 101. Five
+native/Node-after-tsc cases pass untimed with independent oracle, fingerprints and
+semantic guards. Exact record
+benchmarks/runtime/results/2026-10-07T02-10-49-964Z-verify.json is stored in SQLite.
+No timing or complete compiler regression is claimed. Full Gate173 remains open;
+field applications, parameter patterns, nested callable defaults/rest, alias contexts
+and unused generic source-validation controls still require the wider audit.

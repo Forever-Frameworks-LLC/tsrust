@@ -7863,6 +7863,11 @@ impl Analyzer {
             }
             return Ok(actual);
         }
+        if matches!(expr.kind, ExprKind::OptionalChain(_)) {
+            // The present branch receives payload context inside optional_chain;
+            // the complete expression still satisfies the nullable expectation.
+            return self.optional_chain(context, expr, mode, loans, Some(expected));
+        }
         let member_hint = if hint.is_some_and(|ty| {
             matches!(
                 ty,
@@ -8680,8 +8685,10 @@ impl Analyzer {
     ) -> Result<Box<ConditionalPlan>, Diagnostic> {
         let (then_flow, else_flow) = Self::condition_outcomes(context, predicate);
         context.flow = then_flow.clone();
+        self.prepare_nullable_factory_hint(context, consequent, alternate)?;
         let left_hint = self.expression_type_hint(context, consequent);
         context.flow = else_flow.clone();
+        self.prepare_nullable_factory_hint(context, alternate, consequent)?;
         let right_hint = self.expression_type_hint(context, alternate);
         context.flow = then_flow.clone();
         let nullable = left_hint.is_some_and(|ty| {
@@ -12432,7 +12439,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             _ => (origin, false),
         };
         if self.deferred_generic_values.contains_key(&origin) {
-            return self.deferred_generic_call(context, binding, origin, callee, args, loans, span, once, expected);
+            return self.deferred_generic_call(context, Some(binding), origin, callee, args, loans, span, once, expected, false);
         }
         let closure = &self.closures[origin];
         let invocation = if once {
@@ -12639,6 +12646,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         args: &mut Vec<Expr>,
         loans: &Loans,
         span: Span,
+        expected: Option<Type>,
     ) -> Result<(CallTarget, Type), Diagnostic> {
         let first_capture=context.capture_loans.len();
         let checked_callee=matches!(callee.kind,ExprKind::Closure{..}|ExprKind::Call(_, _));
@@ -12661,7 +12669,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         } else {
             hint
         };
-        let result=self.checked_callable_expression_call(context,callee,args,loans,span,hint,checked_callee)?;
+        let result=self.checked_callable_expression_call(context,callee,args,loans,span,hint,checked_callee,expected)?;
         if checked_callee && !self.expression_result_retains_captures(result.1){context.capture_loans.truncate(first_capture);}
         Ok(result)
     }
@@ -12670,8 +12678,18 @@ self.names_materialized_type(element.with_depth(0).ty())
     #[allow(clippy::too_many_arguments)]
     fn checked_callable_expression_call(
         &mut self, context:&mut Context, callee:&mut Expr, args:&mut Vec<Expr>,
-        loans:&Loans, span:Span, hint:Type, checked_callee:bool,
+        loans:&Loans, span:Span, hint:Type, checked_callee:bool, expected: Option<Type>,
     )->Result<(CallTarget,Type),Diagnostic>{
+        if let Type::Closure(origin) = hint {
+            let (origin, once) = match self.closures[origin].forward {
+                Some(ClosureForward::Once(inner)) => (inner, true),
+                _ => (origin, false),
+            };
+            if self.deferred_generic_values.contains_key(&origin) {
+                let (method, result) = self.deferred_generic_call(context, None, origin, callee, args, loans, span, once, expected, checked_callee)?;
+                return Ok((CallTarget::ClosureMethod(method), result));
+            }
+        }
         let (params, result, invocation, target) = match hint {
             Type::Closure(id) => {
                 let closure = &self.closures[id];
@@ -13164,7 +13182,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         {
             return self.builtin_or_method_call(context, expr, loans, expected);
         }
-        if let Some(result) = self.conditional_value_call(context, expr, loans)? {
+        if let Some(result) = self.conditional_value_call(context, expr, loans, expected)? {
             return Ok(result);
         }
         // Recursive concat arguments must not retain the full builtin dispatch frame.
@@ -13191,6 +13209,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         context: &mut Context,
         expr: &mut Expr,
         loans: &Loans,
+        expected: Option<Type>,
     ) -> Result<Option<Type>, Diagnostic> {
         if let ExprKind::Call(callee, args) = &mut expr.kind
             && self
@@ -13203,7 +13222,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 })
         {
             let span = expr.span;
-            let (target, result) = self.conditional_call(context, callee, args, loans, span)?;
+            let (target, result) = self.conditional_call(context, callee, args, loans, span, expected)?;
             expr.target = Some(target);
             return Ok(Some(result));
         }
@@ -13815,7 +13834,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                     ..
                 }
         ) {
-            let (target, result) = self.conditional_call(context, callee, args, loans, span)?;
+            let (target, result) = self.conditional_call(context, callee, args, loans, span, expected)?;
             expr.target = Some(target);
             expr.ty = Some(result);
             return Ok(result);

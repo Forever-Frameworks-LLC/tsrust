@@ -405,7 +405,11 @@ impl SourceIndex {
             {
                 continue;
             }
-            if let Some(result) = &fact.result {
+            // Invocation result metadata describes the selected method. A
+            // checked expression at the same span can include an optional
+            // absence result and is authoritative for initializer inference.
+            if let Some(result) = &fact.result
+                && !facts.method_results.iter().any(|expression| expression.span == fact.span) {
                 methods
                     .entry((fact.span.start, fact.span.end))
                     .and_modify(|existing| {

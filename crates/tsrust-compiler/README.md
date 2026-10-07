@@ -274,3 +274,17 @@ returns 8. Explicit and inferred calls use the same captured factory environment
 The supplied type arguments constrain the call: `identity<int>("wrong")` is a type
 error. Defaults and rest arguments follow the original declaration's contract;
 explicit application does not restore transferred arguments or consumed captures.
+
+Optional generic invocation uses `action?.<int>(value)`. If the callable is absent,
+the call returns `undefined` and does not evaluate `value`. Present calls specialize
+the original generic declaration and retain the same captured environment. A fresh
+factory can be selected against `undefined` or `null` before invocation. For example,
+`const action = enabled ? make() : undefined; const result = action?.<int>(7);`
+returns 7 when present and undefined when absent for an identity factory. Result
+context can also solve zero-argument generic calls, such as
+`const values: int[] | undefined = empty?.()`.
+
+Optional invocation retains ownership checks. A named optional receiver borrows its
+source and cannot consume that source's captured owner. A fresh owning factory result
+can be invoked once and transfer a consuming capture. Invocation failure leaves a
+reusable environment's state at the point reached before the failure.

@@ -137,8 +137,8 @@ impl Analyzer {
     #[allow(clippy::too_many_arguments)]
     #[inline(never)]
     pub(super) fn deferred_generic_call(
-        &mut self, context: &mut Context, binding: usize, origin: usize,
-        callee: &mut Expr, args: &mut Vec<Expr>, loans: &Loans, span: Span, once: bool, expected: Option<Type>,
+        &mut self, context: &mut Context, binding: Option<usize>, origin: usize,
+        callee: &mut Expr, args: &mut Vec<Expr>, loans: &Loans, span: Span, once: bool, expected: Option<Type>, checked_receiver: bool,
     ) -> Result<(usize, Type), Diagnostic> {
         let declaration = self.deferred_generic_values[&origin].declaration.clone();
         let mut source_call = Expr::new(ExprKind::Call(
@@ -171,12 +171,20 @@ impl Analyzer {
         let accesses = self.named_captures.access(function, Some(checked), &self.assumed_capture_access, checked.parameter_count);
         let method_invocation = accesses.iter().fold(Mode::Read, |mode, access| mode.max(access.mode));
         let invocation = if once { Mode::Consume } else { method_invocation };
-        Self::access(context, binding, invocation, callee.span, loans)?;
-        callee.binding = Some(binding);
-        callee.ty = Some(context.bindings[binding].ty);
+        if let Some(binding) = binding {
+            Self::access(context, binding, invocation, callee.span, loans)?;
+            callee.binding = Some(binding);
+            callee.ty = Some(context.bindings[binding].ty);
+        } else {
+            let receiver = self.expression_type_hint(context, callee).unwrap_or(Type::Closure(origin));
+            let actual = if checked_receiver { callee.ty.expect("checked generic receiver") }
+                else { self.expression(context, callee, invocation, loans, Some(receiver))? };
+            self.require(actual, Some(receiver), callee.span)?;
+        }
         let first_capture = context.capture_loans.len();
         let mut active = loans.clone();
-        active.entry(binding).or_default().push((invocation, callee.span));
+        if let Some(binding) = binding { active.entry(binding).or_default().push((invocation, callee.span)); }
+        else { for root in Self::loan_roots(callee, invocation) { active.entry(root).or_default().push((invocation, callee.span)); } }
         for (argument, contract) in args.iter_mut().zip(contracts) {
             let actual = self.parameter_argument(context, argument, contract, &active)?;
             self.require(actual, Some(contract.ty), argument.span)?;

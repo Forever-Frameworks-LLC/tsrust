@@ -1,3 +1,7 @@
+function optionalEmptyFactory() {
+    function empty<T>(): T[] { return []; }
+    return empty;
+}
 function payloadFactory(start: number) {
     let calls = start;
     function identity<T>(value: T): T {
@@ -235,6 +239,13 @@ function workload(n: number, seed: number, input: string): number[][] {
         const explicitInt = explicit<number>(base + 41);
         const explicitText = explicit<string>("typed");
         const explicitAfter = explicit(true);
+        const optionalGeneric = true ? make(base + 230) : undefined;
+        const optionalResult = optionalGeneric?.<number>(base + 42);
+        const missingGeneric = false ? make(base + 240) : undefined;
+        let optionalEffects = 0;
+        const optionalSkipped = missingGeneric?.<number>(optionalEffects++);
+        const optionalEmpty = true ? optionalEmptyFactory() : undefined;
+        const optionalValues: number[] | undefined = optionalEmpty?.();
         output.push([firstValue, firstCalls, generic.value.length, generic.calls, last.value.length, last.calls,
             mapped[0].value, mapped[1].value, mapped[0].calls, mapped[1].calls, after.value ? 1 : 0, after.calls,
             record.value, record.calls, stored.value.length, stored.calls, input.length,
@@ -259,7 +270,8 @@ function workload(n: number, seed: number, input: string): number[][] {
             callbackFirst.value, callbackFirst.calls, callbackSecond.value, callbackSecond.calls,
             nullableRecord.value, nullableRecord.calls, absentValue === undefined ? 1 : 0, scalarResult, arrayResult[0],
             payloadInt, payloadString, payloadAfter ? 1 : 0,
-            explicitInt.value, explicitInt.calls, explicitText.value.length, explicitText.calls, explicitAfter.calls]);
+            explicitInt.value, explicitInt.calls, explicitText.value.length, explicitText.calls, explicitAfter.calls,
+            optionalResult?.value ?? -1, optionalResult?.calls ?? -1, optionalSkipped === undefined ? 1 : 0, optionalEffects, optionalValues?.length ?? -1]);
     }
     return output;
 }

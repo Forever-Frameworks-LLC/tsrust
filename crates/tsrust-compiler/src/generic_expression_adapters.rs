@@ -3,6 +3,14 @@ use super::*;
 
 impl Analyzer {
     #[inline(never)]
+    pub(super) fn prepare_nullable_factory_hint(&mut self, context: &Context, expression: &Expr, other: &Expr) -> Result<(), Diagnostic> {
+        if self.expression_type_hint(context, other).is_some_and(|ty| matches!(ty, Type::Null | Type::Undefined)) {
+            self.fresh_generic_origin(context, expression)?;
+        }
+        Ok(())
+    }
+
+    #[inline(never)]
     pub(super) fn stage_generic_traversal(&mut self, context: &mut Context, expression: &mut Expr, supplied: &[Type], loans: &Loans) -> Result<Option<Type>, Diagnostic> {
         let selected = self.lower_selected_generic_factory(context, expression)?;
         let source = if selected {

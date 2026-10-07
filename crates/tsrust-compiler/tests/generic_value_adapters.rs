@@ -395,3 +395,56 @@ fn optional_explicit_generic_values_skip_absent_arguments_and_retain_state() {
 fn optional_explicit_generic_aliases_skip_absent_arguments() {
     native("function make(){function identity<T>(value:T):T{return value;}return identity;}function main(){let effects=0;const candidate=make();const absent=false?candidate:undefined;const result=absent?.<int>(effects++);console.log(result??-1,effects);}", "-1 0\n");
 }
+
+#[test]
+fn selected_generic_calls_do_not_recheck_owned_factory_arguments() {
+    native("type Item={id:int;};function make(item:Item){function identity<T>(value:T):T{console.log(item.id);return value;}return identity;}function main(){const item:Item={id:7};console.log(make(item)(8));}", "7\n8\n");
+}
+
+#[test]
+fn optional_generic_calls_keep_result_only_context() {
+    native("function make(){function empty<T>():T[]{return [];}return empty;}function main(){const action=true?make():undefined;const values:int[]|undefined=action?.();console.log(values?.length??-1);}", "0\n");
+}
+
+#[test]
+fn optional_generic_calls_preserve_failures_and_reuse_the_original_environment() {
+    native("function make(){let calls=0;function select<T>(value:T):T{calls+=1;if(calls===2){throw calls;}return value;}return select;}function main(){const action=true?make():undefined;try{action?.<int>(1);action?.<int>(2);}catch(error){console.log(error);}console.log(action?.<int>(3)??-1);}", "2\n3\n");
+}
+
+#[test]
+fn optional_generic_calls_preserve_type_and_receiver_loan_constraints() {
+    for source in [
+        "function main(){const candidate=(value:int):int=>value;const action=false?candidate:undefined;action?.<int>(1);}",
+        "function identity<T>(value:T):T{return value;}function main(){const candidate=identity;const action=false?candidate:undefined;action?.<int>('wrong');}",
+        "function identity<T>(value:T):T{return value;}function main(){const candidate=identity;const action=true?candidate:undefined;action?.<int,string>(1);}",
+        "function make(){let calls=0;function select<T>(value:T):T{calls+=1;return value;}return select;}function main(){const action=true?make():undefined;action?.<int>(action?.<int>(1)??0);}",
+    ] {
+        let error=tsrust_compiler::check(source).err().expect("optional calls retain type and receiver constraints");
+        assert!(matches!(error.code,"type"|"arity"|"conflicting-access"|"borrow"|"capture-conflict"),"{}",error.render("input.tsr",source));
+    }
+}
+
+#[test]
+fn optional_generic_calls_drop_original_owners_once_on_success_and_failure() {
+    let source="type Item={id:int;};function make(item:Item){let calls=0;function identity<T>(value:T):T{calls+=1;if(item.id===1&&calls===2){throw calls;}return value;}return identity;}function main(){const action=true?make({id:1}):undefined;const first=action?.<Item>({id:2});if((first?.id??0)!==2){throw 99;}let caught=0;try{action?.<Item>({id:3});}catch(error){if(error===2){caught+=1;}}if(caught!==1){throw 99;}}";
+    let rust=tsrust_compiler::check(source).unwrap().emit_rust().replace("fn main()","fn source_main()")+r#"
+static DROPS:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+static SEEN:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+impl Drop for Record0 {fn drop(&mut self){DROPS.fetch_add(1,std::sync::atomic::Ordering::SeqCst);SEEN.fetch_or(1<<self.field0,std::sync::atomic::Ordering::SeqCst);}}
+fn main(){source_main();assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCst),3);assert_eq!(SEEN.load(std::sync::atomic::Ordering::SeqCst),14);}
+"#;
+    let directory=support::TempDirectory::new();let path=directory.0.join("optional-generic-disposal.rs");std::fs::write(&path,rust).unwrap();
+    for level in ["0","3"] {
+        let binary=directory.0.join(format!("optional-generic-disposal-{level}"));
+        support::success(&support::run(support::rustc().args(["--edition=2024","-C",&format!("opt-level={level}")]).arg(&path).arg("-o").arg(&binary),60));
+        support::success(&support::run(&mut std::process::Command::new(binary),10));
+    }
+}
+
+#[test]
+fn selected_generic_calls_keep_consuming_capture_ownership() {
+    native("type Item={id:int;};function make(item:Item){function take<T>(value:T):Item{return item;}return take;}function main(){const result=make({id:7})(1);console.log(result.id);}", "7\n");
+    let source="type Item={id:int;};function make(item:Item){function take<T>(value:T):Item{return item;}return take;}function main(){const action=true?make({id:7}):undefined;action?.<int>(1);}";
+    let error=tsrust_compiler::check(source).err().expect("a named optional selection cannot consume a borrowed owner");
+    assert!(matches!(error.code,"borrowed-place"|"borrowed-view"|"type"),"{}",error.render("input.tsr",source));
+}

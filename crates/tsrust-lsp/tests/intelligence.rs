@@ -7879,3 +7879,14 @@ fn explicit_generic_value_calls_keep_concrete_editor_contracts() {
     let definition=ask(source,"textDocument/definition","action<int>",0);
     assert_eq!(definition["range"]["start"],json!(at(source,"action=make",0)),"{definition}");
 }
+
+#[test]
+fn optional_explicit_generic_calls_have_concrete_result_and_argument_help() {
+    let source="function make(){function identity<T>(value:T):T{return value;}return identity;}function enabled():boolean{return true;}function main(){const action=enabled()?make():undefined;const result=action?.<int>(7);console.log(result??0);}";
+    tsrust_compiler::check(source).unwrap();
+    let hover=ask(source,"textDocument/hover","result=",0);
+    let text=hover["contents"]["value"].as_str().unwrap();
+    assert!(text.contains("int") && text.contains("undefined"),"{hover}");
+    let help=ask(source,"textDocument/signatureHelp","7);",0);
+    assert!(help["signatures"][0]["label"].as_str().unwrap().contains("int"),"{help}");
+}
