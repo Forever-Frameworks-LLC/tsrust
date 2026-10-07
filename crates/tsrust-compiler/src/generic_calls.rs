@@ -161,7 +161,7 @@ impl Analyzer {
         if context.names.contains_key(name) || context.pending_names.contains(name) {
             if self.generic_functions.value_arguments(&context.function_name, expr.span).is_some()
                 && let Some(&binding) = context.names.get(name)
-                && !matches!(context.bindings[binding].ty, Type::Closure(origin) if self.deferred_generic_values.contains_key(&origin)) {
+                && !matches!(self.unions.payload(context.bindings[binding].ty).unwrap_or(context.bindings[binding].ty), Type::Closure(origin) if self.deferred_generic_values.contains_key(&origin)) {
                 return Err(Diagnostic::new("type", "Explicit type arguments require a generic function value.", callee.span));
             }
             return Ok(());

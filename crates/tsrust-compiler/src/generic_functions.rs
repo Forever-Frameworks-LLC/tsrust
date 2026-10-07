@@ -336,12 +336,10 @@ impl Cache {
             let ExprKind::Call(callee, _) = &mut expression.kind else {
                 return Ok(());
             };
-            let ExprKind::Name(name) = &mut callee.kind else {
-                return Ok(());
-            };
+            let Some((name, callee_span)) = explicit_call_name(callee) else { return Ok(()); };
             let explicit = self.calls.get(&(expression.span.start, expression.span.end));
             let shadowed = shadows.iter().any(|(local, span)| {
-                local == name && span.start <= callee.span.start && callee.span.end <= span.end
+                local == name && span.start <= callee_span.start && callee_span.end <= span.end
             });
             if !self.templates.contains_key(name) || shadowed {
                 if let Some(arguments) = explicit {
@@ -363,7 +361,7 @@ impl Cache {
             }
             let Some(arguments) = explicit else {
                 if allow_implicit { return Ok(()); }
-                return Err(Diagnostic::new("unsupported","Generic function argument inference is not yet implemented; provide explicit type arguments.",callee.span));
+                return Err(Diagnostic::new("unsupported","Generic function argument inference is not yet implemented; provide explicit type arguments.",callee_span));
             };
             let mut arguments = arguments.clone();
             for argument in &mut arguments {
@@ -375,6 +373,14 @@ impl Cache {
         output.push(function);
     }
     Ok(output)
+    }
+}
+
+fn explicit_call_name(expression: &mut Expr) -> Option<(&mut String, Span)> {
+    match &mut expression.kind {
+        ExprKind::Name(name) => Some((name, expression.span)),
+        ExprKind::Unary { op: UnaryOp::OptionalBoundary | UnaryOp::OptionalSelected, value, .. } => explicit_call_name(value),
+        _ => None,
     }
 }
 

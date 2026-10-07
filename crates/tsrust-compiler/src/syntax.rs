@@ -4329,15 +4329,6 @@ impl Parser<'_> {
                 span,
             ));
         }
-        let expr = if matches!(&expr.kind, ExprKind::Unary { op: UnaryOp::OptionalBoundary, value, .. } if matches!(value.kind, ExprKind::Name(_)))
-        {
-            let ExprKind::Unary { value, .. } = expr.kind else {
-                unreachable!()
-            };
-            *value
-        } else {
-            expr
-        };
         let call = Expr::new(ExprKind::Call(Box::new(expr), args), span);
         self.call_type_arguments.push((span, arguments));
         Ok(call)
@@ -4597,4 +4588,17 @@ pub fn numeric_literal_span(source:&str,start:usize)->Option<Span>{
     let bytes=source.as_bytes();let first=*bytes.get(start)?;
     if !(first.is_ascii_digit()||first==b'.'&&bytes.get(start+1).is_some_and(u8::is_ascii_digit)){return None;}
     numeric_literals::scan(source,start).ok().map(|(token,_)|token.span)
+}
+
+#[cfg(test)]
+#[test]
+fn explicit_optional_calls_retain_the_optional_receiver_boundary() {
+    let program = parse("function main(){const result=action?.<int>(1);}").unwrap();
+    let StmtKind::Let { value, .. } = &program.functions[0].body[0].kind else { panic!("initializer") };
+    let call = match &value.kind { ExprKind::OptionalChain(inner) => inner.as_ref(), _ => value };
+    let ExprKind::Call(callee, arguments) = &call.kind else { panic!("call") };
+    assert_eq!(arguments.len(), 1);
+    assert!(matches!(callee.kind, ExprKind::Unary { op: UnaryOp::OptionalBoundary, .. }));
+    assert_eq!(program.call_type_arguments.len(), 1);
+    assert_eq!(program.call_type_arguments[0].0, call.span);
 }
