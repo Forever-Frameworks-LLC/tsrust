@@ -94,7 +94,7 @@ control also passes. Whole-project formatting changes zero files and fingerprint
 Original red and green evidence is stored under runtime/diagnostics/once-environment-demand/
 in benchmarks/records.sqlite with byte-exact readback and successful quick_check.
 
-This graph is not connected to source parameter resolution. Graph::checked must
+At the kernel checkpoint, this graph was not connected to source parameter resolution. Graph::checked must
 only be supplied after the bridge accounts for all relevant source uses. Do not
 claim that constructing a graph proves a body cannot retain an environment. The
 next bridge should reuse generic_call_validation::effect_bodies::Index lexical
@@ -122,9 +122,28 @@ also need checked lifetime admission before a scoped parameter contract is emitt
 Known ownership requirements stay owned while unresolved scoped capture admission
 becomes unknown. Alias classification uses an iterative worklist.
 
-The bridge is still private to source analysis and not used by parameter resolution.
-It must preserve unknown guards when connected; integration is not permission to
-claim complete transitive capture, higher-order result, spread or aggregate transport.
-The next change will expose one narrow parameter-demand adapter and select scoped
-Once only for proven concrete function parameters. Retainers and unknown cases keep
-OwnedOnce. Source and native witnesses must validate this choice before acceptance.
+The bridge now exposes a narrow parameter-demand adapter. Concrete named function
+parameters use scoped Once only when their lexical demand is proven scoped.
+Returning, storing or forwarding into unknown destinations preserves OwnedOnce.
+Anonymous higher-order contracts and result annotations remain owning. This does
+not prove complete transitive capture, spread or aggregate transport.
+
+## Source integration verification in progress
+
+Focused source/native witnesses now cover direct arrows with post-call reuse of
+borrowed arrays, conditional consuming carriers, named forwarding and owned
+retainers. Owned conditional families provide consuming invocation adapters and
+adapt checked failure payloads at callback boundaries. The result adaptation helper
+is shared by owning and borrowed families rather than duplicating failure mapping.
+
+Higher-order parameter matching checks the caller-supplied Once input against the
+concrete function parameter. An owning input can enter a scoped consumer. A borrowed
+input cannot satisfy an owning retainer. The existing higher-order native witness
+exposed the reversed comparison and now passes. A separate rejection control keeps
+anonymous higher-order retaining boundaries from admitting borrowed environments.
+
+Acceptance is still pending the resumed bounded compiler checks, current editor
+checks, matched native/compiled-TypeScript oracle and durable evidence import.
+The matched workload now retains 133 observations, including scoped consumption
+and explicit owned retention. No timing has been performed. Consumers remain at
+the previous accepted source checkpoint until integration acceptance.

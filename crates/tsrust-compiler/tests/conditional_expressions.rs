@@ -594,6 +594,36 @@ fn once_parameters_accept_direct_and_owned_consuming_callbacks() {
 }
 
 #[test]
+fn once_parameters_accept_owned_conditional_carriers_and_scoped_forwarding() {
+    support::execute(r#"
+        function finish(action:Once<Function<string>>):string{return action();}
+        function forward(action:Once<Function<string>>):string{const moved=action;return finish(moved);}
+        function choose(flag:boolean):string{
+            const first="left".repeat(1);const second="right".repeat(1);
+            const selected=flag?(()=>first):(()=>second);return finish(selected);
+        }
+        function main(){
+            const values=[4];const text="Pat".repeat(1);
+            console.log(forward(():string=>{console.log(values.length);return text;}));
+            console.log(values.length,choose(true),choose(false));
+        }
+    "#, "1\nPat\n1 left right\n", None);
+}
+
+#[test]
+fn once_parameters_preserve_owned_carrier_failure_payloads() {
+    support::execute(r#"
+        function finish(action:Once<Function<string,[int]>>,input:int):string{return action(input);}
+        function choose(flag:boolean,input:int):string{
+            const left="left".repeat(1);const right="right".repeat(1);
+            const selected=flag?((value:int):string=>{console.log(4/value);return left;}):((value:int):string=>{console.log(4+value);return right;});
+            try{return finish(selected,input);}catch(error){return "failed";}
+        }
+        function main(){console.log(choose(true,2),choose(false,2),choose(true,0));}
+    "#, "2\n6\nleft right failed\n", None);
+}
+
+#[test]
 fn consuming_borrowed_conditional_carriers_dispose_invoked_and_abandoned_owners_once() {
     let source=r#"
         type Owner={id:int;};

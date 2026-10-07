@@ -262,10 +262,10 @@ impl<'a> Family<'a> {
         &self, output: &mut String, id: usize, generics: &str,
         arguments: &str, result: &str,
     ) {
-        self.emit_mutable_adapter_counted(output, id, false, generics, arguments, result);
+        self.emit_invocation_adapters_counted(output, id, false, generics, arguments, result);
     }
 
-    pub(crate) fn emit_mutable_adapter_counted(
+    pub(crate) fn emit_invocation_adapters_counted(
         &self,
         output: &mut String,
         id: usize,
@@ -274,12 +274,20 @@ impl<'a> Family<'a> {
         arguments: &str,
         result: &str,
     ) {
-        if !matches!(self.invocation, Mode::Read | Mode::Mutate) { return; }
+        if !matches!(self.invocation, Mode::Read | Mode::Mutate | Mode::Consume) { return; }
         let forwarded = (0..self.contract.params.len())
             .map(|index| format!("args.{index}"))
             .collect::<Vec<_>>()
             .join(", ");
         let name = crate::emit::ty(Type::StoredCallable(id));
+        if self.invocation == Mode::Consume {
+            let counted_method = if counted {
+                let count_arguments=if forwarded.is_empty(){"count".to_owned()}else{format!("count, {forwarded}")};
+                format!("fn invoke_once_with_count(self,args:{arguments},count:usize)->{result} {{self.call_with_count({count_arguments})}}")
+            } else {String::new()};
+            writeln!(output,"impl{generics} OnceCallback<{arguments}, {result}> for {name} {{fn invoke_once(self,args:{arguments})->{result} {{self.call({forwarded})}} {counted_method}}}").unwrap();
+            return;
+        }
         if self.invocation == Mode::Read {
             let counted_method = if counted {
                 let count_arguments=if forwarded.is_empty(){"count".to_owned()}else{format!("count, {forwarded}")};

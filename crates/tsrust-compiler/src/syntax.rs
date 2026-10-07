@@ -1544,7 +1544,7 @@ pub enum CallbackKind {
 impl CallbackKind {
     /// Reusable owned parameters may lend their environment for a scoped call.
     pub fn can_pass_to(self, target: Self) -> bool {
-        self == target || (self == Self::Owned && target == Self::Reusable)
+        self == target || (self == Self::OwnedOnce && target == Self::Once) || (self == Self::Owned && target == Self::Reusable)
             || (self == Self::SharedRead && matches!(target, Self::Read | Self::Reusable | Self::Owned))
     }
     pub fn invocation(self) -> crate::Mode {

@@ -154,10 +154,13 @@ impl<'a> Contracts<'a> {
                 }
                 Type::StoredCallable(family) => {
                     let actual = &self.callbacks[self.storage.declaration(family).expect("checked stored family")];
-                    if actual.kind != crate::syntax::CallbackKind::Owned
-                        || !matches!(contract.kind,crate::syntax::CallbackKind::Reusable|crate::syntax::CallbackKind::Owned)
-                    {
-                        return Err(Diagnostic::new("callback-contract", "Stored reusable callbacks require an Owned<Function<...>> transfer or a Mutable<Function<...>> loan; single-use environments cannot be used as reusable callbacks.", span));
+                    let compatible = match actual.kind {
+                        crate::syntax::CallbackKind::Owned => matches!(contract.kind,crate::syntax::CallbackKind::Reusable|crate::syntax::CallbackKind::Owned),
+                        crate::syntax::CallbackKind::OwnedOnce => matches!(contract.kind,crate::syntax::CallbackKind::Once|crate::syntax::CallbackKind::OwnedOnce),
+                        _ => false,
+                    };
+                    if !compatible {
+                        return Err(Diagnostic::new("callback-contract", "A stored single-use callback requires Once<Function<...>>. A stored reusable callback requires an owning Function transfer or a Mutable<Function<...>> loan.", span));
                     }
                     Some((Parameters::Declared(&actual.params), actual.result))
                 }

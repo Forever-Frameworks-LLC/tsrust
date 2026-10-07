@@ -651,3 +651,19 @@ unsafe impl GlobalAlloc for Observer{
 }
 #[global_allocator]static GLOBAL:Observer=Observer;
 "#;
+
+#[test]
+fn once_higher_order_inputs_do_not_promote_borrowed_environments_to_owners() {
+    reject(
+        r#"
+        function retain(action: Once<Function<int>>): Once<Function<int>> { return action; }
+        function callScoped(consumer: Once<Function<Once<Function<int>>, [action: Once<Function<int>>]>>): int {
+            const values = [7];
+            const result = consumer((): int => values[0]);
+            return result();
+        }
+        function main() { console.log(callScoped(retain)); }
+        "#,
+        "callback-escape",
+    );
+}

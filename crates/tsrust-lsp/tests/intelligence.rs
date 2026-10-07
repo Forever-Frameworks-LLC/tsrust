@@ -8081,3 +8081,16 @@ fn consuming_borrowed_conditional_carriers_keep_editor_signature_and_result_help
     assert!(text.contains("string"));assert!(!text.contains("BorrowedCallable"));
     assert!(!ask(source,"textDocument/hover","toLowerCase()",0).is_null());
 }
+
+#[test]
+fn scoped_once_parameters_keep_public_hover_help_and_result_chains() {
+    let source="function finish(action:Once<Function<string,[int]>>,count:int):string{return action(count);}function main(){const values=[1];const text='Pat'.repeat(1);const selected=false?((count:int):string=>{console.log(values.length+count);return text;}):((count:int):string=>String(values.length+count));const result=finish(selected,2);console.log(values.length,result.toLowerCase());}";
+    tsrust_compiler::check(source).unwrap();
+    let help=ask(source,"textDocument/signatureHelp","selected,2)",0);
+    assert!(!help.is_null());let label=help["signatures"][0]["label"].as_str().unwrap();
+    assert!(label.contains("Once"));assert!(label.contains("string"));
+    assert!(!label.contains("OwnedOnce"));assert!(!label.contains("BorrowedCallable"));
+    let hover=ask(source,"textDocument/hover","finish(selected",0);
+    assert!(!hover.is_null());assert!(!hover["contents"]["value"].as_str().unwrap().contains("BorrowedCallable"));
+    assert!(!ask(source,"textDocument/hover","toLowerCase()",0).is_null());
+}

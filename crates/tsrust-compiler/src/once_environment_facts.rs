@@ -76,8 +76,20 @@ fn parameter_aliases(program:&Program,index:&effect_bodies::Index)->BTreeSet<Bin
     }
     trusted
 }
+#[cfg(test)]
 fn infer(program:&Program)->Result<BTreeMap<BindingId,Demand>,Diagnostic>{
-    let index=effect_bodies::Index::new(program)?;let mut graph=Graph::default();
+    let index=effect_bodies::Index::new(program)?;infer_indexed(program,&index)
+}
+
+pub(super) fn parameters(program:&Program)->Result<Vec<Vec<Demand>>,Diagnostic>{
+    let index=effect_bodies::Index::new(program)?;let demands=infer_indexed(program,&index)?;
+    Ok(program.functions.iter().map(|function|function.params.iter().map(|(name,_,_)|{
+        index.declared(name.span).and_then(|binding|demands.get(&binding).copied()).unwrap_or(Demand::Unknown)
+    }).collect()).collect())
+}
+
+fn infer_indexed(program:&Program,index:&effect_bodies::Index)->Result<BTreeMap<BindingId,Demand>,Diagnostic>{
+    let mut graph=Graph::default();
     let mut capture_admission=BTreeSet::new();
     let trusted=parameter_aliases(program,&index);
     let declarations=program.functions.iter().map(|function|(function.name.text.as_str(),function)).collect::<HashMap<_,_>>();

@@ -19830,10 +19830,10 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": false,
       "measured": false,
-      "notes": "The scenario now retains 132 observations, including scoped readonly/mutable borrowed carriers and inferred common conditional carriers with scalar captures and named callable self-assignment invocation and replacement by a fresh factory instance. Concrete borrowed/owned views, generic calls, map callbacks and independent record/array storage environments. Lexical generic echo and escaped capture instances add four observations. Untimed support; wider adapter acceptance pending. Polymorphic argument factories add independent one/two-argument results and string specialization.",
-      "specification": "Retain 132 independent observations of values, ownership-preserving adapters, parameter patterns and shared/independent captured counters.",
-      "sourceSha256": "24fc873421b5ad322b06b05e33c64842cd2f426cbac99a99c979273664d798b5",
-      "counterpartSha256": "a45844cf6f2b270b640eabd51f0a44b6c1e04c0b98bcc4ae2b9557ec47ee67be"
+      "notes": "The scenario now retains 133 observations, including scoped readonly/mutable borrowed carriers and inferred common conditional carriers with scalar captures and named callable self-assignment invocation and replacement by a fresh factory instance. Concrete borrowed/owned views, generic calls, map callbacks and independent record/array storage environments. Lexical generic echo and escaped capture instances add four observations. Untimed support; wider adapter acceptance pending. Polymorphic argument factories add independent one/two-argument results and string specialization.",
+      "specification": "Retain 133 independent observations of values, ownership-preserving adapters, parameter patterns and shared/independent captured counters.",
+      "sourceSha256": "50f32cfd0577b62ce7744cd6b397444981d336ca002b873ce5b389c790192214",
+      "counterpartSha256": "e38ff5780736bb2d62e59a34683c01d039f740ae92f7e5e95812d6a1fc2635b7"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

@@ -839,6 +839,7 @@ pub(crate) use crate::record_layout::append_checked_record_fields;
 enum CallbackOrigin {
     Parameter(usize),
     Closure(usize),
+    Family(usize),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -982,6 +983,7 @@ fn callback_calls(
                             if matches!(checked.bindings[parameter].ty, Type::Callback(_)) {
                                 let origin = match arg.ty.expect("checked callback argument") {
                                     Type::Closure(id) => CallbackOrigin::Closure(id),
+                                    Type::StoredCallable(id) | Type::BorrowedCallable(id) => CallbackOrigin::Family(id),
                                     Type::Callback(id) => CallbackOrigin::Parameter(*parameters.get(&id).ok_or_else(|| Diagnostic::new(
                                         "callback-environment", "Cannot resolve this callback's native parameter path.", arg.span))?),
                                     _ => unreachable!("checked callback type"),
@@ -1143,6 +1145,9 @@ fn validate_callback_instances(
                 .map(|origin| match *origin {
                     CallbackOrigin::Parameter(position) => arguments[position],
                     CallbackOrigin::Closure(id) => id,
+                    // A family is one native environment type, regardless of
+                    // its selected origin. Keep it distinct from every closure.
+                    CallbackOrigin::Family(id) => closures.len() + id,
                 })
                 .collect::<Vec<_>>();
             if visited.insert((call.target, next.clone())) {
@@ -1500,7 +1505,22 @@ impl Analyzer {
             pending_shapes: HashSet::new(),
             validated_closures: HashSet::new(),
         };
+        let once_demands = if analyzer.program.functions.iter().any(|function|function.params.iter().any(|(_,ty,callback)|{
+            callback.as_ref().cloned().or_else(||crate::callable_annotations::callback(ty)).is_some_and(|callback|callback.kind==CallbackKind::OwnedOnce)
+        })) {
+            Some(crate::generic_call_validation::once_parameter_demands(&analyzer.program)?)
+        } else {None};
         for index in 0..count {
+            if let Some(demands)=&once_demands {
+                for (position,(_,ty,callback)) in analyzer.program.functions[index].params.iter_mut().enumerate() {
+                    let annotation=callback.clone().or_else(||crate::callable_annotations::callback(ty));
+                    if let Some(mut annotation)=annotation
+                        && annotation.kind==CallbackKind::OwnedOnce
+                        && demands[index][position]==crate::callable_environment_demand::Demand::Scoped {
+                        annotation.kind=CallbackKind::Once;*callback=Some(annotation);
+                    }
+                }
+            }
             let source_params = analyzer.program.functions[index].params.clone();
             let mut params = Vec::new();
             for (_, ty, callback) in &source_params {
@@ -1911,7 +1931,17 @@ impl Analyzer {
             return Err(Diagnostic::new("callback-contract", "Callable accepted argument positions and rest contracts must match.", span));
         }
         for (actual, expected) in actual_parameters.into_iter().zip(expected) {
-            self.require(actual.ty, Some(expected.ty), span)?;
+            // The caller supplies the advertised parameter to the concrete
+            // function. An owning Once input can enter a scoped Once consumer;
+            // a borrowed input cannot enter an owning retainer.
+            let once_parameter_input = matches!((actual.ty, expected.ty), (Type::Callback(a), Type::Callback(e))
+                if self.callables.callbacks[a].kind.is_once()
+                && self.callables.callbacks[e].kind.is_once());
+            if once_parameter_input {
+                self.require(expected.ty, Some(actual.ty), span)?;
+            } else {
+                self.require(actual.ty, Some(expected.ty), span)?;
+            }
             let callback_reborrow = matches!(expected.ty, Type::Callback(id)
                 if self.callables.callbacks[id].kind == CallbackKind::Reusable)
                 && actual.mode == Mode::Read

@@ -245,8 +245,12 @@ fn parameter_scopes_grouping_and_declarations_are_checked() {
         "7\n",
         None,
     );
+    execute(
+        "function main() { const n = 7; const f = (n: int): int => { return n; }; console.log(f(9), n); }",
+        "9 7\n",
+        None,
+    );
     for source in [
-        "function main() { const n = 7; const f = (n: int): int => { return n; }; }",
         "function main() { const f = (n: int, n: boolean): int => { return 0; }; }",
         "function use(f: (n: int, n: int) => int) {} function main() {}",
         "function make(): (n: int, n: int) => int { return (): int => { return 0; }; } function main() {}",

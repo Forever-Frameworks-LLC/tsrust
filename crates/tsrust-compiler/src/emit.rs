@@ -1,5 +1,5 @@
-#[path = "borrowed_callback_result_adapters.rs"]
-mod borrowed_callback_result_adapters;
+#[path = "callback_family_result_adapters.rs"]
+mod callback_family_result_adapters;
 #[path = "borrowed_callable_emit.rs"]
 mod borrowed_callable_emit;
 #[path = "exception_contract_emit.rs"]
@@ -2361,7 +2361,7 @@ impl Emitter<'_> {
             if self.callback_traits {
                 let contract = &self.program.callback_contracts[declaration];
                 let (arguments, lifetimes) = self.native_argument_tuple(&contract.params);
-                family.emit_mutable_adapter_counted(
+                family.emit_invocation_adapters_counted(
                     &mut output,
                     id,
                     self.counted_calls,
@@ -2369,6 +2369,13 @@ impl Emitter<'_> {
                     &arguments,
                     &native_result,
                 );
+                let forwarded = (0..contract.params.len()).map(|i| format!("args.{i}")).collect::<Vec<_>>().join(", ");
+                let traits = match contract.invocation(&self.program.callable_shapes) {
+                    Mode::Consume => vec![("OnceCallback", "invoke_once", "self")],
+                    Mode::Read => vec![("ReadCallback", "invoke_read", "&self"), ("Callback", "invoke", "&mut self")],
+                    _ => vec![("Callback", "invoke", "&mut self")],
+                };
+                self.callback_family_result_adapters(&mut output, id, contract, &format!("StoredCallable{id}"), &lifetime_parameters(&lifetimes), &arguments, &forwarded, &native_result, &traits);
             }
         }
         for (plan_id, plan) in self.fixed.plans.iter().enumerate() {

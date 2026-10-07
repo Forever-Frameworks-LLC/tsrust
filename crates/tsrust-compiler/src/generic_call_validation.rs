@@ -21,6 +21,11 @@ use targets::Target;
 mod contract_sets;
 use contract_sets::{resolve_all, resolve_indexed};
 
+/// Concrete parameter admission reuses source retention facts without exposing the index.
+pub(crate) fn once_parameter_demands(program:&Program)->Result<Vec<Vec<crate::callable_environment_demand::Demand>>,Diagnostic>{
+    once_environment_facts::parameters(program)
+}
+
 #[derive(Clone, PartialEq, Eq, Hash)]
 struct Contract {
     generic: usize,

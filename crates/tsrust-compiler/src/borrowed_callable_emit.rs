@@ -50,6 +50,6 @@ impl Emitter<'_> {
             }
             output.push_str("}\n");
         }
-        self.borrowed_callback_result_adapters(output,id,contract,&name,&lifetime_parameters(&lifetimes),&arguments,&forwarded,&result,&traits);
+        self.callback_family_result_adapters(output,id,contract,&name,&lifetime_parameters(&lifetimes),&arguments,&forwarded,&result,&traits);
     }
 }
