@@ -344,3 +344,8 @@ fn generic_callable_payloads_reject_repeated_once_invocation() {
     let error = tsrust_compiler::check(&source).err().expect("a transferred once callback cannot be invoked twice");
     assert_eq!(error.code, "closure-consumed", "{}: {}", error.code, error.message);
 }
+
+#[test]
+fn generic_callable_payloads_support_explicit_source_type_applications() {
+    native(include_str!("fixtures/generic-value-adapters/explicit-callable-payload.tsr"), "1\n2\n");
+}
