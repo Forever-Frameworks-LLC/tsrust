@@ -1582,3 +1582,52 @@ All 15 view controls and 64 depth canaries pass. Formatting changes zero files
 and fingerprints. The parameter entry assertion is isolated from main local
 record storage. Exact evidence is verified in SQLite under
 runtime/diagnostics/scoped-record-entry/.
+
+
+## Branch-assignment carrier witness: implementation pending
+
+The mutable record capture boundary passes native execution without another
+implementation change. Its new witness mutates an independent string field,
+invokes the captured mutable callback repeatedly, releases the record capture,
+then invokes the original field and finally mutates its original scalar owner.
+Expected assertions are 1, 2, changed, 3 and 7.
+
+A separate deferred record branch/loop witness fails native E0308. Both branch
+assignments satisfy the same nominal readonly callback contract but construct
+Closure0 and Closure1. Independent leaf type inference chooses Closure0 after
+the first assignment; the other assignment requires Closure1. The source is valid
+and remains unchanged. This is a common-carrier gap, not a definite-assignment
+failure or permission to merge capture ownership.
+
+Record construction currently specializes each callback field independently in
+analysis.rs scoped record construction (around lines 9220-9270). Conditional
+callable expressions already select common borrowed families through
+common_borrowed_conditional_family in conditional completion (around line 9045).
+Branch statements assigning a record do not apply that conversion to the common
+storage leaf. The next implementation must collect compatible origins for each
+static record field storage slot, register their common borrowed carrier, and
+normalize every assignment and later selected invocation to that carrier. Reuse
+the existing callable contract checks and dispatch family; do not erase types,
+clone captures or make source branches share a JavaScript capture cell. Keep
+point-sensitive capture loans and independent disposal even though the native
+carrier covers multiple possible origins. Nested fields, replacement and moved
+record inputs require the same slot identity and conversion discipline.
+
+Both new witnesses use formatting round trips and std:testing project execution.
+This red-test checkpoint is not feature acceptance. No compiler source changed.
+Continue implementation from the unchanged branch witness before adding unrelated
+features. Earlier completed local, parameter and capture checkpoints stay closed.
+
+Continuation prompt: Continue from the branch-assignment red-test checkpoint. Run
+scoped_callable_records::deferred_record_branch_and_loop_restoration_preserve_capture_release
+and implement common native callable carriers for independent record leaf storage
+across branch assignments. Reuse existing borrowed conditional family checking and
+wrapping, preserve point-sensitive ownership and both origin environments, and keep
+the witness unchanged. The mutable record capture witness already passes. After
+the branch fix, verify the project batch and required depth controls, then proceed
+to default/exception/disposal and opaque composition boundaries. Preserve fifteen
+owner fixtures, format the project, import exact evidence into SQLite, and commit
+explicit paths. Record family acceptance still requires editor/guide and benchmarks.
+
+Exact mutable-capture success, branch failure and project formatting evidence
+are verified in SQLite under runtime/diagnostics/scoped-record-control/.

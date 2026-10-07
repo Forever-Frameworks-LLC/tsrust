@@ -538,3 +538,49 @@ fn owned_record_parameter_entry_uses_independent_leaf_storage() {
     assert!(native.contains("field0:value0_field0"),"owned parameter lacks independent entry storage");
     project(&source);
 }
+
+#[test]
+fn mutable_record_capture_updates_independent_leaves_and_releases_owner() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Counter = { run: Mutable<Function<int>>; label: string; };
+        function main() {
+            let total = 0;
+            {
+                let holder: Counter = { run: (): int => { total += 1; return total; }, label: "start" };
+                {
+                    const update = (): int => { holder.label = "changed"; return holder.run(); };
+                    strictEqual(update(), 1); strictEqual(update(), 2);
+                }
+                strictEqual(holder.label, "changed"); strictEqual(holder.run(), 3);
+            }
+            total += 4; strictEqual(total, 7);
+        }
+    "#);
+}
+
+#[test]
+fn deferred_record_branch_and_loop_restoration_preserve_capture_release() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; label: string; };
+        function main() {
+            const values = [7];
+            {
+                let holder: Holder;
+                if (values.length === 1) {
+                    holder = { run: (): int => values[0], label: "yes" };
+                } else {
+                    holder = { run: (): int => values[0], label: "no" };
+                }
+                let count = 0;
+                while (count < 2) {
+                    strictEqual(holder.run(), 7);
+                    holder.label = "loop"; count += 1;
+                }
+                strictEqual(holder.label, "loop");
+            }
+            values[0] = 9; strictEqual(values[0], 9);
+        }
+    "#);
+}
