@@ -138,3 +138,10 @@ omission, explicit undefined, an explicit override, empty/nonempty packs and a
 subsequent different generic instantiation of the original environment. Native and
 strict TypeScript output agree. Owned rest/disposal, patterns, nullable contexts
 and benchmark expansion still require their separate audit before full acceptance.
+
+Owned-rest audit now observes six distinct record owners disposed exactly once at
+native O0/O3 across successful and caught-failure calls. Additional controls reject
+reuse of the transferred generic environment and of an owned rest element. A new
+editor protocol witness preserves concrete optional/rest parameter labels, three
+parameter slots and navigation to the original alias declaration. Matched default/
+rest workload expansion and the remaining context audit are still owed.

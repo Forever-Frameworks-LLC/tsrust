@@ -85,3 +85,35 @@ fn generic_value_adapters_sort_and_search_existing_environments() {
 fn generic_value_adapters_preserve_default_effects_and_rest_packs() {
     native(include_str!("fixtures/generic-value-adapters/default-rest.tsr"), "1\n1\n9\n2\n2\n3\n3\n1 0\n2 2\n3 1\n");
 }
+
+#[test]
+fn generic_value_adapter_owned_rest_disposes_once_on_success_and_failure() {
+    let source = "type Item={id:int;};function make(item:Item){function select<T>(fallback:T,...values:T[]):T{if(item.id===4){throw 4;}return fallback;}return select;}function main(){{const action=make({id:1});const owned:Function<Item,[fallback:Owned<Item>,...values:Item[]]>=action;const result=owned({id:2},{id:3});if(result.id!==2){throw 99;}}{const action=make({id:4});const owned:Function<Item,[fallback:Owned<Item>,...values:Item[]]>=action;let caught=false;try{owned({id:5},{id:6});}catch(error){caught=error===4;}if(!caught){throw 99;}}}";
+    let rust = tsrust_compiler::check(source).unwrap().emit_rust().replace("fn main()", "fn source_main()") + r#"
+static DROPS:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+static SEEN:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+impl Drop for Record0 {fn drop(&mut self){DROPS.fetch_add(1,std::sync::atomic::Ordering::SeqCst);SEEN.fetch_or(1<<self.field0,std::sync::atomic::Ordering::SeqCst);}}
+fn main(){source_main();assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCst),6);assert_eq!(SEEN.load(std::sync::atomic::Ordering::SeqCst),126);}
+"#;
+    let directory = support::TempDirectory::new();
+    let path = directory.0.join("owned-rest-disposal.rs");
+    std::fs::write(&path, rust).unwrap();
+    for level in ["0", "3"] {
+        let binary = directory.0.join(format!("owned-rest-disposal-{level}"));
+        support::success(&support::run(support::rustc().args(["--edition=2024", "-C", &format!("opt-level={level}")]).arg(&path).arg("-o").arg(&binary), 60));
+        support::success(&support::run(&mut std::process::Command::new(binary), 10));
+    }
+}
+
+#[test]
+fn generic_value_adapter_owned_rest_rejects_transferred_sources_and_elements() {
+    let prefix="type Item={id:int;};function make(){const marker='owner';function select<T>(fallback:T,...values:T[]):T{console.log(marker);return fallback;}return select;}";
+    for body in [
+        "const action=make();const owned:Function<Item,[fallback:Owned<Item>,...values:Item[]]>=action;action(1);",
+        "const action=make();const owned:Function<Item,[fallback:Owned<Item>,...values:Item[]]>=action;const tail:Item={id:3};owned({id:2},tail);console.log(tail.id);",
+    ] {
+        let source=format!("{prefix}function main(){{{body}}}");
+        let error=tsrust_compiler::check(&source).err().expect("owned adapter and rest elements transfer once");
+        assert!(matches!(error.code,"transferred"|"closure-consumed"),"{}",error.render("input.tsr",&source));
+    }
+}

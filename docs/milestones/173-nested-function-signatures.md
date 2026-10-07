@@ -330,3 +330,15 @@ and explicit undefined, no default evaluation on overrides, empty/nonempty rest
 packs and a subsequent different instantiation on the original environment.
 Owned rest/disposal, parameter patterns, nullable contexts and matched benchmark
 expansion remain open. This checkpoint does not accept the full adapter family.
+
+## Owned rest and editor controls
+
+Native O0/O3 drop instrumentation observes six owners exactly once across normal
+return and caught failure: retained environments, fallback arguments and rest
+arguments all dispose normally. Transfer controls reject reuse of the original
+generic environment and of a rest element. Concrete adapter signature help keeps
+optional/rest labels and three parameter slots; definition resolves to the original
+alias. An exploratory record-literal reuse call first failed inference before the
+ownership check, so the retained transfer control supplies an inferable scalar.
+The original diagnostic remains evidence; unconstrained nominal literal inference
+is not claimed. Matched default/rest benchmark expansion remains pending.

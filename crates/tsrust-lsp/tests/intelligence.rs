@@ -7759,3 +7759,15 @@ fn captured_deferred_generic_alias_help_preserves_default_and_rest() {
     let hover=ask(source,"textDocument/hover","action=",0);
     assert!(hover["contents"]["value"].as_str().unwrap().contains("<T>"),"{hover}");
 }
+
+#[test]
+fn generic_value_adapter_default_rest_help_retains_concrete_optional_slots() {
+    let source="function make(){let calls=0;function select<T>(value:T,index:int=0,...extra:T[]):T{calls+=1;return value;}return select;}function main(){const action=make();const fixed:Mutable<Function<int,[value:int,index?:int,...extra:int[]]>>=action;fixed(7,undefined,8);}";
+    tsrust_compiler::check(source).unwrap();
+    let help=ask(source,"textDocument/signatureHelp","8);",0);
+    let label=help["signatures"][0]["label"].as_str().expect("adapter signature");
+    assert!(label.contains("int") && label.contains("index?") && label.contains("...extra"),"{help}");
+    assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),3,"{help}");
+    let definition=ask(source,"textDocument/definition","action;",0);
+    assert_eq!(definition["range"]["start"],json!(at(source,"action=",0)),"{definition}");
+}
