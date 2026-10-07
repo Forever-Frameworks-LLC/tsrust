@@ -815,3 +815,43 @@ Full Gate173 remains open for expression evaluation order, capture writes, store
 fields, concrete environment replacement and the remaining lifetime/context audit.
 Supported statement dispatch remains explicit; unsupported regions still use the
 conservative path and are not claimed as complete source-flow parity.
+
+
+## Expression order and named assignment invocation checkpoint
+
+The iterative expression evaluator now passes all thirteen rejection cases and
+nine precision controls. Calls retain their callee snapshot before evaluating
+arguments; selected branches, assignment results and per-step failure environments
+retain source contracts. Explicit generic arguments on grouped callable expression
+forms are parsed as calls. Unsupported optional expression regions and captured
+writes remain on the conservative path for the continuing audit.
+
+The previously failing native witness now passes. A named callable assignment used
+as callee stages an ordinary destination replacement followed by invocation of
+that destination. This reuses existing ownership, loan, consumption and disposal
+checks. It does not clone an environment or introduce shared aliases. Captured
+state survives self-assignment and call failure. Fresh factory replacement retains
+its own state, and O0/O3 disposal observes each original record exactly once. Once
+consumption and argument-side receiver replacement violations are rejected. The
+helper is isolated in assignment_callee.rs. Owned assignment-result escape and
+record/array assignment callees still need their storage/lifetime audit.
+
+Checked compiler call facts now supply concrete signature help for expression
+callees. The original missing-help witness is preserved, then repaired; all 184
+intelligence tests pass. Aggregate whole-editor acceptance is 326 tests, retaining
+the previously completed unaffected groups. Bounded compiler acceptance is 207
+unique tests, including eight depth canaries, formatter checks and fixture corpus.
+The earlier filter-only canary command is retained but is not counted as depth
+coverage; the unfiltered eight suites pass 63 tests.
+
+The existing unmeasured generic adapter workload appends four assignment-result
+observations for 120 per scenario. Matched Tsrust/TypeScript sources, independent
+oracle, source guards, mutation rejection and exact fingerprints are updated.
+Runtime/oracle/profile/report hooks already route this registered family. Operation
+and sample counts are unchanged. Five native/Node-after-tsc cases pass untimed in
+2026-10-07T04-54-09-224Z-verify.json, retained in SQLite. Earlier 116-observation
+records remain immutable. No timing or complete compiler regression is claimed.
+
+Full Gate173 remains open for capture effects, optional expression regions, stored
+callable fields, concrete environment replacement and remaining lifetime/context
+coverage. This checkpoint does not claim complete callable or assignment parity.

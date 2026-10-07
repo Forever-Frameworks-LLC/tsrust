@@ -1,3 +1,5 @@
+#[path = "assignment_callee.rs"]
+mod assignment_callee;
 #[path = "owned_array_patterns.rs"]
 mod owned_array_patterns;
 #[path = "inferred_callable_arrays.rs"]
@@ -13146,6 +13148,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         loans: &Loans,
         expected: Option<Type>,
     ) -> Result<Type, Diagnostic> {
+        self.stage_assignment_callee(context, expr)?;
         if let ExprKind::Call(callee, _) = &mut expr.kind {
             self.global_number_name(context, callee, true);
         }
@@ -13828,6 +13831,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 | ExprKind::CoalesceAssign { .. }
                 | ExprKind::SpreadValue(_)
                 | ExprKind::Call(_, _)
+                | ExprKind::Sequence(_)
                 | ExprKind::Closure { .. }
                 | ExprKind::Conditional { .. }
                 | ExprKind::Binary {

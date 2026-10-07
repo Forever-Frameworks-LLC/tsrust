@@ -406,3 +406,12 @@ Cleanup executes before return, throw, break or continue resumes. A cleanup that
 returns or throws replaces the pending completion. Failed checked expressions
 enter handlers before destination assignments commit. Expression writes and
 captured effects remain part of the source-flow audit.
+
+
+A named callable assignment can be invoked immediately, for example
+`(action = action)<int>(7)`. Replacement happens before arguments are evaluated,
+and invocation uses the stored callable's existing read, mutate or once contract.
+Self-assignment retains captured state. Replacing the receiver during an argument
+is rejected while invocation borrows it; a once call consumes it. This creates no
+implicit clone. Assignment results escaping as owned values and record/array
+assignment callees retain their existing restrictions.

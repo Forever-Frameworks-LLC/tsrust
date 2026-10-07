@@ -7984,3 +7984,11 @@ fn expression_replacement_contract_error_points_to_saved_callee() {
     assert_eq!(diagnostics[0]["code"],"arity","{diagnostics}");
     assert_eq!(diagnostics[0]["relatedInformation"][0]["location"]["range"]["start"],json!(at(source,"two<",0)),"{diagnostics}");
 }
+
+#[test]
+fn assignment_callee_signature_help_uses_checked_argument_types() {
+    let source="function identity<T>(value:T):T{return value;}function main(){let action=identity;const result=(action=action)<int>(7);}";
+    let index=SourceIndex::new(source);
+    let help=index.request("textDocument/signatureHelp",&json!({"position":at(source,"7);",0)}),"file:///assignment.tsr").unwrap();
+    assert!(help["signatures"][0]["parameters"][0]["label"].as_str().unwrap_or("").contains("value: int"),"{help}");
+}

@@ -294,6 +294,9 @@ function workload(n: number, seed: number, input: string): number[][] {
             view(sumPayload);
         }
         const defaultPayloadAfter = defaultPayload(true);
+        let assignment = make(base + 300);
+        const assignmentFirst = (assignment = assignment)<number>(base + 45);
+        const assignmentLast = (assignment = make(base + 310))<string>("owner");
         output.push([firstValue, firstCalls, generic.value.length, generic.calls, last.value.length, last.calls,
             mapped[0].value, mapped[1].value, mapped[0].calls, mapped[1].calls, after.value ? 1 : 0, after.calls,
             record.value, record.calls, stored.value.length, stored.calls, input.length,
@@ -321,7 +324,7 @@ function workload(n: number, seed: number, input: string): number[][] {
             explicitInt.value, explicitInt.calls, explicitText.value.length, explicitText.calls, explicitAfter.calls,
             optionalResult?.value ?? -1, optionalResult?.calls ?? -1, optionalSkipped === undefined ? 1 : 0, optionalEffects, optionalValues?.length ?? -1,
             patternValue, patternCalls, patternText.value.length, patternText.calls, patternRecord.value, patternRecord.calls,
-            sumDefault, sumUndefined, sumSpread, defaultPayloadAfter ? 1 : 0]);
+            sumDefault, sumUndefined, sumSpread, defaultPayloadAfter ? 1 : 0, assignmentFirst.value, assignmentFirst.calls, assignmentLast.value.length, assignmentLast.calls]);
     }
     return output;
 }

@@ -673,3 +673,11 @@ completions, with native cleanup-order and editor diagnostic verification. See
 handoff-2026-10-07-exception-source-flow.md. Expression ordering, capture effects,
 stored fields and concrete environment replacement remain required. No timing or
 full Gate173 acceptance is claimed.
+
+
+Gate173 expression source flow and named assignment invocation have focused
+acceptance, including checked parameter help, native failure/consumption/disposal
+and 120-observation matched adapter verification. See
+handoff-2026-10-07-expression-order-and-assignment-invocation.md. Captured effects,
+optional expression regions, stored fields and concrete environment transport
+remain required; full Gate173 and performance measurements remain open.

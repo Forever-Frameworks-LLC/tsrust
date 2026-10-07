@@ -529,6 +529,9 @@ impl SourceIndex {
             .checked_generic_calls
             .iter()
             .find(|fact| fact.callee_span == span)?;
+        self.checked_generic_signature_for(fact, self.text(token))
+    }
+    fn checked_generic_signature_for(&self, fact: &CheckedGenericCall, callee: &str) -> Option<(String, Vec<String>)> {
         let parameters = fact
             .parameters
             .iter()
@@ -571,7 +574,7 @@ impl SourceIndex {
         Some((
             format!(
                 "function {}({}){}",
-                self.text(token),
+                callee,
                 parameters.join(", "),
                 fact.result.as_ref().map_or(String::new(), |result| format!(": {}", self.display_type(result)))
             ),
@@ -3235,6 +3238,25 @@ impl SourceIndex {
     // Computed callees use checked value types. Only enclosing grouping
     // parentheses may be skipped; never reach inside a factory's arguments.
     fn expression_callee_signature(&self, open:usize)->Option<(String,Vec<String>)> {
+        let call_start = self.tokens.get(open)?.span.start;
+        if let Some(fact) = self.checked_generic_calls.iter().filter(|fact| {
+            if !(fact.span.start <= call_start && call_start < fact.span.end && fact.callee_span.end <= call_start) { return false; }
+            let mut angles = 0usize;
+            for token in self.tokens.iter().take(open).filter(|token| token.span.start >= fact.callee_span.end) {
+                if angles > 0 {
+                    match token.text.as_str() {
+                        "<" => angles += 1,
+                        ">" | ">>" | ">>>" => angles = angles.saturating_sub(token.text.len()),
+                        _ => (),
+                    }
+                } else {
+                    match token.text.as_str() { ")" | "?." => (), "<" => angles = 1, _ => return false }
+                }
+            }
+            angles == 0
+        }).min_by_key(|fact| fact.span.end - fact.span.start) {
+            return self.checked_generic_signature_for(fact, self.source.get(fact.callee_span.start..fact.callee_span.end)?);
+        }
         if self.text(open.checked_sub(1)?)!=")" {return None;}
         let mut end=open;
         loop {
