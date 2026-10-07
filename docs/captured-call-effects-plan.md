@@ -21,3 +21,11 @@ Each gate retains red witnesses, runs bounded affected compiler checks and the c
 ## Current checkpoint
 
 No compiler source is changed by this checkpoint. The isolated red run has three tests: one precision test passes; invocation effects and enclosing generic annotations fail. Both original and isolated failed logs are retained in SQLite. This is a test and planning checkpoint, not feature acceptance or measured performance.
+
+## Lexical scope foundation
+
+lexical_generic_scopes.rs derives inherited type parameters from the lifted declaration catalog, independently of value capture plans. It walks lexical owners iteratively, keeps original declaration spans, applies nearest-scope shadowing and returns outer-to-inner ordering for stable instance keys. A nested declaration's own type parameters remain unchanged. Two unit controls pass after formatting their source: mixed nesting/shadowing/siblings and capture-free inheritance.
+
+This module is a prerequisite, not yet wired into specialization. The concrete integer/string echo witness remains red. Do not accept generic transport merely because scope discovery works. Next, contextualize each lifted declaration using its enclosing instance's lexical bindings, substitute inherited annotations, and preserve the nested declaration's own generic signature. Cache contextual identities separately from explicit argument identities. Retain the original declaration identity for named capture requests and editor spans. Rebase lexical identities for linked modules; do not use spelling or enclosing value capture types as a substitute for type identity.
+
+Materialize capture-free and captured nested declarations through the same lexical path, including uncalled declaration validation. Calls and value uses must resolve the same contextual declaration. Recursive peers need their contextual mapping installed before bodies are walked. A nested function's own generic variables shadow the enclosing variables and must not be replaced by the enclosing substitution. Native tests must prove independent integer/string instances and shadowed explicit generics before this prerequisite becomes accepted behavior.

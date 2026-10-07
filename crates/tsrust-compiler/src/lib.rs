@@ -25,6 +25,7 @@ mod flow;
 mod formatting;
 mod generic_records;
 mod generic_functions;
+mod lexical_generic_scopes;
 mod generic_inference;
 mod generic_validation;
 mod generic_call_validation;

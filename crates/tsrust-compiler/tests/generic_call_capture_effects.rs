@@ -50,3 +50,21 @@ fn nested_capturing_function_can_name_enclosing_generic_type() {
     assert_eq!(tsrust_compiler::format(&formatted).unwrap(), formatted);
     if let Err(error) = tsrust_compiler::check(&formatted) { panic!("{}", error.render("input.tsr", &formatted)); }
 }
+
+#[test]
+fn lexical_generic_instances_keep_explicit_arity_and_independent_types() {
+    support::execute(
+        "function outer<T>(value:T):T{function echo(other:T):T{return other;}return echo(value);}function main(){console.log(outer<int>(7),outer<string>(\"owned\"));}",
+        "7 owned\n",
+        None,
+    );
+}
+
+#[test]
+fn nested_explicit_generics_shadow_enclosing_variables() {
+    support::execute(
+        "function outer<T>(value:T):string{function identity<T>(other:T):T{return other;}const number=identity<int>(7);const text=identity<string>(\"inner\");return String(number)+\":\"+text;}function main(){console.log(outer<boolean>(true));}",
+        "7:inner\n",
+        None,
+    );
+}
