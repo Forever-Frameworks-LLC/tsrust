@@ -1,4 +1,4 @@
-export {};
+export { };
 function strictEqual<T>(actual: T, expected: T): void { if (actual !== expected) { throw new Error('assertion'); } }
 function identity<T>(value: T): T { return value; }
 function collect<T>(value: T, offset: number = 4, ...tail: T[]): T { return value; }
@@ -32,6 +32,20 @@ function closureRest<T>(value: T): void {
 function closureOptional<T>(value: T): void {
     const apply = (action: (item?: T) => T): T => action();
 }
-function main() { strictEqual(identity(7), 7); }
+function replacement<T>(value: T): T { return value; }
+function mutableSnapshot<T>(value: T): T {
+    let action = identity;
+    const saved = action;
+    action = replacement;
+    saved<T>(value);
+    return action<T>(value);
+}
+function sameOriginSnapshot<T>(value: T): T {
+    let action = identity;
+    action = action;
+    const saved = action;
+    return saved<T>(value);
+}
+function main() { strictEqual(identity(7), 7); strictEqual(sameOriginSnapshot(9), 9); }
 
 main();

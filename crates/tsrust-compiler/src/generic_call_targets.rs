@@ -10,6 +10,7 @@ pub(super) enum Target {
 pub(super) struct Write {
     pub name: String,
     pub span: Span,
+    pub completed: usize,
     pub targets: Vec<Target>,
 }
 
@@ -81,6 +82,7 @@ fn body_writes(body: &[Stmt], writes: &mut Vec<Write>) {
                     writes.push(Write {
                         name: name.clone(),
                         span: target.span,
+                        completed: assigned.span.end,
                         targets: if operator.is_none() {
                             value(assigned)
                         } else {
@@ -120,6 +122,7 @@ pub(super) fn writes(program: &mut Program) -> Result<Vec<Write>, Diagnostic> {
                         writes.push(Write {
                             name: name.clone(),
                             span: target.span,
+                            completed: assigned.span.end,
                             targets: value(assigned),
                         });
                     }
@@ -132,6 +135,7 @@ pub(super) fn writes(program: &mut Program) -> Result<Vec<Write>, Diagnostic> {
                         writes.push(Write {
                             name: name.clone(),
                             span: target.span,
+                            completed: expression.span.end,
                             targets: vec![Target::Unknown],
                         });
                     }

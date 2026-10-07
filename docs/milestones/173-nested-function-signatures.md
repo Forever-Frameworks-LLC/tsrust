@@ -702,3 +702,31 @@ This focused extension passes 155 bounded compiler tests and all 313 editor test
 Existing five native/Node cases pass untimed in 2026-10-07T02-49-56-230Z-verify.json,
 stored exactly in SQLite. Full validation remains open; see
 handoff-2026-10-06-source-call-cardinality.md.
+
+
+## Mutable source contracts and straight-line snapshots
+
+The source validator checks common cardinality across mutable aliases and selected
+expressions, retaining all alternative declaration locations. A separate linear
+flow module snapshots initializers and replaces targets after definite direct
+assignments. Saved aliases retain the callable contract at initialization; later
+writes cannot hide earlier errors. The linear path requires a straight-line body
+without closures, nested writes or expression assignments. Complex flow retains
+a conservative whole-function candidate set and still needs structured analysis.
+
+The original mutable/selected reds, direct selection, loop/closure/expression-write
+controls, definite overwrite and saved snapshot reds pass. Bounded checks pass
+82 adapter tests, 17 generic function value tests and all 63 depth canaries. All
+315 editor tests pass, including alternative and current declaration diagnostics.
+A formatted owner fixture exposed a brittle documentation substring check; the
+check now compares canonical formatting while retaining catalog output checks.
+
+The paired strict TypeScript/native fixture validates self-assignment followed by
+owned transfer into a saved callable. Distinct generic callable environments still
+cannot replace each other in concrete execution; source cardinality proofs do not
+change that runtime limitation or imply assignment compatibility. Full branch/loop
+flow, stored fields, lifetime/context auditing and Gate173 acceptance remain open.
+
+Existing five matched native/Node cases pass untimed in
+2026-10-07T03-11-48-332Z-verify.json, retained exactly in SQLite. See
+handoff-2026-10-06-mutable-source-contracts-in-progress.md for continuation.

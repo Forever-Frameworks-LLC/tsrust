@@ -12,5 +12,10 @@ fn array_from_collection_results_and_help_are_consistent(){
 fn array_from_documented_examples_are_current(){
  let catalog:serde_json::Value=serde_json::from_str(include_str!("../src/builtins.json")).unwrap();let entry=catalog["ArrayConstructor"].as_array().unwrap().iter().find(|x|x["name"]=="from").unwrap();
  let fixture=include_str!("../../tsrust-compiler/tests/fixtures/array-from-collections/documented.tsr");let output=include_str!("../../tsrust-compiler/tests/fixtures/array-from-collections/documented.stdout");
- let mut expected=String::new();for example in entry["examples"].as_array().unwrap(){assert!(fixture.contains(example["source"].as_str().unwrap()));expected.push_str(example["output"].as_str().unwrap());}assert_eq!(expected,output);tsrust_compiler::check(fixture).unwrap();
+ let mut expected=String::new();for example in entry["examples"].as_array().unwrap(){assert!(canonical(fixture).contains(&canonical(example["source"].as_str().unwrap())));expected.push_str(example["output"].as_str().unwrap());}assert_eq!(expected,output);tsrust_compiler::check(fixture).unwrap();
+}
+
+// Formatting changes indentation and line breaks without changing examples.
+fn canonical(source: &str) -> String {
+    tsrust_compiler::format(source).unwrap().lines().map(str::trim).collect::<String>()
 }

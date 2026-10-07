@@ -643,3 +643,8 @@ context audit remain open. Compile-time acceptance is separate from runtime timi
 
 Gate173 source validation now preserves closure callback arity and known argument
 bounds through nested dynamic spreads. Mutable/selected callable flow remains open.
+
+Gate173 source validation now retains common mutable/selected contracts and
+straight-line callable snapshots across definite assignments. Structured branch/loop
+flow, stored fields and concrete environment replacement remain open. See
+handoff-2026-10-06-mutable-source-contracts-in-progress.md.

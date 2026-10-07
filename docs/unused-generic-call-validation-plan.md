@@ -121,3 +121,60 @@ This focused extension passes 155 bounded compiler tests and all 313 editor test
 Existing five native/Node cases pass untimed in 2026-10-07T02-49-56-230Z-verify.json,
 stored exactly in SQLite. Full validation remains open; see
 handoff-2026-10-06-source-call-cardinality.md.
+
+
+## Mutable source contracts and straight-line snapshots
+
+The source validator checks common cardinality across mutable aliases and selected
+expressions, retaining all alternative declaration locations. A separate linear
+flow module snapshots initializers and replaces targets after definite direct
+assignments. Saved aliases retain the callable contract at initialization; later
+writes cannot hide earlier errors. The linear path requires a straight-line body
+without closures, nested writes or expression assignments. Complex flow retains
+a conservative whole-function candidate set and still needs structured analysis.
+
+The original mutable/selected reds, direct selection, loop/closure/expression-write
+controls, definite overwrite and saved snapshot reds pass. Bounded checks pass
+82 adapter tests, 17 generic function value tests and all 63 depth canaries. All
+315 editor tests pass, including alternative and current declaration diagnostics.
+A formatted owner fixture exposed a brittle documentation substring check; the
+check now compares canonical formatting while retaining catalog output checks.
+
+The paired strict TypeScript/native fixture validates self-assignment followed by
+owned transfer into a saved callable. Distinct generic callable environments still
+cannot replace each other in concrete execution; source cardinality proofs do not
+change that runtime limitation or imply assignment compatibility. Full branch/loop
+flow, stored fields, lifetime/context auditing and Gate173 acceptance remain open.
+
+### Next structured-flow checkpoint
+
+Replace source-position reconstruction with a dedicated iterative flow walker.
+Use lexical binding identity for assignments, not spelling alone. Initializers and
+assignment right sides snapshot contracts before their destination changes.
+Sequence evaluation must preserve receiver, argument and assignment order.
+
+For if/conditional expressions, fork the incoming environment and join contracts
+on completing paths. Return, throw, break and continue contribute only to their
+respective exits. Loop analysis needs a finite fixed point over contract sets,
+including updates and subsequent iterations; a later textual write can affect an
+earlier textual call on a back edge. Catch and finally must retain exceptional
+and normal exits. Captured writes require separate conservative effects until the
+invocation relationship is known; never treat a hoisted or escaped function body
+as an ordinary later statement.
+
+Start with red witnesses for definite assignments inside blocks, branch-local
+calls, both-arm replacement, snapshots before branch mutation, loop-carried changes
+and shadowed writes. Include valid controls so precision does not introduce false
+rejections. Preserve source declaration provenance across joins. Unknown contracts
+still require concrete checking and must not acquire a fabricated generic origin.
+
+After flow, audit stored callable fields separately. Typed stored callbacks remain
+monomorphic even when initialized from a generic value. Also repair concrete
+replacement across compatible callable environments using actual environment
+transport, rather than signature-only identities or implicit cloning. Keep native
+ownership/disposal and Node reference witnesses for that runtime work. These are
+required remaining steps, not exclusions from the full goal.
+
+Existing five matched native/Node cases pass untimed in
+2026-10-07T03-11-48-332Z-verify.json, retained exactly in SQLite. See
+handoff-2026-10-06-mutable-source-contracts-in-progress.md for continuation.

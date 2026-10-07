@@ -2,6 +2,8 @@
 use crate::syntax::*;
 use crate::{Diagnostic, Span};
 use std::collections::{HashMap, HashSet};
+#[path = "generic_call_linear_flow.rs"]
+mod linear_flow;
 #[path = "generic_call_targets.rs"]
 mod targets;
 use targets::Target;
@@ -352,8 +354,21 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
                 return Ok(());
             };
             let span = callee.span;
-            let mut bindings = bindings.clone();
+            let mut bindings = if linear {
+                linear_flow::at_call(
+                    &bindings,
+                    &writes,
+                    function_scope,
+                    expression.span.start,
+                    &declarations,
+                )
+            } else {
+                bindings.clone()
+            };
             for binding in &mut bindings {
+                if linear {
+                    continue;
+                }
                 if !binding.mutable || binding.contract.is_some() {
                     continue;
                 }
