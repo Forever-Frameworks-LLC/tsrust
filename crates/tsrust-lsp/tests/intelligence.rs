@@ -7940,3 +7940,12 @@ fn definite_source_overwrite_diagnostic_names_the_current_declaration() {
     assert_eq!(diagnostics[0]["range"]["start"],json!(at(source,"alias(value)",0)),"{diagnostics}");
     assert_eq!(diagnostics[0]["relatedInformation"][0]["location"]["range"]["start"],json!(at(source,"two<",0)),"{diagnostics}");
 }
+
+#[test]
+fn branch_source_overwrite_diagnostic_retains_the_branch_declaration() {
+    let source="function one<T>(value:T):T{return value;}function two<T>(left:T,right:T):T{return left;}function unused<T>(flag:boolean,value:T):T{let alias=one;if(flag){alias=two;return alias(value);}return value;}function main(){}";
+    let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(source,"file:///test.tsr").unwrap()).unwrap();
+    assert_eq!(diagnostics[0]["code"],"arity","{diagnostics}");
+    assert_eq!(diagnostics[0]["range"]["start"],json!(at(source,"alias(value)",0)),"{diagnostics}");
+    assert_eq!(diagnostics[0]["relatedInformation"][0]["location"]["range"]["start"],json!(at(source,"two<",0)),"{diagnostics}");
+}

@@ -730,3 +730,31 @@ flow, stored fields, lifetime/context auditing and Gate173 acceptance remain ope
 Existing five matched native/Node cases pass untimed in
 2026-10-07T03-11-48-332Z-verify.json, retained exactly in SQLite. See
 handoff-2026-10-06-mutable-source-contracts-in-progress.md for continuation.
+
+
+## Block and branch source flow checkpoint
+
+A dedicated iterative source-flow module builds a graph for blocks, if statements
+and normal or abrupt completion. Initializers snapshot the current contract; direct
+assignments replace it. Branch-local calls use their own environment, and completing
+paths join common cardinality with source declaration provenance. Returned or thrown
+paths do not contaminate subsequent calls. Call facts are computed once for the graph
+rather than reconstructing assignments separately for each supported call.
+
+Three original reds now reject definite block replacement, a call after replacement
+inside one branch, and replacement in both completing arms. Valid self-assignment,
+shadowing and early-return controls pass. A separate native/strict TypeScript pair
+asserts both branch outcomes with integers and owned strings. Editor diagnostics
+retain the invalid branch call and its current declaration.
+
+This is not complete flow acceptance. Differing joined cardinalities currently
+defer rather than retaining a full alternative set. Loops, exceptional regions,
+expression assignments and captured effects still use the conservative path. The
+next checkpoint must retain distinct candidate contracts, implement loop fixed
+points and explicit exits, then cover exceptional and expression flow. Stored fields,
+concrete environment replacement and the broader lifetime/context audit remain open.
+
+This extension passes 165 bounded compiler tests and aggregate whole-editor
+coverage of 316 tests after the focused Set documentation repair. Existing five
+matched cases pass untimed in 2026-10-07T03-19-54-872Z-verify.json, retained exactly
+in SQLite. See handoff-2026-10-06-branch-call-contracts.md.

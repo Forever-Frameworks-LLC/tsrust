@@ -1,0 +1,33 @@
+export {};
+function strictEqual<T>(actual: T, expected: T): void {
+    if (actual !== expected) { throw new Error('assertion'); }
+}
+function identity<T>(value: T): T { return value; }
+
+function branchSnapshot<T>(flag: boolean, value: T): T {
+    let action = identity;
+    if (flag) {
+        action = action;
+    } else {
+        action = action;
+    }
+    const saved = action;
+    return saved<T>(value);
+}
+
+function branchLocal<T>(flag: boolean, value: T): T {
+    if (flag) {
+        const action = identity;
+        return action<T>(value);
+    }
+    const action = identity;
+    return action<T>(value);
+}
+
+function main() {
+    strictEqual(branchSnapshot(true, 11), 11);
+    strictEqual(branchSnapshot(false, 'right'), 'right');
+    strictEqual(branchLocal(true, 'left'), 'left');
+    strictEqual(branchLocal(false, 13), 13);
+}
+main();

@@ -2,13 +2,15 @@
 use crate::syntax::*;
 use crate::{Diagnostic, Span};
 use std::collections::{HashMap, HashSet};
+#[path = "generic_call_branch_flow.rs"]
+mod branch_flow;
 #[path = "generic_call_linear_flow.rs"]
 mod linear_flow;
 #[path = "generic_call_targets.rs"]
 mod targets;
 use targets::Target;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 struct Contract {
     generic: usize,
     required: usize,
@@ -313,6 +315,7 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
             }
             Ok(())
         })?;
+        let branch_facts = branch_flow::analyze(function, &bindings, &writes, &declarations)?;
         let function_scope = function.scope_span;
         let direct_writes = function
             .body
@@ -354,38 +357,46 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
                 return Ok(());
             };
             let span = callee.span;
-            let mut bindings = if linear {
-                linear_flow::at_call(
-                    &bindings,
-                    &writes,
-                    function_scope,
-                    expression.span.start,
-                    &declarations,
-                )
+            let resolved = if let Some(contract) = branch_facts
+                .as_ref()
+                .and_then(|facts| facts.get(&(expression.span.start, expression.span.end)))
+            {
+                contract.clone()
             } else {
-                bindings.clone()
-            };
-            for binding in &mut bindings {
-                if linear {
-                    continue;
-                }
-                if !binding.mutable || binding.contract.is_some() {
-                    continue;
-                }
-                for write in writes_by_name
-                    .get(binding.name.as_str())
-                    .into_iter()
-                    .flatten()
-                {
-                    if function_scope.start <= write.span.start
-                        && write.span.end <= function_scope.end
-                        && (!linear || write.span.start <= expression.span.start)
+                let mut bindings = if linear {
+                    linear_flow::at_call(
+                        &bindings,
+                        &writes,
+                        function_scope,
+                        expression.span.start,
+                        &declarations,
+                    )
+                } else {
+                    bindings.clone()
+                };
+                for binding in &mut bindings {
+                    if linear {
+                        continue;
+                    }
+                    if !binding.mutable || binding.contract.is_some() {
+                        continue;
+                    }
+                    for write in writes_by_name
+                        .get(binding.name.as_str())
+                        .into_iter()
+                        .flatten()
                     {
-                        binding.targets.extend(write.targets.clone());
+                        if function_scope.start <= write.span.start
+                            && write.span.end <= function_scope.end
+                            && (!linear || write.span.start <= expression.span.start)
+                        {
+                            binding.targets.extend(write.targets.clone());
+                        }
                     }
                 }
-            }
-            let Some(contract) = resolve(targets::value(callee), &bindings, &declarations) else {
+                resolve(targets::value(callee), &bindings, &declarations)
+            };
+            let Some(contract) = resolved else {
                 return Ok(());
             };
             if let Some(types) = explicit.get(&(expression.span.start, expression.span.end))

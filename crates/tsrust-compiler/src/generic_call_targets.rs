@@ -1,7 +1,7 @@
 //! Source target sets contain callable metadata, never runtime environments.
 use super::*;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub(super) enum Target {
     Name(String, Span),
     Contract(Contract),

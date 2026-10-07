@@ -43,9 +43,14 @@ fn set_catalog_examples_match_the_native_example_fixture() {
     let mut entries=catalog["Set"].as_array().unwrap().clone();
     entries.extend(catalog["globals"].as_array().unwrap().iter().filter(|entry|entry["name"]=="Set").cloned());
     for entry in entries {for example in entry["examples"].as_array().unwrap(){
-        let source=example["source"].as_str().unwrap();assert!(fixture.contains(source));
+        let source=example["source"].as_str().unwrap();assert!(canonical(fixture).contains(&canonical(source)));
         tsrust_compiler::check(&format!("function main(){{{source}}}")).unwrap();
         expected.push_str(example["output"].as_str().unwrap());
     }}
     assert_eq!(expected,include_str!("../../tsrust-compiler/tests/fixtures/sets/documented.stdout"));
+}
+
+// Compare canonical formatting so owner indentation does not invalidate examples.
+fn canonical(source: &str) -> String {
+    tsrust_compiler::format(source).unwrap().lines().map(str::trim).collect::<String>()
 }

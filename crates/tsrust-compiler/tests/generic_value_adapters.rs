@@ -690,3 +690,17 @@ fn unused_branch_flow_uses_definite_replacement_contracts() {
     }
     assert!(accepted.is_empty(),"Invalid branch calls accepted: {accepted:#?}");
 }
+
+#[test]
+fn branch_contract_flow_preserves_valid_shadowing_and_owned_self_assignment() {
+    for source in [
+        "function identity<T>(value:T):T{return value;}function unused<T>(flag:boolean,value:T):T{let alias=identity;if(flag){alias=alias;}else{alias=alias;}return alias<T>(value);}function main(){}",
+        "function identity<T>(value:T):T{return value;}function unused<T>(flag:boolean,value:T):T{const alias=identity;if(flag){const alias=1;return value;}else{const alias=2;}return alias<T>(value);}function main(){}",
+        "function identity<T>(value:T):T{return value;}function unused<T>(flag:boolean,value:T):T{if(flag){const alias=identity;return alias<T>(value);}const alias=identity;return alias<T>(value);}function main(){}",
+    ] { tsrust_compiler::check(source).unwrap_or_else(|error|panic!("{}",error.render("input.tsr",source))); }
+}
+
+#[test]
+fn branch_alias_contracts_match_the_typescript_reference() {
+    native(include_str!("fixtures/generic-value-adapters/branch-alias-contracts.tsr"), "");
+}

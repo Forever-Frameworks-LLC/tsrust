@@ -302,5 +302,6 @@ contracts. Unknown mutable alias flow and broader source validation remain open.
 Unused generic bodies receive source call-count checks for known aliases, callbacks
 and selections. Straight-line direct assignments retain the current callable
 contract, and saved aliases retain their initialization contract. These checks do
-not replace concrete type or ownership validation. Complex assignment flow remains
-conservative, and replacement between distinct callable environments is restricted.
+not replace concrete type or ownership validation. Blocks and branches retain current and saved callable contracts on completing
+paths. Differing contract joins and loop/exception/expression flow remain
+conservative; replacement between distinct callable environments is restricted.

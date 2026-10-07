@@ -648,3 +648,8 @@ Gate173 source validation now retains common mutable/selected contracts and
 straight-line callable snapshots across definite assignments. Structured branch/loop
 flow, stored fields and concrete environment replacement remain open. See
 handoff-2026-10-06-mutable-source-contracts-in-progress.md.
+
+Gate173 source flow now preserves direct replacement through blocks and branches,
+including snapshots, branch-local calls and abrupt completion. Distinct contract
+sets, loop/exception/expression flow and captured effects remain required. See
+unused-generic-call-validation-plan.md.
