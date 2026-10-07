@@ -4036,21 +4036,12 @@ impl Parser<'_> {
         self.atom_primary()
     }
 
-    // A result annotation ending in generic closers lexes `>>=>` as `>>=`
-    // followed by `>`; the type parser restores those tokens later.
+    // Parse exactly one result type. Scanning for a later arrow mistakes a
+    // conditional arm's separating colon for an outer closure annotation.
     fn annotated_arrow_follows(&self, start: usize) -> bool {
-        let mut position = start;
-        while let Some(token) = self.tokens.get(position) {
-            match token.text.as_str() {
-                ";" | "{" | "}" => return false,
-                "=>" => return true,
-                ">=" | ">>=" | ">>>=" if self.tokens.get(position + 1).is_some_and(|next| {
-                    next.text == ">" && next.span.start == token.span.end
-                }) => return true,
-                _ => position += 1,
-            }
-        }
-        false
+        let mut tokens = self.tokens.clone();
+        crate::type_syntax::parse_prefix(&mut tokens, start, 0)
+            .is_ok_and(|(_, end)| tokens.get(end).is_some_and(|token| token.text == "=>"))
     }
 
     fn closure_header(&self) -> bool {

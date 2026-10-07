@@ -352,3 +352,13 @@ unsafe fn realloc(&self,p:*mut u8,layout:Layout,size:usize)->*mut u8{let q=unsaf
 }
 #[global_allocator]static GLOBAL:Observer=Observer;
 "#;
+
+#[test]
+fn grouped_zero_parameter_arrows_in_conditional_arms() {
+    support::execute("type Handler={run:Function<int>;};function main(){const chosen:Handler={run:true?(():int=>7):(():int=>9)};console.log(chosen.run());const other:Handler={run:false?(():int=>11):(():int=>13)};console.log(other.run());}", "7\n13\n", None);
+}
+
+#[test]
+fn unannotated_conditional_arrows_infer_common_callable_carrier() {
+    support::execute("function main(){const chosen=true?(():int=>7):(():int=>9);console.log(chosen());}", "7\n", None);
+}

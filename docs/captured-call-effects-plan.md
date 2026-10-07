@@ -123,3 +123,23 @@ Next preserve known body provenance independently of annotated signatures and ty
 assertions, then apply ordered normal/exception summaries after arguments using the
 saved callee. Reuse the identity index across summary frames, retain unknown origins,
 and use a finite worklist for recursive calls. This remains WIP, not Gate173 acceptance.
+
+## Separate body provenance WIP
+
+The isolated generic_call_body_origins module now extracts actual named or arrow
+bodies independently of callback signature assertions. It follows value-preserving
+assertions, assignment results, final sequence values and selected alternatives.
+Unknown values remain unknown. Trusted generated forwarding arrows retain their
+original named declaration rather than becoming independent synthetic bodies.
+Three focused unit tests pass. This extraction is not yet carried through binding
+states and expression snapshots; invocation summaries remain unimplemented.
+
+Its red witness exposed a parser defect in grouped arrows inside conditional arms.
+Closure lookahead now parses exactly one result annotation rather than scanning
+across a conditional colon for an unrelated later arrow. Grouped zero-argument
+arrows execute correctly when selected into an explicitly typed record callback.
+The retained unannotated_conditional_arrows_infer_common_callable_carrier test is
+still red: ordinary conditional locals reject distinct arrow origins even when
+both signatures match. A Function annotation on the local also does not supply
+the common storage carrier. Do not hide this dependency by claiming general
+conditional-arrow acceptance. Retain it for the callable carrier implementation.

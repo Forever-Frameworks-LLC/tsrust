@@ -8007,3 +8007,12 @@ fn nested_lexical_generic_annotations_keep_source_help_and_definition() {
         assert!(hover.contains(ty), "{hover}");
     }
 }
+
+#[test]
+fn grouped_conditional_arrow_results_keep_editor_types() {
+    let source = tsrust_compiler::format("type Handler={run:Function<int>;};function main(){const chosen:Handler={run:true?(():int=>7):(():int=>9)};const result=chosen.run();}").unwrap();
+    assert_eq!(tsrust_compiler::format(&source).unwrap(), source);
+    tsrust_compiler::check(&source).unwrap();
+    let hover = ask(&source, "textDocument/hover", "result =", 0).to_string();
+    assert!(hover.contains("int"), "{hover}");
+}
