@@ -14,7 +14,40 @@ pub(crate) struct Owners {
 
 impl Owners {
     pub(crate) fn attach(&mut self, place: Place, loans: impl IntoIterator<Item = usize>) {
-        self.entries.entry(place).or_default().extend(loans);
+        let mut loans = loans.into_iter().peekable();
+        if loans.peek().is_some() {
+            self.entries.entry(place).or_default().extend(loans);
+        }
+    }
+
+    /// Merge a payload into a newly constructed destination without discarding
+    /// alternatives already attached there. Borrowed aliases keep source owners.
+    pub(crate) fn extend_from(&mut self, source: &Place, destination: &Place, consume: bool) {
+        if source == destination {
+            return;
+        }
+        let selected = self
+            .entries
+            .iter()
+            .filter(|(place, _)| {
+                place.binding == source.binding && place.fields.starts_with(&source.fields)
+            })
+            .map(|(place, loans)| (place.clone(), loans.clone()))
+            .collect::<Vec<_>>();
+        for (place, loans) in selected {
+            if consume {
+                self.entries.remove(&place);
+            }
+            let mut fields = destination.fields.clone();
+            fields.extend_from_slice(&place.fields[source.fields.len()..]);
+            self.attach(
+                Place {
+                    binding: destination.binding,
+                    fields,
+                },
+                loans,
+            );
+        }
     }
 
     pub(crate) fn live(&self) -> BTreeSet<usize> {

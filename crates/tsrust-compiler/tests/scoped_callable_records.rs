@@ -423,3 +423,25 @@ fn scoped_record_partial_field_moves_release_independent_capture_loans() {
         }
     "#);
 }
+
+#[test]
+fn moved_and_remaining_record_fields_keep_live_capture_conflicts() {
+    for (owner, observer) in [("leftValues", "left()"), ("rightValues", "pair.right()")] {
+        let source = format!(r#"
+            type Pair = {{ left: ReadOnly<Function<int>>; right: ReadOnly<Function<int>>; }};
+            function main() {{
+                const leftValues = [3];
+                const rightValues = [11];
+                const pair: Pair = {{ left: (): int => leftValues[0], right: (): int => rightValues[0] }};
+                const left = pair.left;
+                {owner}[0] = 5;
+                console.log({observer});
+            }}
+        "#);
+        let error = match tsrust_compiler::check(&source) {
+            Ok(_) => panic!("accepted conflicting live record field capture"),
+            Err(error) => error,
+        };
+        assert_eq!(error.code, "capture-conflict", "{error:?}");
+    }
+}

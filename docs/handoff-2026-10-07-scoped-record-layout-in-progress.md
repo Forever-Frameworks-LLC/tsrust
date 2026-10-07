@@ -334,3 +334,44 @@ identities, attach concrete field environments, transfer on moves and wire scope
 release, with the existing safety controls. The record field-loan witness remains
 red; gate acceptance and consumer refresh remain pending. Preserve fifteen owner
 fixtures and installed consumers at f1dd284.
+
+## Stable loan identities and declaration payload attachment
+
+capture_loan_identity interns (captured binding, access mode, creation span) into
+stable IDs. Context clones share the interner, so independently checked branches
+cannot allocate colliding IDs. Removing or reordering the legacy loan vector does
+not change an identity. Two focused tests were red before implementation and pass.
+The registry does not remove keys while its checker context remains alive.
+
+capture_loan_binding now attaches declaration payloads using an iterative worklist.
+Record fields retain their individual paths. Checked direct-place moves transfer
+source paths; readonly declarations share them. Closure payloads attach their own
+creation loans and retain inherited capture environments, consuming those paths
+only for consuming capture storage. Callable wrappers and conditional alternatives
+preserve payload paths. Owners::extend_from merges alternative payload owners
+without overwriting previously attached alternatives. Empty payloads create no owner
+entries. A focused attachment test was red before implementation and now verifies
+that a readonly alias does not dispose the original field, while a later field move
+can dispose its independent loan. Existing capture-conflict checking is unchanged.
+
+The final focused loan batch passes ten unit tests. Seventeen record tests pass,
+including new rejection controls for both the moved left callback and remaining
+right callback while their captures are live. The known scope-release witness is
+explicitly excluded from that positive batch and rerun separately: it still fails
+capture-conflict at the left owner mutation. All eight depth canaries pass (64 tests).
+Project formatting changes zero files and fingerprints. Original red and final
+proof are preserved under runtime/diagnostics/capture-loan-identities/ and
+runtime/diagnostics/capture-loan-bindings/ in SQLite. This is a partial checkpoint,
+not complete field-loan behavior or record gate acceptance.
+
+Next wire assignment, destructuring and other retained payload moves before enabling
+release. Unknown or opaque consumption must remain conservatively retained; it
+cannot lose a loan merely because its original declaration binding leaves scope.
+Calls, indexed aggregates and captured callee effects need explicit ownership or a
+conservative pin. Replace lexical/exception loan-vector prefix truncation with stable
+entry identities plus checked surviving payload owners before removing old entries;
+otherwise earlier removals shift the saved vector positions. Preserve pending return,
+throw, break and continue payloads through unwind and projection. Only then remove
+loans whose tracked owners all died and whose retention is fully known. Resume the
+current source/native scope-release witness with all live-owner rejection controls.
+Installed consumers remain f1dd284; preserve fifteen owner fixtures.

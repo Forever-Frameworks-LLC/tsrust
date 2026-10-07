@@ -1,3 +1,5 @@
+#[path = "capture_loan_binding.rs"]
+mod capture_loan_binding;
 #[path = "assignment_callee.rs"]
 mod assignment_callee;
 #[path = "owned_array_patterns.rs"]
@@ -374,6 +376,7 @@ struct Context {
     source_bindings: HashMap<usize, usize>,
     names: HashMap<String, usize>,
     capture_loan_owners: crate::capture_loan_owners::Owners,
+    capture_loan_ids: crate::capture_loan_identity::Registry,
     capture_loans: Vec<(usize, Mode, Span)>,
     iteration_loans: Vec<(usize, Span)>,
     capture_boundary: usize,
@@ -421,6 +424,7 @@ impl Context {
             source_bindings: HashMap::new(),
             names: HashMap::new(),
             capture_loan_owners: Default::default(),
+            capture_loan_ids: Default::default(),
             capture_loans: Vec::new(),
             iteration_loans: Vec::new(),
             capture_boundary: 0,
@@ -5319,6 +5323,7 @@ impl Analyzer {
             actual = Type::BorrowedUnion(union);
         }
         let id = Self::bind(context, name, actual, false)?;
+        self.attach_binding_capture_loans(context, value, id, !(view || place_view));
         if let Some(kind) = nullable_callback {
             context.bindings[id].callback_kind = Some(kind);
             context.bindings[id].callback_invocation = Some(kind.invocation());
