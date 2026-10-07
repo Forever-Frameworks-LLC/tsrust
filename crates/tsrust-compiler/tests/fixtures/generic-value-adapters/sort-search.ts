@@ -1,0 +1,2 @@
+function make(){let calls=0;function compare<T>(left:T,right:T):number{calls+=1;return 0;}return compare;}function predicate(){let calls=0;function accept<T>(value:T):boolean{calls+=1;return calls===2;}return accept;}function main(){const compare=make();const values=[3,1,2];values.sort(compare);const copied=values.toSorted(compare);if(copied[0]!==3){throw 99;}if(compare('after','unused')!==0){throw 99;}const accept=predicate();console.log([1,2,3].findIndex(accept));console.log(accept('after'));}
+main();

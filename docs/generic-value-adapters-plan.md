@@ -111,3 +111,14 @@ annotations through the same record cache used by ordinary specialization, then
 registers concrete checked fields. A focused native witness confirms borrowed
 integer and direct string calls share one retained counter. Broader verification
 is tracked in the current benchmark handoff; this does not close the full plan.
+
+Reduction and sorting now reuse the traversal adapter helper. Reduction excludes
+unresolved deferred prototypes from parameter/result hints and solves accumulator
+context from the initial value or element type. Sort supplies two element types.
+Search methods already route through array_transform and retain that adapter.
+Focused witnesses verify reduction followed by a different generic call, stable
+sort/toSorted behavior and stateful findIndex followed by a direct call. Matched
+benchmark expansion for these paths remains pending; the existing workload is
+not evidence of their coverage. An exploratory inferred record literal containing
+two callable fields failed for lack of a named record context; that distinct
+boundary remains in the audit and its original diagnostic is retained.

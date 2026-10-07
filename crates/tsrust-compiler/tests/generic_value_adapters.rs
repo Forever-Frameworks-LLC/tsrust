@@ -70,3 +70,13 @@ fn main(){source_main();assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCs
 fn generic_value_adapters_specialize_nominal_generic_results() {
     native("type Receipt<T>={value:T;calls:int;};function make(){let calls=0;function select<T>(value:T):Receipt<T>{calls+=1;return {value:value,calls:calls};}return select;}function main(){const action=make();{const view:Mutable<Function<Receipt<int>,[value:int]>>=action;const first=view(7);console.log(first.value,first.calls);}const second=action('x');console.log(second.value,second.calls);}", "7 1\nx 2\n");
 }
+
+#[test]
+fn generic_value_adapters_reduce_existing_environments() {
+    native(include_str!("fixtures/generic-value-adapters/reduction.tsr"), "1\n2\n3\n9\n4\nafter\n");
+}
+
+#[test]
+fn generic_value_adapters_sort_and_search_existing_environments() {
+    native(include_str!("fixtures/generic-value-adapters/sort-search.tsr"), "1\nfalse\n");
+}

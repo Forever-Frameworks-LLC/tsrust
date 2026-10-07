@@ -294,3 +294,13 @@ benchmarks/runtime/results/2026-10-06T23-58-21-955Z-verify.json. Original failur
 and repaired checks are retained; loose copies were removed after exact readback.
 Five consumers were atomically refreshed and hash verified. Full adapter and
 Gate173 acceptance remain open. No performance measurement is claimed.
+
+## Callback adapter integration checkpoint
+
+Reduction and sort now construct real adapters for existing generic environments.
+Reduction no longer treats an empty deferred prototype result as an accumulator
+constraint. Search uses the existing shared transform path. Nine adapter tests,
+63 depth canaries, 13 existing reduction/sort/predicate tests and 298 editor tests
+pass. Strict TypeScript references reproduce reduction and search outputs. Full
+context audit and matched benchmark expansion remain pending. This is a source
+checkpoint, not full adapter acceptance or performance evidence.

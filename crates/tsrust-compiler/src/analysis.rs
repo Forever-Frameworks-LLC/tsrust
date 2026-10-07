@@ -11273,7 +11273,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 if matches!(annotation, ResultAnnotation::Inferred(_)) { None } else { Some(self.resolve_result(annotation)?) },
             ),
             _ => match callback_hint {
-                Some(Type::Closure(id)) => (
+                Some(Type::Closure(id)) if !self.deferred_generic_values.contains_key(&id) => (
                     self.closures[id]
                         .parameters
                         .iter()
@@ -11344,8 +11344,16 @@ self.names_materialized_type(element.with_depth(0).ty())
         }
         let first_capture = context.capture_loans.len();
         let checked_hint = callback_hint.filter(|ty| !matches!(ty, Type::Closure(id) if self.closures[*id].polymorphic && matches!(args[0].kind, ExprKind::Call(_, _))));
-        let callback =
-            self.expression(context, &mut args[0], Mode::Mutate, &active, checked_hint)?;
+        let accumulator = accumulator_hint
+            .or_else(|| args.get(1).and_then(|initial| self.expression_type_hint(context, initial)))
+            .unwrap_or(element.ty());
+        let callback = if let Some(callback) = self.adapt_generic_traversal(
+            context, &mut args[0], &[accumulator, element.ty(), Type::Int, receiver], &active,
+        )? {
+            callback
+        } else {
+            self.expression(context, &mut args[0], Mode::Mutate, &active, checked_hint)?
+        };
         let (parameters, mut result, once) = match callback {
             Type::Closure(id) => {
                 let closure = &self.closures[id];
@@ -11817,8 +11825,13 @@ self.names_materialized_type(element.with_depth(0).ty())
             }
             let first_capture = context.capture_loans.len();
             callback.traversal_method = None;
-            let callback_type =
-                self.expression(context, callback, Mode::Mutate, &active, callback_hint)?;
+            let callback_type = if let Some(ty) = self.adapt_generic_traversal(
+                context, callback, &[element.ty(), element.ty()], &active,
+            )? {
+                ty
+            } else {
+                self.expression(context, callback, Mode::Mutate, &active, callback_hint)?
+            };
             let (parameters, result, once) = match callback_type {
                 Type::Closure(id) => {
                     let closure = &self.closures[id];
