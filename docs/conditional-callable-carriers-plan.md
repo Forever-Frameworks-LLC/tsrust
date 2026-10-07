@@ -122,3 +122,35 @@ Do not remove the existing owned environment rejection to reuse the owned emitte
 After integration, run the retained source/native/editor witness, borrow conflict
 and escape controls, eight depth canaries, the full editor crate, and matched
 workload correctness before acceptance.
+
+## Checked borrowed-family bridge prerequisite
+
+borrowed_callable_contracts.rs validates actual CheckedClosure alternatives. It
+retains both origin IDs, parameter input types/access/omission/rest cardinality,
+result type and the strongest reusable invocation access. Different default
+expressions remain in their original bodies; the common contract retains omission
+cardinality without replacing either default. At least one environment must borrow
+its source. Missing origins, template/polymorphic bodies, consuming invocations and
+incompatible signatures are rejected. Owned-only alternatives continue to belong
+to the owned storage path. Origin compaction updates both alternatives atomically
+and rejects missing origins or accidental merging of distinct environments.
+
+Five new focused tests exercise checked readonly and mutable environments, default
+parameters, incompatible arity/result/argument access, unchecked bodies, consuming
+invocation and transactional origin remapping. The bounded `borrowed_callable_`
+unit selection passes nine tests, including the native dispatch tests and an
+existing exception-state escape control. The original focused red is retained in
+SQLite with the green batch and whole-project formatting result, under
+`runtime/diagnostics/borrowed-family-contracts/`. Formatting changes zero files.
+
+This checked metadata is not a source capability yet. Connect it by introducing
+a distinct scoped family identity in syntax.rs and Analyzer/CheckedProgram; do
+not silently mark it as owned Type::StoredCallable. conditional_join must register
+the checked alternatives and attach source capture loans once. Native emission
+must construct the selected concrete generic environment and provide call/count
+adapters. Add both origin dependencies to error_effects and origin compaction.
+Return, throw, aggregate and factory paths must reject invalid escapes using the
+actual capture lifetimes. Export the common callable contract through projections
+and editor signature help. Only then rerun the source witness and acceptance
+checks. The source red, mixed lifetime/ownership cases, consuming borrowed cases,
+polymorphic carriers and environment restoration remain open.

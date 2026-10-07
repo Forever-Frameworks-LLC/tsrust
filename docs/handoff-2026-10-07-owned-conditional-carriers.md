@@ -107,3 +107,14 @@ All kernel evidence is in SQLite under
 No performance measurement or editor capability is claimed for this prerequisite.
 Continue from this handoff with source integration, not additional standalone
 kernel claims. Preserve all 15 owner fixture edits.
+
+## Checked borrowed-family bridge checkpoint
+
+borrowed_callable_contracts.rs now checks real environment metadata and preserves
+argument/result contracts, reusable access and distinct origins through compaction.
+Five new tests pass; the focused combined selection passes nine tests. No source
+capability is claimed: the retained conditional source witness still requires
+scoped family identity, native call adapters, error dependencies, source escape
+checks and editor export. Follow the final section of the carrier plan for those
+concrete integration points. SQLite holds red/green/format evidence under
+`runtime/diagnostics/borrowed-family-contracts/`. Owner fixture edits stay unstaged.
