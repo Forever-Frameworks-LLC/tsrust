@@ -57,8 +57,10 @@ separately and preserve their current diagnostics until their own support is pro
    rejection controls unchanged.
 5. **Whole-record view rendering foundation implemented.** Shared and mutable
    renderers borrow independent leaves. A native component test proves string
-   storage identity, in-place mutation and subsequent owning reconstruction. The
-   nominal borrowing bridge and main emitter integration remain pending.
+   storage identity, in-place mutation and subsequent owning reconstruction. View
+   declarations also propagate generic field slots through nested records. Six
+   focused component tests pass, including mutable callback environment borrowing.
+   The nominal borrowing bridge and main emitter integration remain pending.
    **Whole-record transport.** Reconstruct owning values from field places only on
    a checked whole move. Borrowed whole-record consumers need a compatible view
    or bridge that references original fields and supports existing callable bounds.

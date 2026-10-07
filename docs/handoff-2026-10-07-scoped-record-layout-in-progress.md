@@ -863,3 +863,36 @@ existing parameter/factory cases and both live-owner rejection controls. Use foc
 red tests, bounded native/editor checks, required dispatch depth canaries, automatic
 whole-project formatting, SQLite evidence and explicit Git paths. Never stage the
 fifteen owner fixtures. Keep three public wrappers and no implicit clone.
+
+## Generated view declarations and generic field propagation
+
+The layout module now generates nested native view declarations instead of relying
+on test-local handwritten declarations. It carries caller-provided native generic
+parameter names from leaf types through parent views, preserves field order and
+emits each nested declaration once. Shared views contain references; mutable views
+contain mutable references. Constructor symbols remain supplied by the caller.
+The traversal uses the already validated acyclic layout with its depth bound.
+
+Six focused component tests pass. The original string borrowing test now compiles
+generated declarations with a generic nested string field and verifies pointer
+identity, mutation and owning reconstruction. A new native test borrows a mutable
+callback whose environment owns a String, invokes it twice through a generic view
+consumer, updates the record label, and invokes the callback again after owning
+reconstruction. No cloning or lifetime erasure is used. Formatted Tsrust source
+provides the checked record layout; native assertions verify the rendering.
+
+Exact red and successive successful evidence is verified in SQLite under
+runtime/diagnostics/scoped-record-view-declarations/. Project formatting changes
+zero files and fingerprints. These are component results, not project acceptance.
+Production nominal read/mutate trait bridges, generic bounds and parameter/field
+emission remain pending. The original independent-field native witness remains
+red. No shared dispatch changed, so previous depth evidence remains current.
+Consumers remain f1dd284. Preserve all fifteen owner fixtures.
+
+Continuation prompt: Continue from this handoff and the scoped record field storage
+plan. Connect generated nominal views and their generic field slots to production
+read/mutate parameter bridges, then declaration and selected field storage emission.
+Use the unchanged project witness and live-owner rejection controls. Preserve
+non-copy fields, callback bounds, nominal identity, owning moves, three public
+wrappers and no implicit clone. Keep bounded checks, formatting, SQLite evidence
+and explicit Git paths; never stage the fifteen owner fixtures.

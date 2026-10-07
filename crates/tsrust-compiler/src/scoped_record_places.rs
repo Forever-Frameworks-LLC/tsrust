@@ -27,6 +27,37 @@ enum Rendering {
     Value(crate::Mode),
 }
 impl Layout {
+    pub(crate) fn view_declarations(&self, records: &[Record], symbol: impl Fn(usize) -> String, native: impl Fn(Type) -> (String, Vec<String>), mutable: bool) -> String {
+        fn emit(id: usize, records: &[Record], symbol: &impl Fn(usize) -> String, native: &impl Fn(Type) -> (String, Vec<String>), mutable: bool, seen: &mut std::collections::BTreeMap<usize, Vec<String>>, output: &mut String) -> Vec<String> {
+            use std::fmt::Write;
+            if let Some(parameters) = seen.get(&id) { return parameters.clone(); }
+            let mut parameters = Vec::new();
+            let fields = records[id].fields.iter().enumerate().map(|(index, field)| {
+                let ty = field.ty.expect("checked field layout");
+                let (field_type, field_parameters) = if let Type::Record(child) = ty
+                    && !records[child].fields.is_empty() {
+                    let child_parameters = emit(child, records, symbol, native, mutable, seen, output);
+                    let arguments = std::iter::once("'a".to_owned()).chain(child_parameters.iter().cloned()).collect::<Vec<_>>().join(", ");
+                    (format!("{}<{arguments}>", symbol(child)), child_parameters)
+                } else {
+                    let (native_type, parameters) = native(ty);
+                    (format!("&'a {}{native_type}", if mutable { "mut " } else { "" }), parameters)
+                };
+                for parameter in field_parameters {
+                    if parameter != "'a" && !parameters.contains(&parameter) { parameters.push(parameter); }
+                }
+                format!("field{index}: {field_type}")
+            }).collect::<Vec<_>>().join(", ");
+            let arguments = std::iter::once("'a".to_owned()).chain(parameters.iter().cloned()).collect::<Vec<_>>().join(", ");
+            writeln!(output, "struct {}<{arguments}> {{ {fields} }}", symbol(id)).expect("string write");
+            seen.insert(id, parameters.clone());
+            parameters
+        }
+        let mut output = String::new();
+        emit(self.record, records, &symbol, &native, mutable, &mut std::collections::BTreeMap::new(), &mut output);
+        output
+    }
+
     pub(crate) fn view_value(&self, binding: usize, mutable: bool, records: &[Record], symbol: impl Fn(usize) -> String) -> String {
         let mode = if mutable { crate::Mode::Mutate } else { crate::Mode::Read };
         self.render_node(Type::Record(self.record), &mut Vec::new(), binding, Rendering::Value(mode), records, &symbol)
@@ -116,6 +147,32 @@ mod tests {
         assert!(executed.stdout.is_empty());
     }
     #[test]
+    fn native_generic_views_borrow_mutable_callback_environment_without_moving_it() {
+        let source = crate::format(r#"type Holder={run:Mutable<Function<int>>;label:string;};function main(){let calls=0;const holder:Holder={run:():int=>{calls+=1;return calls;},label:"counter"};}"#).unwrap();
+        assert_eq!(crate::format(&source).unwrap(), source);
+        let checked = crate::check(&source).unwrap();
+        let binding = checked.program.functions[0].bindings.iter().find(|binding| binding.name == "holder").unwrap();
+        let layout = Layout::for_binding(binding, &checked.program.records, true).unwrap();
+        let native_type = |ty| if ty == Type::String { ("String".into(), vec![]) } else { ("F".into(), vec!["F".into()]) };
+        let definitions = layout.view_declarations(&checked.program.records, |id| format!("MutRecord{id}"), native_type, true);
+        let declaration = layout.declaration(9, true, "initial", &checked.program.records, |id| format!("Record{id}"));
+        let view = layout.view_value(9, true, &checked.program.records, |id| format!("MutRecord{id}"));
+        let owned = layout.owning_value(9, &checked.program.records, |id| format!("Record{id}"));
+        native(&format!(r#"
+            struct Record{id}<F> {{ field0:F,field1:String }}
+            {definitions}
+            fn invoke<F:FnMut()->i64>(view: &mut MutRecord{id}<'_,F>)->i64 {{ (view.field0)() }}
+            fn main() {{
+                let resource=String::from("abc");
+                let mut calls=0;
+                let initial=Record{id} {{ field0:move || {{calls+=1; calls+resource.len() as i64}},field1:String::from("counter") }};
+                {declaration}
+                {{ let mut borrowed={view}; assert_eq!(invoke(&mut borrowed),4); assert_eq!(invoke(&mut borrowed),5); borrowed.field1.push('!'); }}
+                let mut rebuilt={owned}; assert_eq!((rebuilt.field0)(),6); assert_eq!(rebuilt.field1,"counter!");
+            }}
+        "#,id=layout.record));
+    }
+    #[test]
     fn native_shared_and_mutable_views_borrow_non_copy_data_in_place() {
         let checked = checked();
         let binding = checked.program.functions[0].bindings.iter().find(|binding| binding.name == "box").unwrap();
@@ -126,16 +183,19 @@ mod tests {
         let exclusive = layout.view_value(8, true, &checked.program.records, |id| format!("MutRecord{id}"));
         let owned = layout.owning_value(8, &checked.program.records, |id| format!("Record{id}"));
         let label = layout.leaves[1].native_name(8);
+        let native_type = |ty| match ty { Type::Int => ("i64".into(), vec![]), Type::String => ("S".into(), vec!["S".into()]), _ => panic!("unexpected leaf type") };
+        let read_declarations = layout.view_declarations(&checked.program.records, |id| format!("ReadRecord{id}"), native_type, false);
+        let mut_declarations = layout.view_declarations(&checked.program.records, |id| format!("MutRecord{id}"), native_type, true);
+        assert!(read_declarations.contains(&format!("struct ReadRecord{outer}<'a, S>" , outer=layout.record)));
+        assert!(read_declarations.contains(&format!("field0: ReadRecord{inner}<'a, S>")));
         let source = format!(r#"
             struct Record{inner} {{ field0: i64, field1: String }}
             struct Record{outer} {{ field0: Record{inner}, field1: i64 }}
-            struct ReadRecord{inner}<'a> {{ field0: &'a i64, field1: &'a String }}
-            struct ReadRecord{outer}<'a> {{ field0: ReadRecord{inner}<'a>, field1: &'a i64 }}
-            struct MutRecord{inner}<'a> {{ field0: &'a mut i64, field1: &'a mut String }}
-            struct MutRecord{outer}<'a> {{ field0: MutRecord{inner}<'a>, field1: &'a mut i64 }}
+            {read_declarations}
+            {mut_declarations}
             trait Readable {{ fn observe(&self) -> usize; }}
             impl Readable for Record{outer} {{ fn observe(&self)->usize {{ self.field0.field1.len() + self.field0.field0 as usize + self.field1 as usize }} }}
-            impl Readable for ReadRecord{outer}<'_> {{ fn observe(&self)->usize {{ self.field0.field1.len() + *self.field0.field0 as usize + *self.field1 as usize }} }}
+            impl Readable for ReadRecord{outer}<'_, String> {{ fn observe(&self)->usize {{ self.field0.field1.len() + *self.field0.field0 as usize + *self.field1 as usize }} }}
             fn inspect(value: &impl Readable)->usize {{ value.observe() }}
             fn initial()->Record{outer} {{ Record{outer} {{ field0: Record{inner} {{ field0:4,field1:"hello".into() }},field1:9 }} }}
             fn main() {{
