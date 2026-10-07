@@ -213,3 +213,37 @@ runtime/diagnostics/scoped-record-owned-results/. This is not gate acceptance.
 Remaining work includes mixed record result environments, permitted scoped transfers,
 field loans, assignment, disposal/failure paths, general composition, guide and
 matched workload support, and complete editor acceptance. Consumers remain f1dd284.
+
+## Independent field loan release: current red checkpoint
+
+scoped_record_partial_field_moves_release_independent_capture_loans is a new failing
+source/native acceptance witness. Pair contains two independently borrowed callbacks.
+The left callback moves into an inner binding, is invoked, then leaves scope; the
+right callback remains in the partially moved record. Mutating the left owner must
+then succeed while invoking the right callback remains valid. Current checking
+reports capture-conflict at leftValues[0] = 5 because capture_loans still stores the
+original outer-scope creation entry. The witness reaches analysis, not native code.
+Fourteen extracted cases pass the independent Node reference. Project formatting
+changes zero files and fingerprints. Exact red/reference/format logs are stored in
+SQLite under runtime/diagnostics/scoped-record-field-loans/. This checkpoint is
+intentionally red and not accepted; installed consumers remain f1dd284.
+
+Implement loan provenance in a dedicated module rather than adding unrelated state
+to recursive dispatch. Give each retained capture loan an identity and track its
+current owning binding and record field path. Record construction attaches field
+payload loans; whole-record moves transfer every live field; partial field moves
+transfer only that field's loans to the destination binding. Scope exit releases
+loans owned by dying bindings while retaining loans transferred to outer storage.
+Preserve existing temporary call and traversal loan handling. Reassignment must
+release only overwritten environments after validating evaluation order. Branch
+joins and exception snapshots must retain a loan whenever any reaching live owner
+still holds it. Recursive/nested records require bounded traversal.
+
+Do not release based only on a field's moved flag: the moved callback may remain
+live in another binding. Do not truncate all record loans: the right field still
+borrows its owner. Add rejection controls for mutation while the extracted left
+callback lives, mutation of the right owner while pair.right lives, and escape of
+an inner owner's callback into outer record storage. Add nested record transfers,
+whole-record moves, overwrite, failure/finally and disposal controls before accepting
+field provenance. Resume the existing red witness first, then bounded affected
+checks and mandatory canaries after dispatch changes.

@@ -392,3 +392,34 @@ fn nested_owned_record_result_keeps_environment_through_forwarding() {
         }
     "#);
 }
+
+#[test]
+fn scoped_record_partial_field_moves_release_independent_capture_loans() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Pair = {
+            left: ReadOnly<Function<int>>;
+            right: ReadOnly<Function<int>>;
+        };
+        function main() {
+            const leftValues = [3];
+            const rightValues = [11];
+            {
+                const pair: Pair = {
+                    left: (): int => leftValues[0],
+                    right: (): int => rightValues[0]
+                };
+                {
+                    const left = pair.left;
+                    strictEqual(left(), 3);
+                    strictEqual(pair.right(), 11);
+                }
+                leftValues[0] = 5;
+                strictEqual(leftValues[0], 5);
+                strictEqual(pair.right(), 11);
+            }
+            rightValues[0] = 13;
+            strictEqual(rightValues[0], 13);
+        }
+    "#);
+}
