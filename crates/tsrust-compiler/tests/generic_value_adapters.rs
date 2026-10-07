@@ -674,3 +674,19 @@ fn immutable_callable_snapshot_keeps_the_contract_at_initialization() {
     let error=tsrust_compiler::check(source).err().expect("saved callable keeps its original contract");
     assert_eq!(error.code,"arity","{}",error.render("input.tsr",source));
 }
+
+#[test]
+fn unused_branch_flow_uses_definite_replacement_contracts() {
+    let mut accepted=Vec::new();
+    for source in [
+        "function one<T>(value:T):T{return value;}function two<T>(left:T,right:T):T{return left;}function unused<T>(value:T):T{let alias=one;{alias=two;}return alias(value);}function main(){}",
+        "function one<T>(value:T):T{return value;}function two<T>(left:T,right:T):T{return left;}function unused<T>(flag:boolean,value:T):T{let alias=one;if(flag){alias=two;return alias(value);}return value;}function main(){}",
+        "function one<T>(value:T):T{return value;}function two<T>(left:T,right:T):T{return left;}function unused<T>(flag:boolean,value:T):T{let alias=one;if(flag){alias=two;}else{alias=two;}return alias(value);}function main(){}",
+    ] {
+        match tsrust_compiler::check(source) {
+            Ok(_)=>accepted.push(source),
+            Err(error)=>assert_eq!(error.code,"arity","{}",error.render("input.tsr",source)),
+        }
+    }
+    assert!(accepted.is_empty(),"Invalid branch calls accepted: {accepted:#?}");
+}
