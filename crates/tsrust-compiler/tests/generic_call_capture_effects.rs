@@ -68,3 +68,20 @@ fn nested_explicit_generics_shadow_enclosing_variables() {
         None,
     );
 }
+
+#[test]
+fn lexical_generic_contexts_cover_captures_peers_and_nested_templates() {
+    for source in [
+        "function outer<T>(value:T):string{function describe():string{return String(value);}return describe();}function main(){console.log(outer<int>(7),outer<string>(\"owned\"));}",
+        "function outer<T>(value:T):T{function echo(other:T):T{return other;}return echo(value);}function main(){console.log(outer(7),outer(\"owned\"));}",
+        "function outer<T>(value:T):T{function relay(other:T):T{return echo(other);}function echo(other:T):T{return other;}return relay(value);}function main(){console.log(outer<int>(7),outer<string>(\"owned\"));}",
+        "function outer<T>(value:T):T{function echo<U>(other:T,unused:U):T{return other;}return echo<boolean>(value,true);}function main(){console.log(outer<int>(7),outer<string>(\"owned\"));}",
+        "function outer<T>(value:T):T{function echo<U>(other:T,unused:U):T{return other;}return echo(value,true);}function main(){console.log(outer<int>(7),outer<string>(\"owned\"));}",
+        "function outer<T>(value:T):T{function echo(other:T):T{return other;}const saved=echo;return saved(value);}function main(){console.log(outer<int>(7),outer<string>(\"owned\"));}",
+        "function outer<T>(value:T):T{function echo(other:T,remaining:int):T{if(remaining===0){return other;}return echo(other,remaining-1);}return echo(value,2);}function main(){console.log(outer<int>(7),outer<string>(\"owned\"));}",
+        "function outer<T>(value:T):string{function unused():string{return String(value);}return String(value);}function main(){console.log(outer<int>(7),outer<string>(\"owned\"));}",
+        "function outer<T>(value:T):T{function middle<U>(other:T,unused:U):T{function echo(final:T):T{return final;}return echo(other);}return middle<boolean>(value,true);}function main(){console.log(outer<int>(7),outer<string>(\"owned\"));}",
+    ] {
+        support::execute(source, "7 owned\n", None);
+    }
+}

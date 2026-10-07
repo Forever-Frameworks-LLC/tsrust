@@ -87,6 +87,9 @@ impl Contexts {
     /// it first lets its calls prepare the typed capture context.
     pub(super) fn declaring_function(&self, index: usize, program: &Program, functions: &HashMap<String, usize>) -> Option<usize> {
         let function = &program.functions[index];
+        if let Some(owner) = function.application.as_ref().and_then(|application| application.lexical_owner.as_ref()) {
+            return functions.get(owner).copied();
+        }
         let name = function.application.as_ref().map_or(function.name.text.as_str(), |application| application.declaration.text.as_str());
         let declaration = program.local_declarations.iter().find(|declaration| declaration.emitted_name == name)?;
         let plan = program.local_capture_plans.iter().find(|plan| plan.owners.contains_key(&declaration.enclosing_owner))?;
@@ -108,7 +111,7 @@ impl Contexts {
     }
     /// An instance of a generic nested function captures what its declaration does.
     pub(super) fn instance(&mut self, copy: usize, declaration: &str) {
-        if let Some(&request) = self.declared.get(declaration) {
+        if let Some(&request) = self.declared.get(crate::generic_functions::lexical_declaration(declaration)) {
             self.requests.insert(copy, request);
         }
     }
@@ -186,7 +189,7 @@ impl Contexts {
     pub(super) fn source_context(
         &self, declaration: &str, outer: &Context, program: &Program,
     ) -> Result<Option<(Context, Vec<crate::local_capture_plan::BindingId>)>, Diagnostic> {
-        let Some(&request) = self.declared.get(declaration) else { return Ok(None); };
+        let Some(&request) = self.declared.get(crate::generic_functions::lexical_declaration(declaration)) else { return Ok(None); };
         self.project_request(request, outer, program)
     }
 

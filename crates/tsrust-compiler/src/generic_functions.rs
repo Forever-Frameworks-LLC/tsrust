@@ -1,6 +1,9 @@
 //! Bounded explicit function-template materialization before ordinary ownership checking.
 #[path = "generic_value_signatures.rs"]
 mod value_signatures;
+#[path = "lexical_generic_instances.rs"]
+mod lexical_instances;
+pub(crate) fn lexical_declaration(name: &str) -> &str { lexical_instances::declaration(name) }
 use crate::syntax::*;
 use crate::type_syntax::{ValueAnnotation, ValueAnnotationKind as Kind};
 use crate::{Diagnostic, Span};
@@ -51,6 +54,7 @@ struct Pending {
 #[derive(Default)]
 pub(crate) struct Cache {
     templates: BTreeMap<String, Function>,
+    lexical: lexical_instances::Instances,
     instances: HashMap<(String, Vec<Key>, Vec<Type>), String>,
     origins: HashMap<String, String>,
     counts: HashMap<String, usize>,
@@ -265,15 +269,19 @@ impl Cache {
             return Err(Diagnostic::new("generic-limit","Generic function specialization exceeds its depth (32), per-declaration (128), or program (1024) limit.",span));
         }
         let concrete = format!("{name}<specialization#{}>", self.instances.len());
-        let bindings = template
+        let mut bindings: HashMap<String, ValueAnnotation> = template
             .type_parameters
             .iter()
             .zip(&arguments)
             .map(|(parameter, argument)| (parameter.text.clone(), argument.clone()))
             .collect();
+        for (variable, argument) in self.lexical.bindings(name) {
+            bindings.entry(variable.clone()).or_insert_with(|| argument.clone());
+        }
         let mut function = template.clone();
         function.application = Some(Box::new(FunctionApplication {
-            declaration: template.name.clone(),
+            lexical_owner: template.application.as_ref().and_then(|application| application.lexical_owner.clone()),
+            declaration: template.application.as_ref().map_or_else(|| template.name.clone(), |application| application.declaration.clone()),
             variables: template.type_parameters.clone(),
             arguments: arguments.clone(),
             patterns: template.params.iter().map(|(_,annotation,_)|annotation.clone()).collect(),
@@ -302,6 +310,7 @@ impl Cache {
         depth,
     }) = self.pending.pop()
     {
+        self.contextualize(&mut function, &bindings, depth)?;
         let mut substitute =
             |value: &mut ValueAnnotation| crate::type_substitution::apply(value, &bindings);
         crate::source_walk::function_annotations(&mut function, &mut substitute)?;
@@ -465,6 +474,7 @@ pub(crate) fn specialize(program: &mut Program) -> Result<Cache, Diagnostic> {
     let mut cache = Cache {
         captured_checked_instances: HashMap::new(),
         templates: BTreeMap::new(),
+        lexical: lexical_instances::Instances::new(program),
         instances: HashMap::new(),
         origins: HashMap::new(),
         counts: HashMap::new(),
@@ -490,7 +500,12 @@ pub(crate) fn specialize(program: &mut Program) -> Result<Cache, Diagnostic> {
                 function.name.span,
             ));
         }
-        if function.type_parameters.is_empty() {
+        if cache.lexical.needs_context(&function.name.text) {
+            let mut validation = function.clone();
+            validation.type_parameters.extend(cache.lexical.inherited(&function.name.text));
+            crate::generic_validation::function(&mut validation, &records, &program.call_type_arguments)?;
+            cache.lexical.defer(function);
+        } else if function.type_parameters.is_empty() {
             cache.pending.push(Pending {
                 function,
                 bindings: HashMap::new(),

@@ -1733,6 +1733,8 @@ pub struct Function {
 
 #[derive(Clone, Debug)]
 pub struct FunctionApplication {
+    /// Concrete lexical owner, separate from the explicit type application.
+    pub lexical_owner: Option<String>,
     pub declaration: Token,
     pub variables: Vec<crate::type_syntax::TypeName>,
     pub arguments: Vec<crate::type_syntax::ValueAnnotation>,

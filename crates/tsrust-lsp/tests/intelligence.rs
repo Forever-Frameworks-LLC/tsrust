@@ -7992,3 +7992,18 @@ fn assignment_callee_signature_help_uses_checked_argument_types() {
     let help=index.request("textDocument/signatureHelp",&json!({"position":at(source,"7);",0)}),"file:///assignment.tsr").unwrap();
     assert!(help["signatures"][0]["parameters"][0]["label"].as_str().unwrap_or("").contains("value: int"),"{help}");
 }
+
+#[test]
+fn nested_lexical_generic_annotations_keep_source_help_and_definition() {
+    let source = "function outer<T>(value:T):T{function echo(other:T):T{return other;}return echo(value);}function main(){const number=outer<int>(7);const text=outer<string>('owned');}";
+    tsrust_compiler::check(source).unwrap();
+    let help = ask(source, "textDocument/signatureHelp", "value);", 0);
+    let label = help["signatures"][0]["label"].as_str().expect("lexical source signature");
+    assert!(label.contains("other") && label.contains('T'), "{help}");
+    let definition = ask(source, "textDocument/definition", "echo(value)", 0);
+    assert_eq!(definition["range"]["start"], json!(at(source, "echo(other", 0)), "{definition}");
+    for (name, ty) in [("number=", "int"), ("text=", "string")] {
+        let hover = ask(source, "textDocument/hover", name, 0).to_string();
+        assert!(hover.contains(ty), "{hover}");
+    }
+}
