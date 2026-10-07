@@ -703,3 +703,11 @@ callback failures survive selection. Scope escape and ownership transfer guards
 remain enforced. Matched workload support retains 131 observations; timing remains
 pending. Polymorphic replacement, consuming borrowed sums and point-sensitive
 mutable environment restoration remain open.
+
+Consuming borrowed conditional carriers and inferred scoped Once parameters now
+have focused acceptance. Concrete non-retaining functions accept borrowed consuming
+environments; retainers and unknown boundaries preserve owned environments. The
+matched adapter scenario has 133 observations with untimed native/compiled-TypeScript
+verification. Existing Once syntax remains sufficient. Scoped aggregate/builtin
+transport, polymorphic replacement and mutable environment restoration remain open.
+See milestones/173-scoped-once-parameters.md.

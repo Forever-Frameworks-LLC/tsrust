@@ -506,3 +506,47 @@ ReadOnly<Function<...>> parameters; mutable families can be lent to
 Mutable<Function<...>> parameters. Selection does not clone captured data or create
 shared mutation cells. Consuming borrowed alternatives, polymorphic selection and
 replacement across distinct polymorphic origins remain pending.
+
+## Single-use callbacks and capture lifetimes
+
+`Once<Function<Result, [arguments]>>` permits one invocation, including an invocation
+that consumes owned captures. A concrete named function that only invokes its
+callback can also accept an environment borrowing values from its caller. The
+compiler checks the function body and forwarding destinations before admitting
+those borrows. Returning or storing a callback requires an owning environment;
+an unknown destination keeps that requirement. A callback signature used as a
+higher-order value does not itself prove that its implementation cannot retain an
+argument.
+
+```tsr
+function run(action: Once<Function<string>>): string {
+    return action();
+}
+
+function retain(action: Once<Function<string>>): Once<Function<string>> {
+    return action;
+}
+
+function main() {
+    const values = [1];
+    const text = "Pat";
+    console.log(run((): string => {
+        console.log(values.length);
+        return text;
+    }));
+    console.log(values.length); // values remains available after run.
+
+    const savedText = "Sam";
+    const saved = retain((): string => savedText);
+    console.log(saved());
+}
+// 1
+// Pat
+// 1
+// Sam
+```
+
+The returned string transfers out of the callback. The first callback borrows the
+array only for the scoped call. The retained callback owns its string so it remains
+valid after `retain` returns. A second invocation of either single-use callback is
+rejected. These checks do not insert an implicit clone.

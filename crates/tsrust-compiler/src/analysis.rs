@@ -6912,7 +6912,51 @@ impl Analyzer {
         expr.kind = ExprKind::Call(Box::new(Expr::new(ExprKind::Name("Number".to_owned()), span)), vec![*operand]);
     }
 
+    #[inline(never)]
     fn expression(
+        &mut self,
+        context: &mut Context,
+        expr: &mut Expr,
+        mode: Mode,
+        loans: &Loans,
+        expected: Option<Type>,
+    ) -> Result<Type, Diagnostic> {
+        if matches!(&expr.kind, ExprKind::Unary { op: UnaryOp::RestPack, value, .. }
+            if !matches!(value.kind, ExprKind::SpreadValue(_))) {
+            return self.rest_pack_expression(context, expr, mode, loans, expected);
+        }
+        self.expression_other(context, expr, mode, loans, expected)
+    }
+
+    #[inline(never)]
+    fn rest_pack_expression(
+        &mut self,
+        context: &mut Context,
+        expr: &mut Expr,
+        mode: Mode,
+        loans: &Loans,
+        expected: Option<Type>,
+    ) -> Result<Type, Diagnostic> {
+        if let ExprKind::Unary {
+            op: UnaryOp::RestPack,
+            value,
+            ..
+        } = &mut expr.kind
+        {
+            let ty = if let ExprKind::Array(values) = &mut value.kind {
+                self.array_literal(context, values, loans, expected, expr.span)?
+            } else {
+                self.expression(context, value, mode, loans, expected)?
+            };
+            value.ty = Some(ty);
+            expr.ty = Some(ty);
+            return Ok(ty);
+        }
+        unreachable!("rest pack dispatch");
+    }
+
+    #[inline(never)]
+    fn expression_other(
         &mut self,
         context: &mut Context,
         expr: &mut Expr,
@@ -6940,21 +6984,6 @@ impl Analyzer {
             || matches!(&expr.kind, ExprKind::Unary { op: UnaryOp::RestPack, value, .. } if matches!(value.kind, ExprKind::SpreadValue(_)))
         {
             return self.checked_spread_expression(context, expr, mode, expected);
-        }
-        if let ExprKind::Unary {
-            op: UnaryOp::RestPack,
-            value,
-            ..
-        } = &mut expr.kind
-        {
-            let ty = if let ExprKind::Array(values) = &mut value.kind {
-                self.array_literal(context, values, loans, expected, expr.span)?
-            } else {
-                self.expression(context, value, mode, loans, expected)?
-            };
-            value.ty = Some(ty);
-            expr.ty = Some(ty);
-            return Ok(ty);
         }
         // A declared nongeneric call already returns its exact tagged type.
         // Do not retain an injection frame while checking its nested arguments.

@@ -173,7 +173,7 @@ matching scoped readonly/mutable callback parameters are supported.
 
 borrowed_callable_emit.rs emits the concrete lifetime-bearing native sum and
 call/count methods. Each arm forwards to its original environment. The common
-error contract joins both origins. borrowed_callback_result_adapters.rs converts
+error contract joins both origins. callback_family_result_adapters.rs converts
 that checked error payload when the family crosses a callback parameter boundary.
 The source/native witness caught the missing callback error dependency and the
 initial native Result mismatch; both are repaired. Projections export the common
@@ -189,3 +189,11 @@ Full feature acceptance still requires consuming borrowed cases, polymorphic
 carriers and replacement, recursive environments and the remaining captured-effects
 plan. General nullable/aggregate and higher-order builtin transport of scoped sums
 also needs explicit coverage before claiming parity for those paths.
+
+## Scoped consuming parameter acceptance
+
+Consuming borrowed carriers and concrete scoped Once parameter inference now have
+focused acceptance. See milestones/173-scoped-once-parameters.md. Native family
+identity accounting, owned failure adapters and higher-order input compatibility
+are verified. Public syntax remains Once. Scoped nullable/aggregate and builtin
+transport, polymorphic replacement and mutable environment restoration remain open.

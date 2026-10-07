@@ -1,4 +1,4 @@
-# Scoped Once source integration in progress
+# Scoped Once source integration checkpoint
 
 Read AGENTS.md, docs/development-workflow.md and
  docs/once-callback-environment-plan.md before continuing. The last accepted scoped
@@ -47,3 +47,21 @@ acceptance records, commit, then refresh consumers atomically. Keep broader rema
 scope: scoped aggregate/builtin transport, polymorphic selection/replacement and
 point-sensitive environment restoration. Retained reds in the broader plans remain
 pending. No archives, timing or routine full compiler regression.
+
+## Final checkpoint follow-up
+
+The rest-depth repair isolates RestPack handling from common expression dispatch.
+The exact depth witness passes, followed by all eight canaries and all 19 rest tests
+(83 total). Fifteen Once unit controls and ten focused source/native controls pass.
+All 334 current editor tests pass. Final five-case native/compiled-TypeScript oracle
+and registration checks pass. The guide output is verified. Coverage generation
+passes after correcting the new evidence link. The release consumer build passes.
+Focused acceptance is documented in milestones/173-scoped-once-parameters.md; full
+Gate173 remains open. The integration source checkpoint is 4cdf1e0.
+
+Next work should follow the broader conditional carrier and polymorphic transport
+plans: scoped nullable/aggregate and higher-order builtin transport, polymorphic
+selection/replacement and point-sensitive mutable environment restoration. Preserve
+the retained replacement and mutable-factory reds. Do not treat the current lexical
+source bridge as complete transitive capture or spread proof. No owner question is
+pending. Keep all 15 protected owner fixtures unstaged.
