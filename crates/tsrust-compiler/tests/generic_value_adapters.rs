@@ -518,3 +518,30 @@ fn main(){source_main();assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCs
         support::success(&support::run(&mut std::process::Command::new(binary),10));
     }
 }
+
+#[test]
+fn unused_generic_aliases_validate_explicit_arity_and_monomorphic_targets() {
+    let mut accepted = Vec::new();
+    for source in [
+        "function identity<T>(value:T):T{return value;}function unused<T>(value:T):T{const alias=identity;return alias<T,T>(value);}function main(){}",
+        "function exact(value:int):int{return value;}function unused<T>(value:T):int{const alias=exact;return alias<T>(1);}function main(){}",
+        "function identity<T>(value:T):T{return value;}function unused<T>(value:T):T{const alias=identity;return alias(value,value);}function main(){}",
+    ] {
+        match tsrust_compiler::check(source) {
+            Ok(_) => accepted.push(source),
+            Err(error) => assert!(matches!(error.code,"arity"|"type"),"{}",error.render("input.tsr",source)),
+        }
+    }
+    assert!(accepted.is_empty(), "Unused aliases accepted invalid calls: {accepted:#?}");
+}
+
+#[test]
+fn generic_adapters_reject_borrowed_results_escaping_as_owned_values() {
+    for source in [
+        "function lend<T>(value:ReadOnly<T>):T{return value;}function main(){const action=lend;const fixed:Function<string,[value:ReadOnly<string>]>=action;}",
+        "function make(){let calls=0;function lend<T>(value:ReadOnly<T>):T{calls+=1;return value;}return lend;}function main(){const action=make();const fixed:Mutable<Function<string,[value:ReadOnly<string>]>>=action;}",
+    ] {
+        let error=tsrust_compiler::check(source).err().expect("owned results cannot escape borrowed inputs");
+        assert!(matches!(error.code,"borrowed-place"|"borrowed-view"|"borrowed-element"|"borrow"|"parameter-access"),"{}",error.render("input.tsr",source));
+    }
+}
