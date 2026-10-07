@@ -73,6 +73,7 @@ impl Analyzer {
         let _ = context
             .capture_loan_owners
             .transfer(&temporary, &Place { binding, fields });
+        Self::restore_live_capture_loans(context);
     }
 
     fn attach_payload_capture_loans(
@@ -151,6 +152,7 @@ impl Analyzer {
                 | ExprKind::Unary {
                     op:
                         UnaryOp::CallableStore
+                        | UnaryOp::RecordCarrier
                         | UnaryOp::CallableOnce
                         | UnaryOp::CoalesceSelected
                         | UnaryOp::OptionalSelected

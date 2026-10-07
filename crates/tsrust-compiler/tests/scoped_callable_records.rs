@@ -613,3 +613,65 @@ fn nested_record_branch_assignments_preserve_three_actual_origins() {
         project(&selected);
     }
 }
+
+#[test]
+fn branch_record_value_moves_preserve_selected_environment_without_clone() {
+    for (selected,expected) in [(true,3),(false,11)] {
+        let first_key=if selected{"run"}else{"label"};
+        let source=format!(r#"
+            import {{ strictEqual }} from "std:testing";
+            type Holder = {{ run: ReadOnly<Function<int>>; label: string; }};
+            function main() {{
+                const a=[3]; const b=[11];
+                {{
+                    const first:Holder={{run:():int=>a[0],label:"first"}};
+                    const second:Holder={{label:"second",run:():int=>b[0]}};
+                    let holder:Holder; let evaluations=0;
+                    if ({selected}) {{ holder=(evaluations++,first); }} else {{ holder=(evaluations++,second); }}
+                    strictEqual(holder.run(),{expected});
+                    strictEqual(evaluations,1);
+                    const keys=Object.keys(holder);
+                    strictEqual(keys[0],{first_key:?});
+                }}
+                a[0]=5; b[0]=13; strictEqual(a[0]+b[0],18);
+            }}
+        "#);
+        project(&source);
+    }
+}
+
+#[test]
+fn sequential_record_replacement_preserves_new_origin_and_releases_old_capture() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder={run:ReadOnly<Function<int>>;};
+        function main(){
+            const a=[3]; const b=[11];
+            {
+                let holder:Holder={run:():int=>a[0]};
+                strictEqual(holder.run(),3);
+                holder={run:():int=>b[0]};
+                a[0]=5; strictEqual(a[0],5);
+                strictEqual(holder.run(),11);
+            }
+            b[0]=13; strictEqual(b[0],13);
+        }
+    "#);
+}
+
+#[test]
+fn replacing_record_keeps_capture_loan_owned_by_moved_out_callback() {
+    let source=support::format_round_trip(r#"
+        type Holder={run:ReadOnly<Function<int>>;};
+        function main(){
+            const a=[3]; const b=[11];
+            let holder:Holder={run:():int=>a[0]};
+            const saved=holder.run;
+            holder={run:():int=>b[0]};
+            a[0]=5;
+            console.log(saved(),holder.run());
+        }
+    "#);
+    let error=match tsrust_compiler::check(&source){Ok(_)=>panic!("replacement released a separately owned callback capture"),Err(error)=>error};
+    assert_eq!(error.code,"capture-conflict","{error:?}");
+}

@@ -5102,7 +5102,7 @@ impl Analyzer {
         let first_local = context.bindings.len();
         let entry_loans = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
         let mut exited = false;
-        for stmt in body {
+        for stmt in body.iter_mut() {
             if exited {
                 return Err(Diagnostic::new(
                     "unsupported",
@@ -5214,6 +5214,7 @@ impl Analyzer {
                 }
             }
         }
+        self.record_sequence_carriers(context,body)?;
         context.lexical_scopes.pop();
         if !keep_names {
             entry_loans.unwind(&mut context.capture_loans);
@@ -5522,6 +5523,7 @@ impl Analyzer {
             context.bindings[id].mode = context.bindings[id].mode.max(Mode::Mutate);
         }
         crate::flow::invalidate(&mut context.flow, id);
+        if matches!((actual,ty),(Type::Record(a),Type::Record(b)) if self.scoped_records.declaration(a)==self.scoped_records.declaration(b)){context.bindings[id].ty=actual;}
         context.bindings[id].transferred = None;
         context.bindings[id].moved_fields.clear();
         context.bindings[id].mutable = true;
@@ -7278,6 +7280,12 @@ impl Analyzer {
     #[inline(never)]
     fn wrapper_expression(&mut self, context: &mut Context, expr: &mut Expr, mode: Mode, loans: &Loans, expected: Option<Type>, previous_view: Option<Type>) -> Result<Type, Diagnostic> {
         match &mut expr.kind {
+            ExprKind::Unary {op:UnaryOp::RecordCarrier,value,..}=>{
+                let destination=expr.ty.expect("checked record carrier destination");
+                self.expression(context,value,Mode::Consume,loans,None)?;
+                self.require(destination,expected,expr.span)?;
+                Ok(destination)
+            }
             ExprKind::Unary {
                 op: UnaryOp::CallableStore,
                 value,
@@ -7453,6 +7461,7 @@ impl Analyzer {
             // temporaries out of this recursively retained dispatcher.
             ExprKind::Unary {
                 op: UnaryOp::CallableStore
+                    | UnaryOp::RecordCarrier
                     | UnaryOp::CallableRestAdapter
                     | UnaryOp::CallableOnce
                     | UnaryOp::ParameterDefaultStore
@@ -9234,6 +9243,10 @@ impl Analyzer {
                     key.span,
                 )
             })?;
+            let nominal=self.scoped_records.declaration(index);
+            let field_type=if matches!(field_type,Type::Closure(_) | Type::BorrowedCallable(_)) {
+                self.program.records[nominal].fields.iter().find(|field|field.name.text==key.text).and_then(|field|field.ty).unwrap_or(field_type)
+            }else{field_type};
             let actual = if let Type::StoredCallable(family) = field_type {
                 self.stored_callable_value(context, value, family, loans)?
             } else {

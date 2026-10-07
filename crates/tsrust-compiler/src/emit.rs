@@ -12,6 +12,8 @@ mod record_join_emit;
 mod scoped_record_copy_emit;
 #[path = "scoped_record_owned_places.rs"]
 mod scoped_record_owned_places;
+#[path = "record_carrier_emit.rs"]
+mod record_carrier_emit;
 #[path = "scoped_record_capture_views.rs"]
 mod scoped_record_capture_views;
 #[path = "scoped_record_console_emit.rs"]
@@ -7070,6 +7072,12 @@ impl Emitter<'_> {
                 right,
                 ..
             } => self.coalesce(fun, expr, left, right, mode),
+            ExprKind::Unary {op:UnaryOp::RecordCarrier,value,..}=>{
+                let input=self.expr(fun,value,Mode::Consume);
+                let converted=self.record_carrier_conversion(value.ty.unwrap(),expr.ty.unwrap(),"record_carrier_input");
+                let code=format!("{{let record_carrier_input={input};{converted}}}");
+                match mode{Mode::Read=>format!("&({code})"),Mode::Mutate=>format!("&mut ({code})"),_=>code}
+            }
             ExprKind::Unary {
                 op: UnaryOp::CallableStore,
                 value,
@@ -7603,6 +7611,7 @@ impl Emitter<'_> {
             | UnaryOp::CallableRestAdapter
             | UnaryOp::CallableOnce
             | UnaryOp::CallableStore
+            | UnaryOp::RecordCarrier
             | UnaryOp::OptionalBoundary
             | UnaryOp::OptionalSelected => {
                 unreachable!("coalescing identity emitted separately")

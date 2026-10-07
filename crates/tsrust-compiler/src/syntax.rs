@@ -842,6 +842,8 @@ pub enum UnaryOp {
     /// Checked-only ownership wrapper for a once-annotated local environment.
     CallableOnce,
     CallableStore,
+    /// Checked owning record conversion preserves each original environment.
+    RecordCarrier,
     /// Source optional boundary; lowered by the contiguous chain checker.
     OptionalBoundary,
     /// Checked identity for a statically present optional call.
@@ -1260,6 +1262,11 @@ impl Expr {
             union,
             narrowed,
         };
+    }
+    pub(crate) fn wrap_record_carrier(&mut self,ty:Type){
+        let value=std::mem::replace(self,Self::new(ExprKind::Null,self.span));
+        self.depth=value.depth;self.ty=Some(ty);
+        self.kind=ExprKind::Unary{op:UnaryOp::RecordCarrier,operator:self.span,value:Box::new(value)};
     }
     pub(crate) fn wrap_storage(&mut self, family: usize) {
         let value = std::mem::replace(self, Self::new(ExprKind::Null, self.span));

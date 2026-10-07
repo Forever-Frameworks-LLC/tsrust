@@ -502,3 +502,44 @@ No consumers or owner fixtures change; no timing or full editor acceptance is cl
 Thirty-one borrowed-related unit controls and ten callable storage controls pass.
 Project formatting changes zero files and zero fingerprints. Exact intermediate
 and final records are verified in SQLite under runtime/diagnostics/scoped-record-many/.
+
+
+## Record-valued conversion and sequential replacement
+
+A checked RecordCarrier node now converts compatible nominal records into joined
+storage carriers. Its isolated emitter evaluates the source once, moves original
+leaves, reconstructs nested records and forwards property-order metadata. Existing
+borrowed-family payloads dispatch into the destination family by their actual origin.
+No cloning, unsafe conversion or public syntax is introduced. Capture-loan payload
+traversal treats the conversion as ownership-preserving, and the internal node keeps
+the original source-depth accounting.
+
+Branch assignments can now join record-valued RHS expressions rather than requiring
+both RHS nodes to be literals. The new native witness executes both selections and
+uses a side-effecting comma expression to prove one RHS evaluation. Different source
+constructor orders survive the conversion and Object.keys observes the selected order.
+Expected callback results are 3 and 11; the original arrays are mutable after all
+owners are disposed.
+
+Sequential local record writes also normalize their compatible native field carriers.
+Construction checks the declared callback contract rather than requiring the previous
+concrete origin. Checking records the actual replacement instance at each program
+point. Local write normalization runs after statement checking, retaining the existing
+point-sensitive loan decisions. The replacement helper now reconciles live capture
+loans after staging and transferring the RHS, removing discarded old owners while
+retaining independently moved or borrowed owners.
+
+The sequential native witness observes 3 before replacement and 11 after replacement,
+then mutates the released first array while the second callback remains live. The
+27-test project batch, seven capture-loan unit controls and all 64 depth canaries pass.
+This is an implementation checkpoint, not whole record acceptance. Normalization of
+sequential writes currently covers owning local binding writes in one block. Cross-block
+writes, independent callback field replacement, borrowed parameter replacement,
+record-valued capture conversion and owning callback carrier composition still need
+boundary witnesses and implementation. Complete default/exception/disposal, opaque
+composition and fallible contracts before editor/guide and matched benchmark acceptance.
+
+A separate rejection control verifies that replacement cannot release a capture
+owned by a moved-out callback. Formatting changes zero files and fingerprints.
+Exact red/intermediate/green evidence is verified in SQLite under
+runtime/diagnostics/scoped-record-conversion/.
