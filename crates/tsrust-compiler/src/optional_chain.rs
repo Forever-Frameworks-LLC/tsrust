@@ -437,7 +437,7 @@ impl Analyzer {
                 },
             );
         }
-        let first = context.capture_loans.len();
+        let capture_boundary = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
         let body_ty = self.optional_body(
             context,
             body,
@@ -445,7 +445,7 @@ impl Analyzer {
             loans,
             expected.map(|ty| self.unions.payload(ty).unwrap_or(ty)),
         )?;
-        context.capture_loans.truncate(first);
+        capture_boundary.unwind(&mut context.capture_loans);
         let access = context
             .selected_access
             .remove(&operator.start)

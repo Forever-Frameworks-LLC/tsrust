@@ -153,7 +153,7 @@ impl Analyzer {
         for segment in &mut segments {
             if !segment.spread && let Some(ty)=self.callback_value_hint(context,&segment.value)? {segment.element=ty;}
         }
-        let first_capture=context.capture_loans.len();
+        let capture_boundary = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
         let fresh_callee=matches!(callee.kind,ExprKind::Closure{..}|ExprKind::Call(_, _));
         if fresh_callee {self.contextual_spread_callee(&mut callee,&segments)?;self.expression(context,&mut callee,Mode::Consume,loans,None)?;}
         let ordinary=self.ordinary_spread_contract(context,&callee)?;
@@ -305,7 +305,7 @@ impl Analyzer {
         let call=variants.first().expect("checked spread call variant").call.clone();
         expr.kind=ExprKind::SpreadCall(Box::new(CheckedSpreadCall {callee:staged_callee,segments,call,parameters,selected_types,selected_unions,variants,slot,minimum,maximum,builtin:builtin.map(|contract|contract.kind)}));
         let result=result.unwrap();
-        if fresh_callee && !self.expression_result_retains_captures(result){context.capture_loans.truncate(first_capture);}
+        if fresh_callee && !self.expression_result_retains_captures(result){capture_boundary.unwind(&mut context.capture_loans);}
         expr.ty=Some(result); Ok(result)
     }
 

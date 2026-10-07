@@ -587,3 +587,34 @@ temporary capture-loan boundaries. Use focused red controls and bounded affected
 checks, then continue stable raw-loan reconciliation and scoped field disposal.
 Keep the three public wrappers, ownership rules, warm target, project formatting,
 SQLite evidence and explicit Git paths. Never stage protected owner fixtures.
+
+## Stable temporary call boundaries
+
+The seventeen remaining production temporary loan-count snapshots now use stable
+Boundary membership. This covers thirteen analysis.rs sites plus generic expression
+adapters, deferred generic values, spread calls and optional chain bodies. Each
+existing result-retention condition remains intact. The retained red membership
+witness demonstrates the shared positional defect; this batch applies its tested
+replacement to all audited callers. Production capture-loan slicing and truncation
+are absent after the audit. The two remaining test-only resets are unchanged.
+
+Nineteen focused loan tests, four source/native witnesses and all eight depth
+canaries (64 tests) pass. Source witnesses cover borrowed/owned generic factory
+state, callable spread/defaults, optional owned views and nullable scoped callback
+transport. Project formatting changes zero files and fingerprints. Exact evidence
+is verified in SQLite under runtime/diagnostics/capture-loan-temporary-boundaries/.
+
+Next reconcile raw loan tuples with live owner IDs whenever owner snapshots restore
+or join. Track which IDs are known so untracked temporary borrows retain their
+existing conservative semantics. Then integrate owner disposal into lexical and
+exception unwind while preserving outer storage and pending payloads. Unknown
+consumption remains pinned. Only enable release after branch, loop and exception
+controls demonstrate that live callbacks still block incompatible access. The
+independent field-disposal native witness remains red. Record gate and gate 173
+remain open. Consumers remain f1dd284; preserve fifteen owner fixtures.
+
+Continuation prompt: Read this handoff and inspect status. Implement raw-loan
+reconciliation from stable IDs with red restoration controls, then scoped field
+disposal and native live-owner controls. Keep three public wrappers and existing
+ownership rules. Use bounded checks, project formatting, SQLite evidence and
+explicit Git paths. Never stage protected owner fixtures.

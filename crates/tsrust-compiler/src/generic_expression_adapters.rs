@@ -167,11 +167,11 @@ impl Analyzer {
         ];
         let closure = Expr::new(ExprKind::Closure { id: usize::MAX / 2 + span.start, params: Vec::new(), result: result_annotation, body }, span);
         *expression = Expr::new(ExprKind::Call(Box::new(closure), Vec::new()), span);
-        let first_capture = context.capture_loans.len();
+        let capture_boundary = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
         let checked = self.expression(context, expression, mode, loans, Some(expected));
         // The staging closure is invoked immediately. Its argument-evaluation
         // borrows end here; the returned owned adapter retains its own environment.
-        context.capture_loans.truncate(first_capture);
+        capture_boundary.unwind(&mut context.capture_loans);
         checked
     }
 }

@@ -181,7 +181,7 @@ impl Analyzer {
                 else { self.expression(context, callee, invocation, loans, Some(receiver))? };
             self.require(actual, Some(receiver), callee.span)?;
         }
-        let first_capture = context.capture_loans.len();
+        let capture_boundary = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
         let mut active = loans.clone();
         if let Some(binding) = binding { active.entry(binding).or_default().push((invocation, callee.span)); }
         else { for root in Self::loan_roots(callee, invocation) { active.entry(root).or_default().push((invocation, callee.span)); } }
@@ -194,7 +194,7 @@ impl Analyzer {
                 }
             }
         }
-        context.capture_loans.truncate(first_capture);
+        capture_boundary.unwind(&mut context.capture_loans);
         let (function, result) = self.resolved_call(context, function, args, span)?;
         // Callable arguments can select a further concrete body specialization.
         // Check that body before retaining its invocation method.

@@ -7781,7 +7781,7 @@ impl Analyzer {
         right: &mut Expr,
         loans: &Loans,
     ) -> Result<Type, Diagnostic> {
-        let first_capture = context.capture_loans.len();
+        let capture_boundary = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
         let observing = self.observing_values;
         self.observing_values = true;
         let result = (|| {
@@ -7816,7 +7816,7 @@ impl Analyzer {
             Ok(stable)
         })();
         self.observing_values = observing;
-        context.capture_loans.truncate(first_capture);
+        capture_boundary.unwind(&mut context.capture_loans);
         if result? { self.remember_guard(context, span, op, left, right); }
         Ok(Type::Boolean)
     }
@@ -7836,7 +7836,7 @@ impl Analyzer {
         loans: &Loans,
     ) -> Result<Type, Diagnostic> {
         let (expr_span, operator) = spans;
-        let first_capture = context.capture_loans.len();
+        let capture_boundary = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
         let observing = self.observing_values;
         self.observing_values = true;
         let result = (|| {
@@ -7854,7 +7854,7 @@ impl Analyzer {
             Ok((left_type, right_type, stable))
         })();
         self.observing_values = observing;
-        context.capture_loans.truncate(first_capture);
+        capture_boundary.unwind(&mut context.capture_loans);
         let (left_type, right_type, stable) = result?;
         let primitive = |ty: Type| {
             matches!(ty, Type::Int | Type::Number | Type::Boolean | Type::String | Type::Null | Type::Undefined)
@@ -11180,7 +11180,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 base.span,
             ));
         }
-        let first_capture = context.capture_loans.len();
+        let capture_boundary = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
         let checked_callback_hint = callback_hint.filter(|ty| {
             !(matches!(args[0].kind, ExprKind::Call(_, _))
                 && matches!(ty, Type::Closure(id) if self.closures[*id].polymorphic))
@@ -11315,7 +11315,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             Self::transform_array_type(result, args[0].span)?
         };
         // Temporary callback captures end after traversal. Named closures retain their existing loans.
-        context.capture_loans.truncate(first_capture);
+        capture_boundary.unwind(&mut context.capture_loans);
         Ok(result)
     }
 
@@ -11537,7 +11537,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 .or_default()
                 .push((receiver_mode, base.span));
         }
-        let first_capture = context.capture_loans.len();
+        let capture_boundary = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
         let checked_hint = callback_hint.filter(|ty| !matches!(ty, Type::Closure(id) if self.closures[*id].polymorphic && matches!(args[0].kind, ExprKind::Call(_, _))));
         let accumulator = accumulator_hint
             .or_else(|| args.get(1).and_then(|initial| self.expression_type_hint(context, initial)))
@@ -11708,7 +11708,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             result = specialized_result;
             args[0].traversal_method = Some(TraversalMethod { id, access: Mode::Read });
         }
-        context.capture_loans.truncate(first_capture);
+        capture_boundary.unwind(&mut context.capture_loans);
         Ok(result)
     }
 
@@ -12021,7 +12021,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                     .or_default()
                     .push((if copying { Mode::Read } else { Mode::Mutate }, base.span));
             }
-            let first_capture = context.capture_loans.len();
+            let capture_boundary = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
             callback.traversal_method = None;
             let callback_type = if let Some(ty) = self.adapt_generic_traversal(
                 context, callback, &[element.ty(), element.ty()], &active,
@@ -12097,7 +12097,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 self.require(specialized_result, Some(result), callback.span)?;
                 callback.traversal_method = Some(TraversalMethod { id, access: Mode::Read });
             }
-            context.capture_loans.truncate(first_capture);
+            capture_boundary.unwind(&mut context.capture_loans);
         } else if element.depth() > 0
             || matches!(
                 element,
@@ -12625,7 +12625,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         Self::access(context, binding, invocation, callee.span, loans)?;
         callee.binding = Some(binding);
         callee.ty = Some(context.bindings[binding].ty);
-        let first_capture = context.capture_loans.len();
+        let capture_boundary = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
         let mut active = loans.clone();
         active
             .entry(binding)
@@ -12650,7 +12650,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 }
             }
         }
-        context.capture_loans.truncate(first_capture);
+        capture_boundary.unwind(&mut context.capture_loans);
         let (method, result) = self.materialize_closure_method(origin, args, span)?;
         let result = self.closure_method_result(context, origin, method, result, args, span);
         Ok((method, result))
@@ -12776,7 +12776,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         Self::access(context, binding, invocation, callee.span, loans)?;
         callee.binding = Some(binding);
         callee.ty = Some(context.bindings[binding].ty);
-        let first_capture = context.capture_loans.len();
+        let capture_boundary = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
         let mut active = loans.clone();
         active
             .entry(binding)
@@ -12801,7 +12801,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 }
             }
         }
-        context.capture_loans.truncate(first_capture);
+        capture_boundary.unwind(&mut context.capture_loans);
         self.resolved_call(context, function, args, span)
     }
 
@@ -12815,7 +12815,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         span: Span,
         expected: Option<Type>,
     ) -> Result<(CallTarget, Type), Diagnostic> {
-        let first_capture=context.capture_loans.len();
+        let capture_boundary = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
         let distinct_conditional=if let ExprKind::Conditional{consequent,alternate,..}=&callee.kind {
             let left=self.callback_value_hint(context,consequent)?;
             let right=self.callback_value_hint(context,alternate)?;
@@ -12842,7 +12842,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             hint
         };
         let result=self.checked_callable_expression_call(context,callee,args,loans,span,hint,checked_callee,expected)?;
-        if checked_callee && !self.expression_result_retains_captures(result.1){context.capture_loans.truncate(first_capture);}
+        if checked_callee && !self.expression_result_retains_captures(result.1){capture_boundary.unwind(&mut context.capture_loans);}
         Ok(result)
     }
 
@@ -12921,7 +12921,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 .or_default()
                 .push((invocation, callee.span));
         }
-        let first_capture = context.capture_loans.len();
+        let capture_boundary = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
         for (arg, contract) in args.iter_mut().zip(params) {
             let actual =
                 self.parameter_argument(context, arg, contract, &active)?;
@@ -12935,7 +12935,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 }
             }
         }
-        context.capture_loans.truncate(first_capture);
+        capture_boundary.unwind(&mut context.capture_loans);
         if let Type::Closure(origin) = hint {
             let (origin, _) = match self.closures[origin].forward {
                 Some(ClosureForward::Once(inner)) => (inner, true),
@@ -12990,7 +12990,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         loans: &Loans,
         string_conversion: bool,
     ) -> Result<(), Diagnostic> {
-        let first_capture = context.capture_loans.len();
+        let capture_boundary = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
         let mut active = loans.clone();
         for (index, argument) in args.iter_mut().enumerate() {
             let previous = self.builtin_literals;
@@ -13037,7 +13037,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 }
             }
         }
-        context.capture_loans.truncate(first_capture);
+        capture_boundary.unwind(&mut context.capture_loans);
         Ok(())
     }
 
@@ -13821,7 +13821,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         // Inline callback captures stay live through subsequent argument
         // evaluation and the call, then release. Existing named closure
         // loans keep their enclosing block lifetime.
-        let first_capture_loan = context.capture_loans.len();
+        let selected_capture_boundary = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
         let mut active = loans.clone();
         for (arg, contract) in args.iter_mut().zip(params.iter().copied()) {
             let (mode, ty) = (contract.mode, contract.ty);
@@ -13839,7 +13839,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 }
             }
         }
-        context.capture_loans.truncate(first_capture_loan);
+        selected_capture_boundary.unwind(&mut context.capture_loans);
         Ok(())
     }
 
@@ -14216,7 +14216,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                         span,
                     ));
                 }
-                let first_capture = context.capture_loans.len();
+                let capture_boundary = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
                 let mut active = loans.clone();
                 for (index, argument) in args.iter_mut().enumerate() {
                     let expected = (name == "table"
@@ -14281,7 +14281,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                         }
                     }
                 }
-                context.capture_loans.truncate(first_capture);
+                capture_boundary.unwind(&mut context.capture_loans);
                 expr.target = Some(CallTarget::Log);
                 Type::Void
             }
@@ -14960,7 +14960,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                     }
                     let unresolved = *op == UnaryOp::Typeof
                         && matches!(&value.kind, ExprKind::Name(name) if !context.names.contains_key(name) && !context.pending_names.contains(name) && !self.function_names.contains_key(name) && crate::syntax::global_number_member(name, false).is_none() && crate::syntax::global_number_member(name, true).is_none());
-                    let first_capture = context.capture_loans.len();
+                    let capture_boundary = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
                     if unresolved {
                         value.ty = Some(Type::Undefined);
                     } else {
@@ -14970,7 +14970,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                         self.observing_values = observing;
                         result?;
                     }
-                    context.capture_loans.truncate(first_capture);
+                    capture_boundary.unwind(&mut context.capture_loans);
                     let result = if *op == UnaryOp::Typeof {
                         Type::String
                     } else {
