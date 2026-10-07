@@ -108,9 +108,9 @@ formatted compiler witnesses cover empty regions, element guards, restoration
 and throwing callbacks.
 
 Aggregate writes make a contextual body opaque because shared storage identity
-and live mutation during iteration are not represented. Body/default eligibility
-is currently rechecked at invocation; cache immutable eligibility metadata before
-claiming efficiency. Other built-in or unknown calls make summaries opaque too.
+and live mutation during iteration are not represented. Body/default aggregate-write eligibility is now cached once in the body index.
+The invocation path reads the cached flag without cloning or scanning source
+for that check; the summary runner still constructs its contextual flow graph. Other built-in or unknown calls make summaries opaque too.
 The old fallback still needs stronger invoked-write handling in these regions;
 this checkpoint is not full callable-effects acceptance. Return snapshots, other
 collection methods, spread, precise mutation and retained native carrier failures
@@ -125,3 +125,20 @@ Final affected checks pass: 74 compiler tests (including all eight depth canarie
 unfiltered) and 197 editor intelligence/stdio tests after index refinement. Whole
 project formatting changes zero files or fingerprints. Closed logs are imported,
 read back and removed; obsolete completed test binaries are pruned.
+
+## Cached aggregate eligibility
+
+A separate generic_call_aggregate_eligibility module scans immutable bodies and
+parameter defaults once during indexing. It uses an explicit statement worklist
+and existing expression traversal. Invocation checks the cached declaration flag
+and no longer builds an extra eligibility graph or clones source per context.
+The regression covers statement writes, assignment expressions, default writes,
+nested updates and scalar assignments that remain eligible. Thirty-two focused
+tests pass. This is structural efficiency work, not a measured speed improvement.
+Opaque-region diagnostics, precise shared storage and native carriers remain open.
+
+Cached-eligibility verification completes with 74 compiler tests, including all
+eight unfiltered depth canaries, and 197 editor intelligence/stdio tests. The
+native-carrier red remains explicitly skipped. Formatting changes zero files and
+fingerprints. Exact red and passing logs are imported and read back in SQLite;
+closed loose copies and obsolete completed compiler test executables are removed.

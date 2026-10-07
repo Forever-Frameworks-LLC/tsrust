@@ -297,3 +297,11 @@ mutation is not represented. Those bodies refuse contextual proof. Full acceptan
 still requires return snapshots, collection coverage, spread, mutation, carrier
 repairs, matched workload support and final editor/native verification. The whole
 editor crate passes 329 tests; no timing or consumer refresh is claimed.
+
+## Cached aggregate-write eligibility
+
+Immutable aggregate-write eligibility now has a dedicated module and is computed
+once while indexing each body and its parameter defaults. Contextual invocation
+reads a cached flag; it no longer clones and scans source or builds a separate
+eligibility graph per request. Focused witnesses retain statement, expression,
+default and nested-update coverage. No timing improvement is claimed.

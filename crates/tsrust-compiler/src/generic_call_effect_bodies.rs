@@ -1,6 +1,8 @@
 //! Callable bodies are indexed without executing declared capture writes.
 use super::*;
 use crate::local_capture_plan::BindingId;
+#[path = "generic_call_aggregate_eligibility.rs"]
+mod aggregate_eligibility;
 
 struct Scope {
     name: String,
@@ -20,6 +22,7 @@ pub(super) struct Index {
     uses: HashMap<usize, BindingId>,
     declarations: HashMap<usize, BindingId>,
     scopes: Vec<Scope>,
+    aggregate_writes: HashSet<(usize,usize)>,
 }
 impl Index {
     pub(super) fn new(program: &Program) -> Result<Self, Diagnostic> {
@@ -97,8 +100,12 @@ impl Index {
                 Ok(())
             })?;
         }
+        for (&key, body) in &index.bodies {
+            if aggregate_eligibility::writes(body, index.parameters.get(&key).map(Vec::as_slice).unwrap_or(&[]))? { index.aggregate_writes.insert(key); }
+        }
         Ok(index)
     }
+    pub(super) fn aggregate_writes(&self, declaration: Span) -> bool { self.aggregate_writes.contains(&(declaration.start,declaration.end)) }
     fn add(&mut self, name: &Token, range: Span, owner: usize) {
         let binding = *self
             .declarations
@@ -352,5 +359,26 @@ mod tests {
             .find(|function| function.name.text.ends_with("#pick"))
             .unwrap();
         assert!(index.body(original.name.span).is_some());
+    }
+}
+
+#[cfg(test)]
+mod eligibility_tests {
+    use super::*;
+    #[test]
+    fn aggregate_write_metadata_covers_statements_expressions_and_defaults() {
+        for (source, writes) in [
+            ("function action(items:int[]){items[0]=1;}function main(){}",true),
+            ("function action(items:int[]){const saved=(items[0]=1);}function main(){}",true),
+            ("function action(items:int[],saved:int=(items[0]=1)){}function main(){}",true),
+            ("function action(items:int[]){if(true){items[0]++;}}function main(){}",true),
+            ("function action(value:int){value=1;}function main(){}",false),
+        ] {
+            let source=crate::format(source).unwrap();
+            assert_eq!(crate::format(&source).unwrap(),source);
+            let program=crate::syntax::parse(&source).unwrap();let index=Index::new(&program).unwrap();
+            let declaration=program.functions.iter().find(|function|function.name.text=="action").unwrap().name.span;
+            assert_eq!(index.aggregate_writes(declaration),writes,"{source}");
+        }
     }
 }
