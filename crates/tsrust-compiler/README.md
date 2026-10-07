@@ -255,3 +255,13 @@ returning `T[]` can receive `Function<int | int[], [value: int]>`. Arguments inf
 `T` before checking whether the requested result admits that concrete type. This
 does not permit incompatible parameter types or convert single-use results into
 reusable callbacks.
+
+A generic payload can itself be a callable. For example, captured
+`identity<T>(value: T): T` can receive
+`Function<Function<int, [value: int]>, [value: Function<int, [value: int]>]>`.
+It returns the supplied callable with its original environment and argument
+contract. Different concrete payload signatures can use the same factory state.
+Readonly and mutable payloads borrow the caller's environment; a `Once` payload
+retains its single-use restriction. Passing a borrowed string argument where a
+consuming argument is required remains a type error. Adapters do not clone captures
+or evaluate defaults a second time.

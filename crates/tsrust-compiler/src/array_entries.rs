@@ -17,7 +17,7 @@ impl Analyzer {
             return Err(Diagnostic::new("unsupported","entries() is available on data arrays.",base.span));
         };
         self.require_cloneable(Type::Array(element),base.span)?;
-        let types=crate::generic_inference::Types {callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
+        let types=crate::generic_inference::Types { callable_annotations: None,callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
         let mut annotation=crate::type_syntax::ValueAnnotation {
             kind:crate::type_syntax::ValueAnnotationKind::Tuple(vec![types.annotation(Type::Int,span)?,types.annotation(element.ty(),span)?]),span,
         };

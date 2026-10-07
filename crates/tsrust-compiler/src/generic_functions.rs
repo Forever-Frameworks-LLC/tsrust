@@ -13,6 +13,7 @@ enum Key {
     Applied(String, Vec<Key>),
     Union(Vec<Key>),
     Tuple(Vec<Key>),
+    Callable(CallbackKind, Vec<(bool, crate::Mode, bool, Key)>, Box<Key>),
 }
 fn key(value: &ValueAnnotation) -> Result<Key, Diagnostic> {
     Ok(match &value.kind {
@@ -31,9 +32,17 @@ fn key(value: &ValueAnnotation) -> Result<Key, Diagnostic> {
             if keys.len()==1 {return Ok(keys.remove(0));}
             Key::Union(keys)
         }
-        Kind::Callable { .. } => return Err(Diagnostic::new("unsupported","Callable generic type arguments require callable value storage, which is not yet supported.",value.span)),
+        Kind::Callable { parameters, result, .. } => Key::Callable(crate::callable_annotations::ownership(value).expect("callable ownership"),
+            parameters.iter().map(|parameter| Ok((parameter.rest,
+                parameter.access.as_ref().map_or(crate::Mode::Copy, |access| access.mode),
+                parameter.omission.is_omittable(), key(&parameter.annotation)?))).collect::<Result<_, Diagnostic>>()?,
+            Box::new(key(result)?)),
     })
 }
+pub(crate) fn same_annotation_contract(left: &ValueAnnotation, right: &ValueAnnotation) -> bool {
+    matches!((key(left), key(right)), (Ok(left), Ok(right)) if left == right)
+}
+
 struct Pending {
     function: Function,
     bindings: HashMap<String, ValueAnnotation>,
@@ -183,6 +192,20 @@ impl Cache {
                 continue;
             };
             let application = function.application.as_ref().expect("published generic instance");
+            // Callable applications already retain their full source-key instance.
+            // Data-only bootstrap cannot invent checked callable Type identities;
+            // checked requests publish those identities when contracts resolve.
+            let mut pending = application.arguments.iter().collect::<Vec<_>>();
+            let mut callable = false;
+            while let Some(annotation) = pending.pop() {
+                match &annotation.kind {
+                    Kind::Callable { .. } => { callable = true; break; }
+                    Kind::Array(inner) | Kind::Group(inner) => pending.push(inner),
+                    Kind::Applied { arguments, .. } | Kind::Union(arguments) | Kind::Tuple(arguments) => pending.extend(arguments),
+                    Kind::Named(_) => {},
+                }
+            }
+            if callable { continue; }
             let arguments = application.arguments.iter().map(|argument| {
                 crate::analysis::resolve_value_type(argument, false, names, unions)
             }).collect::<Result<Vec<_>, _>>()?;
@@ -273,6 +296,16 @@ impl Cache {
         let mut substitute =
             |value: &mut ValueAnnotation| crate::type_substitution::apply(value, &bindings);
         crate::source_walk::function_annotations(&mut function, &mut substitute)?;
+        // A generic data slot can specialize to a callable. Rebuild the source
+        // callable view after substitution before signature/escape analysis.
+        for (_, annotation, callback) in &mut function.params {
+            if callback.is_none() { *callback = crate::callable_annotations::callback(annotation); }
+        }
+        if let Some(ResultAnnotation::Named(annotation)) = &function.result {
+            if crate::callable_annotations::callback(annotation).is_some() {
+                function.result = Some(crate::callable_annotations::result_annotation(annotation));
+            }
+        }
         let end = function.scope_span.end;
         let mut shadows = function
             .params
@@ -560,4 +593,26 @@ mod tests {
         assert!(arguments[0].ty.is_none(), "materialization does not check argument expressions");
     }
 
+}
+
+#[cfg(test)]
+#[test]
+fn callable_payload_keys_normalize_equivalent_ownership_and_omission() {
+    use crate::type_syntax::CallableOwnership;
+    let program = crate::syntax::parse("function inspect(action:Function<int,[value?:int]>):void{}function main(){}").unwrap();
+    let original = program.functions[0].params[0].1.clone();
+    let mut equivalent = original.clone();
+    let Kind::Callable { ownership, parameters, .. } = &mut equivalent.kind else { panic!("callable") };
+    *ownership = CallableOwnership::Owned;
+    parameters[0].name.text = "renamed".into();
+    parameters[0].span = Span::default();
+    parameters[0].omission = crate::ParameterOmission::Defaulted;
+    assert_eq!(key(&original).unwrap(), key(&equivalent).unwrap());
+    let Kind::Callable { ownership, .. } = &mut equivalent.kind else { panic!("callable") };
+    *ownership = CallableOwnership::OwnedOnce;
+    assert_ne!(key(&original).unwrap(), key(&equivalent).unwrap());
+    let Kind::Callable { ownership, parameters, .. } = &mut equivalent.kind else { panic!("callable") };
+    *ownership = CallableOwnership::Owned;
+    parameters[0].omission = crate::ParameterOmission::Required;
+    assert_ne!(key(&original).unwrap(), key(&equivalent).unwrap());
 }

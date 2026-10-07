@@ -16,7 +16,9 @@ impl Analyzer {
         let Some(origin) = self.fresh_generic_origin(context, source)? else { return Ok(None); };
         let declaration = self.deferred_generic_values[&origin].declaration.clone();
         let template = self.generic_functions.template(&declaration).expect("fresh traversal template").clone();
-        let types = crate::generic_inference::Types { callable_shapes: None, inline_shapes: None, records: &self.program.records, names: &self.record_names, unions: &self.unions };
+        let shapes = self.checked_inference_callable_shapes(supplied.iter().copied());
+        let annotations = self.checked_inference_callable_annotations(supplied.iter().copied())?;
+        let types = crate::generic_inference::Types { callable_annotations: Some(&annotations), callable_shapes: Some(&shapes), inline_shapes: None, records: &self.program.records, names: &self.record_names, unions: &self.unions };
         let hints = supplied.iter().take(template.params.len()).copied().map(Some).collect::<Vec<_>>();
         let contract = self.generic_functions.value_signature(&declaration, &hints, None, &types, expression.span)?;
         let mut result = if let Some(result) = contract.result { result } else {

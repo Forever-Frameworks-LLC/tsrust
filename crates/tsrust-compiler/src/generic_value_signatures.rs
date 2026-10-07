@@ -60,7 +60,7 @@ mod value_contract_tests {
         let cache = specialize(&mut program).unwrap();
         let names = HashMap::new();
         let unions = crate::unions::UnionArena::default();
-        let types = crate::generic_inference::Types { callable_shapes:None, inline_shapes:None, records:&[], names:&names, unions:&unions };
+        let types = crate::generic_inference::Types { callable_annotations: None, callable_shapes:None, inline_shapes:None, records:&[], names:&names, unions:&unions };
         let array = Type::Array(crate::syntax::ArrayElement::Int(0));
         let optional_offset = unions.intern([Type::Int, Type::Undefined], Span::new(0,0)).unwrap();
         let contract = cache.value_signature("first", &[Some(Type::Int),Some(optional_offset),Some(array)], Some(Type::Int), &types, Span::new(0,0)).unwrap();
@@ -82,7 +82,7 @@ mod value_contract_tests {
         let cache = specialize(&mut program).unwrap();
         let names = HashMap::new();
         let unions = crate::unions::UnionArena::default();
-        let types = crate::generic_inference::Types { callable_shapes:None, inline_shapes:None, records:&[], names:&names, unions:&unions };
+        let types = crate::generic_inference::Types { callable_annotations: None, callable_shapes:None, inline_shapes:None, records:&[], names:&names, unions:&unions };
         let contract = cache.value_signature("empty", &[], Some(Type::Array(crate::syntax::ArrayElement::Int(0))), &types, Span::new(0,0)).unwrap();
         assert_eq!(contract.type_arguments, vec![Type::Int]);
         assert!(cache.value_signature("pair", &[Some(Type::Int),Some(Type::String)], None, &types, Span::new(0,0)).is_err());

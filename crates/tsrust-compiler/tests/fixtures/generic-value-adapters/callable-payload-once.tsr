@@ -1,0 +1,15 @@
+import { strictEqual } from 'std:testing';
+type Item = { id: int; };
+function make() {
+    let calls = 0;
+    function identity<T>(value: T): T { calls += 1; console.log(calls); return value; }
+    return identity;
+}
+function main() {
+    const fixed: Function<Once<Function<Item, []>>, [value: Once<Function<Item, []>>]> = make();
+    const item: Item = { id: 7 };
+    const original: Once<Function<Item, []>> = (): Item => item;
+    const action = fixed(original);
+    const result = action();
+    strictEqual(result.id, 7);
+}

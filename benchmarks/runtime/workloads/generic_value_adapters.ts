@@ -1,3 +1,12 @@
+function payloadFactory(start: number) {
+    let calls = start;
+    function identity<T>(value: T): T {
+        calls += 1;
+        if (typeof value === "boolean") { if (calls !== start + 3) { throw 99; } }
+        return value;
+    }
+    return identity;
+}
 function missingFactory(): ((value: number) => Receipt<number>) | undefined { return undefined; }
 function scalarFactory() {
     let calls = 0;
@@ -208,6 +217,20 @@ function workload(n: number, seed: number, input: string): number[][] {
         const arrayResult = arrayView(base + 38);
         if (typeof scalarResult !== "number") { throw 99; }
         if (typeof arrayResult === "number") { throw 99; }
+        const payload = payloadFactory(base + 200);
+        let payloadInt = 0;
+        let payloadString = 0;
+        {
+            const view: (value: (value: number) => number) => (value: number) => number = payload;
+            const action = view((value: number): number => value + 1);
+            payloadInt = action(base + 39);
+        }
+        {
+            const view: (value: (value: string) => string) => (value: string) => string = payload;
+            const action = view((value: string): string => value + "!");
+            payloadString = action(String(base)).length;
+        }
+        const payloadAfter = payload(true);
         output.push([firstValue, firstCalls, generic.value.length, generic.calls, last.value.length, last.calls,
             mapped[0].value, mapped[1].value, mapped[0].calls, mapped[1].calls, after.value ? 1 : 0, after.calls,
             record.value, record.calls, stored.value.length, stored.calls, input.length,
@@ -230,7 +253,8 @@ function workload(n: number, seed: number, input: string): number[][] {
             inferredFirst, inferredSecond, inferredMapped[0], inferredMapped[1],
             freshRecord.value, freshRecord.calls, freshStored.value.length, freshStored.calls,
             callbackFirst.value, callbackFirst.calls, callbackSecond.value, callbackSecond.calls,
-            nullableRecord.value, nullableRecord.calls, absentValue === undefined ? 1 : 0, scalarResult, arrayResult[0]]);
+            nullableRecord.value, nullableRecord.calls, absentValue === undefined ? 1 : 0, scalarResult, arrayResult[0],
+            payloadInt, payloadString, payloadAfter ? 1 : 0]);
     }
     return output;
 }

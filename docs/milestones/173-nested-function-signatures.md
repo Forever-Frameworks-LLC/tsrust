@@ -520,3 +520,34 @@ Original failures and final checks are stored with byte-exact readback. Five
 consumers were refreshed atomically and hash verified. No timing was run. This
 accepts the nullable/heterogeneous context chunk; full Gate173 and its remaining
 ownership/context audit stay open.
+
+## Generic callable payloads
+
+Focused callable payload support is accepted separately from the remaining Gate173
+context audit. Generic T can retain a complete callable contract across argument
+inference, source specialization and returned values. Keys preserve invocation
+ownership, argument access, omission and rest metadata. Equivalent bare/owned and
+optional/defaulted contracts normalize without including parameter spelling or
+source spans. Distinct invocation and required-position contracts remain distinct.
+Checked borrowed closures retain their borrowed invocation kind.
+
+Native witnesses retain one factory environment across int and string payload
+signatures. Readonly and mutable borrowed payloads leave the owner's callable
+available. Once payloads remain single-use. Argument access mismatches and repeated
+once calls remain errors. Success and factory failure dispose exactly four original
+captured records, with identity mask 30, at O0 and O3. No implicit cloning is added.
+Editor hover, signature help and original factory navigation retain concrete
+returned callable contracts.
+
+Verification passes 45 adapter tests, 72 bounded generic/default/value controls in
+total, all 63 depth canaries and all 308 editor tests. Matched support adds three
+observations, for 96 per scenario, with guards for int/string payload results and
+retained factory state across a third specialization. All five native/Node-after-tsc
+cases pass untimed. Exact record
+`benchmarks/runtime/results/2026-10-07T01-48-46-795Z-verify.json` is stored in SQLite.
+Registration and metadata controls pass. Mutable, readonly and once reference
+fixtures retain strict TypeScript counterparts; callable invocation references use
+a TypeScript generic constraint where required by that checker.
+
+No timing or complete compiler regression is claimed. The wider generic context
+and alias/editor audit remains open, and full Gate173 acceptance is still pending.

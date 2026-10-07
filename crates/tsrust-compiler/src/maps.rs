@@ -85,7 +85,7 @@ impl Analyzer {
         if name!="values" {self.require_cloneable(map.key,base.span)?;}
         if name!="keys" {self.require_cloneable(map.value,base.span)?;}
         let (result,method)=if name=="entries" {
-            let types=crate::generic_inference::Types{callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
+            let types=crate::generic_inference::Types{ callable_annotations: None,callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
             let mut annotation=crate::type_syntax::ValueAnnotation{span:expression.span,kind:crate::type_syntax::ValueAnnotationKind::Tuple(vec![types.annotation(map.key,expression.span)?,types.annotation(map.value,expression.span)?])};
             self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions)?;
             append_checked_record_fields(&mut self.program.records,&self.record_names,&self.unions,&mut self.fields,&mut self.callables)?;
@@ -140,7 +140,7 @@ impl Analyzer {
             let mut source_context = None;
             if matches!(source.kind, ExprKind::Array(_)) {
                 if let Some((key, value)) = target_types {
-                    let types = crate::generic_inference::Types { callable_shapes: None, inline_shapes: None, records: &self.program.records, names: &self.record_names, unions: &self.unions };
+                    let types = crate::generic_inference::Types { callable_annotations: None, callable_shapes: None, inline_shapes: None, records: &self.program.records, names: &self.record_names, unions: &self.unions };
                     let mut pair = crate::type_syntax::ValueAnnotation { span: source.span, kind: crate::type_syntax::ValueAnnotationKind::Tuple(vec![types.annotation(key, source.span)?, types.annotation(value, source.span)?]) };
                     self.generic_records.materialize(&mut pair, &mut self.program.records, &mut self.record_names, &self.unions)?;
                     append_checked_record_fields(&mut self.program.records, &self.record_names, &self.unions, &mut self.fields, &mut self.callables)?;
@@ -165,7 +165,7 @@ impl Analyzer {
         } else { target_types };
         let Some((key, value)) = source_types else { return Err(Diagnostic::new("map-type", "An empty Map needs key/value types or a Map annotation.", expression.span)); };
         if let Some(Type::Map(id)) = target { return Ok(Type::Map(id)); }
-        let types = crate::generic_inference::Types { callable_shapes: None, inline_shapes: None, records: &self.program.records, names: &self.record_names, unions: &self.unions };
+        let types = crate::generic_inference::Types { callable_annotations: None, callable_shapes: None, inline_shapes: None, records: &self.program.records, names: &self.record_names, unions: &self.unions };
         let mut annotation = crate::type_syntax::ValueAnnotation { span: expression.span, kind: crate::type_syntax::ValueAnnotationKind::Applied {
             name: crate::type_syntax::TypeName { text: "Map".into(), span: expression.span }, arguments: vec![types.annotation(key, expression.span)?, types.annotation(value, expression.span)?],
         } };
@@ -182,7 +182,7 @@ impl Analyzer {
     pub(super) fn map_iteration_entry(&mut self,id:usize,span:Span)->Result<usize,Diagnostic>{
         let map=self.program.records[id].map_definition.as_ref().unwrap().clone();
         if let Some(pair)=map.entry{return Ok(pair);}
-        let types=crate::generic_inference::Types{callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
+        let types=crate::generic_inference::Types{ callable_annotations: None,callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
         let mut annotation=crate::type_syntax::ValueAnnotation{span,kind:crate::type_syntax::ValueAnnotationKind::Tuple(vec![types.annotation(map.key,span)?,types.annotation(map.value,span)?])};
         self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions)?;
         append_checked_record_fields(&mut self.program.records,&self.record_names,&self.unions,&mut self.fields,&mut self.callables)?;
@@ -215,7 +215,7 @@ impl Analyzer {
         let element=self.iterable_element(source.ty.unwrap()).ok_or_else(||Diagnostic::new("type","Map.groupBy requires an array, string, Set or Map source.",source.span))?.ty();
         self.require_cloneable(element,source.span)?;
         let groups=self.constructor_array_type(element,span)?;
-        let types=crate::generic_inference::Types{callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
+        let types=crate::generic_inference::Types{ callable_annotations: None,callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
         let mut annotation=crate::type_syntax::ValueAnnotation{span,kind:crate::type_syntax::ValueAnnotationKind::Applied{name:crate::type_syntax::TypeName{text:"Map".into(),span},arguments:vec![types.annotation(key.ty(),span)?,types.annotation(groups,span)?]}};
         self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions)?;
         append_checked_record_fields(&mut self.program.records,&self.record_names,&self.unions,&mut self.fields,&mut self.callables)?;

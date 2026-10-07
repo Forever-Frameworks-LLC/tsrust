@@ -119,7 +119,7 @@ impl Analyzer {
         let b=self.program.records[right].set_definition.as_ref().unwrap().key;
         let key=if matches!(method,SetMethod::Union|SetMethod::SymmetricDifference){self.unions.intern([a,b],expression.span)?}else{a};
         self.require_cloneable(key,expression.span)?;
-        let key_annotation=crate::generic_inference::Types{callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions}.annotation(key,expression.span)?;
+        let key_annotation=crate::generic_inference::Types{ callable_annotations: None,callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions}.annotation(key,expression.span)?;
         let mut annotation=crate::type_syntax::ValueAnnotation{span:expression.span,kind:crate::type_syntax::ValueAnnotationKind::Applied{name:crate::type_syntax::TypeName{text:"Set".into(),span:expression.span},arguments:vec![key_annotation]}};
         self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions)?;
         while self.fields.len()<self.program.records.len(){self.fields.push(HashMap::new());}
@@ -148,7 +148,7 @@ impl Analyzer {
     fn set_entries_type(&mut self,id:usize,span:Span)->Result<(Type,usize),Diagnostic>{
         let key=self.program.records[id].set_definition.as_ref().unwrap().key;
         self.require_cloneable(key,span)?;
-        let types=crate::generic_inference::Types{callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
+        let types=crate::generic_inference::Types{ callable_annotations: None,callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
         let mut annotation=crate::type_syntax::ValueAnnotation{span,kind:crate::type_syntax::ValueAnnotationKind::Tuple(vec![types.annotation(key,span)?,types.annotation(key,span)?])};
         self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions)?;
         append_checked_record_fields(&mut self.program.records,&self.record_names,&self.unions,&mut self.fields,&mut self.callables)?;
@@ -185,7 +185,7 @@ impl Analyzer {
             return Err(Diagnostic::new("set-type", "An empty Set needs an explicit key type or Set annotation.", expression.span));
         };
         if let Some(Type::Set(id)) = target { return Ok(Type::Set(id)); }
-        let key_annotation = crate::generic_inference::Types { callable_shapes: None, inline_shapes: None,
+        let key_annotation = crate::generic_inference::Types { callable_annotations: None, callable_shapes: None, inline_shapes: None,
             records: &self.program.records, names: &self.record_names, unions: &self.unions }.annotation(key, expression.span)?;
         let mut annotation = crate::type_syntax::ValueAnnotation { span: expression.span,
             kind: crate::type_syntax::ValueAnnotationKind::Applied {

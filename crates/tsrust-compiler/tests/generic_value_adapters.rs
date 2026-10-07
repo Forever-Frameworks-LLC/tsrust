@@ -287,3 +287,60 @@ fn generic_nullable_constraints_accept_existing_payload_members() {
 fn generic_factory_values_preserve_callable_type_payloads() {
     native(include_str!("fixtures/generic-value-adapters/callable-payload.tsr"), "1\n2\n");
 }
+
+#[test]
+fn generic_callable_payload_signatures_keep_one_environment_and_distinct_methods() {
+    native(include_str!("fixtures/generic-value-adapters/callable-payload-signatures.tsr"), "1\n2\n");
+}
+
+#[test]
+fn generic_callable_payload_signatures_reject_different_argument_access() {
+    let source = include_str!("fixtures/generic-value-adapters/callable-payload-signatures.tsr")
+        .replace("import { strictEqual } from 'std:testing';", "function strictEqual<T>(actual:T,expected:T):void{}")
+        .replace("(value: Owned<string>): string =>", "(value: string): string =>");
+    let error = tsrust_compiler::check(&source).err().expect("borrowed argument callback cannot become consuming");
+    assert_eq!(error.code, "type", "{}: {}", error.code, error.message);
+}
+
+#[test]
+fn generic_callable_payloads_drop_original_captures_once_on_success_and_failure() {
+    let source = "type Item={id:int;};function make(marker:Item){function identity<T>(value:T):T{if(marker.id===2){throw 2;}return value;}return identity;}function main(){{const fixed:Function<Function<int,[]>,[value:Function<int,[]>]>=make({id:1});const item:Item={id:3};const action:Function<int,[]>=():int=>item.id;const result=fixed(action);if(result()!==3){throw 99;}}{const fixed:Function<Function<int,[]>,[value:Function<int,[]>]>=make({id:2});const item:Item={id:4};const action:Function<int,[]>=():int=>item.id;let caught=false;try{const result=fixed(action);result();}catch(error){caught=error===2;}if(!caught){throw 99;}}}";
+    let rust = tsrust_compiler::check(source).unwrap().emit_rust().replace("fn main()", "fn source_main()") + r#"
+static DROPS:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+static SEEN:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+impl Drop for Record0 {fn drop(&mut self){DROPS.fetch_add(1,std::sync::atomic::Ordering::SeqCst);SEEN.fetch_or(1<<self.field0,std::sync::atomic::Ordering::SeqCst);}}
+fn main(){source_main();assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCst),4);assert_eq!(SEEN.load(std::sync::atomic::Ordering::SeqCst),30);}
+"#;
+    let directory = support::TempDirectory::new();
+    let path = directory.0.join("callable-payload-disposal.rs");
+    std::fs::write(&path, rust).unwrap();
+    for level in ["0", "3"] {
+        let binary = directory.0.join(format!("callable-payload-disposal-{level}"));
+        support::success(&support::run(support::rustc().args(["--edition=2024", "-C", &format!("opt-level={level}")]).arg(&path).arg("-o").arg(&binary), 60));
+        support::success(&support::run(&mut std::process::Command::new(binary), 10));
+    }
+}
+
+#[test]
+fn generic_callable_payloads_preserve_once_invocation() {
+    native(include_str!("fixtures/generic-value-adapters/callable-payload-once.tsr"), "1\n");
+}
+
+#[test]
+fn generic_callable_payloads_borrow_readonly_environments() {
+    native(include_str!("fixtures/generic-value-adapters/callable-payload-readonly.tsr"), "1 5\n2 5\n5\n");
+}
+
+#[test]
+fn generic_callable_payloads_borrow_mutable_environments() {
+    native(include_str!("fixtures/generic-value-adapters/callable-payload-mutable.tsr"), "1 1\n2 2\n3\n");
+}
+
+#[test]
+fn generic_callable_payloads_reject_repeated_once_invocation() {
+    let source = include_str!("fixtures/generic-value-adapters/callable-payload-once.tsr")
+        .replace("import { strictEqual } from 'std:testing';", "function strictEqual(actual:int,expected:int):void{}")
+        .replace("const result = action();", "const result = action(); action();");
+    let error = tsrust_compiler::check(&source).err().expect("a transferred once callback cannot be invoked twice");
+    assert_eq!(error.code, "closure-consumed", "{}: {}", error.code, error.message);
+}

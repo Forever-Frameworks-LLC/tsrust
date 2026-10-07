@@ -3,6 +3,12 @@ use super::*;
 use crate::type_syntax::{CallableOwnership, CallableParameter as StructuredParameter, ParameterAccess, TypeName, ValueAnnotation, ValueAnnotationKind as Kind};
 
 impl Analyzer {
+    pub(super) fn checked_inference_callable_annotations(&self, roots: impl IntoIterator<Item = Type>) -> Result<HashMap<Type, ValueAnnotation>, Diagnostic> {
+        self.checked_inference_callable_shapes(roots).keys().copied().map(|ty| {
+            Ok((ty, self.checked_value_annotation(ty, Span::default())?))
+        }).collect()
+    }
+
     pub(super) fn checked_inference_callable_shapes(&self, roots: impl IntoIterator<Item = Type>) -> crate::generic_inference::CallableShapes {
         let mut shapes = crate::generic_inference::CallableShapes::new();
         let mut pending = roots.into_iter().collect::<Vec<_>>();
@@ -47,7 +53,13 @@ impl Analyzer {
                 let bindings = closure.parameters.iter().map(|id| &closure.function.bindings[*id]).collect::<Vec<_>>();
                 Some((bindings.iter().map(|binding| ArgumentContract::from(*binding)).collect(),
                     bindings.iter().map(|binding| binding.name.clone()).collect(), closure.function.result,
-                    if closure.invocation == Mode::Consume { CallbackKind::OwnedOnce } else { CallbackKind::Owned }))
+                    if closure.borrowed {
+                        match closure.invocation {
+                            Mode::Consume => CallbackKind::Once,
+                            Mode::Mutate => CallbackKind::Reusable,
+                            Mode::Read | Mode::Copy => CallbackKind::Read,
+                        }
+                    } else if closure.invocation == Mode::Consume { CallbackKind::OwnedOnce } else { CallbackKind::Owned }))
             }
             _ => None,
         };
@@ -75,7 +87,7 @@ impl Analyzer {
                 Type::Array(element) => Kind::Array(Box::new(self.checked_value_annotation_at(element.ty(), span, depth + 1)?)),
                 Type::Union(id) => Kind::Union(self.unions.members(id).into_iter().map(|ty| self.checked_value_annotation_at(ty, span, depth + 1)).collect::<Result<Vec<_>, _>>()?),
                 _ => {
-                    let types = crate::generic_inference::Types { callable_shapes: None, inline_shapes: None, records: &self.program.records, names: &self.record_names, unions: &self.unions };
+                    let types = crate::generic_inference::Types { callable_annotations: None, callable_shapes: None, inline_shapes: None, records: &self.program.records, names: &self.record_names, unions: &self.unions };
                     return types.annotation(ty, span);
                 }
             }
@@ -87,6 +99,19 @@ impl Analyzer {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn concrete_borrowed_closure_reconstruction_retains_borrowed_invocation() {
+        let source = "function main(){let count=0;const action=(value:int):int=>{count+=value;return count;};console.log(action(2));}";
+        let checked = crate::check(source).unwrap();
+        let mut analyzer = Analyzer::new(crate::syntax::parse("function main(){}").unwrap()).unwrap();
+        analyzer.closures = checked.program.closures;
+        let closure = &analyzer.closures[0];
+        assert!(closure.borrowed);
+        assert_eq!(closure.invocation, Mode::Mutate);
+        let annotation = analyzer.checked_value_annotation(Type::Closure(0), Span::default()).unwrap();
+        assert_eq!(crate::callable_annotations::ownership(&annotation), Some(CallbackKind::Reusable));
+    }
 
     #[test]
     fn checked_callable_reconstruction_preserves_shared_and_parameter_metadata() {

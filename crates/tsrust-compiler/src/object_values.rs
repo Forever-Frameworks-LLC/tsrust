@@ -84,7 +84,7 @@ impl Analyzer {
             self.require(result, expected, span)?;
             return Ok((result, None));
         }
-        let types = crate::generic_inference::Types {
+        let types = crate::generic_inference::Types { callable_annotations: None,
             callable_shapes: None,
             inline_shapes: None,
             records: &self.program.records,

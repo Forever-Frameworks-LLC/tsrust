@@ -9,6 +9,7 @@ pub(crate) type InlineShapes = HashMap<(usize, usize), (Vec<Type>, Type)>;
 
 pub(crate) struct Types<'a> {
     pub callable_shapes: Option<&'a CallableShapes>,
+    pub callable_annotations: Option<&'a HashMap<Type, ValueAnnotation>>,
     pub inline_shapes: Option<&'a InlineShapes>,
     pub records: &'a [Record],
     pub names: &'a HashMap<String, usize>,
@@ -137,7 +138,11 @@ impl Types<'_> {
         match &pattern.kind {
             Kind::Named(name) if variables.contains(&name.text) => {
                 if let Some(prior) = bindings.get(&name.text) {
-                    if *prior != actual && !self.unions.accepts(*prior, actual) {
+                    let same_callable = *prior != actual
+                        && self.callable_annotations.is_some_and(|annotations| annotations.contains_key(prior) && annotations.contains_key(&actual))
+                        && self.annotation(*prior, pattern.span).ok().zip(self.annotation(actual, pattern.span).ok())
+                            .is_some_and(|(left, right)| crate::generic_functions::same_annotation_contract(&left, &right));
+                    if *prior != actual && !self.unions.accepts(*prior, actual) && !same_callable {
                         return Err(mismatch());
                     }
                 } else {
@@ -450,6 +455,11 @@ impl Types<'_> {
         Ok(())
     }
     pub(crate) fn annotation(&self, ty: Type, span: Span) -> Result<ValueAnnotation, Diagnostic> {
+        if let Some(annotation) = self.callable_annotations.and_then(|annotations| annotations.get(&ty)) {
+            let mut annotation = annotation.clone();
+            annotation.span = span;
+            return Ok(annotation);
+        }
         let kind = match ty {
             Type::Int => Kind::Named(crate::type_syntax::TypeName {
                 text: "int".into(),
@@ -514,7 +524,7 @@ mod tests {
             .map(|(id, record)| (record.name.text.clone(), id))
             .collect();
         let unions = crate::unions::UnionArena::default();
-        let types = Types {
+        let types = Types { callable_annotations: None,
             inline_shapes: None,
             callable_shapes: None,
             records: &program.records,
@@ -563,7 +573,7 @@ mod tests {
     fn repeated_variables_require_one_checked_identity_and_unions_keep_their_tag() {
         let names = HashMap::new();
         let unions = crate::unions::UnionArena::default();
-        let types = Types {
+        let types = Types { callable_annotations: None,
             inline_shapes: None,
             callable_shapes: None,
             records: &[],
@@ -610,7 +620,7 @@ mod nullable_tests {
     fn nullable_patterns_infer_payloads_without_erasing_other_absent_variants() {
         let names = HashMap::new();
         let unions = crate::unions::UnionArena::default();
-        let types = Types {
+        let types = Types { callable_annotations: None,
             inline_shapes: None,
             callable_shapes: None,
             records: &[],
@@ -683,7 +693,7 @@ mod nullable_tests {
     fn contextual_constraints_defer_absent_arguments_and_leave_unknown_hints_unknown() {
         let names = HashMap::new();
         let unions = crate::unions::UnionArena::default();
-        let types = Types {
+        let types = Types { callable_annotations: None,
             inline_shapes: None,
             callable_shapes: None,
             records: &[],

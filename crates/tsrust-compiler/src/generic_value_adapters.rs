@@ -36,7 +36,8 @@ impl Analyzer {
         let declaration = self.deferred_generic_values[&origin].declaration.clone();
         let template = self.generic_functions.template(&declaration).expect("generic adapter template").clone();
         let shapes = self.checked_inference_callable_shapes(hints.iter().flatten().copied().chain(result));
-        let types = crate::generic_inference::Types {
+        let annotations = self.checked_inference_callable_annotations(hints.iter().flatten().copied().chain(result))?;
+        let types = crate::generic_inference::Types { callable_annotations: Some(&annotations),
             callable_shapes: Some(&shapes), inline_shapes: None, records: &self.program.records,
             names: &self.record_names, unions: &self.unions,
         };
@@ -47,7 +48,10 @@ impl Analyzer {
         if let Some(solved) = contract.result { *result = solved; }
         for (parameter, solved) in params.iter_mut().zip(contract.parameters) {
             if matches!(parameter.ty, ParameterAnnotation::Inferred(_)) {
-                parameter.ty = ParameterAnnotation::Named(Box::new(solved.annotation));
+                parameter.ty = match crate::callable_annotations::callback(&solved.annotation) {
+                    Some(callback) => ParameterAnnotation::Callback(Box::new(callback)),
+                    None => ParameterAnnotation::Named(Box::new(solved.annotation)),
+                };
             }
         }
         // Solving substitutes type arguments; nominal applications still need

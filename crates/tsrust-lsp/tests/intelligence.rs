@@ -7854,3 +7854,16 @@ fn heterogeneous_generic_factory_editor_results_keep_union() {
     let help = ask(source, "textDocument/signatureHelp", "7);", 0);
     assert!(help["signatures"][0]["label"].as_str().unwrap().contains("int[]"), "{help}");
 }
+
+#[test]
+fn generic_callable_payload_results_keep_concrete_editor_contracts() {
+    let source="function make(){let calls=0;function identity<T>(value:T):T{calls+=1;return value;}return identity;}function main(){const fixed:Function<Function<int,[value:int]>,[value:Function<int,[value:int]>]>=make();const action=fixed((value:int):int=>value+1);action(7);}";
+    tsrust_compiler::check(source).unwrap();
+    let help=ask(source,"textDocument/signatureHelp","7);",0);
+    assert!(help["signatures"][0]["label"].as_str().unwrap().contains("int"),"{help}");
+    let hover=ask(source,"textDocument/hover","action=",0);
+    let text=hover["contents"]["value"].as_str().unwrap();
+    assert!(text.contains("int") && text.contains("Function") && text.contains("value"),"{hover}");
+    let definition=ask(source,"textDocument/definition","make();",0);
+    assert_eq!(definition["range"]["start"],json!(at(source,"make(){",0)),"{definition}");
+}

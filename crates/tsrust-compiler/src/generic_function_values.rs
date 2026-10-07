@@ -46,8 +46,10 @@ impl Analyzer {
             return self.deferred_generic_value(context, expression, loans);
         };
         let hints = parameters.iter().copied().map(Some).collect::<Vec<_>>();
-        let types = crate::generic_inference::Types {
-            callable_shapes: None, inline_shapes: None, records: &self.program.records,
+        let shapes = self.checked_inference_callable_shapes(parameters.iter().copied().chain([result]));
+        let annotations = self.checked_inference_callable_annotations(parameters.iter().copied().chain([result]))?;
+        let types = crate::generic_inference::Types { callable_annotations: Some(&annotations),
+            callable_shapes: Some(&shapes), inline_shapes: None, records: &self.program.records,
             names: &self.record_names, unions: &self.unions,
         };
         let contract = self.generic_functions.value_signature(name, &hints, Some(result), &types, expression.span)?;

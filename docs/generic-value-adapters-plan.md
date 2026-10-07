@@ -306,3 +306,10 @@ Before acceptance, retain the original red witness, add access/ownership/default
 rest and nested-result controls, editor protocol facts and matched benchmark
 support. Run affected checks and all depth canaries after dispatch changes, then
 whole editor. Full Gate173 and the broader context audit remain open.
+
+## Callable payload checkpoint
+
+Focused generic callable payload support now passes complete contract reconstruction,
+borrowed and once ownership, distinct int/string signatures with one environment,
+exact disposal and concrete editor facts. See handoff-2026-10-06-callable-payload-accepted.md
+for evidence and the remaining context audit. Full Gate173 remains open.

@@ -206,7 +206,8 @@ impl Analyzer {
         let mut prepared = vec![false; args.len()];
         loop {
             let callable_shapes = self.generic_callable_shapes(context, args);
-            let types = crate::generic_inference::Types {
+            let annotations = self.checked_inference_callable_annotations(callable_shapes.keys().copied().chain(expected))?;
+            let types = crate::generic_inference::Types { callable_annotations: Some(&annotations),
                 callable_shapes: Some(&callable_shapes),
                 inline_shapes: Some(&inline_shapes),
                 records: &self.program.records,
@@ -257,7 +258,8 @@ impl Analyzer {
             }
         }
         let callable_shapes = self.generic_callable_shapes(context, args);
-        let types = crate::generic_inference::Types {
+            let annotations = self.checked_inference_callable_annotations(callable_shapes.keys().copied().chain(expected))?;
+        let types = crate::generic_inference::Types { callable_annotations: Some(&annotations),
             callable_shapes: Some(&callable_shapes),
             inline_shapes: Some(&inline_shapes),
             records: &self.program.records,
@@ -324,7 +326,7 @@ impl Analyzer {
                 &mut self.record_names,
                 &self.unions,
             )?;
-            resolve_value_type(&argument, false, &self.record_names, &self.unions)?;
+            self.callable_resolver().resolve_value_annotation(&argument, false)?;
         }
         append_checked_record_fields(
             &mut self.program.records,

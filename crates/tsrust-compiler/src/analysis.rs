@@ -1534,7 +1534,7 @@ impl Analyzer {
                             .map(|shape| (payload, shape))
                     })
                     .collect();
-                let types = crate::generic_inference::Types {
+                let types = crate::generic_inference::Types { callable_annotations: None,
                     inline_shapes: None,
                     callable_shapes: Some(&callable_shapes),
                     records: &analyzer.program.records,
@@ -10902,7 +10902,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 // Preserve checked nominal descriptors rather than parsing fresh
                 // tuple or generic applications after materialization has run.
                 let mut annotation = if self.names_materialized_type(ty) {
-                    crate::generic_inference::Types {
+                    crate::generic_inference::Types { callable_annotations: None,
                         callable_shapes: None,
                         inline_shapes: None,
                         records: &self.program.records,
