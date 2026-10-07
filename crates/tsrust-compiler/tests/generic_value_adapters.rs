@@ -603,3 +603,20 @@ fn unused_call_cardinality_keeps_unknown_lengths_and_callback_rest_contracts() {
     let error=tsrust_compiler::check(source).err().expect("nested empty literal spreads have exact zero cardinality");
     assert_eq!(error.code,"arity","{}",error.render("input.tsr",source));
 }
+
+#[test]
+fn unused_mutable_and_selected_aliases_validate_known_call_contracts() {
+    let mut accepted=Vec::new();
+    for source in [
+        "function identity<T>(value:T):T{return value;}function unused<T>(value:T):T{let alias=identity;return alias(value,value);}function main(){}",
+        "function identity<T>(value:T):T{return value;}function unused<T>(flag:boolean,value:T):T{const alias=flag?identity:identity;return alias(value,value);}function main(){}",
+        "function identity<T>(value:T):T{return value;}function other<T>(value:T):T{return value;}function unused<T>(flag:boolean,value:T):T{let alias=identity;if(flag){alias=other;}return alias(value,value);}function main(){}",
+        "function exact(value:int):int{return value;}function other(value:int):int{return value;}function unused<T>(flag:boolean):int{let alias=exact;if(flag){alias=other;}return alias<T>(1);}function main(){}",
+    ] {
+        match tsrust_compiler::check(source) {
+            Ok(_)=>accepted.push(source),
+            Err(error)=>assert!(matches!(error.code,"arity"|"type"),"{}",error.render("input.tsr",source)),
+        }
+    }
+    assert!(accepted.is_empty(),"Invalid mutable/selected calls accepted: {accepted:#?}");
+}
