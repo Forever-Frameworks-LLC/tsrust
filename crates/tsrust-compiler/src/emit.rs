@@ -10,6 +10,10 @@ mod scoped_record_parameter_views;
 mod record_join_emit;
 #[path = "scoped_record_copy_emit.rs"]
 mod scoped_record_copy_emit;
+#[path = "scoped_record_owned_places.rs"]
+mod scoped_record_owned_places;
+#[path = "scoped_record_capture_views.rs"]
+mod scoped_record_capture_views;
 #[path = "scoped_record_console_emit.rs"]
 mod scoped_record_console_emit;
 #[path = "scoped_record_support_emit.rs"]
@@ -641,14 +645,14 @@ impl Emitter<'_> {
         );
         for (capture, &slot) in closure.captures.iter().zip(&checked.captures) {
             let binding = &checked.function.bindings[slot];
-            let reference = match (capture.storage, checked.invocation) {
+            let reference = if self.record_capture_is_view(capture,closure){if checked.invocation==Mode::Mutate{"&mut "}else{"&"}}else{match (capture.storage, checked.invocation) {
                 (Mode::Copy, Mode::Mutate) if binding.capture_reference => "&mut ",
                 (Mode::Consume, Mode::Read) => "&",
                 (Mode::Consume, Mode::Mutate) => "&mut ",
                 (Mode::Mutate, Mode::Read) => "&*",
                 (Mode::Mutate, Mode::Mutate) => "&mut *",
                 _ => "",
-            };
+            }};
             let mutable = if binding.mutable && !binding.capture_reference {
                 "mut "
             } else {
@@ -659,6 +663,7 @@ impl Emitter<'_> {
                 "        let {mutable}value{} = {reference}self.capture{};",
                 slot, capture.inner
             );
+            if self.record_capture_is_view(capture,closure){if let Some(entry)=self.record_parameter_entry_view(&checked.function,slot){let _=writeln!(output,"        {entry}");}}
         }
         if let Some(name)=&error_name {
             let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
@@ -829,10 +834,17 @@ impl Emitter<'_> {
         &self,
         closure: &crate::analysis::CheckedClosure,
     ) -> (Vec<String>, Vec<String>) {
-        crate::callable_layout::capture_layout_with_environments(
+        let (lifetimes,mut fields)=crate::callable_layout::capture_layout_with_environments(
             self.program, closure, |ty| self.native_type(ty),
             |ty, lifetimes| Some(self.named_record_environment_type(ty, lifetimes)),
-        )
+        );
+        for (capture,field) in closure.captures.iter().zip(&mut fields){
+            if !self.record_capture_is_view(capture,closure){continue;}
+            let lifetime=field.strip_prefix('&').unwrap().split_whitespace().next().unwrap();
+            let start=lifetime.strip_prefix("'c").unwrap().parse::<usize>().unwrap()+1;
+            *field=self.record_capture_view_type(closure.function.bindings[capture.inner].ty,capture.storage==Mode::Mutate,lifetime,&lifetimes[start..]);
+        }
+        (lifetimes,fields)
     }
 
     fn record_inspectable(&self, record: usize) -> bool {
@@ -1922,12 +1934,12 @@ impl Emitter<'_> {
                 counted: true,
             }) => {
                 let capture = &closure.captures[0];
-                let reference = match (capture.storage, closure.invocation) {
+                let reference = if self.record_capture_is_view(capture,closure){if closure.invocation==Mode::Mutate{"&mut "}else{"&"}}else{match (capture.storage, closure.invocation) {
                     (Mode::Consume, Mode::Read) => "&",
                     (Mode::Consume, Mode::Mutate) => "&mut ",
                     (Mode::Mutate, Mode::Mutate) => "&mut *",
                     _ => "",
-                };
+                }};
                 let _ = writeln!(output, "        let value0 = {reference}self.capture0;");
                 let StmtKind::Return(Some(call)) = &function.body[0].kind else {
                     unreachable!("rest adapter return")
@@ -2249,13 +2261,13 @@ impl Emitter<'_> {
             );
             for capture in &closure.captures {
                 let binding = &closure.function.bindings[capture.inner];
-                let reference = match (capture.storage, closure.invocation) {
+                let reference = if self.record_capture_is_view(capture,closure){if closure.invocation==Mode::Mutate{"&mut "}else{"&"}}else{match (capture.storage, closure.invocation) {
                     (Mode::Copy, Mode::Mutate) if capture.access == Mode::Mutate => "&mut ",
                     (Mode::Consume, Mode::Read) => "&",
                     (Mode::Consume, Mode::Mutate) => "&mut ",
                     (Mode::Mutate, Mode::Mutate) => "&mut *",
                     _ => "",
-                };
+                }};
                 let mutable = if binding.mutable && !binding.capture_reference {
                     "mut "
                 } else {
@@ -2266,6 +2278,7 @@ impl Emitter<'_> {
                     "        let {mutable}value{} = {reference}self.capture{};",
                     capture.inner, capture.inner
                 );
+                if self.record_capture_is_view(capture,closure){if let Some(entry)=self.record_parameter_entry_view(&closure.function,capture.inner){let _=writeln!(output,"        {entry}");}}
             }
             if let Some(ClosureForward::Function(target)) = closure.forward {
                 let arguments = closure
@@ -3367,6 +3380,7 @@ impl Emitter<'_> {
                         |shape| self.fixed_literal(fun, value, shape),
                     );
                     self.expression_depth.set(expression_depth);
+                    if let Some(declaration)=self.owned_record_declaration(fun,index,&initializer){let _=writeln!(output,"{indent}{declaration}");continue;}
                     format!(
                         "let {}value{index}: {} = {};",
                         if b.mutable { "mut " } else { "" },
@@ -3410,6 +3424,10 @@ impl Emitter<'_> {
                 {
                     self.storage_assignment(fun, target, value)
                 }
+                StmtKind::Assign { target, value, .. }
+                    if matches!(target.kind,ExprKind::Name(_)) && target.binding.is_some_and(|id|self.owned_record_layout(fun,id).is_some()) => {
+                        self.owned_record_assignment(fun,target.binding.unwrap(),&self.expr(fun,value,Mode::Consume)).unwrap()
+                    }
                 StmtKind::Assign { target, value, .. } => format!(
                     "{} = {};",
                     if let ExprKind::Name(_) = target.kind {
@@ -3686,7 +3704,7 @@ impl Emitter<'_> {
         let mut leaf_path=Vec::new();let mut entry_leaf=None;
         for (position,step) in steps.iter().enumerate() {
             let StorageStep::Field(field)=step else{break;};leaf_path.push(*field);
-            if let Some(place)=self.record_parameter_leaf_place(fun,id,&leaf_path){entry_leaf=Some((position+1,place));break;}
+            if let Some(place)=self.owned_record_leaf_place(fun,id,&leaf_path).or_else(||self.record_parameter_leaf_place(fun,id,&leaf_path)){entry_leaf=Some((position+1,place));break;}
         }
         let skipped=entry_leaf.as_ref().map_or(0,|(count,_)|*count);
         let mut shared = entry_leaf.map_or_else(||format!("{}value{id}", if referenced { "*" } else { "" }),|(_,place)|place);
@@ -4059,6 +4077,9 @@ impl Emitter<'_> {
     }
 
     fn storage_access(&self, fun: &CheckedFunction, expr: &Expr, mode: Mode) -> String {
+        let(root,steps)=self.storage_steps(expr);
+        let path=steps.iter().map(|step|if let StorageStep::Field(field)=step{Some(*field)}else{None}).collect::<Option<Vec<_>>>();
+        if let (Some(id),Some(path))=(root.binding,path) && let Some(value)=self.owned_record_value(fun,id,&path,mode){return value;}
         if matches!(expr.ty,Some(Type::Record(_))) {
             let(root,steps)=self.storage_steps(expr);
             let path=steps.iter().map(|step|if let StorageStep::Field(field)=step{Some(*field)}else{None}).collect::<Option<Vec<_>>>();
@@ -6270,6 +6291,7 @@ impl Emitter<'_> {
 
     fn binding(&self, fun: &CheckedFunction, index: usize, mode: Mode) -> String {
         let b = &fun.bindings[index];
+        if let Some(value)=self.owned_record_value(fun,index,&[],mode){return value;}
         if let Some(value)=self.record_parameter_borrowed_value(fun,index,&[],mode){return value;}
         if matches!(b.ty, Type::BorrowedUnion(_))
             || (matches!(b.ty,Type::Union(id) if !id.copy)
@@ -7877,7 +7899,7 @@ impl Emitter<'_> {
                             if capture.storage==Mode::Read && matches!(fun.bindings[capture.outer].ty,Type::Union(id)|Type::BorrowedUnion(id) if !id.copy) {
                                 let code=self.binding(fun,capture.outer,Mode::Read);
                                 if matches!(fun.bindings[capture.outer].ty,Type::BorrowedUnion(_)) || (fun.bindings[capture.outer].parameter && fun.bindings[capture.outer].mode==Mode::Read && !fun.bindings[capture.outer].capture_reference) {code} else {let method=if self.callback_payload(fun.bindings[capture.outer].ty).is_some(){"tsr_view"}else{"tsr_data_view"};format!("({code}).{method}()")}
-                            } else {self.binding(fun, capture.outer, capture.storage)}
+                            } else if self.record_capture_is_view(capture,&self.program.closures[id]){self.record_capture_value(fun,capture.outer,capture.storage)} else {self.binding(fun, capture.outer, capture.storage)}
                         )
                     })
                     .collect::<Vec<_>>()

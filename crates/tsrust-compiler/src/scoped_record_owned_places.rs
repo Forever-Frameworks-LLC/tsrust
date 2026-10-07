@@ -1,0 +1,42 @@
+//! Independent owning record leaves for local storage and static projections.
+use super::*;
+impl Emitter<'_> {
+    pub(super) fn owned_record_layout(&self,fun:&CheckedFunction,id:usize)->Option<crate::scoped_record_places::Layout>{
+        let binding=fun.bindings.get(id)?;
+        if binding.parameter || binding.initializer.as_ref().is_some_and(|value|value.is_deferred()){return None;}
+        crate::scoped_record_places::Layout::for_binding(binding,&self.program.records,self.scoped_record_native_parameter(binding.ty))
+    }
+    pub(super) fn owned_record_value(&self,fun:&CheckedFunction,id:usize,path:&[usize],mode:Mode)->Option<String>{
+        let layout=self.owned_record_layout(fun,id)?;
+        let mut ty=Type::Record(layout.record);
+        for &field in path{let Type::Record(record)=ty else{return None;};ty=self.program.records[record].fields.get(field)?.ty?;}
+        Some(self.owned_record_render(id,ty,&mut path.to_vec(),mode,false,false))
+    }
+    pub(super) fn owned_record_declaration(&self,fun:&CheckedFunction,id:usize,initializer:&str)->Option<String>{
+        let layout=self.owned_record_layout(fun,id)?;
+        let pattern=self.owned_record_render(id,Type::Record(layout.record),&mut Vec::new(),Mode::Consume,true,fun.bindings[id].mutable);
+        Some(format!("let record_initial{id}:{}={initializer};let {pattern}=record_initial{id};",self.native_type(fun.bindings[id].ty)))
+    }
+    pub(super) fn owned_record_assignment(&self,fun:&CheckedFunction,id:usize,initializer:&str)->Option<String>{
+        let layout=self.owned_record_layout(fun,id)?;
+        let target=self.owned_record_render(id,Type::Record(layout.record),&mut Vec::new(),Mode::Consume,false,false);
+        // A destructuring assignment evaluates the replacement before committing fields.
+        Some(format!("{target}={initializer};"))
+    }
+    pub(super) fn owned_record_leaf_place(&self,fun:&CheckedFunction,id:usize,path:&[usize])->Option<String>{
+        let layout=self.owned_record_layout(fun,id)?;
+        layout.leaves.iter().find(|leaf|leaf.path==path).map(|leaf|leaf.native_name(id))
+    }
+    fn owned_record_render(&self,id:usize,ty:Type,path:&mut Vec<usize>,mode:Mode,pattern:bool,mutable:bool)->String{
+        let name=crate::scoped_record_places::Leaf{path:path.clone(),ty}.native_name(id);
+        if let Type::Record(record)=ty && !self.program.records[record].fields.is_empty(){
+            let mut fields=self.program.records[record].fields.iter().enumerate().map(|(index,field)|{
+                path.push(index);let mut value=self.owned_record_render(id,field.ty.unwrap(),path,mode,pattern,mutable);if !pattern && matches!(mode,Mode::Read|Mode::Mutate) && matches!(field.ty,Some(Type::Record(child)) if !self.program.records[child].fields.is_empty()){let prefix=if mode==Mode::Mutate{"&mut ("}else{"&("};value=value.strip_prefix(prefix).unwrap().strip_suffix(')').unwrap().to_owned();}path.pop();format!("field{index}:{value}")
+            }).collect::<Vec<_>>().join(",");
+            if self.record_runtime.ordered.contains(&record){let metadata=format!("{name}_key_order");let value=if pattern{format!("{}{metadata}",if mutable{"mut "}else{""})}else{format!("{}{metadata}",match mode{Mode::Read=>"&",Mode::Mutate=>"&mut ",_=>""})};let _=write!(fields,",key_order:{value}");}
+            let symbol=if pattern || !matches!(mode,Mode::Read|Mode::Mutate){format!("Record{}",self.program.scoped_records.declaration(record))}else{format!("Tsr{}View{}",if mode==Mode::Mutate{"Mutate"}else{"Read"},self.program.scoped_records.declaration(record))};
+            let value=format!("{symbol}{{{fields}}}");return if !pattern && matches!(mode,Mode::Read|Mode::Mutate){format!("{}({value})",if mode==Mode::Mutate{"&mut "}else{"&"})}else{value};
+        }
+        format!("{}{name}",if pattern{if mutable{"mut "}else{""}}else{match mode{Mode::Read=>"&",Mode::Mutate=>"&mut ",_=>""}})
+    }
+}

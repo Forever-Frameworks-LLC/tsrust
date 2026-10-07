@@ -3,9 +3,8 @@ use super::*;
 
 impl Emitter<'_> {
     pub(super) fn record_parameter_layout(&self,fun:&CheckedFunction,id:usize)->Option<crate::scoped_record_places::Layout> {
-        if id>=fun.parameter_count{return None;}
         let binding=fun.bindings.get(id)?;
-        if !binding.parameter || !matches!(binding.mode,Mode::Read|Mode::Mutate) {return None;}
+        if !(binding.parameter && id<fun.parameter_count || binding.capture_reference) || !matches!(binding.mode,Mode::Read|Mode::Mutate) {return None;}
         let Type::Record(record)=binding.input_ty.unwrap_or(binding.ty) else{return None;};
         let declaration=self.program.scoped_records.declaration(record);
         if !self.borrowing_records.contains(&declaration) || self.program.records[declaration].fields.is_empty(){return None;}

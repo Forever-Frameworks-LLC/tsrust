@@ -1469,3 +1469,73 @@ next, retaining the original E0502 witness. Then complete captures, opaque
 composition and fallible contracts. Preserve fifteen owner fixtures and existing
 three callable capabilities. Use focused red tests, bounded checks, editor and
 benchmark acceptance, project formatting, SQLite evidence and explicit Git paths.
+
+
+## Independent local storage integration in progress
+
+The next implementation chunk starts from committed HEAD 460e998. The original
+project E0502 witness was reproduced unchanged, then turned green by routing owned
+local record declarations and static selections through independent native leaves.
+The new scoped_record_owned_places module also renders nested views, owning
+reconstruction and property-order metadata. Whole replacement uses destructuring
+assignment so its RHS is evaluated before fields are committed. The existing
+field/whole restoration witness passes after this routing change.
+
+This work is uncommitted and is not accepted. The first project batch passed 16
+of 20 tests, including the original independent capture-release witness and both
+live-capture rejection controls. Two failures require closure record captures to
+carry borrowing views instead of concrete owned-record references. The replacement
+failure is repaired. Optional absent callback inference has a typed initializer
+repair whose focused verification must be inspected before claiming success.
+Owned parameters, deferred declarations, capture entry routing and broader
+composition still need implementation. Do not commit a narrowed eligibility
+workaround to hide these boundaries. Preserve the red and intermediate logs in
+/private/tmp/tsrust-record-independent-*.log until they are imported and verified
+in SQLite. No consumers were refreshed and no protected owner fixtures changed.
+
+Continuation prompt: Continue the uncommitted independent record storage work from
+460e998. Inspect status and current scoped_record_owned_places module. Verify the
+optional-field focused test, then implement borrowing-view capture types and entry
+routing to fix the two retained capture E0308 failures. Complete owned-parameter
+and deferred storage, control-flow and opaque composition support. Keep existing
+public callable capabilities and no implicit clones. Run bounded project controls,
+depth canaries and formatting, store exact evidence in SQLite, and commit only
+explicit implementation paths after the chunk is verified.
+
+
+## Independent local storage and record capture transport
+
+Owned scoped-record locals now destructure once into independent native leaves.
+Static selections move or borrow those leaves directly. Whole owning moves rebuild
+nominal records without cloning. Whole replacement uses destructuring assignment
+and evaluates the replacement before committing fields. A typed initializer keeps
+absent callable union parameters determined before destructuring. Ordered nested
+nodes retain independent metadata storage and borrow it through views.
+
+Readonly and mutable record captures now store borrowing views of these leaves,
+with the existing capture and environment lifetimes. Capture bodies establish a
+single field transport rather than assuming a concrete owned record reference.
+The original independent-field E0502 witness is green. Both live-capture rejection
+controls remain unchanged. All 20 scoped-record project tests and 15 parameter-view
+controls pass. The original four integration failures are preserved as evidence;
+replacement, optional callable inference and two capture view failures are repaired.
+
+This is an implementation checkpoint, not full scoped-record acceptance. Owned
+parameters and deferred declarations still use their existing aggregate storage.
+Their independent representation needs dedicated witnesses and entry/assignment
+integration next. Opaque composition, mutable capture/disposal controls, fallible
+contracts, editor/guide and matched benchmark acceptance remain open. No consumer
+refresh or timing is claimed. Fifteen owner fixtures remain untouched.
+
+Continuation prompt: Continue Tsrust independent record storage. Local storage,
+record borrowing captures and all 20 project controls now pass. Add red witnesses
+for partial capture release from owned parameters and deferred record bindings;
+implement independent parameter entry and deferred declarations/restoration next.
+Then finish mutable capture/disposal, opaque composition and fallible contracts.
+Preserve all owner fixtures and existing three callable capabilities. Use bounded
+checks, depth canaries, project formatting, SQLite and explicit Git paths. Complete
+editor/guide and matched benchmark support before feature acceptance.
+
+All 64 depth canaries pass. Project formatting changes zero files and zero
+fingerprints. Exact red/intermediate/green records are verified in SQLite under
+runtime/diagnostics/scoped-record-independent/.

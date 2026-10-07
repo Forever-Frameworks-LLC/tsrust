@@ -369,3 +369,32 @@ composition, fallible callback contracts, editor/guide and matched benchmark
 acceptance remain open. Executable consumers remain at f1dd284. Fifteen protected
 owner fixtures remain unstaged and untouched. Diagnostic evidence is stored under
 runtime/diagnostics/scoped-record-order/ in benchmarks/records.sqlite.
+
+
+## Independent local storage and record capture transport
+
+Owned scoped-record locals now destructure once into independent native leaves.
+Static selections move or borrow those leaves directly. Whole owning moves rebuild
+nominal records without cloning. Whole replacement uses destructuring assignment
+and evaluates the replacement before committing fields. A typed initializer keeps
+absent callable union parameters determined before destructuring. Ordered nested
+nodes retain independent metadata storage and borrow it through views.
+
+Readonly and mutable record captures now store borrowing views of these leaves,
+with the existing capture and environment lifetimes. Capture bodies establish a
+single field transport rather than assuming a concrete owned record reference.
+The original independent-field E0502 witness is green. Both live-capture rejection
+controls remain unchanged. All 20 scoped-record project tests and 15 parameter-view
+controls pass. The original four integration failures are preserved as evidence;
+replacement, optional callable inference and two capture view failures are repaired.
+
+This is an implementation checkpoint, not full scoped-record acceptance. Owned
+parameters and deferred declarations still use their existing aggregate storage.
+Their independent representation needs dedicated witnesses and entry/assignment
+integration next. Opaque composition, mutable capture/disposal controls, fallible
+contracts, editor/guide and matched benchmark acceptance remain open. No consumer
+refresh or timing is claimed. Fifteen owner fixtures remain untouched.
+
+All 64 depth canaries pass. Project formatting changes zero files and zero
+fingerprints. Exact red/intermediate/green records are verified in SQLite under
+runtime/diagnostics/scoped-record-independent/.
