@@ -18,6 +18,8 @@ mod checked_callable_storage;
 mod conditional_callable_carriers;
 #[path = "borrowed_conditional_carriers.rs"]
 mod borrowed_conditional_carriers;
+#[path = "record_branch_carriers.rs"]
+mod record_branch_carriers;
 #[path = "named_capture_context.rs"]
 mod named_capture_context;
 #[path = "capture_context.rs"]
@@ -4661,6 +4663,7 @@ impl Analyzer {
             };
             joined.restore(&mut context.bindings[id]);
         }
+        self.record_branch_carriers(context,then_body,else_body)?;
         Ok(then_exits && else_exits)
     }
 
@@ -5502,7 +5505,8 @@ impl Analyzer {
                     .related(self.closures[previous].span, "Original environment is defined here.")
                     .related(self.closures[next].span, "Replacement environment is defined here."));
         }
-        self.require(actual, Some(ty), value.span)?;
+        let replacement_contract=if let (Type::Record(a),Type::Record(b))=(actual,ty) && self.scoped_records.declaration(a)==self.scoped_records.declaration(b){Type::Record(self.scoped_records.declaration(b))}else{ty};
+        self.require(actual, Some(replacement_contract), value.span)?;
         let source_kind = value
             .binding
             .and_then(|source| context.bindings[source].callback_kind);
@@ -9235,10 +9239,11 @@ impl Analyzer {
             } else {
                 self.scoped_record_field_value(context, value, field_type, loans)?
             };
-            self.require(actual, Some(field_type), value.span)?;
+            let contract_type=if let Type::BorrowedCallable(family)=field_type{Type::Callback(self.callables.storage.declaration(family).expect("borrowed field declaration"))}else{field_type};
+            self.require(actual, Some(contract_type), value.span)?;
             let nested_instance = matches!((actual, field_type), (Type::Record(actual), Type::Record(expected))
                 if actual != expected && self.scoped_records.declaration(actual) == expected);
-            if nested_instance || matches!(self.unions.payload(field_type).unwrap_or(field_type), Type::Callback(_)) {
+            if nested_instance || matches!(self.unions.payload(field_type).unwrap_or(field_type), Type::Callback(_) | Type::BorrowedCallable(_)) {
                 let position = self.program.records[index].fields.iter().position(|field| field.name.text == key.text).expect("checked field name");
                 concrete[position] = actual;
                 specialized = true;

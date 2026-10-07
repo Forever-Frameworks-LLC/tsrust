@@ -7625,7 +7625,8 @@ impl Emitter<'_> {
     fn stored_callable_constructor(&self, family: usize, origin: usize, value: &str) -> String {
         if self.program.stored_contracts.is_borrowed(family) {
             let origins=self.program.stored_contracts.origins(family).expect("borrowed origins");
-            let variant=if origins[0]==origin {"Left"}else{"Right"};
+            let position=origins.iter().position(|&id|id==origin).expect("registered borrowed origin");
+            let variant=crate::borrowed_callable_dispatch::variant(position,origins.len());
             let name=self.borrowed_family_type(family,"'_").replacen("<","::<",1);
             return format!("{name}::{variant}({value})");
         }

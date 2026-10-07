@@ -6,8 +6,8 @@ use crate::{Diagnostic, Mode, Span};
 
 /// Owned/shared construction proves structural storage eligibility. Borrowed
 /// identities additionally retain concrete alternatives and never certify ownership.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub(crate) enum StorageContract { Owned(ContractId), SharedRead(ContractId), Borrowed(ContractId, [usize;2]) }
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub(crate) enum StorageContract { Owned(ContractId), SharedRead(ContractId), Borrowed(ContractId, Vec<usize>) }
 
 impl StorageContract {
     pub(crate) fn checked(signatures: &Contracts, signature: ContractId) -> Option<Self> {
@@ -25,7 +25,7 @@ impl StorageContract {
     }
 
     pub(crate) fn environment<'a>(
-        self,
+        &self,
         signatures: &Contracts,
         closure: &'a CheckedClosure,
         span: Span,
@@ -56,9 +56,9 @@ impl StorageContract {
         Ok(OwnedEnvironment(closure))
     }
 
-    pub(crate) fn invocation(self, signatures: &Contracts) -> Mode {
+    pub(crate) fn invocation(&self, signatures: &Contracts) -> Mode {
         let Self::Owned(signature) = self else { return Mode::Read; };
-        match signatures.get(signature).kind {
+        match signatures.get(*signature).kind {
             Some(CallbackKind::Owned) => Mode::Mutate,
             Some(CallbackKind::OwnedOnce) => Mode::Consume,
             _ => unreachable!("checked owned storage contract"),
@@ -101,14 +101,14 @@ mod tests {
             assert_eq!(storage.invocation(&signatures), invocation);
             let equal =
                 signatures.intern([(Type::Record(3), Mode::Read)], Type::Record(7), Some(kind));
-            assert_eq!(Some(storage), StorageContract::checked(&signatures, equal));
+            assert_eq!(Some(storage.clone()), StorageContract::checked(&signatures, equal));
             for (parameter, access, result) in [
                 (Type::Record(4), Mode::Read, Type::Record(7)),
                 (Type::Record(3), Mode::Consume, Type::Record(7)),
                 (Type::Record(3), Mode::Read, Type::Record(8)),
             ] {
                 let other = signatures.intern([(parameter, access)], result, Some(kind));
-                assert_ne!(Some(storage), StorageContract::checked(&signatures, other));
+                assert_ne!(Some(storage.clone()), StorageContract::checked(&signatures, other));
             }
         }
     }
@@ -149,7 +149,7 @@ fn environment_admission_preserves_origin_and_rejects_borrowed_or_consuming_reus
         .closure();
     assert!(std::ptr::eq(origin, admitted));
     for (contract, closure, code) in [
-        (reusable, origin, "callback-once"),
+        (reusable.clone(), origin, "callback-once"),
         (reusable, &borrowed.program.closures[0], "callback-escape"),
         (once, &borrowed.program.closures[0], "callback-escape"),
     ] {
@@ -193,9 +193,9 @@ impl Registry {
         let contract = StorageContract::checked_shared(signatures, callback.structural)?;
         Some(self.intern_contract(contract, declaration))
     }
-    pub(crate) fn intern_borrowed(&mut self,signature:ContractId,declaration:usize,origins:[usize;2])->usize {
-        let mut origins=origins;origins.sort();
-        let crate::syntax::Type::StoredCallable(id)=self.intern_contract(StorageContract::Borrowed(signature,origins),declaration) else {unreachable!()};
+    pub(crate) fn intern_borrowed(&mut self,signature:ContractId,declaration:usize,origins:impl IntoIterator<Item=usize>)->usize {
+        let mut origins=origins.into_iter().collect::<Vec<_>>();origins.sort();origins.dedup();
+        let crate::syntax::Type::StoredCallable(id)=self.intern_contract(StorageContract::Borrowed(signature,origins.clone()),declaration) else {unreachable!()};
         self.origins[id]=origins.to_vec();self.borrowed.insert(id);id
     }
     pub(crate) fn is_borrowed(&self,id:usize)->bool {
@@ -230,10 +230,10 @@ impl Registry {
             })?;
         if self.is_borrowed(family) {
             let origins=self.origins(family).expect("known borrowed family");
-            if !origins.contains(&origin) || origins.len()!=2 {
-                return Err(Diagnostic::new("borrowed-callable-layout","A borrowed family must retain its two checked environment origins.",span));
+            if !origins.contains(&origin) || origins.len()<2 {
+                return Err(Diagnostic::new("borrowed-callable-layout","A borrowed family must retain its checked environment origins.",span));
             }
-            crate::borrowed_callable_contracts::Family::checked(closures,[origins[0],origins[1]],span)?;
+            for &other in &origins[1..]{crate::borrowed_callable_contracts::Family::checked(closures,[origins[0],other],span)?;}
             return Ok(());
         }
         if declaration.kind == CallbackKind::SharedRead {
@@ -288,7 +288,7 @@ impl Registry {
         }
         self.identities=std::mem::take(&mut self.identities).into_iter().map(|(contract,id)|{
             let contract=if let StorageContract::Borrowed(signature,origins)=contract {
-                let mut origins=origins.map(|origin|ids[origin].expect("validated borrowed origin"));origins.sort();
+                let mut origins=origins.into_iter().map(|origin|ids[origin].expect("validated borrowed origin")).collect::<Vec<_>>();origins.sort();
                 StorageContract::Borrowed(signature,origins)
             }else{contract};(contract,id)
         }).collect();

@@ -1631,3 +1631,78 @@ explicit paths. Record family acceptance still requires editor/guide and benchma
 
 Exact mutable-capture success, branch failure and project formatting evidence
 are verified in SQLite under runtime/diagnostics/scoped-record-control/.
+
+
+## Branch carrier implementation in progress
+
+Uncommitted record_branch_carriers.rs joins compatible callback origins in direct
+record assignments across two if arms. It reuses common_borrowed_conditional_family,
+wraps both original environments, materializes a common nominal record instance and
+updates the storage binding and both assignment target types. Capture-loan state
+remains the result of the existing point-sensitive branch join. The original
+branch/loop red witness passes, and the existing 24 project tests pass.
+
+A new nested branch witness with three callback origins remains red. The inner
+branch creates a specialized common record instance before the outer else assignment
+is checked; that assignment still expects its concrete family field type and rejects
+the third closure. Existing borrowed families represent exactly two origins, and the
+current direct-arm collector does not traverse nested assignment bodies. This chunk
+must not be accepted as a complete carrier solution. Keep the new witness unchanged
+and extend registration/conversion and storage-slot collection to handle more origins
+and nested control flow. Do not widen source borrowing or erase concrete environments.
+Current loose records are /private/tmp/tsrust-record-branch-*.log; import only closed
+records into SQLite after verification. HEAD remains 5196559. No consumers refreshed.
+
+Continuation prompt: Continue uncommitted branch-carrier implementation. The original
+witness and 24 project controls pass. Fix nested_record_branch_assignments_preserve_three_actual_origins,
+which currently fails while checking the outer third assignment. Generalize borrowed
+families and record field conversion together; collect nested/static storage slots
+rather than only direct branch literals. Preserve point-sensitive capture loans and
+all original environments. Reuse bounded checks and required depth canaries, format
+before explicit-path commits, and import exact evidence into SQLite. No acceptance
+claim until nested and nonliteral assignment boundaries have native coverage.
+
+All 64 depth canaries pass on this uncommitted implementation. The four closed
+branch records are now imported and verified under
+runtime/diagnostics/scoped-record-branch/; loose copies were removed.
+
+
+## Nested branch carriers and variable-cardinality borrowed families
+
+Borrowed family identity now stores the complete sorted, deduplicated origin set.
+Native declarations and dispatch support more than two concrete origins while
+preserving the existing Left/Right ABI for two-origin families. Registration checks
+every origin against the same argument, access, cardinality and result contract.
+Compaction remaps the full origin set. This compiler metadata change does not clone
+runtime environments or introduce a new public ownership capability.
+
+Record branch normalization now collects assignments through nested blocks, loops,
+if arms and exception regions. Compatible record literals materialize a common
+nominal instance whose callback fields use the joined borrowed family. Existing
+construction and replacement checks compare nominal identity and the written
+callback contract before branch normalization, allowing another compatible concrete
+origin without structural subtyping. Already wrapped literals retarget their storage
+wrapper rather than retaining a redundant intermediate family owner.
+
+All 25 scoped-record project tests pass. The nested three-origin test executes each
+branch separately, observing 3, 7 and 11 and releasing the original borrowed array
+before mutation. All 64 depth canaries pass. This is a literal branch representation
+checkpoint, not complete record acceptance. Record-valued RHS expressions, independent
+field replacement, sequential assignments outside branches and common carriers for
+owning environments still need direct witnesses and conversion support. The normalizer
+currently joins record literal expressions; do not claim arbitrary record assignment
+coverage. Preserve point-sensitive capture loans and independent field disposal.
+No consumers or owner fixtures change; no timing or full editor acceptance is claimed.
+
+Continuation prompt: Continue after nested literal branch carriers. Twenty-five project
+tests and all three nested origin selections pass. Add red witnesses for record-valued
+RHS moves, field replacement and sequential assignments; implement one-evaluation
+carrier conversion without cloning or lifetime erasure. Do not reopen solved local,
+parameter or literal branch chunks. Then complete default/exception/disposal controls,
+opaque composition and fallible callback contracts, followed by editor/guide and matched
+benchmarks. Preserve fifteen owner fixtures, format before explicit-path commits and
+store closed evidence in SQLite. Installed consumers remain f1dd284.
+
+Thirty-one borrowed-related unit controls and ten callable storage controls pass.
+Project formatting changes zero files and zero fingerprints. Exact intermediate
+and final records are verified in SQLite under runtime/diagnostics/scoped-record-many/.

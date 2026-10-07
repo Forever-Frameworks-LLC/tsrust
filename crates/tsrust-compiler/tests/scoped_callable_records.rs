@@ -584,3 +584,32 @@ fn deferred_record_branch_and_loop_restoration_preserve_capture_release() {
         }
     "#);
 }
+
+#[test]
+fn nested_record_branch_assignments_preserve_three_actual_origins() {
+    let source=r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function main() {
+            const values = [3, 7, 11];
+            {
+                let holder: Holder;
+                if (values.length === 3) {
+                    if (values[0] === 3) {
+                        holder = { run: (): int => values[0] };
+                    } else {
+                        holder = { run: (): int => values[1] };
+                    }
+                } else {
+                    holder = { run: (): int => values[2] };
+                }
+                strictEqual(holder.run(), 3);
+            }
+            values[0] = 13; strictEqual(values[0], 13);
+        }
+    "#;
+    for (values,expected) in [("[3, 7, 11]",3),("[9, 7, 11]",7),("[3, 7, 11, 99]",11)] {
+        let selected=source.replace("[3, 7, 11]",values).replace("strictEqual(holder.run(), 3);",&format!("strictEqual(holder.run(), {expected});"));
+        project(&selected);
+    }
+}

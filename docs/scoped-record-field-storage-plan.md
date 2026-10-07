@@ -470,3 +470,35 @@ features. Earlier completed local, parameter and capture checkpoints stay closed
 
 Exact mutable-capture success, branch failure and project formatting evidence
 are verified in SQLite under runtime/diagnostics/scoped-record-control/.
+
+
+## Nested branch carriers and variable-cardinality borrowed families
+
+Borrowed family identity now stores the complete sorted, deduplicated origin set.
+Native declarations and dispatch support more than two concrete origins while
+preserving the existing Left/Right ABI for two-origin families. Registration checks
+every origin against the same argument, access, cardinality and result contract.
+Compaction remaps the full origin set. This compiler metadata change does not clone
+runtime environments or introduce a new public ownership capability.
+
+Record branch normalization now collects assignments through nested blocks, loops,
+if arms and exception regions. Compatible record literals materialize a common
+nominal instance whose callback fields use the joined borrowed family. Existing
+construction and replacement checks compare nominal identity and the written
+callback contract before branch normalization, allowing another compatible concrete
+origin without structural subtyping. Already wrapped literals retarget their storage
+wrapper rather than retaining a redundant intermediate family owner.
+
+All 25 scoped-record project tests pass. The nested three-origin test executes each
+branch separately, observing 3, 7 and 11 and releasing the original borrowed array
+before mutation. All 64 depth canaries pass. This is a literal branch representation
+checkpoint, not complete record acceptance. Record-valued RHS expressions, independent
+field replacement, sequential assignments outside branches and common carriers for
+owning environments still need direct witnesses and conversion support. The normalizer
+currently joins record literal expressions; do not claim arbitrary record assignment
+coverage. Preserve point-sensitive capture loans and independent field disposal.
+No consumers or owner fixtures change; no timing or full editor acceptance is claimed.
+
+Thirty-one borrowed-related unit controls and ten callable storage controls pass.
+Project formatting changes zero files and zero fingerprints. Exact intermediate
+and final records are verified in SQLite under runtime/diagnostics/scoped-record-many/.

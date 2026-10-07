@@ -6,6 +6,15 @@ pub(crate) fn emit_definition(output:&mut String,id:usize) {
     writeln!(output,"enum BorrowedCallable{id}<Left, Right> {{ Left(Left), Right(Right) }}").unwrap();
 }
 
+pub(crate) fn variant(index:usize,count:usize)->String {if count==2{if index==0{"Left".into()}else{"Right".into()}}else{format!("V{index}")}}
+pub(crate) fn emit_definition_many(output:&mut String,id:usize,count:usize){
+    if count==2{emit_definition(output,id);return;}
+    use std::fmt::Write;
+    let args=(0..count).map(|i|format!("Origin{i}")).collect::<Vec<_>>().join(",");
+    let variants=(0..count).map(|i|format!("V{i}(Origin{i})")).collect::<Vec<_>>().join(",");
+    writeln!(output,"enum BorrowedCallable{id}<{args}> {{{variants}}}").unwrap();
+}
+
 pub(crate) fn emit(output: &mut String, id: usize, mode: Mode, counted: bool) -> bool {
     use std::fmt::Write;
     let (trait_name, method, receiver) = match mode {

@@ -12,8 +12,8 @@ impl Emitter<'_> {
     pub(super) fn emit_borrowed_family(&self,output:&mut String,id:usize,declaration:usize,origins:&[usize]) {
         let contract=&self.program.callback_contracts[declaration];
         let invocation=contract.invocation(&self.program.callable_shapes);
-        assert_eq!(origins.len(),2,"borrowed alternatives retain two origins");
-        crate::borrowed_callable_dispatch::emit_definition(output,id);
+        assert!(origins.len()>=2,"borrowed alternatives retain distinct origins");
+        crate::borrowed_callable_dispatch::emit_definition_many(output,id,origins.len());
         let mut lifetimes=Vec::new();
         let types=origins.iter().enumerate().map(|(arm,&origin)|{
             let names=(0..self.program.closures[origin].lifetime_count).map(|capture|format!("'b{arm}c{capture}")).collect::<Vec<_>>();
@@ -30,7 +30,8 @@ impl Emitter<'_> {
             let count=if counted {", count: usize"}else{""};
             let passed=if counted {if arguments.is_empty(){"count".to_owned()}else{format!("count, {arguments}")}}else{arguments.clone()};
             let _=writeln!(output,"fn {method}({receiver}{count}{parameters})->{result} {{match self {{");
-            for (arm,&origin) in ["Left","Right"].iter().zip(origins) {
+            for (position,&origin) in origins.iter().enumerate() {
+                let arm=crate::borrowed_callable_dispatch::variant(position,origins.len());
                 let call=self.stored_origin_result(id,origin,format!("value.{method}({passed})"));
                 let mutable=if invocation==Mode::Consume {"mut "}else{""};
                 let _=writeln!(output,"Self::{arm}({mutable}value)=>{call},");

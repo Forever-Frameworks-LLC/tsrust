@@ -10,6 +10,7 @@ impl Analyzer {
         field_type: Type,
         loans: &Loans,
     ) -> Result<Type, Diagnostic> {
+        let field_type=if let Type::BorrowedCallable(family)=field_type{Type::Callback(self.callables.storage.declaration(family).expect("borrowed field declaration"))}else{field_type};
         let payload = self.unions.payload(field_type).unwrap_or(field_type);
         let expected = if matches!(payload, Type::Callback(_))
             && !matches!(value.kind, ExprKind::Closure { .. })
