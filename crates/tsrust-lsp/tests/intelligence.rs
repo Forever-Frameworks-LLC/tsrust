@@ -8110,3 +8110,17 @@ fn scoped_carrier_traversal_and_optional_calls_keep_public_editor_contracts() {
     assert!(help["signatures"][0]["label"].as_str().unwrap().contains("int"));
     assert!(!ask(source,"textDocument/hover","toString()",0).is_null());
 }
+
+#[test]
+fn scoped_nested_and_absent_record_fields_keep_declared_signature_help() {
+    let source = "type Handler={run:ReadOnly<Function<int, [amount:int]>>;};type Envelope={handler:Handler;};type Optional={run?:ReadOnly<Function<int, [amount:int]>>;};function main(){const offsets=[3,7];const handler:Handler={run:(value):int=>value+offsets[0]};const envelope:Envelope={handler:handler};const missing:Optional={};const result=envelope.handler.run(4);const skipped=missing.run?.(3)??0;console.log(result,skipped);}";
+    assert!(tsrust_compiler::check(source).is_ok());
+    for token in ["4);", "3)??"] {
+        let help = ask(source, "textDocument/signatureHelp", token, 0);
+        assert!(help["signatures"][0]["parameters"][0]["label"].as_str().unwrap().contains("amount"), "{help}");
+    }
+    let hover = ask(source, "textDocument/hover", "run(4)", 0);
+    assert!(!hover.is_null());
+    let text = hover["contents"]["value"].as_str().unwrap();
+    assert!(!text.contains("BorrowedCallable"), "{hover}");
+}

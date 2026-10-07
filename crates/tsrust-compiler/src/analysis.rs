@@ -22,6 +22,8 @@ mod named_capture_context;
 mod capture_context;
 #[path = "callable_expression.rs"]
 mod callable_expression;
+#[path = "scoped_record_construction.rs"]
+mod scoped_record_construction;
 #[path = "exception_state.rs"]
 mod exception_state;
 #[path = "labeled_control.rs"]
@@ -9160,14 +9162,12 @@ impl Analyzer {
             let actual = if let Type::StoredCallable(family) = field_type {
                 self.stored_callable_value(context, value, family, loans)?
             } else {
-                let payload = self.unions.payload(field_type).unwrap_or(field_type);
-                let expected = if matches!(payload, Type::Callback(_)) && !matches!(value.kind, ExprKind::Closure { .. }) {
-                    None
-                } else { Some(if matches!(payload, Type::Callback(_)) { payload } else { field_type }) };
-                self.expression(context, value, Mode::Consume, loans, expected)?
+                self.scoped_record_field_value(context, value, field_type, loans)?
             };
             self.require(actual, Some(field_type), value.span)?;
-            if matches!(self.unions.payload(field_type).unwrap_or(field_type), Type::Callback(_)) {
+            let nested_instance = matches!((actual, field_type), (Type::Record(actual), Type::Record(expected))
+                if actual != expected && self.scoped_records.declaration(actual) == expected);
+            if nested_instance || matches!(self.unions.payload(field_type).unwrap_or(field_type), Type::Callback(_)) {
                 let position = self.program.records[index].fields.iter().position(|field| field.name.text == key.text).expect("checked field name");
                 concrete[position] = actual;
                 specialized = true;

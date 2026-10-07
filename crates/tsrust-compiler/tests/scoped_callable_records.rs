@@ -171,3 +171,47 @@ fn direct_scoped_record_arrow_keeps_concrete_environment_and_contextual_paramete
     "#,
     );
 }
+
+#[test]
+fn scoped_record_absence_and_omitted_optional_fields_keep_call_signatures() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Nullable = { run: ReadOnly<Function<int, [value: int]>> | null; };
+        type Optional = { run?: ReadOnly<Function<int, [value: int]>>; };
+        function main() {
+            const nullable: Nullable = { run: null };
+            const missing: Optional = {};
+            const explicit: Optional = { run: undefined };
+            let effects = 0;
+            strictEqual(nullable.run?.(effects++) ?? -1, -1);
+            strictEqual(missing.run?.(effects++) ?? -2, -2);
+            strictEqual(explicit.run?.(effects++) ?? -3, -3);
+            strictEqual(effects, 0);
+            strictEqual(typeof nullable.run, "object");
+            strictEqual(typeof missing.run, "undefined");
+        }
+    "#);
+}
+
+#[test]
+fn nested_scoped_records_preserve_distinct_layouts_and_original_captures() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int, [value: int]>>; };
+        type Envelope = { holder: Holder; label: string; };
+        type Outer = { envelope: Envelope; };
+        function main() {
+            const offsets = [3, 7];
+            {
+                const holder: Holder = { run: (value): int => value + offsets[0] };
+                const envelope: Envelope = { holder: holder, label: "nested" };
+                const outer: Outer = { envelope: envelope };
+                strictEqual(outer.envelope.holder.run(2), 5);
+                strictEqual(outer.envelope.holder.run(4), 7);
+                strictEqual(outer.envelope.label, "nested");
+            }
+            offsets[0] = 9;
+            strictEqual(offsets[0], 9);
+        }
+    "#);
+}

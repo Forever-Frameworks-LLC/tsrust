@@ -2,6 +2,8 @@
 mod callback_family_result_adapters;
 #[path = "borrowed_callable_emit.rs"]
 mod borrowed_callable_emit;
+#[path = "scoped_record_emit.rs"]
+mod scoped_record_emit;
 #[path = "exception_contract_emit.rs"]
 mod exception_contract_emit;
 #[path = "exception_emit.rs"]
@@ -277,7 +279,7 @@ impl Emitter<'_> {
         if let Type::Record(id) = value {
             let parameters = self.program.records[id].fields.iter().filter_map(|field| {
                 let ty = field.ty.expect("checked field");
-                matches!(self.callback_payload(ty).unwrap_or(ty), Type::Callback(_) | Type::Closure(_) | Type::BorrowedCallable(_)).then(|| self.native_type(ty))
+                self.scoped_record_native_parameter(ty).then(|| self.native_type(ty))
             }).collect::<Vec<_>>();
             if !parameters.is_empty() { return format!("Record{id}<{}>", parameters.join(", ")); }
         }
@@ -2113,7 +2115,7 @@ impl Emitter<'_> {
                 .enumerate()
                 .map(|(index, field)| {
                     let ty = field.ty.expect("checked record field");
-                    let native = if matches!(self.callback_payload(ty).unwrap_or(ty), Type::Callback(_) | Type::Closure(_) | Type::BorrowedCallable(_)) {
+                    let native = if self.scoped_record_native_parameter(ty) {
                         let parameter = format!("P{index}");
                         generic_fields.push(parameter.clone());
                         parameter

@@ -49,7 +49,8 @@ impl Analyzer {
             |ty| match ty {
                 Type::BorrowedCallable(_) => true,
                 Type::Closure(id) => self.closures.get(id).is_none_or(|closure| closure.borrowed),
-                Type::Callback(id) => self.callables.callbacks.get(id).is_none_or(|contract| !contract.kind.is_owned()),
+                Type::Callback(id) => !self.absent_callback_payloads.values().any(|&empty| empty == id)
+                    && self.callables.callbacks.get(id).is_none_or(|contract| !contract.kind.is_owned()),
                 _ => false,
             },
         )

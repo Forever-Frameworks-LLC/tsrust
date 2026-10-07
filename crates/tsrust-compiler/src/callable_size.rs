@@ -124,6 +124,7 @@ pub(crate) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
                         + std::mem::size_of::<HashMap<u64, Vec<usize>>>()
                         + std::mem::size_of::<usize>()
                 }
+                Type::Callback(id) if program.absent_callback_payloads.contains(&id) => 0,
                 Type::Null | Type::Undefined | Type::Void => 0,
                 _ => {
                     return Err(Diagnostic::new(
@@ -153,7 +154,7 @@ fn dependencies(program: &CheckedProgram, ty: Type, span: Span) -> Result<Vec<Ty
             // constructed record replaces them with concrete environment types.
             .filter(|ty| {
                 let payload = ty.union().and_then(|id| program.unions[id.index()].members.iter().copied().find(|member| !matches!(member, Type::Null | Type::Undefined))).unwrap_or(*ty);
-                !matches!(payload, Type::Callback(_))
+                !matches!(payload, Type::Callback(id) if !program.absent_callback_payloads.contains(&id))
             })
             .collect(),
         Type::Closure(id) => program.closures[id]
