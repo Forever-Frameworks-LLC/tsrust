@@ -85,3 +85,46 @@ fn lexical_generic_contexts_cover_captures_peers_and_nested_templates() {
         support::execute(source, "7 owned\n", None);
     }
 }
+
+#[test]
+fn escaped_lexical_generic_functions_keep_independent_owned_captures() {
+    for source in [
+        "function factory<T>(value:T){function take():T{return value;}return take;}function main(){const number=factory<int>(7);const text=factory<string>(\"owned\");console.log(number(),text());}",
+        "function factory<T>(value:T){function take<U>(unused:U):T{return value;}return take;}function main(){const number=factory<int>(7);const text=factory<string>(\"owned\");console.log(number<boolean>(true),text<int>(0));}",
+    ] {
+        support::execute(source, "7 owned\n", None);
+    }
+}
+
+#[test]
+fn escaped_lexical_generic_capture_drops_original_owner_once() {
+    let source = "type Item={id:int;};function factory<T>(value:T,fail:boolean){function take():T{if(fail){throw 1;}return value;}return take;}function main(){const first=factory<Item>({id:1},false);const second=factory<Item>({id:2},false);const failed=factory<Item>({id:3},true);try{failed();}catch(error){}const one=first();const two=second();if(one.id+two.id!==3){throw 99;}}";
+    let formatted = support::format_round_trip(source);
+    let rust = tsrust_compiler::check(&formatted).unwrap().emit_rust().replace("fn main()", "fn source_main()") + r#"
+static DROPS: std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+static SEEN: std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+impl Drop for Record0 { fn drop(&mut self){DROPS.fetch_add(1,std::sync::atomic::Ordering::SeqCst);SEEN.fetch_or(1<<self.field0,std::sync::atomic::Ordering::SeqCst);} }
+fn main(){source_main();assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCst),3);assert_eq!(SEEN.load(std::sync::atomic::Ordering::SeqCst),14);}
+"#;
+    let directory = support::TempDirectory::new();
+    let path = directory.0.join("lexical-disposal.rs");
+    std::fs::write(&path, rust).unwrap();
+    for level in ["0", "3"] {
+        let binary = directory.0.join(format!("lexical-disposal-{level}"));
+        support::success(&support::rustc().arg(&path).arg("--edition=2024").arg("-C").arg(format!("opt-level={level}")).arg("-o").arg(&binary).output().unwrap());
+        support::success(&std::process::Command::new(binary).output().unwrap());
+    }
+}
+
+#[test]
+fn lexical_type_bindings_do_not_add_public_arity_or_reuse_consumed_captures() {
+    for (source, expected) in [
+        ("function outer<T>(value:T):T{function nested(other:T):T{return other;}return nested<T>(value);}function main(){}", "type"),
+        ("function outer<T>(){function nested<U>(value:U):U{return value;}nested<int,string>(1);}function main(){}", "arity"),
+        ("function factory<T>(value:T){function take():T{return value;}return take;}function main(){const action=factory<string>('owned');action();action();}", "closure-consumed"),
+    ] {
+        let formatted = support::format_round_trip(source);
+        let error = tsrust_compiler::check(&formatted).err().expect("invalid lexical contract must be rejected");
+        assert_eq!(error.code, expected, "{}", error.render("input.tsr", &formatted));
+    }
+}

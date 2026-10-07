@@ -855,3 +855,25 @@ records remain immutable. No timing or complete compiler regression is claimed.
 Full Gate173 remains open for capture effects, optional expression regions, stored
 callable fields, concrete environment replacement and remaining lifetime/context
 coverage. This checkpoint does not claim complete callable or assignment parity.
+
+## Lexical generic transport continuation
+
+Nested declarations now retain enclosing generic type bindings through explicit
+and inferred specialization. The isolated lexical scope and instance modules keep
+explicit arity separate from inherited variables, preserve nearest shadowing and
+install recursive peer identities before body traversal. Concrete applications
+retain the original declaration and a separate concrete lexical owner for capture
+preparation. Linked modules preserve inherited type names and validate explicit
+applications in their innermost lexical function rather than every enclosing span.
+
+Standalone and imported mixed integer/string instances execute. Escaped ordinary
+and generic nested function values retain independent captures. O0/O3 checks observe
+three original record owners exactly once, including a failing consuming call.
+Affected generic suites and eight unfiltered canaries pass 168 tests; editor and
+matched acceptance evidence is recorded in the current handoff. The existing matched
+family now has 124 observations, adding lexical echo and escaped capture controls.
+Operation and sample counts remain unchanged; this is untimed support.
+
+Captured invocation writes still have eight red witnesses. Optional expression
+regions, stored callable fields, concrete environment replacement and the broader
+lifetime/context audit remain required. This does not complete Gate173.

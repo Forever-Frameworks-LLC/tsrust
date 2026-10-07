@@ -19830,10 +19830,10 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": false,
       "measured": false,
-      "notes": "The scenario now retains 120 observations, including named callable self-assignment invocation and replacement by a fresh factory instance. Concrete borrowed/owned views, generic calls, map callbacks and independent record/array storage environments. Untimed support; wider adapter acceptance pending.",
-      "specification": "Retain 116 independent observations of values, ownership-preserving adapters, parameter patterns and shared/independent captured counters.",
-      "sourceSha256": "9036e603edccc2c62abf43e5544b65550b1305df21e8d156441b339f13604a1d",
-      "counterpartSha256": "4b89743499597223623168b8acafdda56b5a009eeb5a17efcdcfeb82a728ad8c"
+      "notes": "The scenario now retains 124 observations, including named callable self-assignment invocation and replacement by a fresh factory instance. Concrete borrowed/owned views, generic calls, map callbacks and independent record/array storage environments. Lexical generic echo and escaped capture instances add four observations. Untimed support; wider adapter acceptance pending.",
+      "specification": "Retain 124 independent observations of values, ownership-preserving adapters, parameter patterns and shared/independent captured counters.",
+      "sourceSha256": "bd638259dbbd75fb99fd371b9eb0fa7b1680caefd941a36cf9772af89baa55c7",
+      "counterpartSha256": "39162bd28bc43ca06ada95322afe83998cc60700dba0f272ddde58aa9c3cd182"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

@@ -321,6 +321,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId]) -> Result<Projec
             }
         }
         let mut program = programs.remove(id).unwrap();
+        let lexical_types = crate::lexical_generic_scopes::inherited(&program);
         let mut visitor = Linker {
             names: &names,
             testing_types: id.0 == "std:testing",
@@ -340,9 +341,12 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId]) -> Result<Projec
             }
         }
         for (span, arguments) in &mut program.call_type_arguments {
-            visitor.type_parameters = program.functions.iter().find(|function| {
+            visitor.type_parameters = program.functions.iter().filter(|function| {
                 function.scope_span.start <= span.start && span.end <= function.scope_span.end
-            }).map(|function| function.type_parameters.iter().map(|parameter| parameter.text.clone()).collect()).unwrap_or_default();
+            }).min_by_key(|function| function.scope_span.end - function.scope_span.start)
+                .map(|function| function.type_parameters.iter()
+                    .chain(lexical_types.get(&function.name.text).into_iter().flatten())
+                    .map(|parameter| parameter.text.clone()).collect()).unwrap_or_default();
             visitor.span(span);
             for argument in arguments { visitor.value_annotation(argument); }
         }
@@ -358,7 +362,9 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId]) -> Result<Projec
         }
         for function in &mut program.functions {
             visitor.span(&mut function.scope_span);
-            visitor.type_parameters = function.type_parameters.iter().map(|parameter| parameter.text.clone()).collect();
+            visitor.type_parameters = function.type_parameters.iter()
+                .chain(lexical_types.get(&function.name.text).into_iter().flatten())
+                .map(|parameter| parameter.text.clone()).collect();
             for parameter in &mut function.type_parameters { visitor.span(&mut parameter.span); }
             let captures = captured_names.remove(&function.name.text).unwrap_or_default();
             function.name.text = names[&function.name.text].clone();

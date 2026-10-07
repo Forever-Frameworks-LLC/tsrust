@@ -681,3 +681,10 @@ and 120-observation matched adapter verification. See
 handoff-2026-10-07-expression-order-and-assignment-invocation.md. Captured effects,
 optional expression regions, stored fields and concrete environment transport
 remain required; full Gate173 and performance measurements remain open.
+
+Gate173 lexical generic transport now preserves enclosing type bindings independently
+of nested explicit arity, including linked modules, recursive peers and escaped
+function values. Scoped native and disposal controls pass. Matched support appends
+four observations for 124 per scenario without changing operation or sample counts.
+Captured invocation effects retain eight red witnesses; the remaining Gate173 audit
+and milestone measurements stay open.

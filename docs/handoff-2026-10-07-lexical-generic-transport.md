@@ -1,0 +1,23 @@
+# Handoff: lexical generic transport
+
+Read AGENTS.md, docs/development-workflow.md, docs/nested-function-declarations-plan.md, docs/unused-generic-call-validation-plan.md and docs/captured-call-effects-plan.md first. The previous WIP is ccb7aea; current Git HEAD records focused lexical transport acceptance. Full Gate173 remains open.
+
+## Accepted scope
+
+Nested named functions retain enclosing generic type bindings independently of their own explicit type parameter count. The lexical scope module retains declaration spans and nearest shadowing. The contextual instance module substitutes inherited annotations, installs recursive peer names before traversal and retains bindings for later explicit or inferred generic requests. FunctionApplication separately records the concrete lexical owner and original declaration. Capture preparation uses those identities without introducing shared cells or implicit clones.
+
+Standalone explicit/inferred integer and string instances, deeper nesting, recursive peers, saved values, uncalled captures and escaped ordinary/generic nested functions execute. Linked modules with distinct imported aliases retain rebased owner identities and types. The module red exposed two defects: linker annotation qualification ignored inherited type names, and outer generic validation treated nested explicit applications as its own. The linker now keeps inherited names; explicit applications validate in their innermost function. Inherited variables do not make a monomorphic nested function accept explicit type arguments. Excess explicit arguments and repeated consuming calls are rejected.
+
+O0/O3 disposal checks observe three original record owners exactly once, including a consuming call that throws. Bounded current compiler evidence covers 177 unique tests: 168 generic/depth regression tests, eight lexical/precision tests and one imported-module test. The whole editor passes 327 tests. The early negative harness expected arity for explicit application on a monomorphic function; the valid diagnostic is type, with the related source declaration. Both failed and corrected evidence are retained.
+
+## Matched support
+
+The existing unmeasured generic_value_adapters family now observes 124 values per scenario. Four added observations cover lexical generic echo and independently escaped integer/string captures. Matched Tsrust/TypeScript sources, independent oracle, exact fingerprints, guards and two new mutation controls are current. Existing ABI, oracle/run/profile/report hooks already route this family. Operation and sample counts are unchanged. Five native/Node-after-tsc cases pass untimed in benchmarks/runtime/results/2026-10-07T05-23-05-597Z-verify.json. The exact record is imported and verified in SQLite before its loose copy is removed. Earlier 116/120-observation records remain immutable. No timing or full compiler regression is claimed.
+
+All current closed lexical logs are imported with exact readback into benchmarks/records.sqlite, including red module, failed compilation and negative harness evidence. Whole-project formatting first changes one workload and refreshes one proved fingerprint; the final pass changes zero files. Five executable consumers are refreshed atomically from verified builds. The installed CLI must match the accepted source as well; the refresh result is recorded by the task. Restart the language server to load the current binary. Completed scratch test/runtime outputs are pruned while preserving warm libraries and consumers.
+
+## Next gate
+
+Implement captured invocation effects from docs/captured-call-effects-plan.md. Eight retained cases wrongly accept calls after named/arrow, transitive/recursive, conditional, exceptional, callback and argument-side writes. Uncalled declarations, saved snapshots, lexical shadowing and definite restoration must retain precision. Integrate effects after arguments using the saved callee, with separate normal and exceptional summaries and finite recursion. Do not implement shared JavaScript capture cells or implicit clones. Optional expression regions, stored callable fields, concrete environment replacement and remaining lifetime/context coverage also remain required before full Gate173 acceptance.
+
+Preserve fifteen protected owner fixture edits; never stage them. Use explicit Git paths. Warm target is /private/tmp/tsrust-gate100-editor-target with CARGO_INCREMENTAL=0 and offline locked Cargo. Node is /Users/seancotter/.nvm/versions/node/v24.11.1/bin/node. Keep every checkpoint formatted, SQLite canonical and checks bounded. Do not restart completed unaffected checks or launch timing/full regressions for a gate number.

@@ -468,6 +468,16 @@ pub(crate) fn specialize(program: &mut Program) -> Result<Cache, Diagnostic> {
     {
         return Ok(Cache::default());
     }
+    // Explicit applications in lifted bodies belong to their innermost lexical
+    // function, rather than every enclosing source span.
+    let mut validation_calls: HashMap<String, Vec<(Span, Vec<ValueAnnotation>)>> = HashMap::new();
+    for (span, arguments) in &program.call_type_arguments {
+        if let Some(owner) = program.functions.iter().filter(|function| {
+            function.scope_span.start <= span.start && span.end <= function.scope_span.end
+        }).min_by_key(|function| function.scope_span.end - function.scope_span.start) {
+            validation_calls.entry(owner.name.text.clone()).or_default().push((*span, arguments.clone()));
+        }
+    }
     crate::generic_defaults::validate(program)?;
     crate::generic_call_validation::validate(program)?;
     let mut declarations = HashMap::new();
@@ -503,7 +513,7 @@ pub(crate) fn specialize(program: &mut Program) -> Result<Cache, Diagnostic> {
         if cache.lexical.needs_context(&function.name.text) {
             let mut validation = function.clone();
             validation.type_parameters.extend(cache.lexical.inherited(&function.name.text));
-            crate::generic_validation::function(&mut validation, &records, &program.call_type_arguments)?;
+            crate::generic_validation::function(&mut validation, &records, validation_calls.get(&function.name.text).map_or(&[], Vec::as_slice))?;
             cache.lexical.defer(function);
         } else if function.type_parameters.is_empty() {
             cache.pending.push(Pending {
@@ -533,11 +543,8 @@ pub(crate) fn specialize(program: &mut Program) -> Result<Cache, Diagnostic> {
                     function.name.span,
                 ));
             }
-            crate::generic_validation::function(
-                &mut function,
-                &records,
-                &program.call_type_arguments,
-            )?;
+            let calls: &[(Span, Vec<ValueAnnotation>)] = validation_calls.get(&function.name.text).map_or(&[], Vec::as_slice);
+            crate::generic_validation::function(&mut function, &records, calls)?;
             cache.templates.insert(function.name.text.clone(), function);
         }
     }

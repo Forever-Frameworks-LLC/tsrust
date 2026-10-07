@@ -1669,3 +1669,13 @@ fn typed_capture_context_keeps_private_types_and_rebased_error_locations() {
     assert_eq!(error.location.source, SourceId("captured.tsr".into()));
     assert_eq!(&captured[error.location.span.start..error.location.span.end], "user.missing");
 }
+
+#[test]
+fn imported_lexical_generic_instances_keep_rebased_owners_and_types() {
+    let entry = support::format_round_trip("import {factory as left} from './left.tsr';import {factory as right} from './right.tsr';function main(){const number=left<int>(7);const text=right<string>('owned');console.log(number<boolean>(true),text());}");
+    let left = support::format_round_trip("export function factory<T>(value:T){function take<U>(unused:U):T{function forward<V>(other:V):V{return other;}forward<U>(unused);return value;}return take;}");
+    let right = support::format_round_trip("export function factory<T>(value:T){function take():T{return value;}return take;}");
+    let memory = Memory::new(&[("main.tsr", &entry), ("left.tsr", &left), ("right.tsr", &right)]);
+    let checked = tsrust_compiler::project::check_graph(load_project(&memory, "main.tsr").unwrap()).unwrap();
+    assert_eq!(native_stdout(&checked.emit_rust(), "0"), "7 owned\n");
+}

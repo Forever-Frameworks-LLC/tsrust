@@ -415,3 +415,11 @@ Self-assignment retains captured state. Replacing the receiver during an argumen
 is rejected while invocation borrows it; a once call consumes it. This creates no
 implicit clone. Assignment results escaping as owned values and record/array
 assignment callees retain their existing restrictions.
+
+Nested declarations can name their enclosing function's type parameters. Each
+concrete outer call supplies that lexical type environment without adding explicit
+type arguments to the nested declaration. A nested function's own type parameters
+shadow enclosing parameters with the same name. Explicit and inferred calls,
+recursive peers, saved function values and module imports retain the same rule.
+Escaped functions retain their original owned captures; a consuming call transfers
+those values once. Failure disposes the original capture without an implicit clone.
