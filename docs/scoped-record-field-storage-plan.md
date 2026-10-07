@@ -42,7 +42,10 @@ separately and preserve their current diagnostics until their own support is pro
    scoped record storage and stable native names. Preserve field order, nested
    paths, nominal identity and cycle/depth limits. Borrowed parameters and borrowed
    aliases remain references to their original record storage.
-3. **Declaration and owned entry storage.** Destructure eligible local declarations
+3. **Declaration rendering foundation implemented.** The layout module renders
+   nested declaration patterns and whole owning reconstruction. A native component
+   test proves evaluation and disposal without Clone. Main emitter wiring remains
+   pending. Destructure eligible local declarations
    after evaluating their initializer once. Owned parameters may destructure at
    function entry while retaining their native record ABI. Establish mutability
    from checked writes. Deferred declarations need the same definite-assignment

@@ -22,6 +22,29 @@ pub(crate) struct Layout {
     pub(crate) leaves: Vec<Leaf>,
 }
 impl Layout {
+    pub(crate) fn declaration(&self, binding: usize, mutable: bool, initializer: &str, records: &[Record], symbol: impl Fn(usize) -> String) -> String {
+        let pattern = self.render_node(Type::Record(self.record), &mut Vec::new(), binding, Some(mutable), records, &symbol);
+        format!("let {pattern} = {initializer};")
+    }
+    pub(crate) fn owning_value(&self, binding: usize, records: &[Record], symbol: impl Fn(usize) -> String) -> String {
+        self.render_node(Type::Record(self.record), &mut Vec::new(), binding, None, records, &symbol)
+    }
+    fn render_node(&self, ty: Type, path: &mut Vec<usize>, binding: usize, pattern: Option<bool>, records: &[Record], symbol: &impl Fn(usize) -> String) -> String {
+        if let Type::Record(record) = ty {
+            let fields = &records[record].fields;
+            if !fields.is_empty() {
+                let fields = fields.iter().enumerate().map(|(index, field)| {
+                    path.push(index);
+                    let value = self.render_node(field.ty.expect("checked field layout"), path, binding, pattern, records, symbol);
+                    path.pop();
+                    format!("field{index}: {value}")
+                }).collect::<Vec<_>>().join(", ");
+                return format!("{} {{ {fields} }}", symbol(record));
+            }
+        }
+        let name = Leaf { path: path.clone(), ty }.native_name(binding);
+        if pattern == Some(true) { format!("mut {name}") } else { name }
+    }
     pub(crate) fn for_binding(binding: &Binding, records: &[Record], scoped: bool) -> Option<Self> {
         if !scoped || binding.capture_reference || binding.borrowed_place.is_some()
             || binding.borrowed_element.is_some()
@@ -61,6 +84,50 @@ mod tests {
         let source = crate::format(source).unwrap();
         assert_eq!(crate::format(&source).unwrap(), source);
         crate::check(&source).unwrap()
+    }
+    #[test]
+    fn native_split_storage_evaluates_once_restores_fields_and_moves_without_clone() {
+        let checked = checked();
+        let binding = checked.program.functions[0].bindings.iter().find(|binding| binding.name == "box").unwrap();
+        let layout = Layout::for_binding(binding, &checked.program.records, true).unwrap();
+        let Type::Record(inner) = checked.program.records[layout.record].fields[0].ty.unwrap() else { panic!("inner record"); };
+        let declaration = layout.declaration(7, true, "{ calls += 1; initial() }", &checked.program.records, |id| format!("Record{id}"));
+        let reconstructed = layout.owning_value(7, &checked.program.records, |id| format!("Record{id}"));
+        let label = layout.leaves[1].native_name(7);
+        let source = format!(r#"
+            static DROPS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+            struct Payload(String);
+            impl Drop for Payload {{ fn drop(&mut self) {{ DROPS.fetch_add(1, std::sync::atomic::Ordering::SeqCst); }} }}
+            struct Record{inner} {{ field0: i64, field1: Payload }}
+            struct Record{outer} {{ field0: Record{inner}, field1: i64 }}
+            fn initial() -> Record{outer} {{ Record{outer} {{ field0: Record{inner} {{ field0: 4, field1: Payload("first".into()) }}, field1: 9 }} }}
+            fn main() {{
+                let mut calls = 0;
+                {declaration}
+                assert_eq!(calls, 1);
+                {{ let moved = {label}; assert_eq!(moved.0, "first"); }}
+                assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCst), 1);
+                {label} = Payload("restored".into());
+                let rebuilt = {reconstructed};
+                assert_eq!(rebuilt.field0.field0, 4);
+                assert_eq!(rebuilt.field0.field1.0, "restored");
+                assert_eq!(rebuilt.field1, 9);
+                drop(rebuilt);
+                assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCst), 2);
+            }}
+        "#, outer=layout.record);
+        use std::{io::Write, process::{Command, Stdio}};
+        let executable = std::env::temp_dir().join(format!("tsrust-field-storage-{}", std::process::id()));
+        struct Cleanup(std::path::PathBuf);
+        impl Drop for Cleanup { fn drop(&mut self) { let _ = std::fs::remove_file(&self.0); } }
+        let _cleanup = Cleanup(executable.clone());
+        let mut compiler = Command::new("rustc").args(["-", "--edition=2024"]).arg("-o").arg(&executable).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().unwrap();
+        compiler.stdin.take().unwrap().write_all(source.as_bytes()).unwrap();
+        let compiled = compiler.wait_with_output().unwrap();
+        assert!(compiled.status.success(), "{}", String::from_utf8_lossy(&compiled.stderr));
+        let executed = Command::new(&executable).output().unwrap();
+        assert!(executed.status.success(), "{}", String::from_utf8_lossy(&executed.stderr));
+        assert!(executed.stdout.is_empty());
     }
     #[test]
     fn nested_owned_storage_preserves_declaration_order_and_numeric_paths() {

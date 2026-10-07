@@ -798,3 +798,37 @@ and a borrowing bridge for callback and non-copy data fields. Use original nativ
 red and live-owner controls. Keep nominal types, three wrappers and no implicit
 clone. Follow bounded checks, formatting, SQLite evidence and explicit Git paths;
 never stage protected owner fixtures.
+
+## Field declaration and owning reconstruction rendering
+
+The layout module now renders nested destructuring declarations and whole owning
+record reconstruction. A constructor-symbol callback preserves the caller's
+nominal declaration mapping; native names remain numeric binding/field paths.
+A red native component witness required initializer evaluation exactly once,
+selected payload disposal, field restoration, whole reconstruction and final
+disposal. The payload has no Clone implementation. Generated native code now
+compiles and passes all runtime assertions, with one drop before restoration and
+one after reconstructed ownership ends. Four focused layout/render tests pass.
+Source used to derive the layout formats and round-trips before checking. The
+native driver reads source on stdin and removes its executable on success/failure.
+
+Exact red and green evidence is verified in SQLite under
+runtime/diagnostics/scoped-record-field-rendering/. Project formatting changes
+zero files and fingerprints. This is component verification, not full emitter
+integration: the original project/native independent-field witness remains red.
+No shared compiler dispatch changed. Record gate and gate 173 remain open.
+Consumers remain f1dd284; preserve fifteen owner fixtures.
+
+Next implement whole-record borrowing views for non-copy data and callable fields,
+then connect declaration/selected access/owning reconstruction to emitter storage
+paths without regressing existing readonly parameters and factory results. Borrowed
+data fields need explicit native selection support rather than pretending references
+are owned values. Preserve signature ABI and ownership. Run original project red,
+live-owner controls, parameter/assignment/destructuring/factory positives, and the
+required depth canaries after dispatch integration.
+
+Continuation prompt: Inspect status and read the scoped record field storage plan.
+Continue whole-record view bridges and main emitter wiring using the tested layout
+renderers. Preserve non-copy data borrowing, nominal record ABI, three wrappers
+and no implicit clone. Use bounded checks, project formatting, SQLite evidence and
+explicit Git paths; never stage protected owner fixtures.
