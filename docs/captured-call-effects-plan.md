@@ -196,3 +196,29 @@ source check was rerun after separating that red. Node independently verifies th
 guard results. All eight depth canaries ran unfiltered. No new runtime observation,
 measurement or consumer refresh is claimed. Completion values, contextual parameter
 frames, caller-frame projection and finite inter-call recursion remain next work.
+
+## Contextual invocation frames WIP
+
+The body index now retains formal parameter slots, default initializer metadata and
+rest flags for named functions and real arrows. Trusted forwarding wrappers still
+use their original declaration. Parameters preserve their declared signatures while
+receiving actual supplied callback body provenance.
+
+The isolated invocation frame masks callee-owned lexical slots, initializes fresh
+locals and projects only caller bindings back out of an outcome. Recursive re-entry
+can therefore install a different parameter body without rewriting the suspended
+caller's parameter. Projection indexes outgoing identities once instead of scanning
+all outgoing slots for every caller binding. Contextual summary invocation connects
+these frames to the standalone runner and preserves separate completion states.
+It requires already evaluated default arguments; initializer execution and rest
+packing are not implemented by this layer. It remains unwired from Task::Call.
+
+Twenty-four focused tests pass, covering named and arrow parameters, default/rest
+metadata, absent-body uncertainty, recursive slot isolation and a supplied callback
+body transferred into a captured binding. The 187-test compiler batch passes all
+eight unfiltered depth canaries, explicitly excluding the invocation-effect and
+native-carrier reds. The affected editor intelligence and stdio suites pass 197
+tests. This is metadata WIP, not acceptance; the preceding whole-editor 329-test
+record remains preserved, and full editor verification is still required before
+accepting the eventual invocation implementation. Formatting changes zero files
+and fingerprints. No measurements, new observations or consumer refresh is claimed.

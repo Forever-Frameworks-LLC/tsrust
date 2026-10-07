@@ -7,9 +7,16 @@ struct Scope {
     range: Span,
     binding: BindingId,
 }
+pub(super) struct Parameter {
+    pub binding: Binding,
+    pub initializer: ParameterInitializer,
+    pub rest: bool,
+}
+
 #[derive(Default)]
 pub(super) struct Index {
     bodies: HashMap<(usize, usize), Vec<Stmt>>,
+    parameters: HashMap<(usize, usize), Vec<Parameter>>,
     uses: HashMap<usize, BindingId>,
     declarations: HashMap<usize, BindingId>,
     scopes: Vec<Scope>,
@@ -51,6 +58,11 @@ impl Index {
                 index.add(name, function.scope_span, owner);
             }
             index.locals(&function.body, owner);
+            let parameters = function.params.iter().enumerate().map(|(position, (name, annotation, callback))| {
+                let callback = callback.clone().or_else(|| crate::callable_annotations::callback(annotation));
+                index.parameter(name, function.scope_span, callback.as_ref(), function.parameter_initializers.get(position).cloned().unwrap_or(ParameterInitializer::Required), function.rest_parameter && position + 1 == function.params.len())
+            }).collect();
+            index.parameters.insert((function.name.span.start, function.name.span.end), parameters);
             let mut probe = function.clone();
             crate::source_walk::function_body(&mut probe, &mut |_| Ok(()), &mut |expression| {
                 if let ExprKind::Closure { params, body, .. } = &expression.kind {
@@ -72,6 +84,15 @@ impl Index {
                         index.add(&parameter.name, expression.span, owner);
                     }
                     index.locals(body, owner);
+                    let parameters = params.iter().map(|parameter| {
+                        let callback = match &parameter.ty {
+                            ParameterAnnotation::Callback(callback) => Some(callback.as_ref().clone()),
+                            ParameterAnnotation::Named(annotation) => crate::callable_annotations::callback(annotation),
+                            ParameterAnnotation::Inferred(_) => None,
+                        };
+                        index.parameter(&parameter.name, expression.span, callback.as_ref(), parameter.initializer.clone(), parameter.rest)
+                    }).collect();
+                    index.parameters.insert((expression.span.start, expression.span.end), parameters);
                 }
                 Ok(())
             })?;
@@ -168,6 +189,16 @@ impl Index {
                 .min_by_key(|scope| scope.range.end - scope.range.start)
                 .map(|scope| scope.binding)
         })
+    }
+    fn parameter(&self, name: &Token, scope: Span, callback: Option<&CallbackAnnotation>, initializer: ParameterInitializer, rest: bool) -> Parameter {
+        Parameter { binding: Binding {
+            identity: self.declared(name.span), name: name.text.clone(), scope,
+            targets: vec![Target::Unknown], origins: vec![body_origins::Origin::Unknown],
+            mutable: false, contract: callback.map(|callback| parameters(&callback.params, name.span)),
+        }, initializer, rest }
+    }
+    pub(super) fn parameters(&self, declaration: Span) -> Option<&[Parameter]> {
+        self.parameters.get(&(declaration.start, declaration.end)).map(Vec::as_slice)
     }
     pub(super) fn body(&self, declaration: Span) -> Option<&[Stmt]> {
         self.bodies

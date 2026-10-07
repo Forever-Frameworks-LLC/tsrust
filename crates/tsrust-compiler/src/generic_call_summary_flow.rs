@@ -42,6 +42,18 @@ pub(super) fn run(body: &[Stmt], initial: &[Binding], declarations: &HashMap<Str
     Some(Outcome { normal: states[graph.exits.normal].take(), returning: states[graph.exits.returning].take(), throwing: states[graph.exits.throwing].take(), facts })
 }
 
+/// One contextual body evaluation projects captured state back to its caller.
+/// Arguments must already include evaluated defaults; rest packing is deferred.
+/// Nested invocation dispatch remains the responsibility of the worklist engine.
+pub(super) fn invoke(declaration: Span, caller: &[Binding], arguments: &[expression_flow::Value], declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index) -> Option<Outcome> {
+    let frame = invocation_frame::Frame::build(declaration, caller, arguments, effects)?;
+    let mut outcome = run(effects.body(declaration)?, &frame.state, declarations, effects)?;
+    outcome.normal = outcome.normal.map(|state| frame.project(&state));
+    outcome.returning = outcome.returning.map(|state| frame.project(&state));
+    outcome.throwing = outcome.throwing.map(|state| frame.project(&state));
+    Some(outcome)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -92,5 +104,27 @@ mod tests {
         assert_eq!(outcomes("try{action=two;throw 1;}catch(error){return;}"),(None,Some(2),None));
         assert_eq!(outcomes("try{action=two;return;}finally{action=one;throw 2;}"),(None,None,Some(1)));
         assert_eq!(outcomes("try{action=two;throw 1;}finally{action=one;return;}"),(None,Some(1),None));
+    }
+}
+
+#[cfg(test)]
+mod contextual_tests {
+    use super::*;
+    #[test]
+    fn supplied_parameter_body_reaches_captured_assignment_and_projects_only_caller_slots() {
+        let source=crate::format("function one():int{return 1;}function two():int{return 2;}function main(){let shared=one;function replace(next:Function<int>){shared=next;}}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let program=crate::syntax::parse(&source).unwrap();
+        let effects=effect_bodies::Index::new(&program).unwrap();
+        let main=program.functions.iter().find(|function|function.name.text=="main").unwrap();
+        let replace=program.functions.iter().find(|function|function.name.text.ends_with("#replace")).unwrap();
+        let two=program.functions.iter().find(|function|function.name.text=="two").unwrap().name.span;
+        let mut caller=Vec::new();collect(&main.body,&mut caller,&effects);
+        let outcome=invoke(replace.name.span,&caller,&[expression_flow::Value::from_origins(vec![body_origins::Origin::Body(two)])],&HashMap::new(),&effects).unwrap();
+        let normal=outcome.normal.unwrap();
+        assert_eq!(normal.len(),caller.len());
+        assert_eq!(normal[0].identity,caller[0].identity);
+        assert_eq!(normal[0].origins,vec![body_origins::Origin::Body(two)]);
+        assert!(outcome.returning.is_none());assert!(outcome.throwing.is_none());
     }
 }

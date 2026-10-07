@@ -10,6 +10,8 @@ mod expression_flow;
 mod node_flow;
 #[path = "generic_call_summary_flow.rs"]
 mod summary_flow;
+#[path = "generic_call_invocation_frame.rs"]
+mod invocation_frame;
 
 pub(super) fn binding_at(bindings: &[Binding], name: &str, span: Span, effects: &effect_bodies::Index) -> Option<usize> {
     if let Some(identity) = effects.binding(name, span) {

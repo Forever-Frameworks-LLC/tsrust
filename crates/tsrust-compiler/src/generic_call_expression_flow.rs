@@ -10,6 +10,7 @@ pub(super) struct Value {
     undefined: Option<bool>,
 }
 impl Value {
+    pub(super) fn from_origins(origins: Vec<body_origins::Origin>) -> Self { Self { origins: body_origins::canonical(origins), ..Self::default() } }
     pub(super) fn known_truth(&self) -> Option<bool> { self.truth }
 }
 
