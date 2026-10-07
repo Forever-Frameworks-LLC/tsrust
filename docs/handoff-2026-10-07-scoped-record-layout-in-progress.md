@@ -30,17 +30,18 @@ The original failed evidence is preserved.
 
 ## Focused proof and remaining acceptance
 
-Eight scoped_callable_records tests now pass: readonly repeated invocation, mutable
+Eleven scoped_callable_records tests now have passing evidence: readonly repeated invocation, mutable
 original capture updates and scope release, separate instances with record/field
 moves, nullable present invocation, contextual arrows, absent/undefined/omitted
-optional fields, nested record projection and three escape/conflict controls. Seven
+optional fields, nested record projection, record/nullable-family captures, empty
+owned factories and escape/conflict controls. Nine
 positive source cases now explicitly pass after TypeScript compilation with Node
 assertions. The reference extractor accepts multiline Rust calls and trailing commas;
 its expected case count prevents silently skipping formatted fixtures.
 
 Correction: the previous checkpoint's claim of five passing Node source counterparts
 was incorrect. Its extractor missed formatted Rust calls and those later reference
-runs failed. Use the current seven-case proof; original failed logs remain in SQLite.
+runs failed. Use the current nine-case proof; original failed logs remain in SQLite.
 An unrelated helper formatting change from recursive rustfmt traversal is removed.
 Use skip_children when formatting Rust test files so support modules stay untouched.
 
@@ -53,8 +54,9 @@ Complete the following before accepting the record gate:
 
 - Extend nullable and nested coverage to failure, mutable captures, conditional
   absence and nested transfers, including conflicting owner access while live.
-- Audit closures that capture a scoped record, recursive layouts and arrays. Native
-  captured environments must use named lifetimes, not unresolved signature placeholders.
+- Extend record-capture coverage to mutable environments, data union/view captures,
+  recursive layouts and arrays. Native environments must use named lifetimes and
+  preserve generic callback bounds, not unresolved signature placeholders.
 - Check record parameter, result and retaining-transfer boundaries. Do not allow an unresolved
   native signature parameter to surface as a generated Rust error.
 - Track field loan provenance through inner-scope transfers, partial field moves,
@@ -95,3 +97,40 @@ callable storage size control pass. Whole-project formatting remains required be
 checkpoint. These are work-in-progress results; full editor verification, workload
 support and the remaining lifetime/boundary checks are still owed before acceptance.
 Exact current evidence is stored under runtime/diagnostics/scoped-record-continuation/.
+
+## Captured record environment lifetime implementation
+
+environment_lifetimes counts concrete by-value lifetime slots through record fields
+and nullable alternatives with an iterative traversal. Repeated fields keep distinct
+slots. Cycles, unresolved layouts and counts above 128 conservatively produce the
+existing over-limit sentinel. Source closure checking includes nested closure and
+borrowed-family lifetimes when deciding whether an environment borrows storage.
+An owned result can no longer hide borrowed storage by capturing its enclosing record.
+
+callable_layout separates generic capture layout from named environment rendering.
+scoped_record_emit renders concrete records, callable nullable payloads and borrowed
+families using the exact named slots. Existing callback bounds remain on concrete
+closure arguments. Ordinary data capture behavior is retained. Full nullable data
+record/view and array composition still needs its own proof; callable payload support
+does not establish general aggregate-union support.
+
+The original nested-record capture failed with a generated Rust missing-lifetime
+error. Its repaired source/native witness passes. The owned escape control now
+reports the existing closure-escape diagnostic; an earlier assertion incorrectly
+expected callback-escape and is repaired. Additional proof covers nullable borrowed
+families, direct nullable callable capture and an owned empty factory, which must
+not acquire a fabricated lifetime.
+
+The compiler batch passes 80 tests, including all eight canaries, existing scoped
+traversal and ten record tests. The additional family witness passes separately,
+including its later direct nullable-capture extension. Nine extracted positive
+cases pass Node after TypeScript compilation. Two lifetime-count tests, four capture
+layout controls, the scoped editor signature test and five existing matched adapter
+cases pass. No timing or measurement-status changes occur. Current exact evidence
+lives under runtime/diagnostics/scoped-record-captures/ in SQLite.
+
+Next implement record parameter/result and retaining-transfer boundaries, then field
+loan provenance across inner scopes, partial moves, mutation and disposal. Do not
+accept the complete record gate before the remaining guide, workload and whole-editor
+checks. The warm compiler is work in progress; installed/editor consumers remain
+on the preceding accepted commit. Preserve all 15 owner fixtures.

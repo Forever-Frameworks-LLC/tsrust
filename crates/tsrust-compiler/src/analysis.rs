@@ -2203,14 +2203,15 @@ impl Analyzer {
         // Cap the count just above the supported limit; inference never emits
         // this layout, and final checking still enforces the actual guard.
         let lifetime_count = captures.iter().fold(0usize, |total, capture| {
-            let nested = match self
-                .unions
-                .payload(context.bindings[capture.inner].ty)
-                .unwrap_or(context.bindings[capture.inner].ty)
-            {
-                Type::Closure(id) => self.closures[id].lifetime_count,
-                _ => 0,
-            };
+            let nested = crate::environment_lifetimes::count(
+                context.bindings[capture.inner].ty, &self.program.records,
+                |id| self.unions.members(id),
+                |ty| match ty {
+                    Type::Closure(id) => self.closures[id].lifetime_count,
+                    Type::BorrowedCallable(id) => self.callables.storage.origins(id).expect("checked borrowed origins").iter().map(|&origin| self.closures[origin].lifetime_count).sum(),
+                    _ => 0,
+                },
+            );
             (total + usize::from(matches!(capture.storage, Mode::Read | Mode::Mutate)) + nested)
                 .min(129)
         });

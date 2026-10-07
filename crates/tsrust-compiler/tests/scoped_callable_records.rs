@@ -215,3 +215,76 @@ fn nested_scoped_records_preserve_distinct_layouts_and_original_captures() {
         }
     "#);
 }
+
+#[test]
+fn closure_capturing_nested_scoped_record_preserves_environment_lifetimes() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int, [value: int]>>; };
+        type Envelope = { holder: Holder; };
+        function main() {
+            const offsets = [3, 7];
+            {
+                const holder: Holder = { run: (value): int => value + offsets[0] };
+                const envelope: Envelope = { holder: holder };
+                const invoke = (value: int): int => envelope.holder.run(value);
+                strictEqual(invoke(2), 5);
+                strictEqual(invoke(4), 7);
+            }
+            offsets[0] = 9;
+            strictEqual(offsets[0], 9);
+        }
+    "#);
+}
+
+#[test]
+fn escaping_closure_cannot_hide_borrowed_storage_inside_a_record_capture() {
+    let source = r#"
+        type Holder = { run: ReadOnly<Function<int, [value: int]>>; };
+        function make(): () => int {
+            const offsets = [3, 7];
+            const holder: Holder = { run: (value): int => value + offsets[0] };
+            return (): int => holder.run(2);
+        }
+        function main() {}
+    "#;
+    let error = match tsrust_compiler::check(source) { Ok(_) => panic!("accepted borrowed record environment escape"), Err(error) => error };
+    assert_eq!(error.code, "closure-escape", "{error:?}");
+}
+
+#[test]
+fn record_capture_names_borrowed_family_lifetimes_and_keeps_empty_factory_owned() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Optional = { run?: ReadOnly<Function<int, [value: int]>>; };
+        function empty(): () => int {
+            const missing: Optional = {};
+            return (): int => missing.run?.(3) ?? 0;
+        }
+        function main() {
+            const offsets = [3, 7];
+            {
+                const selected = offsets.length === 2
+                    ? (value: int): int => value + offsets[0]
+                    : (value: int): int => value + offsets[1];
+                const optional = offsets.length === 2 ? selected : undefined;
+                const holder: Optional = { run: optional };
+                const invoke = (value: int): int => holder.run?.(value) ?? 0;
+                strictEqual(invoke(2), 5);
+                strictEqual(invoke(4), 7);
+                const standaloneSelected = offsets.length === 2
+                    ? (value: int): int => value + offsets[0]
+                    : (value: int): int => value + offsets[1];
+                const standalone = offsets.length === 2 ? standaloneSelected : undefined;
+                const invokeStandalone = (value: int): int => standalone?.(value) ?? 0;
+                strictEqual(invokeStandalone(2), 5);
+                strictEqual(invokeStandalone(4), 7);
+            }
+            offsets[0] = 9;
+            strictEqual(offsets[0], 9);
+            const ownedEmpty = empty();
+            strictEqual(ownedEmpty(), 0);
+            strictEqual(ownedEmpty(), 0);
+        }
+    "#);
+}

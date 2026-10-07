@@ -808,7 +808,10 @@ impl Emitter<'_> {
         &self,
         closure: &crate::analysis::CheckedClosure,
     ) -> (Vec<String>, Vec<String>) {
-        crate::callable_layout::capture_layout(self.program, closure, |ty| self.native_type(ty))
+        crate::callable_layout::capture_layout_with_environments(
+            self.program, closure, |ty| self.native_type(ty),
+            |ty, lifetimes| Some(self.named_record_environment_type(ty, lifetimes)),
+        )
     }
 
     fn record_inspectable(&self, record: usize) -> bool {

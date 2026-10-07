@@ -22,4 +22,42 @@ impl Emitter<'_> {
         )
         .scoped
     }
+
+    pub(super) fn named_record_environment_type(&self, ty: Type, lifetimes: &[String]) -> String {
+        let mut next = 0;
+        let result = self.record_environment_type(ty, lifetimes, &mut next);
+        assert_eq!(next, lifetimes.len(), "checked environment lifetime slots");
+        result
+    }
+
+    fn record_environment_type(&self, ty: Type, lifetimes: &[String], next: &mut usize) -> String {
+        match ty {
+            Type::Closure(id) => {
+                let count = self.program.closures[id].lifetime_count;
+                let mut arguments = lifetimes[*next..*next + count].to_vec();
+                *next += count;
+                arguments.extend(self.captured_callback_bounds(&self.program.closures[id]).iter().map(|bound| bound.split(':').next().expect("capture generic").trim().to_owned()));
+                format!("Closure{id}{}", lifetime_parameters(&arguments))
+            }
+            Type::BorrowedCallable(id) => {
+                let arguments = self.program.stored_contracts.origins(id).expect("borrowed origins").iter().map(|&origin| self.record_environment_type(Type::Closure(origin), lifetimes, next)).collect::<Vec<_>>();
+                format!("BorrowedCallable{id}<{}>", arguments.join(", "))
+            }
+            Type::Record(id) => {
+                let arguments = self.program.records[id].fields.iter().filter_map(|field| {
+                    let ty = field.ty.expect("checked record field");
+                    self.scoped_record_native_parameter(ty).then(|| self.record_environment_type(ty, lifetimes, next))
+                }).collect::<Vec<_>>();
+                format!("Record{id}{}", lifetime_parameters(&arguments))
+            }
+            Type::Union(id) | Type::BorrowedUnion(id) => {
+                if let Some(payload) = self.callback_payload(ty) {
+                    let payload = self.record_environment_type(payload, lifetimes, next);
+                    format!("Union{}<{payload}>", id.index())
+                } else { self.native_type(ty) }
+            }
+            _ => self.native_type(ty),
+        }
+    }
+
 }

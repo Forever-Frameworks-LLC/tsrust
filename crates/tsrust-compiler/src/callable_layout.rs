@@ -54,6 +54,15 @@ pub(crate) fn capture_layout(
     closure: &CheckedClosure,
     data_type: impl Fn(Type) -> String,
 ) -> (Vec<String>, Vec<String>) {
+    capture_layout_with_environments(program, closure, data_type, |_, _| None)
+}
+
+pub(crate) fn capture_layout_with_environments(
+    program: &CheckedProgram,
+    closure: &CheckedClosure,
+    data_type: impl Fn(Type) -> String,
+    environment_type: impl Fn(Type, &[String]) -> Option<String>,
+) -> (Vec<String>, Vec<String>) {
     let lifetimes = (0..closure.lifetime_count)
         .map(|id| format!("'c{id}"))
         .collect::<Vec<_>>();
@@ -112,7 +121,21 @@ pub(crate) fn capture_layout(
                     next += count;
                     format!("Closure{id}{generics}")
                 }
-                other => data_type(other),
+                other => {
+                    let count = crate::environment_lifetimes::count(
+                        other, &program.records, |id| program.unions[id.index()].members.clone(),
+                        |ty| match ty {
+                            Type::Closure(id) => program.closures[id].lifetime_count,
+                            Type::BorrowedCallable(id) => program.stored_contracts.origins(id).expect("borrowed origins").iter().map(|&origin| program.closures[origin].lifetime_count).sum(),
+                            _ => 0,
+                        },
+                    );
+                    if count != 0 {
+                        let rendered = environment_type(other, &lifetimes[next..next + count]);
+                        next += count;
+                        rendered.unwrap_or_else(|| data_type(other))
+                    } else { data_type(other) }
+                },
             };
             if let Some(id) = captured.union() {
                 if let Some(lifetime) = view_lifetime {
@@ -122,7 +145,7 @@ pub(crate) fn capture_layout(
                         if payload == captured
                             || !matches!(
                                 payload,
-                                Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_)
+                                Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)
                             )
                         {
                             String::new()
@@ -133,7 +156,7 @@ pub(crate) fn capture_layout(
                 }
                 if matches!(
                     payload,
-                    Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_)
+                    Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)
                 ) {
                     return format!("{reference}Union{}<{field_type}>", id.index());
                 }
