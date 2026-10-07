@@ -395,3 +395,28 @@ fn main(){source_main();assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCs
     let directory=support::TempDirectory::new();let path=directory.0.join("conditional-owned-origins.rs");std::fs::write(&path,rust).unwrap();
     for level in ["0","3"] {let binary=directory.0.join(format!("conditional-owned-origins-{level}"));support::success(&support::run(support::rustc().args(["--edition=2024","-C",&format!("opt-level={level}")]).arg(&path).arg("-o").arg(&binary),60));support::success(&support::run(&mut std::process::Command::new(binary),10));}
 }
+
+#[test]
+fn borrowed_conditional_carriers_preserve_selected_local_capture_mutation() {
+    support::execute(r#"
+        function readSelected(flag:boolean):int {
+            const left=[3];const right=[7,9];
+            const action=flag?(()=>left.length):(()=>right.length);
+            return action();
+        }
+        function mutateSelected(flag:boolean):int {
+            let left=0;let right=10;let calls=0;
+            {
+                const first=():int=>{left+=1;return left;};
+                const second=():int=>{right+=2;return right;};
+                const selected=flag?first:second;
+                calls=selected()+selected();
+            }
+            return calls+left+right;
+        }
+        function main(){
+            console.log(readSelected(true),readSelected(false));
+            console.log(mutateSelected(true),mutateSelected(false));
+        }
+    "#, "1 2\n15 40\n", None);
+}

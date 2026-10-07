@@ -83,3 +83,13 @@ The five-case verification is stored as
 and compared byte for byte before its loose copy was removed. SQLite quick_check
 passes. The four workspace debug/editor consumers and installed CLI have been
 refreshed atomically. Already running editor servers require a restart.
+
+## Next gate red
+
+Owned prerequisite accepted at 30c92f1. The borrowed carrier witness now fails
+at distinct readonly capture origins; its mutable local selection cases remain
+part of the intended behavior. Read the final section of
+docs/conditional-callable-carriers-plan.md before implementation. The red is
+intentional and does not revoke owned prerequisite acceptance. Its exact failure
+and the zero-change whole-project formatting check are stored in SQLite under
+`runtime/diagnostics/borrowed-conditional-carriers/`.

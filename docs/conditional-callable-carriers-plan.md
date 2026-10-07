@@ -57,3 +57,32 @@ Run focused tests, eight depth canaries after dispatch changes and the complete
 editor crate at each acceptance boundary. Keep matched benchmark support ready
 and correctness evidence in SQLite. Accept the complete feature only when borrowed
 and polymorphic cases and replacement are also verified. Gate 173 stays open.
+
+## Borrowed carrier gate started
+
+The retained witness
+`borrowed_conditional_carriers_preserve_selected_local_capture_mutation` currently
+fails at the two readonly array-capturing alternatives: their closure origins
+are distinct, and the conditional join still requires identical origins. The
+same witness also defines two local mutable scalar captures. Its intended native
+output is `1 2` followed by `15 40`, including repeated invocation and observation
+of the original locals after the selected handle leaves its scope. No production
+implementation for this gate has been added.
+
+The current storage admission explicitly rejects borrowed environments. Merely
+removing that guard is invalid: callable_dispatch.rs emits concrete origin fields
+without a lifetime-bearing family contract, and readonly stored dispatch means
+shared ownership rather than a local borrow. First introduce a separate checked
+borrowed-family contract and native representation that carries each alternative's
+actual capture lifetime and invocation access. Keep source capture loans attached
+to the selected expression through scope exit. Verify readonly/mutable alternatives,
+conflicting access, escapes and selected-branch construction independently before
+extending mixed owning/borrowed alternatives. Preserve the existing owned-family
+admission controls. A generic native sum of concrete environment alternatives is
+a candidate to investigate; do not choose dynamic dispatch or cloning solely to
+make the witness pass.
+
+The red and formatting evidence are byte-verified in SQLite under
+`runtime/diagnostics/borrowed-conditional-carriers/`. Whole-project formatting
+changes zero files and fingerprints. The accepted owned prerequisite is commit
+30c92f1. All 15 owner-edited fixtures remain unstaged.
