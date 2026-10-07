@@ -579,3 +579,37 @@ matched benchmark acceptance. No consumer refresh or timing is claimed.
 All 64 depth canaries pass. Formatting changes zero files and fingerprints.
 Exact red/green and retained-conflict evidence is verified in SQLite under
 runtime/diagnostics/scoped-record-writes/.
+
+
+## Expression stores and loop-origin controls
+
+The loop record replacement boundary already passes with zero, one and three
+iterations. Its native witness observes the original callback at zero iterations
+and the replacement callback after executed iterations, then mutates both arrays
+after storage disposal. No loop implementation change was needed for this witness.
+
+The first parenthesized store witness parsed as an assignment statement and passed.
+It was strengthened to an assignment inside a comma expression. That native source
+failed because expression emission still named the removed aggregate local and
+carrier planning missed writes inside an expression initializer. Expression-level
+void stores now use the same independent owning-record assignment renderer as
+statements. Relevant record and callback-field stores are collected through comma
+expressions, calls, wrappers, array/record children and other expression operands.
+Checking retains its existing replacement ownership and evaluation-order rules.
+
+Both whole-record and callback-field comma-store native witnesses pass. They observe
+the replacement callback result, mutate the released old captured array while the
+new callback stays live, and release the replacement capture at block exit. This
+checkpoint does not add owned assignment-result values or an implicit clone: these
+stores are discarded prefixes and the subsequent expression observes retained storage.
+
+Nested stores inside an owning record RHS, condition operands, expression-result
+alias transport, borrowed parameter replacement, captured carriers, default/exception
+disposal, owning/opaque composition and fallible callbacks remain boundary work.
+Complete those and editor/guide plus matched benchmark support before record feature
+acceptance. No consumers or owner fixtures change; no timing is claimed.
+
+All 34 project tests and 64 depth canaries pass. Formatting changes zero files
+and fingerprints. Exact evidence, including the passing initial statement witness
+and the failing strengthened expression witness, is verified in SQLite under
+runtime/diagnostics/scoped-record-expressions/.

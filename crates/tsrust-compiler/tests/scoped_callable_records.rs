@@ -731,3 +731,58 @@ fn callback_field_replacement_keeps_moved_sibling_and_new_capture_conflicts() {
         assert_eq!(error.code,"capture-conflict","{owner}: {error:?}");
     }
 }
+
+#[test]
+fn loop_record_replacement_preserves_zero_and_repeated_iteration_origins() {
+    for (limit,expected) in [(0,3),(1,7),(3,7)] {
+        project(&format!(r#"
+            import {{ strictEqual }} from "std:testing";
+            type Holder={{run:ReadOnly<Function<int>>;}};
+            function main(){{
+                const a=[3]; const b=[7];
+                {{
+                    let holder:Holder={{run:():int=>a[0]}};
+                    let count=0;
+                    while(count<{limit}){{holder={{run:():int=>b[0]}};count+=1;}}
+                    strictEqual(holder.run(),{expected});
+                }}
+                a[0]=5;b[0]=9;strictEqual(a[0]+b[0],14);
+            }}
+        "#));
+    }
+}
+
+#[test]
+fn expression_record_store_releases_old_capture_and_retains_new_owner() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder={run:ReadOnly<Function<int>>;};
+        function main(){
+            const a=[3];const b=[11];
+            {
+                let holder:Holder={run:():int=>a[0]};
+                const result=((holder={run:():int=>b[0]}),holder.run());
+                strictEqual(result,11);
+                a[0]=5;strictEqual(a[0],5);strictEqual(holder.run(),11);
+            }
+            b[0]=13;strictEqual(b[0],13);
+        }
+    "#);
+}
+
+#[test]
+fn expression_callback_field_store_preserves_result_and_capture_release() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder={run:ReadOnly<Function<int>>;};
+        function main(){
+            const a=[3];const b=[11];
+            {
+                let holder:Holder={run:():int=>a[0]};
+                const result=((holder.run=():int=>b[0]),holder.run());
+                strictEqual(result,11);a[0]=5;strictEqual(a[0],5);
+            }
+            b[0]=13;strictEqual(b[0],13);
+        }
+    "#);
+}

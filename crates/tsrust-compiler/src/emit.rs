@@ -7211,7 +7211,7 @@ impl Emitter<'_> {
                 if matches!(target.kind,ExprKind::Name(_)){
                     let id=target.binding.expect("checked assignment binding");
                     let assigned=self.expr(fun,value,Mode::Consume);
-                    format!("{{{}value{id}={assigned};}}",if fun.bindings[id].capture_reference{"*"}else{""})
+                    if let Some(store)=self.owned_record_assignment(fun,id,&assigned){format!("{{{store}}}")}else{format!("{{{}value{id}={assigned};}}",if fun.bindings[id].capture_reference{"*"}else{""})}
                 }else{self.storage_assignment(fun,target,value)}
             }
             ExprKind::Assign { target, value, .. } => self.scalar_assignment(fun, target, value),

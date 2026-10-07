@@ -24,10 +24,29 @@ impl Analyzer {
         Ok(())
     }
     pub(super) fn record_sequence_carriers(&mut self,context:&mut Context,body:&mut[Stmt])->Result<(),Diagnostic>{
+        fn expression_writes(expr:&mut Expr)->Vec<(usize,Vec<String>,&mut Expr)>{
+            let mut result=Vec::new();
+            match &mut expr.kind{
+                ExprKind::Assign{target,value,..}=>{
+                    let selected=Analyzer::root_binding(target).zip(Analyzer::direct_fields(target)).filter(|(_,(_,path))|matches!(value.ty,Some(Type::Record(_))) || !path.is_empty() && matches!(value.ty,Some(Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_))));
+                    if let Some((id,(_,path)))=selected{result.push((id,path,value.as_mut()));}
+                    else{result.extend(expression_writes(target));result.extend(expression_writes(value));}
+                },
+                ExprKind::Sequence(values)|ExprKind::Array(values)|ExprKind::ArrayOf(values,_)|ExprKind::SetConstructor(values,_)|ExprKind::MapConstructor(values,_)|ExprKind::Template(values)=>{for value in values{result.extend(expression_writes(value));}},
+                ExprKind::Unary{value,..}|ExprKind::OptionalChain(value)|ExprKind::TypeAssertion{value,..}|ExprKind::Project{value,..}|ExprKind::Inject{value,..}|ExprKind::Field(value,_)|ExprKind::Update{target:value,..}=>result.extend(expression_writes(value)),
+                ExprKind::Binary{left,right,..}|ExprKind::Index(left,right)|ExprKind::CompoundAssign{target:left,value:right,..}|ExprKind::CoalesceAssign{target:left,value:right,..}|ExprKind::LogicalAssign{target:left,value:right,..}|ExprKind::Optional{base:left,body:right,..}=>{result.extend(expression_writes(left));result.extend(expression_writes(right));},
+                ExprKind::Conditional{predicate,consequent,alternate}=>{result.extend(expression_writes(predicate));result.extend(expression_writes(consequent));result.extend(expression_writes(alternate));},
+                ExprKind::Call(callee,args)=>{result.extend(expression_writes(callee));for value in args{result.extend(expression_writes(value));}},
+                ExprKind::Record(fields)=>{for(_,value)in fields{result.extend(expression_writes(value));}},
+                ExprKind::SpreadCall(plan)=>{for value in plan.expressions_mut(){result.extend(expression_writes(value));}},
+                _=>{}
+            }result
+        }
         fn writes(body:&mut[Stmt])->Vec<(usize,Vec<String>,&mut Expr)>{
             let mut result=Vec::new();
             for stmt in body{match &mut stmt.kind{
-                StmtKind::Let{binding:Some(id),value,..} if matches!(value.ty,Some(Type::Record(_))) && !value.is_deferred()=>result.push((*id,Vec::new(),value)),
+                StmtKind::Let{binding,value,..}=>{if let Some(id)=binding && matches!(value.ty,Some(Type::Record(_))) && !value.is_deferred(){result.push((*id,Vec::new(),value));}else{result.extend(expression_writes(value));}},
+                StmtKind::Expr(value)|StmtKind::Throw(value)|StmtKind::Return(Some(value))=>result.extend(expression_writes(value)),
                 StmtKind::Assign{target,value,operator:None}=>{if let(Some(id),Some((_,path)))=(Analyzer::root_binding(target),Analyzer::direct_fields(target)){if matches!(value.ty,Some(Type::Record(_))) || !path.is_empty() && matches!(value.ty,Some(Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_))){result.push((id,path,value));}}},
                 StmtKind::Block(body)|StmtKind::While{body,..}|StmtKind::ForOf{body,..}=>result.extend(writes(body)),
                 StmtKind::If{then_body,else_body,..}=>{result.extend(writes(then_body));result.extend(writes(else_body));},
