@@ -4,6 +4,8 @@ mod callback_family_result_adapters;
 mod borrowed_callable_emit;
 #[path = "scoped_record_emit.rs"]
 mod scoped_record_emit;
+#[path = "scoped_record_support_emit.rs"]
+mod scoped_record_support_emit;
 #[path = "exception_contract_emit.rs"]
 mod exception_contract_emit;
 #[path = "exception_emit.rs"]

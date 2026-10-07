@@ -112,7 +112,10 @@ impl Layout {
             return None;
         }
         let Type::Record(record) = binding.ty else { return None; };
-        let mut pending = vec![(binding.ty, Vec::new(), Vec::new())];
+        Self::for_record(record,records)
+    }
+    pub(crate) fn for_record(record: usize, records: &[Record]) -> Option<Self> {
+        let mut pending = vec![(Type::Record(record), Vec::new(), Vec::new())];
         let mut leaves = Vec::new();
         while let Some((ty, path, ancestors)) = pending.pop() {
             if path.len() > 128 { return None; }
@@ -137,7 +140,7 @@ impl Layout {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     fn checked() -> crate::Analysis {
         let source = r#"type Inner = { value: int; label: string; }; type Outer = { nested: Inner; score: int; }; function main(){const box:Outer={nested:{value:4,label:"x"},score:9};}"#;
@@ -145,7 +148,7 @@ mod tests {
         assert_eq!(crate::format(&source).unwrap(), source);
         crate::check(&source).unwrap()
     }
-    fn native(source: &str) { native_expectation(source, None); }
+    pub(crate) fn native(source: &str) { native_expectation(source, None); }
     fn native_rejection(source: &str, diagnostic: &str) { native_expectation(source, Some(diagnostic)); }
     fn native_expectation(source: &str, rejection: Option<&str>) {
         use std::{io::Write, process::{Command, Stdio}};
@@ -340,7 +343,9 @@ mod tests {
     fn native_shared_and_mutable_views_borrow_non_copy_data_in_place() {
         let checked = checked();
         let binding = checked.program.functions[0].bindings.iter().find(|binding| binding.name == "box").unwrap();
-        let layout = Layout::for_binding(binding, &checked.program.records, true).unwrap();
+        let Type::Record(record)=binding.ty else{panic!("record binding")};
+        let layout=Layout::for_record(record,&checked.program.records).expect("nominal record layout");
+        assert_eq!(layout.leaves,Layout::for_binding(binding,&checked.program.records,true).unwrap().leaves);
         let Type::Record(inner) = checked.program.records[layout.record].fields[0].ty.unwrap() else { panic!("inner record"); };
         let declaration = layout.declaration(8, true, "initial()", &checked.program.records, |id| format!("Record{id}"));
         let shared = layout.selected_value(8, &[], crate::Mode::Read, &checked.program.records, |id| format!("ReadRecord{id}")).expect("whole shared selection");

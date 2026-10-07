@@ -70,7 +70,10 @@ separately and preserve their current diagnostics until their own support is pro
    contracts. Owned carriers may use generic child records with separate read/mutate
    child constraints, associated leaf types and accessor expressions. Repeated child occurrences receive separate parent generic arguments while
    sharing one nominal child declaration. Ten component tests pass.
-   Production parameter/field routing and main emitter integration remain pending.
+   An isolated emitter adapter now derives view/bridge support from checked nominal
+   records and actual native ABI slots. Native execution verifies distinct nested
+   callback environments against compiler-generated owned records. Automatic support
+   emission, parameter/field routing and main emitter integration remain pending.
    **Whole-record transport.** Reconstruct owning values from field places only on
    a checked whole move. Borrowed whole-record consumers need a compatible view
    or bridge that references original fields and supports existing callable bounds.

@@ -1073,3 +1073,44 @@ whole-move routing. Keep opaque boundaries, property ordering, captures/completi
 original red and live-owner controls in scope. Use bounded checks, required depth
 canaries after dispatch changes, automatic formatting, SQLite evidence and explicit
 Git paths. Never stage owner fixtures. Record gate and gate 173 remain open.
+
+## Checked production metadata adapter
+
+Layout::for_record now validates a static nominal record directly. Binding storage
+eligibility remains in for_binding, which delegates to the same validator. Ten
+layout/rendering tests pass, including direct nominal layout native verification.
+Test-only native compilation helpers are shared with the new emitter adapter tests.
+
+New scoped_record_support_emit.rs derives borrowing support from checked program
+metadata and Emitter::native_type/scoped_record_native_parameter. It produces view
+slots, child occurrence arguments, owned ABI generic parameters, child read/mutate
+constraints and associated leaf access expressions. It traverses the checked record
+family, generates views and nominal bridges, and preserves concrete data leaf types.
+The helper is not yet invoked by ordinary emission.
+
+A focused native test appends this adapter's output to the ordinary compiler-emitted
+program and executes an explicit verification function. It creates two nested Holder
+instances with distinct String and Vec callback environments using the actual
+compiler-owned Record ABI, then invokes both through the generated generic nominal
+read bridge on owned storage and a shared view. Assertions require result 14.
+The initial source used retired read syntax; its diagnostics remain preserved.
+The corrected ReadOnly<Pair> witness establishes the adapter API red, then passes
+generated native compilation and execution after connection to checked metadata.
+
+Exact type-layout and adapter diagnostics/results are verified in SQLite under
+runtime/diagnostics/scoped-record-production-metadata/. Project formatting changes
+zero files and fingerprints. Shared parser/analyzer/emitter dispatch is unchanged.
+The original project/native independent-field witness remains red. Ordinary support
+emission needs shared declaration caching across roots so nested families do not
+redeclare their views or bridges. Parameter and storage routing remain open. Preserve
+property-order metadata and opaque/capture/completion boundaries. Consumers remain
+f1dd284; preserve fifteen owner fixtures.
+
+Continuation prompt: Continue Tsrust from this handoff and the scoped record field
+storage plan. Connect checked borrowing support to ordinary type emission with
+shared view/bridge declaration caches across nominal roots. Then integrate generic
+parameter constraints, field selection, declarations/stores and whole moves. Keep
+original red and live-owner controls unchanged. Use bounded native/editor checks,
+dispatch depth canaries after routing changes, automatic formatting, SQLite evidence
+and explicit Git paths. Never stage owner fixtures. Record gate and gate 173 remain
+open; no performance measurements have been taken for this feature.
