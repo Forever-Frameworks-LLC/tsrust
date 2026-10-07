@@ -75,3 +75,19 @@ Continue prompt:
 > witnesses. Do not lift read-only guards or claim common native callable carriers
 > supported without their focused native evidence. Keep benchmarks ready and
 > unmeasured until timing, use bounded checks, whole-project formatting and SQLite.
+
+
+## Next red checkpoint
+
+A source-flow unit witness now requires sequential captured-slot updates, exact
+restoration and independent factory instances. It fails because the current
+worklist produces no mutable environment outcome. The Node reference passes
+cardinalities 1, 2, 1, 2 and results 7, 9, 7, 9. Existing mutation/conflict opacity
+controls still pass. No solver behavior changed. The witness is deliberately
+unskipped; broad unit runs will include its known failure until implementation.
+Read the point-sensitive mutable environment section in
+docs/polymorphic-callable-transport-plan.md for the concrete state transport and
+checked capture-mode sequence. This is infrastructure evidence, not native
+acceptance of heterogeneous assignment to an unconstrained generic parameter.
+Exact red, Node, guard and format logs are stored under
+runtime/diagnostics/mutable-environment-sequence in SQLite and verified by readback.

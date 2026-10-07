@@ -404,3 +404,35 @@ mod environment_mutation_guard_tests {
         }
     }
 }
+
+#[cfg(test)]
+mod mutable_environment_sequence_tests {
+    use super::*;
+    #[test]
+    fn owned_factory_updates_are_point_sensitive_and_instances_stay_separate() {
+        let source=crate::format("function one<T>(value:T):T{return value;}function two<T>(value:T,other:T):T{return other;}function factory<A>(action:A){return (restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}function root<T>(value:T):T{const first=factory(one);const second=factory(two);const original=first(false);const changed=first(true);const restored=first(false);const independent=second(true);original<T>(value);changed<T>(value,value);restored<T>(value);independent<T>(value,value);return value;}function main(){}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let program=crate::syntax::parse(&source).unwrap();
+        let effects=effect_bodies::Index::new(&program).unwrap();
+        let declarations=program.functions.iter().map(|function|(function.name.text.clone(),contract(function.type_parameters.len(),&function.parameter_initializers,function.rest_parameter,function.name.span))).collect::<HashMap<_,_>>();
+        let root=program.functions.iter().find(|function|function.name.text=="root").unwrap();
+        let mut engine=Engine::new(&declarations,&effects);
+        let outcome=engine.solve(root.name.span,&[],&[expression_flow::Value::default()]).expect("owned mutable factory state must survive sequential invocations");
+        let count=engine.entries.len();
+        assert!(engine.solve(root.name.span,&[],&[expression_flow::Value::default()])==Some(outcome.clone()));
+        assert_eq!(engine.entries.len(),count,"stable requests must converge without growing environment identities");
+        let mut probe=root.clone();
+        let mut observed=0;
+        crate::source_walk::function_body(&mut probe,&mut |_|Ok(()),&mut |expression|{
+            if let ExprKind::Call(callee,_)=&expression.kind && let Some((name,_))=name(callee) && matches!(name,"original"|"changed"|"restored"|"independent") {
+                let expected=if matches!(name,"changed"|"independent") {2}else{1};
+                let contracts=outcome.facts.get(&(expression.span.start,expression.span.end)).and_then(|contracts|contracts.as_ref()).expect("point-sensitive captured contract");
+                assert!(!contracts.is_empty());
+                assert!(contracts.iter().all(|contract|contract.required==expected),"{name}: stale or merged instance contract");
+                observed+=1;
+            }
+            Ok(())
+        }).unwrap();
+        assert_eq!(observed,4);
+    }
+}

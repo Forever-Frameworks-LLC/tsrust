@@ -138,3 +138,51 @@ and source mutation guards. Timing remains pending. This is a prerequisite withi
 gate 173, not acceptance of the complete captured-effects or environment plans.
 Point-sensitive mutable environments, recursive convergence and common native
 callable carriers remain open.
+
+
+## Point-sensitive mutable environment red
+
+The new unit witness
+owned_factory_updates_are_point_sensitive_and_instances_stay_separate creates two
+instances of a selector factory. Its first instance returns the original one-argument
+function, switches its captured slot to the two-argument function, restores the
+one-argument function, and returns each prior value. The second instance must
+retain its independent two-argument slot. Expected invocation cardinalities are
+1, 2, 1 and 2. Repeating the root request must reuse requests and environment
+identities. The current solver returns no outcome, so the witness remains red.
+The independent Node reference verifies cardinalities and results 7, 9, 7 and 9.
+
+This witness targets source-flow infrastructure. It is not native acceptance of
+assigning differently typed polymorphic functions to an unconstrained A parameter.
+Native type compatibility and capture modes must still be verified separately.
+Do not infer ownership from the witness name or a false mutable flag.
+
+### Implementation sequence
+
+1. Isolate a flow-state module containing local bindings and a finite map from
+   stable environment handle to capture state. Store allocation identity and graph
+   edges separately. Capture state includes binding facts, known availability and
+   whether a handle denotes one proven instance or merged instances. Test state
+   joins, exact restoration, distinct handles, unknown handles and consumed handles.
+2. Replace binding-only state transport in summary_flow::Outcome, expression
+   Invocation, node transfer and graph edges with the explicit flow state. Preserve
+   separate normal, returning and throwing exits, pending return snapshots and
+   finally overrides. Existing dispatch implementations must preserve incoming
+   environment state instead of silently discarding it.
+3. Include canonical flow-local environment state in contextual request keys.
+   Read capture facts from that request state; the global environment store supplies
+   identity and dependencies, never a strong sequential update. Join summaries
+   monotonically. Preserve Unknown alternatives and reader scheduling.
+4. Project callee capture updates back onto the matching handle on each exit.
+   Permit replacement only for a single instance with checked access facts; merged
+   instances join weakly. Resolve local borrowed captures through the caller binding
+   identity, and retain transferred escaping captures in their own instance state.
+5. Feed checked capture facts into contextual analysis before allowing mutable
+   snapshots to certify calls. Test local borrow, escaping scalar copy, escaping
+   owned transfer, callback failure and disposal with actual generated native code.
+   Keep the existing mutation/conflict guards until this evidence is available.
+6. Make the new red pass, add recursive and branch-join witnesses, then editor
+   diagnostics/help, guide examples and matched workload support. Run eight depth
+   canaries and the complete editor crate at acceptance. Keep timing separate.
+
+The previous factory transport prerequisite remains committed at 1c22457.
