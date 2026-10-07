@@ -1,7 +1,7 @@
 # Handoff: contextual callable effects and pending return snapshots
 
 Read AGENTS.md, docs/development-workflow.md and
-docs/captured-call-effects-plan.md first. Gate173 and the full callable-effects
+docs/captured-call-effects-plan.md and docs/callable-environments-plan.md first. Gate173 and the full callable-effects
 plan remain open. This is a source checkpoint, not family acceptance. Copied
 executable consumers remain at 399a1c4; the warm Cargo target contains newer work.
 
@@ -125,3 +125,19 @@ unfiltered depth canaries, and 197 editor intelligence/stdio tests. The retained
 native-carrier red is explicitly excluded. Formatting changes zero files/hashes.
 Closed logs are imported and read back in SQLite before deletion; completed
 affected compiler test executables are pruned.
+
+## Paired factory red and environment plan
+
+A new unskipped focused test, separate_factory_instances_preserve_captured_callable_contracts,
+now fails for both named and arrow factories: the returned selector loses its
+producer environment. Each factory captures a different callable contract and
+must return the correct one without merging instances. The TypeScript reference
+in fixtures/callable-environments/reference.ts passes under the pinned Node.
+The other 36 focused tests pass with this new red explicitly excluded.
+
+No compiler implementation is changed in this checkpoint. The dedicated
+callable-environments plan defines correlated body/environment alternatives,
+finite allocation keys, live borrowing versus owned escape, callback entry and
+projection, recursion convergence and lifetime/native acceptance gates. Implement
+that plan next; do not weaken the missing-capture guard to make the new test pass.
+No benchmark observations, timing, native Tsrust parity or editor change is claimed.

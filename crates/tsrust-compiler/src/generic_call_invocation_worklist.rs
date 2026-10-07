@@ -288,3 +288,33 @@ mod returned_value_tests {
         }
     }
 }
+
+#[cfg(test)]
+mod factory_environment_tests {
+    use super::*;
+    #[test]
+    fn separate_factory_instances_preserve_captured_callable_contracts() {
+        let mut failures=Vec::new();
+        for factory in [
+            "function factory<A>(action:A){function select(){return action;}return select;}",
+            "function factory<A>(action:A){return ()=>action;}",
+        ] {
+            let source=crate::format(&format!("function one<T>(value:T):T{{return value;}}function two<T>(value:T,other:T):T{{return other;}}{factory}function root<T>(value:T):T{{const first=factory(one);const second=factory(two);const saved=first();const wrong=second();saved<T>(value);wrong<T>(value);return value;}}function main(){{}}")).unwrap();
+            assert_eq!(crate::format(&source).unwrap(),source);
+            let program=crate::syntax::parse(&source).unwrap();let effects=effect_bodies::Index::new(&program).unwrap();
+            let declarations=program.functions.iter().map(|function|(function.name.text.clone(),contract(function.type_parameters.len(),&function.parameter_initializers,function.rest_parameter,function.name.span))).collect::<HashMap<_,_>>();
+            let root=program.functions.iter().find(|function|function.name.text=="root").unwrap();
+            let Some(outcome)=Engine::new(&declarations,&effects).solve(root.name.span,&[],&[expression_flow::Value::default()]) else { failures.push(format!("{factory}: producer environment lost")); continue; };
+            let mut probe=root.clone();
+            crate::source_walk::function_body(&mut probe,&mut |_|Ok(()),&mut |expression| {
+                if let ExprKind::Call(callee,_) = &expression.kind && let Some((name,_))=name(callee) && matches!(name,"saved"|"wrong") {
+                    let expected=if name=="saved" {1} else {2};
+                    let contracts=outcome.facts.get(&(expression.span.start,expression.span.end)).and_then(|contracts|contracts.as_ref()).expect("captured returned callable contract");
+                    assert!(contracts.iter().all(|contract|contract.required==expected),"{name}: independent producer contracts must not merge");
+                }
+                Ok(())
+            }).unwrap();
+        }
+        assert!(failures.is_empty(),"{}",failures.join("\n"));
+    }
+}
