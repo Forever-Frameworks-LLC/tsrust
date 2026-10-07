@@ -17,8 +17,12 @@ fn merge_value(left: Value, right: Value, declarations: &HashMap<String, Contrac
         nullish: (left.nullish == right.nullish).then_some(left.nullish).flatten(),
         undefined: (left.undefined == right.undefined).then_some(left.undefined).flatten() }
 }
-fn snapshot(expression: &Expr, state: &[Binding], declarations: &HashMap<String, Contract>) -> Value {
-    let contracts = resolve_all(targets::value(expression), state, declarations);
+fn snapshot(expression: &Expr, state: &[Binding], declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index) -> Value {
+    let contracts = if let Some((name, span)) = name(expression) && effects.binding(name, span).is_some() {
+        binding_at(state, name, span, effects).and_then(|index| {
+            state[index].contract.clone().map(|contract| vec![contract]).or_else(|| resolve_all(state[index].targets.clone(), state, declarations))
+        })
+    } else { resolve_all(targets::value(expression), state, declarations) };
     let (truth, nullish) = match &expression.kind {
         ExprKind::Boolean(value) => (Some(*value), Some(false)),
         ExprKind::Null | ExprKind::Undefined => (Some(false), Some(true)),
@@ -27,7 +31,7 @@ fn snapshot(expression: &Expr, state: &[Binding], declarations: &HashMap<String,
         ExprKind::Number(value) => (Some(*value != 0.0 && !value.is_nan()), Some(false)),
         ExprKind::Array(_) | ExprKind::Record(_) => (Some(true), Some(false)),
         _ if contracts.is_some() && name(expression).is_some_and(|(name, span)| {
-            binding_at(state, name, span).is_none_or(|index| state[index].contract.is_none())
+            binding_at(state, name, span, effects).is_none_or(|index| state[index].contract.is_none())
         }) => (Some(true), Some(false)),
         _ => (None, None),
     };
@@ -35,9 +39,9 @@ fn snapshot(expression: &Expr, state: &[Binding], declarations: &HashMap<String,
         else if nullish == Some(false) || matches!(expression.kind, ExprKind::Null) { Some(false) } else { None };
     Value { contracts, truth, nullish, undefined }
 }
-fn commit(target: &Expr, value: &Value, state: &mut [Binding]) {
+fn commit(target: &Expr, value: &Value, state: &mut [Binding], effects: &effect_bodies::Index) {
     if let ExprKind::Name(name) = &target.kind
-        && let Some(index) = binding_at(state, name, target.span)
+        && let Some(index) = binding_at(state, name, target.span, effects)
         && state[index].contract.is_none()
     {
         state[index].targets = value.contracts.clone().map_or_else(|| vec![Target::Unknown], |values| values.into_iter().map(Target::Contract).collect());
@@ -66,7 +70,7 @@ enum Task<'a> {
 
 /// Returns the evaluated value snapshot and environments of possible failures.
 pub(super) fn evaluate(expression: &Expr, state: &mut Vec<Binding>, facts: &mut Facts,
-    declarations: &HashMap<String, Contract>, observe_failures: bool) -> (Option<Vec<Contract>>, Vec<Vec<Binding>>) {
+    declarations: &HashMap<String, Contract>, observe_failures: bool, effects: &effect_bodies::Index) -> (Option<Vec<Contract>>, Vec<Vec<Binding>>) {
     let mut tasks = vec![Task::Eval(expression)];
     let mut values = Vec::new();
     let mut failures = Vec::new();
@@ -122,17 +126,17 @@ pub(super) fn evaluate(expression: &Expr, state: &mut Vec<Binding>, facts: &mut 
                     tasks.push(Task::Finish(expression, children.len()));
                     for (_, child) in children.iter().rev() { tasks.push(Task::Eval(child)); }
                 }
-                _ => values.push(snapshot(expression, state, declarations)),
+                _ => values.push(snapshot(expression, state, declarations, effects)),
             },
             Task::Discard => { values.pop().unwrap(); }
-            Task::Commit(target) => { commit(target, values.last().unwrap(), state); }
-            Task::Kill(target) => { commit(target, &Value::default(), state); }
+            Task::Commit(target) => { commit(target, values.last().unwrap(), state, effects); }
+            Task::Kill(target) => { commit(target, &Value::default(), state, effects); }
             Task::Finish(expression, count) => {
                 values.truncate(values.len() - count);
                 if matches!(expression.kind, ExprKind::Index(..) | ExprKind::Binary { .. } | ExprKind::Unary { .. } | ExprKind::Update { .. } | ExprKind::CompoundAssign { .. }) {
                     if observe_failures { failures.push(state.clone()); }
                 }
-                values.push(snapshot(expression, state, declarations));
+                values.push(snapshot(expression, state, declarations, effects));
             }
             Task::Call(expression, count) => {
                 values.truncate(values.len() - count);

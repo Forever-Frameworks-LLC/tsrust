@@ -54,6 +54,15 @@ impl Index {
             let mut probe = function.clone();
             crate::source_walk::function_body(&mut probe, &mut |_| Ok(()), &mut |expression| {
                 if let ExprKind::Closure { params, body, .. } = &expression.kind {
+                    // Trusted named-value wrappers forward to the original body.
+                    // Their generated parameters share the value-use span and
+                    // must not acquire independent source binding identities.
+                    if targets::value(expression)
+                        .iter()
+                        .any(|target| matches!(target, Target::Name(..)))
+                    {
+                        return Ok(());
+                    }
                     let owner = next_owner;
                     next_owner += 1;
                     index
@@ -82,6 +91,12 @@ impl Index {
             range,
             binding,
         });
+    }
+    pub(super) fn in_scope(&self, name: &str, range: Span) -> Option<BindingId> {
+        self.scopes
+            .iter()
+            .find(|scope| scope.name == name && scope.range == range)
+            .map(|scope| scope.binding)
     }
     pub(super) fn declared(&self, span: Span) -> Option<BindingId> {
         self.declarations.get(&span.start).copied()
@@ -275,5 +290,36 @@ mod tests {
                 }
             );
         }
+    }
+    #[test]
+    fn synthetic_forwarders_use_original_bodies_not_shared_parameter_spans() {
+        let (_, program, index) = parsed(
+            "function outer<T>(value:T){function pick(first:T,second:T):T{String(value);return second;}const saved=pick;}function main(){}",
+        );
+        let outer = program
+            .functions
+            .iter()
+            .find(|function| function.name.text == "outer")
+            .unwrap();
+        let wrapper = outer
+            .body
+            .iter()
+            .find_map(|statement| match &statement.kind {
+                StmtKind::Let { value, .. } if matches!(value.kind, ExprKind::Closure { .. }) => {
+                    Some(value)
+                }
+                _ => None,
+            })
+            .unwrap();
+        assert!(
+            index.body(wrapper.span).is_none(),
+            "synthetic forwarding arguments share spans and have no independent body identity"
+        );
+        let original = program
+            .functions
+            .iter()
+            .find(|function| function.name.text.ends_with("#pick"))
+            .unwrap();
+        assert!(index.body(original.name.span).is_some());
     }
 }

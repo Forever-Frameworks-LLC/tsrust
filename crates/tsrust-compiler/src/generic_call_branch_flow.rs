@@ -7,7 +7,10 @@ use flow_graph::graph;
 #[path = "generic_call_expression_flow.rs"]
 mod expression_flow;
 
-fn binding_at(bindings: &[Binding], name: &str, span: Span) -> Option<usize> {
+fn binding_at(bindings: &[Binding], name: &str, span: Span, effects: &effect_bodies::Index) -> Option<usize> {
+    if let Some(identity) = effects.binding(name, span) {
+        return bindings.iter().position(|binding| binding.identity == Some(identity));
+    }
     bindings
         .iter()
         .enumerate()
@@ -48,6 +51,7 @@ pub(super) fn analyze(
     initial: &[Binding],
     writes: &[targets::Write],
     declarations: &HashMap<String, Contract>,
+    effects: &effect_bodies::Index,
 ) -> Result<Option<HashMap<(usize, usize), Option<Vec<Contract>>>>, Diagnostic> {
     let Some(nodes) = graph(&function.body) else {
         return Ok(None);
@@ -102,11 +106,11 @@ pub(super) fn analyze(
         if let Some(StmtKind::Assign { target, .. }) = statement.map(|statement| &statement.kind)
             && !matches!(target.kind, ExprKind::Name(_))
         {
-            let (_, failed) = expression_flow::evaluate(target, &mut state, &mut facts, declarations, node.exceptional.is_some());
+            let (_, failed) = expression_flow::evaluate(target, &mut state, &mut facts, declarations, node.exceptional.is_some(), effects);
             failures.extend(failed);
         }
         let expression_contracts = if let Some(expression) = node.expression {
-            let (value, failed) = expression_flow::evaluate(expression, &mut state, &mut facts, declarations, node.exceptional.is_some());
+            let (value, failed) = expression_flow::evaluate(expression, &mut state, &mut facts, declarations, node.exceptional.is_some(), effects);
             failures.extend(failed);
             value
         } else { None };
@@ -126,7 +130,7 @@ pub(super) fn analyze(
                 ..
             }) => {
                 if let ExprKind::Name(name) = &target.kind {
-                    binding_at(&state, name, target.span).map(|index| {
+                    binding_at(&state, name, target.span, effects).map(|index| {
                         (
                             index,
                             if operator.is_none() {
@@ -143,7 +147,7 @@ pub(super) fn analyze(
             Some(StmtKind::Expr(expression)) => {
                 flow_graph::standalone_update(expression).and_then(|(target, _)| {
                     if let ExprKind::Name(name) = &target.kind {
-                        binding_at(&state, name, target.span)
+                        binding_at(&state, name, target.span, effects)
                             .map(|index| (index, None))
                     } else {
                         None
@@ -178,4 +182,26 @@ pub(super) fn analyze(
         }
     }
     Ok(Some(facts))
+}
+
+#[cfg(test)]
+mod identity_tests {
+    use super::*;
+    #[test]
+    fn callee_writes_select_captured_identity_without_aliasing_local_shadows() {
+        let source = crate::format("function outer<T>(){function change(){action=two;}let action=one;function shadow(){let action=two;action=one;}}function one<T>(value:T):T{return value;}function two<T>(value:T,other:T):T{return other;}function main(){}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(), source);
+        let program = crate::syntax::parse(&source).unwrap();
+        let effects = effect_bodies::Index::new(&program).unwrap();
+        let root = program.functions.iter().find(|function| function.name.text == "outer").unwrap();
+        let mut bindings = Vec::new();
+        collect(&root.body, &mut bindings, &effects);
+        for (suffix, expected) in [("#change", Some(0)), ("#shadow", None)] {
+            let callee = program.functions.iter().find(|function| function.name.text.ends_with(suffix)).unwrap();
+            let target = callee.body.iter().find_map(|statement| match &statement.kind {
+                StmtKind::Assign { target, .. } => Some(target), _ => None,
+            }).unwrap();
+            assert_eq!(binding_at(&bindings, "action", target.span, &effects), expected, "{suffix}");
+        }
+    }
 }

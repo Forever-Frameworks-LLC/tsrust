@@ -66,3 +66,38 @@ Calls resolve after arguments using the saved callee; closure declarations do no
 execute indexed bodies. Unknown callable origins must not inherit a fabricated
 body. Recursive groups require a finite worklist rather than recursive evaluation.
 The eight invocation reds and all precision controls remain mandatory.
+
+## Source-flow identity wiring WIP
+
+Source validation now constructs the effect index once and assigns declaration
+identities to flow parameters, locals and closure parameters. Branch/expression
+lookup uses an indexed identity before textual ranges. A known declaration missing
+from the current flow frame does not alias a same-named caller slot. Snapshots and
+assignments retain these identities through ordinary joins and state copies.
+
+The retained red demonstrated both requirements: a hoisted capture was missed by
+textual lookup, while a callee's local shadow could alias the caller binding. Its
+repaired unit test passes. Three index tests pass as well. A new red found that
+synthetic named-value forwarding wrappers give generated parameters one shared
+source span. The index now recognizes trusted forwarding provenance and indexes
+the original named body, not an independent synthetic body. Do not synthesize
+capture identities from those forwarding argument spans.
+
+The current bounded integration batch passes 186 tests, including all eight depth
+canaries and successful lexical/precision controls. The invocation rejection test
+is deliberately excluded from this green batch; eight invocation defects remain.
+No summary body is executed by this wiring. It is WIP, not Gate173 acceptance.
+
+Before invocation summaries are complete, preserve callable body origin separately
+from an annotated signature. Typed local callback annotations and type assertions
+can override source cardinality without erasing a known initializer's body. An
+unknown callback parameter has no fabricated body; a supplied known argument may
+provide one for a contextual invocation. Summaries must preserve this distinction
+through saved aliases, parameters and selected values. Then integrate ordered normal
+and exceptional effects after arguments, with finite recursive contexts and real
+collection callback invocation rules. Keep the full eight-red and precision scope.
+
+Whole-editor continuation passes all 327 tests. Candidate alias traversal and the
+legacy conservative paths still need identity-aware resolution alongside summary
+frames; binding selection alone is not complete alias provenance. Preserve these
+remaining requirements in the next implementation chunk.

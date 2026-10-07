@@ -25,6 +25,7 @@ struct Contract {
 }
 #[derive(Clone)]
 struct Binding {
+    identity: Option<crate::local_capture_plan::BindingId>,
     name: String,
     scope: Span,
     targets: Vec<Target>,
@@ -112,10 +113,11 @@ fn name(mut value: &Expr) -> Option<(&str, Span)> {
     }
 }
 
-fn collect(body: &[Stmt], bindings: &mut Vec<Binding>) {
+fn collect(body: &[Stmt], bindings: &mut Vec<Binding>, effects: &effect_bodies::Index) {
     let mut scopes = Vec::new();
     crate::generic_functions::locals(body, &mut scopes);
     bindings.extend(scopes.into_iter().map(|(name, scope)| Binding {
+        identity: effects.in_scope(&name, scope),
         name,
         scope,
         targets: vec![Target::Unknown],
@@ -209,6 +211,7 @@ fn related(mut error: Diagnostic, contract: &Contract) -> Diagnostic {
 }
 
 pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
+    let effects = effect_bodies::Index::new(program)?;
     let declarations = program
         .functions
         .iter()
@@ -246,6 +249,7 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
                     .clone()
                     .or_else(|| crate::callable_annotations::callback(annotation));
                 Binding {
+                    identity: effects.declared(name.span),
                     name: name.text.clone(),
                     scope: function.scope_span,
                     targets: vec![Target::Unknown],
@@ -268,10 +272,11 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
                 }
             })
             .collect::<Vec<_>>();
-        collect(&function.body, &mut bindings);
+        collect(&function.body, &mut bindings, &effects);
         crate::source_walk::function_body(function, &mut |_| Ok(()), &mut |expression| {
             if let ExprKind::Closure { params, body, .. } = &expression.kind {
                 bindings.extend(params.iter().map(|parameter| Binding {
+                    identity: effects.declared(parameter.name.span),
                     name: parameter.name.text.clone(),
                     scope: expression.span,
                     targets: vec![Target::Unknown],
@@ -289,11 +294,11 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
                             ParameterAnnotation::Inferred(_) => None,
                         },
                 }));
-                collect(body, &mut bindings);
+                collect(body, &mut bindings, &effects);
             }
             Ok(())
         })?;
-        let branch_facts = branch_flow::analyze(function, &bindings, &writes, &declarations)?;
+        let branch_facts = branch_flow::analyze(function, &bindings, &writes, &declarations, &effects)?;
         let function_scope = function.scope_span;
         let direct_writes = function
             .body
