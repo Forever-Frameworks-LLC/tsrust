@@ -786,3 +786,22 @@ fn expression_callback_field_store_preserves_result_and_capture_release() {
         }
     "#);
 }
+
+#[test]
+fn record_store_condition_preserves_one_evaluation_and_new_origin() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder={run:ReadOnly<Function<int>>;};
+        function main(){
+            const a=[3];const b=[11];
+            {
+                let holder:Holder={run:():int=>a[0]};let evaluations=0;
+                if (((holder={run:():int=>b[0]}),evaluations++,holder.run()===11)) {
+                    strictEqual(evaluations,1);
+                } else { strictEqual(0,1); }
+                a[0]=5;strictEqual(a[0],5);strictEqual(holder.run(),11);
+            }
+            b[0]=13;strictEqual(b[0],13);
+        }
+    "#);
+}

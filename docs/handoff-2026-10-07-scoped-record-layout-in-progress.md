@@ -1846,3 +1846,26 @@ All 34 project tests and 64 depth canaries pass. Formatting changes zero files
 and fingerprints. Exact evidence, including the passing initial statement witness
 and the failing strengthened expression witness, is verified in SQLite under
 runtime/diagnostics/scoped-record-expressions/.
+
+
+## Condition-store checkpoint
+
+Record stores in condition operands now participate in native carrier planning.
+The focused witness failed with a concrete callback type mismatch before the fix.
+It now executes the condition once, retains the replacement callback origin and
+releases the replaced capture while the replacement remains live. The collector
+also visits loop conditions, iterable operands and updates in their execution order.
+
+All 35 scoped-record project tests and 64 depth canaries pass. Project formatting
+changes zero files and fingerprints. Four exact red/green and regression records
+are imported and verified in SQLite under runtime/diagnostics/scoped-record-conditions/.
+The fifteen owner fixtures remain untouched. Installed consumers remain f1dd284;
+this implementation checkpoint does not claim whole-feature acceptance or timing.
+
+Next boundary: stores nested inside a record-valued RHS. The current mutable
+write collector cannot retain both parent and child expression references. Start
+with a focused native witness, then separate immutable write planning from the
+mutation traversal if the witness exposes that limitation. Preserve original
+capture origins and distinguish checked point types from finalized native storage
+types when normalized records move between bindings. Previously verified chunks
+must not be reopened because a user comment is repeated.

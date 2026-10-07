@@ -48,9 +48,11 @@ impl Analyzer {
                 StmtKind::Let{binding,value,..}=>{if let Some(id)=binding && matches!(value.ty,Some(Type::Record(_))) && !value.is_deferred(){result.push((*id,Vec::new(),value));}else{result.extend(expression_writes(value));}},
                 StmtKind::Expr(value)|StmtKind::Throw(value)|StmtKind::Return(Some(value))=>result.extend(expression_writes(value)),
                 StmtKind::Assign{target,value,operator:None}=>{if let(Some(id),Some((_,path)))=(Analyzer::root_binding(target),Analyzer::direct_fields(target)){if matches!(value.ty,Some(Type::Record(_))) || !path.is_empty() && matches!(value.ty,Some(Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_))){result.push((id,path,value));}}},
-                StmtKind::Block(body)|StmtKind::While{body,..}|StmtKind::ForOf{body,..}=>result.extend(writes(body)),
-                StmtKind::If{then_body,else_body,..}=>{result.extend(writes(then_body));result.extend(writes(else_body));},
-                StmtKind::Loop{body,update,..}=>{result.extend(writes(body));result.extend(writes(update));},
+                StmtKind::Block(body)=>result.extend(writes(body)),
+                StmtKind::While{condition,body}=>{result.extend(expression_writes(condition));result.extend(writes(body));},
+                StmtKind::ForOf{iterable,body,..}=>{result.extend(expression_writes(iterable));result.extend(writes(body));},
+                StmtKind::If{condition,then_body,else_body}=>{result.extend(expression_writes(condition));result.extend(writes(then_body));result.extend(writes(else_body));},
+                StmtKind::Loop{condition,body,update,post_test,..}=>{if !*post_test{if let Some(condition)=condition{result.extend(expression_writes(condition));}result.extend(writes(body));result.extend(writes(update));}else{result.extend(writes(body));result.extend(writes(update));if let Some(condition)=condition{result.extend(expression_writes(condition));}}},
                 StmtKind::Try(region)=>{result.extend(writes(&mut region.body));if let Some(catch)=&mut region.catch{result.extend(writes(&mut catch.body));}if let Some(finally)=&mut region.finally{result.extend(writes(finally));}},
                 _=>{}
             }}result
