@@ -126,6 +126,55 @@ impl Analyzer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn formatted(source: &str) -> String {
+        let formatted = crate::format(source).unwrap();
+        assert_eq!(crate::format(&formatted).unwrap(), formatted);
+        formatted
+    }
+
+    #[test]
+    fn named_record_destructuring_moves_only_selected_field_loan_owners() {
+        let source = r#"
+            type Pair = { left: ReadOnly<Function<int>>; right: ReadOnly<Function<int>>; };
+            function main() {
+                const leftValues = [3];
+                const rightValues = [11];
+                const pair: Pair = { left: (): int => leftValues[0], right: (): int => rightValues[0] };
+                const { left: extracted } = pair;
+            }
+        "#;
+        let mut analyzer =
+            Analyzer::new(crate::syntax::parse(&formatted(source)).unwrap()).unwrap();
+        let mut body = std::mem::take(&mut analyzer.program.functions[0].body);
+        let mut context = Context::new("main".into());
+        analyzer
+            .block_with_scope(&mut context, &mut body, Type::Void, true)
+            .unwrap();
+        let extracted = context.names["extracted"];
+        let left = context
+            .capture_loans
+            .iter()
+            .find(|loan| loan.0 == context.names["leftValues"])
+            .copied()
+            .unwrap();
+        let right = context
+            .capture_loans
+            .iter()
+            .find(|loan| loan.0 == context.names["rightValues"])
+            .copied()
+            .unwrap();
+        let left = context.capture_loan_ids.intern(left);
+        let right = context.capture_loan_ids.intern(right);
+        assert_eq!(
+            context.capture_loan_owners.leave_scope(extracted),
+            std::collections::BTreeSet::from([left])
+        );
+        assert_eq!(
+            context.capture_loan_owners.live(),
+            std::collections::BTreeSet::from([right])
+        );
+    }
+
     #[test]
     fn assignment_returns_payload_owners_to_outer_record_before_temporary_disposal() {
         for assignment in [
@@ -143,7 +192,8 @@ mod tests {
                 }}
             "#
             );
-            let mut analyzer = Analyzer::new(crate::syntax::parse(&source).unwrap()).unwrap();
+            let mut analyzer =
+                Analyzer::new(crate::syntax::parse(&formatted(&source)).unwrap()).unwrap();
             let mut body = std::mem::take(&mut analyzer.program.functions[0].body);
             let mut context = Context::new("main".into());
             analyzer
@@ -165,8 +215,10 @@ mod tests {
 
     #[test]
     fn record_field_origins_follow_a_checked_declaration_move() {
-        let parsed =
-            crate::syntax::parse("function main(){const pair={left:()=>1,right:()=>2};}").unwrap();
+        let parsed = crate::syntax::parse(&formatted(
+            "function main(){const pair={left:()=>1,right:()=>2};}",
+        ))
+        .unwrap();
         let StmtKind::Let { value, .. } = &parsed.functions[0].body[0].kind else {
             panic!("record declaration");
         };

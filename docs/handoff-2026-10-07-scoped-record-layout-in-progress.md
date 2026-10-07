@@ -406,3 +406,33 @@ independent field-disposal source/native witness green with the live-field contr
 branch/loop/finally coverage and pending payload transfers. Complete record gate
 acceptance still needs its full guide, editor and matched workload support.
 Consumers remain f1dd284; all fifteen owner fixtures remain protected.
+
+## Destructuring ownership proof
+
+Named record destructuring already lowers selected fields into checked declaration
+moves. A new checker-state test verifies that disposing an extracted left callback
+releases only its ownership paths, while the unselected right callback remains
+with the original record. No new production implementation was needed for this
+case. Three declaration/assignment ownership tests now format their source first
+and require idempotence before parsing and checking their state.
+
+A new std:testing native witness covers nested record patterns, remaining source
+fields and a destructured ReadOnly<Holder> parameter invoking its callback. It
+passes. A focused editor test verifies signature parameter names for both the
+readonly parameter callback and the extracted nested callback, plus readable hover
+without BorrowedCallable leakage. It passes. Sixteen extracted positive cases pass
+Node after TypeScript compilation. Whole-project formatting changes zero files
+and fingerprints. Exact proof is stored under
+runtime/diagnostics/capture-loan-destructuring/ in SQLite.
+
+This proves the named/nested record cases, not every pattern or retained copy.
+Tuple/indexed storage, callback default joins, rest/copy behavior and opaque calls
+still require explicit provenance or conservative retention before production loan
+release. Current cloneability rejects ordinary scoped callback environments; keep
+that contract and audit shared callable handles separately. Do not assume all
+retaining operations consume their source: supported copies must also preserve
+loan owners. Next implement unresolved-retention tracking, then stable lexical and
+exception unwind. The independent field-scope release witness remains red. No new
+parser/analyzer dispatch changed in this proof-only checkpoint, so the preceding
+64-canary evidence is preserved. Consumers remain f1dd284. Preserve fifteen owner
+fixtures; complete record gate acceptance remains open.

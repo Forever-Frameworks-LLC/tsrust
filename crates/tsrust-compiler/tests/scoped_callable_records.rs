@@ -472,3 +472,28 @@ fn scoped_record_assignment_restores_field_and_whole_record_environments() {
         }
     "#);
 }
+
+#[test]
+fn scoped_record_destructuring_preserves_nested_and_readonly_parameter_callbacks() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int, [value: int]>>; };
+        type Envelope = { holder: Holder; tag: int; };
+        function invoke({ run }: ReadOnly<Holder>, amount: int): int {
+            return run(amount);
+        }
+        function main() {
+            const values = [3];
+            {
+                const holder: Holder = { run: (value: int): int => value + values[0] };
+                strictEqual(invoke(holder, 2), 5);
+                const envelope: Envelope = { holder: holder, tag: 1 };
+                const { holder: { run: extracted } } = envelope;
+                strictEqual(extracted(4), 7);
+                strictEqual(envelope.tag, 1);
+            }
+            values[0] = 9;
+            strictEqual(values[0], 9);
+        }
+    "#);
+}
