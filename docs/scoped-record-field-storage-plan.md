@@ -240,3 +240,57 @@ Exact entry API red, native component success, corrected ownership control and
 ordinary routing red are verified in SQLite under
 runtime/diagnostics/scoped-record-parameter-entry/. Project formatting changes zero
 files and fingerprints.
+
+## Ordinary scoped-record parameter routing
+
+Ordinary source function signatures now use nominal read/mutate bridge parameters
+for eligible borrowed scoped records. Each callback leaf has its own associated
+trait bound rather than sharing a callback environment type across sibling fields;
+concrete leaves retain equality constraints. Callback view slots also require Sized,
+matching the existing nested view declarations. Redundant callback generic parameters
+from these record inputs are excluded from the ordinary signature. The existing
+result and other parameter bounds remain in place.
+
+Parameter initialization establishes one flat transport view. Static leaf storage
+selection starts from the corresponding view reference and retains subsequent index
+and union selection behavior. Borrowed whole records and static record subtrees are
+rebuilt as nested shared/mutable views from those independent references. Empty
+records remain opaque leaves. Source parameter routing deliberately excludes inherited
+capture slots: these are not source argument bindings and may not have a local valueN.
+Their existing capture transport remains unchanged and still needs its own integration.
+Layout eligibility is factored to avoid formatting an unused entry statement during
+bound, leaf and subtree lookup.
+
+Four parameter-view controls pass, including the previously red ordinary entry
+witness. A native source program calls mutable child consumers through a parent
+parameter, invokes distinct callback environments through readonly parameters, and
+checks exact output 14 and left!/right! mutations. A complementary pure try/finally
+program checks finally mutation and exact output done/right!. The checker sibling
+argument witness is strengthened with native compilation and passes. All 64 required
+depth controls pass. The scoped_callable_records project batch is again 19 passed,
+with only its original E0502 independent-storage witness failing. Initial inherited
+capture and unsized-slot regressions were repaired; their diagnostics are preserved.
+
+Remaining boundaries are explicit. A new native red witness
+scoped_parameter_can_borrow_a_plain_nested_record fails E0308: a scoped parent produces
+a mutable child view, while a consumer of an ordinary callback-free record still
+expects its owned-record ABI. Extend nominal borrowing compatibility to that child
+consumer without reconstructing owned values or cloning. Parameter ABI coherence
+must cover these ordinary child records as well as scoped children. The previous
+plain-record ABI control documents the current boundary and must be revised only
+with a corresponding native compatibility test when that boundary is implemented.
+
+A try/finally variant retaining runtime-fallible array-index callback captures also
+exposes unresolved error contracts for abstract record callbacks. An intermediate
+variant with unused fallible callback fields reaches native Result-versus-scalar
+callback trait errors. Pure completion routing is verified; fallible callback error
+contract and carrier convergence remain open. Do not claim full completion parity
+from the pure control or discard these failures. Original separate-getter E0499,
+independent local storage, property ordering, captures, opaque composition, full
+editor/guide and matched benchmark acceptance remain pending. Consumers stay f1dd284.
+Fifteen owner fixtures remain untouched. No timing or feature acceptance is claimed.
+
+Exact routing red/green, corrected regressions, completion boundaries, plain-child
+red and depth evidence are verified in SQLite under
+runtime/diagnostics/scoped-record-parameter-routing/. Project formatting changes
+zero files and fingerprints.

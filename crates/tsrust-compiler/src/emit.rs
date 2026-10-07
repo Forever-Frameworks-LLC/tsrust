@@ -1473,6 +1473,9 @@ impl Emitter<'_> {
         code
     }
     fn parameter_initialization(&self, output: &mut String, fun: &CheckedFunction, indent: usize) {
+        for id in 0..fun.bindings.len() {
+            if let Some(entry)=self.record_parameter_entry_view(fun,id){let _=writeln!(output,"{}{entry}","    ".repeat(indent));}
+        }
         for (id,binding) in fun.bindings.iter().enumerate().filter(|(_,binding)|binding.input_ty.is_some()) {
             self.parameter_default_initialization(output,fun,id,indent);
             if !binding.name.starts_with("pattern#") { continue; }
@@ -2450,7 +2453,9 @@ impl Emitter<'_> {
                     } else {
                         ""
                     };
-                    let parameter_type = if matches!(input_ty, Type::Callback(_)) {
+                    let parameter_type = if self.record_parameter_entry_view(fun,index).is_some() {
+                        format!("R{index}")
+                    } else if matches!(input_ty, Type::Callback(_)) {
                         format!("F{index}")
                     } else {
                         plan.parameters.get(index).and_then(Option::as_ref).map_or_else(
@@ -2515,12 +2520,14 @@ impl Emitter<'_> {
                 })
                 .collect::<Vec<_>>();
             let mut generics = generics;
+            generics.extend((0..fun.parameter_count+hidden).filter_map(|id|self.record_parameter_bound(fun,id)));
             generics.extend(
                 self.nullable_callback_bounds(
                     fun.bindings
                         .iter()
                         .take(fun.parameter_count)
-                        .map(|binding| binding.input_ty.unwrap_or(binding.ty))
+                        .enumerate().filter(|(id,_)|self.record_parameter_entry_view(fun,*id).is_none())
+                        .map(|(_,binding)| binding.input_ty.unwrap_or(binding.ty))
                         .chain(std::iter::once(fun.result)),
                 ),
             );
@@ -3682,7 +3689,13 @@ impl Emitter<'_> {
                 || binding.capture_reference
                 || binding.borrowed_element.is_some()
                 || binding.borrowed_place.is_some());
-        let mut shared = format!("{}value{id}", if referenced { "*" } else { "" });
+        let mut leaf_path=Vec::new();let mut entry_leaf=None;
+        for (position,step) in steps.iter().enumerate() {
+            let StorageStep::Field(field)=step else{break;};leaf_path.push(*field);
+            if let Some(place)=self.record_parameter_leaf_place(fun,id,&leaf_path){entry_leaf=Some((position+1,place));break;}
+        }
+        let skipped=entry_leaf.as_ref().map_or(0,|(count,_)|*count);
+        let mut shared = entry_leaf.map_or_else(||format!("{}value{id}", if referenced { "*" } else { "" }),|(_,place)|place);
         let mut exclusive = shared.clone();
         let mut reselected = shared.clone();
         let mut result = StorageSelection {
@@ -3693,7 +3706,7 @@ impl Emitter<'_> {
             exclusive: String::new(),
             final_conversion: String::new(),
         };
-        for (position, step) in steps.iter().enumerate() {
+        for (position, step) in steps.iter().enumerate().skip(skipped) {
             match step {
                 StorageStep::Discard(prefix) => {
                     let code=self.comma_discard_code(fun,prefix);
@@ -4052,6 +4065,11 @@ impl Emitter<'_> {
     }
 
     fn storage_access(&self, fun: &CheckedFunction, expr: &Expr, mode: Mode) -> String {
+        if matches!(expr.ty,Some(Type::Record(_))) {
+            let(root,steps)=self.storage_steps(expr);
+            let path=steps.iter().map(|step|if let StorageStep::Field(field)=step{Some(*field)}else{None}).collect::<Option<Vec<_>>>();
+            if let (Some(id),Some(path))=(root.binding,path) && let Some(value)=self.record_parameter_borrowed_value(fun,id,&path,mode){return value;}
+        }
         if mode == Mode::Consume && !expr.ty.is_some_and(Type::is_copy) {
             let (root, steps) = self.storage_steps(expr);
             let mut place = format!("value{}", root.binding.expect("owned field root"));
@@ -6254,6 +6272,7 @@ impl Emitter<'_> {
 
     fn binding(&self, fun: &CheckedFunction, index: usize, mode: Mode) -> String {
         let b = &fun.bindings[index];
+        if let Some(value)=self.record_parameter_borrowed_value(fun,index,&[],mode){return value;}
         if matches!(b.ty, Type::BorrowedUnion(_))
             || (matches!(b.ty,Type::Union(id) if !id.copy)
                 && b.parameter

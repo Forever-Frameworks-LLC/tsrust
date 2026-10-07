@@ -208,7 +208,8 @@ mod tests {
     fn nested_mutable_arguments_borrow_disjoint_sibling_records() {
         let source=crate::format(r#"type Holder={run:ReadOnly<Function<int>>;label:string;};type Pair={left:Holder;right:Holder;};function touch(left:Mutable<Holder>,right:Mutable<Holder>):void{left.label="left!";right.label="right!";}function relay(pair:Mutable<Pair>):void{touch(pair.left,pair.right);}function main(){}"#).unwrap();
         assert_eq!(crate::format(&source).unwrap(),source);
-        crate::check(&source).expect("disjoint record fields must not overlap");
+        let checked=crate::check(&source).expect("disjoint record fields must not overlap");
+        crate::scoped_record_places::tests::native(&emit(&checked.program));
     }
 
 }

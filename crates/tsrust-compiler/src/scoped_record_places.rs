@@ -151,9 +151,10 @@ pub(crate) mod tests {
         assert_eq!(crate::format(&source).unwrap(), source);
         crate::check(&source).unwrap()
     }
-    pub(crate) fn native(source: &str) { native_expectation(source, None); }
-    pub(crate) fn native_rejection(source: &str, diagnostic: &str) { native_expectation(source, Some(diagnostic)); }
-    fn native_expectation(source: &str, rejection: Option<&str>) {
+    pub(crate) fn native(source: &str) { native_expectation(source, None, b""); }
+    pub(crate) fn native_rejection(source: &str, diagnostic: &str) { native_expectation(source, Some(diagnostic), b""); }
+    pub(crate) fn native_output(source:&str,expected:&str){native_expectation(source,None,expected.as_bytes());}
+    fn native_expectation(source: &str, rejection: Option<&str>, expected: &[u8]) {
         use std::{io::Write, process::{Command, Stdio}};
         static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
         let executable = std::env::temp_dir().join(format!("tsrust-field-storage-{}-{}", std::process::id(), NEXT.fetch_add(1, std::sync::atomic::Ordering::SeqCst)));
@@ -171,7 +172,7 @@ pub(crate) mod tests {
         assert!(compiled.status.success(), "{}", String::from_utf8_lossy(&compiled.stderr));
         let executed = Command::new(&executable).output().unwrap();
         assert!(executed.status.success(), "{}", String::from_utf8_lossy(&executed.stderr));
-        assert!(executed.stdout.is_empty());
+        assert_eq!(executed.stdout,expected);
     }
     #[test]
     fn native_repeated_child_views_keep_distinct_environment_arguments() {
