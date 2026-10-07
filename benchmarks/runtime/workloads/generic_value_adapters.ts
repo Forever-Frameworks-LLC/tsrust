@@ -118,6 +118,10 @@ function workload(n: number, seed: number, input: string): number[][] {
         const directFirst = direct(base + 5);
         const directSecond = direct(base + 6);
         const factoryMapped = [base + 7, base + 8].map(make(base + 50));
+        const factory = make;
+        const alias: (value: number) => Receipt<number> = factory(base + 60);
+        const aliasValue = alias(base + 9);
+        const selectedMapped = [base + 11, base + 12].map((false ? factory : factory)(base + 70));
         output.push([firstValue, firstCalls, generic.value.length, generic.calls, last.value.length, last.calls,
             mapped[0].value, mapped[1].value, mapped[0].calls, mapped[1].calls, after.value ? 1 : 0, after.calls,
             record.value, record.calls, stored.value.length, stored.calls, input.length,
@@ -126,7 +130,9 @@ function workload(n: number, seed: number, input: string): number[][] {
             defaultValue, omittedCalls, overrideCalls, undefinedCalls, defaultsAfter.calls, defaultsAfter.value.length,
             emptyValue, emptyCalls, packedCalls, restAfter.calls, restAfter.value.length,
             directFirst.value, directFirst.calls, directSecond.value, directSecond.calls,
-            factoryMapped[0].value, factoryMapped[1].value, factoryMapped[0].calls, factoryMapped[1].calls]);
+            factoryMapped[0].value, factoryMapped[1].value, factoryMapped[0].calls, factoryMapped[1].calls,
+            aliasValue.value, aliasValue.calls, selectedMapped[0].value, selectedMapped[1].value,
+            selectedMapped[0].calls, selectedMapped[1].calls]);
     }
     return output;
 }

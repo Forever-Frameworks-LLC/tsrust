@@ -205,3 +205,12 @@ Fresh local callable calls, generic factories, selected/conditional expressions,
 stored callable contexts, omitted generic result annotations and nested callable
 contracts still require their separate audit. This increment does not accept all
 arbitrary expressions or the full adapter family.
+
+Fresh origin discovery now uses checked call-result hints after preparing direct
+named declaration results. Local factory aliases and selected callee expressions
+with the same known origin use ordinary staging, preserving one evaluation and
+capture identity. Eighteen adapter tests and all depth canaries pass; whole editor
+checks and an added alias navigation/result-help control pass. The matched workload
+has fifty-one observations and verifies local alias and same-origin selection
+paths. Generic factories and selections with differing deferred origins still need
+separate source solving and joining; do not describe them as accepted.

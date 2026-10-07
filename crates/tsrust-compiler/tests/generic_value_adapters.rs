@@ -151,3 +151,13 @@ fn fresh_generic_adapters_reject_borrowed_temporary_escape() {
     let error=tsrust_compiler::check(source).err().expect("temporary owner cannot outlive borrowed facade");
     assert_eq!(error.code,"closure-escape","{}",error.render("input.tsr",source));
 }
+
+#[test]
+fn fresh_generic_adapters_accept_local_factory_aliases() {
+    native("function make(start:int){console.log(start);let calls=start;function select<T>(value:T):T{calls+=1;console.log(calls);return value;}return select;}function main(){const factory=make;const fixed:Function<int,[value:int]>=factory(10);if(fixed(7)!==7){throw 99;}const mapped=[3,4].map(factory(20));if(mapped[1]!==4){throw 99;}}", "10\n11\n20\n21\n22\n");
+}
+
+#[test]
+fn fresh_generic_adapters_accept_selected_factory_calls() {
+    native("function make(start:int){console.log(start);let calls=start;function select<T>(value:T):T{calls+=1;console.log(calls);return value;}return select;}function main(){const factory=make;const fixed:Function<int,[value:int]>=(true?factory:factory)(10);if(fixed(7)!==7){throw 99;}const mapped=[3,4].map((false?factory:factory)(20));if(mapped[1]!==4){throw 99;}}", "10\n11\n20\n21\n22\n");
+}

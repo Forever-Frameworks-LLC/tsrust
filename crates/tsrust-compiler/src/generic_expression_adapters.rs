@@ -29,11 +29,13 @@ impl Analyzer {
     #[inline(never)]
     pub(super) fn fresh_generic_origin(&mut self, context: &Context, expression: &Expr) -> Result<Option<usize>, Diagnostic> {
         let ExprKind::Call(callee, _) = &expression.kind else { return Ok(None); };
-        let ExprKind::Name(name) = &callee.kind else { return Ok(None); };
-        if context.names.contains_key(name) { return Ok(None); }
-        let Some(&function) = self.function_names.get(name) else { return Ok(None); };
-        self.prepare_named_result_hint(context, function)?;
-        let Type::Closure(origin) = self.signatures[function].result else { return Ok(None); };
+        if let ExprKind::Name(name) = &callee.kind
+            && !context.names.contains_key(name)
+            && let Some(&function) = self.function_names.get(name)
+        {
+            self.prepare_named_result_hint(context, function)?;
+        }
+        let Some(Type::Closure(origin)) = self.expression_type_hint(context, expression) else { return Ok(None); };
         Ok(self.deferred_generic_values.contains_key(&origin).then_some(origin))
     }
 

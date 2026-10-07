@@ -369,3 +369,15 @@ Sixteen adapter controls pass after tightening the borrowed-escape diagnostic;
 pass 299 tests, followed by the added fresh-expression protocol witness. Original
 failures and repairs are preserved. Wider expression and full Gate173 acceptance
 remain open; matched verification is recorded in the current handoff.
+
+## Fresh factory aliases and same-origin selection
+
+Checked call-result hints now admit fresh environments returned through local
+factory aliases and selected callees with the same known factory origin. Original
+alias witness prints 10,11,20,21,22; selected-callee witness matches that output.
+Eighteen adapter tests, 17 generic value tests and 63 depth canaries pass. Whole
+editor passes 300 tests, followed by the added alias definition/result-help control.
+Matched workload expands to fifty-one observations; five native/Node cases and
+semantic mutation registration pass untimed. Canonical SQLite record:
+benchmarks/runtime/results/2026-10-07T00-20-42-729Z-verify.json.
+Generic factories, differing-origin selections and remaining contexts remain open.

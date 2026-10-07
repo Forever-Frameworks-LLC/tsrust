@@ -7783,3 +7783,15 @@ fn fresh_generic_adapter_keeps_factory_navigation_and_result_help() {
     let definition=ask(source,"textDocument/definition","make(10)",0);
     assert_eq!(definition["range"]["start"],json!(at(source,"make(start",0)),"{definition}");
 }
+
+#[test]
+fn fresh_generic_factory_alias_navigation_and_concrete_results_are_preserved() {
+    let source="function make(start:int){let calls=start;function select<T>(value:T):T{calls+=1;return value;}return select;}function main(){const factory=make;const fixed:Function<int,[value:int]>=factory(10);const mapped=[3,4].map((false?factory:factory)(20));fixed(7);}";
+    tsrust_compiler::check(source).unwrap();
+    let definition=ask(source,"textDocument/definition","factory(10)",0);
+    assert_eq!(definition["range"]["start"],json!(at(source,"factory=",0)),"{definition}");
+    let hover=ask(source,"textDocument/hover","mapped=",0);
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("int[]"),"{hover}");
+    let help=ask(source,"textDocument/signatureHelp","7);",0);
+    assert!(help["signatures"][0]["label"].as_str().unwrap().contains("int"),"{help}");
+}
