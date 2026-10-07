@@ -142,3 +142,29 @@ eight unfiltered depth canaries, and 197 editor intelligence/stdio tests. The
 native-carrier red remains explicitly skipped. Formatting changes zero files and
 fingerprints. Exact red and passing logs are imported and read back in SQLite;
 closed loose copies and obsolete completed compiler test executables are removed.
+
+## Console leaf effects
+
+A retained compiler red showed that console.log after a captured replacement
+made its writer opaque, discarding the invocation diagnostic. A dedicated leaf
+effects module now recognizes supported console methods on the unshadowed global
+namespace. Saved callee values retain that classification before argument
+evaluation. Dispatch preserves lexical slots, returns undefined and retains a
+conservative exceptional exit. It does not execute source callbacks or discard
+known writes. Witnesses cover output before/after replacement, restoration, an
+uncalled writer and a forEach writer with console output. Classifier controls
+reject unknown methods and shadowed namespaces.
+
+This repairs console-induced opacity, not all opaque calls. Other namespaces,
+unknown callback execution, aggregate mutation and returned environments remain
+required work. Console namespace state is outside lexical capture facts. No new
+built-in surface or documentation is introduced, and native carrier repair remains
+open. The preceding whole-editor result is preserved; this chunk runs affected
+editor intelligence/stdio checks. No benchmark measurements or consumer refresh
+is claimed.
+
+Console-effect verification passes 33 focused tests, 75 compiler tests (all eight
+depth canaries unfiltered), and 197 editor protocol tests. The native-carrier red
+is explicitly skipped. Formatting changes zero files/fingerprints. Exact red and
+passing logs are imported/read back in SQLite and closed loose copies removed.
+Completed affected compiler test executables are pruned.

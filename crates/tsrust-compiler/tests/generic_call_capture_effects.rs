@@ -170,3 +170,19 @@ fn collection_callbacks_preserve_empty_regions_element_guards_and_completion_ord
         } else if let Err(error)=result { panic!("{}",error.render("collection-effect.tsr",&source)); }
     }
 }
+
+#[test]
+fn console_calls_preserve_known_capture_writes_and_restoration() {
+    for (body, invalid) in [
+        ("let action=one;function change(){action=two;console.log(1);}change();return action<T>(value);",true),
+        ("let action=one;function change(){console.log(1);action=two;}change();return action<T>(value);",true),
+        ("let action=one;function change(){action=two;console.log(1);action=one;}change();return action<T>(value);",false),
+        ("let action=one;function change(){action=two;console.log(1);}return action<T>(value);",false),
+        ("let action=one;[1].forEach(()=>{action=two;console.log(1);});return action<T>(value);",true),
+    ] {
+        let source=support::format_round_trip(&source(body));
+        let result=tsrust_compiler::check(&source);
+        if invalid { let error=result.err().expect("console output cannot erase captured write diagnostics");assert_eq!(error.code,"arity");assert!(!error.related.is_empty()); }
+        else if let Err(error)=result {panic!("{}",error.render("console-effects.tsr",&source));}
+    }
+}

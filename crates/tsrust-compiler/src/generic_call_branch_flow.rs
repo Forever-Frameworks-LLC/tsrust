@@ -4,6 +4,8 @@ use super::*;
 #[path = "generic_call_flow_graph.rs"]
 mod flow_graph;
 use flow_graph::graph;
+#[path = "generic_call_leaf_effects.rs"]
+mod leaf_effects;
 #[path = "generic_call_expression_flow.rs"]
 mod expression_flow;
 #[path = "generic_call_node_flow.rs"]

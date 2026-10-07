@@ -10,6 +10,7 @@ pub(super) struct Value {
     undefined: Option<bool>,
     pub(super) elements: Option<Vec<Element>>,
     pub(super) for_each: bool,
+    pub(super) console: bool,
 }
 impl Value {
     pub(super) fn from_origins(origins: Vec<body_origins::Origin>) -> Self { Self { origins: body_origins::canonical(origins), ..Self::default() } }
@@ -21,7 +22,7 @@ impl Value {
 
 impl Default for Value {
     fn default() -> Self {
-        Self { origins: vec![body_origins::Origin::Unknown], contracts: None, truth: None, nullish: None, undefined: None, elements: None, for_each: false }
+        Self { origins: vec![body_origins::Origin::Unknown], contracts: None, truth: None, nullish: None, undefined: None, elements: None, for_each: false, console: false }
     }
 }
 
@@ -35,7 +36,7 @@ pub(super) fn merge_elements(left: Option<Vec<Element>>, right: Option<Vec<Eleme
 }
 impl Value {
     pub(super) fn element(element: &Element) -> Self {
-        Self { origins: element.origins.clone(), contracts: element.contracts.clone(), truth: element.selection.truth, nullish: element.selection.nullish, undefined: element.selection.undefined, elements: None, for_each: false }
+        Self { origins: element.origins.clone(), contracts: element.contracts.clone(), truth: element.selection.truth, nullish: element.selection.nullish, undefined: element.selection.undefined, elements: None, for_each: false, console: false }
     }
     pub(super) fn array(values: &[Value]) -> Self {
         Self { truth: Some(true), nullish: Some(false), undefined: Some(false), elements: Some(values.iter().map(|value| Element { origins: value.origins.clone(), contracts: value.contracts.clone(), selection: value.selection() }).collect()), ..Self::default() }
@@ -48,7 +49,7 @@ fn merge_value(left: Value, right: Value, declarations: &HashMap<String, Contrac
     };
     Value { origins: body_origins::canonical(left.origins.into_iter().chain(right.origins).collect()), contracts, truth: (left.truth == right.truth).then_some(left.truth).flatten(),
         nullish: (left.nullish == right.nullish).then_some(left.nullish).flatten(),
-        undefined: (left.undefined == right.undefined).then_some(left.undefined).flatten(), elements: merge_elements(left.elements, right.elements, declarations), for_each: left.for_each && right.for_each }
+        undefined: (left.undefined == right.undefined).then_some(left.undefined).flatten(), elements: merge_elements(left.elements, right.elements, declarations), for_each: left.for_each && right.for_each, console: left.console && right.console }
 }
 fn snapshot(expression: &Expr, state: &[Binding], declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index) -> Value {
     let contracts = if let Some((name, span)) = name(expression) && effects.binding(name, span).is_some() {
@@ -77,7 +78,7 @@ fn snapshot(expression: &Expr, state: &[Binding], declarations: &HashMap<String,
         nullish = selection.nullish.or(nullish);
         undefined = selection.undefined.or(undefined);
     }
-    Value { origins: body_origins::resolve(body_origins::value(expression), state, declarations, effects), contracts, truth, nullish, undefined, elements: name(expression).and_then(|(name,span)| binding_at(state,name,span,effects)).and_then(|index|state[index].elements.clone()), for_each: false }
+    Value { origins: body_origins::resolve(body_origins::value(expression), state, declarations, effects), contracts, truth, nullish, undefined, elements: name(expression).and_then(|(name,span)| binding_at(state,name,span,effects)).and_then(|index|state[index].elements.clone()), for_each: false, console: false }
 }
 fn commit(target: &Expr, value: &Value, state: &mut [Binding], effects: &effect_bodies::Index) {
     if !matches!(target.kind, ExprKind::Name(_)) {
@@ -213,6 +214,7 @@ pub(super) fn evaluate_with_dispatch(expression: &Expr, state: &mut Vec<Binding>
                 }
                 let mut value = snapshot(expression, state, declarations, effects);
                 if let Some(origins) = preserved { value.origins = origins; value.elements = operands[0].elements.clone(); }
+                value.console = leaf_effects::console(expression, effects);
                 match &expression.kind {
                     ExprKind::Field(_, method) if method == "forEach" && operands[0].elements.is_some() => { value.elements = operands[0].elements.clone(); value.for_each = true; }
                     ExprKind::Array(_) => value = Value::array(&operands),

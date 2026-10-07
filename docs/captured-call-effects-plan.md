@@ -305,3 +305,12 @@ once while indexing each body and its parameter defaults. Contextual invocation
 reads a cached flag; it no longer clones and scans source or builds a separate
 eligibility graph per request. Focused witnesses retain statement, expression,
 default and nested-update coverage. No timing improvement is claimed.
+
+## Console leaf effects
+
+Supported console methods on the unshadowed namespace now preserve captured-slot
+state instead of invalidating the entire invocation summary. A separate classifier
+keeps this rule distinct from user callbacks and collection dispatch. Known writes
+and restoration survive output before or after the write, including collection
+callbacks. Unknown methods and shadowed names remain ineligible. Other opaque
+regions, aggregate mutation, return snapshots and carrier failures remain open.

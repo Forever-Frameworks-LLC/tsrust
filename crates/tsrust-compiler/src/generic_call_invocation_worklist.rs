@@ -113,6 +113,9 @@ impl<'a> Engine<'a> {
 }
 impl expression_flow::Dispatch for Engine<'_> {
     fn invoke(&mut self, _: &Expr, callee: &expression_flow::Value, arguments: &[expression_flow::Value], state: &[Binding]) -> Option<expression_flow::Invocation> {
+        if callee.console {
+            return Some(expression_flow::Invocation { normal: Some(state.to_vec()), throwing: vec![state.to_vec()], result: expression_flow::Value::undefined(), facts: HashMap::new() });
+        }
         if callee.for_each { return self.for_each(callee, arguments, state); }
         if callee.origins.is_empty() || callee.origins.iter().any(|origin| !matches!(origin, body_origins::Origin::Body(_))) { return self.opaque_invocation(); }
         let mut normal = None;
