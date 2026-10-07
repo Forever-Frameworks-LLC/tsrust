@@ -17,7 +17,7 @@ mod invocation_frame;
 #[path = "generic_call_parameter_entry.rs"]
 mod parameter_entry;
 #[path = "generic_call_environment_store.rs"]
-mod environment_store;
+pub(super) mod environment_store;
 #[path = "generic_call_invocation_worklist.rs"]
 mod invocation_worklist;
 
@@ -52,6 +52,8 @@ fn join(
             undefined: (current.selection.undefined == incoming.selection.undefined).then_some(current.selection.undefined).flatten(),
         };
         if selection != current.selection { current.selection = selection; changed = true; }
+        let alternatives = environment_store::merge_alternatives(current.alternatives.clone(), &current.origins, incoming.alternatives.clone(), &incoming.origins);
+        if alternatives != current.alternatives { current.alternatives = alternatives; changed = true; }
         let origins = body_origins::canonical(current.origins.iter().chain(&incoming.origins).cloned().collect());
         if origins != current.origins { current.origins = origins; changed = true; }
         let mut candidates = current.targets.clone();
@@ -115,6 +117,7 @@ pub(super) fn analyze(
     // stable annotated contracts; lexical ranges still govern name lookup.
     for binding in &mut seed {
         if binding.scope.start > function.scope_span.start {
+            binding.alternatives = None;
             binding.origins = vec![body_origins::Origin::Unknown];
             binding.selection = Selection::default();
             if binding.contract.is_none() { binding.targets = vec![Target::Unknown]; }

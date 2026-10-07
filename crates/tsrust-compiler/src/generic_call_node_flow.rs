@@ -82,6 +82,7 @@ pub(super) fn apply_with_dispatch(node: &flow_graph::Node<'_>, state: &mut Vec<B
         if let Some((destination, candidates)) = destination {
             state[destination].selection = candidates.selection();
             state[destination].elements = candidates.elements.clone();
+            state[destination].alternatives = candidates.alternatives.clone();
             state[destination].origins = body_origins::canonical(candidates.origins);
             if state[destination].contract.is_none() {
                 state[destination].targets = candidates.contracts.map_or_else(

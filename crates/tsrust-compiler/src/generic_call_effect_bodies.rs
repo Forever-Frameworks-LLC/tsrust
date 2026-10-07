@@ -221,7 +221,7 @@ impl Index {
         })
     }
     fn parameter(&self, name: &Token, scope: Span, callback: Option<&CallbackAnnotation>, initializer: ParameterInitializer, rest: bool) -> Parameter {
-        Parameter { binding: Binding {
+        Parameter { binding: Binding { alternatives: None,
             identity: self.declared(name.span), name: name.text.clone(), scope,
             targets: vec![Target::Unknown], origins: vec![body_origins::Origin::Unknown],
             selection: Selection::default(), elements: None, mutable: false, contract: callback.map(|callback| parameters(&callback.params, name.span)),

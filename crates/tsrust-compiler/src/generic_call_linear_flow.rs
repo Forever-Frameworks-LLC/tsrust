@@ -45,6 +45,7 @@ pub(super) fn at_call(
             (index, bindings[index].targets.clone(), bindings[index].origins.clone())
         };
         let origins = body_origins::resolve(origins, &bindings, declarations, effects);
+        bindings[binding_index].alternatives = None;
         bindings[binding_index].origins = origins;
         if bindings[binding_index].contract.is_some() { continue; }
         let snapshot =

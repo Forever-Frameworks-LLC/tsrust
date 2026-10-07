@@ -20,6 +20,7 @@ pub(super) fn run_with_dispatch(body: &[Stmt], initial: &[Binding], declarations
     collect(body, &mut locals, effects);
     for mut local in locals {
         if seed.iter().any(|binding| binding.identity == local.identity && binding.name == local.name && binding.scope == local.scope) { continue; }
+        local.alternatives = None;
         local.origins = vec![body_origins::Origin::Unknown];
         local.selection = Selection::default();
         local.elements = None;

@@ -6,6 +6,7 @@ pub(super) struct Entry {
     pub facts: HashMap<(usize, usize), Option<Vec<Contract>>>,
 }
 fn install(binding: &mut Binding, value: &expression_flow::Value) {
+    binding.alternatives = value.alternatives.clone();
     binding.origins = body_origins::canonical(value.origins.clone());
     binding.selection = value.selection();
     binding.elements = value.elements.clone();

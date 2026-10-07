@@ -1,11 +1,29 @@
 //! Finite source allocation keys stay separate from cyclic environment edges.
 use super::*;
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
-pub(super) struct Handle(usize);
+pub(crate) struct Handle(usize);
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
-pub(super) enum Alternative {
+pub(crate) enum Alternative {
     Unknown,
     Body { declaration: Span, environment: Option<Handle> },
+}
+pub(super) fn canonical_alternatives(mut alternatives: Vec<Alternative>) -> Vec<Alternative> {
+    alternatives.sort_by_key(|alternative| match alternative {
+        Alternative::Unknown => (0,0,0,None),
+        Alternative::Body { declaration, environment } => (1,declaration.start,declaration.end,environment.map(|handle|handle.0)),
+    });
+    alternatives.dedup();
+    alternatives
+}
+pub(super) fn merge_alternatives(left: Option<Vec<Alternative>>, left_origins: &[body_origins::Origin], right: Option<Vec<Alternative>>, right_origins: &[body_origins::Origin]) -> Option<Vec<Alternative>> {
+    if left.is_none() && right.is_none() { return None; }
+    fn explicit(value: Option<Vec<Alternative>>, origins: &[body_origins::Origin]) -> Vec<Alternative> {
+        value.unwrap_or_else(|| origins.iter().map(|origin| match origin {
+            body_origins::Origin::Body(declaration) => Alternative::Body { declaration: *declaration, environment: None },
+            _ => Alternative::Unknown,
+        }).collect())
+    }
+    Some(canonical_alternatives(explicit(left,left_origins).into_iter().chain(explicit(right,right_origins)).collect()))
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
 struct LeafElement {
@@ -113,7 +131,7 @@ impl Store {
 mod tests {
     use super::*;
     fn binding(body: usize) -> Binding {
-        Binding { identity: Some(crate::local_capture_plan::BindingId { owner: 0, declaration_start: 1 }), name: "action".into(), scope: Span::new(0,20), targets: vec![Target::Unknown], origins: vec![body_origins::Origin::Body(Span::new(body,body+1))], selection: Selection::default(), elements: None, mutable: true, contract: None }
+        Binding { alternatives: None, identity: Some(crate::local_capture_plan::BindingId { owner: 0, declaration_start: 1 }), name: "action".into(), scope: Span::new(0,20), targets: vec![Target::Unknown], origins: vec![body_origins::Origin::Body(Span::new(body,body+1))], selection: Selection::default(), elements: None, mutable: true, contract: None }
     }
     #[test]
     fn changed_records_schedule_only_subscribed_readers_once() {

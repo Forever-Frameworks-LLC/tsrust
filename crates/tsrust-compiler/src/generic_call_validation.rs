@@ -33,12 +33,14 @@ struct Selection {
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
 struct Element {
+    alternatives: Option<Vec<branch_flow::environment_store::Alternative>>,
     origins: Vec<body_origins::Origin>,
     contracts: Option<Vec<Contract>>,
     selection: Selection,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
 struct Binding {
+    alternatives: Option<Vec<branch_flow::environment_store::Alternative>>,
     identity: Option<crate::local_capture_plan::BindingId>,
     name: String,
     scope: Span,
@@ -133,7 +135,7 @@ fn name(mut value: &Expr) -> Option<(&str, Span)> {
 fn collect(body: &[Stmt], bindings: &mut Vec<Binding>, effects: &effect_bodies::Index) {
     let mut scopes = Vec::new();
     crate::generic_functions::locals(body, &mut scopes);
-    bindings.extend(scopes.into_iter().map(|(name, scope)| Binding {
+    bindings.extend(scopes.into_iter().map(|(name, scope)| Binding { alternatives: None,
         identity: effects.in_scope(&name, scope),
         name,
         scope,
@@ -270,7 +272,7 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
                 let callback = callback
                     .clone()
                     .or_else(|| crate::callable_annotations::callback(annotation));
-                Binding {
+                Binding { alternatives: None,
                     identity: effects.declared(name.span),
                     name: name.text.clone(),
                     scope: function.scope_span,
@@ -299,7 +301,7 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
         collect(&function.body, &mut bindings, &effects);
         crate::source_walk::function_body(function, &mut |_| Ok(()), &mut |expression| {
             if let ExprKind::Closure { params, body, .. } = &expression.kind {
-                bindings.extend(params.iter().map(|parameter| Binding {
+                bindings.extend(params.iter().map(|parameter| Binding { alternatives: None,
                     identity: effects.declared(parameter.name.span),
                     name: parameter.name.text.clone(),
                     scope: expression.span,

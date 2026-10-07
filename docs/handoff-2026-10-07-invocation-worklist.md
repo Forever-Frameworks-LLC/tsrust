@@ -171,3 +171,29 @@ factory red explicitly excluded. This kernel remains unused by Engine. Next conn
 record reads to request subscriptions and drain changed readers into Engine's work
 queue while wiring correlated value transport. No native or editor acceptance is
 claimed for this isolated store change.
+
+## Correlated value transport WIP
+
+Values, bindings and flat aggregate elements now carry optional correlated callable
+alternatives. An absent metadata field retains the existing body-origin path; when
+joined with explicit alternatives, that path is converted to body-without-environment
+or explicit unknown alternatives. Joins keep each body/environment pair together
+and canonicalize the union, including two environments for the same body. No
+independent environment/body cross product is constructed.
+
+Transport covers source snapshots, assignments, declaration commits, formal entry,
+rest elements, frame projection, assertions and selected array elements. Pending
+return snapshots already carry Values and therefore retain these pairs. Opaque
+fallback resets do not retain stale environment metadata. A failing alias witness
+preceded the implementation; focused controls cover assertions, array storage,
+indexing, unknown joins and formal entry. The focused baseline passes 42 tests with
+the retained paired factory red excluded. Whole-project formatting changes no files
+or benchmark fingerprints.
+
+Engine still dispatches by origins and does not create or consume these environment
+pairs. The new metadata is preparation, not factory behavior acceptance. Next add
+producer call-site context, creation hooks, capture ownership-aware environment
+initialization and frame entry, and connect reader subscriptions to scheduling.
+Keep the missing-capture guard and the paired factory red intact. Native ownership,
+disposal, mutable instance updates, recursion convergence and feature acceptance
+remain pending.

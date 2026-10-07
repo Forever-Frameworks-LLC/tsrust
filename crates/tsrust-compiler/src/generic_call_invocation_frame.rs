@@ -13,6 +13,7 @@ impl Frame {
         let mut slots = parameters.iter().enumerate().map(|(position, parameter)| {
             let mut binding = parameter.binding.clone();
             if !parameter.rest && let Some(argument) = arguments.get(position) {
+                binding.alternatives = argument.alternatives.clone();
                 binding.origins = body_origins::canonical(argument.origins.clone());
                 binding.selection = argument.selection();
                 binding.elements = argument.elements.clone();
@@ -22,6 +23,7 @@ impl Frame {
         }).collect::<Vec<_>>();
         collect(body, &mut slots, effects);
         for local in &mut slots[parameters.len()..] {
+            local.alternatives = None;
             local.origins = vec![body_origins::Origin::Unknown];
             local.selection = Selection::default();
         local.elements = None;
@@ -42,6 +44,7 @@ impl Frame {
             let Some(identity) = binding.identity else { continue; };
             if self.owned.contains(&identity) { continue; }
             if let Some(updated) = updated_by_identity.get(&identity) {
+                binding.alternatives = updated.alternatives.clone();
                 binding.origins = updated.origins.clone();
                 binding.selection = updated.selection;
                 binding.elements = updated.elements.clone();
@@ -66,10 +69,15 @@ mod tests {
         let one=program.functions.iter().find(|function|function.name.text=="one").unwrap().name.span;
         let two=program.functions.iter().find(|function|function.name.text=="two").unwrap().name.span;
         let mut caller=Vec::new();collect(&main.body,&mut caller,&effects);
-        let argument=expression_flow::Value::from_origins(vec![body_origins::Origin::Body(one)]);
+        let mut argument=expression_flow::Value::from_origins(vec![body_origins::Origin::Body(one)]);
+        let mut store=environment_store::Store::default();
+        let environment=store.allocate(one,relay.name.span,&[]).unwrap();
+        argument.alternatives=Some(vec![environment_store::Alternative::Body {declaration:one,environment:Some(environment)}]);
+        let alternatives=argument.alternatives.clone();
         let frame=Frame::build(relay.name.span,&caller,&[argument],&effects).unwrap();
         let parameter=frame.state.iter().find(|binding|binding.name=="action").unwrap();
         assert_eq!(parameter.origins,vec![body_origins::Origin::Body(one)]);
+        assert_eq!(parameter.alternatives,alternatives);
         assert_eq!(parameter.contract.as_ref().unwrap().required,0);
         let own=frame.state.iter().find(|binding|binding.name=="local" && binding.identity!=caller[0].identity).unwrap();
         assert_eq!(own.origins,vec![body_origins::Origin::Unknown]);

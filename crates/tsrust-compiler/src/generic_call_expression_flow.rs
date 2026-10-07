@@ -3,6 +3,7 @@ use super::*;
 type Facts = HashMap<(usize, usize), Option<Vec<Contract>>>;
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub(super) struct Value {
+    pub(super) alternatives: Option<Vec<environment_store::Alternative>>,
     pub(super) origins: Vec<body_origins::Origin>,
     pub(super) contracts: Option<Vec<Contract>>,
     truth: Option<bool>,
@@ -22,7 +23,7 @@ impl Value {
 
 impl Default for Value {
     fn default() -> Self {
-        Self { origins: vec![body_origins::Origin::Unknown], contracts: None, truth: None, nullish: None, undefined: None, elements: None, for_each: false, console: false }
+        Self { alternatives: None, origins: vec![body_origins::Origin::Unknown], contracts: None, truth: None, nullish: None, undefined: None, elements: None, for_each: false, console: false }
     }
 }
 
@@ -31,23 +32,24 @@ pub(super) fn merge_elements(left: Option<Vec<Element>>, right: Option<Vec<Eleme
     if left.len() != right.len() { return None; }
     Some(left.into_iter().zip(right).map(|(left,right)| {
         let value = merge_value(Value::element(&left), Value::element(&right), declarations);
-        Element { origins: value.origins.clone(), contracts: value.contracts.clone(), selection: value.selection() }
+        Element { alternatives: value.alternatives.clone(), origins: value.origins.clone(), contracts: value.contracts.clone(), selection: value.selection() }
     }).collect())
 }
 impl Value {
     pub(super) fn element(element: &Element) -> Self {
-        Self { origins: element.origins.clone(), contracts: element.contracts.clone(), truth: element.selection.truth, nullish: element.selection.nullish, undefined: element.selection.undefined, elements: None, for_each: false, console: false }
+        Self { alternatives: element.alternatives.clone(), origins: element.origins.clone(), contracts: element.contracts.clone(), truth: element.selection.truth, nullish: element.selection.nullish, undefined: element.selection.undefined, elements: None, for_each: false, console: false }
     }
     pub(super) fn array(values: &[Value]) -> Self {
-        Self { truth: Some(true), nullish: Some(false), undefined: Some(false), elements: Some(values.iter().map(|value| Element { origins: value.origins.clone(), contracts: value.contracts.clone(), selection: value.selection() }).collect()), ..Self::default() }
+        Self { truth: Some(true), nullish: Some(false), undefined: Some(false), elements: Some(values.iter().map(|value| Element { alternatives: value.alternatives.clone(), origins: value.origins.clone(), contracts: value.contracts.clone(), selection: value.selection() }).collect()), ..Self::default() }
     }
 }
 pub(super) fn merge_value(left: Value, right: Value, declarations: &HashMap<String, Contract>) -> Value {
+    let alternatives = environment_store::merge_alternatives(left.alternatives, &left.origins, right.alternatives, &right.origins);
     let contracts = match (left.contracts, right.contracts) {
         (Some(left), Some(right)) => resolve_all(left.into_iter().chain(right).map(Target::Contract).collect(), &[], declarations),
         _ => None,
     };
-    Value { origins: body_origins::canonical(left.origins.into_iter().chain(right.origins).collect()), contracts, truth: (left.truth == right.truth).then_some(left.truth).flatten(),
+    Value { alternatives, origins: body_origins::canonical(left.origins.into_iter().chain(right.origins).collect()), contracts, truth: (left.truth == right.truth).then_some(left.truth).flatten(),
         nullish: (left.nullish == right.nullish).then_some(left.nullish).flatten(),
         undefined: (left.undefined == right.undefined).then_some(left.undefined).flatten(), elements: merge_elements(left.elements, right.elements, declarations), for_each: left.for_each && right.for_each, console: left.console && right.console }
 }
@@ -78,7 +80,7 @@ fn snapshot(expression: &Expr, state: &[Binding], declarations: &HashMap<String,
         nullish = selection.nullish.or(nullish);
         undefined = selection.undefined.or(undefined);
     }
-    Value { origins: body_origins::resolve(body_origins::value(expression), state, declarations, effects), contracts, truth, nullish, undefined, elements: name(expression).and_then(|(name,span)| binding_at(state,name,span,effects)).and_then(|index|state[index].elements.clone()), for_each: false, console: false }
+    Value { alternatives: name(expression).and_then(|(name,span)| binding_at(state,name,span,effects)).and_then(|index|state[index].alternatives.clone()), origins: body_origins::resolve(body_origins::value(expression), state, declarations, effects), contracts, truth, nullish, undefined, elements: name(expression).and_then(|(name,span)| binding_at(state,name,span,effects)).and_then(|index|state[index].elements.clone()), for_each: false, console: false }
 }
 fn commit(target: &Expr, value: &Value, state: &mut [Binding], effects: &effect_bodies::Index) {
     if !matches!(target.kind, ExprKind::Name(_)) {
@@ -89,6 +91,7 @@ fn commit(target: &Expr, value: &Value, state: &mut [Binding], effects: &effect_
     if let ExprKind::Name(name) = &target.kind
         && let Some(index) = binding_at(state, name, target.span, effects)
     {
+        state[index].alternatives = value.alternatives.clone();
         state[index].origins = body_origins::canonical(value.origins.clone());
         state[index].selection = value.selection();
         state[index].elements = value.elements.clone();
@@ -213,7 +216,7 @@ pub(super) fn evaluate_with_dispatch(expression: &Expr, state: &mut Vec<Binding>
                     if observe_failures { failures.push(state.clone()); }
                 }
                 let mut value = snapshot(expression, state, declarations, effects);
-                if let Some(origins) = preserved { value.origins = origins; value.elements = operands[0].elements.clone(); }
+                if let Some(origins) = preserved { value.origins = origins; value.alternatives = operands[0].alternatives.clone(); value.elements = operands[0].elements.clone(); }
                 value.console = leaf_effects::console(expression, effects);
                 match &expression.kind {
                     ExprKind::Field(_, method) if method == "forEach" && operands[0].elements.is_some() => { value.elements = operands[0].elements.clone(); value.for_each = true; }
@@ -381,5 +384,42 @@ mod opaque_selection_tests {
         let StmtKind::Expr(call)=&main.body[1].kind else {panic!("call")};
         evaluate(call,&mut state,&mut HashMap::new(),&declarations,false,&effects);
         assert_eq!(state[0].selection.truth,None);
+    }
+}
+
+#[cfg(test)]
+mod environment_transport_tests {
+    use super::*;
+    #[test]
+    fn correlated_environments_survive_aliases_assertions_arrays_and_value_joins() {
+        let source = crate::format("function one():int{return 1;}function main(){let action=one;const saved=action;const asserted=action as Function<int>;const list=[action];const indexed=list[0];}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let program=crate::syntax::parse(&source).unwrap();
+        let effects=effect_bodies::Index::new(&program).unwrap();
+        let declarations=program.functions.iter().map(|function|(function.name.text.clone(),contract(0,&function.parameter_initializers,function.rest_parameter,function.name.span))).collect::<HashMap<_,_>>();
+        let main=program.functions.iter().find(|function|function.name.text=="main").unwrap();
+        let one=program.functions.iter().find(|function|function.name.text=="one").unwrap().name.span;
+        let mut state=Vec::new();collect(&main.body,&mut state,&effects);
+        let mut store=environment_store::Store::default();
+        let first=store.allocate(Span::new(900,901),Span::new(902,903),&[]).unwrap();
+        let second=store.allocate(Span::new(904,905),Span::new(902,903),&[]).unwrap();
+        let pairs=vec![environment_store::Alternative::Body{declaration:one,environment:Some(first)}];
+        state[0].alternatives=Some(pairs.clone());
+        let mut facts=HashMap::new();
+        for statement in &main.body[1..] {
+            let StmtKind::Let{name,value,..}=&statement.kind else {panic!("declaration")};
+            let (value,_)=evaluate(value,&mut state,&mut facts,&declarations,false,&effects);
+            if name.text=="list" {assert_eq!(value.elements.as_ref().unwrap()[0].alternatives,Some(pairs.clone()));}
+            else {assert_eq!(value.alternatives,Some(pairs.clone()),"{}",name.text);}
+            let destination=state.iter().position(|binding|binding.name==name.text).unwrap();
+            state[destination].origins=value.origins;state[destination].alternatives=value.alternatives;state[destination].elements=value.elements;
+        }
+        let left=Value{alternatives:Some(pairs.clone()),origins:vec![body_origins::Origin::Body(one)],..Value::default()};
+        let right=Value{alternatives:Some(vec![environment_store::Alternative::Body{declaration:one,environment:Some(second)}]),origins:vec![body_origins::Origin::Body(one)],..Value::default()};
+        let merged=merge_value(left.clone(),right,&declarations);
+        assert_eq!(merged.alternatives.as_ref().unwrap().len(),2);
+        assert!(merged.alternatives.as_ref().unwrap().contains(&pairs[0]));
+        let unknown=merge_value(left,Value::default(),&declarations);
+        assert!(unknown.alternatives.as_ref().unwrap().contains(&environment_store::Alternative::Unknown));
     }
 }
