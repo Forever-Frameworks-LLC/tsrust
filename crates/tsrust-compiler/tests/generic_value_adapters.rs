@@ -718,3 +718,25 @@ fn stored_callable_environments_accept_owned_map_and_set_headers() {
     native(sources[0],"1 1\n");
     native(sources[1],"2 2\n");
 }
+
+#[test]
+fn distinct_branch_contracts_reject_calls_invalid_for_a_reachable_target() {
+    for source in [
+        "function one<T>(value:T):T{return value;}function two<T>(value:T,other:T):T{return other;}function unused<T>(flag:boolean,value:T):T{let action=one;if(flag){action=two;}return action<T>(value);}function main(){}",
+        "function one<T>(value:T):T{return value;}function two<T>(value:T,other:T):T{return other;}function unused<T>(flag:boolean,value:T):T{let action=one;if(flag){action=two;}return action<T>(value,value);}function main(){}",
+        "function one<T>(value:T):T{return value;}function two<T,U>(value:T,other:U):T{return value;}function unused<T>(flag:boolean,value:T):T{let action=one;if(flag){action=two;}return action<T>(value);}function main(){}",
+    ] {
+        let error=tsrust_compiler::check(source).err().expect("Every reachable target must accept the call");
+        assert_eq!(error.code,"arity","{}",error.render("input.tsr",source));
+        assert!(!error.related.is_empty());
+    }
+}
+
+#[test]
+fn distinct_branch_contracts_keep_valid_omission_rest_and_overwrite() {
+    for source in [
+        "function one<T>(value:T):T{return value;}function optional<T>(value:T,other:T=value):T{return other;}function unused<T>(flag:boolean,value:T):T{let action=one;if(flag){action=optional;}return action<T>(value);}function main(){}",
+        "function one<T>(value:T):T{return value;}function rest<T>(value:T,...others:T[]):T{return value;}function unused<T>(flag:boolean,value:T):T{let action=one;if(flag){action=rest;}return action<T>(value);}function main(){}",
+        "function one<T>(value:T):T{return value;}function two<T>(value:T,other:T):T{return other;}function unused<T>(flag:boolean,value:T):T{let action=one;if(flag){action=two;}action=one;return action<T>(value);}function main(){}",
+    ] {tsrust_compiler::check(source).unwrap_or_else(|error|panic!("{}",error.render("input.tsr",source)));}
+}
