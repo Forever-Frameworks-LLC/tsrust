@@ -158,6 +158,38 @@ mod tests {
     }
 
     #[test]
+    fn opaque_consumption_survives_source_disposal_but_wrapped_move_resolves_its_site() {
+        let source = formatted(r#"
+            type Holder = { run: ReadOnly<Function<int>>; };
+            function main() {
+                const values = [3];
+                const holder: Holder = { run: (): int => values[0] };
+            }
+        "#);
+        let mut analyzer = Analyzer::new(crate::syntax::parse(&source).unwrap()).unwrap();
+        let mut body = std::mem::take(&mut analyzer.program.functions[0].body);
+        let mut context = Context::new("main".into());
+        analyzer.block_with_scope(&mut context, &mut body, Type::Void, true).unwrap();
+        let holder = context.names["holder"];
+        let ids = context.capture_loan_owners.live();
+        assert!(!ids.is_empty());
+        let site = Span::new(source.len(), source.len() + 1);
+        Analyzer::access(&mut context, holder, Mode::Consume, site, &Loans::new()).unwrap();
+        let mut opaque = context.clone();
+        assert!(opaque.capture_loan_owners.leave_scope(holder).is_empty());
+        assert_eq!(opaque.capture_loan_owners.live(), ids);
+
+        let mut value = Expr::new(ExprKind::Name("holder".into()), site);
+        value.binding = Some(holder);
+        let wrapped = Expr::new(ExprKind::Unary {
+            op: UnaryOp::NonNull, operator: Span::new(site.end, site.end + 1), value: Box::new(value),
+        }, Span::new(site.start, site.end + 1));
+        analyzer.attach_binding_capture_loans(&mut context, &wrapped, holder + 1, true);
+        assert_eq!(context.capture_loan_owners.leave_scope(holder), ids);
+        assert!(context.capture_loan_owners.live().is_empty());
+    }
+
+    #[test]
     fn named_record_destructuring_moves_only_selected_field_loan_owners() {
         let source = r#"
             type Pair = { left: ReadOnly<Function<int>>; right: ReadOnly<Function<int>>; };

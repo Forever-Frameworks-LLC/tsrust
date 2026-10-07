@@ -472,3 +472,33 @@ Actual scope release remains disabled. Next add checker-state opaque-consumer an
 wrapped-source controls, then replace positional unwind and prove branch loan
 restoration before enabling release. Independent field disposal remains red; the
 record gate and gate 173 remain open. Consumers remain f1dd284.
+
+## Opaque consumption control and reverse identities
+
+A checker-state control now proves that successful opaque consuming access retains
+its loans after the original binding is disposed. Its paired known move through a
+checked wrapper proves that the underlying access span resolves that event and
+destination disposal releases the ledger IDs. This is a checker-state proof, not
+a native scope-release claim. The test source formats and round-trips before analysis.
+
+A separate red witness required exact loan recovery from a stable ID shared across
+cloned branches. Registry now keeps both the tuple-to-ID map and ID-to-tuple vector.
+Repeated interning preserves identity; IDs from either branch recover the original
+mode and span without relying on raw vector positions. All seventeen focused loan
+tests pass. Project formatting changes zero files and fingerprints. Exact logs,
+including the corrected test-construction compile error, are verified in SQLite
+under runtime/diagnostics/capture-loan-restoration/.
+
+Next use reverse identities to restore live raw loans after owner-state restoration,
+and replace lexical/exception positional unwind with stable entry membership. Add
+branch, exceptional and pending-payload controls before enabling field release.
+The independent native field-disposal witness remains red. No parser/analyzer
+dispatch changed in this proof and registry checkpoint; preceding 64 depth-canary
+evidence remains applicable. Consumers remain f1dd284. Preserve fifteen owner
+fixtures. Record gate and gate 173 remain open.
+
+Continuation prompt: Continue from this handoff and the scoped callable aggregate
+plan. HEAD before this checkpoint is fcb7bc7. First inspect Git status. Keep three
+public wrappers and ownership rules. Implement stable lexical/exception loan
+restoration and release with red witnesses, bounded checks, formatting, SQLite
+evidence and explicit Git paths. Never stage the fifteen owner fixtures.
