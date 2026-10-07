@@ -247,3 +247,28 @@ an inner owner's callback into outer record storage. Add nested record transfers
 whole-record moves, overwrite, failure/finally and disposal controls before accepting
 field provenance. Resume the existing red witness first, then bounded affected
 checks and mandatory canaries after dispatch changes.
+
+## Loan ownership module implementation
+
+capture_loan_owners now provides an isolated Owners state keyed by binding and field
+path. A loan identity may have multiple live owners. transfer extracts a subtree,
+rebases every nested path, replaces the destination subtree and reports only loans
+with no remaining owner. Self-transfer is inert. Overlapping ancestor/descendant
+transfers require a checked temporary. leave_scope removes dying bindings and
+reports only newly dead loans. join unions reaching ownership paths conservatively.
+Four focused tests were red before implementation and now pass: independent field
+disposal, nested transfer to outer storage, replacement retaining shared loans and
+branch joins. The traversal uses explicit maps and vectors rather than recursion.
+
+This module is not wired into Context or ExitState yet. The source/native field-loan
+witness remains red. Do not claim repaired compiler behavior or refresh consumers.
+Next use stable loan identities shared across branch snapshots; attach loans to
+concrete callback payload paths during binding/record construction, transfer them
+with whole/partial moves, and release only reported dead identities at scope exit.
+Existing untracked temporary loans must remain conservative until explicitly owned.
+Loan identities cannot be ordinary vector positions if removals shift that vector,
+and separately forked branches cannot allocate colliding identities. Carry Owners
+through exception ExitState capture/restore/join and branch state restoration before
+allowing releases. Avoid releasing loans for moved values that remain live elsewhere.
+Exact module red/green/format evidence is stored in SQLite under
+runtime/diagnostics/capture-loan-owners/. Preserve all fifteen owner fixtures.

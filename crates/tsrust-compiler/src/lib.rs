@@ -8,6 +8,7 @@ mod parameter_arity;
 pub use parameters::ParameterOmission;
 mod callable_contracts;
 mod callable_storage;
+mod capture_loan_owners;
 mod callable_layout;
 mod callable_size;
 mod callable_dispatch;
