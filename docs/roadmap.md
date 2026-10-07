@@ -561,3 +561,35 @@ a TypeScript generic constraint where required by that checker.
 
 No timing or complete compiler regression is claimed. The wider generic context
 and alias/editor audit remains open, and full Gate173 acceptance is still pending.
+
+## Explicit applications on retained generic values
+
+Retained named generic values now accept explicit type applications, including
+callable payloads. Explicit arguments are kept by enclosing function identity and
+call span, so distinct enclosing specializations substitute their own type bindings.
+Checked preparation resolves the original generic declaration and captured context,
+materializes the explicit signature, and then uses ordinary argument, result and
+ownership checking. It does not replace supplied arguments with inferred types or
+reconstruct a factory environment. Nongeneric values, wrong type-argument counts,
+conflicting arguments and reused owners remain errors.
+
+Explicit and inferred invocations retain one captured environment across scalar,
+string and callable payload types. Enclosing generic substitutions, result-only
+arguments, defaults and rest packs have focused controls. Defaults execute once at
+invocation; rest packs retain their normal ownership. Checked method identity also
+includes generic application arguments, keeping unused explicit type arguments
+separate while reusing equivalent applications. Existing cache controls pass.
+Editor signature help and result hover remain concrete, and invocation navigation
+points to the local alias declaration.
+
+The original committed red witness now passes. Fifty adapter tests plus the added
+consuming-capture control cover 51 unique adapter tests. Seventeen generic value
+controls and all 63 final depth canaries pass. The whole editor crate is verified by
+preserving passed suites, repairing an accidental existing-test assertion edit,
+and resuming the unrun suites. The expanded matched workload contains 101
+observations per scenario; all five native/Node-after-tsc cases pass untimed.
+Exact record benchmarks/runtime/results/2026-10-07T01-56-31-516Z-verify.json and original
+failed/repaired logs are retained byte-for-byte in SQLite. No timing or complete
+compiler regression is claimed. Full Gate173 and the broader context audit remain
+open, including field/optional generic applications and remaining parameter-pattern
+and borrowed-result contexts.

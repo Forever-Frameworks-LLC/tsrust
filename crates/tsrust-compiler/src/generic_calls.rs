@@ -159,6 +159,11 @@ impl Analyzer {
             return Ok(());
         };
         if context.names.contains_key(name) || context.pending_names.contains(name) {
+            if self.generic_functions.value_arguments(&context.function_name, expr.span).is_some()
+                && let Some(&binding) = context.names.get(name)
+                && !matches!(context.bindings[binding].ty, Type::Closure(origin) if self.deferred_generic_values.contains_key(&origin)) {
+                return Err(Diagnostic::new("type", "Explicit type arguments require a generic function value.", callee.span));
+            }
             return Ok(());
         }
         if self.generic_functions.template(name).is_none() {
@@ -189,6 +194,13 @@ impl Analyzer {
             let minimum=crate::parameter_arity::minimum_arguments(&template.parameter_initializers[..fixed],|initializer|initializer.omission().is_omittable());
             if args.len()<minimum {return Err(Diagnostic::new("arity",format!("Expected at least {minimum} arguments, found {}.",args.len()),expr.span));}
             Self::pack_rest_arguments(args,fixed,expr.span);
+        }
+        if let Some(arguments) = self.generic_functions.value_arguments(&context.function_name, expr.span) {
+            let captures = self.named_captures.source_context(name, context, &self.program)?
+                .map(|(context, _)| context.bindings.iter().map(|binding| binding.ty).collect()).unwrap_or_default();
+            let concrete = self.generic_functions.request_explicit_value(name, arguments, captures, expr.span, self.function_stack.len())?;
+            *name = self.publish_generic_call(context, concrete)?;
+            return Ok(());
         }
         let mut inline_shapes = HashMap::new();
         for ((_, pattern, _), argument) in self
@@ -296,10 +308,15 @@ impl Analyzer {
             expr.span,
             self.function_stack.len(),
         )?;
+        *name = self.publish_generic_call(context, concrete)?;
+        Ok(())
+    }
+
+    #[inline(never)]
+    fn publish_generic_call(&mut self, context: &Context, concrete: String) -> Result<String, Diagnostic> {
         if let Some(&index) = self.function_names.get(&concrete) {
             self.prepare_named_result_hint(context, index)?;
-            *name = concrete;
-            return Ok(());
+            return Ok(concrete);
         }
         let mut output = self.generic_functions.drain(true)?;
         for function in &mut output {
@@ -398,7 +415,7 @@ impl Analyzer {
             &self.unions,
         )?;
         self.prepare_named_result_hint(context, self.function_names[&concrete])?;
-        *name = concrete;
-        Ok(())
+
+        Ok(concrete)
     }
 }

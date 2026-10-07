@@ -59,8 +59,17 @@ pub(crate) struct Cache {
     pending: Vec<Pending>,
     argument_checks: Vec<ValueAnnotation>,
     calls: HashMap<(usize, usize), Vec<ValueAnnotation>>,
+    value_calls: HashMap<(String, usize, usize), Vec<ValueAnnotation>>,
 }
 impl Cache {
+    pub(crate) fn value_arguments(&self, function: &str, span: Span) -> Option<Vec<ValueAnnotation>> {
+        self.value_calls.get(&(function.to_owned(), span.start, span.end)).cloned()
+    }
+
+    pub(crate) fn request_explicit_value(&mut self, name: &str, arguments: Vec<ValueAnnotation>, captures: Vec<Type>, span: Span, depth: usize) -> Result<String, Diagnostic> {
+        self.instance_with_captures(name, arguments, captures, span, depth)
+    }
+
     pub(crate) fn template(&self, name: &str) -> Option<&Function> {
         self.templates.get(name)
     }
@@ -322,6 +331,7 @@ impl Cache {
             }
             Ok(())
         })?;
+        let enclosing_name = function.name.text.clone();
         crate::source_walk::function_body(&mut function, &mut substitute, &mut |expression| {
             let ExprKind::Call(callee, _) = &mut expression.kind else {
                 return Ok(());
@@ -335,6 +345,12 @@ impl Cache {
             });
             if !self.templates.contains_key(name) || shadowed {
                 if let Some(arguments) = explicit {
+                    if shadowed {
+                        let mut arguments = arguments.clone();
+                        for argument in &mut arguments { crate::type_substitution::apply(argument, &bindings)?; }
+                        self.value_calls.insert((enclosing_name.clone(), expression.span.start, expression.span.end), arguments);
+                        return Ok(());
+                    }
                     return Err(Diagnostic::new(
                         "type",
                         "Explicit type arguments require a declared generic function.",
@@ -449,6 +465,7 @@ pub(crate) fn specialize(program: &mut Program) -> Result<Cache, Diagnostic> {
         pending: Vec::new(),
         argument_checks: Vec::new(),
         calls: HashMap::new(),
+        value_calls: HashMap::new(),
     };
     let records = program
         .records

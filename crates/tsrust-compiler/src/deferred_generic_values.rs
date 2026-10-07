@@ -195,6 +195,13 @@ impl Analyzer {
         // Zero-argument generic calls can select different concrete results.
         // Their environments remain shared; only invocation methods differ.
         types.push(result);
+        // Explicit type arguments can differ even when runtime arguments and
+        // result types do not. Keep those checked methods distinct as well.
+        if let Some(application) = self.program.functions[function].application.clone() {
+            for argument in &application.arguments {
+                types.push(self.callable_resolver().resolve_value_annotation(argument, false)?);
+            }
+        }
         let key = (origin, types, self.effects_only, self.discovering_results);
         if let Some(&method) = self.closure_specializations.get(&key) { return Ok((method, result)); }
         if self.specializations.len() + self.closure_specializations.keys()
@@ -234,6 +241,13 @@ impl Analyzer {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn explicit_unused_type_arguments_keep_distinct_methods_and_reuse_equivalents() {
+        let checked=crate::check("function action<T>():int{return 7;}function main(){const alias=action;alias<int>();alias<string>();alias<int>();}").unwrap();
+        let origin=*checked.program.deferred_generic_values.iter().next().unwrap();
+        assert_eq!(checked.program.closures[origin].methods.len(),2);
+    }
+
     #[test]
     fn result_only_methods_reuse_each_concrete_result_in_one_environment() {
         let checked=crate::check("function empty<T>():T[]{return [];}function main(){const action=empty;const one:int[]=action();const text:string[]=action();const two:int[]=action();}").unwrap();

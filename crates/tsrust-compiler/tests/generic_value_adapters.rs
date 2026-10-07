@@ -349,3 +349,39 @@ fn generic_callable_payloads_reject_repeated_once_invocation() {
 fn generic_callable_payloads_support_explicit_source_type_applications() {
     native(include_str!("fixtures/generic-value-adapters/explicit-callable-payload.tsr"), "1\n2\n");
 }
+
+#[test]
+fn explicit_generic_values_preserve_constraints_and_reject_nongeneric_calls() {
+    for source in [
+        "function identity<T>(value:T):T{return value;}function main(){const action=identity;action<int>('wrong');}",
+        "function identity<T>(value:T):T{return value;}function main(){const action=identity;action<int,string>(1);}",
+        "function pair<T>(first:T,second:T):T{return first;}function main(){const action=pair;action<int>(1,'wrong');}",
+        "function main(){const action=(value:int):int=>value;action<int>(1);}",
+        "function identity<T>(value:T):T{return value;}function main(){const action=identity;const text='owner'.repeat(1);action<string>(text);console.log(text);}",
+    ] {
+        let error=tsrust_compiler::check(source).err().expect("explicit applications must preserve constraints");
+        assert!(matches!(error.code,"type"|"arity"|"transferred"),"{}",error.render("input.tsr",source));
+    }
+}
+
+#[test]
+fn explicit_generic_values_substitute_enclosing_types_and_result_only_arguments() {
+    native("function identity<T>(value:T):T{return value;}function wrap<T>(value:T):T{const action=identity;return action<T>(value);}function empty<T>():T[]{return [];}function main(){console.log(wrap(7),wrap('owner'));const action=empty;const ints=action<int>();const strings=action<string>();console.log(ints.length,strings.length);}", "7 owner\n0 0\n");
+}
+
+#[test]
+fn explicit_generic_values_keep_one_captured_environment_across_types() {
+    native("function make(){let calls=0;function identity<T>(value:T):T{calls+=1;console.log(calls);return value;}return identity;}function main(){const action=make();console.log(action<int>(7));console.log(action<string>('owner'));console.log(action(8));}", "1\n7\n2\nowner\n3\n8\n");
+}
+
+#[test]
+fn explicit_generic_values_forward_defaults_and_rest_without_reconstruction() {
+    native("function make(){let calls=0;function collect<T>(fallback:T,offset:int=4,...values:T[]):T{calls+=1;console.log(calls,offset,values.length);return fallback;}return collect;}function main(){const action=make();console.log(action<int>(7));console.log(action<int>(8,undefined,9,10));console.log(action<string>('owner',5,'extra'));}", "1 4 0\n7\n2 4 2\n8\n3 5 1\nowner\n");
+}
+
+#[test]
+fn explicit_generic_values_do_not_repeat_consuming_capture_calls() {
+    let source="type Item={id:int;};function make(item:Item){function take<T>(value:T):Item{return item;}return take;}function main(){const action=make({id:7});action<int>(1);action<int>(2);}";
+    let error=tsrust_compiler::check(source).err().expect("explicit calls do not restore consumed captures");
+    assert!(matches!(error.code,"closure-consumed"|"transferred"),"{}",error.render("input.tsr",source));
+}

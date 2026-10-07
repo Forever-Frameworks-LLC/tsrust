@@ -265,3 +265,12 @@ Readonly and mutable payloads borrow the caller's environment; a `Once` payload
 retains its single-use restriction. Passing a borrowed string argument where a
 consuming argument is required remains a type error. Adapters do not clone captures
 or evaluate defaults a second time.
+
+A retained generic value also accepts explicit type arguments: after
+`const identity = make()`, call `identity<int>(7)` or
+`identity<Function<int, [value: int]>>((value: int): int => value + 1)`.
+The callable payload example returns the supplied function, so invoking it with 7
+returns 8. Explicit and inferred calls use the same captured factory environment.
+The supplied type arguments constrain the call: `identity<int>("wrong")` is a type
+error. Defaults and rest arguments follow the original declaration's contract;
+explicit application does not restore transferred arguments or consumed captures.

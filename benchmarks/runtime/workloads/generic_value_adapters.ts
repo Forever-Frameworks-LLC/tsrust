@@ -231,6 +231,10 @@ function workload(n: number, seed: number, input: string): number[][] {
             payloadString = action(String(base)).length;
         }
         const payloadAfter = payload(true);
+        const explicit = make(base + 210);
+        const explicitInt = explicit<number>(base + 41);
+        const explicitText = explicit<string>("typed");
+        const explicitAfter = explicit(true);
         output.push([firstValue, firstCalls, generic.value.length, generic.calls, last.value.length, last.calls,
             mapped[0].value, mapped[1].value, mapped[0].calls, mapped[1].calls, after.value ? 1 : 0, after.calls,
             record.value, record.calls, stored.value.length, stored.calls, input.length,
@@ -254,7 +258,8 @@ function workload(n: number, seed: number, input: string): number[][] {
             freshRecord.value, freshRecord.calls, freshStored.value.length, freshStored.calls,
             callbackFirst.value, callbackFirst.calls, callbackSecond.value, callbackSecond.calls,
             nullableRecord.value, nullableRecord.calls, absentValue === undefined ? 1 : 0, scalarResult, arrayResult[0],
-            payloadInt, payloadString, payloadAfter ? 1 : 0]);
+            payloadInt, payloadString, payloadAfter ? 1 : 0,
+            explicitInt.value, explicitInt.calls, explicitText.value.length, explicitText.calls, explicitAfter.calls]);
     }
     return output;
 }
