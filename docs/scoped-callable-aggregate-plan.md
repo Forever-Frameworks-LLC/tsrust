@@ -8,8 +8,13 @@ planned. Start from failing source/native witnesses before choosing internal lay
 
 ## Record gate
 
-Establish an inferred local record containing a scoped conditional callable, then
-invoke the field while its captured owner is live. Cover readonly and mutable
+First establish record admission with separate failing witnesses. Ordinary local
+record literals currently require a named type; anonymous record inference is a
+separate dependency. Named ReadOnly/Mutable callable fields currently fail with
+callback-escape at the declaration. Decide and document a scoped field contract
+before changing admission, preserving existing explicitly owning field contracts.
+Then establish a local record containing a scoped conditional callable and invoke
+the field while its captured owner is live. Cover readonly and mutable
 captures, a moved record/field handle, a nullable field and a consuming field that
 cannot be called twice. Reject return, throw and opaque retaining transfers of the
 record when a field borrows local storage. Verify that conflicting owner access is

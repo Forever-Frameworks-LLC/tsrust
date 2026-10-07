@@ -4,7 +4,7 @@ Read AGENTS.md, docs/development-workflow.md,
 docs/conditional-callable-carriers-plan.md and
 docs/polymorphic-callable-transport-plan.md before continuing. This checkpoint accepts
 scoped traversal and nullable transport within Gate173. Full Gate173 remains open.
-The preceding scoped Once acceptance is ceb5dee. No owner question is pending.
+Accepted implementation HEAD is 70eed7c. The preceding scoped Once acceptance is ceb5dee. No owner question is pending.
 Preserve all 15 currently modified owner fixtures. Use explicit Git paths.
 
 ## Current behavior and modules
@@ -64,3 +64,22 @@ checks, all eight canaries after dispatch edits and the editor crate at acceptan
 Format the entire project before source checkpoints. Store verified closed evidence
 in SQLite, never archive directories. Rebuild and atomically refresh consumers only
 from accepted source. Preserve unmeasured workload status.
+
+## Consumer refresh and next red witnesses
+
+Debug compiler and LSP consumers, editor debug consumers, workspace release CLI and
+installed CLI are rebuilt from 70eed7c and atomically refreshed. All six destination
+hashes match their source executables. Build logs and exact consumer identities are
+verified in SQLite under the same evidence prefix.
+
+Two read-only probes establish independent record-storage blockers. An unannotated
+local record reports that a named record type is required. A syntactically valid
+named field declared ReadOnly<Function<int, [value: int]>> reports callback-escape:
+borrowed functions currently belong in local bindings or parameters. The earlier
+probe missing a field semicolon is syntax evidence only. Preserve these distinctions
+when adding persistent failing tests; do not bypass owning contracts by relabeling
+borrowed families. No aggregate implementation or acceptance is claimed.
+
+Continue with docs/scoped-callable-aggregate-plan.md. Keep the three existing public
+callback variants. Invocation access and escape lifetime are separate checks; unknown
+retention remains conservative. Full Gate173 and the broader language plan remain open.
