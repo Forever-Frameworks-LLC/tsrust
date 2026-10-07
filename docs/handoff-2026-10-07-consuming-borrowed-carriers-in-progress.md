@@ -1,67 +1,69 @@
-# Scoped Once source integration checkpoint
+# Scoped Once accepted checkpoint
 
-Read AGENTS.md, docs/development-workflow.md and
- docs/once-callback-environment-plan.md before continuing. The last accepted scoped
-reusable carrier source is 520aa7c. Gate173 and the broader transport plans remain
-open. Preserve all 15 owner fixtures and use explicit Git paths.
+Continue from accepted source commit ceb5dee. Read AGENTS.md,
+docs/development-workflow.md, docs/once-callback-environment-plan.md,
+docs/conditional-callable-carriers-plan.md and docs/polymorphic-callable-transport-plan.md.
+Gate173 and the broader transport plans remain open. No owner question is pending.
+Use explicit Git paths. Preserve all 15 currently modified owner fixtures; do not
+stage or change their semantics.
 
-Concrete named Once parameters now use inferred retention demands. Proven scoped
-parameters admit borrowed consuming environments. Returns, owning stores and unknown
-boundaries retain OwnedOnce. Anonymous higher-order contracts remain owning. The
-owner prefers the existing three wrappers; no fourth wrapper is needed at this stage.
+## Accepted behavior
 
-Focused source/native checks pass for direct and conditional scoped consumption,
-post-call borrowed array reuse, named forwarding, owned retention and checked failure
-payloads. Owning and borrowed callable families share result-error adaptation.
-Higher-order Once input matching respects input direction. The matched workload has
-133 observations, with five native and compiled-TypeScript oracle cases passing.
-Registration passes. No timing measurements have run.
+Concrete named Once parameters now derive retention demands from lexical source
+identities and a finite worklist. Proven scoped consumers accept borrowed consuming
+environments. Returns, owning stores and unknown destinations require ownership.
+Anonymous higher-order callback signatures and result annotations remain owning.
+The owner prefers existing ReadOnly, Mutable and Once contracts. No fourth wrapper,
+implicit clone or shared capture cells are introduced.
 
-The resumed compiler batch passes conditional_expressions (28), higher_order_function_values
-(7), nullish_assignment (5), nullish_coalescing (4), number_operators (4), owned_arrays
-(12) and owned_closure_arguments (14). Rest parameters abort at their existing 100-call
-normal-depth witness. The remaining type_syntax suite has not run. Earlier closures
-and for_of canaries pass; rerun the eight canaries after the depth repair. Whole editor
-verification passes before the latest result/input/identity repairs and needs a current
-pass before acceptance.
+Consuming conditional families preserve original environments, local borrows,
+default cardinality and checked failure payloads. Owned and borrowed families share
+callback_family_result_adapters.rs. Higher-order Once parameter matching checks
+caller-supplied inputs against concrete receiving parameters. Native callback
+instance accounting distinguishes carrier family identities from closure identities.
 
-The matched workload first exposes an internal callback-origin panic. Native instance
-accounting now distinguishes callable family identities from closure identities. The
-original failure and repaired native/TypeScript oracle evidence are retained in SQLite.
+The matched workload initially exposes a callback-origin panic; repaired family
+identity accounting passes its original oracle. The rest suite exposes a normal-depth
+stack overflow. A debugger backtrace and compiled prologues identify retained analyzer
+frames. Isolated RestPack dispatch repairs the 100-call witness and keeps the
+original over-limit diagnostic without changing the worker stack.
 
-The system debugger confirms rest-depth overflow during analysis. Each nested rest
-call holds expression, array_literal, parameter_argument, check_call_arguments and
-declared_named_call frames. Compiled prologues show expression reserves 0xfc0 bytes,
-array_literal 0xf70, checked_expression 0x4f0 and check_call_arguments 0x750, plus saved
-registers. Do not increase the worker stack. Next repair should isolate RestPack
-handling from the common expression dispatch, then rerun the exact normal-depth test
-before resuming the rest suite and remaining canaries.
+## Verified evidence and consumers
 
-All closed current logs are imported with byte-exact readback into
-runtime/diagnostics/once-source-integration/ in benchmarks/records.sqlite; quick_check
-passes. Whole-project formatting changes zero files and fingerprints. Consumers
-remain at the previous accepted checkpoint. Do not refresh from unaccepted source.
+The resumed compiler batch passes 74 tests before the depth defect. After repair,
+all eight depth canaries and the complete 19-test rest suite pass, 83 tests total.
+Fifteen Once unit controls and ten focused consuming/native controls pass. Whole
+editor verification passes 334 tests. The guide executes with 1, Pat, 1, Sam on
+separate lines. Native cleanup witnesses use optimization levels 0 and 3.
 
-After depth repair, finish bounded checks, current editor verification, guide and
-acceptance records, commit, then refresh consumers atomically. Keep broader remaining
-scope: scoped aggregate/builtin transport, polymorphic selection/replacement and
-point-sensitive environment restoration. Retained reds in the broader plans remain
-pending. No archives, timing or routine full compiler regression.
+Matched generic adapters retain 133 observations. Five native and compiled-TypeScript
+cases pass against the independent oracle. Source guards and registration pass.
+No timing measurements run; operation counts and sample protocols are unchanged.
+Coverage generation passes. Whole-project formatting changes zero files and hashes.
+Original failures, repaired checks and debugger evidence have exact SQLite readback
+under runtime/diagnostics/once-source-integration/; quick_check passes. The obsolete
+rest test variant is removed from the shared target.
 
-## Final checkpoint follow-up
+All workspace CLI/editor consumers and the installed CLI are refreshed atomically
+from accepted source, with hash checks. Debug/editor consumers use the debug builds;
+target/release/tsrust and the installed CLI use the rebuilt optimized binary.
+An already running editor server needs Tsrust: Restart Language Server to load it.
 
-The rest-depth repair isolates RestPack handling from common expression dispatch.
-The exact depth witness passes, followed by all eight canaries and all 19 rest tests
-(83 total). Fifteen Once unit controls and ten focused source/native controls pass.
-All 334 current editor tests pass. Final five-case native/compiled-TypeScript oracle
-and registration checks pass. The guide output is verified. Coverage generation
-passes after correcting the new evidence link. The release consumer build passes.
-Focused acceptance is documented in milestones/173-scoped-once-parameters.md; full
-Gate173 remains open. The integration source checkpoint is 4cdf1e0.
+## Next chunks
 
-Next work should follow the broader conditional carrier and polymorphic transport
-plans: scoped nullable/aggregate and higher-order builtin transport, polymorphic
-selection/replacement and point-sensitive mutable environment restoration. Preserve
-the retained replacement and mutable-factory reds. Do not treat the current lexical
-source bridge as complete transitive capture or spread proof. No owner question is
-pending. Keep all 15 protected owner fixtures unstaged.
+Finish scoped nullable/aggregate and higher-order builtin carrier transport, then
+polymorphic selection/replacement and point-sensitive mutable environment restoration.
+Retained reds include
+ generic_call_capture_effects::literal_guard_native_callable_replacement_has_common_carrier
+and generic_call_validation::branch_flow::invocation_worklist::mutable_environment_sequence_tests::owned_factory_updates_are_point_sensitive_and_instances_stay_separate.
+Reconfirm their current failure before implementation and preserve original evidence.
+
+Do not treat the source bridge as complete transitive capture, spread or aggregate
+proof. Unknown guards remain intentional. Keep recursion, defaults/rest, failures,
+finally flow and lifetime boundaries in the remaining audit. A focused prerequisite
+is not full Gate173 acceptance. No routine full regression or timing is due now.
+
+Use CARGO_TARGET_DIR=/private/tmp/tsrust-gate100-editor-target and CARGO_INCREMENTAL=0.
+Pinned Node is /Users/seancotter/.nvm/versions/node/v24.11.1/bin/node. Keep TDD,
+formatter round trips, matched support, current editor checks, SQLite evidence and
+accepted source checkpoints. Never create archives or snapshot directories.
