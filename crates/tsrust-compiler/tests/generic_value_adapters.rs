@@ -117,3 +117,13 @@ fn generic_value_adapter_owned_rest_rejects_transferred_sources_and_elements() {
         assert!(matches!(error.code,"transferred"|"closure-consumed"),"{}",error.render("input.tsr",&source));
     }
 }
+
+#[test]
+fn generic_value_adapters_solve_result_only_and_nullable_contracts() {
+    native("function make(){let calls=0;function fresh<T>():T[]{calls+=1;console.log(calls);return [];}return fresh;}function main(){const action=make();{const view:Mutable<Function<int[],[]>>=action;const values=view();console.log(values.length);}const texts:string[]=action();console.log(texts.length);const optional:Function<int[],[]>|undefined=action;const values=optional!();console.log(values.length);}", "1\n0\n2\n0\n3\n0\n");
+}
+
+#[test]
+fn generic_value_adapters_contextualize_factory_call_results() {
+    native(include_str!("fixtures/generic-value-adapters/factory-expression.tsr"), "10\n11\n12\n20\n21\n22\n");
+}

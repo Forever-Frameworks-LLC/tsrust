@@ -154,3 +154,33 @@ with a different element type. Thirty-seven independent observations retain prio
 callback/storage coverage. Semantic guards reject default replacement, changed
 undefined forwarding and reconstructed rest environments. Verification evidence
 is recorded in the current handoff; full context acceptance remains separate.
+
+## Fresh expression staging
+
+The result-only and nullable named-adapter witness passes without compiler changes.
+An owned Function<int> annotation applied directly to make(10) still fails at the
+polymorphic compatibility guard. The retained factory-expression fixture requires
+both direct annotation and map(make(20)). Its strict TypeScript reference prints
+10,11,12,20,21,22, proving each factory runs once and one environment serves both
+subsequent invocations. This is a red requirement, not accepted support.
+
+Implement expression staging in a dedicated helper and checked representation.
+Check the source expression once without imposing the concrete callable contract
+on its unresolved prototype. Retain its deferred origin and original argument/
+result relation. Give the resulting environment a temporary binding visible only
+while constructing the normal checked adapter. Owned contexts transfer that
+binding into the wrapper; synchronous traversal contexts retain it through the
+callback and release it afterward. Reject borrowing an ephemeral environment into
+an escaping borrowed result. Restore temporary lexical names on both success and
+failure. Keep effect checking and runtime evaluation separate: never replay the
+source expression to obtain an origin, never reconstruct a factory and never clone
+captures. Emission must evaluate the environment before adapter construction in a
+single scoped expression, then preserve the existing wrapper capture layout.
+
+Audit all checked expression consumers for the new staging representation:
+source traversal/remapping, ownership roots, escape classification, checked-type
+facts, native emission and cleanup. Tests must cover evaluation once, multiple
+calls, factory failure before adapter creation, callback failure after creation,
+owned disposal, borrowed escape rejection and editor navigation/signatures.
+Run canaries and whole editor after dispatch changes. Extend the matched workload
+and independent oracle before accepting expression adaptation.
