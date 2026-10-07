@@ -342,3 +342,14 @@ alias. An exploratory record-literal reuse call first failed inference before th
 ownership check, so the retained transfer control supplies an inferable scalar.
 The original diagnostic remains evidence; unconstrained nominal literal inference
 is not claimed. Matched default/rest benchmark expansion remains pending.
+
+## Matched default/rest coverage
+
+The retained adapter pair now observes thirty-seven values, including default
+invocation effects, explicit undefined and override behavior, empty/nonempty rest
+packs and later calls through the original generic environments. Independent
+oracle and semantic mutation guards retain existing callback/storage coverage.
+Five untimed native/Node-after-tsc cases pass; no timing samples exist. Canonical
+SQLite verification is benchmarks/runtime/results/2026-10-07T00-08-56-395Z-verify.json.
+All oracle hashes match current files. Registration and exact readback pass; loose
+records are removed. Full adapter context and Gate173 acceptance remain open.

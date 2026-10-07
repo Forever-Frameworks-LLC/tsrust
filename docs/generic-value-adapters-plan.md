@@ -145,3 +145,12 @@ reuse of the transferred generic environment and of an owned rest element. A new
 editor protocol witness preserves concrete optional/rest parameter labels, three
 parameter slots and navigation to the original alias declaration. Matched default/
 rest workload expansion and the remaining context audit are still owed.
+
+The matched workload now includes default and rest effects. A default factory
+checks omission, explicit override and explicit undefined through a concrete
+borrowed adapter, then invokes the original generic value with a string. A rest
+factory checks empty and nonempty packs, then invokes its original environment
+with a different element type. Thirty-seven independent observations retain prior
+callback/storage coverage. Semantic guards reject default replacement, changed
+undefined forwarding and reconstructed rest environments. Verification evidence
+is recorded in the current handoff; full context acceptance remains separate.

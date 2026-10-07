@@ -27,3 +27,14 @@ Do not close the full adapter family on these scoped controls.
 Continuation prompt: Continue from this checkpoint. Complete matched default/rest
 benchmark support and verify untimed native/Node parity, then remaining adapter
 contexts and ownership audit. Preserve owner fixtures and exact SQLite evidence.
+
+Matched default/rest benchmark expansion is complete. The pair/oracle now retains
+thirty-seven observations, covering default effects, undefined/override behavior,
+empty/nonempty packs and original-environment calls after adapters. Five native/
+Node cases pass untimed. Registration passes; all 264 oracle input fingerprints
+match current files. Exact SQLite record:
+benchmarks/runtime/results/2026-10-07T00-08-56-395Z-verify.json.
+Loose copies were removed after exact readback. All processes are terminal; no
+compiler source changed. Next continue pattern, nullable/result-only, borrowed-array
+access and arbitrary callable expression audits rather than repeating completed
+benchmark coverage. Full Gate173 remains open.

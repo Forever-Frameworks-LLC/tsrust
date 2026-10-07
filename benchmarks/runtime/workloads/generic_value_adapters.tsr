@@ -33,6 +33,22 @@ function comparator() {
     }
     return compare;
 }
+function defaultFactory() {
+    let calls = 0;
+    function next(): int { calls += 1; return calls; }
+    function select<T>(value: T, offset: int = next()): Receipt<T> {
+        return { value: value, calls: offset };
+    }
+    return select;
+}
+function restFactory() {
+    let calls = 0;
+    function select<T>(fallback: T, ...values: T[]): Receipt<T> {
+        calls += 1;
+        return { value: fallback, calls: calls + values.length };
+    }
+    return select;
+}
 function workload(n: int, seed: int, input: string): int[][] {
     const output: int[][] = [];
     for (let i = 0; i < n; i += 1) {
@@ -72,11 +88,39 @@ function workload(n: int, seed: int, input: string): int[][] {
         sortable.sort(compare);
         const copied = sortable.toSorted(compare);
         const sortedAfter = compare("after", "unused");
+        const defaults = defaultFactory();
+        let defaultValue = 0;
+        let omittedCalls = 0;
+        let overrideCalls = 0;
+        let undefinedCalls = 0;
+        {
+            const view: Mutable<Function<Receipt<int>, [value: int, offset?: int]>> = defaults;
+            const omitted = view(base);
+            defaultValue = omitted.value;
+            omittedCalls = omitted.calls;
+            overrideCalls = view(base, 9).calls;
+            undefinedCalls = view(base, undefined).calls;
+        }
+        const defaultsAfter = defaults("after");
+        const rest = restFactory();
+        let emptyValue = 0;
+        let emptyCalls = 0;
+        let packedCalls = 0;
+        {
+            const view: Mutable<Function<Receipt<int>, [fallback: int, ...values: int[]]>> = rest;
+            const empty = view(base);
+            emptyValue = empty.value;
+            emptyCalls = empty.calls;
+            packedCalls = view(base + 1, base + 2, base + 3).calls;
+        }
+        const restAfter = rest("after", "one");
         output.push([firstValue, firstCalls, generic.value.length, generic.calls, last.value.length, last.calls,
             mapped[0].value, mapped[1].value, mapped[0].calls, mapped[1].calls, after.value ? 1 : 0, after.calls,
             record.value, record.calls, stored.value.length, stored.calls, input.length,
             reduced, reducedAfter.length, reversed, reversedAfter.length, found, searchedAfter ? 1 : 0,
-            sortable[0], copied[0], sortedAfter]);
+            sortable[0], copied[0], sortedAfter,
+            defaultValue, omittedCalls, overrideCalls, undefinedCalls, defaultsAfter.calls, defaultsAfter.value.length,
+            emptyValue, emptyCalls, packedCalls, restAfter.calls, restAfter.value.length]);
     }
     return output;
 }
