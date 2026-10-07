@@ -58,6 +58,15 @@ impl Layout {
         output
     }
 
+    pub(crate) fn selected_value(&self, binding: usize, path: &[usize], mode: crate::Mode, records: &[Record], symbol: impl Fn(usize) -> String) -> Option<String> {
+        let mut ty = Type::Record(self.record);
+        for &field in path {
+            let Type::Record(id) = ty else { return None; };
+            ty = records.get(id)?.fields.get(field)?.ty?;
+        }
+        Some(self.render_node(ty, &mut path.to_vec(), binding, Rendering::Value(mode), records, &symbol))
+    }
+
     pub(crate) fn view_value(&self, binding: usize, mutable: bool, records: &[Record], symbol: impl Fn(usize) -> String) -> String {
         let mode = if mutable { crate::Mode::Mutate } else { crate::Mode::Read };
         self.render_node(Type::Record(self.record), &mut Vec::new(), binding, Rendering::Value(mode), records, &symbol)
@@ -147,6 +156,30 @@ mod tests {
         assert!(executed.stdout.is_empty());
     }
     #[test]
+    fn native_selected_callback_move_releases_only_its_capture() {
+        let source = crate::format(r#"type Pair={left:ReadOnly<Function<int>>;right:ReadOnly<Function<int>>;};function main(){const leftValues=[3];const rightValues=[11];const pair:Pair={left:():int=>leftValues[0],right:():int=>rightValues[0]};{const left=pair.left;console.log(left());}leftValues[0]=5;console.log(pair.right());}"#).unwrap();
+        assert_eq!(crate::format(&source).unwrap(), source);
+        let checked = crate::check(&source).unwrap();
+        let binding = checked.program.functions[0].bindings.iter().find(|binding| binding.name == "pair").unwrap();
+        let layout = Layout::for_binding(binding, &checked.program.records, true).unwrap();
+        let declaration = layout.declaration(10, false, "initial", &checked.program.records, |id| format!("Record{id}"));
+        let left = layout.selected_value(10, &[0], crate::Mode::Consume, &checked.program.records, |id| format!("Record{id}")).unwrap();
+        let right = layout.selected_value(10, &[1], crate::Mode::Read, &checked.program.records, |id| format!("Record{id}")).unwrap();
+        assert!(layout.selected_value(10, &[2], crate::Mode::Read, &checked.program.records, |id| format!("Record{id}")).is_none());
+        assert!(layout.selected_value(10, &[0, 0], crate::Mode::Read, &checked.program.records, |id| format!("Record{id}")).is_none());
+        native(&format!(r#"
+            struct Record{id}<L,R> {{field0:L,field1:R}}
+            fn main() {{
+                let mut left_values=vec![3i64];let right_values=vec![11i64];
+                let initial=Record{id} {{field0:||left_values[0],field1:||right_values[0]}};
+                {declaration}
+                {{let moved={left};assert_eq!(moved(),3);}}
+                left_values[0]=5;assert_eq!(left_values[0],5);
+                assert_eq!(({right})(),11);
+            }}
+        "#,id=layout.record));
+    }
+    #[test]
     fn native_generic_views_borrow_mutable_callback_environment_without_moving_it() {
         let source = crate::format(r#"type Holder={run:Mutable<Function<int>>;label:string;};function main(){let calls=0;const holder:Holder={run:():int=>{calls+=1;return calls;},label:"counter"};}"#).unwrap();
         assert_eq!(crate::format(&source).unwrap(), source);
@@ -179,8 +212,8 @@ mod tests {
         let layout = Layout::for_binding(binding, &checked.program.records, true).unwrap();
         let Type::Record(inner) = checked.program.records[layout.record].fields[0].ty.unwrap() else { panic!("inner record"); };
         let declaration = layout.declaration(8, true, "initial()", &checked.program.records, |id| format!("Record{id}"));
-        let shared = layout.view_value(8, false, &checked.program.records, |id| format!("ReadRecord{id}"));
-        let exclusive = layout.view_value(8, true, &checked.program.records, |id| format!("MutRecord{id}"));
+        let shared = layout.selected_value(8, &[], crate::Mode::Read, &checked.program.records, |id| format!("ReadRecord{id}")).expect("whole shared selection");
+        let exclusive = layout.selected_value(8, &[], crate::Mode::Mutate, &checked.program.records, |id| format!("MutRecord{id}")).expect("whole exclusive selection");
         let owned = layout.owning_value(8, &checked.program.records, |id| format!("Record{id}"));
         let label = layout.leaves[1].native_name(8);
         let native_type = |ty| match ty { Type::Int => ("i64".into(), vec![]), Type::String => ("S".into(), vec!["S".into()]), _ => panic!("unexpected leaf type") };
@@ -218,7 +251,7 @@ mod tests {
         let Type::Record(inner) = checked.program.records[layout.record].fields[0].ty.unwrap() else { panic!("inner record"); };
         let declaration = layout.declaration(7, true, "{ calls += 1; initial() }", &checked.program.records, |id| format!("Record{id}"));
         let reconstructed = layout.owning_value(7, &checked.program.records, |id| format!("Record{id}"));
-        let label = layout.leaves[1].native_name(7);
+        let label = layout.selected_value(7, &[0, 1], crate::Mode::Consume, &checked.program.records, |id| format!("Record{id}")).expect("selected owned leaf");
         let source = format!(r#"
             static DROPS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
             struct Payload(String);

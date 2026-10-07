@@ -50,7 +50,10 @@ separately and preserve their current diagnostics until their own support is pro
    function entry while retaining their native record ABI. Establish mutability
    from checked writes. Deferred declarations need the same definite-assignment
    behavior as ordinary bindings.
-4. **Selected access and stores.** Route record field reads, consuming moves,
+4. **Selected value rendering foundation implemented.** Numeric paths select
+   independent leaves or reconstruct a selected static subtree. Seven component
+   tests pass, including native capture release after a selected callback move.
+   Main emitter routing and stores remain pending. **Selected access and stores.** Route record field reads, consuming moves,
    mutation, restoration, nested destructuring and self-assignment through the
    layout module. Preserve assignment evaluation order and failure behavior. Turn
    the existing independent-field native witness green with both live-field

@@ -896,3 +896,37 @@ Use the unchanged project witness and live-owner rejection controls. Preserve
 non-copy fields, callback bounds, nominal identity, owning moves, three public
 wrappers and no implicit clone. Keep bounded checks, formatting, SQLite evidence
 and explicit Git paths; never stage the fifteen owner fixtures.
+
+## Selected independent field rendering
+
+The layout module now renders a selected numeric field path with Read, Mutate,
+Consume or Copy access. It selects the original independent leaf or reconstructs a
+static subtree using the existing view/owning renderer. Invalid indices and attempts
+to descend into an opaque leaf return no selection rather than guessing a place.
+Existing native string disposal and shared/mutable view tests now use this boundary.
+
+A new native component witness derives a checked Pair layout from formatted Tsrust
+source, moves the left callback into an inner scope, mutates its original captured
+array after that scope ends, and calls the remaining right callback successfully.
+Generated selected places reference independent bindings. All seven component tests
+pass. Exact red and green evidence is verified in SQLite under
+runtime/diagnostics/scoped-record-selection/. Whole-project formatting changes zero
+files and fingerprints. No shared analyzer/emitter dispatch changed.
+
+This does not close production integration. The unchanged project/native witness
+remains red. Main declarations, field expressions, storage-selection writes and
+whole-record read/mutate parameter bridges still need routing. Whole borrowing
+must use a nominal bridge with appropriate data/callback bounds; reconstructing an
+owned record merely to borrow it would move non-copy fields and is not a solution.
+Preserve property-order metadata when choosing eligible independent storage. Keep
+parameter, capture, nullable and completion boundaries in the full implementation
+scope. Consumers remain f1dd284; preserve fifteen owner fixtures.
+
+Continuation prompt: Continue Tsrust from this handoff and the scoped record field
+storage plan. Implement the nominal read/mutate borrowing bridge and production
+emitter routing using the tested declaration, selected-value, owning and view
+renderers. Retain the unchanged project red witness and live-owner rejection
+controls. Preserve nominal identity, non-copy fields, callback bounds, property
+ordering, ownership and three public wrappers. Use bounded native/editor checks,
+dispatch depth canaries, project formatting, SQLite evidence and explicit Git paths.
+Never stage the fifteen owner fixtures. Record gate and gate 173 remain open.
