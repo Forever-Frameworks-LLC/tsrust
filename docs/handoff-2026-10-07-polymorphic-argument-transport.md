@@ -160,3 +160,48 @@ mutable factory red, are stored under runtime/diagnostics/environment-flow-trans
 in SQLite and verified by exact readback. Whole-project formatting changes zero
 files and fingerprints. The shared target contains no duplicate obsolete variants
 of the affected unit and integration test executables. No new timing was run.
+
+
+## Native capture-mode facts WIP
+
+generic_call_capture_modes.rs indexes native-checked capture representations by
+source creation span and lexical BindingId. Each environment retains escape and
+borrow status, polymorphic status, observed invocation modes, and per-slot storage
+and access modes. It maps actual capture usage through the source identity index;
+missing identities or template-only bodies yield unknown facts. Different checked
+representations at one source span also yield unknown facts. Uncertainty is
+absorbing, so a later narrow observation cannot erase a missing or conflicting
+alternative. Repeated identical observations are idempotent.
+
+Four focused tests pass using actual checker output. Mutable scalar captures use
+Mutate storage locally and Copy storage when escaping. Record captures use Read
+storage locally and Consume storage when escaping. Integer and record
+specializations of the same generic factory produce different checked storage
+modes at one source span; that span does not certify a single representation.
+A missing identity index cannot become a complete fact after a later observation.
+Two failing stub tests preceded implementation.
+
+The index is not yet connected to solver construction. Source cardinality checking
+runs in generic_functions::specialize, called from Analyzer::new, before native
+capture layouts exist. Do not call it checked capture evidence at that stage or
+infer modes from Binding.mutable. The connection needs an explicit staged boundary
+that preserves early direct-call validation and later checked instance facts.
+Keep unresolved generic templates conservative; observed polymorphic invocation
+modes are not proof of every future specialization. Storage ownership also does
+not prove one concrete allocation instance, especially across loops or recursion.
+
+Next retain source identity alongside checked analysis, supply complete facts to
+contextual requests at the proper stage, and distinguish proven unique allocation
+from merged allocations. Use flow-local snapshots for owned copied or transferred
+slots and live caller identity for borrowed slots. Native-compatible mutable
+factory witnesses remain required; the heterogeneous source-only cardinality red
+does not establish native assignment compatibility. The common callable carrier
+reds remain prerequisites wherever replacement changes concrete callable origin.
+No guard is removed, no source behavior is accepted, and gate 173 remains open.
+
+
+Capture-mode red, initial green, four-test final and format logs are stored under
+runtime/diagnostics/checked-capture-modes in SQLite and verified by exact readback.
+Whole-project formatting changes zero files and fingerprints. Only the facts
+module and its registration changed compiler code; dispatch behavior is unchanged.
+No new benchmark measurement or language acceptance is claimed.

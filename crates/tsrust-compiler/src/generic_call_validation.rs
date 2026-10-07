@@ -6,6 +6,8 @@ use std::collections::{HashMap, HashSet};
 mod branch_flow;
 #[path = "generic_call_effect_bodies.rs"]
 mod effect_bodies;
+#[path = "generic_call_capture_modes.rs"]
+mod capture_modes;
 #[path = "generic_call_body_origins.rs"]
 mod body_origins;
 #[path = "generic_call_linear_flow.rs"]
