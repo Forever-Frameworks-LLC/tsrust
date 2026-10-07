@@ -13,8 +13,8 @@ function make() {
 
 function main() {
     const identity = make();
-    const first = identity<Function<int, [value: int]>> ((value: int): int => value + 1);
-    const second = identity<Function<int, [value: int]>> ((value: int): int => value + 2);
+    const first = identity<Function<int, [value: int]>>((value: int): int => value + 1);
+    const second = identity<Function<int, [value: int]>>((value: int): int => value + 2);
     strictEqual(first(7), 8);
     strictEqual(second(7), 9);
 }
