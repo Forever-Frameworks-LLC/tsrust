@@ -140,7 +140,9 @@ mod tests {
         assert_eq!(crate::format(&source).unwrap(), source);
         crate::check(&source).unwrap()
     }
-    fn native(source: &str) {
+    fn native(source: &str) { native_expectation(source, None); }
+    fn native_rejection(source: &str, diagnostic: &str) { native_expectation(source, Some(diagnostic)); }
+    fn native_expectation(source: &str, rejection: Option<&str>) {
         use std::{io::Write, process::{Command, Stdio}};
         static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
         let executable = std::env::temp_dir().join(format!("tsrust-field-storage-{}-{}", std::process::id(), NEXT.fetch_add(1, std::sync::atomic::Ordering::SeqCst)));
@@ -150,6 +152,11 @@ mod tests {
         let mut compiler = Command::new("rustc").args(["-", "--edition=2024"]).arg("-o").arg(&executable).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().unwrap();
         compiler.stdin.take().unwrap().write_all(source.as_bytes()).unwrap();
         let compiled = compiler.wait_with_output().unwrap();
+        if let Some(diagnostic) = rejection {
+            assert!(!compiled.status.success(), "invalid native use compiled");
+            assert!(String::from_utf8_lossy(&compiled.stderr).contains(diagnostic), "{}", String::from_utf8_lossy(&compiled.stderr));
+            return;
+        }
         assert!(compiled.status.success(), "{}", String::from_utf8_lossy(&compiled.stderr));
         let executed = Command::new(&executable).output().unwrap();
         assert!(executed.status.success(), "{}", String::from_utf8_lossy(&executed.stderr));
@@ -188,20 +195,27 @@ mod tests {
         let layout = Layout::for_binding(binding, &checked.program.records, true).unwrap();
         let native_type = |ty| if ty == Type::String { ("String".into(), vec![]) } else { ("F".into(), vec!["F".into()]) };
         let definitions = layout.view_declarations(&checked.program.records, |id| format!("MutRecord{id}"), native_type, true);
+        let read_definitions = layout.view_declarations(&checked.program.records, |id| format!("ReadRecord{id}"), native_type, false);
+        let bridges = crate::scoped_record_bridge::declarations(&layout, crate::scoped_record_bridge::Types {
+            read_trait: "ReadHolder", mutate_trait: "MutateHolder",
+            owned: &format!("Record{}<F>",layout.record), shared: &format!("ReadRecord{}<'a, F>",layout.record), exclusive: &format!("MutRecord{}<'a, F>",layout.record), parameters: &["F".into()],
+        }, |ty| if ty == Type::String { "String".into() } else { "F".into() });
         let declaration = layout.declaration(9, true, "initial", &checked.program.records, |id| format!("Record{id}"));
         let view = layout.view_value(9, true, &checked.program.records, |id| format!("MutRecord{id}"));
         let owned = layout.owning_value(9, &checked.program.records, |id| format!("Record{id}"));
         native(&format!(r#"
             struct Record{id}<F> {{ field0:F,field1:String }}
             {definitions}
-            fn invoke<F:FnMut()->i64>(view: &mut MutRecord{id}<'_,F>)->i64 {{ (view.field0)() }}
+            {read_definitions}
+            {bridges}
+            fn invoke<V:MutateHolder<Field1=String>>(view: &mut V)->i64 where V::Field0:FnMut()->i64 {{ (view.tsr_field0_mut())() }}
             fn main() {{
                 let resource=String::from("abc");
                 let mut calls=0;
                 let initial=Record{id} {{ field0:move || {{calls+=1; calls+resource.len() as i64}},field1:String::from("counter") }};
                 {declaration}
                 {{ let mut borrowed={view}; assert_eq!(invoke(&mut borrowed),4); assert_eq!(invoke(&mut borrowed),5); borrowed.field1.push('!'); }}
-                let mut rebuilt={owned}; assert_eq!((rebuilt.field0)(),6); assert_eq!(rebuilt.field1,"counter!");
+                let mut rebuilt={owned}; assert_eq!(invoke(&mut rebuilt),6); assert_eq!(rebuilt.field1,"counter!");
             }}
         "#,id=layout.record));
     }
@@ -221,20 +235,23 @@ mod tests {
         let mut_declarations = layout.view_declarations(&checked.program.records, |id| format!("MutRecord{id}"), native_type, true);
         assert!(read_declarations.contains(&format!("struct ReadRecord{outer}<'a, S>" , outer=layout.record)));
         assert!(read_declarations.contains(&format!("field0: ReadRecord{inner}<'a, S>")));
+        let bridges = crate::scoped_record_bridge::declarations(&layout, crate::scoped_record_bridge::Types {
+            read_trait: "ReadOuter", mutate_trait: "MutateOuter",
+            owned: &format!("Record{}<S>",layout.record), shared: &format!("ReadRecord{}<'a, S>",layout.record), exclusive: &format!("MutRecord{}<'a, S>",layout.record), parameters: &["S".into()],
+        }, |ty| if ty == Type::String { "S".into() } else { "i64".into() });
         let source = format!(r#"
-            struct Record{inner} {{ field0: i64, field1: String }}
-            struct Record{outer} {{ field0: Record{inner}, field1: i64 }}
+            struct Record{inner}<S> {{ field0: i64, field1: S }}
+            struct Record{outer}<S> {{ field0: Record{inner}<S>, field1: i64 }}
             {read_declarations}
             {mut_declarations}
-            trait Readable {{ fn observe(&self) -> usize; }}
-            impl Readable for Record{outer} {{ fn observe(&self)->usize {{ self.field0.field1.len() + self.field0.field0 as usize + self.field1 as usize }} }}
-            impl Readable for ReadRecord{outer}<'_, String> {{ fn observe(&self)->usize {{ self.field0.field1.len() + *self.field0.field0 as usize + *self.field1 as usize }} }}
-            fn inspect(value: &impl Readable)->usize {{ value.observe() }}
-            fn initial()->Record{outer} {{ Record{outer} {{ field0: Record{inner} {{ field0:4,field1:"hello".into() }},field1:9 }} }}
+            {bridges}
+            fn inspect(value: &impl ReadOuter<Field0Field0=i64,Field0Field1=String,Field1=i64>)->usize {{ value.tsr_field0_field1().len() + *value.tsr_field0_field0() as usize + *value.tsr_field1() as usize }}
+            fn update(value: &mut impl MutateOuter<Field0Field0=i64,Field0Field1=String,Field1=i64>) {{ value.tsr_field0_field1_mut().push_str("!"); *value.tsr_field0_field0_mut() += 3; *value.tsr_field1_mut() += 2; }}
+            fn initial()->Record{outer}<String> {{ Record{outer} {{ field0: Record{inner} {{ field0:4,field1:"hello".into() }},field1:9 }} }}
             fn main() {{
                 {declaration}
                 {{ let view = {shared}; assert_eq!(inspect(&view),18); assert!(std::ptr::eq(view.field0.field1, &{label})); }}
-                {{ let view = {exclusive}; view.field0.field1.push_str("!"); *view.field0.field0 += 3; *view.field1 += 2; }}
+                {{ let mut view = {exclusive}; update(&mut view); }}
                 assert_eq!({label}, "hello!");
                 {{ let view = {shared}; assert_eq!(inspect(&view),24); }}
                 let rebuilt = {owned};
@@ -242,6 +259,8 @@ mod tests {
             }}
         "#, outer=layout.record);
         native(&source);
+        let invalid = source.replace(&declaration, &format!("{declaration} {{ let mut readonly = {shared}; update(&mut readonly); }}"));
+        native_rejection(&invalid, "MutateOuter");
     }
     #[test]
     fn native_split_storage_evaluates_once_restores_fields_and_moves_without_clone() {

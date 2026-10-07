@@ -930,3 +930,40 @@ controls. Preserve nominal identity, non-copy fields, callback bounds, property
 ordering, ownership and three public wrappers. Use bounded native/editor checks,
 dispatch depth canaries, project formatting, SQLite evidence and explicit Git paths.
 Never stage the fifteen owner fixtures. Record gate and gate 173 remain open.
+
+## Nominal borrowing bridge generator
+
+New scoped_record_bridge.rs generates nominal read and mutate access traits for
+validated leaf paths. Associated leaf types carry data and callback environments.
+Owned record carriers implement read and mutate access. Shared views implement
+read access only. Mutable views implement both; getters reborrow original leaf
+storage without moving references or payloads. Names use numeric field paths.
+Caller-provided native carrier names, generic parameter names and leaf types keep
+nominal mapping and callback bounds under production emitter control.
+
+Seven component tests pass. The nested string witness now uses the generated
+bridge for generic inspection and mutation, with pointer identity and owning
+reconstruction assertions. A native rejection control tries passing a shared view
+to the mutable consumer and requires rejection naming MutateOuter. The callback
+witness uses one generic mutable consumer with an associated FnMut bound for both
+the mutable view and reconstructed owned record. Its environment owns a String.
+No clone, unsafe erasure or fourth public wrapper is introduced.
+
+Exact red, successful and rejection-control evidence is verified in SQLite under
+runtime/diagnostics/scoped-record-bridge/. Whole-project formatting changes zero
+files and fingerprints. No shared compiler dispatch changed. Native executables
+are cleaned after both accepted and rejected compilation checks. Production
+parameter signatures, callback-bound collection, field access and storage routing
+still need integration. This generator does not make the original project/native
+independent-field witness green; that witness remains unchanged and red. Keep
+property-order metadata, capture/completion transport and opaque composition
+boundaries in scope. Consumers remain f1dd284; fifteen owner fixtures stay untouched.
+
+Continuation prompt: Continue Tsrust from this handoff and the scoped record field
+storage plan. Integrate the generated nominal borrowing bridge with production
+parameter signatures and associated callback/data constraints. Route independent
+declarations, selected field expressions, stores and whole moves using the tested
+layout renderers. Keep the original project red and live-owner controls unchanged.
+Run bounded native/editor checks and dispatch depth canaries after routing changes.
+Use automatic project formatting, SQLite evidence and explicit Git paths; never
+stage the fifteen owner fixtures. Record acceptance and gate 173 remain open.
