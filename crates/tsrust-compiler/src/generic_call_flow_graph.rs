@@ -1,10 +1,13 @@
 //! Source control edges are built iteratively, before generic specialization.
 use super::*;
+#[path = "generic_call_exception_edges.rs"]
+mod exceptions;
 
 pub(super) struct Node<'a> {
     pub statement: Option<&'a Stmt>,
     pub expression: Option<&'a Expr>,
     pub next: Vec<usize>,
+    pub exceptional: Option<usize>,
 }
 
 #[derive(Clone)]
@@ -20,6 +23,8 @@ struct Body<'a> {
     parent: usize,
     edge: usize,
     controls: Vec<Control<'a>>,
+    returning: usize,
+    throwing: usize,
 }
 
 fn push<'a>(nodes: &mut Vec<Node<'a>>, expression: Option<&'a Expr>, next: Vec<usize>) -> usize {
@@ -28,6 +33,7 @@ fn push<'a>(nodes: &mut Vec<Node<'a>>, expression: Option<&'a Expr>, next: Vec<u
         statement: None,
         expression,
         next,
+        exceptional: None,
     });
     index
 }
@@ -63,6 +69,7 @@ pub(super) fn graph(body: &[Stmt]) -> Option<Vec<Node<'_>>> {
         statement: None,
         expression: None,
         next: vec![0],
+        exceptional: None,
     }];
     let mut pending = vec![Body {
         body,
@@ -70,7 +77,10 @@ pub(super) fn graph(body: &[Stmt]) -> Option<Vec<Node<'_>>> {
         parent: 0,
         edge: 0,
         controls: Vec::new(),
+        returning: 0,
+        throwing: 0,
     }];
+    let mut cleanups = HashMap::new();
     while let Some(task) = pending.pop() {
         let mut entry = task.successor;
         for statement in task.body.iter().rev() {
@@ -79,6 +89,7 @@ pub(super) fn graph(body: &[Stmt]) -> Option<Vec<Node<'_>>> {
                 statement: Some(statement),
                 expression: None,
                 next: vec![entry],
+                exceptional: None,
             });
             match &statement.kind {
                 StmtKind::Block(body) => {
@@ -96,6 +107,8 @@ pub(super) fn graph(body: &[Stmt]) -> Option<Vec<Node<'_>>> {
                         parent: index,
                         edge: 0,
                         controls,
+                        returning: task.returning,
+                        throwing: task.throwing,
                     });
                 }
                 StmtKind::If {
@@ -111,6 +124,8 @@ pub(super) fn graph(body: &[Stmt]) -> Option<Vec<Node<'_>>> {
                         parent: index,
                         edge: 0,
                         controls: task.controls.clone(),
+                        returning: task.returning,
+                        throwing: task.throwing,
                     });
                     pending.push(Body {
                         body: else_body,
@@ -118,6 +133,8 @@ pub(super) fn graph(body: &[Stmt]) -> Option<Vec<Node<'_>>> {
                         parent: index,
                         edge: 1,
                         controls: task.controls.clone(),
+                        returning: task.returning,
+                        throwing: task.throwing,
                     });
                 }
                 StmtKind::While { condition, body } => {
@@ -136,6 +153,8 @@ pub(super) fn graph(body: &[Stmt]) -> Option<Vec<Node<'_>>> {
                         parent: body_gate,
                         edge: 0,
                         controls,
+                        returning: task.returning,
+                        throwing: task.throwing,
                     });
                 }
                 StmtKind::Loop {
@@ -146,6 +165,9 @@ pub(super) fn graph(body: &[Stmt]) -> Option<Vec<Node<'_>>> {
                     ..
                 } => {
                     let test = push(&mut nodes, condition.as_ref(), Vec::new());
+                    if task.throwing != 0 && condition.as_ref().is_some_and(exceptions::may_fail) {
+                        nodes[test].exceptional = Some(task.throwing);
+                    }
                     let body_gate = push(&mut nodes, None, vec![test]);
                     let update_gate = push(&mut nodes, None, vec![test]);
                     nodes[test].next = condition_edges(condition.as_ref(), body_gate, entry);
@@ -162,6 +184,8 @@ pub(super) fn graph(body: &[Stmt]) -> Option<Vec<Node<'_>>> {
                         parent: update_gate,
                         edge: 0,
                         controls: controls.clone(),
+                        returning: task.returning,
+                        throwing: task.throwing,
                     });
                     pending.push(Body {
                         body,
@@ -169,6 +193,8 @@ pub(super) fn graph(body: &[Stmt]) -> Option<Vec<Node<'_>>> {
                         parent: body_gate,
                         edge: 0,
                         controls,
+                        returning: task.returning,
+                        throwing: task.throwing,
                     });
                 }
                 StmtKind::ForOf { iterable, body, .. } => {
@@ -210,7 +236,25 @@ pub(super) fn graph(body: &[Stmt]) -> Option<Vec<Node<'_>>> {
                         parent: body_gate,
                         edge: 0,
                         controls,
+                        returning: task.returning,
+                        throwing: task.throwing,
                     });
+                }
+                StmtKind::Try(region) => {
+                    let normal = exceptions::cleanup(region.finally.as_deref(), entry, &task, &mut nodes, &mut pending, &mut cleanups);
+                    let returning = exceptions::cleanup(region.finally.as_deref(), task.returning, &task, &mut nodes, &mut pending, &mut cleanups);
+                    let throwing = exceptions::cleanup(region.finally.as_deref(), task.throwing, &task, &mut nodes, &mut pending, &mut cleanups);
+                    let mut controls = task.controls.clone();
+                    for control in &mut controls {
+                        control.breaking = exceptions::cleanup(region.finally.as_deref(), control.breaking, &task, &mut nodes, &mut pending, &mut cleanups);
+                        control.continuing = control.continuing.map(|target| exceptions::cleanup(region.finally.as_deref(), target, &task, &mut nodes, &mut pending, &mut cleanups));
+                    }
+                    let handler = if let Some(catch) = &region.catch {
+                        let gate = push(&mut nodes, None, vec![normal]);
+                        pending.push(Body { body: &catch.body, successor: normal, parent: gate, edge: 0, controls: controls.clone(), returning, throwing });
+                        gate
+                    } else { throwing };
+                    pending.push(Body { body: &region.body, successor: normal, parent: index, edge: 0, controls, returning, throwing: handler });
                 }
                 StmtKind::Break | StmtKind::Continue => {
                     let target = if let Some(label) = statement.labels.first() {
@@ -231,16 +275,19 @@ pub(super) fn graph(body: &[Stmt]) -> Option<Vec<Node<'_>>> {
                 }
                 StmtKind::Return(value) => {
                     nodes[index].expression = value.as_ref();
-                    nodes[index].next.clear();
+                    nodes[index].next = vec![task.returning];
                 }
                 StmtKind::Throw(value) => {
                     nodes[index].expression = Some(value);
-                    nodes[index].next.clear();
+                    nodes[index].next = vec![task.throwing];
                 }
                 StmtKind::Let { value, .. }
                 | StmtKind::Assign { value, .. }
                 | StmtKind::Expr(value) => nodes[index].expression = Some(value),
                 _ => return None,
+            }
+            if task.throwing != 0 && nodes[index].expression.is_some_and(exceptions::may_fail) {
+                nodes[index].exceptional = Some(task.throwing);
             }
             entry = index;
         }

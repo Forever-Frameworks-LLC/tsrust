@@ -263,3 +263,34 @@ for untimed matched verification; this source-only rejection repair does not nee
 an artificial runtime benchmark. Run affected generic suites and the eight depth
 canaries after dispatch changes. Full Gate173 and performance measurements remain
 open.
+
+
+## Exception and cleanup source flow
+
+Structured source flow now retains callable contracts through try, catch and
+finally. A failed checked expression enters its handler with the state before its
+destination assignment commits. Return, throw, break and continue execute each
+intervening cleanup, then resume their own destination. Abrupt completion inside
+finally replaces the suspended completion. Cleanup entries are cached by their
+continuation context and call facts join by source span. Unknown targets and
+expression/capture writes retain the existing conservative validation path.
+
+Eleven rejection cases cover explicit and implicit failure, normal and abrupt
+cleanup, loop continuation and nested cleanup. Six precision controls retain
+snapshots, definite replacements, shadowing and completion overrides. A 24-level
+cleanup witness checks iterative handling. Formatted native and strict TypeScript
+controls assert integer and owned-string results plus exact cleanup order. The
+editor diagnostic identifies the invalid call and its reachable declaration.
+
+Bounded acceptance totals 201 unique compiler tests, including all eight depth
+canaries, formatter tests and the fixture corpus. Whole editor passes 324 tests.
+The existing five generic adapter scenarios pass native/Node-after-tsc untimed in
+2026-10-07T04-28-17-908Z-verify.json, stored exactly in SQLite. Source-only rejection
+checks reuse this registered family; no artificial runtime workload or timing is
+claimed. Wider checks also exposed and repaired nested generic closer token
+preservation in the formatter, retaining exact comparison and shift operators.
+
+Full Gate173 remains open for expression evaluation order, capture writes, stored
+fields, concrete environment replacement and the remaining lifetime/context audit.
+Supported statement dispatch remains explicit; unsupported regions still use the
+conservative path and are not claimed as complete source-flow parity.

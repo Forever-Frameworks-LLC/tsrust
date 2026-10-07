@@ -666,3 +666,10 @@ exception/finally flow, expression evaluation order, capture writes, stored fiel
 concrete environment replacement and the remaining lifetime/context audit. Project
 formatting is required before every source checkpoint; exact benchmark source hashes
 refresh only after token preservation proof. No performance measurement is claimed.
+
+
+Gate173 structured source flow now covers try/catch/finally and their abrupt
+completions, with native cleanup-order and editor diagnostic verification. See
+handoff-2026-10-07-exception-source-flow.md. Expression ordering, capture effects,
+stored fields and concrete environment replacement remain required. No timing or
+full Gate173 acceptance is claimed.

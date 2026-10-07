@@ -401,5 +401,8 @@ reaches the loop exit. Labeled exits target their enclosing labeled loop or bloc
 A saved alias retains its initializer's contract set, while a definite assignment
 replaces the current set. Each known reachable signature must accept the call.
 These source checks preserve ownership rules and do not make incompatible concrete
-callable environments interchangeable. Exception regions and expression writes
-still require the remaining source-flow audit.
+callable environments interchangeable. Try, catch and finally retain these contracts through normal and abrupt exits.
+Cleanup executes before return, throw, break or continue resumes. A cleanup that
+returns or throws replaces the pending completion. Failed checked expressions
+enter handlers before destination assignments commit. Expression writes and
+captured effects remain part of the source-flow audit.

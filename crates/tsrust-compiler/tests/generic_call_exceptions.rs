@@ -9,6 +9,9 @@ fn source(body: &str) -> String {
 #[test]
 fn exception_source_contracts_reject_invalid_reachable_calls() {
     let cases = [
+        ("index failure carries current target", "let action=one;try{action=two;const item=[1][99];action=one;}catch(error){return action<T>(value);}return value;"),
+        ("loop condition failure enters catch", "let action=one;try{action=two;do{}while([1][99]===1);action=one;}catch(error){return action<T>(value);}return value;"),
+        ("cleanup throw overrides return", "let action=one;try{try{return value;}finally{action=two;throw 1;}}catch(error){return action<T>(value);}"),
         ("try local replacement", "let action=one;try{action=two;action<T>(value);}catch(error){}return value;"),
         ("catch local replacement", "let action=one;try{throw 1;}catch(error){action=two;action<T>(value);}return value;"),
         ("finally overwrite", "let action=one;try{}finally{action=two;}return action<T>(value);"),
@@ -46,4 +49,28 @@ fn exception_contract_precision_preserves_snapshots_and_finally_completion() {
             panic!("{label}: {}", error.render("input.tsr", &formatted));
         }
     }
+}
+
+#[test]
+fn exception_source_contracts_execute_formatted_cleanup_and_snapshots() {
+    let directory = support::TempDirectory::new();
+    let source = include_str!("fixtures/source-call-exceptions/contracts.tsr");
+    let formatted = tsrust_compiler::format(source).unwrap();
+    assert_eq!(tsrust_compiler::format(&formatted).unwrap(), formatted);
+    let path = directory.source(&formatted);
+    let output = support::cli().arg("run").arg(path).output().unwrap();
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert!(output.stdout.is_empty());
+}
+
+#[test]
+fn nested_cleanup_flow_remains_iterative_and_preserves_completion() {
+    let mut body = "return action<T>(value);".to_owned();
+    for _ in 0..24 {
+        body = format!("try{{{body}}}finally{{action=action;}}");
+    }
+    let source = source(&format!("let action=one;{body}"));
+    let formatted = tsrust_compiler::format(&source).unwrap();
+    assert_eq!(tsrust_compiler::format(&formatted).unwrap(), formatted);
+    tsrust_compiler::check(&formatted).unwrap();
 }

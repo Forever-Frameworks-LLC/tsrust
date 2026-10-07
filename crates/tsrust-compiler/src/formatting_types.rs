@@ -104,3 +104,20 @@ pub(super) fn generic_spans(tokens: &[Token]) -> Vec<Span> {
     }
     spans
 }
+
+/// Normalize lexer-packed generic closers on both sides of token preservation.
+/// Comparisons and shifts outside parsed type spans retain exact operator tokens.
+pub(super) fn normalized_tokens(source: &str) -> Result<Vec<Token>, crate::Diagnostic> {
+    let mut tokens = crate::syntax::lex(source)?;
+    let spans = generic_spans(&tokens);
+    let mut index = 0;
+    while index < tokens.len() {
+        if matches!(tokens[index].text.as_str(), ">>" | ">>>" | ">=" | ">>=" | ">>>=")
+            && spans.iter().any(|span| span.start <= tokens[index].span.start && tokens[index].span.start < span.end)
+        {
+            crate::type_syntax::split_closer(&mut tokens, index);
+        }
+        index += 1;
+    }
+    Ok(tokens)
+}

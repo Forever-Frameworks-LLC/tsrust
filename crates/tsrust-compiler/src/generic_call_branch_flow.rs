@@ -124,6 +124,7 @@ pub(super) fn analyze(
         let node = &nodes[index];
         let statement = node.statement;
         let mut state = states[index].as_ref().unwrap().clone();
+        let incoming = state.clone();
         let expression = node.expression;
         if let Some(expression) = expression {
             let mut body = vec![Stmt {
@@ -209,14 +210,16 @@ pub(super) fn analyze(
                 );
             }
         }
-        for &successor in &node.next {
+        let successors = node.next.iter().map(|&next| (next, &state))
+            .chain(node.exceptional.into_iter().map(|next| (next, &incoming)));
+        for (successor, outgoing) in successors {
             if successor == 0 {
                 continue;
             }
             let changed = if let Some(previous) = &mut states[successor] {
-                join(previous, &state, declarations)
+                join(previous, outgoing, declarations)
             } else {
-                states[successor] = Some(state.clone());
+                states[successor] = Some(outgoing.clone());
                 true
             };
             if changed {
