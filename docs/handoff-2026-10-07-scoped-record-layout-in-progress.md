@@ -1006,3 +1006,40 @@ may use generic child records; their accessors need child trait constraints rath
 than assuming a generic child has concrete native fields. Keep the original project
 red and live-owner controls unchanged. Use bounded checks, dispatch depth canaries,
 formatting, SQLite evidence and explicit Git paths; never stage owner fixtures.
+
+## Generic child borrowing contracts
+
+The bridge generator now accepts separate owned-carrier generic parameters, read
+bounds, mutate bounds and leaf access expressions. Owned associated leaf types may
+project from a child read contract. Read and mutate implementations use the
+corresponding child constraints rather than assuming an arbitrary child generic
+parameter has native fields. Existing direct-field callers retain their simple
+wrapper. Shared and mutable view implementations retain their original references.
+
+Nine component tests pass. The new witness generates inner and outer bridges,
+defines an owning outer native record with a generic child carrier, inspects owned
+and shared forms, mutates through a mutable view, reconstructs ownership and mutates
+again through the same generic consumer. A child shared view also works inside the
+outer owned carrier for inspection. A native rejection control requires MutateInner
+when that readonly child is passed to the mutable outer consumer. No implicit copy,
+clone or lifetime erasure is used.
+
+Exact red, successful and rejection-control evidence is verified in SQLite under
+runtime/diagnostics/scoped-record-child-bridge/. Whole-project formatting changes
+zero files and fingerprints. No shared dispatch changed. Production emitter routing
+remains open, and the original project/native witness remains unchanged and red.
+Consumers remain f1dd284; preserve fifteen owner fixtures.
+
+Before routing nested views, add a witness with two sibling occurrences of the same
+nominal generic child record but distinct callback environments. Parent view slots
+must preserve each occurrence independently; the current child-parameter propagation
+needs verification at that boundary. Keep the full transport, capture, property-order
+and completion scope. These foundations do not constitute record acceptance.
+
+Continuation prompt: Continue Tsrust from this handoff and the scoped record field
+storage plan. Verify repeated nominal child occurrences with distinct environments,
+then connect view/bridge metadata to production parameters and storage emission.
+Keep nested child trait bounds, associated callback/data constraints, original red
+witness and live-owner controls. Use bounded native/editor checks, dispatch depth
+canaries, formatting, SQLite evidence and explicit Git paths. Never stage owner
+fixtures. Record gate and gate 173 remain open.

@@ -163,6 +163,53 @@ mod tests {
         assert!(executed.stdout.is_empty());
     }
     #[test]
+    fn native_nested_generic_child_uses_nominal_access_bounds() {
+        use crate::scoped_record_bridge::{Types, OwnedParameters, OwnedAccess};
+        let checked = checked();
+        let binding = checked.program.functions[0].bindings.iter().find(|binding| binding.name == "box").unwrap();
+        let layout = Layout::for_binding(binding, &checked.program.records, true).unwrap();
+        let Type::Record(inner) = checked.program.records[layout.record].fields[0].ty.unwrap() else { panic!("nested record"); };
+        let child = Layout { record:inner, leaves:layout.leaves.iter().filter(|leaf| leaf.path[0]==0).map(|leaf| Leaf {path:leaf.path[1..].to_vec(),ty:leaf.ty}).collect() };
+        let native_type = |_, _, ty| if ty==Type::String {("S".into(),vec!["S".into()])}else{("i64".into(),vec![])};
+        let read_definitions=layout.view_declarations(&checked.program.records,|id|format!("ReadRecord{id}"),native_type,false);
+        let mut_definitions=layout.view_declarations(&checked.program.records,|id|format!("MutRecord{id}"),native_type,true);
+        let child_bridge=crate::scoped_record_bridge::declarations(&child,Types {
+            read_trait:"ReadInner",mutate_trait:"MutateInner",owned:&format!("Record{inner}<S>"),shared:&format!("ReadRecord{inner}<'a,S>"),exclusive:&format!("MutRecord{inner}<'a,S>"),parameters:&["S".into()],
+        },|leaf|if leaf.ty==Type::String{"S".into()}else{"i64".into()});
+        let outer_bridge=crate::scoped_record_bridge::declarations_with_owned(&layout,Types {
+            read_trait:"ReadOuter",mutate_trait:"MutateOuter",owned:&format!("Record{}<C>",layout.record),shared:&format!("ReadRecord{}<'a,S>",layout.record),exclusive:&format!("MutRecord{}<'a,S>",layout.record),parameters:&["S".into()],
+        },|leaf|if leaf.ty==Type::String{"S".into()}else{"i64".into()},OwnedParameters {
+            parameters:&["C".into()],read_bounds:&["C:ReadInner<Field0=i64>".into()],mutate_bounds:&["C:MutateInner<Field0=i64>".into()],
+        },|leaf|match leaf.path.as_slice(){
+            [0,0]=>OwnedAccess{ty:"i64".into(),read:"self.field0.tsr_field0()".into(),mutate:"self.field0.tsr_field0_mut()".into()},
+            [0,1]=>OwnedAccess{ty:"<C as ReadInner>::Field1".into(),read:"self.field0.tsr_field1()".into(),mutate:"self.field0.tsr_field1_mut()".into()},
+            [1]=>OwnedAccess{ty:"i64".into(),read:"&self.field1".into(),mutate:"&mut self.field1".into()},
+            _=>panic!("unexpected field path"),
+        });
+        let declaration=layout.declaration(12,true,"initial",&checked.program.records,|id|format!("Record{id}"));
+        let shared=layout.view_value(12,false,&checked.program.records,|id|format!("ReadRecord{id}"));
+        let exclusive=layout.view_value(12,true,&checked.program.records,|id|format!("MutRecord{id}"));
+        let owned=layout.owning_value(12,&checked.program.records,|id|format!("Record{id}"));
+        let source=format!(r#"
+            struct Record{inner}<S>{{field0:i64,field1:S}}
+            struct Record{outer}<C>{{field0:C,field1:i64}}
+            {read_definitions}{mut_definitions}{child_bridge}{outer_bridge}
+            fn inspect<V:ReadOuter<Field0Field0=i64,Field0Field1=String,Field1=i64>>(value:&V)->usize{{*value.tsr_field0_field0() as usize+value.tsr_field0_field1().len()+*value.tsr_field1() as usize}}
+            fn update<V:MutateOuter<Field0Field0=i64,Field0Field1=String,Field1=i64>>(value:&mut V){{value.tsr_field0_field1_mut().push('!');*value.tsr_field0_field0_mut()+=3;*value.tsr_field1_mut()+=2;}}
+            fn main(){{
+                let initial=Record{outer}{{field0:Record{inner}{{field0:4,field1:String::from("hello")}},field1:9}};
+                assert_eq!(inspect(&initial),18);
+                {declaration}
+                {{let child=ReadRecord{inner}{{field0:&value12_field0_field0,field1:&value12_field0_field1}};let mut wrapped=Record{outer}{{field0:child,field1:9}};assert_eq!(inspect(&wrapped),18);}}
+                {{let read={shared};assert_eq!(inspect(&read),18);}}
+                {{let mut mutable={exclusive};update(&mut mutable);}}
+                let mut rebuilt={owned};assert_eq!(inspect(&rebuilt),24);update(&mut rebuilt);assert_eq!(inspect(&rebuilt),30);
+            }}
+        "#,outer=layout.record);
+        native(&source);
+        native_rejection(&source.replace("assert_eq!(inspect(&wrapped),18);","update(&mut wrapped);"),"MutateInner");
+    }
+    #[test]
     fn native_same_signature_fields_keep_distinct_view_environment_slots() {
         let source = crate::format(r#"type Pair={left:ReadOnly<Function<int>>;right:ReadOnly<Function<int>>;};function main(){const a=[3];const b=[11];const pair:Pair={left:():int=>a[0],right:():int=>b[0]};console.log(pair.left(),pair.right());}"#).unwrap();
         assert_eq!(crate::format(&source).unwrap(), source);
