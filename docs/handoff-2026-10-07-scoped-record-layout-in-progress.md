@@ -290,3 +290,21 @@ and final scope-release wiring remain pending. The native field-loan witness rem
 red. Exact red/green/format logs are stored under
 runtime/diagnostics/capture-owner-snapshots/ in SQLite. Consumers remain f1dd284;
 all fifteen owner fixtures remain protected.
+
+## Ordinary branch provenance integration
+
+Owners::reaching combines only normal-reaching arms; its new test verifies both
+normal arms, either single normal arm and two abrupt arms. All five ownership module
+tests pass. if_statement snapshots entry owners, records the then owners, restores
+entry ownership before checking else and selects only non-abrupt owners afterward.
+ConditionalPlan retains entry and left ownership states, resets before the alternate
+and joins both normal expression alternatives. Value-returning logical and coalescing
+expressions conservatively retain owners from skipped/present paths.
+
+No production ownership release is enabled. LoopFrame still needs ownership state
+for zero-body exits, break destinations, continue destinations and back-edge/tail
+joins. Exception projection and payload unwind remain conservative. Stable loan
+identities and payload attachments/transfers remain pending before the field-loan
+witness can turn green. Keep the full safety controls in the field-loan section.
+Current branch unit/canary/format evidence is stored in SQLite under
+runtime/diagnostics/capture-owner-branches/. Consumers remain on f1dd284.

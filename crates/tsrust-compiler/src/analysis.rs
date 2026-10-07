@@ -281,6 +281,8 @@ struct ConditionalPlan {
     infer_nullable_closure: bool,
     before: Vec<(usize, Availability)>,
     first_loan: usize,
+    before_owners: crate::capture_loan_owners::Owners,
+    after_left_owners: crate::capture_loan_owners::Owners,
     left_context: Option<Type>,
     right_context: Option<Type>,
     after_left: Vec<Availability>,
@@ -4600,8 +4602,10 @@ impl Analyzer {
             .map(|&id| (id, Availability::of(&context.bindings[id])))
             .collect::<Vec<_>>();
         let (then_flow, else_flow) = Self::condition_outcomes(context, condition);
+        let before_owners = context.capture_loan_owners.clone();
         context.flow = then_flow;
         let then_exits = self.block(context, then_body, result_type)?;
+        let after_then_owners = context.capture_loan_owners.clone();
         let after_then_flow = context.flow.clone();
         let after_then = before
             .iter()
@@ -4611,7 +4615,12 @@ impl Analyzer {
             state.clone().restore(&mut context.bindings[*id]);
         }
         context.flow = else_flow;
+        context.capture_loan_owners = before_owners;
         let else_exits = self.block(context, else_body, result_type)?;
+        context.capture_loan_owners = crate::capture_loan_owners::Owners::reaching(
+            (!then_exits).then_some(after_then_owners),
+            (!else_exits).then(|| context.capture_loan_owners.clone()),
+        );
         let after_else_flow = context.flow.clone();
         context.flow = match (then_exits, else_exits) {
             (false, false) => crate::flow::join(&after_then_flow, &after_else_flow),
@@ -8677,6 +8686,7 @@ impl Analyzer {
             .map(|(id, _)| Availability::of(&context.bindings[*id]))
             .collect::<Vec<_>>();
         let left_flow = context.flow.clone();
+        let left_owners = context.capture_loan_owners.clone();
         // The absent arm contains no owned payload to transfer. A stable source
         // place is available in that arm even when the present arm moves it.
         if lhs_mode == Mode::Consume
@@ -8748,6 +8758,7 @@ impl Analyzer {
                 right.span,
             ));
         }
+        context.capture_loan_owners.join(&left_owners);
         context.flow = crate::flow::join(&left_flow, &context.flow);
         for ((id, _), state) in before.into_iter().zip(left_state) {
             state
@@ -8906,6 +8917,8 @@ impl Analyzer {
             infer_nullable_closure,
             before,
             first_loan,
+            before_owners: context.capture_loan_owners.clone(),
+            after_left_owners: Default::default(),
             left_context,
             right_context: None,
             after_left: Vec::new(),
@@ -8933,6 +8946,8 @@ impl Analyzer {
             .map(|(id, _)| Availability::of(&context.bindings[*id]))
             .collect::<Vec<_>>();
         let after_left_flow = context.flow.clone();
+        plan.after_left_owners = context.capture_loan_owners.clone();
+        context.capture_loan_owners = plan.before_owners.clone();
         let left_loans = context.capture_loans[first_loan..].to_vec();
         context.capture_loans.truncate(first_loan);
         for (id, state) in before {
@@ -8968,7 +8983,8 @@ impl Analyzer {
     ) -> Result<Type, Diagnostic> {
         let mut left = left;
         let mut right = right?;
-        let ConditionalPlan { assignment_alias, borrowed, infer_nullable_closure, before, after_left, after_left_flow, left_loans, .. } = *plan;
+        let ConditionalPlan { assignment_alias, borrowed, infer_nullable_closure, before, after_left, after_left_flow, after_left_owners, left_loans, .. } = *plan;
+        context.capture_loan_owners.join(&after_left_owners);
         context.flow = crate::flow::join(&after_left_flow, &context.flow);
         if infer_nullable_closure && left != right {
             let joined = self.unions.intern([left, right], alternate.span)?;

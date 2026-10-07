@@ -58,6 +58,7 @@ impl Analyzer {
         let left_selected_owned = selected.iter().any(|ty| !ty.is_copy());
         let before = context.names.values().map(|&id| (id, Availability::of(&context.bindings[id]))).collect::<Vec<_>>();
         let skipped_flow = context.flow.clone();
+        let skipped_owners = context.capture_loan_owners.clone();
         let mut active = loans.clone();
         if left_mode == Mode::Read && left_selected_owned {
             for root in Self::loan_roots(left, Mode::Read) {
@@ -94,6 +95,7 @@ impl Analyzer {
             return Err(Diagnostic::new("borrowed-view", "Logical selection does not make borrowed payloads owned. Use clone() or a readonly consumer.", span));
         }
         if reaches_right {
+            context.capture_loan_owners.join(&skipped_owners);
             context.flow = crate::flow::join(&skipped_flow, &context.flow);
             for (id, state) in before {
                 state.join(Availability::of(&context.bindings[id])).restore(&mut context.bindings[id]);

@@ -71,6 +71,17 @@ impl Owners {
         previous.difference(&self.live()).copied().collect()
     }
 
+    pub(crate) fn reaching(left: Option<Self>, right: Option<Self>) -> Self {
+        match (left, right) {
+            (Some(mut left), Some(right)) => {
+                left.join(&right);
+                left
+            }
+            (Some(state), None) | (None, Some(state)) => state,
+            (None, None) => Self::default(),
+        }
+    }
+
     pub(crate) fn join(&mut self, other: &Self) {
         for (place, loans) in &other.entries {
             self.attach(place.clone(), loans.iter().copied());
@@ -137,5 +148,25 @@ mod tests {
             left.transfer(&place(1, &["left"]), &place(1, &["left"]))
                 .is_empty()
         );
+    }
+    #[test]
+    fn abrupt_arms_do_not_contribute_to_normal_continuation() {
+        let mut left = Owners::default();
+        left.attach(place(0, &[]), [10]);
+        let mut right = Owners::default();
+        right.attach(place(1, &[]), [11]);
+        assert_eq!(
+            Owners::reaching(Some(left.clone()), Some(right.clone())).live(),
+            BTreeSet::from([10, 11])
+        );
+        assert_eq!(
+            Owners::reaching(Some(left.clone()), None).live(),
+            BTreeSet::from([10])
+        );
+        assert_eq!(
+            Owners::reaching(None, Some(right)).live(),
+            BTreeSet::from([11])
+        );
+        assert!(Owners::reaching(None, None).live().is_empty());
     }
 }
