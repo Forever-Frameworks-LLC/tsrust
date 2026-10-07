@@ -57,11 +57,18 @@ impl Analyzer {
         while let Some((value, destination, consume)) = pending.pop() {
             if let Some((_, fields)) = Self::direct_fields(value) {
                 if let Some(binding) = Self::root_binding(value) {
+                    let source = Place { binding, fields };
+                    let moved = context.capture_loan_owners.loans_under(&source);
                     context.capture_loan_owners.extend_from(
-                        &Place { binding, fields },
+                        &source,
                         &destination,
                         consume,
                     );
+                    if consume {
+                        context.capture_loan_owners.resolve_consumption(
+                            &source, Self::capture_payload_site(value), &moved,
+                        );
+                    }
                 }
                 continue;
             }
@@ -85,14 +92,19 @@ impl Analyzer {
                         for capture in &closure.captures {
                             let mut target = destination.clone();
                             target.fields.push(format!("$capture{}", capture.inner));
-                            context.capture_loan_owners.extend_from(
-                                &Place {
+                            let source = Place {
                                     binding: capture.outer,
                                     fields: vec![],
-                                },
+                                };
+                            let moved = context.capture_loan_owners.loans_under(&source);
+                            context.capture_loan_owners.extend_from(
+                                &source,
                                 &target,
                                 capture.storage == Mode::Consume,
                             );
+                            if capture.storage == Mode::Consume {
+                                context.capture_loan_owners.resolve_consumption(&source, value.span, &moved);
+                            }
                         }
                     }
                 }
@@ -118,6 +130,19 @@ impl Analyzer {
                     ..
                 } => pending.push((value, destination, consume)),
                 _ => {}
+            }
+        }
+    }
+
+    fn capture_payload_site(mut value: &Expr) -> Span {
+        loop {
+            match &value.kind {
+                ExprKind::Sequence(values) => value = values.last().expect("nonempty sequence"),
+                ExprKind::TypeAssertion { value: inner, .. }
+                | ExprKind::Project { value: inner, .. }
+                | ExprKind::Inject { value: inner, .. }
+                | ExprKind::Unary { value: inner, .. } => value = inner,
+                _ => return value.span,
             }
         }
     }

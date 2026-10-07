@@ -1,5 +1,6 @@
 //! Ownership paths for retained capture loans, independent of checker dispatch.
 use std::collections::{BTreeMap, BTreeSet};
+use crate::Span;
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct Place {
@@ -10,6 +11,7 @@ pub(crate) struct Place {
 #[derive(Clone, Debug, Default)]
 pub(crate) struct Owners {
     entries: BTreeMap<Place, BTreeSet<usize>>,
+    pending: BTreeMap<(Place, usize, usize), BTreeSet<usize>>,
 }
 
 impl Owners {
@@ -50,8 +52,30 @@ impl Owners {
         }
     }
 
+    pub(crate) fn begin_consumption(&mut self, source: &Place, site: Span) {
+        let loans = self.loans_under(source);
+        if !loans.is_empty() {
+            self.pending.entry((source.clone(), site.start, site.end)).or_default().extend(loans);
+        }
+    }
+
+    pub(crate) fn resolve_consumption(&mut self, source: &Place, site: Span, loans: &BTreeSet<usize>) {
+        let key = (source.clone(), site.start, site.end);
+        if let Some(pending) = self.pending.get_mut(&key) {
+            pending.retain(|loan| !loans.contains(loan));
+            if pending.is_empty() {
+                self.pending.remove(&key);
+            }
+        }
+    }
+
+    pub(crate) fn loans_under(&self, source: &Place) -> BTreeSet<usize> {
+        self.entries.iter().filter(|(place, _)| place.binding == source.binding
+            && place.fields.starts_with(&source.fields)).flat_map(|(_, loans)| loans.iter().copied()).collect()
+    }
+
     pub(crate) fn live(&self) -> BTreeSet<usize> {
-        self.entries.values().flatten().copied().collect()
+        self.entries.values().chain(self.pending.values()).flatten().copied().collect()
     }
 
     pub(crate) fn transfer(&mut self, source: &Place, destination: &Place) -> BTreeSet<usize> {
@@ -118,6 +142,9 @@ impl Owners {
     pub(crate) fn join(&mut self, other: &Self) {
         for (place, loans) in &other.entries {
             self.attach(place.clone(), loans.iter().copied());
+        }
+        for (site, loans) in &other.pending {
+            self.pending.entry(site.clone()).or_default().extend(loans.iter().copied());
         }
     }
 }
@@ -202,4 +229,41 @@ mod tests {
         );
         assert!(Owners::reaching(None, None).live().is_empty());
     }
+    #[test]
+    fn unresolved_consumption_survives_original_binding_disposal() {
+        let mut owners = Owners::default();
+        let source = place(1, &["run"]);
+        owners.attach(source.clone(), [10]);
+        owners.begin_consumption(&source, Span::new(10, 11));
+        assert!(owners.leave_scope(1).is_empty());
+        assert_eq!(owners.live(), BTreeSet::from([10]));
+    }
+
+    #[test]
+    fn resolving_a_move_does_not_clear_other_consumption_sites() {
+        let mut owners = Owners::default();
+        let source = place(1, &["run"]);
+        owners.attach(source.clone(), [10]);
+        owners.begin_consumption(&source, Span::new(10, 11));
+        owners.begin_consumption(&source, Span::new(20, 21));
+        owners.resolve_consumption(&source, Span::new(20, 21), &BTreeSet::from([10]));
+        assert!(owners.leave_scope(1).is_empty());
+        assert_eq!(owners.live(), BTreeSet::from([10]));
+        owners.resolve_consumption(&source, Span::new(10, 11), &BTreeSet::from([10]));
+        assert!(owners.live().is_empty());
+    }
+
+    #[test]
+    fn branch_join_preserves_unresolved_retention_after_known_move() {
+        let mut left = Owners::default();
+        let source = place(1, &["run"]);
+        left.attach(source.clone(), [10]);
+        left.begin_consumption(&source, Span::new(10, 11));
+        let mut right = left.clone();
+        right.resolve_consumption(&source, Span::new(10, 11), &BTreeSet::from([10]));
+        left.join(&right);
+        assert!(left.leave_scope(1).is_empty());
+        assert_eq!(left.live(), BTreeSet::from([10]));
+    }
+
 }

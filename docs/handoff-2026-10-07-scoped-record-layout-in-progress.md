@@ -436,3 +436,39 @@ exception unwind. The independent field-scope release witness remains red. No ne
 parser/analyzer dispatch changed in this proof-only checkpoint, so the preceding
 64-canary evidence is preserved. Consumers remain f1dd284. Preserve fifteen owner
 fixtures; complete record gate acceptance remains open.
+
+## Unresolved consumption ledger foundation
+
+Three failing unit witnesses exposed unresolved retention disappearing on scope
+disposal, interference between distinct consumption sites, and loss across a branch
+join. The owner ledger now retains pending loan IDs by source place and consumption
+span. Resolving a known move removes only its own IDs at that site. Scope disposal
+preserves unresolved retention, and branch joins merge pending events. All eight
+owner-ledger unit tests pass. Exact red and green logs are imported and verified
+under runtime/diagnostics/capture-loan-retention/ in SQLite.
+
+This foundation is not wired into checker consumption yet. Next connect successful
+consuming access and acknowledge known declaration, assignment and capture moves
+using the exact originating span. Then replace positional lexical/exception unwind
+and prove branch restoration before enabling actual loan release. The independent
+field-disposal native witness remains red. No public wrapper changes are needed:
+ReadOnly, Mutable and Once describe invocation; retention is compiler analysis.
+This work remains uncommitted. Consumers remain f1dd284 and owner fixtures remain
+protected.
+
+## Checker consumption integration
+
+Successful consuming access now records unresolved retention for the exact binding
+or selected record path and access span. Checked declaration and assignment moves
+resolve only the IDs moved at their originating site. Consumed closure captures
+resolve their corresponding creation-site event after environment transfer.
+Transparent checked wrappers use the underlying source span. The three binder
+state tests pass, including destructuring and assignment restoration. All eight
+mandatory depth canaries pass (64 tests). Project formatting changes zero files
+and fingerprints. Exact proof is verified in SQLite under
+runtime/diagnostics/capture-loan-retention/.
+
+Actual scope release remains disabled. Next add checker-state opaque-consumer and
+wrapped-source controls, then replace positional unwind and prove branch loan
+restoration before enabling release. Independent field disposal remains red; the
+record gate and gate 173 remain open. Consumers remain f1dd284.

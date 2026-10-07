@@ -6368,6 +6368,13 @@ impl Analyzer {
             binding.mutable = true;
         }
         if mode == Mode::Consume {
+            context.capture_loan_owners.begin_consumption(
+                &crate::capture_loan_owners::Place {
+                    binding: index,
+                    fields: projection.map(|value| value.path.clone()).unwrap_or_default(),
+                },
+                projection.map(|value| value.span).unwrap_or(span),
+            );
             if let Some(projection) = projection {
                 context.has_field_moves = true;
                 binding
