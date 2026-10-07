@@ -68,8 +68,8 @@ separately and preserve their current diagnostics until their own support is pro
    Native component checks cover callback bounds and shared-view mutation rejection.
    Field-position metadata supplies distinct generic slots even for equal callback
    contracts. Owned carriers may use generic child records with separate read/mutate
-   child constraints, associated leaf types and accessor expressions. Nine component
-   tests pass.
+   child constraints, associated leaf types and accessor expressions. Repeated child occurrences receive separate parent generic arguments while
+   sharing one nominal child declaration. Ten component tests pass.
    Production parameter/field routing and main emitter integration remain pending.
    **Whole-record transport.** Reconstruct owning values from field places only on
    a checked whole move. Borrowed whole-record consumers need a compatible view

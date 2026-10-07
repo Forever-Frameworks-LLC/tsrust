@@ -1043,3 +1043,33 @@ Keep nested child trait bounds, associated callback/data constraints, original r
 witness and live-owner controls. Use bounded native/editor checks, dispatch depth
 canaries, formatting, SQLite evidence and explicit Git paths. Never stage owner
 fixtures. Record gate and gate 173 remain open.
+
+## Repeated nominal child environment arguments
+
+The new native witness confirms parent view declarations previously collapsed
+generic arguments when two sibling fields referenced the same nominal child. The
+fix renames each child's generic arguments by its numeric field occurrence in the
+parent. Nominal child declarations remain shared and emitted once. Renaming also
+handles explicit lifetime parameter names; the view's own borrow lifetime remains
+shared across its fields. Field order and parameter order remain deterministic.
+
+Ten component tests pass. The witness derives checked nested Holder/Pair metadata,
+uses the same nominal child in both field slots, and creates callbacks with distinct
+String and Vec environments. The generated shared view accepts both environments
+and a generic consumer invokes them with result 14. Existing nested data, mutation,
+child contract, disposal and readonly rejection controls remain green.
+
+Exact native red and successful evidence is verified in SQLite under
+runtime/diagnostics/scoped-record-repeated-child/. Project formatting changes zero
+files and fingerprints. No shared dispatch changed. Production emitter routing
+remains pending; the original project/native independent-field witness remains red.
+Consumers remain f1dd284. Preserve fifteen owner fixtures.
+
+Continuation prompt: Continue Tsrust from this handoff and the scoped record field
+storage plan. Build production metadata for nominal views and borrowing bridges
+using field-aware generic slots, child argument renaming, generic child constraints
+and associated leaf types. Connect parameter, declaration, selected access/store and
+whole-move routing. Keep opaque boundaries, property ordering, captures/completion,
+original red and live-owner controls in scope. Use bounded checks, required depth
+canaries after dispatch changes, automatic formatting, SQLite evidence and explicit
+Git paths. Never stage owner fixtures. Record gate and gate 173 remain open.

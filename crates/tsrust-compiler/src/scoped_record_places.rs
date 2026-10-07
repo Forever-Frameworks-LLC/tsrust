@@ -37,6 +37,11 @@ impl Layout {
                 let (field_type, field_parameters) = if let Type::Record(child) = ty
                     && !records[child].fields.is_empty() {
                     let child_parameters = emit(child, records, symbol, native, mutable, seen, output);
+                    // Each child occurrence has its own environment arguments,
+                    // even when both occurrences use the same nominal view.
+                    let child_parameters=child_parameters.into_iter().map(|parameter| {
+                        if let Some(lifetime)=parameter.strip_prefix('\'') {format!("'nested{index}_{lifetime}")}else{format!("N{index}{parameter}")}
+                    }).collect::<Vec<_>>();
                     let arguments = std::iter::once("'a".to_owned()).chain(child_parameters.iter().cloned()).collect::<Vec<_>>().join(", ");
                     (format!("{}<{arguments}>", symbol(child)), child_parameters)
                 } else {
@@ -161,6 +166,36 @@ mod tests {
         let executed = Command::new(&executable).output().unwrap();
         assert!(executed.status.success(), "{}", String::from_utf8_lossy(&executed.stderr));
         assert!(executed.stdout.is_empty());
+    }
+    #[test]
+    fn native_repeated_child_views_keep_distinct_environment_arguments() {
+        let source=crate::format(r#"type Holder={run:ReadOnly<Function<int>>;};type Pair={left:Holder;right:Holder;};function main(){const a=[3];const b=[11];const pair:Pair={left:{run:():int=>a[0]},right:{run:():int=>b[0]}};console.log(pair.left.run(),pair.right.run());}"#).unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let checked=crate::check(&source).unwrap();
+        let mut binding=checked.program.functions[0].bindings.iter().find(|binding|binding.name=="pair").unwrap().clone();
+        let Type::Record(instance)=binding.ty else{panic!("record instance")};
+        binding.ty=Type::Record(checked.program.scoped_records.declaration(instance));
+        let Type::Record(outer)=binding.ty else{unreachable!()};
+        let mut records=checked.program.records.clone();
+        records[outer].fields[1].ty=records[outer].fields[0].ty;
+        let Type::Record(inner)=records[outer].fields[0].ty.unwrap() else{panic!("child record")};
+        let layout=Layout::for_binding(&binding,&records,true).unwrap();
+        let definitions=layout.view_declarations(&records,|id|format!("ReadRecord{id}"),|_,_,_|("F".into(),vec!["F".into()]),false);
+        let declaration=layout.declaration(13,false,"initial",&records,|id|format!("Record{id}"));
+        let view=layout.view_value(13,false,&records,|id|format!("ReadRecord{id}"));
+        let source=format!(r#"
+            struct Record{inner}<F>{{field0:F}}
+            struct Record{outer}<L,R>{{field0:Record{inner}<L>,field1:Record{inner}<R>}}
+            {definitions}
+            fn inspect<L:Fn()->i64,R:Fn()->i64>(value:&ReadRecord{outer}<'_,L,R>)->i64{{(value.field0.field0)()+(value.field1.field0)()}}
+            fn main(){{
+                let text=String::from("abc");let values=vec![11i64];
+                let initial=Record{outer}{{field0:Record{inner}{{field0:move ||text.len() as i64}},field1:Record{inner}{{field0:move ||values[0]}}}};
+                {declaration}
+                {{let borrowed={view};assert_eq!(inspect(&borrowed),14);}}
+            }}
+        "#);
+        native(&source);
     }
     #[test]
     fn native_nested_generic_child_uses_nominal_access_bounds() {
@@ -315,8 +350,8 @@ mod tests {
         let native_type = |_, _, ty| match ty { Type::Int => ("i64".into(), vec![]), Type::String => ("S".into(), vec!["S".into()]), _ => panic!("unexpected leaf type") };
         let read_declarations = layout.view_declarations(&checked.program.records, |id| format!("ReadRecord{id}"), native_type, false);
         let mut_declarations = layout.view_declarations(&checked.program.records, |id| format!("MutRecord{id}"), native_type, true);
-        assert!(read_declarations.contains(&format!("struct ReadRecord{outer}<'a, S>" , outer=layout.record)));
-        assert!(read_declarations.contains(&format!("field0: ReadRecord{inner}<'a, S>")));
+        assert!(read_declarations.contains(&format!("struct ReadRecord{outer}<'a, N0S>" , outer=layout.record)));
+        assert!(read_declarations.contains(&format!("field0: ReadRecord{inner}<'a, N0S>")));
         let bridges = crate::scoped_record_bridge::declarations(&layout, crate::scoped_record_bridge::Types {
             read_trait: "ReadOuter", mutate_trait: "MutateOuter",
             owned: &format!("Record{}<S>",layout.record), shared: &format!("ReadRecord{}<'a, S>",layout.record), exclusive: &format!("MutRecord{}<'a, S>",layout.record), parameters: &["S".into()],
