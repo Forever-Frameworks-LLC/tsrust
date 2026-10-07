@@ -502,3 +502,28 @@ plan. HEAD before this checkpoint is fcb7bc7. First inspect Git status. Keep thr
 public wrappers and ownership rules. Implement stable lexical/exception loan
 restoration and release with red witnesses, bounded checks, formatting, SQLite
 evidence and explicit Git paths. Never stage the fifteen owner fixtures.
+
+## Stable lexical entry membership
+
+A new red witness demonstrates why a saved loan-vector length is unsafe: removing
+an earlier entry and adding a local loan leaves the local within the old prefix.
+Boundary now captures exact entry loan tuples and unwinds by membership. Lexical
+block cleanup uses this boundary instead of truncating by the saved vector length.
+The boundary does not resurrect a removed entry or release tracked environment
+owners; actual owner-based release remains disabled. Eighteen focused loan tests
+and all eight depth canaries (64 tests) pass. Project formatting changes zero files
+and fingerprints. Exact red, green and canary logs are verified in SQLite under
+runtime/diagnostics/capture-loan-boundaries/.
+
+Exception region boundaries still use counts and must convert next. Conditional
+arm loan slicing also still uses positions. Convert both before enabling removal,
+then restore live loan tuples from stable IDs whenever owner snapshots restore.
+Preserve pending payloads and unknown retention. The independent native field
+disposal remains red. This is a partial source checkpoint, not record acceptance.
+Consumers remain f1dd284. Preserve fifteen owner fixtures.
+
+Next-agent prompt: Continue from this handoff. Read AGENTS.md, development workflow
+and scoped callable aggregate plan. Convert exception and conditional loan
+boundaries to stable membership with red tests; verify branch restoration before
+enabling scoped field release. Keep three public wrappers. Use the warm target,
+bounded checks, whole-project formatting, SQLite evidence and explicit Git paths.

@@ -1,8 +1,19 @@
 //! Stable capture-loan identities shared by cloned checker paths.
 use crate::{Mode, Span};
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::{cell::RefCell, collections::{HashMap, HashSet}, rc::Rc};
 
 pub(crate) type Loan = (usize, Mode, Span);
+
+/// Lexical membership remains valid when earlier loans are removed or reordered.
+pub(crate) struct Boundary(HashSet<Loan>);
+impl Boundary {
+    pub(crate) fn capture(loans: &[Loan]) -> Self {
+        Self(loans.iter().copied().collect())
+    }
+    pub(crate) fn unwind(&self, loans: &mut Vec<Loan>) {
+        loans.retain(|loan| self.0.contains(loan));
+    }
+}
 
 #[derive(Clone, Default)]
 pub(crate) struct Registry(Rc<RefCell<Entries>>);
@@ -35,6 +46,18 @@ impl Registry {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn lexical_boundary_does_not_keep_new_loans_after_entry_removal() {
+        let first = (0, Mode::Read, Span::new(1, 2));
+        let surviving = (1, Mode::Mutate, Span::new(3, 4));
+        let local = (2, Mode::Read, Span::new(5, 6));
+        let mut loans = vec![first, surviving];
+        let boundary = Boundary::capture(&loans);
+        loans.remove(0);
+        loans.push(local);
+        boundary.unwind(&mut loans);
+        assert_eq!(loans, vec![surviving]);
+    }
     #[test]
     fn branch_identity_restores_the_exact_loan_after_vector_disposal() {
         let registry = Registry::default();

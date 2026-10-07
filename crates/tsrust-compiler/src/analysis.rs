@@ -5092,7 +5092,7 @@ impl Analyzer {
         for (name, _) in &shadowed { context.names.remove(name); }
         self.depth += 1;
         let first_local = context.bindings.len();
-        let first_loan = context.capture_loans.len();
+        let entry_loans = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
         let mut exited = false;
         for stmt in body {
             if exited {
@@ -5208,7 +5208,7 @@ impl Analyzer {
         }
         context.lexical_scopes.pop();
         if !keep_names {
-            context.capture_loans.truncate(first_loan);
+            entry_loans.unwind(&mut context.capture_loans);
             for binding in &context.bindings[first_local..] {
                 context.names.remove(&binding.name);
             }
