@@ -427,3 +427,26 @@ after-tsc cases pass untimed. Canonical SQLite record:
 benchmarks/runtime/results/2026-10-07T00-45-46-040Z-verify.json.
 Five consumers were refreshed atomically and SHA-256 checked. No timing or full
 Gate173 acceptance is claimed.
+
+## Nested selected factory callees
+
+Nested selected factory callees now lower through an iterative branch walk. Each
+leaf must resolve to a deferred generic factory; the original expression remains
+unchanged if that requirement fails. Predicate order and short-circuit selection
+remain intact, and each chosen invocation evaluates its arguments once. Traversal
+solves its concrete context from a factory leaf and checks every branch against
+that contract. No recursive lowering frame or unchecked origin join is introduced.
+The nested-selected-factories fixture observes four predicate evaluations, two
+argument evaluations and independent selected environments. Heterogeneous result
+joins and the remaining storage, inference and ownership context audit stay open.
+
+Twenty-five adapter tests and all eight depth canaries (63 tests) pass on this
+source. Whole editor passes 303 tests; its selected factory protocol control now
+checks both the original and nested fixtures. Strict TypeScript and Node preserve
+the original output and nested evaluation assertions. Matched workload expansion
+has seventy-six observations; registration mutations and five native/Node-after-tsc
+cases pass untimed. Canonical SQLite record:
+benchmarks/runtime/results/2026-10-07T00-50-57-473Z-verify.json.
+Original red and intermediate compile failures remain exact SQLite records. Five
+consumers were refreshed atomically and SHA-256 verified. No timing or full Gate173
+acceptance is claimed.

@@ -213,3 +213,8 @@ fn fresh_generic_adapters_cannot_retain_borrowed_factory_data() {
     let error = tsrust_compiler::check(source).err().expect("an owned generic environment cannot retain borrowed parameter data");
     assert_eq!(error.code, "parameter-access", "{}: {}", error.code, error.message);
 }
+
+#[test]
+fn nested_selected_generic_factories_evaluate_only_selected_predicates() {
+    native(include_str!("fixtures/generic-value-adapters/nested-selected-factories.tsr"), "left 1\n2\nright 2\n4\n6\n");
+}

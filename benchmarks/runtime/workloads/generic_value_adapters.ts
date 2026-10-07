@@ -149,6 +149,12 @@ function workload(n: number, seed: number, input: string): number[][] {
         const distinctFirst = distinct(base + 17);
         const distinctSecond = distinct(base + 18);
         const distinctMapped = [base + 19, base + 20].map((selections++ === 0 ? make : doubleFactory)(base + 110 + evaluations++));
+        let nestedSelections = 0;
+        let nestedEvaluations = 0;
+        const nested: (value: number) => Receipt<number> = (nestedSelections++ === 0 ? (nestedSelections++ === 1 ? make : doubleFactory) : doubleFactory)(base + 120 + nestedEvaluations++);
+        const nestedFirst = nested(base + 21);
+        const nestedSecond = nested(base + 22);
+        const nestedMapped = [base + 23, base + 24].map((nestedSelections++ === 0 ? make : (nestedSelections++ === 3 ? doubleFactory : make))(base + 130 + nestedEvaluations++));
         output.push([firstValue, firstCalls, generic.value.length, generic.calls, last.value.length, last.calls,
             mapped[0].value, mapped[1].value, mapped[0].calls, mapped[1].calls, after.value ? 1 : 0, after.calls,
             record.value, record.calls, stored.value.length, stored.calls, input.length,
@@ -164,7 +170,10 @@ function workload(n: number, seed: number, input: string): number[][] {
             genericMapped[0].calls, genericMapped[1].calls,
             distinctFirst.value, distinctFirst.calls, distinctSecond.calls,
             distinctMapped[0].value, distinctMapped[1].value, distinctMapped[0].calls, distinctMapped[1].calls,
-            selections, evaluations]);
+            selections, evaluations,
+            nestedFirst.value, nestedFirst.calls, nestedSecond.calls,
+            nestedMapped[0].value, nestedMapped[1].value, nestedMapped[0].calls, nestedMapped[1].calls,
+            nestedSelections, nestedEvaluations]);
     }
     return output;
 }

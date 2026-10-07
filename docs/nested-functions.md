@@ -380,3 +380,7 @@ Subsequent calls use that environment's retained state. Array traversal also
 accepts such selected factory calls when their generic signatures match its input
 and result requirements. A borrowed facade cannot outlive a fresh temporary owner.
 The selected-factories and selected-traversal fixtures demonstrate these cases.
+
+Factory selection may be nested, such as `(flag ? (otherFlag ? firstFactory :
+secondFactory) : thirdFactory)()`. Only predicates on the selected path execute.
+The resulting concrete adapter retains the selected factory environment.

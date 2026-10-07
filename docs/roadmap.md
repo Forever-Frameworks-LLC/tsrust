@@ -461,3 +461,14 @@ flatMap and sorting. Immediate staging borrows end after factory evaluation;
 returned owned environments still cannot retain borrowed factory parameters.
 Nested selected callees and heterogeneous inferred result joins remain unaudited.
 Full adapter and Gate173 acceptance remain open.
+
+
+Nested selected factory callees now lower through an iterative branch walk. Each
+leaf must resolve to a deferred generic factory; the original expression remains
+unchanged if that requirement fails. Predicate order and short-circuit selection
+remain intact, and each chosen invocation evaluates its arguments once. Traversal
+solves its concrete context from a factory leaf and checks every branch against
+that contract. No recursive lowering frame or unchecked origin join is introduced.
+The nested-selected-factories fixture observes four predicate evaluations, two
+argument evaluations and independent selected environments. Heterogeneous result
+joins and the remaining storage, inference and ownership context audit stay open.

@@ -7,7 +7,11 @@ impl Analyzer {
         let selected = self.lower_selected_generic_factory(context, expression)?;
         let source = if selected {
             let ExprKind::Conditional { consequent, .. } = &expression.kind else { unreachable!() };
-            &**consequent
+            let mut source = &**consequent;
+            while let ExprKind::Conditional { consequent, .. } = &source.kind {
+                source = consequent;
+            }
+            source
         } else { &*expression };
         let Some(origin) = self.fresh_generic_origin(context, source)? else { return Ok(None); };
         let declaration = self.deferred_generic_values[&origin].declaration.clone();
@@ -67,16 +71,29 @@ impl Analyzer {
     // Concrete adaptation happens in each branch before callable origins join.
     #[inline(never)]
     pub(super) fn lower_selected_generic_factory(&mut self, context: &Context, expression: &mut Expr) -> Result<bool, Diagnostic> {
-        let ExprKind::Call(callee, arguments) = &expression.kind else { return Ok(false); };
-        let ExprKind::Conditional { predicate, consequent, alternate } = &callee.kind else { return Ok(false); };
-        let left = Expr::new(ExprKind::Call(consequent.clone(), arguments.clone()), expression.span);
-        let right = Expr::new(ExprKind::Call(alternate.clone(), arguments.clone()), expression.span);
-        if self.fresh_generic_origin(context, &left)?.is_none()
-            || self.fresh_generic_origin(context, &right)?.is_none()
-        { return Ok(false); }
-        expression.kind = ExprKind::Conditional {
-            predicate: predicate.clone(), consequent: Box::new(left), alternate: Box::new(right),
-        };
+        let ExprKind::Call(callee, _) = &expression.kind else { return Ok(false); };
+        if !matches!(callee.kind, ExprKind::Conditional { .. }) { return Ok(false); }
+        let mut distributed = expression.clone();
+        let mut pending = vec![&mut distributed];
+        while let Some(call) = pending.pop() {
+            if let ExprKind::Call(callee, arguments) = &call.kind
+                && let ExprKind::Conditional { predicate, consequent, alternate } = &callee.kind
+            {
+                call.kind = ExprKind::Conditional {
+                    predicate: predicate.clone(),
+                    consequent: Box::new(Expr::new(ExprKind::Call(consequent.clone(), arguments.clone()), call.span)),
+                    alternate: Box::new(Expr::new(ExprKind::Call(alternate.clone(), arguments.clone()), call.span)),
+                };
+            }
+            if !matches!(call.kind, ExprKind::Conditional { .. }) {
+                if self.fresh_generic_origin(context, call)?.is_none() { return Ok(false); }
+                continue;
+            }
+            let ExprKind::Conditional { consequent, alternate, .. } = &mut call.kind else { unreachable!() };
+            pending.push(alternate);
+            pending.push(consequent);
+        }
+        *expression = distributed;
         Ok(true)
     }
 
