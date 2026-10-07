@@ -742,3 +742,30 @@ emitted Rust fails E0502. Diagnose concrete field carriers and storage emission
 before changing ownership. Keep live-owner controls and three wrappers. Use the
 warm target, bounded checks, project formatting, SQLite evidence and explicit Git
 paths. Never stage protected owner fixtures.
+
+## Native field storage diagnosis and implementation plan
+
+The native failure is not an accidental borrow for left extraction. A diagnostic
+probe through the current compiler library confirms emission already uses
+`let value3: Closure0 = (value2).field0`. The remaining aggregate's later field1
+use still keeps the left capture lifetime relevant to Rust checking. A generated
+Rust experiment destructures Record0 into separate field bindings and routes field
+selection to them. It compiles and runs with exact output `3 11` then `11`. The
+probe executable was removed; original emission and native proof are imported and
+verified under runtime/diagnostics/scoped-record-field-storage/ in SQLite.
+
+Read docs/scoped-record-field-storage-plan.md for the concrete milestones and
+invariants. Next implement an isolated native field-place layout and declaration/
+selected access path, then complete whole-record transport, borrowing bridges,
+assignment, captures and completion. Do not repair this through implicit clone,
+unsafe lifetime erasure or weakening ownership checks. Keep nominal record ABI
+and independent field lifetimes. Existing parameter and factory cases must remain
+valid. No compiler source changed during this diagnostic checkpoint; preceding
+23 loan, 90 exception and 64 canary evidence remains current. The independent
+project/native witness still fails. Record gate and gate 173 remain open.
+
+Continuation prompt: Inspect status; read this handoff, workflow and scoped record
+field storage plan. Implement independent native field places with the original
+red project witness, preserving whole-record and borrowed parameter behavior.
+Use bounded compiler/native/editor checks, formatting and SQLite evidence. Keep
+three public wrappers. Never stage the fifteen owner fixtures.
