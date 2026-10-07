@@ -294,3 +294,44 @@ Full Gate173 remains open for expression evaluation order, capture writes, store
 fields, concrete environment replacement and the remaining lifetime/context audit.
 Supported statement dispatch remains explicit; unsupported regions still use the
 conservative path and are not claimed as complete source-flow parity.
+
+## Expression evaluation-order red checkpoint
+
+Thirteen invalid known-target calls are currently accepted when expression writes
+force the conservative fallback. They cover receiver effects before arguments,
+nullish selection, logical assignment, ordered sequences, assignment-result callees,
+argument-local mutation, callee snapshots, conditional joins, both logical operators,
+condition mutation, for-update sequences and partial evaluation before failure.
+Nine formatted precision controls pass, including lazy dead branches, definite
+replacement and saved initializer/callee snapshots. The focused test is
+`generic_call_expression_flow`; its rejection test is intentionally red.
+
+Implement a separate iterative expression-flow evaluator. Each expression result
+must carry a resolved callable snapshot rather than a name that is looked up again
+after later arguments mutate the binding. Evaluate the receiver/callee once, then
+arguments from left to right, then record the call against that saved contract.
+Evaluate assignment references before right sides, commit only after successful
+evaluation and return the right-side snapshot. Initializers and statement-level
+assignments must use the evaluator result, not reconstruct it from final bindings.
+
+Conditional, logical and nullish branches fork and join environments only on paths
+that can execute. Retain literal truthiness/nullish facts so false-and, true-or and
+non-nullish coalescing do not execute writes in skipped operands. Logical assignment
+reads the target once and commits only on its selected branch. Scalar writes may
+invalidate their own callable metadata but must not invalidate unrelated bindings.
+Do not invent contracts for unknown values or stored fields.
+
+Track exceptional environments at each potentially failing evaluation step. A
+sequence that writes a callable, then indexes an array, must enter its catch with
+the written target if indexing fails; the expression's entry state is insufficient.
+A call failure occurs after argument evaluation and its side effects. Route these
+states into the accepted exception graph while keeping normal continuation distinct.
+Join call facts across iterations and branches by source span as before.
+
+Use an explicit task/value stack rather than recursive descent so the depth canaries
+remain valid. Do not execute nested closure bodies as expression effects. Keep
+captured writes on the separate effects path until their audit; source contracts do
+not relax concrete callable ownership or environment compatibility. Add focused
+editor diagnostics and formatted native/strict TypeScript evaluation-order controls,
+reuse the registered generic adapter family for untimed verification, then run the
+affected generic suites and all eight depth canaries. Full Gate173 remains open.
