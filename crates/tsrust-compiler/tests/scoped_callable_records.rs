@@ -353,3 +353,42 @@ fn retaining_record_parameter_cannot_return_scoped_callback_storage() {
     };
     assert_eq!(error.code, "callback-escape", "{error:?}");
 }
+
+#[test]
+fn owned_record_factory_result_preserves_distinct_callback_instances() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int, [value: int]>>; };
+        function make(offset: int): Holder {
+            return { run: (value: int): int => value + offset };
+        }
+        function main() {
+            const first = make(3);
+            const second = make(11);
+            strictEqual(first.run(2), 5);
+            strictEqual(second.run(2), 13);
+            strictEqual(first.run(4), 7);
+        }
+    "#);
+}
+
+#[test]
+fn nested_owned_record_result_keeps_environment_through_forwarding() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int, [value: int]>>; };
+        type Envelope = { holder: Holder; };
+        function make(offset: int): Envelope {
+            const holder: Holder = { run: (value: int): int => value + offset };
+            return { holder: holder };
+        }
+        function forward(offset: int): Envelope { return make(offset); }
+        function main() {
+            const first = forward(3);
+            const second = forward(11);
+            strictEqual(first.holder.run(2), 5);
+            strictEqual(second.holder.run(2), 13);
+            strictEqual(first.holder.run(4), 7);
+        }
+    "#);
+}

@@ -187,3 +187,29 @@ Remaining work includes positive owned record results, scoped result transfers w
 lifetimes permit, field provenance through scope exits and assignment, disposal and
 failure paths, editor/guide and matched workload support. These witnesses do not
 establish complete record gate acceptance. Source consumers remain on f1dd284.
+
+## Owned concrete record results
+
+A direct owned factory witness first failed native generation: its declared record
+result contained an unresolved C0 generic instead of the returned concrete closure.
+Named function checking now preserves the checked concrete record result from its
+return expressions after validating the nominal annotation. Multiple returns still
+must resolve compatibly; mixed environment result families remain pending.
+
+A nested factory plus forwarding witness exposed a second defect: generic native
+field positions disappeared when an instance's nested closure owned its captures.
+scoped_record_native_parameter now selects record field positions from the nominal
+declaration while concrete payload rendering retains each instance's environments.
+Both factories preserve separate offsets across repeated invocation. No implicit
+clone or borrowed escape relaxation is introduced.
+
+All sixteen record tests pass after repair. Seven canaries passed in the original
+batch; type_syntax was not reached after the nested record failure and passes in
+the repair batch (64 canary tests total). The focused editor signature check passes
+on final source. Thirteen positive cases pass Node after TypeScript compilation.
+Final whole-project formatting changes zero files and fingerprints. Original failed
+and repaired evidence is preserved in SQLite under
+runtime/diagnostics/scoped-record-owned-results/. This is not gate acceptance.
+Remaining work includes mixed record result environments, permitted scoped transfers,
+field loans, assignment, disposal/failure paths, general composition, guide and
+matched workload support, and complete editor acceptance. Consumers remain f1dd284.

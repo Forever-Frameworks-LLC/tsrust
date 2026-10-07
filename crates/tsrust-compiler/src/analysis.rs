@@ -4060,6 +4060,16 @@ impl Analyzer {
             ));
         }
         self.finalize_nullable_locals(&mut context.bindings, &mut body)?;
+        // A record annotation names its declaration; the checked result must
+        // retain the concrete callback environment selected by its returns.
+        if let Type::Record(base) = result_type {
+            let actual = self.inferred_body_result(&body)?;
+            if let Type::Record(instance) = actual {
+                if self.scoped_records.declaration(instance) == base {
+                    result_type = actual;
+                }
+            }
+        }
         let result_type = if self.callable_result_type(result_type) {
             context.returned_callable.expect("checked callable return")
         } else {
