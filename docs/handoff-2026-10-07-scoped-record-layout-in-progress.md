@@ -1114,3 +1114,44 @@ original red and live-owner controls unchanged. Use bounded native/editor checks
 dispatch depth canaries after routing changes, automatic formatting, SQLite evidence
 and explicit Git paths. Never stage owner fixtures. Record gate and gate 173 remain
 open; no performance measurements have been taken for this feature.
+
+## Ordinary support emission and declaration caching
+
+Ordinary native type emission now registers borrowing support for eligible nominal
+record families. SupportCache owns separate shared-view and mutable-view parameter
+maps plus a bridge declaration set. Layout::view_declarations_cached preserves
+child generic arguments across roots while emitting declarations once. Completed
+roots return empty support immediately; empty or invalid layouts retain their
+existing no-support result. Caches are local to one emission, never global.
+
+The native adapter witness now relies on ordinary emission rather than appending
+support manually. It also requests parent, child and repeated parent support with
+one cache, requiring one shared child declaration and one nominal parent bridge.
+The original cache witness failed native compilation on duplicate declarations.
+The ordinary-emission witness failed because support was missing, then passed
+generated native execution after registration. Distinct nested callback environments
+remain independently typed and return 14 through owned and shared forms.
+
+Ten component tests and all 64 controls across the eight depth canary suites pass.
+The scoped_callable_records project batch remains 19 passed and one known native
+E0502 failure: scoped_record_partial_field_moves_release_independent_capture_loans.
+Both live-owner rejection controls remain green. The completed-cache fast path
+passes the focused native adapter check. No parameter or independent storage
+routing is implemented yet, so the original witness has not been weakened or
+described as accepted.
+
+Exact cache red/green, emission red/green, project, depth, component and final cache
+evidence is verified in SQLite under
+runtime/diagnostics/scoped-record-support-emission/. Project formatting changes
+zero files and fingerprints. Consumers remain f1dd284; preserve fifteen owner
+fixtures. Record gate and gate 173 remain open. Full editor acceptance and matched
+record benchmark support remain owed; no timing was performed.
+
+Continuation prompt: Continue Tsrust from this handoff and the scoped record field
+storage plan. Borrowing support now emits automatically with shared declaration
+caches. Integrate parameter constraints and selected field access using nominal
+bridge traits, then independent local/parameter declarations, stores and whole
+moves. Keep opaque composition, property ordering and capture/completion transport
+in scope. Preserve original native red and live-owner controls. Use bounded checks,
+required depth canaries after dispatch changes, automatic formatting, SQLite
+evidence and explicit Git paths. Never stage the fifteen owner fixtures.

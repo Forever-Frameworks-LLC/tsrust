@@ -28,6 +28,9 @@ enum Rendering {
 }
 impl Layout {
     pub(crate) fn view_declarations(&self, records: &[Record], symbol: impl Fn(usize) -> String, native: impl Fn(usize, usize, Type) -> (String, Vec<String>), mutable: bool) -> String {
+        self.view_declarations_cached(records,symbol,native,mutable,&mut std::collections::BTreeMap::new())
+    }
+    pub(crate) fn view_declarations_cached(&self, records: &[Record], symbol: impl Fn(usize) -> String, native: impl Fn(usize, usize, Type) -> (String, Vec<String>), mutable: bool, seen: &mut std::collections::BTreeMap<usize,Vec<String>>) -> String {
         fn emit(id: usize, records: &[Record], symbol: &impl Fn(usize) -> String, native: &impl Fn(usize, usize, Type) -> (String, Vec<String>), mutable: bool, seen: &mut std::collections::BTreeMap<usize, Vec<String>>, output: &mut String) -> Vec<String> {
             use std::fmt::Write;
             if let Some(parameters) = seen.get(&id) { return parameters.clone(); }
@@ -59,7 +62,7 @@ impl Layout {
             parameters
         }
         let mut output = String::new();
-        emit(self.record, records, &symbol, &native, mutable, &mut std::collections::BTreeMap::new(), &mut output);
+        emit(self.record, records, &symbol, &native, mutable, seen, &mut output);
         output
     }
 

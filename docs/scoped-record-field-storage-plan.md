@@ -72,8 +72,10 @@ separately and preserve their current diagnostics until their own support is pro
    sharing one nominal child declaration. Ten component tests pass.
    An isolated emitter adapter now derives view/bridge support from checked nominal
    records and actual native ABI slots. Native execution verifies distinct nested
-   callback environments against compiler-generated owned records. Automatic support
-   emission, parameter/field routing and main emitter integration remain pending.
+   callback environments against compiler-generated owned records. Ordinary type emission now registers support with separate read-view, mutable-view
+   and bridge caches shared across nominal roots. All 64 depth controls pass; the
+   record project batch retains 19 passes and the known independent-field E0502
+   failure. Parameter/field routing and independent storage integration remain pending.
    **Whole-record transport.** Reconstruct owning values from field places only on
    a checked whole move. Borrowed whole-record consumers need a compatible view
    or bridge that references original fields and supports existing callable bounds.

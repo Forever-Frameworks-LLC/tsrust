@@ -2108,6 +2108,7 @@ impl Emitter<'_> {
         }
         self.set_types(&mut output);
         self.map_types(&mut output);
+        let mut record_support_cache=scoped_record_support_emit::SupportCache::default();
         for (index, record) in self.program.records.iter().enumerate() {
             if self.program.scoped_records.declaration(index) != index { continue; }
             if let Some(definition) = &record.enum_definition {
@@ -2145,6 +2146,10 @@ impl Emitter<'_> {
             let fields = self.order_fields(index, fields);
             let parameters = lifetime_parameters(&generic_fields);
             let _ = writeln!(output, "{derive}struct Record{index}{parameters} {{ {fields} }}\n");
+            if self.scoped_record_native_parameter(Type::Record(index))
+                && let Some(support)=self.record_borrowing_support_cached(index,&mut record_support_cache) {
+                output.push_str(&support);
+            }
         }
         for (index, closure) in self.program.closures.iter().enumerate() {
             if closure.function.template {

@@ -1,13 +1,20 @@
 //! Checked nominal metadata for independent record borrowing support.
 use super::*;
 
+#[derive(Default)]
+pub(super) struct SupportCache {
+    read: std::collections::BTreeMap<usize,Vec<String>>,
+    mutate: std::collections::BTreeMap<usize,Vec<String>>,
+    bridges: HashSet<usize>,
+}
 impl Emitter<'_> {
-    pub(super) fn record_borrowing_support(&self, record: usize) -> Option<String> {
-        self.record_borrowing_support_layout(record)
+    pub(super) fn record_borrowing_support_cached(&self, record: usize, cache: &mut SupportCache) -> Option<String> {
+        self.record_borrowing_support_layout(record,cache)
     }
-    fn record_borrowing_support_layout(&self, record: usize) -> Option<String> {
+    fn record_borrowing_support_layout(&self, record: usize, cache: &mut SupportCache) -> Option<String> {
         use crate::{scoped_record_places::{Layout,Leaf},scoped_record_bridge::{Types,OwnedParameters,OwnedAccess}};
         let record=self.program.scoped_records.declaration(record);
+        if cache.read.contains_key(&record) && cache.mutate.contains_key(&record) && cache.bridges.contains(&record){return Some(String::new());}
         let layout=Layout::for_record(record,&self.program.records)?;
         if self.program.records[record].fields.is_empty(){return None;}
         let native_field=|node:usize,index:usize,ty:Type| {
@@ -15,11 +22,11 @@ impl Emitter<'_> {
                 let name=format!("V{node}F{index}");(name.clone(),vec![name])
             }else{(self.native_type(ty),vec![])}
         };
-        let mut output=layout.view_declarations(&self.program.records,|id|format!("TsrReadView{id}"),native_field,false);
-        output.push_str(&layout.view_declarations(&self.program.records,|id|format!("TsrMutateView{id}"),native_field,true));
-        let mut pending=vec![record];let mut seen=HashSet::new();
+        let mut output=layout.view_declarations_cached(&self.program.records,|id|format!("TsrReadView{id}"),native_field,false,&mut cache.read);
+        output.push_str(&layout.view_declarations_cached(&self.program.records,|id|format!("TsrMutateView{id}"),native_field,true,&mut cache.mutate));
+        let mut pending=vec![record];
         while let Some(node)=pending.pop(){
-            if !seen.insert(node){continue;}
+            if !cache.bridges.insert(node){continue;}
             let record=&self.program.records[node];
             if record.fields.is_empty(){continue;}
             let layout=Layout::for_record(node,&self.program.records)?;
@@ -76,9 +83,14 @@ mod tests {
         let emitter=emitter_for(&checked.program,"");
         let outer=checked.program.records.iter().position(|record|record.name.text=="Pair").unwrap();
         let Type::Record(inner)=checked.program.records[outer].fields[0].ty.unwrap() else{panic!("child record")};
-        let support=emitter.record_borrowing_support(outer).expect("nominal borrowing support");
+        let mut cache=SupportCache::default();
+        let mut support=emitter.record_borrowing_support_cached(outer,&mut cache).expect("nominal borrowing support");
+        support.push_str(&emitter.record_borrowing_support_cached(inner,&mut cache).expect("shared child support"));
+        support.push_str(&emitter.record_borrowing_support_cached(outer,&mut cache).expect("repeated root support"));
         let mut rust=emit(&checked.program);
-        rust.push_str(&support);
+        assert!(!support.is_empty());
+        assert_eq!(rust.matches(&format!("struct TsrReadView{inner}<")).count(),1,"one shared child declaration");
+        assert_eq!(rust.matches(&format!("trait TsrReadRecord{outer} ")).count(),1,"one nominal bridge");
         rust.push_str(&format!(r#"
             struct Left(std::string::String);struct Right(Vec<i64>);
             impl ReadCallback<(),i64> for Left{{fn invoke_read(&self,_:())->i64{{self.0.len() as i64}}}}
