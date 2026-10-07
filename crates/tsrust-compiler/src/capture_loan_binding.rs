@@ -17,8 +17,13 @@ impl Analyzer {
 
     #[inline(never)]
     pub(super) fn restore_live_capture_loans(context: &mut Context) {
+        let live = context.capture_loan_owners.live();
+        context.capture_loans.retain(|loan| {
+            context.capture_loan_ids.get(*loan).is_none_or(|id|
+                !context.capture_loan_owners.tracked().contains(&id) || live.contains(&id))
+        });
         let mut present = context.capture_loans.iter().copied().collect::<std::collections::HashSet<_>>();
-        for id in context.capture_loan_owners.live() {
+        for id in live {
             if let Some(loan) = context.capture_loan_ids.loan(id) {
                 if present.insert(loan) {
                     context.capture_loans.push(loan);
@@ -179,6 +184,30 @@ mod tests {
         let formatted = crate::format(source).unwrap();
         assert_eq!(crate::format(&formatted).unwrap(), formatted);
         formatted
+    }
+
+    #[test]
+    fn reconciliation_removes_only_dead_tracked_loans_and_keeps_opaque_retention() {
+        let mut context = Context::new("main".into());
+        let dead = (0, Mode::Mutate, Span::new(1, 2));
+        let live = (1, Mode::Read, Span::new(3, 4));
+        let unknown = (2, Mode::Read, Span::new(5, 6));
+        let dead_id = context.capture_loan_ids.intern(dead);
+        let live_id = context.capture_loan_ids.intern(live);
+        context.capture_loan_ids.intern(unknown);
+        let source = Place { binding: 2, fields: vec![] };
+        context.capture_loan_owners.attach(source.clone(), [dead_id]);
+        context.capture_loan_owners.attach(Place { binding: 1, fields: vec![] }, [live_id]);
+        let mut opaque = context.clone();
+        opaque.capture_loan_owners.begin_consumption(&source, Span::new(7, 8));
+        context.capture_loan_owners.leave_scope(2);
+        context.capture_loans = vec![unknown, dead, live];
+        Analyzer::restore_live_capture_loans(&mut context);
+        assert_eq!(context.capture_loans, vec![unknown, live]);
+        opaque.capture_loan_owners.leave_scope(2);
+        opaque.capture_loans = vec![unknown, dead, live];
+        Analyzer::restore_live_capture_loans(&mut opaque);
+        assert_eq!(opaque.capture_loans, vec![unknown, dead, live]);
     }
 
     #[test]

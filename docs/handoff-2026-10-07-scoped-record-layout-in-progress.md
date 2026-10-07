@@ -700,3 +700,45 @@ controls, then turn independent field disposal green and check branch/loop/final
 live-owner safety. Keep three public wrappers and existing ownership rules. Use
 bounded checks, project formatting, SQLite evidence and explicit Git paths. Never
 stage protected owner fixtures.
+
+## Dead tracked loan removal and explicit payload retention
+
+A new red reconciliation control requires dead tracked loans to disappear while
+live loans, unknown borrows (including interned but untracked tuples) and opaque
+retention survive. Live-loan reconciliation now filters only IDs with tracked
+provenance and no live owner or pending retention, then restores missing live
+tuples. The independent field-disposal witness now passes analyzer checking.
+
+A separate red exceptional payload control showed that local owner disposal must
+not erase a pending payload loan. ExitState now carries the shared registry and
+records explicit payload retention before disposing local paths. Payload retention
+is replaced by each unwind's identified payload set, so a subsequent explicit
+discard releases it. Pinning does not turn previously unknown raw borrows into
+tracked ownership; an existing boundary/payload unit test exposed and verified
+that distinction. Payload retention joins with reaching states and survives
+ordinary owner disposal.
+
+Final proof passes 23 loan unit tests, 90 exception-state tests, all eight depth
+canaries (64 tests), and five source/native finally checks. The full record batch
+passes nineteen tests and fails one. The independent field-disposal failure is now
+Rust E0502, not Tsrust capture-conflict: emitted code retains a borrow of leftValues
+while later reading pair.right after the left field's inner scope. This remains a
+required backend repair, not accepted field-disposal behavior. The native diagnostic
+and every original failed/green log are verified in SQLite under
+runtime/diagnostics/capture-loan-disposal/. Project formatting changes zero files
+and fingerprints. No timing; consumers remain f1dd284.
+
+Next inspect the checked left-field carrier and emitted initializer/storage access
+for the field-disposal witness. Ensure consuming extraction moves its environment
+without retaining a new reference to the source field, while ReadOnly parameter
+borrows remain borrows. Do not add implicit clone, change wrapper semantics or
+weaken the witness. Keep both live-field rejection controls. Then add native
+branch/loop/finally disposal cases and complete editor, guide, matched workload and
+gate records. Record gate and gate 173 remain open. Preserve fifteen owner fixtures.
+
+Continuation prompt: Inspect Git status and read this handoff plus scoped callable
+aggregate plan. Repair native independent field disposal: analysis now passes,
+emitted Rust fails E0502. Diagnose concrete field carriers and storage emission
+before changing ownership. Keep live-owner controls and three wrappers. Use the
+warm target, bounded checks, project formatting, SQLite evidence and explicit Git
+paths. Never stage protected owner fixtures.

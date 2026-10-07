@@ -134,6 +134,7 @@ pub(super) struct ExitState {
     owners:Vec<Availability>,
     flow:crate::flow::Facts,
     capture_loan_owners:crate::capture_loan_owners::Owners,
+    capture_loan_ids:crate::capture_loan_identity::Registry,
     capture_loans:Vec<(usize,Mode,Span)>,
 }
 impl ExitState {
@@ -148,6 +149,7 @@ impl ExitState {
     /// The caller must identify payload loans before removing its local bindings.
     pub(super) fn unwind_capture_loans(&mut self,entry:&crate::capture_loan_identity::Boundary,payload_loans:&[(usize,Mode,Span)]) {
         entry.unwind(&mut self.capture_loans);
+        self.capture_loan_owners.replace_payload(payload_loans.iter().map(|loan| self.capture_loan_ids.intern(*loan)));
         let _ = self.capture_loan_owners.leave_scope(self.owners.len());
         for loan in payload_loans {
             if !self.capture_loans.contains(loan) {self.capture_loans.push(*loan);}
@@ -158,6 +160,7 @@ impl ExitState {
             owners:context.bindings[..outer].iter().map(Availability::of).collect(),
             flow:context.flow.iter().filter(|(place,_)|place.root<outer).map(|(place,fact)|(place.clone(),fact.clone())).collect(),
             capture_loan_owners:context.capture_loan_owners.clone(),
+            capture_loan_ids:context.capture_loan_ids.clone(),
             capture_loans:context.capture_loans.clone(),
         }
     }
@@ -180,6 +183,20 @@ impl ExitState {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn unwound_tracked_payload_keeps_its_loan_after_local_owner_disposal() {
+        let mut context = Context::new("main".into());
+        let payload = (0, Mode::Read, Span::new(1, 2));
+        let id = context.capture_loan_ids.intern(payload);
+        context.capture_loan_owners.attach(crate::capture_loan_owners::Place { binding: 1, fields: vec![] }, [id]);
+        context.capture_loans.push(payload);
+        let mut state = ExitState::capture(&context, 0);
+        state.unwind_capture_loans(&crate::capture_loan_identity::Boundary::capture(&[]), &[payload]);
+        state.restore(&mut context);
+        assert_eq!(context.capture_loans, vec![payload]);
+        assert!(context.capture_loan_owners.live().contains(&id));
+    }
+
     #[test]
     fn restoring_exception_owner_snapshot_recovers_missing_live_capture_loan() {
         let mut context = Context::new("main".into());

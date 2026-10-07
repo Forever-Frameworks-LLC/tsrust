@@ -13,10 +13,18 @@ pub(crate) struct Owners {
     entries: BTreeMap<Place, BTreeSet<usize>>,
     pending: BTreeMap<(Place, usize, usize), BTreeSet<usize>>,
     tracked: BTreeSet<usize>,
+    payload: BTreeSet<usize>,
 }
 
 impl Owners {
     pub(crate) fn tracked(&self) -> &BTreeSet<usize> { &self.tracked }
+
+    pub(crate) fn replace_payload(&mut self, loans: impl IntoIterator<Item = usize>) {
+        self.payload.clear();
+        for loan in loans {
+            self.payload.insert(loan);
+        }
+    }
 
     pub(crate) fn attach(&mut self, place: Place, loans: impl IntoIterator<Item = usize>) {
         let mut loans = loans.into_iter().peekable();
@@ -82,7 +90,7 @@ impl Owners {
     }
 
     pub(crate) fn live(&self) -> BTreeSet<usize> {
-        self.entries.values().chain(self.pending.values()).flatten().copied().collect()
+        self.entries.values().chain(self.pending.values()).flatten().copied().chain(self.payload.iter().copied()).collect()
     }
 
     pub(crate) fn transfer(&mut self, source: &Place, destination: &Place) -> BTreeSet<usize> {
@@ -148,6 +156,7 @@ impl Owners {
 
     pub(crate) fn join(&mut self, other: &Self) {
         self.tracked.extend(other.tracked.iter().copied());
+        self.payload.extend(other.payload.iter().copied());
         for (place, loans) in &other.entries {
             self.attach(place.clone(), loans.iter().copied());
         }
