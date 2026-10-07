@@ -54,6 +54,29 @@ pub(super) fn invoke(declaration: Span, caller: &[Binding], arguments: &[express
     invoke_with_dispatch(declaration, caller, arguments, declarations, effects, &mut expression_flow::UnknownDispatch)
 }
 pub(super) fn invoke_with_dispatch(declaration: Span, caller: &[Binding], arguments: &[expression_flow::Value], declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index, dispatch: &mut dyn expression_flow::Dispatch) -> Option<Outcome> {
+    // Snapshot arrays lack shared storage identity. A body that mutates aggregate
+    // contents cannot yet certify callers, including collection traversal.
+    let body = effects.body(declaration)?;
+    let graph = flow_graph::summary_graph(body)?;
+    if graph.nodes.iter().any(|node| matches!(node.statement.map(|statement| &statement.kind), Some(StmtKind::Assign { target, .. }) if !matches!(target.kind, ExprKind::Name(_)))) { return None; }
+    let mut probe = body.to_vec();
+    for parameter in effects.parameters(declaration)? {
+        if let ParameterInitializer::Default { value, .. } = &parameter.initializer {
+            probe.push(Stmt { kind: StmtKind::Expr((**value).clone()), span: value.span, labels: Vec::new(), control_target: None });
+        }
+    }
+    let mut supported = true;
+    crate::source_walk::body(&mut probe, &mut |_| Ok(()), &mut |expression| {
+        let target = match &expression.kind {
+            ExprKind::Assign { target, .. } | ExprKind::CompoundAssign { target, .. }
+            | ExprKind::LogicalAssign { target, .. } | ExprKind::CoalesceAssign { target, .. }
+            | ExprKind::Update { target, .. } => Some(target),
+            _ => None,
+        };
+        if target.is_some_and(|target| !matches!(target.kind, ExprKind::Name(_))) { supported = false; }
+        Ok(())
+    }).ok()?;
+    if !supported { return None; }
     let mut frame = invocation_frame::Frame::build(declaration, caller, arguments, effects)?;
     let entry = parameter_entry::prepare(declaration, arguments, &mut frame.state, declarations, effects, dispatch)?;
     let mut outcome = if entry.normal { run_with_dispatch(effects.body(declaration)?, &frame.state, declarations, effects, dispatch)? } else { Outcome::default() };

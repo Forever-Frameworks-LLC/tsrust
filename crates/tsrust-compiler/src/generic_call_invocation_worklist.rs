@@ -53,6 +53,28 @@ impl<'a> Engine<'a> {
         if let Some(parent) = self.current { self.entries[index].dependents.insert(parent); }
         index
     }
+    fn for_each(&mut self, callee: &expression_flow::Value, arguments: &[expression_flow::Value], state: &[Binding]) -> Option<expression_flow::Invocation> {
+        let (Some(elements), Some(callback)) = (&callee.elements, arguments.first()) else { return self.opaque_invocation(); };
+        let mut normal = Some(state.to_vec());
+        let mut throwing = None;
+        let mut facts = HashMap::new();
+        for (position, element) in elements.iter().enumerate() {
+            let Some(incoming) = normal.take() else { break; };
+            if callback.origins.iter().any(|origin| !matches!(origin, body_origins::Origin::Body(_))) { return self.opaque_invocation(); }
+            for origin in &callback.origins {
+                let body_origins::Origin::Body(declaration) = origin else { unreachable!() };
+                let callback_arguments = vec![expression_flow::Value::element(element), expression_flow::Value::index(position), expression_flow::Value::array(&elements.iter().map(expression_flow::Value::element).collect::<Vec<_>>())];
+                let index = self.request(Request { declaration: *declaration, caller: incoming.clone(), arguments: callback_arguments });
+                if self.entries[index].opaque { return self.opaque_invocation(); }
+                let outcome = self.entries[index].outcome.clone();
+                merge_state(&mut normal, outcome.normal, self.declarations);
+                merge_state(&mut normal, outcome.returning, self.declarations);
+                merge_state(&mut throwing, outcome.throwing, self.declarations);
+                merge_facts(&mut facts, outcome.facts, self.declarations);
+            }
+        }
+        Some(expression_flow::Invocation { normal, throwing: throwing.into_iter().collect(), result: expression_flow::Value::undefined(), facts })
+    }
     fn opaque_invocation(&mut self) -> Option<expression_flow::Invocation> {
         // An unknown effect invalidates this contextual proof and propagates
         // through reverse dependencies when the current request completes.
@@ -91,6 +113,7 @@ impl<'a> Engine<'a> {
 }
 impl expression_flow::Dispatch for Engine<'_> {
     fn invoke(&mut self, _: &Expr, callee: &expression_flow::Value, arguments: &[expression_flow::Value], state: &[Binding]) -> Option<expression_flow::Invocation> {
+        if callee.for_each { return self.for_each(callee, arguments, state); }
         if callee.origins.is_empty() || callee.origins.iter().any(|origin| !matches!(origin, body_origins::Origin::Body(_))) { return self.opaque_invocation(); }
         let mut normal = None;
         let mut throwing = None;

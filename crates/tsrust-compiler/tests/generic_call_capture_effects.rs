@@ -151,3 +151,22 @@ fn literal_guard_native_callable_replacement_has_common_carrier() {
         support::execute(&executable,"7\n",None);
     }
 }
+
+#[test]
+fn collection_callbacks_preserve_empty_regions_element_guards_and_completion_order() {
+    for (body, invalid) in [
+        ("let action=one;[].forEach(()=>{action=two;});return action<T>(value);", false),
+        ("let action=one;[false].forEach((enabled:boolean)=>{if(enabled){action=two;}});return action<T>(value);", false),
+        ("let action=one;[false,true].forEach((enabled:boolean)=>{if(enabled){action=two;}});return action<T>(value);", true),
+        ("let action=one;[true].forEach(()=>{action=two;action=one;});return action<T>(value);", false),
+        ("let action=one;try{[true].forEach(()=>{action=two;throw 1;});}catch(error){return action<T>(value);}return value;", true),
+    ] {
+        let source=support::format_round_trip(&source(body));
+        let result=tsrust_compiler::check(&source);
+        if invalid {
+            let error=result.err().expect("invoked write must reject invalid arity");
+            assert_eq!(error.code,"arity","{}",error.render("collection-effect.tsr",&source));
+            assert!(!error.related.is_empty());
+        } else if let Err(error)=result { panic!("{}",error.render("collection-effect.tsr",&source)); }
+    }
+}

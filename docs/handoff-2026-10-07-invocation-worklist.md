@@ -2,8 +2,8 @@
 
 Read AGENTS.md, docs/development-workflow.md, docs/captured-call-effects-plan.md
 and docs/handoff-2026-10-07-invocation-frames.md first. This checkpoint adds dispatch
-hooks and a standalone finite inter-call engine. Compiler validation still uses
-UnknownDispatch and the existing branch/conservative paths. Gate173 remains open.
+hooks and a standalone finite inter-call engine. Compiler validation now tries converged contextual invocation facts before the
+existing branch/conservative paths. Opaque requests retain fallback behavior. Gate173 remains open.
 Copied consumers remain 399a1c4; warm Cargo binaries can contain newer WIP.
 
 expression_flow::Dispatch receives the saved callee after argument evaluation,
@@ -31,8 +31,8 @@ Span gained Hash without changing its layout or equality behavior.
 Twenty-eight focused tests, 187 bounded compiler tests and 197 affected editor
 intelligence/stdio tests pass. All eight depth canaries ran unfiltered. The compiler
 command explicitly excludes invoked_capture_writes_reject_invalid_reachable_calls
-and literal_guard_native_callable_replacement_has_common_carrier. Neither is fixed
-in the actual compiler path. The conditional-arrow common-carrier red remains too.
+and literal_guard_native_callable_replacement_has_common_carrier. The later integration fixes the invocation red in the compiler path;
+the native carrier red remains. The conditional-arrow common-carrier red remains too.
 Full editor was not rerun for this WIP; the earlier 329-test record is preserved and
 full editor must run before actual invocation acceptance. Formatting changes zero
 files and fingerprints. Closed red/corrected/final logs are imported/read back in
@@ -63,9 +63,8 @@ have no effects. Collection callbacks, optional regions and stored fields remain
 required work. Return result Values are currently unknown; preserve evaluation
 snapshots across finally before claiming factory/returned-callback consistency.
 
-The actual root validator still rejects closures/latent writes on its precise path,
-then uses conservative fallback. Integration should repair the original retained
-reds while preserving restoration, saved callees, shadows and uncalled declarations.
+The old structured fallback rejects closures/latent writes on its precise path;
+contextual invocation now precedes it. Finish remaining opaque-region handling while preserving restoration, saved callees, shadows and uncalled declarations.
 Native carrier failures must also be repaired before broad callable acceptance.
 Preserve all fifteen owner fixture edits, use explicit Git paths and one warm
 non-incremental offline locked Cargo target. No new observations, timings or
@@ -94,3 +93,35 @@ invalidating aliases. Dynamic indices, nested aggregate elements, spread and
 collection iteration remain unsupported by this proof. No compiler-path acceptance
 or editor/native parity is claimed. Thirty-one focused tests and all eight depth
 canaries (63 tests) pass; exact red and passing evidence is retained in SQLite.
+
+## Compiler-path integration WIP
+
+Root source validation now tries the contextual worklist before its existing
+structured and conservative paths. All eight original invoked-write scenarios
+reject with related arity diagnostics, including fixed-array forEach invoking a
+writer. Saved callee order, restoration and uncalled declarations remain covered.
+A saved field value carries forEach receiver elements into dispatch without
+re-evaluating its receiver. The dispatcher sequences callback requests, joins
+alternatives and propagates exceptional completion; empty arrays invoke nothing.
+Callbacks receive element, finite index selection and an array snapshot. New
+formatted compiler witnesses cover empty regions, element guards, restoration
+and throwing callbacks.
+
+Aggregate writes make a contextual body opaque because shared storage identity
+and live mutation during iteration are not represented. Body/default eligibility
+is currently rechecked at invocation; cache immutable eligibility metadata before
+claiming efficiency. Other built-in or unknown calls make summaries opaque too.
+The old fallback still needs stronger invoked-write handling in these regions;
+this checkpoint is not full callable-effects acceptance. Return snapshots, other
+collection methods, spread, precise mutation and retained native carrier failures
+remain open. The native-carrier red is explicitly excluded from passing batches.
+
+Verification: 31 focused tests, 189 bounded compiler tests and the whole editor
+crate (329 tests) pass. Final affected compiler/canary and editor protocol checks
+follow the index-selection refinement. Earlier records remain preserved. No
+measurements, benchmark observations or consumer refresh is claimed.
+
+Final affected checks pass: 74 compiler tests (including all eight depth canaries
+unfiltered) and 197 editor intelligence/stdio tests after index refinement. Whole
+project formatting changes zero files or fingerprints. Closed logs are imported,
+read back and removed; obsolete completed test binaries are pruned.

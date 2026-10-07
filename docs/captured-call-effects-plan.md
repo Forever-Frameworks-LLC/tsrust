@@ -284,3 +284,16 @@ Unknown indices and writes invalidate the proof rather than retaining stale alia
 contents. Storage identity, precise mutation, spread, iteration and returned
 aggregate snapshots remain required before acceptance. The root compiler path is
 still unchanged. Focused witnesses cover packing, aliasing and separate positions.
+
+## Root invocation integration WIP
+
+Compiler source cardinality validation now tries converged contextual summaries
+before existing fallback. All eight retained invocation-effect reds now reject
+with related arity diagnostics. Fixed-array forEach dispatch captures its receiver
+before arguments, sequences callback requests and preserves empty and exceptional
+regions. Formatted compiler witnesses cover element guards and restoration.
+Opaque/unknown regions still require stronger fallback effects, and shared storage
+mutation is not represented. Those bodies refuse contextual proof. Full acceptance
+still requires return snapshots, collection coverage, spread, mutation, carrier
+repairs, matched workload support and final editor/native verification. The whole
+editor crate passes 329 tests; no timing or consumer refresh is claimed.

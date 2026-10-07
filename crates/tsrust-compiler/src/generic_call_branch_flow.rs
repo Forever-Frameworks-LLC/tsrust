@@ -73,6 +73,10 @@ pub(super) fn analyze(
     declarations: &HashMap<String, Contract>,
     effects: &effect_bodies::Index,
 ) -> Result<Option<HashMap<(usize, usize), Option<Vec<Contract>>>>, Diagnostic> {
+    let arguments = vec![expression_flow::Value::default(); function.params.len()];
+    if let Some(outcome) = invocation_worklist::Engine::new(declarations, effects).solve(function.name.span, initial, &arguments) {
+        return Ok(Some(outcome.facts));
+    }
     let Some(nodes) = graph(&function.body) else {
         return Ok(None);
     };
