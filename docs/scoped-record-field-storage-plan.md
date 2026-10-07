@@ -202,3 +202,41 @@ No performance timing or full editor acceptance is claimed.
 
 Exact native red/green, rejection, component and retained storage diagnostics are
 verified in SQLite under runtime/diagnostics/scoped-record-whole-transport/.
+
+## Parameter entry and leaf access components
+
+The isolated scoped_record_parameter_views emitter module now derives one transport
+operation for an eligible borrowed scoped-record parameter. Shared entry uses
+let record_fieldsN=valueN.tsr_fields(); mutable entry uses the corresponding mutable
+transport with a mutable view binding. Eligibility follows the checked binding's
+mode and input type, nominal declaration and validated static layout. Scalars,
+ordinary non-scoped records and explicitly owned parameters keep their existing ABI.
+A bare unused record parameter can be inferred as borrowed; explicit Owned is needed
+for the ownership boundary control. This existing inference was not changed.
+
+The leaf-place helper validates a complete numeric leaf path before returning a
+place rooted at its entry view reference. It rejects unknown paths and record
+subtrees, which still need an explicit nested-view assembly operation. A native
+component witness uses both read and mutable entry output, reads callbacks before
+and after updates with result 6, and holds sibling mutable string references at once
+through generated leaf-place expressions. Mode and path controls pass. Source is
+formatted and a stable second pass is required before analysis.
+
+Neither helper is connected to ordinary emission yet. The new routing witness
+ordinary_borrowed_record_parameters_use_one_entry_view remains red on missing mutable
+entry output. Signature generic constraints, associated callback/scalar bounds,
+entry initialization for ordinary and completion bodies, selected leaf access and
+nested borrowed arguments must be integrated together. Do not merely add an unused
+entry borrow: current aggregate access would conflict with that borrow, and ordinary
+parameter types cannot yet accept reconstructed borrowed child views.
+
+No shared dispatch changed; previous depth evidence remains the latest evidence.
+Original getter and independent-storage native failures remain open. Full editor,
+guide, property-order/capture/completion coverage and matched benchmarks remain owed.
+Consumers remain f1dd284. Fifteen owner fixtures remain untouched. This is a component
+checkpoint with a retained integration red, not feature acceptance.
+
+Exact entry API red, native component success, corrected ownership control and
+ordinary routing red are verified in SQLite under
+runtime/diagnostics/scoped-record-parameter-entry/. Project formatting changes zero
+files and fingerprints.
