@@ -14,6 +14,9 @@ impl Boundary {
     pub(crate) fn unwind(&self, loans: &mut Vec<Loan>) {
         loans.retain(|loan| self.0.contains(loan));
     }
+    pub(crate) fn added(&self, loans: &[Loan]) -> Vec<Loan> {
+        loans.iter().filter(|loan| !self.0.contains(loan)).copied().collect()
+    }
 }
 
 #[derive(Clone, Default)]

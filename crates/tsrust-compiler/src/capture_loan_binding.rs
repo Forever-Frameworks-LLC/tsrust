@@ -158,6 +158,27 @@ mod tests {
     }
 
     #[test]
+    fn conditional_arm_restores_entry_loans_after_removal_and_collects_new_members() {
+        let mut analyzer = Analyzer::new(crate::syntax::parse("function main(){}").unwrap()).unwrap();
+        let mut context = Context::new("main".into());
+        let first = (0, Mode::Read, Span::new(1, 2));
+        let second = (1, Mode::Read, Span::new(3, 4));
+        let added = (2, Mode::Mutate, Span::new(5, 6));
+        context.capture_loans = vec![first, second];
+        let predicate = Expr::new(ExprKind::Boolean(true), Span::new(7, 8));
+        let mut consequent = Expr::new(ExprKind::Boolean(true), Span::new(9, 10));
+        let mut alternate = Expr::new(ExprKind::Boolean(false), Span::new(11, 12));
+        let mut plan = analyzer.conditional_plan(&mut context, &predicate, &mut consequent,
+            &mut alternate, Mode::Read, Some(Type::Boolean)).unwrap();
+        context.capture_loans.remove(0);
+        context.capture_loans.push(added);
+        analyzer.conditional_between(&mut context, &consequent, &alternate, &mut plan,
+            Ok(Type::Boolean)).unwrap();
+        assert_eq!(plan.left_loans, vec![added]);
+        assert_eq!(context.capture_loans, vec![first, second]);
+    }
+
+    #[test]
     fn opaque_consumption_survives_source_disposal_but_wrapped_move_resolves_its_site() {
         let source = formatted(r#"
             type Holder = { run: ReadOnly<Function<int>>; };

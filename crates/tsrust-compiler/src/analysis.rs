@@ -282,7 +282,7 @@ struct ConditionalPlan {
     borrowed: bool,
     infer_nullable_closure: bool,
     before: Vec<(usize, Availability)>,
-    first_loan: usize,
+    entry_loans: Vec<crate::capture_loan_identity::Loan>,
     before_owners: crate::capture_loan_owners::Owners,
     after_left_owners: crate::capture_loan_owners::Owners,
     left_context: Option<Type>,
@@ -8930,7 +8930,7 @@ impl Analyzer {
             .values()
             .map(|&id| (id, Availability::of(&context.bindings[id])))
             .collect::<Vec<_>>();
-        let first_loan = context.capture_loans.len();
+        let entry_loans = context.capture_loans.clone();
         let left_context =
             if assignment_alias && borrowed && self.borrowed_place_hint(context, consequent) {
                 hint.and_then(Type::union).map(Type::BorrowedUnion)
@@ -8944,7 +8944,7 @@ impl Analyzer {
             borrowed,
             infer_nullable_closure,
             before,
-            first_loan,
+            entry_loans,
             before_owners: context.capture_loan_owners.clone(),
             after_left_owners: Default::default(),
             left_context,
@@ -8965,7 +8965,7 @@ impl Analyzer {
         left: Result<Type, Diagnostic>,
     ) -> Result<Type, Diagnostic> {
         let left = left?;
-        let (hint, assignment_alias, borrowed, infer_nullable_closure, first_loan) = (plan.hint, plan.assignment_alias, plan.borrowed, plan.infer_nullable_closure, plan.first_loan);
+        let (hint, assignment_alias, borrowed, infer_nullable_closure) = (plan.hint, plan.assignment_alias, plan.borrowed, plan.infer_nullable_closure);
         let else_flow = std::mem::take(&mut plan.else_flow);
         let before = &plan.before;
         self.require(left, hint, consequent.span)?;
@@ -8976,8 +8976,9 @@ impl Analyzer {
         let after_left_flow = context.flow.clone();
         plan.after_left_owners = context.capture_loan_owners.clone();
         context.capture_loan_owners = plan.before_owners.clone();
-        let left_loans = context.capture_loans[first_loan..].to_vec();
-        context.capture_loans.truncate(first_loan);
+        let left_loans = crate::capture_loan_identity::Boundary::capture(&plan.entry_loans)
+            .added(&context.capture_loans);
+        context.capture_loans.clone_from(&plan.entry_loans);
         for (id, state) in before {
             state.clone().restore(&mut context.bindings[*id]);
         }

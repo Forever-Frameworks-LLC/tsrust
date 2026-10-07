@@ -557,3 +557,33 @@ remaining positional capture-loan boundaries with red tests, then integrate stab
 raw-loan restoration and scoped disposal. Keep existing ownership rules and three
 public wrappers. Run bounded checks, project formatting and SQLite evidence; use
 explicit Git paths and never stage owner fixtures.
+
+## Stable conditional loan snapshots
+
+A checker-state red witness removes an entry loan during the consequent and adds a
+new loan at the old vector position. The previous conditional code missed the new
+loan and began alternate analysis with a corrupted entry set. ConditionalPlan now
+stores the exact entry vector. Between arms, a hash membership boundary identifies
+new consequent loans and restores the original entry vector in its original order.
+The existing join merges the consequent's new loans after alternate analysis.
+Nineteen focused loan tests and all eight depth canaries (64 tests) pass. Project
+formatting changes zero files and fingerprints. Exact red and successful evidence
+is verified in SQLite under runtime/diagnostics/capture-loan-conditional-boundaries/.
+
+Remaining production count snapshots in analysis.rs use first_capture or
+first_capture_loan only for temporary capture-loan truncation. The four helper
+files generic_expression_adapters.rs, deferred_generic_values.rs, spread_calls.rs
+and optional_chain.rs have the same pattern. Convert these as a coherent batch
+to stable Boundary unwind, preserving each existing result-retention condition.
+Do not alter iteration-loan indices or test-only vector resets. Audit pending owner
+metadata separately: replacing positional boundaries does not itself permit
+owner-based loan release. Next reconcile raw loans with restored live IDs and
+preserve surviving outer payloads through unwind before enabling field disposal.
+Record gate and gate 173 remain open; consumers remain f1dd284. Preserve fifteen
+owner fixtures.
+
+Continuation prompt: Read this handoff, inspect status, and convert the remaining
+temporary capture-loan boundaries. Use focused red controls and bounded affected
+checks, then continue stable raw-loan reconciliation and scoped field disposal.
+Keep the three public wrappers, ownership rules, warm target, project formatting,
+SQLite evidence and explicit Git paths. Never stage protected owner fixtures.
