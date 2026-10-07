@@ -228,3 +228,20 @@ This measures in-process frontend work separately from Rust emission and native 
 The [editor foundation](../../docs/editor-foundation.md) now supplies document/version management, UTF-16 position conversion, and single-file diagnostics through this API. Partial-parse recovery, multiple diagnostics, cooperative cancellation, semantic indexing, and project/incremental invalidation remain separate compiler handoffs C1–C5. The current API reanalyzes a whole source file and returns its first error. A formal soundness proof, sustained fuzzing, allocation profiling, general initialization inference across loops, general callback/async lifetimes, module interfaces, and native debug source maps are not implemented.
 
 `tests/array_search.rs` adds 15 groups covering read-only search, signed extremes, exact Unicode contents, receiver/needle loans, temporary ownership, mixed operand order, partial fields, closures/callbacks/factories, mutation/clone invariants, and a differential storage/resource model. This milestone historically passed 449 regression groups; subsequent gate records contain current acceptance evidence.
+
+### Nested callable contracts in generic factory values
+
+A fresh generic function environment can receive a concrete function annotation
+whose arguments or result are themselves functions. The adapter keeps the original
+captured state across calls. Nested signatures retain argument access, optional
+positions, rest parameters and invocation ownership. A readonly callback argument
+borrows its environment; passing it does not transfer the caller's owner. A
+single-use result cannot satisfy a reusable function result contract.
+
+For example, a factory returning `invoke<T>(action: Function<T, [value: T]>,
+value: T): T` can acquire the type `Function<int, [action: Function<int,
+[value: int]>, value: int]>`. Calling that value twice invokes the same captured
+factory environment twice. Nested `void` results are supported, and optional
+callback positions do not infer the omission-added `undefined` as the generic
+payload. Defaults remain the declared callback's responsibility; adapters forward
+omission and rest arguments without evaluating a second default.

@@ -7821,3 +7821,14 @@ fn fresh_generic_factory_with_inferred_result_has_concrete_editor_results() {
     let definition = ask(source, "textDocument/definition", "make(20)", 0);
     assert_eq!(definition["range"]["start"], json!(at(source, "make(start", 0)), "{definition}");
 }
+
+#[test]
+fn fresh_generic_adapter_preserves_nested_callable_editor_contracts() {
+    let source = "function increment(value:int):int{return value+1;}function make(){let calls=0;function invoke<T>(action:Function<T,[value:T]>,value:T):T{calls+=1;return action(value);}return invoke;}function main(){const fixed:Function<int,[action:Function<int,[value:int]>,value:int]>=make();fixed(increment,7);}";
+    tsrust_compiler::check(source).unwrap();
+    let help = ask(source, "textDocument/signatureHelp", "increment,7", 0);
+    let label = help["signatures"][0]["label"].as_str().unwrap();
+    assert!(label.contains("action") && label.contains("int"), "{help}");
+    let definition = ask(source, "textDocument/definition", "make();", 0);
+    assert_eq!(definition["range"]["start"], json!(at(source, "make(){", 0)), "{definition}");
+}

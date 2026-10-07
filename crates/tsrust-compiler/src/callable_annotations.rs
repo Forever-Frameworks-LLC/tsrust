@@ -23,6 +23,7 @@ pub(crate) fn ownership(annotation: &ValueAnnotation) -> Option<CallbackKind> {
         CallableOwnership::Once => CallbackKind::Once,
         CallableOwnership::Owned => CallbackKind::Owned,
         CallableOwnership::OwnedOnce => CallbackKind::OwnedOnce,
+        CallableOwnership::SharedRead => CallbackKind::SharedRead,
     })
 }
 
@@ -73,6 +74,7 @@ pub(crate) fn callback(annotation: &ValueAnnotation) -> Option<CallbackAnnotatio
             CallableOwnership::Once => CallbackKind::Once,
             CallableOwnership::Owned => CallbackKind::Owned,
             CallableOwnership::OwnedOnce => CallbackKind::OwnedOnce,
+        CallableOwnership::SharedRead => CallbackKind::SharedRead,
         },
         params: parameters
             .iter()
@@ -108,7 +110,8 @@ pub(crate) fn result_annotation(annotation: &ValueAnnotation) -> ResultAnnotatio
         Kind::Callable {
             ownership: CallableOwnership::Default
                 | CallableOwnership::Owned
-                | CallableOwnership::OwnedOnce,
+                | CallableOwnership::OwnedOnce
+                | CallableOwnership::SharedRead,
             ..
         }
     ) {
@@ -228,4 +231,22 @@ mod storage_leaf_tests {
         assert_eq!(rank, 1);
         assert!(callback(leaf).is_none());
     }
+}
+
+#[test]
+fn shared_callable_annotation_round_trip_preserves_ownership() {
+    let span = crate::Span { start: 0, end: 0 };
+    let original = CallbackAnnotation {
+        kind: CallbackKind::SharedRead,
+        params: Vec::new(),
+        result: Box::new(ResultAnnotation::Named(Box::new(ValueAnnotation {
+            kind: Kind::Named(crate::type_syntax::TypeName { text: "int".into(), span }),
+            span,
+        }))),
+        span,
+    };
+    let annotation = original.value_annotation();
+    assert_eq!(ownership(&annotation), Some(CallbackKind::SharedRead));
+    assert_eq!(callback(&annotation).unwrap().kind, CallbackKind::SharedRead);
+    assert!(matches!(result_annotation(&annotation), ResultAnnotation::Callable { kind: Some(CallbackKind::SharedRead), .. }));
 }

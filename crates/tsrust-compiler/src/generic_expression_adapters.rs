@@ -21,8 +21,7 @@ impl Analyzer {
         let contract = self.generic_functions.value_signature(&declaration, &hints, None, &types, expression.span)?;
         let mut result = if let Some(result) = contract.result { result } else {
             let result = self.deferred_generic_result_hint(context, origin, &hints, expression.span)?;
-            let types = crate::generic_inference::Types { callable_shapes: None, inline_shapes: None, records: &self.program.records, names: &self.record_names, unions: &self.unions };
-            ResultAnnotation::Named(Box::new(types.annotation(result, expression.span)?))
+            ResultAnnotation::Named(Box::new(self.checked_value_annotation(result, expression.span)?))
         };
         let mut parameters = crate::local_function_values::value(&template, usize::MAX - expression.span.start, expression.span);
         let ExprKind::Closure { params, .. } = &mut parameters.kind else { unreachable!() };
@@ -52,15 +51,14 @@ impl Analyzer {
             Type::Callable(id) => {
                 let contract = &self.callables.results[id];
                 let kind = self.callables.shapes.get(contract.structural).kind.unwrap_or(CallbackKind::Owned);
-                let types = crate::generic_inference::Types { callable_shapes: None, inline_shapes: None, records: &self.program.records, names: &self.record_names, unions: &self.unions };
                 let params = contract.params.iter().enumerate().map(|(index, parameter)| Ok(CallableParameter {
                     rest: parameter.rest,
                     name: Token { text: format!("argument{index}"), span, kind: TokenKind::Name },
-                    ty: ParameterAnnotation::Named(Box::new(types.annotation(parameter.ty, span)?)),
-                    access: (parameter.mode != Mode::Copy).then(|| Token { text: parameter.mode.as_str().into(), span, kind: TokenKind::Name }),
+                    ty: ParameterAnnotation::Named(Box::new(self.checked_value_annotation(parameter.ty, span)?)),
+                    access: (parameter.mode != Mode::Copy && self.checked_generic_callable_shape(self.unions.payload(parameter.ty).unwrap_or(parameter.ty)).is_none()).then(|| Token { text: parameter.mode.as_str().into(), span, kind: TokenKind::Name }),
                     initializer: if parameter.omission.is_omittable() { ParameterInitializer::Optional(span) } else { ParameterInitializer::Required },
                 })).collect::<Result<Vec<_>, Diagnostic>>()?;
-                let result = ResultAnnotation::Named(Box::new(types.annotation(contract.result, span)?));
+                let result = ResultAnnotation::Named(Box::new(self.checked_value_annotation(contract.result, span)?));
                 let Type::Callback(id) = self.resolve_callback(&CallbackAnnotation { kind, params, result: Box::new(result), span })? else { unreachable!() };
                 id
             }
@@ -134,16 +132,15 @@ impl Analyzer {
             Type::Callback(id) => (self.callables.callbacks[id].params.clone(), self.callables.callbacks[id].result, self.callables.callbacks[id].kind),
             _ => return Err(Diagnostic::new("unsupported", "Fresh generic adaptation needs a concrete callable context.", span)),
         };
-        let types = crate::generic_inference::Types { callable_shapes: None, inline_shapes: None, records: &self.program.records, names: &self.record_names, unions: &self.unions };
         let params = parameters.iter().enumerate().map(|(index, parameter)| Ok(CallableParameter {
             rest: parameter.rest,
             name: Token { text: format!("argument{index}"), span, kind: TokenKind::Name },
-            ty: ParameterAnnotation::Named(Box::new(types.annotation(parameter.ty, span)?)),
-            access: (parameter.mode != Mode::Copy).then(|| Token { text: parameter.mode.as_str().into(), span, kind: TokenKind::Name }),
+            ty: ParameterAnnotation::Named(Box::new(self.checked_value_annotation(parameter.ty, span)?)),
+            access: (parameter.mode != Mode::Copy && self.checked_generic_callable_shape(self.unions.payload(parameter.ty).unwrap_or(parameter.ty)).is_none()).then(|| Token { text: parameter.mode.as_str().into(), span, kind: TokenKind::Name }),
             initializer: if parameter.omission.is_omittable() { ParameterInitializer::Optional(span) } else { ParameterInitializer::Required },
         })).collect::<Result<Vec<_>, Diagnostic>>()?;
-        let result_annotation = ResultAnnotation::Callable { kind: None, params: params.clone(), result: Box::new(ResultAnnotation::Named(Box::new(types.annotation(result, span)?))), span };
-        let annotation = CallbackAnnotation { kind, params, result: Box::new(ResultAnnotation::Named(Box::new(types.annotation(result, span)?))), span }.value_annotation();
+        let result_annotation = ResultAnnotation::Callable { kind: None, params: params.clone(), result: Box::new(ResultAnnotation::Named(Box::new(self.checked_value_annotation(result, span)?))), span };
+        let annotation = CallbackAnnotation { kind, params, result: Box::new(ResultAnnotation::Named(Box::new(self.checked_value_annotation(result, span)?))), span }.value_annotation();
         let name = Token { text: format!("#generic-source-{}", span.start), span, kind: TokenKind::Name };
         let adapted = Token { text: format!("#generic-result-{}", span.start), span, kind: TokenKind::Name };
         let statement = |kind| Stmt { labels: Vec::new(), control_target: None, kind, span };

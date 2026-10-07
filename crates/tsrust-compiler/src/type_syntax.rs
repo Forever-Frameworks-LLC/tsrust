@@ -22,6 +22,8 @@ pub enum CallableOwnership {
     Once,
     Owned,
     OwnedOnce,
+    /// Internal shared environment contract; not a source ownership wrapper.
+    SharedRead,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

@@ -473,3 +473,25 @@ benchmarks/runtime/results/2026-10-07T00-58-44-644Z-verify.json.
 Original red and repaired checks were imported with exact readback before loose
 cleanup. Five consumers were refreshed atomically and SHA-256 verified. No timing
 or full Gate173 acceptance is claimed.
+
+## Nested callable reconstruction checkpoint
+
+Fresh generic factory values now preserve nested callable input and result
+contracts. Checked reconstruction retains invocation ownership, names, access,
+omission and rest metadata; SharedRead remains shared through internal source
+annotations and project facts. Exact round trips pass for all six invocation kinds.
+Void callback results and optional/default/rest inputs execute correctly. Borrowed
+callbacks remain usable by their owners. Single-use results cannot satisfy reusable
+contracts. Concrete nested signature hints constrain generic inference without
+executing arguments. Deferred invocation checks any further body specialization
+selected by callable arguments before retaining its method.
+
+All 34 adapter tests, four shared runtime tests and eight depth canary suites pass;
+whole editor passes 305 tests. Matched native/Node-after-tsc verification passes five
+cases with 88 observations. Canonical SQLite record:
+benchmarks/runtime/results/2026-10-07T01-20-05-313Z-verify.json.
+Original failed witnesses, repaired checks and metadata round-trip evidence are
+retained exactly in SQLite. Five executable consumers were refreshed atomically
+and hash verified. No timing was run. This accepts the nested callable contract
+chunk; nullable contexts, heterogeneous joins and the wider Gate173 audit remain
+open. No full Gate173 acceptance is claimed.

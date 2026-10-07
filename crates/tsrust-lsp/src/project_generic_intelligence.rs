@@ -26,6 +26,7 @@ impl SourceIndex {
                     CallableOwnership::Once => Some("Once"),
                     CallableOwnership::Owned => None,
                     CallableOwnership::OwnedOnce => Some("Once"),
+                    CallableOwnership::SharedRead => Some("SharedRead"),
                 };
                 let parameters = parameters
                     .iter()

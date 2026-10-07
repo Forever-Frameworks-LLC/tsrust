@@ -139,6 +139,7 @@ impl Types<'_> {
                 }
                 Ok(())
             }
+            Kind::Named(name) if name.text == "void" && actual == Type::Void => Ok(()),
             Kind::Named(_) => {
                 let expected =
                     crate::analysis::resolve_value_type(pattern, false, self.names, self.unions)?;
@@ -357,7 +358,18 @@ impl Types<'_> {
                     ));
                 }
                 for (parameter, actual) in parameters.iter().zip(actual_parameters) {
-                    self.unify(&parameter.annotation, *actual, variables, bindings)?;
+                    // Optional callback inputs add undefined at the call boundary;
+                    // that omission does not constrain the declared payload variable.
+                    let actual = if parameter.omission.is_omittable() {
+                        match actual {
+                            Type::Union(id) => {
+                                let members = self.unions.members(*id).into_iter().filter(|ty| *ty != Type::Undefined).collect::<Vec<_>>();
+                                if members.len() == 1 { members[0] } else { *actual }
+                            }
+                            _ => *actual,
+                        }
+                    } else { *actual };
+                    self.unify(&parameter.annotation, actual, variables, bindings)?;
                 }
                 self.unify(result, actual_result, variables, bindings)
             }

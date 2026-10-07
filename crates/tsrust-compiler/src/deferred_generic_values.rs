@@ -188,6 +188,9 @@ impl Analyzer {
         }
         context.capture_loans.truncate(first_capture);
         let (function, result) = self.resolved_call(context, function, args, span)?;
+        // Callable arguments can select a further concrete body specialization.
+        // Check that body before retaining its invocation method.
+        self.function(function)?;
         let mut types = args.iter().map(|argument| argument.ty.expect("checked generic value argument")).collect::<Vec<_>>();
         // Zero-argument generic calls can select different concrete results.
         // Their environments remain shared; only invocation methods differ.

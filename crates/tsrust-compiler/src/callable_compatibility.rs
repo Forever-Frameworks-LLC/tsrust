@@ -118,6 +118,15 @@ impl<'a> Contracts<'a> {
                     };
                     Some((Parameters::Closure(closure), closure.function.result))
                 }
+                Type::Callable(id) => {
+                    let actual = &self.results[id];
+                    let kind = self.signatures.get(actual.structural).kind
+                        .unwrap_or(crate::syntax::CallbackKind::Owned);
+                    if !kind.can_pass_to(contract.kind) {
+                        return Err(Diagnostic::new("callback-contract", "Callable result ownership and invocation contracts cannot be interchanged.", span));
+                    }
+                    Some((Parameters::Declared(&actual.params), actual.result))
+                }
                 Type::Callback(id) => {
                     let actual = &self.callbacks[id];
                     if !actual.kind.can_pass_to(contract.kind) {

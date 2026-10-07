@@ -1,3 +1,12 @@
+function increment(value: int): int { return value + 1; }
+function callbackFactory(start: int) {
+    let calls = start;
+    function invoke<T>(action: Function<T, [value: T]>, value: T): Receipt<T> {
+        calls += 1;
+        return { value: action(value), calls: calls };
+    }
+    return invoke;
+}
 type Receipt<T> = { value: T; calls: int; };
 type Holder = { run: Function<Receipt<int>, [value: int]>; };
 function make(start: int) {
@@ -172,6 +181,9 @@ function workload(n: int, seed: int, input: string): int[][] {
         const freshRecord = freshHolder.run(base + 31);
         const freshActions: Function<Receipt<string>, [value: Owned<string>]>[] = [make(base + 170)];
         const freshStored = freshActions[0]("fresh");
+        const callback: Function<Receipt<int>, [action: Function<int, [value: int]>, value: int]> = callbackFactory(base + 180);
+        const callbackFirst = callback(increment, base + 32);
+        const callbackSecond = callback(increment, base + 33);
         output.push([firstValue, firstCalls, generic.value.length, generic.calls, last.value.length, last.calls,
             mapped[0].value, mapped[1].value, mapped[0].calls, mapped[1].calls, after.value ? 1 : 0, after.calls,
             record.value, record.calls, stored.value.length, stored.calls, input.length,
@@ -192,7 +204,8 @@ function workload(n: int, seed: int, input: string): int[][] {
             nestedMapped[0].value, nestedMapped[1].value, nestedMapped[0].calls, nestedMapped[1].calls,
             nestedSelections, nestedEvaluations,
             inferredFirst, inferredSecond, inferredMapped[0], inferredMapped[1],
-            freshRecord.value, freshRecord.calls, freshStored.value.length, freshStored.calls]);
+            freshRecord.value, freshRecord.calls, freshStored.value.length, freshStored.calls,
+            callbackFirst.value, callbackFirst.calls, callbackSecond.value, callbackSecond.calls]);
     }
     return output;
 }

@@ -34,6 +34,8 @@ pub(crate) mod generic_function_values;
 mod closure_methods;
 #[path = "generic_value_adapters.rs"]
 mod generic_value_adapters;
+#[path = "checked_value_annotations.rs"]
+mod checked_value_annotations;
 #[path = "generic_expression_adapters.rs"]
 mod generic_expression_adapters;
 #[path = "generic_value_metadata.rs"]

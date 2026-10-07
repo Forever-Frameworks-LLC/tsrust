@@ -240,3 +240,30 @@ fn fresh_generic_result_inference_does_not_relax_explicit_result_contracts() {
 fn fresh_generic_adapters_preserve_nested_callable_parameter_contracts() {
     native(include_str!("fixtures/generic-value-adapters/nested-callable-input.tsr"), "1\n2\n");
 }
+
+#[test]
+fn fresh_generic_adapters_preserve_void_callable_inputs() {
+    native("function observe(value:int):void{console.log(value);}function make(){let calls=0;function invoke<T>(action:Function<void,[value:T]>,value:T):void{calls+=1;action(value);console.log(calls);}return invoke;}function main(){const fixed:Function<void,[action:Function<void,[value:int]>,value:int]>=make();fixed(observe,7);fixed(observe,8);}", "7\n1\n8\n2\n");
+}
+
+#[test]
+fn fresh_generic_adapters_preserve_nested_default_and_rest_contracts() {
+    native("function sum(value:int=4,...tail:int[]):int{let result=value;for(const item of tail){result+=item;}return result;}function make(){let calls=0;function invoke<T>(action:Function<T,[value?:T,...tail:T[]]>,value:T):T{calls+=1;console.log(calls);return action(value,value);}return invoke;}function main(){const fixed:Function<int,[action:Function<int,[value?:int,...tail:int[]]>,value:int]>=make();console.log(fixed(sum,7),fixed(sum,8));}", "1\n2\n14 16\n");
+}
+
+#[test]
+fn fresh_generic_adapters_preserve_nested_callable_results() {
+    native("function increment(value:int):int{return value+1;}function make(){let calls=0;function select<T>(action:Function<T,[value:T]>):Function<T,[value:T]>{calls+=1;console.log(calls);return action;}return select;}function main(){const fixed:Function<Function<int,[value:int]>,[action:Function<int,[value:int]>]>=make();const first=fixed(increment);const second=fixed(increment);console.log(first(7),second(8));}", "1\n2\n8 9\n");
+}
+
+#[test]
+fn fresh_generic_adapters_preserve_borrowed_callback_inputs() {
+    native("function make(){let calls=0;function invoke<T>(action:ReadOnly<Function<T,[value:T]>>,value:T):T{calls+=1;console.log(calls);return action(value);}return invoke;}function main(){const action=(value:int):int=>value+1;const fixed:Function<int,[action:ReadOnly<Function<int,[value:int]>>,value:int]>=make();console.log(fixed(action,7),fixed(action,8),action(9));}", "1\n2\n8 9 10\n");
+}
+
+#[test]
+fn nested_callable_results_reject_incompatible_invocation_contracts() {
+    let source = "function make(){let calls=0;function select<T>(action:Once<Function<T,[value:T]>>,value:T):Once<Function<T,[value:T]>>{calls+=1;console.log(calls);return action;}return select;}function main(){const fixed:Function<Function<int,[value:int]>,[action:Once<Function<int,[value:int]>>,value:int]>=make();}";
+    let error = tsrust_compiler::check(source).err().expect("single-use results cannot satisfy reusable callable contracts");
+    assert_eq!(error.code, "callback-contract", "{}: {}", error.code, error.message);
+}

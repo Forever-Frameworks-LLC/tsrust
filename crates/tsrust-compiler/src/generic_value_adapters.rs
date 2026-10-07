@@ -35,8 +35,9 @@ impl Analyzer {
         let span = expression.span;
         let declaration = self.deferred_generic_values[&origin].declaration.clone();
         let template = self.generic_functions.template(&declaration).expect("generic adapter template").clone();
+        let shapes = self.checked_inference_callable_shapes(hints.iter().flatten().copied().chain(result));
         let types = crate::generic_inference::Types {
-            callable_shapes: None, inline_shapes: None, records: &self.program.records,
+            callable_shapes: Some(&shapes), inline_shapes: None, records: &self.program.records,
             names: &self.record_names, unions: &self.unions,
         };
         let contract = self.generic_functions.value_signature(&declaration, &hints, result, &types, span)?;

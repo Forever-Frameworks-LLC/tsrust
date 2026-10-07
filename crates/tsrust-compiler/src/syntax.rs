@@ -1678,7 +1678,8 @@ impl ResultAnnotation {
                         Some(CallbackKind::OwnedOnce) => {
                             crate::type_syntax::CallableOwnership::OwnedOnce
                         }
-                        Some(CallbackKind::Owned | CallbackKind::SharedRead) => crate::type_syntax::CallableOwnership::Owned,
+                        Some(CallbackKind::Owned) => crate::type_syntax::CallableOwnership::Owned,
+                        Some(CallbackKind::SharedRead) => crate::type_syntax::CallableOwnership::SharedRead,
                         _ => crate::type_syntax::CallableOwnership::Default,
                     },
                     parameters: structured_parameters(params),
@@ -1701,7 +1702,7 @@ impl CallbackAnnotation {
                     CallbackKind::Once => CallableOwnership::Once,
                     CallbackKind::Owned => CallableOwnership::Owned,
                     CallbackKind::OwnedOnce => CallableOwnership::OwnedOnce,
-                    CallbackKind::SharedRead => CallableOwnership::Owned,
+                    CallbackKind::SharedRead => CallableOwnership::SharedRead,
                 },
                 parameters: structured_parameters(&self.params),
                 result: Box::new(self.result.value_annotation()),

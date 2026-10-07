@@ -303,7 +303,8 @@ impl ProjectAnalysis {
                     CallbackKind::Read => crate::type_syntax::CallableOwnership::Read,
                     CallbackKind::Reusable => crate::type_syntax::CallableOwnership::Reusable,
                     CallbackKind::Once => crate::type_syntax::CallableOwnership::Once,
-                    CallbackKind::Owned | CallbackKind::SharedRead => crate::type_syntax::CallableOwnership::Owned,
+                    CallbackKind::Owned => crate::type_syntax::CallableOwnership::Owned,
+                    CallbackKind::SharedRead => crate::type_syntax::CallableOwnership::SharedRead,
                     CallbackKind::OwnedOnce => crate::type_syntax::CallableOwnership::OwnedOnce,
                 };
                 return Some(ProjectType::Callable {
