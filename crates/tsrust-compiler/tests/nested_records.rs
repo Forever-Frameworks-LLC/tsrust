@@ -99,14 +99,20 @@ fn nested_record_arguments_borrow_and_owned_extraction_moves() {
 }
 
 #[test]
-fn sibling_field_access_uses_conservative_root_owner_loans() {
+fn sibling_field_access_uses_static_field_path_loans() {
     execute(
         "type Child = { n: int; }; type Box = { left: Child; right: Child; }; function sum(a: Child, b: Child): int { return a.n + b.n; } function main() { const b: Box = { left: { n: 1 }, right: { n: 2 } }; console.log(sum(b.left, b.right)); b.left.n = b.right.n; console.log(b.left.n); }",
         "3\n2\n",
         Some(&[("sum.a", Mode::Read), ("sum.b", Mode::Read)]),
     );
+    // Sibling fields are separate places; the same field or its record is not.
+    execute(
+        "type Child = { n: int; }; type Box = { left: Child; right: Child; }; function change(a: Child, b: Child) { a.n = b.n; } function main() { const b: Box = { left: { n: 1 }, right: { n: 2 } }; change(b.left, b.right); console.log(b.left.n); }",
+        "2\n",
+        Some(&[("change.a", Mode::Mutate), ("change.b", Mode::Read)]),
+    );
     reject(
-        "type Child = { n: int; }; type Box = { left: Child; right: Child; }; function change(a: Child, b: Child) { a.n = b.n; } function main() { const b: Box = { left: { n: 1 }, right: { n: 2 } }; change(b.left, b.right); }",
+        "type Child = { n: int; }; type Box = { left: Child; right: Child; }; function change(a: Child, b: Child) { a.n = b.n; } function main() { const b: Box = { left: { n: 1 }, right: { n: 2 } }; change(b.left, b.left); }",
         "conflicting-access",
     );
     reject(

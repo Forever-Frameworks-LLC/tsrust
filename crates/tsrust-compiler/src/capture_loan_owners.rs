@@ -84,6 +84,16 @@ impl Owners {
         }
     }
 
+    pub(crate) fn payload(&self,source:&Place)->Vec<(Vec<String>,BTreeSet<usize>)>{
+        self.entries.iter().filter(|(place,_)|place.binding==source.binding && place.fields.starts_with(&source.fields))
+            .map(|(place,loans)|(place.fields[source.fields.len()..].to_vec(),loans.clone())).collect()
+    }
+
+    /// Discard this owner without removing loans held by other owners or payloads.
+    pub(crate) fn discard(&mut self,source:&Place){
+        self.entries.retain(|place,_|place.binding!=source.binding || !place.fields.starts_with(&source.fields));
+    }
+
     pub(crate) fn loans_under(&self, source: &Place) -> BTreeSet<usize> {
         self.entries.iter().filter(|(place, _)| place.binding == source.binding
             && place.fields.starts_with(&source.fields)).flat_map(|(_, loans)| loans.iter().copied()).collect()

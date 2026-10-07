@@ -4,6 +4,8 @@ mod callback_family_result_adapters;
 mod borrowed_callable_emit;
 #[path = "scoped_record_emit.rs"]
 mod scoped_record_emit;
+#[path = "record_parameter_replacement_emit.rs"]
+mod record_parameter_replacement_emit;
 #[path = "scoped_record_parameter_views.rs"]
 mod scoped_record_parameter_views;
 #[path = "record_join_emit.rs"]
@@ -2550,7 +2552,7 @@ impl Emitter<'_> {
                 })
                 .collect::<Vec<_>>();
             let mut generics = generics;
-            generics.extend((0..fun.parameter_count+hidden).filter_map(|id|self.record_parameter_bound(fun,id)));
+            generics.extend((0..fun.parameter_count+hidden).filter_map(|id|self.record_parameter_bound(fun,id,index)));
             generics.extend(
                 self.nullable_callback_bounds(
                     fun.bindings
@@ -3802,7 +3804,8 @@ impl Emitter<'_> {
 
     fn storage_assignment(&self, fun: &CheckedFunction, target: &Expr, value: &Expr) -> String {
         let selection = self.storage_selection(fun, target, true);
-        let value = self.expr(fun, value, Mode::Consume);
+        let code = self.expr(fun, value, Mode::Consume);
+        let value=self.record_parameter_replacement(fun,target,value,&code).unwrap_or(code);
         format!(
             "{{ {}let storage_value = {value}; {}({}) = storage_value; }}",
             selection.setup, selection.final_conversion, selection.place
@@ -6936,6 +6939,8 @@ impl Emitter<'_> {
                 self.exception_regions.function_result_call(&call,index,source_name,&self.program.error_effects,&unions,expr.span).expect("checked registered Result call")
             }else{call}
         };
+        let updates=self.record_call_reification(fun,args,index);
+        let code=if updates.is_empty(){code}else{format!("{{let record_call_result={code};{updates}record_call_result}}")};
         if matches!(expr.ty, Some(Type::BorrowedUnion(_))) {
             return code;
         }

@@ -21,6 +21,10 @@ impl Emitter<'_> {
         }).collect::<Vec<_>>();
         let name=format!("BorrowedCallable{id}<{}>",types.join(", "));
         let result=self.result_storage.borrow().get(&id).map(|(name,_)|format!("Result<{},{}>",self.native_type(contract.result),name)).unwrap_or_else(||self.native_type(contract.result));
+        for(position,ty)in types.iter().enumerate(){
+            let arm=crate::borrowed_callable_dispatch::variant(position,origins.len());
+            let _=writeln!(output,"impl{} From<{ty}> for {name} {{fn from(value:{ty})->Self{{Self::{arm}(value)}}}}",lifetime_parameters(&lifetimes));
+        }
         let receiver=match invocation {Mode::Read=>"&self",Mode::Consume=>"mut self",_=>"&mut self"};
         let parameters=contract.params.iter().enumerate().map(|(i,&parameter)|format!(", argument{i}: {}",self.native_argument_type(parameter,""))).collect::<String>();
         let arguments=(0..contract.params.len()).map(|i|format!("argument{i}")).collect::<Vec<_>>().join(", ");

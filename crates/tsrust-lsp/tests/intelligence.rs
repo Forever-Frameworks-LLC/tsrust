@@ -8154,3 +8154,19 @@ fn normalized_record_literal_transport_keeps_declared_callback_help() {
     assert!(text.contains("int"),"{hover}");
     assert!(!text.contains("BorrowedCallable"),"{hover}");
 }
+
+#[test]
+fn mutable_record_callback_replacement_keeps_declared_editor_contract() {
+    let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int,[amount:int]>>;};function replace(holder:Mutable<Holder>):void{holder.run=(value:int):int=>value+11;}function main(){const a=[3];const holder:Holder={run:(value:int):int=>value+a[0]};replace(holder);a[0]=5;console.log(holder.run(4));}").unwrap();
+    assert_eq!(tsrust_compiler::format(&source).unwrap(),source);
+    assert!(tsrust_lsp::diagnostics(&source,"file:///test.tsr").unwrap().is_empty());
+    let help=ask(&source,"textDocument/signatureHelp","4)",0);
+    assert!(help["signatures"][0]["parameters"][0]["label"].as_str().unwrap().contains("amount"),"{help}");
+    let hover=ask(&source,"textDocument/hover","run(4)",0);
+    let text=hover["contents"]["value"].as_str().unwrap();
+    assert!(text.contains("int"),"{hover}");
+    assert!(!text.contains("BorrowedCallable") && !text.contains("From<"),"{hover}");
+    let readonly=source.replace("Mutable<Holder>","ReadOnly<Holder>");
+    let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&readonly,"file:///test.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="parameter-access"),"{diagnostics}");
+}

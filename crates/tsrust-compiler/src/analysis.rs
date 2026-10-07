@@ -18,6 +18,10 @@ mod checked_callable_storage;
 mod conditional_callable_carriers;
 #[path = "borrowed_conditional_carriers.rs"]
 mod borrowed_conditional_carriers;
+#[path = "record_call_capture_release.rs"]
+mod record_call_capture_release;
+#[path = "record_parameter_carriers.rs"]
+mod record_parameter_carriers;
 #[path = "record_value_carriers.rs"]
 mod record_value_carriers;
 #[path = "record_storage_writes.rs"]
@@ -236,6 +240,8 @@ impl CallbackContract {
 
 
 pub struct CheckedProgram {
+    pub(crate) record_call_releases: HashMap<usize,Vec<(usize,Vec<String>)>>,
+    pub(crate) record_parameter_replacements: HashMap<usize,Vec<(usize,Vec<String>,Type)>>,
     pub(crate) scoped_records: crate::scoped_record_layout::Registry,
     pub(crate) named_capture_layouts: Vec<named_capture_layout::Layout>,
     pub(crate) named_capture_access: HashMap<usize, Vec<named_capture_access::Access>>,
@@ -631,6 +637,7 @@ struct Analyzer {
     callables: crate::callable_resolution::Tables,
     absent_callback_payloads: HashMap<usize, usize>,
     record_cloneability: Option<(usize, crate::cloneability::Cloneability)>,
+    record_parameter_replacements: HashMap<usize,Vec<(usize,Vec<String>,Type)>>,
     scoped_records: crate::scoped_record_layout::Registry,
     escaping: HashSet<usize>,
     discovering_results: bool,
@@ -1517,6 +1524,7 @@ impl Analyzer {
             callables,
             absent_callback_payloads: HashMap::new(),
             record_cloneability: None,
+            record_parameter_replacements: HashMap::new(),
             scoped_records: Default::default(),
             escaping,
             discovering_results: false,
@@ -3105,8 +3113,12 @@ impl Analyzer {
                 &self.program.functions,
             )?;
         }
+        if !self.effects_only{self.record_parameter_carriers()?;}
+        let record_call_releases=record_call_capture_release::summaries(&self.checked,&self.program.records,&self.closures);
         let deferred_generic_nominals = self.deferred_generic_nominal_uses();
         let checked = CheckedProgram {
+            record_call_releases,
+            record_parameter_replacements:self.record_parameter_replacements,
             scoped_records: self.scoped_records,
             named_capture_layouts: Vec::new(),
             named_capture_access: self.named_captures.summaries(&self.checked),
@@ -13965,6 +13977,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 }
             }
         }
+        self.release_record_call_captures(context,index,args);
         expr.target = Some(CallTarget::Function(index));
         if !capture_slots.is_empty() {
             expr.capture_slots = Some(capture_slots.iter().map(|&(slot, _)| slot).collect());

@@ -92,7 +92,7 @@ impl Analyzer {
         for name in path{let Type::Record(record)=ty else{return None;};let record=self.scoped_records.declaration(record);ty=self.program.records[record].fields.iter().find(|field|field.name.text==name)?.ty?;}
         matches!(ty,Type::Callback(_)).then_some(ty)
     }
-    fn record_type_with_field(&mut self,record:usize,path:&[String],ty:Type)->Option<usize>{
+    pub(super) fn record_type_with_field(&mut self,record:usize,path:&[String],ty:Type)->Option<usize>{
         let name=path.first()?;let index=self.program.records[record].fields.iter().position(|field|&field.name.text==name)?;
         let mut fields=self.program.records[record].fields.iter().map(|field|field.ty.unwrap()).collect::<Vec<_>>();
         fields[index]=if path.len()==1{ty}else{let Type::Record(child)=fields[index]else{return None;};Type::Record(self.record_type_with_field(child,&path[1..],ty)?)};
