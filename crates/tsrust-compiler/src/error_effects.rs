@@ -688,6 +688,7 @@ fn native_effect(target:CallTarget,value:&Expr,effects:&ErrorEffects)->FailureSe
             let invoked=match callback.and_then(|value|value.ty) {
                 Some(Type::Closure(id))=>effects.closure_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
                 Some(Type::Callback(id))=>effects.callback_errors.get(&id).cloned().unwrap_or_else(FailureSet::unknown),
+                Some(Type::StoredCallable(id))=>effects.storage_errors.get(&id).cloned().unwrap_or_else(FailureSet::unknown),
                 None if matches!(target,ArraySort|ArrayToSorted)=>FailureSet::default(),
                 _=>FailureSet::unknown(),
             };

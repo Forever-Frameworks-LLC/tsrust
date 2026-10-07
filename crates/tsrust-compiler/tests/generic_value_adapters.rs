@@ -166,3 +166,50 @@ fn fresh_generic_adapters_accept_selected_factory_calls() {
 fn fresh_generic_adapters_specialize_generic_factories_once() {
     native("function make<T>(seed:T){console.log(seed);function select<U>(value:U):U{console.log(seed);return value;}return select;}function main(){const fixed:Function<int,[value:int]>=make('owner');if(fixed(7)!==7){throw 99;}const mapped=[3,4].map(make(10));if(mapped[1]!==4){throw 99;}}", "owner\nowner\n10\n10\n10\n");
 }
+
+#[test]
+fn fresh_generic_adapters_select_different_factory_origins_once() {
+    native(include_str!("fixtures/generic-value-adapters/selected-factories.tsr"), "left 1\n2\nright 2\n4\n6\n");
+}
+
+#[test]
+fn selected_generic_factory_adapters_reject_incompatible_results_and_borrowed_escape() {
+    let declarations = "function left(){function identity<T>(value:T):T{return value;}return identity;}function right(){function stringify<T>(value:T):string{return String(value);}return stringify;}";
+    let source = format!("{declarations}function main(){{const fixed:Function<int,[value:int]>=(true?left:right)();}}");
+    let error = tsrust_compiler::check(&source).err().expect("both branches must satisfy the result contract");
+    assert!(matches!(error.code, "type" | "generic-inference"), "{}", error.render("input.tsr", &source));
+    let source = "function left(){let calls=0;function identity<T>(value:T):T{calls+=1;return value;}return identity;}function right(){let calls=10;function identity<T>(value:T):T{calls+=1;return value;}return identity;}function main(){const view:Mutable<Function<int,[value:int]>>=(true?left:right)();view(7);}";
+    let error = tsrust_compiler::check(source).err().expect("fresh selected owner cannot escape through a borrowed facade");
+    assert_eq!(error.code, "closure-escape", "{}", error.render("input.tsr", source));
+}
+
+#[test]
+fn selected_generic_factories_drop_only_selected_owners_once() {
+    let source = "type Item={id:int;};function left(item:Item){function select<T>(value:T):T{if(item.id===2){throw 2;}return value;}return select;}function right(item:Item){if(item.id===3){throw 3;}function select<T>(value:T):T{if(item.id===2){throw 2;}return value;}return select;}function main(){{const action:Function<int,[value:int]>=(true?left:right)({id:1});if(action(7)!==7){throw 99;}}let caught=0;try{const mapped=[7].map((false?left:right)({id:2}));}catch(error){if(error===2){caught+=1;}}try{const action:Function<int,[value:int]>=(false?left:right)({id:3});}catch(error){if(error===3){caught+=1;}}if(caught!==2){throw 99;}}";
+    let rust = tsrust_compiler::check(source).unwrap().emit_rust().replace("fn main()", "fn source_main()") + r#"
+static DROPS:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+static SEEN:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+impl Drop for Record0 {fn drop(&mut self){DROPS.fetch_add(1,std::sync::atomic::Ordering::SeqCst);SEEN.fetch_or(1<<self.field0,std::sync::atomic::Ordering::SeqCst);}}
+fn main(){source_main();assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCst),3);assert_eq!(SEEN.load(std::sync::atomic::Ordering::SeqCst),14);}
+"#;
+    let directory = support::TempDirectory::new();
+    let path = directory.0.join("selected-disposal.rs");
+    std::fs::write(&path, rust).unwrap();
+    for level in ["0", "3"] {
+        let binary = directory.0.join(format!("selected-disposal-{level}"));
+        support::success(&support::run(support::rustc().args(["--edition=2024", "-C", &format!("opt-level={level}")]).arg(&path).arg("-o").arg(&binary), 60));
+        support::success(&support::run(&mut std::process::Command::new(binary), 10));
+    }
+}
+
+#[test]
+fn selected_generic_factory_callbacks_cover_traversal_contracts() {
+    native(include_str!("fixtures/generic-value-adapters/selected-traversal.tsr"), "");
+}
+
+#[test]
+fn fresh_generic_adapters_cannot_retain_borrowed_factory_data() {
+    let source = "type User={name:string;};function make(user:ReadOnly<User>){function select<T>(value:T):T{console.log(user.name);return value;}return select;}function main(){const user:User={name:'owner'};const fixed:Function<int,[value:int]>=make(user);fixed(7);}";
+    let error = tsrust_compiler::check(source).err().expect("an owned generic environment cannot retain borrowed parameter data");
+    assert_eq!(error.code, "parameter-access", "{}: {}", error.code, error.message);
+}

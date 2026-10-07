@@ -19832,8 +19832,8 @@
       "measured": false,
       "notes": "Concrete borrowed/owned views, generic calls, map callbacks and independent record/array storage environments. Untimed support; wider adapter acceptance pending.",
       "specification": "Retain fifty-eight independent observations of values, ownership-preserving adapters and shared/independent captured counters.",
-      "sourceSha256": "58e1195e897a12203ea4da8baf66c68d01e94c084326b4b74e5eb601227091b8",
-      "counterpartSha256": "62c8a79e5dfa9592af7139ba2fc0d52152ba6ef831b6c41dca27ada788ddec56"
+      "sourceSha256": "03560d93040e1ae4ccad57e202887486999ccfd21420f842446225e0acc60fbf",
+      "counterpartSha256": "ffbfc67176f88283bc254dda86c462b21ceee228269f030252636f76a1fc5ab4"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

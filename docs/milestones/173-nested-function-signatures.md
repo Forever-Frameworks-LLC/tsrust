@@ -402,3 +402,28 @@ benchmarks/runtime/results/2026-10-07T00-34-37-057Z-verify.json.
 Exact build, original test compile failure and repaired checks were imported and
 read back before loose copies were removed. No runtime semantics, timing or full
 Gate173 acceptance is claimed by this metadata repair.
+
+## Selected factory environments
+
+Selected fresh factory calls now adapt their branches before joining callable
+origins. The predicate runs first; only the selected factory and its arguments run.
+Each branch must satisfy the concrete signature, and an owned storage family keeps
+the selected environment. Traversal accepts this storage through the existing
+callback tuple and family error contract, including map, search, reduction,
+flatMap and sorting. Immediate staging borrows end after factory evaluation;
+returned owned environments still cannot retain borrowed factory parameters.
+Nested selected callees and heterogeneous inferred result joins remain unaudited.
+Full adapter and Gate173 acceptance remain open.
+
+Twenty-four adapter controls pass across the retained bounded run and affected
+follow-up checks. All eight depth canaries pass (63 tests); whole editor passes
+303 tests on the final compiler source. The original selected-call failure and
+subsequent capture-loan, traversal-effect and fixed-storage defects are retained
+in SQLite. Selected native disposal observes three owners exactly once at O0/O3
+across success, callback failure and factory failure. Borrowed factory data remains
+rejected. Both strict TypeScript fixtures pass under Node. The matched workload
+now has sixty-seven observations; registration mutations and five native/Node
+after-tsc cases pass untimed. Canonical SQLite record:
+benchmarks/runtime/results/2026-10-07T00-45-46-040Z-verify.json.
+Five consumers were refreshed atomically and SHA-256 checked. No timing or full
+Gate173 acceptance is claimed.

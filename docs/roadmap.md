@@ -450,3 +450,14 @@ Conflicting specializations at one source span remain distinct and suppress
 ambiguous editor overrides. Source and project projection tests cover string/int
 variants and imported aliases with Unicode source offsets. Full Gate173 acceptance
 and the remaining adapter contexts are still open.
+
+
+Selected fresh factory calls now adapt their branches before joining callable
+origins. The predicate runs first; only the selected factory and its arguments run.
+Each branch must satisfy the concrete signature, and an owned storage family keeps
+the selected environment. Traversal accepts this storage through the existing
+callback tuple and family error contract, including map, search, reduction,
+flatMap and sorting. Immediate staging borrows end after factory evaluation;
+returned owned environments still cannot retain borrowed factory parameters.
+Nested selected callees and heterogeneous inferred result joins remain unaudited.
+Full adapter and Gate173 acceptance remain open.

@@ -4,7 +4,12 @@ use super::*;
 impl Analyzer {
     #[inline(never)]
     pub(super) fn stage_generic_traversal(&mut self, context: &mut Context, expression: &mut Expr, supplied: &[Type], loans: &Loans) -> Result<Option<Type>, Diagnostic> {
-        let Some(origin) = self.fresh_generic_origin(context, expression)? else { return Ok(None); };
+        let selected = self.lower_selected_generic_factory(context, expression)?;
+        let source = if selected {
+            let ExprKind::Conditional { consequent, .. } = &expression.kind else { unreachable!() };
+            &**consequent
+        } else { &*expression };
+        let Some(origin) = self.fresh_generic_origin(context, source)? else { return Ok(None); };
         let declaration = self.deferred_generic_values[&origin].declaration.clone();
         let template = self.generic_functions.template(&declaration).expect("fresh traversal template").clone();
         let types = crate::generic_inference::Types { callable_shapes: None, inline_shapes: None, records: &self.program.records, names: &self.record_names, unions: &self.unions };
@@ -23,7 +28,56 @@ impl Analyzer {
         }
         append_checked_record_fields(&mut self.program.records, &self.record_names, &self.unions, &mut self.fields, &mut self.callables)?;
         let expected = self.resolve_callback(&CallbackAnnotation { kind: CallbackKind::Owned, params: params.clone(), result: Box::new(result), span: expression.span })?;
-        self.stage_generic_expression(context, expression, expected, Mode::Consume, loans).map(Some)
+        if selected {
+            self.stage_selected_generic_expression(context, expression, expected, loans).map(Some)
+        } else {
+            self.stage_generic_expression(context, expression, expected, Mode::Consume, loans).map(Some)
+        }
+    }
+
+    #[inline(never)]
+    pub(super) fn stage_selected_generic_expression(&mut self, context: &mut Context, expression: &mut Expr, expected: Type, loans: &Loans) -> Result<Type, Diagnostic> {
+        let span = expression.span;
+        let callback = match expected {
+            Type::Callback(id) if self.callables.callbacks[id].kind.is_owned() => id,
+            Type::StoredCallable(family) => self.callables.storage.declaration(family).expect("selected storage declaration"),
+            Type::Callable(id) => {
+                let contract = &self.callables.results[id];
+                let kind = self.callables.shapes.get(contract.structural).kind.unwrap_or(CallbackKind::Owned);
+                let types = crate::generic_inference::Types { callable_shapes: None, inline_shapes: None, records: &self.program.records, names: &self.record_names, unions: &self.unions };
+                let params = contract.params.iter().enumerate().map(|(index, parameter)| Ok(CallableParameter {
+                    rest: parameter.rest,
+                    name: Token { text: format!("argument{index}"), span, kind: TokenKind::Name },
+                    ty: ParameterAnnotation::Named(Box::new(types.annotation(parameter.ty, span)?)),
+                    access: (parameter.mode != Mode::Copy).then(|| Token { text: parameter.mode.as_str().into(), span, kind: TokenKind::Name }),
+                    initializer: if parameter.omission.is_omittable() { ParameterInitializer::Optional(span) } else { ParameterInitializer::Required },
+                })).collect::<Result<Vec<_>, Diagnostic>>()?;
+                let result = ResultAnnotation::Named(Box::new(types.annotation(contract.result, span)?));
+                let Type::Callback(id) = self.resolve_callback(&CallbackAnnotation { kind, params, result: Box::new(result), span })? else { unreachable!() };
+                id
+            }
+            _ => return Err(Diagnostic::new("closure-escape", "Selected fresh generic environments require an owning callable context.", span)),
+        };
+        let Type::StoredCallable(family) = self.callables.storage.intern(&self.callables.shapes, &self.callables.callbacks[callback], callback).expect("selected owning contract") else { unreachable!() };
+        self.stored_callable_value(context, expression, family, loans)
+    }
+
+    // Distributing a call over its selected callee preserves evaluation order:
+    // predicate first, then only the selected callee and its arguments.
+    // Concrete adaptation happens in each branch before callable origins join.
+    #[inline(never)]
+    pub(super) fn lower_selected_generic_factory(&mut self, context: &Context, expression: &mut Expr) -> Result<bool, Diagnostic> {
+        let ExprKind::Call(callee, arguments) = &expression.kind else { return Ok(false); };
+        let ExprKind::Conditional { predicate, consequent, alternate } = &callee.kind else { return Ok(false); };
+        let left = Expr::new(ExprKind::Call(consequent.clone(), arguments.clone()), expression.span);
+        let right = Expr::new(ExprKind::Call(alternate.clone(), arguments.clone()), expression.span);
+        if self.fresh_generic_origin(context, &left)?.is_none()
+            || self.fresh_generic_origin(context, &right)?.is_none()
+        { return Ok(false); }
+        expression.kind = ExprKind::Conditional {
+            predicate: predicate.clone(), consequent: Box::new(left), alternate: Box::new(right),
+        };
+        Ok(true)
     }
 
     #[inline(never)]
@@ -80,6 +134,11 @@ impl Analyzer {
         ];
         let closure = Expr::new(ExprKind::Closure { id: usize::MAX / 2 + span.start, params: Vec::new(), result: result_annotation, body }, span);
         *expression = Expr::new(ExprKind::Call(Box::new(closure), Vec::new()), span);
-        self.expression(context, expression, mode, loans, Some(expected))
+        let first_capture = context.capture_loans.len();
+        let checked = self.expression(context, expression, mode, loans, Some(expected));
+        // The staging closure is invoked immediately. Its argument-evaluation
+        // borrows end here; the returned owned adapter retains its own environment.
+        context.capture_loans.truncate(first_capture);
+        checked
     }
 }

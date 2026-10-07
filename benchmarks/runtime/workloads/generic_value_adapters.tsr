@@ -8,6 +8,14 @@ function make(start: int) {
     }
     return select;
 }
+function doubleFactory(start: int) {
+    let calls = start;
+    function select<T>(value: T): Receipt<T> {
+        calls += 2;
+        return { value: value, calls: calls };
+    }
+    return select;
+}
 function reducer() {
     let calls = 0;
     function first<T>(left: T, right: T): T {
@@ -135,6 +143,12 @@ function workload(n: int, seed: int, input: string): int[][] {
         const genericFirst = genericDirect(base + 13);
         const genericSecond = genericDirect(base + 14);
         const genericMapped = [base + 15, base + 16].map(genericFactory(base, base + 90));
+        let selections = 0;
+        let evaluations = 0;
+        const distinct: Function<Receipt<int>, [value: int]> = (selections++ === 0 ? make : doubleFactory)(base + 100 + evaluations++);
+        const distinctFirst = distinct(base + 17);
+        const distinctSecond = distinct(base + 18);
+        const distinctMapped = [base + 19, base + 20].map((selections++ === 0 ? make : doubleFactory)(base + 110 + evaluations++));
         output.push([firstValue, firstCalls, generic.value.length, generic.calls, last.value.length, last.calls,
             mapped[0].value, mapped[1].value, mapped[0].calls, mapped[1].calls, after.value ? 1 : 0, after.calls,
             record.value, record.calls, stored.value.length, stored.calls, input.length,
@@ -147,7 +161,10 @@ function workload(n: int, seed: int, input: string): int[][] {
             aliasValue.value, aliasValue.calls, selectedMapped[0].value, selectedMapped[1].value,
             selectedMapped[0].calls, selectedMapped[1].calls,
             genericFirst.value, genericFirst.calls, genericSecond.calls, genericMapped[0].value, genericMapped[1].value,
-            genericMapped[0].calls, genericMapped[1].calls]);
+            genericMapped[0].calls, genericMapped[1].calls,
+            distinctFirst.value, distinctFirst.calls, distinctSecond.calls,
+            distinctMapped[0].value, distinctMapped[1].value, distinctMapped[0].calls, distinctMapped[1].calls,
+            selections, evaluations]);
     }
     return output;
 }

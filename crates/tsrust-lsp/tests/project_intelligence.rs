@@ -1206,3 +1206,29 @@ fn checked_project_local_declarations_keep_source_names_and_imported_result_iden
     let report=ask(&index,entry,"report();","textDocument/hover");
     assert!(report["contents"]["value"].as_str().unwrap().contains(": void"));
 }
+
+#[test]
+fn selected_generic_factories_keep_concrete_calls_and_array_results() {
+    let source = include_str!("../../tsrust-compiler/tests/fixtures/generic-value-adapters/selected-factories.tsr");
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, source.into());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::checked(&checked);
+    let request = |method: &str, needle: &str| {
+        let offset = source.find(needle).unwrap();
+        let prefix = &source[..offset];
+        let position = json!({"line":prefix.bytes().filter(|&c| c == b'\n').count(),
+            "character":prefix.rsplit('\n').next().unwrap().encode_utf16().count()});
+        index.request(method, &json!({"position":position}), uri).unwrap().unwrap()
+    };
+    let help = request("textDocument/signatureHelp", "7), 7");
+    assert!(help["signatures"][0]["label"].as_str().unwrap().contains("int"), "{help}");
+    let hover = request("textDocument/hover", "mapped =");
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("int[]"), "{hover}");
+    let definition = request("textDocument/definition", "right)(++arguments)");
+    let offset = source.find("right(start").unwrap();
+    let prefix = &source[..offset];
+    assert_eq!(definition["range"]["start"], json!({"line":prefix.bytes().filter(|&c| c == b'\n').count(),
+        "character":prefix.rsplit('\n').next().unwrap().encode_utf16().count()}), "{definition}");
+}

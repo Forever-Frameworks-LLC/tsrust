@@ -6854,6 +6854,13 @@ impl Analyzer {
         if matches!(expr.kind,ExprKind::Sequence(_)){return self.sequence_expression(context,expr,mode,loans,expected,false);}
         if let Some(expected) = expected
             && self.checked_generic_callable_shape(self.unions.payload(expected).unwrap_or(expected)).is_some()
+        {
+            if self.lower_selected_generic_factory(context, expr)? {
+                return self.stage_selected_generic_expression(context, expr, expected, loans);
+            }
+        }
+        if let Some(expected) = expected
+            && self.checked_generic_callable_shape(self.unions.payload(expected).unwrap_or(expected)).is_some()
             && self.fresh_generic_origin(context, expr)?.is_some()
         {
             return self.stage_generic_expression(context, expr, expected, mode, loans);
@@ -11024,7 +11031,10 @@ self.names_materialized_type(element.with_depth(0).ty())
                     once,
                 )
             }
-            Type::Callback(id) => {
+            Type::Callback(id) | Type::StoredCallable(id) => {
+                let id = if matches!(ty, Type::StoredCallable(_)) {
+                    self.callables.storage.declaration(id).expect("checked traversal storage")
+                } else { id };
                 let contract = &self.callables.callbacks[id];
                 (
                     contract.params.clone(),
@@ -11381,7 +11391,10 @@ self.names_materialized_type(element.with_depth(0).ty())
                         }),
                 )
             }
-            Type::Callback(id) => {
+            Type::Callback(id) | Type::StoredCallable(id) => {
+                let id = if matches!(callback, Type::StoredCallable(_)) {
+                    self.callables.storage.declaration(id).expect("checked traversal storage")
+                } else { id };
                 let contract = &self.callables.callbacks[id];
                 (
                     contract.params.clone(),
@@ -11857,7 +11870,10 @@ self.names_materialized_type(element.with_depth(0).ty())
                             }),
                     )
                 }
-                Type::Callback(id) => {
+                Type::Callback(id) | Type::StoredCallable(id) => {
+                    let id = if matches!(callback_type, Type::StoredCallable(_)) {
+                        self.callables.storage.declaration(id).expect("checked traversal storage")
+                    } else { id };
                     let contract = &self.callables.callbacks[id];
                     (
                         contract.params.clone(),

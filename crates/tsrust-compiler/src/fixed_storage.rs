@@ -1002,6 +1002,9 @@ impl<'a> Proof<'a> {
                         Type::Callback(index) => {
                             self.program.callback_contracts[index].params.len()
                         }
+                        Type::StoredCallable(family) => {
+                            self.program.callback_contracts[self.program.stored_contracts.declaration(family).expect("checked traversal storage")].params.len()
+                        }
                         _ => unreachable!("checked reduction callback"),
                     };
                     self.expr(
@@ -1034,6 +1037,9 @@ impl<'a> Proof<'a> {
                         Type::Closure(index) => self.program.closures[index].parameters.len(),
                         Type::Callback(index) => {
                             self.program.callback_contracts[index].params.len()
+                        }
+                        Type::StoredCallable(family) => {
+                            self.program.callback_contracts[self.program.stored_contracts.declaration(family).expect("checked traversal storage")].params.len()
                         }
                         _ => unreachable!("checked callback type"),
                     };

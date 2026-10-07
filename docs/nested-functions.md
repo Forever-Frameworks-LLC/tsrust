@@ -372,3 +372,11 @@ the original value then becomes unavailable. Adapters preserve captured state
 rather than constructing another factory instance. The executable examples in
 crates/tsrust-compiler/tests/fixtures/generic-value-adapters cover concrete contracts, map callbacks and
 record/array storage. Some other callback and nullable contexts remain unsupported.
+
+A concrete owned callback can select between factories returning different generic
+function environments. For example, `const action: Function<int, [value: int]> =
+(flag ? firstFactory : secondFactory)();` constructs only the selected environment.
+Subsequent calls use that environment's retained state. Array traversal also
+accepts such selected factory calls when their generic signatures match its input
+and result requirements. A borrowed facade cannot outlive a fresh temporary owner.
+The selected-factories and selected-traversal fixtures demonstrate these cases.
