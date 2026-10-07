@@ -98,3 +98,8 @@ fn destructuring_keeps_static_contracts() {
         assert!(error.span.end >= error.span.start, "{source}");
     }
 }
+
+#[test]
+fn owned_array_parameter_patterns_transfer_elements_without_cloning() {
+    execute("function head([first]: Owned<string[]>): string { return first; } function main() { console.log(head(['owner', 'extra'])); }", "owner\n", None);
+}
