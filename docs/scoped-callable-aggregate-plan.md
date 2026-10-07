@@ -60,3 +60,35 @@ land with each accepted behavior, including matched sources, independent oracles
 source hashes, registrations and existing run/profile/report hooks. Timing remains
 pending until a meaningful completed family milestone. Full Gate173 still requires
 polymorphic replacement and point-sensitive mutable environment restoration.
+
+## Record implementation boundaries
+
+The first persistent reds are scoped_callable_records.rs: a named readonly field
+with repeated invocation and original-array reuse, and a named mutable field that
+updates the original capture and releases its loan at scope exit. Both currently
+fail at declaration admission. Their independent TypeScript assertions pass in
+scoped-callable-records-reference.test.mjs. Anonymous inference is not needed for
+these witnesses and remains a separate dependency.
+
+Keep declaration contracts distinct from constructed environment layouts. Today
+record_layout resolves every field through storage_declaration, which rejects
+borrowed protocols; record_literal binds owning fields through stored_callable_value.
+Introduce a scoped field resolution path without weakening storage_declaration's
+ownership guarantee or manufacturing a borrowed family before concrete alternatives
+are known. Construction must specialize the record layout against checked concrete
+field environments while retaining its nominal source identity. Shared declaration
+metadata cannot be mutated according to whichever instance is constructed first.
+
+Native record emission currently writes a nongeneric Record struct using declaration
+field types. Scoped construction needs concrete generic environment parameters and
+lifetimes, propagated through field projection, moves and nullable payloads. Put
+layout specialization in a dedicated module, separate from declaration resolution
+and capture-loan analysis. Two instances with different families must coexist.
+
+Current return/throw guards inspect a direct nullable callable payload. Add bounded
+aggregate traversal over checked field identities so wrapping a borrowed handle in
+a record cannot bypass those guards. Audit parameter retention and whole-record
+assignment too. Source loan provenance must follow field moves and be released only
+when all live handles end. Test escape and conflicting owner mutation before accepting
+field admission, including nested and nullable fields. Do not rely on a later Rust
+compilation error to enforce a source lifetime contract.

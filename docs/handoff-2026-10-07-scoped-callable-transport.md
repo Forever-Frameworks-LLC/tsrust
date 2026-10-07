@@ -83,3 +83,13 @@ borrowed families. No aggregate implementation or acceptance is claimed.
 Continue with docs/scoped-callable-aggregate-plan.md. Keep the three existing public
 callback variants. Invocation access and escape lifetime are separate checks; unknown
 retention remains conservative. Full Gate173 and the broader language plan remain open.
+
+## Record work in progress
+
+Two persistent source/native tests now specify named scoped readonly and mutable
+record fields. Both fail with callback-escape at field declaration. Their matched
+TypeScript source assertions pass. No compiler implementation has changed. The
+aggregate plan identifies declaration resolution, construction specialization,
+native generic layouts and aggregate escape traversal as separate responsibilities.
+Run the red tests before continuing; this is a work-in-progress checkpoint, not
+record acceptance. Evidence lives under runtime/diagnostics/scoped-callable-records/.
