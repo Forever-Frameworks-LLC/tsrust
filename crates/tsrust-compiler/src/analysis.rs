@@ -34,6 +34,8 @@ pub(crate) mod generic_function_values;
 mod closure_methods;
 #[path = "generic_value_adapters.rs"]
 mod generic_value_adapters;
+#[path = "generic_expression_adapters.rs"]
+mod generic_expression_adapters;
 #[path = "generic_value_metadata.rs"]
 mod generic_value_metadata;
 #[path = "deferred_generic_values.rs"]
@@ -6850,6 +6852,12 @@ impl Analyzer {
         expected: Option<Type>,
     ) -> Result<Type, Diagnostic> {
         if matches!(expr.kind,ExprKind::Sequence(_)){return self.sequence_expression(context,expr,mode,loans,expected,false);}
+        if let Some(expected) = expected
+            && self.checked_generic_callable_shape(self.unions.payload(expected).unwrap_or(expected)).is_some()
+            && self.fresh_generic_origin(context, expr)?.is_some()
+        {
+            return self.stage_generic_expression(context, expr, expected, mode, loans);
+        }
         self.lower_enum_member(context, expr, mode)?;
         if matches!(&expr.kind,ExprKind::TypeAssertion{..}) {return self.type_assertion_expression(context,expr,mode,loans,expected);}
         if matches!(&expr.kind, ExprKind::SpreadValue(_) | ExprKind::SpreadCall(_))

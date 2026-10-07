@@ -184,3 +184,24 @@ calls, factory failure before adapter creation, callback failure after creation,
 owned disposal, borrowed escape rejection and editor navigation/signatures.
 Run canaries and whole editor after dispatch changes. Extend the matched workload
 and independent oracle before accepting expression adaptation.
+
+## Initial fresh-expression implementation
+
+A dedicated generic_expression_adapters module stages fresh direct declaration
+calls through ordinary checked closure/block nodes. Declaration result preparation
+obtains the deferred origin without evaluating invocation arguments. The staged
+block binds the source call once, constructs the existing concrete adapter from
+that temporary, and returns it using a structured callable result annotation.
+Traversal contexts solve the original source contract from supplied parameter
+hints, then use the same staging path. Normal checking and emission own capture
+transfer, loans, failures and cleanup; no additional opaque emitter representation
+or source replay is required. The compatibility guard remains elsewhere.
+
+The original direct annotation and map(make(...)) witness passes with one factory
+execution per expression. O0/O3 disposal observes three record owners exactly once
+across success, callback failure and factory failure. Borrowed temporary escapes
+report closure-escape. Editor navigation and concrete signature/result help pass.
+Fresh local callable calls, generic factories, selected/conditional expressions,
+stored callable contexts, omitted generic result annotations and nested callable
+contracts still require their separate audit. This increment does not accept all
+arbitrary expressions or the full adapter family.

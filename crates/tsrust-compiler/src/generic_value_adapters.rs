@@ -16,7 +16,9 @@ impl Analyzer {
     pub(super) fn adapt_generic_traversal(
         &mut self, context: &mut Context, expression: &mut Expr, supplied: &[Type], loans: &Loans,
     ) -> Result<Option<Type>, Diagnostic> {
-        let ExprKind::Name(name) = &expression.kind else { return Ok(None); };
+        let ExprKind::Name(name) = &expression.kind else {
+            return self.stage_generic_traversal(context, expression, supplied, loans);
+        };
         let Some(&binding) = context.names.get(name) else { return Ok(None); };
         let Type::Closure(origin) = context.bindings[binding].ty else { return Ok(None); };
         let Some(source) = self.deferred_generic_values.get(&origin) else { return Ok(None); };

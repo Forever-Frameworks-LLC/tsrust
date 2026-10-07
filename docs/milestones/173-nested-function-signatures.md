@@ -353,3 +353,19 @@ Five untimed native/Node-after-tsc cases pass; no timing samples exist. Canonica
 SQLite verification is benchmarks/runtime/results/2026-10-07T00-08-56-395Z-verify.json.
 All oracle hashes match current files. Registration and exact readback pass; loose
 records are removed. Full adapter context and Gate173 acceptance remain open.
+
+## Fresh direct factory staging
+
+Fresh direct declaration calls now stage their generic environment once in an
+ordinary checked lexical block, then construct the existing ownership-preserving
+adapter. Traversal uses source parameter hints to solve a concrete contract before
+staging. The retained factory-expression witness prints 10,11,12,20,21,22, matching
+its original TypeScript reference. Native O0/O3 observes three retained record
+owners disposed once across normal return, callback failure and factory failure.
+Borrowed temporary escapes report closure-escape. No factory reconstruction,
+implicit clone, empty-prototype wildcard or source argument replay was introduced.
+Sixteen adapter controls pass after tightening the borrowed-escape diagnostic;
+17 generic value tests and all eight depth canaries pass. Whole editor checks
+pass 299 tests, followed by the added fresh-expression protocol witness. Original
+failures and repairs are preserved. Wider expression and full Gate173 acceptance
+remain open; matched verification is recorded in the current handoff.

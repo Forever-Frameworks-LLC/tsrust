@@ -114,13 +114,19 @@ function workload(n: int, seed: int, input: string): int[][] {
             packedCalls = view(base + 1, base + 2, base + 3).calls;
         }
         const restAfter = rest("after", "one");
+        const direct: Function<Receipt<int>, [value: int]> = make(base + 40);
+        const directFirst = direct(base + 5);
+        const directSecond = direct(base + 6);
+        const factoryMapped = [base + 7, base + 8].map(make(base + 50));
         output.push([firstValue, firstCalls, generic.value.length, generic.calls, last.value.length, last.calls,
             mapped[0].value, mapped[1].value, mapped[0].calls, mapped[1].calls, after.value ? 1 : 0, after.calls,
             record.value, record.calls, stored.value.length, stored.calls, input.length,
             reduced, reducedAfter.length, reversed, reversedAfter.length, found, searchedAfter ? 1 : 0,
             sortable[0], copied[0], sortedAfter,
             defaultValue, omittedCalls, overrideCalls, undefinedCalls, defaultsAfter.calls, defaultsAfter.value.length,
-            emptyValue, emptyCalls, packedCalls, restAfter.calls, restAfter.value.length]);
+            emptyValue, emptyCalls, packedCalls, restAfter.calls, restAfter.value.length,
+            directFirst.value, directFirst.calls, directSecond.value, directSecond.calls,
+            factoryMapped[0].value, factoryMapped[1].value, factoryMapped[0].calls, factoryMapped[1].calls]);
     }
     return output;
 }
