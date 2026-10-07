@@ -16,6 +16,7 @@ mod borrowed_callable_contracts;
 mod callable_annotations;
 mod callable_resolution;
 mod callable_compatibility;
+mod callable_environment_demand;
 mod cloneability;
 mod definite_assignment;
 mod completion;

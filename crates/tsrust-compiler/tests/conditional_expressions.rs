@@ -571,6 +571,29 @@ fn once_parameters_accept_scoped_consuming_environments_and_join_failures() {
 }
 
 #[test]
+fn once_parameters_preserve_owned_retention_and_reject_borrowed_escape() {
+    support::execute("function retain(action:Once<Function<int>>):Once<Function<int>>{return action;}function main(){const saved=retain(():int=>7);console.log(saved());}","7\n",None);
+    support::reject("function twice(action:Once<Function<int>>):int{return action()+action();}function main(){}","callback-consumed");
+    let borrowed="const values=[4];const text='Pat'.repeat(1);const selected=true?(():string=>{console.log(values.length);return text;}):(():string=>String(values[0]));";
+    support::reject(&format!("function retain(action:Once<Function<string>>):Once<Function<string>>{{return action;}}function main(){{{borrowed}const saved=retain(selected);console.log(saved());}}"),"callback-contract");
+}
+
+#[test]
+fn once_parameters_accept_direct_and_owned_consuming_callbacks() {
+    support::execute(r#"
+        function finish(action:Once<Function<string>>):string{return action();}
+        function main(){
+            const values=[4];const text="Pat".repeat(1);
+            console.log(finish(():string=>{console.log(values.length);return text;}));
+            console.log(values.length);
+            const other="Sam".repeat(1);
+            const owned:Once<Function<string>>=():string=>other;
+            console.log(finish(owned));
+        }
+    "#, "1\nPat\n1\nSam\n", None);
+}
+
+#[test]
 fn consuming_borrowed_conditional_carriers_dispose_invoked_and_abandoned_owners_once() {
     let source=r#"
         type Owner={id:int;};
