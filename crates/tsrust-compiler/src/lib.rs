@@ -27,6 +27,7 @@ mod generic_records;
 mod generic_functions;
 mod generic_inference;
 mod generic_validation;
+mod generic_call_validation;
 mod generic_defaults;
 mod source_walk;
 pub mod native_bindings;

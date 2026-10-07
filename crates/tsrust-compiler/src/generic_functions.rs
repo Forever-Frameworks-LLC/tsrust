@@ -384,7 +384,7 @@ fn explicit_call_name(expression: &mut Expr) -> Option<(&mut String, Span)> {
     }
 }
 
-fn locals(body: &[Stmt], result: &mut Vec<(String, Span)>) {
+pub(crate) fn locals(body: &[Stmt], result: &mut Vec<(String, Span)>) {
     let mut pending = vec![body];
     while let Some(body) = pending.pop() {
         let end = crate::source_walk::body_end(body);
@@ -460,6 +460,7 @@ pub(crate) fn specialize(program: &mut Program) -> Result<Cache, Diagnostic> {
         return Ok(Cache::default());
     }
     crate::generic_defaults::validate(program)?;
+    crate::generic_call_validation::validate(program)?;
     let mut declarations = HashMap::new();
     let mut cache = Cache {
         captured_checked_instances: HashMap::new(),

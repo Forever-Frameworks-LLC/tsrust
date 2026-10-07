@@ -545,3 +545,32 @@ fn generic_adapters_reject_borrowed_results_escaping_as_owned_values() {
         assert!(matches!(error.code,"borrowed-place"|"borrowed-view"|"borrowed-element"|"borrow"|"parameter-access"),"{}",error.render("input.tsr",source));
     }
 }
+
+#[test]
+fn unused_generic_alias_validation_preserves_scopes_defaults_and_spreads() {
+    for source in [
+        "function recurse<T>(value:T):T{const alias=recurse;return alias<T>(value);}function main(){}",
+        "function unused<T>(value:T):T{const alias=identity;return alias<T>(value);}function identity<T>(value:T):T{return value;}function main(){}",
+        "function identity<T>(value:T):T{return value;}function unused<T>(value:T):T{const first=identity;const second=first;return second<T>(value);}function main(){}",
+        "function identity<T>(value:T):T{return value;}function unused<T>(value:T):T{const alias=identity;{const alias=1;}return alias<T>(value);}function main(){}",
+        "function collect<T>(value:T,offset:int=4,...tail:T[]):T{return value;}function unused<T>(value:T):T{const alias=collect;alias(value);return alias(value,undefined,...[value,value]);}function main(){}",
+        "function collect<T>(...values:T[]):int{return values.length;}function unused<T>(values:T[]):int{const alias=collect;return alias(...values);}function main(){}",
+        "function identity<T>(value:T):T{return value;}function unused<T>(value:T):T{const alias=identity;return alias(...[value]);}function main(){}",
+    ] { tsrust_compiler::check(source).unwrap_or_else(|error|panic!("{}",error.render("input.tsr",source))); }
+}
+
+#[test]
+fn unused_generic_calls_validate_callback_parameters_and_arrow_aliases() {
+    for source in [
+        "function unused<T>(action:(value:T)=>T,value:T):T{return action(value,value);}function main(){}",
+        "function unused<T>(value:T):int{const alias=(item:int):int=>item;return alias<T>(1);}function main(){}",
+    ] {
+        let error=tsrust_compiler::check(source).err().expect("known callback contracts validate unused calls");
+        assert!(matches!(error.code,"arity"|"type"),"{}",error.render("input.tsr",source));
+    }
+}
+
+#[test]
+fn unused_alias_contracts_match_the_typescript_reference() {
+    native(include_str!("fixtures/generic-value-adapters/unused-alias-contracts.tsr"), "");
+}

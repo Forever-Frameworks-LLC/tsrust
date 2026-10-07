@@ -7901,3 +7901,12 @@ fn generic_pattern_adapters_keep_concrete_result_and_parameter_help() {
     let label=help["signatures"][0]["label"].as_str().expect("pattern adapter signature");
     assert!(label.contains("string") && label.contains("values"),"{help}");
 }
+
+#[test]
+fn unused_generic_alias_errors_point_to_calls_and_source_declarations() {
+    let source="function identity<T>(value:T):T{return value;}function unused<T>(value:T):T{const alias=identity;return alias<T,T>(value);}function main(){}";
+    let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(source,"file:///test.tsr").unwrap()).unwrap();
+    assert_eq!(diagnostics[0]["code"],"arity","{diagnostics}");
+    assert_eq!(diagnostics[0]["range"]["start"],json!(at(source,"T,T>",0)),"{diagnostics}");
+    assert_eq!(diagnostics[0]["relatedInformation"][0]["location"]["range"]["start"],json!(at(source,"identity<",0)),"{diagnostics}");
+}

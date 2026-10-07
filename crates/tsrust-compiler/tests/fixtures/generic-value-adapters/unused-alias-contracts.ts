@@ -1,0 +1,31 @@
+export {};
+function strictEqual<T>(actual: T, expected: T): void { if (actual !== expected) { throw new Error('assertion'); } }
+function identity<T>(value: T): T { return value; }
+function collect<T>(value: T, offset: number = 4, ...tail: T[]): T { return value; }
+function count<T>(...values: T[]): number { return values.length; }
+function aliases<T>(value: T): T {
+    const first = identity;
+    const second = first;
+    return second<T>(value);
+}
+function scopes<T>(value: T): T {
+    const alias = identity;
+    { const alias = 1; }
+    return alias<T>(value);
+}
+function defaults<T>(value: T): T {
+    const alias = collect;
+    alias(value);
+    return alias(value, undefined, ...[value, value]);
+}
+function dynamic<T>(values: T[]): number {
+    const alias = count;
+    return alias(...values);
+}
+function staticSpread<T>(value: T): T {
+    const alias = identity;
+    return alias(...[value]);
+}
+function main() { strictEqual(identity(7), 7); }
+
+main();

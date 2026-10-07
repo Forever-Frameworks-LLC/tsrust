@@ -634,3 +634,8 @@ The Gate173 pattern audit adds owned nested array/record parameter extraction,
 concrete adapter editor contracts and discarded callable-call disposal controls.
 Matched support now observes 116 results per scenario and passes untimed native/
 Node verification. Broader Gate173 acceptance and milestone measurements remain open.
+
+
+Gate173 adds source cardinality checks for unused immutable generic aliases and
+known callback contracts. Mutable/selected target flow and the broader generic
+context audit remain open. Compile-time acceptance is separate from runtime timing.

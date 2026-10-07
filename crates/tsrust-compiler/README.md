@@ -289,3 +289,9 @@ Optional invocation retains ownership checks. A named optional receiver borrows 
 source and cannot consume that source's captured owner. A fresh owning factory result
 can be invoked once and transfer a consuming capture. Invocation failure leaves a
 reusable environment's state at the point reached before the failure.
+
+
+Unused generic declarations validate explicit type-argument and static value-argument
+counts for known declarations, immutable aliases and concrete callback contracts.
+Errors include the original callable declaration. Dynamic spreads and unknown mutable
+alias flow retain deferred concrete checking; broader source validation remains open.

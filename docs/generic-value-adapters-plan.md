@@ -412,3 +412,29 @@ borrowed-result escape and unused generic source-validation coverage.
 Final focused acceptance passes 159 bounded compiler tests and all 311 editor tests.
 Exact failed/repaired evidence and both matched records are imported and verified
 byte-for-byte in SQLite. See handoff-2026-10-06-owned-pattern-adapters-accepted.md.
+
+
+## Unused immutable alias call validation checkpoint
+
+A dedicated generic_call_validation module checks known source callable cardinality
+before generic specialization drains declarations. It retains generic parameter
+count, required/default/optional/rest slots and original declaration spans without
+executing bodies or defaults. Immutable alias chains use ordered lexical scope
+ranges; function and closure parameters, block locals, catch and loop bindings
+shadow declaration names. Known concrete callback annotations remain monomorphic.
+Synthetic forwarding wrappers retain their original declaration contracts.
+
+Wrong explicit type counts, explicit application on known monomorphic aliases and
+wrong static value counts are rejected even when the surrounding generic function
+is unused. Ordinary callback parameters and arrow aliases have the same checks.
+Dynamic spread cardinality remains deferred rather than being treated as one value.
+Unknown mutable targets and broader selected/field callable contracts remain pending;
+this checkpoint does not complete unused source validation or Full Gate173.
+
+The original three reds and fresh callback reds pass. Positive chains, block scopes,
+default/rest and static/dynamic spread controls pass. A paired strict TypeScript/Node
+fixture preserves unused template acceptance and a native std:testing assertion.
+Editor diagnostics name invalid type arguments and related source declarations.
+Borrowed-result escape controls reject consumption of ReadOnly inputs using the
+precise parameter-access diagnostic. Existing runtime workload/oracle support is
+retained: compile-time rejections do not receive artificial timing scenarios.
