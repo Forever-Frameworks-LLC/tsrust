@@ -4337,6 +4337,7 @@ impl Analyzer {
             Some(entry_owners), (!exits).then(||context.capture_loan_owners.clone()));
         if let Some(owners) = &frame.continue_owners { context.capture_loan_owners.join(owners); }
         if let Some(owners) = &frame.break_owners { context.capture_loan_owners.join(owners); }
+        Self::restore_live_capture_loans(context);
         exception_state::consume_target(context,frame.target);
         context.flow = crate::flow::join(&zero_flow, &context.flow);
         if let Some(breaks) = frame.break_flow {
@@ -4443,6 +4444,7 @@ impl Analyzer {
         *tail_reachable = continuing.is_some();
         if let Some(states) = continuing {
             context.capture_loan_owners = continuing_owners;
+            Self::restore_live_capture_loans(context);
             if let Some(continues) = context
                 .loops
                 .last()
@@ -4515,6 +4517,7 @@ impl Analyzer {
         }
         let frame = context.loops.pop().expect("matching new loop frame");
         context.capture_loan_owners = crate::capture_loan_owners::Owners::reaching(exit_owners,frame.break_owners);
+        Self::restore_live_capture_loans(context);
         exception_state::consume_target(context,frame.target);
         if let Some(zero) = zero_flow {
             context.flow = crate::flow::join(&zero, &context.flow);
@@ -4634,11 +4637,13 @@ impl Analyzer {
         }
         context.flow = else_flow;
         context.capture_loan_owners = before_owners;
+        Self::restore_live_capture_loans(context);
         let else_exits = self.block(context, else_body, result_type)?;
         context.capture_loan_owners = crate::capture_loan_owners::Owners::reaching(
             (!then_exits).then_some(after_then_owners),
             (!else_exits).then(|| context.capture_loan_owners.clone()),
         );
+        Self::restore_live_capture_loans(context);
         let after_else_flow = context.flow.clone();
         context.flow = match (then_exits, else_exits) {
             (false, false) => crate::flow::join(&after_then_flow, &after_else_flow),
@@ -8789,6 +8794,7 @@ impl Analyzer {
             ));
         }
         context.capture_loan_owners.join(&left_owners);
+        Self::restore_live_capture_loans(context);
         context.flow = crate::flow::join(&left_flow, &context.flow);
         for ((id, _), state) in before.into_iter().zip(left_state) {
             state
@@ -8981,6 +8987,7 @@ impl Analyzer {
         let left_loans = crate::capture_loan_identity::Boundary::capture(&plan.entry_loans)
             .added(&context.capture_loans);
         context.capture_loans.clone_from(&plan.entry_loans);
+        Self::restore_live_capture_loans(context);
         for (id, state) in before {
             state.clone().restore(&mut context.bindings[*id]);
         }
@@ -9016,6 +9023,7 @@ impl Analyzer {
         let mut right = right?;
         let ConditionalPlan { assignment_alias, borrowed, infer_nullable_closure, before, after_left, after_left_flow, after_left_owners, left_loans, .. } = *plan;
         context.capture_loan_owners.join(&after_left_owners);
+        Self::restore_live_capture_loans(context);
         context.flow = crate::flow::join(&after_left_flow, &context.flow);
         if infer_nullable_closure && left != right {
             let joined = self.unions.intern([left, right], alternate.span)?;

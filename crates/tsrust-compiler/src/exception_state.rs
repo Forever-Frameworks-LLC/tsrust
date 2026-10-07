@@ -148,6 +148,7 @@ impl ExitState {
     /// The caller must identify payload loans before removing its local bindings.
     pub(super) fn unwind_capture_loans(&mut self,entry:&crate::capture_loan_identity::Boundary,payload_loans:&[(usize,Mode,Span)]) {
         entry.unwind(&mut self.capture_loans);
+        let _ = self.capture_loan_owners.leave_scope(self.owners.len());
         for loan in payload_loans {
             if !self.capture_loans.contains(loan) {self.capture_loans.push(*loan);}
         }
@@ -173,11 +174,26 @@ impl ExitState {
         for (state,binding) in self.owners.into_iter().zip(&mut context.bindings) {state.restore(binding);}
         context.flow=self.flow;context.capture_loans=self.capture_loans;
         context.capture_loan_owners=self.capture_loan_owners;
+        Analyzer::restore_live_capture_loans(context);
     }
 }
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn restoring_exception_owner_snapshot_recovers_missing_live_capture_loan() {
+        let mut context = Context::new("main".into());
+        let retained = (0, Mode::Mutate, Span::new(1, 2));
+        let unknown = (1, Mode::Read, Span::new(3, 4));
+        let id = context.capture_loan_ids.intern(retained);
+        context.capture_loan_owners.attach(crate::capture_loan_owners::Place { binding: 2, fields: vec![] }, [id]);
+        context.capture_loans = vec![unknown];
+        let state = ExitState::capture(&context, 0);
+        context.capture_loan_owners = Default::default();
+        state.restore(&mut context);
+        assert_eq!(context.capture_loans, vec![unknown, retained]);
+    }
+
     #[test]
     fn post_test_loop_keeps_break_and_continue_owners_but_not_return_exits() {
         use crate::capture_loan_owners::Place;
@@ -185,6 +201,7 @@ mod tests {
             let source = format!("function main(){{ do {{ {body_source} }} while(false); }}");
             let mut analyzer = Analyzer::new(crate::syntax::parse(&source).unwrap()).unwrap();
             let mut context = Context::new("main".into());
+            Analyzer::bind(&mut context, &Token { text: "outer".into(), span: Span::new(0, 1), kind: TokenKind::Name }, Type::String, false).unwrap();
             context.capture_loan_owners.attach(Place { binding: 0, fields: vec![] }, [10]);
             let mut statements = std::mem::take(&mut analyzer.program.functions[0].body);
             let statement = &mut statements[0];

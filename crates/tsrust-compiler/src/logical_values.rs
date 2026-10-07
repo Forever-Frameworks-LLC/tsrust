@@ -96,6 +96,7 @@ impl Analyzer {
         }
         if reaches_right {
             context.capture_loan_owners.join(&skipped_owners);
+            Self::restore_live_capture_loans(context);
             context.flow = crate::flow::join(&skipped_flow, &context.flow);
             for (id, state) in before {
                 state.join(Availability::of(&context.bindings[id])).restore(&mut context.bindings[id]);

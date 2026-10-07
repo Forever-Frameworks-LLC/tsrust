@@ -12,13 +12,20 @@ pub(crate) struct Place {
 pub(crate) struct Owners {
     entries: BTreeMap<Place, BTreeSet<usize>>,
     pending: BTreeMap<(Place, usize, usize), BTreeSet<usize>>,
+    tracked: BTreeSet<usize>,
 }
 
 impl Owners {
+    pub(crate) fn tracked(&self) -> &BTreeSet<usize> { &self.tracked }
+
     pub(crate) fn attach(&mut self, place: Place, loans: impl IntoIterator<Item = usize>) {
         let mut loans = loans.into_iter().peekable();
         if loans.peek().is_some() {
-            self.entries.entry(place).or_default().extend(loans);
+            let entry = self.entries.entry(place).or_default();
+            for loan in loans {
+                self.tracked.insert(loan);
+                entry.insert(loan);
+            }
         }
     }
 
@@ -140,6 +147,7 @@ impl Owners {
     }
 
     pub(crate) fn join(&mut self, other: &Self) {
+        self.tracked.extend(other.tracked.iter().copied());
         for (place, loans) in &other.entries {
             self.attach(place.clone(), loans.iter().copied());
         }
@@ -157,6 +165,21 @@ mod tests {
             binding,
             fields: fields.iter().map(|name| (*name).to_owned()).collect(),
         }
+    }
+    #[test]
+    fn disposed_and_branch_only_loans_remain_known_without_remaining_live() {
+        let mut owners = Owners::default();
+        owners.attach(place(1, &[]), [10]);
+        let mut branch = owners.clone();
+        branch.attach(place(2, &[]), [11]);
+        branch.leave_scope(1);
+        assert!(branch.live().is_empty());
+        assert_eq!(branch.tracked(), &BTreeSet::from([10, 11]));
+        owners.join(&branch);
+        assert_eq!(owners.live(), BTreeSet::from([10]));
+        assert_eq!(owners.tracked(), &BTreeSet::from([10, 11]));
+        owners.leave_scope(1);
+        assert_eq!(owners.tracked(), &BTreeSet::from([10, 11]));
     }
     #[test]
     fn extracted_field_disposal_releases_only_its_independent_loan() {

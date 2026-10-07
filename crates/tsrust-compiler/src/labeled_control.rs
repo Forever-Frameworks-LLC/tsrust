@@ -76,6 +76,7 @@ impl Analyzer {
         exception_state::consume_target(context,frame.target);
         context.capture_loan_owners=crate::capture_loan_owners::Owners::reaching(
             (!exits).then(||context.capture_loan_owners.clone()),frame.break_owners);
+        Self::restore_live_capture_loans(context);
         if frame.break_seen {
             for ((id,_),state) in frame.entry.into_iter().zip(frame.breaks){
                 let state=if exits {state}else{state.join(Availability::of(&context.bindings[id]))};

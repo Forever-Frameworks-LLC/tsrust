@@ -659,3 +659,44 @@ callable aggregate plan. Continue tracked-ID history and branch/exception raw-lo
 restoration, then scoped field disposal. Keep three public wrappers and ownership
 rules. Preserve red evidence and passed checks. Use bounded tests, project formatting,
 SQLite evidence and explicit Git paths; never stage protected owner fixtures.
+
+## Tracked history and snapshot restoration
+
+A red ledger witness required disposed and branch-only IDs to remain known even
+after their last owner disappears. Owners now keeps tracked history separately
+from live paths and pending consumption, and joins merge that history. Attach
+updates both sets without constructing a temporary set. This supplies provenance
+for later removal; it does not yet remove dead raw loans.
+
+A separate red exception witness required an owner snapshot to recover a missing
+raw loan. Live restoration now runs after exception state restore, conditional
+entry reset/join, if entry reset/join, loop continuation/exit joins, labeled block
+join and logical/coalescing joins. Original unknown raw borrows remain conservative.
+Tests exposed local owner paths surviving exceptional unwind and reviving discarded
+callbacks during cleanup. Unwind now disposes local paths using the exit state's
+outer binding prefix while preserving explicit payload loan tuples. A synthetic
+loop owner test now binds its intended outer binding before constructing metadata;
+it no longer pretends binding zero exists in an empty Context.
+
+Twenty-one loan tests pass. The initial exception batch had two failures; the
+repaired batch passes all 89 exception-state tests. Nineteen positive record tests
+and all eight depth canaries (64 tests) pass on snapshot integration. Five source/
+native finally checks supplement the unwind repair. Project formatting changes
+zero files and fingerprints. All original red/failing and successful logs are
+verified in SQLite under runtime/diagnostics/capture-loan-history/. No timing.
+
+Next enable removal of tracked IDs with no live owner or unresolved retention,
+leaving untracked borrows untouched. Before removing explicit pending payload
+loans, give those payloads surviving ownership or an explicit conservative pin.
+Test branch restoration before in-arm access, loop continuation/break, exceptional
+outer assignments and finally disposal. Resume the independent field-disposal
+native witness and its live-field rejection controls. Complete editor/guide,
+matched workload and gate records before acceptance. Record gate and gate 173
+remain open. Consumers remain f1dd284; preserve fifteen owner fixtures.
+
+Continuation prompt: Inspect status and read this handoff plus the scoped callable
+aggregate plan. Add dead tracked-loan reconciliation with unknown/pending-payload
+controls, then turn independent field disposal green and check branch/loop/finally
+live-owner safety. Keep three public wrappers and existing ownership rules. Use
+bounded checks, project formatting, SQLite evidence and explicit Git paths. Never
+stage protected owner fixtures.
