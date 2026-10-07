@@ -180,3 +180,27 @@ mod opaque_tests {
         assert!(engine.solve(outer.name.span, &[], &[expression_flow::Value::default()]).is_none(), "unknown callback must not certify its caller");
     }
 }
+
+#[cfg(test)]
+mod default_tests {
+    use super::*;
+    #[test]
+    fn omitted_defaults_run_in_parameter_order_before_the_body() {
+        for (call, required) in [("change()",2), ("change(undefined)",2), ("change(false)",1), ("throwing",2)] {
+        let source=crate::format(&format!("function one<T>(value:T):T{{return value;}}function two<T>(value:T,other:T):T{{return other;}}function outer<T>(value:T):T{{let action=one;function change(first:boolean=(action=two,false),second:boolean=first){{if(second){{action=one;}}}}{call};return action<T>(value);}}function main(){{}}")).unwrap();
+        let source = if call == "throwing" { crate::format(&source.replace("(action = two, false)", "(action = two, fail())").replace("throwing;", "try { change(); } catch(error) { return action<T>(value); }").replace("function main()", "function fail():boolean { throw 1; } function main()")).unwrap() } else { source };
+        if call == "throwing" { assert!(source.contains("fail())"), "throwing default witness must call fail"); }
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let program=crate::syntax::parse(&source).unwrap();let effects=effect_bodies::Index::new(&program).unwrap();
+        let declarations=program.functions.iter().map(|function|(function.name.text.clone(),contract(function.type_parameters.len(),&function.parameter_initializers,function.rest_parameter,function.name.span))).collect::<HashMap<_,_>>();
+        let outer=program.functions.iter().find(|function|function.name.text=="outer").unwrap();
+        let outcome=Engine::new(&declarations,&effects).solve(outer.name.span,&[],&[expression_flow::Value::default()]).unwrap();
+        let mut probe=outer.clone();let mut call=None;
+        crate::source_walk::function_body(&mut probe,&mut |_|Ok(()),&mut |expression| {
+            if let ExprKind::Call(callee,_) =&expression.kind && name(callee).is_some_and(|(name,_)|name=="action") {call=Some((expression.span.start,expression.span.end));} Ok(())
+        }).unwrap();
+        let contracts=outcome.facts.get(&call.unwrap()).and_then(|contracts|contracts.as_ref()).unwrap();
+        assert!(contracts.iter().all(|contract|contract.required==required),"{call:?}: expected {required}, found {:?}", contracts.iter().map(|contract|contract.required).collect::<Vec<_>>());
+        }
+    }
+}

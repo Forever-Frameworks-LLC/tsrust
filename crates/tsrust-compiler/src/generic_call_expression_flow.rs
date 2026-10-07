@@ -12,6 +12,7 @@ pub(super) struct Value {
 impl Value {
     pub(super) fn from_origins(origins: Vec<body_origins::Origin>) -> Self { Self { origins: body_origins::canonical(origins), ..Self::default() } }
     pub(super) fn selection(&self) -> Selection { Selection { truth: self.truth, nullish: self.nullish, undefined: self.undefined } }
+    pub(super) fn undefined() -> Self { Self { truth: Some(false), nullish: Some(true), undefined: Some(true), ..Self::default() } }
     pub(super) fn known_truth(&self) -> Option<bool> { self.truth }
 }
 
@@ -39,6 +40,7 @@ fn snapshot(expression: &Expr, state: &[Binding], declarations: &HashMap<String,
     let (mut truth, mut nullish) = match &expression.kind {
         ExprKind::Boolean(value) => (Some(*value), Some(false)),
         ExprKind::Null | ExprKind::Undefined => (Some(false), Some(true)),
+        ExprKind::Name(value) if value == "undefined" && effects.binding(value, expression.span).is_none() => (Some(false), Some(true)),
         ExprKind::String(value) => (Some(!value.is_empty()), Some(false)),
         ExprKind::Integer(value) => (value.parse::<i64>().ok().map(|value| value != 0), Some(false)),
         ExprKind::Number(value) => (Some(*value != 0.0 && !value.is_nan()), Some(false)),
@@ -48,7 +50,7 @@ fn snapshot(expression: &Expr, state: &[Binding], declarations: &HashMap<String,
         }) => (Some(true), Some(false)),
         _ => (None, None),
     };
-    let mut undefined = if matches!(expression.kind, ExprKind::Undefined) { Some(true) }
+    let mut undefined = if matches!(expression.kind, ExprKind::Undefined) || matches!(&expression.kind, ExprKind::Name(value) if value == "undefined" && effects.binding(value, expression.span).is_none()) { Some(true) }
         else if nullish == Some(false) || matches!(expression.kind, ExprKind::Null) { Some(false) } else { None };
     if let Some((name, span)) = name(expression) && let Some(index) = binding_at(state, name, span, effects) {
         let selection = state[index].selection;

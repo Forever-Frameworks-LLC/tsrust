@@ -47,9 +47,13 @@ cache lookup and an unknown callback. All 29 focused tests and all eight depth
 canaries (63 tests) pass. No editor behavior or compiler-path activation is claimed.
 
 Next connect eligible root validation to the converged engine facts. Continue handling
-unsupported regions conservatively; opacity currently rejects the summary proof. Default/rest
-arguments must be materialized in order before contextual body entry; current
-invoke helpers require that precondition but Engine does not implement it. Unknown
+unsupported regions conservatively; opacity currently rejects the summary proof. Default entry now lives in generic_call_parameter_entry.rs. It resets formal slots,
+installs supplied values in order, executes omitted/undefined defaults, joins both
+branches when undefined status is uncertain and carries failures before body entry.
+A missing required argument retains undefined for source diagnostics; ordinary
+arity validation remains responsible for rejecting the call. Rest parameters
+currently refuse summary entry because aggregate element provenance is absent.
+Implement rest storage/projection before enabling these calls. Unknown
 callee alternatives and callbacks passed to unknown/built-in callees still need
 proper effects/cardinality handling. Do not activate these cases by pretending they
 have no effects. Collection callbacks, optional regions and stored fields remain
@@ -63,3 +67,15 @@ Native carrier failures must also be repaired before broad callable acceptance.
 Preserve all fifteen owner fixture edits, use explicit Git paths and one warm
 non-incremental offline locked Cargo target. No new observations, timings or
 consumer refresh is claimed. Keep the full plan active.
+
+## Ordered default entry WIP
+
+Thirty focused tests pass, including omitted defaults, explicit undefined, supplied
+values bypassing defaults, references to earlier parameters and throwing defaults
+that modify a captured callable before catch. Pre-analysis undefined names now
+retain undefined selection when unshadowed. All eight unfiltered depth canaries
+pass (63 tests). The first implementation exposed the need to preserve diagnostic
+facts for invalid calls with missing required arguments; corrected evidence is
+retained alongside the original red. No editor acceptance, native parity, root
+activation, timing or consumer refresh is claimed. Rest arrays, return snapshots
+and original integration/carrier reds remain open.

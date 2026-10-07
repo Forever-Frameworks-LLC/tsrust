@@ -47,14 +47,27 @@ pub(super) fn run_with_dispatch(body: &[Stmt], initial: &[Binding], declarations
 }
 
 /// One contextual body evaluation projects captured state back to its caller.
-/// Arguments must already include evaluated defaults; rest packing is deferred.
+/// Parameter entry executes defaults before the body; rest packing is deferred.
 /// Nested invocation dispatch remains the responsibility of the worklist engine.
 pub(super) fn invoke(declaration: Span, caller: &[Binding], arguments: &[expression_flow::Value], declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index) -> Option<Outcome> {
     invoke_with_dispatch(declaration, caller, arguments, declarations, effects, &mut expression_flow::UnknownDispatch)
 }
 pub(super) fn invoke_with_dispatch(declaration: Span, caller: &[Binding], arguments: &[expression_flow::Value], declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index, dispatch: &mut dyn expression_flow::Dispatch) -> Option<Outcome> {
-    let frame = invocation_frame::Frame::build(declaration, caller, arguments, effects)?;
-    let mut outcome = run_with_dispatch(effects.body(declaration)?, &frame.state, declarations, effects, dispatch)?;
+    let mut frame = invocation_frame::Frame::build(declaration, caller, arguments, effects)?;
+    let entry = parameter_entry::prepare(declaration, arguments, &mut frame.state, declarations, effects, dispatch)?;
+    let mut outcome = if entry.normal { run_with_dispatch(effects.body(declaration)?, &frame.state, declarations, effects, dispatch)? } else { Outcome::default() };
+    for failure in entry.failures {
+        if let Some(previous) = &mut outcome.throwing { join(previous, &failure, declarations); }
+        else { outcome.throwing = Some(failure); }
+    }
+    for (key, incoming) in entry.facts {
+        let value = match outcome.facts.remove(&key) {
+            Some(Some(previous)) => incoming.and_then(|incoming| resolve_all(previous.into_iter().chain(incoming).map(Target::Contract).collect(), &[], declarations)),
+            Some(None) => None,
+            None => incoming,
+        };
+        outcome.facts.insert(key, value);
+    }
     outcome.normal = outcome.normal.map(|state| frame.project(&state));
     outcome.returning = outcome.returning.map(|state| frame.project(&state));
     outcome.throwing = outcome.throwing.map(|state| frame.project(&state));

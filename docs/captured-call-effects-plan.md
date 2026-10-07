@@ -263,3 +263,14 @@ parent summary; it now passes for missing known bodies and unknown callbacks.
 All 29 focused tests and eight unfiltered depth canaries (63 tests) pass. The root
 compiler validator remains unchanged. Default/rest execution and integration remain
 open. Exact red and passing evidence is stored in SQLite.
+
+## Ordered default entry WIP
+
+A separate parameter-entry module installs arguments and evaluates defaults from
+left to right before body execution. It retains captured writes, earlier parameter
+selections, exceptional states and source call facts. Undefined uncertainty joins
+supplied and default branches; missing required arguments retain diagnostic facts
+for the ordinary arity validator. Rest entry remains explicitly opaque until
+aggregate element provenance exists. Focused tests exercise omitted and explicit
+undefined arguments, supplied values and throwing defaults. Compiler integration
+and native/editor acceptance remain open.
