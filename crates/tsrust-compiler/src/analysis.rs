@@ -10,6 +10,10 @@ mod return_type_inference;
 mod named_capture_layout;
 #[path = "named_capture_access.rs"]
 mod named_capture_access;
+#[path = "checked_callable_storage.rs"]
+mod checked_callable_storage;
+#[path = "conditional_callable_carriers.rs"]
+mod conditional_callable_carriers;
 #[path = "named_capture_context.rs"]
 mod named_capture_context;
 #[path = "capture_context.rs"]
@@ -8886,6 +8890,11 @@ impl Analyzer {
                 right = joined;
             }
         }
+        if left!=right && !infer_nullable_closure
+            && let Some(family)=self.common_owned_conditional_family(left,right,consequent.span)? {
+            left=self.checked_stored_callable_value(context,consequent,family,left)?;
+            right=self.checked_stored_callable_value(context,alternate,family,right)?;
+        }
         if left != right && !(assignment_alias && left.owning() == right.owning()) {
             return Err(Diagnostic::new(
                 "type",
@@ -9126,38 +9135,7 @@ impl Analyzer {
             loans,
             Some(if stored { Type::StoredCallable(family) } else { expected }),
         )?;
-        if matches!(actual, Type::StoredCallable(_)) {
-            self.require(actual, Some(Type::StoredCallable(family)), value.span)?;
-            return Ok(actual);
-        }
-        self.require(actual, Some(expected), value.span)?;
-        let Type::Closure(mut origin) = actual else {
-            return Err(Diagnostic::new(
-                "callable-layout",
-                "Stored callable construction requires a concrete owned environment.",
-                value.span,
-            ));
-        };
-        if self.callables.callbacks[declaration].kind.is_once()
-            && self.closures[origin].invocation != Mode::Consume
-        {
-            origin = self.once_return(origin, context, value.span);
-            value.wrap_once(origin);
-        }
-        if !context.template && !self.discovering_results && !self.effects_only {
-            self.callables.storage.register_origin(
-                family,
-                origin,
-                &self.callables.callbacks,
-                &self.callables.shapes,
-                &self.closures,
-                value.span,
-            )?;
-        } else if self.speculative_access_run && !context.template && !self.discovering_results {
-            self.callables.storage.note_speculative_origin(family, origin);
-        }
-        value.wrap_storage(family);
-        Ok(Type::StoredCallable(family))
+        self.checked_stored_callable_value(context,value,family,actual)
     }
 
     // Integer literals are contextual; names and typed storage/call results are

@@ -19830,10 +19830,10 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": false,
       "measured": false,
-      "notes": "The scenario now retains 127 observations, including named callable self-assignment invocation and replacement by a fresh factory instance. Concrete borrowed/owned views, generic calls, map callbacks and independent record/array storage environments. Lexical generic echo and escaped capture instances add four observations. Untimed support; wider adapter acceptance pending. Polymorphic argument factories add independent one/two-argument results and string specialization.",
-      "specification": "Retain 127 independent observations of values, ownership-preserving adapters, parameter patterns and shared/independent captured counters.",
-      "sourceSha256": "e630110d23ea9c5f4684a09bc36fa2adbad5622b4ce440cfc8589fd266033362",
-      "counterpartSha256": "096d8f6d7c4ae5c60ac41559fbd764af655a75970edb19c92c697be2c9924ace"
+      "notes": "The scenario now retains 129 observations, including inferred common conditional carriers with scalar captures and named callable self-assignment invocation and replacement by a fresh factory instance. Concrete borrowed/owned views, generic calls, map callbacks and independent record/array storage environments. Lexical generic echo and escaped capture instances add four observations. Untimed support; wider adapter acceptance pending. Polymorphic argument factories add independent one/two-argument results and string specialization.",
+      "specification": "Retain 129 independent observations of values, ownership-preserving adapters, parameter patterns and shared/independent captured counters.",
+      "sourceSha256": "4938a4a3fdeb85ea998c1e229560fbd1db338180db31e108e484285194d7fb11",
+      "counterpartSha256": "cff18d41418b29c06f5aede0736d5fd12b8c983f6ce5b975da74c5e9e5b433e6"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

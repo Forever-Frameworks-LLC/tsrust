@@ -618,6 +618,10 @@ impl SourceIndex {
                     .position(|token| token.span.end == span.end)?
                     + token
                     + 1;
+                let mut end=end;
+                // Checked grouped arms omit their source-only closing group.
+                // Include groups opened inside this expression, never its caller.
+                while self.text(end)==")" && self.pairs.get(end).copied().flatten().is_some_and(|open|self.tokens[open].span.start>=start) {end+=1;}
                 Some((ty.clone(), end))
             })
             .max_by_key(|(_, end)| *end)

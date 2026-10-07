@@ -688,3 +688,11 @@ function values. Scoped native and disposal controls pass. Matched support appen
 four observations for 124 per scenario without changing operation or sample counts.
 Captured invocation effects retain eight red witnesses; the remaining Gate173 audit
 and milestone measurements stay open.
+
+
+Gate173 now includes inferred common carriers for distinct concrete owned
+conditional callable alternatives. Native ownership/disposal and editor help pass,
+and the matched generic adapter scenario retains 129 values with five untimed
+native/Node-after-tsc cases verified. Borrowed carriers, polymorphic replacement
+and checked mutable source environments remain open. No new timing or complete
+gate173 acceptance is claimed. See conditional-callable-carriers-plan.md.

@@ -232,10 +232,6 @@ fn strict_branch_types_ownership_diagnostics_and_normal_stack_limits_are_preserv
             "conflicting-access",
         ),
         (
-            "function main(){const f=():int=>{return 1;};const g=():int=>{return 2;};const x=true?f:g;}",
-            "type",
-        ),
-        (
             "function bad(f:Mutable<Function<int>>,flag:boolean):()=>int{return flag?f:f;}function main(){}",
             "callback-escape",
         ),
@@ -361,4 +357,41 @@ fn grouped_zero_parameter_arrows_in_conditional_arms() {
 #[test]
 fn unannotated_conditional_arrows_infer_common_callable_carrier() {
     support::execute("function main(){const chosen=true?(():int=>7):(():int=>9);console.log(chosen());}", "7\n", None);
+}
+
+#[test]
+fn unannotated_owned_conditional_carriers_keep_parameters_capture_values_and_failures() {
+    support::execute("function main(){const offset=3;const chosen=false?((value:int):int=>value+offset):((value:int):int=>value*offset);console.log(chosen(4));const safe=true?((value:int):int=>value+1):((value:int):int=>value/0);console.log(safe(4));const failed=false?((value:int):int=>value+1):((value:int):int=>value/0);let caught=false;try{failed(4);}catch(error){caught=true;}console.log(caught);}","12\n5\ntrue\n",None);
+}
+
+#[test]
+fn unannotated_owned_conditional_carriers_preserve_once_consumption() {
+    support::execute("function first(text:string){return ():string=>text;}function second(text:string){return ():string=>text;}function main(){const chosen=false?first('one'):second('two');console.log(chosen());}","two\n",None);
+    let source=tsrust_compiler::format("function first(text:string){return ():string=>text;}function second(text:string){return ():string=>text;}function main(){const chosen=false?first('one'):second('two');console.log(chosen());console.log(chosen());}").unwrap();
+    let error=tsrust_compiler::check(&source).err().expect("consuming carrier cannot be invoked twice");assert_eq!(error.code,"closure-consumed","{}",error.render("carrier.tsr",&source));
+}
+
+#[test]
+fn unannotated_owned_conditional_carriers_reject_incompatible_signatures() {
+    for source in ["function main(){const chosen=true?((value:int):int=>value):(():int=>7);}","function main(){const chosen=true?(():int=>7):(():string=>'wrong');}"] {
+        let source=tsrust_compiler::format(source).unwrap();assert!(tsrust_compiler::check(&source).is_err(),"different contracts cannot share a carrier");
+    }
+}
+
+#[test]
+fn unannotated_owned_conditional_aliases_move_selected_origin() {
+    support::execute("function main(){const f=():int=>1;const g=():int=>2;const chosen=true?f:g;console.log(chosen());}","1\n",None);
+}
+
+#[test]
+fn common_owned_conditional_origins_dispose_original_owners_once() {
+    let source=support::format_round_trip("type Item={id:int;};function first(item:Item){return ():int=>item.id;}function second(item:Item){return ():int=>item.id+10;}function failed(item:Item){return ():int=>{throw item.id;};}function main(){{const chosen=true?first({id:1}):second({id:2});if(chosen()!==1||chosen()!==1){throw 99;}}{const chosen=false?first({id:3}):second({id:4});if(chosen()!==14){throw 99;}}{const abandoned=false?first({id:5}):second({id:6});}{const chosen=true?failed({id:7}):first({id:8});let caught=false;try{chosen();}catch(error){caught=error===7;}if(!caught){throw 99;}}}");
+    let rust=tsrust_compiler::check(&source).unwrap().emit_rust().replace("fn main()","fn source_main()")+r#"
+static DROPS:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+static SEEN:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+impl Drop for Record0 {fn drop(&mut self){DROPS.fetch_add(1,std::sync::atomic::Ordering::SeqCst);SEEN.fetch_or(1<<self.field0,std::sync::atomic::Ordering::SeqCst);}}
+fn main(){source_main();assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCst),4);assert_eq!(SEEN.load(std::sync::atomic::Ordering::SeqCst),210);}
+"#;
+    let directory=support::TempDirectory::new();let path=directory.0.join("conditional-owned-origins.rs");std::fs::write(&path,rust).unwrap();
+    for level in ["0","3"] {let binary=directory.0.join(format!("conditional-owned-origins-{level}"));support::success(&support::run(support::rustc().args(["--edition=2024","-C",&format!("opt-level={level}")]).arg(&path).arg("-o").arg(&binary),60));support::success(&support::run(&mut std::process::Command::new(binary),10));}
 }

@@ -336,7 +336,7 @@ impl Analysis {
                         || matches!(&expression.kind, ExprKind::Field(base, name) if name=="length" && matches!(base.ty,Some(Type::String | Type::Array(_))))
                         || matches!(&expression.kind, ExprKind::Field(base, _) if matches!(base.ty,Some(Type::Record(id)) if program.records[id].is_tuple()))
                         || (matches!(&expression.kind,ExprKind::Field(base,_) if matches!(base.ty,Some(Type::Record(id)) if self.program.records[id].name.text=="#RuntimeError")))
-                        || (matches!(expression.kind, ExprKind::Name(_) | ExprKind::Field(_, _) | ExprKind::Closure { .. })
+                        || (matches!(expression.kind, ExprKind::Name(_) | ExprKind::Field(_, _) | ExprKind::Closure { .. } | ExprKind::Conditional { .. })
                         && expression.ty.is_some_and(|ty| matches!(ty, Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::Callable(_)))
                         || matches!(
                         expression.target,

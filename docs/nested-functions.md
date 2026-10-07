@@ -450,3 +450,27 @@ transferred callable can use different type arguments if its capture access allo
 reuse. A callable that consumes a captured owner still permits only one call.
 Borrowed environments cannot escape through this factory. Returning a callable
 uses the existing ownership rules and does not copy its captured owners.
+
+
+## Selecting owned functions
+
+A conditional expression can select between different owned functions with a
+compatible parameter and result contract. The selected function keeps its own
+capture values. Only the selected branch executes, and selecting a function does
+not invoke it.
+
+```tsrust
+function main() {
+    const offset = 3;
+    const chosen = false
+        ? ((value: int): int => value + offset)
+        : ((value: int): int => value * offset);
+    console.log(chosen(4));
+}
+```
+
+This prints `12`. The selected function owns its copied scalar capture. If either
+alternative consumes its captured owner when invoked, the common function value
+also permits only one invocation. Selection does not implicitly clone an owner.
+Borrowed environments and polymorphic function alternatives still need their
+separate carrier support; they are not converted to owned functions implicitly.

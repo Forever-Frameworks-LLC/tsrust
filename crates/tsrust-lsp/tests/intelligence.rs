@@ -8039,3 +8039,14 @@ fn transported_polymorphic_factory_values_keep_concrete_call_help() {
         assert!(text.contains(ty) && !text.contains('#') && !text.contains("Polymorphic"),"{hover}");
     }
 }
+
+#[test]
+fn inferred_owned_conditional_carriers_keep_call_help_and_result_chains() {
+ for expression in ["false?((text:string):string=>text.trim()):((text:string):string=>text.toUpperCase())", "(false?((text:string):string=>text.trim()):((text:string):string=>text.toUpperCase()))", "((false?((text:string):string=>text.trim()):((text:string):string=>text.toUpperCase())))"] {
+  let source=format!("function main(){{const chosen={expression};const result=chosen('Pat');console.log(result.toLowerCase());}}");
+  assert!(tsrust_compiler::check(&source).is_ok());
+  let help=ask(&source,"textDocument/signatureHelp","'Pat')",0);assert!(!help.is_null(),"missing call help for {expression}");assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),1);assert!(help["signatures"][0]["label"].as_str().unwrap().contains("string"),"{help}");
+  let hover=ask(&source,"textDocument/hover","chosen('Pat')",0);assert!(!hover.is_null());let text=hover["contents"]["value"].as_str().unwrap();assert!(text.contains("string"),"{hover}");assert!(!text.contains("StoredCallable"),"{hover}");
+  assert!(!ask(&source,"textDocument/hover","toLowerCase()",0).is_null());
+ }
+}
