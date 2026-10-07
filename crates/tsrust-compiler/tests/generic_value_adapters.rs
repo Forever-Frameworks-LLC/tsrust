@@ -385,3 +385,13 @@ fn explicit_generic_values_do_not_repeat_consuming_capture_calls() {
     let error=tsrust_compiler::check(source).err().expect("explicit calls do not restore consumed captures");
     assert!(matches!(error.code,"closure-consumed"|"transferred"),"{}",error.render("input.tsr",source));
 }
+
+#[test]
+fn optional_explicit_generic_values_skip_absent_arguments_and_retain_state() {
+    native(include_str!("fixtures/generic-value-adapters/optional-explicit-generic.tsr"), "1\n2\n");
+}
+
+#[test]
+fn optional_explicit_generic_aliases_skip_absent_arguments() {
+    native("function make(){function identity<T>(value:T):T{return value;}return identity;}function main(){let effects=0;const candidate=make();const absent=false?candidate:undefined;const result=absent?.<int>(effects++);console.log(result??-1,effects);}", "-1 0\n");
+}
