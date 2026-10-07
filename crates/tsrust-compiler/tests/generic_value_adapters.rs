@@ -235,3 +235,8 @@ fn fresh_generic_result_inference_does_not_relax_explicit_result_contracts() {
     let error = tsrust_compiler::check(source).err().expect("inferred integer result cannot satisfy a string contract");
     assert_eq!(error.code, "type", "{}: {}", error.code, error.message);
 }
+
+#[test]
+fn fresh_generic_adapters_preserve_nested_callable_parameter_contracts() {
+    native(include_str!("fixtures/generic-value-adapters/nested-callable-input.tsr"), "1\n2\n");
+}
