@@ -253,3 +253,13 @@ required before accepting actual invocation integration. Formatting changes zero
 files/hashes. No observation, timing or consumer refresh is claimed. Default/rest
 materialization, unsupported/unknown-region eligibility, return-value snapshots,
 collection rules and root-validator integration remain required before acceptance.
+
+## Opaque dependency propagation
+
+The contextual worklist now propagates missing-body and unknown-callee uncertainty
+through reverse dependencies. Opaque status is monotone, including repeated cache
+lookups. A failing transitive callback witness demonstrates the previous unsafe
+parent summary; it now passes for missing known bodies and unknown callbacks.
+All 29 focused tests and eight unfiltered depth canaries (63 tests) pass. The root
+compiler validator remains unchanged. Default/rest execution and integration remain
+open. Exact red and passing evidence is stored in SQLite.

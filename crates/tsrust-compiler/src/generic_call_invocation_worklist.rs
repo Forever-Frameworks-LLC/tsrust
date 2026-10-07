@@ -53,6 +53,12 @@ impl<'a> Engine<'a> {
         if let Some(parent) = self.current { self.entries[index].dependents.insert(parent); }
         index
     }
+    fn opaque_invocation(&mut self) -> Option<expression_flow::Invocation> {
+        // An unknown effect invalidates this contextual proof and propagates
+        // through reverse dependencies when the current request completes.
+        if let Some(current) = self.current { self.entries[current].opaque = true; }
+        None
+    }
     fn enqueue(&mut self, index: usize) {
         if !self.entries[index].queued { self.entries[index].queued = true; self.work.push(index); }
     }
@@ -60,6 +66,7 @@ impl<'a> Engine<'a> {
         let root = self.request(Request { declaration, caller: caller.to_vec(), arguments: arguments.to_vec() });
         while let Some(index) = self.work.pop() {
             self.entries[index].queued = false;
+            let previous_opaque = self.entries[index].opaque;
             self.current = Some(index);
             let request = self.entries[index].request.clone();
             let declarations = self.declarations;
@@ -67,7 +74,6 @@ impl<'a> Engine<'a> {
             let incoming = summary_flow::invoke_with_dispatch(request.declaration, &request.caller, &request.arguments, declarations, effects, self);
             self.current = None;
             let previous = self.entries[index].outcome.clone();
-            let previous_opaque = self.entries[index].opaque;
             if let Some(incoming) = incoming {
                 let outcome = &mut self.entries[index].outcome;
                 merge_state(&mut outcome.normal, incoming.normal, declarations);
@@ -85,14 +91,14 @@ impl<'a> Engine<'a> {
 }
 impl expression_flow::Dispatch for Engine<'_> {
     fn invoke(&mut self, _: &Expr, callee: &expression_flow::Value, arguments: &[expression_flow::Value], state: &[Binding]) -> Option<expression_flow::Invocation> {
-        if callee.origins.is_empty() || callee.origins.iter().any(|origin| !matches!(origin, body_origins::Origin::Body(_))) { return None; }
+        if callee.origins.is_empty() || callee.origins.iter().any(|origin| !matches!(origin, body_origins::Origin::Body(_))) { return self.opaque_invocation(); }
         let mut normal = None;
         let mut throwing = None;
         let mut facts = HashMap::new();
         for origin in &callee.origins {
             let body_origins::Origin::Body(declaration) = origin else { unreachable!() };
             let index = self.request(Request { declaration: *declaration, caller: state.to_vec(), arguments: arguments.to_vec() });
-            if self.entries[index].opaque { return None; }
+            if self.entries[index].opaque { return self.opaque_invocation(); }
             let outcome = self.entries[index].outcome.clone();
             merge_state(&mut normal, outcome.normal, self.declarations);
             merge_state(&mut normal, outcome.returning, self.declarations);
@@ -152,5 +158,25 @@ mod guard_tests {
             if let ExprKind::Call(callee,_) =&expression.kind && name(callee).is_some_and(|(name,_)|name=="action") {call=Some((expression.span.start,expression.span.end));} Ok(())
         }).unwrap();
         assert!(outcome.facts.get(&call.unwrap()).and_then(|contracts|contracts.as_ref()).is_some_and(|contracts|contracts.iter().all(|contract|contract.required==1)));
+    }
+}
+
+#[cfg(test)]
+mod opaque_tests {
+    use super::*;
+    #[test]
+    fn missing_callback_body_invalidates_transitive_parent_summary() {
+        let source = crate::format("function relay(callback:()=>void){callback();}function outer(callback:()=>void){relay(callback);}function main(){}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(), source);
+        let program = crate::syntax::parse(&source).unwrap();
+        let effects = effect_bodies::Index::new(&program).unwrap();
+        let declarations = program.functions.iter().map(|function| (function.name.text.clone(), contract(function.type_parameters.len(), &function.parameter_initializers, function.rest_parameter, function.name.span))).collect::<HashMap<_,_>>();
+        let outer = program.functions.iter().find(|function| function.name.text == "outer").unwrap();
+        let mut argument = expression_flow::Value::default();
+        argument.origins = vec![body_origins::Origin::Body(Span { start: source.len()+1, end: source.len()+2 })];
+        let mut engine = Engine::new(&declarations, &effects);
+        assert!(engine.solve(outer.name.span, &[], &[argument.clone()]).is_none(), "opaque callback must not certify its caller");
+        assert!(engine.solve(outer.name.span, &[], &[argument]).is_none(), "cached parents must remain opaque");
+        assert!(engine.solve(outer.name.span, &[], &[expression_flow::Value::default()]).is_none(), "unknown callback must not certify its caller");
     }
 }

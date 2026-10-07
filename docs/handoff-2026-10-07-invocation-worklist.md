@@ -38,9 +38,16 @@ full editor must run before actual invocation acceptance. Formatting changes zer
 files and fingerprints. Closed red/corrected/final logs are imported/read back in
 SQLite, then removed. Completed affected test executables are pruned.
 
-Next connect eligible root validation to the converged engine facts. First handle
-unsupported/opaque dependencies conservatively: a known opaque body must not become
-an effect-free call or silently lend an unsafe proof to its parent. Default/rest
+A follow-up fixes opaque propagation. Missing known bodies and unknown callee
+alternatives mark the current request opaque. Reverse dependencies propagate this
+status transitively, including cached roots. The status before body evaluation is
+retained so a dispatch-side change schedules dependents. A focused red witness
+now passes for a missing callback body through relay and outer functions, repeated
+cache lookup and an unknown callback. All 29 focused tests and all eight depth
+canaries (63 tests) pass. No editor behavior or compiler-path activation is claimed.
+
+Next connect eligible root validation to the converged engine facts. Continue handling
+unsupported regions conservatively; opacity currently rejects the summary proof. Default/rest
 arguments must be materialized in order before contextual body entry; current
 invoke helpers require that precondition but Engine does not implement it. Unknown
 callee alternatives and callbacks passed to unknown/built-in callees still need
