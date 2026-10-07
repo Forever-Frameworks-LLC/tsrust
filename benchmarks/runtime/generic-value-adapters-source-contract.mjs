@@ -23,7 +23,7 @@ export function assertGenericAdapterSource(source,row,kind) {
         'const capturedOffset = base + 2;',
         `const capturedCarrier = base % 2 === 0 ? ((value: ${parameter}): ${parameter} => value + capturedOffset) : ((value: ${parameter}): ${parameter} => value * capturedOffset);`,
         'const capturedResult = capturedCarrier(base + 50);',
-        'commonResult, capturedResult, borrowedResult, borrowedMutation]);',
+        'commonResult, capturedResult, borrowedResult, borrowedMutation, consumedResult]);',
         'const borrowedValues = [base, base + 1];',
         'const borrowedReader = base % 2 === 0 ? (() => borrowedValues[0]) : (() => borrowedValues[1]);',
         'const borrowedResult = borrowedReader();',
@@ -34,6 +34,11 @@ export function assertGenericAdapterSource(source,row,kind) {
         'scopedLeft += 1;',
         'scopedRight += 2;',
         'const borrowedMutation = borrowedCalls + scopedLeft + scopedRight;',
+        `const consumedLeft: Receipt<${parameter}> = { value: base + 60, calls: 0 };`,
+        `const consumedRight: Receipt<${parameter}> = { value: base + 70, calls: 0 };`,
+        'const consumedCarrier = base % 2 === 0 ? (() => { consumedLeft.calls = borrowedValues.length; return consumedLeft; }) : (() => { consumedRight.calls = borrowedValues.length; return consumedRight; });',
+        'const consumedRecord = consumedCarrier();',
+        'const consumedResult = consumedRecord.value + consumedRecord.calls;',
     ])if(!containsCodeSnippet(tokens,snippet))throw Error('Common conditional carrier scenario changed: '+snippet);
 
 }

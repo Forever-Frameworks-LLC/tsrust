@@ -6101,7 +6101,7 @@ impl Analyzer {
     fn transferred(binding: &Binding, span: Span) -> Diagnostic {
         let error = Diagnostic::new(
             match binding.ty {
-                Type::Closure(_) | Type::StoredCallable(_) => "closure-consumed",
+                Type::Closure(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_) => "closure-consumed",
                 Type::Callback(_) => "callback-consumed",
                 _ => "transferred",
             },

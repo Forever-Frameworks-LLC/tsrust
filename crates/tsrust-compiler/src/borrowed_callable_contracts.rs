@@ -21,8 +21,8 @@ impl Family {
         if !left.borrowed && !right.borrowed {
             return Err(Diagnostic::new("borrowed-callable-layout","Owned environments use owned callable storage, not a borrowed family.",span));
         }
-        if [left,right].iter().any(|closure|!matches!(closure.invocation,Mode::Read|Mode::Mutate)) {
-            return Err(Diagnostic::new("callback-once","Reusable borrowed dispatch cannot consume an environment when invoked.",span));
+        if [left,right].iter().any(|closure|!matches!(closure.invocation,Mode::Read|Mode::Mutate|Mode::Consume)) {
+            return Err(Diagnostic::new("callback-access","Borrowed dispatch requires readonly, mutable or consuming invocation access.",span));
         }
         let parameters=|closure:&CheckedClosure|closure.parameters.iter().map(|&id|ArgumentContract::from(&closure.function.bindings[id])).collect::<Vec<_>>();
         let parameters=parameters(left);
@@ -33,7 +33,7 @@ impl Family {
             return Err(Diagnostic::new("type","Borrowed callable alternatives require matching argument types, access, cardinality and result types.",span)
                 .related(left.span,"First alternative is created here.").related(right.span,"Second alternative is created here."));
         }
-        Ok(Self {origins,parameters,result:left.function.result,invocation:if left.invocation==Mode::Mutate || right.invocation==Mode::Mutate {Mode::Mutate}else{Mode::Read}})
+        Ok(Self {origins,parameters,result:left.function.result,invocation:if left.invocation==Mode::Consume || right.invocation==Mode::Consume {Mode::Consume}else if left.invocation==Mode::Mutate || right.invocation==Mode::Mutate {Mode::Mutate}else{Mode::Read}})
     }
     pub(crate) fn remap(&mut self,ids:&[Option<usize>],span:Span)->Result<(),Diagnostic> {
         let mapped=self.origins.map(|id|ids.get(id).copied().flatten());
@@ -98,7 +98,9 @@ mod tests {
         assert!(Family::checked(&checked.program.closures,[0,1],Span::default()).is_err());
         checked.program.closures[1].polymorphic=false;
         checked.program.closures[1].invocation=Mode::Consume;
-        assert_eq!(Family::checked(&checked.program.closures,[0,1],Span::default()).err().unwrap().code,"callback-once");
+        assert_eq!(Family::checked(&checked.program.closures,[0,1],Span::default()).unwrap().invocation,Mode::Consume);
+        checked.program.closures[1].invocation=Mode::Copy;
+        assert_eq!(Family::checked(&checked.program.closures,[0,1],Span::default()).err().unwrap().code,"callback-access");
         assert!(Family::checked(&checked.program.closures,[0,99],Span::default()).is_err());
     }
 

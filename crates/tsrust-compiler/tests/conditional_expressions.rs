@@ -519,3 +519,77 @@ fn borrowed_conditional_carriers_join_read_mutate_and_owning_alternatives() {
         function main(){console.log(ownership(true),ownership(false),access(true),access(false));}
     "#, "1 7 4 5\n", None);
 }
+
+#[test]
+fn consuming_borrowed_conditional_carriers_move_owned_captures_once() {
+    support::execute(r#"
+        function choose(flag:boolean):string {
+            const values=[4];const left="left".repeat(1);const right="right".repeat(1);
+            const selected=flag?(():string=>{console.log(values.length);return left;}):(():string=>{console.log(values.length);return right;});
+            return selected();
+        }
+        function main(){console.log(choose(true));console.log(choose(false));}
+    "#, "1\nleft\n1\nright\n", None);
+}
+
+#[test]
+fn consuming_borrowed_conditional_carriers_reject_reuse_and_owning_escape() {
+    let setup="const values=[4];const text='left'.repeat(1);const selected=true?(():string=>{console.log(values.length);return text;}):(():string=>String(values[0]));";
+    support::reject(&format!("function main(){{{setup}selected();selected();}}"),"closure-consumed");
+    support::reject(&format!("function take(action:Function<string>):string{{return action();}}function main(){{{setup}take(selected);}}"),"callback-contract");
+    support::reject(&format!("function factory(){{{setup}return selected;}}function main(){{}}"),"callback-escape");
+}
+
+#[test]
+fn consuming_borrowed_conditional_carriers_preserve_defaults_and_failures() {
+    support::execute(r#"
+        function choose(flag:boolean,input:int):string{
+            const values=[4];const text="left".repeat(1);
+            const selected=flag?((value:int):string=>{console.log(values[0]/value);return text;}):((value:int):string=>String(values[0]+value));
+            try{return selected(input);}catch(error){return "failed";}
+        }
+        function defaults(flag:boolean):string{
+            const values=[4];const text="left".repeat(1);
+            const selected=flag?((value:int=3):string=>{console.log(values[0]+value);return text;}):((value:int=7):string=>String(values[0]+value));
+            return selected();
+        }
+        function main(){console.log(choose(true,2),choose(false,2),choose(true,0));console.log(defaults(true),defaults(false));}
+    "#, "2\nleft 6 failed\n7\nleft 11\n", None);
+}
+
+#[test]
+fn once_parameters_accept_scoped_consuming_environments_and_join_failures() {
+    support::execute(r#"
+        function apply(action:Once<Function<string,[int]>>,input:int):string{return action(input);}
+        function choose(flag:boolean,input:int):string{
+            const values=[4];const text="left".repeat(1);
+            const selected=flag?((value:int):string=>{console.log(values[0]/value);return text;}):((value:int):string=>String(values[0]+value));
+            try{return apply(selected,input);}catch(error){return "failed";}
+        }
+        function main(){console.log(choose(true,2),choose(false,2),choose(true,0));}
+    "#, "2\nleft 6 failed\n", None);
+}
+
+#[test]
+fn consuming_borrowed_conditional_carriers_dispose_invoked_and_abandoned_owners_once() {
+    let source=r#"
+        type Owner={id:int;};
+        function choose(flag:boolean,invoke:boolean){
+            const values=[4];const left:Owner={id:1};const right:Owner={id:2};
+            const first=():Owner=>{console.log(values.length);return left;};
+            const second=():Owner=>{console.log(values.length);return right;};
+            const selected=flag?first:second;
+            if(invoke){const result=selected();console.log(result.id);}
+        }
+        function main(){choose(true,true);choose(false,true);choose(true,false);choose(false,false);}
+    "#;
+    let formatted=support::format_round_trip(source);
+    let rust=check(&formatted).unwrap().emit_rust().replace("fn main()","fn source_main()")+
+        "\nstatic DROPS:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);impl Drop for Record0{fn drop(&mut self){DROPS.fetch_add(1,std::sync::atomic::Ordering::SeqCst);}}fn main(){source_main();assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCst),8);}";
+    let directory=support::TempDirectory::new();let path=directory.0.join("consuming-borrowed.rs");std::fs::write(&path,rust).unwrap();
+    for level in ["0","3"] {
+        let executable=directory.0.join(format!("consuming-borrowed-{level}"));
+        support::success(&support::run(support::rustc().args(["--edition=2024","-C",&format!("opt-level={level}")]).arg(&path).arg("-o").arg(&executable),60));
+        let output=support::run(&mut std::process::Command::new(&executable),10);support::success(&output);assert_eq!(output.stdout,b"1\n1\n1\n2\n");
+    }
+}

@@ -21,7 +21,7 @@ impl Emitter<'_> {
         }).collect::<Vec<_>>();
         let name=format!("BorrowedCallable{id}<{}>",types.join(", "));
         let result=self.result_storage.borrow().get(&id).map(|(name,_)|format!("Result<{},{}>",self.native_type(contract.result),name)).unwrap_or_else(||self.native_type(contract.result));
-        let receiver=if invocation==Mode::Read {"&self"}else{"&mut self"};
+        let receiver=match invocation {Mode::Read=>"&self",Mode::Consume=>"mut self",_=>"&mut self"};
         let parameters=contract.params.iter().enumerate().map(|(i,&parameter)|format!(", argument{i}: {}",self.native_argument_type(parameter,""))).collect::<String>();
         let arguments=(0..contract.params.len()).map(|i|format!("argument{i}")).collect::<Vec<_>>().join(", ");
         let _=writeln!(output,"impl{} {name} {{",lifetime_parameters(&lifetimes));
@@ -32,7 +32,8 @@ impl Emitter<'_> {
             let _=writeln!(output,"fn {method}({receiver}{count}{parameters})->{result} {{match self {{");
             for (arm,&origin) in ["Left","Right"].iter().zip(origins) {
                 let call=self.stored_origin_result(id,origin,format!("value.{method}({passed})"));
-                let _=writeln!(output,"Self::{arm}(value)=>{call},");
+                let mutable=if invocation==Mode::Consume {"mut "}else{""};
+                let _=writeln!(output,"Self::{arm}({mutable}value)=>{call},");
             }
             output.push_str("}}\n");
         }
@@ -40,7 +41,7 @@ impl Emitter<'_> {
         let (arguments,argument_lifetimes)=self.native_argument_tuple(&contract.params);
         let forwarded=(0..contract.params.len()).map(|i|format!("args.{i}")).collect::<Vec<_>>().join(", ");
         lifetimes.extend(argument_lifetimes);
-        let traits=if invocation==Mode::Read {vec![("ReadCallback","invoke_read","&self"),("Callback","invoke","&mut self")]}else{vec![("Callback","invoke","&mut self")]};
+        let traits=if invocation==Mode::Consume {vec![("OnceCallback","invoke_once","self")]}else if invocation==Mode::Read {vec![("ReadCallback","invoke_read","&self"),("Callback","invoke","&mut self")]}else{vec![("Callback","invoke","&mut self")]};
         for (trait_name,method,receiver) in &traits {
             let _=writeln!(output,"impl{} {trait_name}<{arguments},{result}> for {name} {{fn {method}({receiver},args:{arguments})->{result} {{self.call({forwarded})}}",lifetime_parameters(&lifetimes));
             if self.counted_calls {

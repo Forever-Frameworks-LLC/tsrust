@@ -8067,3 +8067,17 @@ fn borrowed_conditional_carriers_keep_hover_signature_help_and_result_chains() {
         assert!(!ask(&source,"textDocument/hover","toLowerCase()",0).is_null());
     }
 }
+
+#[test]
+fn consuming_borrowed_conditional_carriers_keep_editor_signature_and_result_help() {
+    let source="function main(){const values=[1];const text='Pat'.repeat(1);const chosen=false?((count:int):string=>{console.log(values.length+count);return text;}):((count:int):string=>String(values.length+count));const result=chosen(2);console.log(result.toLowerCase());}";
+    tsrust_compiler::check(source).unwrap();
+    let help=ask(source,"textDocument/signatureHelp","2);",0);
+    assert!(!help.is_null());
+    assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),1);
+    let hover=ask(source,"textDocument/hover","chosen(2)",0);
+    assert!(!hover.is_null());
+    let text=hover["contents"]["value"].as_str().unwrap();
+    assert!(text.contains("string"));assert!(!text.contains("BorrowedCallable"));
+    assert!(!ask(source,"textDocument/hover","toLowerCase()",0).is_null());
+}
