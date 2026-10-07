@@ -4,6 +4,8 @@ use super::*;
 #[path = "generic_call_flow_graph.rs"]
 mod flow_graph;
 use flow_graph::graph;
+#[path = "generic_call_expression_flow.rs"]
+mod expression_flow;
 
 fn binding_at(bindings: &[Binding], name: &str, span: Span) -> Option<usize> {
     bindings
@@ -50,58 +52,30 @@ pub(super) fn analyze(
     let Some(nodes) = graph(&function.body) else {
         return Ok(None);
     };
-    let updates = nodes
-        .iter()
-        .filter_map(|node| {
-            let statement = node.statement?;
-            if let StmtKind::Expr(expression) = &statement.kind {
-                flow_graph::standalone_update(expression)
-            } else {
-                None
-            }
-        })
-        .collect::<Vec<_>>();
-    let update_spans = updates
-        .iter()
-        .map(|(_, span)| (span.start, span.end))
-        .collect::<HashSet<_>>();
-    let mut direct = nodes
-        .iter()
-        .filter_map(|node| match &node.statement?.kind {
-            StmtKind::Assign { target, .. } => Some((target.span.start, target.span.end)),
-            _ => None,
-        })
-        .collect::<HashSet<_>>();
-    direct.extend(
-        updates
-            .iter()
-            .map(|(target, _)| (target.span.start, target.span.end)),
-    );
-    if writes.iter().any(|write| {
-        function.scope_span.start <= write.span.start
-            && write.span.end <= function.scope_span.end
-            && !direct.contains(&(write.span.start, write.span.end))
-    }) {
-        return Ok(None);
-    }
+    let mut direct = nodes.iter().filter_map(|node| match &node.statement?.kind {
+        StmtKind::Assign { target, .. } => Some((target.span.start, target.span.end)),
+        _ => None,
+    }).collect::<HashSet<_>>();
     let mut probe = function.clone();
     let mut supported = true;
     crate::source_walk::function_body(&mut probe, &mut |_| Ok(()), &mut |expression| {
-        if matches!(
-            expression.kind,
-            ExprKind::Closure { .. }
-                | ExprKind::Assign { .. }
-                | ExprKind::CompoundAssign { .. }
-                | ExprKind::CoalesceAssign { .. }
-                | ExprKind::LogicalAssign { .. }
-        ) || (matches!(expression.kind, ExprKind::Update { .. })
-            && !update_spans.contains(&(expression.span.start, expression.span.end)))
-        {
-            supported = false;
+        match &expression.kind {
+            ExprKind::Assign { target, .. } | ExprKind::CompoundAssign { target, .. }
+            | ExprKind::CoalesceAssign { target, .. } | ExprKind::LogicalAssign { target, .. }
+            | ExprKind::Update { target, .. } => { direct.insert((target.span.start, target.span.end)); }
+            ExprKind::Conditional { .. } | ExprKind::Sequence(_) | ExprKind::Call(..)
+            | ExprKind::Binary { .. } | ExprKind::Index(..) | ExprKind::Unary { .. }
+            | ExprKind::TypeAssertion { .. } | ExprKind::Field(..) | ExprKind::Array(_)
+            | ExprKind::Template(_) | ExprKind::ArrayOf(..) | ExprKind::SetConstructor(..)
+            | ExprKind::MapConstructor(..) | ExprKind::Record(_) | ExprKind::Name(_)
+            | ExprKind::String(_) | ExprKind::Integer(_) | ExprKind::Number(_)
+            | ExprKind::Boolean(_) | ExprKind::Null | ExprKind::Undefined | ExprKind::EnumMember { .. } => {}
+            _ => supported = false,
         }
         Ok(())
     })?;
-    if !supported {
+    if !supported || writes.iter().any(|write| function.scope_span.start <= write.span.start
+        && write.span.end <= function.scope_span.end && !direct.contains(&(write.span.start, write.span.end))) {
         return Ok(None);
     }
     let mut seed = initial.to_vec();
@@ -124,42 +98,20 @@ pub(super) fn analyze(
         let node = &nodes[index];
         let statement = node.statement;
         let mut state = states[index].as_ref().unwrap().clone();
-        let incoming = state.clone();
-        let expression = node.expression;
-        if let Some(expression) = expression {
-            let mut body = vec![Stmt {
-                kind: StmtKind::Expr(expression.clone()),
-                span: expression.span,
-                labels: vec![],
-                control_target: None,
-            }];
-            crate::source_walk::body(&mut body, &mut |_| Ok(()), &mut |expression| {
-                if let ExprKind::Call(callee, _) = &expression.kind {
-                    let contract = resolve_all(targets::value(callee), &state, declarations);
-                    let key = (expression.span.start, expression.span.end);
-                    // Repeated visits join path facts rather than replacing an
-                    // earlier path with the last branch processed.
-                    if let Some(previous) = facts.get(&key) {
-                        let joined = match (previous, &contract) {
-                            (Some(previous), Some(current)) => resolve_all(
-                                previous
-                                    .iter()
-                                    .chain(current)
-                                    .cloned()
-                                    .map(Target::Contract)
-                                    .collect(),
-                                &[],
-                                declarations,
-                            ),
-                            _ => None,
-                        };
-                        facts.insert(key, joined);
-                    } else {
-                        facts.insert(key, contract);
-                    }
-                }
-                Ok(())
-            })?;
+        let mut failures = Vec::new();
+        if let Some(StmtKind::Assign { target, .. }) = statement.map(|statement| &statement.kind)
+            && !matches!(target.kind, ExprKind::Name(_))
+        {
+            let (_, failed) = expression_flow::evaluate(target, &mut state, &mut facts, declarations, node.exceptional.is_some());
+            failures.extend(failed);
+        }
+        let expression_contracts = if let Some(expression) = node.expression {
+            let (value, failed) = expression_flow::evaluate(expression, &mut state, &mut facts, declarations, node.exceptional.is_some());
+            failures.extend(failed);
+            value
+        } else { None };
+        if node.exceptional.is_some() && matches!(statement.map(|statement| &statement.kind), Some(StmtKind::Assign { operator: Some(_), .. })) {
+            failures.push(state.clone());
         }
         let destination = match statement.map(|statement| &statement.kind) {
             Some(StmtKind::Let { name, value, .. }) => state
@@ -167,10 +119,9 @@ pub(super) fn analyze(
                 .position(|binding| {
                     binding.name == name.text && binding.scope.start == value.span.end
                 })
-                .map(|index| (index, targets::value(value))),
+                .map(|index| (index, expression_contracts.clone())),
             Some(StmtKind::Assign {
                 target,
-                value,
                 operator,
                 ..
             }) => {
@@ -179,9 +130,9 @@ pub(super) fn analyze(
                         (
                             index,
                             if operator.is_none() {
-                                targets::value(value)
+                                expression_contracts.clone()
                             } else {
-                                vec![Target::Unknown]
+                                None
                             },
                         )
                     })
@@ -193,7 +144,7 @@ pub(super) fn analyze(
                 flow_graph::standalone_update(expression).and_then(|(target, _)| {
                     if let ExprKind::Name(name) = &target.kind {
                         binding_at(&state, name, target.span)
-                            .map(|index| (index, vec![Target::Unknown]))
+                            .map(|index| (index, None))
                     } else {
                         None
                     }
@@ -203,15 +154,14 @@ pub(super) fn analyze(
         };
         if let Some((destination, candidates)) = destination {
             if state[destination].contract.is_none() {
-                let snapshot = resolve_all(candidates, &state, declarations);
-                state[destination].targets = snapshot.map_or_else(
+                state[destination].targets = candidates.map_or_else(
                     || vec![Target::Unknown],
                     |contracts| contracts.into_iter().map(Target::Contract).collect(),
                 );
             }
         }
         let successors = node.next.iter().map(|&next| (next, &state))
-            .chain(node.exceptional.into_iter().map(|next| (next, &incoming)));
+            .chain(node.exceptional.into_iter().flat_map(|next| failures.iter().map(move |state| (next, state))));
         for (successor, outgoing) in successors {
             if successor == 0 {
                 continue;

@@ -7976,3 +7976,11 @@ fn finally_source_contract_error_points_to_cleanup_target() {
     assert_eq!(diagnostics[0]["range"]["start"],json!(at(source,"alias(value)",0)),"{diagnostics}");
     assert_eq!(diagnostics[0]["relatedInformation"][0]["location"]["range"]["start"],json!(at(source,"two<",0)),"{diagnostics}");
 }
+
+#[test]
+fn expression_replacement_contract_error_points_to_saved_callee() {
+    let source="function one<T>(value:T):T{return value;}function two<T>(left:T,right:T):T{return left;}function unused<T>(value:T):T{let alias=one;return (alias=two)<T>(value);}function main(){}";
+    let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(source,"file:///test.tsr").unwrap()).unwrap();
+    assert_eq!(diagnostics[0]["code"],"arity","{diagnostics}");
+    assert_eq!(diagnostics[0]["relatedInformation"][0]["location"]["range"]["start"],json!(at(source,"two<",0)),"{diagnostics}");
+}

@@ -54,3 +54,14 @@ fn expression_source_contracts_preserve_snapshots_lazy_paths_and_replacements() 
         }
     }
 }
+
+#[test]
+fn expression_contracts_execute_formatted_assignment_callees_and_lazy_order() {
+    let directory = support::TempDirectory::new();
+    let source = include_str!("fixtures/source-call-expression-order/contracts.tsr");
+    let formatted = tsrust_compiler::format(source).unwrap();
+    assert_eq!(tsrust_compiler::format(&formatted).unwrap(), formatted);
+    let output = support::cli().arg("run").arg(directory.source(&formatted)).output().unwrap();
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert!(output.stdout.is_empty());
+}

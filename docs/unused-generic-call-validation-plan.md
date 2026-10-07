@@ -335,3 +335,40 @@ not relax concrete callable ownership or environment compatibility. Add focused
 editor diagnostics and formatted native/strict TypeScript evaluation-order controls,
 reuse the registered generic adapter family for untimed verification, then run the
 affected generic suites and all eight depth canaries. Full Gate173 remains open.
+
+## Expression evaluator implementation checkpoint (not accepted)
+
+The isolated generic_call_expression_flow module now uses explicit task and value
+stacks. Calls snapshot the callee before arguments. Assignments return the evaluated
+right-side snapshot and commit after evaluation; conditional/logical/nullish paths
+join only selected environments. Checked operations retain per-step failure states,
+which feed the accepted exception graph. Failure states are not cloned when there
+is no active handler. Typed callable metadata alone does not prove a nullable or
+optional parameter truthy. Unsupported expression regions retain the existing
+conservative path, including optional chains and closure/captured effects.
+
+All thirteen source rejections and nine precision controls pass. Existing generic,
+loop and exception suites, eight depth canaries and the whole editor pass. The
+parser now recognizes explicit type arguments on grouped assignment, sequence,
+conditional, call and index expressions rather than treating those forms as
+comparisons. Numeric comparison forms retain their ordinary parsing. An editor
+witness retains the source call and failing declaration.
+
+A required native witness remains red: invoking `(action = action)<T>(value)` is
+rejected with “Unsupported call or method.” The strict TypeScript/Node counterpart
+passes. Do not drop this test, call this checkpoint accepted or silently narrow
+assignment expressions to scalar-only behavior. The existing concrete call dispatch
+does not select assignment-expression callees; scalar_assignment also restricts
+owned assignment values. Finish this ownership-aware invocation path before
+accepting the expression chunk.
+
+Investigate the existing discarded-assignment and sequence staging paths first.
+For an assignment used as callee, replace the destination once, then invoke the
+stored callable using its existing read/mutate/once contract. Preserve destination
+loans during argument evaluation, consuming invocation and disposal. Do not copy
+an owned environment or use a signature-only replacement identity. Add failure,
+consuming and capture lifetime witnesses before broader assignment-result escape
+support. Keep the native witness and its owned-string assertion, and preserve the
+passing source checks while implementing this runtime path. Full Gate173 remains
+open beyond this chunk for capture effects, optional expression regions, stored
+fields, concrete environment replacement and lifetime/context coverage.

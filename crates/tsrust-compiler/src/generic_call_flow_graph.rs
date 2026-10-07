@@ -286,7 +286,11 @@ pub(super) fn graph(body: &[Stmt]) -> Option<Vec<Node<'_>>> {
                 | StmtKind::Expr(value) => nodes[index].expression = Some(value),
                 _ => return None,
             }
-            if task.throwing != 0 && nodes[index].expression.is_some_and(exceptions::may_fail) {
+            let assignment_failure = match &statement.kind {
+                StmtKind::Assign { target, operator, .. } => operator.is_some() || exceptions::may_fail(target),
+                _ => false,
+            };
+            if task.throwing != 0 && (assignment_failure || nodes[index].expression.is_some_and(exceptions::may_fail)) {
                 nodes[index].exceptional = Some(task.throwing);
             }
             entry = index;

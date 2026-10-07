@@ -4479,7 +4479,7 @@ impl Parser<'_> {
             } else if self.accept("[") {
                 self.index_step(&mut slot)?;
             } else if self.is("(")
-                || (matches!(slot.as_ref().expect("postfix operand").kind, ExprKind::Name(_) | ExprKind::Field(_, _))
+                || (matches!(slot.as_ref().expect("postfix operand").kind, ExprKind::Name(_) | ExprKind::Field(_, _) | ExprKind::Sequence(_) | ExprKind::Assign { .. } | ExprKind::Conditional { .. } | ExprKind::Call(..) | ExprKind::Index(..) | ExprKind::Unary { op: UnaryOp::OptionalBoundary | UnaryOp::OptionalSelected | UnaryOp::NonNull, .. })
                     && self.has_explicit_call_arguments())
             {
                 self.call_step(&mut slot)?;
