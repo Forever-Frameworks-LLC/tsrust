@@ -86,3 +86,39 @@ The red and formatting evidence are byte-verified in SQLite under
 `runtime/diagnostics/borrowed-conditional-carriers/`. Whole-project formatting
 changes zero files and fingerprints. The accepted owned prerequisite is commit
 30c92f1. All 15 owner-edited fixtures remain unstaged.
+
+## Borrowed native dispatch prerequisite
+
+borrowed_callable_dispatch.rs now emits a static two-alternative generic sum.
+Each alternative retains its concrete environment type, including Rust lifetime
+parameters. Readonly and mutable invocation implement the existing ReadCallback
+and Callback protocols, respectively. Count-aware dispatch forwards the original
+argument value and supplied count to exactly one alternative. Results, including
+errors, pass through unchanged. The sum introduces no heap allocation, unsafe
+code, shared cells or cloning. Consuming contracts remain unsupported by this
+reusable dispatch prerequisite; their source semantics must be addressed before
+the full carrier feature is accepted.
+
+Three focused tests pass. Generated native execution at optimization levels 0 and
+3 verifies both alternatives, repeated readonly/mutable invocation, count forwarding,
+callback failure without mutation, and two original owners dropping exactly once
+after their scoped borrowers disappear. Generated Rust rejects a reference escaping
+its local owner and replacement of a mutably borrowed local before invocation.
+The independent Node reference verifies the retained source witness's intended
+`1 2` and `15 40` results. Whole-project formatting changes no files or hashes.
+Exact red and green logs are stored under
+`runtime/diagnostics/borrowed-dispatch-kernel/` in SQLite and restored byte for byte.
+
+This module is not wired into source analysis or emission. The Tsrust witness is
+still red. Next introduce a checked borrowed-family identity separate from owned
+StorageContract admission; retain environment-origin alternatives and invocation
+access. Carry actual concrete generic environment types into native use sites,
+add the call adapters expected by existing expression emission, and preserve source
+capture loans across conditional joins and scope exit. Audit return/aggregate
+escape checks before treating a family as a generic stored value. In particular,
+Type::StoredCallable currently denotes owning storage, so reusing it without
+checking every ownership and escape consumer would conceal a borrowed lifetime.
+Do not remove the existing owned environment rejection to reuse the owned emitter.
+After integration, run the retained source/native/editor witness, borrow conflict
+and escape controls, eight depth canaries, the full editor crate, and matched
+workload correctness before acceptance.

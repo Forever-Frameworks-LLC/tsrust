@@ -93,3 +93,17 @@ docs/conditional-callable-carriers-plan.md before implementation. The red is
 intentional and does not revoke owned prerequisite acceptance. Its exact failure
 and the zero-change whole-project formatting check are stored in SQLite under
 `runtime/diagnostics/borrowed-conditional-carriers/`.
+
+## Borrowed native dispatch prerequisite checkpoint
+
+The next checkpoint adds borrowed_callable_dispatch.rs as an isolated native sum
+emitter. Its three tests pass, including generated execution at optimization 0/3
+and native lifetime/conflict rejections. It is deliberately not connected to the
+source checker yet, so the retained borrowed conditional source red still fails.
+Read the final section of docs/conditional-callable-carriers-plan.md for the
+checked-family, call-adapter, capture-loan and escape integration requirements.
+All kernel evidence is in SQLite under
+`runtime/diagnostics/borrowed-dispatch-kernel/`; Node confirms the source oracle.
+No performance measurement or editor capability is claimed for this prerequisite.
+Continue from this handoff with source integration, not additional standalone
+kernel claims. Preserve all 15 owner fixture edits.

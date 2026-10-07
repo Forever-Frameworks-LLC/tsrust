@@ -11,6 +11,7 @@ mod callable_storage;
 mod callable_layout;
 mod callable_size;
 mod callable_dispatch;
+mod borrowed_callable_dispatch;
 mod callable_annotations;
 mod callable_resolution;
 mod callable_compatibility;
