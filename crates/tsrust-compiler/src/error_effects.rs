@@ -293,7 +293,7 @@ pub(crate) fn annotate_inferred_callbacks(program:&mut CheckedProgram)->ErrorEff
                 found |= match ty {
                     Type::Closure(id)=>effects.closure_errors.get(*id).cloned().unwrap_or_else(FailureSet::unknown),
                     Type::Callback(id)=>effects.callback_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
-                    Type::StoredCallable(id)=>effects.storage_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
+                    Type::StoredCallable(id)|Type::BorrowedCallable(id)=>effects.storage_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
                     Type::Null|Type::Undefined=>FailureSet::default(),
                     _=>FailureSet::unknown(),
                 };
@@ -318,7 +318,7 @@ pub(crate) fn executable_callers(program:&CheckedProgram)->(std::collections::Ha
                 if let Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id))=value.target {next_functions.push(id);}
                 if let Some(id)=value.closure_origin() {next_closures.push(id);}
                 if let Some(Type::Closure(id))=value.ty {next_closures.push(id);}
-                if let Some(Type::StoredCallable(id))=value.ty {
+                if let Some(Type::StoredCallable(id)|Type::BorrowedCallable(id))=value.ty {
                     if let Some((_,_,origins))=program.stored_contracts.families().find(|(family,_,_)|*family==id) {next_closures.extend(origins.iter().copied());}
                 }
             }
@@ -488,7 +488,7 @@ pub(crate) fn annotate_partial_with_callers(functions:&mut [Option<&mut CheckedF
                 found|=match ty {
                     Type::Closure(id)=>effects.closure_errors.get(*id).cloned().unwrap_or_else(FailureSet::unknown),
                     Type::Callback(id)=>effects.callback_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
-                    Type::StoredCallable(id)=>effects.storage_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
+                    Type::StoredCallable(id)|Type::BorrowedCallable(id)=>effects.storage_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
                     Type::Null|Type::Undefined=>FailureSet::default(),
                     _=>FailureSet::unknown(),
                 };
@@ -528,7 +528,7 @@ fn annotate_partial_with_contracts(functions:&mut [Option<&mut CheckedFunction>]
                 Some(ClosureForward::RestAdapter{..})=>match closure.function.bindings.first().map(|binding|binding.ty) {
                     Some(Type::Closure(id))=>effects.closure_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
                     Some(Type::Callback(id))=>effects.callback_errors.get(&id).cloned().unwrap_or_else(FailureSet::unknown),
-                    Some(Type::StoredCallable(id))=>effects.storage_errors.get(&id).cloned().unwrap_or_else(FailureSet::unknown),
+                    Some(Type::StoredCallable(id)|Type::BorrowedCallable(id))=>effects.storage_errors.get(&id).cloned().unwrap_or_else(FailureSet::unknown),
                     _=>FailureSet::unknown(),
                 },
                 Some(ClosureForward::Native(id))=>native_binding_effect(id),
@@ -688,7 +688,7 @@ fn native_effect(target:CallTarget,value:&Expr,effects:&ErrorEffects)->FailureSe
             let invoked=match callback.and_then(|value|value.ty) {
                 Some(Type::Closure(id))=>effects.closure_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
                 Some(Type::Callback(id))=>effects.callback_errors.get(&id).cloned().unwrap_or_else(FailureSet::unknown),
-                Some(Type::StoredCallable(id))=>effects.storage_errors.get(&id).cloned().unwrap_or_else(FailureSet::unknown),
+                Some(Type::StoredCallable(id)|Type::BorrowedCallable(id))=>effects.storage_errors.get(&id).cloned().unwrap_or_else(FailureSet::unknown),
                 None if matches!(target,ArraySort|ArrayToSorted)=>FailureSet::default(),
                 _=>FailureSet::unknown(),
             };

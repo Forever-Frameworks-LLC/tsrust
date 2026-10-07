@@ -472,5 +472,37 @@ function main() {
 This prints `12`. The selected function owns its copied scalar capture. If either
 alternative consumes its captured owner when invoked, the common function value
 also permits only one invocation. Selection does not implicitly clone an owner.
-Borrowed environments and polymorphic function alternatives still need their
-separate carrier support; they are not converted to owned functions implicitly.
+Borrowed environments use the scoped family described below. Polymorphic
+function alternatives remain pending. Neither is converted to an owned function
+implicitly.
+
+## Selecting scoped borrowed functions
+
+A conditional can also select concrete functions that borrow local data. The
+selected function keeps its original captures and invocation access. Repeated
+calls update the original captured variable. The family cannot outlive borrowed
+storage or be transferred into an owning callback contract. Keep its handle in
+an inner scope when later code needs exclusive access to the captured variables.
+
+```tsrust
+function main() {
+    let left = 0;
+    let right = 10;
+    {
+        const first = (): int => { left += 1; return left; };
+        const second = (): int => { right += 2; return right; };
+        const selected = false ? first : second;
+        console.log(selected(), selected());
+    }
+    console.log(left, right);
+}
+// 12 14
+// 0 14
+```
+
+Only the chosen alternative executes. Selection preserves each alternative's
+argument defaults and callback failures. Readonly families can be lent to
+ReadOnly<Function<...>> parameters; mutable families can be lent to
+Mutable<Function<...>> parameters. Selection does not clone captured data or create
+shared mutation cells. Consuming borrowed alternatives, polymorphic selection and
+replacement across distinct polymorphic origins remain pending.

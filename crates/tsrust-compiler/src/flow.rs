@@ -74,7 +74,7 @@ impl Guard {
                 Type::Boolean => "boolean",
                 Type::Undefined | Type::Void => "undefined",
                 Type::Null | Type::Set(_) | Type::Map(_) | Type::Array(_) | Type::Record(_) => "object",
-                Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::Callable(_) => "function",
+                Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_) | Type::Callable(_) => "function",
                 Type::Union(_) | Type::BorrowedUnion(_) => return false,
             },
         }

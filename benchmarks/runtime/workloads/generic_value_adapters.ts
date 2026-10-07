@@ -324,6 +324,19 @@ function workload(n: number, seed: number, input: string): number[][] {
         const capturedOffset = base + 2;
         const capturedCarrier = base % 2 === 0 ? ((value: number): number => value + capturedOffset) : ((value: number): number => value * capturedOffset);
         const capturedResult = capturedCarrier(base + 50);
+        const borrowedValues = [base, base + 1];
+        const borrowedReader = base % 2 === 0 ? (() => borrowedValues[0]) : (() => borrowedValues[1]);
+        const borrowedResult = borrowedReader();
+        let scopedLeft = base;
+        let scopedRight = base + 10;
+        let borrowedCalls = 0;
+        {
+            const scopedFirst = (): number => { scopedLeft += 1; return scopedLeft; };
+            const scopedSecond = (): number => { scopedRight += 2; return scopedRight; };
+            const scopedSelected = base % 2 === 0 ? scopedFirst : scopedSecond;
+            borrowedCalls = scopedSelected() + scopedSelected();
+        }
+        const borrowedMutation = borrowedCalls + scopedLeft + scopedRight;
         output.push([firstValue, firstCalls, generic.value.length, generic.calls, last.value.length, last.calls,
             mapped[0].value, mapped[1].value, mapped[0].calls, mapped[1].calls, after.value ? 1 : 0, after.calls,
             record.value, record.calls, stored.value.length, stored.calls, input.length,
@@ -351,7 +364,7 @@ function workload(n: number, seed: number, input: string): number[][] {
             explicitInt.value, explicitInt.calls, explicitText.value.length, explicitText.calls, explicitAfter.calls,
             optionalResult?.value ?? -1, optionalResult?.calls ?? -1, optionalSkipped === undefined ? 1 : 0, optionalEffects, optionalValues?.length ?? -1,
             patternValue, patternCalls, patternText.value.length, patternText.calls, patternRecord.value, patternRecord.calls,
-            sumDefault, sumUndefined, sumSpread, defaultPayloadAfter ? 1 : 0, assignmentFirst.value, assignmentFirst.calls, assignmentLast.value.length, assignmentLast.calls, lexicalNumber, lexicalText.length, capturedNumber(), capturedText().length, retainedFirst<number>(base + 48), retainedFirst<string>("poly").length, retainedSecond<number>(0, base + 49), commonResult, capturedResult]);
+            sumDefault, sumUndefined, sumSpread, defaultPayloadAfter ? 1 : 0, assignmentFirst.value, assignmentFirst.calls, assignmentLast.value.length, assignmentLast.calls, lexicalNumber, lexicalText.length, capturedNumber(), capturedText().length, retainedFirst<number>(base + 48), retainedFirst<string>("poly").length, retainedSecond<number>(0, base + 49), commonResult, capturedResult, borrowedResult, borrowedMutation]);
     }
     return output;
 }

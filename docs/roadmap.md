@@ -696,3 +696,10 @@ and the matched generic adapter scenario retains 129 values with five untimed
 native/Node-after-tsc cases verified. Borrowed carriers, polymorphic replacement
 and checked mutable source environments remain open. No new timing or complete
 gate173 acceptance is claimed. See conditional-callable-carriers-plan.md.
+
+Gate173 now has scoped monomorphic borrowed conditional carriers alongside owned
+carriers. Local capture lifetimes, readonly/mutable callback loans, defaults and
+callback failures survive selection. Scope escape and ownership transfer guards
+remain enforced. Matched workload support retains 131 observations; timing remains
+pending. Polymorphic replacement, consuming borrowed sums and point-sensitive
+mutable environment restoration remain open.

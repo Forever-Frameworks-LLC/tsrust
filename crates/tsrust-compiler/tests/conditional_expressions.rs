@@ -420,3 +420,102 @@ fn borrowed_conditional_carriers_preserve_selected_local_capture_mutation() {
         }
     "#, "1 2\n15 40\n", None);
 }
+
+#[test]
+fn borrowed_conditional_carriers_preserve_defaults_and_callback_failures() {
+    support::execute(r#"
+        function defaults(flag:boolean):int {
+            const left=[1];const right=[2];
+            const first=(value:int=3):int=>left[0]+value;
+            const second=(value:int=7):int=>right[0]+value;
+            const selected=flag?first:second;
+            return selected()+selected(5);
+        }
+        function failures(flag:boolean,fail:boolean):int {
+            const values=[4];
+            const selected=flag?((value:int):int=>values[0]+value):((value:int):int=>values[0]/value);
+            try{return selected(fail?0:2);}catch(error){return -1;}
+        }
+        function main(){console.log(defaults(true),defaults(false));console.log(failures(true,false),failures(false,false),failures(false,true));}
+    "#, "10 16\n6 2 -1\n", None);
+}
+
+#[test]
+fn borrowed_conditional_carriers_reject_conflicts_and_scoped_escape() {
+    for (source,code) in [
+        ("function main(){let left=0;let right=10;const first=():int=>{left+=1;return left;};const second=():int=>{right+=1;return right;};const selected=true?first:second;left=3;console.log(selected());}","capture-conflict"),
+        ("function factory(flag:boolean){const left=[1];const right=[2];const first=():int=>left.length;const second=():int=>right.length;const selected=flag?first:second;return selected;}function main(){}","callback-escape"),
+        ("function take(action:Function<int>):int{return action();}function main(){const left=[1];const right=[2];const selected=false?(()=>left.length):(()=>right.length);console.log(take(selected));}","callback-contract"),
+        ("function main(){const left=[1];const right=[2];const selected=false?(()=>left.length):(()=>right.length);try{throw selected;}catch{}}","closure-escape"),
+    ] {support::reject(source,code);}
+}
+
+#[test]
+fn borrowed_conditional_carriers_pass_scoped_callback_contracts() {
+    support::execute(r#"
+        function read(action:ReadOnly<Function<int>>):int{return action();}
+        function change(action:Mutable<Function<int>>):int{return action();}
+        function main(){
+            const left=[1];const right=[2,3];
+            const selected=false?(()=>left.length):(()=>right.length);
+            console.log(read(selected));
+            let first=0;let second=10;
+            {const selected=false?(()=>{first+=1;return first;}):(()=>{second+=2;return second;});console.log(change(selected),change(selected));}
+            console.log(first,second);
+        }
+    "#, "2\n12 14\n0 14\n", None);
+}
+
+#[test]
+fn borrowed_conditional_direct_invocation_joins_both_failure_contracts() {
+    support::execute(r#"
+        function choose(flag:boolean,value:int):int {
+            const values=[4];
+            try{return (flag?((input:int):int=>values[0]+input):((input:int):int=>values[0]/input))(value);}catch(error){return -1;}
+        }
+        function main(){console.log(choose(true,2),choose(false,2),choose(false,0));}
+    "#, "6 2 -1\n", None);
+}
+
+#[test]
+fn borrowed_conditional_source_owners_dispose_once_after_scoped_handles() {
+    let source=r#"type Owner={id:int;};function main(){const first:Owner={id:1};const second:Owner={id:2};{const selected=false?(()=>first.id):(()=>second.id);console.log(selected(),selected());}console.log(first.id,second.id);}"#;
+    let formatted=support::format_round_trip(source);
+    let checked=check(&formatted).unwrap();
+    let rust=checked.emit_rust().replace("fn main()","fn source_main()")+
+        "\nstatic DROPS:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);impl Drop for Record0{fn drop(&mut self){DROPS.fetch_add(1,std::sync::atomic::Ordering::SeqCst);}}fn main(){source_main();assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCst),2);}";
+    let directory=support::TempDirectory::new();let path=directory.0.join("borrowed.rs");std::fs::write(&path,rust).unwrap();
+    for level in ["0","3"] {
+        let executable=directory.0.join(format!("borrowed-{level}"));
+        support::success(&support::run(support::rustc().args(["--edition=2024","-C",&format!("opt-level={level}")]).arg(&path).arg("-o").arg(&executable),60));
+        let output=support::run(&mut std::process::Command::new(&executable),10);support::success(&output);assert_eq!(output.stdout,b"2 2\n1 2\n");
+    }
+}
+
+#[test]
+fn borrowed_conditional_callback_arguments_preserve_failures_through_parameters() {
+    support::execute(r#"
+        function apply(action:ReadOnly<Function<int,[int]>>,value:int):int{return action(value);}
+        function choose(flag:boolean,value:int):int{
+            const values=[4];
+            const selected=flag?((input:int):int=>values[0]+input):((input:int):int=>values[0]/input);
+            try{return apply(selected,value);}catch(error){return -1;}
+        }
+        function main(){console.log(choose(true,2),choose(false,2),choose(false,0));}
+    "#, "6 2 -1\n", None);
+}
+
+#[test]
+fn borrowed_conditional_carriers_join_read_mutate_and_owning_alternatives() {
+    support::execute(r#"
+        function ownership(flag:boolean):int{
+            const values=[3];const selected=flag?(()=>values.length):(()=>7);return selected();
+        }
+        function access(flag:boolean):int{
+            const values=[1,2];let changed=0;let calls=0;
+            {const first=():int=>values.length;const second=():int=>{changed+=1;return changed;};const selected=flag?first:second;calls=selected()+selected();}
+            return calls+changed;
+        }
+        function main(){console.log(ownership(true),ownership(false),access(true),access(false));}
+    "#, "1 7 4 5\n", None);
+}

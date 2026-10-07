@@ -42,7 +42,7 @@ impl Analyzer {
         while let Some(ty)=pending.pop(){
             if !seen.insert(ty){continue;}
             match ty {
-                Type::Closure(_)|Type::Callback(_)|Type::Callable(_)|Type::StoredCallable(_)=>return true,
+                Type::Closure(_)|Type::Callback(_)|Type::Callable(_)|Type::StoredCallable(_)|Type::BorrowedCallable(_)=>return true,
                 Type::Array(element)=>pending.push(element.ty()),
                 Type::Record(id)=>{
                     for field in &self.program.records[id].fields {

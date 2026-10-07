@@ -23,7 +23,17 @@ export function assertGenericAdapterSource(source,row,kind) {
         'const capturedOffset = base + 2;',
         `const capturedCarrier = base % 2 === 0 ? ((value: ${parameter}): ${parameter} => value + capturedOffset) : ((value: ${parameter}): ${parameter} => value * capturedOffset);`,
         'const capturedResult = capturedCarrier(base + 50);',
-        'commonResult, capturedResult]);',
+        'commonResult, capturedResult, borrowedResult, borrowedMutation]);',
+        'const borrowedValues = [base, base + 1];',
+        'const borrowedReader = base % 2 === 0 ? (() => borrowedValues[0]) : (() => borrowedValues[1]);',
+        'const borrowedResult = borrowedReader();',
+        'let scopedLeft = base;',
+        'let scopedRight = base + 10;',
+        'const scopedSelected = base % 2 === 0 ? scopedFirst : scopedSecond;',
+        'borrowedCalls = scopedSelected() + scopedSelected();',
+        'scopedLeft += 1;',
+        'scopedRight += 2;',
+        'const borrowedMutation = borrowedCalls + scopedLeft + scopedRight;',
     ])if(!containsCodeSnippet(tokens,snippet))throw Error('Common conditional carrier scenario changed: '+snippet);
 
 }

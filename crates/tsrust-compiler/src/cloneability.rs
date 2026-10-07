@@ -63,7 +63,7 @@ impl Cloneability {
                     Type::Closure(_)
                     | Type::Callback(_)
                     | Type::Callable(_)
-                    | Type::StoredCallable(_)
+                    | Type::StoredCallable(_) | Type::BorrowedCallable(_)
                     | Type::Void => {
                         if allowed[parent] {
                             allowed[parent] = false;
@@ -104,7 +104,7 @@ impl Cloneability {
             Type::Closure(_)
             | Type::Callback(_)
             | Type::Callable(_)
-            | Type::StoredCallable(_)
+            | Type::StoredCallable(_) | Type::BorrowedCallable(_)
             | Type::Void => return false,
             Type::Union(_) | Type::BorrowedUnion(_) => (),
             Type::Array(_) => unreachable!("array dimensions removed"),
@@ -128,7 +128,7 @@ impl Cloneability {
                 Type::Closure(_)
                 | Type::Callback(_)
                 | Type::Callable(_)
-                | Type::StoredCallable(_)
+                | Type::StoredCallable(_) | Type::BorrowedCallable(_)
                 | Type::Void => {
                     return false;
                 }

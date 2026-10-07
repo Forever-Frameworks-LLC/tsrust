@@ -8050,3 +8050,20 @@ fn inferred_owned_conditional_carriers_keep_call_help_and_result_chains() {
   assert!(!ask(&source,"textDocument/hover","toLowerCase()",0).is_null());
  }
 }
+
+#[test]
+fn borrowed_conditional_carriers_keep_hover_signature_help_and_result_chains() {
+    for group in [false,true] {
+        let expression="false?((text:string):string=>text.trim()+String(values.length)):((text:string):string=>text.toUpperCase()+String(values.length))";
+        let expression=if group {format!("({expression})")}else{expression.to_owned()};
+        let source=format!("function main(){{const values=[1];const chosen={expression};const result=chosen('Pat');console.log(result.toLowerCase());}}");
+        assert!(tsrust_compiler::check(&source).is_ok());
+        let help=ask(&source,"textDocument/signatureHelp","'Pat')",0);
+        assert!(!help.is_null(),"{source}");assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),1);
+        assert!(help["signatures"][0]["label"].as_str().unwrap().contains("string"));
+        let hover=ask(&source,"textDocument/hover","chosen('Pat')",0);
+        assert!(!hover.is_null());let text=hover["contents"]["value"].as_str().unwrap();
+        assert!(text.contains("string"));assert!(!text.contains("BorrowedCallable"));
+        assert!(!ask(&source,"textDocument/hover","toLowerCase()",0).is_null());
+    }
+}

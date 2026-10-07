@@ -145,6 +145,13 @@ impl<'a> Contracts<'a> {
                     }
                     Some((Parameters::Declared(&actual.params), actual.result))
                 }
+                Type::BorrowedCallable(family) => {
+                    let actual=&self.callbacks[self.storage.declaration(family).expect("checked borrowed family")];
+                    if contract.kind.is_owned() || !actual.kind.can_pass_to(contract.kind) {
+                        return Err(Diagnostic::new("callback-contract","A scoped borrowed family requires a matching borrowed invocation contract.",span));
+                    }
+                    Some((Parameters::Declared(&actual.params),actual.result))
+                }
                 Type::StoredCallable(family) => {
                     let actual = &self.callbacks[self.storage.declaration(family).expect("checked stored family")];
                     if actual.kind != crate::syntax::CallbackKind::Owned

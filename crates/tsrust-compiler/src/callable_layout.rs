@@ -8,7 +8,7 @@ pub(crate) fn declared_storage_families(
     program: &CheckedProgram,
 ) -> std::collections::HashSet<usize> {
     let family = |ty| match ty {
-        Type::StoredCallable(id)
+        Type::StoredCallable(id) | Type::BorrowedCallable(id)
         | Type::Array(crate::syntax::ArrayElement::StoredCallable(id, _)) => Some(id),
         _ => None,
     };

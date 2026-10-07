@@ -16,8 +16,8 @@ nonpolymorphic checked alternatives use the existing callable storage registry.
 Their environments retain separate origins. The inferred common contract becomes
 consuming if either branch is consuming; a reusable alternative is adapted once
 without rebuilding its captures. Incompatible argument or result contracts remain
-errors. Borrowed and polymorphic alternatives remain open, not erased into this
-carrier. Template-only bodies do not certify a concrete layout.
+errors. Borrowed alternatives now use a separate scoped family described below.
+Polymorphic alternatives remain open, not erased into this owned carrier. Template-only bodies do not certify a concrete layout.
 
 checked_callable_storage.rs converts already checked values without rerunning the
 source expression. conditional_callable_carriers.rs constructs the common contract.
@@ -154,3 +154,38 @@ actual capture lifetimes. Export the common callable contract through projection
 and editor signature help. Only then rerun the source witness and acceptance
 checks. The source red, mixed lifetime/ownership cases, consuming borrowed cases,
 polymorphic carriers and environment restoration remain open.
+
+## Borrowed source integration
+
+The retained borrowed conditional source witness now runs with its intended
+`1 2` and `15 40` results. Type::BorrowedCallable identifies scoped families
+separately from owning Type::StoredCallable. The existing registry stores their
+structural callback contract and the distinct concrete origin pair. Its borrowed
+identity lookup is constant time, and origin compaction updates the identity keys
+as well as the origin lists. Borrowed contracts cannot certify owned storage.
+
+borrowed_conditional_carriers.rs checks each alternative once and registers the
+common contract. Conditional flow retains both branches' capture loans. A direct
+call constructs a family only for distinct alternatives; repeated invocation of
+the same origin keeps its previous receiver borrowing behavior. Return and throw
+paths reject scoped borrowed escapes. Owning callback transfers are rejected;
+matching scoped readonly/mutable callback parameters are supported.
+
+borrowed_callable_emit.rs emits the concrete lifetime-bearing native sum and
+call/count methods. Each arm forwards to its original environment. The common
+error contract joins both origins. borrowed_callback_result_adapters.rs converts
+that checked error payload when the family crosses a callback parameter boundary.
+The source/native witness caught the missing callback error dependency and the
+initial native Result mismatch; both are repaired. Projections export the common
+signature for editor hover, parameter help and result chains.
+
+Native checks cover readonly/mutable selection, repeated calls, defaults, direct
+conditional invocation, callback parameters, failures through those parameters,
+borrow conflicts and scoped return rejection. Original record owners dispose
+exactly once at optimization 0 and 3 after their scoped handles disappear. The
+matched workload adds two observations of readonly selection and mutation of
+original locals, retaining 131 values. Its oracle and mutation guards are updated.
+Full feature acceptance still requires consuming borrowed cases, polymorphic
+carriers and replacement, recursive environments and the remaining captured-effects
+plan. General nullable/aggregate and higher-order builtin transport of scoped sums
+also needs explicit coverage before claiming parity for those paths.

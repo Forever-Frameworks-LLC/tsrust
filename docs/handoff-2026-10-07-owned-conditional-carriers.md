@@ -118,3 +118,10 @@ scoped family identity, native call adapters, error dependencies, source escape
 checks and editor export. Follow the final section of the carrier plan for those
 concrete integration points. SQLite holds red/green/format evidence under
 `runtime/diagnostics/borrowed-family-contracts/`. Owner fixture edits stay unstaged.
+
+## Superseding source integration checkpoint
+
+The scoped borrowed source witness now runs. Continue from
+docs/handoff-2026-10-07-borrowed-conditional-carriers.md for current behavior,
+verification and remaining gates. Earlier notes in this document describe the
+prerequisites before their source integration.

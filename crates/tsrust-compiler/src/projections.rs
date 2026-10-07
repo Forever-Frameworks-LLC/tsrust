@@ -337,7 +337,7 @@ impl Analysis {
                         || matches!(&expression.kind, ExprKind::Field(base, _) if matches!(base.ty,Some(Type::Record(id)) if program.records[id].is_tuple()))
                         || (matches!(&expression.kind,ExprKind::Field(base,_) if matches!(base.ty,Some(Type::Record(id)) if self.program.records[id].name.text=="#RuntimeError")))
                         || (matches!(expression.kind, ExprKind::Name(_) | ExprKind::Field(_, _) | ExprKind::Closure { .. } | ExprKind::Conditional { .. })
-                        && expression.ty.is_some_and(|ty| matches!(ty, Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::Callable(_)))
+                        && expression.ty.is_some_and(|ty| matches!(ty, Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_) | Type::Callable(_)))
                         || matches!(
                         expression.target,
                         Some(
@@ -790,7 +790,7 @@ fn type_name(
                     crate::type_syntax::function_type_text(prefix, &parameters, &result)
                 })
         }
-        Type::StoredCallable(id) => program
+        Type::StoredCallable(id) | Type::BorrowedCallable(id) => program
             .stored_contracts
             .declaration(id)
             .and_then(|declaration| type_name(program, Type::Callback(declaration), names)),
@@ -811,7 +811,7 @@ fn callable_parameter(
 ) -> Option<String> {
     // Callback ownership already carries the environment access contract.
     // Do not render invalid doubled prefixes such as `read read (...)`.
-    let callback = matches!(ty, Type::Callback(_) | Type::StoredCallable(_));
+    let callback = matches!(ty, Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_));
     let ty = type_name(program, ty, names)?;
     let ty = crate::type_syntax::access_type_text(if callback || rest { crate::Mode::Copy } else { access }, &ty);
     let marker = if optional && !rest { "?" } else { "" };

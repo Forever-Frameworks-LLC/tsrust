@@ -1,3 +1,7 @@
+#[path = "borrowed_callback_result_adapters.rs"]
+mod borrowed_callback_result_adapters;
+#[path = "borrowed_callable_emit.rs"]
+mod borrowed_callable_emit;
 #[path = "exception_contract_emit.rs"]
 mod exception_contract_emit;
 #[path = "exception_emit.rs"]
@@ -230,6 +234,7 @@ pub(crate) fn ty(value: Type) -> String {
         ),
         Type::Closure(i) => format!("Closure{i}"),
         Type::StoredCallable(i) => format!("StoredCallable{i}"),
+        Type::BorrowedCallable(i) => format!("BorrowedCallable{i}"),
         Type::Callable(_) => unreachable!("unresolved callable result"),
         Type::Callback(_) => unreachable!("callback types only occur on generic parameters"),
     }
@@ -269,6 +274,7 @@ impl Emitter<'_> {
     }
 
     fn native_type(&self, value: Type) -> String {
+        if let Type::BorrowedCallable(id)=value {return self.borrowed_family_type(id,"'_");}
         if let Type::Closure(id) = value {
             let closure = &self.program.closures[id];
             let bounds = self.captured_callback_bounds(closure);
@@ -2330,6 +2336,7 @@ impl Emitter<'_> {
             .filter(|(id, _, origins)| !origins.is_empty() || declared_families.contains(id))
         {
             let contract = &self.program.callback_contracts[declaration];
+            if self.program.stored_contracts.is_borrowed(id) {self.emit_borrowed_family(&mut output,id,declaration,origins);continue;}
             let check_family = if contract.kind == crate::syntax::CallbackKind::SharedRead {
                 crate::callable_dispatch::Family::checked_shared
             } else { crate::callable_dispatch::Family::checked };
@@ -6971,7 +6978,7 @@ impl Emitter<'_> {
                 value,
                 ..
             } => {
-                let Type::StoredCallable(family) = expr.ty.expect("checked storage wrapper") else {
+                let (Type::StoredCallable(family)|Type::BorrowedCallable(family)) = expr.ty.expect("checked storage wrapper") else {
                     unreachable!();
                 };
                 let Type::Closure(origin) = value.ty.expect("checked storage origin") else {
@@ -7470,7 +7477,7 @@ impl Emitter<'_> {
                     Type::Closure(_)
                     | Type::Callable(_)
                     | Type::Callback(_)
-                    | Type::StoredCallable(_) => "function",
+                    | Type::StoredCallable(_) | Type::BorrowedCallable(_) => "function",
                     Type::Union(_) | Type::BorrowedUnion(_) => {
                         unreachable!("nullable typeof dispatched")
                     }
@@ -7519,6 +7526,12 @@ impl Emitter<'_> {
     /// least one is a union read as a copy or a view. Only alternatives of
     /// equal type can match; int and number compare by value.
     fn stored_callable_constructor(&self, family: usize, origin: usize, value: &str) -> String {
+        if self.program.stored_contracts.is_borrowed(family) {
+            let origins=self.program.stored_contracts.origins(family).expect("borrowed origins");
+            let variant=if origins[0]==origin {"Left"}else{"Right"};
+            let name=self.borrowed_family_type(family,"'_").replacen("<","::<",1);
+            return format!("{name}::{variant}({value})");
+        }
         let declaration=self.program.stored_contracts.declaration(family).expect("stored declaration");
         let name=self.native_type(Type::StoredCallable(family));
         let singleton=self.program.stored_contracts.singleton_origin(family, origin).expect("registered stored origin");
@@ -8673,7 +8686,7 @@ impl Emitter<'_> {
                     self.registered_closure_call(call,id,expr.span)
                 }
                 CallTarget::StoredCallable(binding) => {
-                    let Type::StoredCallable(family) = fun.bindings[binding].ty else {
+                    let (Type::StoredCallable(family)|Type::BorrowedCallable(family)) = fun.bindings[binding].ty else {
                         unreachable!("checked stored binding");
                     };
                     let declaration = self

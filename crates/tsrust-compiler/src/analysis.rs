@@ -14,6 +14,8 @@ mod named_capture_access;
 mod checked_callable_storage;
 #[path = "conditional_callable_carriers.rs"]
 mod conditional_callable_carriers;
+#[path = "borrowed_conditional_carriers.rs"]
+mod borrowed_conditional_carriers;
 #[path = "named_capture_context.rs"]
 mod named_capture_context;
 #[path = "capture_context.rs"]
@@ -2829,7 +2831,7 @@ impl Analyzer {
             Type::Void => "void",
             Type::Null => "null",
             Type::Undefined => "undefined",
-            Type::Closure(_) | Type::Callable(_) | Type::Callback(_) | Type::StoredCallable(_) => {
+            Type::Closure(_) | Type::Callable(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_) => {
                 "closure"
             }
             Type::Record(i) | Type::Enum(i, _) | Type::Set(i) | Type::Map(i) => &self.program.records[i].name.text,
@@ -4963,6 +4965,9 @@ impl Analyzer {
 
     #[inline(never)]
     fn check_throw_value(&mut self,context:&mut Context,value:&mut Expr)->Result<Type,Diagnostic> {
+        if matches!(self.expression_type_hint(context,value),Some(Type::BorrowedCallable(_))) {
+            return Err(Diagnostic::new("closure-escape","A thrown callable must own its captured storage.",value.span));
+        }
         let expected=self.expression_type_hint(context,value).filter(|ty|matches!(ty,Type::Closure(_)));
         if let Some(Type::Closure(origin))=expected
             && self.closures[origin].borrowed
@@ -4971,6 +4976,7 @@ impl Analyzer {
                 .related(self.closures[origin].span,"Borrowed callable is created here."));
         }
         let ty=self.expression(context,value,Mode::Consume,&Loans::new(),expected)?;
+        if matches!(ty,Type::BorrowedCallable(_)) {return Err(Diagnostic::new("closure-escape","A thrown callable must own its captured storage.",value.span));}
         if ty==Type::Void {return Err(Diagnostic::new("type","A thrown expression must produce a value.",value.span));}
         self.record_typed_completion(context,crate::completion::CompletionKind::Throw,ty,value.span);
         Ok(ty)
@@ -5285,6 +5291,9 @@ impl Analyzer {
             None => Type::Void,
         };
         context.returning_closure = false;
+        if matches!(actual,Type::BorrowedCallable(_)) {
+            return Err(Diagnostic::new("callback-escape","A scoped borrowed callable family cannot escape its captured storage.",span));
+        }
         let converted =
             self.callable_result_value(context, result_type, actual, span);
         if converted != actual
@@ -7142,7 +7151,7 @@ impl Analyzer {
                 value,
                 ..
             } => {
-                let Type::StoredCallable(family) = expr.ty.expect("checked storage wrapper") else {
+                let (Type::StoredCallable(family)|Type::BorrowedCallable(family)) = expr.ty.expect("checked storage wrapper") else {
                     unreachable!("stored wrapper type");
                 };
                 let actual = self.expression(context, value, Mode::Consume, loans, None)?;
@@ -7165,7 +7174,7 @@ impl Analyzer {
                 } else if self.speculative_access_run && !self.discovering_results {
                     self.callables.storage.note_speculative_origin(family, origin);
                 }
-                Ok(Type::StoredCallable(family))
+                Ok(if self.callables.storage.is_borrowed(family){Type::BorrowedCallable(family)}else{Type::StoredCallable(family)})
             }
             ExprKind::Unary {op:UnaryOp::CallableRestAdapter,value,..} => {
                 let Type::Closure(id)=expr.ty.expect("adapter type") else {unreachable!()};
@@ -8894,6 +8903,12 @@ impl Analyzer {
             && let Some(family)=self.common_owned_conditional_family(left,right,consequent.span)? {
             left=self.checked_stored_callable_value(context,consequent,family,left)?;
             right=self.checked_stored_callable_value(context,alternate,family,right)?;
+        }
+        if left!=right && !infer_nullable_closure
+            && let Some(family)=self.common_borrowed_conditional_family(left,right,consequent.span)? {
+            consequent.wrap_storage(family);consequent.ty=Some(Type::BorrowedCallable(family));
+            alternate.wrap_storage(family);alternate.ty=Some(Type::BorrowedCallable(family));
+            left=Type::BorrowedCallable(family);right=left;
         }
         if left != right && !(assignment_alias && left.owning() == right.owning()) {
             return Err(Diagnostic::new(
@@ -12651,7 +12666,12 @@ self.names_materialized_type(element.with_depth(0).ty())
         expected: Option<Type>,
     ) -> Result<(CallTarget, Type), Diagnostic> {
         let first_capture=context.capture_loans.len();
-        let checked_callee=matches!(callee.kind,ExprKind::Closure{..}|ExprKind::Call(_, _));
+        let distinct_conditional=if let ExprKind::Conditional{consequent,alternate,..}=&callee.kind {
+            let left=self.callback_value_hint(context,consequent)?;
+            let right=self.callback_value_hint(context,alternate)?;
+            left.is_none() || right.is_none() || left!=right
+        }else{false};
+        let checked_callee=matches!(callee.kind,ExprKind::Closure{..}|ExprKind::Call(_, _)) || distinct_conditional;
         if matches!(callee.kind,ExprKind::Closure{..}) {
             self.contextual_expression_callee(context,callee,args)?;
         }
@@ -12718,7 +12738,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                     CallTarget::ConditionalCallback(id),
                 )
             }
-            Type::StoredCallable(family) => {
+            Type::StoredCallable(family)|Type::BorrowedCallable(family) => {
                 let declaration = self
                     .callables
                     .storage
@@ -13484,7 +13504,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 return Ok(result);
             }
             let (params, result, invocation, target) = match context.bindings[binding].ty {
-                Type::StoredCallable(family) => {
+                Type::StoredCallable(family) | Type::BorrowedCallable(family) => {
                     let declaration =
                         self.callables.storage.declaration(family).ok_or_else(|| {
                             Diagnostic::new(
@@ -13577,7 +13597,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             if let Type::Closure(origin)=context.bindings[binding].ty {
                 expr.callable_origin=Some(CallableOrigin::Closure(origin));
             }
-            if let Type::StoredCallable(family)=context.bindings[binding].ty {
+            if let Type::StoredCallable(family)|Type::BorrowedCallable(family)=context.bindings[binding].ty {
                 expr.callable_origin=Some(CallableOrigin::Storage(family));
             }
             if let Type::Callback(contract)=context.bindings[binding].ty {

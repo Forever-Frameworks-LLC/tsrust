@@ -414,6 +414,8 @@ pub enum Type {
     Callback(usize),
     /// An owned storage family; its ID is separate from callback ownership paths.
     StoredCallable(usize),
+    /// A scoped family retaining the lifetimes of its concrete environments.
+    BorrowedCallable(usize),
     Union(UnionId),
     /// A scoped readonly view of an owned nullable payload.
     BorrowedUnion(UnionId),

@@ -1,6 +1,11 @@
 //! Static borrowed alternatives retain the concrete environments' lifetimes.
 use crate::Mode;
 
+pub(crate) fn emit_definition(output:&mut String,id:usize) {
+    use std::fmt::Write;
+    writeln!(output,"enum BorrowedCallable{id}<Left, Right> {{ Left(Left), Right(Right) }}").unwrap();
+}
+
 pub(crate) fn emit(output: &mut String, id: usize, mode: Mode, counted: bool) -> bool {
     use std::fmt::Write;
     let (trait_name, method, receiver) = match mode {
@@ -9,7 +14,7 @@ pub(crate) fn emit(output: &mut String, id: usize, mode: Mode, counted: bool) ->
         _ => return false,
     };
     let name = format!("BorrowedCallable{id}");
-    writeln!(output, "enum {name}<Left, Right> {{ Left(Left), Right(Right) }}").unwrap();
+    emit_definition(output,id);
     writeln!(output, "impl<Args, Result, Left, Right> {trait_name}<Args, Result> for {name}<Left, Right> where Left: {trait_name}<Args, Result>, Right: {trait_name}<Args, Result> {{").unwrap();
     writeln!(output, "fn {method}({receiver}, args: Args) -> Result {{ match self {{ Self::Left(value) => value.{method}(args), Self::Right(value) => value.{method}(args) }} }}").unwrap();
     if counted {
