@@ -130,6 +130,11 @@ impl Analyzer {
         let (parameters, result, kind) = match payload {
             Type::Callable(id) => (self.callables.results[id].params.clone(), self.callables.results[id].result, CallbackKind::Owned),
             Type::Callback(id) => (self.callables.callbacks[id].params.clone(), self.callables.callbacks[id].result, self.callables.callbacks[id].kind),
+            Type::StoredCallable(family) => {
+                let id = self.callables.storage.declaration(family).expect("fresh callable storage declaration");
+                let contract = &self.callables.callbacks[id];
+                (contract.params.clone(), contract.result, contract.kind)
+            }
             _ => return Err(Diagnostic::new("unsupported", "Fresh generic adaptation needs a concrete callable context.", span)),
         };
         let params = parameters.iter().enumerate().map(|(index, parameter)| Ok(CallableParameter {

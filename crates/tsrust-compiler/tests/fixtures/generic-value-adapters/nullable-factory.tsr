@@ -1,0 +1,17 @@
+import { strictEqual } from 'std:testing';
+function make() {
+    let calls = 0;
+    function select<T>(value: T): T { calls += 1; console.log(calls); return value; }
+    return select;
+}
+function missing(): Function<int, [value: int]> | undefined { return undefined; }
+function main() {
+    const present: Function<int, [value: int]> | undefined = make();
+    const first = present?.(7);
+    const second = present?.(8);
+    if (first === undefined || second === undefined) { throw 99; }
+    strictEqual(first, 7);
+    strictEqual(second, 8);
+    const absent: Function<int, [value: int]> | undefined = missing();
+    if (absent?.(9) !== undefined) { throw 99; }
+}

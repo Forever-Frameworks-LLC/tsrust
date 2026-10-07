@@ -7832,3 +7832,25 @@ fn fresh_generic_adapter_preserves_nested_callable_editor_contracts() {
     let definition = ask(source, "textDocument/definition", "make();", 0);
     assert_eq!(definition["range"]["start"], json!(at(source, "make(){", 0)), "{definition}");
 }
+
+#[test]
+fn nullable_generic_factory_editor_results_keep_absence() {
+    let source = "function make(){function select<T>(value:T):T{return value;}return select;}function main(){const action:Function<int,[value:int]>|undefined=make();const result=action?.(7);console.log(result);}";
+    tsrust_compiler::check(source).unwrap();
+    let hover = ask(source, "textDocument/hover", "result=", 0);
+    let text = hover["contents"]["value"].as_str().unwrap();
+    assert!(text.contains("int") && text.contains("undefined"), "{hover}");
+    let definition = ask(source, "textDocument/definition", "make();", 0);
+    assert_eq!(definition["range"]["start"], json!(at(source, "make(){", 0)), "{definition}");
+}
+
+#[test]
+fn heterogeneous_generic_factory_editor_results_keep_union() {
+    let source = "function left(){function select<T>(value:T):T{return value;}return select;}function right(){function select<T>(value:T):T[]{return [value];}return select;}function main(){const action:Function<int|int[],[value:int]>=(true?left:right)();const result=action(7);console.log(result);}";
+    tsrust_compiler::check(source).unwrap();
+    let hover = ask(source, "textDocument/hover", "result=", 0);
+    let text = hover["contents"]["value"].as_str().unwrap();
+    assert!(text.contains("int[]") && text.contains('|'), "{hover}");
+    let help = ask(source, "textDocument/signatureHelp", "7);", 0);
+    assert!(help["signatures"][0]["label"].as_str().unwrap().contains("int[]"), "{help}");
+}

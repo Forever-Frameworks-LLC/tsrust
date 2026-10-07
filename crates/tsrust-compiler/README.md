@@ -245,3 +245,13 @@ factory environment twice. Nested `void` results are supported, and optional
 callback positions do not infer the omission-added `undefined` as the generic
 payload. Defaults remain the declared callback's responsibility; adapters forward
 omission and rest arguments without evaluating a second default.
+
+A nullable callable annotation can also receive a fresh generic environment.
+Optional invocation returns `undefined` when the callable is absent and skips
+invocation arguments in that case. When present, repeated calls share the retained
+factory state. Selected factories can have different concrete result types when
+both results fit the requested union contract: a factory returning `T` and another
+returning `T[]` can receive `Function<int | int[], [value: int]>`. Arguments infer
+`T` before checking whether the requested result admits that concrete type. This
+does not permit incompatible parameter types or convert single-use results into
+reusable callbacks.

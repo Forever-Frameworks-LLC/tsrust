@@ -50,6 +50,13 @@ impl<'a> Contracts<'a> {
     ) -> Result<Option<Match<'a>>, Diagnostic> {
         if let Type::Callable(wanted) = expected {
             let contract = &self.results[wanted];
+            if let Type::Callable(id) = actual {
+                let source_kind = self.signatures.get(self.results[id].structural).kind.unwrap_or(crate::syntax::CallbackKind::Owned);
+                let target_kind = self.signatures.get(contract.structural).kind.unwrap_or(crate::syntax::CallbackKind::Owned);
+                if !source_kind.can_pass_to(target_kind) {
+                    return Err(Diagnostic::new("callback-contract", "Callable result ownership and invocation contracts cannot be interchanged.", span));
+                }
+            }
             let signature = match actual {
                 Type::Callable(id) => Some((
                     Parameters::Declared(&self.results[id].params),

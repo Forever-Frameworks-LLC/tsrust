@@ -64,6 +64,13 @@ impl Analyzer {
         }
         append_checked_record_fields(&mut self.program.records, &self.record_names,
             &self.unions, &mut self.fields, &mut self.callables)?;
+        if let Some(expected_result) = expected.and_then(|ty| self.checked_generic_callable_shape(ty).map(|(_, result)| result)) {
+            if !matches!(result, ResultAnnotation::Inferred(_)) {
+                let source_result = self.resolve_result(result)?;
+                self.require(source_result, Some(expected_result), span)?;
+            }
+            *result = crate::callable_annotations::result_annotation(&self.checked_value_annotation(expected_result, span)?);
+        }
         // The source parameter may have the same name as the outer alias. A
         // private lexical name makes the call target the existing environment.
         let hidden = format!("#generic-adapter-{id}");

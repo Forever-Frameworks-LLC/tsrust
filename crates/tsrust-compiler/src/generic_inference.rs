@@ -68,9 +68,6 @@ impl Types<'_> {
             .iter()
             .map(|variable| variable.text.clone())
             .collect::<BTreeSet<_>>();
-        if let (Some(pattern), Some(expected)) = (request.result, request.expected) {
-            self.unify(pattern, expected, &variables, bindings)?;
-        }
         let mut deferred = Vec::new();
         for (pattern, actual) in request.parameters.iter().zip(request.arguments) {
             if let Some((parameters, result)) = self
@@ -105,6 +102,15 @@ impl Types<'_> {
         for (pattern, actual) in deferred {
             self.unify(pattern, actual, &variables, bindings)?;
         }
+        if let (Some(pattern), Some(expected)) = (request.result, request.expected) {
+            // Inputs establish the payload first. A contextual result can accept
+            // that concrete result as one union member without changing it.
+            let accepted = self.contextual_type(pattern, bindings)
+                .is_some_and(|actual| self.unions.accepts(expected, actual));
+            if !accepted {
+                self.unify(pattern, expected, &variables, bindings)?;
+            }
+        }
         request.variables.iter().map(|variable| {
             bindings.get(&variable.text).copied().ok_or_else(|| Diagnostic::new(
                 "generic-inference",
@@ -131,7 +137,7 @@ impl Types<'_> {
         match &pattern.kind {
             Kind::Named(name) if variables.contains(&name.text) => {
                 if let Some(prior) = bindings.get(&name.text) {
-                    if *prior != actual {
+                    if *prior != actual && !self.unions.accepts(*prior, actual) {
                         return Err(mismatch());
                     }
                 } else {

@@ -1,3 +1,14 @@
+function missingFactory(): ((value: number) => Receipt<number>) | undefined { return undefined; }
+function scalarFactory() {
+    let calls = 0;
+    function select<T>(value: T): T { calls += 1; return value; }
+    return select;
+}
+function arrayFactory() {
+    let calls = 0;
+    function select<T>(value: T): T[] { calls += 1; return [value]; }
+    return select;
+}
 function increment(value: number): number { return value + 1; }
 function callbackFactory(start: number) {
     let calls = start;
@@ -184,6 +195,19 @@ function workload(n: number, seed: number, input: string): number[][] {
         const callback: (action: (value: number) => number, value: number) => Receipt<number> = callbackFactory(base + 180);
         const callbackFirst = callback(increment, base + 32);
         const callbackSecond = callback(increment, base + 33);
+        const nullable: ((value: number) => Receipt<number>) | undefined = make(base + 190);
+        const nullableRecord = nullable?.(base + 35);
+        if (nullableRecord === undefined) { throw 99; }
+        const absent = missingFactory();
+        let skipped = 0;
+        const absentValue = absent?.(base + skipped++);
+        if (skipped !== 0) { throw 99; }
+        const scalarView: ((value: number) => number | number[]) = (true ? scalarFactory : arrayFactory)();
+        const arrayView: ((value: number) => number | number[]) = (false ? scalarFactory : arrayFactory)();
+        const scalarResult = scalarView(base + 37);
+        const arrayResult = arrayView(base + 38);
+        if (typeof scalarResult !== "number") { throw 99; }
+        if (typeof arrayResult === "number") { throw 99; }
         output.push([firstValue, firstCalls, generic.value.length, generic.calls, last.value.length, last.calls,
             mapped[0].value, mapped[1].value, mapped[0].calls, mapped[1].calls, after.value ? 1 : 0, after.calls,
             record.value, record.calls, stored.value.length, stored.calls, input.length,
@@ -205,7 +229,8 @@ function workload(n: number, seed: number, input: string): number[][] {
             nestedSelections, nestedEvaluations,
             inferredFirst, inferredSecond, inferredMapped[0], inferredMapped[1],
             freshRecord.value, freshRecord.calls, freshStored.value.length, freshStored.calls,
-            callbackFirst.value, callbackFirst.calls, callbackSecond.value, callbackSecond.calls]);
+            callbackFirst.value, callbackFirst.calls, callbackSecond.value, callbackSecond.calls,
+            nullableRecord.value, nullableRecord.calls, absentValue === undefined ? 1 : 0, scalarResult, arrayResult[0]]);
     }
     return output;
 }

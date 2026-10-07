@@ -267,3 +267,18 @@ fn nested_callable_results_reject_incompatible_invocation_contracts() {
     let error = tsrust_compiler::check(source).err().expect("single-use results cannot satisfy reusable callable contracts");
     assert_eq!(error.code, "callback-contract", "{}: {}", error.code, error.message);
 }
+
+#[test]
+fn nullable_fresh_generic_adapters_preserve_presence_and_state() {
+    native(include_str!("fixtures/generic-value-adapters/nullable-factory.tsr"), "1\n2\n");
+}
+
+#[test]
+fn selected_generic_factories_join_heterogeneous_results() {
+    native(include_str!("fixtures/generic-value-adapters/heterogeneous-factories.tsr"), "1\n1\n");
+}
+
+#[test]
+fn generic_nullable_constraints_accept_existing_payload_members() {
+    native("import { strictEqual } from 'std:testing';function main(){const values=[7];const value=values.pop();strictEqual(value,7);}", "");
+}

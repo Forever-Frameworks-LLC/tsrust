@@ -505,3 +505,28 @@ retained exactly in SQLite. Five executable consumers were refreshed atomically
 and hash verified. No timing was run. This accepts the nested callable contract
 chunk; nullable contexts, heterogeneous joins and the wider Gate173 audit remain
 open. No full Gate173 acceptance is claimed.
+
+## Nullable contexts and heterogeneous factory results
+
+Fresh generic factory values now acquire nullable owned callable contracts.
+Present optional calls retain factory state; absent calls skip argument evaluation.
+Selected factories returning T and T[] acquire an int | int[] result contract
+without changing the inferred input payload. Argument constraints establish the
+payload before contextual result compatibility is checked. Adapter result views
+validate the materialized source result first, including invocation ownership.
+A single-use callable result still cannot satisfy a reusable result contract.
+Generic nullable constraints accept an existing payload member without inventing
+a union for incompatible inputs.
+
+All 37 adapter tests, the repaired bounded generic/default controls, two result-only
+signature controls, eight depth suites and 307 editor tests pass. Both strict
+TypeScript reference fixtures match native execution. Matched coverage appends five
+observations for nullable presence/absence and heterogeneous results, preserving
+previous observations. All five native/Node-after-tsc cases pass with 93 observations.
+Fallible workload ABI registration accepts the checked Result signature and rejects
+unknown error signatures. Canonical SQLite record:
+benchmarks/runtime/results/2026-10-07T01-30-18-635Z-verify.json.
+Original failures and final checks are stored with byte-exact readback. Five
+consumers were refreshed atomically and hash verified. No timing was run. This
+accepts the nullable/heterogeneous context chunk; full Gate173 and its remaining
+ownership/context audit stay open.
