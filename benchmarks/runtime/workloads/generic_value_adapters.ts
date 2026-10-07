@@ -49,6 +49,15 @@ function restFactory() {
     }
     return select;
 }
+function genericFactory<T>(seed: T, start: number) {
+    let calls = start;
+    function select<U>(value: U): Receipt<U> {
+        calls += 1;
+        if (typeof seed === "string") { calls += 1; }
+        return { value: value, calls: calls };
+    }
+    return select;
+}
 function workload(n: number, seed: number, input: string): number[][] {
     const output: number[][] = [];
     for (let i = 0; i < n; i += 1) {
@@ -122,6 +131,10 @@ function workload(n: number, seed: number, input: string): number[][] {
         const alias: (value: number) => Receipt<number> = factory(base + 60);
         const aliasValue = alias(base + 9);
         const selectedMapped = [base + 11, base + 12].map((false ? factory : factory)(base + 70));
+        const genericDirect: (value: number) => Receipt<number> = genericFactory("string", base + 80);
+        const genericFirst = genericDirect(base + 13);
+        const genericSecond = genericDirect(base + 14);
+        const genericMapped = [base + 15, base + 16].map(genericFactory(base, base + 90));
         output.push([firstValue, firstCalls, generic.value.length, generic.calls, last.value.length, last.calls,
             mapped[0].value, mapped[1].value, mapped[0].calls, mapped[1].calls, after.value ? 1 : 0, after.calls,
             record.value, record.calls, stored.value.length, stored.calls, input.length,
@@ -132,7 +145,9 @@ function workload(n: number, seed: number, input: string): number[][] {
             directFirst.value, directFirst.calls, directSecond.value, directSecond.calls,
             factoryMapped[0].value, factoryMapped[1].value, factoryMapped[0].calls, factoryMapped[1].calls,
             aliasValue.value, aliasValue.calls, selectedMapped[0].value, selectedMapped[1].value,
-            selectedMapped[0].calls, selectedMapped[1].calls]);
+            selectedMapped[0].calls, selectedMapped[1].calls,
+            genericFirst.value, genericFirst.calls, genericSecond.calls, genericMapped[0].value, genericMapped[1].value,
+            genericMapped[0].calls, genericMapped[1].calls]);
     }
     return output;
 }

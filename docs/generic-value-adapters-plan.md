@@ -214,3 +214,25 @@ checks and an added alias navigation/result-help control pass. The matched workl
 has fifty-one observations and verifies local alias and same-origin selection
 paths. Generic factories and selections with differing deferred origins still need
 separate source solving and joining; do not describe them as accepted.
+
+## Generic factory specialization and partial editor facts
+
+Fresh generic factories now prepare specialization from type hints without
+executing invocation arguments. The retained string/integer factory witness exposed
+a second defect: nested generic method instances were cached by declaration and
+invocation type arguments alone, so different captured types reused one checked
+body. Captured specializations now include projected capture types in both checked
+and source instance identities. Capture-free cache identities and existing limits
+remain unchanged. Original native witness and matched workload pass after repair.
+
+A new editor witness remains red: make('owner') still displays seed:T even though
+the compiler has checked seed:string. Generic call projection drops the entire
+fact when its returned deferred callable has no concrete result spelling. Fix this
+with additive partial parameter-call facts, not a fabricated void result or a
+fictional concrete callable shape. Collect source/callee/declaration spans and
+checked parameter contracts independently of result display. Project those spans
+with original module identities. Merge partial facts into editor help only when
+no full unambiguous fact exists, and omit the result suffix when unknown. Preserve
+ambiguity at shared specialization spans and nominal/access/default/rest metadata.
+Keep legacy/full call facts intact; add focused source/project/editor tests before
+accepting the generic factory increment. The existing failing editor witness stays.

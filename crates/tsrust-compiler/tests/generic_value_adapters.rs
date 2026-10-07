@@ -161,3 +161,8 @@ fn fresh_generic_adapters_accept_local_factory_aliases() {
 fn fresh_generic_adapters_accept_selected_factory_calls() {
     native("function make(start:int){console.log(start);let calls=start;function select<T>(value:T):T{calls+=1;console.log(calls);return value;}return select;}function main(){const factory=make;const fixed:Function<int,[value:int]>=(true?factory:factory)(10);if(fixed(7)!==7){throw 99;}const mapped=[3,4].map((false?factory:factory)(20));if(mapped[1]!==4){throw 99;}}", "10\n11\n20\n21\n22\n");
 }
+
+#[test]
+fn fresh_generic_adapters_specialize_generic_factories_once() {
+    native("function make<T>(seed:T){console.log(seed);function select<U>(value:U):U{console.log(seed);return value;}return select;}function main(){const fixed:Function<int,[value:int]>=make('owner');if(fixed(7)!==7){throw 99;}const mapped=[3,4].map(make(10));if(mapped[1]!==4){throw 99;}}", "owner\nowner\n10\n10\n10\n");
+}

@@ -31,6 +31,17 @@ impl Analyzer {
         let ExprKind::Call(callee, _) = &expression.kind else { return Ok(None); };
         if let ExprKind::Name(name) = &callee.kind
             && !context.names.contains_key(name)
+            && self.generic_functions.template(name).is_some()
+        {
+            // Specialization preparation reads type hints only. The staged
+            // source retains the real arguments and evaluates them once.
+            let mut prepared = expression.clone();
+            self.prepare_generic_call(context, &mut prepared, None)?;
+            let Some(Type::Closure(origin)) = self.expression_type_hint(context, &prepared) else { return Ok(None); };
+            return Ok(self.deferred_generic_values.contains_key(&origin).then_some(origin));
+        }
+        if let ExprKind::Name(name) = &callee.kind
+            && !context.names.contains_key(name)
             && let Some(&function) = self.function_names.get(name)
         {
             self.prepare_named_result_hint(context, function)?;

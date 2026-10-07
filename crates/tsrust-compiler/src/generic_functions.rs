@@ -42,10 +42,11 @@ struct Pending {
 #[derive(Default)]
 pub(crate) struct Cache {
     templates: BTreeMap<String, Function>,
-    instances: HashMap<(String, Vec<Key>), String>,
+    instances: HashMap<(String, Vec<Key>, Vec<Type>), String>,
     origins: HashMap<String, String>,
     counts: HashMap<String, usize>,
     checked_instances: HashMap<(String, Vec<Type>), String>,
+    captured_checked_instances: HashMap<(String, Vec<Type>, Vec<Type>), String>,
     pending: Vec<Pending>,
     argument_checks: Vec<ValueAnnotation>,
     calls: HashMap<(usize, usize), Vec<ValueAnnotation>>,
@@ -144,6 +145,19 @@ impl Cache {
         Ok(concrete)
     }
 
+    pub(crate) fn request_captured_checked(
+        &mut self, name: &str, arguments: Vec<Type>, captures: Vec<Type>,
+        types: &crate::generic_inference::Types<'_>, span: Span, depth: usize,
+    ) -> Result<String, Diagnostic> {
+        if captures.is_empty() { return self.request_checked(name, arguments, types, span, depth); }
+        let identity = (name.to_owned(), arguments.clone(), captures.clone());
+        if let Some(concrete) = self.captured_checked_instances.get(&identity) { return Ok(concrete.clone()); }
+        let annotations = arguments.iter().map(|ty| types.annotation(*ty, span)).collect::<Result<_, _>>()?;
+        let concrete = self.instance_with_captures(name, annotations, captures, span, depth)?;
+        self.captured_checked_instances.insert(identity, concrete.clone());
+        Ok(concrete)
+    }
+
     pub(crate) fn take_argument_checks(&mut self) -> Vec<ValueAnnotation> {
         std::mem::take(&mut self.argument_checks)
     }
@@ -185,6 +199,13 @@ impl Cache {
         span: Span,
         depth: usize,
     ) -> Result<String, Diagnostic> {
+        self.instance_with_captures(name, arguments, Vec::new(), span, depth)
+    }
+
+    fn instance_with_captures(
+        &mut self, name: &str, arguments: Vec<ValueAnnotation>, captures: Vec<Type>,
+        span: Span, depth: usize,
+    ) -> Result<String, Diagnostic> {
         let template = &self.templates[name];
         if arguments.len() != template.type_parameters.len() {
             return Err(Diagnostic::new(
@@ -200,6 +221,7 @@ impl Cache {
         let identity = (
             name.to_owned(),
             arguments.iter().map(key).collect::<Result<Vec<_>, _>>()?,
+            captures,
         );
         if let Some(name) = self.instances.get(&identity) {
             return Ok(name.clone());
@@ -385,6 +407,7 @@ pub(crate) fn specialize(program: &mut Program) -> Result<Cache, Diagnostic> {
     crate::generic_defaults::validate(program)?;
     let mut declarations = HashMap::new();
     let mut cache = Cache {
+        captured_checked_instances: HashMap::new(),
         templates: BTreeMap::new(),
         instances: HashMap::new(),
         origins: HashMap::new(),

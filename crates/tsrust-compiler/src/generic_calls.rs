@@ -283,9 +283,13 @@ impl Analyzer {
         let arguments =
             self.generic_functions
                 .infer(name, &hints, expected, &types, callee_span)?;
-        let concrete = self.generic_functions.request_checked(
+        let captures = self.named_captures.source_context(name, context, &self.program)?
+            .map(|(context, _)| context.bindings.iter().map(|binding| binding.ty).collect())
+            .unwrap_or_default();
+        let concrete = self.generic_functions.request_captured_checked(
             name,
             arguments,
+            captures,
             &types,
             expr.span,
             self.function_stack.len(),

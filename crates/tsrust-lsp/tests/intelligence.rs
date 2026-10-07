@@ -7795,3 +7795,16 @@ fn fresh_generic_factory_alias_navigation_and_concrete_results_are_preserved() {
     let help=ask(source,"textDocument/signatureHelp","7);",0);
     assert!(help["signatures"][0]["label"].as_str().unwrap().contains("int"),"{help}");
 }
+
+#[test]
+fn fresh_generic_factory_preserves_specialized_argument_help() {
+    let source="function make<T>(seed:T){function select<U>(value:U):U{console.log(seed);return value;}return select;}function main(){const fixed:Function<int,[value:int]>=make('owner');fixed(7);}";
+    tsrust_compiler::check(source).unwrap();
+    let help=ask(source,"textDocument/signatureHelp","'owner');",0);
+    let label=help["signatures"][0]["label"].as_str().unwrap();
+    assert!(label.contains("seed") && label.contains("string"),"{help}");
+    let definition=ask(source,"textDocument/definition","make('owner')",0);
+    assert_eq!(definition["range"]["start"],json!(at(source,"make<T>",0)),"{definition}");
+    let fixed=ask(source,"textDocument/signatureHelp","7);",0);
+    assert!(fixed["signatures"][0]["label"].as_str().unwrap().contains("int"),"{fixed}");
+}
