@@ -735,8 +735,9 @@ fn distinct_branch_contracts_reject_calls_invalid_for_a_reachable_target() {
 #[test]
 fn distinct_branch_contracts_keep_valid_omission_rest_and_overwrite() {
     for source in [
+        "function one<T>(value:T):T{return value;}function optional<T>(value:T,other:T=value):T{return other;}function unused<T>(flag:boolean,value:T):T{let action=one;if(flag){action=optional;}const saved=action;action=one;return saved<T>(value);}function main(){}",
         "function one<T>(value:T):T{return value;}function optional<T>(value:T,other:T=value):T{return other;}function unused<T>(flag:boolean,value:T):T{let action=one;if(flag){action=optional;}return action<T>(value);}function main(){}",
         "function one<T>(value:T):T{return value;}function rest<T>(value:T,...others:T[]):T{return value;}function unused<T>(flag:boolean,value:T):T{let action=one;if(flag){action=rest;}return action<T>(value);}function main(){}",
         "function one<T>(value:T):T{return value;}function two<T>(value:T,other:T):T{return other;}function unused<T>(flag:boolean,value:T):T{let action=one;if(flag){action=two;}action=one;return action<T>(value);}function main(){}",
-    ] {tsrust_compiler::check(source).unwrap_or_else(|error|panic!("{}",error.render("input.tsr",source)));}
+    ] {let formatted=support::format_round_trip(source);tsrust_compiler::check(&formatted).unwrap_or_else(|error|panic!("{}",error.render("input.tsr",&formatted)));}
 }

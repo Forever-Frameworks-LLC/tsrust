@@ -1,3 +1,5 @@
+**Gate 173 source-validation progress:** Distinct branch signatures and saved alias sets now retain arity checks and declaration links. Loop, exception and capture effects remain open. See [handoff](./handoff-2026-10-06-distinct-branch-contracts.md).
+
 **Formatter repair accepted:** Recursive `tsrust format` defaults to the working directory, with read-only `--check`, directory exclusions and stable type/assertion spacing. See [formatter handoff](./handoff-2026-10-06-recursive-format.md). Gate 173 remains in progress.
 
 **Gate 173 in progress:** [Named declaration signatures and inferred results](./milestones/173-nested-function-signatures.md). Nonrecursive omitted results now infer scalar, generic, captured and array types; generic argument hints defer unknown results. Captured optional/default function values now preserve omission, single default evaluation, ownership and signature help. Generic/rest function values and wider context coverage remain open. Matched result/default workloads are registered and verified untimed.

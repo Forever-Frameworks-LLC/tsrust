@@ -65,9 +65,11 @@ fn join(
     for (current, incoming) in current.iter_mut().zip(incoming) {
         let mut candidates = current.targets.clone();
         candidates.extend(incoming.targets.clone());
-        let joined =
-            resolve(candidates, &[], declarations).map_or(Target::Unknown, Target::Contract);
-        let targets = vec![joined];
+        let joined = resolve_all(candidates, &[], declarations);
+        let targets = joined.map_or_else(
+            || vec![Target::Unknown],
+            |contracts| contracts.into_iter().map(Target::Contract).collect(),
+        );
         if targets != current.targets {
             current.targets = targets;
             changed = true;
@@ -82,7 +84,7 @@ pub(super) fn analyze(
     initial: &[Binding],
     writes: &[targets::Write],
     declarations: &HashMap<String, Contract>,
-) -> Result<Option<HashMap<(usize, usize), Option<Contract>>>, Diagnostic> {
+) -> Result<Option<HashMap<(usize, usize), Option<Vec<Contract>>>>, Diagnostic> {
     let Some(nodes) = graph(&function.body) else {
         return Ok(None);
     };
@@ -134,7 +136,7 @@ pub(super) fn analyze(
     }
     states[entry] = Some(seed);
     let mut work = vec![entry];
-    let mut facts: HashMap<(usize, usize), Option<Contract>> = HashMap::new();
+    let mut facts: HashMap<(usize, usize), Option<Vec<Contract>>> = HashMap::new();
     while let Some(index) = work.pop() {
         let node = &nodes[index];
         let Some(statement) = node.statement else {
@@ -159,17 +161,19 @@ pub(super) fn analyze(
             }];
             crate::source_walk::body(&mut body, &mut |_| Ok(()), &mut |expression| {
                 if let ExprKind::Call(callee, _) = &expression.kind {
-                    let contract = resolve(targets::value(callee), &state, declarations);
+                    let contract = resolve_all(targets::value(callee), &state, declarations);
                     let key = (expression.span.start, expression.span.end);
                     // Repeated visits join path facts rather than replacing an
                     // earlier path with the last branch processed.
                     if let Some(previous) = facts.get(&key) {
                         let joined = match (previous, &contract) {
-                            (Some(previous), Some(current)) => resolve(
-                                vec![
-                                    Target::Contract(previous.clone()),
-                                    Target::Contract(current.clone()),
-                                ],
+                            (Some(previous), Some(current)) => resolve_all(
+                                previous
+                                    .iter()
+                                    .chain(current)
+                                    .cloned()
+                                    .map(Target::Contract)
+                                    .collect(),
                                 &[],
                                 declarations,
                             ),
@@ -215,9 +219,11 @@ pub(super) fn analyze(
         };
         if let Some((destination, candidates)) = destination {
             if state[destination].contract.is_none() {
-                let snapshot = resolve(candidates, &state, declarations)
-                    .map_or(Target::Unknown, Target::Contract);
-                state[destination].targets = vec![snapshot];
+                let snapshot = resolve_all(candidates, &state, declarations);
+                state[destination].targets = snapshot.map_or_else(
+                    || vec![Target::Unknown],
+                    |contracts| contracts.into_iter().map(Target::Contract).collect(),
+                );
             }
         }
         for &successor in &node.next {

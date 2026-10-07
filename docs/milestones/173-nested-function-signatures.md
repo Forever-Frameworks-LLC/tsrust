@@ -758,3 +758,29 @@ This extension passes 165 bounded compiler tests and aggregate whole-editor
 coverage of 316 tests after the focused Set documentation repair. Existing five
 matched cases pass untimed in 2026-10-07T03-19-54-872Z-verify.json, retained exactly
 in SQLite. See handoff-2026-10-06-branch-call-contracts.md.
+
+
+## Distinct branch contract sets
+
+Branch joins and initializer snapshots retain distinct generic and value argument
+cardinalities. Calls in unused generic declarations are checked against every known
+reachable contract instead of becoming unknown when shapes differ. Required,
+optional/default and rest parameters keep separate contracts. Definite assignments
+replace the candidate set, while saved aliases preserve their initializer set.
+Unknown targets still defer to concrete validation; this does not manufacture an
+origin or relax callable environment assignment rules.
+
+The isolated generic_call_contract_sets module resolves finite candidate sets and
+canonicalizes equal signatures with all original declaration locations. Canonical
+ordering prevents propagation from depending on traversal order. Diagnostics name
+the failing signature; equal-signature alternatives retain all related locations.
+
+Three rejection witnesses cover too few values, too many values and explicit generic
+argument counts across differing branches. Positive witnesses retain valid optional
+and rest calls, saved snapshots and narrowing after a definite overwrite. The editor
+witness identifies the invalid call and the reachable failing declaration. Native
+and strict TypeScript controls retain the existing branch fixture; the registered
+generic_value_adapters family is verified untimed. No artificial runtime workload
+is introduced for a source-only rejection repair. Full Gate173 remains open for
+loop/exception flow, expression ordering, captured writes, stored fields, concrete
+environment replacement and the remaining lifetime/context audit.

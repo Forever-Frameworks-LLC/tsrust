@@ -9,6 +9,9 @@ mod linear_flow;
 #[path = "generic_call_targets.rs"]
 mod targets;
 use targets::Target;
+#[path = "generic_call_contract_sets.rs"]
+mod contract_sets;
+use contract_sets::resolve_all;
 
 #[derive(Clone, PartialEq, Eq)]
 struct Contract {
@@ -168,42 +171,15 @@ fn collect(body: &[Stmt], bindings: &mut Vec<Binding>) {
         }
     }
 }
+/// Legacy conservative paths retain their common-shape summary.
 fn resolve(
     initial: Vec<Target>,
     bindings: &[Binding],
     declarations: &HashMap<String, Contract>,
 ) -> Option<Contract> {
-    let mut pending = initial;
-    let mut visited = HashSet::new();
+    let candidates = resolve_all(initial, bindings, declarations)?;
     let mut joined: Option<Contract> = None;
-    while let Some(target) = pending.pop() {
-        let candidate = match target {
-            Target::Unknown => return None,
-            Target::Contract(contract) => contract,
-            Target::Name(name, span) => {
-                let binding = bindings
-                    .iter()
-                    .enumerate()
-                    .filter(|(_, binding)| {
-                        binding.name == name
-                            && binding.scope.start <= span.start
-                            && span.end <= binding.scope.end
-                    })
-                    .min_by_key(|(_, binding)| binding.scope.end - binding.scope.start);
-                if let Some((index, binding)) = binding {
-                    if let Some(contract) = &binding.contract {
-                        contract.clone()
-                    } else {
-                        if visited.insert(index) {
-                            pending.extend(binding.targets.clone());
-                        }
-                        continue;
-                    }
-                } else {
-                    declarations.get(&name)?.clone()
-                }
-            }
-        };
+    for candidate in candidates {
         if let Some(contract) = &mut joined {
             if (contract.generic, contract.required, contract.maximum)
                 != (candidate.generic, candidate.required, candidate.maximum)
@@ -395,68 +371,71 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
                     }
                 }
                 resolve(targets::value(callee), &bindings, &declarations)
+                    .map(|contract| vec![contract])
             };
-            let Some(contract) = resolved else {
+            let Some(contracts) = resolved else {
                 return Ok(());
             };
-            if let Some(types) = explicit.get(&(expression.span.start, expression.span.end))
-                && (contract.generic == 0 || types.len() != contract.generic)
-            {
-                return Err(related(
-                    Diagnostic::new(
-                        if contract.generic == 0 {
-                            "type"
-                        } else {
-                            "arity"
-                        },
-                        if contract.generic == 0 {
-                            "Explicit type arguments require a declared generic function."
-                                .to_owned()
-                        } else {
-                            format!(
-                                "Generic function expects {} type argument{}, but this call supplies {}.",
-                                contract.generic,
-                                if contract.generic == 1 { "" } else { "s" },
-                                types.len()
-                            )
-                        },
-                        types.first().map_or(span, |value| value.span),
-                    ),
-                    &contract,
-                ));
-            }
-            let (supplied, exact) = cardinality(args);
-            if (exact && supplied < contract.required)
-                || contract.maximum.is_some_and(|maximum| supplied > maximum)
-            {
-                return Err(related(
-                    Diagnostic::new(
-                        "arity",
-                        format!(
-                            "Callable expects {}, but this call supplies {}{}.",
-                            match contract.maximum {
-                                Some(maximum) if maximum == contract.required => format!(
-                                    "{} argument{}",
-                                    maximum,
-                                    if maximum == 1 { "" } else { "s" }
-                                ),
-                                Some(maximum) => format!(
-                                    "between {} and {} arguments",
-                                    contract.required, maximum
-                                ),
-                                None => format!(
-                                    "at least {} argument{}",
-                                    contract.required,
-                                    if contract.required == 1 { "" } else { "s" }
-                                ),
+            for contract in contracts {
+                if let Some(types) = explicit.get(&(expression.span.start, expression.span.end))
+                    && (contract.generic == 0 || types.len() != contract.generic)
+                {
+                    return Err(related(
+                        Diagnostic::new(
+                            if contract.generic == 0 {
+                                "type"
+                            } else {
+                                "arity"
                             },
-                            if exact { "" } else { "at least " },
-                            supplied
+                            if contract.generic == 0 {
+                                "Explicit type arguments require a declared generic function."
+                                    .to_owned()
+                            } else {
+                                format!(
+                                    "Generic function expects {} type argument{}, but this call supplies {}.",
+                                    contract.generic,
+                                    if contract.generic == 1 { "" } else { "s" },
+                                    types.len()
+                                )
+                            },
+                            types.first().map_or(span, |value| value.span),
                         ),
-                        expression.span,
-                    ),
-                    &contract,
-                ));
+                        &contract,
+                    ));
+                }
+                let (supplied, exact) = cardinality(args);
+                if (exact && supplied < contract.required)
+                    || contract.maximum.is_some_and(|maximum| supplied > maximum)
+                {
+                    return Err(related(
+                        Diagnostic::new(
+                            "arity",
+                            format!(
+                                "Callable expects {}, but this call supplies {}{}.",
+                                match contract.maximum {
+                                    Some(maximum) if maximum == contract.required => format!(
+                                        "{} argument{}",
+                                        maximum,
+                                        if maximum == 1 { "" } else { "s" }
+                                    ),
+                                    Some(maximum) => format!(
+                                        "between {} and {} arguments",
+                                        contract.required, maximum
+                                    ),
+                                    None => format!(
+                                        "at least {} argument{}",
+                                        contract.required,
+                                        if contract.required == 1 { "" } else { "s" }
+                                    ),
+                                },
+                                if exact { "" } else { "at least " },
+                                supplied
+                            ),
+                            expression.span,
+                        ),
+                        &contract,
+                    ));
+                }
             }
             Ok(())
         })?;
