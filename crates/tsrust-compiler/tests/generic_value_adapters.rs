@@ -282,3 +282,8 @@ fn selected_generic_factories_join_heterogeneous_results() {
 fn generic_nullable_constraints_accept_existing_payload_members() {
     native("import { strictEqual } from 'std:testing';function main(){const values=[7];const value=values.pop();strictEqual(value,7);}", "");
 }
+
+#[test]
+fn generic_factory_values_preserve_callable_type_payloads() {
+    native(include_str!("fixtures/generic-value-adapters/callable-payload.tsr"), "1\n2\n");
+}
