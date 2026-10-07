@@ -1,32 +1,24 @@
 //! Immutable write facts let carrier planning observe nested stores without
 //! retaining overlapping mutable references or cloning source subtrees.
 use crate::analysis::{Analyzer, Type};
-use crate::syntax::{Expr, ExprKind, Stmt, StmtKind, UnaryOp};
+use crate::syntax::{Expr, ExprKind, Stmt, StmtKind};
 use crate::Span;
 
-pub(super) struct Write {
+pub(super) struct Write<'a> {
     pub binding: usize,
     pub path: Vec<String>,
-    pub ty: Type,
     pub span: Span,
-    pub source: Option<(usize, Vec<String>)>,
+    pub value: &'a Expr,
 }
 
-fn source(mut value:&Expr)->Option<(usize,Vec<String>)>{
-    while let ExprKind::Unary{op:UnaryOp::RecordCarrier,value:inner,..}=&value.kind{value=inner;}
-    let binding=Analyzer::root_binding(value)?;
-    let(_,path)=Analyzer::direct_fields(value)?;
-    Some((binding,path))
-}
-
-pub(super) fn collect(body: &[Stmt]) -> Vec<Write> {
+pub(super) fn collect(body: &[Stmt]) -> Vec<Write<'_>> {
     enum Work<'a> { Statement(&'a Stmt), Expression(&'a Expr) }
-    fn selected(binding: usize, path: Vec<String>, value: &Expr) -> Option<Write> {
+    fn selected(binding: usize, path: Vec<String>, value: &Expr) -> Option<Write<'_>> {
         let ty=value.ty?;
         (matches!(ty,Type::Record(_)) || !path.is_empty() && matches!(ty,Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)))
-            .then_some(Write{binding,path,ty,span:value.span,source:source(value)})
+            .then_some(Write{binding,path,span:value.span,value})
     }
-    fn assignment(target: &Expr, value: &Expr) -> Option<Write> {
+    fn assignment<'a>(target: &Expr, value: &'a Expr) -> Option<Write<'a>> {
         let binding=Analyzer::root_binding(target)?;
         let (_,path)=Analyzer::direct_fields(target)?;
         selected(binding,path,value)

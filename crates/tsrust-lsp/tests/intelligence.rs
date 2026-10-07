@@ -8139,3 +8139,18 @@ fn destructured_scoped_record_callbacks_keep_signature_help_and_hover() {
     assert!(text.contains("int"), "{hover}");
     assert!(!text.contains("BorrowedCallable"), "{hover}");
 }
+
+#[test]
+fn normalized_record_literal_transport_keeps_declared_callback_help() {
+    let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int,[amount:int]>>;};type Box={holder:Holder;};function main(){const a=[3];const b=[7];const c=[11];let source:Holder={run:(value:int):int=>value+a[0]};source={run:(value:int):int=>value+b[0]};const destination:Holder={run:source.run};source={run:(value:int):int=>value+c[0]};const box:Box={holder:destination};console.log(box.holder.run(4),source.run(2));}").unwrap();
+    assert_eq!(tsrust_compiler::format(&source).unwrap(),source);
+    assert!(tsrust_lsp::diagnostics(&source,"file:///test.tsr").unwrap().is_empty());
+    for token in ["4)","2)"] {
+        let help=ask(&source,"textDocument/signatureHelp",token,0);
+        assert!(help["signatures"][0]["parameters"][0]["label"].as_str().unwrap().contains("amount"),"{help}");
+    }
+    let hover=ask(&source,"textDocument/hover","run(4)",0);
+    let text=hover["contents"]["value"].as_str().unwrap();
+    assert!(text.contains("int"),"{hover}");
+    assert!(!text.contains("BorrowedCallable"),"{hover}");
+}

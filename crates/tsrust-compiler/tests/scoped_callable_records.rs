@@ -887,3 +887,64 @@ fn normalized_record_moves_propagate_through_multiple_storage_bindings() {
         }
     "#);
 }
+
+#[test]
+fn normalized_callback_field_moves_into_record_literal() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder={run:ReadOnly<Function<int>>;};
+        function main(){
+            const a=[3];const b=[7];const c=[11];
+            {
+                let source:Holder={run:():int=>a[0]};
+                source={run:():int=>b[0]};
+                const destination:Holder={run:source.run};
+                source={run:():int=>c[0]};
+                strictEqual(destination.run(),7);strictEqual(source.run(),11);
+                a[0]=5;strictEqual(a[0],5);
+            }
+            b[0]=9;c[0]=13;strictEqual(b[0]+c[0],22);
+        }
+    "#);
+}
+
+#[test]
+fn normalized_record_moves_into_nested_aggregate_literal() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder={run:ReadOnly<Function<int>>;};
+        type Box={holder:Holder;label:string;};
+        function main(){
+            const a=[3];const b=[7];
+            {
+                let source:Holder={run:():int=>a[0]};
+                source={run:():int=>b[0]};
+                const destination:Box={holder:source,label:"nested"};
+                strictEqual(destination.holder.run(),7);strictEqual(destination.label,"nested");
+                a[0]=5;strictEqual(a[0],5);
+            }
+            b[0]=9;strictEqual(b[0],9);
+        }
+    "#);
+}
+
+#[test]
+fn normalized_callback_field_moves_between_independent_storage_slots() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder={run:ReadOnly<Function<int>>;};
+        function main(){
+            const a=[3];const b=[7];const c=[11];const d=[19];
+            {
+                let source:Holder={run:():int=>a[0]};
+                source={run:():int=>b[0]};
+                let destination:Holder={run:():int=>c[0]};
+                destination.run=source.run;
+                source={run:():int=>d[0]};
+                strictEqual(destination.run(),7);strictEqual(source.run(),19);
+                a[0]=5;c[0]=13;strictEqual(a[0]+c[0],18);
+            }
+            b[0]=9;d[0]=23;strictEqual(b[0]+d[0],32);
+        }
+    "#);
+}

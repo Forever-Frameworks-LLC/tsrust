@@ -1903,3 +1903,40 @@ source storage into a record literal, including nested aggregate transport. Dire
 source dependencies are supported; physical types inside record-valued expression
 construction require their own boundary evidence. Fifteen owner fixtures stay
 untouched, and installed consumers remain f1dd284. No timing is claimed.
+
+
+## Record construction and field-to-field transport
+
+Native carrier planning now resolves record-valued expressions, including callback
+fields moved into record literals and records placed inside nested aggregates.
+The isolated record_value_carriers module resolves finalized owning storage types
+without changing point-sensitive capture loan facts. The immutable collector holds
+borrowed expression references, allowing overlapping parent and child facts without
+cloning AST subtrees. Literal emission types describe their actual native fields;
+conversion wrappers widen existing borrowed families instead of treating a family
+value as one concrete callback origin.
+
+Three native red witnesses are now green: a normalized callback field moved into
+a record literal, a normalized record moved into a nested aggregate literal, and a
+callback field moved between independent storage slots. They preserve callback
+results, replacement behavior and capture release. The independent Node reference
+agrees on their observable results. Focused editor coverage preserves declared
+callback argument names, hover types and clean diagnostics after formatted literal
+transport; internal BorrowedCallable names remain hidden.
+
+All 42 scoped-record project tests, 64 depth canaries and the focused editor witness
+pass. Formatting changes zero files and fingerprints. Thirteen exact records,
+including the initial Rust compile repair, are imported and verified in SQLite
+under runtime/diagnostics/scoped-record-aggregate/. No owner fixture or installed
+consumer changes. No timing or whole-feature acceptance is claimed.
+
+Continuation prompt: Continue after native record construction and field-to-field
+transport. Start with a focused borrowed-parameter replacement witness; distinguish
+capture-free replacement from an invalid escaping borrow. Then cover captured-carrier
+replacement, defaults, exception/payload disposal and owning/opaque/fallible composition.
+Complete the whole editor crate, guide examples and matched benchmark support before
+record feature acceptance. Keep point-sensitive loan rejection, one evaluation,
+independent disposal and public ownership rules. Do not reopen verified chunks.
+Preserve fifteen owner fixtures, bounded checks, the shared nonincremental target,
+project formatting, SQLite evidence and explicit Git paths. Installed consumers
+remain f1dd284.

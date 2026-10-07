@@ -35,11 +35,7 @@ impl Analyzer {
                 if binding.parameter || binding.capture_reference{continue;}
                 let ty=*plans.entry(write.binding).or_insert(binding.ty);
                 let Type::Record(record)=ty else{continue;};
-                let incoming=write.source.as_ref().and_then(|(source,path)|{
-                    let binding=&context.bindings[*source];
-                    if binding.parameter || binding.capture_reference{return None;}
-                    self.record_field_type(*plans.get(source).unwrap_or(&binding.ty),path)
-                }).unwrap_or(write.ty);
+                let incoming=self.record_value_carrier_type(context,write.value,&plans)?;
                 let joined=if write.path.is_empty(){
                     let Type::Record(incoming)=incoming else{continue;};
                     self.join_record_types(record,incoming,write.span)?
@@ -60,19 +56,27 @@ impl Analyzer {
             let Some(destination)=self.record_field_type(plan,&write.path)else{continue;};
             destinations.insert((write.span.start,write.span.end),destination);
         }
-        for(id,ty)in plans{context.bindings[id].ty=ty;}
+        for(&id,&ty)in &plans{context.bindings[id].ty=ty;}
         crate::source_walk::body(body,&mut |_|Ok(()),&mut |value|{
+            let stored_family=if let ExprKind::Unary{op:UnaryOp::CallableStore,value:inner,..}=&value.kind{
+                matches!(value.ty,Some(Type::BorrowedCallable(_))) && matches!(self.record_value_carrier_type(context,inner,&plans)?,Type::BorrowedCallable(_))
+            }else{false};
+            if stored_family && let ExprKind::Unary{op,..}=&mut value.kind{*op=UnaryOp::RecordCarrier;}
+            if matches!(value.kind,ExprKind::Record(_) | ExprKind::Unary{op:UnaryOp::RecordCarrier,..}){
+                value.ty=Some(self.record_value_carrier_type(context,value,&plans)?);
+            }
             let Some(destination)=destinations.remove(&(value.span.start,value.span.end))else{return Ok(());};
-            if value.ty==Some(destination){return Ok(());}
-            match(value.ty,destination){
-                (Some(Type::Closure(_)),Type::BorrowedCallable(family))=>Self::retarget_record_callback(value,family),
-                (Some(Type::Record(_)),Type::Record(_))|(Some(Type::BorrowedCallable(_)),Type::BorrowedCallable(_))=>value.wrap_record_carrier(destination),
+            let source=self.record_value_carrier_type(context,value,&plans)?;
+            if source==destination{return Ok(());}
+            match(source,destination){
+                (Type::Closure(_),Type::BorrowedCallable(family))=>Self::retarget_record_callback(value,family),
+                (Type::Record(_),Type::Record(_))|(Type::BorrowedCallable(_),Type::BorrowedCallable(_))=>value.wrap_record_carrier(destination),
                 _=>{}
             }
             Ok(())
         })
     }
-    fn record_field_type(&self,mut ty:Type,path:&[String])->Option<Type>{
+    pub(super) fn record_field_type(&self,mut ty:Type,path:&[String])->Option<Type>{
         for name in path{let Type::Record(record)=ty else{return None;};ty=self.program.records[record].fields.iter().find(|field|field.name.text==*name)?.ty?;}
         Some(ty)
     }
@@ -129,7 +133,7 @@ impl Analyzer {
         if self.fields.len()<=instance{self.fields.push(self.program.records[instance].fields.iter().map(|field|(field.name.text.clone(),field.ty.unwrap())).collect());}
         let ty=Type::Record(instance);left.ty=Some(ty);right.ty=Some(ty);Ok(Some(ty))
     }
-    fn join_record_types(&mut self,a:usize,b:usize,span:Span)->Result<Option<Type>,Diagnostic>{
+    pub(super) fn join_record_types(&mut self,a:usize,b:usize,span:Span)->Result<Option<Type>,Diagnostic>{
         let declaration=self.scoped_records.declaration(a);if declaration!=self.scoped_records.declaration(b){return Ok(None);}
         let mut fields=Vec::new();let mut changed=false;
         let pairs=self.program.records[a].fields.iter().zip(&self.program.records[b].fields).map(|(a,b)|(a.ty.unwrap(),b.ty.unwrap())).collect::<Vec<_>>();

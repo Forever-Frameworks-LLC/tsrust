@@ -1,6 +1,18 @@
 # Independent storage for scoped record fields
 
-## Problem and verified evidence
+## Current implementation status
+
+Layout, local declarations, owned parameter entry, deferred storage, static selected
+reads and stores, owning reconstruction, shared/mutable views and borrowed capture
+views are integrated for the tested scoped-record cases. Native control-flow carrier
+planning covers nested stores, direct and aggregate moves and callback field moves.
+The current focused batch has 42 passing project tests, all 64 depth canaries and
+editor coverage for record construction transport. Completion/capture mutation,
+defaults, disposal and owning/opaque/fallible composition still need boundary work.
+Milestone 8 remains open. The sections below retain the diagnostic and implementation
+sequence; the latest checkpoint section and handoff identify the next work.
+
+## Original problem and verified evidence
 
 The independent-field disposal witness now passes Tsrust analysis but fails native
 Rust E0502. Emission already moves the left Closure0 out of Record0; it does not
@@ -670,3 +682,40 @@ source storage into a record literal, including nested aggregate transport. Dire
 source dependencies are supported; physical types inside record-valued expression
 construction require their own boundary evidence. Fifteen owner fixtures stay
 untouched, and installed consumers remain f1dd284. No timing is claimed.
+
+
+## Record construction and field-to-field transport
+
+Native carrier planning now resolves record-valued expressions, including callback
+fields moved into record literals and records placed inside nested aggregates.
+The isolated record_value_carriers module resolves finalized owning storage types
+without changing point-sensitive capture loan facts. The immutable collector holds
+borrowed expression references, allowing overlapping parent and child facts without
+cloning AST subtrees. Literal emission types describe their actual native fields;
+conversion wrappers widen existing borrowed families instead of treating a family
+value as one concrete callback origin.
+
+Three native red witnesses are now green: a normalized callback field moved into
+a record literal, a normalized record moved into a nested aggregate literal, and a
+callback field moved between independent storage slots. They preserve callback
+results, replacement behavior and capture release. The independent Node reference
+agrees on their observable results. Focused editor coverage preserves declared
+callback argument names, hover types and clean diagnostics after formatted literal
+transport; internal BorrowedCallable names remain hidden.
+
+All 42 scoped-record project tests, 64 depth canaries and the focused editor witness
+pass. Formatting changes zero files and fingerprints. Thirteen exact records,
+including the initial Rust compile repair, are imported and verified in SQLite
+under runtime/diagnostics/scoped-record-aggregate/. No owner fixture or installed
+consumer changes. No timing or whole-feature acceptance is claimed.
+
+Continuation prompt: Continue after native record construction and field-to-field
+transport. Start with a focused borrowed-parameter replacement witness; distinguish
+capture-free replacement from an invalid escaping borrow. Then cover captured-carrier
+replacement, defaults, exception/payload disposal and owning/opaque/fallible composition.
+Complete the whole editor crate, guide examples and matched benchmark support before
+record feature acceptance. Keep point-sensitive loan rejection, one evaluation,
+independent disposal and public ownership rules. Do not reopen verified chunks.
+Preserve fifteen owner fixtures, bounded checks, the shared nonincremental target,
+project formatting, SQLite evidence and explicit Git paths. Installed consumers
+remain f1dd284.
