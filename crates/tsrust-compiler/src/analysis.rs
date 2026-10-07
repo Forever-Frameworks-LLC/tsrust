@@ -4742,6 +4742,7 @@ impl Analyzer {
             return Err(Self::transferred(&context.bindings[binding], target.span));
         }
         Self::storage_access(context, target, Mode::Mutate, target.span, loans)?;
+        self.replace_target_capture_loans(context, target, value);
         Ok(())
     }
 
@@ -5515,6 +5516,7 @@ impl Analyzer {
         context.bindings[id].mutable = true;
         target.binding = Some(id);
         target.ty = Some(ty);
+        self.replace_target_capture_loans(context, target, value);
         Ok(())
     }
 

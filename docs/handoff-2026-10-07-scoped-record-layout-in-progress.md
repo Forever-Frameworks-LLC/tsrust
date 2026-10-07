@@ -375,3 +375,34 @@ throw, break and continue payloads through unwind and projection. Only then remo
 loans whose tracked owners all died and whose retention is fully known. Resume the
 current source/native scope-release witness with all live-owner rejection controls.
 Installed consumers remain f1dd284; preserve fifteen owner fixtures.
+
+## Assignment payload owner integration
+
+A checker-state witness first failed because assigning a temporary back into an
+outer Holder left its payload owners on the dying temporary binding. Successful
+named and direct record field assignment now stage RHS payload owners before
+replacing destination ownership. The staging path is internal and removed before
+the store completes. This preserves whole-record self-assignment and field moves
+back into the same record without discarding the source environment. Assignment
+validation and evaluation still complete before ownership commit. Unknown indexed
+storage is not mapped to a falsely precise record path.
+
+The checker-state test covers whole-record restoration, field restoration and
+self-assignment. It proves disposal of the inner temporary retains the outer
+payload's loan identities. A new native std:testing witness exercises all three
+operations and releases the original array only after the outer record leaves scope.
+The focused loan batch passes eleven unit tests. The positive record batch passes
+eighteen tests, explicitly excluding the unchanged red scope-release witness.
+All eight mandatory canaries pass (64 tests). Fifteen extracted positive cases pass
+Node after TypeScript compilation. Project formatting changes zero files and
+fingerprints. Exact red and successful proof is stored under
+runtime/diagnostics/capture-loan-assignment/ in SQLite.
+
+No capture-conflict check is weakened, and actual loan release remains disabled.
+Before release, cover destructuring and opaque retained consumption with explicit
+ownership or conservative pins. Replace lexical and exception vector-position
+unwind with stable entry identities plus surviving payload owners. Then turn the
+independent field-disposal source/native witness green with the live-field controls,
+branch/loop/finally coverage and pending payload transfers. Complete record gate
+acceptance still needs its full guide, editor and matched workload support.
+Consumers remain f1dd284; all fifteen owner fixtures remain protected.

@@ -445,3 +445,30 @@ fn moved_and_remaining_record_fields_keep_live_capture_conflicts() {
         assert_eq!(error.code, "capture-conflict", "{error:?}");
     }
 }
+
+#[test]
+fn scoped_record_assignment_restores_field_and_whole_record_environments() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function main() {
+            const values = [3];
+            {
+                let holder: Holder = { run: (): int => values[0] };
+                holder = holder;
+                {
+                    const temporary = holder.run;
+                    holder.run = temporary;
+                }
+                strictEqual(holder.run(), 3);
+                {
+                    const temporary = holder;
+                    holder = temporary;
+                }
+                strictEqual(holder.run(), 3);
+            }
+            values[0] = 5;
+            strictEqual(values[0], 5);
+        }
+    "#);
+}
