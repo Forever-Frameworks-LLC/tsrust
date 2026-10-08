@@ -391,7 +391,9 @@ function workload(n: int, seed: int, input: string): int[][] {
         let nestedAbrupt=0;
         try {nestedAbrupt=nestedAbruptCleanup(value % 2 === 0,value,abruptTrace);}catch(error){nestedAbrupt=11;}
         nestedAbrupt+=abruptTrace[0]*100+abruptTrace[1]*10+abruptTrace[2]*1000+abruptTrace[3];
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt]);
+        const returnedTrace=[0,0,0];
+        const nestedReturned=nestedReturnedCleanup(value % 2 === 0,value,returnedTrace)+returnedTrace[0]*100+returnedTrace[1]*10+returnedTrace[2]*1000;
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned]);
         i += 1;
     }
 
@@ -613,4 +615,14 @@ function nestedAbruptCleanup(fail: boolean, value: number, trace: number[]): num
  } finally {trace[2]+=abruptMap.size;abruptMap.clear();trace[3]+=abruptMap.size;}
  abruptOld[0]=value+120;abruptNext[0]=value+121;
  return abruptObserved+abruptOld[0]+abruptNext[0];
+}
+
+function nestedReturnedCleanup(fail: boolean, value: number, trace: number[]): number {
+ const returnedOld=[value];const returnedNext=[value+1];
+ let returnedMap=new Map<string,Holder>();returnedMap.set("old",{run:():number=>returnedOld[0]});
+ try {
+  try {const returnedPrefix=prefixResult(fail);returnedMap.clear();returnedMap.set("next",{run:():number=>returnedNext[0]});return returnedOld[0]+value;}
+  catch(error){returnedMap.clear();returnedMap.set("next",{run:():number=>returnedNext[0]});return returnedNext[0]+value;}
+  finally {trace[0]+=returnedMap.size;returnedMap.clear();trace[1]+=returnedMap.size;}
+ } finally {returnedMap.clear();returnedOld[0]=0;returnedNext[0]=0;trace[2]+=returnedMap.size;}
 }

@@ -17,8 +17,8 @@ impl Emitter<'_> {
                 StmtKind::If { then_body, else_body, .. } => {
                     statements.extend(then_body); statements.extend(else_body);
                 },
-                StmtKind::Let { .. } | StmtKind::Expr(_) | StmtKind::Assign { .. } | StmtKind::Throw(_) => {},
-                // Loops and control exits need their own storage snapshots.
+                StmtKind::Let { .. } | StmtKind::Expr(_) | StmtKind::Assign { .. } | StmtKind::Throw(_) | StmtKind::Return(_) | StmtKind::Break | StmtKind::Continue => {},
+                // Nested regions and loops require additional storage discovery.
                 _ => return false,
             }
             if let Some((place, native)) = self.local_map_clear_storage(fun, declarations, item)
@@ -30,7 +30,7 @@ impl Emitter<'_> {
         let storage_type = format!("({},)", places.iter().map(|place| native_places[place].as_str()).collect::<Vec<_>>().join(","));
         let pattern = format!("({},)", places.iter().map(|place| format!("mut {place}")).collect::<Vec<_>>().join(","));
         let (_, _, runtime) = self.exception_regions.current_transport().expect("checked enclosing completion");
-        let first = self.completion_next.get(); self.completion_next.set(first + 4);
+        let first = self.completion_next.get(); self.completion_next.set(first + 5);
         let incoming = handler.error_contract.as_deref().expect("checked catch contract");
         if incoming.explicit.is_empty() && !incoming.runtime && !incoming.opaque { return false; }
         let mut pending_statement = statement.clone();
@@ -39,14 +39,19 @@ impl Emitter<'_> {
         let outgoing = crate::error_effects::annotate_region_body(&mut discovery, &self.program.error_effects);
         let (in_decl, in_name) = self.completion_error_layout(&format!("StorageIncoming{first}"), incoming, runtime, statement.span);
         let (out_decl, out_name) = self.completion_error_layout(&format!("StorageOutgoing{first}"), &outgoing, runtime, statement.span);
-        let pending = self.map_storage_completion_body(fun, &region.body, declarations, first, &in_name, incoming.clone(), runtime, &storage_type, &places, true, false);
+        let pending = self.map_storage_completion_body(fun, &region.body, declarations, first, &in_name, incoming.clone(), runtime, &storage_type, &places, true, true);
         let handler_throws = outgoing.runtime || outgoing.opaque || !outgoing.explicit.is_empty();
-        let handled = self.map_storage_completion_body(fun, &handler.body, declarations, first + 1, &out_name, outgoing.clone(), runtime, &storage_type, &places, handler_throws, false);
+        let handled = self.map_storage_completion_body(fun, &handler.body, declarations, first + 1, &out_name, outgoing.clone(), runtime, &storage_type, &places, handler_throws, true);
         let unions = crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
         let setup = if let Some(binding) = handler.binding {
             let value = exception_contract_emit::checked_catch_value("caught_error", &in_name, incoming, &unions, runtime, statement.span).expect("checked catch payload");
             format!("let {}value{binding}={value};", if fun.bindings[binding].mutable { "mut " } else { "" })
         } else { "drop(caught_error);".into() };
+        let result_type=self.native_type(fun.result);
+        let (outer_error,_,_)=self.exception_regions.current_transport().expect("checked enclosing handler completion");
+        let resumed=format!("match pending_exit{{TsrStorageExit::Return(value)=>TsrCompletion::<(),{result_type},{outer_error}>::Return(value),TsrStorageExit::Break(target)=>TsrCompletion::Break(target),TsrStorageExit::Continue(target)=>TsrCompletion::Continue(target)}}");
+        let resume_control=self.exception_regions.dispatch(&resumed,&self.control_targets.snapshot(),statement.span).expect("checked handler control destination");
+        let mut returned_finish=format!("{resume_control};unreachable!()");
         let mut cleanup_declaration = String::new();
         let mut normal_finish = "storage".to_owned();
         let mut thrown_finish = if region.finally.as_ref().is_some_and(|body| crate::completion::definitely_abrupt(body, 0)) {
@@ -59,7 +64,10 @@ impl Emitter<'_> {
             cleanup_declaration = declaration;
             let normal_cleanup = self.map_storage_completion_body(fun, cleanup, declarations, first + 2, &cleanup_name, cleanup_contract.clone(), runtime, &storage_type, &places, true, true);
             let thrown_cleanup = self.map_storage_completion_body(fun, cleanup, declarations, first + 3, &cleanup_name, cleanup_contract.clone(), runtime, &storage_type, &places, true, true);
+            let returned_cleanup = self.map_storage_completion_body(fun, cleanup, declarations, first + 4, &cleanup_name, cleanup_contract.clone(), runtime, &storage_type, &places, true, true);
             let cleanup_abrupt = self.map_carried_cleanup_dispatch(fun, "other", &cleanup_name, &cleanup_contract, runtime, &places, statement.span);
+            let resume = if crate::completion::definitely_abrupt(cleanup,0) { "unreachable!(\"abrupt cleanup cannot resume pending control\")".to_owned() }else{format!("{resume_control};unreachable!()")};
+            returned_finish=format!("match {returned_cleanup}{{TsrCompletion::Normal(storage)=>{{let {pattern}=storage;{resume}}},other=>{{drop(pending_exit);{cleanup_abrupt}}}}}");
             normal_finish = format!("{{ let {pattern}=storage; match {normal_cleanup} {{ TsrCompletion::Normal(storage)=>storage, other=>{{ {cleanup_abrupt} }} }} }}");
             let resume = if crate::completion::definitely_abrupt(cleanup, 0) { "unreachable!(\"abrupt cleanup cannot resume pending error\")".into() }
                 else { self.map_storage_abrupt_dispatch(fun, "TsrCompletion::Throw(pending_error)", &out_name, &outgoing, runtime, statement.span) };
@@ -68,8 +76,9 @@ impl Emitter<'_> {
         let throw_arm = if handler_throws {
             format!("TsrCompletion::Throw((pending_error,{pattern}))=>{{ {thrown_finish} }}")
         } else { "TsrCompletion::Throw(error)=>match error {}".into() };
+        let return_arm=format!("TsrCompletion::Return((pending_exit,{pattern}))=>{{{returned_finish}}}");
         let indent = "    ".repeat(depth);
-        let _ = writeln!(output, "{indent}{in_decl} {out_decl} {cleanup_declaration} let {pattern} = {{ let {pattern} = {values}; match {pending} {{ TsrCompletion::Normal(storage)=>{normal_finish}, TsrCompletion::Throw((caught_error,{pattern}))=>{{ {setup} match {handled} {{ TsrCompletion::Normal(storage)=>{normal_finish}, {throw_arm}, TsrCompletion::Return(_)|TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"straight-line handler\") }} }}, TsrCompletion::Return(_)|TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"straight-line storage region\") }} }};");
+        let _ = writeln!(output, "{indent}{in_decl} {out_decl} {cleanup_declaration} let {pattern} = {{ let {pattern} = {values}; match {pending} {{ TsrCompletion::Normal(storage)=>{normal_finish}, TsrCompletion::Throw((caught_error,{pattern}))=>{{ {setup} match {handled} {{ TsrCompletion::Normal(storage)=>{normal_finish}, {throw_arm}, {return_arm},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried handler control\") }} }}, {return_arm},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried storage control\") }} }};");
         let boundary=places.iter().flat_map(|place|[
             self.map_storage_transfer_at_exit(fun,&region.body,place),
             self.map_storage_transfer_at_exit(fun,&handler.body,place),

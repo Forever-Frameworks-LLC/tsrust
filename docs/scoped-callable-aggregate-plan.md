@@ -1563,3 +1563,40 @@ completion storage for control exits where the native witness requires it. Keep
 editor behavior, matched workload support and exact SQLite evidence current.
 Format the whole project before checkpoints and stage explicit paths. Preserve
 unrelated fixture semantics. B5 and the full compiler/editor goal remain active.
+
+## Nested handler return storage checkpoint
+
+Catch-region completion now carries evaluated return payloads with initialized
+Map owners, runs a dedicated cleanup path for pending control and rebinds storage
+before resuming into the enclosing region. Normal return and handler return both
+preserve exact callback disposal and inner-before-outer cleanup order.
+
+The initial return witness already passed. Its stronger mutation witness first
+reported a valid source capture conflict: fallible console observation before
+inner clear can bypass that clear. The retained rejection asserts that rule.
+Explicit outer clear makes the source valid and exposed native E0502; the storage
+transport repair resolves that defect without changing source ownership rules.
+Native witnesses at O0/O3 verify return evaluation exactly once, unchanged return
+values and capture mutation after explicit cleanup. The affected batch passes
+85 composition, 42 scoped-record and four fallible-record tests; focused editor
+diagnostics pass. All 37 matched observations verify untimed on native and
+Node-after-tsc, including return values evaluated before cleanup changes captures.
+Registration, mutation controls and token-preserving project formatting pass.
+
+SQLite preserves `tsrust-b5-handler-return-*.log` byte-exact, including isolation
+and the original rejection/native failure, plus verification record
+`runtime/results/2026-10-08T20-07-26-037Z-verify.json`. Loose copies are removed.
+B5 remains open; loop exits through handlers, broader loops, multiple owners,
+precise element/entry release, remaining callable compositions and record Set
+equality/hash still need work. Family regressions and timing remain pending.
+Five user executable consumers remain at gate181.
+
+Continuation prompt: Continue B5 from the nested handler return checkpoint.
+Read AGENTS.md, docs/development-workflow.md and the scoped aggregate plan. Add
+loop-exit witnesses through catch-plus-finally, including continue, break and
+cleanup overrides, then repair any failure. Do not reimplement passing returns
+or weaken the correct capture-conflict when an inner observation can fail before
+clear. Keep exact native disposal, editor behavior, matched workloads and SQLite
+evidence current. Format the whole project before checkpoints; stage explicit
+paths and preserve unrelated fixture semantics. B5 and the full compiler/editor
+goal remain active.

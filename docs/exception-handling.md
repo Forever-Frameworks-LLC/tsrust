@@ -100,3 +100,9 @@ If a nested handler rethrows, its finally block retains the owning Map until
 cleanup finishes. A new error from that cleanup replaces the handler's error,
 then outer finally still runs. Explicit clear releases the contained callbacks
 at that boundary; transporting completion does not clone the owner.
+
+A return from a try body or catch handler evaluates its value once, before
+finally runs. Map cleanup retains that value while releasing callback owners.
+Outer cleanup can then mutate released captures after explicitly clearing its
+Map. A fallible observation before an inner clear can bypass that clear, so outer
+cleanup must clear again before mutating those captures.

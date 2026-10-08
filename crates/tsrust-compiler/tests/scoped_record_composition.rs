@@ -1,6 +1,17 @@
 mod support;
 
 #[test]
+fn nested_handler_return_preserves_payload_and_cleanup_order() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function result(value:int):int{console.log('evaluated',value);return value;}function scenario(fail:boolean):int{const old=[3];const next=[5];let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});try{try{failIf(fail);handlers.clear();handlers.set('next',{run:():int=>next[0]});return result(23);}catch(error){handlers.clear();handlers.set('next',{run:():int=>next[0]});return result(29);}finally{console.log('inner',handlers.size);handlers.clear();}}finally{console.log('outer',handlers.size);handlers.clear();}}function main():void{console.log('result',scenario(false));console.log('result',scenario(true));}");
+ verify_disposal(&source,3,"drop 0\nevaluated 23\ninner 1\ndrop 1\nouter 0\nresult 23\ndrop 0\nevaluated 29\ninner 1\ndrop 2\nouter 0\nresult 29\n"); let unsafe_cleanup=source.replace("console.log('outer', handlers.size);", "old[0]=9;next[0]=11;console.log('outer',handlers.size);");
+ assert_eq!(tsrust_compiler::check(&unsafe_cleanup).err().expect("fallible inner observation may precede clear").code,"capture-conflict");
+ let released=source.replace("console.log('outer', handlers.size);", "handlers.clear();old[0]=9;next[0]=11;console.log('outer',handlers.size);");
+
+ verify_disposal(&support::format_round_trip(&released),3,"drop 0\nevaluated 23\ninner 1\ndrop 1\nouter 0\nresult 23\ndrop 0\nevaluated 29\ninner 1\ndrop 2\nouter 0\nresult 29\n");
+
+}
+
+#[test]
 fn nested_catch_preserves_map_owners_until_outer_cleanup() {
     let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function scenario(fail:boolean):void{const old=[3];const next=[5];let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});console.log('before');try{try{failIf(fail);handlers.clear();handlers.set('next',{run:():int=>next[0]});console.log('normal');}catch(error){console.log('inner caught',error,handlers.size);handlers.clear();handlers.set('next',{run:():int=>next[0]});console.log('handled');}}finally{console.log('outer',handlers.size);handlers.clear();console.log('outer cleared');}old[0]=9;next[0]=11;console.log('after');}function main():void{scenario(false);scenario(true);}");
     verify_disposal(&source,3,"before\ndrop 0\nnormal\nouter 1\ndrop 1\nouter cleared\nafter\nbefore\ninner caught 7 1\ndrop 0\nhandled\nouter 1\ndrop 2\nouter cleared\nafter\n");

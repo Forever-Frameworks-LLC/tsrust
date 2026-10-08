@@ -20279,9 +20279,9 @@
       "implementationAccepted": false,
       "measured": false,
       "notes": "Focused B5 workload support; whole feature acceptance and timing remain pending. Array removal and widening, independent Maps in indexed record fields, nullable reads, whole-field replacement, borrowed iteration, clear and scope release.",
-      "specification": "Retain thirty-six scalar observations per iteration, including nested refill, finally visibility, branch execution, consumed normal/caught storage and explicit restoration after early/late errors and expression transfers, plus conditional survivor storage on normal/error completion and replacement outside exception handling and finally without catch, including pending returns, loop exits, outer-loop empty storage, contextual nested Map initialization, record-leaf loop storage, sibling mutation, key order, nested finally completion, nested caught refill, handler rethrow and cleanup-error override, and fallthrough; independent arithmetic oracle.",
-      "sourceSha256": "90d8e15c4f06f76f24d647b855eaa717bb61bce02fcec67fd6ea17a4fb964c18",
-      "counterpartSha256": "4274c63ad370b727c6bc661ffcfdd37472bd9165c3332bd4209d943e5c31c031"
+      "specification": "Retain thirty-seven scalar observations per iteration, including nested refill, finally visibility, branch execution, consumed normal/caught storage and explicit restoration after early/late errors and expression transfers, plus conditional survivor storage on normal/error completion and replacement outside exception handling and finally without catch, including pending returns, loop exits, outer-loop empty storage, contextual nested Map initialization, record-leaf loop storage, sibling mutation, key order, nested finally completion, nested caught refill, handler rethrow and cleanup-error override, evaluated handler returns and fallthrough; independent arithmetic oracle.",
+      "sourceSha256": "ba908528699a998eac926af5265ac6c2cf9fbaf9c470f683f606a3e212cca550",
+      "counterpartSha256": "1c2a8f4a646153bd18c0a0560d6e0be4893f897c6097d6f0a6eaa153dc4530ad"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",
