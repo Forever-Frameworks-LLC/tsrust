@@ -13,7 +13,7 @@ const row=JSON.parse(read('./manifest.json')).workloads.find(x=>x.id==='nested_f
 test('Retained nested owners have matched sources, independent oracle and execution hooks',()=>{
  const emitted='fn function0(value0: i64, value1: i64, value2: &String) -> Result<Array<NumericArray<i64>>, TsrFunctionError0> { todo!() }\nfn main() {}';
  assert.equal(assertABI(emitted,row,read('./'+row.source)).fallible,true);
- assert.equal(row.measured,false);assert.equal(row.implementationAccepted,true);assert.equal(reportCategory(row.id),'callbacks');
+ assert.equal(row.measured,true);assert.equal(row.measurementStatus,'measured-named-declaration-family');assert.equal(row.implementationAccepted,true);assert.equal(reportCategory(row.id),'callbacks');
  for(const [kind,path] of [['native',row.source],['typescript',row.counterpart]]){
   const source=read('./'+path);assertNestedOwnedSource(source,row,kind);
   assert.throws(()=>assertNestedOwnedSource(source+' ',row,kind));

@@ -13,7 +13,7 @@ const row=JSON.parse(read('./manifest.json')).workloads.find(x=>x.id==='nested_f
 test('Nested declarations retain sources, independent observations and execution hooks',()=>{
  const emitted='fn function0(value0: i64, value1: i64, value2: &String) -> Array<NumericArray<i64>> { todo!() }\nfn main() {}';
  assert.equal(assertABI(emitted,row,read('./'+row.source)).fallible,false);
- assert.equal(row.measured,false);assert.equal(reportCategory(row.id),'recursion');
+ assert.equal(row.measured,true);assert.equal(row.measurementStatus,'measured-named-declaration-family');assert.equal(reportCategory(row.id),'recursion');
  for(const [kind,path] of [['native',row.source],['typescript',row.counterpart]]){
   const source=read('./'+path);assertNestedFunctionDeclarationsSource(source,row,kind);
   assert.throws(()=>assertNestedFunctionDeclarationsSource(source+' ',row,kind));
