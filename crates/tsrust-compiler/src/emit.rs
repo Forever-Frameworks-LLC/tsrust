@@ -3390,6 +3390,7 @@ impl Emitter<'_> {
                 else_body,
             } = &stmt.kind
             {
+                if self.map_clear_if_epoch(output, fun, stmt, declarations, depth, loop_label) { continue; }
                 let _ = writeln!(
                     output,
                     "{indent}if {} {{",

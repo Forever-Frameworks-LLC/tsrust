@@ -156,3 +156,22 @@ impl Emitter<'_> {
         places
     }
 }
+
+impl Emitter<'_> {
+    #[inline(never)]
+    pub(super) fn map_clear_if_epoch(&self, output: &mut String, fun: &CheckedFunction, statement: &Stmt, declarations: &[Stmt], depth: usize, loop_label: Option<usize>) -> bool {
+        let StmtKind::If { condition, then_body, else_body } = &statement.kind else { return false; };
+        let places = self.map_block_return_places(fun, declarations, then_body);
+        if places.is_empty() || places != self.map_block_return_places(fun, declarations, else_body) { return false; }
+        let indent = "    ".repeat(depth);
+        let pattern = places.iter().map(|place| format!("mut {place}")).collect::<Vec<_>>().join(",");
+        let values = places.join(",");
+        let condition = self.expr(fun, condition, Mode::Copy);
+        let _ = writeln!(output, "{indent}let ({pattern},) = if {condition} {{");
+        self.control_block_epochs(output, fun, then_body, depth + 1, loop_label, Some(declarations));
+        let _ = writeln!(output, "{indent}    ({values},)\n{indent}}} else {{");
+        self.control_block_epochs(output, fun, else_body, depth + 1, loop_label, Some(declarations));
+        let _ = writeln!(output, "{indent}    ({values},)\n{indent}}};");
+        true
+    }
+}

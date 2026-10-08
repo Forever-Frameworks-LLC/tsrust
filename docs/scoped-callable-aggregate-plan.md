@@ -602,3 +602,17 @@ The focused witness was red with generated-Rust E0502 before this repair. The
 61-test affected batch, all eight normal-worker depth canaries and focused editor
 diagnostics pass. Exact batch/depth evidence is preserved in SQLite under
 `tsrust-b5-mixed-block-refill-checks.log`. B5 acceptance remains pending.
+
+Both branches of an `if` can now renew the same local scoped Map storage. The Map
+emitter compares guaranteed clear targets from straight-line branch bodies. When
+the target sets match, each branch returns its renewed owning leaves and the
+parent binds their joined fresh lifetimes. Conditions evaluate once before either
+branch; branch statements retain their order. The native refill witness chooses
+the first branch on its first clear and the second branch on its second clear.
+The one-branch capture-conflict rejection remains required and unchanged. Different
+target sets, early exits, loops, exception regions and runtime indices remain
+outside this transport and need further B5 work. The helper owns branch planning
+state outside shared recursive emission.
+The affected 61-test batch, eight depth canaries and focused editor diagnostics
+pass. Exact checks are verified in SQLite as
+`tsrust-b5-both-branch-refill-checks.log`. Formatting changes no files.
