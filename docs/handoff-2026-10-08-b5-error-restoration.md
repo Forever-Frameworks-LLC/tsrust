@@ -638,3 +638,43 @@ records compare by field value; insertion follows ownership transfer, with an
 explicit clone when a retained copy is needed. Stored equality/hash inputs must
 remain stable. Records with unsupported fields require a stable key rather than
 implicit object identity. Floating-point key policy remains unresolved.
+
+## Cleanup capture release checkpoint
+
+The retained `catch_cleanup_clear_releases_captures_before_cleanup_mutation`
+witness now passes native execution at O0 and O3, including exact disposal.
+The test also checks a record-field Map owner. Pending try/catch outcomes finish
+inside an owner scope, and the emitted storage tuple is destructured directly
+before cleanup begins. This ends the completion shell and input-owner lifetimes
+before a clear releases callbacks and capture mutation follows.
+
+This lowering applies when cleanup directly clears every carried Map. Paths
+retaining callbacks keep their existing branch-specific transport: using the
+joined owner type for those paths caused six native regressions. The failed run
+is retained, followed by a corrected affected batch with 88 composition, 42
+scoped-record and four fallible-record tests passing. The additional record-field
+witness and focused editor diagnostic check pass separately. No source restriction,
+implicit clone or unsafe lifetime erasure was introduced.
+
+The matched caught-loop scenario now mutates captures inside finally after clear.
+All 38 observations verify untimed on native and Node-after-tsc. Independent
+arithmetic expectations remain unchanged; source guards, mutation controls and
+registration pass with refreshed hashes. SQLite retains the original failed and
+successful `tsrust-b5-cleanup-joined-*` and `tsrust-b5-cleanup-selected-*` logs plus
+`runtime/results/2026-10-08T21-24-07-353Z-verify.json`, verified by exact read-back.
+Whole-project formatting changes only the benchmark source layout and fingerprint.
+
+B5 remains incomplete. Continue with broader loop/nested-region discovery,
+multiple owners, precise Map-entry/array-element release and remaining callable
+compositions, then Rust-style record Set equality/hash. Keep full family checks,
+timing and consumer refresh separate from this focused source checkpoint. Five
+user executable consumers remain at gate181; the scratch CLI includes this repair.
+
+Continuation prompt: Continue B5 after the cleanup capture release repair.
+Read AGENTS.md, development-workflow.md and this handoff. The former red cleanup
+witness now passes for root and record-field Maps at O0/O3. Preserve branch-specific
+transport for retained callbacks, and direct destructuring for release cleanup.
+Proceed with broader loops, multiple owners and precise entry/element release.
+Keep editor, matched workloads and SQLite evidence current, format the whole
+project before checkpoints, and stage explicit paths. Preserve unrelated fixture
+semantics. The family and full goal remain active.

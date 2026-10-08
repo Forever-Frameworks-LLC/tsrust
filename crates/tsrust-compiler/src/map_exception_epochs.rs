@@ -53,7 +53,7 @@ impl Emitter<'_> {
         let resume_control=self.exception_regions.dispatch(&resumed,&self.control_targets.snapshot(),statement.span).expect("checked handler control destination");
         let mut returned_finish=format!("{resume_control};unreachable!()");
         let mut cleanup_declaration = String::new();
-        let mut normal_finish = "storage".to_owned();
+        let mut normal_finish = values.clone();
         let mut thrown_finish = if region.finally.as_ref().is_some_and(|body| crate::completion::definitely_abrupt(body, 0)) {
             "unreachable!(\"abrupt cleanup cannot resume pending error\")".into()
         } else { self.map_storage_abrupt_dispatch(fun, "TsrCompletion::Throw(pending_error)", &out_name, &outgoing, runtime, statement.span) };
@@ -68,17 +68,33 @@ impl Emitter<'_> {
             let cleanup_abrupt = self.map_carried_cleanup_dispatch(fun, "other", &cleanup_name, &cleanup_contract, runtime, &places, statement.span);
             let resume = if crate::completion::definitely_abrupt(cleanup,0) { "unreachable!(\"abrupt cleanup cannot resume pending control\")".to_owned() }else{format!("{resume_control};unreachable!()")};
             returned_finish=format!("match {returned_cleanup}{{TsrCompletion::Normal(storage)=>{{let {pattern}=storage;{resume}}},other=>{{drop(pending_exit);{cleanup_abrupt}}}}}");
-            normal_finish = format!("{{ let {pattern}=storage; match {normal_cleanup} {{ TsrCompletion::Normal(storage)=>storage, other=>{{ {cleanup_abrupt} }} }} }}");
+            normal_finish = format!("{{ match {normal_cleanup} {{ TsrCompletion::Normal(storage)=>storage, other=>{{ {cleanup_abrupt} }} }} }}");
             let resume = if crate::completion::definitely_abrupt(cleanup, 0) { "unreachable!(\"abrupt cleanup cannot resume pending error\")".into() }
                 else { self.map_storage_abrupt_dispatch(fun, "TsrCompletion::Throw(pending_error)", &out_name, &outgoing, runtime, statement.span) };
             thrown_finish = format!("{{ match {thrown_cleanup} {{ TsrCompletion::Normal(storage)=>{{ let {pattern}=storage; {resume} }}, other=>{{ drop(pending_error); {cleanup_abrupt} }} }} }}");
         }
-        let throw_arm = if handler_throws {
-            format!("TsrCompletion::Throw((pending_error,{pattern}))=>{{ {thrown_finish} }}")
-        } else { "TsrCompletion::Throw(error)=>match error {}".into() };
-        let return_arm=format!("TsrCompletion::Return((pending_exit,{pattern}))=>{{{returned_finish}}}");
-        let indent = "    ".repeat(depth);
-        let _ = writeln!(output, "{indent}{in_decl} {out_decl} {cleanup_declaration} let {pattern} = {{ let {pattern} = {values}; match {pending} {{ TsrCompletion::Normal(storage)=>{normal_finish}, TsrCompletion::Throw((caught_error,{pattern}))=>{{ {setup} match {handled} {{ TsrCompletion::Normal(storage)=>{normal_finish}, {throw_arm}, {return_arm},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried handler control\") }} }}, {return_arm},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried storage control\") }} }};");
+        let cleanup_releases_all=region.finally.as_ref().is_some_and(|cleanup| places.iter().all(|place|cleanup.iter().any(|item|self.local_map_clear_storage(fun,declarations,item).is_some_and(|(cleared,_)| &cleared==place))));
+        if cleanup_releases_all {
+            // Finish the pending and handler owner scopes before entering cleanup.
+            // The joined control carries no callback storage; storage leaves separately.
+            let joined_throw: String = if handler_throws {
+                "TsrCompletion::Throw((error,storage))=>(TsrCompletion::Throw(error),storage)".into()
+            } else { "TsrCompletion::Throw(error)=>match error {}".into() };
+            let joined_return="TsrCompletion::Return((exit,storage))=>(TsrCompletion::Return(exit),storage)";
+            let joined_normal="TsrCompletion::Normal(storage)=>(TsrCompletion::Normal(()),storage)";
+            let impossible="TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried storage control\")";
+            let joined=format!("{{let {pattern}={values};let outcome:(TsrCompletion<(),TsrStorageExit<{result_type}>,{out_name}>,{storage_type})=match {pending}{{{joined_normal},TsrCompletion::Throw((caught_error,{pattern}))=>{{{setup} match {handled}{{{joined_normal},{joined_throw},{joined_return},{impossible}}}}},{joined_return},{impossible}}};outcome}}");
+            let indent = "    ".repeat(depth);
+            let _ = writeln!(output, "{indent}{in_decl} {out_decl} {cleanup_declaration} let {pattern} = {{ let (pending_control,{pattern})={joined}; match pending_control {{ TsrCompletion::Normal(())=>{normal_finish}, TsrCompletion::Throw(pending_error)=>{{{thrown_finish}}}, TsrCompletion::Return(pending_exit)=>{{{returned_finish}}},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"joined storage control\") }} }};");
+        } else {
+            normal_finish=if region.finally.is_some() {format!("{{let {pattern}=storage;{normal_finish}}}")}else{"storage".into()};
+            let throw_arm = if handler_throws {
+                format!("TsrCompletion::Throw((pending_error,{pattern}))=>{{ {thrown_finish} }}")
+            } else { "TsrCompletion::Throw(error)=>match error {}".into() };
+            let return_arm=format!("TsrCompletion::Return((pending_exit,{pattern}))=>{{{returned_finish}}}");
+            let indent = "    ".repeat(depth);
+            let _ = writeln!(output, "{indent}{in_decl} {out_decl} {cleanup_declaration} let {pattern} = {{ let {pattern} = {values}; match {pending} {{ TsrCompletion::Normal(storage)=>{normal_finish}, TsrCompletion::Throw((caught_error,{pattern}))=>{{ {setup} match {handled} {{ TsrCompletion::Normal(storage)=>{normal_finish}, {throw_arm}, {return_arm},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried handler control\") }} }}, {return_arm},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried storage control\") }} }};");
+        }
         let boundary=places.iter().flat_map(|place|[
             self.map_storage_transfer_at_exit(fun,&region.body,place),
             self.map_storage_transfer_at_exit(fun,&handler.body,place),

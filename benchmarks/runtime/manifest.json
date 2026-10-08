@@ -20280,8 +20280,8 @@
       "measured": false,
       "notes": "Focused B5 workload support; whole feature acceptance and timing remain pending. Array removal and widening, independent Maps in indexed record fields, nullable reads, whole-field replacement, borrowed iteration, clear and scope release.",
       "specification": "Retain thirty-eight scalar observations per iteration, including nested refill, finally visibility, branch execution, consumed normal/caught storage and explicit restoration after early/late errors and expression transfers, plus conditional survivor storage on normal/error completion and replacement outside exception handling and finally without catch, including pending returns, loop exits, outer-loop empty storage, contextual nested Map initialization, record-leaf loop storage, sibling mutation, key order, nested finally completion, nested caught refill, handler rethrow and cleanup-error override, evaluated handler returns, caught loop continue/break and fallthrough; independent arithmetic oracle.",
-      "sourceSha256": "e6420fa83c906a606e1e709493388e006630974d25d7fef4ef895d6d348c2a6f",
-      "counterpartSha256": "36564861388e30aa64fd2825359d682c6af2319b3b5ab5e3d03264e22a2dbffc"
+      "sourceSha256": "b3fd9c4abe61abc77b7aa37c0901a60e32ad9e3e2c4b84ea26bfbad5f6cf8452",
+      "counterpartSha256": "6a131a2ea373de8cc84ae24f22ce0b9962a5c0fce9e654a0bad29f94ec98c57c"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

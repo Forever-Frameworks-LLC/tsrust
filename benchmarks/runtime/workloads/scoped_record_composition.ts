@@ -636,8 +636,8 @@ function caughtMapLoop(value: number, trace: number[]): number {
   caughtLoopMap.set("old",{run:():number=>caughtLoopOld[0]});turn+=1;
   try{const caughtLoopPrefix=prefixResult(turn!==2);caughtLoopMap.clear();caughtLoopMap.set("next",{run:():number=>caughtLoopNext[0]});}
   catch(error){caughtLoopMap.clear();caughtLoopMap.set("next",{run:():number=>caughtLoopNext[0]});if(turn===1)continue;break;}
-  finally{trace[0]+=caughtLoopMap.size;caughtLoopMap.clear();trace[1]+=caughtLoopMap.size;}
-  caughtLoopOld[0]=value+140;caughtLoopNext[0]=value+141;caughtLoopObserved=caughtLoopOld[0]+caughtLoopNext[0];
+  finally{trace[0]+=caughtLoopMap.size;caughtLoopMap.clear();trace[1]+=caughtLoopMap.size;caughtLoopOld[0]=value+140;caughtLoopNext[0]=value+141;}
+  caughtLoopObserved=caughtLoopOld[0]+caughtLoopNext[0];
  }
  caughtLoopOld[0]=value+142;caughtLoopNext[0]=value+143;
  return caughtLoopObserved+turn+caughtLoopMap.size+caughtLoopOld[0]+caughtLoopNext[0];

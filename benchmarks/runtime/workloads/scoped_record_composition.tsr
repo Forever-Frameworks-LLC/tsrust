@@ -864,10 +864,10 @@ function caughtMapLoop(value: int, trace: Mutable<int[]>): int {
             trace[0] += caughtLoopMap.size;
             caughtLoopMap.clear();
             trace[1] += caughtLoopMap.size;
+            caughtLoopOld[0] = value + 140;
+            caughtLoopNext[0] = value + 141;
         }
 
-        caughtLoopOld[0] = value + 140;
-        caughtLoopNext[0] = value + 141;
         caughtLoopObserved = caughtLoopOld[0] + caughtLoopNext[0];
     }
 

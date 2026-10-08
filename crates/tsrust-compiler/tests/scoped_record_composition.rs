@@ -4,6 +4,12 @@ mod support;
 fn catch_cleanup_clear_releases_captures_before_cleanup_mutation() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function main():void{const old=[3];const next=[5];let turn=0;let handlers=new Map<string,Holder>();while(turn<3){handlers.set('old',{run:():int=>old[0]});turn+=1;try{failIf(turn!==2);handlers.clear();handlers.set('next',{run:():int=>next[0]});console.log('normal',turn);}catch(error){handlers.clear();handlers.set('next',{run:():int=>next[0]});if(turn===1)continue;break;}finally{console.log('cleanup',turn,handlers.size);handlers.clear();old[0]=9;next[0]=11;}console.log('fallthrough',turn);}old[0]=13;next[0]=17;console.log('after',handlers.size,old[0],next[0]);}");
  verify_disposal(&source,3,"drop 0\ncleanup 1 1\ndrop 2\ndrop 0\nnormal 2\ncleanup 2 1\ndrop 1\nfallthrough 2\ndrop 0\ncleanup 3 1\ndrop 2\nafter 0 13 17\n");
+ let field=source.replace("function main()", "type Box={handlers:Map<string,Holder>;marker:int;};function main()")
+  .replace("let handlers = new Map<string, Holder>();", "let box:Box={handlers:new Map<string,Holder>(),marker:23};")
+  .replace("handlers.set", "box.handlers.set").replace("handlers.clear", "box.handlers.clear").replace("handlers.size", "box.handlers.size");
+ assert_ne!(field,source);
+ verify_disposal(&support::format_round_trip(&field),3,"drop 0\ncleanup 1 1\ndrop 2\ndrop 0\nnormal 2\ncleanup 2 1\ndrop 1\nfallthrough 2\ndrop 0\ncleanup 3 1\ndrop 2\nafter 0 13 17\n");
+
 }
 
 #[test]

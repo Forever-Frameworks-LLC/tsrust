@@ -59,3 +59,16 @@ Research:
 * automatic propagation
 * interoperability with Rust libraries
 Goal: retain Node-like ease without making error behavior implicit or unpredictable.
+
+## Releasing callback captures during cleanup
+
+A Map containing borrowing callbacks keeps their captures borrowed until the
+callbacks are removed. Clearing that Map in `finally` releases those captures;
+subsequent statements in the same cleanup block may mutate them. Cleanup runs
+before a pending return, error, break or continue resumes. A cleanup error or
+control exit replaces the pending outcome. Clearing does not copy captures or
+invoke callbacks, and removed callback environments are disposed once.
+
+The executable regression `catch_cleanup_clear_releases_captures_before_cleanup_mutation`
+covers normal, caught, continue and break paths for both a local Map and a Map
+stored in a record field.
