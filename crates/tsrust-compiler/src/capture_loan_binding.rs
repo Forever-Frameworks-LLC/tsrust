@@ -56,7 +56,9 @@ impl Analyzer {
         target: &Expr,
         value: &Expr,
     ) {
-        let Some((_, fields)) = Self::direct_fields(target) else {
+        let direct = Self::direct_fields(target);
+        let indexed = direct.is_none();
+        let Some(fields) = direct.map(|(_, fields)| fields).or_else(|| Self::scoped_array_storage_path(target).map(|(_, fields)| fields)) else {
             return;
         };
         let Some(binding) = Self::root_binding(target) else {
@@ -70,9 +72,14 @@ impl Analyzer {
             fields: vec![],
         };
         self.attach_payload_capture_loans(context, value, temporary.clone(), true);
-        let _ = context
-            .capture_loan_owners
-            .transfer(&temporary, &Place { binding, fields });
+        let destination = Place { binding, fields };
+        if indexed {
+            // Runtime indices share conservative ownership paths. Replacement
+            // consumes its RHS but must retain captures owned by other elements.
+            context.capture_loan_owners.extend_from(&temporary, &destination, true);
+        } else {
+            let _ = context.capture_loan_owners.transfer(&temporary, &destination);
+        }
         Self::restore_live_capture_loans(context);
     }
 

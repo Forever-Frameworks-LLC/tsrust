@@ -124,9 +124,9 @@ impl Analyzer {
     pub(super) fn local_record_field_contract(&self,context:&Context,target:&Expr)->Option<Type>{
         let id=Self::root_binding(target)?;let binding=&context.bindings[id];
         if binding.parameter || binding.capture_reference{return None;}
-        let(_,path)=Self::direct_fields(target)?;if path.is_empty(){return None;}
+        let(_,path)=Self::scoped_array_storage_path(target)?;if path.is_empty(){return None;}
         let mut ty=binding.ty;
-        for name in path{let Type::Record(record)=ty else{return None;};let record=self.scoped_records.declaration(record);ty=self.program.records[record].fields.iter().find(|field|field.name.text==name)?.ty?;}
+        for name in path{while let Type::Array(element)=ty{ty=element.ty();}let Type::Record(record)=ty else{return None;};let record=self.scoped_records.declaration(record);ty=self.program.records[record].fields.iter().find(|field|field.name.text==name)?.ty?;}
         (matches!(ty,Type::Callback(_)) || matches!(ty,Type::Map(_)) && self.aggregate_callable_facts(ty).scoped).then_some(ty)
     }
     /// A local record field declared as a borrowing callback or an absent value.
@@ -152,9 +152,8 @@ impl Analyzer {
     }
     pub(super) fn update_local_record_field_type(&mut self,context:&mut Context,target:&Expr,ty:Type)->Result<(),Diagnostic>{
         if self.local_record_field_contract(context,target).is_none(){return Ok(());}
-        let id=Self::root_binding(target).unwrap();let(_,path)=Self::direct_fields(target).unwrap();
-        let Type::Record(record)=context.bindings[id].ty else{return Ok(());};
-        if let Some(record)=self.record_type_with_field(record,&path,ty){context.bindings[id].ty=Type::Record(record);}
+        let id=Self::root_binding(target).unwrap();let(_,path)=Self::scoped_array_storage_path(target).unwrap();
+        if let Some(root)=self.scoped_array_replace_field(context.bindings[id].ty,&path,ty){context.bindings[id].ty=root;}
         Ok(())
     }
     fn join_record_values(&mut self,left:&mut Expr,right:&mut Expr)->Result<Option<Type>,Diagnostic>{

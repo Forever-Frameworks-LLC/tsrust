@@ -34,35 +34,35 @@ function workload(n: int, seed: int, input: string): int[][] {
             handlers.set("first", {
                 run: (): int => base[0]
             });
-            const box: Box = {
+            const boxes: Box[] = [{
                 handlers: handlers
-            };
-            box.handlers.set("second", {
+            }];
+            boxes[0].handlers.set("second", {
                 run: (): int => base[1]
             });
             {
-                const first = box.handlers.get("first");
-                const second = box.handlers.get("second");
+                const first = boxes[0].handlers.get("first");
+                const second = boxes[0].handlers.get("second");
                 if (first !== undefined) mapFirst = first.run();
                 if (second !== undefined) mapSecond = second.run();
             }
 
-            populated = box.handlers.size;
-            box.handlers.forEach((holder: ReadOnly<Holder>): void => {
+            populated = boxes[0].handlers.size;
+            boxes[0].handlers.forEach((holder: ReadOnly<Holder>): void => {
                 iterated += holder.run();
             });
             const replacementMap = new Map<string, Holder>();
             replacementMap.set("replacement", {
                 run: (): int => base[1] + 1
             });
-            box.handlers = replacementMap;
+            boxes[0].handlers = replacementMap;
             {
-                const replacement = box.handlers.get("replacement");
+                const replacement = boxes[0].handlers.get("replacement");
                 if (replacement !== undefined) replaced = replacement.run();
             }
 
-            box.handlers.clear();
-            cleared = box.handlers.size;
+            boxes[0].handlers.clear();
+            cleared = boxes[0].handlers.size;
         }
 
         base[0] = 0;

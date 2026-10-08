@@ -60,7 +60,7 @@ impl Analyzer {
         let mut active = loans.clone();
         for root in Self::loan_roots(base, Mode::Read) { active.entry(root).or_default().push((Mode::Read, base.span)); }
         for (index, argument) in arguments.iter_mut().enumerate() {
-            let ty = if index == 0 { definition.key } else if matches!(definition.value, Type::Record(_) if self.aggregate_callable_facts(definition.value).scoped && Self::direct_fields(base).is_some()) {
+            let ty = if index == 0 { definition.key } else if matches!(definition.value, Type::Record(_) if self.aggregate_callable_facts(definition.value).scoped && Self::scoped_array_storage_path(base).is_some()) {
                 let Type::Record(record) = definition.value else { unreachable!() };
                 Type::Record(self.scoped_records.declaration(record))
             } else { definition.value };
@@ -70,18 +70,15 @@ impl Analyzer {
             if method == MapMethod::Set && index == 1
                 && let (Type::Record(previous), Type::Record(incoming)) = (definition.value, actual)
                 && self.aggregate_callable_facts(actual).scoped
-                && Self::direct_fields(base).is_some()
+                && Self::scoped_array_storage_path(base).is_some()
             {
                 let value = if previous == self.scoped_records.declaration(previous) { actual }
                     else if previous == incoming { actual }
                     else { self.join_record_types(previous, incoming, argument.span)?.ok_or_else(|| Diagnostic::new("type", "Map callback values require compatible environment contracts.", argument.span))? };
                 let instance = self.scoped_map_value_instance(id, value);
                 let binding = Self::root_binding(base).expect("stable Map root");
-                let (_, path) = Self::direct_fields(base).unwrap();
-                if path.is_empty() { context.bindings[binding].ty = Type::Map(instance); }
-                else if let Type::Record(record) = context.bindings[binding].ty
-                    && let Some(record) = self.record_type_with_field(record, &path, Type::Map(instance))
-                { context.bindings[binding].ty = Type::Record(record); }
+                let (_, path) = Self::scoped_array_storage_path(base).unwrap();
+                if let Some(root) = self.scoped_array_replace_field(context.bindings[binding].ty, &path, Type::Map(instance)) { context.bindings[binding].ty = root; }
                 self.append_target_capture_loans(context, base, argument);
             }
             for root in Self::loan_roots(argument, mode) { active.entry(root).or_default().push((mode, argument.span)); }

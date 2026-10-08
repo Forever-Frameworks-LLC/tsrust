@@ -420,3 +420,33 @@ evidence is preserved in SQLite as
 `runtime/results/2026-10-08T15-50-08-110Z-verify.json`. This establishes these
 iteration paths without a new compiler change or timing run. Precise capture
 release, broader nested storage, Set design and whole B5 acceptance remain open.
+
+Map storage paths now pass through array indices as well as record fields. The
+planner shares the existing array path lookup and reconstruction helpers: indices
+are ignored conservatively for layout planning, while field names remain explicit.
+Native witnesses cover insertion and invocation through `Box[]` and `Box[][]`, and
+an indexed insertion rejection preserves the new capture owner. Local nominal
+field contracts and concrete field updates now traverse array layers too, supporting
+whole-Map replacement through an indexed record field. The affected compiler batch
+passes 54 tests, focused editor help passes, and all eight normal-worker depth
+canaries pass. The matched workload exercises the indexed path for insertion,
+iteration, nullable reads, replacement and clear while retaining nine observations.
+This does not establish independently precise capture release for separate runtime
+indices or every aggregate construction shape. Those broader B5 requirements remain
+open. Current depth evidence is `tsrust-b5-indexed-record-map-fields-depth.log` in
+SQLite; matched verification remains untimed.
+
+The combined indexed workload exposed two additional replacement defects. Indexed
+field writes were missing from immutable write collection, and replacement capture
+loans remained attached to their consumed source Map instead of the destination
+container. Write collection now uses the shared indexed storage path. Indexed
+replacement stages and consumes its RHS owners, then merges them into the
+conservative destination path without discarding captures owned by sibling indices.
+A focused native witness verifies release when the container scope ends, while
+capture-conflict rejection remains covered. The final affected batch passes 55
+compiler tests; editor help and all eight depth canaries pass on the repaired source.
+All five native/Node-after-tsc cases pass. Exact matched evidence is preserved as
+`runtime/results/2026-10-08T15-58-44-726Z-verify.json` in SQLite. The final depth log
+is `tsrust-b5-indexed-map-replacement-loans-depth.log`; the earlier depth run is
+preserved separately. Precise release of an individual replaced element while
+siblings remain live is still pending. No timing or whole B5 acceptance is claimed.

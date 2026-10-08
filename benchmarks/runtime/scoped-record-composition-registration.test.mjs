@@ -21,7 +21,7 @@ test('Scoped record composition retain sources, independent observations and exe
   assert.throws(()=>assertScopedRecordCompositionSource(source+' ',row,kind));
   assert.throws(()=>assertScopedRecordCompositionSource(source,{...row,operationsPerIteration:2},kind));
   const key=kind==='native'?'sourceSha256':'counterpartSha256';
-  for(const [from,to] of [['const removed = items.pop();',''],['box.handlers.clear();',''],['box.handlers = replacementMap;',''],['mapSecond = second.run();','mapSecond = 0;'],['iterated += holder.run();',''],['base[0] = 0;','']]){
+  for(const [from,to] of [['const removed = items.pop();',''],['boxes[0].handlers.clear();',''],['boxes[0].handlers = replacementMap;',''],['mapSecond = second.run();','mapSecond = 0;'],['iterated += holder.run();',''],['base[0] = 0;','']]){
    assert.ok(source.includes(from));const changed=replaceCodeSnippet(source, from, to);
    assert.throws(()=>assertScopedRecordCompositionSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   }

@@ -26,7 +26,7 @@ pub(super) fn collect(body: &[Stmt]) -> Vec<Write<'_>> {
             && let Some(mut write) = selected(binding, path, value)
         { write.array_element = true; return Some(write); }
         let binding=Analyzer::root_binding(target)?;
-        let (_,path)=Analyzer::direct_fields(target)?;
+        let (_,path)=Analyzer::scoped_array_storage_path(target)?;
         selected(binding,path,value)
     }
     let mut result=Vec::new();

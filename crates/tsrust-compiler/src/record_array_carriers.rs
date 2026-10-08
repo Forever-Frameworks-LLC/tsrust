@@ -15,14 +15,14 @@ impl Analyzer {
             _ => return None,
         }}
     }
-    fn scoped_array_field_type(&self, mut ty: Type, path: &[String]) -> Option<Type> {
+    pub(super) fn scoped_array_field_type(&self, mut ty: Type, path: &[String]) -> Option<Type> {
         for name in path {
             while let Type::Array(element) = ty { ty = element.ty(); }
             ty = self.record_field_type(ty, std::slice::from_ref(name))?;
         }
         Some(ty)
     }
-    fn scoped_array_replace_field(&mut self, mut ty: Type, path: &[String], mut replacement: Type) -> Option<Type> {
+    pub(super) fn scoped_array_replace_field(&mut self, mut ty: Type, path: &[String], mut replacement: Type) -> Option<Type> {
         enum Parent { Array, Field(usize, String) }
         let mut parents = Vec::new();
         for name in path {

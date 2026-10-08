@@ -1,6 +1,61 @@
 mod support;
 
 #[test]
+fn indexed_map_replacement_releases_capture_loans_at_container_scope_exit() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        type Box = { handlers: Map<string, Holder>; };
+        function main() {
+            const values = [3];
+            {
+                const first = new Map<string, Holder>();
+                first.set("first", { run: (): int => values[0] });
+                const boxes: Box[] = [{ handlers: first }];
+                const replacement = new Map<string, Holder>();
+                replacement.set("next", { run: (): int => values[0] + 1 });
+                boxes[0].handlers = replacement;
+                const next = boxes[0].handlers.get("next");
+                if (next !== undefined) strictEqual(next.run(), 4);
+            }
+            values[0] = 9;
+            strictEqual(values[0], 9);
+        }
+    "#);
+}
+
+#[test]
+fn indexed_record_map_fields_keep_callback_environments() {
+    let source = r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        type Box = { handlers: Map<string, Holder>; };
+        function main() {
+            const values = [3, 7];
+            const handlers = new Map<string, Holder>();
+            handlers.set("first", { run: (): int => values[0] });
+            const boxes: Box[] = [{ handlers: handlers }];
+            boxes[0].handlers.set("second", { run: (): int => values[1] });
+            const first = boxes[0].handlers.get("first");
+            const second = boxes[0].handlers.get("second");
+            if (first !== undefined) strictEqual(first.run(), 3);
+            if (second !== undefined) strictEqual(second.run(), 7);
+        }
+    "#;
+    project(source);
+    let nested = source.replace("const boxes: Box[] = [{ handlers: handlers }];", "const boxes: Box[][] = [[{ handlers: handlers }]];")
+        .replace("boxes[0].handlers", "boxes[0][0].handlers");
+    project(&nested);
+}
+
+#[test]
+fn indexed_map_field_insertion_preserves_new_capture_loans() {
+    let source = "type Holder={run:ReadOnly<Function<int>>;};type Box={handlers:Map<string,Holder>;};function main(){const first=[3];const second=[7];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});const boxes:Box[]=[{handlers:handlers}];boxes[0].handlers.set('second',{run:():int=>second[0]});second[0]=9;console.log(boxes[0].handlers.size);}";
+    let error = tsrust_compiler::check(source).err().expect("indexed field insertion keeps the new capture owner");
+    assert_eq!(error.code, "capture-conflict", "{}", error.message);
+}
+
+#[test]
 fn scoped_map_for_each_propagates_callback_failures_and_rejects_mutation() {
     project(r#"
         import { strictEqual } from "std:testing";
