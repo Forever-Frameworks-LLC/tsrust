@@ -497,10 +497,10 @@ retain captures from the uncleared path. Focused editor diagnostics agree: direc
 clear is accepted and conditional clear reports capture-conflict. Both compiler
 and editor witnesses pass; native record-field execution passes after formatting.
 
-### Current blocker: clear/refill carrier lifetimes
+### Clear/refill carrier lifetime defect
 
-The focused `cleared_map_refill_tracks_only_current_capture_owners` witness is
-intentionally red. Clearing a local Map releases its checked capture owners, but
+The focused `cleared_map_refill_tracks_only_current_capture_owners` witness was
+initially red. Clearing a local Map releases its checked capture owners, but
 refilling that same Map with a different callback origin retains the first
 capture lifetime in the shared native carrier type. Mutating the cleared first
 capture before reading the new entry passes analysis and fails generated Rust
@@ -520,3 +520,13 @@ rejection; its native half fails before the rejection runs.
 This is a B5 defect, not an accepted limit. Earlier clear-only evidence remains
 valid for its covered paths, but does not prove clear/refill support. No timing or
 whole B5 acceptance is claimed.
+
+The straight-line local-declaration case is now repaired in Map emission. A clear
+statement for a scoped Map declared in that same block drops the old storage and
+shadows it with fresh empty storage of the planned carrier type. Fresh lifetime
+inference allows the new callback origin to borrow independently of discarded
+captures. The helper stays in `map_emit.rs`; shared statement dispatch only calls
+it. Outer-block storage, parameters, record fields and conditional expressions do
+not use this transformation. The refill witness and its new-capture rejection now
+pass. The affected compiler/native batch passes 61 tests, including normal and
+failure disposal checks. Cross-block and field refill remain open B5 requirements.

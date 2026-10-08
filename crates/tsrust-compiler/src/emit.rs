@@ -3245,6 +3245,10 @@ impl Emitter<'_> {
     ) {
         let indent = "    ".repeat(depth);
         for stmt in body {
+            if let Some(reset) = self.local_map_clear_epoch(fun, body, stmt) {
+                let _ = writeln!(output, "{indent}{reset}");
+                continue;
+            }
             if let StmtKind::Block(body) = &stmt.kind {
                 let _control_scope=(!stmt.labels.is_empty()).then(||self.control_targets.enter(ControlTarget::Block(stmt.span.start)));
                 if stmt.labels.is_empty() {let _ = writeln!(output, "{indent}{{");}

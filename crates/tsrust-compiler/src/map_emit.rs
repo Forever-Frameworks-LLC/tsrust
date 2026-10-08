@@ -82,3 +82,22 @@ impl Emitter<'_> {
         format!("{{let map_receiver={receiver};{action}}}")
     }
 }
+
+impl Emitter<'_> {
+    /// End a straight-line local storage lifetime before a later refill.
+    /// Declarations outside this block must retain their surrounding storage.
+    pub(super) fn local_map_clear_epoch(&self, fun: &CheckedFunction, body: &[Stmt], statement: &Stmt) -> Option<String> {
+        let StmtKind::Expr(call) = &statement.kind else { return None; };
+        if call.target != Some(CallTarget::MapMethod(MapMethod::Clear)) { return None; }
+        let ExprKind::Call(callee, _) = &call.kind else { return None; };
+        let ExprKind::Field(base, _) = &callee.kind else { return None; };
+        if !matches!(base.kind, ExprKind::Name(_)) { return None; }
+        let binding = base.binding?;
+        if !body.iter().any(|item| matches!(item.kind, StmtKind::Let { binding: Some(id), .. } if id == binding)) { return None; }
+        let Type::Map(id) = fun.bindings[binding].ty else { return None; };
+        let value = self.program.records[id].map_definition.as_ref()?.value;
+        if !self.scoped_record_native_parameter(value) { return None; }
+        let native = self.native_type(Type::Map(id));
+        Some(format!("drop(value{binding}); let mut value{binding}: {native} = <{native}>::new();"))
+    }
+}
