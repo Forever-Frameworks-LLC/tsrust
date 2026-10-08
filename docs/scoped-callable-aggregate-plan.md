@@ -205,7 +205,7 @@ outer storage. Moves between named arrays propagate a common element carrier
 back through their storage dependencies; subsequent insertion can widen that
 carrier without generating incompatible native types.
 
-Twenty-two focused composition tests cover native execution after outer-scope
+Twenty-five focused composition tests cover native execution after outer-scope
 assignment, insertion after a move, both branch insertion paths, and invocation of
 removed records after their source array widens. Splice results participate in the
 same storage dependency plan as moved arrays. Pop and shift results now update their
@@ -241,7 +241,21 @@ execution witness checks retained and replaced origins, and the Node reference
 checks the same results. Existing splice, unshift, ordinary and owned array suites
 passed 32 tests before the capture-owner attachment repair.
 
-Remaining B5 work includes nested array-valued insertion/replacement and removal,
+Nested array-valued push and indexed replacement now join their leaf callback
+environments. Indexed pop and splice results participate in storage planning through
+the root array while retaining their own nesting depth. Result expressions are
+retyped before carrier conversion, avoiding a reproduced borrowed-origin emitter
+panic. A rejection witness verifies that an indexed nullable removal retains its
+capture after the source container's scope ends. The affected composition, pop/shift,
+splice, unshift and owned-array batch passes 49 tests. The expanded Node result
+reference passes after correcting an expected value affected by its preceding removals.
+All eight depth canaries pass on this batch; their original log is verified in SQLite
+as `tsrust-b5-nested-array-writes-depth.log`. The focused editor protocol witness
+`scoped_record_array_composition_keeps_declared_callback_help` passes for nested
+indexing and a narrowed nullable removal, preserving the declared parameter label
+and hiding internal carrier names from hover.
+
+Remaining B5 work includes record-field containers and broader nested method composition,
 nullable replacement across multiple origins,
 precise element capture release, Map/Set
 composition and nullable replacement. Complete editor, guide, disposal and matched

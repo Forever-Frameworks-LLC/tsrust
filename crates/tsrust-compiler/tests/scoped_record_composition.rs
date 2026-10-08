@@ -1,6 +1,50 @@
 mod support;
 
 #[test]
+fn indexed_nested_removal_retains_capture_after_container_scope() {
+    let source = "type Holder={run:ReadOnly<Function<int>>;};function main(){const values=[3];let removed:Holder|undefined;{const groups:Holder[][]=[[{run:():int=>values[0]}]];removed=groups[0].pop();}values[0]=9;if(removed!==undefined)console.log(removed.run());}";
+    let error = tsrust_compiler::check(source).err().expect("indexed removal retains borrowed owner");
+    assert_eq!(error.code, "capture-conflict", "{}", error.message);
+}
+
+#[test]
+fn indexed_nested_removals_keep_dispatch_after_later_widening() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function main() {
+            const values = [3, 7, 11];
+            const groups: Holder[][] = [[{ run: (): int => values[0] }]];
+            const last = groups[0].pop();
+            groups[0].push({ run: (): int => values[1] });
+            const removed = groups[0].splice(0, 1);
+            groups[0].push({ run: (): int => values[2] });
+            if (last !== undefined) strictEqual(last.run(), 3);
+            strictEqual(removed[0].run(), 7);
+            strictEqual(groups[0][0].run(), 11);
+        }
+    "#);
+}
+
+#[test]
+fn nested_array_valued_writes_join_record_callback_origins() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function main() {
+            const values = [3, 7, 11];
+            const groups: Holder[][] = [[{ run: (): int => values[0] }]];
+            groups.push([{ run: (): int => values[1] }]);
+            strictEqual(groups[0][0].run(), 3);
+            strictEqual(groups[1][0].run(), 7);
+            groups[0] = [{ run: (): int => values[2] }];
+            strictEqual(groups[0][0].run(), 11);
+            strictEqual(groups[1][0].run(), 7);
+        }
+    "#);
+}
+
+#[test]
 fn nested_insertions_protect_new_capture_owners() {
     let source = "type Holder={run:ReadOnly<Function<int>>;};function main(){const first=[3];const second=[7];const groups:Holder[][]=[[{run:():int=>first[0]}]];groups[0].push({run:():int=>second[0]});second[0]=9;console.log(groups[0][1].run());}";
     let error = tsrust_compiler::check(source).err().expect("inserted callback retains its capture");

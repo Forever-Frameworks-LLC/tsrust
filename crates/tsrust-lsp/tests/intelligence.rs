@@ -8171,6 +8171,19 @@ fn scoped_nested_and_absent_record_fields_keep_declared_signature_help() {
 }
 
 #[test]
+fn scoped_record_array_composition_keeps_declared_callback_help() {
+    let source = tsrust_compiler::format("type Holder={run:ReadOnly<Function<int,[amount:int]>>;};function main(){const values=[3,7];const groups:Holder[][]=[[{run:(value:int):int=>value+values[0]}]];const removed=groups[0].pop();groups[0].push({run:(value:int):int=>value+values[1]});console.log(groups[0][0].run(4));if(removed!==undefined)console.log(removed.run(2));}").unwrap();
+    assert!(tsrust_compiler::check(&source).is_ok());
+    for token in ["4)", "2)"] {
+        let help = ask(&source, "textDocument/signatureHelp", token, 0);
+        assert!(help["signatures"][0]["parameters"][0]["label"].as_str().unwrap_or("").contains("amount"), "{help}");
+        let hover = ask(&source, "textDocument/hover", &format!("run({token}"), 0);
+        assert!(!hover.is_null(), "{hover}");
+        assert!(!hover["contents"]["value"].as_str().unwrap_or("").contains("BorrowedCallable"), "{hover}");
+    }
+}
+
+#[test]
 fn destructured_scoped_record_callbacks_keep_signature_help_and_hover() {
     let source = "type Holder={run:ReadOnly<Function<int,[value:int]>>;};type Envelope={holder:Holder;tag:int;};function invoke({run}:ReadOnly<Holder>,amount:int):int{return run(amount);}function main(){const values=[3];const holder:Holder={run:(value:int):int=>value+values[0]};console.log(invoke(holder,2));const envelope:Envelope={holder:holder,tag:1};const {holder:{run:extracted}}=envelope;console.log(extracted(4),envelope.tag);}";
     assert!(tsrust_compiler::check(source).is_ok());

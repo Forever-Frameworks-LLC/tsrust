@@ -11122,11 +11122,8 @@ impl Analyzer {
             ));
         };
         let active = Self::selection_loans(base, loans);
-        let widening = !remove && Self::indexed_array_root(base).is_some() && matches!(element, ArrayElement::Record(id, 0) if self.aggregate_callable_facts(Type::Record(id)).scoped);
-        let argument_type = if remove { Type::Int } else if widening {
-            let ArrayElement::Record(id, 0) = element else { unreachable!() };
-            Type::Record(self.scoped_records.declaration(id))
-        } else { element.ty() };
+        let widening = !remove && Self::indexed_array_root(base).is_some() && matches!(element, ArrayElement::Record(id, _) if self.aggregate_callable_facts(Type::Record(id)).scoped);
+        let argument_type = if remove { Type::Int } else { self.scoped_array_element_contract(base, element) };
         let actual = if !remove && let Type::StoredCallable(family) = argument_type {
             self.stored_callable_value(context, &mut args[0], family, &active)?
         } else {
