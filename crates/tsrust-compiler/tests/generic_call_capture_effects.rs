@@ -1,4 +1,12 @@
 mod support;
+#[test]
+fn selected_method_layouts_preserve_single_argument_evaluation() {
+    support::execute(
+        "function identity<T>(value:T):T{return value;}function main(){let action=identity;action<string>('warm');action=identity;console.log(action<int>((console.log('argument'),7)));}",
+        "argument\n7\n", None,
+    );
+}
+
 const DECLARATIONS:&str="function one<T>(value:T):T{return value;}function two<T>(value:T,other:T):T{return other;}";
 fn source(body:&str)->String{format!("{DECLARATIONS}function unused<T>(flag:boolean,value:T):T{{{body}}}function main(){{}}")}
 

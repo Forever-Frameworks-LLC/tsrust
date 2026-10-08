@@ -41,12 +41,7 @@ impl Analyzer {
             }
             return Ok((method, result));
         }
-        if self.specializations.len()
-            + self
-                .closure_specializations
-                .keys()
-                .filter(|(_, _, effects, discovery)| !effects && !discovery)
-                .count()
+        if self.callable_body_specialization_count()
             >= 128
         {
             return Err(Diagnostic::new(

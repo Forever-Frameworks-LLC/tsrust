@@ -68,6 +68,8 @@ mod generic_expression_adapters;
 mod generic_value_metadata;
 #[path = "deferred_generic_values.rs"]
 mod deferred_generic_values;
+#[path = "deferred_generic_methods.rs"]
+mod deferred_generic_methods;
 #[path = "generic_calls.rs"]
 mod generic_calls;
 #[path = "polymorphic_argument_hints.rs"]
@@ -4205,12 +4207,7 @@ impl Analyzer {
         if let Some(&id) = self.specializations.get(&key) {
             return Ok(id);
         }
-        if self.specializations.len()
-            + self
-                .closure_specializations
-                .keys()
-                .filter(|(_, _, effects, discovery)| !effects && !discovery)
-                .count()
+        if self.callable_body_specialization_count()
             >= 128
         {
             return Err(Diagnostic::new(

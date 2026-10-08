@@ -172,7 +172,7 @@ impl Analyzer {
         callee: &mut Expr, args: &mut Vec<Expr>, loans: &Loans, span: Span, once: bool, expected: Option<Type>, checked_receiver: bool,
     ) -> Result<(usize, Type), Diagnostic> {
         let declaration = self.deferred_generic_values[&origin].declaration.clone();
-        if !self.effects_only && !self.discovering_results && !context.template
+        let reachable_origins = if !self.effects_only && !self.discovering_results && !context.template
             && let Some(reachable) = self.generic_functions.reachable_declarations(&context.function_name, span, callee.span)
             && let Some(template) = self.generic_functions.template(&declaration)
         {
@@ -186,8 +186,8 @@ impl Analyzer {
                 self.deferred_generic_values.get(&member)
                     .and_then(|source| self.generic_functions.template(&source.declaration))
                     .map(|template| template.name.span)
-            }, span)?;
-        }
+            }, span)?
+        } else { vec![origin] };
         let mut source_call = Expr::new(ExprKind::Call(
             Box::new(Expr::new(ExprKind::Name(declaration), span)), args.clone()), span);
         // Original template preparation solves constraints without evaluating
@@ -246,52 +246,10 @@ impl Analyzer {
         // Callable arguments can select a further concrete body specialization.
         // Check that body before retaining its invocation method.
         self.function(function)?;
-        let mut types = args.iter().map(|argument| argument.ty.expect("checked generic value argument")).collect::<Vec<_>>();
-        // Zero-argument generic calls can select different concrete results.
-        // Their environments remain shared; only invocation methods differ.
-        types.push(result);
-        // Explicit type arguments can differ even when runtime arguments and
-        // result types do not. Keep those checked methods distinct as well.
-        if let Some(application) = self.program.functions[function].application.clone() {
-            for argument in &application.arguments {
-                types.push(self.callable_resolver().resolve_value_annotation(argument, false)?);
-            }
+        let method = self.materialize_deferred_method(origin, function, result, args, &accesses, method_invocation, span)?;
+        if !self.effects_only && !self.discovering_results && !context.template && reachable_origins.len() > 1 {
+            self.materialize_selected_generic_methods(origin, function, result, args, &accesses, method_invocation, &reachable_origins, span)?;
         }
-        let key = (origin, types, self.effects_only, self.discovering_results);
-        if let Some(&method) = self.closure_specializations.get(&key) {
-            return self.retain_generic_invocation(context, origin, method, result, span);
-        }
-        if self.specializations.len() + self.closure_specializations.keys()
-            .filter(|(_, _, effects, discovery)| !effects && !discovery).count() >= 128 {
-            return Err(Diagnostic::new("unsupported", "Callback origin specialization count exceeds the prototype limit of 128.", span));
-        }
-        let checked = self.checked[function].as_ref().ok_or_else(|| Self::pending_result(span))?;
-        let method = self.closures[origin].methods.len();
-        let mut bindings = checked.bindings.clone();
-        let method_captures = self.deferred_generic_values[&origin].identities.iter().map(|identity| {
-            accesses.iter().find(|access| access.binding == *identity).expect("retained lexical capture").slot
-        }).collect::<Vec<_>>();
-        for (capture, &slot) in self.closures[origin].captures.iter().zip(&method_captures) {
-            let binding = &mut bindings[slot];
-            binding.capture_reference = match capture.storage {
-                Mode::Read if matches!(binding.ty, Type::BorrowedUnion(_) | Type::Union(_)) => false,
-                Mode::Read | Mode::Mutate => true,
-                Mode::Consume => method_invocation != Mode::Consume,
-                Mode::Copy => binding.mode == Mode::Mutate && method_invocation == Mode::Mutate,
-            };
-            binding.mode = if capture.storage == Mode::Consume || (capture.storage == Mode::Copy && binding.capture_reference) { method_invocation } else { capture.storage };
-        }
-        self.closures[origin].methods.push(CheckedClosureMethod {
-            invocation: method_invocation,
-            captures: method_captures,
-            parameters: (0..checked.parameter_count).collect(),
-            function: CheckedFunction {
-                template: checked.template, specialization: true, name: checked.name.clone(),
-                bindings, parameter_count: 0,
-                result: checked.result, body: checked.body.clone(),
-            },
-        });
-        self.closure_specializations.insert(key, method);
         self.retain_generic_invocation(context, origin, method, result, span)
     }
 }

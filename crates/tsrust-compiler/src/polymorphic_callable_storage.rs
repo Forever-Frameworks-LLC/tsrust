@@ -10,6 +10,8 @@ pub(crate) struct Registry {
 }
 
 impl Registry {
+    pub(crate) fn is_empty(&self) -> bool { self.parents.is_empty() }
+
     pub(crate) fn observe(&mut self, previous: usize, replacement: usize) {
         self.parents.entry(previous).or_insert(previous);
         self.parents.entry(replacement).or_insert(replacement);
@@ -30,6 +32,10 @@ impl Registry {
     fn members(&self, origin: usize) -> Option<Vec<usize>> {
         let root = self.root(origin)?;
         Some(self.parents.keys().copied().filter(|&member| self.root(member) == Some(root)).collect())
+    }
+
+    pub(crate) fn canonical_origin(&self, origin: usize) -> usize {
+        self.root(origin).unwrap_or(origin)
     }
 
     /// Declaration proofs select concrete environments only from this storage.

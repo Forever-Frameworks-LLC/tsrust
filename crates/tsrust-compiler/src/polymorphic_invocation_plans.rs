@@ -161,6 +161,30 @@ mod tests {
         }
     }
     #[test]
+    fn source_selected_fresh_environments_materialize_independent_method_ordinals() {
+        let source = crate::format("function identity<T>(value:T):T{return value;}function main(){let action=identity;action<int>(7);action=identity;action<string>('owned');}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(), source);
+        let checked = crate::check(&source).unwrap();
+        assert_eq!(checked.program.closures[0].methods.len(), 2);
+        assert_eq!(checked.program.closures[1].methods.len(), 1);
+        let pairs = [Pair { origin: 0, method: 1 }, Pair { origin: 1, method: 0 }];
+        let table = &checked.program.polymorphic_invocations;
+        let id = table.index(&pairs).expect("source-selected environments publish one invocation plan");
+        let plan = table.checked(id, &checked.program.closures, Span::default()).unwrap();
+        assert_eq!(plan.cases.iter().map(|case| case.pair).collect::<Vec<_>>(), pairs);
+    }
+    #[test]
+    fn equivalent_family_layouts_do_not_exhaust_body_specialization_budget() {
+        let mut source = String::from("function identity<T>(value:T):T{return value;}function use(action:Function<int>):int{return action();}function main(){let action=identity;action<int>(7);");
+        for _ in 0..130 { source.push_str("action=identity;action<int>(7);"); }
+        source.push_str("use(()=>9);const inline=(callback:Function<int>):int=>callback();inline(()=>10);}");
+        let source = crate::format(&source).unwrap();
+        assert_eq!(crate::format(&source).unwrap(), source);
+        let checked = crate::check(&source).expect("fresh storage layouts do not create new checked generic bodies");
+        assert_eq!(checked.program.deferred_generic_values.len(), 131);
+        assert!(checked.program.deferred_generic_values.iter().all(|&origin| checked.program.closures[origin].methods.len() == 1));
+    }
+    #[test]
     fn one_environment_cannot_select_two_methods_at_one_invocation() {
         let checked = crate::check("function action<T>(): int { return 7; } function main() { const alias = action; alias<int>(); alias<string>(); }").unwrap();
         let origin = *checked.program.deferred_generic_values.iter().next().unwrap();
