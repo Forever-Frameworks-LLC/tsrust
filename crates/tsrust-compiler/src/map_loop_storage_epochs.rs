@@ -20,48 +20,55 @@ impl Emitter<'_> {
         else {
             return false;
         };
-        let Some(previous) = index
-            .checked_sub(1)
-            .and_then(|index| declarations.get(index))
-        else {
-            return false;
-        };
-        let StmtKind::Let {
-            binding: Some(binding),
-            value,
-            ..
-        } = &previous.kind
-        else {
-            return false;
-        };
         if !statement.labels.is_empty() {
             return false;
         }
+        // Consecutive empty declarations and each owning record leaf form an
+        // independent storage epoch. Prove every selected leaf is cleared.
         let mut candidates = Vec::new();
-        if empty_map_initializer(value, &[]) {
-            candidates.push((format!("value{binding}"), Vec::new()));
-        }
-        if let Some(layout) = self.owned_record_layout(fun, *binding) {
-            for leaf in &layout.leaves {
-                if !matches!(leaf.ty, Type::Map(_)) {
-                    continue;
-                }
-                let mut ty = fun.bindings[*binding].ty;
-                let mut names = Vec::new();
-                for index in &leaf.path {
-                    let Type::Record(record) = ty else {
-                        unreachable!("checked owning record path")
-                    };
-                    let field = &self.program.records[record].fields[*index];
-                    names.push(field.name.text.clone());
-                    ty = field.ty.unwrap();
-                }
-                if empty_map_initializer(value, &names) {
-                    candidates.push((leaf.native_name(*binding), names));
+        for previous in declarations[..index].iter().rev() {
+            let StmtKind::Let {
+                binding: Some(binding),
+                value,
+                ..
+            } = &previous.kind
+            else {
+                break;
+            };
+            let mut found = false;
+            if empty_map_initializer(value, &[]) {
+                candidates.push((format!("value{binding}"), *binding, Vec::new()));
+                found = true;
+            }
+            if let Some(layout) = self.owned_record_layout(fun, *binding) {
+                for leaf in &layout.leaves {
+                    if !matches!(leaf.ty, Type::Map(_)) {
+                        continue;
+                    }
+                    let mut ty = fun.bindings[*binding].ty;
+                    let mut names = Vec::new();
+                    for index in &leaf.path {
+                        let Type::Record(record) = ty else {
+                            unreachable!("checked owning record path")
+                        };
+                        let field = &self.program.records[record].fields[*index];
+                        names.push(field.name.text.clone());
+                        ty = field.ty.unwrap();
+                    }
+                    if empty_map_initializer(value, &names) {
+                        candidates.push((leaf.native_name(*binding), *binding, names));
+                        found = true;
+                    }
                 }
             }
+            if !found {
+                break;
+            }
         }
-        let mut reset = None;
+        if candidates.is_empty() {
+            return false;
+        }
+        let mut resets = Vec::new();
         let mut cleaned = false;
         for item in body {
             match &item.kind {
@@ -69,52 +76,47 @@ impl Emitter<'_> {
                     let Some(cleanup) = &region.finally else {
                         return false;
                     };
-                    let Some((position, place)) =
-                        cleanup.iter().enumerate().find_map(|(position, item)| {
-                            self.local_map_clear_storage(fun, declarations, item)
-                                .and_then(|(place, native)| {
-                                    candidates
-                                        .iter()
-                                        .find(|(candidate, _)| *candidate == place)
-                                        .map(|(_, path)| (position, (place, native, path.clone())))
-                                })
-                        })
-                    else {
-                        return false;
-                    };
-                    // A direct clear must be reached on every cleanup path. No
-                    // earlier cleanup exit and no later refill can retain an entry.
-                    if cleanup[..position].iter().any(|item| {
-                        !matches!(
-                            item.kind,
-                            StmtKind::Let { .. } | StmtKind::Expr(_) | StmtKind::Assign { .. }
-                        )
-                    }) {
-                        return false;
+                    for (candidate, binding, path) in &candidates {
+                        let Some((position, native)) =
+                            cleanup.iter().enumerate().find_map(|(position, item)| {
+                                self.local_map_clear_storage(fun, declarations, item)
+                                    .filter(|(place, _)| place == candidate)
+                                    .map(|(_, native)| (position, native))
+                            })
+                        else {
+                            return false;
+                        };
+                        if cleanup[..position].iter().any(|item| {
+                            !matches!(
+                                item.kind,
+                                StmtKind::Let { .. } | StmtKind::Expr(_) | StmtKind::Assign { .. }
+                            )
+                        }) {
+                            return false;
+                        }
+                        if cleanup[position + 1..]
+                            .iter()
+                            .any(|item| !map_independent_statement(item, *binding, path))
+                        {
+                            return false;
+                        }
+                        resets.push((candidate.clone(), native, *binding, path.clone()));
                     }
-                    if cleanup[position + 1..]
-                        .iter()
-                        .any(|item| !map_independent_statement(item, *binding, &place.2))
-                    {
-                        return false;
-                    }
-                    reset = Some(place);
                     cleaned = true;
                 }
                 StmtKind::Let { .. } | StmtKind::Expr(_) | StmtKind::Assign { .. }
                     if !cleaned
-                        || map_independent_statement(
-                            item,
-                            *binding,
-                            &reset.as_ref().unwrap().2,
-                        ) => {}
+                        || resets.iter().all(|(_, _, binding, path)| {
+                            map_independent_statement(item, *binding, path)
+                        }) => {}
                 _ => return false,
             }
         }
-        let Some((place, native, path)) = reset else {
-            return false;
-        };
-        if map_reference(condition, *binding, &path) {
+        if resets.is_empty()
+            || resets
+                .iter()
+                .any(|(_, _, binding, path)| map_reference(condition, *binding, path))
+        {
             return false;
         }
         let indent = "    ".repeat(depth);
@@ -125,15 +127,26 @@ impl Emitter<'_> {
         // epochs; only loop-local owners ever contain callbacks.
         let _ = writeln!(
             output,
-            "{indent}'loop_{label}: while {} {{\n{indent}    let mut {place}: {native} = <{native}>::new();",
+            "{indent}'loop_{label}: while {} {{",
             self.expr(fun, condition, Mode::Copy)
         );
+        for (place, native, _, _) in &resets {
+            let _ = writeln!(
+                output,
+                "{indent}    let mut {place}: {native} = <{native}>::new();"
+            );
+        }
         let mut nested = declarations.to_vec();
         nested.extend(body.iter().cloned());
         self.control_block_epochs(output, fun, body, depth + 1, Some(label), Some(&nested));
         let _ = writeln!(output, "{indent}}}");
-        self.exception_regions
-            .renew_storage(&[place], statement.span.end);
+        self.exception_regions.renew_storage(
+            &resets
+                .iter()
+                .map(|(place, _, _, _)| place.clone())
+                .collect::<Vec<_>>(),
+            statement.span.end,
+        );
         true
     }
 }

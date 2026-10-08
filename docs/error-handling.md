@@ -72,3 +72,8 @@ invoke callbacks, and removed callback environments are disposed once.
 The executable regression `catch_cleanup_clear_releases_captures_before_cleanup_mutation`
 covers normal, caught, continue and break paths for both a local Map and a Map
 stored in a record field.
+
+Cleanup may clear several independent Maps, including different fields of the
+same record. Each clear releases that Map's callbacks in statement order. Empty
+Maps outside a loop remain empty when the loop executes zero times. Renewing an
+empty native storage epoch does not discard callbacks retained by another Map.

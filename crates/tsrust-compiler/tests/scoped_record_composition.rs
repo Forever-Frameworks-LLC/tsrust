@@ -1,6 +1,20 @@
 mod support;
 
 #[test]
+fn paired_record_map_loop_releases_both_cleanup_captures() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};type Pair={left:Map<string,Holder>;right:Map<string,Holder>;};function failIf(fail:boolean):void{if(fail)throw 7;}function main():void{const old=[3];const next=[5];let turn=0;let box:Pair={left:new Map<string,Holder>(),right:new Map<string,Holder>()};while(turn<3){box.left.set('old',{run:():int=>old[0]});box.right.set('next',{run:():int=>next[0]});turn+=1;try{failIf(turn!==2);}catch(error){if(turn===1)continue;break;}finally{console.log('cleanup',turn,box.left.size,box.right.size);box.left.clear();box.right.clear();old[0]=9;next[0]=11;}}console.log('after',box.left.size,box.right.size,old[0],next[0]);}");
+ verify_disposal(&source,2,"cleanup 1 1 1\ndrop 0\ndrop 1\ncleanup 2 1 1\ndrop 0\ndrop 1\ncleanup 3 1 1\ndrop 0\ndrop 1\nafter 0 0 9 11\n");
+ let mut roots=source.clone();
+ let start=roots.find("let box:").unwrap();let end=start+roots[start..].find(';').unwrap()+1;
+ roots.replace_range(start..end,"let left=new Map<string,Holder>();let right=new Map<string,Holder>();");
+ let roots=roots.replace("box.left","left").replace("box.right","right");
+ assert_ne!(roots,source);
+ verify_disposal(&support::format_round_trip(&roots),2,"cleanup 1 1 1\ndrop 0\ndrop 1\ncleanup 2 1 1\ndrop 0\ndrop 1\ncleanup 3 1 1\ndrop 0\ndrop 1\nafter 0 0 9 11\n");
+ verify_disposal(&support::format_round_trip(&source.replace("turn < 3", "turn < 0")),2,"after 0 0 3 5\n");
+
+}
+
+#[test]
 fn catch_cleanup_clear_releases_captures_before_cleanup_mutation() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function main():void{const old=[3];const next=[5];let turn=0;let handlers=new Map<string,Holder>();while(turn<3){handlers.set('old',{run:():int=>old[0]});turn+=1;try{failIf(turn!==2);handlers.clear();handlers.set('next',{run:():int=>next[0]});console.log('normal',turn);}catch(error){handlers.clear();handlers.set('next',{run:():int=>next[0]});if(turn===1)continue;break;}finally{console.log('cleanup',turn,handlers.size);handlers.clear();old[0]=9;next[0]=11;}console.log('fallthrough',turn);}old[0]=13;next[0]=17;console.log('after',handlers.size,old[0],next[0]);}");
  verify_disposal(&source,3,"drop 0\ncleanup 1 1\ndrop 2\ndrop 0\nnormal 2\ncleanup 2 1\ndrop 1\nfallthrough 2\ndrop 0\ncleanup 3 1\ndrop 2\nafter 0 13 17\n");

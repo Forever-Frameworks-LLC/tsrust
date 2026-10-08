@@ -505,7 +505,9 @@ function workload(n: int, seed: int, input: string): int[][] {
         const nestedReturned = nestedReturnedCleanup(value % 2 === 0, value, returnedTrace) + returnedTrace[0] * 100 + returnedTrace[1] * 10 + returnedTrace[2] * 1000;
         const caughtLoopTrace = [0, 0];
         const caughtLooped = caughtMapLoop(value, caughtLoopTrace) + caughtLoopTrace[0] * 100 + caughtLoopTrace[1];
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped]);
+        const pairedLoopTrace = [0, 0];
+        const pairedLooped = pairedMapLoop(value, pairedLoopTrace) + pairedLoopTrace[0] * 100 + pairedLoopTrace[1];
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped]);
         i += 1;
     }
 
@@ -874,4 +876,36 @@ function caughtMapLoop(value: int, trace: Mutable<int[]>): int {
     caughtLoopOld[0] = value + 142;
     caughtLoopNext[0] = value + 143;
     return caughtLoopObserved + turn + caughtLoopMap.size + caughtLoopOld[0] + caughtLoopNext[0];
+}
+
+function pairedMapLoop(value: int, trace: Mutable<int[]>): int {
+    const pairedOld = [value];
+    const pairedNext = [value + 1];
+    let turn = 0;
+    let pairedLeft = new Map<string, Holder>();
+    let pairedRight = new Map<string, Holder>();
+    while (turn < 3) {
+        pairedLeft.set("old", {
+            run: (): int => pairedOld[0]
+        });
+        pairedRight.set("next", {
+            run: (): int => pairedNext[0]
+        });
+        turn += 1;
+        try {
+            const pairedPrefix = prefixResult(turn !== 2);
+        } catch (error) {
+            if (turn === 1) continue;
+            break;
+        } finally {
+            trace[0] += pairedLeft.size + pairedRight.size;
+            pairedLeft.clear();
+            pairedRight.clear();
+            pairedOld[0] = value + 150;
+            pairedNext[0] = value + 151;
+            trace[1] += pairedLeft.size + pairedRight.size;
+        }
+    }
+
+    return pairedOld[0] + pairedNext[0] + turn + pairedLeft.size + pairedRight.size;
 }

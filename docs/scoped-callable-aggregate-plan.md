@@ -1720,3 +1720,43 @@ Proceed with broader loops, multiple owners and precise entry/element release.
 Keep editor, matched workloads and SQLite evidence current, format the whole
 project before checkpoints, and stage explicit paths. Preserve unrelated fixture
 semantics. The family and full goal remain active.
+
+## Multiple empty Map loop owners checkpoint
+
+A new paired-owner witness exposed native E0382 and E0502 when two record-field
+Maps were cleared in catch/finally. Empty while epoch discovery previously
+renewed only one leaf. It now discovers consecutive empty Map declarations and
+all empty owning record Map leaves, proves each selected leaf is directly cleared,
+checks each post-clear suffix independently for refill/transfer, and renews all
+selected native owners per iteration. The original empty owners remain available
+for zero iterations and outer errors. Source ownership checks remain unchanged.
+
+Exact O0/O3 disposal passes for paired record fields and separate local Maps,
+including continue, normal fallthrough, break and zero iterations. The affected
+batch preserves 88 existing composition, 42 scoped-record and four fallible-record
+passes. The new witness passes separately after correcting a test-source
+replacement that had left its record initializer in the local-Map variant. The
+original failed batch and corrected test are both preserved. Focused editor
+checks pass for the paired-owner source.
+
+The matched workload adds a 39th paired-owner observation. Its independent oracle
+is `2 * value + 904`: three cleanup visits see six total entries before clear,
+zero afterward, final captures sum to `2 * value + 301`, and turn is three.
+All 39 observations verify untimed on native and Node-after-tsc; source guards,
+rehash mutation controls and registration pass. SQLite stores
+`runtime/results/2026-10-08T21-29-08-920Z-verify.json` and `tsrust-b5-paired-map-*.log`
+with byte-exact read-back. Loose evidence is removed after verification.
+
+B5 remains active. Next extend discovery across nested exception regions and
+broader loop shapes, then precise entry/element release and remaining callable
+compositions. Rust-style record Set equality/hash remains planned. No family
+regression, timing or user consumer refresh has occurred. The scratch CLI includes
+the paired-owner repair; user executable consumers remain at gate181.
+
+Continuation prompt: Continue B5 from the multiple empty Map loop owners checkpoint.
+Read AGENTS.md, development-workflow.md and the scoped aggregate plan. Root and
+record-field paired-owner disposal now pass with existing cases preserved. Extend
+nested-region/loop discovery without treating a refill as empty, then precise
+entry/element release. Keep focused editor and matched benchmark support ready,
+SQLite evidence durable, whole-project formatting automatic and explicit Git
+staging. Preserve unrelated fixture semantics. The full goal remains active.
