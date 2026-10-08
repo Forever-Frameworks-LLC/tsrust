@@ -1,6 +1,43 @@
 mod support;
 
 #[test]
+fn separate_map_elements_keep_key_contracts_and_both_capture_owners() {
+    let prefix = "type Holder={run:ReadOnly<Function<int>>;};type Box={handlers:Map<string,Holder>;};function main(){const a=[3];const b=[7];const first=new Map<string,Holder>();first.set('value',{run:():int=>a[0]});const second=new Map<string,Holder>();second.set('value',{run:():int=>b[0]});const boxes:Box[]=[{handlers:first},{handlers:second}];";
+    for owner in ["a", "b"] {
+        let source = format!("{prefix}{owner}[0]=9;console.log(boxes[0].handlers.size,boxes[1].handlers.size);}}");
+        let error = tsrust_compiler::check(&source).err().expect("each Map retains its own capture owner");
+        assert_eq!(error.code, "capture-conflict", "{}", error.message);
+    }
+    let wrong_key = "type Holder={run:ReadOnly<Function<int>>;};type Box={handlers:Map<string,Holder>;};function main(){const values=[3];const first=new Map<string,Holder>();first.set('value',{run:():int=>values[0]});const second=new Map<int,Holder>();second.set(1,{run:():int=>values[0]});const boxes:Box[]=[{handlers:first},{handlers:second}];console.log(boxes.length);}";
+    let error = tsrust_compiler::check(wrong_key).err().expect("array composition cannot change Map key contracts");
+    assert_eq!(error.code, "type", "{}", error.message);
+}
+
+#[test]
+fn separate_record_map_elements_join_callback_environments() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        type Box = { handlers: Map<string, Holder>; };
+        function main() {
+            const values = [3, 7, 11];
+            const first = new Map<string, Holder>();
+            first.set("value", { run: (): int => values[0] });
+            const second = new Map<string, Holder>();
+            second.set("value", { run: (): int => values[1] });
+            const boxes: Box[] = [{ handlers: first }, { handlers: second }];
+            boxes[0].handlers.set("later", { run: (): int => values[2] });
+            const left = boxes[0].handlers.get("value");
+            const right = boxes[1].handlers.get("value");
+            const later = boxes[0].handlers.get("later");
+            if (left !== undefined) strictEqual(left.run(), 3);
+            if (right !== undefined) strictEqual(right.run(), 7);
+            if (later !== undefined) strictEqual(later.run(), 11);
+        }
+    "#);
+}
+
+#[test]
 fn indexed_map_replacement_releases_capture_loans_at_container_scope_exit() {
     project(r#"
         import { strictEqual } from "std:testing";

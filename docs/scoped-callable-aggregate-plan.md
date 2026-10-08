@@ -450,3 +450,18 @@ All five native/Node-after-tsc cases pass. Exact matched evidence is preserved a
 is `tsrust-b5-indexed-map-replacement-loans-depth.log`; the earlier depth run is
 preserved separately. Precise release of an individual replaced element while
 siblings remain live is still pending. No timing or whole B5 acceptance is claimed.
+
+Array construction now joins record fields containing independent scoped Maps.
+The join requires equal key types and compatible record callback contracts, then
+materializes a common value carrier. Existing move-edge planning propagates that
+carrier back into each source Map; no Map or captured owner is copied. A native
+witness constructs two Box elements with distinct callback origins, inserts a
+third origin into one element and verifies all three results. Paired rejection
+checks protect each independent capture owner and preserve incompatible-key errors.
+The affected compiler batch passes 56 tests, with the additional key/capture guard
+test checked separately. Focused editor help and all eight normal-worker depth
+canaries pass. The matched workload retains the peer Map result as its tenth scalar
+observation. All five native/Node-after-tsc cases pass; exact evidence is in SQLite
+as `runtime/results/2026-10-08T16-03-04-914Z-verify.json`, with depth evidence under
+`tsrust-b5-independent-record-map-elements-depth.log`. Timing and whole B5 acceptance
+remain pending, including precise per-element capture release and Set key design.

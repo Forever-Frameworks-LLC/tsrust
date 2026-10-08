@@ -19,6 +19,7 @@ function workload(n: int, seed: int, input: string): int[][] {
         let mapSecond = 0;
         let replaced = 0;
         let iterated = 0;
+        let peerValue = 0;
         let populated = 0;
         let cleared = 0;
         {
@@ -35,7 +36,9 @@ function workload(n: int, seed: int, input: string): int[][] {
             handlers.set("first", {
                 run: (): int => base[0]
             });
-            const boxes: Box[] = [{ handlers: handlers }];
+            const peerMap = new Map<string, Holder>();
+            peerMap.set("peer", { run: (): int => base[1] + 2 });
+            const boxes: Box[] = [{ handlers: handlers }, { handlers: peerMap }];
             boxes[0].handlers.set("second", {
                 run: (): int => base[1]
             });
@@ -46,6 +49,10 @@ function workload(n: int, seed: int, input: string): int[][] {
                 if (second !== undefined) mapSecond = second.run();
             }
 
+            {
+                const peer = boxes[1].handlers.get("peer");
+                if (peer !== undefined) peerValue = peer.run();
+            }
             populated = boxes[0].handlers.size;
             boxes[0].handlers.forEach((holder: Holder): void => {
                 iterated += holder.run();
@@ -65,7 +72,7 @@ function workload(n: int, seed: int, input: string): int[][] {
         }
 
         base[0] = 0;
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, populated, cleared, base[0] + base[1]]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1]]);
         i += 1;
     }
 

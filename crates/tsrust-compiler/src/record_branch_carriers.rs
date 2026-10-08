@@ -173,6 +173,10 @@ impl Analyzer {
             let Some((_,r))=right_fields.iter_mut().find(|(key,_)|key.text==field.name.text) else{continue;};
             let lt=l.ty.unwrap();let rt=r.ty.unwrap();
             if let Some(ty)=self.join_record_values(l,r)?{fields[index]=ty;changed=true;}
+            else if lt!=rt && let Some(ty)=self.join_scoped_map_types(lt,rt,l.span)?{
+                for value in [&mut *l,&mut *r]{if value.ty!=Some(ty){value.wrap_record_carrier(ty);}}
+                fields[index]=ty;changed=true;
+            }
             else if lt!=rt && let Some(family)=self.common_borrowed_conditional_family(lt,rt,l.span)?{
                 for value in [&mut *l,&mut *r]{if !matches!(value.kind,ExprKind::Unary{op:UnaryOp::CallableStore,..}){value.wrap_storage(family);}value.ty=Some(Type::BorrowedCallable(family));}let ty=Type::BorrowedCallable(family);l.ty=Some(ty);r.ty=Some(ty);fields[index]=ty;changed=true;
             }else if lt==rt{fields[index]=lt;}
@@ -191,7 +195,7 @@ impl Analyzer {
                 if depth != other_depth { return Ok(None); }
                 let Some(Type::Record(record)) = self.join_record_types(a,b,span)? else { return Ok(None); };
                 Type::Array(ArrayElement::Record(record,depth))
-            }else if let Some(family)=self.common_borrowed_conditional_family(left,right,span)?{Type::BorrowedCallable(family)}else{return Ok(None);};
+            }else if let Some(map)=self.join_scoped_map_types(left,right,span)?{map}else if let Some(family)=self.common_borrowed_conditional_family(left,right,span)?{Type::BorrowedCallable(family)}else{return Ok(None);};
             changed|=joined!=left || joined!=right;fields.push(joined);
         }
         if !changed{return Ok(None);}
