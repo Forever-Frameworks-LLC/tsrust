@@ -34,6 +34,8 @@ pub(super) struct Engine<'a> {
     evaluations: usize,
     #[cfg(test)]
     invocations: usize,
+    #[cfg(test)]
+    trace: bool,
 }
 fn merge_state(current:&mut Option<FlowState>,incoming:Option<FlowState>,declarations:&HashMap<String,Contract>)->bool {
     if let Some(incoming)=incoming {
@@ -55,7 +57,7 @@ fn merge_facts(current: &mut HashMap<(usize, usize), Option<Vec<Contract>>>, inc
 }
 impl<'a> Engine<'a> {
     pub(super) fn new(declarations: &'a HashMap<String, Contract>, effects: &'a effect_bodies::Index) -> Self {
-        Self { declarations, effects, lookup: HashMap::new(), entries: Vec::new(), work: Vec::new(), current: None, environments: environment_store::Store::default(), #[cfg(test)] evaluations: 0, #[cfg(test)] invocations: 0 }
+        Self { declarations, effects, lookup: HashMap::new(), entries: Vec::new(), work: Vec::new(), current: None, environments: environment_store::Store::default(), #[cfg(test)] evaluations: 0, #[cfg(test)] invocations: 0, #[cfg(test)] trace:std::env::var_os("TSRUST_TRACE_WORKLIST").is_some() }
     }
     // Keep a simple declaration path. Recursive edges reuse the earlier frame,
     // so allocation identity cannot grow with runtime recursion depth.
@@ -120,10 +122,16 @@ impl<'a> Engine<'a> {
         if !self.entries[index].queued { self.entries[index].queued = true; self.work.push(index); }
     }
     pub(super) fn solve(&mut self, declaration: Span, caller: &[Binding], arguments: &[expression_flow::Value]) -> Option<summary_flow::Outcome> {
+        #[cfg(test)]
+        let trace=self.trace;
+        #[cfg(test)]
+        if trace {eprintln!("worklist-start span={}..{} bindings={}",declaration.start,declaration.end,caller.len());}
         let root = self.request(Request { declaration, producer: declaration, context: vec![(declaration, declaration)], environment: None, caller: caller.to_vec().into(), arguments: arguments.to_vec() });
         while let Some(index) = self.work.pop() {
             self.evaluate(index);
         }
+        #[cfg(test)]
+        if trace {eprintln!("worklist-finish span={}..{} requests={} evaluations={} invocationVisits={} opaque={}",declaration.start,declaration.end,self.entries.len(),self.evaluations,self.invocations,self.entries[root].opaque);}
         (!self.entries[root].opaque).then(|| self.entries[root].outcome.clone())
     }
     fn evaluate(&mut self, index: usize) {
@@ -264,7 +272,7 @@ impl expression_flow::Dispatch for Engine<'_> {
     }
     fn invoke(&mut self, expression: &Expr, callee: &expression_flow::Value, arguments: &[expression_flow::Value], state: &FlowState) -> Option<expression_flow::Invocation> {
         #[cfg(test)]
-        {self.invocations+=1;}
+        {self.invocations+=1;if self.trace && self.invocations%128==0 {eprintln!("worklist-progress requests={} evaluations={} invocationVisits={} bindings={}",self.entries.len(),self.evaluations,self.invocations,state.len());}}
         if leaf_effects::observer_call(expression, self.effects)
             || !callee.origins.is_empty() && callee.origins.iter().all(|origin|
                 matches!(origin,body_origins::Origin::Name(symbol,_) if leaf_effects::native_observer(symbol))) {
@@ -365,6 +373,14 @@ mod tests {
         }
     }
     #[test]
+    #[ignore = "Opt-in whole-source scheduling diagnostic; run alone with an external bound"]
+    fn trace_adapter_source_worklist_cost() {
+        let source=include_str!("../../../benchmarks/runtime/workloads/generic_value_adapters.tsr");
+        let mut program=crate::syntax::parse(source).unwrap();
+        for function in &program.functions {eprintln!("source-function span={}..{} name={}",function.name.span.start,function.name.span.end,function.name.text);}
+        validate(&mut program).unwrap();
+    }
+    #[test]
     fn independent_aggregate_returns_do_not_replay_completed_prefixes() {
         for (shape,result,expression) in [("array","int[]","[value]"),("record","Box","{value:value}"),("literal","int","1")] {
             for calls in [8,32,64] {
@@ -383,6 +399,24 @@ mod tests {
                 assert!(engine.evaluations<=calls+2,"{shape}: {} evaluations for {calls} calls",engine.evaluations);
                 assert!(engine.invocations<=3*calls,"{shape}: {} invocation visits for {calls} calls",engine.invocations);
             }
+        }
+    }
+    #[test]
+    fn nested_independent_calls_resume_without_replaying_prefixes() {
+        for calls in [8,32,64] {
+            let body="wrap(1);".repeat(calls);
+            let source=crate::format(&format!("function increment(value:int):int{{return value+1;}}function wrap(value:int):int{{return increment(value);}}function outer(){{{body}}}function main(){{}}")).unwrap();
+            assert_eq!(crate::format(&source).unwrap(),source);
+            let program=crate::syntax::parse(&source).unwrap();
+            let effects=effect_bodies::Index::new(&program).unwrap();
+            let declarations=program.functions.iter().map(|function|(function.name.text.clone(),contract(function.type_parameters.len(),&function.parameter_initializers,function.rest_parameter,function.name.span))).collect::<HashMap<_,_>>();
+            let outer=program.functions.iter().find(|function|function.name.text=="outer").unwrap();
+            let mut engine=Engine::new(&declarations,&effects);
+            let outcome=engine.solve(outer.name.span,&[],&[]).unwrap();
+            assert_eq!(outcome.facts.len(),calls+1);
+            println!("nested calls={calls} requests={} evaluations={} invocationVisits={}",engine.entries.len(),engine.evaluations,engine.invocations);
+            assert!(engine.evaluations<=2*calls+2,"{} evaluations for {calls} nested calls",engine.evaluations);
+            assert!(engine.invocations<=4*calls,"{} invocation visits for {calls} nested calls",engine.invocations);
         }
     }
     #[test]
