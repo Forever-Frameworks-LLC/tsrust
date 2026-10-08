@@ -741,3 +741,18 @@ callback drop. The affected 65-test batch, eight depth canaries and focused sibl
 editor diagnostics pass. Exact checks are verified in SQLite under
 `tsrust-b5-one-branch-consumption-checks.log`. Exception and indexed storage remain
 open; this is focused implementation evidence, not whole B5 acceptance or timing.
+
+The matched workload now consumes the renewed record-field Map on one branch
+while retaining its empty storage on the other. Its twelfth scalar observation is
+that selected Map size, independently expected to be zero. The sibling marker
+remains part of the refill observation after the partial field move. Both source
+counterparts, exact hashes and semantic mutation guards are current. Guards require
+the move and its observer, as well as clear before subsequent capture mutation.
+Registration passes. This adds matched support for checked one-path ownership
+transport; measurement remains pending the completed family milestone.
+
+The twelve-observation workload passes untimed native and Node-after-tsc verification.
+Exact evidence is imported and read back byte for byte in SQLite as
+`runtime/results/2026-10-08T16-52-55-903Z-verify.json`; its loose copy is removed.
+No timing samples were collected. One-path consumption now has matched runtime
+support in addition to the focused compiler, disposal and editor evidence.

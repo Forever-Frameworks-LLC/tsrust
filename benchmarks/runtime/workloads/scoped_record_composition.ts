@@ -86,12 +86,14 @@ function workload(n: int, seed: int, input: string): int[][] {
             const current = refillBox.handlers.get("new");
             if (current !== undefined) refilled = current.run();
         }
-        if (value % 2 === 0) { refillBox.handlers.clear(); } else { refillBox.handlers.clear(); }
+        let movedSize = 0;
+        if (value % 2 === 0) { refillBox.handlers.clear(); const moved = refillBox.handlers; movedSize = moved.size; } else { refillBox.handlers.clear(); movedSize = refillBox.handlers.size; }
+
         newCapture[0] = value + 6;
         refilled += oldCapture[0] + newCapture[0] + refillBox.marker;
 
         base[0] = 0;
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize]);
         i += 1;
     }
 
