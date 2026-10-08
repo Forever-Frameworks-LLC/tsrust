@@ -879,3 +879,22 @@ tests and the focused editor diagnostic test pass. The editor preserves the
 current capture while releasing the old one. Exact evidence is verified in
 SQLite as `tsrust-b5-finally-storage-checks.log`; the loose copy is removed.
 Matched finally coverage remains next. Whole B5 acceptance and timing are pending.
+
+The matched workload now retains seventeen scalar observations. Normal and
+caught fallible-prefix cases each execute finally, observe the refilled Map size
+as one, and retain that separate cleanup result in the returned array. Source
+contracts require each finally observer and the output fields; deletion controls
+pass after rehashing. All preceding observations retain their independent oracle
+values. Untimed native and Node-after-tsc verification passes. Exact evidence is
+verified in SQLite as `runtime/results/2026-10-08T17-23-56-576Z-verify.json`; its
+loose copy is removed. No timing was performed.
+
+Nested exception branches have a confirmed red witness:
+`nested_exception_branches_preserve_map_renewal` throws on one try branch,
+clears/refills on the other, clears/refills inside a nested catch block, and
+observes surviving storage in finally. Both choices execute and must release the
+old capture while preserving the current callback. Source analysis accepts the
+program; generated Rust fails with E0502. Exact evidence is verified in SQLite
+as `tsrust-b5-nested-exception-red.log`. Next work must admit checked nested
+blocks and branches while attaching storage to exceptions at their actual exit
+points. Loops, consuming exits and try/finally without catch remain open.

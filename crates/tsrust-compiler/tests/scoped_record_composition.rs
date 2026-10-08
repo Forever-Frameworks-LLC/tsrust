@@ -1,6 +1,50 @@
 mod support;
 
 #[test]
+fn nested_exception_branches_preserve_map_renewal() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function scenario(fail: boolean): void {
+            const old = [3];
+            const current = [7];
+            const handlers = new Map<string, Holder>();
+            handlers.set("old", { run: (): int => old[0] });
+            let path = 0;
+            let cleaned = 0;
+            try {
+                if (fail) {
+                    throw 5;
+                } else {
+                    path = 1;
+                    handlers.clear();
+                    handlers.set("new", { run: (): int => current[0] });
+                }
+            } catch (error) {
+                {
+                    path = 2;
+                    handlers.clear();
+                    handlers.set("new", { run: (): int => current[0] });
+                }
+            } finally {
+                cleaned = handlers.size;
+            }
+            old[0] = 9;
+            strictEqual(path, fail ? 2 : 1);
+            strictEqual(cleaned, 1);
+            {
+                const entry = handlers.get("new");
+                if (entry !== undefined) strictEqual(entry.run(), 7);
+            }
+            handlers.clear();
+            current[0] = 11;
+            strictEqual(old[0] + current[0], 20);
+        }
+        function main(): void { scenario(false); scenario(true); }
+    "#);
+}
+
+#[test]
 fn finally_map_storage_runs_after_handler_failure_and_preserves_disposal() {
     let source = support::format_round_trip(r#"
         type Holder = { run: ReadOnly<Function<int>>; };
