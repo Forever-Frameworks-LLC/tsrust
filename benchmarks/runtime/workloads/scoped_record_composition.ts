@@ -393,7 +393,9 @@ function workload(n: int, seed: int, input: string): int[][] {
         nestedAbrupt+=abruptTrace[0]*100+abruptTrace[1]*10+abruptTrace[2]*1000+abruptTrace[3];
         const returnedTrace=[0,0,0];
         const nestedReturned=nestedReturnedCleanup(value % 2 === 0,value,returnedTrace)+returnedTrace[0]*100+returnedTrace[1]*10+returnedTrace[2]*1000;
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned]);
+        const caughtLoopTrace=[0,0];
+        const caughtLooped=caughtMapLoop(value,caughtLoopTrace)+caughtLoopTrace[0]*100+caughtLoopTrace[1];
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped]);
         i += 1;
     }
 
@@ -625,4 +627,18 @@ function nestedReturnedCleanup(fail: boolean, value: number, trace: number[]): n
   catch(error){returnedMap.clear();returnedMap.set("next",{run:():number=>returnedNext[0]});return returnedNext[0]+value;}
   finally {trace[0]+=returnedMap.size;returnedMap.clear();trace[1]+=returnedMap.size;}
  } finally {returnedMap.clear();returnedOld[0]=0;returnedNext[0]=0;trace[2]+=returnedMap.size;}
+}
+
+function caughtMapLoop(value: number, trace: number[]): number {
+ const caughtLoopOld=[value];const caughtLoopNext=[value+1];let turn=0;let caughtLoopObserved=0;
+ let caughtLoopMap=new Map<string,Holder>();
+ while(turn<3){
+  caughtLoopMap.set("old",{run:():number=>caughtLoopOld[0]});turn+=1;
+  try{const caughtLoopPrefix=prefixResult(turn!==2);caughtLoopMap.clear();caughtLoopMap.set("next",{run:():number=>caughtLoopNext[0]});}
+  catch(error){caughtLoopMap.clear();caughtLoopMap.set("next",{run:():number=>caughtLoopNext[0]});if(turn===1)continue;break;}
+  finally{trace[0]+=caughtLoopMap.size;caughtLoopMap.clear();trace[1]+=caughtLoopMap.size;}
+  caughtLoopOld[0]=value+140;caughtLoopNext[0]=value+141;caughtLoopObserved=caughtLoopOld[0]+caughtLoopNext[0];
+ }
+ caughtLoopOld[0]=value+142;caughtLoopNext[0]=value+143;
+ return caughtLoopObserved+turn+caughtLoopMap.size+caughtLoopOld[0]+caughtLoopNext[0];
 }

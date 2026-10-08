@@ -1,6 +1,36 @@
 mod support;
 
 #[test]
+fn catch_cleanup_clear_releases_captures_before_cleanup_mutation() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function main():void{const old=[3];const next=[5];let turn=0;let handlers=new Map<string,Holder>();while(turn<3){handlers.set('old',{run:():int=>old[0]});turn+=1;try{failIf(turn!==2);handlers.clear();handlers.set('next',{run:():int=>next[0]});console.log('normal',turn);}catch(error){handlers.clear();handlers.set('next',{run:():int=>next[0]});if(turn===1)continue;break;}finally{console.log('cleanup',turn,handlers.size);handlers.clear();old[0]=9;next[0]=11;}console.log('fallthrough',turn);}old[0]=13;next[0]=17;console.log('after',handlers.size,old[0],next[0]);}");
+ verify_disposal(&source,3,"drop 0\ncleanup 1 1\ndrop 2\ndrop 0\nnormal 2\ncleanup 2 1\ndrop 1\nfallthrough 2\ndrop 0\ncleanup 3 1\ndrop 2\nafter 0 13 17\n");
+}
+
+#[test]
+fn outer_map_catch_loop_releases_iteration_captures() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function main():void{const old=[3];const next=[5];let turn=0;let handlers=new Map<string,Holder>();while(turn<3){handlers.set('old',{run:():int=>old[0]});turn+=1;try{failIf(turn!==2);handlers.clear();handlers.set('next',{run:():int=>next[0]});console.log('normal',turn);}catch(error){handlers.clear();handlers.set('next',{run:():int=>next[0]});if(turn===1)continue;break;}finally{console.log('cleanup',turn,handlers.size);handlers.clear();}old[0]=9;next[0]=11;console.log('fallthrough',turn);}old[0]=13;next[0]=17;console.log('after',handlers.size,old[0],next[0]);}");
+ verify_disposal(&source,3,"drop 0\ncleanup 1 1\ndrop 2\ndrop 0\nnormal 2\ncleanup 2 1\ndrop 1\nfallthrough 2\ndrop 0\ncleanup 3 1\ndrop 2\nafter 0 13 17\n"); let zero=source.replace("turn < 3", "turn < 0");
+ verify_disposal(&support::format_round_trip(&zero),3,"after 0 13 17\n");
+ let field=source.replace("function failIf", "type Box={handlers:Map<string,Holder>;marker:int;};function failIf")
+ .replace("let handlers = new Map<string, Holder>();", "const box:Box={handlers:new Map<string,Holder>(),marker:23};")
+ .replace("handlers.set", "box.handlers.set").replace("handlers.clear", "box.handlers.clear").replace("handlers.size", "box.handlers.size");
+ assert_ne!(field,source);
+ verify_disposal(&support::format_round_trip(&field),3,"drop 0\ncleanup 1 1\ndrop 2\ndrop 0\nnormal 2\ncleanup 2 1\ndrop 1\nfallthrough 2\ndrop 0\ncleanup 3 1\ndrop 2\nafter 0 13 17\n");
+
+}
+
+#[test]
+fn nested_handler_loop_exits_preserve_cleanup_and_capture_release() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function main():void{const old=[3];const next=[5];let turn=0;while(turn<3){let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});turn+=1;try{try{failIf(turn!==2);handlers.clear();handlers.set('next',{run:():int=>next[0]});console.log('normal',turn);}catch(error){handlers.clear();handlers.set('next',{run:():int=>next[0]});if(turn===1)continue;break;}finally{console.log('inner',turn,handlers.size);handlers.clear();}}finally{handlers.clear();old[0]=9;next[0]=11;console.log('outer',turn,handlers.size);}console.log('fallthrough',turn);}old[0]=13;next[0]=17;console.log('after',old[0],next[0]);}");
+ verify_disposal(&source,3,"drop 0\ninner 1 1\ndrop 2\nouter 1 0\ndrop 0\nnormal 2\ninner 2 1\ndrop 1\nouter 2 0\nfallthrough 2\ndrop 0\ninner 3 1\ndrop 2\nouter 3 0\nafter 13 17\n"); let overridden=source.replace("console.log('outer', turn, handlers.size);", "console.log('outer',turn,handlers.size);if(turn===1)break;");
+ verify_disposal(&support::format_round_trip(&overridden),3,"drop 0\ninner 1 1\ndrop 2\nouter 1 0\nafter 13 17\n");
+ let outer_owner=source.replace("while (turn < 3) {\n        let handlers = new Map<string, Holder>();", "let handlers=new Map<string,Holder>();while(turn<3){");
+ assert_ne!(outer_owner,source,"outer owner witness must move initialization out of loop");
+ verify_disposal(&support::format_round_trip(&outer_owner),3,"drop 0\ninner 1 1\ndrop 2\nouter 1 0\ndrop 0\nnormal 2\ninner 2 1\ndrop 1\nouter 2 0\nfallthrough 2\ndrop 0\ninner 3 1\ndrop 2\nouter 3 0\nafter 13 17\n");
+
+}
+
+#[test]
 fn nested_handler_return_preserves_payload_and_cleanup_order() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function result(value:int):int{console.log('evaluated',value);return value;}function scenario(fail:boolean):int{const old=[3];const next=[5];let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});try{try{failIf(fail);handlers.clear();handlers.set('next',{run:():int=>next[0]});return result(23);}catch(error){handlers.clear();handlers.set('next',{run:():int=>next[0]});return result(29);}finally{console.log('inner',handlers.size);handlers.clear();}}finally{console.log('outer',handlers.size);handlers.clear();}}function main():void{console.log('result',scenario(false));console.log('result',scenario(true));}");
  verify_disposal(&source,3,"drop 0\nevaluated 23\ninner 1\ndrop 1\nouter 0\nresult 23\ndrop 0\nevaluated 29\ninner 1\ndrop 2\nouter 0\nresult 29\n"); let unsafe_cleanup=source.replace("console.log('outer', handlers.size);", "old[0]=9;next[0]=11;console.log('outer',handlers.size);");

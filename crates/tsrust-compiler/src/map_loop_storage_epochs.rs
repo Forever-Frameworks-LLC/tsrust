@@ -65,7 +65,7 @@ impl Emitter<'_> {
         let mut cleaned = false;
         for item in body {
             match &item.kind {
-                StmtKind::Try(region) if !cleaned && region.catch.is_none() => {
+                StmtKind::Try(region) if !cleaned => {
                     let Some(cleanup) = &region.finally else {
                         return false;
                     };

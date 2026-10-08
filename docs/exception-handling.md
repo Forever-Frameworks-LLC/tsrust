@@ -106,3 +106,9 @@ finally runs. Map cleanup retains that value while releasing callback owners.
 Outer cleanup can then mutate released captures after explicitly clearing its
 Map. A fallible observation before an inner clear can bypass that clear, so outer
 cleanup must clear again before mutating those captures.
+
+A catch handler can continue or break its enclosing loop. Applicable finally
+blocks run before that loop exit, and an abrupt cleanup can replace it. A Map
+initialized empty outside a while loop can receive fresh native storage each
+iteration when unconditional cleanup clears it and no later operation refills
+or transfers it. Zero iterations preserve the original empty owner.

@@ -525,3 +525,45 @@ clear. Keep exact native disposal, editor behavior, matched workloads and SQLite
 evidence current. Format the whole project before checkpoints; stage explicit
 paths and preserve unrelated fixture semantics. B5 and the full compiler/editor
 goal remain active.
+
+## Catch loop storage checkpoint and retained cleanup-mutation witness
+
+Nested handler continue/break and an outer cleanup overriding continue already
+pass through the existing carried control transport. New exact-disposal witnesses
+cover these paths at O0/O3. A direct catch-plus-finally loop with an initially empty
+outer Map exposed native E0502 after cleanup. Empty while epochs now admit catch
+regions under the existing unconditional-clear and no-refill proof. Root and
+record-field owners, zero iterations, normal fallthrough, continue and break pass.
+
+One distinct defect remains red: `catch_cleanup_clear_releases_captures_before_cleanup_mutation`
+is source-valid but fails generated Rust E0502 when capture mutation occurs after
+clear within that same finally block. Moving the mutation after the cleanup passes;
+the original behavior remains a real executable witness, not an accepted source
+restriction. Investigate generic owner lifetimes in typed cleanup completion and
+end the emptied owner's native lifetime before mutation without weakening source
+checks or moving observable cleanup operations. The first attempt merely admitting
+catch loops did not repair this defect; original evidence is retained.
+
+The affected batch passes 87 composition, 42 scoped-record and four fallible-record
+tests, explicitly excluding that one red witness. Focused editor diagnostics pass.
+All 38 matched observations verify untimed on native and Node-after-tsc, with source
+guards, independent arithmetic oracle, registration and rehashed mutation rejection.
+Project formatting preserves tokens and refreshes the changed source fingerprint.
+SQLite preserves `tsrust-b5-handler-loop-*.log`, `tsrust-b5-direct-catch-loop-*.log`
+and `tsrust-b5-catch-cleanup-mutation-*.log` byte-exact, including failed attempts,
+plus `runtime/results/2026-10-08T20-14-14-148Z-verify.json`. Loose copies are removed.
+
+B5 is not accepted. Fix the retained cleanup-mutation defect next, then broader
+loops, multiple owners, precise entry/element release, remaining callable
+compositions and Rust-style record Set equality/hash. Family regressions and
+timing remain pending. Five user executable consumers remain at gate181.
+
+Continuation prompt: Continue B5 from this catch-loop checkpoint. Read AGENTS.md,
+docs/development-workflow.md and the scoped aggregate plan. Repair the retained
+`catch_cleanup_clear_releases_captures_before_cleanup_mutation` native E0502.
+It is source-valid; do not reject it, move its mutations outside cleanup or remove
+the witness. Direct catch-loop root/record empty epochs and nested control exits
+already pass. Preserve exact O0/O3 disposal, cleanup order and source ownership.
+Complete editor and matched workload coverage for the repair, then proceed with
+remaining B5 scope. Keep SQLite evidence, whole-project formatting and explicit
+Git staging. Preserve unrelated fixtures. The full goal remains active.
