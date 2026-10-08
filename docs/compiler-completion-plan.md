@@ -155,6 +155,11 @@ evidence link and (where missing) a matched workload, not new compiler work.
 `type.nonNullAssertion`, labeled control, tuples, enums, `satisfies`, object spread,
 destructuring, optional chaining, `in`.
 
+Reconciled in gate 178: twenty inventory rows above now carry `implemented` with
+their existing workloads and milestone records. The remaining names in the list
+(labeled control, tuples, enums, `satisfies`, object spread, destructuring, optional
+chaining, `in`) already had accepted rows under other identifiers.
+
 ## B. Incomplete and inside approved plans
 
 | # | Requirement | Source | Current behavior | Status |
@@ -162,7 +167,7 @@ destructuring, optional chaining, `in`.
 | B1 | Named function expressions: private recursive name, annotated and inferred signatures, captures, generic/default/rest forms | nested function plan; lead 3 | accepted natively; parameter-default position rejected | accepted: gate 175 ([record](milestones/175-named-function-expressions.md)) |
 | B2 | Recursive result inference | gate 173 limit; lead 4 | inferred from an independent return; diagnostic only when none exists | accepted: gate 176 ([record](milestones/176-recursive-result-inference.md)) |
 | B3 | Type checking of unreachable `catch` bodies | record gate limit; lead 4 | body checked at the end of analysis with a runtime error name; not emitted | accepted: gate 177 ([record](milestones/177-unreachable-catch-bodies.md)) |
-| B4 | Caught runtime error passed to generic `strictEqual` | named family handoff | not reproduced at 5120aad: eleven assertion shapes over caught runtime, string and mixed errors check and run; mismatched types report a `type` error | closed without change: gate 177 witnesses |
+| B4 | Caught runtime error passed to generic `strictEqual` | named family handoff | repaired before this plan: the internal runtime error record is registered for generic specialization ([record](milestones/caught-generic-assertions.md)); eleven assertion shapes re-verified | accepted; gate 177 adds witnesses |
 | B5 | Scoped aggregate composition: arrays, Maps, Sets, unions and nullable replacement of records with borrowing callbacks | scoped aggregate plan; lead 1 | `unsupported` diagnostics | incomplete |
 | B6 | Fallible borrowing callback fields behind record parameters | record gate limit; lead 2 | `error-effect` diagnostic | incomplete |
 | B7 | Callbacks stored through a record parameter that borrow from the caller | record gate limit | `callback-escape` | incomplete |

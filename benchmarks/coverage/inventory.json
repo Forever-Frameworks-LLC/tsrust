@@ -996,9 +996,19 @@
       "category": "Arrays",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
-      "comparison": "missing",
-      "evidence": []
+      "implementation": "implemented",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/101-array-literal-spread.md"
+      ],
+      "workloads": [
+        "array_literal_spread_dynamic_int",
+        "array_literal_spread_multiple_mixed_int",
+        "array_literal_spread_string_owned",
+        "array_literal_spread_record_owned"
+      ],
+      "measured": false,
+      "note": "Reconciled in the gate 178 inventory audit: accepted behavior verified natively. Array literals accept spread elements; arrays, strings, Maps and Sets are iterable sources."
     },
     {
       "id": "Array.map",
@@ -10850,7 +10860,7 @@
       "category": "Control flow",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
+      "implementation": "implemented",
       "comparison": "missing",
       "evidence": [
         "./milestones/63-compound-assignment.md"
@@ -11155,9 +11165,19 @@
       "category": "Control flow",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
-      "comparison": "missing",
-      "evidence": []
+      "implementation": "implemented",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/21-for-of.md",
+        "./milestones/154-borrowed-map-iteration.md",
+        "./milestones/155-string-iteration.md"
+      ],
+      "workloads": [
+        "map_iteration",
+        "string_iteration"
+      ],
+      "measured": false,
+      "note": "Reconciled in the gate 178 inventory audit: accepted behavior verified natively. for-of iterates arrays, strings, Maps, Sets and entries/keys/values views. User-defined iterables are a separate pending protocol."
     },
     {
       "id": "control.forOfMap",
@@ -11394,9 +11414,13 @@
       "category": "Control flow",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
+      "implementation": "implemented",
       "comparison": "missing",
-      "evidence": []
+      "evidence": [
+        "./milestones/161-comma-expressions.md"
+      ],
+      "measured": false,
+      "note": "Reconciled in the gate 178 inventory audit: accepted behavior verified natively. void evaluates its operand and yields undefined."
     },
     {
       "id": "control.while",
@@ -12033,9 +12057,16 @@
       "category": "Declarations and syntax",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
-      "comparison": "missing",
-      "evidence": []
+      "implementation": "implemented",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/98-optional-default-parameters.md"
+      ],
+      "workloads": [
+        "nested_function_defaults"
+      ],
+      "measured": false,
+      "note": "Reconciled in the gate 178 inventory audit: accepted behavior verified natively. Default and optional parameters on declarations, arrows and function values."
     },
     {
       "id": "syntax.destructuringDefaults",
@@ -12091,9 +12122,14 @@
       "category": "Declarations and syntax",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
+      "implementation": "implemented",
       "comparison": "missing",
-      "evidence": []
+      "evidence": [
+        "./milestones/modules-01-project-loader.md",
+        "./milestones/modules-02-project-linking.md"
+      ],
+      "measured": false,
+      "note": "Reconciled in the gate 178 inventory audit: accepted behavior verified natively. Named exports of functions and types."
     },
     {
       "id": "syntax.hoisting",
@@ -12101,9 +12137,16 @@
       "category": "Declarations and syntax",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
-      "comparison": "missing",
-      "evidence": []
+      "implementation": "implemented",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/170-nested-function-foundation.md"
+      ],
+      "workloads": [
+        "nested_function_declarations"
+      ],
+      "measured": false,
+      "note": "Reconciled in the gate 178 inventory audit: accepted behavior verified natively. Function declarations are hoisted within their block and module. var hoisting is a separate pending row."
     },
     {
       "id": "syntax.import",
@@ -12111,9 +12154,14 @@
       "category": "Declarations and syntax",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
+      "implementation": "implemented",
       "comparison": "missing",
-      "evidence": []
+      "evidence": [
+        "./milestones/modules-01-project-loader.md",
+        "./milestones/modules-02-project-linking.md"
+      ],
+      "measured": false,
+      "note": "Reconciled in the gate 178 inventory audit: accepted behavior verified natively. Named imports with aliases from relative .tsr modules and std: modules. Default and namespace imports are not part of the accepted module direction."
     },
     {
       "id": "syntax.let",
@@ -12200,9 +12248,16 @@
       "category": "Declarations and syntax",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
-      "comparison": "missing",
-      "evidence": []
+      "implementation": "implemented",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/177-unreachable-catch-bodies.md"
+      ],
+      "workloads": [
+        "exception_completion"
+      ],
+      "measured": false,
+      "note": "Reconciled in the gate 178 inventory audit: accepted behavior verified natively. catch without a binding."
     },
     {
       "id": "syntax.regexLiteral",
@@ -15034,9 +15089,17 @@
       "category": "Integer extension",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
-      "comparison": "missing",
-      "evidence": []
+      "implementation": "implemented",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/105-number-parse-int.md"
+      ],
+      "workloads": [
+        "number_parse_int_radix",
+        "number_parse_decimal"
+      ],
+      "measured": false,
+      "note": "Reconciled in the gate 178 inventory audit: accepted behavior verified natively. parseInt, Number.parseInt and parseFloat."
     },
     {
       "id": "int.postfixDecrement",
@@ -18549,9 +18612,18 @@
       "category": "Null and undefined",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
-      "comparison": "missing",
-      "evidence": []
+      "implementation": "implemented",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/85-nullable-flow-narrowing.md"
+      ],
+      "workloads": [
+        "narrowing_int",
+        "narrowing_string",
+        "narrowing_record"
+      ],
+      "measured": false,
+      "note": "Reconciled in the gate 178 inventory audit: accepted behavior verified natively. Flow narrowing of nullable values through strict comparisons and typeof."
     },
     {
       "id": "nullish.assignment",
@@ -18559,9 +18631,18 @@
       "category": "Null and undefined",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
-      "comparison": "missing",
-      "evidence": []
+      "implementation": "implemented",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/95-nullish-assignment.md"
+      ],
+      "workloads": [
+        "nullish_assign_int_value",
+        "nullish_assign_string_value",
+        "nullish_assign_record_value"
+      ],
+      "measured": false,
+      "note": "Reconciled in the gate 178 inventory audit: accepted behavior verified natively. ??= assigns only when the target is null or undefined."
     },
     {
       "id": "nullish.coalescing",
@@ -18662,9 +18743,13 @@
       "category": "Null and undefined",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
+      "implementation": "implemented",
       "comparison": "missing",
-      "evidence": []
+      "evidence": [
+        "./milestones/165-optional-fields.md"
+      ],
+      "measured": false,
+      "note": "Reconciled in the gate 178 inventory audit: accepted behavior verified natively. Optional record fields; an omitted field is undefined."
     },
     {
       "id": "optional.index",
@@ -18733,9 +18818,13 @@
       "category": "Null and undefined",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
+      "implementation": "implemented",
       "comparison": "missing",
-      "evidence": []
+      "evidence": [
+        "./milestones/85-nullable-flow-narrowing.md"
+      ],
+      "measured": false,
+      "note": "Reconciled in the gate 178 inventory audit: accepted behavior verified natively. Functions return T | undefined and callers narrow the result."
     },
     {
       "id": "optional.value",
@@ -18743,9 +18832,14 @@
       "category": "Null and undefined",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
+      "implementation": "implemented",
       "comparison": "missing",
-      "evidence": []
+      "evidence": [
+        "./milestones/98-optional-default-parameters.md",
+        "./milestones/94-nullish-coalescing.md"
+      ],
+      "measured": false,
+      "note": "Reconciled in the gate 178 inventory audit: accepted behavior verified natively. Optional parameters and T | undefined values with coalescing and narrowing."
     },
     {
       "id": "undefined.assignment",
@@ -18825,9 +18919,18 @@
       "category": "Null and undefined",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
-      "comparison": "missing",
-      "evidence": []
+      "implementation": "implemented",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/85-nullable-flow-narrowing.md"
+      ],
+      "workloads": [
+        "narrowing_int",
+        "narrowing_string",
+        "narrowing_record"
+      ],
+      "measured": false,
+      "note": "Reconciled in the gate 178 inventory audit: accepted behavior verified natively. Flow narrowing of optional values through strict comparisons and typeof."
     },
     {
       "id": "Math.[Symbol.toStringTag]",
@@ -21298,9 +21401,17 @@
       "category": "Objects",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
-      "comparison": "missing",
-      "evidence": []
+      "implementation": "implemented",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/119-object-keys.md",
+        "./milestones/122-object-values-entries.md"
+      ],
+      "workloads": [
+        "object_keys_order"
+      ],
+      "measured": false,
+      "note": "Reconciled in the gate 178 inventory audit: accepted behavior verified natively. Object.keys, Object.values, Object.entries and for-in over record fields in declaration order."
     },
     {
       "id": "Object.propertyIsEnumerable",
@@ -23686,9 +23797,16 @@
       "category": "Strings",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
-      "comparison": "missing",
-      "evidence": []
+      "implementation": "implemented",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/155-string-iteration.md"
+      ],
+      "workloads": [
+        "string_iteration"
+      ],
+      "measured": false,
+      "note": "Reconciled in the gate 178 inventory audit: accepted behavior verified natively. for-of and spread iterate a string by Unicode character."
     },
     {
       "id": "String.lastIndexOf",
@@ -24963,9 +25081,18 @@
       "category": "TypeScript types",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
-      "comparison": "missing",
-      "evidence": []
+      "implementation": "implemented",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/173-nested-function-signatures.md"
+      ],
+      "workloads": [
+        "generic_record_nested_int",
+        "generic_function_record_pipeline",
+        "generic_function_contexts"
+      ],
+      "measured": false,
+      "note": "Reconciled in the gate 178 inventory audit: accepted behavior verified natively. Generic functions and generic record types with inferred and explicit type arguments. Constraints, defaults on aliases and conditional forms are separate pending rows."
     },
     {
       "id": "type.genericConstraint",
@@ -25128,9 +25255,13 @@
       "category": "TypeScript types",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
+      "implementation": "implemented",
       "comparison": "missing",
-      "evidence": []
+      "evidence": [
+        "./milestones/non-null-assertions.md"
+      ],
+      "measured": false,
+      "note": "Reconciled in the gate 178 inventory audit: accepted behavior verified natively. Postfix ! asserts a nullable value is present, with a checked runtime failure otherwise."
     },
     {
       "id": "type.optional",
