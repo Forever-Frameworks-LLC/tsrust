@@ -1304,3 +1304,21 @@ fn imported_assertions_and_native_aliases_keep_independent_factory_signatures() 
     let changed=ask(&index,entry,"3,9","textDocument/signatureHelp");
     assert!(changed.to_string().contains("other: int"),"{changed}");
 }
+
+#[test]
+fn catch_and_finally_declarations_keep_checked_navigation_and_signatures() {
+    let entry=r#"import {strictEqual} from "std:testing";function main(){let total=0;try{const value=enter(2);function enter(value:int):int{total+=value;return total;}strictEqual(value,2);throw 3;}catch(error){const value=recover(4);function recover(value:int):int{total+=value;return total;}strictEqual(value,6);strictEqual(error===3,true);}finally{finish();function finish():void{total+=8;}}strictEqual(total,14);}"#;
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();
+    workspace.open(source_id(uri).unwrap(),1,entry.into());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index=ProjectIndex::checked(&checked);
+    for (needle,name) in [("recover(4)","recover"),("finish();","finish")] {
+        let hover=ask(&index,entry,needle,"textDocument/hover");
+        assert!(hover.to_string().contains(name),"{hover}");
+        let definition=ask(&index,entry,needle,"textDocument/definition");
+        assert_eq!(definition["uri"],uri,"{definition}");
+    }
+    let help=ask(&index,entry,"4);function recover","textDocument/signatureHelp");
+    assert!(help["signatures"][0]["label"].as_str().unwrap().replace(' ',"").contains("recover(value:int):int"),"{help}");
+}

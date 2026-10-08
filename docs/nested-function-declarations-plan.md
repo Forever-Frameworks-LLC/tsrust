@@ -1,5 +1,7 @@
 # Nested function declarations: implementation and acceptance plan
 
+Current state: gates 170–173 and the subsequent callable replacement family are accepted. The remaining named-declaration milestone audits the full contract and measures twelve accumulated accepted workloads. See milestones/named-declaration-family.md. Later sections retain historical implementation checkpoints.
+
 This extends the compiler/editor foundation and the callable support needed by the
 standard library. The full feature includes lexical scope, declaration hoisting,
 self and mutual recursion, captures, callable values and escape, generic signatures,
