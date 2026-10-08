@@ -122,3 +122,9 @@ All pending; no implementation numbering is reserved. Dependencies refer to pare
 Before a family enters implementation, enumerate its exports from the pinned primary documentation and classify each as exact behavior, native equivalent, later scope or intentionally unavailable with rationale. Record dependencies and acceptance fixtures for every included overload. Nothing disappears because it is obscure or inconvenient. Compare current Node additions separately. Keep deprecated and engine-specific entries visible instead of pretending they fit native compilation.
 
 Before broad coverage claims, expand these family tables into machine-readable inventory and test registry; verify every included item has implementation, IntelliSense, executable witnesses and evidence. Each unimplemented item stays visible. For ecosystems retain selected package versions and reviewed APIs, dated popularity signals, reasons for selecting/rejecting backends and realistic application witnesses. Full ecosystem compatibility and running arbitrary npm packages require separate language/runtime/interop decisions; useful capability coverage is the present goal.
+
+## Accepted lexical path increment
+
+The bounded primitive `std:path` family adds dirname, extname, isAbsolute and normalize alongside basename. Compiler/native execution, imported editor help, executable examples, matched benchmark registration and scoped native/Node-after-tsc measurements are accepted on the library branch. See [family acceptance](milestones/stdlib-lexical-path.md) and [integration handoff](handoff-2026-10-07-lexical-path.md).
+
+Public integration is verified on macOS; explicit-platform helpers cover POSIX/Windows reference behavior. Windows native integration and the advancing combined checkout still require their own checks. This primitive-only increment does not accept filesystem resources, the wider host family, or the rest of the standard library.

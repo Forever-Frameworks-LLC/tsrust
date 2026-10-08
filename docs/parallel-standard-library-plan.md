@@ -98,12 +98,12 @@ Put `/Users/seancotter/.nvm/versions/node/v24.11.1/bin` first on PATH. Use `/opt
 
 Maintain the following checklist with commit IDs, focused evidence identities, platform coverage, and measurement status:
 
-- [ ] P0 contract and integration boundary frozen.
-- [ ] P1 dirname/extname accepted.
-- [ ] P2 isAbsolute/normalize accepted.
-- [ ] P3 family regressions and benchmark review complete.
-- [ ] SQLite evidence verified; obsolete outputs pruned.
-- [ ] Integration-ready commits and physical handoff supplied.
+- [x] P0 contract and integration boundary frozen; branch-local milestone contract.
+- [x] P1 dirname/extname accepted (`3492e21`).
+- [x] P2 isAbsolute/normalize accepted (`b57ec2a`).
+- [x] P3 family regressions and benchmark review complete (`db30ab3`, optimized in `48ae800`).
+- [x] SQLite evidence verified; obsolete outputs pruned before handoff.
+- [x] Integration-ready commits and physical handoff supplied in docs/handoff-2026-10-07-lexical-path.md.
 - [ ] Integration owner verifies combined checkout and refreshes live consumers.
 
 ## Ready-to-copy agent prompt

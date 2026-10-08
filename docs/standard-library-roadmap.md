@@ -122,3 +122,9 @@ Next steps: implement S06 generic function specialization, callable storage and 
 - [SQLx](https://docs.rs/sqlx/latest/sqlx/), [query metadata requirements](https://docs.rs/sqlx/latest/sqlx/macro.query.html): async drivers and explicit compile-time query checking workflow.
 
 Pin exact backend versions and features during S05/individual adapter acceptance after toolchain and license verification. Reference links do not select an unverified latest release.
+
+## Accepted lexical path increment
+
+The bounded primitive `std:path` family adds dirname, extname, isAbsolute and normalize alongside basename. Compiler/native execution, imported editor help, executable examples, matched benchmark registration and scoped native/Node-after-tsc measurements are accepted on the library branch. See [family acceptance](milestones/stdlib-lexical-path.md) and [integration handoff](handoff-2026-10-07-lexical-path.md).
+
+Public integration is verified on macOS; explicit-platform helpers cover POSIX/Windows reference behavior. Windows native integration and the advancing combined checkout still require their own checks. This primitive-only increment does not accept filesystem resources, the wider host family, or the rest of the standard library.
