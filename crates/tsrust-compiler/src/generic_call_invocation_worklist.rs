@@ -267,6 +267,11 @@ impl expression_flow::Dispatch for Engine<'_> {
         if captured_any {value.alternatives=Some(environment_store::canonical_alternatives(alternatives));}
     }
     fn invoke(&mut self, expression: &Expr, callee: &expression_flow::Value, arguments: &[expression_flow::Value], state: &FlowState) -> Option<expression_flow::Invocation> {
+        if leaf_effects::observer_call(expression, self.effects)
+            || !callee.origins.is_empty() && callee.origins.iter().all(|origin|
+                matches!(origin,body_origins::Origin::Name(symbol,_) if leaf_effects::native_observer(symbol))) {
+            return Some(expression_flow::Invocation { normal: Some(state.clone()), throwing: vec![state.clone()], result: expression_flow::Value::default(), facts: HashMap::new() });
+        }
         if callee.console {
             return Some(expression_flow::Invocation { normal: Some(state.clone()), throwing: vec![state.clone()], result: expression_flow::Value::undefined(), facts: HashMap::new() });
         }

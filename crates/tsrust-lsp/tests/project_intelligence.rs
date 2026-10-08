@@ -1289,3 +1289,18 @@ fn path_join_imported_rest_editor_contract() {
     let stored=ask(&index,entry,"stored('tmp'", "textDocument/hover");
     assert!(stored["contents"]["value"].as_str().unwrap().contains("...paths"),"{stored}");
 }
+
+#[test]
+fn imported_assertions_and_native_aliases_keep_independent_factory_signatures() {
+    let entry=r#"import {join} from "std:path";import {strictEqual} from "std:testing";function one<T>(value:T):T{return value;}function two<T>(value:T,other:T):T{return other;}function factory<A>(initial:A){let action=initial;return(restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}function wrap<A>(initial:A){let action=factory(initial);return(restore:boolean)=>{return action(restore);};}function main(){const saved=join;strictEqual(saved("a","b"),"a/b");const instances=[wrap(one)];for(let index=0;index<2;index+=1){instances.push(wrap(one));}const seed=instances.shift()!;const first=instances.shift()!;const second=instances.shift()!;const original=first(false);const independent=second(true);const changed=first(true);strictEqual(original<int>(1),1);strictEqual(independent<int>(2),2);strictEqual(changed<int>(3,9),9);}"#;
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();
+    workspace.open(source_id(uri).unwrap(),1,entry.into());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index=ProjectIndex::checked(&checked);
+    let independent=ask(&index,entry,"2),2","textDocument/signatureHelp");
+    assert!(independent.to_string().contains("value: int"),"{independent}");
+    assert!(!independent.to_string().contains("other: int"),"{independent}");
+    let changed=ask(&index,entry,"3,9","textDocument/signatureHelp");
+    assert!(changed.to_string().contains("other: int"),"{changed}");
+}

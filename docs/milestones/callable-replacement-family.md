@@ -1,6 +1,8 @@
 # Callable replacement family milestone
 
-Family acceptance is pending. Implementation checkpoints are `c354b84` (bounded array provenance and independent extraction) and `cd52a03` (nested owned capture graph transfer), building on the earlier replacement carrier and checked invocation work.
+Family acceptance is pending. Implementation checkpoints are `c354b84` (bounded array provenance and independent extraction), `cd52a03` (nested owned capture graph transfer) and `530015c` (implementation and milestone checks), building on the earlier replacement carrier and checked invocation work.
+
+Consumer smoke verification found that imported `std:testing.strictEqual` calls invalidate point-sensitive factory contracts. A focused project witness reproduces the arity failure; the same source with logging passes. The stronger witness also exposes lost identity through a stored native `join` alias. Native symbols now retain their provenance through aliases, and explicitly listed observer calls preserve capture state on normal and possible throwing exits. Callback runners and callback-sharing intrinsics remain opaque. The combined project witness passes at native optimization levels 0 and 3. All 535 compiler unit tests and 88 project tests pass. Final repair checks pass all eight depth canaries and all 358 editor tests. Combined consumer publication remains pending.
 
 ## Scope and acceptance evidence
 
@@ -19,10 +21,10 @@ The scope is finite generic callable replacement with point-specific invocation 
 | Editor diagnostics and selected signatures | Direct, loop and nested factory intelligence tests | Focused checks pass |
 | Formatting and executable guide | Native helpers format before execution; whole-project formatting is idempotent; nested-functions guide | Pass |
 | Matched sources, oracle, ABI, registrations and runner hooks | generic_callable_replacement and mutation guards; five native/Node-after-tsc cases | Untimed checks pass |
-| Complete compiler regressions | 232 integration targets covered; 2,323 unique passes, zero failures, two intentional worker ignores; interrupted and repaired evidence retained | Pass |
-| Complete LSP regressions | 357 passing checks, zero failures | Pass |
+| Complete compiler regressions | 232 integration targets covered; 2,325 unique passes after affected repair checks, zero failures, two intentional worker ignores; interrupted and repaired evidence retained | Pass |
+| Complete LSP regressions | 358 passing checks, zero failures | Pass |
 | Performance review under original protocol | 93 samples per engine; median native batch 0.157334 ms versus Node-after-tsc 1.575708 ms; historical profiles are not comparable | Pass |
-| Acceptance metadata and five consumer refreshes | Publish only after acceptance; existing consumers remain at accepted source 31e367f | Pending |
+| Acceptance metadata and five consumer refreshes | Five consumers refreshed from 530015c; combined smoke exposed imported assertion analysis failure; repair publication and smoke remain pending | Pending |
 
 All eight default-stack depth canaries pass on the graph-transfer implementation. Exact focused evidence and untimed verification records are retained in benchmarks/records.sqlite. The latest workload verification is runtime/results/2026-10-08T07-20-19-446Z-verify.json. That record contains zero execution timing samples.
 

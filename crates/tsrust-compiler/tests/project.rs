@@ -1837,3 +1837,15 @@ fn main(){let mut paths=vec!["é😊"];paths.extend(std::iter::repeat_n("文",64
 "#);
     for optimization in ["0","3"] {assert_eq!(native_stdout(&rust,optimization),"");}
 }
+
+#[test]
+fn imported_assertions_preserve_point_sensitive_nested_factory_contracts() {
+    let entry=support::format_round_trip(r#"import {join} from "std:path";import {strictEqual} from "std:testing";function one<T>(value:T):T{return value;}
+function two<T>(value:T,other:T):T{return other;}
+function factory<A>(initial:A){let action=initial;return(restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}
+function wrap<A>(initial:A){let action=factory(initial);return(restore:boolean)=>{return action(restore);};}
+function main(){const saved=join;strictEqual(saved("a","b"),"a/b");const instances=[wrap(one)];for(let index=0;index<2;index+=1){instances.push(wrap(one));}const seed=instances.shift()!;const first=instances.shift()!;const second=instances.shift()!;const original=first(false);const independent=second(true);const changed=first(true);strictEqual(original<int>(1),1);strictEqual(independent<int>(2),2);strictEqual(changed<int>(3,9),9);}"#);
+    let memory=Memory::new(&[("main.tsr",&entry)]);
+    let checked=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).unwrap();
+    for optimization in ["0","3"] {assert_eq!(native_stdout(&checked.emit_rust(),optimization),"");}
+}
