@@ -1,6 +1,31 @@
 mod support;
 
 #[test]
+fn nested_insertions_protect_new_capture_owners() {
+    let source = "type Holder={run:ReadOnly<Function<int>>;};function main(){const first=[3];const second=[7];const groups:Holder[][]=[[{run:():int=>first[0]}]];groups[0].push({run:():int=>second[0]});second[0]=9;console.log(groups[0][1].run());}";
+    let error = tsrust_compiler::check(source).err().expect("inserted callback retains its capture");
+    assert_eq!(error.code, "capture-conflict", "{}", error.message);
+}
+
+#[test]
+fn nested_indexed_arrays_accept_new_record_callback_origins() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function main() {
+            const values = [3, 7, 11];
+            const groups: Holder[][] = [[{ run: (): int => values[0] }]];
+            groups[0].push({ run: (): int => values[1] });
+            strictEqual(groups[0][0].run(), 3);
+            strictEqual(groups[0][1].run(), 7);
+            groups[0][0] = { run: (): int => values[2] };
+            strictEqual(groups[0][0].run(), 11);
+            strictEqual(groups[0][1].run(), 7);
+        }
+    "#);
+}
+
+#[test]
 fn nested_array_conversion_consumes_its_sources() {
     let source = "type Holder={run:ReadOnly<Function<int>>;};function main(){const values=[3,7];const first:Holder[]=[{run:():int=>values[0]}];const second:Holder[]=[{run:():int=>values[1]}];const groups:Holder[][]=[first,second];console.log(first.length,groups[0][0].run());}";
     let error = tsrust_compiler::check(source).err().expect("conversion moves existing arrays");

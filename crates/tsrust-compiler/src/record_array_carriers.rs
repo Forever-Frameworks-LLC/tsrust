@@ -2,6 +2,11 @@
 use super::*;
 
 impl Analyzer {
+    pub(super) fn indexed_array_root(value: &Expr) -> Option<usize> {
+        let mut value = value;
+        while let ExprKind::Index(base, _) = &value.kind { value = base; }
+        matches!(value.kind, ExprKind::Name(_)).then_some(value.binding).flatten()
+    }
     pub(super) fn scoped_record_nullable_contract(&self, actual: Type, expected: Type) -> bool {
         let (Some(actual_id), Some(expected_id)) = (actual.union(), expected.union()) else { return false; };
         let (Some(Type::Record(actual_record)), Some(Type::Record(expected_record))) = (self.unions.payload(actual), self.unions.payload(expected)) else { return false; };
@@ -11,7 +16,7 @@ impl Analyzer {
         self.unions.members(actual_id).iter().all(|member| matches!(member, Type::Record(_)) || expected_members.contains(member))
     }
     pub(super) fn scoped_array_element_contract(&self, base: &Expr, element: ArrayElement) -> Type {
-        if matches!(base.kind, ExprKind::Name(_))
+        if Self::indexed_array_root(base).is_some()
             && let ArrayElement::Record(id, 0) = element
             && self.aggregate_callable_facts(Type::Record(id)).scoped
         { return Type::Record(self.scoped_records.declaration(id)); }
@@ -20,19 +25,18 @@ impl Analyzer {
 
     #[inline(never)]
     pub(super) fn widen_scoped_array_storage(&mut self, context: &mut Context, base: &Expr, incoming: Type, span: Span) -> Result<(), Diagnostic> {
-        if !matches!(base.kind, ExprKind::Name(_)) { return Ok(()); }
-        let binding = base.binding.expect("checked named array");
-        let (Type::Array(ArrayElement::Record(previous, 0)), Type::Record(incoming)) = (context.bindings[binding].ty, incoming) else { return Ok(()); };
+        let Some(binding) = Self::indexed_array_root(base) else { return Ok(()); };
+        let (Type::Array(ArrayElement::Record(previous, depth)), Type::Record(incoming)) = (context.bindings[binding].ty, incoming) else { return Ok(()); };
         if !self.aggregate_callable_facts(Type::Record(previous)).scoped || previous == incoming { return Ok(()); }
         let joined = self.join_record_types(previous, incoming, span)?.ok_or_else(|| Diagnostic::new("type", "Array callback field environments have incompatible contracts.", span))?;
         let Type::Record(record) = joined else { unreachable!() };
-        context.bindings[binding].ty = Type::Array(ArrayElement::Record(record, 0));
+        context.bindings[binding].ty = Type::Array(ArrayElement::Record(record, depth));
         Ok(())
     }
 
     #[inline(never)]
     pub(super) fn record_array_carriers(&mut self, context: &mut Context, body: &mut [Stmt]) -> Result<(), Diagnostic> {
-        if !context.bindings.iter().any(|binding| matches!(binding.ty, Type::Array(ArrayElement::Record(_, 0)))) { return Ok(()); }
+        if !context.bindings.iter().any(|binding| matches!(binding.ty, Type::Array(ArrayElement::Record(_, _)))) { return Ok(()); }
         self.record_array_carriers_impl(context, body)
     }
 
@@ -45,7 +49,7 @@ impl Analyzer {
             if !write.path.is_empty() { continue; }
             let binding = &context.bindings[write.binding];
             if binding.parameter || binding.capture_reference { continue; }
-            let Type::Array(ArrayElement::Record(record, 0)) = binding.ty else { continue; };
+            let Type::Array(ArrayElement::Record(record, _)) = binding.ty else { continue; };
             if !self.aggregate_callable_facts(Type::Record(record)).scoped { continue; }
             plans.insert(write.binding, binding.ty);
             destinations.insert((write.span.start, write.span.end), if write.array_element { Type::Record(record) } else { binding.ty });
@@ -113,8 +117,8 @@ impl Analyzer {
             if !write.path.is_empty() { continue; }
             if let Some(&ty) = plans.get(&write.binding) {
                 let destination = if write.array_element {
-                    let Type::Array(element) = ty else { continue; };
-                    element.ty()
+                    let Type::Array(ArrayElement::Record(record, _)) = ty else { continue; };
+                    Type::Record(record)
                 } else { ty };
                 destinations.insert((write.span.start, write.span.end), destination);
             }
@@ -128,10 +132,8 @@ impl Analyzer {
         }
         crate::source_walk::body(body, &mut |_| Ok(()), &mut |value| {
             if let Some(destination) = destinations.remove(&(value.span.start, value.span.end)) {
-                if let (ExprKind::Array(elements), Type::Array(ArrayElement::Record(record, 0))) = (&mut value.kind, destination) {
-                    for element in elements {
-                        if element.ty != Some(Type::Record(record)) { element.wrap_record_carrier(Type::Record(record)); }
-                    }
+                if let (ExprKind::Array(elements), Type::Array(ArrayElement::Record(record, depth))) = (&mut value.kind, destination) {
+                    Self::apply_scoped_array_carrier(elements, record, depth);
                     value.ty = Some(destination);
                 } else if matches!(destination, Type::Record(_)) && value.ty != Some(destination) {
                     value.wrap_record_carrier(destination);

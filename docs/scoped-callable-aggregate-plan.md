@@ -205,7 +205,7 @@ outer storage. Moves between named arrays propagate a common element carrier
 back through their storage dependencies; subsequent insertion can widen that
 carrier without generating incompatible native types.
 
-Twenty focused composition tests cover native execution after outer-scope
+Twenty-two focused composition tests cover native execution after outer-scope
 assignment, insertion after a move, both branch insertion paths, and invocation of
 removed records after their source array widens. Splice results participate in the
 same storage dependency plan as moved arrays. Pop and shift results now update their
@@ -232,10 +232,17 @@ tests also pass. Independently stored arrays can now move into nested storage wi
 distinct callback origins. Carrier conversion consumes the source arrays and moves
 their records into the common layout, without cloning records or captured values.
 The native witness and independent Node result check pass; a rejection witness
-confirms that source arrays remain transferred. This does not yet establish insertion
-or replacement through nested storage.
+confirms that source arrays remain transferred. Push and scalar record replacement
+through indexed nested arrays now widen the root container's leaf environment.
+Carrier planning rewrites its initial nested literals and incoming records to that
+layout. Insertions attach new capture owners to the root storage conservatively;
+the rejection witness uses an owner absent from the initial literal. The native
+execution witness checks retained and replaced origins, and the Node reference
+checks the same results. Existing splice, unshift, ordinary and owned array suites
+passed 32 tests before the capture-owner attachment repair.
 
-Remaining B5 work includes nested mutation, nullable replacement across multiple origins,
+Remaining B5 work includes nested array-valued insertion/replacement and removal,
+nullable replacement across multiple origins,
 precise element capture release, Map/Set
 composition and nullable replacement. Complete editor, guide, disposal and matched
 benchmark support before accepting the feature. Keep native execution and ownership

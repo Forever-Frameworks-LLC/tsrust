@@ -30,6 +30,11 @@ impl Analyzer {
             });
         }
         let Some(common) = common else { return Ok(element); };
+        Self::apply_scoped_array_carrier(values, common, depth);
+        Ok(ArrayElement::Record(common, depth))
+    }
+
+    pub(super) fn apply_scoped_array_carrier(values: &mut [Expr], common: usize, depth: u8) {
         let mut pending = values.iter_mut().map(|value| (value, depth)).collect::<Vec<_>>();
         while let Some((value, depth)) = pending.pop() {
             if depth == 0 {
@@ -42,7 +47,6 @@ impl Analyzer {
                 pending.extend(elements.iter_mut().map(|element| (element, depth - 1)));
             }
         }
-        Ok(ArrayElement::Record(common, depth))
     }
 
     fn holds_scoped_record(&self, container: Type) -> bool {

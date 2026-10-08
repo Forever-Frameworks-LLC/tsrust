@@ -78,7 +78,7 @@ impl Analyzer {
 
     /// Insertion adds another payload without discarding existing element loans.
     pub(super) fn append_target_capture_loans(&self, context: &mut Context, target: &Expr, value: &Expr) {
-        let Some((_, fields)) = Self::direct_fields(target) else { return; };
+        let Some(fields) = Self::direct_fields(target).map(|(_, fields)| fields).or_else(|| Self::indexed_array_root(target).map(|_| Vec::new())) else { return; };
         let Some(binding) = Self::root_binding(target) else { return; };
         self.attach_payload_capture_loans(context, value, Place { binding, fields }, true);
     }

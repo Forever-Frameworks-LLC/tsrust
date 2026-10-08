@@ -33,6 +33,13 @@ function storageComposition(flag: boolean) {
     const storedGroups: Holder[][] = [left, right];
     strictEqual(storedGroups[0][0].run(), 3);
     strictEqual(storedGroups[1][0].run(), 7);
+    const mutableGroups: Holder[][] = [[{ run: () => values[0] }]];
+    mutableGroups[0].push({ run: () => values[1] });
+    strictEqual(mutableGroups[0][0].run(), 3);
+    strictEqual(mutableGroups[0][1].run(), 7);
+    mutableGroups[0][0] = { run: () => values[2] };
+    strictEqual(mutableGroups[0][0].run(), 11);
+    strictEqual(mutableGroups[0][1].run(), 7);
     const initial: Holder[] = [{ run: () => values[0] }];
     const moved = initial;
     const removed = moved.splice(0, 1);

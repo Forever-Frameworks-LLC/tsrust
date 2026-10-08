@@ -11122,7 +11122,7 @@ impl Analyzer {
             ));
         };
         let active = Self::selection_loans(base, loans);
-        let widening = !remove && matches!(base.kind, ExprKind::Name(_)) && matches!(element, ArrayElement::Record(id, 0) if self.aggregate_callable_facts(Type::Record(id)).scoped);
+        let widening = !remove && Self::indexed_array_root(base).is_some() && matches!(element, ArrayElement::Record(id, 0) if self.aggregate_callable_facts(Type::Record(id)).scoped);
         let argument_type = if remove { Type::Int } else if widening {
             let ArrayElement::Record(id, 0) = element else { unreachable!() };
             Type::Record(self.scoped_records.declaration(id))
@@ -11140,12 +11140,7 @@ impl Analyzer {
         };
         self.require(actual, Some(argument_type), args[0].span)?;
         Self::storage_access(context, base, Mode::Mutate, span, loans)?;
-        if widening && let (ArrayElement::Record(previous, 0), Type::Record(incoming)) = (element, actual) {
-            let joined = if previous == incoming { Type::Record(previous) } else { self.join_record_types(previous, incoming, span)?.ok_or_else(||Diagnostic::new("type", "Array callback field environments have incompatible contracts.", args[0].span))? };
-            let Type::Record(record) = joined else { unreachable!() };
-            let binding = base.binding.expect("checked named array");
-            context.bindings[binding].ty = Type::Array(ArrayElement::Record(record, 0));
-        }
+        if widening { self.widen_scoped_array_storage(context, base, actual, span)?; }
         if !remove { self.append_target_capture_loans(context, base, &args[0]); }
         Ok(if remove { element.ty() } else { Type::Void })
     }
