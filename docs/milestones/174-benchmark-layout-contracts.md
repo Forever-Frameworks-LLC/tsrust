@@ -75,3 +75,10 @@ Disassembly after the repair measures 5,120 bytes for `if_statement` and 832 byt
 for `call_step`, compared with 8,752 and 2,272 bytes before. The normal worker stack
 and 128 source-depth diagnostics remain unchanged. These are frame measurements,
 not runtime performance measurements.
+
+The final complete harness command passes 421 of 421. Nine affected native fixture
+tests pass after the corrected five-consumer refresh. The five workload pairs are
+reverified on those consumers. Exact logs and proof are stored under
+`runtime/diagnostics/benchmark-layout-contracts/` in SQLite. The current-consumer raw
+record is `runtime/results/2026-10-08T00-28-38-163Z-verify.json`. Each closed record
+was read back byte for byte before removing its loose copy. No timing was run.
