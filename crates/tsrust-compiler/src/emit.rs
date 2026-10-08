@@ -3539,8 +3539,8 @@ impl Emitter<'_> {
                 ),
                 StmtKind::Return(value) => {
                     let value=value.as_ref().map(|value|self.expr(fun,value,Mode::Consume));
-                    if let Some(region)=self.exception_regions.current_id() {
-                        format!("break 'exception_region{region} TsrCompletion::Return({});",value.as_deref().unwrap_or("()"))
+                    if self.exception_regions.current_id().is_some() {
+                        self.exception_regions.return_value(value.as_deref().unwrap_or("()"),stmt.span)
                     }else{
                         value.map_or_else(||"return;".into(),|value|format!("return {value};"))
                     }

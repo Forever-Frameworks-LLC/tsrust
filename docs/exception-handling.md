@@ -39,6 +39,14 @@ An explicit throw can carry a supported checked value. The compiler infers the e
 
 Throwing an owned value transfers it. Catch receives the propagated value, and rethrowing transfers it again. Existing borrowing and move restrictions still apply. Error handling does not introduce implicit cloning or extend a borrowed value's lifetime.
 
+A pending return is evaluated before finally runs. Cleanup sees the current
+collection contents, including entries added after a clear. If cleanup completes
+normally, the saved return value is returned; a return or error from cleanup
+replaces it. Borrowed callback captures released by clear can be mutated after
+normal cleanup on a path that continues past the try statement. The compiler
+preserves the owners needed for cleanup without cloning them.
+
+
 ## Runtime failures
 
 Prepared exception paths convert supported arithmetic and array-bound failures into structured error values. These values have `name`, `code`, `message`, `source`, `start` and `end` fields. Project execution identifies the original module and its byte range; arithmetic ranges identify the failing operator. Source-only compiler APIs use a source placeholder when no filename is available.

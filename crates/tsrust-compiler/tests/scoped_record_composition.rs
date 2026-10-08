@@ -7,6 +7,16 @@ fn returning_through_finally_preserves_renewed_map_until_cleanup() {
     let fallthrough = source.replace("return 29;", "").replace("\n}\n\nfunction main", "\n    old[0] = 9; next[0] = 11; return 29;\n}\n\nfunction main");
     assert_ne!(fallthrough, source);
     verify_disposal(&support::format_round_trip(&fallthrough), 2, "before\ncleanup 1\ndrop 0\ncleared\nresult 23\nbefore\ndrop 0\nreturn\ncleanup 1\ndrop 1\ncleared\nresult 29\n");
+    let overriding = source.replace("console.log('cleared');", "console.log('cleared'); return 31;");
+    verify_disposal(&support::format_round_trip(&overriding), 2, "before\ncleanup 1\ndrop 0\ncleared\nresult 31\nbefore\ndrop 0\nreturn\ncleanup 1\ndrop 1\ncleared\nresult 31\n");
+    let field = fallthrough.replace("function scenario", "type Box={handlers:Map<string,Holder>;marker:int;};function scenario")
+        .replace("console.log('before');", "const box:Box={handlers:handlers,marker:23};console.log('before');")
+        .replace("handlers.clear()", "box.handlers.clear()")
+        .replace("handlers.set('next'", "box.handlers.set('next'")
+        .replace("handlers.size", "box.handlers.size")
+        .replace("old[0] = 9;", "if(box.marker!==23)throw 99; old[0]=9;");
+    verify_disposal(&support::format_round_trip(&field), 2, "before\ncleanup 1\ndrop 0\ncleared\nresult 23\nbefore\ndrop 0\nreturn\ncleanup 1\ndrop 1\ncleared\nresult 29\n");
+
 }
 
 #[test]

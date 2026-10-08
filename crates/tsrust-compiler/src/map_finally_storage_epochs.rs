@@ -35,7 +35,8 @@ impl Emitter<'_> {
                 StmtKind::Let { .. }
                 | StmtKind::Expr(_)
                 | StmtKind::Assign { .. }
-                | StmtKind::Throw(_) => {}
+                | StmtKind::Throw(_)
+                | StmtKind::Return(_) => {}
                 _ => return false,
             }
             if let Some((place, native)) = self.local_map_clear_storage(fun, declarations, item)
@@ -71,7 +72,7 @@ impl Emitter<'_> {
             .current_transport()
             .expect("checked enclosing completion");
         let first = self.completion_next.get();
-        self.completion_next.set(first + 3);
+        self.completion_next.set(first + 4);
         let mut body = region.body.clone();
         let incoming =
             crate::error_effects::annotate_region_body(&mut body, &self.program.error_effects);
@@ -103,6 +104,7 @@ impl Emitter<'_> {
             &storage_type,
             &places,
             true,
+            true,
         );
         let normal_cleanup = self.map_storage_completion_body(
             fun,
@@ -115,6 +117,7 @@ impl Emitter<'_> {
             &storage_type,
             &places,
             false,
+            false,
         );
         let thrown_cleanup = self.map_storage_completion_body(
             fun,
@@ -126,6 +129,20 @@ impl Emitter<'_> {
             runtime,
             &storage_type,
             &places,
+            false,
+            false,
+        );
+        let returned_cleanup = self.map_storage_completion_body(
+            fun,
+            cleanup,
+            declarations,
+            first + 3,
+            &cleanup_name,
+            cleanup_contract.clone(),
+            runtime,
+            &storage_type,
+            &places,
+            false,
             false,
         );
         let cleanup_abrupt = self.map_storage_abrupt_dispatch(
@@ -158,10 +175,16 @@ impl Emitter<'_> {
         } else {
             "TsrCompletion::Throw((error,_))=>match error {}".into()
         };
+        let resume_return = if crate::completion::definitely_abrupt(cleanup,0) {
+            "unreachable!(\"abrupt cleanup cannot resume pending return\")".into()
+        } else {self.map_storage_abrupt_dispatch(fun,"TsrCompletion::Return(pending_return)",&incoming_name,&incoming,runtime,statement.span)};
+        let return_arm = format!(
+            "TsrCompletion::Return((pending_return,{pattern}))=>{{match {returned_cleanup}{{TsrCompletion::Normal(storage)=>{{drop(storage);{resume_return}}},other=>{{drop(pending_return);{cleanup_abrupt}}}}}}}"
+        );
         let indent = "    ".repeat(depth);
         let _ = writeln!(
             output,
-            "{indent}{incoming_decl} {cleanup_decl} let {pattern}={{let {pattern}={values};match {pending}{{TsrCompletion::Normal(storage)=>{normal_finish},{throw_arm},TsrCompletion::Return(_)|TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"straight-line finally storage\")}}}};"
+            "{indent}{incoming_decl} {cleanup_decl} let {pattern}={{let {pattern}={values};match {pending}{{TsrCompletion::Normal(storage)=>{normal_finish},{throw_arm},{return_arm},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"straight-line finally storage\")}}}};"
         );
         let boundary = places
             .iter()

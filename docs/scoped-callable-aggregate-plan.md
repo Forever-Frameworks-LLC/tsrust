@@ -1249,3 +1249,21 @@ mutating released captures produce native E0502. Both cases remain in the test.
 SQLite preserves the initial passing observation and the combined failing
 observation under `tsrust-b5-return-finally-red.log` and
 `tsrust-b5-return-finally-fallthrough-red.log`. No implementation repair claimed.
+
+### Return/fallthrough completion storage repaired
+
+The committed return-through-finally witness now passes. Pending results carry
+the current Map storage into cleanup. Successful cleanup resumes the evaluated
+result; abrupt cleanup replaces it. Post-return checked snapshots keep moved
+storage consumed. Root and record-field cases, fallthrough mutation and cleanup
+return override pass exact disposal checks at O0/O3.
+
+The affected suites retain 75 previously passing composition checks plus the
+repaired expanded witness, 42 scoped-record and four fallible-record checks.
+Eight depth canaries, 15 exception-contract tests and focused editor diagnostics
+pass. The 29-observation matched workload verifies untimed on native and
+Node-after-tsc. SQLite record:
+`runtime/results/2026-10-08T18-55-03-597Z-verify.json`. Exact failed attempts and
+passing supplements remain under `tsrust-b5-return-finally-*.log`.
+No family regression/timing acceptance is claimed. Loops, break/continue, nested
+regions and the remaining B5 capture/key work are open.

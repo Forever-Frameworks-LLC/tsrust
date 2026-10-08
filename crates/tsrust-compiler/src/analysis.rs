@@ -5469,6 +5469,7 @@ impl Analyzer {
                 } => self.assign_statement(context, target, value, *operator)?,
                 StmtKind::Return(value) => {
                     self.return_statement(context, value, result_type, stmt.span)?;
+                    context.storage_exits.record_expression(stmt.span, &context.bindings);
                     capture_restoration::record(context);
                     exited = true;
                 }

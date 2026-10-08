@@ -367,8 +367,10 @@ function workload(n: int, seed: int, input: string): int[][] {
         }
         finallyRenewed += cleanupTrace[0] * 100 + cleanupTrace[1];
 
+        const returnTrace = [0, -1];
+        const finallyReturned = noCatchReturn(value % 2 === 0, value, returnTrace) + returnTrace[0] * 100 + returnTrace[1];
         base[0] = 0;
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned]);
         i += 1;
     }
 
@@ -403,4 +405,24 @@ function noCatchRenewal(fail: boolean, value: number, trace: number[]): number {
     finallyOld[0] = value + 70;
     finallyNext[0] = value + 71;
     return retained + finallyOld[0] + finallyNext[0];
+}
+
+function noCatchReturn(early: boolean, value: number, trace: number[]): number {
+    const returnOld = [value];
+    const returnNext = [value + 1];
+    let returnMap = new Map<string, Holder>();
+    returnMap.set("old", { run: (): number => returnOld[0] });
+    try {
+        const returnPrefix = prefixResult(false);
+        if (early) return value + 80;
+        returnMap.clear();
+        returnMap.set("next", { run: (): number => returnNext[0] });
+    } finally {
+        trace[0] = returnMap.size;
+        returnMap.clear();
+        trace[1] = returnMap.size;
+    }
+    returnOld[0] = value + 82;
+    returnNext[0] = value + 83;
+    return returnOld[0] + returnNext[0];
 }

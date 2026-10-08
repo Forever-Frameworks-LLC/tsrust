@@ -55,6 +55,7 @@ pub(crate) fn checked_catch_value(value:&str,error_name:&str,contract:&crate::er
 use super::native_storage_availability::{Stack as StorageStack, Scope as StorageScope, Value as StorageValue};
 struct Storage {
     carry_error: bool,
+    carry_return: bool,
     default: Vec<StorageValue>,
     points: std::collections::BTreeMap<usize,Vec<StorageValue>>,
     expressions: std::collections::BTreeMap<(usize,usize),Vec<StorageValue>>,
@@ -96,7 +97,15 @@ impl RegionStack {
     }
     pub(crate) fn attach_storage(&self, values:Vec<StorageValue>, points:std::collections::BTreeMap<usize,Vec<StorageValue>>, expressions:std::collections::BTreeMap<(usize,usize),Vec<StorageValue>>, carry_error:bool, boundary:usize) {
         self.1.renew(&values.iter().map(|value|value.place.clone()).collect::<Vec<_>>(),boundary);
-        self.0.borrow_mut().last_mut().expect("entered storage region").storage=Some(Box::new(Storage{carry_error,default:values,points,expressions}));
+        self.0.borrow_mut().last_mut().expect("entered storage region").storage=Some(Box::new(Storage{carry_error,carry_return:false,default:values,points,expressions}));
+    }
+    pub(crate) fn carry_storage_on_return(&self) {
+        self.0.borrow_mut().last_mut().expect("entered storage region").storage.as_mut().expect("attached storage").carry_return=true;
+    }
+    pub(crate) fn return_value(&self,value:&str,span:crate::Span)->String {
+        let regions=self.0.borrow();let region=regions.last().expect("entered return region");
+        let payload=region.storage.as_ref().filter(|storage|storage.carry_return).map_or_else(||value.to_owned(),|storage|format!("{{let pending_return={value};(pending_return,{})}}",storage.at(span,&self.1)));
+        format!("break 'exception_region{} TsrCompletion::Return({payload});",region.id)
     }
     pub(crate) fn renew_storage(&self, places:&[String], boundary:usize) {self.1.renew(places,boundary);}
     pub(crate) fn native_storage_available(&self, place:&str, transferred:Option<crate::Span>)->bool {self.1.available(place,transferred)}
@@ -137,8 +146,9 @@ impl RegionStack {
         let (name,contract,runtime)=region.transport.as_deref().ok_or_else(||crate::Diagnostic::new("error-effect","Result call emission requires a destination error layout.",span))?;
         let pending=checked_fallible_call(call,source_name,name,source,contract,unions,*runtime,span)?;
         if let Some(storage)=region.storage.as_ref().filter(|storage|storage.carry_error) {
+            let returned=if storage.carry_return {format!("(value,{})",storage.at(span,&self.1))}else{"value".into()};
             let storage=storage.at(span,&self.1);
-            return Ok(format!("match {pending} {{ TsrCompletion::Normal(value)=>value, TsrCompletion::Throw(error)=>break 'exception_region{} TsrCompletion::Throw((error,{storage})), TsrCompletion::Return(value)=>break 'exception_region{} TsrCompletion::Return(value), TsrCompletion::Break(target)=>break 'exception_region{} TsrCompletion::Break(target), TsrCompletion::Continue(target)=>break 'exception_region{} TsrCompletion::Continue(target) }}",region.id,region.id,region.id,region.id));
+            return Ok(format!("match {pending} {{ TsrCompletion::Normal(value)=>value, TsrCompletion::Throw(error)=>break 'exception_region{} TsrCompletion::Throw((error,{storage})), TsrCompletion::Return(value)=>break 'exception_region{} TsrCompletion::Return({returned}), TsrCompletion::Break(target)=>break 'exception_region{} TsrCompletion::Break(target), TsrCompletion::Continue(target)=>break 'exception_region{} TsrCompletion::Continue(target) }}",region.id,region.id,region.id,region.id));
         }
         Ok(super::exception_emit::propagate_completion(region.id,&pending))
     }

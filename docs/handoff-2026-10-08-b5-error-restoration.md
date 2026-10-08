@@ -27,10 +27,10 @@ Native witnesses cover explicit throw, a later fallible call, a later bounds
 failure, record-field storage and an independent sibling field. Disposal tests
 at optimization levels 0 and 3 prove exactly one callback drop on both early and
 late failure paths. The editor test verifies restoration and rejects reads before
-restoration. All 75 composition tests, eight normal-stack depth canaries and 15
+restoration. All 76 composition tests, eight normal-stack depth canaries and 15
 exception-contract tests pass. The focused editor test passes.
 
-The matched workload now retains 28 observations. Source guards and rehashed
+The matched workload now retains 29 observations. Source guards and rehashed
 mutation controls pass. Native and Node-after-tsc verification passes untimed.
 The independent oracle includes `value + 29` and `value + 30` for early and late
 statement restoration, plus `value + 39` and `value + 40` for expression failures. SQLite preserves exact failures and repaired records; see the plan
@@ -117,7 +117,7 @@ cleanup on both normal and throwing paths. It preserves pending errors after
 successful cleanup and lets cleanup errors override them. Root and record-field
 storage pass exact callback disposal checks at optimization levels 0 and 3.
 The helper currently covers unlabeled blocks, conditionals, declarations,
-expressions, assignments and throws. Loops, returns, break/continue and nested
+expressions, assignments and throws. Loops, break/continue and nested
 try regions remain implementation work, not accepted rejection boundaries.
 
 Record inspection admission now excludes borrowed callable fields and descends
@@ -157,3 +157,38 @@ Continuation: start from checkpoint `18f4833` plus this committed red witness.
 Repair the combined return/fallthrough case, keep exact Drop checks at O0/O3,
 then extend editor and matched workload coverage. Continue B5's remaining scope
 from the plan; the full compiler/editor goal remains active.
+
+## Return-through-finally repair
+
+The red witness from `a611cb7` is repaired. Return transport carries the native
+Map owner alongside the already evaluated result; cleanup receives that owner
+before resuming the result or replacing it with its own return/error. Checked
+post-return snapshots preserve consumed storage rather than restoring source
+availability. Native root and record-field witnesses verify early return,
+fallthrough capture mutation and cleanup-return override with exact disposal
+at optimization levels 0 and 3.
+
+The affected batch passed the other 75 composition tests, 42 scoped-record tests
+and four fallible-record tests. The sole failed override case was repaired and
+rerun with all variants. Eight depth canaries, 15 exception-contract tests and
+the focused editor test pass. Whole-family regression and timing remain deferred.
+The formatter changed only the new workload layout and its verified fingerprint.
+The 29-observation workload passes native and Node-after-tsc verification untimed;
+its SQLite record is `runtime/results/2026-10-08T18-55-03-597Z-verify.json`.
+Repair attempts, the original failed batch and mutation-control check, and their
+successful supplements remain byte-exact in SQLite under
+`tsrust-b5-return-finally-*.log`; loose copies were removed after verification.
+
+Next: add focused control-exit and nested-region witnesses; implement the
+required transport without shortening capture lifetimes. Keep precise element/
+entry release and Rust-style record Set equality/hashing in B5's remaining scope.
+B5 is incomplete. Five user consumers remain at gate 181.
+
+Continuation prompt: Continue from this return-through-finally checkpoint. Read
+AGENTS.md, docs/development-workflow.md and docs/scoped-callable-aggregate-plan.md.
+Return/fallthrough and cleanup-return override pass with disposal evidence.
+Finish B5 control exits/nested regions, precise capture release and record keys,
+using red witnesses, native/editor coverage and matched untimed workload support.
+Preserve the fifteen unrelated fixture edits; stage explicit paths and format
+the entire project before checkpoints. Keep SQLite evidence exact and do not
+claim family acceptance or measurements before their milestone checks.
