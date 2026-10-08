@@ -671,6 +671,10 @@ struct Analyzer {
     /// Result types of recursive functions without a result annotation,
     /// taken from a return that does not depend on the recursive call.
     provisional_results: HashMap<usize, Type>,
+    /// Handlers that no failure reached when their region was last checked,
+    /// with the state at the region. Their bodies are checked once analysis is
+    /// definitive; a later check that reaches the handler removes the entry.
+    dead_handlers: BTreeMap<usize, Box<(Context, CatchClause, Type)>>,
     result_shapes: HashMap<usize, usize>,
     result_waits: HashMap<usize, Span>,
     pending_shapes: HashSet<usize>,
@@ -1574,6 +1578,7 @@ impl Analyzer {
             discovering_results: false,
             known_results: HashMap::new(),
             provisional_results: HashMap::new(),
+            dead_handlers: BTreeMap::new(),
             result_shapes: HashMap::new(),
             result_waits: HashMap::new(),
             pending_shapes: HashSet::new(),
@@ -3181,7 +3186,7 @@ impl Analyzer {
                 &self.polymorphic_invocations,
             )?;
         }
-        if !self.effects_only{self.scoped_record_containers()?;self.record_parameter_carriers()?;}
+        if !self.effects_only{self.check_dead_handlers()?;self.scoped_record_containers()?;self.record_parameter_carriers()?;}
         let record_call_releases=record_call_capture_release::summaries(&self.checked,&self.program.records,&self.closures);
         let deferred_generic_nominals = self.deferred_generic_nominal_uses();
         let checked = CheckedProgram {
@@ -4994,7 +4999,9 @@ impl Analyzer {
             handler.error_type=None;
             handler.error_contract=Some(Box::new(incoming.clone()));
             outgoing=crate::error_effects::FailureSet::default();
+            let mut reached=false;
             pending=pending.catch(&mut |state| {
+                reached=true;
                 state.restore(context);
                 let (normal,frame,errors,contract)=self.check_catch_contract_exits(context,handler,result,&incoming,(!refresh_contracts).then_some(effects),runtime)?;
                 outgoing|=contract;
@@ -5003,6 +5010,13 @@ impl Analyzer {
                 handled.project_outer(outer);
                 Ok(handled)
             })?;
+            if let Some(key)=handler.body.first().map(|statement|statement.span.start) {
+                if reached {
+                    self.dead_handlers.remove(&key);
+                } else if !self.effects_only && !self.discovering_results {
+                    self.dead_handlers.insert(key,Box::new((context.clone(),handler.clone(),result)));
+                }
+            }
         }
         if let Some(cleanup)=&mut region.finally {
             let entry=context.clone();
@@ -5051,6 +5065,27 @@ impl Analyzer {
         let points=crate::error_effects::OperationEffects::for_body(&handler.body);
         errors.refine(&mut |span|points.get(span));
         Ok((normal,completions,errors,outgoing))
+    }
+
+    /// A handler whose try body cannot fail never runs, but its statements are
+    /// still source: check them on a copy of the state at the region. The error
+    /// name stands for a runtime error, the common case.
+    #[inline(never)]
+    fn check_dead_handlers(&mut self)->Result<(),Diagnostic> {
+        let handlers=std::mem::take(&mut self.dead_handlers);
+        if handlers.is_empty() {return Ok(());}
+        let effects=self.effects_only;
+        self.effects_only=true;
+        let mut outcome=Ok(());
+        for (_,entry) in handlers {
+            let (mut context,mut handler,result)=*entry;
+            context.effects_only=true;
+            handler.binding=None;
+            handler.error_type=handler.name.is_some().then(||self.materialize_discovery_runtime_error());
+            if let Err(error)=self.check_catch_exits(&mut context,&mut handler,result) {outcome=Err(error);break;}
+        }
+        self.effects_only=effects;
+        outcome
     }
 
     #[inline(never)]

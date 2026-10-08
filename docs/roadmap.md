@@ -1,3 +1,5 @@
+**Gate 177 accepted:** [Unreachable catch bodies](./milestones/177-unreachable-catch-bodies.md). A handler whose try body cannot fail is type checked at the end of analysis and not emitted. The reported caught-error assertion defect does not reproduce; its shapes are now witnesses.
+
 **Gate 176 accepted:** [Recursive result inference](./milestones/176-recursive-result-inference.md). A recursive function without a result annotation takes its type from a return that does not depend on the recursive call. Compiler batch 807, editor 364, one matched workload verified untimed.
 
 **Gate 175 accepted:** [Named function expressions](./milestones/175-named-function-expressions.md). The name is private to the function body; recursion, captures, generic, default and rest forms work as values. Compiler batch 692, editor 363, one matched workload verified untimed. Part of the [compiler completion plan](./compiler-completion-plan.md).

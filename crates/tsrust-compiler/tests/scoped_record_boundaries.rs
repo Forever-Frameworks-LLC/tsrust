@@ -89,6 +89,6 @@ fn statement_keywords_are_not_values() {
 }
 
 #[test]
-fn handler_of_a_try_body_that_cannot_fail_never_runs() {
+fn handler_of_a_try_body_that_cannot_fail_is_checked_and_never_runs() {
     native("function main(){let caught=0;let y=0;try{y=2;}catch(error){caught=1;console.log(error);}finally{caught+=2;}strictEqual(caught+y,4);const a=[3];const b=[4];let holder:Holder={run:():int=>a[0]};try{holder.run=():int=>b[0];}catch(error){caught=9;}strictEqual(holder.run()+caught,6);}");
 }

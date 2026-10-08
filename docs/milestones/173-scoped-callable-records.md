@@ -76,7 +76,7 @@ crate for the first time since gate 171 (52 failures). None came from this gate.
 - A function that calls a callback field of a record parameter has no resolved error
   contract for that callback. In a program that throws or catches errors, and when the
   callback can fail, the program is rejected with `error-effect`.
-- Statements of an unreachable `catch` body are not type checked.
+- Statements of an unreachable `catch` body were not type checked at this gate; gate 177 checks them.
 
 ## Open witnesses kept red
 

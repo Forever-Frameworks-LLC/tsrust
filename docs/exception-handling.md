@@ -31,6 +31,8 @@ Finally runs after normal completion and before a pending return, throw, break o
 
 Catch handles failures from its try body, including errors propagated by called functions. An error thrown by catch proceeds through finally and then to an enclosing handler. An error thrown by finally goes to an enclosing handler; the catch belonging to that same try statement does not handle it.
 
+When nothing in the try body can fail, the catch body never runs. Its statements are still checked like any other code, so a type or name error there is reported. In such a handler the error name has the type of a runtime error, with `name` and `message`.
+
 ## Error values and ownership
 
 An explicit throw can carry a supported checked value. The compiler infers the error alternatives that can reach a handler. Narrow alternatives before using operations specific to one type, for example `typeof error === "string"` before a string method. Error contracts must resolve; unknown callable contracts produce a diagnostic instead of silently hiding possible failures.
