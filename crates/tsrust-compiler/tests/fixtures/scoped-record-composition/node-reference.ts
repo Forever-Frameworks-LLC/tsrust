@@ -120,3 +120,17 @@ function mapReadBeforeInsertion() {
     if (second !== undefined) strictEqual(second.run(), 7);
 }
 mapReadBeforeInsertion();
+
+function movedMapComposition() {
+    const values = [3, 7];
+    const handlers = new Map<string, Holder>();
+    handlers.set("first", { run: () => values[0] });
+    const moved = handlers;
+    moved.set("second", { run: () => values[1] });
+    const finalMap = moved;
+    const first = finalMap.get("first");
+    const second = finalMap.get("second");
+    if (first !== undefined) strictEqual(first.run(), 3);
+    if (second !== undefined) strictEqual(second.run(), 7);
+}
+movedMapComposition();

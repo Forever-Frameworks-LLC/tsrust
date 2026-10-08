@@ -8453,7 +8453,7 @@ fn truthiness_narrows_nullable_strings_and_keeps_logical_assignment_help() {
 
 #[test]
 fn scoped_map_get_keeps_declared_callback_help_after_later_insertion() {
-    let source = tsrust_compiler::format("type Holder={run:ReadOnly<Function<int,[amount:int]>>;};function main(){const values=[3,7];const handlers=new Map<string,Holder>();handlers.set('first',{run:(value:int):int=>value+values[0]});{const first=handlers.get('first');if(first!==undefined)console.log(first.run(4));}handlers.set('second',{run:(value:int):int=>value+values[1]});}").unwrap();
+    let source = tsrust_compiler::format("type Holder={run:ReadOnly<Function<int,[amount:int]>>;};function main(){const values=[3,7];const handlers=new Map<string,Holder>();handlers.set('first',{run:(value:int):int=>value+values[0]});{const first=handlers.get('first');if(first!==undefined)console.log(first.run(4));}const moved=handlers;moved.set('second',{run:(value:int):int=>value+values[1]});}").unwrap();
     assert!(tsrust_compiler::check(&source).is_ok());
     let help = ask(&source, "textDocument/signatureHelp", "4)", 0);
     assert!(help["signatures"][0]["parameters"][0]["label"].as_str().unwrap_or("").contains("amount"), "{help}");

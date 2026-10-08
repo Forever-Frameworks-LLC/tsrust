@@ -18,11 +18,32 @@ impl Analyzer {
 
     #[inline(never)]
     pub(super) fn scoped_map_carriers(&mut self, context: &mut Context, body: &mut [Stmt]) -> Result<(), Diagnostic> {
-        let plans = context.bindings.iter().enumerate().filter_map(|(binding, info)| {
+        let mut plans = context.bindings.iter().enumerate().filter_map(|(binding, info)| {
             let Type::Map(id) = info.ty else { return None; };
             (!info.parameter && !info.capture_reference && self.aggregate_callable_facts(info.ty).scoped).then_some((binding, id))
         }).collect::<HashMap<_, _>>();
         if plans.is_empty() { return Ok(()); }
+        let writes = record_storage_writes::collect(body);
+        loop {
+            let mut changed = false;
+            for write in &writes {
+                if !write.path.is_empty() || !matches!(write.value.kind, ExprKind::Name(_)) { continue; }
+                let Some(source) = write.value.binding else { continue; };
+                let (Some(source_id), Some(destination_id)) = (plans.get(&source).copied(), plans.get(&write.binding).copied()) else { continue; };
+                let source_value = self.program.records[source_id].map_definition.as_ref().unwrap().value;
+                let destination_value = self.program.records[destination_id].map_definition.as_ref().unwrap().value;
+                let (Type::Record(left), Type::Record(right)) = (source_value, destination_value) else { continue; };
+                let joined = if left == right { source_value } else {
+                    self.join_record_types(left, right, write.span)?.ok_or_else(|| Diagnostic::new("type", "Moved Map callback environments have incompatible contracts.", write.span))?
+                };
+                for (binding, id) in [(source, source_id), (write.binding, destination_id)] {
+                    let next = self.scoped_map_value_instance(id, joined);
+                    if plans.get(&binding) != Some(&next) { plans.insert(binding, next); changed = true; }
+                }
+            }
+            if !changed { break; }
+        }
+        for (binding, id) in &plans { context.bindings[*binding].ty = Type::Map(*id); }
         let mut constructors = HashMap::new();
         for write in record_storage_writes::collect(body) {
             if write.path.is_empty() && matches!(write.value.kind, ExprKind::MapConstructor(_, _))
@@ -30,7 +51,6 @@ impl Analyzer {
             { constructors.insert((write.span.start, write.span.end), *id); }
         }
         let mut results = HashMap::new();
-        let writes = record_storage_writes::collect(body);
         loop {
             let mut changed = false;
             for write in &writes {

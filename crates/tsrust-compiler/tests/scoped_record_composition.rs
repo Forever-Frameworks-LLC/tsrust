@@ -1,6 +1,36 @@
 mod support;
 
 #[test]
+fn moved_map_can_widen_to_another_callback_origin() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function main() {
+            const values = [3, 7];
+            const handlers = new Map<string, Holder>();
+            handlers.set("first", { run: (): int => values[0] });
+            const moved = handlers;
+            moved.set("second", { run: (): int => values[1] });
+            const finalMap = moved;
+            const first = finalMap.get("first");
+            const second = finalMap.get("second");
+            if (first !== undefined) strictEqual(first.run(), 3);
+            if (second !== undefined) strictEqual(second.run(), 7);
+        }
+    "#);
+}
+
+#[test]
+fn moved_map_keeps_capture_loans_and_transfer_diagnostics() {
+    let conflict = "type Holder={run:ReadOnly<Function<int>>;};function main(){const values=[3];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>values[0]});const moved=handlers;values[0]=9;console.log(moved.size);}";
+    let error = tsrust_compiler::check(conflict).err().expect("moving a Map retains its capture owners");
+    assert_eq!(error.code, "capture-conflict", "{}", error.message);
+    let transferred = "type Holder={run:ReadOnly<Function<int>>;};function main(){const values=[3];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>values[0]});const moved=handlers;console.log(handlers.size,moved.size);}";
+    let error = tsrust_compiler::check(transferred).err().expect("Map move consumes the source binding");
+    assert_eq!(error.code, "transferred", "{}", error.message);
+}
+
+#[test]
 fn map_get_before_later_insertion_keeps_callback_environment() {
     project(r#"
         import { strictEqual } from "std:testing";

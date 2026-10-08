@@ -318,6 +318,15 @@ the declared parameter name in signature help and hides internal carrier names i
 hover. The independent Node reference passes. These are untimed checks, not B5
 acceptance or performance evidence.
 
+Map moves now propagate a common value carrier backward through source bindings
+and forward through destination bindings until the move chain stabilizes. This
+keeps construction and insertion layouts compatible without copying Map storage
+or captured owners. A two-move native witness verifies both callback origins after
+later insertion. Paired diagnostics verify capture conflicts after moving and
+rejection of source use after transfer. The affected compiler batch passes 44 tests;
+the updated editor witness and independent Node reference also pass. Nested Map
+storage and precise removal/replacement release remain pending.
+
 Remaining B5 work includes broader nested method composition,
 nullable replacement across multiple origins,
 precise element capture release, Map/Set
