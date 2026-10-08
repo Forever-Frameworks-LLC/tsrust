@@ -5386,6 +5386,7 @@ impl Analyzer {
                     stmt.span,
                 ));
             }
+            context.storage_exits.record_before(stmt.span, &context.bindings);
             match &mut stmt.kind {
                 StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),
                 StmtKind::Throw(value) if context.completion_frame.is_some() => {

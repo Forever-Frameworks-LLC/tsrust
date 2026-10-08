@@ -2,10 +2,23 @@
 use super::*;
 
 #[derive(Clone, Debug, Default)]
-pub(crate) struct Exits(HashMap<(usize, usize), Vec<Unavailable>>);
+pub(crate) struct Exits(HashMap<(usize, usize), Vec<Unavailable>>, HashMap<usize, Vec<Unavailable>>);
 #[derive(Clone, Debug)]
 struct Unavailable { binding: usize, root: bool, fields: Vec<Vec<String>> }
 impl Exits {
+    #[inline(never)]
+    pub(super) fn record_before(&mut self, span: Span, bindings: &[Binding]) {
+        let entries = bindings.iter().enumerate().filter_map(|(binding, value)| {
+            (value.transferred.is_some() || !value.moved_fields.is_empty()).then(|| Unavailable {
+                binding, root: value.transferred.is_some(), fields: value.moved_fields.keys().cloned().collect(),
+            })
+        }).collect();
+        self.1.insert(span.start, entries);
+    }
+    pub(crate) fn starts(&self) -> impl Iterator<Item=usize> + '_ { self.1.keys().copied() }
+    pub(crate) fn live_before(&self, start: usize, binding: usize, path: &[String]) -> bool {
+        self.1.get(&start).is_none_or(|entries| !entries.iter().any(|entry| entry.binding == binding && (entry.root || entry.fields.iter().any(|field| path.starts_with(field)))))
+    }
     pub(super) fn record(&mut self, body: &[Stmt], bindings: &[Binding]) {
         let (Some(first), Some(last)) = (body.first(), body.last()) else { return; };
         let entries = bindings.iter().enumerate().filter_map(|(binding, value)| {

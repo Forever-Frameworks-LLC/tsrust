@@ -31,15 +31,24 @@ impl Emitter<'_> {
     /// Declarations outside this block must retain their surrounding storage.
     pub(super) fn local_map_clear_epoch(&self, fun: &CheckedFunction, body: &[Stmt], statement: &Stmt) -> Option<String> {
         let (place, native) = self.local_map_clear_storage(fun, body, statement)?;
-        Some(format!("drop({place}); let mut {place}: {native} = <{native}>::new();"))
+        let drop = if matches!(statement.kind, StmtKind::Assign { .. }) && !self.exception_regions.has_native_storage()
+            && !self.map_storage_live_before(fun, statement.span.start, &place) { String::new() }
+            else { format!("drop({place});") };
+        Some(format!("{drop} let mut {place}: {native} = <{native}>::new();"))
     }
 
     pub(super) fn local_map_clear_storage(&self, fun: &CheckedFunction, body: &[Stmt], statement: &Stmt) -> Option<(String, String)> {
-        let StmtKind::Expr(call) = &statement.kind else { return None; };
-        if call.target != Some(CallTarget::MapMethod(MapMethod::Clear)) { return None; }
-        let ExprKind::Call(callee, _) = &call.kind else { return None; };
-        let ExprKind::Field(base, _) = &callee.kind else { return None; };
-        let mut root = base.as_ref();
+        let base = match &statement.kind {
+            StmtKind::Expr(call) if call.target == Some(CallTarget::MapMethod(MapMethod::Clear)) => {
+                let ExprKind::Call(callee, _) = &call.kind else { return None; };
+                let ExprKind::Field(base, _) = &callee.kind else { return None; };
+                base.as_ref()
+            },
+            StmtKind::Assign { target, value, operator: None }
+                if matches!(&value.kind, ExprKind::MapConstructor(arguments, _) if arguments.is_empty()) => target,
+            _ => return None,
+        };
+        let mut root = base;
         let mut names = Vec::new();
         while let ExprKind::Field(parent, name) = &root.kind { names.push(name); root = parent; }
         if !matches!(root.kind, ExprKind::Name(_)) { return None; }
@@ -133,8 +142,14 @@ impl Emitter<'_> {
 
 impl Emitter<'_> {
     pub(super) fn map_storage_live_at_exit(&self, fun: &CheckedFunction, body: &[Stmt], place: &str) -> bool {
+        self.map_storage_live(fun, place, |binding,names| fun.storage_exits.live(body,binding,names))
+    }
+    pub(super) fn map_storage_live_before(&self, fun: &CheckedFunction, start: usize, place: &str) -> bool {
+        self.map_storage_live(fun, place, |binding,names| fun.storage_exits.live_before(start,binding,names))
+    }
+    fn map_storage_live(&self, fun: &CheckedFunction, place: &str, live: impl Fn(usize,&[String])->bool) -> bool {
         for (binding, value) in fun.bindings.iter().enumerate() {
-            if place == format!("value{binding}") { return fun.storage_exits.live(body, binding, &[]); }
+            if place == format!("value{binding}") { return live(binding, &[]); }
             let Some(layout) = self.owned_record_layout(fun, binding) else { continue; };
             for leaf in &layout.leaves {
                 if leaf.native_name(binding) != place { continue; }
@@ -146,7 +161,7 @@ impl Emitter<'_> {
                     names.push(field.name.text.clone());
                     ty = field.ty.unwrap();
                 }
-                return fun.storage_exits.live(body, binding, &names);
+                return live(binding, &names);
             }
         }
         false
@@ -156,6 +171,9 @@ impl Emitter<'_> {
 impl Emitter<'_> {
     pub(super) fn map_branch_exit_value(&self, fun: &CheckedFunction, body: &[Stmt], place: &str) -> String {
         if self.map_storage_live_at_exit(fun, body, place) { return place.to_owned(); }
+        self.map_empty_storage_value(fun, place)
+    }
+    pub(super) fn map_empty_storage_value(&self, fun: &CheckedFunction, place: &str) -> String {
         // Source availability remains consumed. This empty native owner only
         // balances branch storage; it has no captured payload to copy or drop.
         for (binding, value) in fun.bindings.iter().enumerate() {

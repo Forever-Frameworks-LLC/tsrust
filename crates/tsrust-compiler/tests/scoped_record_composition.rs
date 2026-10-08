@@ -1,8 +1,14 @@
 mod support;
 
 #[test]
+fn restored_error_storage_preserves_transfer_disposal() {
+    let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):int{if(fail)throw 5;return 1;}function scenario(fail:boolean):void{const old=[3];let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});let observed=-1;console.log('before');try{const path=failIf(fail);console.log('normal');handlers.clear();const moved=handlers;observed=moved.size;throw 7;}catch(error){console.log('caught');handlers=new Map<string,Holder>();observed+=handlers.size;}old[0]=9;console.log('after',observed);}function main():void{scenario(false);scenario(true);}");
+    verify_disposal(&source, 1, "before\nnormal\ndrop 0\ncaught\nafter 0\nbefore\ncaught\ndrop 0\nafter -1\n");
+}
+
+#[test]
 fn error_after_map_transfer_restores_storage_in_catch() {
-    project(r#"
+    let source = r#"
         import { strictEqual } from "std:testing";
         type Holder = { run: ReadOnly<Function<int>>; };
         function failIf(fail: boolean): int { if (fail) throw 5; return 1; }
@@ -27,7 +33,18 @@ fn error_after_map_transfer_restores_storage_in_catch() {
             strictEqual(old[0], 9);
         }
         function main(): void { scenario(false); scenario(true); }
-    "#);
+    "#;
+    project(source);
+    project(&source.replace("                throw 7;", "                const later = failIf(true); throw 7;"));
+    project(&source.replace("                throw 7;", "                const late = [1]; const failed = late[2]; throw 7;"));
+    let field = source.replace("function scenario", "type Box = { handlers: Map<string, Holder>; marker: int; }; function scenario")
+        .replace("            let observed = -1;", "            const box: Box = { handlers: handlers, marker: 23 }; let observed = -1;")
+        .replace("handlers.clear()", "box.handlers.clear()")
+        .replace("const moved = handlers;", "const moved = box.handlers;")
+        .replace("                handlers = new", "                box.handlers = new")
+        .replace("handlers.size", "box.handlers.size")
+        .replace("strictEqual(old[0], 9);", "strictEqual(old[0], 9); strictEqual(box.marker, 23);");
+    project(&field);
 }
 
 #[test]

@@ -986,3 +986,46 @@ each error-producing expression, including changes within a statement, while
 keeping the body-exit snapshots for normal completion. Empty replacement may
 also require renewing its native lifetime rather than retaining the old carrier
 lifetime. B5 acceptance and measurements remain pending.
+
+
+Error transport now uses checked statement-entry availability in addition to
+normal body-exit availability. A thrown payload carries each live owner, or an
+empty internal Map after transfer. Catch must explicitly restore source storage
+before reading it; the editor witness confirms that reads before restoration
+still report a transfer diagnostic. Empty Map assignment now renews native
+storage so the previous callback lifetime ends at replacement.
+
+Disposal instrumentation covers failure before transfer and after transfer at
+optimization levels 0 and 3. It first exposed E0502 from retaining the old Map
+lifetime; the repair releases exactly one callback in each scenario. The first
+affected suite then found an E0382 regression when restoring already consumed
+storage outside completion transport. That path now omits the drop of the moved
+binding, while completion storage still drops its internally initialized owner.
+The repaired suite passes all 68 composition tests. Eight depth canaries and
+15 exception-contract tests pass on the normal worker stack. The focused editor
+test passes. Original failures and repaired checks are preserved byte for byte
+in SQLite as `tsrust-b5-statement-error-disposal.log`,
+`tsrust-b5-statement-error-disposal-repaired.log`,
+`tsrust-b5-statement-error-checks.log`,
+`tsrust-b5-statement-error-repaired-checks.log` and
+`tsrust-b5-statement-error-depth-checks.log`. Loose copies are removed.
+
+This checkpoint covers transfer in a prior statement. Moves within the same
+expression before a fallible operation still need expression-level snapshots.
+Conditional transfers need exact disposal witnesses for both the surviving and
+consumed paths; source unavailability after a join does not itself prove every
+native owner was consumed. Loop/control exits and nested exception regions also
+remain pending. B5 is not accepted and no timing was performed.
+
+
+Matched error-restoration coverage now retains twenty-two scalar observations.
+The added early-error path preserves the old Map until explicit replacement;
+the late-error path clears and transfers it before throwing. Both catch bodies
+restore empty storage and then mutate the released capture. Independent arithmetic
+expects `value + 29` and `value + 30`. Token guards require both failure choices,
+transfers, observations, restorations and capture mutations. Rehashed mutation
+controls pass. Native and Node-after-tsc verification passes untimed; exact
+original evidence is verified in SQLite as
+`runtime/results/2026-10-08T17-57-52-860Z-verify.json` and
+`tsrust-b5-restored-benchmark.log`, with loose copies removed. Project formatting
+is token-preserving and idempotent. B5 acceptance and timing remain pending.

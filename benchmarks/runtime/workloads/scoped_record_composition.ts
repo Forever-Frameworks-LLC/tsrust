@@ -220,8 +220,46 @@ function workload(n: int, seed: int, input: string): int[][] {
             caughtConsumed = consumedSize + consumedPath + consumedOld[0];
         }
 
+        let earlyRestored = 0;
+        let lateRestored = 0;
+        {
+            const restoredOld = [value];
+            let restoredMap = new Map<string, Holder>();
+            restoredMap.set("old", { run: (): number => restoredOld[0] });
+            let restoredSize = -1;
+            try {
+                const beforeTransfer = prefixResult(true);
+                restoredMap.clear();
+                const transferred = restoredMap;
+                restoredSize = transferred.size;
+                throw 7;
+            } catch (error) {
+                restoredMap = new Map<string, Holder>();
+            }
+            restoredOld[0] = value + 30;
+            earlyRestored = restoredSize + restoredMap.size + restoredOld[0];
+        }
+
+        {
+            const restoredOld = [value];
+            let restoredMap = new Map<string, Holder>();
+            restoredMap.set("old", { run: (): number => restoredOld[0] });
+            let restoredSize = -1;
+            try {
+                const beforeTransfer = prefixResult(false);
+                restoredMap.clear();
+                const transferred = restoredMap;
+                restoredSize = transferred.size;
+                throw 7;
+            } catch (error) {
+                restoredMap = new Map<string, Holder>();
+            }
+            restoredOld[0] = value + 30;
+            lateRestored = restoredSize + restoredMap.size + restoredOld[0];
+        }
+
         base[0] = 0;
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored]);
         i += 1;
     }
 

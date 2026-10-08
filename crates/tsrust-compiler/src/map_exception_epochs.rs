@@ -89,7 +89,13 @@ impl Emitter<'_> {
     #[inline(never)]
     fn map_storage_completion_body(&self, fun: &CheckedFunction, body: &[Stmt], declarations: &[Stmt], id: usize, error_name: &str, contract: crate::error_effects::FailureSet, runtime: Option<Type>, values: &str, storage_type: &str, places: &[String], carry_error: bool) -> String {
         let _region = self.exception_regions.enter_typed(id, Vec::new(), error_name.into(), contract, runtime);
-        if carry_error { self.exception_regions.attach_storage(values.into()); }
+        {
+            let points=fun.storage_exits.starts().map(|start| {
+                let payload=format!("({},)",places.iter().map(|place| if self.map_storage_live_before(fun,start,place) {place.clone()} else {self.map_empty_storage_value(fun,place)}).collect::<Vec<_>>().join(","));
+                (start,payload)
+            }).collect();
+            self.exception_regions.attach_storage(values.into(), points, carry_error);
+        }
         let mut statements = String::new();
         self.control_block_epochs(&mut statements, fun, body, 1, None, Some(declarations));
         let normal_values = format!("({},)", places.iter().map(|place| self.map_branch_exit_value(fun, body, place)).collect::<Vec<_>>().join(","));
