@@ -20255,6 +20255,33 @@
       "specification": "Retain independent scalar observations per scenario with deterministic seed and iteration inputs.",
       "sourceSha256": "c6454d030bba950cfe6ce71b55b1e54c582432c857404abb3d07c4bba442b2d0",
       "counterpartSha256": "45dd4d73aa7e87cdb9d3c831b4bd572a745d1c57e41c7fef52eff89d91ee7849"
+    },
+    {
+      "id": "scoped_record_composition",
+      "family": "scoped-record-composition",
+      "source": "workloads/scoped_record_composition.tsr",
+      "counterpart": "workloads/scoped_record_composition.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One complete scoped record composition scenario",
+      "inputText": "composition",
+      "category": "callbacks",
+      "measurementStatus": "pending-scoped-aggregate-family",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": false,
+      "measured": false,
+      "notes": "Focused B5 workload support; whole feature acceptance and timing remain pending. Array removal and widening, moved Map record fields, nullable reads, clear and scope release.",
+      "specification": "Retain seven scalar observations per iteration; independent arithmetic oracle.",
+      "sourceSha256": "ec5737034c25c0d4e9426e34f56a2c3e19438e6b5420f0197acf2be450c19c04",
+      "counterpartSha256": "8431686fc1acde52eac7c8f75447e2404cfc974773cc117028f16aa3d0c0bfab"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

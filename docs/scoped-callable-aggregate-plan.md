@@ -369,3 +369,19 @@ the same native observer helper and exercise formatter round trips. This covers
 these checked error propagation paths; it does not prove release of capture loans
 while a surviving container remains in scope. That analysis requirement remains
 open, as do broader composition, Set key design and matched benchmark support.
+
+Matched workload `scoped_record_composition` now supplies B5 array and Map coverage.
+Each iteration retains seven scalar observations from array pop followed by a new
+callback origin, a Map moved into a record field, field insertion, nullable reads,
+clear and capture release at scope exit. Its TypeScript counterpart uses the same
+scenario; an independent arithmetic oracle derives the expected values without
+using collections or callbacks. Source contracts enforce both fingerprints,
+scenario operations and the unchanged operation denominator. Registration covers
+ABI, oracle/checksum routing, runner/profiler provenance hooks, report placement
+and rejection of semantic source mutations even with refreshed hashes.
+Three affected registration tests pass. Native and Node-after-tsc verification
+passes all five harness cases; exact original evidence is preserved in SQLite as
+`runtime/results/2026-10-08T15-41-01-965Z-verify.json`. No timing samples were taken.
+The manifest row is appended at the end and remains explicitly unmeasured, with
+whole B5 implementation acceptance pending. Broader benchmark coverage must follow
+the remaining composition and Set decisions as those features land.

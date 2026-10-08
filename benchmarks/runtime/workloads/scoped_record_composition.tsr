@@ -1,0 +1,63 @@
+type Holder = {
+    run: ReadOnly<Function<int>>;
+};
+
+type Box = {
+    handlers: Map<string, Holder>;
+};
+
+function workload(n: int, seed: int, input: string): int[][] {
+    const output: int[][] = [];
+    let i = 0;
+    while (i < n) {
+        const value = i % 5 + seed % 5 + 1;
+        const base = [value, value + 1];
+        let removedValue = 0;
+        let arrayValue = 0;
+        let mapFirst = 0;
+        let mapSecond = 0;
+        let populated = 0;
+        let cleared = 0;
+        {
+            const items: Holder[] = [{
+                run: (): int => base[0]
+            }];
+            const removed = items.pop();
+            items.push({
+                run: (): int => base[1]
+            });
+            if (removed !== undefined) removedValue = removed.run();
+            arrayValue = items[0].run();
+            const handlers = new Map<string, Holder>();
+            handlers.set("first", {
+                run: (): int => base[0]
+            });
+            const box: Box = {
+                handlers: handlers
+            };
+            box.handlers.set("second", {
+                run: (): int => base[1]
+            });
+            {
+                const first = box.handlers.get("first");
+                const second = box.handlers.get("second");
+                if (first !== undefined) mapFirst = first.run();
+                if (second !== undefined) mapSecond = second.run();
+            }
+
+            populated = box.handlers.size;
+            box.handlers.clear();
+            cleared = box.handlers.size;
+        }
+
+        base[0] = 0;
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, populated, cleared, base[0] + base[1]]);
+        i += 1;
+    }
+
+    return output;
+}
+
+function main() {
+    const result = workload(3, 0, "composition");
+}
