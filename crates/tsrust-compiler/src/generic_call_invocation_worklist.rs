@@ -30,6 +30,8 @@ pub(super) struct Engine<'a> {
     environments: environment_store::Store,
     #[cfg(test)]
     evaluations: usize,
+    #[cfg(test)]
+    invocations: usize,
 }
 fn merge_state(current:&mut Option<FlowState>,incoming:Option<FlowState>,declarations:&HashMap<String,Contract>)->bool {
     if let Some(incoming)=incoming {
@@ -51,7 +53,7 @@ fn merge_facts(current: &mut HashMap<(usize, usize), Option<Vec<Contract>>>, inc
 }
 impl<'a> Engine<'a> {
     pub(super) fn new(declarations: &'a HashMap<String, Contract>, effects: &'a effect_bodies::Index) -> Self {
-        Self { declarations, effects, lookup: HashMap::new(), entries: Vec::new(), work: Vec::new(), current: None, environments: environment_store::Store::default(), #[cfg(test)] evaluations: 0 }
+        Self { declarations, effects, lookup: HashMap::new(), entries: Vec::new(), work: Vec::new(), current: None, environments: environment_store::Store::default(), #[cfg(test)] evaluations: 0, #[cfg(test)] invocations: 0 }
     }
     // Keep a simple declaration path. Recursive edges reuse the earlier frame,
     // so allocation identity cannot grow with runtime recursion depth.
@@ -267,6 +269,8 @@ impl expression_flow::Dispatch for Engine<'_> {
         if captured_any {value.alternatives=Some(environment_store::canonical_alternatives(alternatives));}
     }
     fn invoke(&mut self, expression: &Expr, callee: &expression_flow::Value, arguments: &[expression_flow::Value], state: &FlowState) -> Option<expression_flow::Invocation> {
+        #[cfg(test)]
+        {self.invocations+=1;}
         if leaf_effects::observer_call(expression, self.effects)
             || !callee.origins.is_empty() && callee.origins.iter().all(|origin|
                 matches!(origin,body_origins::Origin::Name(symbol,_) if leaf_effects::native_observer(symbol))) {
@@ -343,6 +347,28 @@ mod tests {
         let evaluations = engine.evaluations;
         assert!(engine.solve(outer.name.span, &[], &[]).unwrap() == outcome);
         assert_eq!(engine.evaluations, evaluations);
+    }
+    #[test]
+    fn independent_operator_calls_do_not_replay_completed_prefixes() {
+        for calls in [8,16,32,64] {
+            let body="increment(1);".repeat(calls);
+            let source=crate::format(&format!("function increment(value:int):int{{return value+1;}}function outer(){{{body}}}function main(){{}}")).unwrap();
+            assert_eq!(crate::format(&source).unwrap(),source);
+            let program=crate::syntax::parse(&source).unwrap();
+            let effects=effect_bodies::Index::new(&program).unwrap();
+            let declarations=program.functions.iter().map(|function|(function.name.text.clone(),contract(function.type_parameters.len(),&function.parameter_initializers,function.rest_parameter,function.name.span))).collect::<HashMap<_,_>>();
+            let outer=program.functions.iter().find(|function|function.name.text=="outer").unwrap();
+            let mut engine=Engine::new(&declarations,&effects);
+            let outcome=engine.solve(outer.name.span,&[],&[]).unwrap();
+            assert_eq!(outcome.facts.len(),calls);
+            assert!(engine.entries.len()<=calls+1);
+            assert!(engine.evaluations<=calls+2,"{} evaluations for {calls} independent operator calls",engine.evaluations);
+            assert!(engine.invocations<=3*calls,"{} invocation visits for {calls} independent operator calls",engine.invocations);
+            println!("calls={calls} requests={} evaluations={} invocationVisits={}",engine.entries.len(),engine.evaluations,engine.invocations);
+            let evaluations=engine.evaluations;
+            assert!(engine.solve(outer.name.span,&[],&[]).unwrap()==outcome);
+            assert_eq!(engine.evaluations,evaluations);
+        }
     }
     #[test]
     fn producing_context_distinguishes_helpers_and_bounds_recursive_cycles() {
