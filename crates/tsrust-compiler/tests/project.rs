@@ -1821,3 +1821,19 @@ fn native_join_rejects_wrong_elements_and_has_no_fixed_arity_ceiling() {
     assert_eq!(binding.parameters[0].access,tsrust_compiler::Mode::Read);
     assert!(binding.parameters[0].rest);
 }
+
+#[test]
+fn native_join_reserves_composition_without_repeated_buffer_growth() {
+    let rust=format!("mod path {{ {} }}\n{}",include_str!("../src/stdlib/path/runtime.rs"),r#"
+static GROWTH:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+struct Counter;
+unsafe impl std::alloc::GlobalAlloc for Counter {
+ unsafe fn alloc(&self,l:std::alloc::Layout)->*mut u8 {unsafe{std::alloc::System.alloc(l)}}
+ unsafe fn dealloc(&self,p:*mut u8,l:std::alloc::Layout){unsafe{std::alloc::System.dealloc(p,l)}}
+ unsafe fn realloc(&self,p:*mut u8,l:std::alloc::Layout,n:usize)->*mut u8 {GROWTH.fetch_add(1,std::sync::atomic::Ordering::Relaxed);unsafe{std::alloc::System.realloc(p,l,n)}}
+}
+#[global_allocator] static ALLOCATOR:Counter=Counter;
+fn main(){let mut paths=vec!["é😊"];paths.extend(std::iter::repeat_n("文",64));paths.extend(["..","résumé/"]);GROWTH.store(0,std::sync::atomic::Ordering::Relaxed);let result=path::join(&paths,false);let growth=GROWTH.load(std::sync::atomic::Ordering::Relaxed);assert_eq!(result,format!("é😊/{}résumé/","文/".repeat(63)));assert_eq!(growth,0,"composition should reserve text capacity once");}
+"#);
+    for optimization in ["0","3"] {assert_eq!(native_stdout(&rust,optimization),"");}
+}

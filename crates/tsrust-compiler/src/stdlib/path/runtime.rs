@@ -206,7 +206,11 @@ pub fn normalize(path: &str, windows: bool) -> std::string::String {
 /// Lexically compose ordinary string segments, retaining Node's UNC intent rule.
 pub fn join(paths: &[&str], windows: bool) -> std::string::String {
     let Some(first)=paths.iter().copied().find(|part|!part.is_empty()) else {return ".".into();};
-    let mut joined=std::string::String::new();
+    // Reserve the composed byte length once; borrowed segments remain unchanged.
+    let capacity=paths.iter().filter(|part|!part.is_empty()).try_fold(0usize,|total,part| {
+        total.checked_add(part.len()).and_then(|length|length.checked_add(usize::from(total>0)))
+    }).expect("path composition capacity overflow");
+    let mut joined=std::string::String::with_capacity(capacity);
     let separator=if windows {'\\'} else {'/'};
     for part in paths.iter().copied().filter(|part|!part.is_empty()) {
         if !joined.is_empty() {joined.push(separator);}
