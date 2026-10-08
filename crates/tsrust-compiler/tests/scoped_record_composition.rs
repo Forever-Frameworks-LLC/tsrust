@@ -1,6 +1,17 @@
 mod support;
 
 #[test]
+fn caught_error_logging_ignores_uninspectable_callback_records() {
+    support::execute("type Holder={run:ReadOnly<Function<int>>;};function fail():void{throw 7;}function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{fail();console.log(first[0]);}catch(error){console.log('caught',error);}console.log(handlers.size);}", "caught 7\n2\n", None);
+}
+
+#[test]
+fn finally_without_catch_renews_nonleading_map_storage() {
+    let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function scenario(fail:boolean):void{const old=[3];const next=[5];let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});console.log('before');try{failIf(fail);handlers.clear();handlers.set('next',{run:():int=>next[0]});console.log('normal');}finally{console.log('cleanup',handlers.size);handlers.clear();console.log('cleared');}old[0]=9;next[0]=11;console.log('after');}function main():void{scenario(false);try{scenario(true);}catch(error){console.log('caught');}}");
+    verify_disposal(&source, 2, "before\ndrop 0\nnormal\ncleanup 1\ndrop 1\ncleared\nafter\nbefore\ncleanup 1\ndrop 0\ncleared\ncaught\n");
+}
+
+#[test]
 fn conditional_transfer_replacement_preserves_disposal_without_try() {
     let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(branch:boolean):void{const old=[3];let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});console.log('before');if(branch){handlers.clear();const moved=handlers;console.log('moved');}else{console.log('kept');}console.log('replace');handlers=new Map<string,Holder>();console.log('restored',handlers.size);old[0]=9;console.log('after');}function main():void{scenario(true);scenario(false);}");
     let expected = "before\ndrop 0\nmoved\nreplace\nrestored 0\nafter\nbefore\nkept\nreplace\ndrop 0\nrestored 0\nafter\n";

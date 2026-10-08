@@ -1199,3 +1199,23 @@ controls pass. Native and Node-after-tsc verification passes untimed, preserved
 exactly in SQLite as `runtime/results/2026-10-08T18-30-50-740Z-verify.json` and
 `tsrust-b5-outside-replacement-benchmark.log`; loose copies are removed. Earlier
 observations remain unchanged. No timing samples were collected.
+
+
+Finally without catch has a confirmed non-leading-renewal red witness:
+`finally_without_catch_renews_nonleading_map_storage` calls a fallible prefix,
+clears/refills the Map on normal completion, and clears the current owner in
+finally on both paths. Mutation after cleanup is source-valid but generated Rust
+fails with E0502. Its first draft also logged the caught error, exposing a separate
+console emission panic. A scalar-only isolation passed; a Map with two borrowed
+callback origins plus runtime-union error logging reproduces the panic as
+`caught_error_logging_ignores_uninspectable_callback_records`.
+
+The emitter's record inspection admission omitted `BorrowedCallable`, so it tries
+to emit an inspection helper for an unused callback-bearing record when error
+logging requires record inspection support. Align that helper admission with
+source inspection rules, including nested Maps/Sets, before continuing the
+finally storage repair. Exact original evidence is verified in SQLite as
+`tsrust-b5-no-catch-finally-red.log`,
+`tsrust-b5-no-catch-finally-storage-red.log`,
+`tsrust-b5-finally-console-isolation.log` and
+`tsrust-b5-console-callback-record-red.log`. Loose copies are removed.
