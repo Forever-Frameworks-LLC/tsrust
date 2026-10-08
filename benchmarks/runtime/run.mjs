@@ -187,7 +187,7 @@ for (const [tool, pinned] of Object.entries(pins)) {
  const actual = tool === 'rust' ? versions.rust.split(' ')[1] : tool === 'deno' ? versions.deno.split(' ')[1] : versions[tool];
  if (actual !== pinned) throw new Error(`${tool} version ${actual}; expected ${pinned}. Update pins deliberately and record a new baseline.`);
 }
-run(['cargo'], ['build', '--release', '--offline', '--quiet', '--manifest-path', path.join(root, 'Cargo.toml')]);
+run(['cargo'], ['build', '--release', '--offline', '--locked', '--quiet', '--manifest-path', path.join(root, 'Cargo.toml')]);
 const hash = content => crypto.createHash('sha256').update(content).digest('hex');
 const driverTS = fs.readFileSync(path.join(here, 'driver.ts'), 'utf8');
 const driverRS = fs.readFileSync(path.join(here, 'driver.rs'), 'utf8');

@@ -151,7 +151,7 @@ const run = command => {
  if (result.error || result.status !== 0) throw new Error(result.error ?? result.stderr);
  return result.stdout.trim();
 };
-run(['cargo', 'build', '--release', '--offline', '--quiet']);
+run(['cargo', 'build', '--release', '--offline', '--locked', '--quiet']);
 const driver = fs.readFileSync(path.join(here, 'allocation-driver.rs'), 'utf8');
 const rows = [];
 for (const workload of workloads) {

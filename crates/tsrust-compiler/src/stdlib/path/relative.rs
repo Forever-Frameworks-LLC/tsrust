@@ -81,7 +81,10 @@ fn resolve_path(
         let mut base = if root.device.is_empty() {
             cwd()?
         } else {
-            drive_cwd(&root.device).map(Ok).unwrap_or_else(&mut *cwd)?
+            drive_cwd(&root.device)
+                .filter(|directory| !directory.is_empty())
+                .map(Ok)
+                .unwrap_or_else(&mut *cwd)?
         };
         let mut base_root = windows_root(&base);
         if !root.device.is_empty()

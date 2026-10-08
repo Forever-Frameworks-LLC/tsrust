@@ -72,6 +72,28 @@ fn relative_windows_drives_unc_and_case_are_explicit() {
             "{from:?} {to:?}"
         );
     }
+    let reference=std::process::Command::new("node").arg("-e").arg(r#"process.cwd=()=>"C:\\work";process.env={...process.env,"=C:":""};process.stdout.write(require('node:path').win32.relative("C:child","C:\\work\\other"));"#).output().unwrap();
+    assert!(reference.status.success());
+    let actual = relative_with(
+        "C:child",
+        r"C:\work\other",
+        true,
+        || Ok(r"C:\work".into()),
+        |_| Some(String::new()),
+    )
+    .unwrap();
+    assert_eq!(actual.as_bytes(), reference.stdout);
+    assert_eq!(
+        relative_with(
+            "C:child",
+            r"C:\work\other",
+            true,
+            || Err("cwd missing".into()),
+            |_| Some(String::new())
+        )
+        .unwrap_err(),
+        "cwd missing"
+    );
 }
 
 #[test]

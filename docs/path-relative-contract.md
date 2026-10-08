@@ -4,7 +4,7 @@
 
 Empty arguments denote the current working directory. Relative arguments resolve against that directory; dot and parent segments collapse without crossing an absolute root, and redundant/trailing separators disappear. Identical input strings return an empty string without observing cwd. Fully qualified inputs also avoid cwd. The operation neither visits the input locations nor resolves symlinks and is not a containment check.
 
-POSIX paths use `/` and case-sensitive components. Windows paths accept both separators, emit `\`, compare case-insensitively, preserve destination spelling and use drive-specific working directories for drive-relative inputs. Different drive or UNC server roots normally return the resolved destination. Length-changing Unicode lowercase mappings follow the pinned reference's component comparison behavior, including UNC and unusual unresolved drive contexts.
+POSIX paths use `/` and case-sensitive components. Windows paths accept both separators, emit `\`, compare case-insensitively, preserve destination spelling and use drive-specific working directories for drive-relative inputs. Missing or empty drive context falls back to process cwd. Different drive or UNC server roots normally return the resolved destination. Length-changing Unicode lowercase mappings follow the pinned reference's component comparison behavior, including UNC and unusual unresolved drive contexts.
 
 If required cwd lookup fails or cannot produce UTF-8 text, the checked native error mechanism throws an `Error` with code `path-relative`. No lossy conversion or fabricated cwd is used. The host helper caches one successful cwd observation for the pair; internal helpers accept injected cwd and per-drive observations for deterministic tests.
 
