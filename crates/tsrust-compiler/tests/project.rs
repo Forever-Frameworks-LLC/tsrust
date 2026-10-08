@@ -1878,3 +1878,17 @@ fn main(){let before=SNAPSHOT_ALLOCATIONS.load(std::sync::atomic::Ordering::Rela
 "#);
     for optimization in ["0","3"] {assert_eq!(native_stdout(&rust,optimization),"");}
 }
+
+#[test]
+fn caught_values_cross_generic_assertion_parameters() {
+    for source in [
+        r#"import {strictEqual} from 'std:testing';function main(){try{strictEqual(1,1);throw 3;}catch(error){strictEqual(error,3);}}"#,
+        r#"import {strictEqual} from 'std:testing';function observe<T>(value:ReadOnly<T>):void{strictEqual(value,value);}function main(){try{strictEqual(1,1);throw 'payload';}catch(error){observe(error);strictEqual(error,'payload');}}"#,
+        r#"import {strictEqual} from 'std:testing';function observe<T>(value:ReadOnly<T>):void{strictEqual(value,value);}function main(){try{const values=[1];console.log(values[9]);}catch(error){observe(error);strictEqual(error.code,'bounds');}}"#,
+    ] {
+        let entry=support::format_round_trip(source);
+        let memory=Memory::new(&[("main.tsr",&entry)]);
+        let checked=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).unwrap();
+        for optimization in ["0","3"] {assert_eq!(native_stdout(&checked.emit_rust(),optimization),"");}
+    }
+}

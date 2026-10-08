@@ -1322,3 +1322,17 @@ fn catch_and_finally_declarations_keep_checked_navigation_and_signatures() {
     let help=ask(&index,entry,"4);function recover","textDocument/signatureHelp");
     assert!(help["signatures"][0]["label"].as_str().unwrap().replace(' ',"").contains("recover(value:int):int"),"{help}");
 }
+
+#[test]
+fn caught_values_keep_checked_generic_assertion_help() {
+    let entry="import {strictEqual} from 'std:testing';function main(){try{strictEqual(1,1);throw 3;}catch(error){strictEqual(error,3);}}";
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();
+    workspace.open(source_id(uri).unwrap(),1,entry.into());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,entry,"strictEqual(error","textDocument/hover");
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("strictEqual"),"{hover}");
+    let help=ask(&index,entry,"3);}}","textDocument/signatureHelp");
+    assert!(help["signatures"][0]["label"].as_str().unwrap().contains("expected"),"{help}");
+}

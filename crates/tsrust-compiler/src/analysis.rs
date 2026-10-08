@@ -3568,6 +3568,7 @@ impl Analyzer {
         }
         let record=crate::error_effects::runtime_error_schema();
         let id=self.program.records.len();
+        self.record_names.insert(record.name.text.clone(),id);
         self.fields.push(record.fields.iter().map(|field|(field.name.text.clone(),field.ty.expect("runtime error field type"))).collect());
         self.program.records.push(record);
         Type::Record(id)
