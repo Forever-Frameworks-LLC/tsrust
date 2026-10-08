@@ -23,6 +23,10 @@ impl Registry {
         Ok(id)
     }
 
+    pub(crate) fn entries(&self) -> impl Iterator<Item = (usize, &[Pair])> {
+        self.plans.iter().enumerate().map(|(id, pairs)| (id, pairs.as_slice()))
+    }
+
     /// Lookup a canonical pair slice without allocating during emission.
     pub(crate) fn index(&self, pairs: &[Pair]) -> Option<usize> {
         self.ids.get(pairs).copied()

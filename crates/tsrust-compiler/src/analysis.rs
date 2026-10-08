@@ -4827,7 +4827,7 @@ impl Analyzer {
     #[inline(never)]
     fn discovery_error_effects(&mut self)->crate::error_effects::ErrorEffects {
         let families=self.callables.storage.families().map(|(id,_,origins)|(id,origins.iter().copied().collect())).collect::<Vec<_>>();
-        crate::error_effects::annotate_partial_with_storage(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families)
+        crate::error_effects::annotate_partial_with_storage(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,&self.polymorphic_invocations)
     }
 
     #[inline(never)]
@@ -4835,7 +4835,7 @@ impl Analyzer {
         let mut functions=self.checked.iter_mut().map(Option::as_mut).collect::<Option<Vec<_>>>()
             .ok_or_else(||Diagnostic::new("error-effect","Error contracts require every function body to be checked first.",Span::default()))?;
         let families=self.callables.storage.families().map(|(id,_,origins)|(id,origins.iter().copied().collect())).collect::<Vec<_>>();
-        Ok(crate::error_effects::annotate_parts_with_storage(&mut functions,&mut self.closures,&families))
+        Ok(crate::error_effects::annotate_parts_with_storage(&mut functions,&mut self.closures,&families,&self.polymorphic_invocations))
     }
 
     #[inline(never)]
@@ -5019,7 +5019,7 @@ impl Analyzer {
     fn region_caller_error_effects(&mut self,context:&Context,body:&[Stmt],result:Type)->crate::error_effects::ErrorEffects {
         let caller=CheckedFunction{template:false,specialization:false,name:"#region".into(),bindings:context.bindings.clone(),parameter_count:0,result,body:body.to_vec()};
         let families=self.callables.storage.families().map(|(id,_,origins)|(id,origins.iter().copied().collect())).collect::<Vec<_>>();
-        crate::error_effects::annotate_partial_with_callers(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,&caller,&self.unions)
+        crate::error_effects::annotate_partial_with_callers(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,&caller,&self.unions,&self.polymorphic_invocations)
     }
 
     #[inline(never)]

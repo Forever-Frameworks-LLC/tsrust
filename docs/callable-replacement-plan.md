@@ -1,6 +1,6 @@
 # Callable replacement implementation plan
 
-Latest component checkpoint: source-native family construction and dispatch work for admitted fresh, capture-free, same-declaration environments. Independent declaration preparation now supplies checked bodies, parameter contracts, prepared arguments and capture access in a separate module. Different-declaration assignment admission, downstream alternative-contract consumers and point-sensitive mutable factory state remain open. See docs/handoff-2026-10-07-independent-declaration-preparation.md. The family is not accepted.
+Latest component checkpoint: checked invocation alternatives now propagate their own failure contracts through the effect fixed point, independently of receiver storage origin. Source-native families and independent declaration preparation are retained. Alternative parameter/native-graph/projection consumers, error conversion, different-declaration assignment admission and mutable factory state remain open. See docs/handoff-2026-10-07-invocation-effects.md. The family is not accepted.
 
 ## Current evidence
 
@@ -144,3 +144,13 @@ Before widening admission, update consumers that still identify a method solely 
 Exact bounded-check evidence is retained under runtime/diagnostics/independent-declaration-preparation-2026-10-07/ in SQLite. No timing, consumer refresh or family acceptance is claimed.
 
 Bounded verification: the independent preparation/method witness passes; planner/storage checks pass 19 tests; adjacent generic value suites pass 105 tests; capture-effects retains 22 passes and the same two distinct-declaration failures. Generic-filtered editor checks pass 61 tests. All eight depth canaries pass, workspace all-target checking has no warnings, and project formatting changes zero files or fingerprints. No new public API or assignment admission is claimed.
+
+## Checked invocation failure propagation
+
+ErrorEffects now retains a finite failure coordinate for every checked invocation plan. The generic_invocation_effects module joins each plan's environment/method errors during the existing fixed point; it borrows the registry's canonical pairs without copying alternative vectors. Final, discovery and region/callback effect annotation paths receive the same registry. Method calls with an attached plan use that plan's failure coordinate instead of guessing the receiver's original method. Calls without a plan preserve the existing direct lookup, and a missing checked coordinate remains unknown.
+
+The focused red witness selects a throwing alternative behind a receiver whose storage origin is pure. Before implementation, the call incorrectly has no own failure. Repaired controls check throwing-only and joined alternatives retain the explicit string failure, while pure-only selection excludes the inactive throwing method and remains nonopaque. The test manipulates checked metadata to exercise the future alternative boundary; it does not claim source different-declaration admission or native conversion acceptance.
+
+The effect suite passes 40 tests. Native exception suites pass 24 tests; capture-effects keeps 22 passes and the original two replacement failures. Eight depth canaries pass. Generic editor checks pass 61 tests, workspace all-target checking has no warnings, and whole-project formatting changes zero files and fingerprints. Exact evidence resides under runtime/diagnostics/checked-invocation-effects-2026-10-07/ in SQLite. No timing, consumer refresh or family acceptance is claimed.
+
+Next update native callable graph traversal and callback parameter-origin propagation to retain every selected environment/method pair, followed by projection facts and per-arm native result/error conversion. Then finish reachable-declaration selection, independent alternative contracts and assignment admission. Captured layouts, mutable factory state, benchmarks and full acceptance remain owed.

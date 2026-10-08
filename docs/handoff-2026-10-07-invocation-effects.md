@@ -1,0 +1,17 @@
+# Checked invocation effects checkpoint
+
+Continue from 2c9620c and this checkpoint. Read AGENTS.md, docs/development-workflow.md and docs/callable-replacement-plan.md. Callable replacement remains open.
+
+The new generic_invocation_effects module joins selected environment/method failure contracts into one finite coordinate per checked plan. Registry.entries borrows canonical pair slices without cloning alternative vectors. The existing effect fixed point refreshes these coordinates, including final program annotation, callback inference, discovery and region callers. Attached plan IDs now govern ClosureMethod own-failure lookup; calls without plans retain direct lookup. Missing coordinates remain unknown.
+
+A formatted red witness selects a throwing checked method while callee.ty still names a pure environment. Before implementation, own_may_fail stays false. The repaired test covers throwing-only, joined and pure-only selections, exact explicit string failures and nonopaque results. Pure selection excludes inactive throwing environments. This is a checked metadata witness for the next source admission boundary, not an accepted differing-declaration source program. Native error conversion still needs integration.
+
+Focused effect suite: 40 passes. Native exception suites: 24 passes. Capture-effects: 22 passes, the same two distinct-declaration failures. All eight depth canaries pass. Generic editor checks pass 61 tests; workspace all-target checking has no warnings; project formatting changes zero files and fingerprints. The shared warm target remains 7.1 GiB; native helpers clean their scratch executables. SQLite preserves exact records under runtime/diagnostics/checked-invocation-effects-2026-10-07/. No timing, live consumer refresh or family acceptance is claimed.
+
+Next update analysis.rs native callback graph traversal and both error_effects.rs callback parameter propagation paths. They still index ClosureMethod by receiver origin and ordinal, so they must consume the selected checked pairs before source admission expands. projections.rs method facts and emit.rs per-arm result/error conversion also remain. Then select the reachable primary declaration, independently prepare/check all alternatives, normalize arguments/results/errors, and admit both retained source replacement witnesses. Verify captured lifetimes and disposal before extending family admission; complete point-sensitive mutable factory state and full family acceptance afterward.
+
+Preserve fifteen owner fixture edits and commit explicit paths. Reuse /private/tmp/tsrust-gate100-editor-target with CARGO_INCREMENTAL=0, Node 24.11.1 and /opt/homebrew/bin/python3. Parallel standard-library work remains isolated and unintegrated. Accepted consumers remain unchanged.
+
+## Handoff prompt
+
+Continue Tsrust from docs/handoff-2026-10-07-invocation-effects.md. Read AGENTS.md, docs/development-workflow.md and docs/callable-replacement-plan.md. Checked alternative plans now propagate their own exact failure contracts independently of receiver storage identity. Update native graph and callback parameter consumers, projection facts and native per-arm conversion. Then implement reachable-declaration selection and independent contract normalization before admitting the retained distinct-origin replacement witnesses. Complete captured layouts, mutable factory state and the full family acceptance plan. Preserve owner fixtures, focused TDD, formatting, benchmark readiness and exact SQLite evidence.
