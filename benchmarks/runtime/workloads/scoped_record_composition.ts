@@ -385,7 +385,9 @@ function workload(n: int, seed: int, input: string): int[][] {
         }
         nestedCleaned += nestedTrace[0] * 100 + nestedTrace[1] * 10 + nestedTrace[2] * 1000 + nestedTrace[3];
         base[0] = 0;
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned]);
+        const caughtNestedTrace = [0, 0, 0, 0];
+        const nestedCaught = nestedCaughtMapCleanup(value % 2 === 0, value, caughtNestedTrace) + caughtNestedTrace[0] * 100 + caughtNestedTrace[1] * 10 + caughtNestedTrace[2] * 1000 + caughtNestedTrace[3];
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught]);
         i += 1;
     }
 
@@ -536,6 +538,36 @@ function recordMapLoop(value: number, trace: number[]): number {
     }
     const recordLoopOrder = Object.keys(recordLoopBox)[0] === "marker" ? 4 : 0;
     return recordLoopObserved + turn + recordLoopBox.handlers.size + recordLoopOrder;
+}
+
+function nestedCaughtMapCleanup(fail: boolean, value: number, trace: number[]): number {
+    const caughtNestedOld = [value];
+    const caughtNestedNext = [value + 1];
+    let caughtNestedMap = new Map<string, Holder>();
+    caughtNestedMap.set("old", { run: (): number => caughtNestedOld[0] });
+    let caughtNestedObserved = -1;
+    try {
+        try {
+            const caughtNestedPrefix = prefixResult(fail);
+            caughtNestedMap.clear();
+            caughtNestedMap.set("next", { run: (): number => caughtNestedNext[0] });
+            caughtNestedObserved = caughtNestedMap.size;
+        } catch (error) {
+            caughtNestedObserved = 7;
+            caughtNestedMap.clear();
+            caughtNestedMap.set("next", {run: () => caughtNestedNext[0]});
+            trace[0] += caughtNestedMap.size;
+            caughtNestedMap.clear();
+            trace[1] += caughtNestedMap.size;
+        }
+    } finally {
+        trace[2] += caughtNestedMap.size;
+        caughtNestedMap.clear();
+        trace[3] += caughtNestedMap.size;
+    }
+    caughtNestedOld[0] = value + 120;
+    caughtNestedNext[0] = value + 121;
+    return caughtNestedObserved + caughtNestedOld[0] + caughtNestedNext[0];
 }
 
 function nestedMapCleanup(fail: boolean, value: number, trace: number[]): number {

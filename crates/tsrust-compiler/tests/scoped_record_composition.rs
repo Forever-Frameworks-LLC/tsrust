@@ -1,6 +1,16 @@
 mod support;
 
 #[test]
+fn nested_catch_preserves_map_owners_until_outer_cleanup() {
+    let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function scenario(fail:boolean):void{const old=[3];const next=[5];let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});console.log('before');try{try{failIf(fail);handlers.clear();handlers.set('next',{run:():int=>next[0]});console.log('normal');}catch(error){console.log('inner caught',error,handlers.size);handlers.clear();handlers.set('next',{run:():int=>next[0]});console.log('handled');}}finally{console.log('outer',handlers.size);handlers.clear();console.log('outer cleared');}old[0]=9;next[0]=11;console.log('after');}function main():void{scenario(false);scenario(true);}");
+    verify_disposal(&source,3,"before\ndrop 0\nnormal\nouter 1\ndrop 1\nouter cleared\nafter\nbefore\ninner caught 7 1\ndrop 0\nhandled\nouter 1\ndrop 2\nouter cleared\nafter\n");
+    let rethrow = source.replace("console.log('handled');", "console.log('handled');throw 9;")
+        .replace("scenario(true);", "try{scenario(true);}catch(error){console.log('caught',error);}");
+    verify_disposal(&support::format_round_trip(&rethrow),3,"before\ndrop 0\nnormal\nouter 1\ndrop 1\nouter cleared\nafter\nbefore\ninner caught 7 1\ndrop 0\nhandled\nouter 1\ndrop 2\nouter cleared\ncaught 9\n");
+
+}
+
+#[test]
 fn nested_finally_preserves_map_owners_and_cleanup_order() {
     let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function scenario(fail:boolean):void{const old=[3];const next=[5];let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});console.log('before');try{try{failIf(fail);handlers.clear();handlers.set('next',{run:():int=>next[0]});console.log('normal');}finally{console.log('inner',handlers.size);handlers.clear();console.log('inner cleared');}}finally{console.log('outer',handlers.size);handlers.clear();console.log('outer cleared');}old[0]=9;next[0]=11;console.log('after');}function main():void{scenario(false);try{scenario(true);}catch(error){console.log('caught',error);}}");
     verify_disposal(&source,2,"before\ndrop 0\nnormal\ninner 1\ndrop 1\ninner cleared\nouter 0\nouter cleared\nafter\nbefore\ninner 1\ndrop 0\ninner cleared\nouter 0\nouter cleared\ncaught 7\n");

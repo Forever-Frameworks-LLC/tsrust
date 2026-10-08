@@ -90,3 +90,8 @@ Sorting with a fallible comparator compares borrowed values before changing the
 receiver. If comparison fails, the receiver retains its original order. Successful
 comparison applies a stable permutation without cloning elements. This path uses
 additional index storage. Pure comparators retain the existing direct sorting path.
+
+Nested catch handlers can clear and refill a Map holding borrowing callbacks
+before an outer finally observes and clears it. A handler that throws again still
+runs outer cleanup. Capture mutation after successful cleanup remains checked
+against the surviving entries; cleanup does not restore a transferred source name.

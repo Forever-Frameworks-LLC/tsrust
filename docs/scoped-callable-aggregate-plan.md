@@ -1495,3 +1495,34 @@ current. Preserve unrelated fixture semantics and use explicit Git staging.
 Format the whole project before each source checkpoint. Complete remaining B5
 scope before its family regressions, timing and acceptance. The full compiler
 and editor goal remains active.
+
+## Nested catch discovery repair checkpoint
+
+Outer finally storage discovery now traverses nested catch bodies as well as
+inner try and finally bodies. Previously source-valid nested handlers left
+callback capture loans alive in generated Rust after outer cleanup. The focused
+witness now passes exact disposal and cleanup-order assertions at O0 and O3
+on normal, caught and rethrown paths. The affected composition batch passes
+84 tests; focused editor diagnostics pass. The matched workload adds an
+independent caught-refill observation, with source guards and rehashed mutation
+controls. All 35 observations verify untimed on native and Node-after-tsc.
+
+SQLite preserves `tsrust-b5-nested-catch-*.log` byte-exact, including initial
+witness-count and command errors, and the successful verification record
+`runtime/results/2026-10-08T19-56-56-300Z-verify.json`. Loose copies are removed.
+Project formatting preserves tokens and refreshes only the changed fingerprint.
+
+This checkpoint does not accept B5. Nested catch regions with their own abrupt
+cleanup or return/control exits still need witnesses. Broader loops, multiple
+renewed owners, precise entry/element release, remaining callable compositions
+and Rust-style record Set keys remain open, followed by family regressions and
+timing. Five user executable consumers remain at gate181.
+
+Continuation prompt: Continue B5 after nested catch storage discovery. Read
+AGENTS.md, docs/development-workflow.md and docs/scoped-callable-aggregate-plan.md.
+Add a nested catch-plus-finally witness whose handler throws or returns and whose
+inner cleanup must preserve owners until outer cleanup. Use focused red tests
+before extending carried completion transport. Preserve explicit ownership,
+exact disposal, editor behavior, matched workload oracles and SQLite evidence.
+Format the entire project before checkpoints; stage explicit paths and preserve
+unrelated fixture semantics. B5 and the full compiler/editor goal remain active.

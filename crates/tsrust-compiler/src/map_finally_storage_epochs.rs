@@ -32,8 +32,11 @@ impl Emitter<'_> {
                     statements.extend(then_body);
                     statements.extend(else_body);
                 }
-                StmtKind::Try(inner) if inner.catch.is_none() => {
+                StmtKind::Try(inner) => {
                     statements.extend(&inner.body);
+                    if let Some(handler) = &inner.catch {
+                        statements.extend(&handler.body);
+                    }
                     statements.extend(inner.finally.iter().flatten());
                 }
                 StmtKind::Let { .. }
