@@ -68,6 +68,8 @@ mod generic_expression_adapters;
 mod generic_value_metadata;
 #[path = "deferred_generic_values.rs"]
 mod deferred_generic_values;
+#[path = "deferred_generic_preparation.rs"]
+mod deferred_generic_preparation;
 #[path = "deferred_generic_methods.rs"]
 mod deferred_generic_methods;
 #[path = "generic_calls.rs"]

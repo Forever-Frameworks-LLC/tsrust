@@ -1,6 +1,6 @@
 # Callable replacement implementation plan
 
-Latest component checkpoint: concrete deferred calls publish stable checked invocation plans that survive compaction and feed emission. See docs/handoff-2026-10-07-checked-invocation-table.md. Native family declarations and construction identity exist, but source multi-origin materialization, construction injection and dispatch remain open; the family is not accepted.
+Latest component checkpoint: source-native family construction and dispatch work for admitted fresh, capture-free, same-declaration environments. Independent declaration preparation now supplies checked bodies, parameter contracts, prepared arguments and capture access in a separate module. Different-declaration assignment admission, downstream alternative-contract consumers and point-sensitive mutable factory state remain open. See docs/handoff-2026-10-07-independent-declaration-preparation.md. The family is not accepted.
 
 ## Current evidence
 
@@ -132,3 +132,15 @@ A new contextual array-adapter witness exposes two integration defects: generate
 Bounded checks retain 105 adjacent generic-value passes, 22 capture-effects passes and the same two distinct-declaration replacement failures. Nineteen planner/storage tests and 61 generic-filtered editor checks pass, including the supplemented adapter hover witness. The generic library filter has 113 passes and its original mutable-factory failure. All eight depth canaries pass on the final analyzer. Workspace all-target checking reports no warnings. Formatting changes no files or fingerprints. Exact red, intermediate and repaired evidence is retained under runtime/diagnostics/source-native-family-integration-2026-10-07/ in SQLite. No timing, live-consumer refresh or full family acceptance is claimed.
 
 Next independently prepare and check differing declarations and captured environments, normalize their argument/result/error contracts and admit the original distinct-origin replacement witnesses. Borrowed capture lifetimes and captured callable parameters need explicit family layout verification before expanding admission. Complete point-sensitive mutable factory state and the original editor/guide, benchmark and family milestone requirements.
+
+## Independent declaration preparation checkpoint
+
+The deferred_generic_preparation module now owns original-declaration selection, generic constraint preparation, lexical capture context projection, concrete body checking, omission/rest preparation and capture access metadata. Source receiver and argument ownership checking remain in deferred_generic_call, so declaration preparation does not repeat their source access. The existing production path consumes this shared preparation result.
+
+A formatted focused witness independently prepares first and second declarations with identical argument/result types but different behavior. It retains different concrete function identities, materializes separate environment methods and checks that the second method contains its own return of 10. A two-argument alternative rejects the single supplied argument with an arity diagnostic at the call span. This proves independent body preparation and method materialization, not different-declaration source replacement. The current source admission remains unchanged.
+
+Before widening admission, update consumers that still identify a method solely from receiver Type::Closure and CallTarget::ClosureMethod. These include native callable graph traversal in analysis.rs, parameter/effect propagation and method error lookup in error_effects.rs, projection facts in projections.rs and result/error conversion in emit.rs. They must consume the point-specific checked alternative pairs. Then select a representative reachable declaration for call preparation, validate all reachable alternatives, preserve the full storage family separately, and normalize argument/result/error contracts. Captured layout and point-sensitive mutable factory requirements remain open.
+
+Exact bounded-check evidence is retained under runtime/diagnostics/independent-declaration-preparation-2026-10-07/ in SQLite. No timing, consumer refresh or family acceptance is claimed.
+
+Bounded verification: the independent preparation/method witness passes; planner/storage checks pass 19 tests; adjacent generic value suites pass 105 tests; capture-effects retains 22 passes and the same two distinct-declaration failures. Generic-filtered editor checks pass 61 tests. All eight depth canaries pass, workspace all-target checking has no warnings, and project formatting changes zero files or fingerprints. No new public API or assignment admission is claimed.

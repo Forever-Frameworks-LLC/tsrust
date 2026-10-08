@@ -197,35 +197,12 @@ impl Analyzer {
                     .map(|template| template.name.span)
             }, span)?
         } else { vec![origin] };
-        let mut source_call = Expr::new(ExprKind::Call(
-            Box::new(Expr::new(ExprKind::Name(declaration), span)), args.clone()), span);
-        // Original template preparation solves constraints without evaluating
-        // source arguments. It also retains omission and homogeneous rest packs.
-        let preparation = self.deferred_generic_values[&origin].context.as_ref().map(|source| {
-            let mut preparation = context.clone();
-            let start = preparation.bindings.len();
-            for binding in &source.bindings {
-                let mut binding = binding.clone();
-                for root in &mut binding.view_roots { *root += start; }
-                preparation.bindings.push(binding);
-            }
-            preparation.source_bindings.extend(source.source_bindings.iter().map(|(&source, &slot)| (source, slot + start)));
-            preparation
-        });
-        let preparation = preparation.as_ref().unwrap_or(context);
-        self.prepare_generic_call(preparation, &mut source_call, expected)?;
-        let ExprKind::Call(target, prepared) = source_call.kind else { unreachable!() };
-        let ExprKind::Name(name) = target.kind else { unreachable!() };
-        let function = self.function_names[&name];
-        self.named_captures.prepare(function, preparation, &self.program)?;
-        self.function(function)?;
-        let checked = self.checked[function].as_ref().ok_or_else(|| Self::pending_result(span))?;
-        debug_assert_eq!(checked.parameter_count, self.program.functions[function].params.len());
-        let contracts = checked.bindings[..checked.parameter_count].iter().map(ArgumentContract::from).collect::<Vec<_>>();
-        *args = prepared;
-        Self::prepare_arguments(args, &contracts, span)?;
-        let accesses = self.named_captures.access(function, Some(checked), &self.assumed_capture_access, checked.parameter_count);
-        let method_invocation = accesses.iter().fold(Mode::Read, |mode, access| mode.max(access.mode));
+        let prepared = self.prepare_deferred_generic_body(context, origin, args.clone(), expected, span)?;
+        let function = prepared.function;
+        let contracts = prepared.contracts;
+        *args = prepared.arguments;
+        let accesses = prepared.accesses;
+        let method_invocation = prepared.invocation;
         let invocation = if once { Mode::Consume } else { method_invocation };
         if let Some(binding) = binding {
             Self::access(context, binding, invocation, callee.span, loans)?;
