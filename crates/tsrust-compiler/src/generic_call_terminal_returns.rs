@@ -8,18 +8,19 @@ pub(super) fn eligible(declaration:Span,effects:&effect_bodies::Index)->bool {
     if parameters.iter().any(|parameter|parameter.rest || !matches!(parameter.initializer,ParameterInitializer::Required))
         || effects.captures(declaration).is_some_and(|captures|!captures.is_empty())
         || effects.aggregate_writes(declaration) {return false;}
-    let mut pending=vec![value];let mut parameter_seen=false;
+    let mut pending=vec![value];
     while let Some(value)=pending.pop() {
         match &value.kind {
             ExprKind::Name(name)=> {
                 let identity=effects.binding(name,value.span);
                 if identity.is_none() || !parameters.iter().any(|parameter|parameter.binding.identity==identity) {return false;}
-                parameter_seen=true;
             },
             ExprKind::Binary {left,right,..}=>{pending.push(left);pending.push(right);},
+            ExprKind::Array(values)=>pending.extend(values),
+            ExprKind::Record(fields)=>pending.extend(fields.iter().map(|(_,value)|value)),
             ExprKind::Integer(_)|ExprKind::Number(_)|ExprKind::Boolean(_)|ExprKind::String(_)=>{},
             _=>return false,
         }
     }
-    parameter_seen
+    true
 }

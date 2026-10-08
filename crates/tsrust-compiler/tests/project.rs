@@ -1906,3 +1906,20 @@ strictEqual(captured(4),5);strictEqual(captured(4),6);strictEqual(calls,2);}"#);
     let checked=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).unwrap();
     for optimization in ["0","3"] {assert_eq!(native_stdout(&checked.emit_rust(),optimization),"");}
 }
+
+#[test]
+fn eager_aggregate_returns_preserve_owned_storage_and_failure_edges() {
+    let entry=support::format_round_trip(r#"import {strictEqual} from 'std:testing';
+type Box={value:string;};
+function boxed(value:string):Box{return {value:value};}
+function array(value:string):string[]{return [value];}
+function failing(value:int):int[]{return [value/0];}
+function constant():int{return 7;}
+function main(){const first=boxed('first');const second=boxed('second');const saved=boxed;const third=saved('third');
+strictEqual(first.value,'first');strictEqual(second.value,'second');strictEqual(third.value,'third');
+const left=array('left');const right=array('right');strictEqual(left[0],'left');strictEqual(right[0],'right');
+strictEqual(constant(),7);let caught=false;try{failing(8);}catch(error){caught=true;}strictEqual(caught,true);}"#);
+    let memory=Memory::new(&[("main.tsr",&entry)]);
+    let checked=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).unwrap();
+    for optimization in ["0","3"] {assert_eq!(native_stdout(&checked.emit_rust(),optimization),"");}
+}

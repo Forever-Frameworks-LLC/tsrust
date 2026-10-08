@@ -365,6 +365,27 @@ mod tests {
         }
     }
     #[test]
+    fn independent_aggregate_returns_do_not_replay_completed_prefixes() {
+        for (shape,result,expression) in [("array","int[]","[value]"),("record","Box","{value:value}"),("literal","int","1")] {
+            for calls in [8,32,64] {
+                let body="wrap(1);".repeat(calls);
+                let source=crate::format(&format!("type Box={{value:int;}};function wrap(value:int):{result}{{return {expression};}}function outer(){{{body}}}function main(){{}}")).unwrap();
+                assert_eq!(crate::format(&source).unwrap(),source);
+                let program=crate::syntax::parse(&source).unwrap();
+                let effects=effect_bodies::Index::new(&program).unwrap();
+                let declarations=program.functions.iter().map(|function|(function.name.text.clone(),contract(function.type_parameters.len(),&function.parameter_initializers,function.rest_parameter,function.name.span))).collect::<HashMap<_,_>>();
+                let outer=program.functions.iter().find(|function|function.name.text=="outer").unwrap();
+                let mut engine=Engine::new(&declarations,&effects);
+                let outcome=engine.solve(outer.name.span,&[],&[]).unwrap();
+                assert_eq!(outcome.facts.len(),calls);
+                assert!(engine.entries.len()<=calls+1);
+                println!("shape={shape} calls={calls} requests={} evaluations={} invocationVisits={}",engine.entries.len(),engine.evaluations,engine.invocations);
+                assert!(engine.evaluations<=calls+2,"{shape}: {} evaluations for {calls} calls",engine.evaluations);
+                assert!(engine.invocations<=3*calls,"{shape}: {} invocation visits for {calls} calls",engine.invocations);
+            }
+        }
+    }
+    #[test]
     fn producing_context_distinguishes_helpers_and_bounds_recursive_cycles() {
         let declarations=HashMap::new();let program=crate::syntax::parse("function main(){}").unwrap();
         let effects=effect_bodies::Index::new(&program).unwrap();let mut engine=Engine::new(&declarations,&effects);
@@ -394,14 +415,14 @@ mod tests {
     }
     #[test]
     fn terminal_return_requires_parameter_identity_and_no_entry_effects() {
-        let source = crate::format("function identity<T>(value:T):T{return value;}function increment(value:int):int{return value+1;}function divided(value:int,divisor:int):int{return value/divisor;}function dispatched(value:int):int{return identity(value);}function mutated(value:int):int{return value++;}function indexed(values:int[]):int{return values[0];}function defaulted(value:int=1):int{return value;}function packed(...values:int[]):int[]{return values;}function literal(value:int):int{return 1;}function outer(value:int){function captured():int{return value;}function written(other:int):int{value=other;return other;}}function main(){}").unwrap();
+        let source = crate::format("type Box={value:int;};function identity<T>(value:T):T{return value;}function increment(value:int):int{return value+1;}function divided(value:int,divisor:int):int{return value/divisor;}function dispatched(value:int):int{return identity(value);}function mutated(value:int):int{return value++;}function indexed(values:int[]):int{return values[0];}function defaulted(value:int=1):int{return value;}function packed(...values:int[]):int[]{return values;}function array(value:int):int[]{return [value];}function record(value:int):Box{return {value:value};}function literal(value:int):int{return 1;}function outer(value:int){function captured():int{return value;}function written(other:int):int{value=other;return other;}}function main(){}").unwrap();
         assert_eq!(crate::format(&source).unwrap(), source);
         let program = crate::syntax::parse(&source).unwrap();
         let effects = effect_bodies::Index::new(&program).unwrap();
         let declarations = HashMap::new();
         let engine = Engine::new(&declarations, &effects);
         for function in &program.functions {
-            assert_eq!(engine.terminal_leaf_return(function.name.span), matches!(function.name.text.as_str(),"identity"|"increment"|"divided"), "{}", function.name.text);
+            assert_eq!(engine.terminal_leaf_return(function.name.span), matches!(function.name.text.as_str(),"identity"|"increment"|"divided"|"array"|"record"|"literal"), "{}", function.name.text);
         }
     }
     #[test]
