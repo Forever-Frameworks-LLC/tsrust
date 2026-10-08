@@ -144,6 +144,43 @@ possible container captures. Admission is still guarded, so this is an unaccepte
 prerequisite; refine identity/release precision and verify generated native lifetimes
 before accepting the composition gate.
 
+Native admission now accepts checked concrete record instances inside containers;
+declaration-only layouts remain rejected. The array witness passes native project
+execution, including its nullable pop/shift results. Emission preserves generic
+nominal record-array aliases and keeps scoped union payloads explicit instead of
+writing illegal anonymous lifetime defaults. Existing arrays, data unions, optional
+fields, scoped records and record boundary suites pass after this change.
+
+The prerequisite checkpoint is `9576720`. Admission and emission repairs remain
+uncommitted and unaccepted. Before the B5 gate closes, add mutable/consuming and
+escape witnesses, disposal checks, insertion/replacement behavior, precise element
+identity/release, Map/Set and nullable composition, editor and benchmark evidence.
+Run the dispatch depth canaries and editor crate for the completed batch. The prior
+notes describing guarded admission document the earlier prerequisite state.
+
+Mutable indexed record callbacks now have a passing native witness: they update
+the original capture repeatedly and release its loan at container scope exit.
+Returning an array that hides a local capture borrow correctly reports
+`callback-escape`. Array push now attaches inserted payload capture owners without
+discarding existing element loans.
+
+A new persistent red exposes insertion layout widening: pushing a second concrete
+callback origin into an initially single-origin array reports `Expected Holder,
+found Holder`. `array_mutation` currently checks its argument against the concrete
+current element rather than the nominal declaration. The repair must join incoming
+record environments, preserve both origin-specific loan facts, and plan one widened
+carrier for the initial literal and all earlier/later uses. Updating only the push
+argument type would leave earlier field calls dispatching through obsolete origins.
+Reuse the record sequence planner's monotone storage propagation in a dedicated
+array carrier module; include push, unshift, splice and indexed replacement.
+
+The shared write collector now records concrete record-array initializers and
+push payloads, distinguishing element insertion from whole-storage assignment.
+Existing record planning filters insertion facts so it cannot treat an array
+element write as replacement of the containing record. All 42 scoped record
+regressions pass. The array carrier planner still needs to consume these facts;
+the second-origin insertion witness remains intentionally red.
+
 The next implementation batch must resolve common concrete record elements and
 carry their capture loans through indexing, traversal, pop/shift and scope exit.
 Pair positive execution witnesses with owner-mutation conflicts, whole-container

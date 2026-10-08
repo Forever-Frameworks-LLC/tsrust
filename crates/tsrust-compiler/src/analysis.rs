@@ -11118,6 +11118,7 @@ impl Analyzer {
         };
         self.require(actual, Some(argument_type), args[0].span)?;
         Self::storage_access(context, base, Mode::Mutate, span, loans)?;
+        if !remove { self.append_target_capture_loans(context, base, &args[0]); }
         Ok(if remove { element.ty() } else { Type::Void })
     }
 

@@ -46,7 +46,7 @@ impl Analyzer {
         }}
     }
     pub(super) fn record_sequence_carriers(&mut self,context:&mut Context,body:&mut[Stmt])->Result<(),Diagnostic>{
-        let writes=record_storage_writes::collect(body);
+        let writes=record_storage_writes::collect(body).into_iter().filter(|write|!write.array_element).collect::<Vec<_>>();
         let mut plans=HashMap::new();
         // Carrier sets only widen. A moved source can gain origins after its
         // consumer was visited, so propagate storage dependencies to a fixed point.

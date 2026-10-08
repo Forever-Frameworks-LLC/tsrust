@@ -305,6 +305,17 @@ impl Emitter<'_> {
     }
 
     fn native_type(&self, value: Type) -> String {
+        if let Type::Array(ArrayElement::Record(id, 0)) = value {
+            let record = self.native_type(Type::Record(id));
+            if let Some((_, arguments)) = record.split_once('<') { return format!("RecordArray{id}<{arguments}"); }
+        }
+        if let Some(id) = value.union() {
+            let payloads = self.program.unions[id.index()].members.iter().copied().filter(|ty| !ty.is_copy()).collect::<Vec<_>>();
+            if payloads.iter().any(|ty| self.scoped_record_native_parameter(*ty)) && payloads.len() == 1 {
+                let payload = self.native_type(payloads[0]);
+                return if matches!(value, Type::BorrowedUnion(_)) { format!("ViewUnion{}<'_, {payload}>", id.index()) } else { format!("Union{}<{payload}>", id.index()) };
+            }
+        }
         if let Type::Record(id) = value {
             let parameters = self.program.records[id].fields.iter().filter_map(|field| {
                 let ty = field.ty.expect("checked field");
@@ -509,7 +520,8 @@ impl Emitter<'_> {
             // caller's storage. Keep the usual owned spelling as the default.
             let data_payloads = if !copy && !callable { union.members.iter().copied().filter(|member| !member.is_copy()).collect::<Vec<_>>() } else { Vec::new() };
             let parameter_name = |position: usize| if data_payloads.len() == 1 { "P".to_owned() } else { format!("P{position}") };
-            let data_parameters = data_payloads.iter().enumerate().map(|(position, payload)| format!("{} = {}",parameter_name(position),self.native_type(*payload))).collect::<Vec<_>>().join(", ");
+            let scoped_data = data_payloads.iter().any(|ty| self.scoped_record_native_parameter(*ty));
+            let data_parameters = data_payloads.iter().enumerate().map(|(position, payload)| if scoped_data {parameter_name(position)} else {format!("{} = {}",parameter_name(position),self.native_type(*payload))}).collect::<Vec<_>>().join(", ");
             let data_arguments = (0..data_payloads.len()).map(parameter_name).collect::<Vec<_>>().join(", ");
             let generic_payload = callable || !data_payloads.is_empty();
             let generic = if callable { "<F>".to_owned() } else if generic_payload { format!("<{data_parameters}>") } else { String::new() };
@@ -575,7 +587,9 @@ impl Emitter<'_> {
                 output,
                 "{derive}enum ViewUnion{index}{view_generic} {{ {variants} }}\nimpl{impl_generic} Union{index}{type_arguments} {{ fn tsr_view(&self)->{view_type} {{ match self {{ {view} }} }} }}"
             );
-            if !data_payloads.is_empty() {
+            if scoped_data {
+                let _ = writeln!(output,"impl<{data_arguments}> Union{index}<{data_arguments}> {{ fn tsr_data_view(&self)->{view_type} {{ self.tsr_view() }} }}");
+            } else if !data_payloads.is_empty() {
                 let bounds = data_payloads.iter().enumerate().map(|(position, payload)| format!("{}: std::borrow::Borrow<{}>",parameter_name(position),self.native_type(*payload))).collect::<Vec<_>>().join(", ");
                 let native_view = union.members.iter().enumerate().map(|(variant, member)| {
                     let payload = if data_payloads.contains(member) { format!("std::borrow::Borrow::<{}>::borrow(payload)",self.native_type(*member)) } else { "payload".to_owned() };
@@ -2642,9 +2656,12 @@ impl Emitter<'_> {
                 } else {
                     "Vec"
                 };
+                let parameters = self.program.records[index].fields.iter().enumerate().filter_map(|(field, value)| self.scoped_record_native_parameter(value.ty.expect("checked field")).then(||format!("P{field}"))).collect::<Vec<_>>();
+                let arguments = if parameters.is_empty() {String::new()} else {format!("<{}>",parameters.join(", "))};
+                let declaration = self.program.scoped_records.declaration(index);
                 let _ = writeln!(
                     output,
-                    "type RecordArray{index} = {storage}<Record{index}>;"
+                    "type RecordArray{index}{arguments} = {storage}<Record{declaration}{arguments}>;"
                 );
             }
         }

@@ -9,14 +9,15 @@ pub(super) struct Write<'a> {
     pub path: Vec<String>,
     pub span: Span,
     pub value: &'a Expr,
+    pub array_element: bool,
 }
 
 pub(super) fn collect(body: &[Stmt]) -> Vec<Write<'_>> {
     enum Work<'a> { Statement(&'a Stmt), Expression(&'a Expr) }
     fn selected(binding: usize, path: Vec<String>, value: &Expr) -> Option<Write<'_>> {
         let ty=value.ty?;
-        (matches!(ty,Type::Record(_)) || !path.is_empty() && matches!(ty,Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)))
-            .then_some(Write{binding,path,span:value.span,value})
+        (matches!(ty,Type::Record(_) | Type::Array(crate::syntax::ArrayElement::Record(_, 0))) || !path.is_empty() && matches!(ty,Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)))
+            .then_some(Write{binding,path,span:value.span,value,array_element:false})
     }
     fn assignment<'a>(target: &Expr, value: &'a Expr) -> Option<Write<'a>> {
         let binding=Analyzer::root_binding(target)?;
@@ -29,7 +30,7 @@ pub(super) fn collect(body: &[Stmt]) -> Vec<Write<'_>> {
         match node {
             Work::Statement(stmt)=>match &stmt.kind {
                 StmtKind::Let{binding,value,..}=>{
-                    if let Some(id)=binding && !value.is_deferred() && matches!(value.ty,Some(Type::Record(_))) && let Some(write)=selected(*id,Vec::new(),value){result.push(write);}
+                    if let Some(id)=binding && !value.is_deferred() && let Some(write)=selected(*id,Vec::new(),value){result.push(write);}
                     work.push(Work::Expression(value));
                 }
                 StmtKind::Assign{target,value,operator}=>{
@@ -60,7 +61,18 @@ pub(super) fn collect(body: &[Stmt]) -> Vec<Write<'_>> {
                 ExprKind::Unary{value,..}|ExprKind::OptionalChain(value)|ExprKind::TypeAssertion{value,..}|ExprKind::Project{value,..}|ExprKind::Inject{value,..}|ExprKind::Field(value,_)|ExprKind::Update{target:value,..}=>work.push(Work::Expression(value)),
                 ExprKind::Binary{left,right,..}|ExprKind::Index(left,right)|ExprKind::CompoundAssign{target:left,value:right,..}|ExprKind::CoalesceAssign{target:left,value:right,..}|ExprKind::LogicalAssign{target:left,value:right,..}|ExprKind::Optional{base:left,body:right,..}=>{work.push(Work::Expression(right));work.push(Work::Expression(left));}
                 ExprKind::Conditional{predicate,consequent,alternate}=>{work.push(Work::Expression(alternate));work.push(Work::Expression(consequent));work.push(Work::Expression(predicate));}
-                ExprKind::Call(callee,args)=>{work.extend(args.iter().rev().map(Work::Expression));work.push(Work::Expression(callee));}
+                ExprKind::Call(callee,args)=>{
+                    if expr.target==Some(crate::syntax::CallTarget::ArrayPush)
+                        && let ExprKind::Field(base,_)=&callee.kind
+                        && let Some(binding)=Analyzer::root_binding(base)
+                        && let Some((_,path))=Analyzer::direct_fields(base)
+                    {
+                        for value in args {
+                            if let Some(mut write)=selected(binding,path.clone(),value){write.array_element=true;result.push(write);}
+                        }
+                    }
+                    work.extend(args.iter().rev().map(Work::Expression));work.push(Work::Expression(callee));
+                }
                 ExprKind::Record(fields)=>work.extend(fields.iter().rev().map(|(_,value)|Work::Expression(value))),
                 ExprKind::SpreadCall(plan)=>work.extend(plan.expressions().collect::<Vec<_>>().into_iter().rev().map(Work::Expression)),
                 // Closure bodies belong to their own checked storage context.

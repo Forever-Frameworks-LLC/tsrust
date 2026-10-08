@@ -53,8 +53,13 @@ impl Analyzer {
                 continue;
             }
             match ty {
-                Type::Record(_) => {
-                    if self.aggregate_callable_facts(ty).scoped {
+                Type::Record(id) => {
+                    // Concrete instances retain checked callback environments.
+                    // Declaration-only container layouts still have no native
+                    // environment and must remain rejected.
+                    if self.aggregate_callable_facts(ty).scoped
+                        && self.scoped_records.declaration(id) == id
+                    {
                         return true;
                     }
                 }
