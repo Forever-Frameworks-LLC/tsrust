@@ -18,6 +18,7 @@ function workload(n: int, seed: int, input: string): int[][] {
         let mapFirst = 0;
         let mapSecond = 0;
         let replaced = 0;
+        let iterated = 0;
         let populated = 0;
         let cleared = 0;
         {
@@ -48,19 +49,23 @@ function workload(n: int, seed: int, input: string): int[][] {
             }
 
             populated = box.handlers.size;
+            box.handlers.forEach((holder: Holder): void => { iterated += holder.run(); });
             const replacementMap = new Map<string, Holder>();
-            replacementMap.set("replacement", { run: (): int => base[1] + 1 });
+            replacementMap.set("replacement", {
+                run: (): int => base[1] + 1
+            });
             box.handlers = replacementMap;
             {
                 const replacement = box.handlers.get("replacement");
                 if (replacement !== undefined) replaced = replacement.run();
             }
+
             box.handlers.clear();
             cleared = box.handlers.size;
         }
 
         base[0] = 0;
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, populated, cleared, base[0] + base[1]]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, populated, cleared, base[0] + base[1]]);
         i += 1;
     }
 

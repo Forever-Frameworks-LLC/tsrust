@@ -1,6 +1,55 @@
 mod support;
 
 #[test]
+fn scoped_map_for_each_propagates_callback_failures_and_rejects_mutation() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function main() {
+            const values = [3, 7];
+            const handlers = new Map<string, Holder>();
+            handlers.set("first", { run: (): int => values[0] });
+            handlers.set("second", { run: (): int => { throw values[1]; } });
+            let sum = 0;
+            let caught = 0;
+            try {
+                handlers.forEach((holder: ReadOnly<Holder>): void => { sum += holder.run(); });
+            } catch (error) {
+                caught = 1;
+            }
+            strictEqual(sum, 3);
+            strictEqual(caught, 1);
+            strictEqual(handlers.size, 2);
+        }
+    "#);
+    let source = "type Holder={run:ReadOnly<Function<int>>;};function main(){const values=[3];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>values[0]});handlers.forEach((holder:ReadOnly<Holder>):void=>{handlers.clear();console.log(holder.run());});}";
+    let error = tsrust_compiler::check(source).err().expect("Map iteration holds a receiver read loan");
+    assert!(error.code.contains("conflict") || error.message.to_lowercase().contains("borrow"), "{}: {}", error.code, error.message);
+}
+
+#[test]
+fn map_for_each_invokes_borrowing_record_callbacks_from_distinct_origins() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function main() {
+            const values = [3, 7];
+            const handlers = new Map<string, Holder>();
+            handlers.set("first", { run: (): int => values[0] });
+            let initial = 0;
+            handlers.forEach((holder: ReadOnly<Holder>): void => { initial += holder.run(); });
+            strictEqual(initial, 3);
+            handlers.set("second", { run: (): int => values[1] });
+            let sum = 0;
+            handlers.forEach((holder: ReadOnly<Holder>, key: string): void => {
+                sum += holder.run();
+            });
+            strictEqual(sum, 10);
+        }
+    "#);
+}
+
+#[test]
 fn map_field_replacement_retains_capture_owners_and_rejects_live_views() {
     let prefix = "type Holder={run:ReadOnly<Function<int>>;};type Box={handlers:Map<string,Holder>;};function main(){const firstValues=[3];const secondValues=[7];const first=new Map<string,Holder>();first.set('value',{run:():int=>firstValues[0]});let box:Box={handlers:first};const second=new Map<string,Holder>();second.set('value',{run:():int=>secondValues[0]});";
     let conflict = format!("{prefix}box.handlers=second;secondValues[0]=9;console.log(box.handlers.size);}}");

@@ -407,3 +407,16 @@ cases; exact evidence is in SQLite as
 run remains separately preserved as `tsrust-b5-map-field-replacement-depth.log`.
 No timing was run. All 50 affected compiler checks and focused editor help pass
 after the repair. Whole B5 acceptance remains pending.
+
+Borrowed Map `forEach` composition now has focused evidence. Native witnesses
+invoke record callbacks before and after a later insertion widens the carrier,
+verify insertion-order accumulation, propagate an inner callback failure without
+visiting later entries, and reject receiver mutation during iteration. Focused
+editor help preserves the declared record callback parameter name and hides
+internal carrier names. The matched workload adds iteration as its ninth retained
+observation; its arithmetic oracle expects the sum of the two original entries.
+Registration and all five native/Node-after-tsc cases pass. Exact verification
+evidence is preserved in SQLite as
+`runtime/results/2026-10-08T15-50-08-110Z-verify.json`. This establishes these
+iteration paths without a new compiler change or timing run. Precise capture
+release, broader nested storage, Set design and whole B5 acceptance remain open.

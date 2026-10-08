@@ -20278,10 +20278,10 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": false,
       "measured": false,
-      "notes": "Focused B5 workload support; whole feature acceptance and timing remain pending. Array removal and widening, moved Map record fields, nullable reads, whole-field replacement, clear and scope release.",
-      "specification": "Retain eight scalar observations per iteration; independent arithmetic oracle.",
-      "sourceSha256": "a3c72de4fe1d302ff71695ccb71e8d4cb3e8b18455eeee10269fc1f0eb910d97",
-      "counterpartSha256": "331955a214812d8e32e4cbcbff6d21b3731ad7dba3b2f6332c7c7609769904c4"
+      "notes": "Focused B5 workload support; whole feature acceptance and timing remain pending. Array removal and widening, moved Map record fields, nullable reads, whole-field replacement, borrowed iteration, clear and scope release.",
+      "specification": "Retain nine scalar observations per iteration; independent arithmetic oracle.",
+      "sourceSha256": "1fa4d0732e2f31020caac383b023bf2823782e850c19fc918aa9751b861decd1",
+      "counterpartSha256": "69b26117ec4d92811b7ff11bc4565a99254af1b35a05d3b29879a21ba4f96615"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",
