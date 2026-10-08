@@ -1837,6 +1837,7 @@ impl Emitter<'_> {
 
     /// Register a finite family's Result ABI only after its members are ready.
     #[inline(never)]
+    #[cfg(test)]
     fn prepare_storage_result(&self,family:usize,enum_name:&str,span:crate::Span)->Result<(String,String),crate::Diagnostic> {
         let contract=self.program.error_effects.storage_errors.get(&family).ok_or_else(||crate::Diagnostic::new("error-effect","Stored Result registration requires a saved family contract.",span))?;
         let (_,_,origins)=self.program.stored_contracts.families().find(|(id,_,_)|*id==family).ok_or_else(||crate::Diagnostic::new("error-effect","Stored Result registration requires a known family.",span))?;
@@ -3139,6 +3140,7 @@ impl Emitter<'_> {
     }
 
     #[inline(never)]
+    #[cfg(test)]
     fn completion_with_finally(&self,fun:&CheckedFunction,body:&[Stmt],cleanup:&[Stmt],ids:(usize,usize),error_name:&str,contract:crate::error_effects::FailureSet,runtime:Option<Type>)->String {
         let pending=self.completion_body(fun,body,ids.0,error_name,contract.clone(),runtime);
         let cleanup=self.completion_body(fun,cleanup,ids.1,error_name,contract,runtime);

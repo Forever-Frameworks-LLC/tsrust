@@ -10,6 +10,7 @@ pub(crate) struct Types<'a> {
     pub(crate) parameters: &'a [String],
 }
 
+#[cfg(test)]
 pub(crate) fn declarations(layout: &Layout, types: Types<'_>, native: impl Fn(&Leaf) -> String) -> String {
     let parameters=types.parameters;
     declarations_with_owned(layout,types,&native,OwnedParameters{parameters,read_bounds:&[],mutate_bounds:&[]},|leaf| {
@@ -28,6 +29,7 @@ pub(crate) struct OwnedAccess {
     pub(crate) read: String,
     pub(crate) mutate: String,
 }
+#[cfg(test)]
 pub(crate) fn declarations_with_owned(layout: &Layout, types: Types<'_>, native: impl Fn(&Leaf) -> String, owned: OwnedParameters<'_>, access: impl Fn(&Leaf) -> OwnedAccess) -> String {
     declarations_with_transport(layout, types, native, owned, access, None)
 }

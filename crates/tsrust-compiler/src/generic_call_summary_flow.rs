@@ -10,6 +10,7 @@ pub(super) struct Outcome {
 }
 /// Evaluate a callee body without merging normal and exceptional completion.
 /// Invocation dispatch and contextual parameters are supplied by the next layer.
+#[cfg(test)]
 pub(super) fn run(body: &[Stmt], initial: &[Binding], declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index) -> Option<Outcome> {
     run_with_dispatch(body, &initial.to_vec().into(), declarations, effects, &mut expression_flow::UnknownDispatch)
 }
@@ -68,6 +69,7 @@ pub(super) fn run_with_dispatch(body: &[Stmt], initial: &FlowState, declarations
 /// One contextual body evaluation projects captured state back to its caller.
 /// Parameter entry executes defaults and packs rest arguments before the body.
 /// Nested invocation dispatch remains the responsibility of the worklist engine.
+#[cfg(test)]
 pub(super) fn invoke(declaration: Span, caller: &[Binding], arguments: &[expression_flow::Value], declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index) -> Option<Outcome> {
     invoke_with_dispatch(declaration, &caller.to_vec().into(), arguments, declarations, effects, &mut expression_flow::UnknownDispatch)
 }

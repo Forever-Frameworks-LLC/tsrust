@@ -1,5 +1,5 @@
 //! Whitespace-only formatting; token spelling and comment trivia remain intact.
-use crate::syntax::{TokenKind, lex};
+use crate::syntax::TokenKind;
 use crate::{Diagnostic, Span};
 #[path = "formatting_types.rs"]
 mod types;
@@ -388,7 +388,7 @@ mod fixture_tests {
             if path.extension().is_none_or(|extension| extension != "tsr") { continue; }
             let source = std::fs::read_to_string(&path).unwrap();
             // Deliberately malformed lexical fixtures remain rejection witnesses.
-            if super::lex(&source).is_err() { lexical_rejections += 1; continue; }
+            if crate::syntax::lex(&source).is_err() { lexical_rejections += 1; continue; }
             match super::format(&source) {
                 Ok(formatted) => match super::format(&formatted) {
                     Ok(second) if second == formatted => {

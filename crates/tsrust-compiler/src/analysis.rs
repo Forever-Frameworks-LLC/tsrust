@@ -4961,6 +4961,7 @@ impl Analyzer {
         Ok((pending,outgoing))
     }
 
+    #[cfg(test)]
     #[inline(never)]
     fn check_typed_catch_exits(&mut self,context:&mut Context,handler:&mut CatchClause,result:Type,incoming:&crate::error_effects::FailureSet,effects:&crate::error_effects::ErrorEffects,runtime:Option<Type>)->Result<(Option<exception_state::ExitState>,exception_state::CompletionFrame,exception_state::ErrorFrame,crate::error_effects::FailureSet),Diagnostic> {
         self.check_catch_contract_exits(context,handler,result,incoming,Some(effects),runtime)

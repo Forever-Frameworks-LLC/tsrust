@@ -21,15 +21,18 @@ pub(crate) struct Layout {
     pub(crate) record: usize,
     pub(crate) leaves: Vec<Leaf>,
 }
+#[cfg(test)]
 #[derive(Clone, Copy)]
 enum Rendering {
     Pattern(bool),
     Value(crate::Mode),
 }
 impl Layout {
+    #[cfg(test)]
     pub(crate) fn view_declarations(&self, records: &[Record], symbol: impl Fn(usize) -> String, native: impl Fn(usize, usize, Type) -> (String, Vec<String>), mutable: bool) -> String {
         self.view_declarations_cached(records,symbol,native,mutable,&mut std::collections::BTreeMap::new())
     }
+    #[cfg(test)]
     pub(crate) fn view_declarations_cached(&self, records: &[Record], symbol: impl Fn(usize) -> String, native: impl Fn(usize, usize, Type) -> (String, Vec<String>), mutable: bool, seen: &mut std::collections::BTreeMap<usize,Vec<String>>) -> String {
         self.view_declarations_with_metadata(records,symbol,native,mutable,seen,|_|String::new())
     }
@@ -69,6 +72,7 @@ impl Layout {
         output
     }
 
+    #[cfg(test)]
     pub(crate) fn selected_value(&self, binding: usize, path: &[usize], mode: crate::Mode, records: &[Record], symbol: impl Fn(usize) -> String) -> Option<String> {
         let mut ty = Type::Record(self.record);
         for &field in path {
@@ -78,18 +82,22 @@ impl Layout {
         Some(self.render_node(ty, &mut path.to_vec(), binding, Rendering::Value(mode), records, &symbol))
     }
 
+    #[cfg(test)]
     pub(crate) fn view_value(&self, binding: usize, mutable: bool, records: &[Record], symbol: impl Fn(usize) -> String) -> String {
         let mode = if mutable { crate::Mode::Mutate } else { crate::Mode::Read };
         self.render_node(Type::Record(self.record), &mut Vec::new(), binding, Rendering::Value(mode), records, &symbol)
     }
 
+    #[cfg(test)]
     pub(crate) fn declaration(&self, binding: usize, mutable: bool, initializer: &str, records: &[Record], symbol: impl Fn(usize) -> String) -> String {
         let pattern = self.render_node(Type::Record(self.record), &mut Vec::new(), binding, Rendering::Pattern(mutable), records, &symbol);
         format!("let {pattern} = {initializer};")
     }
+    #[cfg(test)]
     pub(crate) fn owning_value(&self, binding: usize, records: &[Record], symbol: impl Fn(usize) -> String) -> String {
         self.render_node(Type::Record(self.record), &mut Vec::new(), binding, Rendering::Value(crate::Mode::Consume), records, &symbol)
     }
+    #[cfg(test)]
     fn render_node(&self, ty: Type, path: &mut Vec<usize>, binding: usize, rendering: Rendering, records: &[Record], symbol: &impl Fn(usize) -> String) -> String {
         if let Type::Record(record) = ty {
             let fields = &records[record].fields;

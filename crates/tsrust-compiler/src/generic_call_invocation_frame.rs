@@ -6,6 +6,7 @@ pub(super) struct Frame {
     owned: HashSet<crate::local_capture_plan::BindingId>,
 }
 impl Frame {
+    #[cfg(test)]
     pub(super) fn build(declaration: Span, caller: &[Binding], arguments: &[expression_flow::Value], effects: &effect_bodies::Index) -> Option<Self> {
         Self::build_with_state(declaration,&caller.to_vec().into(),arguments,effects)
     }

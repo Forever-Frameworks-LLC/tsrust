@@ -8,6 +8,7 @@ mod branch_flow;
 mod effect_bodies;
 #[path = "once_environment_facts.rs"]
 mod once_environment_facts;
+#[cfg(test)]
 #[path = "generic_call_capture_modes.rs"]
 mod capture_modes;
 #[path = "generic_call_body_origins.rs"]

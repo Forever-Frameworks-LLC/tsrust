@@ -14,6 +14,7 @@ pub(super) struct Value {
     pub(super) console: bool,
 }
 impl Value {
+    #[cfg(test)]
     pub(super) fn from_origins(origins: Vec<body_origins::Origin>) -> Self { Self { origins: body_origins::canonical(origins), ..Self::default() } }
     pub(super) fn selection(&self) -> Selection { Selection { truth: self.truth, nullish: self.nullish, undefined: self.undefined } }
     pub(super) fn undefined() -> Self { Self { truth: Some(false), nullish: Some(true), undefined: Some(true), ..Self::default() } }
@@ -143,6 +144,7 @@ enum Task<'a> {
 }
 
 /// Returns the evaluated value snapshot and environments of possible failures.
+#[cfg(test)]
 pub(super) fn evaluate(expression: &Expr, state: &mut FlowState, facts: &mut Facts,
     declarations: &HashMap<String, Contract>, observe_failures: bool, effects: &effect_bodies::Index) -> (Value, Vec<FlowState>) {
     let evaluation = evaluate_with_dispatch(expression, state, facts, declarations, observe_failures, effects, &mut UnknownDispatch);

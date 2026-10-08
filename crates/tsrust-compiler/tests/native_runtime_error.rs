@@ -1,4 +1,6 @@
 mod support;
+// This witness includes the shared emitter but exercises only its own helpers.
+#[allow(dead_code)]
 #[path = "../src/exception_emit.rs"]
 mod exception_emit;
 
@@ -12,9 +14,9 @@ fn runtime_error_expression_uses_emitted_record_and_string_layout() {
     let verification=format!("let error={error}; assert_eq!(error.field0.as_ref(),\"RangeError\"); assert_eq!(error.field1.as_ref(),\"bounds\"); assert_eq!(error.field2.as_ref(),\"index unavailable\"); assert_eq!(error.field3.as_ref(),\"file\\\"name.tsr\"); assert_eq!(error.field4,7); assert_eq!(error.field5,13);");
     let verification=if ordered {format!("{verification} assert_eq!(error.key_order,[0,1,2,3,4,5]);")}else{verification};
     let failure=exception_emit::runtime_error_value_with_order(0,ordered,"RangeError","overflow","integer addition overflow","input.tsr",7,13);
-    let arithmetic=exception_emit::checked_integer_binary("checked_add","{ evaluations.set(evaluations.get()+1); i64::MAX }","{ assert_eq!(evaluations.get(),1); evaluations.set(evaluations.get()+1); 1 }",&failure);
+    let arithmetic=checked_integer_binary("checked_add","{ evaluations.set(evaluations.get()+1); i64::MAX }","{ assert_eq!(evaluations.get(),1); evaluations.set(evaluations.get()+1); 1 }",&failure);
     let verification=format!("{verification} let evaluations=std::cell::Cell::new(0); let result={arithmetic}; assert_eq!(evaluations.get(),2); let completion:TsrCompletion<i64,(),Record0>=tsr_from_result(result); let caught:TsrCompletion<i64,(),Record0>=tsr_catch(completion,|error|{{ assert_eq!(error.field1.as_ref(),\"overflow\"); assert_eq!(error.field4,7); TsrCompletion::Normal(23) }}); assert!(matches!(caught,TsrCompletion::Normal(23)));");
-    let index=exception_emit::checked_index("{ order.set(order.get()+1); values.len() }","{ assert_eq!(order.get(),1); order.set(order.get()+1); requested }",&error);
+    let index=checked_index("{ order.set(order.get()+1); values.len() }","{ assert_eq!(order.get(),1); order.set(order.get()+1); requested }",&error);
     let verification=format!("{verification} struct NonClone(i64); let values=[NonClone(11),NonClone(23)]; for requested in [-1_i64,2,i64::MAX,1] {{ let order=std::cell::Cell::new(0); let result={index}; assert_eq!(order.get(),2); match result {{ Ok(position)=>{{ assert_eq!(requested,1); let borrowed=&values[position]; assert_eq!(borrowed.0,23); }}, Err(error)=>{{ assert_ne!(requested,1); assert_eq!(error.field1.as_ref(),\"bounds\"); }} }} }}");
     rust.push_str(&exception_emit::typed_error_enum("FunctionError0",&["i64","String","Record0"]));
     let verification=format!("{verification} let errors=[FunctionError0::V0(7),FunctionError0::V1(String::Borrowed(\"text\")),FunctionError0::V2({error})]; let seen=std::cell::Cell::new(0); for error in errors {{ let pending:TsrCompletion<(),(),FunctionError0>=TsrCompletion::Throw(error); let handled:TsrCompletion<(),(),FunctionError0>=tsr_catch(pending,|error|{{ match error {{ FunctionError0::V0(value)=>assert_eq!(value,7), FunctionError0::V1(value)=>assert_eq!(value.as_ref(),\"text\"), FunctionError0::V2(value)=>assert_eq!(value.field1.as_ref(),\"bounds\") }}; seen.set(seen.get()+1); TsrCompletion::Normal(()) }}); assert!(matches!(handled,TsrCompletion::Normal(()))); }} assert_eq!(seen.get(),3);");
@@ -64,4 +66,14 @@ for kind in 0..5 {{
     support::success(&support::run(support::rustc().arg("--edition=2021").arg(path).arg("-o").arg(&binary),30));
     support::success(&support::run(&mut std::process::Command::new(binary),10));
     }
+}
+
+/// Bind operands before checking so failure construction cannot change evaluation.
+fn checked_integer_binary(method:&str,left:&str,right:&str,failure:&str)->String {
+    format!("{{ let integer_left:i64={left}; let integer_right:i64={right}; tsr_checked(integer_left.{method}(integer_right),||{failure}) }}")
+}
+
+/// Validate a position without copying or taking any array element.
+fn checked_index(length:&str,index:&str,failure:&str)->String {
+    format!("{{ let indexed_length:usize={length}; let indexed_position:i64={index}; tsr_checked(usize::try_from(indexed_position).ok().filter(|position|*position<indexed_length),||{failure}) }}")
 }

@@ -441,15 +441,10 @@ pub(crate) fn annotate_with_callbacks(program:&mut CheckedProgram,callbacks:&std
     let mut functions=program.functions.iter_mut().map(Some).collect::<Vec<_>>();
     annotate_partial_with_contracts(&mut functions,&mut program.closures,&families,callbacks)
 }
-pub(crate) fn annotate_parts(functions:&mut [&mut CheckedFunction],closures:&mut [crate::analysis::CheckedClosure])->ErrorEffects {
-    annotate_partial_parts(&mut functions.iter_mut().map(|function|Some(&mut **function)).collect::<Vec<_>>(),closures)
-}
 pub(crate) fn annotate_parts_with_storage(functions:&mut [&mut CheckedFunction],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)])->ErrorEffects {
     annotate_partial_with_storage(&mut functions.iter_mut().map(|function|Some(&mut **function)).collect::<Vec<_>>(),closures,families)
 }
-pub(crate) fn annotate_partial_parts(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure])->ErrorEffects {
-    annotate_partial_with_storage(functions,closures,&[])
-}
+
 pub(crate) fn annotate_partial_with_storage(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)])->ErrorEffects {
     annotate_partial_with_contracts(functions,closures,families,&Default::default())
 }

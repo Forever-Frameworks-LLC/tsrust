@@ -2227,7 +2227,7 @@ impl SourceIndex {
         self.symbols
             .iter()
             .enumerate()
-            .filter(|(id, s)| {
+            .filter(|(_, s)| {
                 s.name == text
                     && s.owner.is_none()
                     && self.contains_scope(scope, s.scope)

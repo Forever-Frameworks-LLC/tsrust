@@ -49,6 +49,7 @@ pub(crate) fn declared_storage_families(
     families
 }
 
+#[cfg(test)]
 pub(crate) fn capture_layout(
     program: &CheckedProgram,
     closure: &CheckedClosure,
