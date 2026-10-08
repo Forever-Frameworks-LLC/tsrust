@@ -31,6 +31,12 @@ Finally runs after normal completion and before a pending return, throw, break o
 
 Catch handles failures from its try body, including errors propagated by called functions. An error thrown by catch proceeds through finally and then to an enclosing handler. An error thrown by finally goes to an enclosing handler; the catch belonging to that same try statement does not handle it.
 
+Nested finally blocks run from the inner region outward. The outer cleanup sees
+the collection state left by the inner cleanup, including an empty Map after
+clear. A pending return or error passes through both cleanups; an error thrown
+by inner cleanup replaces the earlier completion and still runs outer cleanup.
+
+
 When nothing in the try body can fail, the catch body never runs. Its statements are still checked like any other code, so a type or name error there is reported. In such a handler the error name has the type of a runtime error, with `name` and `message`.
 
 ## Error values and ownership

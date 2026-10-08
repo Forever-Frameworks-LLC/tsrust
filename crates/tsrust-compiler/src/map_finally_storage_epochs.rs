@@ -32,6 +32,10 @@ impl Emitter<'_> {
                     statements.extend(then_body);
                     statements.extend(else_body);
                 }
+                StmtKind::Try(inner) if inner.catch.is_none() => {
+                    statements.extend(&inner.body);
+                    statements.extend(inner.finally.iter().flatten());
+                }
                 StmtKind::Let { .. }
                 | StmtKind::Expr(_)
                 | StmtKind::Assign { .. }
@@ -118,8 +122,8 @@ impl Emitter<'_> {
             runtime,
             &storage_type,
             &places,
-            false,
-            false,
+            true,
+            true,
         );
         let thrown_cleanup = self.map_storage_completion_body(
             fun,
@@ -131,8 +135,8 @@ impl Emitter<'_> {
             runtime,
             &storage_type,
             &places,
-            false,
-            false,
+            true,
+            true,
         );
         let returned_cleanup = self.map_storage_completion_body(
             fun,
@@ -144,15 +148,16 @@ impl Emitter<'_> {
             runtime,
             &storage_type,
             &places,
-            false,
-            false,
+            true,
+            true,
         );
-        let cleanup_abrupt = self.map_storage_abrupt_dispatch(
+        let cleanup_abrupt = self.map_carried_cleanup_dispatch(
             fun,
             "other",
             &cleanup_name,
             &cleanup_contract,
             runtime,
+            &places,
             statement.span,
         );
         let normal_finish = format!(
@@ -172,7 +177,7 @@ impl Emitter<'_> {
                 )
             };
             format!(
-                "TsrCompletion::Throw((pending_error,{pattern}))=>{{match {thrown_cleanup}{{TsrCompletion::Normal(storage)=>{{drop(storage);{resume}}},other=>{{drop(pending_error);{cleanup_abrupt}}}}}}}"
+                "TsrCompletion::Throw((pending_error,{pattern}))=>{{match {thrown_cleanup}{{TsrCompletion::Normal(storage)=>{{let {pattern}=storage;{resume}}},other=>{{drop(pending_error);{cleanup_abrupt}}}}}}}"
             )
         } else {
             "TsrCompletion::Throw((error,_))=>match error {}".into()
@@ -195,7 +200,7 @@ impl Emitter<'_> {
             format!("{resume_control};unreachable!()")
         };
         let return_arm = format!(
-            "TsrCompletion::Return((pending_exit,{pattern}))=>{{match {returned_cleanup}{{TsrCompletion::Normal(storage)=>{{drop(storage);{resume_control}}},other=>{{drop(pending_exit);{cleanup_abrupt}}}}}}}"
+            "TsrCompletion::Return((pending_exit,{pattern}))=>{{match {returned_cleanup}{{TsrCompletion::Normal(storage)=>{{let {pattern}=storage;{resume_control}}},other=>{{drop(pending_exit);{cleanup_abrupt}}}}}}}"
         );
         let indent = "    ".repeat(depth);
         let _ = writeln!(
@@ -217,5 +222,48 @@ impl Emitter<'_> {
             .max(statement.span.end);
         self.exception_regions.renew_storage(&places, boundary);
         true
+    }
+    #[inline(never)]
+    fn map_carried_cleanup_dispatch(
+        &self,
+        fun: &CheckedFunction,
+        pending: &str,
+        error_name: &str,
+        contract: &crate::error_effects::FailureSet,
+        runtime: Option<Type>,
+        places: &[String],
+        span: crate::Span,
+    ) -> String {
+        let pattern = format!(
+            "({},)",
+            places
+                .iter()
+                .map(|place| format!("mut {place}"))
+                .collect::<Vec<_>>()
+                .join(",")
+        );
+        let error = self.map_storage_abrupt_dispatch(
+            fun,
+            "TsrCompletion::Throw(pending_error)",
+            error_name,
+            contract,
+            runtime,
+            span,
+        );
+        let result = self.native_type(fun.result);
+        let (outer_error, _, _) = self
+            .exception_regions
+            .current_transport()
+            .expect("checked cleanup destination");
+        let resumed = format!(
+            "match pending_exit{{TsrStorageExit::Return(value)=>TsrCompletion::<(),{result},{outer_error}>::Return(value),TsrStorageExit::Break(target)=>TsrCompletion::Break(target),TsrStorageExit::Continue(target)=>TsrCompletion::Continue(target)}}"
+        );
+        let control = self
+            .exception_regions
+            .dispatch(&resumed, &self.control_targets.snapshot(), span)
+            .expect("checked carried cleanup control");
+        format!(
+            "match {pending}{{TsrCompletion::Throw((pending_error,{pattern}))=>{{{error}}},TsrCompletion::Return((pending_exit,{pattern}))=>{{{control};unreachable!()}},_=>unreachable!(\"checked carried cleanup exit\")}}"
+        )
     }
 }

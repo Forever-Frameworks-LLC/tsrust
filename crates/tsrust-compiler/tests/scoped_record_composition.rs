@@ -4,6 +4,22 @@ mod support;
 fn nested_finally_preserves_map_owners_and_cleanup_order() {
     let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function scenario(fail:boolean):void{const old=[3];const next=[5];let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});console.log('before');try{try{failIf(fail);handlers.clear();handlers.set('next',{run:():int=>next[0]});console.log('normal');}finally{console.log('inner',handlers.size);handlers.clear();console.log('inner cleared');}}finally{console.log('outer',handlers.size);handlers.clear();console.log('outer cleared');}old[0]=9;next[0]=11;console.log('after');}function main():void{scenario(false);try{scenario(true);}catch(error){console.log('caught',error);}}");
     verify_disposal(&source,2,"before\ndrop 0\nnormal\ninner 1\ndrop 1\ninner cleared\nouter 0\nouter cleared\nafter\nbefore\ninner 1\ndrop 0\ninner cleared\nouter 0\nouter cleared\ncaught 7\n");
+    let overriding=source.replace("console.log('inner cleared');", "console.log('inner cleared'); if(!fail)throw 9;")
+        .replace("scenario(false);", "try{scenario(false);}catch(error){console.log('caught',error);}");
+    verify_disposal(&support::format_round_trip(&overriding),2,"before\ndrop 0\nnormal\ninner 1\ndrop 1\ninner cleared\nouter 0\nouter cleared\ncaught 9\nbefore\ninner 1\ndrop 0\ninner cleared\nouter 0\nouter cleared\ncaught 7\n");
+    let field=source.replace("function scenario", "type Box={handlers:Map<string,Holder>;marker:int;};function scenario")
+        .replace("console.log('before');", "const box:Box={handlers:handlers,marker:23};console.log('before');")
+        .replace("handlers.clear()", "box.handlers.clear()")
+        .replace("handlers.set('next'", "box.handlers.set('next'")
+        .replace("handlers.size", "box.handlers.size")
+        .replace("old[0] = 9;", "if(box.marker!==23)throw 99;old[0]=9;");
+    verify_disposal(&support::format_round_trip(&field),2,"before\ndrop 0\nnormal\ninner 1\ndrop 1\ninner cleared\nouter 0\nouter cleared\nafter\nbefore\ninner 1\ndrop 0\ninner cleared\nouter 0\nouter cleared\ncaught 7\n");
+    let returned=source.replace("scenario(fail: boolean): void", "scenario(fail: boolean): int")
+        .replace("console.log('normal');", "console.log('normal');if(!fail)return 23;")
+        .replace("console.log('after');", "console.log('after');return 29;")
+        .replace("scenario(false);", "console.log('result',scenario(false));");
+    verify_disposal(&support::format_round_trip(&returned),2,"before\ndrop 0\nnormal\ninner 1\ndrop 1\ninner cleared\nouter 0\nouter cleared\nresult 23\nbefore\ninner 1\ndrop 0\ninner cleared\nouter 0\nouter cleared\ncaught 7\n");
+
 }
 
 #[test]

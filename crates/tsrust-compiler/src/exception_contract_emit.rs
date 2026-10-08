@@ -175,15 +175,20 @@ impl RegionStack {
         use crate::syntax::ControlTarget;
         let regions=self.0.borrow();
         let region=regions.last().ok_or_else(||crate::Diagnostic::new("error-effect","Completion dispatch requires an enclosing region.",span))?;
+        let carried=region.storage.as_ref().map(|storage|(storage,storage.at(span,&self.1)));
+        let returned=carried.as_ref().filter(|(storage,_)|storage.carry_control).map_or_else(||"value".to_owned(),|(_,owner)|format!("(TsrStorageExit::Return(value),{owner})"));
+        let thrown=carried.as_ref().filter(|(storage,_)|storage.carry_error).map_or_else(||"error".to_owned(),|(_,owner)|format!("(error,{owner})"));
+        let escaped_break=carried.as_ref().filter(|(storage,_)|storage.carry_control).map_or_else(||"TsrCompletion::Break(target)".to_owned(),|(_,owner)|format!("TsrCompletion::Return((TsrStorageExit::Break(target),{owner}))"));
+        let escaped_continue=carried.as_ref().filter(|(storage,_)|storage.carry_control).map_or_else(||"TsrCompletion::Continue(target)".to_owned(),|(_,owner)|format!("TsrCompletion::Return((TsrStorageExit::Continue(target),{owner}))"));
         let mut breaks=vec![];let mut continues=vec![];
         for target in active.iter().filter(|target|region.locals.contains(target)) {
             let pattern=match target {ControlTarget::Loop(id)|ControlTarget::Tail(id)=>format!("TsrControlTarget::Loop({id})"),ControlTarget::Block(id)=>format!("TsrControlTarget::Block({id})")};
             breaks.push(format!("{pattern}=>{{ {} }}",control_transfer(*target,false,None)));
             if !matches!(target,ControlTarget::Block(_)) {continues.push(format!("{pattern}=>{{ {} }}",control_transfer(*target,true,None)));}
         }
-        breaks.push(format!("target=>break 'exception_region{} TsrCompletion::Break(target)",region.id));
-        continues.push(format!("target=>break 'exception_region{} TsrCompletion::Continue(target)",region.id));
-        Ok(format!("match {pending} {{ TsrCompletion::Normal(())=>{{}}, TsrCompletion::Return(value)=>break 'exception_region{id} TsrCompletion::Return(value), TsrCompletion::Throw(error)=>break 'exception_region{id} TsrCompletion::Throw(error), TsrCompletion::Break(target)=>match target {{ {breaks} }}, TsrCompletion::Continue(target)=>match target {{ {continues} }} }}",id=region.id,breaks=breaks.join(","),continues=continues.join(",")))
+        breaks.push(format!("target=>break 'exception_region{} {escaped_break}",region.id));
+        continues.push(format!("target=>break 'exception_region{} {escaped_continue}",region.id));
+        Ok(format!("match {pending} {{ TsrCompletion::Normal(())=>{{}}, TsrCompletion::Return(value)=>break 'exception_region{id} TsrCompletion::Return({returned}), TsrCompletion::Throw(error)=>break 'exception_region{id} TsrCompletion::Throw({thrown}), TsrCompletion::Break(target)=>match target {{ {breaks} }}, TsrCompletion::Continue(target)=>match target {{ {continues} }} }}",id=region.id,breaks=breaks.join(","),continues=continues.join(",")))
     }
 }
 

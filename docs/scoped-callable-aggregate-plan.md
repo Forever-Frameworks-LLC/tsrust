@@ -1460,3 +1460,38 @@ after successful cleanup. SQLite preserves `tsrust-b5-nested-finally-red.log`
 byte-exact; its loose copy was removed. Extend nested completion dispatch to
 carry initialized storage and evaluated control payloads into enclosing regions,
 without restoring consumed source names or dropping owners before cleanup.
+
+## Nested finally storage repair checkpoint
+
+Nested no-catch finally regions now carry Map storage through normal completion,
+errors and evaluated returns. Cleanup errors replace pending errors while outer
+cleanup still runs. Root Maps and owning record fields preserve exact callback
+disposal and inner-before-outer cleanup order. Consumed source names are not
+restored, and the transport introduces no implicit cloning.
+
+The affected batch passes 83 composition tests, 42 scoped-record tests and four
+fallible-record tests. All eight normal-stack depth canaries, 15 exception-contract
+unit tests and focused editor diagnostics pass. Exact native disposal witnesses
+pass at O0 and O3, including cleanup-error override and a pending return. The
+matched workload verifies all 34 independent observations untimed on native and
+Node-after-tsc. Registration and rehashed mutation rejection checks pass after
+project formatting. SQLite preserves the failed initial repair and all successful
+`tsrust-b5-nested-finally-*.log` evidence byte-exact, together with
+`runtime/results/2026-10-08T19-49-50-065Z-verify.json`; loose copies are removed.
+
+B5 is not accepted. Nested catch regions, broader loop forms, multiple renewed
+owners, precise entry/element capture release and remaining callable compositions
+still need implementation witnesses. Record Set keys will use Rust-style value
+equality and hashing, immutable stored keys and explicit ownership transfer or
+clone. Floating-point key policy remains unresolved. Family regressions and
+timing remain pending. Five user executable consumers still represent gate181.
+
+Continuation prompt: Continue B5 from this nested-finally repair checkpoint. Read
+AGENTS.md, docs/development-workflow.md and docs/scoped-callable-aggregate-plan.md.
+Add a source-valid nested-catch storage witness next; repair completion transport
+without premature disposal, implicit clone or restoring consumed source names.
+Keep compiler/editor behavior, matched workload support and SQLite evidence
+current. Preserve unrelated fixture semantics and use explicit Git staging.
+Format the whole project before each source checkpoint. Complete remaining B5
+scope before its family regressions, timing and acceptance. The full compiler
+and editor goal remains active.

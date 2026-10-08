@@ -376,8 +376,16 @@ function workload(n: int, seed: int, input: string): int[][] {
         const initializedRecordMap = nestedMapInitializer(value);
         const recordLoopTrace = [0, 0];
         const loopedRecordMap = recordMapLoop(value, recordLoopTrace) + recordLoopTrace[0] * 100 + recordLoopTrace[1];
+        const nestedTrace = [0, 0, 0, 0];
+        let nestedCleaned = 0;
+        try {
+            nestedCleaned = nestedMapCleanup(value % 2 === 0, value, nestedTrace);
+        } catch (error) {
+            nestedCleaned = 7;
+        }
+        nestedCleaned += nestedTrace[0] * 100 + nestedTrace[1] * 10 + nestedTrace[2] * 1000 + nestedTrace[3];
         base[0] = 0;
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned]);
         i += 1;
     }
 
@@ -528,4 +536,31 @@ function recordMapLoop(value: number, trace: number[]): number {
     }
     const recordLoopOrder = Object.keys(recordLoopBox)[0] === "marker" ? 4 : 0;
     return recordLoopObserved + turn + recordLoopBox.handlers.size + recordLoopOrder;
+}
+
+function nestedMapCleanup(fail: boolean, value: number, trace: number[]): number {
+    const nestedOld = [value];
+    const nestedNext = [value + 1];
+    let nestedMap = new Map<string, Holder>();
+    nestedMap.set("old", { run: (): number => nestedOld[0] });
+    let nestedObserved = -1;
+    try {
+        try {
+            const nestedPrefix = prefixResult(fail);
+            nestedMap.clear();
+            nestedMap.set("next", { run: (): number => nestedNext[0] });
+            nestedObserved = nestedMap.size;
+        } finally {
+            trace[0] += nestedMap.size;
+            nestedMap.clear();
+            trace[1] += nestedMap.size;
+        }
+    } finally {
+        trace[2] += nestedMap.size;
+        nestedMap.clear();
+        trace[3] += nestedMap.size;
+    }
+    nestedOld[0] = value + 120;
+    nestedNext[0] = value + 121;
+    return nestedObserved + nestedOld[0] + nestedNext[0];
 }
