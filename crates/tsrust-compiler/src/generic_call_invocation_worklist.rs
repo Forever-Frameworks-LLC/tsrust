@@ -35,6 +35,7 @@ pub(super) struct Engine<'a> {
     lookup: HashMap<Request, usize>,
     entries: Vec<Entry<'a>>,
     active_nodes:Vec<(usize,usize)>,
+    eager_wrapper_active:bool,
     work: Vec<usize>,
     current: Option<usize>,
     environments: environment_store::Store,
@@ -42,6 +43,8 @@ pub(super) struct Engine<'a> {
     evaluations: usize,
     #[cfg(test)]
     invocations: usize,
+    #[cfg(test)]
+    visits_by_site: HashMap<(usize,usize),usize>,
     #[cfg(test)]
     trace: bool,
 }
@@ -65,7 +68,7 @@ fn merge_facts(current: &mut HashMap<(usize, usize), Option<Vec<Contract>>>, inc
 }
 impl<'a> Engine<'a> {
     pub(super) fn new(declarations: &'a HashMap<String, Contract>, effects: &'a effect_bodies::Index) -> Self {
-        Self { declarations, effects, lookup: HashMap::new(), entries: Vec::new(), active_nodes:Vec::new(), work: Vec::new(), current: None, environments: environment_store::Store::default(), #[cfg(test)] evaluations: 0, #[cfg(test)] invocations: 0, #[cfg(test)] trace:std::env::var_os("TSRUST_TRACE_WORKLIST").is_some() }
+        Self { declarations, effects, lookup: HashMap::new(), entries: Vec::new(), active_nodes:Vec::new(), eager_wrapper_active:false, work: Vec::new(), current: None, environments: environment_store::Store::default(), #[cfg(test)] evaluations: 0, #[cfg(test)] invocations: 0, #[cfg(test)] visits_by_site:HashMap::new(), #[cfg(test)] trace:std::env::var_os("TSRUST_TRACE_WORKLIST").is_some() }
     }
     // Keep a simple declaration path. Recursive edges reuse the earlier frame,
     // so allocation identity cannot grow with runtime recursion depth.
@@ -295,7 +298,7 @@ impl expression_flow::Dispatch for Engine<'_> {
     }
     fn invoke(&mut self, expression: &Expr, callee: &expression_flow::Value, arguments: &[expression_flow::Value], state: &FlowState) -> Option<expression_flow::Invocation> {
         #[cfg(test)]
-        {self.invocations+=1;if self.trace && self.invocations%128==0 {eprintln!("worklist-progress requests={} evaluations={} invocationVisits={} bindings={}",self.entries.len(),self.evaluations,self.invocations,state.len());}}
+        {self.invocations+=1;*self.visits_by_site.entry((expression.span.start,expression.span.end)).or_default()+=1;if self.trace && self.invocations%128==0 {eprintln!("worklist-progress requests={} evaluations={} invocationVisits={} bindings={}",self.entries.len(),self.evaluations,self.invocations,state.len());}}
         if leaf_effects::observer_call(expression, self.effects)
             || !callee.origins.is_empty() && callee.origins.iter().all(|origin|
                 matches!(origin,body_origins::Origin::Name(symbol,_) if leaf_effects::native_observer(symbol))) {
@@ -318,12 +321,16 @@ impl expression_flow::Dispatch for Engine<'_> {
         for alternative in alternatives {
             let environment_store::Alternative::Body{declaration,environment}=alternative else {return self.opaque_invocation()};
             let index = self.request(Request { declaration, producer: expression.span, context: self.call_context(declaration, expression.span), environment, caller: state.clone(), arguments: arguments.to_vec() });
-            // An eligible parameter/operator return cannot dispatch another invocation.
-            // Complete its ordinary contextual summary now instead of restarting
-            // the caller once for every independent identity call.
-            if environment.is_none() && self.entries[index].queued && self.terminal_leaf_return(declaration) {
+            // Eager dispatch has at most one wrapper followed by an invocation-free
+            // leaf. Arbitrary nested bodies and recursive calls remain scheduled.
+            let leaf=self.terminal_leaf_return(declaration);
+            let wrapper=!self.eager_wrapper_active && terminal_returns::wrapper(declaration,self.declarations,self.effects);
+            if environment.is_none() && self.entries[index].queued && (leaf || wrapper) {
                 self.work.retain(|pending| *pending != index);
+                let previous=self.eager_wrapper_active;
+                self.eager_wrapper_active|=wrapper;
                 self.evaluate(index);
+                self.eager_wrapper_active=previous;
             }
             if self.entries[index].opaque { return self.opaque_invocation(); }
             let mut outcome = self.entries[index].outcome.clone();
@@ -422,6 +429,25 @@ mod tests {
                 assert!(engine.evaluations<=calls+2,"{shape}: {} evaluations for {calls} calls",engine.evaluations);
                 assert!(engine.invocations<=3*calls,"{shape}: {} invocation visits for {calls} calls",engine.invocations);
             }
+        }
+    }
+    #[test]
+    fn nonleaf_resumption_preserves_completed_prefixes_and_finally_calls() {
+        for (expression,cleanup_paths) in [("value",1),("value+1",2)] {
+        for calls in [8,32,64] {
+            let source=crate::format(&format!("function before():int{{return 1;}}function after():int{{return 2;}}function cleanup():int{{return 3;}}function increment(value:int):int{{return {expression};}}function wrap(value:int):int{{try{{const next=increment(value);return next;}}finally{{cleanup();}}}}function outer(){{before();{}after();}}function main(){{}}","wrap(1);".repeat(calls))).unwrap();
+            assert_eq!(crate::format(&source).unwrap(),source);
+            let program=crate::syntax::parse(&source).unwrap();let effects=effect_bodies::Index::new(&program).unwrap();
+            let declarations=program.functions.iter().map(|function|(function.name.text.clone(),contract(function.type_parameters.len(),&function.parameter_initializers,function.rest_parameter,function.name.span))).collect::<HashMap<_,_>>();
+            let outer=program.functions.iter().find(|function|function.name.text=="outer").unwrap();
+            let mut engine=Engine::new(&declarations,&effects);
+            let outcome=engine.solve(outer.name.span,&[],&[]).unwrap();assert!(outcome.normal.is_some());
+            for (text,expected) in [("before()",1),("after()",1),("cleanup()",cleanup_paths*calls)] {
+                let position=source.rfind(text).unwrap();
+                assert_eq!(engine.visits_by_site.get(&(position,position+text.len())),Some(&expected),"{text}: {calls} calls");
+            }
+            assert!(engine.invocations<=(3+cleanup_paths)*calls+2,"{} invocation visits for {calls} calls",engine.invocations);
+        }
         }
     }
     #[test]
