@@ -56,6 +56,7 @@ struct Pending {
 #[derive(Default)]
 pub(crate) struct Cache {
     templates: BTreeMap<String, Function>,
+    callable_proofs: crate::generic_call_validation::Proofs,
     lexical: lexical_instances::Instances,
     instances: HashMap<(String, Vec<Key>, Vec<Type>), String>,
     origins: HashMap<String, String>,
@@ -68,6 +69,10 @@ pub(crate) struct Cache {
     value_calls: HashMap<(String, usize, usize), Vec<ValueAnnotation>>,
 }
 impl Cache {
+    pub(crate) fn reachable_declarations(&self, owner: &str, span: Span, callee: Span) -> Option<&[Span]> {
+        let original = self.origins.get(owner).map_or(owner, String::as_str);
+        self.callable_proofs.reachable(lexical_declaration(original), span, callee)
+    }
     pub(crate) fn value_arguments(&self, function: &str, span: Span) -> Option<Vec<ValueAnnotation>> {
         self.value_calls.get(&(function.to_owned(), span.start, span.end)).cloned()
     }
@@ -481,11 +486,12 @@ pub(crate) fn specialize(program: &mut Program) -> Result<Cache, Diagnostic> {
         }
     }
     crate::generic_defaults::validate(program)?;
-    crate::generic_call_validation::validate(program)?;
+    let callable_proofs = crate::generic_call_validation::validate(program)?;
     let mut declarations = HashMap::new();
     let mut cache = Cache {
         captured_checked_instances: HashMap::new(),
         templates: BTreeMap::new(),
+        callable_proofs,
         lexical: lexical_instances::Instances::new(program),
         instances: HashMap::new(),
         origins: HashMap::new(),
