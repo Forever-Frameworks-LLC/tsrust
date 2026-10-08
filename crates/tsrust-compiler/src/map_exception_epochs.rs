@@ -18,7 +18,12 @@ impl Emitter<'_> {
                     statements.extend(then_body); statements.extend(else_body);
                 },
                 StmtKind::Let { .. } | StmtKind::Expr(_) | StmtKind::Assign { .. } | StmtKind::Throw(_) | StmtKind::Return(_) | StmtKind::Break | StmtKind::Continue => {},
-                // Nested regions and loops require additional storage discovery.
+                StmtKind::Try(inner) => {
+                    statements.extend(&inner.body);
+                    if let Some(handler)=&inner.catch {statements.extend(&handler.body);}
+                    statements.extend(inner.finally.iter().flatten());
+                },
+                // Loops require additional storage discovery.
                 _ => return false,
             }
             if let Some((place, native)) = self.local_map_clear_storage(fun, declarations, item)

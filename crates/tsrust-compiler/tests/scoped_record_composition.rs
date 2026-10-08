@@ -1,6 +1,20 @@
 mod support;
 
 #[test]
+fn nested_catch_pair_preserves_loop_control_and_cleanup() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};type Pair={left:Map<string,Holder>;right:Map<string,Holder>;};function failIf(fail:boolean):void{if(fail)throw 7;}function main():void{const old=[3];const next=[5];let turn=0;let box:Pair={left:new Map<string,Holder>(),right:new Map<string,Holder>()};while(turn<3){box.left.set('old',{run:():int=>old[0]});box.right.set('next',{run:():int=>next[0]});turn+=1;try{try{failIf(turn!==2);}catch(error){if(turn===1)continue;break;}finally{console.log('inner',turn);}}catch(error){console.log('outer caught');}finally{console.log('cleanup',turn,box.left.size,box.right.size);box.left.clear();box.right.clear();old[0]=9;next[0]=11;}}console.log('after',box.left.size,box.right.size,old[0],next[0]);}");
+ verify_disposal(&source,2,"inner 1\ncleanup 1 1 1\ndrop 0\ndrop 1\ninner 2\ncleanup 2 1 1\ndrop 0\ndrop 1\ninner 3\ncleanup 3 1 1\ndrop 0\ndrop 1\nafter 0 0 9 11\n");
+ let overridden=source.replace("next[0] = 11;", "next[0]=11;if(turn===1)break;");
+ assert_ne!(overridden,source);
+ verify_disposal(&support::format_round_trip(&overridden),2,"inner 1\ncleanup 1 1 1\ndrop 0\ndrop 1\nafter 0 0 9 11\n");
+
+ let rethrown=source.replace("if (turn === 1) continue;", "if(turn===1)throw 9;");
+ assert_ne!(rethrown,source);
+ verify_disposal(&support::format_round_trip(&rethrown),2,"inner 1\nouter caught\ncleanup 1 1 1\ndrop 0\ndrop 1\ninner 2\ncleanup 2 1 1\ndrop 0\ndrop 1\ninner 3\ncleanup 3 1 1\ndrop 0\ndrop 1\nafter 0 0 9 11\n");
+
+}
+
+#[test]
 fn paired_record_map_loop_releases_both_cleanup_captures() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};type Pair={left:Map<string,Holder>;right:Map<string,Holder>;};function failIf(fail:boolean):void{if(fail)throw 7;}function main():void{const old=[3];const next=[5];let turn=0;let box:Pair={left:new Map<string,Holder>(),right:new Map<string,Holder>()};while(turn<3){box.left.set('old',{run:():int=>old[0]});box.right.set('next',{run:():int=>next[0]});turn+=1;try{failIf(turn!==2);}catch(error){if(turn===1)continue;break;}finally{console.log('cleanup',turn,box.left.size,box.right.size);box.left.clear();box.right.clear();old[0]=9;next[0]=11;}}console.log('after',box.left.size,box.right.size,old[0],next[0]);}");
  verify_disposal(&source,2,"cleanup 1 1 1\ndrop 0\ndrop 1\ncleanup 2 1 1\ndrop 0\ndrop 1\ncleanup 3 1 1\ndrop 0\ndrop 1\nafter 0 0 9 11\n");

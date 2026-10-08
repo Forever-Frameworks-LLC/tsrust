@@ -152,18 +152,33 @@ impl Emitter<'_> {
 }
 
 fn map_independent_statement(statement: &Stmt, binding: usize, path: &[String]) -> bool {
-    match &statement.kind {
-        StmtKind::Let { value, .. } | StmtKind::Expr(value) => !map_reference(value, binding, path),
-        StmtKind::Assign { target, value, .. } => {
-            !map_reference(target, binding, path) && !map_reference(value, binding, path)
+    let mut pending = vec![statement];
+    while let Some(item) = pending.pop() {
+        match &item.kind {
+            StmtKind::Let { value, .. } | StmtKind::Expr(value)
+                if !map_reference(value, binding, path) => {}
+            StmtKind::Assign { target, value, .. }
+                if !map_reference(target, binding, path)
+                    && !map_reference(value, binding, path) => {}
+            StmtKind::Return(value)
+                if value
+                    .as_ref()
+                    .is_none_or(|value| !map_reference(value, binding, path)) => {}
+            StmtKind::Throw(value) if !map_reference(value, binding, path) => {}
+            StmtKind::Break | StmtKind::Continue => {}
+            StmtKind::Block(body) => pending.extend(body),
+            StmtKind::If {
+                condition,
+                then_body,
+                else_body,
+            } if !map_reference(condition, binding, path) => {
+                pending.extend(then_body);
+                pending.extend(else_body);
+            }
+            _ => return false,
         }
-        StmtKind::Return(value) => value
-            .as_ref()
-            .is_none_or(|value| !map_reference(value, binding, path)),
-        StmtKind::Throw(value) => !map_reference(value, binding, path),
-        StmtKind::Break | StmtKind::Continue => true,
-        _ => false,
     }
+    true
 }
 
 // Unknown lowered expressions conservatively retain the original loop path.

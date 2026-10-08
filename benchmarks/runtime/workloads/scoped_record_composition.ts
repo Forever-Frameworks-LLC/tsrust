@@ -396,7 +396,8 @@ function workload(n: int, seed: int, input: string): int[][] {
         const caughtLoopTrace=[0,0];
         const caughtLooped=caughtMapLoop(value,caughtLoopTrace)+caughtLoopTrace[0]*100+caughtLoopTrace[1];
         const pairedLoopTrace = [0, 0]; const pairedLooped = pairedMapLoop(value, pairedLoopTrace) + pairedLoopTrace[0] * 100 + pairedLoopTrace[1];
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped]);
+        const nestedPairTrace=[0,0];const nestedPairLooped=nestedPairedMapLoop(value,nestedPairTrace)+nestedPairTrace[0]*100+nestedPairTrace[1];
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped, nestedPairLooped]);
         i += 1;
     }
 
@@ -654,4 +655,16 @@ function pairedMapLoop(value: number, trace: number[]): number {
   finally{trace[0]+=pairedLeft.size+pairedRight.size;pairedLeft.clear();pairedRight.clear();pairedOld[0]=value+150;pairedNext[0]=value+151;trace[1]+=pairedLeft.size+pairedRight.size;}
  }
  return pairedOld[0]+pairedNext[0]+turn+pairedLeft.size+pairedRight.size;
+}
+
+function nestedPairedMapLoop(value: number, trace: number[]): number {
+ const nestedPairOld=[value];const nestedPairNext=[value+1];let turn=0;
+ let nestedPairLeft=new Map<string,Holder>();let nestedPairRight=new Map<string,Holder>();
+ while(turn<3){
+  nestedPairLeft.set("old",{run:():number=>nestedPairOld[0]});nestedPairRight.set("next",{run:():number=>nestedPairNext[0]});turn+=1;
+  try{try{const nestedPairPrefix=prefixResult(turn!==2);}
+  catch(error){if(turn===1)continue;break;}
+  finally{trace[1]+=turn;}}catch(error){trace[1]+=1000;}finally{trace[0]+=nestedPairLeft.size+nestedPairRight.size;nestedPairLeft.clear();nestedPairRight.clear();nestedPairOld[0]=value+150;nestedPairNext[0]=value+151;trace[1]+=nestedPairLeft.size+nestedPairRight.size;}
+ }
+ return nestedPairOld[0]+nestedPairNext[0]+turn+nestedPairLeft.size+nestedPairRight.size;
 }

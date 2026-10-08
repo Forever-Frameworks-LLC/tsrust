@@ -1760,3 +1760,41 @@ nested-region/loop discovery without treating a refill as empty, then precise
 entry/element release. Keep focused editor and matched benchmark support ready,
 SQLite evidence durable, whole-project formatting automatic and explicit Git
 staging. Preserve unrelated fixture semantics. The full goal remains active.
+
+## Nested paired-owner cleanup checkpoint
+
+Catch-region storage discovery now walks nested try, catch and finally bodies,
+matching the existing no-catch discovery behavior. A new paired record Map loop
+witness failed native E0502 before this change and passes at O0/O3 afterward.
+Exact disposal covers normal fallthrough, handler continue/break, nested rethrow
+into an outer catch and an outer cleanup break overriding pending continue.
+
+The override exposed a separate conservative loop-proof gap. Post-clear storage
+independence now walks blocks and conditionals iteratively, checking every branch
+and its condition for references to the selected owner. It continues to reject
+refill/transfer from this empty-epoch proof; no source-valid program is rejected
+by that proof, since unmatched shapes retain ordinary lowering. No parser or
+analyzer recursion/dispatch changed.
+
+The affected batch passes 90 composition, 42 scoped-record and four fallible-record
+tests. The added rethrow variant passes separately. Focused editor diagnostics
+pass. A 40th matched observation exercises nested paired-owner cleanup; its oracle
+is `2 * value + 910`, including six inner-cleanup turn observations in addition
+to the paired-owner arithmetic. All 40 observations verify untimed on native and
+Node-after-tsc. Source guards, rehash mutation controls, registration and project
+formatting pass. SQLite preserves `tsrust-b5-nested-pair-*.log` and
+`runtime/results/2026-10-08T21-34-27-759Z-verify.json`, read back byte-exact before
+loose copies are removed.
+
+B5 remains active. Broader loop forms, precise entry/element release, remaining
+callable compositions and Rust-style record Set equality/hash remain. Family
+regressions, timing and user consumer refresh remain pending. Scratch CLI includes
+this repair; five user executable consumers remain at gate181.
+
+Continuation prompt: Continue B5 from nested paired-owner cleanup. Read AGENTS.md,
+development-workflow.md and the scoped aggregate plan. Nested catch/finally Map
+discovery and post-clear conditional independence now pass with exact disposal.
+Proceed with broader loop forms and precise Map-entry/array-element capture
+release. Preserve retained-owner semantics, source ownership checks, focused
+editor behavior, matched benchmark support and SQLite evidence. Format the whole
+project before explicit-path source checkpoints. The full goal remains active.

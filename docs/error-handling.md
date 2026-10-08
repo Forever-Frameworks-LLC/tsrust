@@ -77,3 +77,8 @@ Cleanup may clear several independent Maps, including different fields of the
 same record. Each clear releases that Map's callbacks in statement order. Empty
 Maps outside a loop remain empty when the loop executes zero times. Renewing an
 empty native storage epoch does not discard callbacks retained by another Map.
+
+Nested handlers preserve cleanup order: an inner cleanup runs before an outer
+catch observes a rethrown error. An outer cleanup then runs before loop control
+resumes. A break in that cleanup can replace a pending continue, after preceding
+clear and capture-mutation statements have executed.
