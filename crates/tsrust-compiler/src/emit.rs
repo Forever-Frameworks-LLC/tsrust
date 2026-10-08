@@ -787,7 +787,6 @@ impl Emitter<'_> {
             Some(ClosureForward::Once(inner)) => (inner, true),
             _ => (origin, false),
         };
-        let checked = &self.program.closures[closure];
         let pairs = [crate::polymorphic_invocation_plans::Pair { origin: closure, method }];
         let plan = if let Some(id) = callee.generic_invocation.or_else(|| self.program.polymorphic_invocations.index(&pairs)) {
             self.program.polymorphic_invocations.checked(id, &self.program.closures, callee.span)
@@ -804,14 +803,16 @@ impl Emitter<'_> {
             self.expr(fun, arg, body.function.bindings[parameter].mode)
         }).collect::<Vec<_>>();
         let family = self.program.polymorphic_storage.contains(closure).then(|| self.program.polymorphic_storage.checked(closure, &self.program.closures, callee.span).expect("checked invocation storage"));
-        let text = plan.render(&receiver, &values, &supplied_count.to_string(),
-            |_| matches!(checked.forward, Some(ClosureForward::RestAdapter { counted: true, .. })),
+        let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
+        plan.render_with_transport(&receiver, &values, &supplied_count.to_string(),
+            |pair| matches!(self.program.closures[pair.origin].forward, Some(ClosureForward::RestAdapter { counted: true, .. })),
             mutable, family.as_ref().map(|family| (family.id, family.origins.as_slice())), callee.span,
-        ).expect("checked materialized invocation arguments");
-        if let Some(name)=self.result_methods.borrow().get(&(closure,method)).cloned() {
-            let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
-            self.exception_regions.result_call(&text,&name,&self.program.error_effects.method_errors[&(closure,method)],&unions,callee.span).expect("checked method Result invocation")
-        }else{text}
+            |pair,text| {
+                if let Some(name)=self.result_methods.borrow().get(&(pair.origin,pair.method)).cloned() {
+                    self.exception_regions.result_call(&text,&name,&self.program.error_effects.method_errors[&(pair.origin,pair.method)],&unions,callee.span)
+                } else {Ok(text)}
+            },
+        ).expect("checked materialized invocation arguments and Result transport")
     }
 
     fn capture_layout(
@@ -8993,6 +8994,28 @@ mod exception_region_tests {
         let opening=main+rust[main..].find('{').unwrap()+1;
         rust.insert_str(opening,"carrier_witness();");
         crate::scoped_record_places::tests::native(&rust);
+    }
+    #[test]
+    fn selected_generic_method_uses_its_own_result_transport() {
+        let source=crate::format("function first<T>(value:T):int{return 1;}function second<T>(value:T):int{return 8/0;}function main(){const one=first;const two=second;one<int>(3);two<int>(4);}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let mut checked=crate::check(&source).unwrap();
+        let runtime=crate::error_effects::materialize_runtime_record(&mut checked.program);
+        let main=checked.program.functions.iter().position(|function|function.name=="main").unwrap();
+        let calls=checked.program.functions[main].body.iter().filter_map(|statement|match &statement.kind {crate::syntax::StmtKind::Expr(call)=>Some(call),_=>None}).collect::<Vec<_>>();
+        let crate::syntax::ExprKind::Call(callee,_)=&calls[1].kind else {panic!("second call");};
+        let Some(crate::syntax::Type::Closure(origin))=callee.ty else {panic!("second environment");};
+        let Some(crate::syntax::CallTarget::ClosureMethod(method))=calls[1].target else {panic!("second method");};
+        let mut statement=checked.program.functions[main].body.iter().find(|statement|matches!(statement.kind,crate::syntax::StmtKind::Expr(_))).unwrap().clone();
+        let crate::syntax::StmtKind::Expr(call)=&mut statement.kind else {unreachable!()};
+        let id=checked.program.polymorphic_invocations.publish([crate::polymorphic_invocation_plans::Pair{origin,method}],&checked.program.closures,call.span).unwrap();
+        let crate::syntax::ExprKind::Call(callee,_)=&mut call.kind else {unreachable!()};
+        callee.generic_invocation=Some(id);
+        let emitter=super::emitter_for(&checked.program,"");
+        emitter.result_methods.borrow_mut().insert((origin,method),"SelectedMethodError".into());
+        let contract=checked.program.error_effects.method_errors[&(origin,method)].clone();
+        let body=emitter.callable_result_body(&checked.program.functions[main],&[statement],123,"DestinationError",contract,Some(runtime));
+        assert!(body.contains("SelectedMethodError"),"selected Result transport missing: {body}");
     }
     #[test]
     fn source_exception_pipeline_executes_catch_finally_and_propagation() {
