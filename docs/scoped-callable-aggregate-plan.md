@@ -1642,3 +1642,41 @@ already pass. Preserve exact O0/O3 disposal, cleanup order and source ownership.
 Complete editor and matched workload coverage for the repair, then proceed with
 remaining B5 scope. Keep SQLite evidence, whole-project formatting and explicit
 Git staging. Preserve unrelated fixtures. The full goal remains active.
+
+## Cleanup-mutation investigation checkpoint
+
+The source-valid cleanup-mutation witness remains red at the loop checkpoint.
+Focused native experiments show that naming completion temporaries alone,
+separating control from storage, splitting cleanup at the clear, and reconstructing
+empty storage after an owner-free suffix do not independently resolve E0502.
+Combined separation and scoped-suffix experiments also fail. All unsuccessful
+compiler changes and temporary instrumentation have been removed; source remains
+at the verified catch-loop implementation. The retained executable witness is
+unchanged. This is an investigation checkpoint, not an implementation acceptance.
+
+Diagnostics identify both completion shells and scoped Map bindings whose drop
+glue retains borrowed callback lifetimes across cleanup. The exact cause still
+needs reduction; do not treat the temporary-shell explanation as proven sufficient.
+SQLite contains each `tsrust-b5-cleanup-*.log` experiment, original reproduction
+and the complete formatted generated Rust as `tsrust-cleanup-native-repro.rs`.
+Each record is read back byte-exact and its loose copy removed. Project formatting
+changes no files. No family regression, timing or consumer refresh was performed.
+
+Next work should reduce the generated Rust ownership/control shape before further
+compiler changes. One untested direction is dispatching abrupt prefix completion
+directly into its enclosing region instead of joining its borrowed owner type with
+fresh empty suffix storage. Preserve nested outer cleanup: any escaping error must
+carry surviving owners where required, and normal cleanup must drop them before
+mutation. Keep the current source witness and exact disposal assertions. Avoid
+unsafe lifetime erasure, implicit clones, moving source mutations, or rejecting
+source-valid cleanup. B5 and the full goal remain active.
+
+Continuation prompt: Continue the retained B5 cleanup-mutation repair from this
+investigation checkpoint. Read AGENTS.md, development-workflow.md and the scoped
+aggregate plan. Restore `tsrust-cleanup-native-repro.rs` from SQLite into the shared
+temporary build area for focused reduction. Do not repeat naming-only or scoped
+suffix experiments as if untested; their native failures are preserved. Repair
+`catch_cleanup_clear_releases_captures_before_cleanup_mutation`, then complete
+compiler/native/editor and matched workload coverage. Preserve checked ownership,
+cleanup order, exact disposal, current passed evidence and unrelated fixtures.
+Format the whole project and stage explicit paths before source checkpoints.
