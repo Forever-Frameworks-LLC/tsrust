@@ -181,10 +181,41 @@ element write as replacement of the containing record. All 42 scoped record
 regressions pass. The array carrier planner still needs to consume these facts;
 the second-origin insertion witness remains intentionally red.
 
-The next implementation batch must resolve common concrete record elements and
-carry their capture loans through indexing, traversal, pop/shift and scope exit.
-Pair positive execution witnesses with owner-mutation conflicts, whole-container
-escape and moved-element lifetime checks. Then extend the same guarantees to Map,
-Set and nullable replacement without silently treating their layouts as identical.
-Complete editor, documentation, disposal and matched benchmark support before
-accepting B5; this initial red witness is not acceptance.
+The insertion red now passes. `record_array_carriers.rs` plans named local array
+storage from checked writes, widens initial elements and pushed records into one
+carrier, and updates indexed field dispatch. The witness invokes an element both
+before and after the new origin is inserted. All five composition witnesses, 12
+array tests and 42 scoped record tests pass. Capture ownership remains separately
+tracked; the planner performs no clone. This implementation currently covers named
+local push storage; other insertion methods, nested storage paths, branch/loop
+propagation and precise dynamic element identities remain open. The preceding
+work-in-progress checkpoint is `f88e92d`. B5 is not accepted yet.
+
+The dispatch canaries caught stack growth from adding a second planner call directly
+to the recursively retained block analyzer. Routing array planning through the
+existing record storage planner, with a small no-inline eligibility check, restores
+the `for_of` depth canary. Keep new heavy planning frames outside recursive block
+dispatch; do not raise thread stack limits to hide this regression.
+
+Current array composition supports named local storage with distinct callback
+origins, indexing, traversal, push/unshift, indexed replacement and splice.
+Removed arrays retain capture protection after the source container ends. Whole
+array reassignment preserves the concrete environment layout, including deferred
+outer storage. Moves between named arrays propagate a common element carrier
+back through their storage dependencies; subsequent insertion can widen that
+carrier without generating incompatible native types.
+
+Twelve focused composition tests pass, including native execution after outer-scope
+assignment, insertion after a move, both branch insertion paths, and invocation of
+removed records after their source array widens. Splice results participate in the
+same storage dependency plan as moved arrays. The expanded independent Node
+reference passes. The affected splice, unshift and ordinary array suites also pass
+(32 tests across the four suites). Capture-conflict and local-escape witnesses
+remain enforced. These checks establish this array storage batch, not B5 acceptance.
+Prior completed diagnostic and depth records remain verified in SQLite.
+
+Remaining B5 work includes nested storage, loop propagation, nullable removed-value
+layout propagation after later widening, precise element capture release, Map/Set
+composition and nullable replacement. Complete editor, guide, disposal and matched
+benchmark support before accepting the feature. Keep native execution and ownership
+rejection witnesses paired; do not permit a container to outlive borrowed captures.

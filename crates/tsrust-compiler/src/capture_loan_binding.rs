@@ -124,7 +124,7 @@ impl Analyzer {
                 ExprKind::Call(callee, _) => {
                     if let ExprKind::Field(base, method) = &callee.kind
                         && matches!(base.ty, Some(Type::Array(_)))
-                        && matches!(method.as_str(), "pop" | "shift")
+                        && matches!(method.as_str(), "pop" | "shift" | "splice")
                     {
                         // Removing one runtime-selected element must not release
                         // the capture owners of elements still in the container.

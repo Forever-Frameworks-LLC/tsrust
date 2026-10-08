@@ -22,3 +22,22 @@
         }
     
 main();
+
+function storageComposition(flag: boolean) {
+    const values = [3, 7, 11];
+    const initial: Holder[] = [{ run: () => values[0] }];
+    const moved = initial;
+    const removed = moved.splice(0, 1);
+    if (flag) moved.push({ run: () => values[1] });
+    else moved.push({ run: () => values[2] });
+    strictEqual(removed[0].run(), 3);
+    strictEqual(moved[0].run(), flag ? 7 : 11);
+    let outer: Holder[];
+    {
+        const holders: Holder[] = [{ run: () => values[0] }];
+        outer = holders.splice(0, 1);
+    }
+    strictEqual(outer[0].run(), 3);
+}
+storageComposition(true);
+storageComposition(false);

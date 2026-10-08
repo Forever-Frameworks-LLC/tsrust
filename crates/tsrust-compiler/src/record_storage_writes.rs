@@ -20,6 +20,11 @@ pub(super) fn collect(body: &[Stmt]) -> Vec<Write<'_>> {
             .then_some(Write{binding,path,span:value.span,value,array_element:false})
     }
     fn assignment<'a>(target: &Expr, value: &'a Expr) -> Option<Write<'a>> {
+        if let ExprKind::Index(base, _) = &target.kind
+            && let Some(binding) = Analyzer::root_binding(base)
+            && let Some((_, path)) = Analyzer::direct_fields(base)
+            && let Some(mut write) = selected(binding, path, value)
+        { write.array_element = true; return Some(write); }
         let binding=Analyzer::root_binding(target)?;
         let (_,path)=Analyzer::direct_fields(target)?;
         selected(binding,path,value)
@@ -62,7 +67,7 @@ pub(super) fn collect(body: &[Stmt]) -> Vec<Write<'_>> {
                 ExprKind::Binary{left,right,..}|ExprKind::Index(left,right)|ExprKind::CompoundAssign{target:left,value:right,..}|ExprKind::CoalesceAssign{target:left,value:right,..}|ExprKind::LogicalAssign{target:left,value:right,..}|ExprKind::Optional{base:left,body:right,..}=>{work.push(Work::Expression(right));work.push(Work::Expression(left));}
                 ExprKind::Conditional{predicate,consequent,alternate}=>{work.push(Work::Expression(alternate));work.push(Work::Expression(consequent));work.push(Work::Expression(predicate));}
                 ExprKind::Call(callee,args)=>{
-                    if expr.target==Some(crate::syntax::CallTarget::ArrayPush)
+                    if matches!(expr.target,Some(crate::syntax::CallTarget::ArrayPush | crate::syntax::CallTarget::ArrayUnshift | crate::syntax::CallTarget::ArraySplice))
                         && let ExprKind::Field(base,_)=&callee.kind
                         && let Some(binding)=Analyzer::root_binding(base)
                         && let Some((_,path))=Analyzer::direct_fields(base)

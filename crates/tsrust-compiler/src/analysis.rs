@@ -24,6 +24,8 @@ mod record_call_capture_release;
 mod record_parameter_carriers;
 #[path = "scoped_record_containers.rs"]
 mod scoped_record_containers;
+#[path = "record_array_carriers.rs"]
+mod record_array_carriers;
 #[path = "record_value_carriers.rs"]
 mod record_value_carriers;
 #[path = "record_storage_writes.rs"]
@@ -4897,7 +4899,9 @@ impl Analyzer {
         if self.local_record_nullable_callback(context,target) {
             return Err(Diagnostic::new("unsupported","A callback field that can be null or undefined and borrows local variables cannot be replaced yet. Declare a new record with the new value.",target.span));
         }
-        let contract=self.local_record_field_contract(context,target).unwrap_or(ty);
+        let contract=if let ExprKind::Index(base, _) = &target.kind && let Some(Type::Array(element)) = base.ty {
+            self.scoped_array_element_contract(base, element)
+        } else {self.local_record_field_contract(context,target).unwrap_or(ty)};
         let actual = if let Type::StoredCallable(family) = contract {
             self.stored_callable_value(context, value, family, &active)?
         } else {
@@ -4919,6 +4923,10 @@ impl Analyzer {
             return Err(Self::transferred(&context.bindings[binding], target.span));
         }
         Self::storage_access(context, target, Mode::Mutate, target.span, loans)?;
+        if let ExprKind::Index(base, _) = &target.kind {
+            self.widen_scoped_array_storage(context, base, actual, value.span)?;
+            self.append_target_capture_loans(context, base, value);
+        }
         self.update_local_record_field_type(context,target,actual)?;
         self.replace_target_capture_loans(context, target, value);
         Ok(())
@@ -5804,6 +5812,7 @@ impl Analyzer {
         }
         crate::flow::invalidate(&mut context.flow, id);
         if matches!((actual,ty),(Type::Record(a),Type::Record(b)) if self.scoped_records.declaration(a)==self.scoped_records.declaration(b)){context.bindings[id].ty=actual;}
+        if matches!((actual,ty),(Type::Array(ArrayElement::Record(a,0)),Type::Array(ArrayElement::Record(b,0))) if self.scoped_records.declaration(a)==self.scoped_records.declaration(b)){context.bindings[id].ty=actual;}
         context.bindings[id].transferred = None;
         context.bindings[id].moved_fields.clear();
         context.bindings[id].mutable = true;
@@ -10961,13 +10970,16 @@ impl Analyzer {
             ));
         };
         let active = Self::selection_loans(base, loans);
+        let contract = self.scoped_array_element_contract(base, element);
         for arg in args.iter_mut() {
             let actual = if let Type::StoredCallable(family) = element.ty() {
                 self.stored_callable_value(context, arg, family, &active)?
             } else {
-                self.expression(context, arg, Mode::Consume, &active, Some(element.ty()))?
+                self.expression(context, arg, Mode::Consume, &active, Some(contract))?
             };
-            self.require(actual, Some(element.ty()), arg.span)?;
+            self.require(actual, Some(contract), arg.span)?;
+            self.widen_scoped_array_storage(context, base, actual, arg.span)?;
+            self.append_target_capture_loans(context, base, arg);
         }
         Self::storage_access(
             context,
@@ -11044,7 +11056,7 @@ impl Analyzer {
         };
         let active = Self::selection_loans(base, loans);
         for (index, arg) in args.iter_mut().enumerate() {
-            let expected = if index < 2 { Type::Int } else { element.ty() };
+            let expected = if index < 2 { Type::Int } else { self.scoped_array_element_contract(base, element) };
             let mode = if index < 2 { Mode::Copy } else { Mode::Consume };
             let actual = if index >= 2
                 && let Type::StoredCallable(family) = expected
@@ -11054,6 +11066,10 @@ impl Analyzer {
                 self.expression(context, arg, mode, &active, Some(expected))?
             };
             self.require(actual, Some(expected), arg.span)?;
+            if index >= 2 {
+                self.widen_scoped_array_storage(context, base, actual, arg.span)?;
+                self.append_target_capture_loans(context, base, arg);
+            }
         }
         Self::storage_access(
             context,
@@ -11066,7 +11082,7 @@ impl Analyzer {
             span,
             loans,
         )?;
-        Ok(Type::Array(element))
+        Ok(if matches!(base.kind, ExprKind::Name(_)) { context.bindings[base.binding.expect("checked named array")].ty } else { Type::Array(element) })
     }
 
     fn array_mutation(
@@ -11104,7 +11120,11 @@ impl Analyzer {
             ));
         };
         let active = Self::selection_loans(base, loans);
-        let argument_type = if remove { Type::Int } else { element.ty() };
+        let widening = !remove && matches!(base.kind, ExprKind::Name(_)) && matches!(element, ArrayElement::Record(id, 0) if self.aggregate_callable_facts(Type::Record(id)).scoped);
+        let argument_type = if remove { Type::Int } else if widening {
+            let ArrayElement::Record(id, 0) = element else { unreachable!() };
+            Type::Record(self.scoped_records.declaration(id))
+        } else { element.ty() };
         let actual = if !remove && let Type::StoredCallable(family) = argument_type {
             self.stored_callable_value(context, &mut args[0], family, &active)?
         } else {
@@ -11118,6 +11138,12 @@ impl Analyzer {
         };
         self.require(actual, Some(argument_type), args[0].span)?;
         Self::storage_access(context, base, Mode::Mutate, span, loans)?;
+        if widening && let (ArrayElement::Record(previous, 0), Type::Record(incoming)) = (element, actual) {
+            let joined = if previous == incoming { Type::Record(previous) } else { self.join_record_types(previous, incoming, span)?.ok_or_else(||Diagnostic::new("type", "Array callback field environments have incompatible contracts.", args[0].span))? };
+            let Type::Record(record) = joined else { unreachable!() };
+            let binding = base.binding.expect("checked named array");
+            context.bindings[binding].ty = Type::Array(ArrayElement::Record(record, 0));
+        }
         if !remove { self.append_target_capture_loans(context, base, &args[0]); }
         Ok(if remove { element.ty() } else { Type::Void })
     }

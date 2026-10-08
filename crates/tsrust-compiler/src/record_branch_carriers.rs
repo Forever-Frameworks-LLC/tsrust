@@ -109,7 +109,8 @@ impl Analyzer {
                 _=>{}
             }
             Ok(())
-        })
+        })?;
+        self.record_array_carriers(context,body)
     }
     pub(super) fn record_field_type(&self,mut ty:Type,path:&[String])->Option<Type>{
         for name in path{let Type::Record(record)=ty else{return None;};ty=self.program.records[record].fields.iter().find(|field|field.name.text==*name)?.ty?;}
