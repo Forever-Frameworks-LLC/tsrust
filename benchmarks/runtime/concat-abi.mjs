@@ -1,3 +1,4 @@
+import {sourceIdentityMatches} from './format-source-identity.mjs';
 // No native ABI is presumed: this guard consumes actual emitted compiler bytes.
 import crypto from 'node:crypto';
 import {assertConcatPolicy,concatFields} from './concat-observation.mjs';
@@ -5,12 +6,12 @@ import {pruneObserverContainers} from './reduction-abi.mjs';
 const hash=text=>crypto.createHash('sha256').update(text).digest('hex'),compact=text=>text.replace(/\s+/g,'');
 const fail=id=>{throw Error('Concat emitted ABI/schema changed: '+id);};
 export function assertConcatSource(source,w){
- assertConcatPolicy(w);if(typeof source!=='string'||!/^([a-f0-9]{64})$/.test(w.concatSourceSha256??'')||hash(source)!==w.concatSourceSha256)fail(w.id);
+ assertConcatPolicy(w);if(typeof source!=='string'||!/^([a-f0-9]{64})$/.test(w.concatSourceSha256??'')||!sourceIdentityMatches(w.concatSourceSha256,hash(source)))fail(w.id);
  const declarations=[...source.matchAll(/function\s+workload\s*\(([^)]*)\)\s*:\s*([A-Za-z0-9_\[\]\s]+)\s*\{/g)],parameters='n:int,seed:int'+(w.inputText===undefined?'':',input:string');
  if(declarations.length!==1||compact(declarations[0][1])!==parameters||compact(declarations[0][2])!==w.result)fail(w.id);
  if(w.recordSchema){const declarations=[...source.matchAll(/type\s+([A-Za-z0-9_]+)\s*=\s*\{([^}]+)\}\s*;/g)];if(declarations.length!==1||declarations[0][1]!==w.recordSchema.record)fail(w.id);const fields=declarations[0][2].split(';').map(s=>s.trim()).filter(Boolean).map(s=>{const m=/^([A-Za-z0-9_]+)\s*:\s*([A-Za-z0-9_\[\]\s]+)$/.exec(s);if(!m)fail(w.id);return [m[1],compact(m[2])];});if(JSON.stringify(fields)!==JSON.stringify(concatFields[w.recordSchema.record]))fail(w.id);}
 }
-export function assertConcatTSSource(source,w){assertConcatPolicy(w);if(typeof source!=='string'||!/^([a-f0-9]{64})$/.test(w.concatTSSha256??'')||hash(source)!==w.concatTSSha256)fail(w.id);if(w.concatTSAlphaMap&&(w.concatTSAlphaMap.from!=='ConcatBenchmarkNode'||w.concatTSAlphaMap.to!=='Node'||w.concatDomain!=='recursive_record'))fail(w.id);}
+export function assertConcatTSSource(source,w){assertConcatPolicy(w);if(typeof source!=='string'||!/^([a-f0-9]{64})$/.test(w.concatTSSha256??'')||!sourceIdentityMatches(w.concatTSSha256,hash(source)))fail(w.id);if(w.concatTSAlphaMap&&(w.concatTSAlphaMap.from!=='ConcatBenchmarkNode'||w.concatTSAlphaMap.to!=='Node'||w.concatDomain!=='recursive_record'))fail(w.id);}
 export function verifyConcatABI(emitted,w,source){
  assertConcatSource(source,w);if(typeof emitted!=='string'||!emitted.includes('fn main()'))fail(w.id);
  const declarations=[...emitted.matchAll(/fn\s+function0\s*\(([^)]*)\)\s*->\s*([^\n{]+)\s*\{/g)],parameters='value0:i64,value1:i64'+(w.inputText===undefined?'':',value2:&String');

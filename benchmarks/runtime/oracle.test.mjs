@@ -1,3 +1,4 @@
+import {containsCodeSnippet} from './source-contract-tokens.mjs';
 import {isCopying,validateCopyingObservation} from './copying-array-observation.mjs';
 import {isRange,validateRangeObservation} from './range-mutation-observation.mjs';
 import {isHigher,validateHigherObservation} from './higher-order-observation.mjs';
@@ -181,7 +182,7 @@ test('all current authored counterparts agree with independent results under the
   const code=ts.transpileModule(source+'\n'+driver,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,alwaysStrict:true}}).outputText;
   for(const [n,seed] of [[0,0],[1,7],[2,19],[17,3]]) {
    const printed=[];
-   vm.runInNewContext(code,{TextEncoder,TextDecoder,exports:{},require:createRequire(import.meta.url),console:{log:value=>printed.push(JSON.parse(value))},process:{argv:['node','test',String(n),String(seed),'0','1',row.inputText??'']},performance:{now:()=>0}});
+   vm.runInNewContext(code,{containsCodeSnippet, TextEncoder,TextDecoder,exports:{},require:createRequire(import.meta.url),console:{log:value=>printed.push(JSON.parse(value))},process:{argv:['node','test',String(n),String(seed),'0','1',row.inputText??'']},performance:{now:()=>0}});
    assert.equal(printed.length,1,row.id);
    const observed=printed[0];
    if(requiresExactResult(row)) {
@@ -204,12 +205,12 @@ test('approximate Math counterparts use immutable references rather than exact N
   const header=`fn function1(${Array.from({length:arity},(_,i)=>`value${i}: f64`).join(', ')}) -> f64 {} fn main() {}`;
   const probe=approximatePointProbeSources(header,tsSource,row,loaded.reference);
   const points=[];
-  vm.runInNewContext(ts.transpileModule(probe.ts,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText,{console:{log:value=>points.push(JSON.parse(value))}});
+  vm.runInNewContext(ts.transpileModule(probe.ts,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText,{containsCodeSnippet, console:{log:value=>points.push(JSON.parse(value))}});
   validateApproximatePointProbe(points[0],loaded.reference);
   for(const [n,seed] of [[0,0],[1,7],[2,19],[17,3]]) {
    const printed=[];
    const driver=adaptTSDriver('',row);
-   vm.runInNewContext(ts.transpileModule(tsSource+'\n'+driver,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText,{console:{log:value=>printed.push(JSON.parse(value))},process:{argv:['node','test',String(n),String(seed),'0','1']},performance:{now:()=>0}});
+   vm.runInNewContext(ts.transpileModule(tsSource+'\n'+driver,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText,{containsCodeSnippet, console:{log:value=>printed.push(JSON.parse(value))},process:{argv:['node','test',String(n),String(seed),'0','1']},performance:{now:()=>0}});
    validateApproximateMeasurement(printed[0],loaded.reference,{iterations:n,seed,warmups:0,samples:1,pointProbeAccepted:true});
   }
  }

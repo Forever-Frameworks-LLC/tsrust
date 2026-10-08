@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -16,6 +17,6 @@ test('matched expectation sources have exact hashes and real API calls',()=>{
  for(const [engine,extension] of [['native','tsr'],['typescript','ts']]){
   const source=fs.readFileSync(new URL('./workloads/'+row.id+'.'+extension,import.meta.url),'utf8');
   assertTestingAssertionSource(source,row,engine);
-  assert.throws(()=>assertTestingAssertionSource(source.replace(row.methodExpressions[engine][0],'standIn()'),row,engine));
+  assert.throws(()=>assertTestingAssertionSource(replaceCodeSnippet(source, row.methodExpressions[engine][0], 'standIn()'),row,engine));
  }
 });

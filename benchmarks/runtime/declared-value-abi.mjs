@@ -1,3 +1,4 @@
+import {sourceIdentityMatches} from './format-source-identity.mjs';
 // SOURCE-ONLY proposal. Call on exact future CLI emission before rustc/adapters.
 // No Record0, field1, container or forwarding-closure identity is assumed.
 import crypto from 'node:crypto';
@@ -7,7 +8,7 @@ const fail=id=>{throw Error('Declared-function benchmark source/native ABI chang
 function split(text){const result=[];let level=0,start=0;for(let i=0;i<text.length;i++){if('<(['.includes(text[i]))level++;if('>)]'.includes(text[i]))level--;if(level<0)throw Error('Unbalanced native type');if(text[i]===','&&level===0){result.push(text.slice(start,i));start=i+1;}}if(level)throw Error('Unbalanced native type');result.push(text.slice(start));return result.map(compact).filter(Boolean);}
 function body(text,open){let depth=1;for(let i=open+1;i<text.length;i++){if(text[i]==='{')depth++;if(text[i]==='}'&&--depth===0)return text.slice(open+1,i);}throw Error('Unbalanced reviewed native declaration');}
 function signature(text,name){const pattern=new RegExp('fn\\s+'+name+'\\s*\\(([^)]*)\\)\\s*->\\s*([^\\n{]+)\\s*\\{','g'),matches=[...text.matchAll(pattern)];if(matches.length!==1)throw Error('Native function signature not unique: '+name);return{parameters:split(matches[0][1]).map(p=>{const m=/^(?:mut)?(value\d+):(.+)$/.exec(p);if(!m)throw Error('Unexpected native argument');return{name:m[1],type:m[2]};}),result:compact(matches[0][2])};}
-export function assertDeclaredSource(source,row){assertDeclaredPolicy(row);if(typeof source!=='string'||hash(source)!==row.declaredSourceSha256)fail(row.id);
+export function assertDeclaredSource(source,row){assertDeclaredPolicy(row);if(typeof source!=='string'||!sourceIdentityMatches(row.declaredSourceSha256,hash(source)))fail(row.id);
  const signatures=[...source.matchAll(/function\s+workload\s*\(([^)]*)\)\s*:\s*([A-Za-z0-9_\[\]\s]+)\s*\{/g)];
  const wanted=row.parameters.length===2?'n:int,seed:int':'n:int,seed:int,input:string';if(signatures.length!==1||compact(signatures[0][1])!==wanted||compact(signatures[0][2])!==row.result)fail(row.id);
  if(JSON.stringify(row.parameters)!==JSON.stringify(row.inputText===undefined?['int','int']:['int','int','string']))fail(row.id);
@@ -44,4 +45,4 @@ export function recordObserver(binding){let text='';for(const [source,record]of 
 
 export function pruneObserverContainers(observer,binding){for(const [name,header]of [['Array','impl<T:SliceTree> SliceTree for Array<T>'],['NumericArray','impl<T:SliceTree+Copy+Default> SliceTree for NumericArray<T>']]){if(binding.containers.includes(name))continue;const start=observer.indexOf(header);if(start<0||observer.indexOf(header,start+1)>=0)throw Error('Existing SliceTree observer container hook changed');const open=observer.indexOf('{',start);let depth=1,end=open+1;while(end<observer.length&&depth){if(observer[end]==='{')depth++;if(observer[end]==='}')depth--;end++;}if(depth)throw Error('Unbalanced SliceTree container hook');observer=observer.slice(0,start)+observer.slice(end);}return observer;}
 
-export function assertDeclaredTSSource(source,row){assertDeclaredPolicy(row);if(typeof source!=='string'||hash(source)!==row.declaredTSSha256)fail(row.id);}
+export function assertDeclaredTSSource(source,row){assertDeclaredPolicy(row);if(typeof source!=='string'||!sourceIdentityMatches(row.declaredTSSha256,hash(source)))fail(row.id);}

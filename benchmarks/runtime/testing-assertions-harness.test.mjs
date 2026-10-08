@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -15,7 +16,7 @@ test('assertion workload uses real APIs and exact current sources',()=>{
  for(const [engine,extension] of [['native','tsr'],['typescript','ts']]){
   const source=fs.readFileSync(new URL('workloads/'+row.id+'.'+extension,import.meta.url),'utf8');
   assert.doesNotThrow(()=>assertTestingAssertionSource(source,row,engine));
-  assert.throws(()=>assertTestingAssertionSource(source.replace('strictEqual(actual, expected);',''),row,engine));
+  assert.throws(()=>assertTestingAssertionSource(replaceCodeSnippet(source, 'strictEqual(actual, expected);', ''),row,engine));
  }
  const emitted='fn function12(value0: i64, value1: i64) -> i64 {0}\nfn main() {}';
  assert.equal(assertABI(emitted,row).functionName,'function12');

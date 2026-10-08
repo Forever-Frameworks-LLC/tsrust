@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 // Prepared focused checks. Synthetic ABI fixtures do not count as native acceptance.
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import crypto from 'node:crypto';
 import {isConcat,assertConcatPolicy,validateConcatObservation} from './concat-observation.mjs';
@@ -18,7 +19,7 @@ test('all25 result families use known exact protocols and independent hand oracl
 test('actual record owner and three field bindings are independent of Gate51 Row5',()=>{
  const binding=verifyConcatABI(native,row,source);assert.equal(binding.records[0].name,'Record7');assert.deepEqual(binding.records[0].fields.map(f=>f.source),['code','text','items']);assert.deepEqual(binding.containers,['Vec']);assert.deepEqual(assertABI(native,row,{source}),binding);
  for(const bad of [native.replace('field0:i64','field0:f64'),native.replace('field0:','field3:'),native.replace('field2:Vec<i64>','field2:Vec<Vec<i64>>'),native.replace('field2:Vec<i64>','field2:Vec<i64>,field3:i64,field4:i64'),native.replace('value2:&String','value2:String'),native.replace('->Vec<Vec<Record7>>','->&Vec<Vec<Record7>>'),native.replace("Cow<'static,str>","Cow<'static,[u8]>"),native+'\nfn function0(value0:i64,value1:i64,value2:&String)->Vec<Vec<Record7>> {}'])assert.throws(()=>verifyConcatABI(bad,row,source));
- assert.throws(()=>verifyConcatABI(native,row,source+'\n'));const changed=source.replace('text:string','text:int');assert.throws(()=>verifyConcatABI(native,{...row,concatSourceSha256:hash(changed)},changed));assert.throws(()=>adaptRustDriver(read('driver.rs'),row));
+ assert.throws(()=>verifyConcatABI(native,row,source+'\n'));const changed=replaceCodeSnippet(source, 'text:string', 'text:int');assert.throws(()=>verifyConcatABI(native,{...row,concatSourceSha256:hash(changed)},changed));assert.throws(()=>adaptRustDriver(read('driver.rs'),row));
 });
 test('recursive standard owners and aliases bind the same nominal Node and reject cycles',()=>{
  const w=rows.find(w=>w.id==='array_concat_recursive_record_zero'),authored=read('workloads/'+w.id+'.tsr');

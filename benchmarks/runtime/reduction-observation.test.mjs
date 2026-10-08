@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 // Gate51 focused source preparation. Tests are unexecuted until parent grants checks.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -29,7 +30,7 @@ test('actual ABI derives Record7 and nested Vec fields instead of trusting provi
  const wrapper=adaptRustDriver(read('driver.rs'),row,{emitted,source});assert.match(wrapper,/impl ReductionTree for Record7/);assert.doesNotMatch(wrapper,/for Array<T>|for NumericArray<T>|Record0/);assert.ok(wrapper.indexOf('start.elapsed()')<wrapper.indexOf('validate(value)'));
  const checksum=rustChecksum(row,{probe:true,emitted,source});assert.match(checksum,/fn probe_checksum/);assert.doesNotMatch(checksum,/Record0|impl<T:ReductionTree> ReductionTree for Array/);
  for(const bad of [emitted.replace('field0: i64','field0: f64'),emitted.replace('field0:','field5:'),emitted.replace('field4: i64','field4: i64, field5: bool'),emitted.replace('Vec<Vec<i64>>','Vec<i64>'),emitted.replace('value1: i64','value1: f64'),emitted.replace('-> Record7','-> &Record7'),emitted.replace("Cow<'static, str>","Cow<'static, [u8]>"),emitted+'\nfn function0(value0:i64,value1:i64)->Record7 {}'])assert.throws(()=>verifyReductionABI(bad,row,source));
- assert.throws(()=>verifyReductionABI(emitted,row,source.replace('text:string','text:int')));
+ assert.throws(()=>verifyReductionABI(emitted,row,replaceCodeSnippet(source, 'text:string', 'text:int')));
  assert.throws(()=>adaptRustDriver(read('driver.rs'),row));
 });
 test('record aliases and container support are bound to actual emitted declarations',()=>{

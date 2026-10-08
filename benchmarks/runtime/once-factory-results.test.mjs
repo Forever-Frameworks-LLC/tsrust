@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import { expectedChecksum } from './oracle.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -29,7 +30,7 @@ test('explicit once factory results retain matched scalar ownership and native o
       assert.equal(expectedChecksum(id, n, seed), expected);
       assert.equal(evaluate(require, n, seed), expected);
       const file = path.join(temporary, 'main.tsr');
-      fs.writeFileSync(file, source.replace('function main() { console.log(workload(2, 7)); }', `function main(){console.log(workload(${n},${seed}));}`));
+      fs.writeFileSync(file, replaceCodeSnippet(source, 'function main() { console.log(workload(2, 7)); }', `function main(){console.log(workload(${n},${seed}));}`));
       for (const flags of [[], ['--release']]) {
         assert.equal(execFileSync(compiler, ['run', file, ...flags], {encoding: 'utf8'}), expected + '\n');
       }

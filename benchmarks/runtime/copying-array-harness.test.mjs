@@ -1,3 +1,4 @@
+import {containsCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';import vm from 'node:vm';import assert from 'node:assert/strict';import fs from 'node:fs';
 import {isCopying,assertCopyingPolicy,validateCopyingObservation} from './copying-array-observation.mjs';import {assertCopyingSource,assertCopyingTSSource} from './copying-array-result-abi.mjs';import {validationProtocol} from './approximate-scalar.mjs';import {requiresExactResult} from './result-observation.mjs';import {adaptTSDriver} from './adapters.mjs';import {expectedChecksum,expectedExactResult} from './oracle.mjs';import {expectedCopyingObservation} from './copying-array-oracle.mjs';import {reportCategory} from './report.mjs';
 const rows=JSON.parse(fs.readFileSync(new URL('copying-array-manifest-entries.json',import.meta.url)));
@@ -13,7 +14,7 @@ test('copying runtime preparation selects one source ABI guard',()=>{
   const source=fs.readFileSync(new URL('workloads/'+row.id+'.tsr',import.meta.url),'utf8');
   const ts=fs.readFileSync(new URL('workloads/'+row.id+'.ts',import.meta.url),'utf8');
   const context={w:row,source,ts,isCopying,assertCopyingSource,assertCopyingTSSource,isRange:()=>false,isHigher:()=>false,isDeclared:()=>false,isConcat:()=>false,isReduction:()=>false};
-  assert.doesNotThrow(()=>vm.runInNewContext(actualProductionGuards,context),row.id);
-  assert.throws(()=>vm.runInNewContext(actualProductionGuards,{...context,source:source+' '}),row.id);
+  assert.doesNotThrow(()=>vm.runInNewContext(actualProductionGuards,{...context, containsCodeSnippet}),row.id);
+  assert.throws(()=>vm.runInNewContext(actualProductionGuards,{containsCodeSnippet, ...context,source:source+' '}),row.id);
  }
 });

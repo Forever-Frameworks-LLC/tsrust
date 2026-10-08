@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -21,7 +22,7 @@ test('Scoped callable records retain sources, independent observations and execu
   assert.throws(()=>assertScopedCallableRecordsSource(source,{...row,operationsPerIteration:2},kind));
   const key=kind==='native'?'sourceSha256':'counterpartSha256';
   for(const [from,to] of [['replace(holder, value + 7);',''],['const run = holder.run;','const run = (): int => 0;'],['stepped = step.next();','stepped = count;'],['base[0] = 0;','']]){
-   assert.ok(source.includes(from));const changed=source.replace(from,to);
+   assert.ok(source.includes(from));const changed=replaceCodeSnippet(source, from, to);
    assert.throws(()=>assertScopedCallableRecordsSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   }
  }

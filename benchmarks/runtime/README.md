@@ -160,7 +160,7 @@ Gate76 adds four ASCII/Unicode String.isWellFormed/toWellFormed comparisons with
 
 ## Measurement cadence
 
-[The development workflow](../../docs/development-workflow.md) schedules full regressions and accumulated performance measurements every five gates. Checkpoint96 is accepted; the current batch is gates 97–101. Focused correctness and documented-example checks remain per gate. [Checkpoint tracking](../coverage/checkpoints.json) distinguishes registered workloads from measured report coverage; manifest entries alone are not measurements.
+[The development workflow](../../docs/development-workflow.md) schedules full regressions and accumulated performance measurements at meaningful feature-family milestones. The earlier five-gate schedule is historical. Focused correctness and documented-example checks remain per gate. [Checkpoint tracking](../coverage/checkpoints.json) distinguishes registered workloads from measured report coverage; manifest entries alone are not measurements.
 
 ## Checkpoint 86
 
@@ -181,3 +181,19 @@ SQLite retains exact accepted raw records and derived samples, source digests, p
 Execution and allocation runners skip Markdown by default. `--report` opts in; `npm run report` remains optional and can read exact archived results. Closed raw files retain their original logical paths and bytes in SQLite; see the [restoration guide](../storage/README.md#accepted-raw-analytics-and-restoration). Existing BENCHMARKS.md is a preserved historical snapshot.
 
 Checkpoint96 accepts 48 new native/compiled-Node pairs and refreshes 18 older affected workloads after the bounded concat refinement. [Completed evidence](diagnostics/2026-10-04T01-06-08-000Z-checkpoint96-completed-proof.json) retains the initial 48-row proof and the separate 33-row affected measurement, with zero final disposal across resource samples. There are 674 registered pairs and 670 historically measured pairs; four unrelated peer rows remain unmeasured. The 15 same-source native means improved in the observed sequential runs and allocation counts fell; this is an early regression/refactor signal, not an isolated API or universal speed claim. SQLite preserves exact records and source identities; BENCHMARKS.md remains an unchanged optional historical export.
+
+## Source contracts after formatting
+
+Use `containsCodeSnippet`, `findCodeSnippet` and `replaceCodeSnippet` from
+`source-contract-tokens.mjs` for executable source excerpts and mutations. These
+helpers ignore code layout while preserving literal contents and operator spelling.
+Check occurrence counts when the number of calls or observations matters. A missing
+mutation must fail instead of returning unchanged source.
+
+Manifest prefix guards use `manifestMetadataHash` to pin workload metadata and row
+order; registration tests separately check exact source fingerprints. Historical
+numerical and ABI source identities remain immutable. `format-source-identities.json`
+records specifically proven formatting transitions, including their original and
+current hashes, baseline commit and common token digest. Do not add a transition
+without checking the original bytes and token equality. Runtime and allocation
+records include this proof registry in their oracle inputs.

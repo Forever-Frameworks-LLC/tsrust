@@ -1,3 +1,4 @@
+import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -27,7 +28,7 @@ test('annotated once locals retain matched checksums and native ABI', () => {
       const expected = seed + n * seed + n * (n - 1);
       assert.equal(evaluate(require, n, seed), expected);
       const file = path.join(temporary, 'main.tsr');
-      fs.writeFileSync(file, source.replace('function main() { console.log(workload(2, 7)); }', `function main(){console.log(workload(${n},${seed}));}`));
+      fs.writeFileSync(file, replaceCodeSnippet(source, 'function main() { console.log(workload(2, 7)); }', `function main(){console.log(workload(${n},${seed}));}`));
       assert.equal(execFileSync(compiler, ['run', file], {encoding: 'utf8'}), expected + '\n');
     }
   } finally { fs.rmSync(temporary, {recursive: true, force: true}); }

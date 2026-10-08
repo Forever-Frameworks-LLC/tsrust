@@ -722,3 +722,13 @@ escape diagnostics have focused acceptance. Matched adapters retain 136 observat
 with untimed native/compiled-TypeScript verification. General scoped aggregate storage,
 distinct-family coalescing, polymorphic replacement and mutable restoration remain open.
 See milestones/173-scoped-callable-transport.md.
+
+## Benchmark layout contracts
+
+Gate 174 repairs the benchmark harness after project formatting. Token-based source
+guards and mutations retain semantic checks. Manifest metadata remains pinned
+independently of source fingerprints, and historical numerical policies retain
+immutable bytes with explicitly proven formatting identities. Representative native
+and Node-after-tsc verification is untimed. The named-declaration family milestone
+and callable replacement witnesses remain separate work. See
+[milestone 174](milestones/174-benchmark-layout-contracts.md).

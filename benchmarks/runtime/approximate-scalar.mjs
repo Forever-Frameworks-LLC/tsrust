@@ -1,3 +1,4 @@
+import {sourceIdentityMatches} from './format-source-identity.mjs';
 import {isCopying,assertCopyingPolicy,validateCopyingObservation} from './copying-array-observation.mjs';
 import {isRange,assertRangePolicy,validateRangeObservation} from './range-mutation-observation.mjs';
 import {isHigher,assertHigherPolicy} from './higher-order-observation.mjs';
@@ -59,7 +60,7 @@ export function approvedPolicyForWorkload(workload,{approvedPolicyBytes,inputRec
  const maximum=approved.method==='hypot'?32:8;
  if(!approved.policy||approved.policy.predeclared!==true||approved.policy.maxOperationRankSteps!==maximum||approved.policy.exactSupportingAddition!=='binary64-nearest-even-in-source-order'||approved.policy.quantization!==false)fail('root-approved 8/32 numerical policy required');
  if(!approved.domain)fail('approved domain required');checkedInteger(approved.domain.maxIterations,1000000,'approved iteration domain');checkedInteger(approved.domain.maxSeed,1000000,'approved seed domain');
- if(approved.tsSha256!==tsSha256||approved.tsrSha256!==tsrSha256||!sha.test(tsSha256)||!sha.test(tsrSha256))fail('approved source identity mismatch');
+ if(!sourceIdentityMatches(approved.tsSha256,tsSha256)||!sourceIdentityMatches(approved.tsrSha256,tsrSha256)||!sha.test(tsSha256)||!sha.test(tsrSha256))fail('approved source identity mismatch');
  hashedJSON(inputRecipeBytes,approved.inputRecipeSha256,'approved input recipe');
  if(!Array.isArray(approved.argumentBounds)||approved.argumentBounds.length!==arity)fail('approved argument bounds required');
  for(const bound of approved.argumentBounds){const lower=dyadic(bound.lower),upper=dyadic(bound.upper);if(lower.n*upper.d>upper.n*lower.d)fail('reversed approved argument bounds');}
@@ -82,7 +83,7 @@ export function validateReferenceBundle(referenceBytes,workload,context){
  const approved=approvedPolicyForWorkload(workload,context),spec=workload.approximateValidation;
  if(spec.referencePending===true)fail('reference generation pending');
  const bundle=hashedJSON(referenceBytes,spec.referenceSha256,'reference');
- if(bundle.protocol!==APPROXIMATE_SCALAR_PROTOCOL||bundle.schemaVersion!==1||bundle.workloadId!==workload.id||bundle.tsSha256!==context.tsSha256||bundle.tsrSha256!==context.tsrSha256||bundle.policySha256!==spec.policySha256)fail('reference source identity mismatch');
+ if(bundle.protocol!==APPROXIMATE_SCALAR_PROTOCOL||bundle.schemaVersion!==1||bundle.workloadId!==workload.id||!sourceIdentityMatches(bundle.tsSha256,context.tsSha256)||!sourceIdentityMatches(bundle.tsrSha256,context.tsrSha256)||bundle.policySha256!==spec.policySha256)fail('reference source identity mismatch');
  if(bundle.method!==approved.method||bundle.operationArity!==approved.operationArity||bundle.inputRecipeSha256!==approved.inputRecipeSha256||!sameJSON(bundle.policy,approved.policy)||!sameJSON(bundle.domain,approved.domain)||!sameJSON(bundle.argumentBounds,approved.argumentBounds))fail('reference does not match actual approved policy/domain/method/arity/bounds');
  const recipePoints=approvedRecipePoints(workload,approved,context.inputRecipeBytes);
  const provenance=bundle.provenance;
