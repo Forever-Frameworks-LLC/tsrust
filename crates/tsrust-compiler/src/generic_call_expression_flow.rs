@@ -116,6 +116,8 @@ pub(super) struct Invocation {
     pub facts: Facts,
 }
 pub(super) trait Dispatch {
+    fn begin_node(&mut self, _:usize) {}
+    fn end_node(&mut self) {}
     fn reject(&mut self) {}
     fn transfer_array_result(&mut self,_:&Expr,_:&mut Value,_:&mut FlowState)->bool {true}
     fn capture(&mut self, _: &Expr, _: &mut Value, _: &mut FlowState) {}
