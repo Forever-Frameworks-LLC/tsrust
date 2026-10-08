@@ -8945,6 +8945,22 @@ mod exception_region_tests {
         std::fs::remove_dir_all(directory).unwrap();
     }
     #[test]
+    fn source_generic_replacements_construct_and_dispatch_native_family_variants() {
+        let source = crate::format("function identity<T>(value:T):T{return value;}function main(){let action=identity;console.log(action<int>(3));const saved=action;action=identity;console.log(action<string>('owned'));console.log(saved<int>(7));}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(), source);
+        let checked = crate::check(&source).unwrap();
+        let family = checked.program.polymorphic_storage.families(&checked.program.closures, crate::Span::default()).unwrap().pop().unwrap();
+        assert_eq!(family.origins.len(), 2);
+        let rust = super::emit(&checked.program);
+        for (variant, origin) in family.origins.iter().enumerate() {
+            assert!(rust.contains(&format!("TsrGenericFamily{}::V{variant}(Closure{origin}", family.id)),
+                "source construction must retain each concrete environment in its native storage variant");
+        }
+        assert!(rust.contains("match method_environment"), "source calls must dispatch through the checked family");
+        crate::scoped_record_places::tests::native_output(&rust, "3\nowned\n7\n");
+    }
+
+    #[test]
     fn registered_generic_storage_uses_checked_native_environments() {
         let mut checked = crate::check("function first<T>(value:T):T{return value;}function second<T>(value:T):T{return value;}function inactive<T>(left:T,right:T):T{return right;}function main(){const one=first;const two=second;const unused=inactive;one<int>(3);two<string>('warm');two<int>(4);}").unwrap();
         checked.program.polymorphic_storage.observe(0, 1);
