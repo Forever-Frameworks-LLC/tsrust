@@ -1297,10 +1297,13 @@ fn remap_function_closures(
                 if let Some(ty) = &mut expr.ty {
                     remap_closure_type(ty, ids)?;
                 }
-                // The saved call origin names the same environment arena. An
-                // origin that was not retained leaves the call without one, so
-                // its error contract stays unresolved rather than misdirected.
+                // Constructors require their concrete payload identity. A call
+                // with an unretained origin stays unresolved instead of using
+                // another environment's error contract.
                 if let Some(CallableOrigin::Closure(origin)) = expr.callable_origin {
+                    if matches!(expr.kind, ExprKind::Closure { .. }) && ids.get(origin).copied().flatten().is_none() {
+                        return Err(Diagnostic::new("callable-layout", "Constructed generic environment lost its origin during compaction.", expr.span));
+                    }
                     expr.callable_origin = ids.get(origin).copied().flatten().map(CallableOrigin::Closure);
                 }
                 match &mut expr.kind {

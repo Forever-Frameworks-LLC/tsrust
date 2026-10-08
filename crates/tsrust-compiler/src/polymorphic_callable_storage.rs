@@ -229,6 +229,28 @@ mod tests {
     }
 
     #[test]
+    fn fresh_construction_identity_survives_storage_retagging_and_compaction() {
+        let source = crate::format("function identity<T>(value:T):T{return value;}function unused<T>(){let action=identity;action=identity;}function replace<T>(value:T):T{let action=identity;action=identity;return action<T>(value);}function main(){replace<int>(7);replace<string>('owned');}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(), source);
+        let checked = crate::check(&source).unwrap();
+        let mut replacements = 0;
+        for function in checked.program.functions.iter().filter(|function| !function.template) {
+            for expression in crate::error_effects::checked_expressions(function) {
+                if !matches!(expression.kind, crate::syntax::ExprKind::Closure { .. }) { continue; }
+                let origin = expression.closure_origin().expect("constructed generic environment retains identity");
+                assert!(checked.program.deferred_generic_values.contains(&origin));
+                assert!(!checked.program.closures[origin].function.template);
+                let crate::syntax::Type::Closure(storage) = expression.ty.unwrap() else { panic!("generic storage"); };
+                if storage != origin {
+                    assert!(checked.program.polymorphic_storage.members(storage).unwrap().contains(&origin));
+                    replacements += 1;
+                }
+            }
+        }
+        assert_eq!(replacements, 2, "each concrete instance retains its fresh replacement payload");
+    }
+
+    #[test]
     fn unused_template_assignments_do_not_publish_provisional_storage_origins() {
         let checked = crate::check("function identity<T>(value:T):T{return value;}function unused<T>(){let action=identity;action=identity;}function main(){}").unwrap();
         assert!(checked.program.polymorphic_storage.parents.is_empty());

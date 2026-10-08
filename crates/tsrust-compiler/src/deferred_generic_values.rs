@@ -55,6 +55,8 @@ impl Analyzer {
             id: usize::MAX - span.start, params: Vec::new(),
             result: ResultAnnotation::Inferred(span), body: Vec::new(),
         };
+        let Type::Closure(origin) = ty else { unreachable!("deferred generic environment") };
+        expression.callable_origin = Some(CallableOrigin::Closure(origin));
         Ok(ty)
     }
 
@@ -284,6 +286,24 @@ impl Analyzer {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn constructed_environment_cannot_silently_lose_compacted_identity() {
+        let source = crate::format("function identity<T>(value:T):T{return value;}function main(){const action=identity;action<int>(7);}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(), source);
+        let mut checked = crate::check(&source).unwrap();
+        let ids = (0..checked.program.closures.len()).map(Some).collect::<Vec<_>>();
+        let function = checked.program.functions.iter_mut().find(|function| function.name == "main").unwrap();
+        let value = function.body.iter_mut().find_map(|statement| match &mut statement.kind {
+            crate::syntax::StmtKind::Let { value, .. } => Some(value), _ => None,
+        }).unwrap();
+        assert!(matches!(value.kind, crate::syntax::ExprKind::Closure { .. }));
+        value.callable_origin = Some(crate::syntax::CallableOrigin::Closure(usize::MAX));
+        let span = value.span;
+        let error = super::remap_function_closures(function, &ids).unwrap_err();
+        assert_eq!(error.code, "callable-layout");
+        assert_eq!(error.span, span);
+    }
+
     #[test]
     fn explicit_unused_type_arguments_keep_distinct_methods_and_reuse_equivalents() {
         let checked=crate::check("function action<T>():int{return 7;}function main(){const alias=action;alias<int>();alias<string>();alias<int>();}").unwrap();
