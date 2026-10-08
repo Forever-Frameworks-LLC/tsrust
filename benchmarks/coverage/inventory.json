@@ -10860,7 +10860,7 @@
       "category": "Control flow",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "implemented",
+      "implementation": "in progress",
       "comparison": "missing",
       "evidence": [
         "./milestones/63-compound-assignment.md"

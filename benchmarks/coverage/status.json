@@ -3018,7 +3018,7 @@
     "note": "Native signed 64-bit bits; JavaScript timing covers only the exact shared domain. Counts 0..63 are checked; shifted bits may be discarded. Logical right uses u64 bits and casts back to i64. Explicit int contexts or concrete typed int anchors select this operation; existing literal-only Number defaults and strict mixed-type rejection remain unchanged. Operands and compound target/old-value/RHS effects occur once in source order, with commit only after success. Complete retained int[] outputs use the existing observer without offsets. Setup and output construction/retention are timed; scalar operations allocate nothing in focused evidence. Separate native-only wide, trap, no-commit and disposal witnesses pass."
   },
   "control.assignmentExpression": {
-    "implementation": "implemented",
+    "implementation": "in progress",
     "comparison": "missing",
     "evidence": [
       "./milestones/63-compound-assignment.md"

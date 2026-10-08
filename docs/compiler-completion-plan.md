@@ -145,7 +145,7 @@ needed before it counts as in scope or as a policy exclusion.
 These inventory rows say `pending` but execute natively. Each needs its status row,
 evidence link and (where missing) a matched workload, not new compiler work.
 
-`array.literalSpread`, `control.assignmentExpression`, `control.forOfIterable`
+`array.literalSpread`, `control.forOfIterable`
 (arrays, strings, Map, Set, entries/keys), `control.void`,
 `syntax.defaultParameters`, `syntax.export`, `syntax.import`, `syntax.hoisting`,
 `syntax.optionalCatchBinding`, `string.iteration`, `null.narrowing`,
@@ -155,7 +155,7 @@ evidence link and (where missing) a matched workload, not new compiler work.
 `type.nonNullAssertion`, labeled control, tuples, enums, `satisfies`, object spread,
 destructuring, optional chaining, `in`.
 
-Reconciled in gate 178: twenty inventory rows above now carry `implemented` with
+Reconciled in gate 178: nineteen inventory rows above now carry `implemented` with
 their existing workloads and milestone records. The remaining names in the list
 (labeled control, tuples, enums, `satisfies`, object spread, destructuring, optional
 chaining, `in`) already had accepted rows under other identifiers.
@@ -177,6 +177,7 @@ chaining, `in`) already had accepted rows under other identifiers.
 | B11 | S07 resources and bytes: opaque handles, close, drop, views | standard library roadmap | pending | incomplete |
 | B12 | S12 thread prerequisites: transferred captures, Send-like checks | standard library roadmap | pending | incomplete |
 | B13 | S13 async compiler: `async`/`await`, async main, suspend-safe loans | standard library roadmap | `unsupported` at declaration | incomplete |
+| B15 | Assignment as a value for strings, arrays and records (`(text = "x").length`) | inventory `control.assignmentExpression` | `unsupported`; int, number and boolean values work | incomplete |
 | B14 | `switch` fallthrough between non-empty cases | inventory `control.fallthrough` | `unsupported` with guidance | decision (see C) |
 
 ## C. Not in an approved plan: owner decision required
