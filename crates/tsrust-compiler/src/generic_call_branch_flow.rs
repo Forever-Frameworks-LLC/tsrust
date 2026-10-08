@@ -223,7 +223,7 @@ mod provenance_join_tests {
             "#)).unwrap();
             assert_eq!(crate::format(&source).unwrap(), source);
             let mut program = crate::syntax::parse(&source).unwrap();
-            let error = validate(&mut program).err().expect("changed guard must not justify incompatible cardinalities");
+            let error = validate(&mut program).err().unwrap_or_else(|| panic!("{update}: changed guard must not justify incompatible cardinalities"));
             assert_eq!(error.code, "arity", "{update}: {error:?}");
             assert!(!error.related.is_empty(), "the incompatible origin must be identified");
         }

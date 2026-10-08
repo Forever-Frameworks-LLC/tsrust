@@ -262,7 +262,7 @@ pub(super) fn evaluate_with_dispatch(expression: &Expr, state: &mut FlowState, f
                         values.push(Value::default());
                     }
                 } else {
-                    for binding in state.iter_mut() { binding.elements = None; if binding.mutable { binding.selection = Selection::default(); } }
+                    for binding in state.iter_mut() { binding.elements = None; if binding.mutable || binding.identity.is_some_and(|identity| effects.may_write(identity)) { binding.selection = Selection::default(); } }
                     if observe_failures { failures.push(state.clone()); }
                     values.push(Value::default());
                 }

@@ -111,10 +111,16 @@ fn body_writes(body: &[Stmt], writes: &mut Vec<Write>) {
 pub(super) fn writes(program: &mut Program) -> Result<Vec<Write>, Diagnostic> {
     let mut writes = Vec::new();
     for function in &mut program.functions {
-        body_writes(&function.body, &mut writes);
+        function_writes(function, &mut writes)?;
+    }
+    Ok(writes)
+}
+
+pub(super) fn function_writes(function: &mut Function, writes: &mut Vec<Write>) -> Result<(), Diagnostic> {
+        body_writes(&function.body, writes);
         crate::source_walk::function_body(function, &mut |_| Ok(()), &mut |expression| {
             match &expression.kind {
-                ExprKind::Closure { body, .. } => body_writes(body, &mut writes),
+                ExprKind::Closure { body, .. } => body_writes(body, writes),
                 ExprKind::Assign {
                     target,
                     value: assigned,
@@ -148,6 +154,5 @@ pub(super) fn writes(program: &mut Program) -> Result<Vec<Write>, Diagnostic> {
             }
             Ok(())
         })?;
-    }
-    Ok(writes)
+    Ok(())
 }
