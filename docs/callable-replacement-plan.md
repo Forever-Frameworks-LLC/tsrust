@@ -1,6 +1,6 @@
 # Callable replacement implementation plan
 
-Latest component checkpoint: declaration-to-environment selection is integrated into concrete deferred-generic call checking. See docs/handoff-2026-10-07-invocation-origin-selection.md. The family remains open.
+Latest component checkpoint: production emission declares canonical generic storage families with independently typed payloads. See docs/handoff-2026-10-07-native-generic-storage.md. Source binding construction and dispatch remain open; the family is not accepted.
 
 ## Current evidence
 

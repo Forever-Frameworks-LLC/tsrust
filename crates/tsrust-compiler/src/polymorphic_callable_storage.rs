@@ -79,17 +79,20 @@ impl Registry {
         checked_origins(self.parents.keys().copied(), closures, span).map(|_| ())
     }
 
-    #[cfg(test)]
+    pub(crate) fn families(&self, closures: &[CheckedClosure], span: Span) -> Result<Vec<Family>, Diagnostic> {
+        self.parents.keys().copied().filter(|&origin| self.root(origin) == Some(origin))
+            .map(|origin| self.checked(origin, closures, span)).collect()
+    }
+
     fn checked(&self, origin: usize, closures: &[CheckedClosure], span: Span) -> Result<Family, Diagnostic> {
         let members = self.members(origin).ok_or_else(|| Diagnostic::new("callable-layout", "Generic storage origin has not been registered.", span))?;
         Family::checked(*members.first().expect("registered member"), members, closures, span)
     }
 }
 
-#[cfg(test)]
-struct Family {
-    id: usize,
-    origins: Vec<usize>,
+pub(crate) struct Family {
+    pub(crate) id: usize,
+    pub(crate) origins: Vec<usize>,
 }
 
 fn checked_origins(origins: impl IntoIterator<Item = usize>, closures: &[CheckedClosure], span: Span) -> Result<Vec<usize>, Diagnostic> {
@@ -108,18 +111,18 @@ fn checked_origins(origins: impl IntoIterator<Item = usize>, closures: &[Checked
         Ok(origins)
 }
 
-#[cfg(test)]
 impl Family {
     fn checked(id: usize, origins: impl IntoIterator<Item = usize>, closures: &[CheckedClosure], span: Span) -> Result<Self, Diagnostic> {
         Ok(Self { id, origins: checked_origins(origins, closures, span)? })
     }
 
-    fn declaration(&self, parameters: &[String], environment_type: impl Fn(usize) -> String) -> String {
+    pub(crate) fn declaration(&self, parameters: &[String], environment_type: impl Fn(usize) -> String) -> String {
         let parameters = if parameters.is_empty() { String::new() } else { format!("<{}>", parameters.join(", ")) };
         let variants = self.origins.iter().enumerate().map(|(variant, &origin)| format!("V{variant}({})", environment_type(origin))).collect::<Vec<_>>().join(", ");
         format!("enum TsrGenericFamily{}{parameters} {{ {variants} }}\n", self.id)
     }
 
+    #[cfg(test)]
     fn inject(&self, origin: usize, value: &str, span: Span) -> Result<String, Diagnostic> {
         let variant = self.origins.binary_search(&origin).map_err(|_| Diagnostic::new("callable-layout", "Environment origin is not a member of this generic storage family.", span))?;
         Ok(format!("TsrGenericFamily{}::V{variant}({value})", self.id))
