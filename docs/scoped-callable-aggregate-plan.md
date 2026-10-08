@@ -616,3 +616,18 @@ state outside shared recursive emission.
 The affected 61-test batch, eight depth canaries and focused editor diagnostics
 pass. Exact checks are verified in SQLite as
 `tsrust-b5-both-branch-refill-checks.log`. Formatting changes no files.
+
+A multi-field native witness now clears two independently capturing Map fields in
+opposite orders across the two branches. Both branch choices execute. Old capture
+mutation, refilled callback invocation, sibling marker retention, an empty sibling
+Map and final new-capture release are asserted. This checks that transport orders
+its storage targets consistently without changing source disposal order. Existing
+emission handles the witness without a source change.
+
+The matched workload now chooses a clear branch from value parity before refill
+and before final new-capture mutation. The arithmetic oracle remains unchanged;
+source guards require the complete two-branch clear statements, so removing a
+clear remains a semantic rejection even when the source hash is repinned.
+Registration, focused multi-field native execution and all five matched
+native/Node-after-tsc cases pass. Exact untimed evidence is verified in SQLite as
+`runtime/results/2026-10-08T16-31-37-088Z-verify.json`. B5 remains incomplete.

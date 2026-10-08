@@ -1,6 +1,48 @@
 mod support;
 
 #[test]
+fn both_branches_renew_independent_map_fields_without_losing_siblings() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        type Pair = { left: Map<string, Holder>; right: Map<string, Holder>; marker: int; };
+        function scenario(branch: boolean): void {
+            const first = [3];
+            const second = [7];
+            const third = [11];
+            const left = new Map<string, Holder>();
+            left.set("old", { run: (): int => first[0] });
+            const right = new Map<string, Holder>();
+            right.set("old", { run: (): int => second[0] });
+            const pair: Pair = { left: left, right: right, marker: 23 };
+            if (branch) {
+                pair.left.clear();
+                strictEqual(pair.marker, 23);
+                pair.right.clear();
+            } else {
+                pair.right.clear();
+                strictEqual(pair.marker, 23);
+                pair.left.clear();
+            }
+            pair.left.set("new", { run: (): int => third[0] });
+            first[0] = 5;
+            second[0] = 9;
+            strictEqual(first[0] + second[0], 14);
+            {
+                const current = pair.left.get("new");
+                if (current !== undefined) strictEqual(current.run(), 11);
+            }
+            strictEqual(pair.right.size, 0);
+            strictEqual(pair.marker, 23);
+            pair.left.clear();
+            third[0] = 13;
+            strictEqual(third[0], 13);
+        }
+        function main(): void { scenario(true); scenario(false); }
+    "#);
+}
+
+#[test]
 fn cleared_map_refill_tracks_only_current_capture_owners() {
     let source = r#"
         import { strictEqual } from "std:testing";

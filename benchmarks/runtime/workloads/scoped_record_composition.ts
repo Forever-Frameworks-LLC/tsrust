@@ -78,7 +78,7 @@ function workload(n: int, seed: int, input: string): int[][] {
         const refillMap = new Map<string, Holder>();
         const refillBox: RefillBox = { handlers: refillMap, marker: 1 };
         refillBox.handlers.set("old", { run: (): int => oldCapture[0] });
-        refillBox.handlers.clear();
+        if (value % 2 === 0) { refillBox.handlers.clear(); } else { refillBox.handlers.clear(); }
         refillBox.handlers.set("new", { run: (): int => newCapture[0] });
         oldCapture[0] = value + 5;
         let refilled = 0;
@@ -86,7 +86,7 @@ function workload(n: int, seed: int, input: string): int[][] {
             const current = refillBox.handlers.get("new");
             if (current !== undefined) refilled = current.run();
         }
-        refillBox.handlers.clear();
+        if (value % 2 === 0) { refillBox.handlers.clear(); } else { refillBox.handlers.clear(); }
         newCapture[0] = value + 6;
         refilled += oldCapture[0] + newCapture[0] + refillBox.marker;
 
