@@ -82,3 +82,7 @@ Nested handlers preserve cleanup order: an inner cleanup runs before an outer
 catch observes a rethrown error. An outer cleanup then runs before loop control
 resumes. A break in that cleanup can replace a pending continue, after preceding
 clear and capture-mutation statements have executed.
+
+A callback inserted after cleanup clears a Map remains stored and keeps its
+captures borrowed. A later explicit clear releases it. A view returned by `get`
+must leave its scope before the Map can be cleared or otherwise mutated.

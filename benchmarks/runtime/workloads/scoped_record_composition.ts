@@ -647,6 +647,7 @@ function caughtMapLoop(value: number, trace: number[]): number {
 
 function pairedMapLoop(value: number, trace: number[]): number {
  const pairedOld=[value];const pairedNext=[value+1];let turn=0;
+ const spareMap=new Map<string,int>();
  let pairedLeft=new Map<string,Holder>();let pairedRight=new Map<string,Holder>();
  while(turn<3){
   pairedLeft.set("old",{run:():number=>pairedOld[0]});pairedRight.set("next",{run:():number=>pairedNext[0]});turn+=1;
@@ -654,6 +655,7 @@ function pairedMapLoop(value: number, trace: number[]): number {
   catch(error){if(turn===1)continue;break;}
   finally{trace[0]+=pairedLeft.size+pairedRight.size;pairedLeft.clear();pairedRight.clear();pairedOld[0]=value+150;pairedNext[0]=value+151;trace[1]+=pairedLeft.size+pairedRight.size;}
  }
+ trace[1]+=spareMap.size;
  return pairedOld[0]+pairedNext[0]+turn+pairedLeft.size+pairedRight.size;
 }
 

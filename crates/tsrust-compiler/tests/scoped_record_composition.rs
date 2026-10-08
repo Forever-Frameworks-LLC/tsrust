@@ -1,6 +1,21 @@
 mod support;
 
 #[test]
+fn empty_scoped_record_map_has_a_native_layout_without_insertions() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const spare=new Map<string,Holder>();console.log(spare.size);spare.clear();}");
+ support::execute(&source,"0\n",None);
+}
+
+#[test]
+fn cleanup_conditional_refill_retains_callback_until_explicit_clear() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function main():void{const old=[3];const next=[5];let turn=0;let handlers=new Map<string,Holder>();while(turn<2){handlers.set('old',{run:():int=>old[0]});turn+=1;try{failIf(false);}catch(error){console.log('caught');}finally{handlers.clear();if(turn===2)handlers.set('next',{run:():int=>next[0]});}}{const saved=handlers.get('next');if(saved!==undefined)console.log('saved',saved.run());}console.log('size',handlers.size);handlers.clear();next[0]=9;console.log('after',next[0]);}");
+ verify_disposal(&source,2,"drop 0\ndrop 0\nsaved 5\nsize 1\ndrop 1\nafter 9\n");
+ let conflict=source.replace("console.log('size', handlers.size);", "next[0]=9;console.log('size',handlers.size);");
+ assert_ne!(conflict,source);
+ assert_eq!(tsrust_compiler::check(&conflict).err().expect("retained callback protects capture").code,"capture-conflict");
+}
+
+#[test]
 fn nested_catch_pair_preserves_loop_control_and_cleanup() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};type Pair={left:Map<string,Holder>;right:Map<string,Holder>;};function failIf(fail:boolean):void{if(fail)throw 7;}function main():void{const old=[3];const next=[5];let turn=0;let box:Pair={left:new Map<string,Holder>(),right:new Map<string,Holder>()};while(turn<3){box.left.set('old',{run:():int=>old[0]});box.right.set('next',{run:():int=>next[0]});turn+=1;try{try{failIf(turn!==2);}catch(error){if(turn===1)continue;break;}finally{console.log('inner',turn);}}catch(error){console.log('outer caught');}finally{console.log('cleanup',turn,box.left.size,box.right.size);box.left.clear();box.right.clear();old[0]=9;next[0]=11;}}console.log('after',box.left.size,box.right.size,old[0],next[0]);}");
  verify_disposal(&source,2,"inner 1\ncleanup 1 1 1\ndrop 0\ndrop 1\ninner 2\ncleanup 2 1 1\ndrop 0\ndrop 1\ninner 3\ncleanup 3 1 1\ndrop 0\ndrop 1\nafter 0 0 9 11\n");
@@ -25,6 +40,10 @@ fn paired_record_map_loop_releases_both_cleanup_captures() {
  assert_ne!(roots,source);
  verify_disposal(&support::format_round_trip(&roots),2,"cleanup 1 1 1\ndrop 0\ndrop 1\ncleanup 2 1 1\ndrop 0\ndrop 1\ncleanup 3 1 1\ndrop 0\ndrop 1\nafter 0 0 9 11\n");
  verify_disposal(&support::format_round_trip(&source.replace("turn < 3", "turn < 0")),2,"after 0 0 3 5\n");
+
+ let spare=roots.replace("let left=new Map<string,Holder>();", "let spare=new Map<string,int>();let left=new Map<string,Holder>();");
+ assert_ne!(spare,roots);
+ verify_disposal(&support::format_round_trip(&spare),2,"cleanup 1 1 1\ndrop 0\ndrop 1\ncleanup 2 1 1\ndrop 0\ndrop 1\ncleanup 3 1 1\ndrop 0\ndrop 1\nafter 0 0 9 11\n");
 
 }
 

@@ -884,6 +884,7 @@ function pairedMapLoop(value: int, trace: Mutable<int[]>): int {
     const pairedOld = [value];
     const pairedNext = [value + 1];
     let turn = 0;
+    const spareMap = new Map<string, int>();
     let pairedLeft = new Map<string, Holder>();
     let pairedRight = new Map<string, Holder>();
     while (turn < 3) {
@@ -909,6 +910,7 @@ function pairedMapLoop(value: int, trace: Mutable<int[]>): int {
         }
     }
 
+    trace[1] += spareMap.size;
     return pairedOld[0] + pairedNext[0] + turn + pairedLeft.size + pairedRight.size;
 }
 

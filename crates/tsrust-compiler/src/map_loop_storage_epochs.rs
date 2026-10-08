@@ -37,7 +37,9 @@ impl Emitter<'_> {
             };
             let mut found = false;
             if empty_map_initializer(value, &[]) {
-                candidates.push((format!("value{binding}"), *binding, Vec::new()));
+                if self.scoped_record_native_parameter(fun.bindings[*binding].ty) {
+                    candidates.push((format!("value{binding}"), *binding, Vec::new()));
+                }
                 found = true;
             }
             if let Some(layout) = self.owned_record_layout(fun, *binding) {
@@ -56,7 +58,9 @@ impl Emitter<'_> {
                         ty = field.ty.unwrap();
                     }
                     if empty_map_initializer(value, &names) {
-                        candidates.push((leaf.native_name(*binding), *binding, names));
+                        if self.scoped_record_native_parameter(leaf.ty) {
+                            candidates.push((leaf.native_name(*binding), *binding, names));
+                        }
                         found = true;
                     }
                 }

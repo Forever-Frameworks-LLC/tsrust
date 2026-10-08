@@ -1798,3 +1798,59 @@ Proceed with broader loop forms and precise Map-entry/array-element capture
 release. Preserve retained-owner semantics, source ownership checks, focused
 editor behavior, matched benchmark support and SQLite evidence. Format the whole
 project before explicit-path source checkpoints. The full goal remains active.
+
+## Retained refill and unrelated scalar Map checkpoint
+
+Conditional refill after cleanup retains its callback until a later explicit
+clear. A new exact O0/O3 witness verifies the retained callback result, size,
+disposal and capture release. Moving capture mutation before that clear correctly
+reports `capture-conflict`. The optional `get` view uses an explicit inner scope;
+its original unscoped form correctly reports `view-conflict` under current rules.
+
+An unrelated scalar Map adjacent to two borrowing-record Maps exposed E0502:
+loop discovery required even that scalar Map to participate in the scoped owner
+clear proof. Candidates now include only Maps with scoped callback payloads,
+while discovery may continue past empty scalar Map declarations. Root and record
+leaf selection use the same scoped-payload predicate. Paired-owner disposal with
+an adjacent scalar Map now passes; no scalar Map is renewed or discarded.
+
+One newly retained red witness remains:
+`empty_scoped_record_map_has_a_native_layout_without_insertions`. A never-filled
+`Map<string, Holder>` whose Holder field is `ReadOnly<Function<int>>` is rejected
+by declaration-only scoped container validation before emission. The earlier
+spare borrowing-record Map variation exposed this same limitation. Do not remove
+the witness or equate an empty container with an unsupported payload operation.
+
+Investigate empty concrete record environments next. Existing `Analyzer::absent_callback`
+creates a distinct callback contract, and `TsrAbsentCallable` supplies an
+uninhabited native environment. Reuse that mechanism per empty record instance
+rather than changing a shared declaration callback to absent. Check native trait
+emission as well: `TsrAbsentCallable` is currently emitted only when a nullable
+union mentions callbacks. Preserve normal later insertion/widening and callback
+parameters elsewhere. Cover empty size, clear, lookup, iteration, movement and
+later insertion before acceptance. Do not simply remove validation and allow
+undefined native generic parameters.
+
+The affected batch passes 91 composition, 42 scoped-record and four fallible-record
+tests, explicitly excluding the one red empty-layout witness. Focused editor and
+registration checks pass. The paired workload now includes the adjacent scalar
+Map and observes its unchanged empty size. All 40 observations verify untimed on
+native and Node-after-tsc with unchanged independent expectations. SQLite stores
+`tsrust-b5-retained-refill-*.log`, `tsrust-b5-spare-*.log`,
+`tsrust-b5-empty-scoped-map-red.log` and
+`runtime/results/2026-10-08T21-42-25-884Z-verify.json`, read back byte-exact before
+loose copies are removed. Formatting and explicit staging preserve owner fixtures.
+
+B5 remains incomplete. Empty scoped record container layout is the next concrete
+repair, followed by broader loop forms, precise entry/element release, remaining
+callable compositions and Rust-style record Set equality/hash. Family regressions,
+timing and user consumer refresh remain pending.
+
+Continuation prompt: Continue B5 from retained refill and the adjacent scalar Map
+repair. Read AGENTS.md, development-workflow.md and this handoff. Keep the newly
+retained empty scoped record Map witness and implement its concrete absent
+callback environment using existing mechanisms where suitable. Preserve populated
+Map inference, ownership and callback parameter behavior. Then continue broader
+loops and precise release. Keep focused editor/native/matched checks and SQLite
+evidence current, format the whole project and stage explicit paths. The full
+goal remains active.
