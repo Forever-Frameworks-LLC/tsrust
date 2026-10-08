@@ -242,6 +242,7 @@ impl CallbackContract {
 
 
 pub struct CheckedProgram {
+    pub(crate) polymorphic_storage: crate::polymorphic_callable_storage::Registry,
     pub(crate) record_call_releases: HashMap<usize,Vec<(usize,Vec<String>)>>,
     pub(crate) record_parameter_replacements: HashMap<usize,Vec<(usize,Vec<String>,Type)>>,
     pub(crate) scoped_records: crate::scoped_record_layout::Registry,
@@ -481,6 +482,7 @@ pub fn analyze(program: Program) -> Result<CheckedProgram, Diagnostic> {
 
 // Incomplete capture layouts stay private, even after typed flow checking.
 fn finish_analysis(mut checked: CheckedProgram) -> Result<CheckedProgram, Diagnostic> {
+    checked.polymorphic_storage.validate(&checked.closures, Span::default())?;
     definitely_assigned(&mut checked)?;
     checked.named_capture_layouts = named_capture_layout::build(&checked)?;
     crate::named_capture_lowering::prepare(&mut checked)?;
@@ -640,6 +642,7 @@ struct Analyzer {
     abstract_returns: HashMap<usize, usize>,
     function_values: HashMap<usize, usize>,
     deferred_generic_values: HashMap<usize, deferred_generic_values::Source>,
+    polymorphic_storage: crate::polymorphic_callable_storage::Registry,
     closure_method_sources: HashMap<usize, ClosureMethodSource>,
     closure_specializations: HashMap<(usize, Vec<Type>, bool, bool), usize>,
     callables: crate::callable_resolution::Tables,
@@ -1527,6 +1530,7 @@ impl Analyzer {
             abstract_returns: HashMap::new(),
             function_values: HashMap::new(),
             deferred_generic_values: HashMap::new(),
+            polymorphic_storage: Default::default(),
             closure_method_sources: HashMap::new(),
             closure_specializations: HashMap::new(),
             callables,
@@ -3062,6 +3066,7 @@ impl Analyzer {
                 remap_closure_type(&mut self.signatures[index].result,&ids)?;
             }
             self.deferred_generic_values=std::mem::take(&mut self.deferred_generic_values).into_iter().filter_map(|(origin,source)|ids[origin].map(|mapped|(mapped,source))).collect();
+            self.polymorphic_storage = self.polymorphic_storage.remap(&ids, Span::default())?;
             self.callables.storage.remap_origins(&ids)?;
             self.unions.remap_closure_origins(&ids);
             self.closures = self
@@ -3126,6 +3131,7 @@ impl Analyzer {
         let record_call_releases=record_call_capture_release::summaries(&self.checked,&self.program.records,&self.closures);
         let deferred_generic_nominals = self.deferred_generic_nominal_uses();
         let checked = CheckedProgram {
+            polymorphic_storage: self.polymorphic_storage,
             record_call_releases,
             record_parameter_replacements:self.record_parameter_replacements,
             scoped_records: self.scoped_records,
@@ -5537,6 +5543,13 @@ impl Analyzer {
         // but rejecting a read of x after an earlier transfer. Commit only after
         // evaluation and exact type checking complete.
         let actual = self.expression(context, value, Mode::Consume, loans, Some(ty))?;
+        if !self.effects_only && !self.discovering_results && !context.template
+            && let (Type::Closure(previous), Type::Closure(next)) = (ty, actual)
+            && self.deferred_generic_values.contains_key(&previous)
+            && self.deferred_generic_values.contains_key(&next)
+        {
+            self.polymorphic_storage.observe(previous, next);
+        }
         let actual = self.fresh_generic_replacement_type(ty, actual, value);
         let nullable_callback = matches!(self.unions.payload(ty), Some(Type::Callback(_)));
         if matches!(ty, Type::Callback(_)) && actual != ty {

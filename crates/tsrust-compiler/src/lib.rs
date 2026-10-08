@@ -11,8 +11,6 @@ mod callable_storage;
 mod capture_loan_owners;
 mod capture_loan_identity;
 mod callable_layout;
-// Source assignment integration follows the independently verified carrier contract.
-#[cfg(test)]
 mod polymorphic_callable_storage;
 mod callable_size;
 mod callable_dispatch;

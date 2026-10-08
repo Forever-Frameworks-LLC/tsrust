@@ -5,12 +5,12 @@ use std::collections::{BTreeMap, BTreeSet};
 
 /// Storage connectivity is monotone. It does not describe which origin reaches a call.
 #[derive(Default)]
-struct Registry {
+pub(crate) struct Registry {
     parents: BTreeMap<usize, usize>,
 }
 
 impl Registry {
-    fn observe(&mut self, previous: usize, replacement: usize) {
+    pub(crate) fn observe(&mut self, previous: usize, replacement: usize) {
         self.parents.entry(previous).or_insert(previous);
         self.parents.entry(replacement).or_insert(replacement);
         let previous = self.root(previous).unwrap();
@@ -27,12 +27,13 @@ impl Registry {
         None
     }
 
+    #[cfg(test)]
     fn members(&self, origin: usize) -> Option<Vec<usize>> {
         let root = self.root(origin)?;
         Some(self.parents.keys().copied().filter(|&member| self.root(member) == Some(root)).collect())
     }
 
-    fn remap(&self, ids: &[Option<usize>], span: Span) -> Result<Self, Diagnostic> {
+    pub(crate) fn remap(&self, ids: &[Option<usize>], span: Span) -> Result<Self, Diagnostic> {
         let mut result = Self::default();
         let mut seen = BTreeSet::new();
         for &origin in self.parents.keys() {
@@ -46,19 +47,25 @@ impl Registry {
         Ok(result)
     }
 
+    pub(crate) fn validate(&self, closures: &[CheckedClosure], span: Span) -> Result<(), Diagnostic> {
+        if self.parents.is_empty() { return Ok(()); }
+        checked_origins(self.parents.keys().copied(), closures, span).map(|_| ())
+    }
+
+    #[cfg(test)]
     fn checked(&self, origin: usize, closures: &[CheckedClosure], span: Span) -> Result<Family, Diagnostic> {
         let members = self.members(origin).ok_or_else(|| Diagnostic::new("callable-layout", "Generic storage origin has not been registered.", span))?;
         Family::checked(*members.first().expect("registered member"), members, closures, span)
     }
 }
 
+#[cfg(test)]
 struct Family {
     id: usize,
     origins: Vec<usize>,
 }
 
-impl Family {
-    fn checked(id: usize, origins: impl IntoIterator<Item = usize>, closures: &[CheckedClosure], span: Span) -> Result<Self, Diagnostic> {
+fn checked_origins(origins: impl IntoIterator<Item = usize>, closures: &[CheckedClosure], span: Span) -> Result<Vec<usize>, Diagnostic> {
         let mut origins = origins.into_iter().collect::<Vec<_>>();
         origins.sort_unstable();
         origins.dedup();
@@ -71,7 +78,13 @@ impl Family {
                 return Err(Diagnostic::new("callable-layout", "Generic storage requires checked polymorphic environment layouts.", span).related(closure.span, "Environment is defined here."));
             }
         }
-        Ok(Self { id, origins })
+        Ok(origins)
+}
+
+#[cfg(test)]
+impl Family {
+    fn checked(id: usize, origins: impl IntoIterator<Item = usize>, closures: &[CheckedClosure], span: Span) -> Result<Self, Diagnostic> {
+        Ok(Self { id, origins: checked_origins(origins, closures, span)? })
     }
 
     fn declaration(&self, parameters: &[String], environment_type: impl Fn(usize) -> String) -> String {
@@ -148,6 +161,45 @@ mod tests {
         assert!(registry.remap(&[Some(0), Some(1), None], Span::default()).is_err());
         assert!(registry.remap(&[Some(0), Some(1), Some(0)], Span::default()).is_err());
         assert!(registry.remap(&[Some(0)], Span::default()).is_err());
+    }
+
+    #[test]
+    fn checked_reassignments_retain_fresh_origins_without_changing_receiver_type() {
+        let checked = crate::check("function identity<T>(value:T):T{return value;}function main(){let action=identity;const saved=action;action=identity;action<int>(7);action=identity;action<string>('owned');saved<int>(3);}").unwrap();
+        let main = checked.program.functions.iter().find(|function| function.name == "main").unwrap();
+        let action = main.bindings.iter().find(|binding| binding.name == "action").unwrap();
+        let crate::syntax::Type::Closure(origin) = action.ty else { panic!("generic receiver"); };
+        let members = checked.program.polymorphic_storage.members(origin).expect("checked assignment origins");
+        assert_eq!(members.len(), 3);
+        assert!(members.contains(&origin));
+        assert!(members.iter().all(|&id| checked.program.closures[id].polymorphic && checked.program.closures[id].captures.is_empty()));
+        assert_eq!(checked.program.closures[origin].methods.len(), 2);
+    }
+
+    #[test]
+    fn unused_template_assignments_do_not_publish_provisional_storage_origins() {
+        let checked = crate::check("function identity<T>(value:T):T{return value;}function unused<T>(){let action=identity;action=identity;}function main(){}").unwrap();
+        assert!(checked.program.polymorphic_storage.parents.is_empty());
+    }
+
+    #[test]
+    fn concrete_specializations_keep_registered_origins_after_template_compaction() {
+        let checked = crate::check("function identity<T>(value:T):T{return value;}function unused<T>(){let action=identity;action=identity;}function replace<T>(value:T):T{let action=identity;action=identity;return action<T>(value);}function main(){replace<int>(7);replace<string>('owned');}").unwrap();
+        let registry = &checked.program.polymorphic_storage;
+        assert!(registry.parents.len() >= 2);
+        assert!(registry.parents.keys().all(|&origin| !checked.program.closures[origin].function.template));
+        let mut receivers = 0;
+        for function in checked.program.functions.iter().filter(|function| !function.template) {
+            for binding in &function.bindings {
+                if binding.name != "action" { continue; }
+                let crate::syntax::Type::Closure(origin) = binding.ty else { panic!("concrete generic receiver"); };
+                let family = registry.members(origin).expect("remapped receiver storage");
+                assert!(family.len() >= 2);
+                assert!(family.contains(&origin));
+                receivers += 1;
+            }
+        }
+        assert_eq!(receivers, 2);
     }
 
     fn native(source: &str) {
