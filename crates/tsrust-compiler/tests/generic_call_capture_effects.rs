@@ -153,6 +153,44 @@ fn literal_guard_native_callable_replacement_has_common_carrier() {
 }
 
 #[test]
+fn generic_callable_replacement_keeps_saved_values_and_runtime_selection() {
+    let executable = r#"
+        function identity<T>(value: T): T { return value; }
+        function second<T>(first: T, next: T): T { return next; }
+        function select(flag: boolean): int {
+            let action = identity;
+            const saved = action;
+            if (flag) { action = second; }
+            if (flag) { return saved<int>(3) + action<int>(4, 7); }
+            return saved<int>(3) + action<int>(4);
+        }
+        function main() { console.log(select(false), select(true)); }
+    "#;
+    support::execute(executable, "7 10\n", None);
+}
+
+#[test]
+fn generic_callable_replacement_rejects_mutation_of_the_borrowed_callee() {
+    let executable = r#"
+        function identity<T>(value: T): T { return value; }
+        function other<T>(value: T): T { return value; }
+        function main() {
+            let action = identity;
+            let evaluations = 0;
+            const value = action<int>((evaluations += 1, action = other, 7));
+            console.log(value, evaluations, action<string>("ready"));
+        }
+    "#;
+    let formatted = support::format_round_trip(executable);
+    let error = tsrust_compiler::check(&formatted)
+        .err()
+        .expect("argument evaluation must not replace the actively borrowed callee");
+    assert_eq!(error.code, "conflicting-access");
+    assert_eq!(&formatted[error.span.start..error.span.end], "action");
+    assert!(!error.related.is_empty());
+}
+
+#[test]
 fn collection_callbacks_preserve_empty_regions_element_guards_and_completion_order() {
     for (body, invalid) in [
         ("let action=one;[].forEach(()=>{action=two;});return action<T>(value);", false),
