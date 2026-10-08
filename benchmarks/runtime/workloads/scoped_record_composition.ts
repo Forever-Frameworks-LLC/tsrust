@@ -397,7 +397,8 @@ function workload(n: int, seed: int, input: string): int[][] {
         const caughtLooped=caughtMapLoop(value,caughtLoopTrace)+caughtLoopTrace[0]*100+caughtLoopTrace[1];
         const pairedLoopTrace = [0, 0]; const pairedLooped = pairedMapLoop(value, pairedLoopTrace) + pairedLoopTrace[0] * 100 + pairedLoopTrace[1];
         const nestedPairTrace=[0,0];const nestedPairLooped=nestedPairedMapLoop(value,nestedPairTrace)+nestedPairTrace[0]*100+nestedPairTrace[1];
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped, nestedPairLooped]);
+        const emptyMapObserved=emptyScopedMap();
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped, nestedPairLooped, emptyMapObserved]);
         i += 1;
     }
 
@@ -669,4 +670,13 @@ function nestedPairedMapLoop(value: number, trace: number[]): number {
   finally{trace[1]+=turn;}}catch(error){trace[1]+=1000;}finally{trace[0]+=nestedPairLeft.size+nestedPairRight.size;nestedPairLeft.clear();nestedPairRight.clear();nestedPairOld[0]=value+150;nestedPairNext[0]=value+151;trace[1]+=nestedPairLeft.size+nestedPairRight.size;}
  }
  return nestedPairOld[0]+nestedPairNext[0]+turn+nestedPairLeft.size+nestedPairRight.size;
+}
+
+function emptyScopedMap(): number {
+ const unfilled=new Map<string,Holder>();let emptyObserved=unfilled.size;
+ if(unfilled.has("none"))emptyObserved+=100;
+ if(unfilled.delete("none"))emptyObserved+=1000;
+ {const absent=unfilled.get("none");emptyObserved+=absent===undefined?1:0;if(absent!==undefined)emptyObserved+=absent.run();}
+ for(const [key,entry] of unfilled){emptyObserved+=entry.run();}
+ const emptyMoved=unfilled;emptyObserved+=emptyMoved.size;emptyMoved.clear();return emptyObserved;
 }

@@ -271,6 +271,11 @@ pub(crate) fn annotate_inferred_callbacks(program:&mut CheckedProgram)->ErrorEff
     use std::collections::HashMap;
     let (active_functions,active_closures)=executable_callers(program);
     let mut origins:HashMap<usize,Vec<Type>>=HashMap::new();
+    // An absent environment is uninhabited: it cannot execute or throw.
+    // Ground only these distinct contracts, never the populated declaration.
+    for id in &program.absent_callback_payloads {
+        origins.entry(*id).or_default().push(Type::Undefined);
+    }
     for (instance,source) in &program.function_specializations {
         if !active_functions.contains(instance) {continue;}
         let Some(source)=program.functions.get(*source) else {continue;};

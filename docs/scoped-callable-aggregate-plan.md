@@ -1854,3 +1854,43 @@ Map inference, ownership and callback parameter behavior. Then continue broader
 loops and precise release. Keep focused editor/native/matched checks and SQLite
 evidence current, format the whole project and stage explicit paths. The full
 goal remains active.
+
+
+## Empty scoped record Map layout checkpoint
+
+Empty local Maps whose record payloads contain borrowing callbacks now receive
+concrete absent environments after populated storage inference has finished.
+The implementation lives in empty_scoped_maps.rs. It specializes local storage
+and iteration carriers without changing shared declaration contracts or parent
+storage before later insertions. Native Map entry aliases carry their payload
+generic, and absent callback trait implementations are emitted whenever used.
+Impossible callback calls retain an explicit result contract.
+
+Matched verification exposed one further defect: absent contracts contributed
+unknown callback failures to callers with catches. A focused red native witness
+reproduced it. Distinct absent contracts now ground error inference as pure;
+populated callback declarations and ungrounded callback cycles remain unchanged.
+
+Acceptance passes 96 composition, 42 scoped-record and four fallible-record
+checks (142 total), 42 error-effect unit checks, all eight depth canaries and the
+focused editor contract. Source fixtures execute after format round trips.
+Project formatting changes zero files. Registration and all 41 matched native
+and Node-after-tsc observations pass untimed. Original failed and successful logs
+are stored byte-exact in SQLite under tsrust-b5-empty-scoped-map-*.log and
+tsrust-b5-empty-map-effects-*.log. The verified result is
+runtime/results/2026-10-08T22-05-55-611Z-verify.json. Twenty-nine closed records were
+imported, read back and their loose copies removed. No timing or consumer refresh
+is claimed. Owner fixture changes remain uncommitted.
+
+The formerly retained empty-layout red witness is now green. B5 remains open:
+broader loop forms, precise entry/element release, remaining callable compositions
+and Rust-style record Set equality/hash still need implementation. Nested Map or
+array callback fields inside empty record payloads are not covered by this slice.
+
+Continuation prompt: Continue B5 from this empty scoped record Map checkpoint.
+Read AGENTS.md, development-workflow.md and this handoff. Preserve the accepted
+absent environment and failure contracts, populated insertion inference and owner
+fixture semantics. Add the next focused witness for broader loop forms or precise
+entry/element release, implement in isolated helpers, then native/editor/docs and
+matched support. Format the whole project, preserve SQLite evidence and stage
+explicit paths. Family regressions, timing and user consumer refresh are pending.

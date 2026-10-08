@@ -1,6 +1,30 @@
 mod support;
 
 #[test]
+fn empty_scoped_map_absent_calls_have_resolved_error_contracts() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function empty():int{const spare=new Map<string,Holder>();const found=spare.get('none');if(found!==undefined)return found.run();return 0;}function main():void{try{console.log(empty());throw 7;}catch(error){console.log(error);}}");
+ support::execute(&source,"0\n7\n",None);
+}
+
+#[test]
+fn empty_scoped_map_later_insertions_keep_concrete_environments() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function apply(action:ReadOnly<Function<int>>):int{return action();}function main():void{const spare=new Map<string,Holder>();{console.log('before',spare.size);}const values=[7];spare.set('value',{run:():int=>values[0]});{const found=spare.get('value');if(found!==undefined)console.log('value',found.run());}spare.clear();values[0]=9;console.log('parameter',apply(():int=>values[0]));}");
+ support::execute(&source,"before 0\nvalue 7\nparameter 9\n",None);
+}
+
+#[test]
+fn empty_scoped_record_map_observations_move_and_iteration() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const spare=new Map<string,Holder>();{const found=spare.get('none');if(found!==undefined)console.log(found.run());console.log('missing',found===undefined);}console.log('empty',spare.size,spare.has('none'),spare.delete('none'));for(const [key,holder] of spare){console.log(key,holder.run());}const moved=spare;console.log('moved',moved.size);moved.clear();}");
+ support::execute(&source,"missing true\nempty 0 false false\nmoved 0\n",None);
+}
+
+#[test]
+fn empty_scoped_record_map_nested_and_optional_callback_fields() {
+ let source=support::format_round_trip("type Inner={run:ReadOnly<Function<int>>;};type Holder={inner:Inner;optional?:ReadOnly<Function<int>>;};type Box={handlers:Map<string,Holder>;marker:int;};function main():void{const box:Box={handlers:new Map<string,Holder>(),marker:23};console.log(box.handlers.size,box.marker);box.handlers.clear();}");
+ support::execute(&source,"0 23\n",None);
+}
+
+#[test]
 fn empty_scoped_record_map_has_a_native_layout_without_insertions() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const spare=new Map<string,Holder>();console.log(spare.size);spare.clear();}");
  support::execute(&source,"0\n",None);

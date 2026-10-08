@@ -86,3 +86,10 @@ clear and capture-mutation statements have executed.
 A callback inserted after cleanup clears a Map remains stored and keeps its
 captures borrowed. A later explicit clear releases it. A view returned by `get`
 must leave its scope before the Map can be cleared or otherwise mutated.
+
+An empty local Map of records containing borrowing callbacks supports size,
+lookup, membership, deletion, iteration, movement and clearing even when no
+record is inserted. Lookup returns undefined and iteration executes no body.
+Its absent callback environment cannot execute or throw; it does not introduce
+an unknown failure into a surrounding catch. Later insertions retain their
+concrete callback environments, capture loans and failure contracts.

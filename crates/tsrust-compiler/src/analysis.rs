@@ -24,6 +24,8 @@ mod record_call_capture_release;
 mod record_parameter_carriers;
 #[path = "scoped_record_containers.rs"]
 mod scoped_record_containers;
+#[path = "empty_scoped_maps.rs"]
+mod empty_scoped_maps;
 #[path = "scoped_map_carriers.rs"]
 mod scoped_map_carriers;
 #[path="storage_exit_availability.rs"]
@@ -5248,7 +5250,8 @@ impl Analyzer {
     fn region_caller_error_effects(&mut self,context:&Context,body:&[Stmt],result:Type)->crate::error_effects::ErrorEffects {
         let caller=CheckedFunction{storage_exits:Default::default(),template:false,specialization:false,name:"#region".into(),bindings:context.bindings.clone(),parameter_count:0,result,body:body.to_vec()};
         let families=self.callables.storage.families().map(|(id,_,origins)|(id,origins.iter().copied().collect())).collect::<Vec<_>>();
-        let fields=crate::error_effects::record_field_origins(&self.program.records,&self.scoped_records);
+        let mut fields=crate::error_effects::record_field_origins(&self.program.records,&self.scoped_records);
+        fields.extend(self.absent_callback_payloads.values().map(|id|(*id,Type::Undefined)));
         crate::error_effects::annotate_partial_with_callers(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,&caller,&self.unions,&self.polymorphic_invocations,&fields)
     }
 

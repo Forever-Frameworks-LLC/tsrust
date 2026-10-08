@@ -475,7 +475,7 @@ impl Emitter<'_> {
     }
 
     fn emit_nullable_types(&self, output: &mut String) {
-        if self.program.unions.iter().any(|union| {
+        if !self.program.absent_callback_payloads.is_empty() || self.program.unions.iter().any(|union| {
             union
                 .members
                 .iter()

@@ -5,10 +5,17 @@ impl Emitter<'_> {
     pub(super) fn map_types(&self, output: &mut String) {
         if !self.program.records.iter().any(|record| record.map_definition.is_some()) { return; }
         output.push_str(runtime::MAP_RUNTIME);
+        let mut scoped_entries=std::collections::HashSet::new();
         for (id, record) in self.program.records.iter().enumerate() { if let Some(map) = &record.map_definition {
             let key=self.native_type(map.key);let value=self.native_type(map.value);
-            if self.scoped_record_native_parameter(map.value) && map.entry.is_none() {
-                let _=writeln!(output,"type Map{id}<P>=TsrMap<{key},P>;");
+            if self.scoped_record_native_parameter(map.value) {
+                if let Some(pair)=map.entry {
+                    let pair=self.program.scoped_records.declaration(pair);
+                    let _=writeln!(output,"type Map{id}<P>=TsrMap<{key},P,Record{pair}<P>>;");
+                    if scoped_entries.insert(pair) {
+                        let _=writeln!(output,"impl<P> TsrMapEntry<{key},P> for Record{pair}<P> {{fn from_pair(key:{key},value:P)->Self{{Self{{field0:key,field1:value}}}}fn key(&self)->&{key}{{&self.field0}}fn value(&self)->&P{{&self.field1}}fn value_mut(&mut self)->&mut P{{&mut self.field1}}fn into_pair(self)->({key},P){{(self.field0,self.field1)}}}}");
+                    }
+                } else {let _=writeln!(output,"type Map{id}<P>=TsrMap<{key},P>;");}
                 continue;
             }
             if let Some(pair)=map.entry {

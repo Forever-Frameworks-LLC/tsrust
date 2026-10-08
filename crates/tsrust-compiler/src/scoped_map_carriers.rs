@@ -57,6 +57,7 @@ impl Analyzer {
             (!info.parameter && !info.capture_reference && self.contains_scoped_map_storage(info.ty)).then_some((binding, info.ty))
         }).collect::<HashMap<_, _>>();
         if roots.is_empty() { return Ok(()); }
+        let local_declarations=empty_scoped_maps::declared_storage_bindings(body);
         crate::source_walk::body(body, &mut |_| Ok(()), &mut |value| {
             if !matches!(value.target, Some(CallTarget::MapMethod(MapMethod::Set))) { return Ok(()); }
             let ExprKind::Call(callee, arguments) = &value.kind else { return Ok(()); };
@@ -115,6 +116,9 @@ impl Analyzer {
             }
             if !changed { break; }
         }
+        for (binding,ty) in &mut roots {
+            if local_declarations.contains(binding) {*ty=self.empty_scoped_map_layout(*ty)?;}
+        }
         for (binding, ty) in &roots { context.bindings[*binding].ty = *ty; }
         let mut constructors = HashMap::new();
         for (binding, path, value) in &leaves {
@@ -123,6 +127,7 @@ impl Analyzer {
             { constructors.insert((value.span.start, value.span.end), ty); }
         }
         let mut results = roots.clone();
+        self.empty_map_iteration_carriers(context,body,&mut results)?;
         loop {
             let mut changed = false;
             for write in &writes {
@@ -148,6 +153,11 @@ impl Analyzer {
             if let ExprKind::Call(callee, _) = &mut value.kind
                 && let Some(Type::BorrowedCallable(family)) = self.planned_scoped_map_result(callee, &results)
             { callee.ty = Some(Type::BorrowedCallable(family)); value.target = Some(CallTarget::StoredCallableField(family)); }
+            if let ExprKind::Call(callee,_) = &mut value.kind
+                && matches!(value.target,Some(CallTarget::ConditionalCallback(_)))
+                && let Some(Type::Callback(contract))=self.planned_scoped_map_result(callee,&results)
+                && self.absent_callable_type(Type::Callback(contract))
+            {callee.ty=Some(Type::Callback(contract));value.target=Some(CallTarget::ConditionalCallback(contract));}
             if let Some(ty) = constructors.get(&(value.span.start, value.span.end)) { value.ty = Some(*ty); }
             if let ExprKind::Call(callee, arguments) = &mut value.kind
                 && let ExprKind::Field(base, _) = &mut callee.kind
@@ -161,7 +171,7 @@ impl Analyzer {
             Ok(())
         })
     }
-    fn planned_scoped_map_result(&self, value: &Expr, results: &HashMap<usize, Type>) -> Option<Type> {
+    pub(super) fn planned_scoped_map_result(&self, value: &Expr, results: &HashMap<usize, Type>) -> Option<Type> {
         match &value.kind {
             ExprKind::Name(_) => results.get(&value.binding?).copied(),
             ExprKind::Call(callee, _) if matches!(value.target, Some(CallTarget::MapMethod(MapMethod::Get))) => {
