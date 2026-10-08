@@ -7335,6 +7335,11 @@ impl Emitter<'_> {
             ExprKind::Binary {
                 op, left, right, ..
             } if op.bitwise_or_power() => self.number_operator(fun, *op, left, right),
+            ExprKind::Unary { op: UnaryOp::Not, value, .. }
+                if value.ty.is_some_and(|ty| !matches!(ty, Type::Boolean | Type::Null | Type::Undefined)) =>
+            {
+                self.logical_not(fun, value)
+            }
             ExprKind::Unary {
                 op,
                 operator,

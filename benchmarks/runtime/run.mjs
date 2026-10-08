@@ -1,3 +1,4 @@
+import {assertTruthinessSource} from './truthiness-source-contract.mjs';
 import {compilerExecutable} from './compiler-executable.mjs';
 import {assertGenericReplacementSource} from './generic-callable-replacement-source-contract.mjs';
 import {pathRelativeIds,assertPathRelativeSource} from './path-relative-source-contract.mjs';
@@ -250,6 +251,7 @@ function prepare(w) {
  if(w.family==='named-function-expressions'){assertNamedFunctionExpressionsSource(source,w,'native');assertNamedFunctionExpressionsSource(ts,w,'typescript');}
  if(w.family==='recursive-result-inference'){assertRecursiveResultInferenceSource(source,w,'native');assertRecursiveResultInferenceSource(ts,w,'typescript');}
  if(w.family==='owned-assignment-values'){assertOwnedAssignmentValuesSource(source,w,'native');assertOwnedAssignmentValuesSource(ts,w,'typescript');}
+ if(w.family==='truthiness'){assertTruthinessSource(source,w,'native');assertTruthinessSource(ts,w,'typescript');}
  if(w.family==='fallible-record-callbacks'){assertFallibleRecordCallbacksSource(source,w,'native');assertFallibleRecordCallbacksSource(ts,w,'typescript');}
  if(w.family==='scoped-callable-records'){assertScopedCallableRecordsSource(source,w,'native');assertScopedCallableRecordsSource(ts,w,'typescript');}
  if(w.family==='generic-value-adapters'){assertGenericAdapterSource(source,w,'native');assertGenericAdapterSource(ts,w,'typescript');}

@@ -693,7 +693,7 @@
       "scalar_control",
       "braceless_bodies"
     ],
-    "note": "Conditions require boolean; JS truthiness is not implemented. Dedicated per-construct timing missing. Gate134 accepts a single statement without braces as the body; braceless_bodies is registered and verified untimed.",
+    "note": "Conditions accept truthiness (gate 181). Dedicated per-construct timing missing. Gate134 accepts a single statement without braces as the body; braceless_bodies is registered and verified untimed.",
     "evidence": [
       "./milestones/134-statement-bodies.md"
     ]
@@ -705,7 +705,7 @@
       "scalar_control",
       "braceless_bodies"
     ],
-    "note": "Conditions require boolean; JS truthiness is not implemented. Dedicated per-construct timing missing. Gate134 accepts a single statement without braces as the body; braceless_bodies is registered and verified untimed.",
+    "note": "Conditions accept truthiness (gate 181). Dedicated per-construct timing missing. Gate134 accepts a single statement without braces as the body; braceless_bodies is registered and verified untimed.",
     "evidence": [
       "./milestones/134-statement-bodies.md"
     ]
@@ -717,7 +717,7 @@
       "scalar_control",
       "braceless_bodies"
     ],
-    "note": "Conditions require boolean; JS truthiness is not implemented. Dedicated per-construct timing missing. Gate134 accepts a single statement without braces as the body; braceless_bodies is registered and verified untimed.",
+    "note": "Conditions accept truthiness (gate 181). Dedicated per-construct timing missing. Gate134 accepts a single statement without braces as the body; braceless_bodies is registered and verified untimed.",
     "evidence": [
       "./milestones/134-statement-bodies.md"
     ]
@@ -3035,12 +3035,17 @@
     "note": "Assignment is an expression. Scalars copy; a string, array or record value is the target read in place (gate 179). Owned values of array elements and computed places are rejected."
   },
   "control.logicalAssignment": {
-    "implementation": "pending",
-    "comparison": "missing",
+    "implementation": "implemented",
+    "comparison": "paired group",
     "evidence": [
-      "./milestones/63-compound-assignment.md"
+      "./milestones/181-truthiness.md",
+      "./logical-operators.md"
     ],
-    "note": "Umbrella remains pending. Strict-boolean &&= and ||= expressions are accepted in Gate66; nullish assignment and coercive truthiness remain separate capabilities."
+    "note": "Truthiness for conditions and negation; non-boolean logical assignment supports variables and fixed record fields. Computed non-boolean targets remain unsupported. Native and Node-after-tsc verified untimed; timing pending.",
+    "workloads": [
+      "truthiness"
+    ],
+    "measured": false
   },
   "int.increment": {
     "implementation": "implemented",
@@ -3788,7 +3793,7 @@
     "evidence": [
       "./milestones/73-integer-formatting.md"
     ],
-    "note": "All signed-i64 values, default decimal and strict optional radix 2–36. Lowercase signed digits and owned UTF-8 result; once-only operands and zero normal/unwind residue. Four JS-safe comparisons pass; Number formatting and coercion are separate."
+    "note": "All signed-i64 values, default decimal and strict optional radix 2\u201336. Lowercase signed digits and owned UTF-8 result; once-only operands and zero normal/unwind residue. Four JS-safe comparisons pass; Number formatting and coercion are separate."
   },
   "Number.toFixed": {
     "implementation": "native variant",
@@ -4792,7 +4797,7 @@
       "array_sort_compare_undefined",
       "array_callback_errors"
     ],
-    "note": "Stable in-place ordering returns void and holds exclusive receiver access; no element cloning. Defaults int numeric, Number total_cmp including signed zero/NaN bits, Boolean false<true, UTF8 String lexical and equal null/undefined. Nested/record elements require a reusable comparator even empty; zero–two readonly/Copy parameters, one concrete int or Number result, zero/NaN equal. Comparator visitation is standard-Rust-dependent; no coercion, sparse/mixed/nullable elements or consuming/once callbacks. Focused compiler/editor and six native catalog examples accepted; fourteen source comparisons registered, measurements accepted at checkpoint 91 against compiled Node. Gate 150 repairs checked callback error transport and readonly abstract invocation. Comparator failure retains source order. New error-transport comparison verifies untimed only.",
+    "note": "Stable in-place ordering returns void and holds exclusive receiver access; no element cloning. Defaults int numeric, Number total_cmp including signed zero/NaN bits, Boolean false<true, UTF8 String lexical and equal null/undefined. Nested/record elements require a reusable comparator even empty; zero\u2013two readonly/Copy parameters, one concrete int or Number result, zero/NaN equal. Comparator visitation is standard-Rust-dependent; no coercion, sparse/mixed/nullable elements or consuming/once callbacks. Focused compiler/editor and six native catalog examples accepted; fourteen source comparisons registered, measurements accepted at checkpoint 91 against compiled Node. Gate 150 repairs checked callback error transport and readonly abstract invocation. Comparator failure retains source order. New error-transport comparison verifies untimed only.",
     "evidence": [
       "./milestones/91-array-sorting.md",
       "./milestones/150-array-callback-errors.md"
@@ -4829,7 +4834,7 @@
       "array_to_sorted_compare_undefined",
       "array_callback_errors"
     ],
-    "note": "Stable independently mutable sorted copy uses Read source access and clones owned descendants; comparator may read source but cannot mutate/consume it. Defaults int numeric, Number total_cmp including signed zero/NaN bits, Boolean false<true, UTF8 String lexical and equal null/undefined. Nested/record elements require a reusable comparator even empty; zero–two readonly/Copy parameters, one concrete int or Number result, zero/NaN equal. Comparator visitation is standard-Rust-dependent; no coercion, sparse/mixed/nullable elements or consuming/once callbacks. Focused compiler/editor and six native catalog examples accepted; fourteen source comparisons registered, measurements accepted at checkpoint 91 against compiled Node. Gate 150 repairs checked callback error transport and readonly abstract invocation. Comparator failure retains source order. New error-transport comparison verifies untimed only.",
+    "note": "Stable independently mutable sorted copy uses Read source access and clones owned descendants; comparator may read source but cannot mutate/consume it. Defaults int numeric, Number total_cmp including signed zero/NaN bits, Boolean false<true, UTF8 String lexical and equal null/undefined. Nested/record elements require a reusable comparator even empty; zero\u2013two readonly/Copy parameters, one concrete int or Number result, zero/NaN equal. Comparator visitation is standard-Rust-dependent; no coercion, sparse/mixed/nullable elements or consuming/once callbacks. Focused compiler/editor and six native catalog examples accepted; fourteen source comparisons registered, measurements accepted at checkpoint 91 against compiled Node. Gate 150 repairs checked callback error transport and readonly abstract invocation. Comparator failure retains source order. New error-transport comparison verifies untimed only.",
     "evidence": [
       "./milestones/91-array-sorting.md",
       "./milestones/150-array-callback-errors.md"
@@ -5406,7 +5411,7 @@
       "./milestones/113-string-raw.md"
     ],
     "measured": false,
-    "note": "Joins a record’s raw string[] segments with String() conversions and optional string-array spread. Missing substitutions insert empty text; extra argument expressions still evaluate. Tagged templates and arbitrary array-like raw fields are unsupported. One scenario is registered and verified untimed; measurements wait for the string-methods milestone."
+    "note": "Joins a record\u2019s raw string[] segments with String() conversions and optional string-array spread. Missing substitutions insert empty text; extra argument expressions still evaluate. Tagged templates and arbitrary array-like raw fields are unsupported. One scenario is registered and verified untimed; measurements wait for the string-methods milestone."
   },
   "Number.toLocaleString": {
     "implementation": "native variant",
@@ -6768,5 +6773,18 @@
       "./compiler-completion-plan.md"
     ],
     "note": "delete is excluded by owner decision (2026-10-08): optional fields are assigned undefined."
+  },
+  "boolean.truthinessConversion": {
+    "implementation": "implemented",
+    "comparison": "paired group",
+    "evidence": [
+      "./milestones/181-truthiness.md",
+      "./logical-operators.md"
+    ],
+    "workloads": [
+      "truthiness"
+    ],
+    "measured": false,
+    "note": "Truthiness for conditions and negation; non-boolean logical assignment supports variables and fixed record fields. Computed non-boolean targets remain unsupported. Native and Node-after-tsc verified untimed; timing pending."
   }
 }

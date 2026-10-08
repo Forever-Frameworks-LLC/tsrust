@@ -3643,7 +3643,8 @@ impl Analyzer {
     fn discover_if_result(&mut self,context:&Context,condition:&Expr,then_body:&[Stmt],else_body:&[Stmt],result:Type)->Result<Option<Type>,Diagnostic> {
         let mut probe=context.clone();
         if let Some((actual,_))=self.discovery_expression(&mut probe,condition,Some(Type::Boolean))? {
-            self.require(actual,Some(Type::Boolean),condition.span)?;
+            // A truthiness condition is converted by the definitive check.
+            if actual==Type::Boolean {self.require(actual,Some(Type::Boolean),condition.span)?;}
         }
         let (then_flow,else_flow)=Self::condition_outcomes(&probe,condition);
         let mut absent=None;
@@ -4419,6 +4420,7 @@ impl Analyzer {
             .into_iter()
             .map(|id| (id, Availability::of(&context.bindings[id])))
             .collect::<Vec<_>>();
+        self.truthy_condition(context, condition);
         let actual = self.expression(
             context,
             condition,
@@ -4537,6 +4539,7 @@ impl Analyzer {
             .map(|id| (id, Availability::of(&context.bindings[id])))
             .collect::<Vec<_>>();
         if !post_test && let Some(condition) = condition {
+            self.truthy_condition(context, condition);
             let actual = self.expression(
                 context,
                 condition,
@@ -4626,6 +4629,7 @@ impl Analyzer {
             }
             self.block(context, update, result_type)?;
             if post_test && let Some(condition) = condition {
+                self.truthy_condition(context, condition);
                 let actual = self.expression(
                     context,
                     condition,
@@ -4663,6 +4667,7 @@ impl Analyzer {
             unreachable.effects_only = true;
             self.block(&mut unreachable, update, result_type)?;
             if post_test && let Some(condition) = condition {
+                self.truthy_condition(&unreachable, condition);
                 let actual = self.expression(
                     &mut unreachable,
                     condition,
@@ -4765,6 +4770,7 @@ impl Analyzer {
         else_body: &mut [Stmt],
         result_type: Type,
     ) -> Result<bool, Diagnostic> {
+        self.truthy_condition(context, condition);
         let actual = self.expression(
             context,
             condition,
@@ -5438,6 +5444,7 @@ impl Analyzer {
                     exited = true;
                 }
                 StmtKind::Expr(value) => {
+                    self.truthy_logical_assignment(context,value);
                     let view = self
                         .expression_type_hint(context, value)
                         .is_some_and(|ty| matches!(ty, Type::BorrowedUnion(_)));
@@ -7310,6 +7317,7 @@ impl Analyzer {
         loans: &Loans,
         expected: Option<Type>,
     ) -> Result<Type, Diagnostic> {
+        if matches!(expr.kind,ExprKind::LogicalAssign{..}){self.truthy_logical_assignment(context,expr);}
         if matches!(expr.kind,ExprKind::Field(_,_)){self.owned_assignment_projection(context,expr);}
         self.owned_assignment_value(context,expr);
         if matches!(expr.kind,ExprKind::Sequence(_)){return self.sequence_expression(context,expr,mode,loans,expected,false);}
@@ -9122,6 +9130,7 @@ impl Analyzer {
 
     #[inline(never)]
     fn conditional_predicate(&mut self, context: &mut Context, predicate: &mut Expr, loans: &Loans) -> Result<(), Diagnostic> {
+        self.truthy_condition(context, predicate);
         let predicate_type =
             self.expression(context, predicate, Mode::Copy, loans, Some(Type::Boolean))?;
         self.require(predicate_type, Some(Type::Boolean), predicate.span)
@@ -9743,7 +9752,7 @@ impl Analyzer {
             ExprKind::CoalesceAssign { target, value, .. } => {
                 self.coalesce_hint(context, target, value, expr.span, false)
             }
-            ExprKind::LogicalAssign { .. } => Some(Type::Boolean),
+            ExprKind::LogicalAssign { target, .. } => self.expression_type_hint(context, target).or(Some(Type::Boolean)),
             ExprKind::Update { target, .. }
             | ExprKind::Assign { target, .. }
             | ExprKind::CompoundAssign { target, .. } => self.expression_type_hint(context, target),
@@ -15296,6 +15305,30 @@ self.names_materialized_type(element.with_depth(0).ty())
                     expr.ty = Some(Type::Boolean);
                     return Ok(Type::Boolean);
                 }
+                if *op == UnaryOp::Not
+                    && let Some(ty) = self.expression_type_hint(context, value)
+                    && !matches!(ty, Type::Boolean | Type::Void)
+                {
+                    // A nullable variable or field becomes presence tests, which
+                    // the ordinary boolean path below narrows.
+                    if self.nullable_place(ty, value) {
+                        self.truthy_condition(context, value);
+                        let actual = self.expression(context, value, Mode::Copy, loans, Some(Type::Boolean))?;
+                        self.require(actual, Some(Type::Boolean), *operator)?;
+                        let (yes, no) = Self::condition_outcomes(context, value);
+                        context.condition_flows.insert((span.start, span.end), (no, yes));
+                        expr.ty = Some(Type::Boolean);
+                        return Ok(Type::Boolean);
+                    }
+                    // `!value` tests truthiness; the value is only read.
+                    let mode = if ty.is_copy() { Mode::Copy } else { Mode::Read };
+                    let actual = self.expression(context, value, mode, loans, None)?;
+                    if actual == Type::Void {
+                        return Err(Diagnostic::new("type", "A function call without a return value has no truth value.", value.span));
+                    }
+                    expr.ty = Some(Type::Boolean);
+                    return Ok(Type::Boolean);
+                }
                 let operand = if *op == UnaryOp::Not {
                     Type::Boolean
                 } else if *op == UnaryOp::BitNot {
@@ -16337,6 +16370,72 @@ impl Analyzer {
             slot=inner;
         }
         unreachable!("assignment base located above");
+    }
+
+    /// `target ||= value` and `target &&= value` on a target that is not a
+    /// boolean test the target by borrowing it, then store only on the selected
+    /// branch. The resulting value reads the target in place, like assignment.
+    /// Fixed paths keep the additional reads free of observable evaluation.
+    #[inline(never)]
+    fn truthy_logical_assignment(&self,context:&Context,expr:&mut Expr){
+        fn fixed_path(target:&Expr)->bool{match &target.kind{ExprKind::Name(_)=>true,ExprKind::Field(base,_)=>fixed_path(base),_=>false}}
+        let ExprKind::LogicalAssign{target,..}=&expr.kind else{return;};
+        if !fixed_path(target) || !self.expression_type_hint(context,target).is_some_and(|ty|!matches!(ty,Type::Boolean | Type::Void)){return;}
+        let span=expr.span;
+        let ExprKind::LogicalAssign{target,value,and,operator}=std::mem::replace(&mut expr.kind,ExprKind::Null) else{unreachable!()};
+        let place=(*target).clone();
+        let predicate=Expr::new(ExprKind::Unary{op:UnaryOp::Not,operator,value:target.clone()},span);
+        let predicate=if and {Expr::new(ExprKind::Unary{op:UnaryOp::Not,operator,value:Box::new(predicate)},span)} else {predicate};
+        let store=Expr::new(ExprKind::Assign{target,value,operator},span);
+        let consequent=Expr::new(ExprKind::Sequence(vec![store,Expr::new(ExprKind::Boolean(true),span)]),span);
+        let selection=Expr::new(ExprKind::Conditional{predicate:Box::new(predicate),consequent:Box::new(consequent),alternate:Box::new(Expr::new(ExprKind::Boolean(false),span))},span);
+        expr.kind=ExprKind::Sequence(vec![selection,place]);
+    }
+
+    fn nullable_place(&self,ty:Type,value:&Expr)->bool{
+        fn fixed_path(target:&Expr)->bool{match &target.kind{ExprKind::Name(_)=>true,ExprKind::Field(base,_)=>fixed_path(base),_=>false}}
+        fixed_path(value) && ty.union().is_some_and(|id|self.unions.members(id).iter().any(|member|matches!(member,Type::Null | Type::Undefined)))
+    }
+
+    /// A condition of another type than boolean tests truthiness: false, zero,
+    /// NaN, the empty string, null and undefined are false. For a nullable
+    /// variable or field the test is written as presence checks followed by
+    /// the truth of the value, so the branch sees the value as present.
+    #[inline(never)]
+    fn truthy_condition(&self,context:&Context,condition:&mut Expr){
+        fn fixed_path(target:&Expr)->bool{match &target.kind{ExprKind::Name(_)=>true,ExprKind::Field(base,_)=>fixed_path(base),_=>false}}
+        let span=condition.span;
+        let not=|value:Expr|Expr::new(ExprKind::Unary{op:UnaryOp::Not,operator:span,value:Box::new(value)},span);
+        // `!value` converts its own operand when it is checked.
+        if matches!(condition.kind,ExprKind::Unary{op:UnaryOp::Not,..}){return;}
+        // Each side of `&&` and `||` is a condition. The right side is typed
+        // after the left side has narrowed, so it converts itself through `!!`.
+        if let ExprKind::Binary{op:BinaryOp::And | BinaryOp::Or,left,right,..}=&mut condition.kind{
+            if self.expression_type_hint(context,left)==Some(Type::Boolean) && self.expression_type_hint(context,right)==Some(Type::Boolean){return;}
+            self.truthy_condition(context,left);
+            if self.expression_type_hint(context,right)!=Some(Type::Boolean){
+                let value=std::mem::replace(&mut **right,Expr::new(ExprKind::Null,span));
+                **right=not(not(value));
+            }
+            return;
+        }
+        let Some(ty)=self.expression_type_hint(context,condition) else{return;};
+        if matches!(ty,Type::Boolean | Type::Void){return;}
+        let members=ty.union().map(|id|self.unions.members(id)).unwrap_or_else(||vec![ty]);
+        let absent=[(Type::Null,ExprKind::Null),(Type::Undefined,ExprKind::Undefined)].into_iter().filter(|(member,_)|members.contains(member)).collect::<Vec<_>>();
+        if absent.is_empty() || !fixed_path(condition){
+            let value=std::mem::replace(condition,Expr::new(ExprKind::Null,span));
+            *condition=not(not(value));
+            return;
+        }
+        let place=std::mem::replace(condition,Expr::new(ExprKind::Null,span));
+        let mut tests=absent.into_iter().map(|(_,literal)|Expr::new(ExprKind::Binary{op:BinaryOp::NotEqual,operator:span,left:Box::new(place.clone()),right:Box::new(Expr::new(literal,span))},span)).collect::<Vec<_>>();
+        if members.iter().any(|member|matches!(member,Type::Boolean | Type::Int | Type::Number | Type::String)){
+            tests.push(not(not(place)));
+        }
+        let mut tests=tests.into_iter();
+        let first=tests.next().expect("presence test");
+        *condition=tests.fold(first,|left,right|Expr::new(ExprKind::Binary{op:BinaryOp::And,operator:span,left:Box::new(left),right:Box::new(right)},span));
     }
 
     #[inline(never)]

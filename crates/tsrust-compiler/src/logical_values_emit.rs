@@ -47,6 +47,15 @@ impl Emitter<'_> {
         if actual == result { code.to_owned() } else { "unreachable!(\"unselected logical alternative\")".into() }
     }
 
+    /// `!value` for a value that is not a boolean: read it once and negate its truth.
+    pub(super) fn logical_not(&self, fun: &CheckedFunction, value: &Expr) -> String {
+        let ty = value.ty.expect("checked truthiness operand");
+        let source = if ty.is_copy() { self.expr(fun, value, Mode::Copy) } else { self.conditional_arm(fun, value, Mode::Read) };
+        let view = matches!(ty, Type::BorrowedUnion(_)) || ty.union().is_some_and(|id| !id.copy);
+        let test = self.logical_truthy("logical_left", if view { Type::BorrowedUnion(ty.union().expect("union view")) } else { ty }, !ty.is_copy());
+        format!("{{let logical_left={source}; !({test})}}")
+    }
+
     pub(super) fn logical_value(&self, fun: &CheckedFunction, expr: &Expr, op: BinaryOp, left: &Expr, right: &Expr, mode: Mode) -> String {
         let lhs = left.ty.expect("logical left");
         let rhs = right.ty.expect("logical right");

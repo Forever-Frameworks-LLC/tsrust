@@ -219,8 +219,6 @@ fn invalid_conditions_scopes_returns_and_syntax_are_rejected() {
         None,
     );
     for (source, code) in [
-        (r#"function main() { if (1) {} }"#, "type"),
-        (r#"function main() { if ("yes") {} }"#, "type"),
         (r#"function main() { if (console.log(true)) {} }"#, "type"),
         (r#"function main() { const x: boolean = 1; }"#, "type"),
         (r#"function main() { const x: int = true; }"#, "type"),
@@ -276,7 +274,6 @@ fn invalid_conditions_scopes_returns_and_syntax_are_rejected() {
             r#"function main() { if (true == false) {} }"#,
             "unsupported",
         ),
-        (r#"function main() { for (;1;) {} }"#, "type"),
     ] {
         reject(source, code);
     }

@@ -8405,3 +8405,13 @@ fn owned_assignment_values_keep_member_help_and_types() {
     let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&misuse, "file:///test.tsr").unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "unsupported"), "{diagnostics}");
 }
+
+#[test]
+fn truthiness_narrows_nullable_strings_and_keeps_logical_assignment_help() {
+    let source = tsrust_compiler::format("function main(){let text:string|undefined=undefined;text||=\"yes\";if(text){console.log(text.toUpperCase());}let label=\"\";label||=\"guest\";console.log(label.length);}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&source, "file:///test.tsr").unwrap().is_empty());
+    let members = ask(&source, "textDocument/completion", "toUpperCase", 0);
+    assert!(members.as_array().unwrap().iter().any(|item| item["label"] == "toUpperCase"));
+    let hover = ask(&source, "textDocument/hover", "label.length", 0);
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("string"), "{hover}");
+}

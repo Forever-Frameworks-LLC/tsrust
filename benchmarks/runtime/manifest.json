@@ -20227,6 +20227,34 @@
       "specification": "Retain independent scalar observations per scenario with deterministic seed and iteration inputs.",
       "sourceSha256": "5f71f21e38f195cbc5939ba48ca35834d1a624506978ac4152e21d40bcc015f6",
       "counterpartSha256": "a40df871ea5d1420473387ebdf4e7b4adb28da4fc3472b6376fd2156280019ac"
+    },
+    {
+      "id": "truthiness",
+      "family": "truthiness",
+      "source": "workloads/truthiness.tsr",
+      "counterpart": "workloads/truthiness.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One complete truthiness scenario",
+      "inputText": "truthiness",
+      "category": "strings",
+      "implementationGate": 181,
+      "measurementStatus": "pending-language-milestone",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": true,
+      "measured": false,
+      "notes": "Truthiness in scalar and nullable conditions, negation and logical assignment. Verified untimed on native and Node-after-tsc; no measurement.",
+      "specification": "Retain independent scalar observations per scenario with deterministic seed and iteration inputs.",
+      "sourceSha256": "c6454d030bba950cfe6ce71b55b1e54c582432c857404abb3d07c4bba442b2d0",
+      "counterpartSha256": "45dd4d73aa7e87cdb9d3c831b4bd572a745d1c57e41c7fef52eff89d91ee7849"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

@@ -1,0 +1,27 @@
+export function workload(n: number, seed: number, input: string): number[][] {
+    const output: number[][] = [];
+    let i = 0;
+    while (i < n) {
+        const value = i % 5 + seed % 5 + 1;
+        let selected = 0;
+        selected ||= value;
+        selected &&= value + 1;
+        let label = "";
+        label ||= "guest";
+        label &&= "member";
+        let optional: string | undefined = undefined;
+        optional ||= "present";
+        let length = 0;
+        if (optional) length = optional.length;
+        let remaining = value;
+        let rounds = 0;
+        while (remaining) {
+            rounds += 1;
+            remaining -= 1;
+        }
+        output.push([selected, label.length, length, rounds, !value ? 1 : 0, !0 ? 1 : 0]);
+        i += 1;
+    }
+    return output;
+}
+function main() { const result = workload(3, 0, "truthiness"); }

@@ -758,3 +758,5 @@ The family regression milestone covers 2,325 compiler passes after affected publ
 
 
 **Path relative integrated:** Borrowed arguments, owned results, checked cwd failures and complete editor assistance are accepted. Combined regressions pass 2,350 compiler and 362 editor tests; all five consumers pass smoke tests. The current matched workload measures native throughput at 0.183× Node with four allocations and one reallocation per operation. Immutable SQLite evidence and protected owner fixtures are preserved. See [the handoff](handoff-2026-10-08-path-relative.md).
+
+Gate 181 accepts truthiness in conditions, negation and fixed-path logical assignment. Compiler, editor, project assertions and matched native/Node checks pass. Timing remains deferred. Scoped aggregate composition (B5) is next; see the compiler completion ledger.

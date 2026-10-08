@@ -199,7 +199,6 @@ fn owned_values_loans_callable_origins_and_fixed_storage_follow_branch_joins() {
 #[test]
 fn strict_branch_types_ownership_diagnostics_and_normal_stack_limits_are_preserved() {
     for (source, code) in [
-        ("function main(){console.log(1?2:3);}", "type"),
         ("function main(){let n=1;console.log(true?n:1.0);}", "type"),
         ("function main(){console.log(true?1:false);}", "type"),
         ("function main(){console.log(true?\"text\":1);}", "type"),

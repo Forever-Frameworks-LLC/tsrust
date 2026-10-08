@@ -227,7 +227,7 @@ assignment is a read-only view of the target) and is flagged in its record.
 
 | # | Family | Depends on | Status |
 | --- | --- | --- | --- |
-| D1 | Truthiness in conditions and logical operators | none | incomplete |
+| D1 | Truthiness in conditions and logical operators | none | accepted: gate 181 ([record](milestones/181-truthiness.md)) |
 | D2 | Type-level features: literal types, discriminated unions, generic constraints and alias parameters, `keyof`/`typeof`/indexed/mapped/conditional types, utility types, `never`/`unknown`, `as const`, readonly tuples, overloads, namespaces, structural record literals | none; discriminated unions need literal types | incomplete |
 | D3 | Classes and `this`: declarations, constructors, fields, methods, getters/setters, static, `extends`/`super`, `new`, `instanceof`, object method shorthand, `Error` | ownership rule for `this` (design step of the family) | incomplete |
 | D4 | Generators and iterators: `function*`, `yield`, iterator protocol, `Symbol.iterator` | D5 for `Symbol`; async forms need B13 | incomplete |

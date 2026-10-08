@@ -1,3 +1,4 @@
+import {assertTruthinessSource} from './truthiness-source-contract.mjs';
 import {compilerExecutable} from './compiler-executable.mjs';
 import {assertGenericReplacementSource} from './generic-callable-replacement-source-contract.mjs';
 import {pathRelativeIds,assertPathRelativeSource} from './path-relative-source-contract.mjs';
@@ -234,6 +235,7 @@ for (const workload of workloads) {
  if(workload.family==='named-function-expressions'){const counterpart=fs.readFileSync(path.join(here,workload.counterpart),'utf8');assertNamedFunctionExpressionsSource(source.toString(),workload,'native');assertNamedFunctionExpressionsSource(counterpart,workload,'typescript');}
  if(workload.family==='recursive-result-inference'){const counterpart=fs.readFileSync(path.join(here,workload.counterpart),'utf8');assertRecursiveResultInferenceSource(source.toString(),workload,'native');assertRecursiveResultInferenceSource(counterpart,workload,'typescript');}
  if(workload.family==='owned-assignment-values'){const counterpart=fs.readFileSync(path.join(here,workload.counterpart),'utf8');assertOwnedAssignmentValuesSource(source.toString(),workload,'native');assertOwnedAssignmentValuesSource(counterpart,workload,'typescript');}
+ if(workload.family==='truthiness'){const counterpart=fs.readFileSync(path.join(here,workload.counterpart),'utf8');assertTruthinessSource(source.toString(),workload,'native');assertTruthinessSource(counterpart,workload,'typescript');}
  if(workload.family==='fallible-record-callbacks'){const counterpart=fs.readFileSync(path.join(here,workload.counterpart),'utf8');assertFallibleRecordCallbacksSource(source.toString(),workload,'native');assertFallibleRecordCallbacksSource(counterpart,workload,'typescript');}
  if(workload.family==='scoped-callable-records'){const counterpart=fs.readFileSync(path.join(here,workload.counterpart),'utf8');assertScopedCallableRecordsSource(source.toString(),workload,'native');assertScopedCallableRecordsSource(counterpart,workload,'typescript');}
  if(workload.family==='generic-value-adapters'){const counterpart=fs.readFileSync(path.join(here,workload.counterpart),'utf8');assertGenericAdapterSource(source.toString(),workload,'native');assertGenericAdapterSource(counterpart,workload,'typescript');}

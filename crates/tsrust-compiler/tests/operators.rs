@@ -150,7 +150,6 @@ fn operator_type_errors_point_to_original_operator() {
     // report the selection rule rather than a boolean operand type.
     for (expression, operator, code) in [
         ("1 + true", "+", "type"),
-        ("!1", "!", "type"),
         ("-true", "-", "type"),
         ("true < false", "<", "type"),
         ("1 === true", "===", "type"),
