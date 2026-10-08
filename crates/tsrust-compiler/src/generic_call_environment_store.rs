@@ -44,6 +44,7 @@ struct LeafSlot {
 struct Allocation {
     site: Span,
     producer_site: Span,
+    context: Vec<(Span, Span)>,
     facts: Vec<LeafSlot>,
 }
 pub(super) struct Record {
@@ -71,7 +72,11 @@ fn canonical(bindings: &[Binding]) -> Option<Vec<Binding>> {
     Some(bindings)
 }
 impl Store {
+    #[cfg(test)]
     pub(super) fn allocate(&mut self, site: Span, producer: Span, bindings: &[Binding]) -> Option<Handle> {
+        self.allocate_context(site, producer, &[], bindings)
+    }
+    pub(super) fn allocate_context(&mut self, site: Span, producer: Span, context: &[(Span, Span)], bindings: &[Binding]) -> Option<Handle> {
         let bindings = canonical(bindings)?;
         let facts = bindings.iter().map(|binding| LeafSlot {
             identity: binding.identity.unwrap(), origins: binding.origins.clone(), targets: binding.targets.clone(), selection: binding.selection,
@@ -80,7 +85,7 @@ impl Store {
         }).collect();
         // Site identifies callback creation; producer identifies its producing
         // call site. Correlated environment edges are absent from this key.
-        let key = Allocation { site, producer_site: producer, facts };
+        let key = Allocation { site, producer_site: producer, context: context.to_vec(), facts };
         if let Some(handle) = self.allocations.get(&key) { return Some(*handle); }
         let handle = Handle(self.records.len());
         self.records.push(Record { bindings, edges: HashMap::new(), version: 0 });

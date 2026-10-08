@@ -140,6 +140,38 @@ function capturedResult(flag: boolean, fail: boolean, base: int): int {
     }
 }
 
+function stateFirst<T>(value: T): T {
+    return value;
+}
+
+function stateSecond<T>(value: T, other: T): T {
+    return other;
+}
+
+function stateFactory<A>(initial: A) {
+    let action = initial;
+    return (restore: boolean) => {
+        const previous = action;
+        if (restore) {
+            action = stateFirst;
+        } else {
+            action = stateSecond;
+        }
+
+        return previous;
+    };
+}
+
+function stateResult(base: int): int[] {
+    const first = stateFactory(stateFirst);
+    const second = stateFactory(stateSecond);
+    const original = first(false);
+    const changed = first(true);
+    const restored = first(false);
+    const independent = second(true);
+    return [original<int>(base), changed<int>(base, base + 7), restored<int>(base), independent<int>(base, base + 9)];
+}
+
 function workload(n: int, seed: int, input: string): int[][] {
     const output: int[][] = [];
     for (let i = 0; i < n; i += 1) {
@@ -161,7 +193,8 @@ function workload(n: int, seed: int, input: string): int[][] {
         const absent = nullableLength(flag, undefined);
         const callback = callbackResult(flag, i % 3 === 0, base);
         const captured = capturedResult(flag, i % 3 === 0, base);
-        output.push([original, selected, completed, omitted, text.length, present, absent, callback, captured]);
+        const state = stateResult(base);
+        output.push([original, selected, completed, omitted, text.length, present, absent, callback, captured, state[0], state[1], state[2], state[3]]);
     }
 
     return output;

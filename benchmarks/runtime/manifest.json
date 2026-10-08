@@ -20087,14 +20087,14 @@
       "inputText": "replacement",
       "category": "callbacks",
       "measurementStatus": "pending-language-milestone",
-      "sourceAccepted": true,
-      "nativeSourceAccepted": true,
-      "implementationAccepted": true,
+      "sourceAccepted": false,
+      "nativeSourceAccepted": false,
+      "implementationAccepted": false,
       "measured": false,
       "notes": "Fresh generic declaration replacement with independent captured environments, saved values and selected failure transport. Nullable views and callback failures verified untimed on native and Node-after-tsc. Earlier observation protocols remain immutable; no measurements.",
-      "specification": "Nine scalar observations per iteration; deterministic alternating selection and caught failures.",
-      "sourceSha256": "8a4d5dddc9de4176c3c3fded4222b1a816ad4bf2b0121c3b9ea1c83fb4c7ebf2",
-      "counterpartSha256": "05cad684abaa24c655d1efec91f3dbe0aa24c8cc2dce7d8f97740e33a9e7f205"
+      "specification": "Thirteen scalar observations per iteration; deterministic alternating selection and caught failures.",
+      "sourceSha256": "5319c7d8f161caf3f71a3269b05bea3dd626c68819b265dd8abc42f2b68636a9",
+      "counterpartSha256": "4292ca26f1bec0f0de19c20bf811b6124a0b4de485bb489d5c1aa770d0a1d79f"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

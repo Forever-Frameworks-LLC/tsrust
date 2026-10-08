@@ -117,7 +117,7 @@ pub(super) struct Invocation {
 pub(super) trait Dispatch {
     fn reject(&mut self) {}
     fn capture(&mut self, _: &Expr, _: &mut Value, _: &mut FlowState) {}
-    fn validate_escape(&mut self, _: &Value, _: &FlowState) -> bool {true}
+    fn validate_escape(&mut self, _: &mut Value, _: &mut FlowState) -> bool {true}
     fn invoke(&mut self, expression: &Expr, callee: &Value, arguments: &[Value], state: &FlowState) -> Option<Invocation>;
 }
 pub(super) struct UnknownDispatch;
@@ -241,7 +241,7 @@ pub(super) fn evaluate_with_dispatch(expression: &Expr, state: &mut FlowState, f
                 let arguments = values.split_off(values.len() - count);
                 let callee = values.pop().unwrap();
                 fact(expression, callee.clone(), facts, declarations);
-                if let Some(invocation) = dispatch.invoke(expression, &callee, &arguments, state) {
+                if let Some(invocation) = array_flow::invoke(expression,&arguments,state,effects).or_else(||dispatch.invoke(expression, &callee, &arguments, state)) {
                     for (key, candidates) in invocation.facts {
                         let merged = if let Some(previous) = facts.get(&key) {
                             match (previous, candidates) {

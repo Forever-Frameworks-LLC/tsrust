@@ -8,6 +8,8 @@ use flow_graph::graph;
 mod leaf_effects;
 #[path = "generic_call_expression_flow.rs"]
 mod expression_flow;
+#[path = "generic_call_array_flow.rs"]
+mod array_flow;
 #[path = "generic_call_node_flow.rs"]
 mod node_flow;
 #[path = "generic_call_summary_flow.rs"]

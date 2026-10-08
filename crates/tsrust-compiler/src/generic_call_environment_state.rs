@@ -11,7 +11,6 @@ pub(super) struct State { pub bindings:Vec<Binding>, pub captures:BTreeMap<envir
 impl From<Vec<Binding>> for State {fn from(bindings:Vec<Binding>)->Self {Self {bindings,captures:BTreeMap::new()}}}
 impl std::ops::Deref for State {type Target=Vec<Binding>;fn deref(&self)->&Self::Target {&self.bindings}}
 impl std::ops::DerefMut for State {fn deref_mut(&mut self)->&mut Self::Target {&mut self.bindings}}
-#[cfg(test)]
 fn canonical(bindings:&[Binding])->Option<Vec<Binding>> {
     if bindings.iter().any(|binding|binding.identity.is_none()) {return None;}
     let mut result=bindings.to_vec();result.sort_by_key(|binding|binding.identity);
@@ -32,13 +31,11 @@ fn joined_bindings(left:&[Binding],right:&[Binding],declarations:&HashMap<String
 }
 impl State {
     /// The caller must derive OwnedSingle from checked capture and instance facts.
-    #[cfg(test)]
     pub(super) fn install(&mut self,handle:environment_store::Handle,bindings:&[Binding],instance:Instance)->Option<()> {
         if self.captures.contains_key(&handle) {return None;}
         let bindings=canonical(bindings)?;
         self.captures.insert(handle,Capture::Live {bindings,instance});Some(())
     }
-    #[cfg(test)]
     pub(super) fn update(&mut self,handle:environment_store::Handle,incoming:&[Binding],declarations:&HashMap<String,Contract>)->Option<()> {
         let incoming=canonical(incoming)?;
         let Capture::Live {bindings,instance}=self.captures.get_mut(&handle)? else {return None;};

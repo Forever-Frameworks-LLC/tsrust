@@ -1,3 +1,5 @@
+#[path = "restored_capture_slots.rs"]
+mod restored_capture_slots;
 #[path = "polymorphic_storage_emit.rs"]
 mod polymorphic_storage_emit;
 #[path = "callback_family_result_adapters.rs"]
@@ -121,6 +123,7 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
         callback_traits,
         counted_calls,
         program,
+        restored_slots:restored_capture_slots::Index::new(program),
         entry_setup,
         source_segments: &[],
         fields,
@@ -188,6 +191,7 @@ struct Emitter<'a> {
     callback_traits: bool,
     counted_calls: bool,
     program: &'a CheckedProgram,
+    restored_slots:restored_capture_slots::Index,
     entry_setup: &'a str,
     source_segments: &'a [(crate::project::SourceId,usize,usize)],
     fields: Vec<HashMap<&'a str, usize>>,
@@ -827,6 +831,7 @@ impl Emitter<'_> {
                 && self.program.polymorphic_storage.contains(origin) {
                 *field = field.replace(&format!("Closure{origin}"), &self.generic_storage_type(origin));
             }
+            if capture.restored {*field=format!("Option<{field}>");continue;}
             if !self.record_capture_is_view(capture,closure){continue;}
             let lifetime=field.strip_prefix('&').unwrap().split_whitespace().next().unwrap();
             let start=lifetime.strip_prefix("'c").unwrap().parse::<usize>().unwrap()+1;
@@ -2407,15 +2412,10 @@ impl Emitter<'_> {
         {
             let contract = &self.program.callback_contracts[declaration];
             if self.program.stored_contracts.is_borrowed(id) {self.emit_borrowed_family(&mut output,id,declaration,origins);continue;}
-            let check_family = if contract.kind == crate::syntax::CallbackKind::SharedRead {
-                crate::callable_dispatch::Family::checked_shared
-            } else { crate::callable_dispatch::Family::checked };
-            let family = check_family(
-                contract,
-                &self.program.callable_shapes,
-                origins.iter().copied(),
-                &self.program.closures,
-                crate::Span::default(),
+            let family = crate::callable_dispatch::Family::checked_results(
+                contract, &self.program.callable_shapes, origins.iter().copied(),
+                &self.program.closures, crate::Span::default(),
+                |actual,expected|self.program.stored_contracts.equivalent_result(actual,expected),
             )
             .expect("checked native callable storage family");
             let result_layout=self.result_storage.borrow().get(&id).cloned();
@@ -3423,6 +3423,9 @@ impl Emitter<'_> {
                     "{};",
                     self.compound_assignment(fun, target, value, *op, *span)
                 ),
+                StmtKind::Assign {target,value,operator:None} if target.binding.is_some_and(|id|self.restored_capture(fun,id)) => {
+                    format!("{}value{} = Some({});",if fun.bindings[target.binding.unwrap()].capture_reference {"*"}else{""},target.binding.unwrap(),self.expr(fun,value,Mode::Consume))
+                }
                 StmtKind::Assign { target, value, .. }
                     if matches!(
                         target.ty,
@@ -6304,8 +6307,19 @@ impl Emitter<'_> {
         )
     }
 
+    fn restored_capture(&self,fun:&CheckedFunction,index:usize)->bool {
+        self.restored_slots.contains(fun,index)
+    }
+
     fn binding(&self, fun: &CheckedFunction, index: usize, mode: Mode) -> String {
         let b = &fun.bindings[index];
+        if self.restored_capture(fun,index) {
+            return match mode {
+                Mode::Consume=>format!("value{index}.take().expect(\"initialized capture\")"),
+                Mode::Read|Mode::Copy=>format!("value{index}.as_ref().expect(\"initialized capture\")"),
+                Mode::Mutate=>format!("value{index}.as_mut().expect(\"initialized capture\")"),
+            };
+        }
         if let Some(value)=self.owned_record_value(fun,index,&[],mode){return value;}
         if let Some(value)=self.record_parameter_borrowed_value(fun,index,&[],mode){return value;}
         if matches!(b.ty, Type::BorrowedUnion(_))
@@ -7222,7 +7236,7 @@ impl Emitter<'_> {
                 if matches!(target.kind,ExprKind::Name(_)){
                     let id=target.binding.expect("checked assignment binding");
                     let assigned=self.expr(fun,value,Mode::Consume);
-                    if let Some(store)=self.owned_record_assignment(fun,id,&assigned){format!("{{{store}}}")}else{format!("{{{}value{id}={assigned};}}",if fun.bindings[id].capture_reference{"*"}else{""})}
+                    if self.restored_capture(fun,id) {format!("{{{}value{id}=Some({assigned});}}",if fun.bindings[id].capture_reference {"*"}else{""})} else if let Some(store)=self.owned_record_assignment(fun,id,&assigned){format!("{{{store}}}")}else{format!("{{{}value{id}={assigned};}}",if fun.bindings[id].capture_reference{"*"}else{""})}
                 }else{self.storage_assignment(fun,target,value)}
             }
             ExprKind::Assign { target, value, .. } => self.scalar_assignment(fun, target, value),
@@ -7924,7 +7938,7 @@ impl Emitter<'_> {
                         format!(
                             "capture{}: {}",
                             capture.inner,
-                            if capture.storage==Mode::Read && matches!(fun.bindings[capture.outer].ty,Type::Union(id)|Type::BorrowedUnion(id) if !id.copy) {
+                            if capture.restored {format!("Some({})",self.binding(fun,capture.outer,capture.storage))} else if capture.storage==Mode::Read && matches!(fun.bindings[capture.outer].ty,Type::Union(id)|Type::BorrowedUnion(id) if !id.copy) {
                                 let code=self.binding(fun,capture.outer,Mode::Read);
                                 if matches!(fun.bindings[capture.outer].ty,Type::BorrowedUnion(_)) || (fun.bindings[capture.outer].parameter && fun.bindings[capture.outer].mode==Mode::Read && !fun.bindings[capture.outer].capture_reference) {code} else {let method=if self.callback_payload(fun.bindings[capture.outer].ty).is_some(){"tsr_view"}else{"tsr_data_view"};format!("({code}).{method}()")}
                             } else if self.record_capture_is_view(capture,&self.program.closures[id]){self.record_capture_value(fun,capture.outer,capture.storage)} else {self.binding(fun, capture.outer, capture.storage)}

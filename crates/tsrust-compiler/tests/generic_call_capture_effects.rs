@@ -505,3 +505,123 @@ fn main(){source_main();assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCs
         let output=support::run(&mut std::process::Command::new(binary),10);support::success(&output);assert_eq!(output.stdout,b"1 2 9\n");
     }
 }
+
+#[test]
+fn owned_mutable_factory_selection_is_point_sensitive_in_native_execution() {
+    support::execute(r#"
+        function one<T>(value:T):T{return value;}
+        function two<T>(value:T,other:T):T{return other;}
+        function factory<A>(initial:A){let action=initial;return (restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}
+        function main(){
+            const first=factory(one);const second=factory(two);
+            const original=first(false);const changed=first(true);const restored=first(false);const independent=second(true);
+            console.log(original<int>(1),changed<int>(2,7),restored<int>(3),independent<int>(4,9));
+        }
+    "#, "1 7 3 9\n", None);
+}
+
+#[test]
+fn owned_mutable_factory_first_call_keeps_selected_environment() {
+    support::execute("function one<T>(value:T):T{return value;}function two<T>(value:T,other:T):T{return other;}function factory<A>(initial:A){let action=initial;return (restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}function main(){const first=factory(one);const second=factory(two);const original=first(false);const independent=second(true);console.log(original<int>(1),independent<int>(4,9));}","1 9\n",None);
+}
+
+#[test]
+fn repeated_factory_allocation_keeps_fresh_instance_state() {
+    support::execute(r#"
+        function one<T>(value:T):T{return value;}
+        function two<T>(value:T,other:T):T{return other;}
+        function factory<A>(initial:A){let action=initial;return (restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}
+        function fresh(){return factory(one);}
+        function main(){
+            const first=fresh();const original=first(false);
+            const second=fresh();const independent=second(true);
+            const changed=first(true);
+            console.log(original<int>(1),independent<int>(2),changed<int>(3,9));
+        }
+    "#, "1 2 9\n", None);
+}
+
+#[test]
+fn loop_factory_allocation_resets_each_runtime_instance() {
+    support::execute(r#"
+        function one<T>(value:T):T{return value;}
+        function two<T>(value:T,other:T):T{return other;}
+        function factory<A>(initial:A){let action=initial;return (restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}
+        function main(){
+            for(let index=0;index<2;index=index+1){
+                const take=factory(one);const original=take(false);const changed=take(true);
+                console.log(original<int>(1),changed<int>(2,9));
+            }
+        }
+    "#, "1 9\n1 9\n", None);
+}
+
+#[test]
+fn loop_factory_storage_keeps_independent_mutable_environments() {
+    support::execute(r#"
+        function one<T>(value:T):T{return value;}
+        function two<T>(value:T,other:T):T{return other;}
+        function factory<A>(initial:A){let action=initial;return (restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}
+        function main(){
+            const instances=[factory(one)];
+            for(let index=0;index<2;index=index+1){instances.push(factory(one));}
+            const seed=instances.shift()!;
+            const first=instances.shift()!;const second=instances.shift()!;
+            const original=first(false);const independent=second(true);const changed=first(true);
+            console.log(original<int>(1),independent<int>(2),changed<int>(3,9));
+        }
+    "#, "1 2 9\n", None);
+}
+
+#[test]
+fn stored_factory_returns_concrete_owned_callable() {
+    support::execute("function make(value:int){return ()=>{return ()=>{return value;};};}function main(){const factories=[make(3),make(7)];const first=factories.shift()!;const second=factories.shift()!;const left=first();const right=second();console.log(left(),right());}","3 7\n",None);
+}
+
+#[test]
+fn contextual_array_storage_keeps_generic_capture_instances() {
+    support::execute("function one<T>(value:T):T{return value;}function factory<A>(action:A){return(value:int):int=>{return action<int>(value);};}function main(){const actions=[factory(one)];actions.push(factory(one));const first=actions.shift()!;const second=actions.shift()!;console.log(first(3),second(7));}","3 7\n",None);
+}
+
+#[test]
+fn stored_factories_return_distinct_generic_construction_origins() {
+    support::execute("function one<T>(value:T):T{return value;}function factory<A>(action:A){return()=>{return action;};}function main(){const factories=[factory(one)];factories.push(factory(one));const first=factories.shift()!;const second=factories.shift()!;const left=first();const right=second();console.log(left<int>(3),right<int>(7));}","3 7\n",None);
+}
+
+#[test]
+fn pushed_factory_transfers_keep_independent_mutable_state() {
+    support::execute("function one<T>(value:T):T{return value;}function two<T>(value:T,other:T):T{return other;}function factory<A>(initial:A){let action=initial;return(restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}function main(){const instances=[factory(one)];instances.push(factory(one));const first=instances.shift()!;const second=instances.shift()!;const original=first(false);const independent=second(true);const changed=first(true);console.log(original<int>(1),independent<int>(2),changed<int>(3,9));}","1 2 9\n",None);
+}
+
+#[test]
+fn restored_owned_capture_is_reusable_without_cloning() {
+    support::execute("function identity<T>(value:T):T{return value;}function make(){let action=identity;return ()=>{const previous=action;action=identity;return previous;};}function main(){const take=make();const first=take();const second=take();console.log(first<int>(3),second<int>(7));}","3 7\n",None);
+}
+
+#[test]
+fn incomplete_capture_restoration_retains_consuming_contract() {
+    for body in ["const previous=action;return previous;","const previous=action;if(flag){action=identity;}return previous;","const previous=action;if(flag){throw 1;}action=identity;return previous;"] {
+        let source=format!("function identity<T>(value:T):T{{return value;}}function make(){{let action=identity;return (flag:boolean)=>{{{body}}};}}function main(){{const take=make();const first=take(false);const second=take(false);}}");
+        let formatted=support::format_round_trip(&source);let error=tsrust_compiler::check(&formatted).err().expect("incomplete restoration must retain once ownership");assert_eq!(error.code,"closure-consumed","{}",error.render("input.tsr",&formatted));
+    }
+}
+
+#[test]
+fn reusable_owned_capture_slots_drop_transferred_and_abandoned_records_once() {
+    let source=support::format_round_trip("type Item={id:int;};function make(){let item:Item={id:1};return ()=>{const previous=item;item={id:2};return previous;};}function main(){{const take=make();const first=take();const second=take();console.log(first.id,second.id);}{const abandoned=make();}}");
+    let rust=tsrust_compiler::check(&source).unwrap().emit_rust().replace("fn main()","fn source_main()")+r#"
+static DROPS:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+impl Drop for Record0 {fn drop(&mut self){DROPS.fetch_add(1,std::sync::atomic::Ordering::SeqCst);}}
+fn main(){source_main();assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCst),4);}
+"#;
+    let directory=support::TempDirectory::new();let path=directory.0.join("restored-owner-disposal.rs");std::fs::write(&path,rust).unwrap();
+    for level in ["0","3"] {
+        let binary=directory.0.join(format!("restored-owner-disposal-{level}"));support::success(&support::run(support::rustc().args(["--edition=2024","-C",&format!("opt-level={level}")]).arg(&path).arg("-o").arg(&binary),60));
+        let output=support::run(&mut std::process::Command::new(binary),10);support::success(&output);assert_eq!(output.stdout,b"1 2\n");
+    }
+}
+
+#[test]
+fn restored_capture_in_a_consuming_environment_keeps_native_slot_access() {
+    support::execute("type Item={id:int;};function identity<T>(value:T):T{return value;}function make(item:Item){let action=identity;return ()=>{const previous=action;action=identity;return item;};}function main(){const take=make({id:7});const result=take();console.log(result.id);}","7\n",None);
+}

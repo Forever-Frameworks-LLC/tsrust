@@ -4,6 +4,7 @@ use super::*;
 struct Request {
     declaration: Span,
     producer: Span,
+    context: Vec<(Span, Span)>,
     environment: Option<environment_store::Handle>,
     caller: FlowState,
     arguments: Vec<expression_flow::Value>,
@@ -48,6 +49,15 @@ impl<'a> Engine<'a> {
     pub(super) fn new(declarations: &'a HashMap<String, Contract>, effects: &'a effect_bodies::Index) -> Self {
         Self { declarations, effects, lookup: HashMap::new(), entries: Vec::new(), work: Vec::new(), current: None, environments: environment_store::Store::default(), #[cfg(test)] evaluations: 0 }
     }
+    // Keep a simple declaration path. Recursive edges reuse the earlier frame,
+    // so allocation identity cannot grow with runtime recursion depth.
+    fn call_context(&self, declaration: Span, site: Span) -> Vec<(Span, Span)> {
+        let mut context=self.current.map(|current|self.entries[current].request.context.clone()).unwrap_or_default();
+        if let Some(position)=context.iter().position(|(body,_)|*body==declaration) {
+            context.truncate(position+1);
+        } else {context.push((declaration,site));}
+        context
+    }
     fn request(&mut self, request: Request) -> usize {
         let index = if let Some(&index) = self.lookup.get(&request) { index } else {
             let index = self.entries.len();
@@ -74,7 +84,7 @@ impl<'a> Engine<'a> {
             for alternative in alternatives {
                 let environment_store::Alternative::Body{declaration,environment}=alternative else {return self.opaque_invocation()};
                 let callback_arguments = vec![expression_flow::Value::element(element), expression_flow::Value::index(position), expression_flow::Value::array(&elements.iter().map(expression_flow::Value::element).collect::<Vec<_>>())];
-                let index = self.request(Request { declaration, producer: expression.span, environment, caller: incoming.clone(), arguments: callback_arguments });
+                let index = self.request(Request { declaration, producer: expression.span, context: self.call_context(declaration, expression.span), environment, caller: incoming.clone(), arguments: callback_arguments });
                 if self.entries[index].opaque { return self.opaque_invocation(); }
                 let mut outcome = self.entries[index].outcome.clone();
                 for outgoing in [&mut outcome.normal,&mut outcome.returning,&mut outcome.throwing].into_iter().flatten() {
@@ -98,7 +108,7 @@ impl<'a> Engine<'a> {
         if !self.entries[index].queued { self.entries[index].queued = true; self.work.push(index); }
     }
     pub(super) fn solve(&mut self, declaration: Span, caller: &[Binding], arguments: &[expression_flow::Value]) -> Option<summary_flow::Outcome> {
-        let root = self.request(Request { declaration, producer: declaration, environment: None, caller: caller.to_vec().into(), arguments: arguments.to_vec() });
+        let root = self.request(Request { declaration, producer: declaration, context: vec![(declaration, declaration)], environment: None, caller: caller.to_vec().into(), arguments: arguments.to_vec() });
         while let Some(index) = self.work.pop() {
             self.evaluate(index);
         }
@@ -115,24 +125,36 @@ impl<'a> Engine<'a> {
         let declarations = self.declarations;
         let effects = self.effects;
         let mut caller = request.caller.clone();
-        let available = if let Some(environment) = request.environment {
-            self.environments.subscribe(environment,index).is_some() && self.environments.get(environment).is_some_and(|record| {
-                if record.bindings.iter().any(|captured|caller.iter().any(|binding|binding.identity==captured.identity && binding!=captured)) {return false;}
-                for captured in &record.bindings {
-                    caller.retain(|binding|binding.identity!=captured.identity);
-                    caller.push(captured.clone());
-                }
+        let captured_before=request.environment.and_then(|handle|match caller.captures.get(&handle) {
+            Some(environment_state::Capture::Live {bindings,instance:environment_state::Instance::Merged})=> {
+                bindings.iter().map(|captured|caller.iter().find(|binding|binding.identity==captured.identity).cloned()).collect::<Option<Vec<_>>>().or_else(||Some(bindings.clone()))
+            },
+            Some(environment_state::Capture::Live {bindings,..})=>Some(bindings.clone()),
+            Some(_)=>None,
+            None=>self.environments.get(handle).map(|record|record.bindings.clone()),
+        });
+        let available = if let Some(environment)=request.environment {
+            self.environments.subscribe(environment,index).is_some() && captured_before.as_ref().is_some_and(|bindings| {
+                if bindings.iter().any(|captured|caller.iter().any(|binding|binding.identity==captured.identity && binding!=captured)) {return false;}
+                for captured in bindings {caller.retain(|binding|binding.identity!=captured.identity);caller.push(captured.clone());}
                 true
             })
-        } else { true };
-        let captured_before=request.environment.and_then(|handle|self.environments.get(handle).map(|record|record.bindings.clone()));
-        let incoming = if available { summary_flow::invoke_with_dispatch(request.declaration, &caller, &request.arguments, declarations, effects, self) } else { None };
+        } else {true};
+        let mut incoming=if available {summary_flow::invoke_with_dispatch(request.declaration,&caller,&request.arguments,declarations,effects,self)} else {None};
+        if let (Some(handle),Some(before),Some(outcome))=(request.environment,&captured_before,&mut incoming) {
+            for state in [&mut outcome.normal,&mut outcome.returning,&mut outcome.throwing].into_iter().flatten() {
+                if state.captures.contains_key(&handle) {
+                    let updated=before.iter().map(|binding|state.iter().find(|next|next.identity==binding.identity).cloned()).collect::<Option<Vec<_>>>();
+                    if updated.is_none_or(|bindings|state.update(handle,&bindings,declarations).is_none()) {self.entries[index].opaque=true;}
+                }
+            }
+        }
         let readers=self.environments.take_changed_readers();
         for reader in readers {self.enqueue(reader);}
         self.current = parent;
         let previous = self.entries[index].outcome.clone();
         if let Some(incoming) = incoming {
-            if let Some(captured)=&captured_before && [&incoming.normal,&incoming.returning,&incoming.throwing].into_iter().flatten().any(|state|captured.iter().any(|binding|state.iter().find(|outgoing|outgoing.identity==binding.identity)!=Some(binding))) {
+            if request.environment.is_none_or(|handle| !request.caller.captures.contains_key(&handle)) && let Some(captured)=&captured_before && [&incoming.normal,&incoming.returning,&incoming.throwing].into_iter().flatten().any(|state|captured.iter().any(|binding|state.iter().find(|outgoing|outgoing.identity==binding.identity)!=Some(binding))) {
                 self.entries[index].opaque=true;
             }
             let entry=&mut self.entries[index];
@@ -169,12 +191,43 @@ fn retain_caller_bindings(outgoing:&mut FlowState,identities:&HashSet<Option<cra
 }
 impl expression_flow::Dispatch for Engine<'_> {
     fn reject(&mut self) {self.opaque_invocation();}
-    fn validate_escape(&mut self, value: &expression_flow::Value, state: &FlowState) -> bool {
+    fn validate_escape(&mut self, value: &mut expression_flow::Value, state: &mut FlowState) -> bool {
+        if value.alternatives.is_none() {
+            let Some(current)=self.current else {return false;};
+            let request=&self.entries[current].request;
+            let mut alternatives=Vec::new();
+            for origin in &value.origins {
+                let body_origins::Origin::Body(declaration)=origin else {return true;};
+                let identities=self.effects.captures(*declaration).cloned().unwrap_or_default();
+                if identities.is_empty() {alternatives.push(environment_store::Alternative::Body {declaration:*declaration,environment:None});continue;}
+                let Some(bindings)=identities.iter().map(|id|state.iter().find(|binding|binding.identity==Some(*id)).cloned()).collect::<Option<Vec<_>>>() else {return false;};
+                if bindings.iter().any(|captured|request.caller.iter().any(|binding|binding.identity==captured.identity)) {return false;}
+                let Some(handle)=self.environments.allocate_context(*declaration,request.producer,&request.context,&bindings) else {return false;};
+                if !state.captures.contains_key(&handle) && state.install(handle,&bindings,environment_state::Instance::OwnedSingle).is_none() {return false;}
+                alternatives.push(environment_store::Alternative::Body {declaration:*declaration,environment:Some(handle)});
+            }
+            value.alternatives=Some(environment_store::canonical_alternatives(alternatives));
+        }
         let alternatives=value.alternatives.iter().flatten().chain(value.elements.iter().flatten().flat_map(|element|element.alternatives.iter().flatten()));
-        alternatives.into_iter().all(|alternative|match alternative {
-            environment_store::Alternative::Body{environment:Some(handle),..}=>self.environments.get(*handle).is_some_and(|record|record.bindings.iter().all(|captured|state.iter().find(|binding|binding.identity==captured.identity).is_none_or(|binding|binding==captured))),
-            _=>true,
-        })
+        for alternative in alternatives {
+            let environment_store::Alternative::Body{environment:Some(handle),..}=alternative else {continue;};
+            let Some(record)=self.environments.get(*handle) else {return false;};
+            if let Some(environment_state::Capture::Live {bindings,instance})=state.captures.get_mut(handle) {
+                // Only captures local to this producing frame can become owned
+                // instances on escape. Caller captures retain conservative state.
+                let Some(current)=self.current else {return false;};
+                if !self.entries[current].request.caller.captures.contains_key(handle) && bindings.iter().all(|captured|!self.entries[current].request.caller.iter().any(|binding|binding.identity==captured.identity)) {
+                    *instance=environment_state::Instance::OwnedSingle;
+                }
+            }
+            let bindings=match state.captures.get(handle) {
+                Some(environment_state::Capture::Live {bindings,..})=>bindings,
+                Some(_)=>return false,
+                None=>&record.bindings,
+            };
+            if !bindings.iter().all(|captured|state.iter().find(|binding|binding.identity==captured.identity).is_none_or(|binding|binding==captured)) {return false;}
+        }
+        true
     }
     fn capture(&mut self, expression: &Expr, value: &mut expression_flow::Value, state: &mut FlowState) {
         if value.alternatives.is_some() { return; }
@@ -188,12 +241,14 @@ impl expression_flow::Dispatch for Engine<'_> {
             if captures.is_empty() {alternatives.push(environment_store::Alternative::Body {declaration:*declaration,environment:None});continue;}
             let bindings=captures.iter().map(|identity|state.iter().find(|binding|binding.identity==Some(*identity)).cloned()).collect::<Option<Vec<_>>>();
             let Some(bindings)=bindings else {return};
-            // Mutable captures still use the existing live-caller path until
-            // ownership-aware instance updates are implemented.
+            // Mutable local captures remain live until an owned escape.
             if bindings.iter().any(|binding|binding.mutable) {return;}
-            let Some(environment)=self.environments.allocate(expression.span,producer,&bindings) else {return};
+            let Some(environment)=self.environments.allocate_context(expression.span,producer,&self.entries[current].request.context,&bindings) else {return};
             let edges=bindings.iter().filter_map(|binding|binding.alternatives.clone().map(|alternatives|(binding.identity.unwrap(),alternatives))).collect::<Vec<_>>();
             if self.environments.merge(environment,&bindings,&edges,self.declarations).is_none() {return;}
+            if bindings.iter().any(|binding|binding.mutable || binding.identity.is_some_and(|identity|self.effects.may_write(identity))) && !state.captures.contains_key(&environment) {
+                if state.install(environment,&bindings,environment_state::Instance::Merged).is_none() {return;}
+            }
             alternatives.push(environment_store::Alternative::Body {declaration:*declaration,environment:Some(environment)});
             captured_any=true;
         }
@@ -216,7 +271,7 @@ impl expression_flow::Dispatch for Engine<'_> {
         let caller_identities=state.iter().map(|binding|binding.identity).collect::<HashSet<_>>();
         for alternative in alternatives {
             let environment_store::Alternative::Body{declaration,environment}=alternative else {return self.opaque_invocation()};
-            let index = self.request(Request { declaration, producer: expression.span, environment, caller: state.clone(), arguments: arguments.to_vec() });
+            let index = self.request(Request { declaration, producer: expression.span, context: self.call_context(declaration, expression.span), environment, caller: state.clone(), arguments: arguments.to_vec() });
             // A required parameter return cannot dispatch another invocation.
             // Complete its ordinary contextual summary now instead of restarting
             // the caller once for every independent identity call.
@@ -264,6 +319,20 @@ mod tests {
         assert_eq!(engine.evaluations, evaluations);
     }
     #[test]
+    fn producing_context_distinguishes_helpers_and_bounds_recursive_cycles() {
+        let declarations=HashMap::new();let program=crate::syntax::parse("function main(){}").unwrap();
+        let effects=effect_bodies::Index::new(&program).unwrap();let mut engine=Engine::new(&declarations,&effects);
+        let root=Span::new(1,2);let helper=Span::new(3,4);let factory=Span::new(5,6);
+        let index=engine.request(Request {declaration:helper,producer:Span::new(10,11),context:vec![(root,root),(helper,Span::new(10,11))],environment:None,caller:FlowState::default(),arguments:vec![]});
+        engine.current=Some(index);
+        let first=engine.call_context(factory,Span::new(20,21));
+        assert_eq!(first.len(),3);
+        assert_eq!(engine.call_context(helper,Span::new(30,31)),engine.entries[index].request.context);
+        engine.entries[index].request.context[1].1=Span::new(12,13);
+        assert_ne!(first,engine.call_context(factory,Span::new(20,21)));
+        let cycle=engine.call_context(root,Span::new(40,41));assert_eq!(cycle,vec![(root,root)]);
+    }
+    #[test]
     fn terminal_return_requires_parameter_identity_and_no_entry_effects() {
         let source = crate::format("function identity<T>(value:T):T{return value;}function defaulted(value:int=1):int{return value;}function packed(...values:int[]):int[]{return values;}function literal(value:int):int{return 1;}function outer(value:int){function captured():int{return value;}function written(other:int):int{value=other;return other;}}function main(){}").unwrap();
         assert_eq!(crate::format(&source).unwrap(), source);
@@ -308,7 +377,7 @@ mod tests {
             let outer=program.functions.iter().find(|function|function.name.text=="outer").unwrap();
             let mut engine=Engine::new(&declarations,&effects);
             let arguments=vec![expression_flow::Value::default();2];
-            let outcome=engine.solve(outer.name.span,&[],&arguments).unwrap();
+            let outcome=engine.solve(outer.name.span,&[],&arguments).unwrap_or_else(||panic!("live capture body: {body}"));
             let count=engine.entries.len();
             let repeated=engine.solve(outer.name.span,&[],&arguments).unwrap();
             assert!(repeated==outcome);assert_eq!(engine.entries.len(),count);
@@ -472,15 +541,26 @@ mod environment_mutation_guard_tests {
     use super::*;
     #[test]
     fn mutable_environment_updates_and_live_capture_conflicts_remain_opaque() {
-        for factory in [
-            "function factory<A>(action:A){return ()=>{action=two;return action;};}",
-            "function factory<A>(action:A){const saved=()=>action;action=two;return saved;}",
+        for (factory,expected_required) in [
+            ("function factory<A>(initial:A){let action=initial;return ()=>{action=two;return action;};}",Some(2)),
+            ("function factory<A>(action:A){const saved=()=>action;action=two;return saved;}",None),
         ] {
             let source=crate::format(&format!("function one<T>(value:T):T{{return value;}}function two<T>(value:T,other:T):T{{return other;}}{factory}function root<T>(value:T):T{{const selected=factory(one);const action=selected();return action<T>(value);}}function main(){{}}")).unwrap();
             let program=crate::syntax::parse(&source).unwrap();let effects=effect_bodies::Index::new(&program).unwrap();
             let declarations=program.functions.iter().map(|function|(function.name.text.clone(),contract(function.type_parameters.len(),&function.parameter_initializers,function.rest_parameter,function.name.span))).collect::<HashMap<_,_>>();
             let root=program.functions.iter().find(|function|function.name.text=="root").unwrap();
-            assert!(Engine::new(&declarations,&effects).solve(root.name.span,&[],&[expression_flow::Value::default()]).is_none(),"unimplemented mutable capture semantics must not certify stale snapshots: {factory}");
+            let outcome=Engine::new(&declarations,&effects).solve(root.name.span,&[],&[expression_flow::Value::default()]);
+            if let Some(required)=expected_required {
+                let outcome=outcome.expect("owned replacement returns its updated declaration");
+                let mut probe=root.clone();let mut checked=false;
+                crate::source_walk::function_body(&mut probe,&mut |_|Ok(()),&mut |expression| {
+                    if let ExprKind::Call(callee,_)=&expression.kind && name(callee).is_some_and(|(name,_)|name=="action") {
+                        let contracts=outcome.facts[&(expression.span.start,expression.span.end)].as_ref().expect("selected contract");
+                        assert!(!contracts.is_empty() && contracts.iter().all(|contract|contract.required==required));checked=true;
+                    }
+                    Ok(())
+                }).unwrap();assert!(checked);
+            } else {assert!(outcome.is_none(),"live capture conflicts must remain opaque: {factory}");}
         }
     }
 }
@@ -490,7 +570,7 @@ mod mutable_environment_sequence_tests {
     use super::*;
     #[test]
     fn owned_factory_updates_are_point_sensitive_and_instances_stay_separate() {
-        let source=crate::format("function one<T>(value:T):T{return value;}function two<T>(value:T,other:T):T{return other;}function factory<A>(action:A){return (restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}function root<T>(value:T):T{const first=factory(one);const second=factory(two);const original=first(false);const changed=first(true);const restored=first(false);const independent=second(true);original<T>(value);changed<T>(value,value);restored<T>(value);independent<T>(value,value);return value;}function main(){}").unwrap();
+        let source=crate::format("function one<T>(value:T):T{return value;}function two<T>(value:T,other:T):T{return other;}function factory<A>(initial:A){let action=initial;return (restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}function root<T>(value:T):T{const first=factory(one);const second=factory(two);const original=first(false);const changed=first(true);const restored=first(false);const independent=second(true);original<T>(value);changed<T>(value,value);restored<T>(value);independent<T>(value,value);return value;}function main(){}").unwrap();
         assert_eq!(crate::format(&source).unwrap(),source);
         let program=crate::syntax::parse(&source).unwrap();
         let effects=effect_bodies::Index::new(&program).unwrap();

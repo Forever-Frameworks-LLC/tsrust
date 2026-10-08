@@ -58,6 +58,8 @@ mod logical_values;
 pub(crate) mod generic_function_values;
 #[path = "closure_methods.rs"]
 mod closure_methods;
+#[path = "capture_restoration.rs"]
+mod capture_restoration;
 #[path = "generic_value_adapters.rs"]
 mod generic_value_adapters;
 #[path = "checked_value_annotations.rs"]
@@ -149,6 +151,8 @@ pub struct CheckedFunction {
 }
 
 pub struct Capture {
+    /// Checked completion snapshots prove this moved capture is restored.
+    pub restored: bool,
     pub outer: usize,
     pub inner: usize,
     pub storage: Mode,
@@ -374,6 +378,7 @@ type CallbackMetadata = (Option<Mode>, bool, Option<CallbackKind>);
 
 #[derive(Clone)]
 struct Context {
+    capture_restoration:Option<capture_restoration::Tracker>,
     region_loop_depth:Option<usize>,
     region_entry_loans:Option<std::rc::Rc<crate::capture_loan_identity::Boundary>>,
     exception_environment:Option<std::rc::Rc<exception_state::CheckEnvironment>>,
@@ -425,6 +430,7 @@ impl Context {
 
     fn new(function_name: String) -> Self {
         Self {
+            capture_restoration:None,
             region_loop_depth:None,
             region_entry_loans:None,
             exception_environment:None,
@@ -2156,6 +2162,8 @@ impl Analyzer {
                 context.readonly_parameters.insert(binding);
             }
         }
+        let restoration=capture_restoration::Tracker::new((0..visible.len()).collect());
+        context.capture_restoration=Some(restoration.clone());
         let returned = self
             .check_source_callable_body(&mut context, Self::uninitialized_body(body), result)
             .map_err(|error| self.filter_ownership_fixes(&context, error))?;
@@ -2193,6 +2201,7 @@ impl Analyzer {
             result
         };
         self.finalize_nullable_locals(&mut context.bindings, body)?;
+        let restoration_bounded=capture_restoration::bounded_body(body);
         let mut captures = Vec::new();
         let mut invocation = Mode::Read;
         for (inner, &outer_id) in visible.iter().enumerate() {
@@ -2202,7 +2211,8 @@ impl Analyzer {
                     return Err(Self::pending_result(span));
                 }
                 let access = binding.mode;
-                invocation = invocation.max(access);
+                let restored=access==Mode::Consume && restoration.permits(inner) && restoration_bounded;
+                invocation = invocation.max(if restored {Mode::Mutate}else{access});
                 let storage = if binding.ty.is_copy() {
                     if access == Mode::Mutate && !escapes {
                         Mode::Mutate
@@ -2231,6 +2241,7 @@ impl Analyzer {
                     outer.capture_loans.push((outer_id, storage, span));
                 }
                 captures.push(Capture {
+                    restored,
                     outer: outer_id,
                     inner,
                     storage,
@@ -2832,6 +2843,7 @@ impl Analyzer {
                 body: Vec::new(),
             },
             captures: vec![Capture {
+                restored:false,
                 outer: 0,
                 inner: 0,
                 storage: Mode::Consume,
@@ -2903,6 +2915,7 @@ impl Analyzer {
                 body: Vec::new(),
             },
             captures: vec![Capture {
+                restored:false,
                 outer: 0,
                 inner: 0,
                 storage: Mode::Consume,
@@ -2978,6 +2991,7 @@ impl Analyzer {
     }
 
     fn require(&self, actual: Type, expected: Option<Type>, span: Span) -> Result<(), Diagnostic> {
+        if expected.is_some_and(|expected|self.callables.storage.equivalent_result(actual,expected)) {return Ok(());}
         if !self.deferred_generic_values.is_empty() {
             self.deferred_generic_requirement(actual, expected, span)?;
         }
@@ -5136,6 +5150,7 @@ impl Analyzer {
         let facts = self.aggregate_callable_facts(ty);
         if facts.scoped || facts.unknown {return Err(Diagnostic::new("closure-escape","A thrown value must own any callable storage it contains.",value.span));}
         if ty==Type::Void {return Err(Diagnostic::new("type","A thrown expression must produce a value.",value.span));}
+        capture_restoration::record(context);
         self.record_typed_completion(context,crate::completion::CompletionKind::Throw,ty,value.span);
         Ok(ty)
     }
@@ -5261,6 +5276,7 @@ impl Analyzer {
                 } => self.assign_statement(context, target, value, *operator)?,
                 StmtKind::Return(value) => {
                     self.return_statement(context, value, result_type, stmt.span)?;
+                    capture_restoration::record(context);
                     exited = true;
                 }
                 StmtKind::Expr(value) => {
@@ -9410,12 +9426,13 @@ impl Analyzer {
         // A value that is already stored moves as its own family; only a
         // fresh environment is checked against the declared signature.
         let stored = matches!(self.expression_type_hint(context, value), Some(Type::StoredCallable(_)));
+        let inferred_generic_factory=matches!(&value.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if !context.names.contains_key(name) && self.generic_functions.template(name).is_some_and(|template|template.result.is_none())));
         let actual = self.expression(
             context,
             value,
             Mode::Consume,
             loans,
-            Some(if stored { Type::StoredCallable(family) } else { expected }),
+            if inferred_generic_factory {None} else {Some(if stored { Type::StoredCallable(family) } else { expected })},
         )?;
         self.checked_stored_callable_value(context,value,family,actual)
     }
