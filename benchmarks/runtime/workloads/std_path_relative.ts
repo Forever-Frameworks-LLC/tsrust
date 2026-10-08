@@ -1,3 +1,4 @@
+declare function require(name: string): { relative(from: string, to: string): string };
 const relative = require("node:path").relative;
 
 function workload(n: number, seed: number): string[] {

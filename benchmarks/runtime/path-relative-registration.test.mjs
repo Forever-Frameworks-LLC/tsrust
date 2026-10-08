@@ -25,6 +25,8 @@ for(const id of pathRelativeIds) test(id+' preserves source, ABI and independent
         assert.throws(()=>assertPathRelativeSource(text.replace('std:path','std:fs').replace('node:path','node:fs'),w));
     }
     assertABI(execFileSync(compiler,['emit',path.join(here,w.source)],{encoding:'utf8'}),w,{source});
+    const program=ts.createProgram([path.join(here,w.counterpart)],{strict:true,noEmit:true,target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,types:[],skipLibCheck:true});
+    assert.equal(ts.getPreEmitDiagnostics(program).length,0,'matched counterpart must typecheck');
     const js=ts.transpileModule(counterpart,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
     const evaluate=new Function('require','n','seed',js+';return workload(n,seed);');
     const dir=fs.mkdtempSync(path.join(root,'target/editor/path-relative-'));
