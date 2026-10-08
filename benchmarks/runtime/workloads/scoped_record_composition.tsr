@@ -6,6 +6,11 @@ type Box = {
     handlers: Map<string, Holder>;
 };
 
+type RefillBox = {
+    handlers: Map<string, Holder>;
+    marker: int;
+};
+
 function workload(n: int, seed: int, input: string): int[][] {
     const output: int[][] = [];
     let i = 0;
@@ -80,23 +85,26 @@ function workload(n: int, seed: int, input: string): int[][] {
         const oldCapture = [value];
         const newCapture = [value + 4];
         const refillMap = new Map<string, Holder>();
-        refillMap.set("old", {
+        const refillBox: RefillBox = {
+            handlers: refillMap, marker: 1
+        };
+        refillBox.handlers.set("old", {
             run: (): int => oldCapture[0]
         });
-        refillMap.clear();
-        refillMap.set("new", {
+        refillBox.handlers.clear();
+        refillBox.handlers.set("new", {
             run: (): int => newCapture[0]
         });
         oldCapture[0] = value + 5;
         let refilled = 0;
         {
-            const current = refillMap.get("new");
+            const current = refillBox.handlers.get("new");
             if (current !== undefined) refilled = current.run();
         }
 
-        refillMap.clear();
+        refillBox.handlers.clear();
         newCapture[0] = value + 6;
-        refilled += oldCapture[0] + newCapture[0];
+        refilled += oldCapture[0] + newCapture[0] + refillBox.marker;
 
         base[0] = 0;
         output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled]);

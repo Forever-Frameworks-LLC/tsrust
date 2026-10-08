@@ -6,6 +6,22 @@ with ordinary lifetime checking and no implicit clone. Existing explicitly ownin
 callback storage contracts must remain owning. No new public ownership wrapper is
 planned. Start from failing source/native witnesses before choosing internal layout.
 
+## Current B5 scope and remaining work
+
+B5 remains one unfinished feature-family task. Recent checkpoints establish dense
+record arrays, nested array fields, scoped Map values and fields, nullable reads
+and removal, moves, insertion-origin joins, borrowing iteration, exact disposal,
+and straight-line local/record-field clear/refill lifetimes. These checkpoints are
+focused implementation evidence, not separate accepted gates.
+
+Finish capture release for individual indexed elements and Map entries, lifetime
+renewal across control-flow and outer-block storage, and remaining nullable/union
+composition. Implement record Set keys using the owner's value equality/hashing
+direction; callback records require an explicit stable-key design. Then reconcile
+all named composition requirements, complete editor and guide coverage, and run
+feature-family regression/performance acceptance. The matched workload is current
+and untimed; executable consumers still require acceptance refresh.
+
 ## Record gate
 
 First establish record admission with separate failing witnesses. Ordinary local
@@ -551,3 +567,10 @@ environments. This preserves the nominal record contract. The affected 61-test
 batch, eight depth canaries and focused editor diagnostics pass. Exact checks are
 stored in SQLite as `tsrust-b5-map-field-refill-checks.log`. Broader cross-block
 and indexed lifetime renewal remain pending.
+
+The matched refill scenario now moves an initially empty Map into a named record
+field and retains its sibling marker in the result. Clear/refill and capture
+mutation proceed through that field. The independent eleventh observation is
+`3 * value + 16`. Source guards, mutation controls and hashes are updated; all
+five native/Node-after-tsc cases and registration pass. Untimed evidence is
+byte-exact in SQLite under `runtime/results/2026-10-08T16-22-05-993Z-verify.json`.
