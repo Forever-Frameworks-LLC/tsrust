@@ -1,6 +1,52 @@
 mod support;
 
 #[test]
+fn finally_map_storage_runs_after_handler_failure_and_preserves_disposal() {
+    let source = support::format_round_trip(r#"
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function failIf(fail: boolean): int { if (fail) throw 5; return 1; }
+        function scenario(fail: boolean): void {
+            const old = [3];
+            const current = [7];
+            const handlers = new Map<string, Holder>();
+            handlers.set("old", { run: (): int => old[0] });
+            console.log("before");
+            try {
+                const path = failIf(fail);
+                console.log("normal");
+                handlers.clear();
+                handlers.set("new", { run: (): int => current[0] });
+            } catch (error) {
+                console.log("caught");
+                handlers.clear();
+                handlers.set("new", { run: (): int => current[0] });
+                throw 9;
+            } finally {
+                console.log("finally", handlers.size);
+                handlers.clear();
+                console.log("cleared");
+            }
+            old[0] = 9;
+            current[0] = 11;
+            console.log("after");
+        }
+        function main(): void {
+            try { scenario(false); } catch (error) { console.log("escaped"); }
+            try { scenario(true); } catch (error) { console.log("escaped"); }
+        }
+    "#);
+    verify_disposal(&source, 3, "before\nnormal\ndrop 0\nfinally 1\ndrop 1\ncleared\nafter\nbefore\ncaught\ndrop 0\nfinally 1\ndrop 2\ncleared\nescaped\n");
+    let start = source.find("    } catch (error) {").unwrap();
+    let end = start + source[start..].find("    } finally {").unwrap();
+    let before_clear = support::format_round_trip(&format!("{}    }} catch (error) {{ console.log(\"caught\"); throw 9;\n{}", &source[..start], &source[end..]));
+    verify_disposal(&before_clear, 2, "before\nnormal\ndrop 0\nfinally 1\ndrop 1\ncleared\nafter\nbefore\ncaught\nfinally 1\ndrop 0\ncleared\nescaped\n");
+    let overridden = source.replace("console.log(\"cleared\");", "console.log(\"cleared\"); throw 11;")
+        .replace("old[0] = 9;", "").replace("current[0] = 11;", "").replace("console.log(\"after\");", "")
+        .replace("console.log(\"escaped\");", "if (error === 11) console.log(\"override\"); else console.log(\"wrong\");");
+    verify_disposal(&support::format_round_trip(&overridden), 3, "before\nnormal\ndrop 0\nfinally 1\ndrop 1\ncleared\noverride\nbefore\ncaught\ndrop 0\nfinally 1\ndrop 2\ncleared\noverride\n");
+}
+
+#[test]
 fn fallible_prefix_map_refill_preserves_finally_storage() {
     project(r#"
         import { strictEqual } from "std:testing";

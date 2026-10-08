@@ -859,3 +859,23 @@ storage helper excludes finally. Exact red evidence is verified in SQLite as
 `tsrust-b5-finally-storage-red.log`. Next transport must carry pending completion
 and storage through cleanup, including handler failures and cleanup overrides;
 do not skip finally for abrupt outcomes or move its observations earlier.
+
+Straight-line try/catch/finally transport now carries the normal or thrown
+Map owner into cleanup. Catch failures retain their current storage until cleanup
+executes. Cleanup normal completion resumes the saved error; cleanup failure
+replaces it after disposing the saved payload. Incoming, handler and cleanup
+contracts retain distinct native layouts. Error-storage tuples have explicit
+native types even where a checked effect contract has no emitted throw.
+Definitely abrupt cleanup does not require an injection for a superseded pending
+error. The same helper continues to exclude nested control, consumed storage
+and try/finally without catch; those requirements remain open.
+
+The original finally witness now executes both choices with the new callback
+visible after cleanup. Disposal instrumentation additionally checks handler
+failure before and after its clear, cleanup clear, resumed failure, and cleanup
+throw overriding the pending error. Exact output passes at optimization levels
+0 and 3. All 63 composition tests, eight depth canaries, 15 exception-contract
+tests and the focused editor diagnostic test pass. The editor preserves the
+current capture while releasing the old one. Exact evidence is verified in
+SQLite as `tsrust-b5-finally-storage-checks.log`; the loose copy is removed.
+Matched finally coverage remains next. Whole B5 acceptance and timing are pending.

@@ -8522,3 +8522,13 @@ fn fallible_prefix_map_refill_retains_current_capture_diagnostics() {
     let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&conflict, "file:///test.tsr").unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "capture-conflict"), "{diagnostics}");
 }
+
+#[test]
+fn finally_map_refill_preserves_current_capture_diagnostics() {
+    let source = tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):int{if(fail)throw 5;return 1;}function scenario(fail:boolean):void{const old=[3];const current=[7];const handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});try{const path=failIf(fail);handlers.clear();handlers.set('new',{run:():int=>current[0]});}catch(error){handlers.clear();handlers.set('new',{run:():int=>current[0]});}finally{console.log(handlers.size);}old[0]=9;console.log(handlers.size);}function main():void{scenario(true);}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&source, "file:///test.tsr").unwrap().is_empty());
+    let conflict = source.replace("old[0] = 9;", "current[0] = 9;");
+    assert_ne!(conflict, source);
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&conflict, "file:///test.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "capture-conflict"), "{diagnostics}");
+}
