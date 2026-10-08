@@ -1,6 +1,29 @@
 mod support;
 
 #[test]
+fn nested_empty_map_initializer_adapts_record_callback_carriers() {
+    support::execute("type Holder={run:ReadOnly<Function<int>>;};type Box={handlers:Map<string,Holder>;marker:int;};function main():void{const old=[3];const next=[5];const box:Box={handlers:new Map<string,Holder>(),marker:23};box.handlers.set('old',{run:():int=>old[0]});box.handlers.set('next',{run:():int=>next[0]});console.log(box.handlers.size,box.marker);box.handlers.clear();old[0]=13;next[0]=17;console.log(box.handlers.size,old[0],next[0]);}","2 23\n0 13 17\n",None);
+}
+
+#[test]
+fn outer_record_map_cleanup_releases_captures_across_iterations() {
+    let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};type Box={handlers:Map<string,Holder>;marker:int;};function failIf(fail:boolean):void{if(fail)throw 7;}function main():void{const old=[3];const next=[5];let turn=0;const box:Box={handlers:new Map<string,Holder>(),marker:23};while(turn<3){box.handlers.set('old',{run:():int=>old[0]});console.log('before',turn);turn+=1;try{failIf(false);box.handlers.clear();box.handlers.set('next',{run:():int=>next[0]});if(turn===1)continue;if(turn===3)break;}finally{console.log('cleanup',box.handlers.size);box.handlers.clear();console.log('cleared');}old[0]=9;next[0]=11;console.log('inside',old[0],next[0],box.marker);}old[0]=13;next[0]=17;console.log('after',box.handlers.size,old[0],next[0],box.marker);}");
+    verify_disposal(&source,2,"before 0\ndrop 0\ncleanup 1\ndrop 1\ncleared\nbefore 1\ndrop 0\ncleanup 1\ndrop 1\ncleared\ninside 9 11 23\nbefore 2\ndrop 0\ncleanup 1\ndrop 1\ncleared\nafter 0 13 17 23\n");
+}
+
+#[test]
+fn populated_outer_map_preserves_first_iteration_and_cleanup_disposal() {
+    let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function main():void{const old=[3];const next=[5];let turn=0;let handlers=new Map<string,Holder>();handlers.set('initial',{run:():int=>old[0]});while(turn<2){console.log('before',turn,handlers.size);turn+=1;try{failIf(false);handlers.clear();handlers.set('next',{run:():int=>next[0]});if(turn===1)continue;break;}finally{console.log('cleanup',handlers.size);handlers.clear();console.log('cleared');}}handlers.clear();old[0]=13;next[0]=17;console.log('after',handlers.size,old[0],next[0]);}");
+    verify_disposal(&source,2,"before 0 1\ndrop 0\ncleanup 1\ndrop 1\ncleared\nbefore 1 0\ncleanup 1\ndrop 1\ncleared\nafter 0 13 17\n");
+}
+
+#[test]
+fn retained_outer_map_entries_survive_iterations_until_explicit_clear() {
+    let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const old=[3];const next=[5];let turn=0;let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});while(turn<2){handlers.set('next',{run:():int=>next[0]});console.log('iteration',turn,handlers.size);turn+=1;}console.log('retained',handlers.size);handlers.clear();old[0]=13;next[0]=17;console.log('after',handlers.size,old[0],next[0]);}");
+    verify_disposal(&source,2,"iteration 0 2\ndrop 1\niteration 1 2\nretained 2\ndrop 0\ndrop 1\nafter 0 13 17\n");
+}
+
+#[test]
 fn outer_map_survives_loop_exit_cleanup_and_capture_renewal() {
     let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function main():void{const old=[3];const next=[5];let turn=0;let handlers=new Map<string,Holder>();while(turn<3){handlers.set('old',{run:():int=>old[0]});console.log('before',turn);turn+=1;try{failIf(false);handlers.clear();handlers.set('next',{run:():int=>next[0]});if(turn===1)continue;if(turn===3)break;}finally{console.log('cleanup',handlers.size);handlers.clear();console.log('cleared');}old[0]=9;next[0]=11;console.log('inside',old[0],next[0]);}old[0]=13;next[0]=17;console.log('after',handlers.size,old[0],next[0]);}");
     verify_disposal(&source, 2, "before 0\ndrop 0\ncleanup 1\ndrop 1\ncleared\nbefore 1\ndrop 0\ncleanup 1\ndrop 1\ncleared\ninside 9 11\nbefore 2\ndrop 0\ncleanup 1\ndrop 1\ncleared\nafter 0 13 17\n");

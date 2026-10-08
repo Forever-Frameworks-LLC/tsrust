@@ -276,3 +276,21 @@ remaining B5 scope. Keep compiler/editor parity, matched untimed workloads,
 per-helper mutation guards and exact SQLite evidence current. Preserve unrelated
 fixture edits, stage explicit paths and format the whole project before commits.
 The full compiler/editor completion goal remains active.
+
+## Populated and record-field loop witnesses
+
+Retained entries across iterations already pass, including replacement disposal
+and explicit post-loop clear. A populated initial owner requires that explicit
+clear before capture mutation: zero iterations can retain its callback. The
+first test draft omitted clear and correctly received `capture-conflict`; the
+corrected populated witness passes exact native disposal.
+
+The outer record-field loop witness instead exposes an emitter panic before
+loop lowering: `unchecked record carrier conversion Map(8) to Map(2)`.
+`nested_empty_map_initializer_adapts_record_callback_carriers` isolates that
+panic without a loop. Repair contextual empty Map initialization/Map carrier
+conversion, then resume outer record-field iteration support. Exact originals
+are in SQLite as `tsrust-b5-populated-retained-loop-red.log`,
+`tsrust-b5-outer-record-loop-red.log` and
+`tsrust-b5-map-carrier-conversion-red.log`; loose copies were removed after
+byte-exact read-back. Existing owner fixture changes remain untouched.
