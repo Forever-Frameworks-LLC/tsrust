@@ -786,3 +786,16 @@ of the current capture. The affected 59-test composition suite, eight depth
 canaries and focused editor test pass. Evidence is preserved in SQLite as
 `tsrust-b5-leading-try-clear-checks.log`. Matched workload extension and broader
 exception paths remain pending. B5 is not accepted and no timing was run.
+
+Caught clear/refill now contributes the thirteenth matched workload observation.
+Both sources clear an old captured environment, refill from a new one, throw,
+observe size in catch, invoke the surviving entry, and mutate each former capture
+after release. The independent oracle expects `3 * value + 28`. Source contracts
+and rehashed mutation controls require the throw, catch observer and callback
+result. The native workload now has a checked Result ABI; a focused adapter
+witness was red before registering this family for fallible transport. Both
+plain and fallible signatures are tested, with unrelated families still rejected.
+Untimed native and Node-after-tsc verification passes. Exact evidence is verified
+in SQLite as `runtime/results/2026-10-08T17-03-09-859Z-verify.json` and the loose
+copy is removed. The manifest observation description now matches all thirteen
+scalars. Whole B5 acceptance and timing remain pending.

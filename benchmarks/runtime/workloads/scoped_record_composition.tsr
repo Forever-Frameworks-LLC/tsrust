@@ -120,8 +120,35 @@ function workload(n: int, seed: int, input: string): int[][] {
         newCapture[0] = value + 6;
         refilled += oldCapture[0] + newCapture[0] + refillBox.marker;
 
+        const beforeThrow = [value];
+        const afterThrow = [value + 8];
+        const caughtMap = new Map<string, Holder>();
+        caughtMap.set("old", {
+            run: (): int => beforeThrow[0]
+        });
+        let caughtValue = 0;
+        try {
+            caughtMap.clear();
+            caughtMap.set("new", {
+                run: (): int => afterThrow[0]
+            });
+            throw value;
+        } catch (error) {
+            caughtValue = caughtMap.size;
+        }
+
+        beforeThrow[0] = value + 9;
+        {
+            const current = caughtMap.get("new");
+            if (current !== undefined) caughtValue += current.run();
+        }
+
+        caughtMap.clear();
+        afterThrow[0] = value + 10;
+        caughtValue += beforeThrow[0] + afterThrow[0];
+
         base[0] = 0;
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue]);
         i += 1;
     }
 
