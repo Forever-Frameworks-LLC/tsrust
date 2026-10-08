@@ -12,6 +12,7 @@ mod capture_loan_owners;
 mod capture_loan_identity;
 mod callable_layout;
 mod polymorphic_callable_storage;
+mod polymorphic_invocation_plans;
 mod callable_size;
 mod callable_dispatch;
 mod borrowed_callable_dispatch;

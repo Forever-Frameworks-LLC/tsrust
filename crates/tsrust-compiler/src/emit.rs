@@ -789,45 +789,23 @@ impl Emitter<'_> {
             _ => (origin, false),
         };
         let checked = &self.program.closures[closure];
-        let method_invocation = checked.methods[method].invocation;
-        let invocation = if once {
-            Mode::Consume
-        } else {
-            self.conditional_invocation(fun, callee, method_invocation)
-        };
+        let plan = crate::polymorphic_invocation_plans::Plan::checked(
+            [crate::polymorphic_invocation_plans::Pair { origin: closure, method }],
+            &self.program.closures, callee.span,
+        ).expect("checked materialized invocation plan");
+        let method_invocation = plan.invocation;
+        let invocation = if once { Mode::Consume } else { self.conditional_invocation(fun, callee, method_invocation) };
         let receiver = self.expr(fun, callee, invocation);
-        let mutable = if invocation == Mode::Consume && method_invocation == Mode::Mutate && !once
-        {
-            "mut "
-        } else {
-            ""
-        };
-        let mut text = format!("{{ let {mutable}method_environment = {receiver}; ");
-        if once {
-            let mutable = if method_invocation == Mode::Mutate {
-                "mut "
-            } else {
-                ""
-            };
-            text.push_str(&format!(
-                "let {mutable}method_environment = method_environment.capture0; "
-            ));
-        }
-        let body = &checked.methods[method];
-        for (index, (arg, &parameter)) in args.iter().zip(&body.parameters).enumerate() {
-            let value = self.expr(fun, arg, body.function.bindings[parameter].mode);
-            text.push_str(&format!("let method_argument{index} = {value}; "));
-        }
-        let arguments = (0..args.len())
-            .map(|index| format!("method_argument{index}"))
-            .collect::<Vec<_>>()
-            .join(", ");
-        if matches!(checked.forward, Some(ClosureForward::RestAdapter { counted: true, .. })) {
-            let separator = if arguments.is_empty() { "" } else { ", " };
-            text.push_str(&format!("method_environment.call{method}_with_count({supplied_count}{separator}{arguments}) }}"));
-        } else {
-            text.push_str(&format!("method_environment.call{method}({arguments}) }}"));
-        }
+        let receiver = if once { format!("({receiver}).capture0") } else { receiver };
+        let mutable = invocation == Mode::Consume && method_invocation == Mode::Mutate;
+        let body = plan.cases[0].body;
+        let values = args.iter().zip(&body.parameters).map(|(arg, &parameter)| {
+            self.expr(fun, arg, body.function.bindings[parameter].mode)
+        }).collect::<Vec<_>>();
+        let text = plan.render(&receiver, &values, &supplied_count.to_string(),
+            |_| matches!(checked.forward, Some(ClosureForward::RestAdapter { counted: true, .. })),
+            mutable, None, callee.span,
+        ).expect("checked materialized invocation arguments");
         if let Some(name)=self.result_methods.borrow().get(&(closure,method)).cloned() {
             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
             self.exception_regions.result_call(&text,&name,&self.program.error_effects.method_errors[&(closure,method)],&unions,callee.span).expect("checked method Result invocation")
