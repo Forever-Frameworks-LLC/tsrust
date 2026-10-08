@@ -348,3 +348,14 @@ precise element capture release, Map/Set
 composition and nullable replacement. Complete editor, guide, disposal and matched
 benchmark support before accepting the feature. Keep native execution and ownership
 rejection witnesses paired; do not permit a container to outlive borrowed captures.
+
+The native disposal witness
+`scoped_aggregate_callback_environments_drop_once_on_each_storage_boundary`
+attaches Drop observers to seven generated borrowed closure environments and
+verifies their exact output order at Rust optimization levels 0 and 3. It covers
+Map replacement, deletion, clear and scope exit; array splice removal and pop result
+scope exit; and a Map moved into a record that is then moved again. Every environment
+drops exactly once at the expected boundary. The source passes the shared formatter
+round trip. This proves these normal disposal paths, not failure-path disposal or
+precise compile-time capture release after individual removal. Those requirements
+remain pending. Optimization-level checks are correctness evidence, not timing.

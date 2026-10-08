@@ -1,6 +1,71 @@
 mod support;
 
 #[test]
+fn scoped_aggregate_callback_environments_drop_once_on_each_storage_boundary() {
+    let source = support::format_round_trip(r#"
+        type Holder = { run: ReadOnly<Function<int>>; };
+        type Box = { handlers: Map<string, Holder>; };
+        function main() {
+            const values = [3];
+            {
+            const handlers = new Map<string, Holder>();
+            handlers.set("first", { run: (): int => values[0] });
+            console.log("replace");
+            handlers.set("first", { run: (): int => values[0] + 1 });
+            console.log("delete");
+            handlers.delete("first");
+            handlers.set("clear", { run: (): int => values[0] + 2 });
+            console.log("clear");
+            handlers.clear();
+            handlers.set("scope", { run: (): int => values[0] + 3 });
+            console.log("scope");
+            }
+            console.log("array");
+            {
+                const items: Holder[] = [
+                    { run: (): int => values[0] + 4 },
+                    { run: (): int => values[0] + 5 }
+                ];
+                {
+                    const removed = items.splice(0, 1);
+                    console.log("removed");
+                }
+                const last = items.pop();
+                console.log("pop");
+            }
+            console.log("record");
+            {
+                const handlers = new Map<string, Holder>();
+                handlers.set("record", { run: (): int => values[0] + 6 });
+                const box: Box = { handlers: handlers };
+                const moved = box;
+                console.log("record scope");
+            }
+        }
+    "#);
+    let analysis = tsrust_compiler::check(&source).unwrap();
+    let mut rust = analysis.emit_rust();
+    // Attach an observer to generated borrowed environments. The checked source
+    // controls disposal boundaries; each observer runs only when Rust drops one.
+    let closures = analysis.closures();
+    assert_eq!(closures.len(), 7);
+    for closure in closures {
+        assert!(!closure.captures.is_empty());
+        rust.push_str(&format!("\nimpl<'a> Drop for Closure{}<'a> {{ fn drop(&mut self) {{ println!(\"drop {}\"); }} }}\n", closure.id, closure.id));
+    }
+    let directory = support::TempDirectory::new();
+    let path = directory.0.join("disposal.rs");
+    std::fs::write(&path, rust).unwrap();
+    for level in ["0", "3"] {
+        let binary = directory.0.join(format!("disposal-{level}"));
+        support::success(&support::run(support::rustc().arg(&path).arg("--edition=2024").arg("-C").arg(format!("opt-level={level}")).arg("-o").arg(&binary), 60));
+        let output = support::run(std::process::Command::new(&binary).args(std::iter::empty::<&str>()), 60);
+        support::success(&output);
+        assert_eq!(String::from_utf8(output.stdout).unwrap(), "replace\ndrop 0\ndelete\ndrop 1\nclear\ndrop 2\nscope\ndrop 3\narray\nremoved\ndrop 4\npop\ndrop 5\nrecord\nrecord scope\ndrop 6\n");
+    }
+}
+
+#[test]
 fn record_map_fields_preserve_new_capture_conflicts_and_reject_escape() {
     let conflict = "type Holder={run:ReadOnly<Function<int>>;};type Box={handlers:Map<string,Holder>;};function main(){const first=[3];const second=[7];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});const box:Box={handlers:handlers};box.handlers.set('second',{run:():int=>second[0]});second[0]=9;console.log(box.handlers.size);}";
     let error = tsrust_compiler::check(conflict).err().expect("field insertion retains the new callback owner");
