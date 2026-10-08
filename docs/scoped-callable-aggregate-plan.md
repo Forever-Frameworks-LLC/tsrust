@@ -836,3 +836,15 @@ Eight normal-worker depth canaries and the focused editor test pass. The editor
 accepts the old capture mutation and rejects mutation of the current capture.
 Final evidence is stored as `tsrust-b5-exception-storage-repaired-checks.log`.
 Matched coverage of the fallible-prefix case remains next; no timing was run.
+
+The matched workload now retains fifteen scalar observations. Two separate
+scenarios invoke a fallible prefix with false and true, then clear/refill on
+normal or caught completion. Catch observes the original Map size before its
+clear, so early disposal cannot preserve the oracle result. Independent expected
+observations are `3 * value + 40` and `3 * value + 42`. Each scenario invokes the
+new callback and mutates the old/new captures after release. Token-based guards
+require both calls, both catch and callback observers, both mutation boundaries,
+and both returned results; rehashed deletion controls pass. Native and
+Node-after-tsc verification passes untimed. Exact evidence is verified in SQLite
+as `runtime/results/2026-10-08T17-12-49-977Z-verify.json`; its loose copy is
+removed. B5 family acceptance and measurement remain pending.

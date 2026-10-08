@@ -113,12 +113,70 @@ function workload(n: int, seed: int, input: string): int[][] {
         afterThrow[0] = value + 10;
         caughtValue += beforeThrow[0] + afterThrow[0];
 
+        let normalRenewed = 0;
+        let caughtRenewed = 0;
+        {
+            const prefixOld = [value];
+            const prefixNew = [value + 12];
+            const prefixMap = new Map<string, Holder>();
+            prefixMap.set("old", { run: (): int => prefixOld[0] });
+            let prefixValue = 0;
+            try {
+                prefixValue = prefixResult(false);
+                prefixMap.clear();
+                prefixMap.set("new", { run: (): int => prefixNew[0] });
+            } catch (error) {
+                prefixValue = 2;
+                prefixValue += prefixMap.size;
+                prefixMap.clear();
+                prefixMap.set("new", { run: (): int => prefixNew[0] });
+            }
+            prefixOld[0] = value + 13;
+            {
+                const entry = prefixMap.get("new");
+                if (entry !== undefined) prefixValue += entry.run();
+            }
+            prefixMap.clear();
+            prefixNew[0] = value + 14;
+            normalRenewed = prefixValue + prefixOld[0] + prefixNew[0];
+        }
+        {
+            const prefixOld = [value];
+            const prefixNew = [value + 12];
+            const prefixMap = new Map<string, Holder>();
+            prefixMap.set("old", { run: (): int => prefixOld[0] });
+            let prefixValue = 0;
+            try {
+                prefixValue = prefixResult(true);
+                prefixMap.clear();
+                prefixMap.set("new", { run: (): int => prefixNew[0] });
+            } catch (error) {
+                prefixValue = 2;
+                prefixValue += prefixMap.size;
+                prefixMap.clear();
+                prefixMap.set("new", { run: (): int => prefixNew[0] });
+            }
+            prefixOld[0] = value + 13;
+            {
+                const entry = prefixMap.get("new");
+                if (entry !== undefined) prefixValue += entry.run();
+            }
+            prefixMap.clear();
+            prefixNew[0] = value + 14;
+            caughtRenewed = prefixValue + prefixOld[0] + prefixNew[0];
+        }
+
         base[0] = 0;
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed]);
         i += 1;
     }
 
     return output;
+}
+
+function prefixResult(fail: boolean): int {
+    if (fail) throw 5;
+    return 1;
 }
 
 function main() {

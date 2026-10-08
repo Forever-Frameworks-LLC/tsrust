@@ -20279,9 +20279,9 @@
       "implementationAccepted": false,
       "measured": false,
       "notes": "Focused B5 workload support; whole feature acceptance and timing remain pending. Array removal and widening, independent Maps in indexed record fields, nullable reads, whole-field replacement, borrowed iteration, clear and scope release.",
-      "specification": "Retain thirteen scalar observations per iteration, including caught clear/refill; independent arithmetic oracle.",
-      "sourceSha256": "7fe41d1acab42394d9a6eac70cb50e3dc6d5b5009fbe92eb60d4a5102e88b866",
-      "counterpartSha256": "23e6a352f2f762635c125e0a8bd954e5d78cfe7106240c13971c3ef133d56d41"
+      "specification": "Retain fifteen scalar observations per iteration, including normal and caught refill after a fallible prefix; independent arithmetic oracle.",
+      "sourceSha256": "1b0bc45ffa52942a02da61dc59912f5eea3cca15d3f1f43a6443a4a20c3385da",
+      "counterpartSha256": "889b86d6bee23852622560b3d9d6c4fc00370e8d7a1008972941c6e4d41ef6b2"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

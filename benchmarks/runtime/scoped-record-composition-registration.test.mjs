@@ -25,12 +25,12 @@ test('Scoped record composition retain sources, independent observations and exe
   assert.throws(()=>assertScopedRecordCompositionSource(source+' ',row,kind));
   assert.throws(()=>assertScopedRecordCompositionSource(source,{...row,operationsPerIteration:2},kind));
   const key=kind==='native'?'sourceSha256':'counterpartSha256';
-  for(const [from,to] of [['const removed = items.pop();',''],['boxes[0].handlers.clear();',''],['boxes[0].handlers = replacementMap;',''],['mapSecond = second.run();','mapSecond = 0;'],['iterated += holder.run();',''],['peerValue = peer.run();',''],['base[0] = 0;',''],['refillBox.handlers.clear();',''],['oldCapture[0] = value + 5;',''],['newCapture[0] = value + 6;',''],['const moved = refillBox.handlers;',''],['movedSize = moved.size;',''],['throw value;',''],['caughtValue = caughtMap.size;',''],['caughtValue += current.run();',''],['beforeThrow[0] = value + 9;','']]){
+  for(const [from,to] of [['const removed = items.pop();',''],['boxes[0].handlers.clear();',''],['boxes[0].handlers = replacementMap;',''],['mapSecond = second.run();','mapSecond = 0;'],['iterated += holder.run();',''],['peerValue = peer.run();',''],['base[0] = 0;',''],['refillBox.handlers.clear();',''],['oldCapture[0] = value + 5;',''],['newCapture[0] = value + 6;',''],['const moved = refillBox.handlers;',''],['movedSize = moved.size;',''],['throw value;',''],['caughtValue = caughtMap.size;',''],['caughtValue += current.run();',''],['beforeThrow[0] = value + 9;',''],['prefixValue = prefixResult(false);',''],['prefixValue = prefixResult(true);',''],['prefixValue += prefixMap.size;',''],['prefixValue += entry.run();',''],['normalRenewed = prefixValue + prefixOld[0] + prefixNew[0];',''],['caughtRenewed = prefixValue + prefixOld[0] + prefixNew[0];','']]){
    assert.ok(source.includes(from));const changed=replaceCodeSnippet(source, from, to);
    assert.throws(()=>assertScopedRecordCompositionSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   }
  }
- assert.deepEqual(expectedScopedRecordCompositionValues(row.id,2,0,'composition'),[[1,2,1,2,3,3,4,2,0,2,19,0,31],[2,3,2,3,4,5,5,2,0,3,22,0,34]]);
+ assert.deepEqual(expectedScopedRecordCompositionValues(row.id,2,0,'composition'),[[1,2,1,2,3,3,4,2,0,2,19,0,31,43,45],[2,3,2,3,4,5,5,2,0,3,22,0,34,46,48]]);
  for(const seed of [0,7,1000000])for(const n of [0,1,37,2048]){
   const expected=expectedScopedRecordCompositionObservation(row.id,n,seed,'composition');
   assert.deepEqual(expectedExactResult(row.id,n,seed,'composition'),expected);assert.equal(expectedChecksum(row.id,n,seed,'composition'),expected.checksum);
