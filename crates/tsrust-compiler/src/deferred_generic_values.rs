@@ -130,6 +130,7 @@ impl Analyzer {
                 borrowed: lifetime_count != 0, lifetime_count: lifetime_count.min(129), depth: outer.closure_depth + 1,
                 parameters: Vec::new(),
                 function: CheckedFunction {
+                storage_exits: context.storage_exits.clone(),
                     template: outer.template, specialization: false, name: outer.function_name.clone(),
                     bindings: context.bindings.clone(), parameter_count: 0, result: Type::Void, body: Vec::new(),
                 }, captures, span, escapes, invocation,

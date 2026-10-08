@@ -2,7 +2,7 @@ mod support;
 
 #[test]
 fn renewed_map_can_be_consumed_inside_its_clear_block() {
-    project(r#"
+    let source = r#"
         import { strictEqual } from "std:testing";
         type Holder = { run: ReadOnly<Function<int>>; };
         function main(): void {
@@ -17,7 +17,20 @@ fn renewed_map_can_be_consumed_inside_its_clear_block() {
             values[0] = 9;
             strictEqual(values[0], 9);
         }
-    "#);
+    "#;
+    project(source);
+    let restored = source.replace("const handlers =", "let handlers =")
+        .replace("values[0] = 9;", "handlers = new Map<string, Holder>(); strictEqual(handlers.size, 0); values[0] = 9;");
+    project(&restored);
+    let restored_inside = source.replace("const handlers =", "let handlers =")
+        .replace("strictEqual(moved.size, 0);", "strictEqual(moved.size, 0); handlers = new Map<string, Holder>();")
+        .replace("strictEqual(values[0], 9);", "strictEqual(values[0], 9); strictEqual(handlers.size, 0);");
+    project(&restored_inside);
+    let field = source.replace("function main()", "type Box = { handlers: Map<string, Holder>; marker: int; }; function main()")
+        .replace("handlers.clear();", "box.handlers.clear();").replace("const moved = handlers;", "const moved = box.handlers;")
+        .replace("            {\n                box.handlers.clear();", "            const box: Box = { handlers: handlers, marker: 23 }; {\n                box.handlers.clear();")
+        .replace("strictEqual(values[0], 9);", "strictEqual(values[0], 9); strictEqual(box.marker, 23);");
+    project(&field);
 }
 
 #[test]

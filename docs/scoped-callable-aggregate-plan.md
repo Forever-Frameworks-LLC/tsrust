@@ -675,7 +675,7 @@ checkpoint does not establish all control-flow compositions or B5 acceptance.
 
 ### Next repair: moved storage at block exits
 
-`renewed_map_can_be_consumed_inside_its_clear_block` is intentionally red. Source
+`renewed_map_can_be_consumed_inside_its_clear_block` was initially red. Source
 analysis accepts clearing a Map, moving it into another binding inside that block,
 observing the moved Map's empty size, and mutating the former capture after the
 block. Native transport incorrectly appends the original Map to its return tuple
@@ -692,3 +692,23 @@ state. Cover local and field moves, a move followed by restoration, branches wit
 consumption, and exact disposal before accepting this repair. Keep existing
 clear/refill and uncleared-sibling rejection evidence. No new compiler source was
 changed for this checkpoint; B5 remains incomplete.
+
+Block-exit availability is now retained in a dedicated analysis module,
+`storage_exit_availability.rs`, and carried with checked functions and closure
+methods. Each body exit records unavailable outer roots and moved field paths
+before scope cleanup. Map transport consults that snapshot and returns only live
+storage; clear resets still occur at their original source statements. An empty
+transport tuple is valid when all renewed storage was consumed. Siblings retain
+independent paths. This uses point state rather than final function transfer spans.
+
+Native witnesses pass for consuming a renewed root, consuming a record field with
+an untouched sibling, restoring a consumed binding after the block, and restoring
+it before block exit. Restoration exposed a separate empty-constructor mismatch:
+a typed empty Map now accepts a matching concrete scoped payload context while
+preserving nominal key/value contracts. Nonempty constructor admission is unchanged.
+The affected 64-test batch, eight depth canaries and focused sibling editor checks
+pass; exact evidence is verified as `tsrust-b5-block-exit-availability-checks.log`
+in SQLite. Cloned generic methods retain their checked exit snapshots. Compiler
+unit-test compilation and the focused move witness are checked after that metadata
+propagation adjustment. Branch consumption and exact moved-storage disposal still
+need evidence; B5 remains incomplete.

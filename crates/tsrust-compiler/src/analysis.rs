@@ -26,6 +26,8 @@ mod record_parameter_carriers;
 mod scoped_record_containers;
 #[path = "scoped_map_carriers.rs"]
 mod scoped_map_carriers;
+#[path="storage_exit_availability.rs"]
+mod storage_exit_availability;
 #[path = "record_array_carriers.rs"]
 mod record_array_carriers;
 #[path = "record_value_carriers.rs"]
@@ -145,6 +147,7 @@ pub struct Binding {
 
 #[derive(Debug)]
 pub struct CheckedFunction {
+    pub(crate) storage_exits: storage_exit_availability::Exits,
     pub template: bool,
     pub specialization: bool,
     pub name: String,
@@ -382,6 +385,7 @@ type CallbackMetadata = (Option<Mode>, bool, Option<CallbackKind>);
 
 #[derive(Clone)]
 struct Context {
+    storage_exits: storage_exit_availability::Exits,
     capture_restoration:Option<capture_restoration::Tracker>,
     region_loop_depth:Option<usize>,
     region_entry_loans:Option<std::rc::Rc<crate::capture_loan_identity::Boundary>>,
@@ -434,6 +438,7 @@ impl Context {
 
     fn new(function_name: String) -> Self {
         Self {
+            storage_exits: Default::default(),
             capture_restoration:None,
             region_loop_depth:None,
             region_entry_loans:None,
@@ -2393,6 +2398,7 @@ impl Analyzer {
             depth: context.closure_depth,
             parameters,
             function: CheckedFunction {
+                storage_exits: context.storage_exits.clone(),
                 template: outer.template,
                 specialization: false,
                 name: outer.function_name.clone(),
@@ -2501,6 +2507,7 @@ impl Analyzer {
                 depth: 0,
                 parameters: (0..count).collect(),
                 function: CheckedFunction {
+                storage_exits: Default::default(),
                     template: false,
                     specialization: false,
                     name: binding.name.into(),
@@ -2543,6 +2550,7 @@ impl Analyzer {
             return Ok(false);
         }
         self.checked[index] = Some(CheckedFunction {
+                storage_exits: Default::default(),
             template: true,
             specialization: false,
             name: self.program.functions[index].name.text.clone(),
@@ -2691,6 +2699,7 @@ impl Analyzer {
                 depth: 0,
                 parameters: (0..bindings.len()).collect(),
                 function: CheckedFunction {
+                storage_exits: Default::default(),
                     template: false,
                     specialization: false,
                     name: name.into(),
@@ -2847,6 +2856,7 @@ impl Analyzer {
             depth: context.closure_depth + 1,
             parameters: (1..bindings.len()).collect(),
             function: CheckedFunction {
+                storage_exits: Default::default(),
                 template: true,
                 specialization: false,
                 name: context.function_name.clone(),
@@ -2917,6 +2927,7 @@ impl Analyzer {
             depth: context.closure_depth + 1,
             parameters: (1..bindings.len()).collect(),
             function: CheckedFunction {
+                storage_exits: Default::default(),
                 template: inner.function.template,
                 specialization: false,
                 name: context.function_name.clone(),
@@ -3539,6 +3550,7 @@ impl Analyzer {
             depth: 1,
             parameters: (0..bindings.len()).collect(),
             function: CheckedFunction {
+                storage_exits: Default::default(),
                 template: true,
                 specialization: false,
                 name: "result-shape".into(),
@@ -4266,6 +4278,7 @@ impl Analyzer {
         }
         let uncalled = self.prepare_uncalled_capturing_functions(index, &context)?;
         self.checked[index] = Some(CheckedFunction {
+                storage_exits: context.storage_exits.clone(),
             template: context.template,
             specialization: index >= self.original_count,
             name: name.text,
@@ -5233,7 +5246,7 @@ impl Analyzer {
 
     #[inline(never)]
     fn region_caller_error_effects(&mut self,context:&Context,body:&[Stmt],result:Type)->crate::error_effects::ErrorEffects {
-        let caller=CheckedFunction{template:false,specialization:false,name:"#region".into(),bindings:context.bindings.clone(),parameter_count:0,result,body:body.to_vec()};
+        let caller=CheckedFunction{storage_exits:Default::default(),template:false,specialization:false,name:"#region".into(),bindings:context.bindings.clone(),parameter_count:0,result,body:body.to_vec()};
         let families=self.callables.storage.families().map(|(id,_,origins)|(id,origins.iter().copied().collect())).collect::<Vec<_>>();
         let fields=crate::error_effects::record_field_origins(&self.program.records,&self.scoped_records);
         crate::error_effects::annotate_partial_with_callers(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,&caller,&self.unions,&self.polymorphic_invocations,&fields)
@@ -5241,7 +5254,7 @@ impl Analyzer {
 
     #[inline(never)]
     fn check_pending_region_functions(&mut self,body:&[Stmt],result:Type)->Result<(),Diagnostic> {
-        let caller=CheckedFunction{template:false,specialization:false,name:String::new(),bindings:vec![],parameter_count:0,result,body:body.to_vec()};
+        let caller=CheckedFunction{storage_exits:Default::default(),template:false,specialization:false,name:String::new(),bindings:vec![],parameter_count:0,result,body:body.to_vec()};
         let targets=crate::error_effects::checked_expressions(&caller).into_iter().filter_map(|expression|match expression.target {Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id))=>Some(id),_=>None}).collect::<HashSet<_>>();
         for id in targets {
             if self.checked[id].is_none() && !self.visiting[id] {self.function(id)?;}
@@ -5480,6 +5493,7 @@ impl Analyzer {
             }
         }
         self.record_sequence_carriers(context,body)?;
+        context.storage_exits.record(body, &context.bindings[..first_local]);
         context.lexical_scopes.pop();
         if !keep_names {
             entry_loans.unwind(&mut context.capture_loans);

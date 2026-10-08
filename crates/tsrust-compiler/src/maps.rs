@@ -155,8 +155,9 @@ impl Analyzer {
             return Err(Diagnostic::new("unsupported", "A shadowed Map name cannot construct the built-in collection.", expression.span));
         }
         let declared = annotation.as_ref().map(|annotation| self.resolve_value_annotation(annotation, false)).transpose()?;
-        if let Some(declared) = declared { self.require(declared, expected, expression.span)?; }
-        let target = declared.or(expected);
+        let empty_scoped = arguments.is_empty() && declared.zip(expected).is_some_and(|(declared, expected)| self.scoped_map_contract(expected, declared));
+        if let Some(declared) = declared && !empty_scoped { self.require(declared, expected, expression.span)?; }
+        let target = if empty_scoped { expected } else { declared.or(expected) };
         let target_types = if let Some(Type::Map(id)) = target {
             let map = self.program.records[id].map_definition.as_ref().unwrap(); Some((map.key, map.value))
         } else if let Some(source) = arguments.first() {

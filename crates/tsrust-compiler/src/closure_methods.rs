@@ -120,6 +120,7 @@ impl Analyzer {
             parameters: source.parameters.clone(),
             parameter_callbacks:source.parameters.iter().map(|&parameter|match context.bindings[parameter].ty {Type::Callback(id)=>Some(self.callables.callbacks[id].structural),_=>None}).collect(),
             function: CheckedFunction {
+                storage_exits: context.storage_exits.clone(),
                 template: context.template,
                 specialization: true,
                 name: context.function_name.clone(),
@@ -185,6 +186,7 @@ impl Analyzer {
             }
         }
         self.closures[origin].methods[method].function = CheckedFunction {
+                storage_exits: context.storage_exits.clone(),
             template: context.template,
             specialization: true,
             name: context.function_name,

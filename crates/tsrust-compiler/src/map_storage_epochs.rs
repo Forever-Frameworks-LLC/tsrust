@@ -102,3 +102,25 @@ impl Emitter<'_> {
         true
     }
 }
+
+impl Emitter<'_> {
+    pub(super) fn map_storage_live_at_exit(&self, fun: &CheckedFunction, body: &[Stmt], place: &str) -> bool {
+        for (binding, value) in fun.bindings.iter().enumerate() {
+            if place == format!("value{binding}") { return fun.storage_exits.live(body, binding, &[]); }
+            let Some(layout) = self.owned_record_layout(fun, binding) else { continue; };
+            for leaf in &layout.leaves {
+                if leaf.native_name(binding) != place { continue; }
+                let mut ty = value.ty;
+                let mut names = Vec::new();
+                for &index in &leaf.path {
+                    let Type::Record(record) = ty else { return false; };
+                    let field = &self.program.records[record].fields[index];
+                    names.push(field.name.text.clone());
+                    ty = field.ty.unwrap();
+                }
+                return fun.storage_exits.live(body, binding, &names);
+            }
+        }
+        false
+    }
+}

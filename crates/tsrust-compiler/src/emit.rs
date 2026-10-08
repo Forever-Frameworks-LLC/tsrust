@@ -3259,11 +3259,13 @@ impl Emitter<'_> {
             if let StmtKind::Block(inner) = &stmt.kind {
                 let places = if stmt.labels.is_empty() { self.map_block_return_places(fun, declarations, inner) } else { Vec::new() };
                 if !places.is_empty() {
+                    let places = places.into_iter().filter(|place| self.map_storage_live_at_exit(fun, inner, place)).collect::<Vec<_>>();
                     let pattern = places.iter().map(|place| format!("mut {place}")).collect::<Vec<_>>().join(",");
                     let values = places.join(",");
-                    let _ = writeln!(output, "{indent}let ({pattern},) = {{");
+                    let comma = if places.is_empty() { "" } else { "," };
+                    let _ = writeln!(output, "{indent}let ({pattern}{comma}) = {{");
                     self.control_block_epochs(output, fun, inner, depth + 1, loop_label, Some(declarations));
-                    let _ = writeln!(output, "{indent}    ({values},)
+                    let _ = writeln!(output, "{indent}    ({values}{comma})
 {indent}}};");
                     continue;
                 }
@@ -9261,7 +9263,7 @@ mod exception_region_tests {
         let caller_index=program.program.functions.iter().position(|function|function.name=="value").unwrap();
         let caller_contract=program.program.error_effects.function_errors[caller_index].clone();
         assert!(!caller_contract.opaque,"stored caller must have a resolved saved contract");
-        let original=program.program.functions.iter_mut().find(|function|function.name=="value").unwrap();let caller=crate::analysis::CheckedFunction{template:original.template,specialization:original.specialization,name:original.name.clone(),bindings:original.bindings.clone(),parameter_count:original.parameter_count,result:original.result,body:original.body.clone()};original.body.clear();original.result=crate::syntax::Type::Void;
+        let original=program.program.functions.iter_mut().find(|function|function.name=="value").unwrap();let caller=crate::analysis::CheckedFunction{storage_exits:original.storage_exits.clone(),template:original.template,specialization:original.specialization,name:original.name.clone(),bindings:original.bindings.clone(),parameter_count:original.parameter_count,result:original.result,body:original.body.clone()};original.body.clear();original.result=crate::syntax::Type::Void;
         let runtime=crate::error_effects::materialize_runtime_record(&mut program.program);
         let mut emitter=super::emitter_for(&program.program, "");emitter.counted_calls=true;emitter.callback_traits=true;
         let (family,_,origins)=program.program.stored_contracts.families().find(|(_,_,origins)|origins.len()==2).unwrap();
