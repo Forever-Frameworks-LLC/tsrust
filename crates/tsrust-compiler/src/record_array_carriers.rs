@@ -7,9 +7,37 @@ impl Analyzer {
     }
     pub(super) fn scoped_array_storage_path(value: &Expr) -> Option<(usize, Vec<String>)> {
         let mut value = value;
-        while let ExprKind::Index(base, _) = &value.kind { value = base; }
-        let (_, fields) = Self::direct_fields(value)?;
-        Some((Self::root_binding(value)?, fields))
+        let mut fields = Vec::new();
+        loop { match &value.kind {
+            ExprKind::Index(base, _) => value = base,
+            ExprKind::Field(base, name) => { fields.push(name.clone()); value = base; }
+            ExprKind::Name(_) => { fields.reverse(); return Some((value.binding?, fields)); }
+            _ => return None,
+        }}
+    }
+    fn scoped_array_field_type(&self, mut ty: Type, path: &[String]) -> Option<Type> {
+        for name in path {
+            while let Type::Array(element) = ty { ty = element.ty(); }
+            ty = self.record_field_type(ty, std::slice::from_ref(name))?;
+        }
+        Some(ty)
+    }
+    fn scoped_array_replace_field(&mut self, mut ty: Type, path: &[String], mut replacement: Type) -> Option<Type> {
+        enum Parent { Array, Field(usize, String) }
+        let mut parents = Vec::new();
+        for name in path {
+            while let Type::Array(element) = ty { parents.push(Parent::Array); ty = element.ty(); }
+            let Type::Record(record) = ty else { return None; };
+            parents.push(Parent::Field(record, name.clone()));
+            ty = self.record_field_type(ty, std::slice::from_ref(name))?;
+        }
+        for parent in parents.into_iter().rev() {
+            replacement = match parent {
+                Parent::Array => Type::Array(ArrayElement::from_value_type(replacement)?),
+                Parent::Field(record, name) => Type::Record(self.record_type_with_field(record, &[name], replacement)?),
+            };
+        }
+        Some(replacement)
     }
     pub(super) fn scoped_record_nullable_contract(&self, actual: Type, expected: Type) -> bool {
         let (Some(actual_id), Some(expected_id)) = (actual.union(), expected.union()) else { return false; };
@@ -30,7 +58,7 @@ impl Analyzer {
     #[inline(never)]
     pub(super) fn widen_scoped_array_storage(&mut self, context: &mut Context, base: &Expr, incoming: Type, span: Span) -> Result<(), Diagnostic> {
         let Some((binding, path)) = Self::scoped_array_storage_path(base) else { return Ok(()); };
-        let stored = self.record_field_type(context.bindings[binding].ty, &path).unwrap_or(context.bindings[binding].ty);
+        let Some(stored) = self.scoped_array_field_type(context.bindings[binding].ty, &path) else { return Ok(()); };
         let Type::Array(ArrayElement::Record(previous, depth)) = stored else { return Ok(()); };
         let incoming = match incoming {
             Type::Record(record) | Type::Array(ArrayElement::Record(record, _)) => record,
@@ -40,10 +68,7 @@ impl Analyzer {
         let joined = self.join_record_types(previous, incoming, span)?.ok_or_else(|| Diagnostic::new("type", "Array callback field environments have incompatible contracts.", span))?;
         let Type::Record(record) = joined else { unreachable!() };
         let ty = Type::Array(ArrayElement::Record(record, depth));
-        if path.is_empty() { context.bindings[binding].ty = ty; }
-        else if let Type::Record(root) = context.bindings[binding].ty
-            && let Some(root) = self.record_type_with_field(root, &path, ty)
-        { context.bindings[binding].ty = Type::Record(root); }
+        if let Some(root) = self.scoped_array_replace_field(context.bindings[binding].ty, &path, ty) { context.bindings[binding].ty = root; }
         Ok(())
     }
 
@@ -131,7 +156,7 @@ impl Analyzer {
         }
         for (&binding, &ty) in &plans { context.bindings[binding].ty = ty; }
         for write in &writes {
-            if let Some(ty) = plans.get(&write.binding).copied().and_then(|ty| self.record_field_type(ty, &write.path)) {
+            if let Some(ty) = plans.get(&write.binding).copied().and_then(|ty| self.scoped_array_field_type(ty, &write.path)) {
                 let destination = if write.array_element {
                     let Type::Array(ArrayElement::Record(record, _)) = ty else { continue; };
                     match write.value.ty {

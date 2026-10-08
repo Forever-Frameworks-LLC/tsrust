@@ -92,7 +92,12 @@ impl Analyzer {
     ) {
         let mut pending = vec![(value, destination, consume)];
         while let Some((value, destination, consume)) = pending.pop() {
-            if let Some((_, fields)) = Self::direct_fields(value) {
+            let direct = Self::direct_fields(value);
+            let direct_consume = consume && direct.is_some();
+            if let Some(fields) = direct.map(|(_, fields)| fields).or_else(|| Self::scoped_array_storage_path(value).map(|(_, fields)| fields)) {
+                // Indexed payloads retain a conservative view of the container's
+                // capture owners; extracting one value cannot consume its siblings.
+                let consume = direct_consume;
                 if let Some(binding) = Self::root_binding(value) {
                     let source = Place { binding, fields };
                     let moved = context.capture_loan_owners.loans_under(&source);

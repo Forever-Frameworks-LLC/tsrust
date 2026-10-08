@@ -1,6 +1,31 @@
 mod support;
 
 #[test]
+fn alternating_path_removal_keeps_inserted_capture_after_scope_exit() {
+    let source = "type Holder={run:ReadOnly<Function<int>>;};type Box={items:Holder[];};function main(){const first=[3];const second=[7];let removed:Holder|undefined;{const boxes:Box[]=[{items:[{run:():int=>first[0]}]}];boxes[0].items.push({run:():int=>second[0]});removed=boxes[0].items.pop();}second[0]=9;if(removed!==undefined)console.log(removed.run());}";
+    let error = tsrust_compiler::check(source).err().expect("removed callback must retain the inserted owner");
+    assert_eq!(error.code, "capture-conflict", "{}", error.message);
+}
+
+#[test]
+fn indexed_records_keep_array_field_callback_environments() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        type Box = { items: Holder[]; };
+        function main() {
+            const values = [3, 7, 11];
+            const boxes: Box[] = [{ items: [{ run: (): int => values[0] }] }];
+            boxes[0].items.push({ run: (): int => values[1] });
+            const removed = boxes[0].items.pop();
+            boxes[0].items[0] = { run: (): int => values[2] };
+            if (removed !== undefined) strictEqual(removed.run(), 7);
+            strictEqual(boxes[0].items[0].run(), 11);
+        }
+    "#);
+}
+
+#[test]
 fn mixed_path_insertions_keep_new_capture_conflicts() {
     let source = "type Holder={run:ReadOnly<Function<int>>;};type Box={groups:Holder[][];};function main(){const first=[3];const second=[7];const box:Box={groups:[[{run:():int=>first[0]}]]};box.groups[0].push({run:():int=>second[0]});second[0]=9;console.log(box.groups[0][1].run());}";
     let error = tsrust_compiler::check(source).err().expect("mixed path insertion retains its owner");
