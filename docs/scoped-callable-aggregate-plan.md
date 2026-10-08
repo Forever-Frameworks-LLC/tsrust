@@ -371,8 +371,8 @@ while a surviving container remains in scope. That analysis requirement remains
 open, as do broader composition, Set key design and matched benchmark support.
 
 Matched workload `scoped_record_composition` now supplies B5 array and Map coverage.
-Each iteration retains seven scalar observations from array pop followed by a new
-callback origin, a Map moved into a record field, field insertion, nullable reads,
+Each iteration retains eight scalar observations from array pop followed by a new
+callback origin, a Map moved into a record field, field insertion, nullable reads, whole-field replacement,
 clear and capture release at scope exit. Its TypeScript counterpart uses the same
 scenario; an independent arithmetic oracle derives the expected values without
 using collections or callbacks. Source contracts enforce both fingerprints,
@@ -385,3 +385,25 @@ passes all five harness cases; exact original evidence is preserved in SQLite as
 The manifest row is appended at the end and remains explicitly unmeasured, with
 whole B5 implementation acceptance pending. Broader benchmark coverage must follow
 the remaining composition and Set decisions as those features land.
+
+Map record-field replacement now checks against the nominal declared field contract
+and updates the concrete local field layout. The existing carrier planner joins
+old and replacement origins through both source Maps and the field destination.
+The native witness verifies calls before and after replacement. Paired diagnostics
+preserve replacement capture owners and reject replacement while an entry view is
+live. The affected compiler batch passes 50 tests; focused editor help and all eight
+normal-worker depth canaries pass. The matched composition workload adds replacement
+as its eighth retained observation, with independently updated oracle expectations
+and explicit semantic source hashes. Source acceptance is still separate from B5
+acceptance and timing. Precise old-owner capture release is not established here.
+
+The expanded workload exposed a missing earlier insertion origin after whole-field
+replacement. The Map planner now includes every checked `set` payload before
+joining move edges, preserving origins that the final point-sensitive field type
+no longer contains. The corrected workload passes all five native/Node-after-tsc
+cases; exact evidence is in SQLite as
+`runtime/results/2026-10-08T15-47-01-119Z-verify.json`. Current depth evidence is
+`tsrust-b5-map-field-insertion-replacement-depth.log`; the earlier passing depth
+run remains separately preserved as `tsrust-b5-map-field-replacement-depth.log`.
+No timing was run. All 50 affected compiler checks and focused editor help pass
+after the repair. Whole B5 acceptance remains pending.

@@ -43,6 +43,28 @@ impl Analyzer {
             (!info.parameter && !info.capture_reference && self.contains_scoped_map_storage(info.ty)).then_some((binding, info.ty))
         }).collect::<HashMap<_, _>>();
         if roots.is_empty() { return Ok(()); }
+        crate::source_walk::body(body, &mut |_| Ok(()), &mut |value| {
+            if !matches!(value.target, Some(CallTarget::MapMethod(MapMethod::Set))) { return Ok(()); }
+            let ExprKind::Call(callee, arguments) = &value.kind else { return Ok(()); };
+            let ExprKind::Field(base, _) = &callee.kind else { return Ok(()); };
+            let Some(binding) = Self::root_binding(base) else { return Ok(()); };
+            let Some((_, path)) = Self::direct_fields(base) else { return Ok(()); };
+            let Some(root) = roots.get(&binding).copied() else { return Ok(()); };
+            let Some(Type::Map(id)) = self.record_field_type(root, &path) else { return Ok(()); };
+            let previous = self.program.records[id].map_definition.as_ref().unwrap().value;
+            let (Type::Record(previous), Some(Type::Record(incoming))) = (previous, arguments[1].ty) else { return Ok(()); };
+            let joined = if previous == incoming { Type::Record(previous) } else {
+                self.join_record_types(previous, incoming, value.span)?.ok_or_else(|| Diagnostic::new("type", "Map insertion environments have incompatible contracts.", value.span))?
+            };
+            let map = Type::Map(self.scoped_map_value_instance(id, joined));
+            let ty = if path.is_empty() { map } else {
+                let Type::Record(record) = root else { return Ok(()); };
+                let Some(record) = self.record_type_with_field(record, &path, map) else { return Ok(()); };
+                Type::Record(record)
+            };
+            roots.insert(binding, ty);
+            Ok(())
+        })?;
         let writes = record_storage_writes::collect(body);
         // Record literal fields and direct moves share the same storage edges.
         let mut leaves = Vec::new();

@@ -127,7 +127,7 @@ impl Analyzer {
         let(_,path)=Self::direct_fields(target)?;if path.is_empty(){return None;}
         let mut ty=binding.ty;
         for name in path{let Type::Record(record)=ty else{return None;};let record=self.scoped_records.declaration(record);ty=self.program.records[record].fields.iter().find(|field|field.name.text==name)?.ty?;}
-        matches!(ty,Type::Callback(_)).then_some(ty)
+        (matches!(ty,Type::Callback(_)) || matches!(ty,Type::Map(_)) && self.aggregate_callable_facts(ty).scoped).then_some(ty)
     }
     /// A local record field declared as a borrowing callback or an absent value.
     /// Its two states have different native layouts; replacement is not planned yet.

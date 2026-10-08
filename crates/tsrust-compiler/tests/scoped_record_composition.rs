@@ -1,6 +1,41 @@
 mod support;
 
 #[test]
+fn map_field_replacement_retains_capture_owners_and_rejects_live_views() {
+    let prefix = "type Holder={run:ReadOnly<Function<int>>;};type Box={handlers:Map<string,Holder>;};function main(){const firstValues=[3];const secondValues=[7];const first=new Map<string,Holder>();first.set('value',{run:():int=>firstValues[0]});let box:Box={handlers:first};const second=new Map<string,Holder>();second.set('value',{run:():int=>secondValues[0]});";
+    let conflict = format!("{prefix}box.handlers=second;secondValues[0]=9;console.log(box.handlers.size);}}");
+    let error = tsrust_compiler::check(&conflict).err().expect("replacement retains its callback owners");
+    assert_eq!(error.code, "capture-conflict", "{}", error.message);
+    let view = format!("{prefix}const old=box.handlers.get('value');box.handlers=second;if(old!==undefined)console.log(old.run());}}");
+    let error = tsrust_compiler::check(&view).err().expect("replacement cannot invalidate an entry view");
+    assert_eq!(error.code, "view-conflict", "{}", error.message);
+}
+
+#[test]
+fn record_map_field_replacement_preserves_distinct_callback_origins() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        type Box = { handlers: Map<string, Holder>; };
+        function main() {
+            const values = [3, 7];
+            const first = new Map<string, Holder>();
+            first.set("value", { run: (): int => values[0] });
+            let box: Box = { handlers: first };
+            {
+                const old = box.handlers.get("value");
+                if (old !== undefined) strictEqual(old.run(), 3);
+            }
+            const second = new Map<string, Holder>();
+            second.set("value", { run: (): int => values[1] });
+            box.handlers = second;
+            const replacement = box.handlers.get("value");
+            if (replacement !== undefined) strictEqual(replacement.run(), 7);
+        }
+    "#);
+}
+
+#[test]
 fn scoped_aggregate_callback_environments_drop_once_on_each_storage_boundary() {
     let source = support::format_round_trip(r#"
         type Holder = { run: ReadOnly<Function<int>>; };

@@ -1,6 +1,12 @@
 type int = number;
-type Holder = { run: () => int; };
-type Box = { handlers: Map<string, Holder>; };
+type Holder = {
+    run: () => int;
+};
+
+type Box = {
+    handlers: Map<string, Holder>;
+};
+
 function workload(n: int, seed: int, input: string): int[][] {
     const output: int[][] = [];
     let i = 0;
@@ -11,32 +17,56 @@ function workload(n: int, seed: int, input: string): int[][] {
         let arrayValue = 0;
         let mapFirst = 0;
         let mapSecond = 0;
+        let replaced = 0;
         let populated = 0;
         let cleared = 0;
         {
-            const items: Holder[] = [{ run: (): int => base[0] }];
+            const items: Holder[] = [{
+                run: (): int => base[0]
+            }];
             const removed = items.pop();
-            items.push({ run: (): int => base[1] });
+            items.push({
+                run: (): int => base[1]
+            });
             if (removed !== undefined) removedValue = removed.run();
             arrayValue = items[0].run();
             const handlers = new Map<string, Holder>();
-            handlers.set("first", { run: (): int => base[0] });
-            const box: Box = { handlers: handlers };
-            box.handlers.set("second", { run: (): int => base[1] });
+            handlers.set("first", {
+                run: (): int => base[0]
+            });
+            const box: Box = {
+                handlers: handlers
+            };
+            box.handlers.set("second", {
+                run: (): int => base[1]
+            });
             {
                 const first = box.handlers.get("first");
                 const second = box.handlers.get("second");
                 if (first !== undefined) mapFirst = first.run();
                 if (second !== undefined) mapSecond = second.run();
             }
+
             populated = box.handlers.size;
+            const replacementMap = new Map<string, Holder>();
+            replacementMap.set("replacement", { run: (): int => base[1] + 1 });
+            box.handlers = replacementMap;
+            {
+                const replacement = box.handlers.get("replacement");
+                if (replacement !== undefined) replaced = replacement.run();
+            }
             box.handlers.clear();
             cleared = box.handlers.size;
         }
+
         base[0] = 0;
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, populated, cleared, base[0] + base[1]]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, populated, cleared, base[0] + base[1]]);
         i += 1;
     }
+
     return output;
 }
-function main() { const result = workload(3, 0, "composition"); }
+
+function main() {
+    const result = workload(3, 0, "composition");
+}
