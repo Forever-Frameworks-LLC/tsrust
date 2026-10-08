@@ -789,10 +789,12 @@ impl Emitter<'_> {
             _ => (origin, false),
         };
         let checked = &self.program.closures[closure];
-        let plan = crate::polymorphic_invocation_plans::Plan::checked(
-            [crate::polymorphic_invocation_plans::Pair { origin: closure, method }],
-            &self.program.closures, callee.span,
-        ).expect("checked materialized invocation plan");
+        let pairs = [crate::polymorphic_invocation_plans::Pair { origin: closure, method }];
+        let plan = if let Some(id) = self.program.polymorphic_invocations.index(&pairs) {
+            self.program.polymorphic_invocations.checked(id, &self.program.closures, callee.span)
+        } else {
+            crate::polymorphic_invocation_plans::Plan::checked(pairs, &self.program.closures, callee.span)
+        }.expect("checked materialized invocation plan");
         let method_invocation = plan.invocation;
         let invocation = if once { Mode::Consume } else { self.conditional_invocation(fun, callee, method_invocation) };
         let receiver = self.expr(fun, callee, invocation);

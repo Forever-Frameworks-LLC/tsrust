@@ -1,6 +1,6 @@
 # Callable replacement implementation plan
 
-Latest component checkpoint: fresh constructor identity survives empty storage retagging and closure compaction. See docs/handoff-2026-10-07-generic-construction-identity.md. Native family declarations exist, but source construction injection and dispatch remain open; the family is not accepted.
+Latest component checkpoint: concrete deferred calls publish stable checked invocation plans that survive compaction and feed emission. See docs/handoff-2026-10-07-checked-invocation-table.md. Native family declarations and construction identity exist, but source multi-origin materialization, construction injection and dispatch remain open; the family is not accepted.
 
 ## Current evidence
 

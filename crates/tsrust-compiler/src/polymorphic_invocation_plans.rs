@@ -4,6 +4,63 @@ use crate::{Diagnostic, Mode, Span};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct Pair { pub origin: usize, pub method: usize }
+
+/// Intern checked alternatives outside recursive expression nodes. IDs remain
+/// stable through origin compaction; method ordinals belong to their environment.
+#[derive(Default)]
+pub(crate) struct Registry {
+    plans: Vec<Vec<Pair>>,
+    ids: std::collections::BTreeMap<Vec<Pair>, usize>,
+}
+impl Registry {
+    pub(crate) fn publish(&mut self, pairs: impl IntoIterator<Item = Pair>, closures: &[CheckedClosure], span: Span) -> Result<usize, Diagnostic> {
+        let plan = Plan::checked(pairs, closures, span)?;
+        let pairs = plan.cases.iter().map(|case| case.pair).collect::<Vec<_>>();
+        if let Some(&id) = self.ids.get(&pairs) { return Ok(id); }
+        let id = self.plans.len();
+        self.ids.insert(pairs.clone(), id);
+        self.plans.push(pairs);
+        Ok(id)
+    }
+
+    /// Lookup a canonical pair slice without allocating during emission.
+    pub(crate) fn index(&self, pairs: &[Pair]) -> Option<usize> {
+        self.ids.get(pairs).copied()
+    }
+
+    pub(crate) fn checked<'a>(&self, id: usize, closures: &'a [CheckedClosure], span: Span) -> Result<Plan<'a>, Diagnostic> {
+        let pairs = self.plans.get(id).ok_or_else(|| Diagnostic::new("callable-layout", "Generic invocation refers to an unknown checked plan.", span))?;
+        Plan::checked(pairs.iter().copied(), closures, span)
+    }
+
+    pub(crate) fn validate(&self, closures: &[CheckedClosure], span: Span) -> Result<(), Diagnostic> {
+        for id in 0..self.plans.len() { self.checked(id, closures, span)?; }
+        Ok(())
+    }
+
+    pub(crate) fn remap(&self, origins: &[Option<usize>], span: Span) -> Result<Self, Diagnostic> {
+        let mut result = Self::default();
+        let mut identities = std::collections::BTreeMap::new();
+        for source in &self.plans {
+            let mut pairs = Vec::with_capacity(source.len());
+            for &pair in source {
+                let origin = origins.get(pair.origin).copied().flatten().ok_or_else(|| Diagnostic::new("callable-layout", "A checked invocation lost its environment during compaction.", span))?;
+                if identities.insert(origin, pair.origin).is_some_and(|previous| previous != pair.origin) {
+                    return Err(Diagnostic::new("callable-layout", "Distinct checked invocation environments cannot merge during compaction.", span));
+                }
+                pairs.push(Pair { origin, method: pair.method });
+            }
+            pairs.sort_unstable();
+            let id = result.plans.len();
+            if result.ids.insert(pairs.clone(), id).is_some() {
+                return Err(Diagnostic::new("callable-layout", "Distinct checked invocation plans cannot merge during compaction.", span));
+            }
+            result.plans.push(pairs);
+        }
+        Ok(result)
+    }
+}
+
 pub(crate) struct Case<'a> { pub pair: Pair, pub body: &'a CheckedClosureMethod }
 pub(crate) struct Plan<'a> { pub cases: Vec<Case<'a>>, pub invocation: Mode }
 impl<'a> Plan<'a> {
@@ -73,6 +130,37 @@ impl<'a> Plan<'a> {
 mod tests {
     use super::*;
     #[test]
+    fn source_invocations_publish_stable_checked_pairs_and_remap_together() {
+        let checked = environments();
+        let table = &checked.program.polymorphic_invocations;
+        assert_eq!(table.plans.len(), 3, "repeated concrete calls reuse their checked pair plan");
+        let first = [Pair { origin: 0, method: 0 }];
+        let second = [Pair { origin: 1, method: 1 }];
+        let first_id = table.index(&first).expect("source invocation published");
+        let second_id = table.index(&second).expect("independent method published");
+        assert_ne!(first_id, second_id);
+        assert_eq!(table.checked(first_id, &checked.program.closures, Span::default()).unwrap().cases[0].pair, first[0]);
+        let remapped = table.remap(&[Some(1), Some(0)], Span::default()).unwrap();
+        assert_eq!(remapped.index(&[Pair { origin: 1, method: 0 }]), Some(first_id));
+        assert_eq!(remapped.index(&[Pair { origin: 0, method: 1 }]), Some(second_id));
+        assert!(table.remap(&[Some(0), None], Span::default()).is_err());
+        assert!(table.remap(&[Some(0), Some(0)], Span::default()).is_err());
+        assert!(table.checked(usize::MAX, &checked.program.closures, Span::default()).is_err());
+    }
+    #[test]
+    fn unused_templates_do_not_publish_concrete_invocations() {
+        let source = crate::format("function identity<T>(value:T):T{return value;}function unused<T>(value:T):T{const action=identity;return action<T>(value);}function replace<T>(value:T):T{const action=identity;return action<T>(value);}function main(){replace<int>(7);replace<string>('owned');}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(), source);
+        let checked = crate::check(&source).unwrap();
+        let table = &checked.program.polymorphic_invocations;
+        assert_eq!(table.plans.len(), 2);
+        for id in 0..table.plans.len() {
+            let plan = table.checked(id, &checked.program.closures, Span::default()).unwrap();
+            assert_eq!(plan.cases.len(), 1);
+            assert!(!checked.program.closures[plan.cases[0].pair.origin].function.template);
+        }
+    }
+    #[test]
     fn one_environment_cannot_select_two_methods_at_one_invocation() {
         let checked = crate::check("function action<T>(): int { return 7; } function main() { const alias = action; alias<int>(); alias<string>(); }").unwrap();
         let origin = *checked.program.deferred_generic_values.iter().next().unwrap();
@@ -83,7 +171,9 @@ mod tests {
         assert_eq!(error.span, Span::new(3, 4));
     }
     fn environments() -> crate::Analysis {
-        crate::check("function first<T>(value: T): T { return value; } function second<T>(value: T): T { return value; } function main() { const one = first; const two = second; one<int>(3); two<string>('warm'); two<int>(4); }").unwrap()
+        let source = crate::format("function first<T>(value: T): T { return value; } function second<T>(value: T): T { return value; } function main() { const one = first; const two = second; one<int>(3); one<int>(3); two<string>('warm'); two<int>(4); }").unwrap();
+        assert_eq!(crate::format(&source).unwrap(), source);
+        crate::check(&source).unwrap()
     }
     #[test]
     fn origins_keep_independent_method_ordinals_and_checked_contracts() {
@@ -107,7 +197,12 @@ mod tests {
     #[test]
     fn native_dispatch_keeps_method_pairs_evaluation_order_and_payload_ownership() {
         let checked = environments();
-        let plan = Plan::checked([Pair { origin: 0, method: 0 }, Pair { origin: 1, method: 1 }], &checked.program.closures, Span::default()).unwrap();
+        let mut registry = Registry::default();
+        let pairs = [Pair { origin: 0, method: 0 }, Pair { origin: 1, method: 1 }];
+        let id = registry.publish(pairs, &checked.program.closures, Span::default()).unwrap();
+        assert_eq!(registry.publish([pairs[1], pairs[0], pairs[1]], &checked.program.closures, Span::default()).unwrap(), id);
+        assert!(registry.publish([pairs[0], Pair { origin: 0, method: 1 }], &checked.program.closures, Span::default()).is_err());
+        let plan = registry.checked(id, &checked.program.closures, Span::default()).unwrap();
         let code = plan.render("{ evaluations.push(1); &family }", &["{ evaluations.push(2); 4i64 }".into()], "1", |_| false, false, Some((4, &[0, 1])), Span::default()).unwrap();
         let failure = plan.render("{ evaluations.push(1); TsrGenericFamily4::V0(Closure0(Payload(3))) }", &["fail_argument(&mut evaluations)".into()], "1", |_| false, false, Some((4, &[0, 1])), Span::default()).unwrap();
         crate::scoped_record_places::tests::native(&format!(r#"

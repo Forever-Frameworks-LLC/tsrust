@@ -9,6 +9,16 @@ pub(super) struct Source {
 }
 
 impl Analyzer {
+    #[inline(never)]
+    fn retain_generic_invocation(&mut self, context: &Context, origin: usize, method: usize, result: Type, span: Span) -> Result<(usize, Type), Diagnostic> {
+        if !self.effects_only && !self.discovering_results && !context.template {
+            self.polymorphic_invocations.publish(
+                [crate::polymorphic_invocation_plans::Pair { origin, method }], &self.closures, span,
+            )?;
+        }
+        Ok((method, result))
+    }
+
     /// A fresh reference to the same capture-free declaration has no distinct
     /// payload to preserve. Reuse its storage type without changing value moves.
     #[inline(never)]
@@ -248,7 +258,9 @@ impl Analyzer {
             }
         }
         let key = (origin, types, self.effects_only, self.discovering_results);
-        if let Some(&method) = self.closure_specializations.get(&key) { return Ok((method, result)); }
+        if let Some(&method) = self.closure_specializations.get(&key) {
+            return self.retain_generic_invocation(context, origin, method, result, span);
+        }
         if self.specializations.len() + self.closure_specializations.keys()
             .filter(|(_, _, effects, discovery)| !effects && !discovery).count() >= 128 {
             return Err(Diagnostic::new("unsupported", "Callback origin specialization count exceeds the prototype limit of 128.", span));
@@ -280,7 +292,7 @@ impl Analyzer {
             },
         });
         self.closure_specializations.insert(key, method);
-        Ok((method, result))
+        self.retain_generic_invocation(context, origin, method, result, span)
     }
 }
 

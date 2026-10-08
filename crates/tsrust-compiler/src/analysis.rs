@@ -243,6 +243,7 @@ impl CallbackContract {
 
 pub struct CheckedProgram {
     pub(crate) polymorphic_storage: crate::polymorphic_callable_storage::Registry,
+    pub(crate) polymorphic_invocations: crate::polymorphic_invocation_plans::Registry,
     pub(crate) record_call_releases: HashMap<usize,Vec<(usize,Vec<String>)>>,
     pub(crate) record_parameter_replacements: HashMap<usize,Vec<(usize,Vec<String>,Type)>>,
     pub(crate) scoped_records: crate::scoped_record_layout::Registry,
@@ -483,6 +484,7 @@ pub fn analyze(program: Program) -> Result<CheckedProgram, Diagnostic> {
 // Incomplete capture layouts stay private, even after typed flow checking.
 fn finish_analysis(mut checked: CheckedProgram) -> Result<CheckedProgram, Diagnostic> {
     checked.polymorphic_storage.validate(&checked.closures, Span::default())?;
+    checked.polymorphic_invocations.validate(&checked.closures, Span::default())?;
     definitely_assigned(&mut checked)?;
     checked.named_capture_layouts = named_capture_layout::build(&checked)?;
     crate::named_capture_lowering::prepare(&mut checked)?;
@@ -643,6 +645,7 @@ struct Analyzer {
     function_values: HashMap<usize, usize>,
     deferred_generic_values: HashMap<usize, deferred_generic_values::Source>,
     polymorphic_storage: crate::polymorphic_callable_storage::Registry,
+    polymorphic_invocations: crate::polymorphic_invocation_plans::Registry,
     closure_method_sources: HashMap<usize, ClosureMethodSource>,
     closure_specializations: HashMap<(usize, Vec<Type>, bool, bool), usize>,
     callables: crate::callable_resolution::Tables,
@@ -1534,6 +1537,7 @@ impl Analyzer {
             function_values: HashMap::new(),
             deferred_generic_values: HashMap::new(),
             polymorphic_storage: Default::default(),
+            polymorphic_invocations: Default::default(),
             closure_method_sources: HashMap::new(),
             closure_specializations: HashMap::new(),
             callables,
@@ -3070,6 +3074,7 @@ impl Analyzer {
             }
             self.deferred_generic_values=std::mem::take(&mut self.deferred_generic_values).into_iter().filter_map(|(origin,source)|ids[origin].map(|mapped|(mapped,source))).collect();
             self.polymorphic_storage = self.polymorphic_storage.remap(&ids, Span::default())?;
+            self.polymorphic_invocations = self.polymorphic_invocations.remap(&ids, Span::default())?;
             self.callables.storage.remap_origins(&ids)?;
             self.unions.remap_closure_origins(&ids);
             self.closures = self
@@ -3135,6 +3140,7 @@ impl Analyzer {
         let deferred_generic_nominals = self.deferred_generic_nominal_uses();
         let checked = CheckedProgram {
             polymorphic_storage: self.polymorphic_storage,
+            polymorphic_invocations: self.polymorphic_invocations,
             record_call_releases,
             record_parameter_replacements:self.record_parameter_replacements,
             scoped_records: self.scoped_records,
