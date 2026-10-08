@@ -24,11 +24,14 @@ fn cleared_map_refill_tracks_only_current_capture_owners() {
         }
     "#;
     project(source);
+    project(&source.replace("handlers.clear();", "{ handlers.clear(); }"));
+
     let field = source.replace("function main()", "type Box = { handlers: Map<string, Holder>; marker: int; }; function main()")
         .replace("handlers.set", "box.handlers.set").replace("handlers.clear", "box.handlers.clear").replace("handlers.get", "box.handlers.get")
         .replace("const handlers = new Map<string, Holder>();", "const handlers = new Map<string, Holder>(); const box: Box = { handlers: handlers, marker: 23 };")
         .replace("strictEqual(second[0], 11);", "strictEqual(second[0], 11); strictEqual(box.marker, 23);");
     project(&field);
+    project(&field.replace("box.handlers.clear();", "{ { box.handlers.clear(); } }"));
 
     let conflict = source.replace("import { strictEqual } from \"std:testing\";", "function strictEqual(a: int, b: int): void {}")
         .replace("first[0] = 9;", "second[0] = 9;");

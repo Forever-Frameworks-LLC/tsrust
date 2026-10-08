@@ -114,3 +114,20 @@ impl Emitter<'_> {
         Some(format!("drop({place}); let mut {place}: {native} = <{native}>::new();"))
     }
 }
+
+impl Emitter<'_> {
+    /// A block containing only storage resets introduces no bindings or control
+    /// flow. Emit its resets in the declaring scope to retain fresh lifetimes.
+    pub(super) fn map_clear_block_epoch(&self, fun: &CheckedFunction, body: &[Stmt], statement: &Stmt) -> Option<String> {
+        if !statement.labels.is_empty() { return None; }
+        let StmtKind::Block(inner) = &statement.kind else { return None; };
+        if inner.is_empty() { return None; }
+        let mut code = String::new();
+        for item in inner {
+            let reset = self.local_map_clear_epoch(fun, body, item)
+                .or_else(|| self.map_clear_block_epoch(fun, body, item))?;
+            code.push_str(&reset);
+        }
+        Some(code)
+    }
+}

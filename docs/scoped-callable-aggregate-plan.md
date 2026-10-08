@@ -574,3 +574,14 @@ mutation proceed through that field. The independent eleventh observation is
 `3 * value + 16`. Source guards, mutation controls and hashes are updated; all
 five native/Node-after-tsc cases and registration pass. Untimed evidence is
 byte-exact in SQLite under `runtime/results/2026-10-08T16-22-05-993Z-verify.json`.
+
+Clear-only unconditional blocks now preserve lifetime renewal in the declaring
+scope. Emission recognizes blocks containing only checked local scoped Map clear
+statements, including nested clear-only blocks, and emits their resets in order
+without a new binding scope. There are no declarations or control effects to
+escape. Labels, mixed statements, conditional paths and indexed storage do not
+use this lowering. The native witness covers direct Map and record-field refill
+through these blocks. Broader cross-block lifetime transport remains required;
+this repair does not substitute for that work.
+The affected 61-test batch and eight normal-worker depth canaries pass. Exact
+checks are preserved in SQLite as `tsrust-b5-clear-only-block-checks.log`.

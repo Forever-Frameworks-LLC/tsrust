@@ -3245,7 +3245,7 @@ impl Emitter<'_> {
     ) {
         let indent = "    ".repeat(depth);
         for stmt in body {
-            if let Some(reset) = self.local_map_clear_epoch(fun, body, stmt) {
+            if let Some(reset) = self.local_map_clear_epoch(fun, body, stmt).or_else(|| self.map_clear_block_epoch(fun, body, stmt)) {
                 let _ = writeln!(output, "{indent}{reset}");
                 continue;
             }
