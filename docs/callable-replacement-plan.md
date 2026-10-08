@@ -1,6 +1,6 @@
 # Callable replacement implementation plan
 
-Latest component checkpoint: checked invocation alternatives now propagate their own failure contracts through the effect fixed point, independently of receiver storage origin. Source-native families and independent declaration preparation are retained. Alternative parameter/native-graph/projection consumers, error conversion, different-declaration assignment admission and mutable factory state remain open. See docs/handoff-2026-10-07-invocation-effects.md. The family is not accepted.
+Current implementation checkpoint: cd52a03. Original replacement and point-sensitive mutable factory witnesses now pass, including independent loop-created array members and nested owned child captures. Focused native, editor, depth and untimed benchmark checks pass. Complete family regressions and performance review pass; consumer refresh remains pending. See docs/milestones/callable-replacement-family.md. Earlier sections below retain the historical implementation sequence. The family is not accepted.
 
 ## Current evidence
 
@@ -312,3 +312,9 @@ Follow-up evidence passes all 50 capture-effect integration tests. The extended 
 ### Nested graph checkpoint verification
 
 The nested editor witness passes independent one-argument and changed two-argument signature help with no diagnostics. All eight canaries were rebuilt and pass. The matched workload now has nineteen observations, including nested child isolation, and its source guards reject scenario removal. All five untimed native/Node-after-tsc cases pass; exact record runtime/results/2026-10-08T07-20-19-446Z-verify.json is verified in SQLite. A further focused native control proves fresh loop allocations do not inherit mutations of discarded instances. Whole-project formatting changes only the workload and refreshes its fingerprint. These checks support an implementation checkpoint, with family milestone acceptance and performance review still pending. Consumers remain unchanged.
+
+### Milestone regression: recursive array request widening
+
+The complete compiler milestone exposed unbounded request-key growth in the stated parameter access native witness. A bounded sample of the live worker showed inter-call worklist evaluation and hashing of growing Sequence values, with no backend worker. Exact shapes widened at loop joins but not across recursive request boundaries. The worker was terminated after preserving every completed passing group; this interruption is explicit evidence, not a passing milestone.
+
+A dedicated non-inlined recursive-input helper now bounds caller arrays, live captured arrays and argument arrays before caching a recursive request. Nonrecursive requests retain exact shapes. Recursive paths preserve the ordered prefix and summarize the remaining tail, rather than creating indefinitely longer exact keys. The new control converges through 1,024 growth steps without a branch join. The source-engine control completes with at most 128 requests and 2,048 evaluations. All 91 adjacent generic-call controls pass; the original native witness completes in 0.94 seconds. Original failing controls, stack sample, interrupted milestone and repaired focused checks are exact in SQLite. The milestone resumes at function_types and later test targets, retaining completed earlier groups. Family acceptance remains pending.

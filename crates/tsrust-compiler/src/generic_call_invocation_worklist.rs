@@ -2,6 +2,8 @@
 use super::*;
 #[path = "generic_call_array_transfer.rs"]
 mod array_transfer;
+#[path = "generic_call_recursive_inputs.rs"]
+mod recursive_inputs;
 #[derive(Clone, PartialEq, Eq, Hash)]
 struct Request {
     declaration: Span,
@@ -60,7 +62,10 @@ impl<'a> Engine<'a> {
         } else {context.push((declaration,site));}
         context
     }
-    fn request(&mut self, request: Request) -> usize {
+    fn request(&mut self, mut request: Request) -> usize {
+        if self.current.is_some_and(|current|self.entries[current].request.context.iter().any(|(declaration,_)|*declaration==request.declaration)) {
+            recursive_inputs::bound(&mut request,self.declarations);
+        }
         let index = if let Some(&index) = self.lookup.get(&request) { index } else {
             let index = self.entries.len();
             self.lookup.insert(request.clone(), index);
@@ -306,6 +311,15 @@ impl expression_flow::Dispatch for Engine<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn recursive_mutable_array_growth_has_bounded_requests() {
+        let source=crate::format("function walk(values:Mutable<int[]>,n:int):int{if(n===0){return values.length;}values.push(n);return walk(values,n-1);}function root(){const values:int[]=[];walk(values,3);}function main(){}").unwrap();
+        let program=crate::syntax::parse(&source).unwrap();let effects=effect_bodies::Index::new(&program).unwrap();
+        let declarations=program.functions.iter().map(|function|(function.name.text.clone(),contract(function.type_parameters.len(),&function.parameter_initializers,function.rest_parameter,function.name.span))).collect::<HashMap<_,_>>();
+        let root=program.functions.iter().find(|function|function.name.text=="root").unwrap();let mut bindings=Vec::new();collect(&root.body,&mut bindings,&effects);
+        let mut engine=Engine::new(&declarations,&effects);assert!(engine.solve(root.name.span,&bindings,&[]).is_some());
+        assert!(engine.entries.len()<=128,"{} requests",engine.entries.len());assert!(engine.evaluations<=2048,"{} evaluations",engine.evaluations);
+    }
     #[test]
     fn pending_callees_finish_before_revisiting_their_common_caller() {
         let calls = 32;

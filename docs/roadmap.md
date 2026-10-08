@@ -732,3 +732,10 @@ immutable bytes with explicitly proven formatting identities. Representative nat
 and Node-after-tsc verification is untimed. The named-declaration family milestone
 and callable replacement witnesses remain separate work. See
 [milestone 174](milestones/174-benchmark-layout-contracts.md).
+
+
+## Generic callable replacement milestone
+
+Finite replacement carriers and point-specific checked invocation now preserve saved values, different declarations and arities, defaults/rest, capture access and selected failures. Owned mutable factories retain independent capture state across repeated calls, loop-created array storage, reinsertion and nested child capture graphs. Recursive array analysis widens request inputs to keep analysis finite. Existing borrowing and explicit-copy rules remain unchanged.
+
+The family regression milestone covers 2,323 compiler passes with zero failures and two intentional subprocess-worker ignores, plus 357 editor passes. Original interrupted recursion evidence and repaired checks remain in SQLite. The nineteen-observation replacement workload has 186 execution samples and a reviewed native median advantage of approximately 10.02 on this machine. Consumer refresh remains pending. Broader scoped aggregate composition remains separate work. See milestones/callable-replacement-family.md.

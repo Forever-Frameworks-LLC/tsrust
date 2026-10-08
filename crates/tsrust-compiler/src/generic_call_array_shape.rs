@@ -28,6 +28,12 @@ impl<T: Clone> Sequence<T> {
         }
         Self {prefix,tail}
     }
+    pub(super) fn bound(&mut self,merge:impl Fn(&T,&T)->T) {
+        if self.prefix.len()<=MAX_PREFIX {return;}
+        for value in self.prefix.split_off(MAX_PREFIX) {
+            self.tail=Some(self.tail.take().map_or_else(||value.clone(),|tail|merge(&tail,&value)));
+        }
+    }
     pub(super) fn push(&mut self, value:T, merge:impl Fn(&T,&T)->T) {
         if let Some(tail)=&mut self.tail {*tail=merge(tail,&value);} else {self.prefix.push(value);}
     }
@@ -60,6 +66,19 @@ mod tests {
         values.len()>=shape.prefix.len()
             && shape.prefix.iter().zip(values).all(|(allowed,value)|allowed&value==*value)
             && if let Some(tail)=shape.tail {values[shape.prefix.len()..].iter().all(|value|tail&value==*value)} else {values.len()==shape.prefix.len()}
+    }
+    #[test]
+    fn recursive_growth_widens_without_requiring_a_branch_join() {
+        let mut shape=Sequence::exact(vec![]);
+        let mut stable=None;
+        for step in 0..1024 {
+            shape.push(1,merge);shape.bound(merge);
+            assert!(shape.prefix.len()<=MAX_PREFIX);
+            assert!(admits(&shape,&vec![1;step+1]));
+            if step==MAX_PREFIX {stable=Some(shape.clone());}
+            if step>MAX_PREFIX {assert_eq!(Some(shape.clone()),stable);}
+        }
+        let mut exact=Sequence::exact(vec![1,2,4]);exact.bound(merge);assert_eq!(exact.exact_values(),Some(&[1,2,4][..]));
     }
     #[test]
     fn different_lengths_keep_ordered_prefix_and_all_tail_values() {

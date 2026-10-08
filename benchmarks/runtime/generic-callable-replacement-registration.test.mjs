@@ -13,7 +13,9 @@ const manifest=JSON.parse(read('./manifest.json'));
 const row=manifest.workloads.find(row=>row.id==='generic_callable_replacement');
 test('Generic replacement retains source scenarios, oracle and execution registrations',()=>{
  assert.equal(manifest.workloads.at(-1).id,row.id);
- assert.equal(reportCategory(row.id),'callbacks');assert.equal(row.measured,false);
+ assert.equal(reportCategory(row.id),'callbacks');assert.equal(row.measured,true);
+ for(const key of ['sourceAccepted','nativeSourceAccepted','implementationAccepted'])assert.equal(row[key],true);
+ assert.equal(row.measurementStatus,'measured-callable-replacement-family');
  const emitted='fn function0(value0: i64, value1: i64, value2: &String) -> Array<NumericArray<i64>> { todo!() }\nfn main() {}';
  assert.equal(assertABI(emitted,row,read('./'+row.source)).fallible,false);
  const fallible='fn tsr_result_function1(value0: i64, value1: i64, value2: &String) -> Result<Array<NumericArray<i64>>,TsrFunctionError1<Record0>> { todo!() }\nfn main() {}';
