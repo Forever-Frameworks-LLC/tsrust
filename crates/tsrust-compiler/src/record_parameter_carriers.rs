@@ -63,6 +63,7 @@ impl Analyzer {
         for(index,function)in functions.iter_mut().enumerate(){
             let Some(function)=function.as_mut().filter(|function|!function.template)else{continue;};
             let mut context=Context::new(function.name.clone());
+            context.storage_exits=function.storage_exits.clone();
             context.bindings=std::mem::take(&mut function.bindings);
             for call in &calls[index]{for replacement in &replacements[call.callee]{
                 let Some(Some((root,prefix)))=call.arguments.get(replacement.parameter)else{continue;};
@@ -79,6 +80,7 @@ impl Analyzer {
             }}
             self.record_sequence_carriers(&mut context,&mut function.body)?;
             function.bindings=context.bindings;
+            function.storage_exits=context.storage_exits;
         }
         self.record_parameter_replacements=replacements.into_iter().enumerate().filter(|(_,values)|!values.is_empty()).map(|(id,values)|(id,values.into_iter().map(|value|(value.parameter,value.path,value.ty)).collect())).collect();
         self.checked=functions;

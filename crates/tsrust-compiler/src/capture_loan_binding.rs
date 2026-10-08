@@ -90,7 +90,7 @@ impl Analyzer {
         self.attach_payload_capture_loans(context, value, Place { binding, fields }, true);
     }
 
-    fn attach_payload_capture_loans(
+    pub(super) fn attach_payload_capture_loans(
         &self,
         context: &mut Context,
         value: &Expr,
@@ -150,7 +150,7 @@ impl Analyzer {
                         pending.push((value, destination, consume));
                     }
                 }
-                ExprKind::Closure { id, .. } => {
+                ExprKind::Closure { .. } => {
                     let ids = context
                         .capture_loans
                         .iter()
@@ -158,7 +158,10 @@ impl Analyzer {
                         .map(|loan| context.capture_loan_ids.intern(*loan))
                         .collect::<Vec<_>>();
                     context.capture_loan_owners.attach(destination.clone(), ids);
-                    if let Some(closure) = self.closures.get(*id) {
+                    // Parser IDs identify syntax sites, not checked environment slots.
+                    // Match native emission's concrete capture origin on replay.
+                    let origin=value.closure_origin().or_else(||match value.ty {Some(Type::Closure(id))=>Some(id),_=>None});
+                    if let Some(closure) = origin.and_then(|id|self.closures.get(id)) {
                         for capture in &closure.captures {
                             let mut target = destination.clone();
                             target.fields.push(format!("$capture{}", capture.inner));

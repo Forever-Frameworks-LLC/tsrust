@@ -58,6 +58,8 @@ impl Analyzer {
         if matches!(method, MapMethod::Set | MapMethod::Delete | MapMethod::Clear) { Self::storage_access(context, base, Mode::Mutate, expression.span, loans)?; }
         let definition = self.program.records[id].map_definition.as_ref().unwrap().clone();
         let mut active = loans.clone();
+        let mut entry_place = None;
+        let mut replaced_environment = false;
         for root in Self::loan_roots(base, Mode::Read) { active.entry(root).or_default().push((Mode::Read, base.span)); }
         for (index, argument) in arguments.iter_mut().enumerate() {
             let ty = if index == 0 { definition.key } else if matches!(definition.value, Type::Record(_) if self.aggregate_callable_facts(definition.value).scoped && Self::scoped_array_storage_path(base).is_some()) {
@@ -67,11 +69,13 @@ impl Analyzer {
             let mode = if method == MapMethod::Set { Mode::Consume } else { Mode::Read };
             let actual = self.expression(context, argument, mode, &active, Some(ty))?;
             self.require(actual, Some(ty), argument.span)?;
+            if index == 0 { entry_place = Self::map_entry_capture_place(base, argument); }
             if method == MapMethod::Set && index == 1
                 && let (Type::Record(previous), Type::Record(incoming)) = (definition.value, actual)
                 && self.aggregate_callable_facts(actual).scoped
                 && Self::scoped_array_storage_path(base).is_some()
             {
+                context.storage_exits.record_map_entry_write(expression.span,actual);
                 let value = if previous == self.scoped_records.declaration(previous) { actual }
                     else if previous == incoming { actual }
                     else { self.join_record_types(previous, incoming, argument.span)?.ok_or_else(|| Diagnostic::new("type", "Map callback values require compatible environment contracts.", argument.span))? };
@@ -79,9 +83,27 @@ impl Analyzer {
                 let binding = Self::root_binding(base).expect("stable Map root");
                 let (_, path) = Self::scoped_array_storage_path(base).unwrap();
                 if let Some(root) = self.scoped_array_replace_field(context.bindings[binding].ty, &path, Type::Map(instance)) { context.bindings[binding].ty = root; }
-                self.append_target_capture_loans(context, base, argument);
+                if let Some(place) = entry_place.clone() {
+                    let previous=context.capture_loan_owners.map_payloads(&place);
+                    replaced_environment=!previous.is_empty() && previous.iter().any(|ty|*ty!=actual);
+                    self.replace_map_entry_capture_loans(context, place, argument);
+                } else {
+                    self.append_target_capture_loans(context, base, argument);
+                    if let Some((_,fields))=Self::scoped_array_storage_path(base) {
+                        context.capture_loan_owners.attach_map_payload(crate::capture_loan_owners::Place{binding,fields},actual);
+                    }
+                }
             }
             for root in Self::loan_roots(argument, mode) { active.entry(root).or_default().push((mode, argument.span)); }
+        }
+        if (method==MapMethod::Delete || replaced_environment) && let Some(place) = entry_place {
+            if method == MapMethod::Delete {Self::discard_map_entry_capture_loans(context, &place);}
+            if !context.bindings[place.binding].parameter && !context.bindings[place.binding].capture_reference {
+                let mut root=place;
+                root.fields.pop();
+                let payloads=context.capture_loan_owners.map_payloads(&root);
+                context.storage_exits.record_map_entry_survivors(expression.span,root,Type::Map(id),payloads);
+            }
         }
         if method == MapMethod::Clear
             && let Some((_, fields)) = Self::direct_fields(base)

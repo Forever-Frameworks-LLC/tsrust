@@ -8623,3 +8623,23 @@ fn transferred_error_storage_requires_explicit_restoration() {
     let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&unavailable, "file:///test.tsr").unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "transferred"), "{diagnostics}");
 }
+
+#[test]
+fn known_map_entry_release_keeps_survivor_diagnostics_precise() {
+    let source = tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];let original=new Map<string,Holder>();original.set('first',{run:():int=>first[0]});original.set('second',{run:():int=>second[0]});const moved=original;moved.delete('first');first[0]=9;for(const [key,entry] of moved){console.log(key,entry.run());}moved.clear();second[0]=11;}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&source,"file:///map-entry-release.tsr").unwrap().is_empty());
+    let conflict=source.replace("first[0] = 9;","second[0]=9;");
+    assert_ne!(conflict,source);
+    let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///map-entry-release.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+}
+
+#[test]
+fn record_map_entry_release_and_refill_preserve_editor_diagnostics() {
+    let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};type Box={handlers:Map<string,Holder>;marker:int;};function main():void{const first=[3];const second=[5];const box:Box={handlers:new Map<string,Holder>(),marker:23};box.handlers.set('first',{run:():int=>first[0]});box.handlers.set('second',{run:():int=>second[0]});box.handlers.delete('first');first[0]=9;box.handlers.set('next',{run:():int=>first[0]});for(const [key,entry] of box.handlers){console.log(key,entry.run());}box.handlers.clear();first[0]=11;second[0]=13;console.log(box.marker);}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&source,"file:///record-map-refill.tsr").unwrap().is_empty());
+    let conflict=source.replace("first[0] = 9;","second[0]=9;");
+    assert_ne!(conflict,source);
+    let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///record-map-refill.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+}

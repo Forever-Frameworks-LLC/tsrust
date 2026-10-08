@@ -107,3 +107,41 @@ Finally runs before continue or break leaves an iteration, and clearing the
 scoped Map releases its callbacks before captured values change. Empty
 iteration leaves the original empty Map available. Iterating the Map being
 cleared remains subject to the ordinary iterator borrow restrictions.
+
+### Releasing individual Map callback captures
+
+In straight-line local storage, deleting a known scalar-literal key releases that
+entry's callback captures. Other entries keep their captures borrowed. The same
+rule applies to a Map stored in a local record field. Replacing a known entry
+evaluates the replacement before releasing the previous payload; a replacement
+that throws leaves the previous entry intact. A later insertion can borrow a
+released value again. Clear releases all remaining entry captures.
+
+The following pattern is covered by native disposal tests:
+
+```ts
+type Holder = { run: ReadOnly<Function<int>>; };
+
+function main(): void {
+    const first = [3];
+    const second = [5];
+    const handlers = new Map<string, Holder>();
+    handlers.set("first", { run: (): int => first[0] });
+    handlers.set("second", { run: (): int => second[0] });
+    handlers.delete("first");
+    first[0] = 9;
+    {
+        const saved = handlers.get("second");
+        if (saved !== undefined) console.log(saved.run()); // 5
+    }
+    handlers.clear();
+    second[0] = 11;
+}
+```
+
+A lookup view must leave scope before mutation of its Map. If another entry
+captures `first`, deleting only one such entry does not permit changing `first`.
+Dynamic keys and uncertain branch outcomes conservatively retain potentially live
+captures. Precise release across conditional and loop paths is still in progress.
+Changing a callback environment representation can currently scan surviving
+entries; this release feature does not yet promise constant-time updates.

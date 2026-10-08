@@ -3257,6 +3257,10 @@ impl Emitter<'_> {
         let indent = "    ".repeat(depth);
         let declarations = declaring_body.unwrap_or(body);
         for stmt in body {
+            for epoch in fun.storage_exits.map_entry_epochs(stmt.span).iter().filter(|epoch|epoch.before) {
+                let _=writeln!(output,"{indent}{}",self.map_entry_epoch_code(fun,epoch));
+                self.exception_regions.renew_storage(&[format!("value{}",epoch.place.binding)],stmt.span.start);
+            }
             if self.map_empty_loop_epoch(output, fun, stmt, declarations, depth) { continue; }
             if self.map_try_storage_epoch(output, fun, stmt, declarations, depth) { continue; }
             if self.map_try_prefix_epoch(output, fun, stmt, declarations, depth) { continue; }
@@ -3524,6 +3528,10 @@ impl Emitter<'_> {
                 let _ = writeln!(output, "{indent}{declarations} {code}");
             } else {
                 let _ = writeln!(output, "{indent}{{ {declarations} {code} }}");
+            }
+            for epoch in fun.storage_exits.map_entry_epochs(stmt.span).iter().filter(|epoch|!epoch.before) {
+                let _=writeln!(output,"{indent}{}",self.map_entry_epoch_code(fun,epoch));
+                self.exception_regions.renew_storage(&[format!("value{}",epoch.place.binding)],stmt.span.end);
             }
         }
     }
@@ -9809,3 +9817,5 @@ mod map_finally_storage_epochs;
 mod map_loop_storage_epochs;
 #[path="iteration_emit.rs"]
 mod iteration_emit;
+#[path="map_entry_epoch_emit.rs"]
+mod map_entry_epoch_emit;

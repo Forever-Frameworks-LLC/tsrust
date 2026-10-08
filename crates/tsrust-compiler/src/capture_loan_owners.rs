@@ -1,6 +1,8 @@
 //! Ownership paths for retained capture loans, independent of checker dispatch.
 use std::collections::{BTreeMap, BTreeSet};
 use crate::Span;
+#[path="map_entry_payloads.rs"]
+mod map_entry_payloads;
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct Place {
@@ -10,6 +12,7 @@ pub(crate) struct Place {
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct Owners {
+    map_payloads: map_entry_payloads::Payloads,
     entries: BTreeMap<Place, BTreeSet<usize>>,
     pending: BTreeMap<(Place, usize, usize), BTreeSet<usize>>,
     tracked: BTreeSet<usize>,
@@ -17,6 +20,12 @@ pub(crate) struct Owners {
 }
 
 impl Owners {
+    pub(crate) fn attach_map_payload(&mut self, place: Place, ty: crate::syntax::Type) {
+        self.map_payloads.attach(place,ty);
+    }
+    pub(crate) fn map_payloads(&self, place: &Place) -> std::collections::HashSet<crate::syntax::Type> {
+        self.map_payloads.under(place)
+    }
     pub(crate) fn tracked(&self) -> &BTreeSet<usize> { &self.tracked }
 
     pub(crate) fn replace_payload(&mut self, loans: impl IntoIterator<Item = usize>) {
@@ -43,6 +52,7 @@ impl Owners {
         if source == destination {
             return;
         }
+        self.map_payloads.extend_from(source,destination,consume);
         let selected = self
             .entries
             .iter()
@@ -91,6 +101,7 @@ impl Owners {
 
     /// Discard this owner without removing loans held by other owners or payloads.
     pub(crate) fn discard(&mut self,source:&Place){
+        self.map_payloads.discard(source);
         self.entries.retain(|place,_|place.binding!=source.binding || !place.fields.starts_with(&source.fields));
     }
 
@@ -114,6 +125,7 @@ impl Owners {
             "overlapping ownership transfers require a checked temporary"
         );
         let previous = self.live();
+        self.map_payloads.transfer(source,destination);
         let moved = self
             .entries
             .keys()
@@ -147,6 +159,7 @@ impl Owners {
     }
 
     pub(crate) fn leave_scope(&mut self, first_binding: usize) -> BTreeSet<usize> {
+        self.map_payloads.leave_scope(first_binding);
         let previous = self.live();
         self.entries
             .retain(|place, _| place.binding < first_binding);
@@ -165,6 +178,7 @@ impl Owners {
     }
 
     pub(crate) fn join(&mut self, other: &Self) {
+        self.map_payloads.join(&other.map_payloads);
         self.tracked.extend(other.tracked.iter().copied());
         self.payload.extend(other.payload.iter().copied());
         for (place, loans) in &other.entries {
@@ -179,6 +193,27 @@ impl Owners {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn entry_payload_types_follow_moves_and_uncertain_deletion() {
+        use crate::syntax::Type;
+        let mut left=Owners::default();
+        let root=place(1,&["handlers"]);
+        let first=place(1,&["handlers","\0map-entry:string:first"]);
+        let second=place(1,&["handlers","\0map-entry:string:second"]);
+        left.attach(first.clone(),[10]);left.attach(second.clone(),[10]);
+        left.attach_map_payload(first.clone(),Type::Record(17));
+        left.attach_map_payload(second.clone(),Type::Record(23));
+        let mut right=left.clone();right.discard(&first);
+        left.join(&right);
+        assert_eq!(left.map_payloads(&root),std::collections::HashSet::from([Type::Record(17),Type::Record(23)]));
+        left.transfer(&root,&place(2,&[]));
+        assert!(left.map_payloads(&root).is_empty());
+        left.discard(&place(2,&["\0map-entry:string:first"]));
+        assert_eq!(left.map_payloads(&place(2,&[])),std::collections::HashSet::from([Type::Record(23)]));
+        assert_eq!(left.live(),BTreeSet::from([10]));
+        assert_eq!(left.leave_scope(2),BTreeSet::from([10]));
+        assert!(left.map_payloads(&place(2,&[])).is_empty());
+    }
     fn place(binding: usize, fields: &[&str]) -> Place {
         Place {
             binding,

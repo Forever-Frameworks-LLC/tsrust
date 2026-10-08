@@ -20279,9 +20279,9 @@
       "implementationAccepted": false,
       "measured": false,
       "notes": "Focused B5 workload support; whole feature acceptance and timing remain pending. Array removal and widening, independent Maps in indexed record fields, nullable reads, whole-field replacement, borrowed iteration, clear and scope release.",
-      "specification": "Retain thirty-eight scalar observations per iteration, including nested refill, finally visibility, branch execution, consumed normal/caught storage and explicit restoration after early/late errors and expression transfers, plus conditional survivor storage on normal/error completion and replacement outside exception handling and finally without catch, including pending returns, loop exits, outer-loop empty storage, contextual nested Map initialization, record-leaf loop storage, sibling mutation, key order, nested finally completion, nested caught refill, handler rethrow and cleanup-error override, evaluated handler returns, caught loop continue/break and fallthrough; independent arithmetic oracle.",
-      "sourceSha256": "e0ba98a2b2723fa226d5bac5d25bddb7bef3fb5e3cc51fddcb7b4b054ef32f55",
-      "counterpartSha256": "b7f16adda1f9d53a9359d879b7be0b69cdbe08e59afb64ae8b7f73475e683eef"
+      "specification": "Retain forty-seven scalar observations per iteration, including nested refill, finally visibility, branch execution, consumed normal/caught storage and explicit restoration after early/late errors and expression transfers, plus conditional survivor storage on normal/error completion and replacement outside exception handling and finally without catch, including pending returns, loop exits, outer-loop empty storage, contextual nested Map initialization, record-leaf loop storage, sibling mutation, key order, nested finally completion, nested caught refill, handler rethrow and cleanup-error override, evaluated handler returns, caught loop continue/break and fallthrough; known-key entry deletion, moved nested record-field release/refill and successful or failed entry replacement; independent arithmetic oracle.",
+      "sourceSha256": "b68167f50d33cbef7f88cb90632e5f7b569faba930ecfe5722ef4004409ec9e6",
+      "counterpartSha256": "1a55f474476214836cb697a3017e83bef2c90168b0bb2c39d085c7a7cd1ef565"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

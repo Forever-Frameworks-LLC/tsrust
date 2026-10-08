@@ -63,7 +63,19 @@ impl Emitter<'_> {
         let mut action=String::new();
         if let Some(key)=arguments.first() {let key=self.expr(function,key,if method==MapMethod::Set{Mode::Consume}else{Mode::Read});let _=write!(action,"let map_key={key};");}
         match method {
-            MapMethod::Set=>{let value=self.expr(function,&arguments[1],Mode::Consume);let _=write!(action,"let map_value={value};map_receiver.set(map_key,map_value)");},
+            MapMethod::Set=>{
+                let mut root=base.as_ref();
+                while let ExprKind::Field(parent,_) = &root.kind {root=parent;}
+                let value=if root.binding.is_some_and(|binding|function.storage_exits.map_entry_epoch_root(binding)) {
+                    let mut value=&arguments[1];
+                    while let ExprKind::Unary{op:UnaryOp::RecordCarrier,value:inner,..}=&value.kind {value=inner;}
+                    let input=self.expr(function,value,Mode::Consume);
+                    let source=self.owned_record_source_type(function,value).unwrap_or(value.ty.unwrap());
+                    let converted=self.map_entry_payload_projection(source,value_type,"entry_input");
+                    format!("{{let entry_input={input};{converted}}}")
+                }else{self.expr(function,&arguments[1],Mode::Consume)};
+                let _=write!(action,"let map_value={value};map_receiver.set(map_key,map_value)");
+            },
             MapMethod::Has=>action.push_str("map_receiver.has(map_key)"),
             MapMethod::Delete=>action.push_str("map_receiver.delete(map_key)"),
             MapMethod::Clear=>action.push_str("map_receiver.clear()"),

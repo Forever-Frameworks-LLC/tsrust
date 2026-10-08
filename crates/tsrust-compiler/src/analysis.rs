@@ -1,5 +1,9 @@
 #[path = "capture_loan_binding.rs"]
 mod capture_loan_binding;
+#[path="map_entry_capture_owners.rs"]
+mod map_entry_capture_owners;
+#[path="map_entry_epochs.rs"]
+mod map_entry_epochs;
 #[path = "assignment_callee.rs"]
 mod assignment_callee;
 #[path = "owned_array_patterns.rs"]
@@ -28,8 +32,11 @@ mod scoped_record_containers;
 mod empty_scoped_maps;
 #[path = "scoped_map_carriers.rs"]
 mod scoped_map_carriers;
+#[path="map_storage_edges.rs"]
+mod map_storage_edges;
 #[path="storage_exit_availability.rs"]
 mod storage_exit_availability;
+pub(crate) use storage_exit_availability::MapEntryEpoch;
 #[path = "record_array_carriers.rs"]
 mod record_array_carriers;
 #[path = "record_value_carriers.rs"]

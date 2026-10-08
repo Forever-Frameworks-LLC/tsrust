@@ -66,7 +66,7 @@ impl Emitter<'_> {
         }
         let place = if path.is_empty() { format!("value{binding}") }
             else { self.owned_record_leaf_place(fun, binding, &path)? };
-        let Type::Map(id) = ty else { return None; };
+        let Type::Map(id) = base.ty.unwrap_or(ty) else { return None; };
         let value = self.program.records[id].map_definition.as_ref()?.value;
         if !self.scoped_record_native_parameter(value) { return None; }
         let native = self.native_type(Type::Map(id));

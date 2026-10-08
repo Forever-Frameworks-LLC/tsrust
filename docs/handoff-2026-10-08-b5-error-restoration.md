@@ -951,3 +951,105 @@ negative aliases, O0/O3 disposal, editor, guide and matched benchmark support.
 The whole composition suite now includes one intentionally red entry-release
 witness; prior 157 affected checks passed before it was added. Preserve owner
 fixtures and use explicit Git paths. Keep the full goal active.
+
+
+## Keyed source ownership work in progress
+
+Uncommitted map_entry_capture_owners.rs now assigns decoded scalar literal keys
+separate internal owner paths. Map.set stages its RHS before replacing a known
+slot, unknown keys retain conservative container ownership, and Map.delete
+removes only the known slot. Existing owner transfer and reaching-state joins
+carry these paths. Parameter and captured storage cannot discard external loans.
+Recognized number literals preserve existing Map SameValueZero normalization;
+unknown expressions and union keys retain the conservative path.
+
+The original red witness now passes source checking and fails native compilation
+with E0502. This is expected evidence of the second required layer, not feature
+acceptance. Its remaining-entry negative assertion now runs before native
+execution. Six additional source cases pass and protect shared captures, unknown
+insertion aliases, dynamic deletion, missing deletion, conditional deletion and
+replacement retaining the same capture.
+
+Do not commit this as accepted implementation. Native point-sensitive payload
+types and checked survivor conversion still need implementation, followed by
+full focused editor/matched acceptance. The current source module contains no
+payload-type state yet. Add that coordinated metadata next rather than deriving
+payload types solely from capture IDs: distinct records may share captures, and
+unknown slots or reaching branches must retain their own actual types. Existing
+scoped_map_carriers still widens all insertions into a whole-function type.
+
+
+The source-only affected batch passes 99 composition, 42 scoped-record and four
+fallible-record tests (145 total), explicitly skipping the retained native
+entry-release red witness. All eight depth canaries pass on the ordinary worker
+stack. SQLite stores tsrust-b5-map-entry-release-keyed.log (native E0502),
+tsrust-b5-map-entry-release-guards.log, tsrust-b5-map-entry-release-depth.log and
+tsrust-b5-map-entry-release-source-batch.log; all four logs were read back
+byte-exact before removal. Source, tests and these progress notes remain
+uncommitted. No benchmark/editor acceptance or new consumer refresh is claimed.
+
+Continuation prompt: Continue the uncommitted keyed Map ownership work from
+map-entry-capture-release-plan.md. HEAD remains 1c48673. The source half works,
+but deleting_one_map_entry_releases_only_its_capture still fails generated Rust
+with E0502. Complete payload-type state and checked native storage narrowing;
+do not merely weaken the source guard or hide the red witness. Keep unknown
+aliases and surviving-entry loans. Then run native disposal, editor, matched
+support, formatting and SQLite acceptance before committing the combined fix.
+
+
+## Per-entry payload state work in progress
+
+Uncommitted map_entry_payloads.rs now tracks payload-type alternatives separately
+from capture loan IDs. Owners carry this state through consuming moves, borrowed
+copies, replacement, discard, scope exits and reaching-state joins. Known slots
+receive their actual record type; unknown insertions accumulate a conservative
+root bucket. Queries select only this Map's immediate slots, excluding payloads
+inside nested containers. A state test proves differently typed records sharing
+one capture loan survive uncertain deletion and movement independently.
+
+Known deletion records its input Map type and remaining payload alternatives in
+storage_exit_availability::Exits. The metadata table is allocated lazily to avoid
+adding a full HashMap to every ordinary analyzer context. Repeated analysis unions
+survivors. A changed input type or owner path marks the proof inconsistent so it
+cannot authorize native narrowing. A focused replay test passes. The retrieval
+method is currently test-only until the native planner consumes these records.
+
+Native phase conversion is still unwired. The original end-to-end deletion witness
+must remain red and this source is not accepted or committed. Next expose the
+recorded snapshots to scoped_map_carriers, preserve statement/expression order,
+plan a native payload type for survivors, and use a checked moving conversion.
+Current record_carrier_conversion only widens borrowed callable families; add
+excluded-variant handling only on the proven narrowing path. Keep later lookups,
+iteration, storage moves, error contracts and replacement/refill epochs consistent.
+Do not rerun unrelated full suites or claim editor/benchmark acceptance yet.
+
+
+The payload-state batch passes ten ownership-state unit tests, the replay test,
+145 affected compiler tests with the retained native red witness explicitly
+excluded, and all eight depth canaries. Original red and green state logs,
+replay evidence, source batch and depth evidence are stored byte-exact in SQLite
+under tsrust-b5-map-entry-payload-*.log. No source checkpoint or feature acceptance
+is claimed. HEAD remains 1c48673; the combined keyed ownership/payload metadata
+changes and notes remain uncommitted. Complete native conversion next.
+
+## Precise entry-release source checkpoint
+
+The current source checkpoint adds checked scalar-key Map entry ownership and
+payload alternatives, straight-line native survivor conversion, empty storage,
+replacement/refill, direct Map moves, record-field and nested record storage,
+enclosing record moves, iteration and typed callback failure transport. Read
+docs/map-entry-capture-release-plan.md for the current requirements and chronological
+evidence. Parser closure IDs are no longer used to index checked capture origins.
+Nested record moves use the isolated map_storage_edges module.
+
+Focused evidence: 107 composition, 42 scoped callable-record and four fallible
+record-callback tests pass; all eight normal-stack depth canaries and two focused
+editor witnesses pass. The matched workload has 47 observations and passes native
+and Node-after-tsc verification without timing. SQLite retains the exact record
+runtime/results/2026-10-08T23-38-22-518Z-verify.json and failed/repaired evidence.
+This does not accept B5. Conversion scans are still emitted more broadly than the
+plan's efficiency requirement; fix that with focused witnesses before claiming
+ordinary updates remain constant time. Conditional/loop transport, same-expression
+release, broader composition and array-element release remain open. Keep all
+owner fixture edits uncommitted. Five user-facing executable consumers still have
+not been refreshed from this checkpoint.

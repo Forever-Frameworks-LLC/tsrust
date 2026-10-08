@@ -1,12 +1,112 @@
 mod support;
 
 #[test]
+fn deleting_last_map_entry_releases_its_capture() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const values=[3];let handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>values[0]});console.log('deleted',handlers.delete('first'));values[0]=9;console.log('after',handlers.size,values[0],handlers.has('first'));handlers.clear();}");
+ verify_disposal(&source,1,"drop 0\ndeleted true\nafter 0 9 false\n");
+ let conditional=source.replace("console.log('deleted', handlers.delete('first'));", "const deleted=handlers.delete('first')?1:0;console.log('deleted',deleted);");
+ assert_ne!(conditional,source);
+ verify_disposal(&support::format_round_trip(&conditional),1,"drop 0\ndeleted 1\nafter 0 9 false\n");
+}
+
+#[test]
+fn deleting_from_a_moved_map_releases_only_its_capture() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];let original=new Map<string,Holder>();original.set('first',{run:():int=>first[0]});original.set('second',{run:():int=>second[0]});const moved=original;console.log('deleted',moved.delete('first'));first[0]=9;{const saved=moved.get('second');if(saved!==undefined)console.log('saved',saved.run());}console.log('after',moved.size,first[0]);moved.clear();second[0]=11;console.log('cleared',second[0]);}");
+ verify_disposal(&source,2,"drop 0\ndeleted true\nsaved 5\nafter 1 9\ndrop 1\ncleared 11\n");
+ let narrowed=source.replace("const moved = original;\n    console.log('deleted', moved.delete('first'));", "console.log('deleted',original.delete('first'));const moved=original;");
+ assert_ne!(narrowed,source);
+ verify_disposal(&support::format_round_trip(&narrowed),2,"drop 0\ndeleted true\nsaved 5\nafter 1 9\ndrop 1\ncleared 11\n");
+}
+
+#[test]
 fn deleting_one_map_entry_releases_only_its_capture() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];let handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});console.log('deleted',handlers.delete('first'));first[0]=9;{const saved=handlers.get('second');if(saved!==undefined)console.log('saved',saved.run());}console.log('after',handlers.size,first[0]);handlers.clear();second[0]=11;console.log('cleared',second[0]);}");
- verify_disposal(&source,2,"drop 0\ndeleted true\nsaved 5\nafter 1 9\ndrop 1\ncleared 11\n");
  let conflict=source.replace("first[0] = 9;", "second[0]=9;");
  assert_ne!(conflict,source);
  assert_eq!(tsrust_compiler::check(&conflict).err().expect("remaining entry retains capture").code,"capture-conflict");
+ verify_disposal(&source,2,"drop 0\ndeleted true\nsaved 5\nafter 1 9\ndrop 1\ncleared 11\n");
+ let iterated=source.replace("console.log('after', handlers.size, first[0]);", "for(const [key,entry] of handlers){console.log('entry',key,entry.run());}console.log('after',handlers.size,first[0]);");
+ assert_ne!(iterated,source);
+ verify_disposal(&support::format_round_trip(&iterated),2,"drop 0\ndeleted true\nsaved 5\nentry second 5\nafter 1 9\ndrop 1\ncleared 11\n");
+ let repeated=source.replace("first[0] = 9;", "console.log('again',handlers.delete('first'),handlers.delete('missing'));first[0]=9;");
+ assert_ne!(repeated,source);
+ verify_disposal(&support::format_round_trip(&repeated),2,"drop 0\ndeleted true\nagain false false\nsaved 5\nafter 1 9\ndrop 1\ncleared 11\n");
+}
+
+#[test]
+fn replacing_one_map_entry_releases_its_previous_capture() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];let handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});console.log('replace');handlers.set('first',{run:():int=>second[0]});first[0]=9;{const saved=handlers.get('first');if(saved!==undefined)console.log('saved',saved.run());}handlers.clear();second[0]=11;console.log('after',first[0],second[0]);}");
+ verify_disposal(&source,2,"replace\ndrop 0\nsaved 5\ndrop 1\nafter 9 11\n");
+}
+
+#[test]
+fn failed_map_replacement_keeps_the_previous_environment() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function main():void{const first=[3];const second=[5];let handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});try{handlers.set('first',(failIf(true),{run:():int=>second[0]}));}catch(error){console.log('caught',error);}{const saved=handlers.get('first');if(saved!==undefined)console.log('saved',saved.run());}handlers.clear();console.log('done');}");
+ support::execute(&source,"caught 7\nsaved 3\ndone\n",None);
+ verify_disposal(&source,2,"caught 7\nsaved 3\ndrop 0\ndone\n");
+ let successful=source.replace("failIf(true)","failIf(false)");
+ assert_ne!(successful,source);
+ verify_disposal(&support::format_round_trip(&successful),2,"drop 0\nsaved 5\ndrop 1\ndone\n");
+ let conflict=source.replace("console.log('caught', error);","first[0]=9;console.log('caught',error);");
+ assert_ne!(conflict,source);
+ assert_eq!(tsrust_compiler::check(&conflict).err().expect("failed replacement retains previous capture").code,"capture-conflict");
+}
+
+#[test]
+fn deleting_record_map_field_releases_only_its_entry_capture() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};type Box={handlers:Map<string,Holder>;marker:int;};function main():void{const first=[3];const second=[5];const box:Box={handlers:new Map<string,Holder>(),marker:23};box.handlers.set('first',{run:():int=>first[0]});box.handlers.set('second',{run:():int=>second[0]});console.log('deleted',box.handlers.delete('first'));first[0]=9;{const saved=box.handlers.get('second');if(saved!==undefined)console.log('saved',saved.run());}console.log('marker',box.marker);box.handlers.clear();second[0]=11;console.log('after',first[0],second[0]);}");
+ verify_disposal(&source,2,"drop 0\ndeleted true\nsaved 5\nmarker 23\ndrop 1\nafter 9 11\n");
+ let refill=source.replace("console.log('marker', box.marker);", "box.handlers.set('next',{run:():int=>first[0]});{const next=box.handlers.get('next');if(next!==undefined)console.log('next',next.run());}console.log('marker',box.marker);");
+ assert_ne!(refill,source);
+ verify_disposal(&support::format_round_trip(&refill),3,"drop 0\ndeleted true\nsaved 5\nnext 9\nmarker 23\ndrop 1\ndrop 2\nafter 9 11\n");
+ let iterated=refill.replace("console.log('marker',box.marker);","for(const [key,entry] of box.handlers){console.log('entry',key,entry.run());}console.log('marker',box.marker);");
+ assert_ne!(iterated,refill);
+ verify_disposal(&support::format_round_trip(&iterated),3,"drop 0\ndeleted true\nsaved 5\nnext 9\nentry second 5\nentry next 9\nmarker 23\ndrop 1\ndrop 2\nafter 9 11\n");
+}
+
+#[test]
+fn nested_record_map_release_and_refill_preserve_siblings() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};type Inner={handlers:Map<string,Holder>;label:string;};type Outer={inner:Inner;marker:int;};function main():void{const first=[3];const second=[5];const outer:Outer={inner:{handlers:new Map<string,Holder>(),label:'kept'},marker:23};outer.inner.handlers.set('first',{run:():int=>first[0]});outer.inner.handlers.set('second',{run:():int=>second[0]});console.log('deleted',outer.inner.handlers.delete('first'));first[0]=9;outer.inner.handlers.set('next',{run:():int=>first[0]});for(const [key,entry] of outer.inner.handlers){console.log('entry',key,entry.run());}console.log('siblings',outer.inner.label,outer.marker);outer.inner.handlers.clear();first[0]=11;second[0]=13;console.log('after',first[0],second[0]);}");
+ verify_disposal(&source,3,"drop 0\ndeleted true\nentry second 5\nentry next 9\nsiblings kept 23\ndrop 1\ndrop 2\nafter 11 13\n");
+ let moved=source.replace("outer.inner.handlers.set('first',", "const moved=outer;outer.inner.handlers.set('first',").replace("outer.inner", "moved.inner").replace("outer.marker", "moved.marker");
+ assert_ne!(moved,source);
+ verify_disposal(&support::format_round_trip(&moved),3,"drop 0\ndeleted true\nentry second 5\nentry next 9\nsiblings kept 23\ndrop 1\ndrop 2\nafter 11 13\n");
+ let conditioned=moved.replace("console.log('deleted', moved.inner.handlers.delete('first'));", "const deleted=moved.inner.handlers.delete('first')?1:0;console.log('deleted',deleted);");
+ assert_ne!(conditioned,moved);
+ verify_disposal(&support::format_round_trip(&conditioned),3,"drop 0\ndeleted 1\nentry second 5\nentry next 9\nsiblings kept 23\ndrop 1\ndrop 2\nafter 11 13\n");
+ let called=conditioned.replace("function main(): void", "function scenario(): void")+"function main():void{scenario();}";
+ assert_ne!(called,conditioned);
+ verify_disposal(&support::format_round_trip(&called),3,"drop 0\ndeleted 1\nentry second 5\nentry next 9\nsiblings kept 23\ndrop 1\ndrop 2\nafter 11 13\n");
+}
+
+#[test]
+fn narrowed_map_callback_errors_use_the_surviving_contract() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(value:int):int{const first=[value];const second=[value+1];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});handlers.delete('first');first[0]=value+2;let result=0;{const saved=handlers.get('second');if(saved!==undefined)result=saved.run();}handlers.clear();return result+first[0];}function main():void{console.log(scenario(3));}");
+ support::execute(&source,"9\n",None);
+ let caught=source.replace("console.log(scenario(3));", "try{console.log(scenario(3));}catch(error){console.log('caught');}");
+ assert_ne!(caught,source);
+ support::execute(&support::format_round_trip(&caught),"9\n",None);
+ let failing=caught.replace("second[0]","second[value]");
+ assert_ne!(failing,caught);
+ let failing=support::format_round_trip(&failing);
+ verify_disposal(&failing,2,"drop 0\ndrop 1\ncaught\n");
+}
+
+#[test]
+fn keyed_map_release_keeps_uncertain_and_shared_capture_owners() {
+ let prefix="type Holder={run:ReadOnly<Function<int>>;};function scenario(key:string,branch:boolean):void{const values=[3];let handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>values[0]});";
+ for actions in [
+  "handlers.set('second',{run:():int=>values[0]});handlers.delete('first');",
+  "handlers.set(key,{run:():int=>values[0]});handlers.delete('first');",
+  "handlers.delete(key);",
+  "handlers.delete('missing');",
+  "if(branch)handlers.delete('first');",
+  "handlers.set('first',{run:():int=>values[0]});",
+ ] {
+  let source=support::format_round_trip(&format!("{prefix}{actions}values[0]=9;console.log(handlers.size);}}function main():void{{scenario('second',false);}}"));
+  let error=tsrust_compiler::check(&source).err().expect(actions);
+  assert_eq!(error.code,"capture-conflict","{actions}: {}",error.message);
+ }
 }
 
 #[test]

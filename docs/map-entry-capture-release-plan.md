@@ -70,3 +70,355 @@ changes. Preserve failed originals and resumed checks in SQLite. Format the whol
 project before each source checkpoint. Do not describe B5 as accepted until
 remaining array-element release and all named composition requirements are
 reconciled and the feature-family acceptance is complete.
+
+
+## Keyed source ownership work in progress
+
+Uncommitted map_entry_capture_owners.rs now assigns decoded scalar literal keys
+separate internal owner paths. Map.set stages its RHS before replacing a known
+slot, unknown keys retain conservative container ownership, and Map.delete
+removes only the known slot. Existing owner transfer and reaching-state joins
+carry these paths. Parameter and captured storage cannot discard external loans.
+Recognized number literals preserve existing Map SameValueZero normalization;
+unknown expressions and union keys retain the conservative path.
+
+The original red witness now passes source checking and fails native compilation
+with E0502. This is expected evidence of the second required layer, not feature
+acceptance. Its remaining-entry negative assertion now runs before native
+execution. Six additional source cases pass and protect shared captures, unknown
+insertion aliases, dynamic deletion, missing deletion, conditional deletion and
+replacement retaining the same capture.
+
+Do not commit this as accepted implementation. Native point-sensitive payload
+types and checked survivor conversion still need implementation, followed by
+full focused editor/matched acceptance. The current source module contains no
+payload-type state yet. Add that coordinated metadata next rather than deriving
+payload types solely from capture IDs: distinct records may share captures, and
+unknown slots or reaching branches must retain their own actual types. Existing
+scoped_map_carriers still widens all insertions into a whole-function type.
+
+
+## Per-entry payload state work in progress
+
+Uncommitted map_entry_payloads.rs now tracks payload-type alternatives separately
+from capture loan IDs. Owners carry this state through consuming moves, borrowed
+copies, replacement, discard, scope exits and reaching-state joins. Known slots
+receive their actual record type; unknown insertions accumulate a conservative
+root bucket. Queries select only this Map's immediate slots, excluding payloads
+inside nested containers. A state test proves differently typed records sharing
+one capture loan survive uncertain deletion and movement independently.
+
+Known deletion records its input Map type and remaining payload alternatives in
+storage_exit_availability::Exits. The metadata table is allocated lazily to avoid
+adding a full HashMap to every ordinary analyzer context. Repeated analysis unions
+survivors. A changed input type or owner path marks the proof inconsistent so it
+cannot authorize native narrowing. A focused replay test passes. The retrieval
+method is currently test-only until the native planner consumes these records.
+
+Native phase conversion is still unwired. The original end-to-end deletion witness
+must remain red and this source is not accepted or committed. Next expose the
+recorded snapshots to scoped_map_carriers, preserve statement/expression order,
+plan a native payload type for survivors, and use a checked moving conversion.
+Current record_carrier_conversion only widens borrowed callable families; add
+excluded-variant handling only on the proven narrowing path. Keep later lookups,
+iteration, storage moves, error contracts and replacement/refill epochs consistent.
+Do not rerun unrelated full suites or claim editor/benchmark acceptance yet.
+
+## Native straight-line progress
+
+The native epoch planner now consumes the checked survivor metadata for directly
+initialized local Maps. Known deletion rebuilds surviving entries into a payload
+type that excludes the released environment. Empty storage drops and recreates
+its absent environment. Refills widen the current representation before storing
+a new payload. Clear follows the current representation rather than the original
+function-wide type. Late parameter carrier planning preserves the checked epoch
+metadata. These changes remain uncommitted and are not accepted as the complete
+entry-release feature.
+
+The independent-capture witness now passes native execution at O0 and O3, with
+exact disposal of the deleted and remaining environments. The empty deletion and
+existing replacement/refill/clear disposal witnesses also pass. The resumed
+composition suite passes 101 tests. A further survivor-iteration witness exposed
+an entry adapter retaining the old representation. Planning the iteration entry
+against the current Map payload and then retargeting its body repairs that
+witness; both native optimization levels now pass.
+
+Record-field and moved storage, control-flow transport, same-expression release,
+replacement narrowing and conversion-cost pruning still need focused witnesses
+and implementation. Editor, guide and matched benchmark acceptance remain owed.
+Depth checks are running after the iteration adapter repair. Original failed logs
+and resumed checks must be preserved in SQLite before closing this batch.
+
+## Direct storage moves and repeated deletion
+
+A new disposal witness first failed generated Rust with E0502 after moving an
+initialized Map into another local and deleting one entry. The epoch planner now
+transfers its local-storage eligibility across a checked direct owning Map move.
+The destination receives the current planned Map type; later deletion narrows the
+destination rather than the consumed source. The witness passes at O0 and O3,
+preserving the other entry and dropping each callback exactly once.
+
+Repeated deletion of the removed key and deletion of a missing key also pass
+native disposal checks. Both return false and leave the surviving callback usable.
+Twenty closed native planning, regression, replay, iteration, repeated-deletion
+and depth logs were imported into benchmarks/records.sqlite, read back byte for
+byte, and removed from scratch storage. The moved-storage green log remains open
+for the next evidence import. No acceptance or consumer refresh is claimed.
+
+## Replacement and move order
+
+The reverse move order also passes: delete a known entry, move the narrowed Map,
+then call the remaining entry. A new replacement witness failed generated Rust
+with E0502 when the previous capture was mutated after replacing its entry with a
+callback capturing another array. Known set operations now record their checked
+survivor payload alternatives after RHS evaluation and owner replacement. Native
+epoch planning consumes these snapshots after the set statement. The replacement
+witness passes at O0 and O3 with the old environment dropping during replacement
+and the new environment dropping during clear.
+
+The complete affected composition suite and a focused LSP diagnostic witness are
+running for this batch. The editor witness accepts mutation of the released
+capture, verifies iteration of the surviving entry, and still rejects mutation of
+the remaining capture. No new built-in API or documentation signature is added.
+Replacement evaluation order, failure transport and scan-cost pruning remain
+explicit acceptance obligations; a passing straight-line witness does not close
+them.
+
+The initial replacement integration activated native planning for ordinary
+insertions and regressed 31 composition cases. That failed run is retained as
+`tsrust-b5-map-entry-native-replacement-batch.log`. Snapshot creation now requires
+an existing known entry whose payload type differs from the replacement. Ordinary
+first insertions and same-environment writes preserve their prior planning path.
+The resumed affected suite and post-change depth canaries are running. The focused
+editor diagnostic witness passes. These results supersede any inference that the
+first replacement implementation was regression-free.
+
+The resumed composition suite passes all 103 tests. All eight normal-stack depth
+canaries pass after the replacement repair. The focused editor diagnostic test
+passes. Nine additional closed logs, including the original replacement failure,
+the 31-regression batch and repaired runs, are stored in SQLite with byte-exact
+readback; verified loose copies are removed. Project formatting, benchmark support
+and complete entry-release acceptance remain pending. The work remains
+uncommitted; do not report B5 as complete.
+
+## Replacement failures and next field witness
+
+A failure before replacement payload construction preserves the previous entry.
+The focused test verifies its value remains 3 after catching 7, then instruments
+both closure environments at O0 and O3. On failure only the original closure is
+constructed and it drops at clear. On success the original drops during set, the
+replacement returns 5, and the replacement drops at clear. Mutation of the retained
+original capture inside catch still receives capture-conflict. No compiler repair
+was required for this valid failure witness. Initial witness attempts used a
+retired access spelling and a lookup loan that outlived clear; those diagnostic
+logs remain separate evidence of test correction, not compiler regressions.
+
+The next red witness is
+deleting_record_map_field_releases_only_its_entry_capture. It preserves a sibling
+marker field while deleting one of two independently capturing callbacks. Source
+checking succeeds; native compilation currently fails with E0425 for a missing
+callback environment type. Direct-root epoch eligibility does not cover field
+storage. Field support must preserve the enclosing record representation and all
+siblings while changing the Map field's payload environment. The red witness is
+not acceptance; keep it while implementing that coordinated path.
+
+The field witness exposed an unrelated planner-boundary defect: snapshot presence
+alone caused retargeting in functions with no eligible direct local Map. The
+planner now skips such functions unless a previously planned root epoch is needed
+by the nested body. This removes the missing C0 type. The field witness now fails
+with E0502 on mutation of the released capture, establishing the remaining native
+field-lifetime transport requirement. Direct survivor iteration remains covered
+by the existing witness and must pass after the boundary repair.
+
+## Record-field native transport
+
+The planner now identifies exact empty-Map storage paths inside local record
+initializers. A checked survivor snapshot updates that Map field's type in the
+point-sensitive enclosing record. Native epochs use the existing independent
+owning-leaf layout: the Map leaf is shadowed with its narrower type, and sibling
+leaves remain in place. No record reconstruction, cloning, unsafe cast or sibling
+disposal is needed. Original record initializer carriers are preserved during
+this phase; replanning them as uninstantiated generic records caused the earlier
+missing C0 failure.
+
+The original field witness now passes O0 and O3 with exact callback disposal and
+its sibling marker preserved. The affected composition suite is running. Field
+refill, nested record paths, multiple Map siblings and moved enclosing records
+still need focused witnesses. The direct-root pre-write phase has not yet been
+generalized to field refills. This is implementation progress, not acceptance.
+
+The affected composition suite passes 105 tests after field transport. All eight
+normal-stack depth canaries pass. Six additional closed logs, including native
+transport failures and the repaired field, composition and depth checks, were
+imported into SQLite, read back byte for byte, and removed from scratch storage.
+The focused editor witness has not yet been expanded to record-field release.
+Whole-project formatting, matched workload support and source checkpoint remain
+pending. This batch does not accept B5 or the complete Map entry-release plan.
+
+## Field refill progress
+
+A field refill witness exposed an unchecked Closure(2)-to-Closure(1) conversion.
+Pre-insertion widening now follows exact local storage paths, including record
+fields. The planner updates the enclosing point type, while native emission
+widens only the independently stored Map leaf before inserting the new payload.
+Set emission resolves the root through field receivers so stale carrier wrappers
+can be replaced by the checked current payload conversion.
+
+The deletion/refill witness passes at O0 and O3 with exact disposal of all three
+environments and an unchanged sibling marker. A focused LSP witness accepts field
+release, refill and iteration, and rejects mutation of the surviving capture.
+The affected composition suite is running. The guide now explains straight-line
+release, replacement failures, conservative dynamic keys, lookup scopes and the
+current survivor-scan cost. Nested paths, sibling Maps and field iteration still
+need their native disposal witnesses; editor checking alone does not prove native
+iteration. Matched support, cost pruning and the source checkpoint remain owed.
+
+Field refill's affected composition suite passes 105 tests. The focused editor
+witness and all eight normal-stack depth canaries pass. Six closed field-refill
+and editor/depth logs are verified in SQLite and their loose copies removed.
+No full family regression or timing run was performed. All entry-release source
+changes remain uncommitted pending coherent checkpoint support and formatting.
+
+## Native nested paths and enclosing moves
+
+Native field iteration after refill passes at O0 and O3, preserving key order and
+callback disposal. A nested record witness also passes before the move variant:
+`outer.inner.handlers` deletes one callback, refills with another, iterates the
+survivors, preserves a string sibling and outer integer marker, and clears both
+remaining environments exactly once.
+
+The same witness now includes moving the enclosing record before its first Map
+insertion. That variant fails generated Rust with E0308: the source record still
+contains an absent Map environment while the destination expects its later joined
+callback family. Local epoch eligibility now follows a checked owning record move
+through a carrier wrapper, but global `scoped_map_carriers` propagation handles
+Map-valued leaves only. A record-valued name initializer does not currently expose
+its nested Map leaves to that propagation. The next repair must propagate paired
+source/destination Map paths across the owning record move before constructor and
+carrier retargeting. Preserve sibling fields and current checked payload metadata.
+Do not bypass the type mismatch or remove the moved witness. It remains red and
+prevents acceptance of complete enclosing-record move support.
+
+## Enclosing record move repair
+
+The isolated map_storage_edges module now enumerates checked Map storage edges
+inside direct Map moves, record name moves, record literal fields and existing
+array-literal paths. Nested record paths pair source and destination leaves
+without cloning source expression trees. Global scoped Map carrier planning joins
+both endpoints before adapting constructors. Point-sensitive entry eligibility
+continues following the owning record move.
+
+The retained moved-nested-record witness now passes at O0 and O3. Both the unmoved
+and moved variants delete, refill and iterate nested Map storage, preserve sibling
+string and integer values, and drop every constructed callback exactly once.
+The complete affected composition suite is running. This repair does not prove
+conditional transport, same-expression release, generic aggregate moves or scan
+cost pruning; their existing acceptance obligations remain open.
+
+Enclosing record moves now pass the complete affected batch: 106 composition
+checks, 42 scoped callable-record checks and four fallible record-callback checks.
+All eight normal-stack depth canaries and both entry-release editor witnesses
+pass. Seven closed storage-edge, regression, depth/editor and CLI-build logs are
+verified in SQLite and their loose copies removed. The current debug CLI is
+rebuilt from this uncommitted source; the five user-facing consumers have not
+been refreshed. Whole-project formatting is running with that CLI before the
+next source checkpoint. Benchmark support and performance-cost pruning remain
+pending; no feature-family acceptance or timing claim is made.
+
+Whole-project formatting completed successfully with the current CLI: zero files
+changed and zero benchmark formatting fingerprints changed. The source checkpoint
+still needs matched entry-release workload support and its untimed verification.
+
+## Matched workload support
+
+The existing matched scoped_record_composition workload now retains 47 scalar
+observations per iteration. Three added observations cover direct known-key
+release, moving a nested record before release/refill/iteration, and replacement
+success or failure selected by the input value. Both language sources execute the
+same operations. The independent oracle uses arithmetic formulas 3*value+8,
+4*value+40, and 3*value+14 on failure or 3*value+10 on success.
+
+The source contract checks the new operations and final observer row. Registration
+includes rehashed mutation controls removing deletion, released-capture mutation,
+record movement, field clear, replacement failure observation and replacement
+clear. The registration test passes. Semantic source hashes were refreshed by an
+explicit text edit to the existing manifest row; the measurement protocol and
+sample counts are unchanged. The row remains unmeasured and family acceptance
+pending. Native and Node-after-tsc verification is running without timing.
+
+Untimed workload verification currently fails source checking in
+movedFieldEntryRelease at fieldFirst mutation after deletion. Initial suspicion
+was loss of the delete effect in a ternary predicate. Focused direct and nested
+ternary witnesses pass at O0 and O3, including a called nested-record scenario.
+An isolated exact workload helper passes source checking, as does a loop caller.
+Keeping every other helper declaration while replacing the original workload body
+with one helper call also passes. The failure therefore depends on preceding
+workload composition; the ternary explanation is disproven. Keep the original
+47-observation workload intact and reduce the earlier operations to identify the
+shared analysis state or carrier interaction. No source checkpoint, benchmark
+verification success or acceptance is claimed while this failure remains.
+
+## Checked closure origin defect
+
+Temporary ownership tracing identified the composition failure. On replay,
+attach_payload_capture_loans indexed the checked closure table with the raw parser
+closure ID. The workload's second field callback therefore acquired captures from
+an unrelated earlier closure, including the moved record itself. Its surviving
+entry retained a false nested owner of the deleted first callback. The traced
+closure spans differed from their expression spans, proving the ID mismatch.
+
+Capture attachment now resolves the checked closure origin, matching native
+emission, with the checked Type::Closure slot as fallback. It does not use the
+parser ID for capture lookup. Temporary tracing is removed. The original unchanged
+47-observation workload passes source checking with the rebuilt debug compiler.
+Affected ownership suites and native/Node-after-tsc untimed verification are
+running. Their results must be inspected before checkpointing this repair.
+
+The origin repair passes 152 affected compiler tests and seven focused capture
+ownership units. Native matched verification now passes source analysis and fails
+Rust compilation at a later callback error adapter: the narrowed callback returns
+TsrCallbackError0<Record47>, while emitted transport matches
+TsrStorageError21<Record47>. This is a separate point-sensitive callback failure
+contract mismatch, not a recurrence of the capture-owner defect. Preserve the
+native failure and inspect callback call-target/error metadata after narrowing.
+No workload observation may be removed to avoid this composition. Untimed native
+and Node verification remains incomplete; source checkpoint remains pending.
+
+## Narrowed callback error targets
+
+A focused helper witness reproduces the native error mismatch when its caller has
+try/catch. Without typed exception transport the same source executes normally;
+with transport the old StoredCallableField target expects a storage-family error
+while the narrowed concrete callback returns its callback error contract.
+
+Retargeting now changes a surviving concrete closure's call target to
+ConditionalClosure along with its callee type. Existing native error registration
+then selects the surviving closure contract rather than the removed family.
+The focused helper and caught variant pass. An added bounds-failure variant checks
+exact O0/O3 disposal before catch; that check and the resumed matched verification
+are running. The original matched failure remains separate evidence.
+
+## Source checkpoint evidence
+
+The callback error-target repair passes the focused normal and caught helper
+cases. A bounds failure from the surviving callback drops both constructed
+environments exactly once before catch at O0 and O3. The affected batch passes
+107 composition checks, 42 scoped callable-record checks and four fallible
+record-callback checks, plus all eight normal-stack depth canaries and both focused
+entry-release editor witnesses.
+
+The 47-observation workload passes untimed native and Node-after-tsc verification
+at all five configured correctness cases, including zero iterations and the full
+2048-iteration case. The exact JSON is preserved in SQLite as
+runtime/results/2026-10-08T23-38-22-518Z-verify.json. Seven closed error-contract,
+regression and verification logs are also stored with byte-exact readback, and
+verified loose copies are removed. The first default multi-engine attempt stopped
+at the sandbox-denied tsx IPC socket after native compilation succeeded; its log
+is retained separately. No timing or all-engine verification is claimed.
+
+This is a source checkpoint of the implemented straight-line release path. B5
+and the complete entry-release plan remain open. Priorities next: conversion-cost
+pruning with focused generated-code and native witnesses; conditional and loop
+transport; same-expression release; additional key, alias and failure combinations;
+then array-element release and family acceptance. Five user-facing consumers still
+require an explicit refresh from the completed checkpoint before testing them.

@@ -400,7 +400,7 @@ function workload(n: int, seed: int, input: string): int[][] {
         const forOfMapObserved=forOfMapLoop();
         const countedMapObserved=countedMapLoop();const postMapObserved=postMapLoop();
         const emptyMapObserved=emptyScopedMap();
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped, nestedPairLooped, emptyMapObserved, countedMapObserved, postMapObserved, forOfMapObserved]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped, nestedPairLooped, emptyMapObserved, countedMapObserved, postMapObserved, forOfMapObserved, knownEntryRelease(value), movedFieldEntryRelease(value), replacementEntryOutcome(value,value%2!==0)]);
         i += 1;
     }
 
@@ -710,4 +710,33 @@ function forOfMapLoop(): number {
   finally{iterHandlers.clear();iterValues[0]+=2;}
  }
  return iterHandlers.size+iterValues[0];
+}
+
+function knownEntryRelease(value:number):number {
+ const releaseFirst=[value];const releaseSecond=[value+1];const releaseMap=new Map<string,Holder>();
+ releaseMap.set("first",{run:():number=>releaseFirst[0]});releaseMap.set("second",{run:():number=>releaseSecond[0]});
+ let releaseObserved=releaseMap.delete("first")?1:0;releaseFirst[0]=value+2;
+ {const releaseSaved=releaseMap.get("second");if(releaseSaved!==undefined)releaseObserved+=releaseSaved.run();}
+ releaseObserved+=releaseFirst[0]+releaseMap.size;releaseMap.clear();releaseSecond[0]=value+3;
+ return releaseObserved+releaseSecond[0];
+}
+type ReleaseInner={handlers:Map<string,Holder>;label:string;};
+type ReleaseOuter={inner:ReleaseInner;marker:number;};
+function movedFieldEntryRelease(value:number):number {
+ const fieldFirst=[value];const fieldSecond=[value+1];
+ const fieldOriginal:ReleaseOuter={inner:{handlers:new Map<string,Holder>(),label:"kept"},marker:23};const fieldMoved=fieldOriginal;
+ fieldMoved.inner.handlers.set("first",{run:():number=>fieldFirst[0]});fieldMoved.inner.handlers.set("second",{run:():number=>fieldSecond[0]});
+ let fieldObserved=fieldMoved.inner.handlers.delete("first")?1:0;fieldFirst[0]=value+2;
+ fieldMoved.inner.handlers.set("next",{run:():number=>fieldFirst[0]});
+ for(const [key,entry] of fieldMoved.inner.handlers){fieldObserved+=entry.run();}
+ fieldObserved+=fieldMoved.inner.label.length+fieldMoved.marker;fieldMoved.inner.handlers.clear();fieldFirst[0]=value+4;fieldSecond[0]=value+5;
+ return fieldObserved+fieldFirst[0]+fieldSecond[0];
+}
+function replacementEntryOutcome(value:number,fail:boolean):number {
+ const outcomeFirst=[value];const outcomeNext=[value+1];const outcomeMap=new Map<string,Holder>();
+ outcomeMap.set("first",{run:():number=>outcomeFirst[0]});let outcomeObserved=0;
+ try{outcomeMap.set("first",(prefixResult(fail),{run:():number=>outcomeNext[0]}));}catch(error){outcomeObserved=5;}
+ {const outcomeSaved=outcomeMap.get("first");if(outcomeSaved!==undefined)outcomeObserved+=outcomeSaved.run();}
+ outcomeMap.clear();outcomeFirst[0]=value+4;outcomeNext[0]=value+5;
+ return outcomeObserved+outcomeFirst[0]+outcomeNext[0];
 }

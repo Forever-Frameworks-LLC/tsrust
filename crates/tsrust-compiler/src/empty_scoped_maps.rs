@@ -43,7 +43,7 @@ impl Analyzer {
     }
 
     #[inline(never)]
-    fn empty_scoped_record_environment(&mut self, id: usize) -> Result<Type, Diagnostic> {
+    pub(super) fn empty_scoped_record_environment(&mut self, id: usize) -> Result<Type, Diagnostic> {
         let span = self.program.records[id].name.span;
         let fields = self.program.records[id]
             .fields
