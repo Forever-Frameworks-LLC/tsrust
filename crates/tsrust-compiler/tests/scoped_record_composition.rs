@@ -1,6 +1,23 @@
 mod support;
 
 #[test]
+fn for_of_loops_release_cleared_map_captures() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function main():void{const values=[3];const steps=[0,1,2];let handlers=new Map<string,Holder>();for(const step of steps){handlers.set('value',{run:():int=>values[0]});try{failIf(step!==1);}catch(error){if(step===0)continue;break;}finally{console.log('cleanup',step,handlers.size);handlers.clear();values[0]+=2;}}console.log('after',handlers.size,values[0]);}");
+ verify_disposal(&source,1,"cleanup 0 1\ndrop 0\ncleanup 1 1\ndrop 0\ncleanup 2 1\ndrop 0\nafter 0 9\n");
+ verify_disposal(&support::format_round_trip(&source.replace("const steps = [0, 1, 2];", "const steps:int[]=[];")),1,"after 0 3\n");
+ let set=source.replace("const steps = [0, 1, 2];", "const steps=new Set<int>([0,1,2]);");
+ assert_ne!(set,source);
+ verify_disposal(&support::format_round_trip(&set),1,"cleanup 0 1\ndrop 0\ncleanup 1 1\ndrop 0\ncleanup 2 1\ndrop 0\nafter 0 9\n");
+ let map=source.replace("const steps = [0, 1, 2];", "const steps=new Map<string,int>([['a',0],['b',1],['c',2]]);").replace("for (const step of steps)", "for(const [key,step] of steps)");
+ assert_ne!(map,source);
+ verify_disposal(&support::format_round_trip(&map),1,"cleanup 0 1\ndrop 0\ncleanup 1 1\ndrop 0\ncleanup 2 1\ndrop 0\nafter 0 9\n");
+ for iterable in ["'abc'", "['a','b','c']"] {
+  let text=source.replace("const steps = [0, 1, 2];",&format!("const steps={iterable};")).replace("step !== 1", "step!=='b'").replace("step === 0", "step==='a'");
+  verify_disposal(&support::format_round_trip(&text),1,"cleanup a 1\ndrop 0\ncleanup b 1\ndrop 0\ncleanup c 1\ndrop 0\nafter 0 9\n");
+ }
+}
+
+#[test]
 fn counted_and_post_test_loops_release_cleared_map_captures() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function main():void{const values=[3];let turn=0;let handlers=new Map<string,Holder>();for(;turn<3;turn+=1){handlers.set('value',{run:():int=>values[0]});try{failIf(turn!==1);}catch(error){if(turn===0)continue;break;}finally{console.log('cleanup',turn,handlers.size);handlers.clear();values[0]+=2;}}console.log('after',turn,handlers.size,values[0]);}");
  verify_disposal(&source,1,"cleanup 0 1\ndrop 0\ncleanup 1 1\ndrop 0\ncleanup 2 1\ndrop 0\nafter 2 0 9\n");

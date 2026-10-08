@@ -100,3 +100,10 @@ Continue runs finally before the for update or do-while condition. Break runs
 finally and skips that tail. A counted loop that executes zero iterations leaves
 the original empty Map available. Loop conditions and updates must not retain
 the callback payload across the release boundary.
+
+For-of loops use the same cleanup boundary for array, Set, Map-entry and string
+iteration. The iterable is evaluated once with its usual borrowing rules.
+Finally runs before continue or break leaves an iteration, and clearing the
+scoped Map releases its callbacks before captured values change. Empty
+iteration leaves the original empty Map available. Iterating the Map being
+cleared remains subject to the ordinary iterator borrow restrictions.

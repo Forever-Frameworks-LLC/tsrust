@@ -8555,6 +8555,8 @@ fn consumed_exception_map_storage_does_not_revive_source_binding() {
 
 #[test]
 fn transferred_error_storage_requires_explicit_restoration() {
+    let iterated=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function main():void{const values=[3];const steps=[0,1,2];let handlers=new Map<string,Holder>();for(const step of steps){handlers.set('value',{run:():int=>values[0]});try{failIf(step!==1);}catch(error){if(step===0)continue;break;}finally{handlers.clear();values[0]+=2;}}console.log(handlers.size,values[0]);}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&iterated,"file:///for-of-map-loop.tsr").unwrap().is_empty());
     let counted=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function main():void{const values=[3];let turn=0;let handlers=new Map<string,Holder>();for(let step=0;step<3;step+=1){handlers.set('value',{run:():int=>values[0]});try{failIf(turn!==1);}catch(error){if(turn===0)continue;break;}finally{handlers.clear();values[0]+=2;turn+=1;}}console.log(turn,handlers.size,values[0]);}").unwrap();
     assert!(tsrust_lsp::diagnostics(&counted,"file:///counted-map-loop.tsr").unwrap().is_empty());
     let post=counted.replace("for (let step = 0; step < 3; step += 1)","do").replace("console.log(turn, handlers.size, values[0]);", "while(turn<3);console.log(turn,handlers.size,values[0]);");

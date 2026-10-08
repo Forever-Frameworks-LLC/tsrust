@@ -3326,68 +3326,8 @@ impl Emitter<'_> {
                 let _ = writeln!(output, "{indent}}}");
                 continue;
             }
-            if let StmtKind::ForOf {
-                iterable,
-                body,
-                binding,
-                ..
-            } = &stmt.kind
-            {
-                let _control_scope=self.control_targets.enter(ControlTarget::Loop(stmt.span.start));
-                let id = binding.expect("checked iteration binding");
-                let iterable_code = self.expr(fun, iterable, Mode::Read);
-                let declarations = self
-                    .conditional_temporaries
-                    .borrow_mut()
-                    .drain(..)
-                    .collect::<Vec<_>>()
-                    .join(" ");
-                let temporary_scope = !declarations.is_empty();
-                if temporary_scope {
-                    let _ = writeln!(output, "{indent}{{ {declarations}");
-                }
-                if iterable.ty==Some(Type::String) {
-                    self.string_iteration(output,fun,stmt,depth,&iterable_code);
-                    if temporary_scope {let _=writeln!(output,"{indent}}}");}
-                    continue;
-                }
-                if self.expression_shape(iterable)
-                    == Some(crate::fixed_storage::Shape::LiteralStrings)
-                {
-                    let _ = writeln!(
-                        output,
-                        "{indent}'loop_{}: for literal_element in ({}).literal_iter() {{",
-                        stmt.span.start, iterable_code
-                    );
-                    let mutable = if fun.bindings[id].mutable { "mut " } else { "" };
-                    let _ = writeln!(
-                        output,
-                        "{indent}    let {mutable}value{id} = &String::Borrowed(literal_element);"
-                    );
-                    self.block(output, fun, body, depth + 1);
-                    let _ = writeln!(output, "{indent}}}");
-                    if temporary_scope {
-                        let _ = writeln!(output, "{indent}}}");
-                    }
-                    continue;
-                }
-                let mutable = if fun.bindings[id].mutable { "mut " } else { "" };
-                let copied = if fun.bindings[id].ty.is_copy() {
-                    ".copied()"
-                } else {
-                    ""
-                };
-                let iterator=if matches!(iterable.ty,Some(Type::Map(_))){"entry_iter"}else{"iter"};
-                let _ = writeln!(
-                    output,
-                    "{indent}'loop_{}: for {mutable}value{id} in ({}).{iterator}(){copied} {{",
-                    stmt.span.start, iterable_code
-                );
-                self.block(output, fun, body, depth + 1);
-                let _ = writeln!(output, "{indent}}}");
-                if temporary_scope {
-                    let _ = writeln!(output, "{indent}}}");
-                }
+            if matches!(stmt.kind, StmtKind::ForOf { .. }) {
+                self.for_of_loop(output,fun,stmt,depth,None,&[]);
                 continue;
             }
             if let StmtKind::While { condition, body } = &stmt.kind {
@@ -9829,14 +9769,14 @@ mod map_storage_epochs;
 
 impl Emitter<'_> {
     #[inline(never)]
-    fn string_iteration(&self,output:&mut String,fun:&CheckedFunction,stmt:&Stmt,depth:usize,source:&str){
+    fn string_iteration(&self,output:&mut String,fun:&CheckedFunction,stmt:&Stmt,depth:usize,source:&str,declaring_body:Option<&[Stmt]>,resets:&[(String,String)]){
         let StmtKind::ForOf{binding,body,..}=&stmt.kind else{unreachable!()};
         let id=binding.expect("checked string iteration binding");let label=stmt.span.start;
         let indent="    ".repeat(depth);
         let _=writeln!(output,"{indent}{{ let string_source_{label}={source};");
         let _=writeln!(output,"{indent}'loop_{label}: for string_character_{label} in string_source_{label}.as_ref().chars() {{");
         let _=writeln!(output,"{indent}    let value{id}=&String::Owned(string_character_{label}.to_string());");
-        self.block(output,fun,body,depth+1);
+        self.iteration_body(output,fun,body,depth+1,declaring_body,resets);
         let _=writeln!(output,"{indent}}} }}");
     }
 }
@@ -9867,3 +9807,5 @@ mod map_finally_storage_epochs;
 
 #[path="map_loop_storage_epochs.rs"]
 mod map_loop_storage_epochs;
+#[path="iteration_emit.rs"]
+mod iteration_emit;

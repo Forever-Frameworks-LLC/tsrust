@@ -397,9 +397,10 @@ function workload(n: int, seed: int, input: string): int[][] {
         const caughtLooped=caughtMapLoop(value,caughtLoopTrace)+caughtLoopTrace[0]*100+caughtLoopTrace[1];
         const pairedLoopTrace = [0, 0]; const pairedLooped = pairedMapLoop(value, pairedLoopTrace) + pairedLoopTrace[0] * 100 + pairedLoopTrace[1];
         const nestedPairTrace=[0,0];const nestedPairLooped=nestedPairedMapLoop(value,nestedPairTrace)+nestedPairTrace[0]*100+nestedPairTrace[1];
+        const forOfMapObserved=forOfMapLoop();
         const countedMapObserved=countedMapLoop();const postMapObserved=postMapLoop();
         const emptyMapObserved=emptyScopedMap();
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped, nestedPairLooped, emptyMapObserved, countedMapObserved, postMapObserved]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped, nestedPairLooped, emptyMapObserved, countedMapObserved, postMapObserved, forOfMapObserved]);
         i += 1;
     }
 
@@ -699,4 +700,14 @@ function postMapLoop(): number {
   finally{postHandlers.clear();postValues[0]+=2;postTurn+=1;}
  }while(postTurn<3);
  return postTurn+postHandlers.size+postValues[0];
+}
+
+function forOfMapLoop(): number {
+ const iterValues=[3];const iterSteps=[0,1,2];let iterHandlers=new Map<string,Holder>();
+ for(const step of iterSteps){
+  iterHandlers.set("value",{run:():number=>iterValues[0]});
+  try{prefixResult(step!==1);}catch(error){if(step===0)continue;break;}
+  finally{iterHandlers.clear();iterValues[0]+=2;}
+ }
+ return iterHandlers.size+iterValues[0];
 }

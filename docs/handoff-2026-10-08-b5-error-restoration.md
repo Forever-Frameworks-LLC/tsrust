@@ -888,3 +888,40 @@ finally control semantics and owner fixtures. Add a focused for-of renewal or
 individual-release witness, then isolated implementation, editor, guide and
 matched benchmark support. Keep SQLite evidence and project formatting current;
 stage explicit paths. Family acceptance and executable refresh remain pending.
+
+
+## For-of scoped Map storage checkpoint
+
+Proven-empty scoped Map epochs now renew inside for-of bodies. Shared iteration
+emission lives in iteration_emit.rs and keeps normal iterable evaluation,
+conditional temporaries, entry adapters, copy/borrow bindings and string handling.
+Both ordinary and renewed loops use this path. The renewal proof traverses
+constructor operands and record fields rather than treating independent collection
+initializers as unknown references. Actual owner references remain disqualifying.
+
+The focused native witness initially failed with E0502 after finally cleared the
+Map and changed its captured array. O0 and O3 now verify exact disposal, cleanup,
+continue and break for array, Set, Map-entry, Unicode-string and literal-string
+iteration, plus empty iteration. A resumed affected batch passes 98 composition
+and three string-iteration tests. The preserved original batch already passed
+42 scoped-record, four fallible-record and ten for-of tests; its one failing
+composition witness is repaired in the resumed batch. Total affected checks:
+157 passed. All eight depth canaries, focused editor and benchmark registration
+checks pass. Failed originals remain separate evidence.
+
+All 44 matched observations now verify native and Node-after-tsc untimed.
+SQLite stores tsrust-b5-for-of-map-*.log and
+runtime/results/2026-10-08T22-17-53-107Z-verify.json. Closed originals were imported,
+read back byte-exact and removed as loose copies. B5 remains incomplete: precise individual
+entry/element release, remaining callable compositions and Rust-style record Set
+equality/hash still need implementation. No timing or consumer refresh is claimed.
+
+
+Continuation prompt: Continue B5 from for-of scoped Map renewal. Read AGENTS.md,
+development-workflow.md and this handoff. The while, counted, post-test and
+for-of clear-in-finally paths have focused native/editor/matched acceptance.
+Next implement precise individual entry/element capture release with independent
+failing witnesses and exact disposal checks. Preserve remaining entries, removed
+values and ownership semantics. Keep matched support and SQLite evidence current,
+format the whole project and stage explicit paths. B5 family acceptance, timing
+and user executable refresh remain pending.

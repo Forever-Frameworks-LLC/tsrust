@@ -15,6 +15,7 @@ impl Emitter<'_> {
             StmtKind::While { condition, body } => (Some(condition), body, None),
             StmtKind::Loop { condition, body, update, post_test, tail_reachable } =>
                 (condition.as_ref(), body, Some((update, *post_test, *tail_reachable))),
+            StmtKind::ForOf { iterable, body, .. } => (Some(iterable), body, None),
             _ => return false,
         };
         let Some(index) = declarations
@@ -137,6 +138,14 @@ impl Emitter<'_> {
         }
         let indent = "    ".repeat(depth);
         let label = statement.span.start;
+        if matches!(statement.kind, StmtKind::ForOf { .. }) {
+            let mut nested = declarations.to_vec();
+            nested.extend(body.iter().cloned());
+            let layouts=resets.iter().map(|(place,native,_,_)|(place.clone(),native.clone())).collect::<Vec<_>>();
+            self.for_of_loop(output,fun,statement,depth,Some(&nested),&layouts);
+            self.exception_regions.renew_storage(&layouts.iter().map(|(place,_)|place.clone()).collect::<Vec<_>>(),statement.span.end);
+            return true;
+        }
         let _scope = self.control_targets.enter(if tail.is_some() {
             ControlTarget::Tail(label)
         } else { ControlTarget::Loop(label) });
@@ -297,9 +306,12 @@ fn map_reference(expression: &Expr, binding: usize, path: &[String]) -> bool {
                 pending.push(callee);
                 pending.extend(args);
             }
-            ExprKind::Sequence(items) | ExprKind::Template(items) | ExprKind::Array(items) => {
+            ExprKind::Sequence(items) | ExprKind::Template(items) | ExprKind::Array(items)
+            | ExprKind::ArrayOf(items, _) | ExprKind::SetConstructor(items, _)
+            | ExprKind::MapConstructor(items, _) => {
                 pending.extend(items)
             }
+            ExprKind::Record(fields) => pending.extend(fields.iter().map(|(_, value)| value)),
             _ => return true,
         }
     }
