@@ -27,6 +27,10 @@ const modes = {
  bun: 'Bun', deno: 'Deno'
 };
 const examples = {
+ std_path_join_ascii: 'values.push(join("/tmp", part, "archive.txt"));',
+ std_path_join_empty_roots: 'values.push(join(first, "", "child", "..", ""));',
+ std_path_join_many_unicode: "values.push(join(...paths));",
+ std_os_endianness: "values.push(endianness());",
  std_os_platform: "values.push(platform());",
  std_os_arch: "values.push(arch());",
  string_char_at_unicode_middle_literal: 'literal.charAt(midpoint - 8 + (i * 13 + seed) % 17)',

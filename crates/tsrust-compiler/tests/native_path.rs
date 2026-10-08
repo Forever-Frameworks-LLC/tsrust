@@ -203,3 +203,34 @@ fn normalize_and_absolute_match_both_node_conventions() {
     }}
     assert!(lines.next().is_none());
 }
+
+#[test]
+fn join_matches_independent_posix_and_windows_references() {
+    use std::io::Write;
+    use std::process::{Command,Stdio};
+    let mut cases:Vec<Vec<String>>=vec![vec![],vec!["".into()],vec!["".into(),"".into()]];
+    for first in ["","/","//","///","//server","\\\\server","C:","C:\\","\\\\?\\C:\\","\\\\.\\pipe","é😊","CON:","LPT²:"] {
+        for middle in ["","a","..",".","/root","\\tail","share","AUX:","x/PRN:"] {
+            for last in ["","/","\\","..","文.txt","x//y/"] {
+                cases.push(vec![first.into(),middle.into(),last.into()]);
+            }
+        }
+    }
+    cases.push((0..1024).map(|i|["a","..","é😊",""][i%4].into()).collect());
+    cases.push(vec!["é😊".repeat(8192),"..".into(),"report".into()]);
+    let mut node=Command::new("/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node")
+        .args(["-e","const p=require('node:path');const cases=JSON.parse(require('node:fs').readFileSync(0,'utf8'));console.log(cases.flatMap(parts=>[p.posix.join(...parts),p.win32.join(...parts)]).map(value=>Buffer.from(value).toString('hex')).join('\\n'));"])
+        .stdin(Stdio::piped()).stdout(Stdio::piped()).spawn().unwrap();
+    node.stdin.take().unwrap().write_all(format!("{cases:?}").as_bytes()).unwrap();
+    let output=node.wait_with_output().unwrap();assert!(output.status.success());
+    let text=String::from_utf8(output.stdout).unwrap();
+    let expected=text.lines().collect::<Vec<_>>();
+    assert_eq!(expected.len(),cases.len()*2);
+    for (paths,reference) in cases.iter().zip(expected.chunks_exact(2)) {
+        let borrowed=paths.iter().map(String::as_str).collect::<Vec<_>>();
+        for (platform,expected) in reference.iter().enumerate() {
+            let actual=tsrust_compiler::native_path::join(&borrowed,platform==1).bytes().map(|byte|format!("{byte:02x}")).collect::<String>();
+            assert_eq!(actual,*expected,"platform={platform} paths={paths:?}");
+        }
+    }
+}

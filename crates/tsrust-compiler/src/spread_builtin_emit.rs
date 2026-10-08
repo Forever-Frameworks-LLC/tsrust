@@ -2,6 +2,18 @@
 use super::*;
 
 impl Emitter<'_> {
+    pub(super) fn spread_native_string_rest(&self, plan: &CheckedSpreadCall) -> String {
+        let CallTarget::NativeBinding(id)=plan.call.target.expect("checked native spread target") else {unreachable!("native rest target")};
+        self.native_bindings.borrow_mut().insert(id);
+        let crate::native_bindings::NativeBackend::Bundled{symbol}=crate::native_bindings::BINDINGS[id].backend;
+        let mut arguments="std::iter::empty::<&String>()".to_string();
+        for (index,segment) in plan.segments.iter().enumerate() {
+            let copied=if segment.spread && segment.value.ty==Some(Type::String) {""} else {".copied()"};
+            write!(arguments,".chain(spread_segment{}_{index}.iter(){copied})",plan.slot).unwrap();
+        }
+        format!("{symbol}(&{arguments}.map(|value|value.as_ref()).collect::<Vec<_>>())")
+    }
+
     pub(super) fn spread_builtin_math_call(&self, plan: &CheckedSpreadCall) -> String {
         let mut values = "std::iter::empty::<f64>()".to_string();
         for index in 0..plan.segments.len() {

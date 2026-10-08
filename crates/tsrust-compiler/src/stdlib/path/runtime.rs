@@ -202,3 +202,29 @@ pub fn normalize(path: &str, windows: bool) -> std::string::String {
         tail
     } else if absolute {format!("{device}{sep}{tail}")} else {format!("{device}{tail}")}
 }
+
+/// Lexically compose ordinary string segments, retaining Node's UNC intent rule.
+pub fn join(paths: &[&str], windows: bool) -> std::string::String {
+    let Some(first)=paths.iter().copied().find(|part|!part.is_empty()) else {return ".".into();};
+    let mut joined=std::string::String::new();
+    let separator=if windows {'\\'} else {'/'};
+    for part in paths.iter().copied().filter(|part|!part.is_empty()) {
+        if !joined.is_empty() {joined.push(separator);}
+        joined.push_str(part);
+    }
+    if windows {
+        let is_separator=|byte:u8|byte==b'/' || byte==b'\\';
+        let bytes=first.as_bytes();
+        let intended_unc=bytes.len()>2 && is_separator(bytes[0]) && is_separator(bytes[1]) && !is_separator(bytes[2]);
+        if !intended_unc {
+            let slashes=joined.as_bytes().iter().take_while(|byte|is_separator(**byte)).count();
+            if slashes>=2 {joined.replace_range(..slashes,"\\");}
+        }
+        // The pinned reference skips normalization for reserved device segments
+        // containing a colon, splitting on backslashes before slash replacement.
+        if joined.split('\\').any(|part|part.find(':').is_some_and(|colon|reserved_device(&part[..colon]))) {
+            return joined.replace('/',"\\");
+        }
+    }
+    normalize(&joined,windows)
+}

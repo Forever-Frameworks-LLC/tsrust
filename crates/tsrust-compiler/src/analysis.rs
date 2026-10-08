@@ -2378,7 +2378,13 @@ impl Analyzer {
             Some(Type::Closure(origin)) => self.closures[origin].parameters.len(),
             _ => binding.parameters.len(),
         };
-        self.native_function_shape(id, span, count)
+        let rest = binding.parameters.last().is_some_and(|parameter|parameter.rest) && match expected {
+            Some(Type::Callback(contract)) => self.callables.callbacks[contract].params.last().is_some_and(|parameter|parameter.rest),
+            Some(Type::Callable(contract)) => self.callables.results[contract].params.last().is_some_and(|parameter|parameter.rest),
+            Some(Type::Closure(origin)) => self.closures[origin].parameters.last().is_some_and(|id|self.closures[origin].function.bindings[*id].rest),
+            _ => true,
+        };
+        self.native_function_shape(id, span, if rest {binding.parameters.len()} else {count}, rest)
     }
 
     fn native_function_shape(
@@ -2386,6 +2392,7 @@ impl Analyzer {
         id: usize,
         span: Span,
         count: usize,
+        rest: bool,
     ) -> Result<Type, Diagnostic> {
         let binding = &crate::native_bindings::BINDINGS[id];
         if !binding.accepts_arity(count) {
@@ -2398,15 +2405,18 @@ impl Analyzer {
         let existing = self.closures.iter().position(|closure| {
             matches!(closure.forward, Some(ClosureForward::Native(origin)) if origin == id)
                 && closure.parameters.len() == count
+                && closure.parameters.last().is_some_and(|id|closure.function.bindings[*id].rest) == rest
         });
-        let parameter_types = binding.parameters[..count].iter()
-            .map(|parameter| self.native_parameter_type(parameter.ty))
-            .collect::<Result<Vec<_>, _>>()?;
+        let parameters=(0..count).map(|position|*binding.parameters.get(position).or_else(||binding.parameters.last().filter(|p|p.rest)).expect("checked native arity")).collect::<Vec<_>>();
+        let parameter_types = parameters.iter().enumerate()
+            .map(|(position,parameter)| { let ty=self.native_parameter_type(parameter.ty)?; Ok(if rest && position+1==count {Type::Array(ArrayElement::String(0))} else {ty}) })
+            .collect::<Result<Vec<_>, Diagnostic>>()?;
         let origin = existing.unwrap_or_else(|| {
-            let bindings = binding.parameters[..count]
+            let bindings = parameters
                 .iter()
                 .zip(parameter_types)
-                .map(|(parameter, ty)| Binding { rest: false,
+                .enumerate()
+                .map(|(position,(parameter, ty))| Binding { rest: rest && position+1==count,
                     name: parameter.name.into(),
                     ty,
                     parameter: true,
@@ -2420,7 +2430,8 @@ impl Analyzer {
                     callback_invocation: None,
                     callback_reference: false,
                     callback_kind: None,
-                    mode: parameter.access,
+                    // Native scalar arguments borrow; an abstract language rest callable receives its existing owned pack ABI.
+                    mode: if rest && position+1==count {Mode::Consume} else {parameter.access},
                     mutable: false,
                     transferred: None,
                     moved_fields: BTreeMap::new(),
@@ -12912,7 +12923,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         let hint = if let Type::Closure(origin) = hint
             && let Some(ClosureForward::Native(id)) = self.closures[origin].forward
         {
-            self.native_function_shape(id, span, args.len())?
+            self.native_function_shape(id, span, args.len(), false)?
         } else {
             hint
         };
@@ -13676,7 +13687,8 @@ self.names_materialized_type(element.with_depth(0).ty())
                     span,
                 ));
             }
-            let contracts = binding.parameters[..args.len()].iter().map(|parameter| {
+            let contracts = (0..args.len()).map(|position| {
+                let parameter = binding.parameters.get(position).or_else(|| binding.parameters.last().filter(|p| p.rest)).expect("checked native arity");
                 Ok(ArgumentContract { ty: self.native_parameter_type(parameter.ty)?,
                     mode: parameter.access, omission: crate::ParameterOmission::Required, rest: false })
             }).collect::<Result<Vec<_>, Diagnostic>>()?;

@@ -1,0 +1,16 @@
+import { join as compose } from "std:path";
+import { strictEqual } from "std:testing";
+
+function main() {
+    const first = "é😊".repeat(1);
+    const stored = compose;
+    strictEqual(compose(), ".");
+    strictEqual(compose("", "", ""), ".");
+    strictEqual(compose(first, "..", "文"), "文");
+    strictEqual(first, "é😊");
+    const parts = ["a", "..", "report"];
+    strictEqual(stored(...parts), "report");
+    strictEqual(parts[0], "a");
+    const annotated: Function<string, [...paths: string[]]> = compose;
+    strictEqual(annotated("a", "..", "archive"), "archive");
+}

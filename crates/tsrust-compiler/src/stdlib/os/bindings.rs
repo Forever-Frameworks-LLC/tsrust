@@ -7,3 +7,8 @@ pub(crate) const ARCH: NativeBinding = NativeBinding {
     module: "std:os", name: "arch", parameters: &[], result: NativeType::String,
     backend: NativeBackend::Bundled { symbol: "tsrust_std_os_arch" }, features: &["os-identity"],
 };
+
+pub(crate) const ENDIANNESS: NativeBinding = NativeBinding {
+    module: "std:os", name: "endianness", parameters: &[], result: NativeType::String,
+    backend: NativeBackend::Bundled { symbol: "tsrust_std_os_endianness" }, features: &["os-identity"],
+};

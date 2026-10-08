@@ -5,13 +5,13 @@ const BASENAME_PARAMETERS: &[NativeParameter] = &[
         name: "path",
         ty: NativeType::String,
         access: Mode::Read,
-        optional: false,
+        optional: false, rest: false,
     },
     NativeParameter {
         name: "suffix",
         ty: NativeType::String,
         access: Mode::Read,
-        optional: true,
+        optional: true, rest: false,
     },
 ];
 pub(crate) const BASENAME: NativeBinding = NativeBinding {
@@ -26,7 +26,7 @@ pub(crate) const BASENAME: NativeBinding = NativeBinding {
 };
 
 const PATH_PARAMETER: &[NativeParameter] = &[NativeParameter {
-    name: "path", ty: NativeType::String, access: Mode::Read, optional: false,
+    name: "path", ty: NativeType::String, access: Mode::Read, optional: false, rest: false,
 }];
 pub(crate) const DIRNAME: NativeBinding = NativeBinding {
     module: "std:path", name: "dirname", parameters: PATH_PARAMETER,
@@ -48,4 +48,11 @@ pub(crate) const NORMALIZE: NativeBinding = NativeBinding {
     module: "std:path", name: "normalize", parameters: PATH_PARAMETER,
     result: NativeType::String,
     backend: NativeBackend::Bundled { symbol: "tsrust_std_path_normalize" }, features: &["path"],
+};
+
+pub(crate) const JOIN: NativeBinding = NativeBinding {
+    module: "std:path", name: "join",
+    parameters: &[NativeParameter {name:"paths",ty:NativeType::String,access:Mode::Read,optional:false,rest:true}],
+    result: NativeType::String,
+    backend: NativeBackend::Bundled {symbol:"tsrust_std_path_join"}, features:&["path"],
 };

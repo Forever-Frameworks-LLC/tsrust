@@ -1063,6 +1063,7 @@ pub struct SpreadSelected {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SpreadBuiltinKind {
     Fixed,
+    NativeStringRest,
     MathVariadic,
     ObserveVariadic,
     ConsoleVariadic,

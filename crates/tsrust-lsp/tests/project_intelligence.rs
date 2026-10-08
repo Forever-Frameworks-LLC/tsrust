@@ -1257,7 +1257,7 @@ fn lexical_path_imported_editor_contracts() {
 
 #[test]
 fn os_identity_imported_editor_contracts() {
-    for name in ["platform", "arch"] {
+    for name in ["platform", "arch", "endianness"] {
         let entry=format!("import {{{name} as operation}} from 'std:os';function main(){{const result=operation();}}");
         let mut workspace=Workspace::default();let uri=source_id("file:///tsrust-intelligence/main.tsr").unwrap();
         workspace.open(uri.clone(),1,entry.clone());
@@ -1270,4 +1270,22 @@ fn os_identity_imported_editor_contracts() {
         let completion=ask(&index,&entry,"operation();", "textDocument/completion");
         assert!(completion.as_array().unwrap().iter().any(|item|item["label"]=="operation"),"{completion}");
     }
+}
+
+#[test]
+fn path_join_imported_rest_editor_contract() {
+    let entry="import {join as compose} from 'std:path';function main(){const stored=compose;const result=stored('tmp','report');const direct=compose('a','b','c');}";
+    let mut workspace=Workspace::default();let uri=source_id("file:///tsrust-intelligence/main.tsr").unwrap();
+    workspace.open(uri.clone(),1,entry.into());
+    let checked=workspace.snapshot().check(&uri).unwrap();let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,entry,"compose('a'", "textDocument/hover");
+    let docs=hover["contents"]["value"].as_str().unwrap();
+    assert!(docs.contains("...paths") && docs.contains("string[]") && docs.contains("Ownership:") && docs.contains("```tsrust"),"{hover}");
+    let help=ask(&index,entry,"'c');", "textDocument/signatureHelp");
+    assert!(help["signatures"][0]["parameters"][0]["label"].as_str().unwrap().contains("...paths"),"{help}");
+    assert_eq!(help["activeParameter"],0,"{help}");
+    let completion=ask(&index,entry,"compose('a'", "textDocument/completion");
+    assert!(completion.as_array().unwrap().iter().any(|item|item["label"]=="compose"),"{completion}");
+    let stored=ask(&index,entry,"stored('tmp'", "textDocument/hover");
+    assert!(stored["contents"]["value"].as_str().unwrap().contains("...paths"),"{stored}");
 }

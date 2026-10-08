@@ -24,8 +24,9 @@ const ARCH: &[(&str, &str)] = &[
     ("all(target_arch = \"mips\", target_endian = \"big\")", "mips"),
     ("all(target_arch = \"mips\", target_endian = \"little\")", "mipsel"),
 ];
+const ENDIANNESS: &[(&str, &str)] = &[("target_endian = \"big\"", "BE"), ("target_endian = \"little\"", "LE")];
 pub(crate) fn bridge(name: &str) -> std::string::String {
-    let mappings = match name { "platform" => PLATFORM, "arch" => ARCH, _ => unreachable!() };
+    let mappings = match name { "platform" => PLATFORM, "arch" => ARCH, "endianness" => ENDIANNESS, _ => unreachable!() };
     let predicates = mappings.iter().map(|(predicate, _)| *predicate).collect::<Vec<_>>().join(", ");
     let mut output = format!("#[cfg(not(any({predicates})))]\ncompile_error!(\"std:os.{name}(): unsupported executable compilation target\");\n");
     output.push_str(&format!("fn tsrust_std_os_{name}() -> String {{\n"));
@@ -74,7 +75,8 @@ mod tests {
             for line in metadata.lines().filter(|line| ["target_os=", "target_arch=", "target_endian="].iter().any(|prefix|line.starts_with(prefix))) {
                 compiler.arg("--cfg").arg(rename(line.into()));
             }
-            source.push_str(&format!("mod case_{index} {{ enum String {{ Borrowed(&'static str) }} {} {} pub fn verify() {{ let String::Borrowed(platform) = tsrust_std_os_platform(); let String::Borrowed(arch) = tsrust_std_os_arch(); assert_eq!(platform,{platform:?}); assert_eq!(arch,{arch:?}); }} }}\n",rename(bridge("platform")),rename(bridge("arch"))));
+            let expected_order=if matches!(*target,"powerpc64-ibm-aix"|"s390x-unknown-linux-gnu"|"mips-unknown-linux-gnu") {"BE"} else {"LE"};
+            source.push_str(&format!("mod case_{index} {{ enum String {{ Borrowed(&'static str) }} {} {} {} pub fn verify() {{ let String::Borrowed(platform) = tsrust_std_os_platform(); let String::Borrowed(arch) = tsrust_std_os_arch(); let String::Borrowed(order)=tsrust_std_os_endianness(); assert_eq!(platform,{platform:?}); assert_eq!(arch,{arch:?}); assert_eq!(order,{expected_order:?}); }} }}\n",rename(bridge("platform")),rename(bridge("arch")),rename(bridge("endianness"))));
         }
         source.push_str("fn main() {");
         for index in 0..cases.len() { source.push_str(&format!("case_{index}::verify();")); }
@@ -84,7 +86,7 @@ mod tests {
         let output=compiler.arg(&input).arg("-o").arg(&binary).output().unwrap();
         assert!(output.status.success(),"{}",std::string::String::from_utf8_lossy(&output.stderr));
         assert!(Command::new(&binary).status().unwrap().success());
-        for name in ["platform", "arch"] {
+        for name in ["platform", "arch", "endianness"] {
             // No supported metadata selects a branch: native compilation must fail.
             let source=format!("enum String {{ Borrowed(&'static str) }} {} fn main(){{}}",bridge(name).replace("target_os", "unsupported_os").replace("target_arch", "unsupported_arch").replace("target_endian", "unsupported_endian"));
             std::fs::write(&input,source).unwrap();

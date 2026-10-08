@@ -1,3 +1,4 @@
+import {pathJoinIds,pathJoinChecksum} from './path-join-source-contract.mjs';
 import {osIdentityIds,osIdentityChecksum} from './os-identity-source-contract.mjs';
 import {lexicalPathIds,lexicalPathChecksum} from './lexical-path-source-contract.mjs';
 import {expectedGenericAdapterObservation} from './generic-value-adapters-oracle.mjs';
@@ -190,6 +191,7 @@ export {expectedNumber} from './number-oracle.mjs';
 // Independent expected-result calculations from the workload specifications.
 // Linear series use closed forms, not the implementation's records/callbacks/arrays.
 export function expectedChecksum(id, n, seed, inputText) {
+ if(pathJoinIds.includes(id))return pathJoinChecksum(id,n,seed);
  if(osIdentityIds.includes(id))return osIdentityChecksum(id,n,seed);
  if(lexicalPathIds.includes(id))return lexicalPathChecksum(id,n,seed);
  if(id==='scoped_callable_records')return expectedScopedCallableRecordObservation(id,n,seed,inputText).checksum; if(id==='generic_value_adapters')return expectedGenericAdapterObservation(id,n,seed,inputText).checksum; if(id==='generic_function_results')return expectedGenericResultObservation(id,n,seed,inputText).checksum; if(id==='generic_function_captures')return expectedCapturedGenericObservation(id,n,seed,inputText).checksum; if(id==='generic_function_deferred')return expectedDeferredGenericObservation(id,n,seed,inputText).checksum; if(id==='generic_function_contexts')return expectedGenericContextObservation(id,n,seed,inputText).checksum; if(id==='nested_function_rest')return expectedNestedRestObservation(id,n,seed,inputText).checksum; if(id==='nested_function_defaults')return expectedNestedDefaultObservation(id,n,seed,inputText).checksum; if(id==='nested_function_results')return expectedNestedResultObservation(id,n,seed,inputText).checksum; if(id==='nested_function_owned_escape')return expectedNestedOwnedObservation(id,n,seed,inputText).checksum;

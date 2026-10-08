@@ -132,7 +132,7 @@ impl Emitter<'_> {
         for (index,segment) in plan.segments.iter().enumerate() {let count=if segment.spread {format!("spread_segment{}_{index}.len()",plan.slot)}else{format!("usize::from(spread_segment{}_{index}.is_some())",plan.slot)};write!(output,".checked_add({count}).expect(\"expanded argument count overflow\")").unwrap();}
         output.push_str("; ");
         output.push_str(&self.spread_arity_guard(plan));
-        let direct_variadic=matches!(plan.builtin,Some(SpreadBuiltinKind::MathVariadic|SpreadBuiltinKind::StringConcat|SpreadBuiltinKind::ConsoleVariadic|SpreadBuiltinKind::ObserveVariadic|SpreadBuiltinKind::ArrayUnshift|SpreadBuiltinKind::ArrayConcat));
+        let direct_variadic=matches!(plan.builtin,Some(SpreadBuiltinKind::NativeStringRest|SpreadBuiltinKind::MathVariadic|SpreadBuiltinKind::StringConcat|SpreadBuiltinKind::ConsoleVariadic|SpreadBuiltinKind::ObserveVariadic|SpreadBuiltinKind::ArrayUnshift|SpreadBuiltinKind::ArrayConcat));
         if !direct_variadic {
             let fixed=plan.selected_types.len();
             for (position,ty) in plan.selected_types.iter().enumerate() {
@@ -172,6 +172,7 @@ impl Emitter<'_> {
             }
         }
         let call=match plan.builtin {
+            Some(SpreadBuiltinKind::NativeStringRest)=>self.spread_native_string_rest(plan),
             Some(SpreadBuiltinKind::MathVariadic)=>self.spread_builtin_math_call(plan),
             Some(SpreadBuiltinKind::StringConcat)=>self.spread_builtin_string_concat(fun,plan),
             Some(SpreadBuiltinKind::ConsoleVariadic)=>self.spread_builtin_console_call(plan),

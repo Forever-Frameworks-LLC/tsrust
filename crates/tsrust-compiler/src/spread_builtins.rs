@@ -85,7 +85,12 @@ impl Analyzer {
         let callback = Arg::actual(Mode::Mutate);
         if let ExprKind::Name(name) = &callee.kind {
             // A local shadow is a callable, never a builtin namespace.
-            if context.names.contains_key(name) {
+            if let Some(&local)=context.names.get(name) {
+                if let Type::Closure(origin)=context.bindings[local].ty
+                    && let Some(ClosureForward::Native(id))=self.closures[origin].forward
+                    && crate::native_bindings::BINDINGS[id].parameters.last().is_some_and(|parameter|parameter.rest) {
+                    return Ok(Some(Contract::variadic(vec![], string, Mode::Read, Kind::NativeStringRest)));
+                }
                 return Ok(None);
             }
             let contract = match name.as_str() {
@@ -96,6 +101,9 @@ impl Analyzer {
                 "clone" => Contract::fixed(1, vec![observed], Mode::Read),
                 _ => {
                     if let Some((_, binding)) = crate::native_bindings::by_symbol(name) {
+                        if binding.parameters.len()==1 && binding.parameters[0].rest && binding.parameters[0].ty==crate::native_bindings::NativeType::String {
+                            return Ok(Some(Contract::variadic(vec![], string, Mode::Read, Kind::NativeStringRest)));
+                        }
                         Contract::fixed(
                             binding
                                 .parameters

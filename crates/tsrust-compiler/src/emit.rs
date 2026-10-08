@@ -2315,7 +2315,10 @@ impl Emitter<'_> {
                 self.native_bindings.borrow_mut().insert(id);
                 let arguments = closure.parameters.iter().map(|id|format!("value{id}")).collect::<Vec<_>>();
                 let binding=&crate::native_bindings::BINDINGS[id];
-                let call=if binding.module=="std:testing-runtime" && binding.name=="checkAssertion" {
+                let call=if closure.parameters.last().is_some_and(|parameter|closure.function.bindings[*parameter].rest) && binding.parameters.last().is_some_and(|parameter|parameter.rest) {
+                    let crate::native_bindings::NativeBackend::Bundled{symbol}=binding.backend;
+                    format!("{symbol}(&value0.iter().map(|value|value.as_ref()).collect::<Vec<_>>())")
+                }else if binding.module=="std:testing-runtime" && binding.name=="checkAssertion" {
                     self.typed_native_assertion(&arguments,closure.span,Some(index)).unwrap_or_else(||crate::native_emit::call(binding,arguments))
                 }else if binding.module=="std:testing-runtime" && binding.name=="finishTests" {
                     self.typed_runner_result("tsrust_testing_finish_tests_result()",closure.span,Some(index)).unwrap_or_else(||crate::native_emit::call(binding,arguments))
@@ -2687,6 +2690,9 @@ impl Emitter<'_> {
         }
         if self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].features.contains(&"path")) {
             output.push_str("fn tsrust_std_path_is_absolute(path: &String) -> bool { tsrust_native_path::is_absolute(path.as_ref(), cfg!(windows)) }\nfn tsrust_std_path_normalize(path: &String) -> String { String::Owned(tsrust_native_path::normalize(path.as_ref(), cfg!(windows))) }\n");
+        }
+        if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:path" && crate::native_bindings::BINDINGS[id].name=="join") {
+            output.push_str("fn tsrust_std_path_join(paths: &[&str]) -> String { String::Owned(tsrust_native_path::join(paths, cfg!(windows))) }\n");
         }
         if self.native_bindings.borrow().iter().any(|&id| {
             crate::native_bindings::BINDINGS[id].features.contains(&"testing")
@@ -8033,8 +8039,8 @@ impl Emitter<'_> {
                     let binding = &crate::native_bindings::BINDINGS[id];
                     let arguments = args
                         .iter()
-                        .zip(binding.parameters)
-                        .map(|(argument, parameter)| self.expr(fun, argument, parameter.access))
+                        .enumerate()
+                        .map(|(position, argument)| { let parameter=binding.parameters.get(position).or_else(||binding.parameters.last().filter(|p|p.rest)).expect("checked native arity"); self.expr(fun, argument, parameter.access) })
                         .collect::<Vec<_>>();
                     if binding.module=="std:testing-runtime" && binding.name=="checkAssertion" {
                         if let Some(call)=self.typed_native_assertion(&arguments,expr.span,None){return call;}

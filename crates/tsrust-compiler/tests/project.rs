@@ -1752,3 +1752,72 @@ fn os_identity_emits_only_referenced_target_components() {
         assert!(rust.contains("#[cfg(not(any("));
     }
 }
+
+#[test]
+fn variadic_native_path_join_borrows_arbitrary_string_arguments() {
+    let entry=support::format_round_trip("import {join as combine} from 'std:path';import {strictEqual} from 'std:testing';function main(){const first='é😊';const last='report.txt';const stored=combine;strictEqual(combine(),'.');strictEqual(combine(first),first);strictEqual(stored('/tmp',first,'..',last),'/tmp/report.txt');strictEqual(first,'é😊');strictEqual(last,'report.txt');const parts=['tmp','é😊','report.txt'];strictEqual(combine(...parts),'tmp/é😊/report.txt');strictEqual(stored(...parts),'tmp/é😊/report.txt');strictEqual(parts[1],first);const annotated:Function<string,[...paths:string[]]>=combine;strictEqual(annotated('tmp','a','..',last),'tmp/report.txt');strictEqual(last,'report.txt');strictEqual(annotated(...parts),'tmp/é😊/report.txt');strictEqual(parts[1],first);}");
+    let memory=Memory::new(&[("main.tsr",&entry)]);
+    let checked=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).unwrap();
+    for optimization in ["0","3"] {assert_eq!(native_stdout(&checked.emit_rust(),optimization),"");}
+}
+
+#[test]
+fn os_endianness_imported_zero_argument_contract() {
+    let entry=support::format_round_trip("import {endianness as order} from 'std:os';import {strictEqual} from 'std:testing';function main(){const stored=order;const result:string=stored();strictEqual(result,order());console.log(result);}");
+    let memory=Memory::new(&[("main.tsr",&entry)]);
+    let checked=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).unwrap();
+    let expected=if cfg!(target_endian="big") {"BE\n"} else {"LE\n"};
+    for optimization in ["0","3"] {assert_eq!(native_stdout(&checked.emit_rust(),optimization),expected);}
+    for (body,code) in [("order(1);","arity"),("const result:int=order();console.log(result);","type")] {
+        let source=format!("import {{endianness as order}} from 'std:os';function main(){{{body}}}");
+        let memory=Memory::new(&[("main.tsr",&source)]);
+        assert_eq!(tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).err().unwrap().code,code);
+    }
+}
+
+#[test]
+fn native_join_evaluates_once_in_order_and_cleans_failed_arguments() {
+    let entry=support::format_round_trip("import {join} from 'std:path';import {strictEqual} from 'std:testing';function part(log:Mutable<int[]>,value:int):string{log.push(value);if(value===2){throw 'failed';}return 'x'.repeat(value);}function forwarded(action:Function<string,[...paths:string[]]>):string{return action('tmp','a','..','report');}function main(){const log:int[]=[];try{join(part(log,1),part(log,2),part(log,3));}catch(error){if(typeof error==='string'){strictEqual(error,'failed');}else{throw error;}}strictEqual(log.length,2);strictEqual(log[0],1);strictEqual(log[1],2);const result=join(part(log,3),part(log,4));strictEqual(result,'xxx/xxxx');strictEqual(log.length,4);strictEqual(log[2],3);strictEqual(log[3],4);strictEqual(forwarded(join),'tmp/report');}");
+    let memory=Memory::new(&[("main.tsr",&entry)]);
+    let checked=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).unwrap();
+    let mut rust=checked.emit_rust();
+    assert!(!rust.contains("native_argument_0.clone"));
+    let original_main=rust.rfind("fn main()").unwrap();
+    // The process entry installs a panic hook that owns the previous hook.
+    // Count only checked-program calls after that one-time entry initialization.
+    let call="tsr_result_function0()";
+    let suffix=rust[original_main..].replacen(call,&format!("{{let _join_guard=JoinLeakGuard(JOIN_LIVE.load(std::sync::atomic::Ordering::SeqCst));let first={call};assert!(first.is_ok());{call}}}"),1);
+    rust.replace_range(original_main.., &suffix);
+    rust.push_str(r#"
+static JOIN_LIVE:std::sync::atomic::AtomicIsize=std::sync::atomic::AtomicIsize::new(0);
+struct JoinLeakGuard(isize);
+impl Drop for JoinLeakGuard {fn drop(&mut self){assert_eq!(JOIN_LIVE.load(std::sync::atomic::Ordering::SeqCst),self.0,"argument cleanup must release owned temporaries");}}
+struct JoinAllocator;
+unsafe impl std::alloc::GlobalAlloc for JoinAllocator {
+ unsafe fn alloc(&self,layout:std::alloc::Layout)->*mut u8 {let p=unsafe{std::alloc::System.alloc(layout)};if !p.is_null(){JOIN_LIVE.fetch_add(1,std::sync::atomic::Ordering::SeqCst);}p}
+ unsafe fn dealloc(&self,p:*mut u8,layout:std::alloc::Layout){JOIN_LIVE.fetch_sub(1,std::sync::atomic::Ordering::SeqCst);unsafe{std::alloc::System.dealloc(p,layout)}}
+ unsafe fn realloc(&self,p:*mut u8,layout:std::alloc::Layout,size:usize)->*mut u8 {unsafe{std::alloc::System.realloc(p,layout,size)}}
+}
+#[global_allocator] static JOIN_ALLOCATOR:JoinAllocator=JoinAllocator;
+"#);
+    for optimization in ["0","3"] {assert_eq!(native_stdout(&rust,optimization),"");}
+}
+
+#[test]
+fn native_join_rejects_wrong_elements_and_has_no_fixed_arity_ceiling() {
+    for arguments in ["1","'a',false","null","undefined","...[1,2]","...['a',1]"] {
+        let entry=format!("import {{join}} from 'std:path';function main(){{console.log(join({arguments}));}}");
+        let memory=Memory::new(&[("main.tsr",&entry)]);
+        let error=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).err().unwrap();
+        assert_eq!(error.code,"type","{arguments}: {error:?}");
+    }
+    let arguments=vec!["'a'";128].join(",");
+    let entry=support::format_round_trip(&format!("import {{join}} from 'std:path';function main(){{console.log(join({arguments}));}}"));
+    let memory=Memory::new(&[("main.tsr",&entry)]);
+    let checked=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).unwrap();
+    assert_eq!(native_stdout(&checked.emit_rust(),"3"),vec!["a";128].join("/")+"\n");
+    let binding=tsrust_compiler::native_bindings::lookup("std:path","join").unwrap();
+    assert!(binding.accepts_arity(0) && binding.accepts_arity(128) && binding.accepts_arity(usize::MAX));
+    assert_eq!(binding.parameters[0].access,tsrust_compiler::Mode::Read);
+    assert!(binding.parameters[0].rest);
+}

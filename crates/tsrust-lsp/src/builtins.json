@@ -3420,6 +3420,18 @@
   }
 ],
   "std:os": [
+{
+    "name": "endianness",
+    "signature": "endianness(): string",
+    "parameters": [],
+    "documentation": "Returns the CPU byte order for which the executable was compiled: BE for big endian or LE for little endian. Takes no arguments and has no defaults. The result is constant during execution, including execution under translation. It follows the executable compilation target, not physical hardware. An unsupported byte-order selector produces a native compilation error. No receiver or external state is mutated.\n\n```tsrust\nimport { endianness } from \"std:os\";\nfunction main() { const order = endianness(); console.log(order === \"BE\" || order === \"LE\"); } // true\n```\n\nOwnership: returns an independent string value.",
+    "examples": [
+      {
+        "source": "import { endianness } from \"std:os\";\nfunction main() { const order = endianness(); console.log(order === \"BE\" || order === \"LE\"); }",
+        "output": "true\n"
+      }
+    ]
+  },
     {
       "name": "platform",
       "signature": "platform(): string",
@@ -3446,6 +3458,24 @@
     }
   ],
   "std:path": [
+{
+    "name": "join",
+    "signature": "join(...paths: string[]): string",
+    "parameters": [
+      {
+        "name": "paths",
+        "label": "...paths: string[]",
+        "documentation": "Zero or more ordinary string segments in order. Empty segments are ignored. Each segment is borrowed; non-string scalars or spread elements are rejected."
+      }
+    ],
+    "documentation": "Composes zero or more string path segments and normalizes the result lexically. Pass ordinary string arguments or spread a homogeneous string array. Empty segments are ignored; no segments or only empty segments return a dot. Joins with a slash on POSIX and a backslash on Windows. Later rooted segments do not replace earlier segments. Dot and parent segments collapse; trailing separators can remain. Windows drive-relative paths retain their drive prefix. UNC intent is preserved when the first nonempty segment starts with exactly two separators followed by a non-separator; otherwise repeated leading Windows separators collapse to one before normalization. Reserved device names followed by a colon in a backslash-delimited component can retain dot and parent segments while forward slashes become backslashes. No filesystem access, symlink resolution or containment guarantee is provided. Non-string arguments are compile-time errors. There are no optional defaults, receiver mutations or public argument-count limit.\n\n```tsrust\nimport { join } from \"std:path\";\nfunction main() { console.log(join(\"reports\", \"..\", \"archive\")); console.log(join()); } // prints archive, then .\n```\n\nOwnership: direct calls and known native stored/aliased calls borrow segments and spread arrays; the result owns its text. Passing the value through an abstract Function rest contract transfers its tail values according to that contract, without implicit string clones.",
+    "examples": [
+      {
+        "source": "import { join } from \"std:path\";\nfunction main() { console.log(join(\"reports\", \"..\", \"archive\")); console.log(join()); }",
+        "output": "archive\n.\n"
+      }
+    ]
+  },
     {
       "name": "basename",
       "signature": "basename(path: string, suffix?: string): string",

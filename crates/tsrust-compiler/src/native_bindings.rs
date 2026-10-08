@@ -22,6 +22,8 @@ pub struct NativeParameter {
     pub ty: NativeType,
     pub access: Mode,
     pub optional: bool,
+    /// Final homogeneous rest parameter; ty describes each argument, not a public array argument.
+    pub rest: bool,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum NativeBackend {
@@ -42,9 +44,9 @@ impl NativeBinding {
         let required = self
             .parameters
             .iter()
-            .take_while(|parameter| !parameter.optional)
+            .take_while(|parameter| !parameter.optional && !parameter.rest)
             .count();
-        (required..=self.parameters.len()).contains(&count)
+        count >= required && (self.parameters.last().is_some_and(|parameter| parameter.rest) || count <= self.parameters.len())
     }
 }
 pub const BINDINGS: &[NativeBinding] = &[
@@ -68,6 +70,8 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::testing::bindings::REGISTER_HOOK,
     crate::stdlib::os::bindings::PLATFORM,
     crate::stdlib::os::bindings::ARCH,
+    crate::stdlib::os::bindings::ENDIANNESS,
+    crate::stdlib::path::bindings::JOIN,
 ];
 pub fn lookup(module: &str, name: &str) -> Result<&'static NativeBinding, String> {
     if !BINDINGS.iter().any(|binding| binding.module == module) {

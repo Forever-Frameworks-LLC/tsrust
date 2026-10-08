@@ -677,9 +677,9 @@ fn native_binding_effect(id:usize)->FailureSet {
         // Allocation failures are outside recoverable checked error transport.
         Some(binding) if binding.module=="std:testing-runtime" && matches!(binding.name,"shareCallback"|"numericValue"|"lengthValue"|"hasLength")=>FailureSet::default(),
         // Target constants have no recoverable runtime failures.
-        Some(binding) if binding.module=="std:os" && matches!(binding.name,"platform"|"arch")=>FailureSet::default(),
+        Some(binding) if binding.module=="std:os" && matches!(binding.name,"platform"|"arch"|"endianness")=>FailureSet::default(),
         // Lexical UTF-8 processing only: no I/O or recoverable runtime failure.
-        Some(binding) if binding.module=="std:path" && matches!(binding.name,"basename"|"dirname"|"extname"|"isAbsolute"|"normalize")=>FailureSet::default(),
+        Some(binding) if binding.module=="std:path" && matches!(binding.name,"basename"|"dirname"|"extname"|"isAbsolute"|"normalize"|"join")=>FailureSet::default(),
         Some(binding) if binding.module=="std:testing-runtime" && binding.name=="checkAssertion"=>FailureSet::runtime(),
         Some(binding) if binding.module=="std:testing-runtime" && matches!(binding.name,"runTests"|"finishTests")=>FailureSet::runtime(),
         Some(binding) if binding.module=="std:testing-runtime" && binding.name=="registerTest"=>FailureSet::runtime(),
@@ -795,7 +795,7 @@ mod tests {
         assert_eq!(super::native_effect(crate::syntax::CallTarget::NativeBinding(native),&value,&effects),super::FailureSet::default());
         for (id,binding) in crate::native_bindings::BINDINGS.iter().enumerate() {
             // Audited testing-runtime and target identity bindings have explicit contracts; every other binding stays unresolved.
-            let audited=binding.module=="std:path" || (binding.module=="std:os" && matches!(binding.name,"platform"|"arch")) || (binding.module=="std:testing-runtime" && matches!(binding.name,"checkAssertion"|"shareCallback"|"numericValue"|"lengthValue"|"hasLength"|"runTests"|"finishTests"|"registerTest"|"registerHook"|"beginSuite"|"beginFile"|"endSuite"));
+            let audited=binding.module=="std:path" || (binding.module=="std:os" && matches!(binding.name,"platform"|"arch"|"endianness")) || (binding.module=="std:testing-runtime" && matches!(binding.name,"checkAssertion"|"shareCallback"|"numericValue"|"lengthValue"|"hasLength"|"runTests"|"finishTests"|"registerTest"|"registerHook"|"beginSuite"|"beginFile"|"endSuite"));
             if binding.module=="std:os" {assert_eq!(super::native_binding_effect(id),super::FailureSet::default());}
             if !audited {assert!(super::native_binding_effect(id).opaque,"unreviewed binding {} must remain unresolved",binding.name);}
         }

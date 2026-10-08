@@ -366,6 +366,12 @@ impl Analyzer {
         let contract = match hint {
             Some(Type::Closure(id)) => {
                 let closure = &self.closures[id];
+                // Preserve native borrowed string tails rather than materializing
+                // the language callable's owned rest pack for a known native origin.
+                if let Some(ClosureForward::Native(native))=closure.forward
+                    && crate::native_bindings::BINDINGS[native].parameters.last().is_some_and(|parameter|parameter.rest) {
+                    return Ok(None);
+                }
                 SpreadCallableContract {
                     parameters: closure.parameters.iter().map(|&id| ArgumentContract::from(&closure.function.bindings[id])).collect(),
                     invocation: closure.invocation,

@@ -132,3 +132,31 @@ function main() {
 ```
 
 There are no defaults, receiver mutation, or recoverable runtime errors. Each return is an independent string value. [Exact target mappings and acceptance limits](os-identity-contract.md) define supported Rust components; [executable assertions](../crates/tsrust-compiler/tests/fixtures/os-identity/identity.tsr) also exercise aliases and stored calls. This slice accepts only these two exports, not the whole OS module.
+
+## Variadic path composition
+
+`std:path.join(...paths: string[]): string` accepts any number of ordinary string segments, ignores empty segments and normalizes their composition. Zero arguments or only empty segments return `.`. It uses the executable target's separator; a later rooted segment is appended rather than replacing prior segments. Dot and parent segments collapse, trailing separators can remain, and Windows UNC/device rules are lexical. Joining performs no filesystem access and provides no containment guarantee. Non-string arguments and non-string spread elements are compiler diagnostics.
+
+```tsrust
+import { join } from "std:path";
+function main() {
+    console.log(join("reports", "..", "archive")); // archive
+    console.log(join()); // .
+    const pieces = ["reports", "..", "saved"];
+    const compose = join;
+    console.log(compose(...pieces)); // saved; pieces remains usable
+}
+```
+
+Direct and known native stored/aliased calls borrow strings and spread arrays; the result owns its text. Passing through an abstract Function rest contract transfers the tail according to that Function contract without implicit string clones. [Exact Windows and bridge contracts](path-join-contract.md) and [executable assertions](../crates/tsrust-compiler/tests/fixtures/path-join/segments.tsr) cover the boundaries.
+
+## Compiled byte order
+
+`std:os.endianness(): string` takes no arguments and returns `BE` or `LE` for the executable compilation target. It remains constant during execution and follows compiled CPU byte order, including translated execution. Unsupported selectors fail native compilation. It has no defaults, receiver mutation or recoverable runtime errors, and returns an independent string value.
+
+```tsrust
+import { endianness } from "std:os";
+function main() { console.log(endianness()); } // LE for this macOS ARM64 target
+```
+
+[Executable assertion](../crates/tsrust-compiler/tests/fixtures/os-identity/endianness.tsr). Other OS exports remain outside this bounded slice.

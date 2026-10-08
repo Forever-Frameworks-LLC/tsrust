@@ -2474,10 +2474,12 @@ impl SourceIndex {
             .iter()
             .map(|parameter| {
                 format!(
-                    "{}{}: {}",
+                    "{}{}{}: {}{}",
+                    if parameter.rest { "..." } else { "" },
                     parameter.name,
                     if parameter.optional { "?" } else { "" },
-                    type_name(parameter.ty)
+                    type_name(parameter.ty),
+                    if parameter.rest { "[]" } else { "" }
                 )
             })
             .collect::<Vec<_>>();

@@ -8198,7 +8198,29 @@ fn os_identity_catalog_examples_execute() {
     let catalog:Value=serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
     let dir=std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/editor/os-identity-docs");
     std::fs::create_dir_all(&dir).unwrap();
-    for entry in catalog["std:os"].as_array().unwrap().iter().filter(|e| matches!(e["name"].as_str(),Some("platform"|"arch"))) {
+    for entry in catalog["std:os"].as_array().unwrap().iter().filter(|e| matches!(e["name"].as_str(),Some("platform"|"arch"|"endianness"))) {
+        for example in entry["examples"].as_array().unwrap() {
+            let source=example["source"].as_str().unwrap();
+            let formatted=tsrust_compiler::format(source).unwrap();
+            assert_eq!(formatted,tsrust_compiler::format(&formatted).unwrap());
+            let analysis=checked_std_example(&formatted);
+            let input=dir.join("example.rs");let binary=dir.join("example");
+            std::fs::write(&input,analysis.emit_rust()).unwrap();
+            let compiled=std::process::Command::new("rustc").args(["--edition=2024","-Awarnings"]).arg(&input).arg("-o").arg(&binary).output().unwrap();
+            assert!(compiled.status.success(),"{}",String::from_utf8_lossy(&compiled.stderr));
+            let output=std::process::Command::new(&binary).output().unwrap();assert!(output.status.success());
+            assert_eq!(String::from_utf8(output.stdout).unwrap(),example["output"].as_str().unwrap());
+        }
+    }
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn path_join_catalog_examples_execute() {
+    let catalog:Value=serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
+    let dir=std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/editor/path-join-docs");
+    std::fs::create_dir_all(&dir).unwrap();
+    for entry in catalog["std:path"].as_array().unwrap().iter().filter(|e| matches!(e["name"].as_str(),Some("join"))) {
         for example in entry["examples"].as_array().unwrap() {
             let source=example["source"].as_str().unwrap();
             let formatted=tsrust_compiler::format(source).unwrap();

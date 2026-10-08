@@ -1,3 +1,4 @@
+import {pathJoinIds,assertPathJoinSource} from './path-join-source-contract.mjs';
 import {osIdentityIds,assertOsIdentitySource} from './os-identity-source-contract.mjs';
 import {lexicalPathIds,assertLexicalPathSource} from './lexical-path-source-contract.mjs';
 import {assertGenericAdapterSource} from './generic-value-adapters-source-contract.mjs';
@@ -154,6 +155,7 @@ for (const workload of workloads) {
  const source = fs.readFileSync(sourcePath);
  if(lexicalPathIds.includes(workload.id)){assertLexicalPathSource(source.toString(),workload);assertLexicalPathSource(fs.readFileSync(path.join(here,workload.counterpart),'utf8'),workload);}
  if(osIdentityIds.includes(workload.id)){assertOsIdentitySource(source.toString(),workload);assertOsIdentitySource(fs.readFileSync(path.join(here,workload.counterpart),'utf8'),workload);}
+ if(pathJoinIds.includes(workload.id)){assertPathJoinSource(source.toString(),workload);assertPathJoinSource(fs.readFileSync(path.join(here,workload.counterpart),'utf8'),workload);}
  if(/^array_find_(?:last_)?(?:int|number|boolean|string|nested|record|null|undefined)$/.test(workload.id)){const findTS=fs.readFileSync(path.join(here,workload.counterpart),'utf8');assertFindValueSource(source.toString(),workload,'native');assertFindValueSource(findTS,workload,'typescript');}
  if(/^array_unshift_(?:int|number|boolean|string|nested|record|null|undefined)$/.test(workload.id)){const findTS=fs.readFileSync(path.join(here,workload.counterpart),'utf8');assertUnshiftSource(source.toString(),workload,'native');assertUnshiftSource(findTS,workload,'typescript');}
  if(/^array_splice_(?:int|number|boolean|string|nested|record|null|undefined)$/.test(workload.id)){const findTS=fs.readFileSync(path.join(here,workload.counterpart),'utf8');assertSpliceSource(source.toString(),workload,'native');assertSpliceSource(findTS,workload,'typescript');}

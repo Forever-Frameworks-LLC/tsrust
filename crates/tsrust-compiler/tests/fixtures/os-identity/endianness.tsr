@@ -1,0 +1,9 @@
+import { endianness as order } from "std:os";
+import { strictEqual } from "std:testing";
+
+function main() {
+    const stored = order;
+    const value: string = stored();
+    strictEqual(value === "BE" || value === "LE", true);
+    console.log(value);
+}

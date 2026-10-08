@@ -7,6 +7,12 @@ pub(crate) fn call(binding: &NativeBinding, arguments: Vec<String>) -> String {
         binding.accepts_arity(arguments.len()),
         "checked native arity"
     );
+    let NativeBackend::Bundled { symbol } = binding.backend;
+    if binding.parameters.len()==1 && binding.parameters[0].rest {
+        let holds=arguments.iter().enumerate().map(|(i,value)|format!("let native_argument_{i} = {value};")).collect::<Vec<_>>().join(" ");
+        let values=(0..arguments.len()).map(|i|format!("native_argument_{i}.as_ref()")).collect::<Vec<_>>().join(", ");
+        return format!("{{ {holds} {symbol}(&[{values}]) }}");
+    }
     let mut arguments = arguments.into_iter();
     let lowered = binding
         .parameters

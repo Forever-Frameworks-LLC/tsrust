@@ -19988,6 +19988,86 @@
       "notes": "Identity can constant-fold. Output collection and observation are supported; no isolated API latency or measured performance claim.",
       "sourceSha256": "62116c5915ba0fbdd6c4a65176e63d11de1664996971767c0eec6825a3085c1f",
       "counterpartSha256": "12432075d51d58c245f87cd4ec26d98879074835c1e4059c61781fdbc45a9eae"
+    },
+    {
+      "id": "std_path_join_ascii",
+      "category": "paths",
+      "description": "Ordinary rooted three-segment join with retained output",
+      "source": "workloads/std_path_join_ascii.tsr",
+      "counterpart": "workloads/std_path_join_ascii.ts",
+      "iterations": 20000,
+      "operationsPerIteration": 1,
+      "result": "string[]",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "family": "path-composition",
+      "measurementStatus": "pending-path-composition-milestone",
+      "specification": "Alternate reports and .. by (i+seed) parity; join /tmp, selected segment, archive.txt.",
+      "notes": "Default target path conventions. Input setup, native variadic adaptation, lexical joining/normalization, output retention and observation are included. No isolated method latency or allocation-equivalence claim.",
+      "sourceSha256": "b1cf8b6fcc3d6f42d6864375e1fc9b3ed44fe516fd4496afc481c0777092d4a6",
+      "counterpartSha256": "be5686a83f31cbfa809e7fe0e939758f5b2c92ed554212f901a298f223f1099b"
+    },
+    {
+      "id": "std_path_join_empty_roots",
+      "category": "paths",
+      "description": "Empty segments, relative dot and absolute root joining with retained output",
+      "source": "workloads/std_path_join_empty_roots.tsr",
+      "counterpart": "workloads/std_path_join_empty_roots.ts",
+      "iterations": 20000,
+      "operationsPerIteration": 1,
+      "result": "string[]",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "family": "path-composition",
+      "measurementStatus": "pending-path-composition-milestone",
+      "specification": "Alternate empty and root by (i+seed) parity; join first, empty, child, parent, empty.",
+      "notes": "Default target path conventions. Input setup, native variadic adaptation, lexical joining/normalization, output retention and observation are included. No isolated method latency or allocation-equivalence claim.",
+      "sourceSha256": "27c72280003bd9ec97f9c390c4f0307603bb03e06970e5e7219254d2dfbffbe7",
+      "counterpartSha256": "6cb1e9b8e63d330fb6ba76e6b512a36f07cb32383b9252e12359cc3e9edb9068"
+    },
+    {
+      "id": "std_path_join_many_unicode",
+      "category": "paths",
+      "description": "Borrowed array spread joining 67 Unicode and parent segments with retained output",
+      "source": "workloads/std_path_join_many_unicode.tsr",
+      "counterpart": "workloads/std_path_join_many_unicode.ts",
+      "iterations": 20000,
+      "operationsPerIteration": 1,
+      "result": "string[]",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "family": "path-composition",
+      "measurementStatus": "pending-path-composition-milestone",
+      "specification": "Create one input array containing é😊, 64 文 segments, parent, and résumé/; borrow-spread it into each join. seed unused.",
+      "notes": "Default target path conventions. Input setup, native variadic adaptation, lexical joining/normalization, output retention and observation are included. No isolated method latency or allocation-equivalence claim.",
+      "sourceSha256": "a3e38d5a8ff96da2661444cfa1083b50cc6eb72dd3c0342841711618e16f149b",
+      "counterpartSha256": "1ee2b0526ab4896e6b178617a1a2b25b06c3be7b7c8f27a7b6fb92f9cc2e7b84"
+    },
+    {
+      "id": "std_os_endianness",
+      "category": "os",
+      "description": "Executable byte order with retained observations",
+      "source": "workloads/std_os_endianness.tsr",
+      "counterpart": "workloads/std_os_endianness.ts",
+      "iterations": 20000,
+      "operationsPerIteration": 1,
+      "result": "string[]",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "family": "os-identity",
+      "measurementStatus": "untimed-verified-timing-deferred",
+      "specification": "Query endianness once per iteration and retain every result. seed unused.",
+      "notes": "Byte-order identity can constant-fold; no latency or measured performance claim. Timing deferred to a meaningful OS family milestone.",
+      "sourceSha256": "39e87cb189e8da68a6c778ebcd7e32dbc1d391a6867c6192274f9dec0483c327",
+      "counterpartSha256": "14780a18b763f7ba97dc974fd383e4d204d0705e475644c84790e46be4d2a2a5"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",
