@@ -52,9 +52,9 @@ pub(crate) fn checked_catch_value(value:&str,error_name:&str,contract:&crate::er
     Ok(if arms.is_empty() {format!("match {value} {{}}") }else{format!("match {value} {{ {arms} }}")})
 }
 
-struct Storage { carry_error:bool, default:String, points:std::collections::BTreeMap<usize,String> }
+struct Storage { carry_error:bool, default:String, points:std::collections::BTreeMap<usize,String>, expressions:std::collections::BTreeMap<(usize,usize),String> }
 impl Storage {
-    fn at(&self, span:crate::Span)->&str { self.points.range(..=span.start).next_back().map_or(self.default.as_str(),|(_,value)|value.as_str()) }
+    fn at(&self, span:crate::Span)->&str { self.expressions.get(&(span.start,span.end)).map(String::as_str).unwrap_or_else(||self.points.range(..=span.start).next_back().map_or(self.default.as_str(),|(_,value)|value.as_str())) }
 }
 
 struct NativeRegion {
@@ -85,8 +85,8 @@ impl RegionStack {
         self.0.borrow_mut().last_mut().expect("entered region").transport=Some(Box::new((name,contract,runtime)));
         scope
     }
-    pub(crate) fn attach_storage(&self, storage:String, points:std::collections::BTreeMap<usize,String>, carry_error:bool) {
-        self.0.borrow_mut().last_mut().expect("entered storage region").storage=Some(Box::new(Storage{carry_error,default:storage,points}));
+    pub(crate) fn attach_storage(&self, storage:String, points:std::collections::BTreeMap<usize,String>, expressions:std::collections::BTreeMap<(usize,usize),String>, carry_error:bool) {
+        self.0.borrow_mut().last_mut().expect("entered storage region").storage=Some(Box::new(Storage{carry_error,default:storage,points,expressions}));
     }
     pub(crate) fn has_native_storage(&self)->bool { self.0.borrow().last().is_some_and(|region|region.storage.is_some()) }
     pub(crate) fn throw_value(&self,value:&str,ty:crate::syntax::Type,unions:&crate::unions::UnionArena,span:crate::Span)->Result<String,crate::Diagnostic> {

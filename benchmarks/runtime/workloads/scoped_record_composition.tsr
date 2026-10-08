@@ -342,8 +342,50 @@ function workload(n: int, seed: int, input: string): int[][] {
             lateRestored = restoredSize + restoredMap.size + restoredOld[0];
         }
 
+        let earlyExpression = 0;
+        let lateExpression = 0;
+        {
+            const expressionOld = [value];
+            let expressionMap = new Map<string, Holder>();
+            expressionMap.set("old", {
+                run: (): int => expressionOld[0]
+            });
+            let expressionSaved = new Map<string, Holder>();
+            let expressionResult = -1;
+            try {
+                expressionMap.clear();
+                expressionResult = (prefixResult(true), expressionSaved = expressionMap, 1);
+                throw 8;
+            } catch (error) {
+                expressionMap = new Map<string, Holder>();
+            }
+
+            expressionOld[0] = value + 40;
+            earlyExpression = expressionResult + expressionSaved.size + expressionMap.size + expressionOld[0];
+        }
+
+        {
+            const expressionOld = [value];
+            let expressionMap = new Map<string, Holder>();
+            expressionMap.set("old", {
+                run: (): int => expressionOld[0]
+            });
+            let expressionSaved = new Map<string, Holder>();
+            let expressionResult = -1;
+            try {
+                expressionMap.clear();
+                expressionResult = (expressionSaved = expressionMap, prefixResult(true));
+                throw 8;
+            } catch (error) {
+                expressionMap = new Map<string, Holder>();
+            }
+
+            expressionOld[0] = value + 41;
+            lateExpression = expressionResult + expressionSaved.size + expressionMap.size + expressionOld[0];
+        }
+
         base[0] = 0;
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression]);
         i += 1;
     }
 

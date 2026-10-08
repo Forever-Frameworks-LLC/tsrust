@@ -147,6 +147,9 @@ impl Emitter<'_> {
     pub(super) fn map_storage_live_before(&self, fun: &CheckedFunction, start: usize, place: &str) -> bool {
         self.map_storage_live(fun, place, |binding,names| fun.storage_exits.live_before(start,binding,names))
     }
+    pub(super) fn map_storage_live_at_expression(&self, fun: &CheckedFunction, point: (usize,usize), place: &str) -> bool {
+        self.map_storage_live(fun, place, |binding,names| fun.storage_exits.live_at_expression(point,binding,names))
+    }
     fn map_storage_live(&self, fun: &CheckedFunction, place: &str, live: impl Fn(usize,&[String])->bool) -> bool {
         for (binding, value) in fun.bindings.iter().enumerate() {
             if place == format!("value{binding}") { return live(binding, &[]); }

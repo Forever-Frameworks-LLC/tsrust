@@ -1041,3 +1041,38 @@ read; both original records are verified in SQLite as
 `tsrust-b5-expression-transfer-red.log` and
 `tsrust-b5-expression-transfer-native-red.log`, with loose copies removed.
 Expression evaluation availability is the next implementation step.
+
+
+Expression failure transport now checks exact expression spans before the existing
+statement-entry fallback. Snapshots record checked availability after call
+arguments or operator operands have been analyzed; call/callee and operator spans
+match the native error sites. A nested expression can start at the same byte as
+its parent, so an exact `(start, end)` key is required. Statement-entry snapshots
+remain separate and are not overwritten by expression completion.
+
+Native witnesses cover transfer before a failing call, failure before a later
+transfer, a nested arithmetic expression, a bounds failure after transfer and a
+throwing array factory before an index-expression transfer. The arithmetic
+variant first exposed E0382 because overflow errors use the operator span;
+operator snapshots repair that path. Disposal instrumentation at optimization
+levels 0 and 3 proves one callback drop and correct restored storage. All 70
+composition tests, eight depth canaries, 15 exception-contract tests and the
+expanded editor witness pass. Original attempts and repaired checks are verified
+byte for byte in SQLite as `tsrust-b5-expression-transfer-first-repair.log`,
+`tsrust-b5-expression-transfer-exact-check.log`,
+`tsrust-b5-expression-transfer-variants.log`,
+`tsrust-b5-expression-transfer-variants-repaired.log` and
+`tsrust-b5-expression-transfer-batch.log`. Loose copies are removed.
+
+These witnesses do not prove conditional partial-transfer disposal, loop/control
+exits or all rewritten/synthetic expression spans. Those remain pending. B5 is
+not accepted and no timing was performed.
+
+
+Matched expression-failure coverage now retains twenty-four observations.
+Two scenarios fail before or after transfer inside a comma expression, explicitly
+restore the original Map in catch, and mutate the released capture. Independent
+results expect `value + 39` and `value + 40`. Guards and rehashed deletion controls
+pass. Untimed native and Node-after-tsc verification passes, preserved exactly in
+SQLite as `runtime/results/2026-10-08T18-05-25-609Z-verify.json` and
+`tsrust-b5-expression-benchmark.log`; loose copies are removed.

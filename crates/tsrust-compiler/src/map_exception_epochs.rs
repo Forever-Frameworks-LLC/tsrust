@@ -94,7 +94,11 @@ impl Emitter<'_> {
                 let payload=format!("({},)",places.iter().map(|place| if self.map_storage_live_before(fun,start,place) {place.clone()} else {self.map_empty_storage_value(fun,place)}).collect::<Vec<_>>().join(","));
                 (start,payload)
             }).collect();
-            self.exception_regions.attach_storage(values.into(), points, carry_error);
+            let expressions=fun.storage_exits.expression_points().map(|point| {
+                let payload=format!("({},)",places.iter().map(|place| if self.map_storage_live_at_expression(fun,point,place) {place.clone()} else {self.map_empty_storage_value(fun,place)}).collect::<Vec<_>>().join(","));
+                (point,payload)
+            }).collect();
+            self.exception_regions.attach_storage(values.into(), points, expressions, carry_error);
         }
         let mut statements = String::new();
         self.control_block_epochs(&mut statements, fun, body, 1, None, Some(declarations));

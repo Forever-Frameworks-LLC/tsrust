@@ -2,7 +2,7 @@ mod support;
 
 #[test]
 fn expression_transfer_before_failure_restores_map_storage() {
-    project(r#"
+    let source = r#"
         import { strictEqual } from "std:testing";
         type Holder = { run: ReadOnly<Function<int>>; };
         function fail(): int { throw 7; }
@@ -25,7 +25,20 @@ fn expression_transfer_before_failure_restores_map_storage() {
             strictEqual(handlers.size, 0);
             strictEqual(old[0], 9);
         }
-    "#);
+    "#;
+    project(source);
+    project(&source.replace("(saved = handlers, fail())", "(fail(), saved = handlers, 1)"));
+    project(&source.replace("(saved = handlers, fail())", "(saved = handlers, fail()) + fail()"));
+    project(&source.replace("let observed = -1;", "const values = [1]; let observed = -1;")
+        .replace("(saved = handlers, fail())", "(saved = handlers, values[2])"));
+    project(&source.replace("function fail(): int { throw 7; }", "function fail(): int { throw 7; } function failArray(): int[] { throw 7; }")
+        .replace("(saved = handlers, fail())", "failArray()[(saved = handlers, 0)]"));
+}
+
+#[test]
+fn expression_transfer_failure_preserves_disposal() {
+    let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function fail():int{throw 7;}function main():void{const old=[3];let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});let saved=new Map<string,Holder>();let observed=-1;console.log('before');try{handlers.clear();observed=(saved=handlers,fail());throw 8;}catch(error){console.log('caught');handlers=new Map<string,Holder>();}old[0]=9;console.log('after',observed,saved.size,handlers.size);}");
+    verify_disposal(&source, 1, "before\ndrop 0\ncaught\nafter -1 0 0\n");
 }
 
 #[test]

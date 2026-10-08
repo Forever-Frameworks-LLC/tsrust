@@ -8557,6 +8557,11 @@ fn consumed_exception_map_storage_does_not_revive_source_binding() {
 fn transferred_error_storage_requires_explicit_restoration() {
     let source = tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):int{if(fail)throw 5;return 1;}function scenario(fail:boolean):void{const old=[3];let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});let observed=-1;try{const path=failIf(fail);handlers.clear();const moved=handlers;observed=moved.size;throw 7;}catch(error){handlers=new Map<string,Holder>();observed+=handlers.size;}old[0]=9;console.log(handlers.size,observed);}function main():void{scenario(true);}").unwrap();
     assert!(tsrust_lsp::diagnostics(&source, "file:///test.tsr").unwrap().is_empty());
+    let expression = tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function fail():int{throw 7;}function main():void{const old=[3];let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});let saved=new Map<string,Holder>();let observed=-1;try{handlers.clear();observed=(saved=handlers,fail());throw 8;}catch(error){handlers=new Map<string,Holder>();}old[0]=9;console.log(handlers.size,saved.size,observed);}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&expression, "file:///expression.tsr").unwrap().is_empty());
+    let unavailable_expression = expression.replace("catch (error) {", "catch (error) { console.log(handlers.size);");
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&unavailable_expression, "file:///expression.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "transferred"), "{diagnostics}");
     let unavailable = source.replace("catch (error) {", "catch (error) { console.log(handlers.size);");
     assert_ne!(unavailable, source);
     let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&unavailable, "file:///test.tsr").unwrap()).unwrap();

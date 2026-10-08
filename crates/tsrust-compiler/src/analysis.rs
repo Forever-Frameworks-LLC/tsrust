@@ -7306,11 +7306,23 @@ impl Analyzer {
         loans: &Loans,
         expected: Option<Type>,
     ) -> Result<Type, Diagnostic> {
-        if matches!(&expr.kind, ExprKind::Unary { op: UnaryOp::RestPack, value, .. }
+        let checked = if matches!(&expr.kind, ExprKind::Unary { op: UnaryOp::RestPack, value, .. }
             if !matches!(value.kind, ExprKind::SpreadValue(_))) {
-            return self.rest_pack_expression(context, expr, mode, loans, expected);
+            self.rest_pack_expression(context, expr, mode, loans, expected)
+        } else {
+            self.expression_other(context, expr, mode, loans, expected)
+        };
+        if checked.is_ok() && matches!(expr.kind, ExprKind::Call(..) | ExprKind::Index(..) | ExprKind::Binary { .. } | ExprKind::Unary { .. }) {
+            // Failure occurs after operand/argument evaluation. Exact spans
+            // distinguish a nested call from a parent starting at the same byte.
+            context.storage_exits.record_expression(expr.span, &context.bindings);
+            match &expr.kind {
+                ExprKind::Call(callee, _) => context.storage_exits.record_expression(callee.span, &context.bindings),
+                ExprKind::Binary { operator, .. } | ExprKind::Unary { operator, .. } => context.storage_exits.record_expression(*operator, &context.bindings),
+                _ => {},
+            }
         }
-        self.expression_other(context, expr, mode, loans, expected)
+        checked
     }
 
     #[inline(never)]
