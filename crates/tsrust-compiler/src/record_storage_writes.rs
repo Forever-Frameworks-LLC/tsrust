@@ -16,7 +16,7 @@ pub(super) fn collect(body: &[Stmt]) -> Vec<Write<'_>> {
     enum Work<'a> { Statement(&'a Stmt), Expression(&'a Expr) }
     fn selected(binding: usize, path: Vec<String>, value: &Expr) -> Option<Write<'_>> {
         let ty=value.ty?;
-        (matches!(ty,Type::Record(_) | Type::Array(crate::syntax::ArrayElement::Record(_, 0))) || !path.is_empty() && matches!(ty,Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)))
+        (matches!(ty,Type::Record(_) | Type::Array(crate::syntax::ArrayElement::Record(_, 0)) | Type::Union(_)) || !path.is_empty() && matches!(ty,Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)))
             .then_some(Write{binding,path,span:value.span,value,array_element:false})
     }
     fn assignment<'a>(target: &Expr, value: &'a Expr) -> Option<Write<'a>> {

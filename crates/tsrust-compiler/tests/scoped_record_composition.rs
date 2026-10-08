@@ -1,6 +1,74 @@
 mod support;
 
 #[test]
+fn reassigned_nullable_removal_retains_capture_conflicts() {
+    let source = "type Holder={run:ReadOnly<Function<int>>;};function main(){const values=[3];let outer:Holder|undefined;{const holders:Holder[]=[{run:():int=>values[0]}];outer=holders.pop();}values[0]=9;if(outer!==undefined)console.log(outer.run());}";
+    let error = tsrust_compiler::check(source).err().expect("nullable storage must retain its capture");
+    assert_eq!(error.code, "capture-conflict", "{}", error.message);
+}
+
+#[test]
+fn nullable_removal_moves_and_reassignment_preserve_environment_layout() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function main() {
+            const values = [3, 7];
+            const holders: Holder[] = [{ run: (): int => values[0] }];
+            const removed = holders.pop();
+            const saved = removed;
+            holders.push({ run: (): int => values[1] });
+            if (saved !== undefined) strictEqual(saved.run(), 3);
+            let outer: Holder | undefined;
+            {
+                const queue: Holder[] = [{ run: (): int => values[0] }];
+                outer = queue.shift();
+            }
+            if (outer !== undefined) strictEqual(outer.run(), 3);
+        }
+    "#);
+}
+
+#[test]
+fn loop_insertions_keep_initial_and_repeated_callback_origins() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function main() {
+            const values = [3, 7];
+            const holders: Holder[] = [{ run: (): int => values[0] }];
+            for (let i = 0; i < 2; i += 1) {
+                holders.push({ run: (): int => values[1] });
+            }
+            strictEqual(holders[0].run(), 3);
+            strictEqual(holders[1].run(), 7);
+            strictEqual(holders[2].run(), 7);
+        }
+    "#);
+}
+
+#[test]
+fn nullable_removed_record_keeps_dispatch_after_array_widens() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function main() {
+            const values = [3, 7];
+            const holders: Holder[] = [{ run: (): int => values[0] }];
+            const removed = holders.pop();
+            holders.push({ run: (): int => values[1] });
+            if (removed !== undefined) strictEqual(removed.run(), 3);
+            strictEqual(holders[0].run(), 7);
+            const queue: Holder[] = [{ run: (): int => values[0] }];
+            const first = queue.shift();
+            queue.push({ run: (): int => values[1] });
+            if (first !== undefined) strictEqual(first.run(), 3);
+            strictEqual(queue[0].run(), 7);
+        }
+    "#);
+}
+
+#[test]
 fn removed_array_preserves_dispatch_after_source_widens() {
     project(r#"
         import { strictEqual } from "std:testing";

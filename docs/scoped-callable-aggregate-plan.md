@@ -205,17 +205,26 @@ outer storage. Moves between named arrays propagate a common element carrier
 back through their storage dependencies; subsequent insertion can widen that
 carrier without generating incompatible native types.
 
-Twelve focused composition tests pass, including native execution after outer-scope
+Sixteen focused composition tests pass, including native execution after outer-scope
 assignment, insertion after a move, both branch insertion paths, and invocation of
 removed records after their source array widens. Splice results participate in the
-same storage dependency plan as moved arrays. The expanded independent Node
-reference passes. The affected splice, unshift and ordinary array suites also pass
-(32 tests across the four suites). Capture-conflict and local-escape witnesses
+same storage dependency plan as moved arrays. Pop and shift results now update their
+nullable payload and narrowed field dispatch when the source array widens; this
+repairs an emitter panic reproduced by the focused witness. Repeated insertion from
+a loop preserves both the initial and loop-created callback origins. The expanded
+independent Node reference passes. The latest affected pop/shift, data-union and
+composition batch passed 33 tests, followed by the new loop execution witness.
+Nullable removal values also move into another local and into deferred outer
+storage while retaining their concrete payload layouts. Contextual union injections
+are retargeted alongside the underlying removal result. A paired rejection witness
+checks that reassigned nullable storage still blocks mutation of its borrowed owner.
+The latest combined composition, boundary, union and removal run passes 43 tests.
+Capture-conflict and local-escape witnesses
 remain enforced. These checks establish this array storage batch, not B5 acceptance.
 Prior completed diagnostic and depth records remain verified in SQLite.
 
-Remaining B5 work includes nested storage, loop propagation, nullable removed-value
-layout propagation after later widening, precise element capture release, Map/Set
+Remaining B5 work includes nested storage, nullable replacement across multiple origins,
+precise element capture release, Map/Set
 composition and nullable replacement. Complete editor, guide, disposal and matched
 benchmark support before accepting the feature. Keep native execution and ownership
 rejection witnesses paired; do not permit a container to outlive borrowed captures.

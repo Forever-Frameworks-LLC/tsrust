@@ -38,6 +38,21 @@ function storageComposition(flag: boolean) {
         outer = holders.splice(0, 1);
     }
     strictEqual(outer[0].run(), 3);
+    const stack: Holder[] = [{ run: () => values[0] }];
+    const last = stack.pop();
+    const saved = last;
+    stack.push({ run: () => values[1] });
+    if (saved !== undefined) strictEqual(saved.run(), 3);
+    const queue: Holder[] = [{ run: () => values[0] }];
+    const first = queue.shift();
+    queue.push({ run: () => values[1] });
+    if (first !== undefined) strictEqual(first.run(), 3);
+    let nullableOuter: Holder | undefined;
+    {
+        const source: Holder[] = [{ run: () => values[0] }];
+        nullableOuter = source.shift();
+    }
+    if (nullableOuter !== undefined) strictEqual(nullableOuter.run(), 3);
 }
 storageComposition(true);
 storageComposition(false);

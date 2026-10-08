@@ -3002,6 +3002,7 @@ impl Analyzer {
     }
 
     fn require(&self, actual: Type, expected: Option<Type>, span: Span) -> Result<(), Diagnostic> {
+        if expected.is_some_and(|expected| self.scoped_record_nullable_contract(actual, expected)) { return Ok(()); }
         if let (Type::Array(ArrayElement::Record(actual, depth)), Some(Type::Array(ArrayElement::Record(expected, expected_depth)))) = (actual, expected) {
             if depth == expected_depth && self.scoped_records.declaration(actual) == expected { return Ok(()); }
         }
@@ -5813,6 +5814,7 @@ impl Analyzer {
         crate::flow::invalidate(&mut context.flow, id);
         if matches!((actual,ty),(Type::Record(a),Type::Record(b)) if self.scoped_records.declaration(a)==self.scoped_records.declaration(b)){context.bindings[id].ty=actual;}
         if matches!((actual,ty),(Type::Array(ArrayElement::Record(a,0)),Type::Array(ArrayElement::Record(b,0))) if self.scoped_records.declaration(a)==self.scoped_records.declaration(b)){context.bindings[id].ty=actual;}
+        if self.scoped_record_nullable_contract(actual, ty) { context.bindings[id].ty = actual; }
         context.bindings[id].transferred = None;
         context.bindings[id].moved_fields.clear();
         context.bindings[id].mutable = true;
