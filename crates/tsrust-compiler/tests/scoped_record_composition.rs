@@ -68,6 +68,7 @@ fn cleared_map_refill_tracks_only_current_capture_owners() {
     project(source);
     project(&source.replace("handlers.clear();", "{ handlers.clear(); }"));
     project(&source.replace("handlers.clear();", "if (first[0] === 3) { handlers.clear(); } else { handlers.clear(); }"));
+    project(&source.replace("handlers.clear();", "{ const marker = 2; if (marker === 2) { if (first[0] === 3) { handlers.clear(); } else { handlers.clear(); } } else { handlers.clear(); } strictEqual(handlers.size, 0); }"));
     project(&source.replace("handlers.clear();", "{ const marker = 2; strictEqual(marker, 2); handlers.clear(); strictEqual(handlers.size, 0); }"));
 
     let field = source.replace("function main()", "type Box = { handlers: Map<string, Holder>; marker: int; }; function main()")

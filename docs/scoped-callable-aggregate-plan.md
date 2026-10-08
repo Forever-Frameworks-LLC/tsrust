@@ -638,3 +638,13 @@ Map operations and runtime type emission remain in `map_emit.rs`. The extracted
 registration changes. All 21 scoped Map compiler/native tests and focused editor
 clear diagnostics pass. This structural checkpoint adds no supported behavior,
 benchmark epoch or B5 acceptance claim.
+
+Guaranteed clear targets now propagate through nested conditionals within mixed
+unconditional blocks. Both branch target sets must match at each checked join;
+the containing block returns renewed storage as before. A focused native witness
+previously failed with generated-Rust E0502, then passed after this planner repair.
+It retains a local marker and observes empty Map size before refill. Both inner
+branch choices execute across the two clears. The affected 62-test batch, eight
+normal-worker depth canaries and focused editor diagnostics pass. Exact evidence
+is verified in SQLite as `tsrust-b5-nested-branch-refill-checks.log`. Different
+branch target sets, early exits, exceptions and indexed storage remain pending.

@@ -63,6 +63,12 @@ impl Emitter<'_> {
             if !statement.labels.is_empty() { return Vec::new(); }
             match &statement.kind {
                 StmtKind::Block(body) => pending.extend(body.iter()),
+                StmtKind::If { then_body, else_body, .. } => {
+                    let left = self.map_block_return_places(fun, declaring_body, then_body);
+                    let right = self.map_block_return_places(fun, declaring_body, else_body);
+                    if left != right { return Vec::new(); }
+                    for place in left { if !places.contains(&place) { places.push(place); } }
+                },
                 StmtKind::Let { .. } | StmtKind::Expr(_) | StmtKind::Assign { .. } => {
                     if let Some((place, _)) = self.local_map_clear_storage(fun, declaring_body, statement)
                         && !places.contains(&place) { places.push(place); }
