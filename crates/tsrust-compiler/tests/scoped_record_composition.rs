@@ -7,6 +7,7 @@ fn renewed_map_field_keeps_uncleared_sibling_capture_protected() {
         "if(branch){pair.left.clear();}else{pair.left.clear();}second[0]=9;console.log(pair.right.size);",
         "{if(branch){pair.left.clear();}else{pair.left.clear();}}second[0]=9;console.log(pair.right.size);",
         "if(branch){pair.left.clear();}first[0]=9;console.log(pair.left.size);",
+        "if(branch){pair.left.clear();pair.right.clear();}else{pair.left.clear();}second[0]=9;console.log(pair.right.size);",
     ] {
         let source = format!("{prefix}{tail}}}function main():void{{scenario(false);}}");
         let error = tsrust_compiler::check(&source).err().expect("uncleared payload protects its capture");
@@ -37,7 +38,7 @@ fn renewed_map_field_keeps_uncleared_sibling_capture_protected() {
 
 #[test]
 fn both_branches_renew_independent_map_fields_without_losing_siblings() {
-    project(r#"
+    let source = r#"
         import { strictEqual } from "std:testing";
         type Holder = { run: ReadOnly<Function<int>>; };
         type Pair = { left: Map<string, Holder>; right: Map<string, Holder>; marker: int; };
@@ -74,7 +75,13 @@ fn both_branches_renew_independent_map_fields_without_losing_siblings() {
             strictEqual(third[0], 13);
         }
         function main(): void { scenario(true); scenario(false); }
-    "#);
+    "#;
+    project(source);
+    let different = source.replace("pair.right.clear();\n                strictEqual(pair.marker, 23);", "strictEqual(pair.marker, 23);")
+        .replace("second[0] = 9;", "")
+        .replace("strictEqual(first[0] + second[0], 14);", "strictEqual(first[0] + second[0], 12);")
+        .replace("strictEqual(pair.right.size, 0);", "if (branch) strictEqual(pair.right.size, 0); else strictEqual(pair.right.size, 1);");
+    project(&different);
 }
 
 #[test]

@@ -66,8 +66,7 @@ impl Emitter<'_> {
                 StmtKind::If { then_body, else_body, .. } => {
                     let left = self.map_block_return_places(fun, declaring_body, then_body);
                     let right = self.map_block_return_places(fun, declaring_body, else_body);
-                    if left != right { return Vec::new(); }
-                    for place in left { if !places.contains(&place) { places.push(place); } }
+                    for place in left.into_iter().chain(right) { if !places.contains(&place) { places.push(place); } }
                 },
                 StmtKind::Let { .. } | StmtKind::Expr(_) | StmtKind::Assign { .. } => {
                     if let Some((place, _)) = self.local_map_clear_storage(fun, declaring_body, statement)
@@ -85,8 +84,12 @@ impl Emitter<'_> {
     #[inline(never)]
     pub(super) fn map_clear_if_epoch(&self, output: &mut String, fun: &CheckedFunction, statement: &Stmt, declarations: &[Stmt], depth: usize, loop_label: Option<usize>) -> bool {
         let StmtKind::If { condition, then_body, else_body } = &statement.kind else { return false; };
-        let places = self.map_block_return_places(fun, declarations, then_body);
-        if places.is_empty() || places != self.map_block_return_places(fun, declarations, else_body) { return false; }
+        let mut places = self.map_block_return_places(fun, declarations, then_body);
+        for place in self.map_block_return_places(fun, declarations, else_body) {
+            if !places.contains(&place) { places.push(place); }
+        }
+        if places.is_empty() { return false; }
+        places.sort();
         let indent = "    ".repeat(depth);
         let pattern = places.iter().map(|place| format!("mut {place}")).collect::<Vec<_>>().join(",");
         let values = places.join(",");

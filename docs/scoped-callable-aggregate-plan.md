@@ -656,3 +656,19 @@ original value. Three rejection forms preserve the sibling capture through direc
 branch renewal, nested-block renewal and a one-branch clear. Editor diagnostics
 accept the released first capture and report capture-conflict for sibling mutation.
 The focused native/source and editor tests pass without another compiler change.
+
+Branch storage transport now supports different clear target sets. Planning joins
+the touched owning leaves from both branches; each branch returns either renewed
+storage or its original uncleared storage. Source capture-owner joins remain the
+lifetime authority, so conditional clearing does not release captures on paths
+where entries remain. The previous identical-target restriction caused native
+E0502 even when one field was cleared on both branches and an independent sibling
+was cleared on only one. The native witness now executes both choices, refills the
+common field, mutates its released owner and checks the sibling's branch-specific
+size. A rejection protects the sibling capture across the uncleared path.
+
+The affected 63-test batch, eight depth canaries and focused sibling editor
+diagnostics pass. Exact evidence is verified in SQLite as
+`tsrust-b5-different-branch-target-checks.log`. Transport still needs consumption
+and early-exit coverage in addition to exception and indexed storage work; this
+checkpoint does not establish all control-flow compositions or B5 acceptance.
