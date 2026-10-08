@@ -1,5 +1,12 @@
 mod support;
 #[test]
+fn replaced_generic_storage_supports_contextual_array_adapters() {
+    support::execute(
+        "function identity<T>(value:T):T{return value;}function main(){let action=identity;action=identity;const values=[3,7].map(action);console.log(values[0],values[1]);}",
+        "3 7\n", None);
+}
+
+#[test]
 fn selected_method_layouts_preserve_single_argument_evaluation() {
     support::execute(
         "function identity<T>(value:T):T{return value;}function main(){let action=identity;action<string>('warm');action=identity;console.log(action<int>((console.log('argument'),7)));}",

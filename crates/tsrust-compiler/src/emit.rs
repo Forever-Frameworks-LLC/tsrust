@@ -1,3 +1,5 @@
+#[path = "polymorphic_storage_emit.rs"]
+mod polymorphic_storage_emit;
 #[path = "callback_family_result_adapters.rs"]
 mod callback_family_result_adapters;
 #[path = "borrowed_callable_emit.rs"]
@@ -308,13 +310,10 @@ impl Emitter<'_> {
         }
         if let Type::BorrowedCallable(id)=value {return self.borrowed_family_type(id,"'_");}
         if let Type::Closure(id) = value {
-            let closure = &self.program.closures[id];
-            let bounds = self.captured_callback_bounds(closure);
-            if !bounds.is_empty() {
-                let mut parameters = vec!["'_".to_owned(); closure.lifetime_count];
-                parameters.extend(bounds.iter().map(|bound| bound.split(':').next().expect("capture generic").trim().to_owned()));
-                return format!("Closure{id}<{}>", parameters.join(", "));
+            if self.program.polymorphic_storage.contains(id) {
+                return self.generic_storage_type(id);
             }
+            return self.native_environment_type(id);
         }
         if let Some(payload) = self.callback_payload(value) {
             let argument = self.native_type(payload);
@@ -790,7 +789,7 @@ impl Emitter<'_> {
         };
         let checked = &self.program.closures[closure];
         let pairs = [crate::polymorphic_invocation_plans::Pair { origin: closure, method }];
-        let plan = if let Some(id) = self.program.polymorphic_invocations.index(&pairs) {
+        let plan = if let Some(id) = callee.generic_invocation.or_else(|| self.program.polymorphic_invocations.index(&pairs)) {
             self.program.polymorphic_invocations.checked(id, &self.program.closures, callee.span)
         } else {
             crate::polymorphic_invocation_plans::Plan::checked(pairs, &self.program.closures, callee.span)
@@ -804,9 +803,10 @@ impl Emitter<'_> {
         let values = args.iter().zip(&body.parameters).map(|(arg, &parameter)| {
             self.expr(fun, arg, body.function.bindings[parameter].mode)
         }).collect::<Vec<_>>();
+        let family = self.program.polymorphic_storage.contains(closure).then(|| self.program.polymorphic_storage.checked(closure, &self.program.closures, callee.span).expect("checked invocation storage"));
         let text = plan.render(&receiver, &values, &supplied_count.to_string(),
             |_| matches!(checked.forward, Some(ClosureForward::RestAdapter { counted: true, .. })),
-            mutable, None, callee.span,
+            mutable, family.as_ref().map(|family| (family.id, family.origins.as_slice())), callee.span,
         ).expect("checked materialized invocation arguments");
         if let Some(name)=self.result_methods.borrow().get(&(closure,method)).cloned() {
             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
@@ -823,6 +823,10 @@ impl Emitter<'_> {
             |ty, lifetimes| Some(self.named_record_environment_type(ty, lifetimes)),
         );
         for (capture,field) in closure.captures.iter().zip(&mut fields){
+            if let Type::Closure(origin) = closure.function.bindings[capture.inner].ty
+                && self.program.polymorphic_storage.contains(origin) {
+                *field = field.replace(&format!("Closure{origin}"), &self.generic_storage_type(origin));
+            }
             if !self.record_capture_is_view(capture,closure){continue;}
             let lifetime=field.strip_prefix('&').unwrap().split_whitespace().next().unwrap();
             let start=lifetime.strip_prefix("'c").unwrap().parse::<usize>().unwrap()+1;
@@ -2098,21 +2102,6 @@ impl Emitter<'_> {
             arms.push_str(&format!("{}::V{tag}(payload)=>{{{report}}},",exception_emit::constructor_path(error_name)));
         }
         format!("fn main()->std::process::ExitCode{{ {} tsr_entry_result({symbol}(),|error|{{match {matched}{{{arms}}}}}) }}\n",self.entry_setup)
-    }
-
-    fn emit_generic_storage(&self, output: &mut String) {
-        let families = self.program.polymorphic_storage.families(&self.program.closures, crate::Span::default())
-            .expect("checked generic storage families");
-        for family in families {
-            // Each environment supplies its own complete native type, including
-            // borrowed lifetimes and captured callable parameters. Storage adds
-            // no invocation bound or implicit Clone requirement.
-            let parameters = (0..family.origins.len()).map(|index| format!("E{index}")).collect::<Vec<_>>();
-            output.push_str(&family.declaration(&parameters, |origin| {
-                let variant = family.origins.binary_search(&origin).expect("family environment");
-                parameters[variant].clone()
-            }));
-        }
     }
 
     fn program(&self) -> String {
@@ -7908,6 +7897,8 @@ impl Emitter<'_> {
                 let Type::Closure(id) = expr.ty.expect("checked closure") else {
                     unreachable!()
                 };
+                let storage = id;
+                let id = expr.closure_origin().unwrap_or(id);
                 let fields = self.program.closures[id]
                     .captures
                     .iter()
@@ -7923,7 +7914,10 @@ impl Emitter<'_> {
                     })
                     .collect::<Vec<_>>()
                     .join(", ");
-                format!("Closure{id} {{ {fields} }}")
+                let value = format!("Closure{id} {{ {fields} }}");
+                if self.program.polymorphic_storage.contains(storage) {
+                    self.program.polymorphic_storage.checked(storage, &self.program.closures, expr.span).expect("checked constructor storage").inject(id, &value, expr.span).expect("checked construction origin")
+                } else { value }
             }
             ExprKind::Name(_) => {
                 if expr.binding.is_none()
@@ -8946,18 +8940,21 @@ mod exception_region_tests {
     }
     #[test]
     fn source_generic_replacements_construct_and_dispatch_native_family_variants() {
-        let source = crate::format("function identity<T>(value:T):T{return value;}function main(){let action=identity;console.log(action<int>(3));const saved=action;action=identity;console.log(action<string>('owned'));console.log(saved<int>(7));}").unwrap();
+        let source = crate::format("function identity<T>(value:T):T{return value;}function unused<T>(){let action=identity;action=identity;}function relay<T>(value:T):T{let action=identity;action=identity;return action<T>(value);}function main(){let action=identity;console.log(action<int>(3));const saved=action;action=identity;console.log(action<string>('owned'));console.log(saved<int>(7));console.log(relay<int>(9));console.log(relay<string>('kept'));}").unwrap();
         assert_eq!(crate::format(&source).unwrap(), source);
         let checked = crate::check(&source).unwrap();
-        let family = checked.program.polymorphic_storage.families(&checked.program.closures, crate::Span::default()).unwrap().pop().unwrap();
-        assert_eq!(family.origins.len(), 2);
+        let families = checked.program.polymorphic_storage.families(&checked.program.closures, crate::Span::default()).unwrap();
+        assert_eq!(families.len(), 2, "main and capture-free relay retain separate storage families");
         let rust = super::emit(&checked.program);
-        for (variant, origin) in family.origins.iter().enumerate() {
-            assert!(rust.contains(&format!("TsrGenericFamily{}::V{variant}(Closure{origin}", family.id)),
-                "source construction must retain each concrete environment in its native storage variant");
+        for family in families {
+            assert!(family.origins.len() >= 2, "fresh replacement origins remain registered");
+            for (variant, origin) in family.origins.iter().enumerate() {
+                assert!(rust.contains(&format!("TsrGenericFamily{}::V{variant}(Closure{origin}", family.id)),
+                    "source construction must retain each concrete environment in its native storage variant");
+            }
         }
         assert!(rust.contains("match method_environment"), "source calls must dispatch through the checked family");
-        crate::scoped_record_places::tests::native_output(&rust, "3\nowned\n7\n");
+        crate::scoped_record_places::tests::native_output(&rust, "3\nowned\n7\n9\nkept\n");
     }
 
     #[test]

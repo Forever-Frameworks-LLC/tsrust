@@ -34,6 +34,8 @@ impl Registry {
         Some(self.parents.keys().copied().filter(|&member| self.root(member) == Some(root)).collect())
     }
 
+    pub(crate) fn contains(&self, origin: usize) -> bool { self.parents.contains_key(&origin) }
+
     pub(crate) fn canonical_origin(&self, origin: usize) -> usize {
         self.root(origin).unwrap_or(origin)
     }
@@ -90,7 +92,7 @@ impl Registry {
             .map(|origin| self.checked(origin, closures, span)).collect()
     }
 
-    fn checked(&self, origin: usize, closures: &[CheckedClosure], span: Span) -> Result<Family, Diagnostic> {
+    pub(crate) fn checked(&self, origin: usize, closures: &[CheckedClosure], span: Span) -> Result<Family, Diagnostic> {
         let members = self.members(origin).ok_or_else(|| Diagnostic::new("callable-layout", "Generic storage origin has not been registered.", span))?;
         Family::checked(*members.first().expect("registered member"), members, closures, span)
     }
@@ -128,8 +130,7 @@ impl Family {
         format!("enum TsrGenericFamily{}{parameters} {{ {variants} }}\n", self.id)
     }
 
-    #[cfg(test)]
-    fn inject(&self, origin: usize, value: &str, span: Span) -> Result<String, Diagnostic> {
+    pub(crate) fn inject(&self, origin: usize, value: &str, span: Span) -> Result<String, Diagnostic> {
         let variant = self.origins.binary_search(&origin).map_err(|_| Diagnostic::new("callable-layout", "Environment origin is not a member of this generic storage family.", span))?;
         Ok(format!("TsrGenericFamily{}::V{variant}({value})", self.id))
     }

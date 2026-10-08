@@ -172,6 +172,9 @@ mod tests {
         let id = table.index(&pairs).expect("source-selected environments publish one invocation plan");
         let plan = table.checked(id, &checked.program.closures, Span::default()).unwrap();
         assert_eq!(plan.cases.iter().map(|case| case.pair).collect::<Vec<_>>(), pairs);
+        let main = checked.program.functions.iter().find(|function| function.name == "main").unwrap();
+        let selected = crate::error_effects::checked_expressions(main).into_iter().filter_map(|expression| expression.generic_invocation).collect::<Vec<_>>();
+        assert_eq!(selected, vec![id], "the actual source receiver retains its point-specific plan");
     }
     #[test]
     fn equivalent_family_layouts_do_not_exhaust_body_specialization_budget() {

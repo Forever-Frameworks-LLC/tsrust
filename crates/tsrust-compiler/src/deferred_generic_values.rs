@@ -187,6 +187,15 @@ impl Analyzer {
                     .and_then(|source| self.generic_functions.template(&source.declaration))
                     .map(|template| template.name.span)
             }, span)?
+        } else if self.polymorphic_storage.contains(origin) {
+            // Generated contextual adapters have no original source call proof.
+            // Retain every matching environment instead of guessing the first.
+            let source = self.generic_functions.template(&declaration).expect("deferred source declaration").name.span;
+            self.polymorphic_storage.reachable_origins(origin, &[source], |member| {
+                self.deferred_generic_values.get(&member)
+                    .and_then(|source| self.generic_functions.template(&source.declaration))
+                    .map(|template| template.name.span)
+            }, span)?
         } else { vec![origin] };
         let mut source_call = Expr::new(ExprKind::Call(
             Box::new(Expr::new(ExprKind::Name(declaration), span)), args.clone()), span);
@@ -248,7 +257,7 @@ impl Analyzer {
         self.function(function)?;
         let method = self.materialize_deferred_method(origin, function, result, args, &accesses, method_invocation, span)?;
         if !self.effects_only && !self.discovering_results && !context.template && reachable_origins.len() > 1 {
-            self.materialize_selected_generic_methods(origin, function, result, args, &accesses, method_invocation, &reachable_origins, span)?;
+            callee.generic_invocation = Some(self.materialize_selected_generic_methods(origin, function, result, args, &accesses, method_invocation, &reachable_origins, span)?);
         }
         self.retain_generic_invocation(context, origin, method, result, span)
     }

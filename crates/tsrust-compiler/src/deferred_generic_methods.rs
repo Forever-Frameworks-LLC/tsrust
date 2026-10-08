@@ -36,7 +36,7 @@ impl Analyzer {
     pub(super) fn materialize_selected_generic_methods(
         &mut self, original: usize, function: usize, result: Type, args: &[Expr],
         accesses: &[named_capture_access::Access], invocation: Mode, origins: &[usize], span: Span,
-    ) -> Result<(), Diagnostic> {
+    ) -> Result<usize, Diagnostic> {
         let mut pairs = Vec::with_capacity(origins.len());
         for &origin in origins {
             if origin != original {
@@ -56,8 +56,7 @@ impl Analyzer {
             let method = self.materialize_deferred_method(origin, function, result, args, accesses, invocation, span)?;
             pairs.push(crate::polymorphic_invocation_plans::Pair { origin, method });
         }
-        self.polymorphic_invocations.publish(pairs, &self.closures, span)?;
-        Ok(())
+        self.polymorphic_invocations.publish(pairs, &self.closures, span)
     }
 
     #[inline(never)]
