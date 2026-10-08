@@ -1,5 +1,7 @@
 # Callable replacement implementation plan
 
+Latest component checkpoint: declaration-to-environment selection is integrated into concrete deferred-generic call checking. See docs/handoff-2026-10-07-invocation-origin-selection.md. The family remains open.
+
 ## Current evidence
 
 Continue from the gate 174 handoff and warning-cleanup checkpoint `5f7649e`. Preserve fifteen owner fixture edits. This family is not accepted. The existing native literal-guard witness fails in analysis with `callable-origin`, before Rust emission; it is not currently a generated-Rust type mismatch. A new runtime-selection/saved-snapshot witness has the same failure. Its independent Node reference produces `7 10`. Replacing a callee during its argument evaluation remains correctly rejected with `conflicting-access`, because invocation already borrows that storage. Node allows that expression; the accepted Tsrust ownership rules intentionally reject it.

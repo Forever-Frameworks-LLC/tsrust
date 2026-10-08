@@ -27,10 +27,37 @@ impl Registry {
         None
     }
 
-    #[cfg(test)]
     fn members(&self, origin: usize) -> Option<Vec<usize>> {
         let root = self.root(origin)?;
         Some(self.parents.keys().copied().filter(|&member| self.root(member) == Some(root)).collect())
+    }
+
+    /// Declaration proofs select concrete environments only from this storage.
+    /// Repeated references to one declaration retain their distinct payloads.
+    pub(crate) fn reachable_origins(
+        &self, origin: usize, declarations: &[Span],
+        declaration: impl Fn(usize) -> Option<Span>, span: Span,
+    ) -> Result<Vec<usize>, Diagnostic> {
+        if declarations.is_empty() {
+            return Err(Diagnostic::new("callable-layout", "A generic invocation has no reachable declaration.", span));
+        }
+        let members = self.members(origin).unwrap_or_else(|| vec![origin]);
+        let mut observed = Vec::new();
+        let mut selected = Vec::new();
+        for member in members {
+            let source = declaration(member).ok_or_else(|| Diagnostic::new("callable-layout", "Generic storage has an environment without declaration provenance.", span))?;
+            if declarations.contains(&source) {
+                selected.push(member);
+                observed.push(source);
+            }
+        }
+        for &source in declarations {
+            if !observed.contains(&source) {
+                return Err(Diagnostic::new("callable-layout", "A reachable declaration has no environment in this generic storage family.", span)
+                    .related(source, "Reachable callable declared here."));
+            }
+        }
+        Ok(selected)
     }
 
     pub(crate) fn remap(&self, ids: &[Option<usize>], span: Span) -> Result<Self, Diagnostic> {
@@ -161,6 +188,28 @@ mod tests {
         assert!(registry.remap(&[Some(0), Some(1), None], Span::default()).is_err());
         assert!(registry.remap(&[Some(0), Some(1), Some(0)], Span::default()).is_err());
         assert!(registry.remap(&[Some(0)], Span::default()).is_err());
+    }
+
+    #[test]
+    fn invocation_provenance_keeps_all_matching_environments_within_storage() {
+        let mut registry = Registry::default();
+        registry.observe(0, 1);
+        registry.observe(1, 2);
+        registry.observe(3, 3);
+        let first = Span::new(10, 15);
+        let second = Span::new(20, 26);
+        let declarations = [first, first, second, first];
+        let resolve = |origin| declarations.get(origin).copied();
+        let call = Span::new(40, 50);
+        assert_eq!(registry.reachable_origins(0, &[first], resolve, call).unwrap(), vec![0, 1]);
+        assert_eq!(registry.reachable_origins(1, &[second, first, first], resolve, call).unwrap(), vec![0, 1, 2]);
+        assert_eq!(registry.reachable_origins(2, &[second], resolve, call).unwrap(), vec![2]);
+        assert_eq!(registry.reachable_origins(3, &[first], resolve, call).unwrap(), vec![3]);
+        assert_eq!(registry.reachable_origins(4, &[first], |_| Some(first), call).unwrap(), vec![4]);
+        for proof in [vec![], vec![Span::new(70, 75)]] {
+            assert_eq!(registry.reachable_origins(0, &proof, resolve, call).unwrap_err().span, call);
+        }
+        assert!(registry.reachable_origins(0, &[first], |origin| if origin == 2 { None } else { resolve(origin) }, call).is_err());
     }
 
     #[test]

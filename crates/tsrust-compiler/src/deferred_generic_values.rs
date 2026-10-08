@@ -163,12 +163,18 @@ impl Analyzer {
         if !self.effects_only && !self.discovering_results && !context.template
             && let Some(reachable) = self.generic_functions.reachable_declarations(&context.function_name, span, callee.span)
             && let Some(template) = self.generic_functions.template(&declaration)
-            && !reachable.contains(&template.name.span)
         {
-            let mut error = Diagnostic::new("callable-origin", "The stored callable declaration is not reachable on this invocation path.", span)
-                .related(template.name.span, "Stored callable declared here.");
-            for &declaration in reachable { error = error.related(declaration, "Reachable callable declared here."); }
-            return Err(error);
+            if !reachable.contains(&template.name.span) {
+                let mut error = Diagnostic::new("callable-origin", "The stored callable declaration is not reachable on this invocation path.", span)
+                    .related(template.name.span, "Stored callable declared here.");
+                for &declaration in reachable { error = error.related(declaration, "Reachable callable declared here."); }
+                return Err(error);
+            }
+            self.polymorphic_storage.reachable_origins(origin, reachable, |member| {
+                self.deferred_generic_values.get(&member)
+                    .and_then(|source| self.generic_functions.template(&source.declaration))
+                    .map(|template| template.name.span)
+            }, span)?;
         }
         let mut source_call = Expr::new(ExprKind::Call(
             Box::new(Expr::new(ExprKind::Name(declaration), span)), args.clone()), span);
