@@ -2,7 +2,7 @@ mod support;
 
 #[test]
 fn map_clear_refill_survives_caught_failure() {
-    project(r#"
+    let source = r#"
         import { strictEqual } from "std:testing";
         type Holder = { run: ReadOnly<Function<int>>; };
         function main(): void {
@@ -26,7 +26,47 @@ fn map_clear_refill_survives_caught_failure() {
             second[0] = 11;
             strictEqual(first[0] + second[0], 20);
         }
+    "#;
+    project(source);
+    project(&source.replace("throw 5;", "strictEqual(handlers.size, 1);"));
+    let field = source.replace("function main(): void", "type Box = { handlers: Map<string, Holder>; marker: int; }; function main(): void")
+        .replace("            try {", "            const box: Box = { handlers: handlers, marker: 23 }; try {")
+        .replace("handlers.clear()", "box.handlers.clear()")
+        .replace("handlers.set(\"new\"", "box.handlers.set(\"new\"")
+        .replace("handlers.size", "box.handlers.size")
+        .replace("handlers.get(\"new\")", "box.handlers.get(\"new\")")
+        .replace("strictEqual(first[0] + second[0], 20);", "strictEqual(first[0] + second[0], 20); strictEqual(box.marker, 23);");
+    project(&field);
+}
+
+#[test]
+fn leading_try_clear_preserves_catch_finally_disposal_order() {
+    let source = support::format_round_trip(r#"
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function main(): void {
+            const first = [3];
+            const second = [7];
+            const handlers = new Map<string, Holder>();
+            handlers.set("old", { run: (): int => first[0] });
+            console.log("before");
+            try {
+                handlers.clear();
+                console.log("cleared");
+                handlers.set("new", { run: (): int => second[0] });
+                throw 5;
+            } catch (error) {
+                console.log("caught", handlers.size);
+            } finally {
+                console.log("finally", handlers.size);
+            }
+            first[0] = 9;
+            console.log("after");
+            handlers.clear();
+            second[0] = 11;
+            console.log("done");
+        }
     "#);
+    verify_disposal(&source, 2, "before\ndrop 0\ncleared\ncaught 1\nfinally 1\nafter\ndrop 1\ndone\n");
 }
 
 #[test]

@@ -11,7 +11,8 @@ planned. Start from failing source/native witnesses before choosing internal lay
 B5 remains one unfinished feature-family task. Recent checkpoints establish dense
 record arrays, nested array fields, scoped Map values and fields, nullable reads
 and removal, moves, insertion-origin joins, borrowing iteration, exact disposal,
-and straight-line local/record-field clear/refill lifetimes. These checkpoints are
+and local/record-field clear/refill lifetimes across blocks, branches and leading
+infallible clears in exception regions. These checkpoints are
 focused implementation evidence, not separate accepted gates.
 
 Finish capture release for individual indexed elements and Map entries, lifetime
@@ -767,3 +768,21 @@ is verified in SQLite as `tsrust-b5-caught-refill-red.log`. This is an open
 compiler defect, not an accepted restriction. Next work must transport renewed
 storage together with completion outcomes, preserve throw/catch/finally order,
 and test failures before and after clear without losing live capture owners.
+
+Leading exception-region clears now renew their native storage in the enclosing
+scope before entering the remaining completion region. Only a contiguous prefix
+of unlabeled direct clears is eligible. Clear is infallible; no statement or
+observable effect is crossed. Catch/finally retain their checked contracts and
+execution order. Refilled storage remains visible to catch and to later source
+uses without retaining the old captured array borrow. Arbitrary effects before
+clear and conditional exception paths still require general storage transport;
+this prefix implementation does not accept the whole exception requirement.
+
+Focused native witnesses cover thrown and normal completion, a record-field Map
+with a surviving sibling, and exact old/new environment disposal before catch,
+finally and subsequent mutation at Rust optimization levels 0 and 3. Editor
+verification accepts mutation of the released old capture and rejects mutation
+of the current capture. The affected 59-test composition suite, eight depth
+canaries and focused editor test pass. Evidence is preserved in SQLite as
+`tsrust-b5-leading-try-clear-checks.log`. Matched workload extension and broader
+exception paths remain pending. B5 is not accepted and no timing was run.

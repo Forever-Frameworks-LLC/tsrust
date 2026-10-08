@@ -3250,6 +3250,7 @@ impl Emitter<'_> {
         let indent = "    ".repeat(depth);
         let declarations = declaring_body.unwrap_or(body);
         for stmt in body {
+            if self.map_try_prefix_epoch(output, fun, stmt, declarations, depth) { continue; }
             if let Some(reset) = self.local_map_clear_epoch(fun, body, stmt)
                 .or_else(|| self.local_map_clear_epoch(fun, declarations, stmt))
                 .or_else(|| self.map_clear_block_epoch(fun, declarations, stmt)) {

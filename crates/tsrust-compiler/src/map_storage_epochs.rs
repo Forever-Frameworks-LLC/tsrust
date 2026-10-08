@@ -2,6 +2,31 @@
 use super::*;
 
 impl Emitter<'_> {
+    /// Leading clears are infallible and execute before every completion path.
+    /// Keep their fresh storage in the enclosing scope, then enter the checked
+    /// exception region for all remaining effects and handlers.
+    #[inline(never)]
+    pub(super) fn map_try_prefix_epoch(&self, output: &mut String, fun: &CheckedFunction, statement: &Stmt, declarations: &[Stmt], depth: usize) -> bool {
+        if !statement.labels.is_empty() { return false; }
+        let StmtKind::Try(region) = &statement.kind else { return false; };
+        let mut resets = String::new();
+        let mut count = 0;
+        for item in &region.body {
+            if !item.labels.is_empty() { break; }
+            let Some(reset) = self.local_map_clear_epoch(fun, declarations, item) else { break; };
+            resets.push_str(&reset);
+            count += 1;
+        }
+        if count == 0 { return false; }
+        let mut remaining = region.as_ref().clone();
+        remaining.body.drain(..count);
+        let indent = "    ".repeat(depth);
+        let _ = writeln!(output, "{indent}{resets}");
+        let code = self.nested_completion(fun, statement, &remaining);
+        let _ = writeln!(output, "{indent}{code}");
+        true
+    }
+
     /// End a straight-line local storage lifetime before a later refill.
     /// Declarations outside this block must retain their surrounding storage.
     pub(super) fn local_map_clear_epoch(&self, fun: &CheckedFunction, body: &[Stmt], statement: &Stmt) -> Option<String> {
