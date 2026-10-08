@@ -2015,7 +2015,8 @@ impl Analyzer {
             && call.span == span && callee.span == span
             && let ExprKind::Name(name) = &callee.kind
             && self.generic_functions.template(name).is_some() { Some(name.as_str()) } else { None };
-        if let Some(name) = generic_wrapper && contextual.is_none()
+        if let Some(name) = generic_wrapper
+            && (contextual.is_none() || matches!(contextual, Some(Type::Closure(id)) if self.deferred_generic_values.contains_key(&id)))
             && (params.iter().any(|parameter| matches!(parameter.ty, ParameterAnnotation::Inferred(_)))
                 || (params.is_empty() && matches!(result, ResultAnnotation::Inferred(_)))) {
             return self.deferred_captured_generic_value(outer, name, origin, span, loans);
@@ -5536,6 +5537,7 @@ impl Analyzer {
         // but rejecting a read of x after an earlier transfer. Commit only after
         // evaluation and exact type checking complete.
         let actual = self.expression(context, value, Mode::Consume, loans, Some(ty))?;
+        let actual = self.fresh_generic_replacement_type(ty, actual, value);
         let nullable_callback = matches!(self.unions.payload(ty), Some(Type::Callback(_)));
         if matches!(ty, Type::Callback(_)) && actual != ty {
             return Err(Diagnostic::new(

@@ -9,6 +9,25 @@ pub(super) struct Source {
 }
 
 impl Analyzer {
+    /// A fresh reference to the same capture-free declaration has no distinct
+    /// payload to preserve. Reuse its storage type without changing value moves.
+    #[inline(never)]
+    pub(super) fn fresh_generic_replacement_type(
+        &self, expected: Type, actual: Type, value: &mut Expr,
+    ) -> Type {
+        let (Type::Closure(previous), Type::Closure(next)) = (expected, actual) else { return actual; };
+        if previous == next || !matches!(value.kind, ExprKind::Closure { .. }) { return actual; }
+        let (Some(previous_source), Some(next_source)) = (
+            self.deferred_generic_values.get(&previous), self.deferred_generic_values.get(&next),
+        ) else { return actual; };
+        if previous_source.declaration != next_source.declaration
+            || !previous_source.identities.is_empty() || !next_source.identities.is_empty()
+            || !self.closures[previous].captures.is_empty() || !self.closures[next].captures.is_empty()
+        { return actual; }
+        value.ty = Some(expected);
+        expected
+    }
+
     #[inline(never)]
     pub(super) fn deferred_generic_requirement(
         &self, actual: Type, expected: Option<Type>, span: Span,

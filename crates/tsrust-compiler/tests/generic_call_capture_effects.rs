@@ -171,6 +171,35 @@ fn generic_callable_replacement_keeps_saved_values_and_runtime_selection() {
 }
 
 #[test]
+fn fresh_same_declaration_replacement_reuses_capture_free_generic_storage() {
+    let source = r#"
+        function identity<T>(value: T): T { return value; }
+        function main() {
+            let action = identity;
+            const saved = action;
+            action = identity;
+            console.log(saved<int>(3), action<int>(7), action<string>("owned"));
+            action = identity;
+            console.log(action<int>(9));
+        }
+    "#;
+    support::execute(source, "3 7 owned\n9\n", None);
+}
+
+#[test]
+fn fresh_generic_replacement_does_not_copy_captures_or_restore_transferred_aliases() {
+    for (source, code) in [
+        ("function main(){let calls=0;function identity<T>(value:T):T{calls+=1;return value;}let action=identity;action=identity;console.log(action<int>(7));}", "callable-origin"),
+        ("function identity<T>(value:T):T{return value;}function main(){let action=identity;const saved=action;action=saved;console.log(saved<int>(3));}", "closure-consumed"),
+    ] {
+        let formatted = support::format_round_trip(source);
+        let error = tsrust_compiler::check(&formatted).err().expect("replacement must preserve existing capture and transfer rules");
+        assert_eq!(error.code, code, "{}", error.render("replacement.tsr", &formatted));
+        assert!(!error.related.is_empty());
+    }
+}
+
+#[test]
 fn generic_callable_replacement_rejects_mutation_of_the_borrowed_callee() {
     let executable = r#"
         function identity<T>(value: T): T { return value; }
