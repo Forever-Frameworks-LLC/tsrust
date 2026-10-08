@@ -1,6 +1,6 @@
 # Callable replacement implementation plan
 
-Current implementation checkpoint: cd52a03. Original replacement and point-sensitive mutable factory witnesses now pass, including independent loop-created array members and nested owned child captures. Focused native, editor, depth and untimed benchmark checks pass. Complete family regressions and performance review pass; consumer refresh remains pending. See docs/milestones/callable-replacement-family.md. Earlier sections below retain the historical implementation sequence. The family is not accepted.
+The callable replacement family is accepted. Source repair checkpoint: ea6bda3. Complete regression evidence plus affected repairs yields 2,325 compiler passes, zero failures, two intentional worker ignores and 358 editor passes. All eight depth canaries and all five refreshed consumers pass. The nineteen-observation workload has reviewed timing evidence, and current-source untimed verification preserves the measured source and generated driver hashes. See docs/milestones/callable-replacement-family.md and docs/handoff-2026-10-08-callable-replacement-family.md. Sections below retain the historical implementation sequence.
 
 ## Current evidence
 
