@@ -120,6 +120,41 @@ fn resolve_path(
     };
     Ok(format!("{device}\\{}", resolved_tail(&tail, true)))
 }
+fn posix_components<'a>(path: &'a str, cwd: &'a str) -> Vec<&'a str> {
+    let base = if path.starts_with('/') { "" } else { cwd };
+    let capacity = base
+        .bytes()
+        .chain(path.bytes())
+        .filter(|byte| *byte == b'/')
+        .count()
+        + 2;
+    let mut parts = Vec::with_capacity(capacity);
+    for part in base.split('/').chain(path.split('/')) {
+        match part {
+            "" | "." => {}
+            ".." => {
+                parts.pop();
+            }
+            _ => parts.push(part),
+        }
+    }
+    parts
+}
+fn posix_relative(from: &str, to: &str, cwd: &str) -> std::string::String {
+    let a = posix_components(from, cwd);
+    let b = posix_components(to, cwd);
+    let common = a.iter().zip(&b).take_while(|(a, b)| a == b).count();
+    let parents = a.len() - common;
+    let capacity = parents * 3 + b[common..].iter().map(|part| part.len() + 1).sum::<usize>();
+    let mut output = std::string::String::with_capacity(capacity);
+    for part in std::iter::repeat_n("..", parents).chain(b[common..].iter().copied()) {
+        if !output.is_empty() {
+            output.push('/');
+        }
+        output.push_str(part);
+    }
+    output
+}
 /// Resolve both inputs against the supplied context, then compare complete components.
 /// No canonicalization, directory traversal, or symlink resolution occurs.
 pub fn relative_with(
@@ -131,6 +166,14 @@ pub fn relative_with(
 ) -> Result<std::string::String, std::string::String> {
     if from == to {
         return Ok(std::string::String::new());
+    }
+    if !windows {
+        let directory = if from.starts_with('/') && to.starts_with('/') {
+            std::string::String::new()
+        } else {
+            cwd()?
+        };
+        return Ok(posix_relative(from, to, &directory));
     }
     let mut observed = None;
     let mut context = || {
@@ -153,101 +196,84 @@ pub fn relative_with(
     if equal(&from, &to) {
         return Ok(std::string::String::new());
     }
-    if windows {
-        let lower_from = from.to_lowercase();
-        let lower_to = to.to_lowercase();
-        let expands = from.encode_utf16().count() != lower_from.encode_utf16().count()
-            || to.encode_utf16().count() != lower_to.encode_utf16().count();
-        if !expands {
-            // Compare UTF-16 coordinates so destination spelling survives Unicode casing.
-            let left = lower_from
-                .trim_matches('\\')
-                .encode_utf16()
-                .collect::<Vec<_>>();
-            let right = lower_to
-                .trim_matches('\\')
-                .encode_utf16()
-                .collect::<Vec<_>>();
-            let original = to
-                .trim_start_matches('\\')
-                .encode_utf16()
-                .collect::<Vec<_>>();
-            let shared = left.iter().zip(&right).take_while(|(a, b)| a == b).count();
-            let mut boundary = left[..shared].iter().rposition(|unit| *unit == 92);
-            if shared < left.len().min(right.len()) && boundary.is_none() {
-                return Ok(to);
-            }
-            if shared == left.len().min(right.len()) {
-                if right.len() > shared {
-                    if right[shared] == 92 {
-                        return Ok(
-                            std::string::String::from_utf16(&original[shared + 1..]).unwrap()
-                        );
-                    }
-                    if shared == 2 {
-                        return Ok(std::string::String::from_utf16(&original[shared..]).unwrap());
-                    }
-                }
-                if left.len() > shared {
-                    if left[shared] == 92 {
-                        boundary = Some(shared);
-                    } else if shared == 2 {
-                        boundary = Some(3);
-                    }
-                }
-                boundary = Some(boundary.unwrap_or(0));
-            }
-            let split = boundary.unwrap_or(0);
-            let parents = if split + 1 > left.len() {
-                0
-            } else {
-                left[split + 1..].iter().filter(|unit| **unit == 92).count() + 1
-            };
-            let suffix =
-                std::string::String::from_utf16(&original[split.min(right.len())..right.len()])
-                    .unwrap();
-            let prefix = std::iter::repeat_n("..", parents)
-                .collect::<Vec<_>>()
-                .join("\\");
-            return Ok(if parents == 0 {
-                suffix.trim_start_matches('\\').into()
-            } else {
-                format!("{prefix}{suffix}")
-            });
-        }
-        // Length-changing lowercase mappings require full component comparison.
-        let a = from
-            .strip_suffix('\\')
-            .unwrap_or(&from)
-            .split('\\')
+    let lower_from = from.to_lowercase();
+    let lower_to = to.to_lowercase();
+    let expands = from.encode_utf16().count() != lower_from.encode_utf16().count()
+        || to.encode_utf16().count() != lower_to.encode_utf16().count();
+    if !expands {
+        // Compare UTF-16 coordinates so destination spelling survives Unicode casing.
+        let left = lower_from
+            .trim_matches('\\')
+            .encode_utf16()
             .collect::<Vec<_>>();
-        let b = to
-            .strip_suffix('\\')
-            .unwrap_or(&to)
-            .split('\\')
+        let right = lower_to
+            .trim_matches('\\')
+            .encode_utf16()
             .collect::<Vec<_>>();
-        let common = a.iter().zip(&b).take_while(|(a, b)| equal(a, b)).count();
-        if common == 0 {
+        let original = to
+            .trim_start_matches('\\')
+            .encode_utf16()
+            .collect::<Vec<_>>();
+        let shared = left.iter().zip(&right).take_while(|(a, b)| a == b).count();
+        let mut boundary = left[..shared].iter().rposition(|unit| *unit == 92);
+        if shared < left.len().min(right.len()) && boundary.is_none() {
             return Ok(to);
         }
-        return Ok(std::iter::repeat_n("..", a.len() - common)
-            .chain(b[common..].iter().copied())
+        if shared == left.len().min(right.len()) {
+            if right.len() > shared {
+                if right[shared] == 92 {
+                    return Ok(std::string::String::from_utf16(&original[shared + 1..]).unwrap());
+                }
+                if shared == 2 {
+                    return Ok(std::string::String::from_utf16(&original[shared..]).unwrap());
+                }
+            }
+            if left.len() > shared {
+                if left[shared] == 92 {
+                    boundary = Some(shared);
+                } else if shared == 2 {
+                    boundary = Some(3);
+                }
+            }
+            boundary = Some(boundary.unwrap_or(0));
+        }
+        let split = boundary.unwrap_or(0);
+        let parents = if split + 1 > left.len() {
+            0
+        } else {
+            left[split + 1..].iter().filter(|unit| **unit == 92).count() + 1
+        };
+        let suffix =
+            std::string::String::from_utf16(&original[split.min(right.len())..right.len()])
+                .unwrap();
+        let prefix = std::iter::repeat_n("..", parents)
             .collect::<Vec<_>>()
-            .join("\\"));
+            .join("\\");
+        return Ok(if parents == 0 {
+            suffix.trim_start_matches('\\').into()
+        } else {
+            format!("{prefix}{suffix}")
+        });
     }
+    // Length-changing lowercase mappings require full component comparison.
     let a = from
-        .split('/')
-        .filter(|part| !part.is_empty())
+        .strip_suffix('\\')
+        .unwrap_or(&from)
+        .split('\\')
         .collect::<Vec<_>>();
     let b = to
-        .split('/')
-        .filter(|part| !part.is_empty())
+        .strip_suffix('\\')
+        .unwrap_or(&to)
+        .split('\\')
         .collect::<Vec<_>>();
-    let common = a.iter().zip(&b).take_while(|(a, b)| a == b).count();
+    let common = a.iter().zip(&b).take_while(|(a, b)| equal(a, b)).count();
+    if common == 0 {
+        return Ok(to);
+    }
     Ok(std::iter::repeat_n("..", a.len() - common)
         .chain(b[common..].iter().copied())
         .collect::<Vec<_>>()
-        .join("/"))
+        .join("\\"))
 }
 /// Read host context only when required; report unavailable or non-UTF-8 cwd.
 pub fn relative_host(from: &str, to: &str) -> Result<std::string::String, std::string::String> {

@@ -44,3 +44,9 @@ fn ordinary_normalization_allocates_only_owned_result() {
     assert_eq!(result, "/tmp/report.txt");
     assert_eq!(allocations, 1, "no temporary component vector or copied tail");
 }
+#[test]
+fn relative_reuses_borrowed_components_and_reserves_owned_output() {
+    let (result, allocations) = observe(|| tsrust_compiler::native_path_relative::relative_with("reports/é😊", "reports/archive.txt", false, || Ok("/workspace/project".into()), |_| None).unwrap());
+    assert_eq!(result, "../archive.txt");
+    assert!(allocations <= 4, "one cwd observation, two borrowed component buffers and one output: {allocations}");
+}
