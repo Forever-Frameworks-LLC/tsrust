@@ -6075,7 +6075,7 @@ impl Analyzer {
         if !ty.is_copy() {
             return Err(Diagnostic::new(
                 "unsupported",
-                "Assignment values support only int, number, and boolean; owned assignment statements remain supported.",
+                "The value of an assignment to an array element or a computed place is supported only for int, number and boolean. Assign in its own statement, then read the place.",
                 operator,
             ));
         }
@@ -7205,6 +7205,8 @@ impl Analyzer {
         loans: &Loans,
         expected: Option<Type>,
     ) -> Result<Type, Diagnostic> {
+        if matches!(expr.kind,ExprKind::Field(_,_)){self.owned_assignment_projection(context,expr);}
+        self.owned_assignment_value(context,expr);
         if matches!(expr.kind,ExprKind::Sequence(_)){return self.sequence_expression(context,expr,mode,loans,expected,false);}
         if let Some(expected) = expected
             && self.checked_generic_callable_shape(self.unions.payload(expected).unwrap_or(expected)).is_some()
@@ -16192,6 +16194,46 @@ impl Analyzer {
 }
 
 impl Analyzer {
+    /// `(target = value)` with a string, array or record target has the target
+    /// itself as its value: store first, then read the place. That is the comma
+    /// form `(target = value, target)`, so no copy is made. Only a target with
+    /// a fixed path qualifies; an index expression would be evaluated twice.
+    #[inline(never)]
+    fn owned_assignment_value(&self,context:&Context,expr:&mut Expr){
+        let ExprKind::Assign{target,..}=&expr.kind else{return;};
+        fn fixed_path(target:&Expr)->bool{match &target.kind{ExprKind::Name(_)=>true,ExprKind::Field(base,_)=>fixed_path(base),_=>false}}
+        if !fixed_path(target) || !self.expression_type_hint(context,target).is_some_and(|ty|!ty.is_copy()){return;}
+        let place=(**target).clone();
+        let span=expr.span;
+        let store=std::mem::replace(expr,Expr::new(ExprKind::Null,span));
+        *expr=Expr::new(ExprKind::Sequence(vec![store,place]),span);
+    }
+
+    /// `(target = value).field` reads the field of the target after the store:
+    /// `(target = value, target.field)`. Projecting inside the comma form keeps
+    /// the record in place instead of moving it into a temporary.
+    #[inline(never)]
+    fn owned_assignment_projection(&self,context:&Context,expr:&mut Expr){
+        fn fixed_path(target:&Expr)->bool{match &target.kind{ExprKind::Name(_)=>true,ExprKind::Field(base,_)=>fixed_path(base),_=>false}}
+        let mut base=&*expr;
+        while let ExprKind::Field(inner,_)=&base.kind{base=inner;}
+        let ExprKind::Assign{target,..}=&base.kind else{return;};
+        if !fixed_path(target) || !matches!(self.expression_type_hint(context,target),Some(Type::Record(_))){return;}
+        let place=(**target).clone();
+        let span=expr.span;
+        let mut projection=std::mem::replace(expr,Expr::new(ExprKind::Null,span));
+        let mut slot=&mut projection;
+        while let ExprKind::Field(inner,_)=&mut slot.kind{
+            if matches!(inner.kind,ExprKind::Assign{..}){
+                let store=std::mem::replace(&mut **inner,place);
+                *expr=Expr::new(ExprKind::Sequence(vec![store,projection]),span);
+                return;
+            }
+            slot=inner;
+        }
+        unreachable!("assignment base located above");
+    }
+
     #[inline(never)]
     fn discarded_comma_operand(&mut self,context:&mut Context,operand:&mut Expr,loans:&Loans)->Result<Type,Diagnostic>{
         if let ExprKind::Sequence(_)=&operand.kind{return self.sequence_expression(context,operand,Mode::Read,loans,None,true);}

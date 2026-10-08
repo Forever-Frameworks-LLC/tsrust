@@ -8392,3 +8392,16 @@ fn recursive_inferred_results_appear_in_hover_and_call_values() {
     let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(unresolved, "file:///test.tsr").unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "result-inference"), "{diagnostics}");
 }
+
+#[test]
+fn owned_assignment_values_keep_member_help_and_types() {
+    let source = tsrust_compiler::format("type Point={x:int;label:string;};function main(){let text=\"a\";let point:Point={x:1,label:\"p\"};console.log((text=\"xyz\").length,(point={x:5,label:\"q\"}).label.toUpperCase());}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&source, "file:///test.tsr").unwrap().is_empty());
+    let members = ask(&source, "textDocument/completion", "toUpperCase", 0);
+    assert!(members.as_array().unwrap().iter().any(|item| item["label"] == "toUpperCase"));
+    let hover = ask(&source, "textDocument/hover", "text = \"xyz\"", 0);
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("string"), "{hover}");
+    let misuse = source.replace("let text", "const text");
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&misuse, "file:///test.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "unsupported"), "{diagnostics}");
+}

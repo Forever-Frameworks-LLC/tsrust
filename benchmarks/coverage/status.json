@@ -3018,12 +3018,21 @@
     "note": "Native signed 64-bit bits; JavaScript timing covers only the exact shared domain. Counts 0..63 are checked; shifted bits may be discarded. Logical right uses u64 bits and casts back to i64. Explicit int contexts or concrete typed int anchors select this operation; existing literal-only Number defaults and strict mixed-type rejection remain unchanged. Operands and compound target/old-value/RHS effects occur once in source order, with commit only after success. Complete retained int[] outputs use the existing observer without offsets. Setup and output construction/retention are timed; scalar operations allocate nothing in focused evidence. Separate native-only wide, trap, no-commit and disposal witnesses pass."
   },
   "control.assignmentExpression": {
-    "implementation": "in progress",
-    "comparison": "missing",
-    "evidence": [
-      "./milestones/63-compound-assignment.md"
+    "implementation": "implemented",
+    "comparison": "paired group",
+    "workloads": [
+      "int_assignment_value",
+      "number_assignment_value",
+      "boolean_assignment_value",
+      "owned_assignment_values"
     ],
-    "note": "Umbrella remains pending. Gate68 accepts all int/Number compound values, Gate67 ordinary int/Number/boolean assignment values, Gate66 strict-boolean logical assignment values and Gate64 numeric updates. Owned ordinary/compound values, coercion and destructuring remain separate capabilities."
+    "evidence": [
+      "./milestones/67-scalar-assignment-values.md",
+      "./milestones/179-owned-assignment-values.md",
+      "./assignment-values.md"
+    ],
+    "measured": false,
+    "note": "Assignment is an expression. Scalars copy; a string, array or record value is the target read in place (gate 179). Owned values of array elements and computed places are rejected."
   },
   "control.logicalAssignment": {
     "implementation": "pending",

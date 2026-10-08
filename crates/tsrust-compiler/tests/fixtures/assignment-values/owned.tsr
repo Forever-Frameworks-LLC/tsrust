@@ -1,0 +1,59 @@
+import { strictEqual } from "std:testing";
+
+type Point = {
+    x: int;
+    label: string;
+};
+
+type Holder = {
+    name: string;
+    point: Point;
+};
+
+function length(text: ReadOnly<string>): int {
+    return text.length;
+}
+
+function main() {
+    // The value of an assignment is the assigned target, read in place.
+    let text = "a";
+    strictEqual((text = "xyz").length, 3);
+    strictEqual(text, "xyz");
+    strictEqual(length(text = "four"), 4);
+    strictEqual(text, "four");
+
+    let values = [1];
+    strictEqual((values = [1, 2, 3]).length, 3);
+    strictEqual(values.join(","), "1,2,3");
+
+    let point: Point = {
+        x: 1, label: "p"
+    };
+    strictEqual((point = {
+        x: 5, label: "q"
+    }).x, 5);
+    strictEqual(point.label, "q");
+
+    // Fields with a fixed path.
+    const holder: Holder = {
+        name: "n", point: {
+            x: 0, label: "o"
+        }
+    };
+    strictEqual((holder.name = "longer").length, 6);
+    strictEqual((holder.point.label = "deep").toUpperCase(), "DEEP");
+    strictEqual(holder.point.label, "deep");
+
+    // In a condition, and a field of a field.
+    let current = "";
+    let count = 0;
+    while ((current = count < 2 ? "go" : "") !== "") {
+        count += 1;
+    }
+
+    strictEqual(count, 2);
+    strictEqual((point = {
+        x: 9, label: "word"
+    }).label.length, 4);
+    strictEqual(point.x, 9);
+}

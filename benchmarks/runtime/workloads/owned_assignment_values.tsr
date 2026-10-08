@@ -1,0 +1,42 @@
+type Point = {
+    x: int;
+    label: string;
+};
+
+function size(text: ReadOnly<string>): int {
+    return text.length;
+}
+
+function workload(n: int, seed: int, input: string): int[][] {
+    const output: int[][] = [];
+    let i = 0;
+    while (i < n) {
+        const value = i % 5 + seed % 5 + 1;
+        let text = "a";
+        const first = (text = "x".repeat(value)).length;
+        const lent = size(text = "four" + value);
+        let values = [0];
+        const count = (values = [value, value + 1, value + 2]).length;
+        let point: Point = {
+            x: 0, label: "p"
+        };
+        const coordinate = (point = {
+            x: value * 2, label: "point"
+        }).x;
+        const labelSize = (point.label = "q".repeat(value + 1)).length;
+        let current = "";
+        let rounds = 0;
+        while ((current = rounds < value ? "go" : "") !== "") {
+            rounds += 1;
+        }
+
+        output.push([first, lent, count, values[2], coordinate, labelSize, point.label.length, rounds, text.length]);
+        i += 1;
+    }
+
+    return output;
+}
+
+function main() {
+    const result = workload(3, 0, "assignment");
+}

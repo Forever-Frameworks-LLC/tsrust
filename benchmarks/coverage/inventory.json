@@ -10869,12 +10869,21 @@
       "category": "Control flow",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "in progress",
-      "comparison": "missing",
+      "implementation": "implemented",
+      "comparison": "paired group",
       "evidence": [
-        "./milestones/63-compound-assignment.md"
+        "./milestones/67-scalar-assignment-values.md",
+        "./milestones/179-owned-assignment-values.md",
+        "./assignment-values.md"
       ],
-      "note": "Umbrella remains pending. Gate68 accepts all int/Number compound values, Gate67 ordinary int/Number/boolean assignment values, Gate66 strict-boolean logical assignment values and Gate64 numeric updates. Owned ordinary/compound values, coercion and destructuring remain separate capabilities."
+      "workloads": [
+        "int_assignment_value",
+        "number_assignment_value",
+        "boolean_assignment_value",
+        "owned_assignment_values"
+      ],
+      "measured": false,
+      "note": "Assignment is an expression. Scalars copy; a string, array or record value is the target read in place (gate 179). Owned values of array elements and computed places are rejected."
     },
     {
       "id": "control.awaitUsing",

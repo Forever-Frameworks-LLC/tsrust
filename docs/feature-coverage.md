@@ -24,7 +24,7 @@ Full compiler regression and accumulated performance comparisons run at complete
 | Binary and typed arrays | 605 | 0 | 0 | 605 |
 | Booleans | 18 | 15 | 0 | 3 |
 | Collections | 81 | 30 | 0 | 51 |
-| Control flow | 36 | 27 | 1 | 10 |
+| Control flow | 36 | 28 | 0 | 9 |
 | Dates | 50 | 0 | 0 | 50 |
 | Declarations and syntax | 24 | 19 | 0 | 7 |
 | Decorators | 17 | 0 | 0 | 17 |
@@ -942,7 +942,7 @@ Full compiler regression and accumulated performance comparisons run at complete
 
 | Operation | Implementation | Comparison | Scope / evidence |
 | --- | --- | --- | --- |
-| `control.assignmentExpression` | in progress | missing | Umbrella remains pending. Gate68 accepts all int/Number compound values, Gate67 ordinary int/Number/boolean assignment values, Gate66 strict-boolean logical assignment values and Gate64 numeric updates. Owned ordinary/compound values, coercion and destructuring remain separate capabilities.; [evidence](./milestones/63-compound-assignment.md) |
+| `control.assignmentExpression` | implemented | paired group | Assignment is an expression. Scalars copy; a string, array or record value is the target read in place (gate 179). Owned values of array elements and computed places are rejected.; [evidence](./milestones/67-scalar-assignment-values.md) · [evidence](./milestones/179-owned-assignment-values.md) · [evidence](./assignment-values.md) · [int_assignment_value](../benchmarks/runtime/workloads/int_assignment_value.tsr) · [number_assignment_value](../benchmarks/runtime/workloads/number_assignment_value.tsr) · [boolean_assignment_value](../benchmarks/runtime/workloads/boolean_assignment_value.tsr) · [owned_assignment_values](../benchmarks/runtime/workloads/owned_assignment_values.tsr) |
 | `control.awaitUsing` | pending | missing |  |
 | `control.break` | implemented | compound | Dedicated per-construct timing still missing.; [scalar_control](../benchmarks/runtime/workloads/scalar_control.tsr) |
 | `control.case` | native variant | paired | case clauses end with break, return or continue, or group with the next label. Lowered to an if chain; the value is evaluated once. Running from a clause body into the next clause and a break nested inside a clause statement are rejected. One matched scenario is registered and verified untimed.; [evidence](./milestones/135-switch-statements.md) · [evidence](./switch.md) · [switch_statements](../benchmarks/runtime/workloads/switch_statements.tsr) |

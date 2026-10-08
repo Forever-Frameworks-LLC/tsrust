@@ -177,7 +177,7 @@ chaining, `in`) already had accepted rows under other identifiers.
 | B11 | S07 resources and bytes: opaque handles, close, drop, views | standard library roadmap | pending | incomplete |
 | B12 | S12 thread prerequisites: transferred captures, Send-like checks | standard library roadmap | pending | incomplete |
 | B13 | S13 async compiler: `async`/`await`, async main, suspend-safe loans | standard library roadmap | `unsupported` at declaration | incomplete |
-| B15 | Assignment as a value for strings, arrays and records (`(text = "x").length`) | inventory `control.assignmentExpression` | `unsupported`; int, number and boolean values work | incomplete |
+| B15 | Assignment as a value for strings, arrays and records (`(text = "x").length`) | inventory `control.assignmentExpression` | the value is the target read in place; computed places rejected | accepted: gate 179 ([record](milestones/179-owned-assignment-values.md)) |
 | B14 | `switch` fallthrough between non-empty cases | inventory `control.fallthrough` | `unsupported` with guidance | decision (see C) |
 
 ## C. Not in an approved plan: owner decision required

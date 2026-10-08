@@ -1,3 +1,5 @@
+**Gate 179 accepted:** [Assignment as a value for strings, arrays and records](./milestones/179-owned-assignment-values.md). The value is the target read in place; no copy. Compiler batch 692, editor 365, one matched workload verified untimed.
+
 **Gate 178 (records):** Nineteen language inventory rows that still said pending are reconciled with accepted native behavior, existing workloads and milestone records. Language rows: 314 implemented or native variant, 179 pending, 3 in progress, 3 policy. See the [compiler completion ledger](./compiler-completion-plan.md).
 
 **Gate 177 accepted:** [Unreachable catch bodies](./milestones/177-unreachable-catch-bodies.md). A handler whose try body cannot fail is type checked at the end of analysis and not emitted. The reported caught-error assertion defect does not reproduce; its shapes are now witnesses.
