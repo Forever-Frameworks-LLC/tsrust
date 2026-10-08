@@ -43,5 +43,42 @@ function main() {
 - Parameters accept annotations, defaults, rest and destructuring patterns. A callback parameter can leave its type to the method that receives it, as with an arrow.
 - The result type may be stated or inferred.
 - The body is a block. For an expression body, write an arrow function.
-- A function expression cannot have a name. Bind it to a `const`, or declare the function at the top level of the file.
-- A statement that starts with `function` inside a function body is a `syntax` error, because function declarations belong at the top level.
+- A statement that starts with `function` and a name is a nested function declaration; see [nested functions](nested-functions.md). Without a name it is a `syntax` error, because a function expression is a value.
+
+### Named function expressions
+
+A function expression can have a name. The name is visible only inside that function, so the function can call itself. It does not declare anything in the surrounding block, and a variable with the same spelling outside is untouched.
+
+```tsrust
+import { strictEqual } from "std:testing";
+
+function main() {
+    const factorial = function fact(value: int): int {
+        return value <= 1 ? 1 : value * fact(value - 1);
+    };
+    strictEqual(factorial(5), 120);
+
+    const seen: int[] = [];
+    {
+        const walk = function down(depth: int): void {
+            if (depth === 0) {
+                return;
+            }
+
+            seen.push(depth);
+            down(depth - 1);
+        };
+        walk(3);
+    }
+
+    strictEqual(seen.join(","), "3,2,1");
+    strictEqual([1, 2, 3].map(function square(value: int): int {
+        return value * value;
+    }).join(","), "1,4,9");
+}
+```
+
+- Everything else follows nested function declarations: parameter defaults, rest and type parameters, an omitted result type for a function that does not call itself, and the rules for variables of the enclosing function. A function that calls itself needs a stated result type.
+- While the function value is alive it holds the variables its body uses, exactly like a nested function used as a value. In the example `seen` is free again after the block that declares `walk`.
+- Inside the function the name cannot be assigned, and a parameter may reuse it.
+- A named function expression cannot be a parameter default yet. Use an arrow function there, or declare the function and write its name.

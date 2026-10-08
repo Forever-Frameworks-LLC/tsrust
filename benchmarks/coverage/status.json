@@ -6454,5 +6454,18 @@
     ],
     "measured": true,
     "note": "Gate173 accepts generic functions as values, including functions that use variables of the enclosing function: one environment serves every type the value is called with, a fixed callable annotation selects one specialization, and factories return generic values. Fresh capture-free generic callable replacement now preserves distinct bodies, saved values, path-specific arity and mixed failure transport. Fresh captured declaration replacement now preserves construction origins, independently checked methods and selected capture-access inference. Native borrowing, failure and exact disposal witnesses pass. Point-sensitive owned mutable factory state, loop-created array members and nested owned child captures pass complete compiler/editor milestone coverage. The nineteen-observation replacement workload has 186 execution samples, with native approximately 10.02 times faster by median batch time in this matched run. The other accepted generic-value workloads are measured at the named-declaration family milestone. Broader scoped aggregate composition is separate work. Gate174 repairs formatting-sensitive benchmark guards and mutations; existing workload metadata and historical numerical identities remain pinned. Representative matches pass untimed, with no new language feature or measurement. Named-declaration family timing retains original baseline records and affected rest-snapshot optimization records separately."
+  },
+  "function.namedExpression": {
+    "implementation": "native variant",
+    "comparison": "paired group",
+    "workloads": [
+      "named_function_expressions"
+    ],
+    "evidence": [
+      "./milestones/175-named-function-expressions.md",
+      "./arrow-functions.md"
+    ],
+    "measured": false,
+    "note": "Gate175 accepts named function expressions: the name is private to the function body for recursion; annotated and inferred results, defaults, rest and type parameters, captured variables and use as argument, return value, record field and immediate call. One matched seven-observation scenario verified untimed; no measurement. A named function expression as a parameter default is rejected."
   }
 }

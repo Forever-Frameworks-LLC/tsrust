@@ -41,7 +41,6 @@ function main() {
 #[test]
 fn function_expressions_keep_static_contracts() {
     for (source, code) in [
-        ("function main() { const f = function named(value: int): int { return value; }; }", "unsupported"),
         ("function main() { const f = function (value: int): int => value; }", "syntax"),
         ("function main() { const f = function (value: int): int { return \"x\"; }; }", "type"),
         ("function main() { const f = function (value: int): int { return value; }; f(\"a\"); }", "type"),

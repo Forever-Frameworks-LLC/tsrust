@@ -159,7 +159,7 @@ destructuring, optional chaining, `in`.
 
 | # | Requirement | Source | Current behavior | Status |
 | --- | --- | --- | --- | --- |
-| B1 | Named function expressions: private recursive name, annotated and inferred signatures, captures, generic/default/rest forms | nested function plan; lead 3 | `unsupported`: "A function expression cannot have a name" | incomplete |
+| B1 | Named function expressions: private recursive name, annotated and inferred signatures, captures, generic/default/rest forms | nested function plan; lead 3 | accepted natively; parameter-default position rejected | accepted: gate 175 ([record](milestones/175-named-function-expressions.md)) |
 | B2 | Recursive result inference | gate 173 limit; lead 4 | `result-inference` diagnostic | incomplete |
 | B3 | Type checking of unreachable `catch` bodies | record gate limit; lead 4 | body dropped unchecked | incomplete |
 | B4 | Caught runtime error passed to generic `strictEqual` | named family handoff | internal unsupported type | incomplete |

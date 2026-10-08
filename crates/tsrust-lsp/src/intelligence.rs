@@ -1041,15 +1041,6 @@ impl SourceIndex {
                     let extent_end = body
                         .and_then(|b| self.pairs[b])
                         .map_or(self.tokens[close].span.end, |e| self.tokens[e].span.end);
-                    let declaration = self.add(
-                        name_id,
-                        12,
-                        ty,
-                        self.snippet(id, result_end),
-                        Span::new(self.tokens[id].span.start, extent_end),
-                        self.tokens[id].span.start,
-                        self.tokens[id].scope,
-                    );
                     let body_scope = body
                         .and_then(|b| {
                             self.scopes
@@ -1057,6 +1048,18 @@ impl SourceIndex {
                                 .position(|s| s.span.start == self.tokens[b].span.start)
                         })
                         .unwrap_or(self.tokens[id].scope);
+                    // The name of a function expression is visible only inside
+                    // that function; a declaration belongs to its block.
+                    let expression = id > 0 && !matches!(self.text(id - 1), ";" | "{" | "}" | "export");
+                    let declaration = self.add(
+                        name_id,
+                        12,
+                        ty,
+                        self.snippet(id, result_end),
+                        Span::new(self.tokens[id].span.start, extent_end),
+                        self.tokens[id].span.start,
+                        if expression { body_scope } else { self.tokens[id].scope },
+                    );
                     let parameters = self.parameters(header + 1, close, body_scope);
                     self.symbols[declaration].parameters = parameters;
                     if self.entry_help
@@ -1256,7 +1259,8 @@ impl SourceIndex {
                 // A function expression is the same with `function` before its
                 // parameter list and a block where the arrow would be.
                 let expression = self.text(end) == "=" && self.text(end + 1) == "function";
-                let list = end + 1 + usize::from(expression);
+                let named = expression && name(self.text(end + 2)) && self.text(end + 3) == "(";
+                let list = end + 1 + usize::from(expression) + usize::from(named);
                 if self.text(end) == "="
                     && self.text(list) == "("
                     && let Some(close) = self.pairs[list]

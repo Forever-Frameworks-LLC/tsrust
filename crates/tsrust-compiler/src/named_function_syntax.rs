@@ -18,6 +18,28 @@ impl Parser<'_> {
         })
     }
 
+    /// `function name(...) { ... }` in expression position. The function is
+    /// declared in the enclosing block under a name that source cannot spell,
+    /// so only this expression refers to it; the lexical resolver makes the
+    /// written name visible inside the function body for recursion.
+    #[inline(never)]
+    pub(super) fn named_function_expression(&mut self) -> Result<Expr, Diagnostic> {
+        // Statements pending for the enclosing block must not land in this body.
+        let outer = std::mem::take(&mut self.pending);
+        let parsed = self.local_function_statement();
+        let mut inner = std::mem::replace(&mut self.pending, outer);
+        let mut statement = parsed?;
+        let StmtKind::LocalFunction(function) = &mut statement.kind else {
+            unreachable!("local function statement")
+        };
+        function.body.append(&mut inner);
+        let name = function.name.clone();
+        function.name.text = format!("{}{}{}", name.text, crate::local_functions::EXPRESSION_MARK, name.span.start);
+        let reference = Expr::new(ExprKind::Name(function.name.text.clone()), name.span);
+        self.pending.push(statement);
+        Ok(reference)
+    }
+
     /// The function keyword has already been consumed.
     #[inline(never)]
     pub(super) fn named_function(&mut self) -> Result<Function, Diagnostic> {

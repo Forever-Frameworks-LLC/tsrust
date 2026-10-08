@@ -2443,7 +2443,13 @@ impl Parser<'_> {
             if !allow_default {
                 return Err(Diagnostic::new("parameter-initializer", "Executable defaults belong to declarations and arrows, not callable type annotations.", operator));
             }
+            let declared = self.pending.len();
             let value = self.expression()?;
+            // A default runs before the body block exists, so there is no block
+            // to hold the private declaration of a named function expression.
+            if let Some(statement) = self.pending[declared..].iter().find(|statement| matches!(statement.kind, StmtKind::LocalFunction(_))) {
+                return Err(Diagnostic::new("unsupported", "A named function expression cannot be a parameter default yet. Use an arrow function, or declare the function and write its name here.", statement.span));
+            }
             return Ok(ParameterInitializer::Default { span: Span::new(operator.start, value.span.end), value: Box::new(value) });
         }
         Ok(optional.map_or(ParameterInitializer::Required, ParameterInitializer::Optional))
@@ -3953,8 +3959,13 @@ impl Parser<'_> {
         if self.is("{") {
             return self.block();
         }
-        let value = Box::new(self.expression()?);
-        Ok(Self::returned(value))
+        // A named function expression in the body is declared inside the arrow,
+        // where the arrow parameters are visible.
+        let outer = std::mem::take(&mut self.pending);
+        let value = self.expression();
+        let mut body = std::mem::replace(&mut self.pending, outer);
+        body.append(&mut Self::returned(Box::new(value?)));
+        Ok(body)
     }
 
     #[inline(never)]
@@ -4120,15 +4131,12 @@ impl Parser<'_> {
     /// with the parameters, result and block body of an arrow function.
     #[inline(never)]
     fn function_primary(&mut self) -> Result<Expr, Diagnostic> {
-        let token = self.take();
-        if !self.is("(") {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "A function expression cannot have a name; bind it to a const, or declare the function at the top level.",
-                self.peek().span,
-            ));
+        if self.tokens.get(self.i + 1).is_some_and(|token| token.kind == TokenKind::Name && token.text != "(") {
+            let expr = self.named_function_expression()?;
+            return self.postfix(expr);
         }
-        self.take();
+        let token = self.take();
+        self.expect("(")?;
         let params = self.callable_parameters(true)?;
         let result = if self.accept(":") { self.result_annotation()? } else { ResultAnnotation::Inferred(token.span) };
         if !self.is("{") {

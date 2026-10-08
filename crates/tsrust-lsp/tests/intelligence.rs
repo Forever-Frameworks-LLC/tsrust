@@ -8353,3 +8353,26 @@ fn nested_loop_factories_preserve_independent_signature_help() {
     let help=ask(source,"textDocument/signatureHelp","3,9",0);
     assert!(help.to_string().contains("other: int"),"{help}");
 }
+
+#[test]
+fn named_function_expressions_keep_private_name_help_and_navigation() {
+    let source = tsrust_compiler::format("function main(){const factorial=function fact(value:int):int{return value<=1?1:value*fact(value-1);};console.log(factorial(5));const later=1;console.log(later);}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&source, "file:///test.tsr").unwrap().is_empty());
+    let hover = ask(&source, "textDocument/hover", "fact(value - 1)", 0);
+    let text = hover["contents"]["value"].as_str().unwrap();
+    assert!(text.contains("int") && !text.contains('#'), "{text}");
+    assert_eq!(ask(&source, "textDocument/definition", "fact(value - 1)", 0)["range"]["start"], json!(at(&source, "fact(value: int)", 0)));
+    let outer = ask(&source, "textDocument/hover", "factorial(5)", 0);
+    let text = outer["contents"]["value"].as_str().unwrap();
+    assert!(text.contains("int") && !text.contains('#'), "{text}");
+    let help = ask(&source, "textDocument/signatureHelp", "5)", 0);
+    assert!(help["signatures"][0]["label"].as_str().unwrap().contains("value"), "{help}");
+    let inside = ask(&source, "textDocument/completion", "fact(value - 1)", 0);
+    assert!(inside.as_array().unwrap().iter().any(|item| item["label"] == "fact"));
+    let after = ask(&source, "textDocument/completion", "later)", 0);
+    assert!(!after.as_array().unwrap().iter().any(|item| item["label"] == "fact"));
+    assert!(after.as_array().unwrap().iter().all(|item| !item["label"].as_str().unwrap().contains('#')));
+    let misuse = source.replace("console.log(later);", "console.log(fact(2));");
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&misuse, "file:///test.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "name"), "{diagnostics}");
+}

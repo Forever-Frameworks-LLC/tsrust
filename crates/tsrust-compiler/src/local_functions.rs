@@ -3,6 +3,15 @@ use crate::syntax::*;
 use crate::{Diagnostic, Span};
 use std::collections::HashMap;
 
+/// Separates the written name of a named function expression from the
+/// source position that makes its block-level declaration name unique.
+pub(crate) const EXPRESSION_MARK: &str = "#expression";
+
+/// The name as written, without the expression marker.
+pub(crate) fn written_name(name: &str) -> &str {
+    name.split_once(EXPRESSION_MARK).map_or(name, |(written, _)| written)
+}
+
 #[derive(Clone, Debug)]
 pub(crate) struct Declaration {
     pub id: usize,
@@ -70,11 +79,53 @@ pub(crate) fn resolve(program: &mut Program) -> Result<(), Diagnostic> {
         )?;
     }
     program.local_capture_plans.extend(plan);
+    for function in program.functions.iter_mut().chain(resolver.lifted.iter_mut()) {
+        remove_lifted_placeholders(&mut function.body)?;
+    }
     program.functions.extend(resolver.lifted);
     program.local_declarations = resolver.declarations;
     program.unresolved_local_function = None;
     Ok(())
 }
+/// A lifted declaration leaves an empty block where it stood. Remove those:
+/// a declaration is hoisted, so it may follow a `return` and must not count
+/// as an unreachable statement or as the value of the block.
+fn remove_lifted_placeholders(body: &mut Vec<Stmt>) -> Result<(), Diagnostic> {
+    fn statements(body: &mut Vec<Stmt>) {
+        body.retain(|statement| !matches!(&statement.kind, StmtKind::Block(inner) if inner.is_empty()));
+        for statement in body {
+            match &mut statement.kind {
+                StmtKind::Block(body) | StmtKind::While { body, .. } | StmtKind::ForOf { body, .. } => statements(body),
+                StmtKind::If { then_body, else_body, .. } => {
+                    statements(then_body);
+                    statements(else_body);
+                }
+                StmtKind::Loop { body, update, .. } => {
+                    statements(body);
+                    statements(update);
+                }
+                StmtKind::Try(region) => {
+                    statements(&mut region.body);
+                    if let Some(catch) = &mut region.catch {
+                        statements(&mut catch.body);
+                    }
+                    if let Some(finally) = &mut region.finally {
+                        statements(finally);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    statements(body);
+    crate::source_walk::body(body, &mut |_| Ok(()), &mut |expression| {
+        if let ExprKind::Closure { body, .. } = &mut expression.kind {
+            statements(body);
+        }
+        Ok(())
+    })
+}
+
 impl Resolver {
     fn function(
         &mut self,
@@ -145,7 +196,7 @@ impl Resolver {
                         let function_owner = self.next_owner;
                         self.next_owner += 1;
                         self.local_owners.insert(function_owner, id);
-                        let emitted = format!("local#{id}#{}", name.text);
+                        let emitted = format!("local#{id}#{}", written_name(&name.text));
                         self.capture_plan.owner(function_owner, emitted.clone());
                         // Only calls and value uses create runtime dependencies.
                         // Unused declaration bodies obtain their types separately
@@ -156,7 +207,7 @@ impl Resolver {
                             function_owner,
                             enclosing_owner: owner,
                             statement_span: statement.span,
-                            source_name: name.clone(),
+                            source_name: Token { text: written_name(&name.text).to_owned(), ..name.clone() },
                             emitted_name: emitted.clone(),
                             function_scope: function.scope_span,
                         });
@@ -182,12 +233,21 @@ impl Resolver {
                     else {
                         unreachable!()
                     };
-                    let Symbol::Function { emitted, id } = &env[&function.name.text] else {
+                    let symbol = env[&function.name.text].clone();
+                    let Symbol::Function { emitted, id } = &symbol else {
                         unreachable!()
                     };
+                    // The written name of a function expression is visible in its
+                    // own body only.
+                    let written = written_name(&function.name.text).to_owned();
+                    let private = (written != function.name.text).then(|| {
+                        let mut inner = env.clone();
+                        inner.insert(written, symbol.clone());
+                        inner
+                    });
                     function.name.text = emitted.clone();
                     let local_owner = self.declarations[*id].function_owner;
-                    self.function(&mut function, &env, local_owner, true)?;
+                    self.function(&mut function, private.as_ref().unwrap_or(&env), local_owner, true)?;
                     self.lifted.push(*function);
                 }
                 StmtKind::Let { value, .. }

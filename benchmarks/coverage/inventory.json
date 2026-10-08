@@ -13183,6 +13183,24 @@
       "note": "Existing bounded callable/ownership contracts; broader TS signatures pending. Gate171 accepts nested functions that use variables of enclosing functions (see function.nestedCapture). Gate170 accepts capture-free nested declarations, lexical hoisting, self/mutual recursion, block shadowing and source/editor identity. The matched seven-observation scenario also covers typed variable and arrow-parameter shadowing with outer-binding restoration; five native/Node-after-tsc cases are verified untimed. Gates171/172 accept captures and owned escape. Gate173 adds focused nonrecursive result inference; comprehensive signature/context coverage remains pending. This is not full named-function parity or measurement."
     },
     {
+      "id": "function.namedExpression",
+      "display": "function.namedExpression",
+      "category": "Functions and classes",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/175-named-function-expressions.md",
+        "./arrow-functions.md"
+      ],
+      "workloads": [
+        "named_function_expressions"
+      ],
+      "measured": false,
+      "note": "Gate175 accepts named function expressions: the name is private to the function body for recursion; annotated and inferred results, defaults, rest and type parameters, captured variables and use as argument, return value, record field and immediate call. One matched seven-observation scenario verified untimed; no measurement. A named function expression as a parameter default is rejected."
+    },
+    {
       "id": "function.nestedCapture",
       "display": "function.nestedCapture",
       "category": "Functions and classes",

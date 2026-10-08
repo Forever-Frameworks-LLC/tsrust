@@ -5534,7 +5534,10 @@ impl Analyzer {
             unreachable!("named assignment")
         };
         let id = *context.names.get(name).ok_or_else(|| {
-            Diagnostic::new("name", format!("Unknown value {name:?}."), target.span)
+            match self.program.local_declarations.iter().find(|declaration| declaration.emitted_name == *name) {
+                Some(declaration) => Diagnostic::new("name", format!("Function {:?} cannot be assigned; a function name always refers to its declaration.", declaration.source_name.text), target.span),
+                None => Diagnostic::new("name", format!("Unknown value {name:?}."), target.span),
+            }
         })?;
         if !context.effects_only {
             Self::check_element_access(&context.bindings[id], Mode::Mutate, target.span)?;

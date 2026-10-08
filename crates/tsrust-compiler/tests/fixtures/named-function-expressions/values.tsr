@@ -1,0 +1,102 @@
+import { strictEqual } from "std:testing";
+
+function apply(action: (value: int) => int, value: int): int {
+    return action(value);
+}
+
+function makeCounter() {
+    let calls = 0;
+    return function count(step: int = 1): int {
+        calls += step;
+        return calls;
+    };
+}
+
+function main() {
+    // The name is visible only inside the function, for recursion.
+    const factorial = function fact(value: int): int {
+        return value <= 1 ? 1 : value * fact(value - 1);
+    };
+    strictEqual(factorial(5), 120);
+
+    // An outer variable with the same spelling is not replaced.
+    const fact = 7;
+    strictEqual(fact, 7);
+
+    // The function reads and changes variables of main.
+    const seen: int[] = [];
+    let total = 0;
+    {
+        const walk = function down(depth: int): void {
+            if (depth === 0) {
+                return;
+            }
+
+            seen.push(depth);
+            total += depth;
+            down(depth - 1);
+        };
+        walk(3);
+    }
+
+    strictEqual(seen.join(","), "3,2,1");
+    strictEqual(total, 6);
+
+    // Passed directly as an argument, with an inferred result type.
+    strictEqual(apply(function twice(value: int) {
+        return value + value;
+    }, 4), 8);
+    strictEqual([1, 2, 3].map(function square(value: int): int {
+        return value * value;
+    }).join(","), "1,4,9");
+
+    // A parameter can reuse the function name.
+    const shadow = function same(same: int): int {
+        return same + 1;
+    };
+    strictEqual(shadow(1), 2);
+
+    // Returned from a factory with a default parameter; each call has its own state.
+    const first = makeCounter();
+    const second = makeCounter();
+    strictEqual(first(), 1);
+    strictEqual(first(4), 5);
+    strictEqual(second(), 1);
+
+    // Rest and generic forms.
+    const sum = function add(...values: int[]): int {
+        let result = 0;
+        for (const value of values) {
+            result += value;
+        }
+
+        return result;
+    };
+    strictEqual(sum(1, 2, 3), 6);
+    const pick = function choose<T>(left: T, right: T, first: boolean): T {
+        return first ? left : right;
+    };
+    strictEqual(pick(1, 2, true), 1);
+    strictEqual(pick("a", "b", false), "b");
+
+    // In an arrow body the function sees the arrow parameters.
+    const make = (offset: int) => function add(value: int): int {
+        return value <= 0 ? offset : 1 + add(value - 1);
+    };
+    strictEqual(make(10)(2), 12);
+
+    // Two functions that name each other through their private names.
+    const even = function isEven(value: int): boolean {
+        const odd = function isOdd(inner: int): boolean {
+            return inner === 0 ? false : isEven(inner - 1);
+        };
+        return value === 0 ? true : odd(value - 1);
+    };
+    strictEqual(even(4), true);
+    strictEqual(even(3), false);
+
+    // Called at once.
+    strictEqual((function start(value: int): int {
+        return value + 1;
+    })(2), 3);
+}

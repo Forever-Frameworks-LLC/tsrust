@@ -33,7 +33,8 @@ A declaration conflicts with another declaration of the same name in its block.
 A function-body declaration also cannot replace a parameter of that function.
 A closure parameter or a declaration in a nested block may shadow the name.
 Function declarations require a braced body and cannot be a lone unbraced if/loop
-body. Named function expressions are still a separate unsupported syntax feature.
+body. A named function expression is a value with a private name; see
+[function expressions](arrow-functions.md#named-function-expressions).
 
 ## Variables of the enclosing function
 
