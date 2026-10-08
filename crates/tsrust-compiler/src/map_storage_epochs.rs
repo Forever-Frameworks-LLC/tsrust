@@ -94,13 +94,14 @@ impl Emitter<'_> {
         let comma = if places.is_empty() { "" } else { "," };
         let indent = "    ".repeat(depth);
         let pattern = places.iter().map(|place| format!("mut {place}")).collect::<Vec<_>>().join(",");
-        let values = places.join(",");
+        let then_values = places.iter().map(|place| self.map_branch_exit_value(fun, then_body, place)).collect::<Vec<_>>().join(",");
+        let else_values = places.iter().map(|place| self.map_branch_exit_value(fun, else_body, place)).collect::<Vec<_>>().join(",");
         let condition = self.expr(fun, condition, Mode::Copy);
         let _ = writeln!(output, "{indent}let ({pattern}{comma}) = if {condition} {{");
         self.control_block_epochs(output, fun, then_body, depth + 1, loop_label, Some(declarations));
-        let _ = writeln!(output, "{indent}    ({values}{comma})\n{indent}}} else {{");
+        let _ = writeln!(output, "{indent}    ({then_values}{comma})\n{indent}}} else {{");
         self.control_block_epochs(output, fun, else_body, depth + 1, loop_label, Some(declarations));
-        let _ = writeln!(output, "{indent}    ({values}{comma})\n{indent}}};");
+        let _ = writeln!(output, "{indent}    ({else_values}{comma})\n{indent}}};");
         true
     }
 }
@@ -124,5 +125,19 @@ impl Emitter<'_> {
             }
         }
         false
+    }
+}
+
+impl Emitter<'_> {
+    fn map_branch_exit_value(&self, fun: &CheckedFunction, body: &[Stmt], place: &str) -> String {
+        if self.map_storage_live_at_exit(fun, body, place) { return place.to_owned(); }
+        // Source availability remains consumed. This empty native owner only
+        // balances branch storage; it has no captured payload to copy or drop.
+        for (binding, value) in fun.bindings.iter().enumerate() {
+            let ty = if place == format!("value{binding}") { Some(value.ty) }
+                else { self.owned_record_layout(fun, binding).and_then(|layout| layout.leaves.iter().find(|leaf| leaf.native_name(binding) == place).map(|leaf| leaf.ty)) };
+            if let Some(ty @ Type::Map(_)) = ty { return format!("<{}>::new()", self.native_type(ty)); }
+        }
+        unreachable!("checked Map storage leaf")
     }
 }

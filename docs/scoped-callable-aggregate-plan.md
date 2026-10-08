@@ -723,3 +723,21 @@ transport/disposal work rather than dropping the survivor early.
 The affected 64-test batch, eight depth canaries and focused sibling editor
 diagnostics pass. Exact checks are verified in SQLite as
 `tsrust-b5-both-branch-consumption-checks.log`. Whole B5 acceptance remains pending.
+
+One-path consumption now balances native branch storage with an empty internal
+Map on the consumed path. Checked source availability remains consumed, so this
+storage cannot revive the source binding. The other path returns its actual live
+owner and preserves its scope disposal boundary. The empty Map contains no callback
+payload and copies no capture; the runtime constructor uses empty Vec/HashMap
+storage without reserving entries. Later checked assignment can replace either
+path's storage normally. Both-consumed paths continue to omit storage entirely.
+
+The move witness previously failed with E0382 and now executes both one-path branch
+choices. An independent disposal witness executes a cleared/consumed path and an
+uncleared survivor path at Rust optimization levels 0 and 3. Exact output proves
+the cleared payload drops before the moved marker, the survivor drops after the
+inside marker at its original enclosing scope, and internal empty storage adds no
+callback drop. The affected 65-test batch, eight depth canaries and focused sibling
+editor diagnostics pass. Exact checks are verified in SQLite under
+`tsrust-b5-one-branch-consumption-checks.log`. Exception and indexed storage remain
+open; this is focused implementation evidence, not whole B5 acceptance or timing.

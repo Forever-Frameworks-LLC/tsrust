@@ -1,6 +1,12 @@
 mod support;
 
 #[test]
+fn one_branch_map_consumption_preserves_survivor_disposal_boundary() {
+    let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(branch:boolean):void{const values=[3];{const handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>values[0]});if(branch){handlers.clear();const moved=handlers;console.log('moved');}else{console.log('kept');}console.log('inside');}values[0]=9;console.log('outside');}function main():void{scenario(true);scenario(false);}");
+    verify_disposal(&source, 1, "drop 0\nmoved\ninside\noutside\nkept\ninside\ndrop 0\noutside\n");
+}
+
+#[test]
 fn renewed_map_can_be_consumed_inside_its_clear_block() {
     let source = r#"
         import { strictEqual } from "std:testing";
@@ -23,6 +29,9 @@ fn renewed_map_can_be_consumed_inside_its_clear_block() {
     assert_ne!(branches, source);
     project(&branches);
     project(&branches.replace("values[0] === 3", "values[0] === 4"));
+    let one_path = branches.replace("else { handlers.clear(); const moved = handlers; strictEqual(moved.size, 0); }", "else { handlers.clear(); }");
+    project(&one_path);
+    project(&one_path.replace("values[0] === 3", "values[0] === 4"));
     let restored = source.replace("const handlers =", "let handlers =")
         .replace("values[0] = 9;", "handlers = new Map<string, Holder>(); strictEqual(handlers.size, 0); values[0] = 9;");
     project(&restored);
