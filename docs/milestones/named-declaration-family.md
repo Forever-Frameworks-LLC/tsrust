@@ -1,6 +1,6 @@
 # Named declaration family milestone
 
-Status: source requirements, measurements and performance review accepted; executable publication and final handoff remain open. Gates 170–173 and the subsequent callable replacement family are accepted. This milestone closes the accumulated declaration workloads without reopening completed language gates or claiming unsupported scoped aggregate composition.
+Status: accepted. Source requirements, measurements, performance review, executable publication and final handoff are complete. Gates 170–173 and the subsequent callable replacement family are accepted. This milestone closes the accumulated declaration workloads without reopening completed language gates or claiming unsupported scoped aggregate composition.
 
 ## Contract and source audit
 
@@ -59,7 +59,7 @@ A new native allocation-budget witness fails with 2,001 allocations for 1,000 sm
 
 The budget witness passes at optimization levels 0 and 3. All 47 affected array-literal spread, ordinary/iterable call spread, captured rest and rest-parameter checks pass, including source snapshot order and ownership/failure controls. This optimization is checkpointed in 15af854. Changed generated programs receive fresh correctness, timing and allocation evidence. Unchanged programs retain their original measurements.
 
-The allocation optimization is checkpointed in 15af854. All 359 editor tests pass. Canonical generated-program comparison identifies only nested_function_rest and generic_value_adapters as changed; ten workloads retain exact emitted hashes and their original measurements. The optimized rest profile records 2,049 allocations and eight reallocations, removing 10,240 snapshot allocations from the 2,048-scenario batch. A serial release comparison succeeds after debug and concurrent release checks of the large generic adapter workload hit a 120-second limit. A live stack sample identifies specialization worklist and guard-partition/state joins. These compiler-efficiency observations remain a follow-up; their cause is not yet proven. Preserve the first unnormalized comparison as rejected evidence and use the final trimmed-stdout comparison, matching the benchmark runner. Affected timing is accepted; executable publication and final handoff remain pending.
+The allocation optimization is checkpointed in 15af854. All 359 editor tests pass. Canonical generated-program comparison identifies only nested_function_rest and generic_value_adapters as changed; ten workloads retain exact emitted hashes and their original measurements. The optimized rest profile records 2,049 allocations and eight reallocations, removing 10,240 snapshot allocations from the 2,048-scenario batch. A serial release comparison succeeds after debug and concurrent release checks of the large generic adapter workload hit a 120-second limit. A live stack sample identifies specialization worklist and guard-partition/state joins. These compiler-efficiency observations remain a follow-up; their cause is not yet proven. Preserve the first unnormalized comparison as rejected evidence and use the final trimmed-stdout comparison, matching the benchmark runner. Affected timing is accepted; executable publication and final handoff are complete.
 
 ## Accepted optimized measurements and regression reconciliation
 
