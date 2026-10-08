@@ -1,6 +1,45 @@
 mod support;
 
 #[test]
+fn fallible_prefix_map_refill_preserves_finally_storage() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function failIf(fail: boolean): int { if (fail) throw 5; return 1; }
+        function scenario(fail: boolean): void {
+            const old = [3];
+            const current = [7];
+            const handlers = new Map<string, Holder>();
+            handlers.set("old", { run: (): int => old[0] });
+            let path = 0;
+            let cleaned = 0;
+            try {
+                path = failIf(fail);
+                handlers.clear();
+                handlers.set("new", { run: (): int => current[0] });
+            } catch (error) {
+                path = 2;
+                handlers.clear();
+                handlers.set("new", { run: (): int => current[0] });
+            } finally {
+                cleaned = handlers.size;
+            }
+            old[0] = 9;
+            strictEqual(path, fail ? 2 : 1);
+            strictEqual(cleaned, 1);
+            {
+                const entry = handlers.get("new");
+                if (entry !== undefined) strictEqual(entry.run(), 7);
+            }
+            handlers.clear();
+            current[0] = 11;
+            strictEqual(old[0] + current[0], 20);
+        }
+        function main(): void { scenario(false); scenario(true); }
+    "#);
+}
+
+#[test]
 fn fallible_prefix_map_renewal_disposes_at_each_path_clear() {
     let source = support::format_round_trip(r#"
         type Holder = { run: ReadOnly<Function<int>>; };

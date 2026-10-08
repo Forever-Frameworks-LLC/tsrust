@@ -848,3 +848,14 @@ and both returned results; rehashed deletion controls pass. Native and
 Node-after-tsc verification passes untimed. Exact evidence is verified in SQLite
 as `runtime/results/2026-10-08T17-12-49-977Z-verify.json`; its loose copy is
 removed. B5 family acceptance and measurement remain pending.
+
+Finally transport has a confirmed red witness:
+`fallible_prefix_map_refill_preserves_finally_storage` extends the normal/caught
+fallible-prefix scenarios with cleanup that observes the surviving Map size.
+Both outcomes must retain the new callback through cleanup, release the old
+capture, and dispose the new capture at the later explicit clear. Analysis
+accepts the source; generated Rust still fails with E0502 because the existing
+storage helper excludes finally. Exact red evidence is verified in SQLite as
+`tsrust-b5-finally-storage-red.log`. Next transport must carry pending completion
+and storage through cleanup, including handler failures and cleanup overrides;
+do not skip finally for abrupt outcomes or move its observations earlier.
