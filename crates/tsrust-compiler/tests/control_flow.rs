@@ -213,6 +213,11 @@ function main() { const user: User = { name: "Pat" }; maybe(user, false); consol
 
 #[test]
 fn invalid_conditions_scopes_returns_and_syntax_are_rejected() {
+    execute(
+        r#"function main() { const local = 1; if (true) { const local = 2; console.log(local); } console.log(local); }"#,
+        "2\n1\n",
+        None,
+    );
     for (source, code) in [
         (r#"function main() { if (1) {} }"#, "type"),
         (r#"function main() { if ("yes") {} }"#, "type"),
@@ -235,10 +240,6 @@ fn invalid_conditions_scopes_returns_and_syntax_are_rejected() {
         (
             r#"function main() { if (true) { const local = 1; } else { console.log(local); } }"#,
             "name",
-        ),
-        (
-            r#"function main() { const local = 1; if (true) { const local = 2; } }"#,
-            "duplicate",
         ),
         (
             r#"function f(flag: boolean): int { if (flag) { return 1; } } function main() {}"#,

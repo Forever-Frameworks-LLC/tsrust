@@ -41,7 +41,37 @@ Node-after-tsc: `math_sin`, `array_concat_int_zero`, `int_assignment_value`,
 tests also verify 880 actual Node point calls and 110 scalar cases. These checks are
 correctness evidence, not performance measurements.
 
-Whole compiler acceptance and project formatting are recorded at closure. The two
-existing callable replacement witnesses remain outside this infrastructure gate.
-No compiler or editor source is changed. Installed consumers therefore retain the
-accepted gate 173 compiler source.
+The whole compiler run exposed two additional aborted suites: deep branch parsing
+and nullable nested calls overflowed normal test stacks. Both reproduced alone.
+LLDB identified parser recursion, and disassembly measured an 8,752-byte conditional
+frame and a 2,272-byte call-step frame. Conditional construction and else-chain
+handling now own separate temporaries. Ordinary calls prepare the existing boxed
+operand before argument recursion and construct the result afterward. No extra
+operand clone, larger worker stack or reduced source-depth limit is introduced.
+The original depth witnesses now pass; affected suites, depth canaries and the whole
+editor crate are checked before closure.
+
+The two existing callable replacement witnesses remain outside this infrastructure
+gate. Completed whole-crate checks are preserved; only affected groups are rerun.
+Project formatting changes no source file or fingerprint. Consumer refreshes use
+atomic replacement after the compiler repair is verified.
+
+## Closure checks
+
+The whole compiler command completed with 2,178 passes and the two known callable
+replacement failures, plus aborted `control_flow` and `nullable_callables` targets.
+The aborted suites were not included in that numerical pass count. Their resumed
+suites now pass 11 and 24 tests. The new normal-stack parser unit also passes,
+including formatter idempotence and analysis of formatted nested calls. This gives
+2,214 distinct passing compiler tests and only the two retained replacement
+witnesses. All eight depth canaries pass in the same affected-suite continuation.
+The whole editor crate passes 339 tests.
+
+One previously hidden expectation rejected ordinary lexical shadowing. Gate 170
+already accepts it. The replacement control checks inner `2` and outer `1` through
+native execution after formatting; Node produces the same output.
+
+Disassembly after the repair measures 5,120 bytes for `if_statement` and 832 bytes
+for `call_step`, compared with 8,752 and 2,272 bytes before. The normal worker stack
+and 128 source-depth diagnostics remain unchanged. These are frame measurements,
+not runtime performance measurements.

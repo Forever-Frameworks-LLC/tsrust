@@ -2757,33 +2757,39 @@ impl Parser<'_> {
         let condition = self.comma_expression()?;
         self.expect(")")?;
         let then_body = self.body()?;
-        let else_body = if self.accept("else") {
-            if self.is("if") {
-                if self.depth >= 128 {
-                    return Err(Diagnostic::new(
-                        "unsupported",
-                        "Conditional nesting exceeds the prototype limit of 128.",
-                        self.peek().span,
-                    ));
-                }
-                self.depth += 1;
-                let nested = self.if_statement();
-                self.depth -= 1;
-                vec![nested?]
-            } else {
-                self.body()?
-            }
-        } else {
-            Vec::new()
-        };
-        Ok(Stmt { labels: Vec::new(), control_target: None,
-            kind: StmtKind::If {
-                condition,
-                then_body,
-                else_body,
-            },
+        let else_body = self.if_else_body()?;
+        Ok(Self::conditional_statement(span, condition, then_body, else_body))
+    }
+
+    // Else-chain temporaries do not occupy every recursively retained block.
+    #[inline(never)]
+    fn if_else_body(&mut self) -> Result<Vec<Stmt>, Diagnostic> {
+        if !self.accept("else") {
+            return Ok(Vec::new());
+        }
+        if !self.is("if") {
+            return self.body();
+        }
+        if self.depth >= 128 {
+            return Err(Diagnostic::new(
+                "unsupported",
+                "Conditional nesting exceeds the prototype limit of 128.",
+                self.peek().span,
+            ));
+        }
+        self.depth += 1;
+        let nested = self.if_statement();
+        self.depth -= 1;
+        Ok(vec![nested?])
+    }
+
+    // Construct the large statement value after recursive parsing returns.
+    #[inline(never)]
+    fn conditional_statement(span: Span, condition: Expr, then_body: Vec<Stmt>, else_body: Vec<Stmt>) -> Stmt {
+        Stmt { labels: Vec::new(), control_target: None,
+            kind: StmtKind::If { condition, then_body, else_body },
             span,
-        })
+        }
     }
     fn while_statement(&mut self) -> Result<Stmt, Diagnostic> {
         let span = self.expect("while")?.span;
@@ -4453,8 +4459,31 @@ impl Parser<'_> {
 
     #[inline(never)]
     fn call_step(&mut self, slot: &mut Option<Expr>) -> Result<(), Diagnostic> {
+        if !self.accept("(") {
+            return self.explicit_call_step(slot);
+        }
+        let base = Self::take_call_operand(slot);
+        let (arguments, end) = self.call_arguments()?;
+        Self::finish_call_slot(slot, base, arguments, end)
+    }
+
+    // The existing boxed call operand is prepared before argument recursion.
+    #[inline(never)]
+    fn take_call_operand(slot: &mut Option<Expr>) -> Box<Expr> {
+        Box::new(slot.take().expect("postfix operand"))
+    }
+
+    #[inline(never)]
+    fn finish_call_slot(slot: &mut Option<Expr>, base: Box<Expr>, arguments: Vec<Expr>, end: Token) -> Result<(), Diagnostic> {
+        *slot = Some(Self::finish_call_expression(base, arguments, end)?);
+        Ok(())
+    }
+
+    // Explicit type argument construction stays outside ordinary call frames.
+    #[inline(never)]
+    fn explicit_call_step(&mut self, slot: &mut Option<Expr>) -> Result<(), Diagnostic> {
         let expr = slot.take().expect("postfix operand");
-        *slot = Some(self.postfix_call(expr)?);
+        *slot = Some(self.explicit_call_expression(expr)?);
         Ok(())
     }
 
@@ -4616,4 +4645,26 @@ fn explicit_optional_calls_retain_the_optional_receiver_boundary() {
     assert!(matches!(callee.kind, ExprKind::Unary { op: UnaryOp::OptionalBoundary, .. }));
     assert_eq!(program.call_type_arguments.len(), 1);
     assert_eq!(program.call_type_arguments[0].0, call.span);
+}
+
+#[cfg(test)]
+#[test]
+fn nested_call_arguments_keep_normal_parser_stack() {
+    for depth in [100, 200] {
+        let source = format!(
+            "function id(value:int):int{{return value;}}function main(){{const action:(Function<int, [value:int]>)|null=id;if(action!==null){{console.log(action({}1{}));}}}}",
+            "id(".repeat(depth), ")".repeat(depth)
+        );
+        let result = parse(&source);
+        if depth == 100 {
+            assert!(result.is_ok(), "100 nested call arguments must parse");
+            let formatted = crate::format(&source).expect("deep source formats");
+            assert_eq!(crate::format(&formatted).unwrap(), formatted);
+            assert!(crate::check(&formatted).is_ok(), "formatted nested calls remain valid");
+        } else {
+            let error = result.err().expect("source nesting remains bounded");
+            assert_eq!(error.code, "unsupported");
+            assert!(error.message.contains("128"));
+        }
+    }
 }

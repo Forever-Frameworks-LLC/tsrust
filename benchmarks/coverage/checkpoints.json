@@ -1,5 +1,15 @@
 {
   "schemaVersion": 1,
+  "benchmarkHarnessLayoutContracts": {
+    "gate": 174,
+    "status": "accepted-source-contracts",
+    "harnessTests": 421,
+    "formattedSourceIdentities": 60,
+    "preservedMetadataPrefixes": 23,
+    "representativeMatchedWorkloads": 5,
+    "timed": false,
+    "evidence": "../../docs/milestones/174-benchmark-layout-contracts.md"
+  },
   "gatesPerCheckpoint": 5,
   "lastMeasuredGate": 96,
   "nextCheckpointGate": 101,
