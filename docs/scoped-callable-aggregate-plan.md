@@ -465,3 +465,10 @@ observation. All five native/Node-after-tsc cases pass; exact evidence is in SQL
 as `runtime/results/2026-10-08T16-03-04-914Z-verify.json`, with depth evidence under
 `tsrust-b5-independent-record-map-elements-depth.log`. Timing and whole B5 acceptance
 remain pending, including precise per-element capture release and Set key design.
+
+Focused growth witnesses now verify independent scoped Map environments inserted
+into record arrays through `push`, `unshift` and `splice`. Each case checks both
+callback results through the project/native path after formatting and verifies
+formatter idempotence. Existing carrier planning handles these paths without a
+compiler change. This evidence does not establish precise per-element capture
+release, Set key support or whole B5 acceptance.

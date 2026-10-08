@@ -1,6 +1,32 @@
 mod support;
 
 #[test]
+fn pushed_record_map_elements_preserve_independent_environments() {
+    let source = r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        type Box = { handlers: Map<string, Holder>; };
+        function main() {
+            const values = [3, 7];
+            const first = new Map<string, Holder>();
+            first.set("value", { run: (): int => values[0] });
+            const boxes: Box[] = [{ handlers: first }];
+            const second = new Map<string, Holder>();
+            second.set("value", { run: (): int => values[1] });
+            boxes.push({ handlers: second });
+            const left = boxes[0].handlers.get("value");
+            const right = boxes[1].handlers.get("value");
+            if (left !== undefined) strictEqual(left.run(), 3);
+            if (right !== undefined) strictEqual(right.run(), 7);
+        }
+    "#;
+    project(source);
+    project(&source.replace("boxes.push({ handlers: second });", "boxes.unshift({ handlers: second });")
+        .replace("left.run(), 3", "left.run(), 7").replace("right.run(), 7", "right.run(), 3"));
+    project(&source.replace("boxes.push({ handlers: second });", "boxes.splice(1, 0, { handlers: second });"));
+}
+
+#[test]
 fn separate_map_elements_keep_key_contracts_and_both_capture_owners() {
     let prefix = "type Holder={run:ReadOnly<Function<int>>;};type Box={handlers:Map<string,Holder>;};function main(){const a=[3];const b=[7];const first=new Map<string,Holder>();first.set('value',{run:():int=>a[0]});const second=new Map<string,Holder>();second.set('value',{run:():int=>b[0]});const boxes:Box[]=[{handlers:first},{handlers:second}];";
     for owner in ["a", "b"] {
