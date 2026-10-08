@@ -159,3 +159,47 @@ fn directory_and_extension_match_independent_node_reference() {
     }}
     assert!(lines.next().is_none());
 }
+
+#[test]
+fn absolute_and_normalize_boundaries_and_idempotence() {
+    use tsrust_compiler::native_path::{is_absolute,normalize};
+    for (path,absolute,expected) in [
+        ("",false,"."),("/",true,"/"),("///",true,"/"),
+        ("a//b/../c/",false,"a/c/"),("/../../a",true,"/a"),
+        ("../../a/../",false,"../../"),("./",false,"./"),
+        ("é😊/../文/",false,"文/"),
+    ] { assert_eq!(is_absolute(path,false),absolute);assert_eq!(normalize(path,false),expected);assert_eq!(normalize(expected,false),expected); }
+    for (path,absolute,expected) in [
+        ("C:a\\..\\b",false,"C:b"),("C:",false,"C:."),
+        ("C:\\..\\a\\",true,"C:\\a\\"),
+        ("\\\\host\\share\\..\\a",true,"\\\\host\\share\\a"),
+        ("\\\\host\\share",true,"\\\\host\\share\\"),
+        ("a\\..\\C:foo",false,".\\C:foo"),
+    ] { assert_eq!(is_absolute(path,true),absolute);assert_eq!(normalize(path,true),expected);assert_eq!(normalize(expected,true),expected); }
+}
+
+#[test]
+fn normalize_and_absolute_match_both_node_conventions() {
+    use tsrust_compiler::native_path::{normalize,is_absolute};
+    let mut paths=vec!["".to_owned(),"/".into(),"\\".into(),"C:".into(),"\\\\host\\share".into(),"CON:".into(),"COM1:foo".into(),"\\\\?\\COM1:".into(),"\\\\.\\PHYSICALDRIVE0".into()];
+    for prefix in ["", "/", "//", "///", "C:", "C:/", "\\\\host\\share\\", "\\\\?\\C:\\", "é😊/"] {
+        for middle in ["", "a/", "./", "../", "a/../../", "a//b/../", "a/../"] {
+            for component in ["a", ".", "..", "...", "é😊.txt", "C:foo", "a:", "a:/", "CON:foo"] {
+                for trailing in ["", "/", "\\"] {paths.push(format!("{prefix}{middle}{component}{trailing}"));}
+            }
+        }
+    }
+    let json=paths.iter().map(|p|tsrust_compiler::json_string(p)).collect::<Vec<_>>().join(",");
+    let script=format!("const p=require('node:path');for(const w of [false,true])for(const s of [{json}]){{const m=w?p.win32:p.posix;const n=m.normalize(s);console.log(JSON.stringify([n,m.isAbsolute(s),m.normalize(n)]));}}");
+    let output=std::process::Command::new("node").args(["-e",&script]).output().unwrap();assert!(output.status.success());
+    let text=String::from_utf8(output.stdout).unwrap();let mut lines=text.lines();
+    for windows in [false,true] {for path in &paths {
+        let normalized=normalize(path,windows);
+        let second=normalize(&normalized,windows);
+        let actual=format!("[{},{},{}]",tsrust_compiler::json_string(&normalized),is_absolute(path,windows),tsrust_compiler::json_string(&second));
+        assert_eq!(Some(actual.as_str()),lines.next(),"windows={windows} path={path:?}");
+        // Pin idempotence where the reference is stable; reserved device safeguards can change on a second pass.
+        if !windows || (!path.contains(':') && !normalized.starts_with(r"\\.\") && !normalized.starts_with(r"\\?\")) {assert_eq!(second,normalized,"{path:?}");}
+    }}
+    assert!(lines.next().is_none());
+}

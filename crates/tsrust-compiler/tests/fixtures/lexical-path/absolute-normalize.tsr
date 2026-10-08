@@ -1,0 +1,17 @@
+import { isAbsolute, normalize } from "std:path";
+import { strictEqual } from "std:testing";
+
+function main() {
+    const path = "/a//b/../";
+    const absolute = isAbsolute;
+    const canonical = normalize;
+    strictEqual(absolute(path), true);
+    strictEqual(isAbsolute(""), false);
+    strictEqual(isAbsolute("C:report.txt"), false);
+    strictEqual(canonical(path), "/a/");
+    strictEqual(normalize(""), ".");
+    strictEqual(normalize("/../../a"), "/a");
+    strictEqual(normalize("../../a/../"), "../../");
+    strictEqual(normalize(normalize(path)), normalize(path));
+    strictEqual(path, "/a//b/../");
+}

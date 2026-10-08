@@ -32,3 +32,15 @@ fn binding_contract_keeps_arity_types_ownership_and_feature_selection_consistent
     );
     assert!(selected_features([("std:path", "missing")]).is_err());
 }
+
+#[test]
+fn lexical_path_fixed_arity_and_boolean_result() {
+    for name in ["dirname","extname","isAbsolute","normalize"] {
+        let binding=lookup("std:path",name).unwrap();
+        assert_eq!(binding.parameters.len(),1);assert_eq!(binding.parameters[0].access,Mode::Read);
+        assert_eq!(binding.parameters[0].ty,NativeType::String);
+        assert_eq!(binding.result,if name=="isAbsolute" {NativeType::Boolean} else {NativeType::String});
+        assert!(!binding.accepts_arity(0));assert!(binding.accepts_arity(1));assert!(!binding.accepts_arity(2));
+        assert_eq!(binding.features,&["path"]);
+    }
+}

@@ -38,3 +38,14 @@ pub(crate) const EXTNAME: NativeBinding = NativeBinding {
     result: NativeType::String,
     backend: NativeBackend::Bundled { symbol: "tsrust_std_path_extname" }, features: &["path"],
 };
+
+pub(crate) const IS_ABSOLUTE: NativeBinding = NativeBinding {
+    module: "std:path", name: "isAbsolute", parameters: PATH_PARAMETER,
+    result: NativeType::Boolean,
+    backend: NativeBackend::Bundled { symbol: "tsrust_std_path_is_absolute" }, features: &["path"],
+};
+pub(crate) const NORMALIZE: NativeBinding = NativeBinding {
+    module: "std:path", name: "normalize", parameters: PATH_PARAMETER,
+    result: NativeType::String,
+    backend: NativeBackend::Bundled { symbol: "tsrust_std_path_normalize" }, features: &["path"],
+};

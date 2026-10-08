@@ -3494,6 +3494,40 @@
           "output": ".gz\n"
         }
       ]
+    },
+    {
+      "name": "isAbsolute",
+      "signature": "isAbsolute(path: string): boolean",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "The lexical path text to examine. No file needs to exist."
+        }
+      ],
+      "documentation": "Tests whether a path starts with platform root syntax without reading the filesystem. Accepts exactly one string path. Missing, extra and non-string arguments are compile-time errors. Returns a boolean and leaves the input unchanged.\n\n```tsrust\nimport { isAbsolute } from \"std:path\";\nfunction main() {\n    console.log(isAbsolute(\"/tmp/report.txt\"));\n} // output: true\n```\n\nEmpty input is false. POSIX requires a leading slash. Windows accepts a leading slash or backslash, UNC syntax, and a drive letter followed by colon and a separator. C:report.txt is drive-relative and returns false. Dot components do not change root syntax. This test does not prove filesystem containment. Native strings contain valid UTF-8 text. Unicode content is preserved without Unicode normalization.\n\nOwnership: path is borrowed; the result is a boolean value.",
+      "examples": [
+        {
+          "source": "import { isAbsolute } from \"std:path\";\nfunction main() {\n    console.log(isAbsolute(\"/tmp/report.txt\"));\n}\n",
+          "output": "true\n"
+        }
+      ]
+    },
+    {
+      "name": "normalize",
+      "signature": "normalize(path: string): string",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "The lexical path text to examine. No file needs to exist."
+        }
+      ],
+      "documentation": "Returns a lexical path with repeated separators collapsed and dot components resolved without reading the filesystem. Accepts exactly one string path. Missing, extra and non-string arguments are compile-time errors. Returns independently owned text and leaves the input unchanged.\n\n```tsrust\nimport { normalize } from \"std:path\";\nfunction main() {\n    console.log(normalize(\"reports/../archive/\"));\n} // output: archive/\n```\n\nEmpty input returns dot. Absolute paths cannot traverse above their root; leading relative parent components remain. A trailing separator remains. POSIX uses slash and collapses leading repeated slashes. Windows emits backslash, retains drive prefixes and UNC share roots, and protects relative colon paths from becoming drive paths. Device and reserved-name paths follow lexical spelling rules; repeated normalization can change special device forms, for example `CON:` normalizes to `.\\CON:.` and then `CON:.`. No symlink resolution occurs. Normalization is not a containment check. Native strings contain valid UTF-8 text. Unicode content is preserved without Unicode normalization.\n\nOwnership: path is borrowed; the result owns its contents.",
+      "examples": [
+        {
+          "source": "import { normalize } from \"std:path\";\nfunction main() {\n    console.log(normalize(\"reports/../archive/\"));\n}\n",
+          "output": "archive/\n"
+        }
+      ]
     }
   ],
   "Object": [

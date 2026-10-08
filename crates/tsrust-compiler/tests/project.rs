@@ -1697,7 +1697,7 @@ fn lexical_path_p1_project_contract() {
     for optimization in ["0","3"] {
         assert_eq!(native_stdout(&checked.emit_rust(),optimization),"/tmp\n.txt\n/tmp/é😊.txt/\n");
     }
-    for name in ["dirname","extname"] {
+    for name in ["dirname","extname","isAbsolute","normalize"] {
         for (argument, code) in [("", "arity"),("'a','b'", "arity"),("3", "type")] {
             let source=format!("import {{{name}}} from 'std:path';function main(){{console.log({name}({argument}));}}");
             let memory=Memory::new(&[("main.tsr", &source)]);
@@ -1706,4 +1706,12 @@ fn lexical_path_p1_project_contract() {
             assert_eq!(error.location.source.0,"main.tsr");
         }
     }
+}
+
+#[test]
+fn lexical_path_p2_primitive_boolean_native_contract() {
+    let entry=support::format_round_trip("import {isAbsolute as absolute,normalize} from 'std:path';import {strictEqual} from 'std:testing';function main(){const path='/a//b/../';const stored=absolute;strictEqual(stored(path),true);strictEqual(absolute(''),false);strictEqual(normalize(path),'/a/');strictEqual(path,'/a//b/../');}");
+    let memory=Memory::new(&[("main.tsr",&entry)]);
+    let checked=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).unwrap();
+    for optimization in ["0","3"] {assert_eq!(native_stdout(&checked.emit_rust(),optimization),"");}
 }

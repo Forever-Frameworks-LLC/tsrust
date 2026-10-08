@@ -19902,6 +19902,46 @@
       "measurementStatus": "pending-path-family",
       "specification": "Alternate /tmp/report.txt and /var/log/archive.tar.gz/ by (i+seed) parity. Apply extname and retain every returned string.",
       "notes": "Matched POSIX semantics on macOS. Input construction, transformation and output retention are timed. No isolated latency or allocation equivalence claim."
+    },
+    {
+      "id": "std_path_is_absolute_ascii",
+      "category": "paths",
+      "description": "Lexical POSIX isAbsolute with retained observations",
+      "source": "workloads/std_path_is_absolute_ascii.tsr",
+      "counterpart": "workloads/std_path_is_absolute_ascii.ts",
+      "sourceSha256": "55596f06aef74dedd8b07510837a406594b36b568160328997ee5f8109e3f84b",
+      "counterpartSha256": "ff9aa28cccd778a9b3733e95ecdd263034dde17c391722112641fad009dc470f",
+      "iterations": 20000,
+      "operationsPerIteration": 1,
+      "result": "string[]",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "family": "lexical-path",
+      "measurementStatus": "pending-path-family",
+      "specification": "Alternate /tmp/report.txt and reports/../archive/ by (i+seed) parity. Apply isAbsolute and retain every result after boolean toString conversion.",
+      "notes": "Matched POSIX semantics on macOS. Input construction, transformation, observation conversion and output retention are timed. No isolated latency or allocation equivalence claim."
+    },
+    {
+      "id": "std_path_normalize_ascii",
+      "category": "paths",
+      "description": "Lexical POSIX normalize with retained observations",
+      "source": "workloads/std_path_normalize_ascii.tsr",
+      "counterpart": "workloads/std_path_normalize_ascii.ts",
+      "sourceSha256": "866670574a2f7794773aa98c55382cd80a7c66b1132ba3a7d6c49c44a0f5b128",
+      "counterpartSha256": "809eeab8d376e06ad29fb2436ba1c7885237e8c5d2447a0a8d7bc56697fd2045",
+      "iterations": 20000,
+      "operationsPerIteration": 1,
+      "result": "string[]",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "family": "lexical-path",
+      "measurementStatus": "pending-path-family",
+      "specification": "Alternate /tmp//reports/../report.txt and reports/../archive/ by (i+seed) parity. Apply normalize and retain every result.",
+      "notes": "Matched POSIX semantics on macOS. Input construction, transformation, observation conversion and output retention are timed. No isolated latency or allocation equivalence claim."
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

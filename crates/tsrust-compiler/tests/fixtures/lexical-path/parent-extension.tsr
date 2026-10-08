@@ -4,8 +4,9 @@ import { strictEqual } from "std:testing";
 function main() {
     const path = "/tmp/é😊.tar.gz/";
     const parent = dirname;
+    const extension = extname;
     strictEqual(parent(path), "/tmp");
-    strictEqual(extname(path), ".gz");
+    strictEqual(extension(path), ".gz");
     strictEqual(path, "/tmp/é😊.tar.gz/");
     strictEqual(dirname(""), ".");
     strictEqual(dirname("//a"), "//");

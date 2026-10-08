@@ -1239,14 +1239,14 @@ fn selected_generic_factories_keep_concrete_calls_and_array_results() {
 
 #[test]
 fn lexical_path_imported_editor_contracts() {
-    for name in ["dirname", "extname"] {
+    for name in ["dirname", "extname", "isAbsolute", "normalize"] {
         let entry=format!("import {{{name} as operation}} from 'std:path';function main(){{const path='a.txt';const result=operation(path);}}");
         let mut workspace=Workspace::default();let uri=source_id("file:///tsrust-intelligence/main.tsr").unwrap();
         workspace.open(uri.clone(),1,entry.clone());
         let checked=workspace.snapshot().check(&uri).unwrap();let index=ProjectIndex::checked(&checked);
         let hover=ask(&index,&entry,"operation(path", "textDocument/hover");
         let docs=hover["contents"]["value"].as_str().unwrap();
-        assert!(docs.contains("operation(path: string): string"),"{hover}");
+        assert!(docs.contains(&format!("operation(path: string): {}",if name=="isAbsolute" {"boolean"} else {"string"})),"{hover}");
         assert!(docs.contains("Ownership:") && docs.contains("```tsrust"),"{hover}");
         let help=ask(&index,&entry,"path);", "textDocument/signatureHelp");
         assert_eq!(help["signatures"][0]["parameters"][0]["label"], "path: string");

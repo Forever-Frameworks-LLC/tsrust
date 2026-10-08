@@ -2685,6 +2685,9 @@ impl Emitter<'_> {
         if self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].features.contains(&"path")) {
             output.push_str("fn tsrust_std_path_dirname(path: &String) -> String { String::Owned(tsrust_native_path::dirname(path.as_ref(), cfg!(windows))) }\nfn tsrust_std_path_extname(path: &String) -> String { String::Owned(tsrust_native_path::extname(path.as_ref(), cfg!(windows))) }\n");
         }
+        if self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].features.contains(&"path")) {
+            output.push_str("fn tsrust_std_path_is_absolute(path: &String) -> bool { tsrust_native_path::is_absolute(path.as_ref(), cfg!(windows)) }\nfn tsrust_std_path_normalize(path: &String) -> String { String::Owned(tsrust_native_path::normalize(path.as_ref(), cfg!(windows))) }\n");
+        }
         if self.native_bindings.borrow().iter().any(|&id| {
             crate::native_bindings::BINDINGS[id].features.contains(&"testing")
         }) {

@@ -105,3 +105,17 @@ function main() {
 ```
 
 Executable assertions: `crates/tsrust-compiler/tests/fixtures/lexical-path/parent-extension.tsr`. Missing, extra or non-string arguments are compile-time errors.
+
+`isAbsolute(path: string): boolean` tests lexical root syntax. Empty input is false; POSIX requires a leading slash. Windows also accepts backslash and drive-letter-colon-separator syntax; `C:report.txt` is relative.
+
+`normalize(path: string): string` collapses separators and resolves dot components without filesystem access. Empty input returns `.`. Absolute parents stop at the root, relative leading `..` remains, and trailing separators remain. Windows retains drive/UNC roots and emits backslash. Ordinary paths are idempotent; special device/colon forms can change on repeated calls. These operations do not establish containment or resolve symlinks.
+
+```tsrust
+import { isAbsolute, normalize } from "std:path";
+function main() {
+    console.log(isAbsolute("/tmp/report.txt")); // true
+    console.log(normalize("reports/../archive/")); // archive/ on POSIX
+}
+```
+
+Both inputs are borrowed and unchanged. The boolean is a value; normalized text owns its contents. Executable assertions: `crates/tsrust-compiler/tests/fixtures/lexical-path/absolute-normalize.tsr`.

@@ -1,4 +1,4 @@
-//! Bundled UTF-8 path operations; no filesystem access or path normalization.
+//! Bundled UTF-8 path operations; no filesystem access.
 /// Last path component, with platform separators and optional case-sensitive suffix removal.
 /// Explicit platform selection permits portable boundary testing of both separator conventions.
 pub fn basename(path: &str, suffix: Option<&str>, windows: bool) -> std::string::String {
@@ -108,4 +108,83 @@ pub fn extname(path: &str, windows: bool) -> std::string::String {
         Some(index) if index > 0 => component[index..].into(),
         _ => std::string::String::new(),
     }
+}
+
+
+/// Test platform root syntax without resolving the path.
+pub fn is_absolute(path: &str, windows: bool) -> bool {
+    let bytes = path.as_bytes();
+    !bytes.is_empty() && (separator(bytes[0],windows) ||
+        (windows && drive_prefix(bytes) && bytes.len() > 2 && separator(bytes[2],true)))
+}
+fn reserved_device(text: &str) -> bool {
+    let upper=text.to_uppercase();
+    matches!(upper.as_str(),"CON"|"PRN"|"AUX"|"NUL"|"COM¹"|"COM²"|"COM³"|"LPT¹"|"LPT²"|"LPT³") ||
+        (upper.len()==4 && (upper.starts_with("COM") || upper.starts_with("LPT")) && matches!(upper.as_bytes()[3],b'1'..=b'9'))
+}
+/// Collapse separators and dot segments lexically; never consult the filesystem.
+pub fn normalize(path: &str, windows: bool) -> std::string::String {
+    let bytes=path.as_bytes();
+    if bytes.is_empty() {return ".".into();}
+    if windows && bytes.len()==1 {return if bytes[0]==b'/' {"\\".into()} else {path.into()};}
+    let absolute=is_absolute(path,windows);
+    let mut offset=0;
+    let mut device=std::string::String::new();
+    if separator(bytes[0],windows) {
+        offset=1;
+        if windows && bytes.len()>1 && separator(bytes[1],true) {
+            // A UNC root contains two nonempty components after exactly two separators.
+            let mut cursor=2;
+            let host=cursor;
+            while cursor<bytes.len() && !separator(bytes[cursor],true) {cursor+=1;}
+            let host_end=cursor;
+            if cursor>host && cursor<bytes.len() {
+                while cursor<bytes.len() && separator(bytes[cursor],true) {cursor+=1;}
+                let share=cursor;
+                while cursor<bytes.len() && !separator(bytes[cursor],true) {cursor+=1;}
+                if cursor>share {
+                    let server=&path[host..host_end];
+                    if matches!(server,"."|"?") {
+                        device=format!("\\\\{server}");offset=4;
+                        if let Some(colon)=path.find(':') {
+                            if colon>=4 && reserved_device(&path[4..colon]) {
+                                device=format!("\\\\?\\{}", &path[4..=colon]);offset=colon+1;
+                            }
+                        }
+                    } else {
+                        device=format!("\\\\{server}\\{}",&path[share..cursor]);offset=cursor;
+                        if cursor==bytes.len() {return format!("{device}\\");}
+                    }
+                }
+            }
+        }
+    } else if windows {
+        if drive_prefix(bytes) {
+            device=path[..2].into();offset=if absolute {3} else {2};
+        } else if let Some(colon)=path.find(':') {
+            if reserved_device(&path[..colon]) {device=path[..=colon].into();offset=colon+1;}
+        }
+    }
+    let mut components:Vec<&str>=Vec::new();
+    for component in path[offset..].split(|ch| ch=='/' || (windows && ch=='\\')) {
+        match component {
+            ""|"."=>{},
+            ".."=>{
+                if components.last().is_some_and(|last| *last!="..") {components.pop();}
+                else if !absolute {components.push(component);}
+            },
+            _=>components.push(component),
+        }
+    }
+    let sep=if windows {"\\"} else {"/"};
+    let mut tail=components.join(sep);
+    if tail.is_empty() && !absolute {tail.push('.');}
+    if !tail.is_empty() && separator(*bytes.last().unwrap(),windows) {tail.push_str(sep);}
+    if windows && !absolute && device.is_empty() && path.contains(':') {
+        let tail_bytes=tail.as_bytes();
+        let suspicious=drive_prefix(tail_bytes) || bytes.iter().enumerate().any(|(index,byte)| *byte==b':' && (index+1==bytes.len() || separator(bytes[index+1],true)));
+        if suspicious {return format!(".\\{tail}");}
+    }
+    if windows && path.find(':').is_some_and(|colon| reserved_device(&path[..colon])) {return format!(".\\{device}{tail}");}
+    if absolute {format!("{device}{sep}{tail}")} else {format!("{device}{tail}")}
 }

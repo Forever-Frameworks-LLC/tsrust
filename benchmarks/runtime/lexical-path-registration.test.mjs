@@ -6,7 +6,7 @@ import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {createRequire} from 'node:module';
 import {assertABI} from './adapters.mjs';
-import {assertLexicalPathSource,lexicalPathIds,lexicalPathChecksum} from './lexical-path-source-contract.mjs';
+import {assertLexicalPathSource,lexicalPathIds,lexicalPathChecksum,lexicalPathCases} from './lexical-path-source-contract.mjs';
 import {expectedChecksum} from './oracle.mjs';
 const require=createRequire(import.meta.url);
 const ts=require('./node_modules/typescript');
@@ -28,7 +28,8 @@ for(const id of lexicalPathIds) test(id+' preserves source, ABI and independent 
     const evaluate=new Function('require','n','seed',js+';return workload(n,seed);');
     const dir=fs.mkdtempSync(path.join(root,'target/editor/lexical-path-'));
     try{for(const [n,seed] of [[0,7],[2,7],[17,0]]){
-        const expected=Array.from({length:n},(_,i)=> id.includes('dirname') ? ((i+seed)%2===0?'/var/log':'/tmp') : ((i+seed)%2===0?'.gz':'.txt'));
+        const c=lexicalPathCases[id];
+        const expected=Array.from({length:n},(_,i)=>(i+seed)%2===0?c.evenResult:c.oddResult);
         assert.deepEqual(evaluate(require,n,seed),expected);
         assert.equal(expectedChecksum(id,n,seed),lexicalPathChecksum(id,n,seed));
         const file=path.join(dir,'main.tsr');

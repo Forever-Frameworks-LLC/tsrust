@@ -56,6 +56,8 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::path::bindings::BASENAME,
     crate::stdlib::path::bindings::DIRNAME,
     crate::stdlib::path::bindings::EXTNAME,
+    crate::stdlib::path::bindings::IS_ABSOLUTE,
+    crate::stdlib::path::bindings::NORMALIZE,
     crate::stdlib::testing::bindings::CHECK_ASSERTION,
     crate::stdlib::testing::bindings::REGISTER_TEST,
     crate::stdlib::testing::bindings::RUN_TESTS,

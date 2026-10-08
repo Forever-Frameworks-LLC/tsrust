@@ -11,7 +11,7 @@ All exports accept exactly one borrowed string argument named `path`. Missing, e
 | dirname | Remove final nonseparator component; retain parent spelling | `.` | POSIX `/` remains `/`; `//a` gives `//`; repeated parent separators remain. Windows recognizes both separators, drive prefixes, and UNC share roots. | No dot resolution; UTF-8 text retained. |
 | extname | Final component suffix starting at last dot | empty string | Ignore trailing separators; Windows drive prefix excluded | `.hidden`, `.`, `..` give empty; `...` and `a.` give `.`; `a.tar.gz` gives `.gz`. Unicode retained. |
 | isAbsolute | Test lexical root syntax | false | POSIX leading `/`; Windows leading separator or letter-colon-separator. `C:a` is relative; UNC is absolute. | Dot segments do not change result. |
-| normalize | Collapse separators and resolve dot components lexically | `.` | Preserve absolute root and final separator; POSIX uses `/`, Windows emits backslash and retains drive/UNC device. | Absolute parents stop at root; relative leading parents survive. Unicode retained. Idempotent for accepted corpus. Not a containment check. |
+| normalize | Collapse separators and resolve dot components lexically | `.` | Preserve absolute root and final separator; POSIX uses `/`, Windows emits backslash and retains drive/UNC device. | Absolute parents stop at root; relative leading parents survive. Unicode retained. Idempotent for ordinary paths; special Windows device/colon forms can change on a second pass. Not a containment check. |
 
 Reference: official [Node path documentation](https://nodejs.org/api/path.html) and [pinned implementation](https://github.com/nodejs/node/blob/v24.11.1/lib/path.js). Differential checks use Node 24.11.1. Algorithms are independently written; Rust Path semantics are not used as an oracle.
 
@@ -36,3 +36,13 @@ Runtime boundary tests and independent Node POSIX/Windows corpus pass: 293 paths
 Matched dirname/extname sources have exact registered hashes, token-aware scenario guards, independent checksum oracles, native ABI checks, runner/profile/report hooks and appended manifest rows. Registration checks pass at n=0,2,17. Timing remains pending P3. Whole fixture formatter corpus passes token preservation, idempotence and valid standalone checks. Project formatting changes 18 files on first pass, zero on second; 15 baseline fixture layout changes remain unstaged and are excluded from feature commits. No owner edits were copied.
 
 Evidence identities: worktree SQLite records `stdlib-path-{red,green,project-red,project-green,reference,editor,registration,fixture,docs,docs-repair,docs-final,format,format-second,format-corpus,build}.log`. Main store and consumers remain untouched.
+
+## P2 accepted focused checks
+
+The native boolean bridge is verified at O0/O3 through direct and stored imported calls and std:testing assertions. The registry pins exactly one borrowed string input and boolean/string output types. All four exports have exact arity/type diagnostic checks, input reuse, stored alias fixtures, and imported editor hover/completion/parameter help. Four catalog examples execute after formatting with expected output.
+
+Normalization/root differential corpus has 1,710 paths per convention (3,420 pairs), comparing normalization, isAbsolute and second normalization against Node. Ordinary paths also satisfy explicit idempotence assertions. Initial idempotence expectation failed on a reference-compatible device path; corrected scope preserves both first/second differential assertions. Reserved names and special device roots deliberately retain the reference's non-idempotent lexical safeguards. No end-to-end Windows acceptance is claimed.
+
+All four benchmark registrations pass exact hashes, mutation guards, ABI checks and n=0,2,17 native/TypeScript results. isAbsolute observes each boolean through toString and includes that conversion cost. P3 untimed whole-run verification and timing remain pending.
+
+P2 evidence identities are worktree SQLite `stdlib-path-p2-*.log`; exact readback and loose log removal precede the acceptance commit.
