@@ -186,6 +186,50 @@ mod identity_tests {
 mod provenance_join_tests {
     use super::*;
     #[test]
+    fn repeated_boolean_guard_keeps_replacement_cardinality_correlated() {
+        let source = crate::format(r#"
+            function one<T>(value: T): T { return value; }
+            function two<T>(value: T, other: T): T { return other; }
+            function select<T>(flag: boolean, value: T): T {
+                let action = one;
+                if (flag) { action = two; }
+                if (flag) { return action<T>(value, value); }
+                return action<T>(value);
+            }
+            function main() {}
+        "#).unwrap();
+        assert_eq!(crate::format(&source).unwrap(), source);
+        let mut program = crate::syntax::parse(&source).unwrap();
+        if let Err(error) = validate(&mut program) {
+            panic!("repeated guard loses reachable callable provenance: {error:?}");
+        }
+    }
+
+    #[test]
+    fn changed_boolean_guard_cannot_reuse_replacement_correlation() {
+        for update in ["flag = !flag;", "change();"] {
+            let source = crate::format(&format!(r#"
+                function one<T>(value: T): T {{ return value; }}
+                function two<T>(value: T, other: T): T {{ return other; }}
+                function select<T>(flag: boolean, value: T): T {{
+                    function change() {{ flag = !flag; }}
+                    let action = one;
+                    if (flag) {{ action = two; }}
+                    {update}
+                    if (flag) {{ return action<T>(value, value); }}
+                    return action<T>(value);
+                }}
+                function main() {{}}
+            "#)).unwrap();
+            assert_eq!(crate::format(&source).unwrap(), source);
+            let mut program = crate::syntax::parse(&source).unwrap();
+            let error = validate(&mut program).err().expect("changed guard must not justify incompatible cardinalities");
+            assert_eq!(error.code, "arity", "{update}: {error:?}");
+            assert!(!error.related.is_empty(), "the incompatible origin must be identified");
+        }
+    }
+
+    #[test]
     fn body_join_is_finite_and_keeps_unknown_without_changing_signature() {
         let source=crate::format("function main(){let action:Function<int>=():int=>7;}").unwrap();
         assert_eq!(crate::format(&source).unwrap(),source);
