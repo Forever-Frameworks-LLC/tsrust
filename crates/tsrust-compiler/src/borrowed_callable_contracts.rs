@@ -4,6 +4,7 @@ use crate::{Diagnostic,Mode,Span};
 use crate::syntax::Type;
 
 pub(crate) struct Family {
+    #[cfg(test)]
     pub origins:[usize;2],
     pub parameters:Vec<ArgumentContract>,
     pub result:Type,
@@ -33,8 +34,9 @@ impl Family {
             return Err(Diagnostic::new("type","Borrowed callable alternatives require matching argument types, access, cardinality and result types.",span)
                 .related(left.span,"First alternative is created here.").related(right.span,"Second alternative is created here."));
         }
-        Ok(Self {origins,parameters,result:left.function.result,invocation:if left.invocation==Mode::Consume || right.invocation==Mode::Consume {Mode::Consume}else if left.invocation==Mode::Mutate || right.invocation==Mode::Mutate {Mode::Mutate}else{Mode::Read}})
+        Ok(Self {#[cfg(test)] origins,parameters,result:left.function.result,invocation:if left.invocation==Mode::Consume || right.invocation==Mode::Consume {Mode::Consume}else if left.invocation==Mode::Mutate || right.invocation==Mode::Mutate {Mode::Mutate}else{Mode::Read}})
     }
+    #[cfg(test)]
     pub(crate) fn remap(&mut self,ids:&[Option<usize>],span:Span)->Result<(),Diagnostic> {
         let mapped=self.origins.map(|id|ids.get(id).copied().flatten());
         let [Some(left),Some(right)]=mapped else {

@@ -15,11 +15,13 @@ pub(crate) enum Source {
     /// This value belongs to a member invocation, not the shared environment.
     Invocation(BindingId),
 }
+#[cfg_attr(not(test), expect(dead_code, reason = "Checked named-group metadata is validated during analysis; field consumers are currently layout witnesses."))]
 #[derive(Clone, Debug)]
 pub(crate) struct Member {
     pub function: usize,
     pub slots: Vec<(usize, Source)>,
 }
+#[cfg_attr(not(test), expect(dead_code, reason = "Analysis retains validated named-group plans; runtime placement is handled separately."))]
 #[derive(Clone, Debug)]
 pub(crate) struct Layout {
     pub plan: usize,

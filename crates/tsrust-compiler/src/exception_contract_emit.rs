@@ -1,4 +1,6 @@
-use super::exception_emit::{fallible_call,typed_error_enum};
+use super::exception_emit::fallible_call;
+#[cfg(test)]
+use super::exception_emit::typed_error_enum;
 
 #[derive(Default)]
 pub(crate) struct ControlStack(std::cell::RefCell<Vec<crate::syntax::ControlTarget>>);
@@ -207,6 +209,7 @@ pub(crate) fn checked_fallible_call(
 }
 
 /// Resolve each canonical payload with the emitter's native type environment.
+#[cfg(test)]
 pub(crate) fn checked_error_enum(
     name:&str,contract:&crate::error_effects::FailureSet,
     unions:&crate::unions::UnionArena,runtime:Option<crate::syntax::Type>,span:crate::Span,

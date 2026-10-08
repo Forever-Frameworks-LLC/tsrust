@@ -1,4 +1,19 @@
 mod support;
+#[test]
+fn replaced_generic_storage_supports_contextual_array_adapters() {
+    support::execute(
+        "function identity<T>(value:T):T{return value;}function main(){let action=identity;action=identity;const values=[3,7].map(action);console.log(values[0],values[1]);}",
+        "3 7\n", None);
+}
+
+#[test]
+fn selected_method_layouts_preserve_single_argument_evaluation() {
+    support::execute(
+        "function identity<T>(value:T):T{return value;}function main(){let action=identity;action<string>('warm');action=identity;console.log(action<int>((console.log('argument'),7)));}",
+        "argument\n7\n", None,
+    );
+}
+
 const DECLARATIONS:&str="function one<T>(value:T):T{return value;}function two<T>(value:T,other:T):T{return other;}";
 fn source(body:&str)->String{format!("{DECLARATIONS}function unused<T>(flag:boolean,value:T):T{{{body}}}function main(){{}}")}
 
@@ -150,6 +165,74 @@ fn literal_guard_native_callable_replacement_has_common_carrier() {
         let executable=format!("{DECLARATIONS}function unused<T>(flag:boolean,value:T):T{{{body}}}function main(){{console.log(unused<int>(false,7));}}");
         support::execute(&executable,"7\n",None);
     }
+}
+
+#[test]
+fn generic_callable_replacement_keeps_saved_values_and_runtime_selection() {
+    let executable = r#"
+        function identity<T>(value: T): T { return value; }
+        function second<T>(first: T, next: T): T { return next; }
+        function select(flag: boolean): int {
+            let action = identity;
+            const saved = action;
+            action = identity;
+            if (flag) { action = second; }
+            if (flag) { return saved<int>(3) + action<int>(4, 7); }
+            return saved<int>(3) + action<int>(4);
+        }
+        function main() { console.log(select(false), select(true)); }
+    "#;
+    support::execute(executable, "7 10\n", None);
+}
+
+#[test]
+fn fresh_same_declaration_replacement_reuses_capture_free_generic_storage() {
+    let source = r#"
+        function identity<T>(value: T): T { return value; }
+        function main() {
+            let action = identity;
+            const saved = action;
+            action = identity;
+            console.log(saved<int>(3), action<int>(7), action<string>("owned"));
+            action = identity;
+            console.log(action<int>(9));
+        }
+    "#;
+    support::execute(source, "3 7 owned\n9\n", None);
+}
+
+#[test]
+fn fresh_generic_replacement_does_not_copy_captures_or_restore_transferred_aliases() {
+    for (source, code) in [
+        ("function main(){let calls=0;function identity<T>(value:T):T{calls+=1;return value;}let action=identity;action=identity;console.log(action<int>(7));}", "callable-origin"),
+        ("function identity<T>(value:T):T{return value;}function main(){let action=identity;const saved=action;action=saved;console.log(saved<int>(3));}", "closure-consumed"),
+    ] {
+        let formatted = support::format_round_trip(source);
+        let error = tsrust_compiler::check(&formatted).err().expect("replacement must preserve existing capture and transfer rules");
+        assert_eq!(error.code, code, "{}", error.render("replacement.tsr", &formatted));
+        assert!(!error.related.is_empty());
+    }
+}
+
+#[test]
+fn generic_callable_replacement_rejects_mutation_of_the_borrowed_callee() {
+    let executable = r#"
+        function identity<T>(value: T): T { return value; }
+        function other<T>(value: T): T { return value; }
+        function main() {
+            let action = identity;
+            let evaluations = 0;
+            const value = action<int>((evaluations += 1, action = other, 7));
+            console.log(value, evaluations, action<string>("ready"));
+        }
+    "#;
+    let formatted = support::format_round_trip(executable);
+    let error = tsrust_compiler::check(&formatted)
+        .err()
+        .expect("argument evaluation must not replace the actively borrowed callee");
+    assert_eq!(error.code, "conflicting-access");
+    assert_eq!(&formatted[error.span.start..error.span.end], "action");
+    assert!(!error.related.is_empty());
 }
 
 #[test]

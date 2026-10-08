@@ -25,18 +25,6 @@ fn ask(source: &str, method: &str, needle: &str) -> Value {
 fn text(value: &Value) -> &str {
     value["contents"]["value"].as_str().expect("hover")
 }
-fn rejected_at(source: &str, code: &str, token: &str, message: &str) {
-    let error = tsrust_compiler::check(source)
-        .err()
-        .expect("the specified callable contract must be rejected");
-    assert_eq!(error.code, code, "{error:?}");
-    assert_eq!(
-        &source[error.span.start..error.span.end],
-        token,
-        "{error:?}"
-    );
-    assert!(error.message.contains(message), "{error:?}");
-}
 fn native_command(
     directory: &std::path::Path,
     label: &str,

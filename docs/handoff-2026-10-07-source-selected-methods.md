@@ -1,0 +1,17 @@
+# Source-selected generic methods checkpoint
+
+Continue from 0e5efc5 and this checkpoint. Read AGENTS.md, docs/development-workflow.md and docs/callable-replacement-plan.md first. The callable replacement family remains open.
+
+A new deferred_generic_methods analysis module separates checked method-body materialization from source argument checking. Reachable source proofs now materialize independent ordinals for fresh, capture-free, same-declaration environments and publish their alternative pairs. One environment can use string method ordinal 1 while its fresh replacement uses ordinal 0. Arguments are checked and evaluated once; the native witness and independent Node reference produce argument followed by 7.
+
+Equivalent connected empty layouts share the 128-body budget without merging their concrete method identities. Declaration and checked type profiles remain part of the key; captured environments retain independent costs. The ordinary empty-registry path keeps the previous counting behavior. The 131-environment regression and named/inline continuation pass; the existing 128/129 rejection boundary also passes.
+
+Final checks: planner/storage 19 passes; adjacent generic values 105 passes; capture-effects 21 passes and the original two distinct-declaration failures; generic editor 61 passes; all eight depth canaries pass; workspace all-targets has no warnings. Project formatting changes zero files and fingerprints. Evidence resides in benchmarks/records.sqlite under runtime/diagnostics/source-selected-methods-2026-10-07/, imported and read back exactly. No whole-family acceptance or timing is claimed. Accepted consumers remain unchanged; the shared target remains 7.1 GiB and native witness helpers remove scratch executables.
+
+The published alternative set is preparatory: production source calls still use the existing direct plan. Full assignment families need native type selection and construction injection, followed by point-specific alternative dispatch. Captured or different-declaration alternatives require independent body checking and argument/result/error normalization before assignment admission changes. Preserve both original replacement failures and the point-sensitive mutable factory requirement. Complete editor/guide, matched workload support and family milestone acceptance afterward.
+
+Preserve fifteen owner fixture edits and commit explicit paths. Reuse /private/tmp/tsrust-gate100-editor-target with CARGO_INCREMENTAL=0, pinned Node 24.11.1 and /opt/homebrew/bin/python3. Parallel standard-library coordination is in docs/parallel-path-join-plan.md; its isolated branch work must not alter main consumers or SQLite.
+
+## Handoff prompt
+
+Continue Tsrust from docs/handoff-2026-10-07-source-selected-methods.md. Read AGENTS.md, docs/development-workflow.md and docs/callable-replacement-plan.md. Source-selected empty same-declaration environments now materialize independent method ordinals without rechecking arguments; equivalent layouts preserve the 128-body budget. Connect full native family types, constructor injection and point-specific invocation dispatch. Independently check differing/captured declarations before admitting replacement. Then finish point-sensitive mutable factory state and the original family acceptance requirements. Preserve fifteen owner fixtures, explicit Git staging, focused TDD, formatter round trips, benchmark readiness and exact SQLite evidence. Do not claim family acceptance from preparatory component tests.

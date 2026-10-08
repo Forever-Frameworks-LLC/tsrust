@@ -7994,6 +7994,24 @@ fn assignment_callee_signature_help_uses_checked_argument_types() {
 }
 
 #[test]
+fn fresh_generic_replacement_keeps_checked_editor_types_and_capture_diagnostics() {
+    let source = "function identity<T>(value:T):T{return value;}function main(){let action=identity;const saved=action;action=identity;const number=action<int>(7);const text=action<string>('owned');console.log(saved<int>(3),number,text);}";
+    assert!(tsrust_lsp::diagnostics(source, "file:///replacement.tsr").unwrap().is_empty());
+    let help = ask(source, "textDocument/signatureHelp", "7);", 0);
+    assert!(help["signatures"][0]["parameters"][0]["label"].as_str().unwrap_or("").contains("value: int"), "{help}");
+    let hover = ask(source, "textDocument/hover", "text=", 0);
+    assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("string"), "{hover}");
+    let adapter = "function identity<T>(value:T):T{return value;}function main(){let action=identity;action=identity;const mapped=[3,7].map(action);}";
+    assert!(tsrust_lsp::diagnostics(adapter, "file:///replacement.tsr").unwrap().is_empty());
+    let hover = ask(adapter, "textDocument/hover", "mapped=", 0);
+    assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("int[]"), "{hover}");
+    let captured = "function main(){let calls=0;function identity<T>(value:T):T{calls+=1;return value;}let action=identity;action=identity;console.log(action<int>(7));}";
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(captured, "file:///replacement.tsr").unwrap()).unwrap();
+    assert_eq!(diagnostics[0]["code"], "callable-origin", "{diagnostics}");
+    assert!(!diagnostics[0]["relatedInformation"].as_array().unwrap().is_empty());
+}
+
+#[test]
 fn nested_lexical_generic_annotations_keep_source_help_and_definition() {
     let source = "function outer<T>(value:T):T{function echo(other:T):T{return other;}return echo(value);}function main(){const number=outer<int>(7);const text=outer<string>('owned');}";
     tsrust_compiler::check(source).unwrap();

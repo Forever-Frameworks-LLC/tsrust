@@ -1,0 +1,13 @@
+# Callable guard partition checkpoint
+
+Read AGENTS.md, docs/development-workflow.md, docs/handoff-2026-10-07-gate174-accepted.md and docs/callable-replacement-plan.md before continuing. This is a source implementation checkpoint within the open callable replacement family, not a gate acceptance.
+
+Production summary flow preserves bounded truth-qualified partitions across internal control-flow joins. The repeated unchanged boolean guard cardinality witness passes. Direct writes and captured writes retain conservative rejection. The independent partition module handles permanent widening after 32 alternatives, lexical binding identity, return-value pairing, exceptional completion and coincident branch successors. Written guards are not correlated without versioned proof; this limitation must remain explicit.
+
+Next, connect reachable source declaration provenance to native invocation planning. Source contracts currently merge matching cardinalities while retaining declaration spans in their alternatives. Preserve those spans when exporting proofs. Each native invocation alternative requires its own pair of environment origin and method index. The storage registry already lives in Analyzer and CheckedProgram and survives compaction, but declaration/injection primitives remain test-only. Different-origin assignments remain rejected. Nongeneric enclosing functions, including the runtime selection witness, also need source proof discovery.
+
+Finish native family storage and concrete adapters with exactly-once receiver and argument evaluation, borrowing and transfer rules, independent saved values, disposal and result/error conversion. Then integrate point-sensitive owned mutable factory state and complete editor, documentation, matched benchmark support and acceptance. Do not replace ownership with shared cells or implicit clones.
+
+Focused evidence: generic validation 71 passing and one retained mutable-factory failure; generic value suites 105 passing; generic-filtered editor checks 61 passing; eight depth canaries passing; capture-effects 20 passing and two retained distinct-origin replacement failures. Workspace all-targets checking is clean. Formatting changes no files or fingerprints. No full acceptance regression or timing run is claimed. Exact logs reside in benchmarks/records.sqlite under runtime/diagnostics/stable-callable-guards-2026-10-07/.
+
+Preserve the fifteen owner fixture edits. Use explicit Git paths. Keep Node 24.11.1 first on PATH, use /opt/homebrew/bin/python3 for store.py, and retain CARGO_TARGET_DIR=/private/tmp/tsrust-gate100-editor-target with CARGO_INCREMENTAL=0. Consumers remain at the last accepted compiler source. Read current status and checkpoint history before editing.

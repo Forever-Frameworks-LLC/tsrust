@@ -25,11 +25,13 @@ pub(super) struct Index {
     declarations: HashMap<usize, BindingId>,
     scopes: Vec<Scope>,
     aggregate_writes: HashSet<(usize,usize)>,
+    written_bindings: HashSet<BindingId>,
     required_captures: HashMap<(usize,usize), HashSet<BindingId>>,
 }
 impl Index {
     pub(super) fn new(program: &Program) -> Result<Self, Diagnostic> {
         let mut index = Self::default();
+        let mut source_writes = Vec::new();
         for plan in &program.local_capture_plans {
             index
                 .uses
@@ -70,6 +72,7 @@ impl Index {
             }).collect();
             index.parameters.insert((function.name.span.start, function.name.span.end), parameters);
             let mut probe = function.clone();
+            targets::function_writes(&mut probe, &mut source_writes)?;
             crate::source_walk::function_body(&mut probe, &mut |_| Ok(()), &mut |expression| {
                 if let ExprKind::Closure { params, body, .. } = &expression.kind {
                     // Trusted named-value wrappers forward to the original body.
@@ -123,8 +126,12 @@ impl Index {
         for (&key, body) in &index.bodies {
             if aggregate_eligibility::writes(body, index.parameters.get(&key).map(Vec::as_slice).unwrap_or(&[]))? { index.aggregate_writes.insert(key); }
         }
+        for write in source_writes {
+            if let Some(identity) = index.binding(&write.name, write.span) { index.written_bindings.insert(identity); }
+        }
         Ok(index)
     }
+    pub(super) fn may_write(&self, identity: BindingId) -> bool { self.written_bindings.contains(&identity) }
     pub(super) fn captures(&self, declaration: Span) -> Option<&HashSet<BindingId>> { self.required_captures.get(&(declaration.start,declaration.end)) }
     pub(super) fn captures_available(&self, declaration: Span, bindings: &[Binding]) -> bool {
         self.required_captures.get(&(declaration.start,declaration.end)).is_none_or(|captures| captures.iter().all(|capture| bindings.iter().any(|binding| binding.identity == Some(*capture))))

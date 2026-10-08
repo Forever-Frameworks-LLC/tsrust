@@ -1,4 +1,5 @@
 //! Static borrowed alternatives retain the concrete environments' lifetimes.
+#[cfg(test)]
 use crate::Mode;
 
 pub(crate) fn emit_definition(output:&mut String,id:usize) {
@@ -15,6 +16,7 @@ pub(crate) fn emit_definition_many(output:&mut String,id:usize,count:usize){
     writeln!(output,"enum BorrowedCallable{id}<{args}> {{{variants}}}").unwrap();
 }
 
+#[cfg(test)]
 pub(crate) fn emit(output: &mut String, id: usize, mode: Mode, counted: bool) -> bool {
     use std::fmt::Write;
     let (trait_name, method, receiver) = match mode {

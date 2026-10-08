@@ -121,6 +121,7 @@ impl<'a> Family<'a> {
         self.emit_counted(output, id, false, parameter_type, result_type);
     }
 
+    #[cfg(test)]
     pub(crate) fn emit_counted(
         &self,
         output: &mut String,

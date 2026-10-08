@@ -1,3 +1,5 @@
+#[path = "polymorphic_storage_emit.rs"]
+mod polymorphic_storage_emit;
 #[path = "callback_family_result_adapters.rs"]
 mod callback_family_result_adapters;
 #[path = "borrowed_callable_emit.rs"]
@@ -308,13 +310,10 @@ impl Emitter<'_> {
         }
         if let Type::BorrowedCallable(id)=value {return self.borrowed_family_type(id,"'_");}
         if let Type::Closure(id) = value {
-            let closure = &self.program.closures[id];
-            let bounds = self.captured_callback_bounds(closure);
-            if !bounds.is_empty() {
-                let mut parameters = vec!["'_".to_owned(); closure.lifetime_count];
-                parameters.extend(bounds.iter().map(|bound| bound.split(':').next().expect("capture generic").trim().to_owned()));
-                return format!("Closure{id}<{}>", parameters.join(", "));
+            if self.program.polymorphic_storage.contains(id) {
+                return self.generic_storage_type(id);
             }
+            return self.native_environment_type(id);
         }
         if let Some(payload) = self.callback_payload(value) {
             let argument = self.native_type(payload);
@@ -789,45 +788,26 @@ impl Emitter<'_> {
             _ => (origin, false),
         };
         let checked = &self.program.closures[closure];
-        let method_invocation = checked.methods[method].invocation;
-        let invocation = if once {
-            Mode::Consume
+        let pairs = [crate::polymorphic_invocation_plans::Pair { origin: closure, method }];
+        let plan = if let Some(id) = callee.generic_invocation.or_else(|| self.program.polymorphic_invocations.index(&pairs)) {
+            self.program.polymorphic_invocations.checked(id, &self.program.closures, callee.span)
         } else {
-            self.conditional_invocation(fun, callee, method_invocation)
-        };
+            crate::polymorphic_invocation_plans::Plan::checked(pairs, &self.program.closures, callee.span)
+        }.expect("checked materialized invocation plan");
+        let method_invocation = plan.invocation;
+        let invocation = if once { Mode::Consume } else { self.conditional_invocation(fun, callee, method_invocation) };
         let receiver = self.expr(fun, callee, invocation);
-        let mutable = if invocation == Mode::Consume && method_invocation == Mode::Mutate && !once
-        {
-            "mut "
-        } else {
-            ""
-        };
-        let mut text = format!("{{ let {mutable}method_environment = {receiver}; ");
-        if once {
-            let mutable = if method_invocation == Mode::Mutate {
-                "mut "
-            } else {
-                ""
-            };
-            text.push_str(&format!(
-                "let {mutable}method_environment = method_environment.capture0; "
-            ));
-        }
-        let body = &checked.methods[method];
-        for (index, (arg, &parameter)) in args.iter().zip(&body.parameters).enumerate() {
-            let value = self.expr(fun, arg, body.function.bindings[parameter].mode);
-            text.push_str(&format!("let method_argument{index} = {value}; "));
-        }
-        let arguments = (0..args.len())
-            .map(|index| format!("method_argument{index}"))
-            .collect::<Vec<_>>()
-            .join(", ");
-        if matches!(checked.forward, Some(ClosureForward::RestAdapter { counted: true, .. })) {
-            let separator = if arguments.is_empty() { "" } else { ", " };
-            text.push_str(&format!("method_environment.call{method}_with_count({supplied_count}{separator}{arguments}) }}"));
-        } else {
-            text.push_str(&format!("method_environment.call{method}({arguments}) }}"));
-        }
+        let receiver = if once { format!("({receiver}).capture0") } else { receiver };
+        let mutable = invocation == Mode::Consume && method_invocation == Mode::Mutate;
+        let body = plan.cases[0].body;
+        let values = args.iter().zip(&body.parameters).map(|(arg, &parameter)| {
+            self.expr(fun, arg, body.function.bindings[parameter].mode)
+        }).collect::<Vec<_>>();
+        let family = self.program.polymorphic_storage.contains(closure).then(|| self.program.polymorphic_storage.checked(closure, &self.program.closures, callee.span).expect("checked invocation storage"));
+        let text = plan.render(&receiver, &values, &supplied_count.to_string(),
+            |_| matches!(checked.forward, Some(ClosureForward::RestAdapter { counted: true, .. })),
+            mutable, family.as_ref().map(|family| (family.id, family.origins.as_slice())), callee.span,
+        ).expect("checked materialized invocation arguments");
         if let Some(name)=self.result_methods.borrow().get(&(closure,method)).cloned() {
             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
             self.exception_regions.result_call(&text,&name,&self.program.error_effects.method_errors[&(closure,method)],&unions,callee.span).expect("checked method Result invocation")
@@ -843,6 +823,10 @@ impl Emitter<'_> {
             |ty, lifetimes| Some(self.named_record_environment_type(ty, lifetimes)),
         );
         for (capture,field) in closure.captures.iter().zip(&mut fields){
+            if let Type::Closure(origin) = closure.function.bindings[capture.inner].ty
+                && self.program.polymorphic_storage.contains(origin) {
+                *field = field.replace(&format!("Closure{origin}"), &self.generic_storage_type(origin));
+            }
             if !self.record_capture_is_view(capture,closure){continue;}
             let lifetime=field.strip_prefix('&').unwrap().split_whitespace().next().unwrap();
             let start=lifetime.strip_prefix("'c").unwrap().parse::<usize>().unwrap()+1;
@@ -1837,6 +1821,7 @@ impl Emitter<'_> {
 
     /// Register a finite family's Result ABI only after its members are ready.
     #[inline(never)]
+    #[cfg(test)]
     fn prepare_storage_result(&self,family:usize,enum_name:&str,span:crate::Span)->Result<(String,String),crate::Diagnostic> {
         let contract=self.program.error_effects.storage_errors.get(&family).ok_or_else(||crate::Diagnostic::new("error-effect","Stored Result registration requires a saved family contract.",span))?;
         let (_,_,origins)=self.program.stored_contracts.families().find(|(id,_,_)|*id==family).ok_or_else(||crate::Diagnostic::new("error-effect","Stored Result registration requires a known family.",span))?;
@@ -2124,6 +2109,7 @@ impl Emitter<'_> {
             "// Generated by the experimental Rust-based tsrust compiler.\n#![allow(dead_code, unused_variables, unused_mut)]\n#![recursion_limit = \"512\"]\n\n",
         );
         self.emit_nullable_types(&mut output);
+        self.emit_generic_storage(&mut output);
         if self.callback_traits && !self.counted_calls {
             output.push_str("trait Callback<A, R> { fn invoke(&mut self, args: A) -> R; }\n\n");
             output
@@ -3157,6 +3143,7 @@ impl Emitter<'_> {
     }
 
     #[inline(never)]
+    #[cfg(test)]
     fn completion_with_finally(&self,fun:&CheckedFunction,body:&[Stmt],cleanup:&[Stmt],ids:(usize,usize),error_name:&str,contract:crate::error_effects::FailureSet,runtime:Option<Type>)->String {
         let pending=self.completion_body(fun,body,ids.0,error_name,contract.clone(),runtime);
         let cleanup=self.completion_body(fun,cleanup,ids.1,error_name,contract,runtime);
@@ -7928,6 +7915,8 @@ impl Emitter<'_> {
                 let Type::Closure(id) = expr.ty.expect("checked closure") else {
                     unreachable!()
                 };
+                let storage = id;
+                let id = expr.closure_origin().unwrap_or(id);
                 let fields = self.program.closures[id]
                     .captures
                     .iter()
@@ -7943,7 +7932,10 @@ impl Emitter<'_> {
                     })
                     .collect::<Vec<_>>()
                     .join(", ");
-                format!("Closure{id} {{ {fields} }}")
+                let value = format!("Closure{id} {{ {fields} }}");
+                if self.program.polymorphic_storage.contains(storage) {
+                    self.program.polymorphic_storage.checked(storage, &self.program.closures, expr.span).expect("checked constructor storage").inject(id, &value, expr.span).expect("checked construction origin")
+                } else { value }
             }
             ExprKind::Name(_) => {
                 if expr.binding.is_none()
@@ -8963,6 +8955,44 @@ mod exception_region_tests {
         assert!(output.status.success());
         assert_eq!(output.stdout, b"1\ntrue\ntext\n");
         std::fs::remove_dir_all(directory).unwrap();
+    }
+    #[test]
+    fn source_generic_replacements_construct_and_dispatch_native_family_variants() {
+        let source = crate::format("function identity<T>(value:T):T{return value;}function unused<T>(){let action=identity;action=identity;}function relay<T>(value:T):T{let action=identity;action=identity;return action<T>(value);}function main(){let action=identity;console.log(action<int>(3));const saved=action;action=identity;console.log(action<string>('owned'));console.log(saved<int>(7));console.log(relay<int>(9));console.log(relay<string>('kept'));}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(), source);
+        let checked = crate::check(&source).unwrap();
+        let families = checked.program.polymorphic_storage.families(&checked.program.closures, crate::Span::default()).unwrap();
+        assert_eq!(families.len(), 2, "main and capture-free relay retain separate storage families");
+        let rust = super::emit(&checked.program);
+        for family in families {
+            assert!(family.origins.len() >= 2, "fresh replacement origins remain registered");
+            for (variant, origin) in family.origins.iter().enumerate() {
+                assert!(rust.contains(&format!("TsrGenericFamily{}::V{variant}(Closure{origin}", family.id)),
+                    "source construction must retain each concrete environment in its native storage variant");
+            }
+        }
+        assert!(rust.contains("match method_environment"), "source calls must dispatch through the checked family");
+        crate::scoped_record_places::tests::native_output(&rust, "3\nowned\n7\n9\nkept\n");
+    }
+
+    #[test]
+    fn registered_generic_storage_uses_checked_native_environments() {
+        let mut checked = crate::check("function first<T>(value:T):T{return value;}function second<T>(value:T):T{return value;}function inactive<T>(left:T,right:T):T{return right;}function main(){const one=first;const two=second;const unused=inactive;one<int>(3);two<string>('warm');two<int>(4);}").unwrap();
+        checked.program.polymorphic_storage.observe(0, 1);
+        checked.program.polymorphic_storage.observe(1, 2);
+        assert!(checked.program.closures[2].methods.is_empty());
+        let plan = crate::polymorphic_invocation_plans::Plan::checked([
+            crate::polymorphic_invocation_plans::Pair { origin: 0, method: 0 },
+            crate::polymorphic_invocation_plans::Pair { origin: 1, method: 1 },
+        ], &checked.program.closures, crate::Span::default()).unwrap();
+        let invocation = plan.render("&family", &["4i64".into()], "1", |_| false, false, Some((0, &[0, 1, 2])), crate::Span::default()).unwrap();
+        let mut rust = super::emit(&checked.program);
+        assert!(rust.contains("enum TsrGenericFamily0<E0, E1, E2> { V0(E0), V1(E1), V2(E2) }"));
+        rust.push_str(&format!("fn carrier_witness() {{ let mut family: TsrGenericFamily0<Closure0,Closure1,Closure2> = TsrGenericFamily0::V0(Closure0{{}}); assert_eq!({invocation},4); let saved=family; family=TsrGenericFamily0::V1(Closure1{{}}); assert_eq!({invocation},4); let family=saved; assert_eq!({invocation},4); let inactive: TsrGenericFamily0<Closure0,Closure1,Closure2> = TsrGenericFamily0::V2(Closure2{{}}); drop(inactive); }}"));
+        let main=rust.find("fn main()").unwrap();
+        let opening=main+rust[main..].find('{').unwrap()+1;
+        rust.insert_str(opening,"carrier_witness();");
+        crate::scoped_record_places::tests::native(&rust);
     }
     #[test]
     fn source_exception_pipeline_executes_catch_finally_and_propagation() {

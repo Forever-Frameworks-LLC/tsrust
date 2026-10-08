@@ -1,0 +1,15 @@
+# Source callable proof checkpoint
+
+Read AGENTS.md, docs/development-workflow.md, docs/handoff-2026-10-07-gate174-accepted.md and docs/callable-replacement-plan.md first. This checkpoint continues the open callable replacement family; it does not accept a gate.
+
+The source cardinality validator now exports reachable declaration identities through source_callable_proofs.rs. Generic specialization retains them in its cache. Discovery covers nongeneric owners, so the runtime branch selection witness has a point-specific proof even though its enclosing function is not generic. Matching-signature declarations retain separate provenance. Unknown facts and annotation-only contracts cannot authorize an origin.
+
+Proof keys contain owner, call span and original callee span. Do not simplify them to the call span: generated factory adapters reuse that span for returned callback invocations, which caused 27 adapter regressions during integration. Receiver-qualified keys repair all 27. Concrete generic and lexical instance names resolve to the original owner. Queries borrow names without allocating.
+
+Checked deferred generic calls reject a known proof that excludes their stored declaration, with related source origins. Provisional passes skip this guard. Unknown or absent proofs keep existing checking. The source assignment rules still reject distinct deferred generic environments. Do not relax them until native storage and invocation plans agree.
+
+Next implement the bridge from source declaration spans to checked environment origin and method pairs. The polymorphic registry already retains assignment-family connectivity through compaction. Its carrier primitives remain test-only. Materialize each reachable alternative separately; keep inactive assignment variants in storage even when they have different arities. Preserve exact evaluation order, loans, owned transfers, saved values, disposal, results and error conversion. Then integrate point-sensitive owned factory updates, complete editor/docs/matched benchmark support and accept the whole family.
+
+Evidence: proof tests 3 passing; generic validation 74 passing and one retained mutable-factory failure; adjacent generic value suites 105 passing; generic-filtered editor checks 61 passing; eight depth canaries passing; capture-effects 20 passing and two retained replacement failures. Workspace all-targets checking is clean. Formatting changes no files or fingerprints. Logs reside in benchmarks/records.sqlite under runtime/diagnostics/source-callable-proofs-2026-10-07/. No full gate acceptance, timing or live consumer refresh is claimed.
+
+Preserve fifteen owner fixture edits and stage explicit paths only. Node 24.11.1 stays first on PATH. Use /opt/homebrew/bin/python3 for store.py, CARGO_TARGET_DIR=/private/tmp/tsrust-gate100-editor-target and CARGO_INCREMENTAL=0. Inspect current status and source checkpoints before editing. Keep the source proof limits for written guards explicit until versioned mutable relations are implemented.

@@ -1,5 +1,8 @@
 //! Callable summaries preserve distinct normal, return and exceptional states.
 use super::*;
+#[path = "generic_call_guard_partitions.rs"]
+mod guard_partitions;
+use guard_partitions::Partitions;
 #[derive(Default, Clone, PartialEq, Eq)]
 pub(super) struct Outcome {
     pub normal: Option<FlowState>,
@@ -10,6 +13,7 @@ pub(super) struct Outcome {
 }
 /// Evaluate a callee body without merging normal and exceptional completion.
 /// Invocation dispatch and contextual parameters are supplied by the next layer.
+#[cfg(test)]
 pub(super) fn run(body: &[Stmt], initial: &[Binding], declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index) -> Option<Outcome> {
     run_with_dispatch(body, &initial.to_vec().into(), declarations, effects, &mut expression_flow::UnknownDispatch)
 }
@@ -27,47 +31,44 @@ pub(super) fn run_with_dispatch(body: &[Stmt], initial: &FlowState, declarations
         local.targets = vec![Target::Unknown];
         seed.push(local);
     }
-    let mut states = vec![None; graph.nodes.len()];
-    let mut pending_returns = vec![None; graph.nodes.len()];
+    let mut states = vec![Partitions::default(); graph.nodes.len()];
     let entry = graph.nodes[0].next[0];
-    states[entry] = Some(seed);
+    states[entry].insert(seed, None, declarations)?;
     let mut work = vec![entry];
     let mut facts = HashMap::new();
     while let Some(index) = work.pop() {
         if index == graph.exits.normal || index == graph.exits.returning || index == graph.exits.throwing { continue; }
         let node = &graph.nodes[index];
-        let mut state = states[index].as_ref().unwrap().clone();
-        let transfer = node_flow::apply_with_dispatch(node, &mut state, &mut facts, declarations, effects, dispatch);
-        let normal_edges = transfer.normal_edges(node);
-        let pending = match node.statement.map(|statement| &statement.kind) {
-            Some(StmtKind::Return(value)) if transfer.normal => Some(if value.is_some() { transfer.value.clone() } else { expression_flow::Value::undefined() }),
-            Some(StmtKind::Throw(_)) => None,
-            _ => pending_returns[index].clone(),
-        };
-        let successors = normal_edges.iter().map(|&next| (next, &state, pending.clone()))
-            .chain(node.exceptional.into_iter().flat_map(|next| transfer.failures.iter().map(move |state| (next, state, None))));
-        for (successor, outgoing, pending) in successors {
-            let existed = states[successor].is_some();
-            let mut changed = if let Some(previous) = &mut states[successor] { previous.join(outgoing,declarations)? }
-                else { states[successor] = Some(outgoing.clone()); true };
-            let joined = if existed {
-                match (&pending_returns[successor], pending) {
-                    (Some(previous), Some(incoming)) => Some(expression_flow::merge_value(previous.clone(), incoming, declarations)),
-                    (None, None) => None,
-                    (Some(previous), None) => Some(expression_flow::merge_value(previous.clone(), expression_flow::Value::undefined(), declarations)),
-                    (None, Some(incoming)) => Some(expression_flow::merge_value(expression_flow::Value::undefined(), incoming, declarations)),
+        for (mut state, previous_pending) in states[index].entries.clone() {
+            let transfer = node_flow::apply_with_dispatch(node, &mut state, &mut facts, declarations, effects, dispatch);
+            let pending = match node.statement.map(|statement| &statement.kind) {
+                Some(StmtKind::Return(value)) if transfer.normal => Some(if value.is_some() { transfer.value.clone() } else { expression_flow::Value::undefined() }),
+                Some(StmtKind::Throw(_)) => None,
+                _ => previous_pending,
+            };
+            for next in transfer.normal_edges(node) {
+                let mut outgoing = state.clone();
+                guard_partitions::refine(node, next, &mut outgoing, effects);
+                if states[next].insert(outgoing, pending.clone(), declarations)? { work.push(next); }
+            }
+            if let Some(next) = node.exceptional {
+                for outgoing in transfer.failures {
+                    if states[next].insert(outgoing, None, declarations)? { work.push(next); }
                 }
-            } else { pending };
-            if joined != pending_returns[successor] { pending_returns[successor] = joined; changed = true; }
-            if changed { work.push(successor); }
+            }
         }
     }
-    Some(Outcome { normal: states[graph.exits.normal].take(), returning: states[graph.exits.returning].take(), throwing: states[graph.exits.throwing].take(), returned_value: pending_returns[graph.exits.returning].take(), facts })
+    let normal = states[graph.exits.normal].joined(declarations)?.map(|(state, _)| state);
+    let returning = states[graph.exits.returning].joined(declarations)?;
+    let throwing = states[graph.exits.throwing].joined(declarations)?.map(|(state, _)| state);
+    let (returning, returned_value) = returning.map_or((None, None), |(state, value)| (Some(state), value));
+    Some(Outcome { normal, returning, throwing, returned_value, facts })
 }
 
 /// One contextual body evaluation projects captured state back to its caller.
 /// Parameter entry executes defaults and packs rest arguments before the body.
 /// Nested invocation dispatch remains the responsibility of the worklist engine.
+#[cfg(test)]
 pub(super) fn invoke(declaration: Span, caller: &[Binding], arguments: &[expression_flow::Value], declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index) -> Option<Outcome> {
     invoke_with_dispatch(declaration, &caller.to_vec().into(), arguments, declarations, effects, &mut expression_flow::UnknownDispatch)
 }

@@ -68,6 +68,10 @@ mod generic_expression_adapters;
 mod generic_value_metadata;
 #[path = "deferred_generic_values.rs"]
 mod deferred_generic_values;
+#[path = "deferred_generic_preparation.rs"]
+mod deferred_generic_preparation;
+#[path = "deferred_generic_methods.rs"]
+mod deferred_generic_methods;
 #[path = "generic_calls.rs"]
 mod generic_calls;
 #[path = "polymorphic_argument_hints.rs"]
@@ -242,6 +246,8 @@ impl CallbackContract {
 
 
 pub struct CheckedProgram {
+    pub(crate) polymorphic_storage: crate::polymorphic_callable_storage::Registry,
+    pub(crate) polymorphic_invocations: crate::polymorphic_invocation_plans::Registry,
     pub(crate) record_call_releases: HashMap<usize,Vec<(usize,Vec<String>)>>,
     pub(crate) record_parameter_replacements: HashMap<usize,Vec<(usize,Vec<String>,Type)>>,
     pub(crate) scoped_records: crate::scoped_record_layout::Registry,
@@ -481,6 +487,8 @@ pub fn analyze(program: Program) -> Result<CheckedProgram, Diagnostic> {
 
 // Incomplete capture layouts stay private, even after typed flow checking.
 fn finish_analysis(mut checked: CheckedProgram) -> Result<CheckedProgram, Diagnostic> {
+    checked.polymorphic_storage.validate(&checked.closures, Span::default())?;
+    checked.polymorphic_invocations.validate(&checked.closures, Span::default())?;
     definitely_assigned(&mut checked)?;
     checked.named_capture_layouts = named_capture_layout::build(&checked)?;
     crate::named_capture_lowering::prepare(&mut checked)?;
@@ -640,6 +648,8 @@ struct Analyzer {
     abstract_returns: HashMap<usize, usize>,
     function_values: HashMap<usize, usize>,
     deferred_generic_values: HashMap<usize, deferred_generic_values::Source>,
+    polymorphic_storage: crate::polymorphic_callable_storage::Registry,
+    polymorphic_invocations: crate::polymorphic_invocation_plans::Registry,
     closure_method_sources: HashMap<usize, ClosureMethodSource>,
     closure_specializations: HashMap<(usize, Vec<Type>, bool, bool), usize>,
     callables: crate::callable_resolution::Tables,
@@ -1294,10 +1304,13 @@ fn remap_function_closures(
                 if let Some(ty) = &mut expr.ty {
                     remap_closure_type(ty, ids)?;
                 }
-                // The saved call origin names the same environment arena. An
-                // origin that was not retained leaves the call without one, so
-                // its error contract stays unresolved rather than misdirected.
+                // Constructors require their concrete payload identity. A call
+                // with an unretained origin stays unresolved instead of using
+                // another environment's error contract.
                 if let Some(CallableOrigin::Closure(origin)) = expr.callable_origin {
+                    if matches!(expr.kind, ExprKind::Closure { .. }) && ids.get(origin).copied().flatten().is_none() {
+                        return Err(Diagnostic::new("callable-layout", "Constructed generic environment lost its origin during compaction.", expr.span));
+                    }
                     expr.callable_origin = ids.get(origin).copied().flatten().map(CallableOrigin::Closure);
                 }
                 match &mut expr.kind {
@@ -1527,6 +1540,8 @@ impl Analyzer {
             abstract_returns: HashMap::new(),
             function_values: HashMap::new(),
             deferred_generic_values: HashMap::new(),
+            polymorphic_storage: Default::default(),
+            polymorphic_invocations: Default::default(),
             closure_method_sources: HashMap::new(),
             closure_specializations: HashMap::new(),
             callables,
@@ -2015,7 +2030,8 @@ impl Analyzer {
             && call.span == span && callee.span == span
             && let ExprKind::Name(name) = &callee.kind
             && self.generic_functions.template(name).is_some() { Some(name.as_str()) } else { None };
-        if let Some(name) = generic_wrapper && contextual.is_none()
+        if let Some(name) = generic_wrapper
+            && (contextual.is_none() || matches!(contextual, Some(Type::Closure(id)) if self.deferred_generic_values.contains_key(&id)))
             && (params.iter().any(|parameter| matches!(parameter.ty, ParameterAnnotation::Inferred(_)))
                 || (params.is_empty() && matches!(result, ResultAnnotation::Inferred(_)))) {
             return self.deferred_captured_generic_value(outer, name, origin, span, loans);
@@ -3072,6 +3088,8 @@ impl Analyzer {
                 remap_closure_type(&mut self.signatures[index].result,&ids)?;
             }
             self.deferred_generic_values=std::mem::take(&mut self.deferred_generic_values).into_iter().filter_map(|(origin,source)|ids[origin].map(|mapped|(mapped,source))).collect();
+            self.polymorphic_storage = self.polymorphic_storage.remap(&ids, Span::default())?;
+            self.polymorphic_invocations = self.polymorphic_invocations.remap(&ids, Span::default())?;
             self.callables.storage.remap_origins(&ids)?;
             self.unions.remap_closure_origins(&ids);
             self.closures = self
@@ -3136,6 +3154,8 @@ impl Analyzer {
         let record_call_releases=record_call_capture_release::summaries(&self.checked,&self.program.records,&self.closures);
         let deferred_generic_nominals = self.deferred_generic_nominal_uses();
         let checked = CheckedProgram {
+            polymorphic_storage: self.polymorphic_storage,
+            polymorphic_invocations: self.polymorphic_invocations,
             record_call_releases,
             record_parameter_replacements:self.record_parameter_replacements,
             scoped_records: self.scoped_records,
@@ -4200,12 +4220,7 @@ impl Analyzer {
         if let Some(&id) = self.specializations.get(&key) {
             return Ok(id);
         }
-        if self.specializations.len()
-            + self
-                .closure_specializations
-                .keys()
-                .filter(|(_, _, effects, discovery)| !effects && !discovery)
-                .count()
+        if self.callable_body_specialization_count()
             >= 128
         {
             return Err(Diagnostic::new(
@@ -4823,7 +4838,7 @@ impl Analyzer {
     #[inline(never)]
     fn discovery_error_effects(&mut self)->crate::error_effects::ErrorEffects {
         let families=self.callables.storage.families().map(|(id,_,origins)|(id,origins.iter().copied().collect())).collect::<Vec<_>>();
-        crate::error_effects::annotate_partial_with_storage(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families)
+        crate::error_effects::annotate_partial_with_storage(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,&self.polymorphic_invocations)
     }
 
     #[inline(never)]
@@ -4831,7 +4846,7 @@ impl Analyzer {
         let mut functions=self.checked.iter_mut().map(Option::as_mut).collect::<Option<Vec<_>>>()
             .ok_or_else(||Diagnostic::new("error-effect","Error contracts require every function body to be checked first.",Span::default()))?;
         let families=self.callables.storage.families().map(|(id,_,origins)|(id,origins.iter().copied().collect())).collect::<Vec<_>>();
-        Ok(crate::error_effects::annotate_parts_with_storage(&mut functions,&mut self.closures,&families))
+        Ok(crate::error_effects::annotate_parts_with_storage(&mut functions,&mut self.closures,&families,&self.polymorphic_invocations))
     }
 
     #[inline(never)]
@@ -4972,6 +4987,7 @@ impl Analyzer {
         Ok((pending,outgoing))
     }
 
+    #[cfg(test)]
     #[inline(never)]
     fn check_typed_catch_exits(&mut self,context:&mut Context,handler:&mut CatchClause,result:Type,incoming:&crate::error_effects::FailureSet,effects:&crate::error_effects::ErrorEffects,runtime:Option<Type>)->Result<(Option<exception_state::ExitState>,exception_state::CompletionFrame,exception_state::ErrorFrame,crate::error_effects::FailureSet),Diagnostic> {
         self.check_catch_contract_exits(context,handler,result,incoming,Some(effects),runtime)
@@ -5014,7 +5030,7 @@ impl Analyzer {
     fn region_caller_error_effects(&mut self,context:&Context,body:&[Stmt],result:Type)->crate::error_effects::ErrorEffects {
         let caller=CheckedFunction{template:false,specialization:false,name:"#region".into(),bindings:context.bindings.clone(),parameter_count:0,result,body:body.to_vec()};
         let families=self.callables.storage.families().map(|(id,_,origins)|(id,origins.iter().copied().collect())).collect::<Vec<_>>();
-        crate::error_effects::annotate_partial_with_callers(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,&caller,&self.unions)
+        crate::error_effects::annotate_partial_with_callers(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,&caller,&self.unions,&self.polymorphic_invocations)
     }
 
     #[inline(never)]
@@ -5546,6 +5562,14 @@ impl Analyzer {
         // but rejecting a read of x after an earlier transfer. Commit only after
         // evaluation and exact type checking complete.
         let actual = self.expression(context, value, Mode::Consume, loans, Some(ty))?;
+        if !self.effects_only && !self.discovering_results && !context.template
+            && let (Type::Closure(previous), Type::Closure(next)) = (ty, actual)
+            && self.deferred_generic_values.contains_key(&previous)
+            && self.deferred_generic_values.contains_key(&next)
+        {
+            self.polymorphic_storage.observe(previous, next);
+        }
+        let actual = self.fresh_generic_replacement_type(ty, actual, value);
         let nullable_callback = matches!(self.unions.payload(ty), Some(Type::Callback(_)));
         if matches!(ty, Type::Callback(_)) && actual != ty {
             return Err(Diagnostic::new(

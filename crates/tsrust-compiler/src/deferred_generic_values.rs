@@ -10,6 +10,35 @@ pub(super) struct Source {
 
 impl Analyzer {
     #[inline(never)]
+    fn retain_generic_invocation(&mut self, context: &Context, origin: usize, method: usize, result: Type, span: Span) -> Result<(usize, Type), Diagnostic> {
+        if !self.effects_only && !self.discovering_results && !context.template {
+            self.polymorphic_invocations.publish(
+                [crate::polymorphic_invocation_plans::Pair { origin, method }], &self.closures, span,
+            )?;
+        }
+        Ok((method, result))
+    }
+
+    /// A fresh reference to the same capture-free declaration has no distinct
+    /// payload to preserve. Reuse its storage type without changing value moves.
+    #[inline(never)]
+    pub(super) fn fresh_generic_replacement_type(
+        &self, expected: Type, actual: Type, value: &mut Expr,
+    ) -> Type {
+        let (Type::Closure(previous), Type::Closure(next)) = (expected, actual) else { return actual; };
+        if previous == next || !matches!(value.kind, ExprKind::Closure { .. }) { return actual; }
+        let (Some(previous_source), Some(next_source)) = (
+            self.deferred_generic_values.get(&previous), self.deferred_generic_values.get(&next),
+        ) else { return actual; };
+        if previous_source.declaration != next_source.declaration
+            || !previous_source.identities.is_empty() || !next_source.identities.is_empty()
+            || !self.closures[previous].captures.is_empty() || !self.closures[next].captures.is_empty()
+        { return actual; }
+        value.ty = Some(expected);
+        expected
+    }
+
+    #[inline(never)]
     pub(super) fn deferred_generic_requirement(
         &self, actual: Type, expected: Option<Type>, span: Span,
     ) -> Result<(), Diagnostic> {
@@ -36,6 +65,8 @@ impl Analyzer {
             id: usize::MAX - span.start, params: Vec::new(),
             result: ResultAnnotation::Inferred(span), body: Vec::new(),
         };
+        let Type::Closure(origin) = ty else { unreachable!("deferred generic environment") };
+        expression.callable_origin = Some(CallableOrigin::Closure(origin));
         Ok(ty)
     }
 
@@ -141,35 +172,37 @@ impl Analyzer {
         callee: &mut Expr, args: &mut Vec<Expr>, loans: &Loans, span: Span, once: bool, expected: Option<Type>, checked_receiver: bool,
     ) -> Result<(usize, Type), Diagnostic> {
         let declaration = self.deferred_generic_values[&origin].declaration.clone();
-        let mut source_call = Expr::new(ExprKind::Call(
-            Box::new(Expr::new(ExprKind::Name(declaration), span)), args.clone()), span);
-        // Original template preparation solves constraints without evaluating
-        // source arguments. It also retains omission and homogeneous rest packs.
-        let preparation = self.deferred_generic_values[&origin].context.as_ref().map(|source| {
-            let mut preparation = context.clone();
-            let start = preparation.bindings.len();
-            for binding in &source.bindings {
-                let mut binding = binding.clone();
-                for root in &mut binding.view_roots { *root += start; }
-                preparation.bindings.push(binding);
+        let reachable_origins = if !self.effects_only && !self.discovering_results && !context.template
+            && let Some(reachable) = self.generic_functions.reachable_declarations(&context.function_name, span, callee.span)
+            && let Some(template) = self.generic_functions.template(&declaration)
+        {
+            if !reachable.contains(&template.name.span) {
+                let mut error = Diagnostic::new("callable-origin", "The stored callable declaration is not reachable on this invocation path.", span)
+                    .related(template.name.span, "Stored callable declared here.");
+                for &declaration in reachable { error = error.related(declaration, "Reachable callable declared here."); }
+                return Err(error);
             }
-            preparation.source_bindings.extend(source.source_bindings.iter().map(|(&source, &slot)| (source, slot + start)));
-            preparation
-        });
-        let preparation = preparation.as_ref().unwrap_or(context);
-        self.prepare_generic_call(preparation, &mut source_call, expected)?;
-        let ExprKind::Call(target, prepared) = source_call.kind else { unreachable!() };
-        let ExprKind::Name(name) = target.kind else { unreachable!() };
-        let function = self.function_names[&name];
-        self.named_captures.prepare(function, preparation, &self.program)?;
-        self.function(function)?;
-        let checked = self.checked[function].as_ref().ok_or_else(|| Self::pending_result(span))?;
-        debug_assert_eq!(checked.parameter_count, self.program.functions[function].params.len());
-        let contracts = checked.bindings[..checked.parameter_count].iter().map(ArgumentContract::from).collect::<Vec<_>>();
-        *args = prepared;
-        Self::prepare_arguments(args, &contracts, span)?;
-        let accesses = self.named_captures.access(function, Some(checked), &self.assumed_capture_access, checked.parameter_count);
-        let method_invocation = accesses.iter().fold(Mode::Read, |mode, access| mode.max(access.mode));
+            self.polymorphic_storage.reachable_origins(origin, reachable, |member| {
+                self.deferred_generic_values.get(&member)
+                    .and_then(|source| self.generic_functions.template(&source.declaration))
+                    .map(|template| template.name.span)
+            }, span)?
+        } else if self.polymorphic_storage.contains(origin) {
+            // Generated contextual adapters have no original source call proof.
+            // Retain every matching environment instead of guessing the first.
+            let source = self.generic_functions.template(&declaration).expect("deferred source declaration").name.span;
+            self.polymorphic_storage.reachable_origins(origin, &[source], |member| {
+                self.deferred_generic_values.get(&member)
+                    .and_then(|source| self.generic_functions.template(&source.declaration))
+                    .map(|template| template.name.span)
+            }, span)?
+        } else { vec![origin] };
+        let prepared = self.prepare_deferred_generic_body(context, origin, args.clone(), expected, span)?;
+        let function = prepared.function;
+        let contracts = prepared.contracts;
+        *args = prepared.arguments;
+        let accesses = prepared.accesses;
+        let method_invocation = prepared.invocation;
         let invocation = if once { Mode::Consume } else { method_invocation };
         if let Some(binding) = binding {
             Self::access(context, binding, invocation, callee.span, loans)?;
@@ -199,56 +232,34 @@ impl Analyzer {
         // Callable arguments can select a further concrete body specialization.
         // Check that body before retaining its invocation method.
         self.function(function)?;
-        let mut types = args.iter().map(|argument| argument.ty.expect("checked generic value argument")).collect::<Vec<_>>();
-        // Zero-argument generic calls can select different concrete results.
-        // Their environments remain shared; only invocation methods differ.
-        types.push(result);
-        // Explicit type arguments can differ even when runtime arguments and
-        // result types do not. Keep those checked methods distinct as well.
-        if let Some(application) = self.program.functions[function].application.clone() {
-            for argument in &application.arguments {
-                types.push(self.callable_resolver().resolve_value_annotation(argument, false)?);
-            }
+        let method = self.materialize_deferred_method(origin, function, result, args, &accesses, method_invocation, span)?;
+        if !self.effects_only && !self.discovering_results && !context.template && reachable_origins.len() > 1 {
+            callee.generic_invocation = Some(self.materialize_selected_generic_methods(origin, function, result, args, &accesses, method_invocation, &reachable_origins, span)?);
         }
-        let key = (origin, types, self.effects_only, self.discovering_results);
-        if let Some(&method) = self.closure_specializations.get(&key) { return Ok((method, result)); }
-        if self.specializations.len() + self.closure_specializations.keys()
-            .filter(|(_, _, effects, discovery)| !effects && !discovery).count() >= 128 {
-            return Err(Diagnostic::new("unsupported", "Callback origin specialization count exceeds the prototype limit of 128.", span));
-        }
-        let checked = self.checked[function].as_ref().ok_or_else(|| Self::pending_result(span))?;
-        let method = self.closures[origin].methods.len();
-        let mut bindings = checked.bindings.clone();
-        let method_captures = self.deferred_generic_values[&origin].identities.iter().map(|identity| {
-            accesses.iter().find(|access| access.binding == *identity).expect("retained lexical capture").slot
-        }).collect::<Vec<_>>();
-        for (capture, &slot) in self.closures[origin].captures.iter().zip(&method_captures) {
-            let binding = &mut bindings[slot];
-            binding.capture_reference = match capture.storage {
-                Mode::Read if matches!(binding.ty, Type::BorrowedUnion(_) | Type::Union(_)) => false,
-                Mode::Read | Mode::Mutate => true,
-                Mode::Consume => method_invocation != Mode::Consume,
-                Mode::Copy => binding.mode == Mode::Mutate && method_invocation == Mode::Mutate,
-            };
-            binding.mode = if capture.storage == Mode::Consume || (capture.storage == Mode::Copy && binding.capture_reference) { method_invocation } else { capture.storage };
-        }
-        self.closures[origin].methods.push(CheckedClosureMethod {
-            invocation: method_invocation,
-            captures: method_captures,
-            parameters: (0..checked.parameter_count).collect(),
-            function: CheckedFunction {
-                template: checked.template, specialization: true, name: checked.name.clone(),
-                bindings, parameter_count: 0,
-                result: checked.result, body: checked.body.clone(),
-            },
-        });
-        self.closure_specializations.insert(key, method);
-        Ok((method, result))
+        self.retain_generic_invocation(context, origin, method, result, span)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn constructed_environment_cannot_silently_lose_compacted_identity() {
+        let source = crate::format("function identity<T>(value:T):T{return value;}function main(){const action=identity;action<int>(7);}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(), source);
+        let mut checked = crate::check(&source).unwrap();
+        let ids = (0..checked.program.closures.len()).map(Some).collect::<Vec<_>>();
+        let function = checked.program.functions.iter_mut().find(|function| function.name == "main").unwrap();
+        let value = function.body.iter_mut().find_map(|statement| match &mut statement.kind {
+            crate::syntax::StmtKind::Let { value, .. } => Some(value), _ => None,
+        }).unwrap();
+        assert!(matches!(value.kind, crate::syntax::ExprKind::Closure { .. }));
+        value.callable_origin = Some(crate::syntax::CallableOrigin::Closure(usize::MAX));
+        let span = value.span;
+        let error = super::remap_function_closures(function, &ids).unwrap_err();
+        assert_eq!(error.code, "callable-layout");
+        assert_eq!(error.span, span);
+    }
+
     #[test]
     fn explicit_unused_type_arguments_keep_distinct_methods_and_reuse_equivalents() {
         let checked=crate::check("function action<T>():int{return 7;}function main(){const alias=action;alias<int>();alias<string>();alias<int>();}").unwrap();

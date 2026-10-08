@@ -980,15 +980,18 @@ pub struct Expr {
     /// Failure of this operation itself, excluding evaluation of its children.
     pub own_may_fail: bool,
     pub(crate) effects_checked: bool,
-    /// Checked receiver identity, distinct from its local binding index.
+    /// Checked receiver or constructed environment identity, distinct from its
+    /// local binding index and from a reused empty storage representation.
     pub(crate) callable_origin: Option<CallableOrigin>,
+    /// Stable checked invocation ID; alternatives remain outside recursive nodes.
+    pub(crate) generic_invocation: Option<usize>,
     /// Slots of the calling body that a direct nested function call passes
     /// as hidden capture arguments, in the callee's hidden parameter order.
     pub(crate) capture_slots: Option<Box<[usize]>>,
     depth: usize,
 }
 
-/// Call receiver metadata is mutually exclusive for each checked dispatch target.
+/// A checked receiver or constructor names one environment or callable contract.
 #[derive(Clone,Copy,Debug)]
 pub(crate) enum CallableOrigin {Closure(usize),Storage(usize),Callback(usize)}
 
@@ -1398,6 +1401,7 @@ impl Expr {
             own_may_fail: false,
             effects_checked: false,
             callable_origin: None,
+            generic_invocation: None,
             capture_slots: None,
             depth: child_depth + usize::from(!transparent),
         }

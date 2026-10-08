@@ -8,6 +8,7 @@ mod branch_flow;
 mod effect_bodies;
 #[path = "once_environment_facts.rs"]
 mod once_environment_facts;
+#[cfg(test)]
 #[path = "generic_call_capture_modes.rs"]
 mod capture_modes;
 #[path = "generic_call_body_origins.rs"]
@@ -20,6 +21,9 @@ use targets::Target;
 #[path = "generic_call_contract_sets.rs"]
 mod contract_sets;
 use contract_sets::{resolve_all, resolve_indexed};
+#[path = "source_callable_proofs.rs"]
+mod source_proofs;
+pub(crate) use source_proofs::Proofs;
 
 /// Concrete parameter admission reuses source retention facts without exposing the index.
 pub(crate) fn once_parameter_demands(program:&Program)->Result<Vec<Vec<crate::callable_environment_demand::Demand>>,Diagnostic>{
@@ -243,7 +247,9 @@ fn related(mut error: Diagnostic, contract: &Contract) -> Diagnostic {
     error
 }
 
-pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
+pub(crate) fn validate(program: &mut Program) -> Result<Proofs, Diagnostic> {
+    let mut proofs = Proofs::default();
+    let declaration_spans = program.functions.iter().map(|function| function.name.span).collect::<HashSet<_>>();
     let effects = effect_bodies::Index::new(program)?;
     let declarations = program
         .functions
@@ -271,9 +277,8 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
         .map(|(span, args)| ((span.start, span.end), args.clone()))
         .collect::<HashMap<_, _>>();
     for function in &mut program.functions {
-        if function.type_parameters.is_empty() {
-            continue;
-        }
+        let validate_template = !function.type_parameters.is_empty();
+        let owner = function.name.text.clone();
         let mut bindings = function
             .params
             .iter()
@@ -421,6 +426,8 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
                 resolve(targets::value(callee), &bindings, &declarations, &effects)
                     .map(|contract| vec![contract])
             };
+            proofs.observe(&owner, expression.span, callee.span, resolved.as_deref(), &declaration_spans);
+            if !validate_template { return Ok(()); }
             let Some(contracts) = resolved else {
                 return Ok(());
             };
@@ -488,5 +495,5 @@ pub(crate) fn validate(program: &mut Program) -> Result<(), Diagnostic> {
             Ok(())
         })?;
     }
-    Ok(())
+    Ok(proofs)
 }
