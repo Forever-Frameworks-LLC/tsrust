@@ -910,6 +910,7 @@ fn callback_calls(
     functions: &[&CheckedFunction],
     closures: &[CheckedClosure],
     parameter_ids: &[usize],
+    invocations: &crate::polymorphic_invocation_plans::Registry,
 ) -> Result<Vec<CallbackCall>, Diagnostic> {
     enum Node<'a> {
         Statement(&'a Stmt),
@@ -991,7 +992,10 @@ fn callback_calls(
                 }
                 ExprKind::Selected { .. } => (),
                 ExprKind::Call(callee, args) => {
-                    let target = match expr.target {
+                    let selected = if matches!(expr.target, Some(CallTarget::ClosureMethod(_))) {
+                        callee.generic_invocation.map(|id| invocations.checked(id, closures, callee.span)).transpose()?
+                    } else { None };
+                    let target = if selected.is_some() { None } else { match expr.target {
                         Some(
                             CallTarget::Function(target) | CallTarget::ForwardFunction(target),
                         ) => {
@@ -1021,8 +1025,12 @@ fn callback_calls(
                             ))
                         }
                         _ => None,
-                    };
-                    if let Some((target, checked, parameter_ids)) = target {
+                    }};
+                    let targets = target.into_iter().chain(selected.iter().flat_map(|plan| plan.cases.iter().map(|case| (
+                        NativeCallbackTarget::Method(case.pair.origin, case.pair.method),
+                        &case.body.function, case.body.parameters.clone(),
+                    ))));
+                    for (target, checked, parameter_ids) in targets {
                         let mut arguments = Vec::new();
                         for (&parameter, arg) in parameter_ids.iter().zip(args) {
                             if matches!(checked.bindings[parameter].ty, Type::Callback(_)) {
@@ -1118,6 +1126,7 @@ fn validate_callback_instances(
     closures: &[CheckedClosure],
     recursive: &HashSet<usize>,
     definitions: &[Function],
+    invocations: &crate::polymorphic_invocation_plans::Registry,
 ) -> Result<(), Diagnostic> {
     let mut calls = HashMap::new();
     let mut visited = HashSet::new();
@@ -1131,7 +1140,7 @@ fn validate_callback_instances(
         let parameters = (0..function.parameter_count).collect::<Vec<_>>();
         calls.insert(
             node,
-            callback_calls(function, functions, closures, &parameters)?,
+            callback_calls(function, functions, closures, &parameters, invocations)?,
         );
         if !parameters
             .iter()
@@ -1152,6 +1161,7 @@ fn validate_callback_instances(
                 functions,
                 closures,
                 &closure.parameters,
+                invocations,
             )?);
         }
         for (method, checked) in closure.methods.iter().enumerate() {
@@ -1161,7 +1171,7 @@ fn validate_callback_instances(
             let node = NativeCallbackTarget::Method(origin, method);
             calls.insert(
                 node,
-                callback_calls(&checked.function, functions, closures, &checked.parameters)?,
+                callback_calls(&checked.function, functions, closures, &checked.parameters, invocations)?,
             );
             // Every method is reached through a typed caller edge. Do not seed
             // generic methods with a fabricated empty witness vector.
@@ -3148,6 +3158,7 @@ impl Analyzer {
                 &self.closures,
                 &self.recursive_callbacks,
                 &self.program.functions,
+                &self.polymorphic_invocations,
             )?;
         }
         if !self.effects_only{self.scoped_record_containers()?;self.record_parameter_carriers()?;}
@@ -16123,4 +16134,29 @@ impl Analyzer {
         }
         self.expression(context,operand,Mode::Read,loans,None)
     }
+}
+
+#[cfg(test)]
+#[test]
+fn native_callback_graph_retains_selected_generic_method_identity() {
+    let source=crate::format("function first<T>(value:T,f:ReadOnly<Function<int,[n:int]>>):int{return f(1);}function second<T>(value:T,f:ReadOnly<Function<int,[n:int]>>):int{return f(2);}function main(){const one=first;const two=second;one<int>(7,(n:int):int=>n);two<int>(9,(n:int):int=>n);}").unwrap();
+    assert_eq!(crate::format(&source).unwrap(),source);
+    let mut program=crate::check(&source).unwrap().program;
+    let main=program.functions.iter().position(|function|function.name=="main").unwrap();
+    let selected=program.functions[main].body.iter().filter_map(|statement|match &statement.kind {StmtKind::Expr(call)=>Some(call),_=>None}).nth(1).unwrap();
+    let ExprKind::Call(callee,_)=&selected.kind else {panic!("method call");};
+    let Some(Type::Closure(origin))=callee.ty else {panic!("environment");};
+    let Some(CallTarget::ClosureMethod(method))=selected.target else {panic!("method");};
+    let plan=program.polymorphic_invocations.publish([crate::polymorphic_invocation_plans::Pair{origin,method}],&program.closures,Span::default()).unwrap();
+    let mut seen=false;
+    program.functions[main].body.retain_mut(|statement| {
+        let StmtKind::Expr(call)=&mut statement.kind else {return true;};
+        if seen {return false;}seen=true;
+        let ExprKind::Call(callee,_)=&mut call.kind else {panic!("call");};
+        callee.generic_invocation=Some(plan);true
+    });
+    let functions=program.functions.iter().collect::<Vec<_>>();
+    let calls=callback_calls(&program.functions[main],&functions,&program.closures,&[],&program.polymorphic_invocations).unwrap();
+    assert!(calls.iter().any(|call|matches!(call.target,NativeCallbackTarget::Method(found,ordinal) if found==origin && ordinal==method)),"selected method must retain a native callback edge");
+    assert_eq!(calls.len(),1,"inactive receiver method must not remain a call edge");
 }
