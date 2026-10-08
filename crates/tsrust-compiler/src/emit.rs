@@ -3243,13 +3243,31 @@ impl Emitter<'_> {
         depth: usize,
         loop_label: Option<usize>,
     ) {
+        self.control_block_epochs(output, fun, body, depth, loop_label, None);
+    }
+
+    fn control_block_epochs(&self, output: &mut String, fun: &CheckedFunction, body: &[Stmt], depth: usize, loop_label: Option<usize>, declaring_body: Option<&[Stmt]>) {
         let indent = "    ".repeat(depth);
+        let declarations = declaring_body.unwrap_or(body);
         for stmt in body {
-            if let Some(reset) = self.local_map_clear_epoch(fun, body, stmt).or_else(|| self.map_clear_block_epoch(fun, body, stmt)) {
+            if let Some(reset) = self.local_map_clear_epoch(fun, body, stmt)
+                .or_else(|| self.local_map_clear_epoch(fun, declarations, stmt))
+                .or_else(|| self.map_clear_block_epoch(fun, declarations, stmt)) {
                 let _ = writeln!(output, "{indent}{reset}");
                 continue;
             }
-            if let StmtKind::Block(body) = &stmt.kind {
+            if let StmtKind::Block(inner) = &stmt.kind {
+                let places = if stmt.labels.is_empty() { self.map_block_return_places(fun, declarations, inner) } else { Vec::new() };
+                if !places.is_empty() {
+                    let pattern = places.iter().map(|place| format!("mut {place}")).collect::<Vec<_>>().join(",");
+                    let values = places.join(",");
+                    let _ = writeln!(output, "{indent}let ({pattern},) = {{");
+                    self.control_block_epochs(output, fun, inner, depth + 1, loop_label, Some(declarations));
+                    let _ = writeln!(output, "{indent}    ({values},)
+{indent}}};");
+                    continue;
+                }
+                let body = inner;
                 let _control_scope=(!stmt.labels.is_empty()).then(||self.control_targets.enter(ControlTarget::Block(stmt.span.start)));
                 if stmt.labels.is_empty() {let _ = writeln!(output, "{indent}{{");}
                 else {let _ = writeln!(output,"{indent}'block_{}: {{",stmt.span.start); }

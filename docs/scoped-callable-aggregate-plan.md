@@ -585,3 +585,20 @@ through these blocks. Broader cross-block lifetime transport remains required;
 this repair does not substitute for that work.
 The affected 61-test batch and eight normal-worker depth canaries pass. Exact
 checks are preserved in SQLite as `tsrust-b5-clear-only-block-checks.log`.
+
+Mixed unconditional blocks now transport renewed local Map storage back into the
+declaring scope. Block planning gathers statically named clear targets without
+traversing conditional or looping control flow. Emission retains the block as an
+expression, renews the Map at its original clear statement, executes remaining
+statements in order, and returns renewed storage in a tuple to the parent scope.
+Nested blocks and independent record leaves use the same transport. Block-local
+bindings keep their original scope; siblings are not reconstructed or copied.
+Labels and control-flow statements prevent this lowering. Exception regions,
+conditional joins and runtime-indexed storage still need their own lifetime work.
+
+Native witnesses cover local declarations and assertions before clear, a size
+observation after clear, and nested record-field clearing with sibling retention.
+The focused witness was red with generated-Rust E0502 before this repair. The
+61-test affected batch, all eight normal-worker depth canaries and focused editor
+diagnostics pass. Exact batch/depth evidence is preserved in SQLite under
+`tsrust-b5-mixed-block-refill-checks.log`. B5 acceptance remains pending.

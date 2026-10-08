@@ -87,6 +87,11 @@ impl Emitter<'_> {
     /// End a straight-line local storage lifetime before a later refill.
     /// Declarations outside this block must retain their surrounding storage.
     pub(super) fn local_map_clear_epoch(&self, fun: &CheckedFunction, body: &[Stmt], statement: &Stmt) -> Option<String> {
+        let (place, native) = self.local_map_clear_storage(fun, body, statement)?;
+        Some(format!("drop({place}); let mut {place}: {native} = <{native}>::new();"))
+    }
+
+    fn local_map_clear_storage(&self, fun: &CheckedFunction, body: &[Stmt], statement: &Stmt) -> Option<(String, String)> {
         let StmtKind::Expr(call) = &statement.kind else { return None; };
         if call.target != Some(CallTarget::MapMethod(MapMethod::Clear)) { return None; }
         let ExprKind::Call(callee, _) = &call.kind else { return None; };
@@ -111,7 +116,7 @@ impl Emitter<'_> {
         let value = self.program.records[id].map_definition.as_ref()?.value;
         if !self.scoped_record_native_parameter(value) { return None; }
         let native = self.native_type(Type::Map(id));
-        Some(format!("drop({place}); let mut {place}: {native} = <{native}>::new();"))
+        Some((place, native))
     }
 }
 
@@ -129,5 +134,25 @@ impl Emitter<'_> {
             code.push_str(&reset);
         }
         Some(code)
+    }
+}
+
+impl Emitter<'_> {
+    pub(super) fn map_block_return_places(&self, fun: &CheckedFunction, declaring_body: &[Stmt], inner: &[Stmt]) -> Vec<String> {
+        let mut places = Vec::new();
+        let mut pending = inner.iter().collect::<Vec<_>>();
+        while let Some(statement) = pending.pop() {
+            if !statement.labels.is_empty() { return Vec::new(); }
+            match &statement.kind {
+                StmtKind::Block(body) => pending.extend(body.iter()),
+                StmtKind::Let { .. } | StmtKind::Expr(_) | StmtKind::Assign { .. } => {
+                    if let Some((place, _)) = self.local_map_clear_storage(fun, declaring_body, statement)
+                        && !places.contains(&place) { places.push(place); }
+                },
+                _ => return Vec::new(),
+            }
+        }
+        places.sort();
+        places
     }
 }
