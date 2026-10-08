@@ -1317,3 +1317,37 @@ Carry renewed owners across iterations and out of the loop without extending
 callback loans or dropping owners before cleanup. Preserve the complete witness
 and the accepted loop-local cases. Continue remaining B5 work and the full
 compiler/editor plan after this repair.
+
+### Proven-empty outer Map iteration epochs
+
+The `a8cf844` witness is repaired by a separate
+`map_loop_storage_epochs.rs` helper. It retains the original empty owner and
+creates an independent native owner for each iteration. Admission requires an
+empty constructor immediately before the while loop, an unconditional direct
+clear in finally, no earlier cleanup control exit and no later Map refill or
+reference other than reading size. Prefix and trailing loop statements cannot bypass the cleanup.
+Nested declaration context reaches the existing completion-storage helper.
+Native witnesses verify continue, fallthrough capture mutation, break, post-loop
+observation and zero iterations with exact disposal at O0/O3.
+
+The affected batch passes 78 composition, 42 scoped-record and four fallible-record
+tests. Eight normal-stack depth canaries and focused editor diagnostics pass.
+The matched workload has 31 independent observations. Registration now validates
+each loop helper separately so duplicate operations cannot hide a removed clear
+or control destination. Full family regression and timing remain pending.
+
+This is an empty-epoch implementation slice. Retained/populated owners crossing
+iterations, record-field outer storage, broader loop forms, loops inside try and
+nested exception regions remain B5 implementation work; they are not accepted
+source-language rejection boundaries.
+
+The 31-observation workload verifies native and Node-after-tsc untimed, record
+`runtime/results/2026-10-08T19-14-53-091Z-verify.json`. The initial workload
+failed on a post-clear size read omitted by the helper's first eligibility
+check. That case now has a focused disposal witness and passes. A trial requiring
+all prefixes to have empty error contracts was overly restrictive for checked
+scalar arithmetic and was removed; the original empty owner remains intact
+and exceptions dispose the current iteration owner normally. Original failed
+batches and registration attempts remain beside passing supplements in SQLite
+under `tsrust-b5-outer-map-loop-*.log`. All records were read back byte-exact
+before deleting loose copies. Final formatting changed no files.

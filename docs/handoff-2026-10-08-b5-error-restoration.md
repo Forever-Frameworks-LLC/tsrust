@@ -27,10 +27,10 @@ Native witnesses cover explicit throw, a later fallible call, a later bounds
 failure, record-field storage and an independent sibling field. Disposal tests
 at optimization levels 0 and 3 prove exactly one callback drop on both early and
 late failure paths. The editor test verifies restoration and rejects reads before
-restoration. All 77 composition tests, eight normal-stack depth canaries and 15
+restoration. All 78 composition tests, eight normal-stack depth canaries and 15
 exception-contract tests pass. The focused editor test passes.
 
-The matched workload now retains 30 observations. Source guards and rehashed
+The matched workload now retains 31 observations. Source guards and rehashed
 mutation controls pass. Native and Node-after-tsc verification passes untimed.
 The independent oracle includes `value + 29` and `value + 30` for early and late
 statement restoration, plus `value + 39` and `value + 40` for expression failures. SQLite preserves exact failures and repaired records; see the plan
@@ -237,3 +237,42 @@ Carry renewed owners across iterations and out of the loop without extending
 callback loans or dropping owners before cleanup. Preserve the complete witness
 and the accepted loop-local cases. Continue remaining B5 work and the full
 compiler/editor plan after this repair.
+
+## Empty outer-Map loop epochs repaired
+
+The red witness in `a8cf844` now passes. The separate
+`map_loop_storage_epochs.rs` helper admits an initially empty root Map declared
+immediately before a while loop, with an unconditional direct finally clear and
+no later refill. It retains the original empty owner and creates an independent
+owner for each iteration, forwarding declaration context into completion storage.
+Size reads after clear are admitted. Zero iterations and continue/fallthrough/
+break paths preserve the empty owner observed after the loop. Exact callback
+disposal is verified at O0/O3, including post-clear size observation.
+
+The affected batch passes 78 composition, 42 scoped-record and four fallible-record
+tests. Eight normal-stack depth canaries and the focused editor check pass. A
+post-clear size read discovered by benchmark compilation was repaired and rerun
+in the expanded focused native witness. Registration checks each loop helper
+independently; duplicate scenario operations no longer mask deleted operations.
+All 31 matched observations verify untimed on native and Node-after-tsc, record
+`runtime/results/2026-10-08T19-14-53-091Z-verify.json`. Failed attempts and passing
+supplements are verified byte-exact in SQLite under
+`tsrust-b5-outer-map-loop-*.log`; loose copies are removed. Final formatting
+changed no files. Five user consumers still represent gate181.
+
+This is not general loop-family acceptance. Maps retaining entries across
+iterations, populated initial owners, outer record-field storage, broader loop
+forms and nested exception regions remain implementation work. Source-valid
+compositions that need these boundaries must be implemented, not relabeled as
+accepted rejections. Precise entry/element release and Rust-style record Set
+equality/hashing also remain in B5. Full family regressions and timing are pending.
+
+Continuation prompt: Continue B5 from this empty outer-Map iteration checkpoint.
+Read AGENTS.md, development-workflow.md and scoped-callable-aggregate-plan.md.
+Add red witnesses for retained/populated owners and outer record-field storage,
+then extend the loop boundary transport while preserving exact disposal,
+source ownership and native lifetime safety. Continue nested regions and the
+remaining B5 scope. Keep compiler/editor parity, matched untimed workloads,
+per-helper mutation guards and exact SQLite evidence current. Preserve unrelated
+fixture edits, stage explicit paths and format the whole project before commits.
+The full compiler/editor completion goal remains active.

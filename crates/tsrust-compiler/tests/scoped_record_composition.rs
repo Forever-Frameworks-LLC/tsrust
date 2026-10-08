@@ -4,6 +4,11 @@ mod support;
 fn outer_map_survives_loop_exit_cleanup_and_capture_renewal() {
     let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function main():void{const old=[3];const next=[5];let turn=0;let handlers=new Map<string,Holder>();while(turn<3){handlers.set('old',{run:():int=>old[0]});console.log('before',turn);turn+=1;try{failIf(false);handlers.clear();handlers.set('next',{run:():int=>next[0]});if(turn===1)continue;if(turn===3)break;}finally{console.log('cleanup',handlers.size);handlers.clear();console.log('cleared');}old[0]=9;next[0]=11;console.log('inside',old[0],next[0]);}old[0]=13;next[0]=17;console.log('after',handlers.size,old[0],next[0]);}");
     verify_disposal(&source, 2, "before 0\ndrop 0\ncleanup 1\ndrop 1\ncleared\nbefore 1\ndrop 0\ncleanup 1\ndrop 1\ncleared\ninside 9 11\nbefore 2\ndrop 0\ncleanup 1\ndrop 1\ncleared\nafter 0 13 17\n");
+    let observed_cleanup=source.replace("console.log('cleared');", "console.log('cleared',handlers.size);");
+    verify_disposal(&support::format_round_trip(&observed_cleanup),2,"before 0\ndrop 0\ncleanup 1\ndrop 1\ncleared 0\nbefore 1\ndrop 0\ncleanup 1\ndrop 1\ncleared 0\ninside 9 11\nbefore 2\ndrop 0\ncleanup 1\ndrop 1\ncleared 0\nafter 0 13 17\n");
+    let zero = source.replace("turn < 3", "turn < 0");
+    verify_disposal(&support::format_round_trip(&zero),2,"after 0 13 17\n");
+
 }
 
 #[test]

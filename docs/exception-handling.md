@@ -47,7 +47,12 @@ normal cleanup on a path that continues past the try statement. The compiler
 preserves the owners needed for cleanup without cloning them. A pending break
 or continue also runs cleanup before reaching its loop destination. A break,
 continue, return or error from cleanup replaces the pending exit. Normal
-fallthrough can mutate captures released by cleanup before the next iteration.
+fallthrough can mutate captures released by cleanup before the next iteration. An initially
+empty Map declared immediately before a while loop can also release its
+callback captures when every iteration clears it in unconditional finally.
+It remains empty after break or zero iterations. Maps that retain entries
+across iterations still require additional storage-boundary support.
+
 
 
 
