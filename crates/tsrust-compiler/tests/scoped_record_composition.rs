@@ -2,7 +2,7 @@ mod support;
 
 #[test]
 fn nested_exception_branches_preserve_map_renewal() {
-    project(r#"
+    let source = r#"
         import { strictEqual } from "std:testing";
         type Holder = { run: ReadOnly<Function<int>>; };
         function scenario(fail: boolean): void {
@@ -41,7 +41,18 @@ fn nested_exception_branches_preserve_map_renewal() {
             strictEqual(old[0] + current[0], 20);
         }
         function main(): void { scenario(false); scenario(true); }
-    "#);
+    "#;
+    project(source);
+    project(&source.replace("                    throw 5;", "                    handlers.clear(); handlers.set(\"new\", { run: (): int => current[0] }); throw 5;"));
+    project(&source.replace("cleaned = handlers.size;", "if (fail) { cleaned = handlers.size; } else { cleaned = handlers.size; }"));
+    let field = source.replace("function scenario", "type Box = { handlers: Map<string, Holder>; marker: int; }; function scenario")
+        .replace("            let path = 0;", "            const box: Box = { handlers: handlers, marker: 23 }; let path = 0;")
+        .replace("handlers.clear()", "box.handlers.clear()")
+        .replace("handlers.set(\"new\"", "box.handlers.set(\"new\"")
+        .replace("handlers.size", "box.handlers.size")
+        .replace("handlers.get(\"new\")", "box.handlers.get(\"new\")")
+        .replace("strictEqual(cleaned, 1);", "strictEqual(cleaned, 1); strictEqual(box.marker, 23);");
+    project(&field);
 }
 
 #[test]
@@ -80,6 +91,8 @@ fn finally_map_storage_runs_after_handler_failure_and_preserves_disposal() {
         }
     "#);
     verify_disposal(&source, 3, "before\nnormal\ndrop 0\nfinally 1\ndrop 1\ncleared\nafter\nbefore\ncaught\ndrop 0\nfinally 1\ndrop 2\ncleared\nescaped\n");
+    let nested = support::format_round_trip(&source.replace("const path = failIf(fail);", "if (fail) { throw 5; } else { const marker = 1; }"));
+    verify_disposal(&nested, 3, "before\nnormal\ndrop 0\nfinally 1\ndrop 1\ncleared\nafter\nbefore\ncaught\ndrop 0\nfinally 1\ndrop 2\ncleared\nescaped\n");
     let start = source.find("    } catch (error) {").unwrap();
     let end = start + source[start..].find("    } finally {").unwrap();
     let before_clear = support::format_round_trip(&format!("{}    }} catch (error) {{ console.log(\"caught\"); throw 9;\n{}", &source[..start], &source[end..]));

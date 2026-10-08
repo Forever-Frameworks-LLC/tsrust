@@ -898,3 +898,22 @@ program; generated Rust fails with E0502. Exact evidence is verified in SQLite
 as `tsrust-b5-nested-exception-red.log`. Next work must admit checked nested
 blocks and branches while attaching storage to exceptions at their actual exit
 points. Loops, consuming exits and try/finally without catch remain open.
+
+Nested unlabeled blocks and if branches now participate in exception storage
+transport. Admission and clear-target discovery use an explicit statement stack
+while retaining the existing checked nesting limit. Block/branch Map renewal
+recognizes throws as abrupt exits; the active exception region attaches the
+current owner at the throw instead of treating it as a normal block result.
+Loops, return/break/continue, nested try regions and consumed storage remain
+excluded from this helper pending their exit-specific transport.
+
+The committed red witness now executes both paths. Additional native variants
+throw after clear/refill, observe storage through a cleanup branch, and preserve
+a record sibling after nested Map field renewal. Disposal instrumentation also
+executes a nested throw branch at optimization levels 0 and 3, retaining the
+exact catch/finally drop sequence. All 64 composition tests, eight depth canaries,
+15 exception-contract tests and the focused nested editor diagnostic test pass.
+The editor releases the old capture and rejects mutation of the current capture.
+Exact checks are verified in SQLite as `tsrust-b5-nested-exception-checks.log`;
+its loose copy is removed. Matched nested-branch coverage remains next; B5
+feature-family acceptance and measurement remain pending.

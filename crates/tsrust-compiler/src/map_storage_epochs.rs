@@ -93,7 +93,7 @@ impl Emitter<'_> {
                     let right = self.map_block_return_places(fun, declaring_body, else_body);
                     for place in left.into_iter().chain(right) { if !places.contains(&place) { places.push(place); } }
                 },
-                StmtKind::Let { .. } | StmtKind::Expr(_) | StmtKind::Assign { .. } => {
+                StmtKind::Let { .. } | StmtKind::Expr(_) | StmtKind::Assign { .. } | StmtKind::Throw(_) => {
                     if let Some((place, _)) = self.local_map_clear_storage(fun, declaring_body, statement)
                         && !places.contains(&place) { places.push(place); }
                 },

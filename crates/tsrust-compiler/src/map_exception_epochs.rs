@@ -7,13 +7,20 @@ impl Emitter<'_> {
         if !statement.labels.is_empty() { return false; }
         let StmtKind::Try(region) = &statement.kind else { return false; };
         let Some(handler) = &region.catch else { return false; };
-        // Structured exits require their own point-sensitive storage payloads.
-        // Start with straight-line regions; fallible expressions remain allowed.
-        let simple = |body: &[Stmt]| body.iter().all(|item| item.labels.is_empty() && matches!(item.kind, StmtKind::Let { .. } | StmtKind::Expr(_) | StmtKind::Assign { .. } | StmtKind::Throw(_)));
-        if !simple(&region.body) || !simple(&handler.body) || region.finally.as_ref().is_some_and(|body| !simple(body)) { return false; }
         let mut places = Vec::new();
         let mut native_places = std::collections::HashMap::new();
-        for item in region.body.iter().chain(&handler.body).chain(region.finally.iter().flatten()) {
+        let mut statements = region.body.iter().chain(&handler.body).chain(region.finally.iter().flatten()).collect::<Vec<_>>();
+        while let Some(item) = statements.pop() {
+            if !item.labels.is_empty() { return false; }
+            match &item.kind {
+                StmtKind::Block(body) => statements.extend(body),
+                StmtKind::If { then_body, else_body, .. } => {
+                    statements.extend(then_body); statements.extend(else_body);
+                },
+                StmtKind::Let { .. } | StmtKind::Expr(_) | StmtKind::Assign { .. } | StmtKind::Throw(_) => {},
+                // Loops and control exits need their own storage snapshots.
+                _ => return false,
+            }
             if let Some((place, native)) = self.local_map_clear_storage(fun, declarations, item)
                 && !places.contains(&place) { native_places.insert(place.clone(), native); places.push(place); }
         }
