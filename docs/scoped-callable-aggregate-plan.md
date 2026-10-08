@@ -1151,3 +1151,15 @@ passes untimed, preserved exactly in SQLite as
 `runtime/results/2026-10-08T18-22-16-811Z-verify.json` and
 `tsrust-b5-native-survivor-benchmark.log`; loose copies are removed. Earlier
 observations remain unchanged. No timing samples were collected.
+
+
+Replacement outside exception handling has a confirmed red native witness:
+`conditional_transfer_replacement_preserves_disposal_without_try` clears and
+transfers on one branch, retains the callback on the other, then explicitly
+replaces the Map before mutating the capture. Generated Rust fails with E0502:
+the surviving native owner is shadowed without dropping, retaining its callback
+borrow until scope exit. Exact original evidence is verified in SQLite as
+`tsrust-b5-outside-replacement-red.log`; the loose copy is removed. Native
+initialization tracking must extend beyond completion storage while isolating
+callables and sibling branches. Source reads after possible transfer must remain
+rejected.
