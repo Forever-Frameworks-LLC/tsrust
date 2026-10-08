@@ -1734,6 +1734,10 @@ fn os_identity_zero_argument_native_contract() {
         assert_eq!(tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).err().unwrap().code,"type");
     }
     assert!(tsrust_compiler::native_bindings::lookup("std:os","hostname").unwrap_err().contains("does not export"));
+    let memory=Memory::new(&[("main.tsr","import {hostname} from 'std:os';function main(){console.log(hostname());}")]);
+    let error=load_project(&memory,"main.tsr").err().unwrap();
+    assert_eq!(error.code,"module-native");
+    assert!(error.message.contains("does not export") && error.message.contains("hostname"));
 }
 
 #[test]
