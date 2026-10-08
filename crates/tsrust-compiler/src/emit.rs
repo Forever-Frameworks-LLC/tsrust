@@ -305,6 +305,10 @@ impl Emitter<'_> {
     }
 
     fn native_type(&self, value: Type) -> String {
+        if let Type::Map(id) = value {
+            let payload = self.program.records[id].map_definition.as_ref().unwrap().value;
+            if self.scoped_record_native_parameter(payload) { return format!("Map{id}<{}>", self.native_type(payload)); }
+        }
         if let Type::Array(ArrayElement::Record(id, depth)) = value
             && depth > 0
         {

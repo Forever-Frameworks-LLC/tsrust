@@ -1,6 +1,57 @@
 mod support;
 
 #[test]
+fn map_get_before_later_insertion_keeps_callback_environment() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function main() {
+            const values = [3, 7];
+            const handlers = new Map<string, Holder>();
+            handlers.set("first", { run: (): int => values[0] });
+            {
+                const first = handlers.get("first");
+                if (first !== undefined) strictEqual(first.run(), 3);
+            }
+            handlers.set("second", { run: (): int => values[1] });
+            const second = handlers.get("second");
+            if (second !== undefined) strictEqual(second.run(), 7);
+        }
+    "#);
+}
+
+#[test]
+fn scoped_map_values_keep_capture_conflicts_and_reject_local_escape() {
+    let live_view = "type Holder={run:ReadOnly<Function<int>>;};function main(){const values=[3,7];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>values[0]});const first=handlers.get('first');handlers.set('second',{run:():int=>values[1]});if(first!==undefined)console.log(first.run());}";
+    let error = tsrust_compiler::check(live_view).err().expect("Map mutation cannot invalidate a live entry view");
+    assert_eq!(error.code, "view-conflict", "{}", error.message);
+    let conflict = "type Holder={run:ReadOnly<Function<int>>;};function main(){const values=[3];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>values[0]});values[0]=9;console.log(handlers.size);}";
+    let error = tsrust_compiler::check(conflict).err().expect("Map payload retains its capture");
+    assert_eq!(error.code, "capture-conflict", "{}", error.message);
+    let escape = "type Holder={run:ReadOnly<Function<int>>;};function bad():Map<string,Holder>{const values=[3];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>values[0]});return handlers;}function main(){}";
+    let error = tsrust_compiler::check(escape).err().expect("Map cannot conceal local borrowed payload");
+    assert_eq!(error.code, "callback-escape", "{}", error.message);
+}
+
+#[test]
+fn map_values_keep_borrowing_record_callback_environments() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function main() {
+            const values = [3, 7];
+            const handlers = new Map<string, Holder>();
+            handlers.set("first", { run: (): int => values[0] });
+            handlers.set("second", { run: (): int => values[1] });
+            const handler = handlers.get("first");
+            if (handler !== undefined) strictEqual(handler.run(), 3);
+            const other = handlers.get("second");
+            if (other !== undefined) strictEqual(other.run(), 7);
+        }
+    "#);
+}
+
+#[test]
 fn alternating_path_removal_keeps_inserted_capture_after_scope_exit() {
     let source = "type Holder={run:ReadOnly<Function<int>>;};type Box={items:Holder[];};function main(){const first=[3];const second=[7];let removed:Holder|undefined;{const boxes:Box[]=[{items:[{run:():int=>first[0]}]}];boxes[0].items.push({run:():int=>second[0]});removed=boxes[0].items.pop();}second[0]=9;if(removed!==undefined)console.log(removed.run());}";
     let error = tsrust_compiler::check(source).err().expect("removed callback must retain the inserted owner");

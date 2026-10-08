@@ -205,7 +205,7 @@ outer storage. Moves between named arrays propagate a common element carrier
 back through their storage dependencies; subsequent insertion can widen that
 carrier without generating incompatible native types.
 
-Thirty-one focused composition tests cover native execution after outer-scope
+Thirty-three focused composition tests cover native execution after outer-scope
 assignment, insertion after a move, both branch insertion paths, and invocation of
 removed records after their source array widens. Splice results participate in the
 same storage dependency plan as moved arrays. Pop and shift results now update their
@@ -282,6 +282,41 @@ such a path; capture transport now retains its owners without consuming sibling
 payloads. All 103 affected composition, scoped-record, field-move and array-field
 tests pass, and the independent Node reference passes. Broader combinations of
 alternating paths still require operation-specific evidence before acceptance.
+
+Named local Maps now specialize record-value layouts when `set` receives borrowing
+callback records. A separate Map carrier module retargets the empty constructor and
+stored values to the final concrete environment layout. Native Map aliases carry
+the payload type as a generic argument. Two distinct record origins can coexist and
+be invoked after `get`; source capture conflicts and local Map escape are rejected.
+The affected composition, Map and Map-forEach batch passes 41 tests, and the expanded
+independent Node reference passes. Map support remains incomplete: earlier get
+results followed by later widening, moved Maps, nested storage, borrowed iteration,
+snapshot restrictions, precise removal/replacement release and disposal still need
+their own evidence and implementation.
+
+The owner prefers Rust-style collection semantics that reduce side effects and
+unexpected behavior. Plan record Set keys around field equality and hashing:
+separately constructed records with equal supported fields represent the same key.
+Admit only records whose fields have consistent equality and hashing, and prevent
+mutation of stored keys from invalidating those contracts. Define eligible field
+types and floating-point behavior explicitly before implementation acceptance.
+Callback fields have no automatic value equality; records containing callbacks
+remain rejected as ordinary Set keys. Their B5 collection use needs an explicit
+stable-key design, which remains pending rather than accepted through rejection.
+Map values can contain callbacks because values are not hashed. Map value work can
+continue independently. JavaScript object identity is not the Set reference model.
+
+The focused `map_get_before_later_insertion_keeps_callback_environment` witness
+exposed a compiler panic in optional-element emission. It reads and calls the first
+entry inside a completed block, then inserts a different callback origin and reads
+the second entry. The repaired Map planner propagates the final value carrier into
+earlier `get` results, nullable bindings, projections and callback targets. Borrowed
+result types retain their view representation. The native witness passes, and a
+paired rejection still reports `view-conflict` when mutation overlaps a live view.
+The affected compiler batch passes 42 tests. The focused editor witness preserves
+the declared parameter name in signature help and hides internal carrier names in
+hover. The independent Node reference passes. These are untimed checks, not B5
+acceptance or performance evidence.
 
 Remaining B5 work includes broader nested method composition,
 nullable replacement across multiple origins,

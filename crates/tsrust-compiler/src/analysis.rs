@@ -24,6 +24,8 @@ mod record_call_capture_release;
 mod record_parameter_carriers;
 #[path = "scoped_record_containers.rs"]
 mod scoped_record_containers;
+#[path = "scoped_map_carriers.rs"]
+mod scoped_map_carriers;
 #[path = "record_array_carriers.rs"]
 mod record_array_carriers;
 #[path = "record_value_carriers.rs"]

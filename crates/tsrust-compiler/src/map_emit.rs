@@ -7,6 +7,10 @@ impl Emitter<'_> {
         output.push_str(runtime::MAP_RUNTIME);
         for (id, record) in self.program.records.iter().enumerate() { if let Some(map) = &record.map_definition {
             let key=self.native_type(map.key);let value=self.native_type(map.value);
+            if self.scoped_record_native_parameter(map.value) && map.entry.is_none() {
+                let _=writeln!(output,"type Map{id}<P>=TsrMap<{key},P>;");
+                continue;
+            }
             if let Some(pair)=map.entry {
                 let _=writeln!(output,"type Map{id}=TsrMap<{key},{value},Record{pair}>;");
                 let _=writeln!(output,"impl TsrMapEntry<{key},{value}> for Record{pair} {{fn from_pair(key:{key},value:{value})->Self{{Self{{field0:key,field1:value}}}}fn key(&self)->&{key}{{&self.field0}}fn value(&self)->&{value}{{&self.field1}}fn value_mut(&mut self)->&mut {value}{{&mut self.field1}}fn into_pair(self)->({key},{value}){{(self.field0,self.field1)}}}}");
@@ -37,8 +41,8 @@ impl Emitter<'_> {
                 }, _=>unreachable!("checked Map source"),
             };
             if let Some(items)=items { format!("{{let map_source={value};{native}::from_values({items})}}") }
-            else {format!("{{let _={value};{native}::new()}}")}
-        } else {format!("{native}::new()")};
+            else {format!("{{let _={value};<{native}>::new()}}")}
+        } else {format!("<{native}>::new()")};
         match mode {Mode::Read=>format!("&({code})"),Mode::Mutate=>format!("&mut ({code})"),_=>code}
     }
     #[inline(never)]

@@ -60,10 +60,25 @@ impl Analyzer {
         let mut active = loans.clone();
         for root in Self::loan_roots(base, Mode::Read) { active.entry(root).or_default().push((Mode::Read, base.span)); }
         for (index, argument) in arguments.iter_mut().enumerate() {
-            let ty = if index == 0 { definition.key } else { definition.value };
+            let ty = if index == 0 { definition.key } else if matches!(definition.value, Type::Record(_) if self.aggregate_callable_facts(definition.value).scoped && Self::direct_fields(base).is_some()) {
+                let Type::Record(record) = definition.value else { unreachable!() };
+                Type::Record(self.scoped_records.declaration(record))
+            } else { definition.value };
             let mode = if method == MapMethod::Set { Mode::Consume } else { Mode::Read };
             let actual = self.expression(context, argument, mode, &active, Some(ty))?;
             self.require(actual, Some(ty), argument.span)?;
+            if method == MapMethod::Set && index == 1
+                && let (Type::Record(previous), Type::Record(incoming)) = (definition.value, actual)
+                && self.aggregate_callable_facts(actual).scoped
+                && matches!(base.kind, ExprKind::Name(_))
+            {
+                let value = if previous == self.scoped_records.declaration(previous) { actual }
+                    else if previous == incoming { actual }
+                    else { self.join_record_types(previous, incoming, argument.span)?.ok_or_else(|| Diagnostic::new("type", "Map callback values require compatible environment contracts.", argument.span))? };
+                let instance = self.scoped_map_value_instance(id, value);
+                context.bindings[base.binding.expect("named Map")].ty = Type::Map(instance);
+                self.append_target_capture_loans(context, base, argument);
+            }
             for root in Self::loan_roots(argument, mode) { active.entry(root).or_default().push((mode, argument.span)); }
         }
         let mut result = self.map_method_type(id, name, expression.span)?;

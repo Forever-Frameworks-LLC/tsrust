@@ -110,6 +110,7 @@ impl Analyzer {
             }
             Ok(())
         })?;
+        self.scoped_map_carriers(context,body)?;
         self.record_array_carriers(context,body)
     }
     pub(super) fn record_field_type(&self,mut ty:Type,path:&[String])->Option<Type>{

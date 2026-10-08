@@ -25,6 +25,13 @@ main();
 
 function storageComposition(flag: boolean) {
     const values = [3, 7, 11];
+    const handlers = new Map<string, Holder>();
+    handlers.set("first", { run: () => values[0] });
+    handlers.set("second", { run: () => values[1] });
+    const firstHandler = handlers.get("first");
+    const secondHandler = handlers.get("second");
+    if (firstHandler !== undefined) strictEqual(firstHandler.run(), 3);
+    if (secondHandler !== undefined) strictEqual(secondHandler.run(), 7);
     const box: { items: Holder[] } = { items: [{ run: () => values[0] }] };
     box.items.push({ run: () => values[1] });
     strictEqual(box.items[0].run(), 3);
@@ -99,3 +106,17 @@ function storageComposition(flag: boolean) {
 }
 storageComposition(true);
 storageComposition(false);
+
+function mapReadBeforeInsertion() {
+    const values = [3, 7];
+    const handlers = new Map<string, Holder>();
+    handlers.set("first", { run: () => values[0] });
+    {
+        const first = handlers.get("first");
+        if (first !== undefined) strictEqual(first.run(), 3);
+    }
+    handlers.set("second", { run: () => values[1] });
+    const second = handlers.get("second");
+    if (second !== undefined) strictEqual(second.run(), 7);
+}
+mapReadBeforeInsertion();
