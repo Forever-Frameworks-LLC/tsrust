@@ -917,3 +917,29 @@ The editor releases the old capture and rejects mutation of the current capture.
 Exact checks are verified in SQLite as `tsrust-b5-nested-exception-checks.log`;
 its loose copy is removed. Matched nested-branch coverage remains next; B5
 feature-family acceptance and measurement remain pending.
+
+Matched nested composition now retains eighteen scalar observations. Both
+fallible-prefix scenarios branch on value parity, renewing Map storage in either
+branch; catch renews it inside a nested block and finally observes the survivor.
+The added branch trace independently expects two for even values and four for
+odd values, proving both branch choices execute across the verified inputs.
+Prior seventeen results remain unchanged. Token guards count both call sites
+and branch updates, so deleting one duplicated operation cannot pass merely
+because the other remains. Rehashed mutation controls pass. Untimed native and
+Node-after-tsc verification passes. Exact evidence is verified in SQLite as
+`runtime/results/2026-10-08T17-30-36-281Z-verify.json`; its loose copy is removed.
+B5 acceptance and timing remain pending.
+
+Consumed storage has a confirmed exception-region red witness:
+`consumed_map_on_normal_and_caught_paths_releases_capture` calls a fallible
+function before clear, consumes the empty Map on both normal and caught paths,
+and mutates the old capture after the region. Size observations are infallible
+assignments; their assertions execute after catch, avoiding any fallible operation
+after the normal-path transfer that could enter catch with unavailable storage.
+Source analysis accepts the corrected program, but generated Rust fails with
+E0382. Exact evidence is verified in SQLite as
+`tsrust-b5-consumed-exception-red.log`. The earlier draft was correctly rejected
+for a potentially throwing assertion after transfer; its diagnostic is retained
+as `tsrust-b5-consumed-exception-current.log`. Next work must represent unavailable
+owners at completion exits without reviving source availability or introducing
+implicit clones. Both failure choices and disposal need native verification.

@@ -113,6 +113,7 @@ function workload(n: int, seed: int, input: string): int[][] {
         afterThrow[0] = value + 10;
         caughtValue += beforeThrow[0] + afterThrow[0];
 
+        let branchTrace = 0;
         let normalCleanup = 0;
         let caughtCleanup = 0;
         let normalRenewed = 0;
@@ -123,16 +124,20 @@ function workload(n: int, seed: int, input: string): int[][] {
             const prefixMap = new Map<string, Holder>();
             prefixMap.set("old", { run: (): int => prefixOld[0] });
             let prefixValue = 0;
-            try {
+            try { if (value % 2 === 0) { branchTrace += 1;
                 prefixValue = prefixResult(false);
                 prefixMap.clear();
                 prefixMap.set("new", { run: (): int => prefixNew[0] });
-            } catch (error) {
+            } else { branchTrace += 2;
+                prefixValue = prefixResult(false);
+                prefixMap.clear();
+                prefixMap.set("new", { run: (): int => prefixNew[0] });
+            } } catch (error) { {
                 prefixValue = 2;
                 prefixValue += prefixMap.size;
                 prefixMap.clear();
                 prefixMap.set("new", { run: (): int => prefixNew[0] });
-            } finally { normalCleanup = prefixMap.size; }
+            } } finally { normalCleanup = prefixMap.size; }
             prefixOld[0] = value + 13;
             {
                 const entry = prefixMap.get("new");
@@ -148,16 +153,20 @@ function workload(n: int, seed: int, input: string): int[][] {
             const prefixMap = new Map<string, Holder>();
             prefixMap.set("old", { run: (): int => prefixOld[0] });
             let prefixValue = 0;
-            try {
+            try { if (value % 2 === 0) { branchTrace += 1;
                 prefixValue = prefixResult(true);
                 prefixMap.clear();
                 prefixMap.set("new", { run: (): int => prefixNew[0] });
-            } catch (error) {
+            } else { branchTrace += 2;
+                prefixValue = prefixResult(true);
+                prefixMap.clear();
+                prefixMap.set("new", { run: (): int => prefixNew[0] });
+            } } catch (error) { {
                 prefixValue = 2;
                 prefixValue += prefixMap.size;
                 prefixMap.clear();
                 prefixMap.set("new", { run: (): int => prefixNew[0] });
-            } finally { caughtCleanup = prefixMap.size; }
+            } } finally { caughtCleanup = prefixMap.size; }
             prefixOld[0] = value + 13;
             {
                 const entry = prefixMap.get("new");
@@ -169,7 +178,7 @@ function workload(n: int, seed: int, input: string): int[][] {
         }
 
         base[0] = 0;
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace]);
         i += 1;
     }
 

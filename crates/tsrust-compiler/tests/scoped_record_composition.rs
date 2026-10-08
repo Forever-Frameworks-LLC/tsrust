@@ -1,6 +1,38 @@
 mod support;
 
 #[test]
+fn consumed_map_on_normal_and_caught_paths_releases_capture() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function failIf(fail: boolean): int { if (fail) throw 5; return 1; }
+        function scenario(fail: boolean): void {
+            const old = [3];
+            const handlers = new Map<string, Holder>();
+            handlers.set("old", { run: (): int => old[0] });
+            let path = 0;
+            let observed = -1;
+            try {
+                path = failIf(fail);
+                handlers.clear();
+                const moved = handlers;
+                observed = moved.size;
+            } catch (error) {
+                path = 2;
+                handlers.clear();
+                const moved = handlers;
+                observed = moved.size;
+            }
+            old[0] = 9;
+            strictEqual(path, fail ? 2 : 1);
+            strictEqual(observed, 0);
+            strictEqual(old[0], 9);
+        }
+        function main(): void { scenario(false); scenario(true); }
+    "#);
+}
+
+#[test]
 fn nested_exception_branches_preserve_map_renewal() {
     let source = r#"
         import { strictEqual } from "std:testing";
