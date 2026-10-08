@@ -169,7 +169,7 @@ chaining, `in`) already had accepted rows under other identifiers.
 | B3 | Type checking of unreachable `catch` bodies | record gate limit; lead 4 | body checked at the end of analysis with a runtime error name; not emitted | accepted: gate 177 ([record](milestones/177-unreachable-catch-bodies.md)) |
 | B4 | Caught runtime error passed to generic `strictEqual` | named family handoff | repaired before this plan: the internal runtime error record is registered for generic specialization ([record](milestones/caught-generic-assertions.md)); eleven assertion shapes re-verified | accepted; gate 177 adds witnesses |
 | B5 | Scoped aggregate composition: arrays, Maps, Sets, unions and nullable replacement of records with borrowing callbacks | scoped aggregate plan; lead 1 | `unsupported` diagnostics | incomplete |
-| B6 | Fallible borrowing callback fields behind record parameters | record gate limit; lead 2 | `error-effect` diagnostic | incomplete |
+| B6 | Fallible borrowing callback fields behind record parameters | record gate limit; lead 2 | failures propagate with typed handlers; `error-effect` only when no record of the type is constructed | accepted: gate 180 ([record](milestones/180-fallible-record-callbacks.md)) |
 | B7 | Callbacks stored through a record parameter that borrow from the caller | record gate limit | `callback-escape` | incomplete |
 | B8 | Generic adapter compile time (specialization worklist, state joins) | named family handoff | 120 s debug bound hit | incomplete (efficiency) |
 | B9 | S04 project editor: unsaved imports, invalidation, rename/removal, stale results | standard library roadmap | in progress | incomplete |

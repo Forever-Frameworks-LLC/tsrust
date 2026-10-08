@@ -3090,14 +3090,70 @@ impl Analyzer {
         if self.assumed_modes.is_some() {
             self.discover_results()?;
         }
+        self.discover_record_callbacks();
         let mut index = 0;
+        // A function that catches the failure of a callback field of a record
+        // parameter needs the records that later functions construct. Check
+        // the rest first, then that function again.
+        let mut postponed = Vec::new();
+        // Checking consumes a body; keep the source of every function that may
+        // need the second attempt, including one reached through a call.
+        let sources = self.signatures.iter().zip(&self.program.functions)
+            .map(|(signature, function)| (signature.params.iter().any(|ty| matches!(ty, Type::Record(_)))
+                || return_type_inference::has_exception_region(&function.body)).then(|| function.body.clone()))
+            .collect::<Vec<_>>();
+        // The number of known record callbacks when each function was checked.
+        let mut field_origins = vec![usize::MAX; sources.len()];
         while index < self.program.functions.len() {
             if self.checked[index].is_none() && self.capturing_function_is_unused(index)? {
                 index += 1;
                 continue;
             }
-            self.function(index)?;
+            if let Some(known) = field_origins.get_mut(index) {
+                *known = 0;
+            }
+            if let Err(error) = self.function(index) {
+                if !Self::unresolved_catch_contract(&error) || self.checked[index].is_some() || sources.get(index).is_none_or(Option::is_none) {
+                    return Err(error);
+                }
+                for (unchecked, source) in sources.iter().enumerate() {
+                    if let Some(source) = source && self.checked[unchecked].is_none() {
+                        self.program.functions[unchecked].body = source.clone();
+                    }
+                }
+                self.visiting.iter_mut().for_each(|visiting| *visiting = false);
+                self.function_stack.clear();
+                self.depth = 0;
+                postponed.push(index);
+            }
             index += 1;
+        }
+        for index in postponed {
+            if self.checked[index].is_none() {
+                self.function(index)?;
+            }
+        }
+        // A handler is typed from the callbacks that constructed records held
+        // when its function was checked. A record constructed later adds
+        // failures to the same field; check such a function again.
+        {
+            loop {
+                let known = crate::error_effects::record_field_origins(&self.program.records, &self.scoped_records).len();
+                let stale = (0..sources.len())
+                    .filter(|&index| sources[index].is_some() && field_origins[index] < known && self.checked[index].as_ref().is_some_and(|function| !function.template))
+                    .collect::<Vec<_>>();
+                if known == 0 || stale.is_empty() {
+                    break;
+                }
+                for &index in &stale {
+                    self.checked[index] = None;
+                    self.program.functions[index].body = sources[index].clone().expect("retained source");
+                }
+                for index in stale {
+                    self.function(index)?;
+                    field_origins[index] = known;
+                }
+            }
         }
         if self.assumed_modes.is_some()
             && !self.effects_only
@@ -5067,6 +5123,54 @@ impl Analyzer {
         Ok((normal,completions,errors,outgoing))
     }
 
+    /// The failures of a borrowing callback field are those of every callback
+    /// that a constructed record of its type holds. Records are constructed in
+    /// any function, so construct them all before a handler is typed: check
+    /// each body once without recording effects and without following calls.
+    /// Errors are ignored here; the definitive check reports them.
+    #[inline(never)]
+    fn discover_record_callbacks(&mut self) {
+        let borrowing_field = |record: &Record| record.fields.iter().any(|field| {
+            matches!(field.ty, Some(Type::Callback(id)) if !self.callables.callbacks[id].kind.is_owned())
+        });
+        if !self.program.records.iter().any(borrowing_field)
+            || !self.program.functions.iter().any(|function| return_type_inference::has_exception_region(&function.body))
+        {
+            return;
+        }
+        let discovering = self.discovering_results;
+        let effects = self.effects_only;
+        self.effects_only = true;
+        self.discovering_results = true;
+        // A call of a function that is not checked yet reads assumed access.
+        let assumed = self.assumed_modes.is_none();
+        if assumed {
+            self.assumed_modes = Some(self.signatures.iter()
+                .map(|signature| signature.params.iter().map(|ty| if ty.is_copy() { Mode::Copy } else { Mode::Read }).collect())
+                .collect());
+        }
+        for index in 0..self.program.functions.len() {
+            let mut body = self.program.functions[index].body.clone();
+            if let Ok(mut context) = self.function_context(index, &mut body) {
+                let result = self.signatures[index].result;
+                context.inferred_body_result = self.signatures[index].inferred_result;
+                let _ = self.check_source_callable_body(&mut context, Self::uninitialized_body(&mut body), result);
+            }
+            self.visiting.iter_mut().for_each(|visiting| *visiting = false);
+            self.function_stack.clear();
+            self.depth = 0;
+        }
+        if assumed {
+            self.assumed_modes = None;
+        }
+        self.discovering_results = discovering;
+        self.effects_only = effects;
+    }
+
+    fn unresolved_catch_contract(error: &Diagnostic) -> bool {
+        error.code == "error-effect" && error.message.starts_with(crate::error_effects::UNRESOLVED_CATCH)
+    }
+
     /// A handler whose try body cannot fail never runs, but its statements are
     /// still source: check them on a copy of the state at the region. The error
     /// name stands for a runtime error, the common case.
@@ -5110,7 +5214,8 @@ impl Analyzer {
     fn region_caller_error_effects(&mut self,context:&Context,body:&[Stmt],result:Type)->crate::error_effects::ErrorEffects {
         let caller=CheckedFunction{template:false,specialization:false,name:"#region".into(),bindings:context.bindings.clone(),parameter_count:0,result,body:body.to_vec()};
         let families=self.callables.storage.families().map(|(id,_,origins)|(id,origins.iter().copied().collect())).collect::<Vec<_>>();
-        crate::error_effects::annotate_partial_with_callers(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,&caller,&self.unions,&self.polymorphic_invocations)
+        let fields=crate::error_effects::record_field_origins(&self.program.records,&self.scoped_records);
+        crate::error_effects::annotate_partial_with_callers(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,&caller,&self.unions,&self.polymorphic_invocations,&fields)
     }
 
     #[inline(never)]

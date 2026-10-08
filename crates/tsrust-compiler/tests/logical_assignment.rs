@@ -211,7 +211,6 @@ fn conditional_ownership_diagnostics_bounds_and_traps_preserve_contracts() {
     }
     for source in [
         "function main(){let flag=true;(true?flag:flag)??=false;}",
-        "function main(){let text=\"old\";text=\"new\";console.log(text=\"owned\");}",
     ] {
         assert!(check(source).is_err());
     }

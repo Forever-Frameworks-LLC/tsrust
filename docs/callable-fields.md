@@ -77,11 +77,37 @@ A function can take such a record as `ReadOnly<Holder>` to call its fields, or a
 
 A record that holds a borrowing callback cannot be returned, thrown or stored where it would outlive the borrowed variables. These uses report `callback-escape`.
 
+### Failures of a field callback
+
+A callback in a field can fail: it can `throw`, or run an operation that fails, such as an array index outside its bounds. The failure leaves the function that called the field like any other error, and a `try` in that function or in its callers can handle it.
+
+```tsrust
+import { strictEqual } from "std:testing";
+
+type Holder = { run: ReadOnly<Function<int>>; };
+
+function guarded(holder: ReadOnly<Holder>): int {
+    try {
+        return holder.run();
+    } catch (error) {
+        return typeof error === "string" ? error.length : typeof error === "number" ? error + 1000 : 0;
+    }
+}
+
+function main() {
+    const text: Holder = { run: (): int => { throw "four"; } };
+    const coded: Holder = { run: (): int => { throw 7; } };
+    strictEqual(guarded(text), 4);
+    strictEqual(guarded(coded), 1007);
+}
+```
+
+The error that a handler receives from a field call has every type that a callback of any constructed record of that type can raise. In the example both a string and a number reach `guarded`, so the handler narrows with `typeof`. Records constructed anywhere in the program count, also in functions written after the handler. If the program constructs no record of the type, the failures of its callback field are unknown and a handler that names the error reports `error-effect`.
+
 Current limits of borrowing fields:
 
 - An array, `Map`, `Set` or union type cannot hold such a record. Tuples can.
 - A field declared `ReadOnly<Function<...>> | null` (or optional) can be created and read, but not replaced.
-- A function that calls a callback field of a record parameter cannot be used in a program region that throws or catches errors when the callback itself can fail; pass the callback as its own parameter there.
 
 Current limitations: callable signatures containing other callable parameter/result types require further native layout support. Recursive by-value record/environment cycles require indirection support and currently report `callable-layout`. Direct arrays of callable values and joins of unannotated callable locals are separate integration steps. These limitations do not prevent replacing a field with distinct compatible environment origins.
 

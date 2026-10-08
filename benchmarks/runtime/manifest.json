@@ -20199,6 +20199,34 @@
       "specification": "Retain independent scalar observations per scenario with deterministic seed and iteration inputs.",
       "sourceSha256": "701c045d1c7f723ba0addbaa49c117b0335645d8704b28ac4358ca646cb20862",
       "counterpartSha256": "62d1b6b4517ef9888c264f17bcfafc60a91cf1eb51ba69ddcbc0e6e9c1074691"
+    },
+    {
+      "id": "fallible_record_callbacks",
+      "family": "fallible-record-callbacks",
+      "source": "workloads/fallible_record_callbacks.tsr",
+      "counterpart": "workloads/fallible_record_callbacks.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One complete fallible record callback scenario",
+      "inputText": "fallible",
+      "category": "callbacks",
+      "implementationGate": 180,
+      "measurementStatus": "pending-language-milestone",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": true,
+      "measured": false,
+      "notes": "Callback fields of record parameters that fail: a failure that leaves the calling function, a typed handler inside it over string, number and runtime alternatives, and a failure added by the callee. Verified untimed; no measurement.",
+      "specification": "Retain independent scalar observations per scenario with deterministic seed and iteration inputs.",
+      "sourceSha256": "5f71f21e38f195cbc5939ba48ca35834d1a624506978ac4152e21d40bcc015f6",
+      "counterpartSha256": "a40df871ea5d1420473387ebdf4e7b4adb28da4fc3472b6376fd2156280019ac"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

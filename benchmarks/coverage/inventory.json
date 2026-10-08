@@ -13458,10 +13458,11 @@
         "./milestones/resumable-callable-summaries.md"
       ],
       "workloads": [
-        "scoped_callable_records"
+        "scoped_callable_records",
+        "fallible_record_callbacks"
       ],
       "measured": true,
-      "note": "Record fields declared ReadOnly<Function<...>> or Mutable<Function<...>> hold callbacks that borrow local variables. Fields keep independent borrows through calls, sibling arguments, nested records, record parameters, replacement, moves and scope exit. The matched seven-observation scenario is measured on native and Node-after-tsc. Arrays, Maps, Sets and unions of such records, replacement of nullable borrowing fields and fallible callback fields behind record parameters in throwing programs are rejected with diagnostics. Named-declaration family timing retains original baseline records and affected rest-snapshot optimization records separately."
+      "note": "Record fields declared ReadOnly<Function<...>> or Mutable<Function<...>> hold callbacks that borrow local variables. Fields keep independent borrows through calls, sibling arguments, nested records, record parameters, replacement, moves and scope exit. The matched seven-observation scenario is measured on native and Node-after-tsc. Arrays, Maps, Sets and unions of such records, and replacement of nullable borrowing fields are rejected with diagnostics. Gate180 accepts callback fields that fail behind record parameters, with typed handlers. Named-declaration family timing retains original baseline records and affected rest-snapshot optimization records separately."
     },
     {
       "id": "AsyncGenerator.[Symbol.asyncIterator]",

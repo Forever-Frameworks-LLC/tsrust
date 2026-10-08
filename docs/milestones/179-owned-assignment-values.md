@@ -39,3 +39,8 @@ field with a fixed path. The [guide](../assignment-values.md) describes it.
   token-based source contract, registration test and hooks; native and
   Node-after-tsc agree on five untimed cases. No timing.
 - The guide example runs natively and passes the Node reference.
+- Correction after the whole-crate run of gate 180: `assignment_values` and
+  `logical_assignment` each still expected `unsupported` for
+  `console.log(text = "new")`. Both rows are removed and the behavior is a positive
+  witness in `owned_assignment_values`. The gate 179 bounded batch did not include
+  these two suites.

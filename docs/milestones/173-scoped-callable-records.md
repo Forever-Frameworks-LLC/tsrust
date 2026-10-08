@@ -73,9 +73,8 @@ crate for the first time since gate 171 (52 failures). None came from this gate.
 - Replacement of a nullable or optional borrowing callback field.
 - A callback stored through a record parameter cannot borrow from the caller through
   another parameter; that needs lifetime relations between parameters.
-- A function that calls a callback field of a record parameter has no resolved error
-  contract for that callback. In a program that throws or catches errors, and when the
-  callback can fail, the program is rejected with `error-effect`.
+- At this gate a function that calls a callback field of a record parameter had no
+  resolved error contract for that callback. Gate 180 resolves it.
 - Statements of an unreachable `catch` body were not type checked at this gate; gate 177 checks them.
 
 ## Open witnesses kept red

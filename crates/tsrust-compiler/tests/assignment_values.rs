@@ -218,18 +218,6 @@ fn strict_diagnostics_depth_bounds_and_failed_rhs_never_commit_outer_assignment(
             "unsupported",
         ),
         (
-            "function main(){let text=\"old\";console.log(text=\"new\");}",
-            "unsupported",
-        ),
-        (
-            "function main(){let values=[1];console.log(values=[2]);}",
-            "unsupported",
-        ),
-        (
-            "type Box={n:int;};function main(){let box:Box={n:1};console.log(box={n:2});}",
-            "unsupported",
-        ),
-        (
             "function read(values:int[],value:int):int{return values[0];}function main(){const values=[1];read(values,values[0]=7);}",
             "conflicting-access",
         ),

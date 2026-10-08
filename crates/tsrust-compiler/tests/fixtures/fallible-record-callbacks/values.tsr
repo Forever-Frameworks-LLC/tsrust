@@ -1,0 +1,167 @@
+import { strictEqual } from "std:testing";
+
+type Holder = {
+    run: ReadOnly<Function<int>>;
+};
+
+type Step = {
+    next: Mutable<Function<int>>;
+};
+
+function call(holder: ReadOnly<Holder>): int {
+    return holder.run();
+}
+
+// The handler sees every failure that the callback of any constructed Holder can
+// raise: a string, a number, or a runtime error from an array index.
+function guarded(holder: ReadOnly<Holder>, finished: Mutable<int[]>): int {
+    try {
+        return holder.run();
+    } catch (error) {
+        return typeof error === "string" ? error.length : typeof error === "number" ? error + 1000 : 0;
+    } finally {
+        finished[0] += 1;
+    }
+}
+
+function relay(holder: ReadOnly<Holder>, finished: Mutable<int[]>): int {
+    return guarded(holder, finished) + 100;
+}
+
+function checked(holder: ReadOnly<Holder>, limit: int): int {
+    const value = holder.run();
+    if (value > limit) {
+        throw "big";
+    }
+
+    return value;
+}
+
+function drive(step: Mutable<Step>): int {
+    return step.next() + step.next();
+}
+
+function replace(holder: Mutable<Holder>, amount: int): void {
+    holder.run = (): int => {
+        if (amount > 1) {
+            throw "large";
+        }
+
+        return amount;
+    };
+}
+
+function main() {
+    const finished = [0];
+    const values = [3, 4];
+    const limit = [10];
+    let caught = "";
+
+    // A failure travels out of the function that called the field.
+    {
+        const holder: Holder = {
+            run: (): int => {
+                if (values[1] > limit[0]) {
+                    throw "over";
+                }
+
+                return values[1];
+            }
+        };
+        strictEqual(call(holder), 4);
+    }
+
+    limit[0] = 1;
+    {
+        const holder: Holder = {
+            run: (): int => {
+                if (values[1] > limit[0]) {
+                    throw "over";
+                }
+
+                return values[1];
+            }
+        };
+        try {
+            call(holder);
+        } catch (error) {
+            caught = typeof error === "string" ? error : "range";
+        }
+    }
+
+    strictEqual(caught, "over");
+
+    // A thrown string and a thrown number share one field contract.
+    const thrower: Holder = {
+        run: (): int => {
+            throw "four";
+        }
+    };
+    const coded: Holder = {
+        run: (): int => {
+            throw 7;
+        }
+    };
+    strictEqual(guarded(thrower, finished), 4);
+    strictEqual(relay(thrower, finished), 104);
+    strictEqual(guarded(coded, finished), 1007);
+    strictEqual(finished[0], 3);
+
+    // The calling function adds its own failure.
+    {
+        const holder: Holder = {
+            run: (): int => values[0]
+        };
+        strictEqual(checked(holder, 10), 3);
+        caught = "";
+        try {
+            checked(holder, 1);
+        } catch (error) {
+            caught = typeof error === "string" ? error : "number";
+        }
+    }
+
+    strictEqual(caught, "big");
+
+    // A mutable field keeps the changes made before the failure.
+    let position = 0;
+    {
+        const step: Step = {
+            next: (): int => {
+                position += 1;
+                if (position > 1) {
+                    throw "end";
+                }
+
+                return values[position];
+            }
+        };
+        caught = "";
+        try {
+            drive(step);
+        } catch {
+            caught = "out";
+        }
+    }
+
+    strictEqual(caught, "out");
+    strictEqual(position, 2);
+
+    // A callback stored by a callee can fail too.
+    {
+        let holder: Holder = {
+            run: (): int => values[0]
+        };
+        strictEqual(call(holder), 3);
+        replace(holder, 5);
+        caught = "";
+        try {
+            call(holder);
+        } catch (error) {
+            caught = typeof error === "string" ? error : "number";
+        }
+    }
+
+    strictEqual(caught, "large");
+    values[0] = 0;
+}

@@ -82,7 +82,7 @@ pub(crate) struct FailureSet {
 impl FailureSet {
     pub(crate) fn catch_type(&self,unions:&crate::unions::UnionArena,runtime:Option<Type>,span:crate::Span)->Result<Option<Type>,crate::Diagnostic> {
         if self.opaque {
-            return Err(crate::Diagnostic::new("error-effect","Catch value requires a resolved error contract for this callable. A callback field of a record parameter has none yet; pass that callback as its own parameter.",span));
+            return Err(crate::Diagnostic::new("error-effect",UNRESOLVED_CATCH,span));
         }
         let mut members=self.explicit.clone();
         if self.runtime {
@@ -200,7 +200,7 @@ pub(crate) fn materialize_catch_types(program:&mut CheckedProgram)->Result<(),cr
                 if let Some(name)=&handler.name {
                     named=true;
                     let contract=handler.error_contract.as_ref().ok_or_else(||crate::Diagnostic::new("error-effect","Catch error contract is missing.",name.span))?;
-                    if contract.opaque {return Err(crate::Diagnostic::new("error-effect","Catch value requires a resolved error contract for this callable. A callback field of a record parameter has none yet; pass that callback as its own parameter.",name.span));}
+                    if contract.opaque {return Err(crate::Diagnostic::new("error-effect",UNRESOLVED_CATCH,name.span));}
                     needs_runtime |= contract.runtime;
                 }
             }
@@ -246,6 +246,25 @@ fn selected_callback_arguments(callee:&Expr,arguments:&[Expr],closures:&[crate::
         }
     }
     Some(origins)
+}
+
+pub(crate) const UNRESOLVED_CATCH:&str="Catch value requires a resolved error contract for this callable. For a callback field of a record parameter, the program must construct a record of that type so the failures of the callback are known.";
+
+/// A callback field of a record declaration receives the concrete callbacks
+/// that its constructed instances hold. A function that calls the field of a
+/// record parameter fails exactly as those callbacks can.
+pub(crate) fn record_field_origins(records:&[crate::syntax::Record],instances:&crate::scoped_record_layout::Registry)->Vec<(usize,Type)> {
+    let mut origins=Vec::new();
+    for (instance,record) in records.iter().enumerate() {
+        let declaration=instances.declaration(instance);
+        if declaration==instance {continue;}
+        for (declared,held) in records[declaration].fields.iter().zip(&record.fields) {
+            if let (Some(Type::Callback(id)),Some(actual))=(declared.ty,held.ty) && actual!=Type::Callback(id) {
+                origins.push((id,actual));
+            }
+        }
+    }
+    origins
 }
 
 pub(crate) fn annotate_inferred_callbacks(program:&mut CheckedProgram)->ErrorEffects {
@@ -301,6 +320,9 @@ pub(crate) fn annotate_inferred_callbacks(program:&mut CheckedProgram)->ErrorEff
                 }
             }
         }
+    }
+    for (id,actual) in record_field_origins(&program.records,&program.scoped_records) {
+        origins.entry(id).or_default().push(actual);
     }
     let unions=crate::unions::UnionArena::from_snapshot(program.unions.clone());
     for types in origins.values_mut() {
@@ -475,9 +497,10 @@ pub(crate) fn annotate_partial_with_storage(functions:&mut [Option<&mut CheckedF
 /// Include calls in the currently checked region before its callable is stored.
 /// Callback-only cycles retain an unknown contract until a concrete origin exists.
 #[inline(never)]
-pub(crate) fn annotate_partial_with_callers(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],caller:&CheckedFunction,unions:&crate::unions::UnionArena,invocations:&crate::polymorphic_invocation_plans::Registry)->ErrorEffects {
+pub(crate) fn annotate_partial_with_callers(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],caller:&CheckedFunction,unions:&crate::unions::UnionArena,invocations:&crate::polymorphic_invocation_plans::Registry,fields:&[(usize,Type)])->ErrorEffects {
     use std::collections::{HashMap,HashSet};
     let mut origins:HashMap<usize,Vec<Type>>=HashMap::new();
+    for &(id,actual) in fields {origins.entry(id).or_default().push(actual);}
     for function in functions.iter().filter_map(|function|function.as_deref()).chain(std::iter::once(caller)).chain(closures.iter().map(|closure|&closure.function)).chain(closures.iter().flat_map(|closure|closure.methods.iter().map(|method|&method.function))) {
         for expression in checked_expressions(function) {
             let ExprKind::Call(callee,arguments)=&expression.kind else {continue;};
@@ -1353,7 +1376,7 @@ mod tests {
         let (before,remaining)=program.functions.split_at_mut(main);
         let (caller,after)=remaining.split_first_mut().unwrap();
         let mut functions=before.iter_mut().map(Some).chain(std::iter::once(None)).chain(after.iter_mut().map(Some)).collect::<Vec<_>>();
-        let regional=annotate_partial_with_callers(&mut functions,&mut program.closures,&[],caller,&unions,&program.polymorphic_invocations);
+        let regional=annotate_partial_with_callers(&mut functions,&mut program.closures,&[],caller,&unions,&program.polymorphic_invocations,&[]);
         let contract=regional.callback_errors.get(&callback).expect("regional selected callback origin");
         assert!(contract.runtime && !contract.opaque,"regional selected method must receive the failing argument: {contract:?}");
         let effects=annotate_inferred_callbacks(&mut program);

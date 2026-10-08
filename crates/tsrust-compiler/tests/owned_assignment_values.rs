@@ -25,6 +25,9 @@ fn owned_assignment_values_follow_ownership_and_target_rules() {
         let error = tsrust_compiler::check(source).err().unwrap_or_else(|| panic!("must be rejected: {source}"));
         assert_eq!(error.code, code, "{source}: {}", error.message);
     }
+    // As an argument the value is read in place and the target stays usable.
+    support::execute("function main(){let text=\"old\";console.log(text=\"new\");text=\"x\";console.log(text=\"owned\",text);}", "new\nowned owned\n", None);
+    support::execute("type Box={n:int;};function main(){let values=[1];console.log(values=[2]);let box:Box={n:1};console.log(box={n:2});console.log(values,box.n);}", "[ 2 ]\n{ n: 2 }\n[ 2 ] 2\n", None);
     // Scalars keep copying: the chain works.
     tsrust_compiler::check("function main(){let a=0;let b=0;a=b=4;console.log(a,b);}").unwrap();
 }

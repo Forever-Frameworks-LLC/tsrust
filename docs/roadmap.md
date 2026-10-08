@@ -1,3 +1,5 @@
+**Gate 180 accepted:** [Fallible callback fields behind record parameters](./milestones/180-fallible-record-callbacks.md). A field callback that throws or fails at runtime propagates through the function that received the record, with typed handlers over every failure a constructed record of that type can raise. Whole compiler crate 2,362 pass, editor 365; one matched workload verified untimed.
+
 **Gate 179 accepted:** [Assignment as a value for strings, arrays and records](./milestones/179-owned-assignment-values.md). The value is the target read in place; no copy. Compiler batch 692, editor 365, one matched workload verified untimed.
 
 **Gate 178 (records):** Nineteen language inventory rows that still said pending are reconciled with accepted native behavior, existing workloads and milestone records. Language rows: 314 implemented or native variant, 179 pending, 3 in progress, 3 policy. See the [compiler completion ledger](./compiler-completion-plan.md).
