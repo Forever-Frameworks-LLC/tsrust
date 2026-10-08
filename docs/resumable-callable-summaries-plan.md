@@ -19,3 +19,9 @@ A parsed-source diagnostic of generic_value_adapters.tsr reaches workload with 1
 ## Integration boundaries
 
 One agent owns main at a time. The parallel std:path.relative worker may finish isolated work and reconcile committed source, but publication requires exclusive ownership transfer. Do not allow worker acceptance to silently discard pending red scheduling witnesses or overwrite main evidence. This plan changes compile-time scheduling only; library APIs, public capture semantics and runtime behavior remain the existing contract.
+
+## Current extraction state
+
+The extracted generic_call_body_state.rs module owns the immutable graph, partitions, pending completion values, queued-node flags, work queue and accumulated facts. The ordinary one-shot entry delegates to this driver. The original driver remains test-only as an independent reference. Branch, loop and try/catch/finally outcomes match, and a second drive with no queued work returns the same result. Existing generic-flow controls pass with the explicitly pending nested replay witness excluded.
+
+Extraction source checks are complete: eight depth canaries, 23 affected native contracts and 57 checked editor projects pass. Three representative emitted programs retain exact hashes. Executable publication remains pending. Engine entries still create one-shot body drivers; dependency coordinates, retained invocation frames, default entry caching and capture invalidation remain to be connected. The nested call operation budget must remain red until that general work is implemented. No throughput or full-workload improvement is claimed from the extraction.

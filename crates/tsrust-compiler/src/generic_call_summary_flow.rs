@@ -3,6 +3,8 @@ use super::*;
 #[path = "generic_call_guard_partitions.rs"]
 mod guard_partitions;
 use guard_partitions::Partitions;
+#[path = "generic_call_body_state.rs"]
+mod body_state;
 #[derive(Default, Clone, PartialEq, Eq)]
 pub(super) struct Outcome {
     pub normal: Option<FlowState>,
@@ -18,6 +20,10 @@ pub(super) fn run(body: &[Stmt], initial: &[Binding], declarations: &HashMap<Str
     run_with_dispatch(body, &initial.to_vec().into(), declarations, effects, &mut expression_flow::UnknownDispatch)
 }
 pub(super) fn run_with_dispatch(body: &[Stmt], initial: &FlowState, declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index, dispatch: &mut dyn expression_flow::Dispatch) -> Option<Outcome> {
+    body_state::BodyState::new(body,initial,declarations,effects)?.drive(declarations,effects,dispatch)
+}
+#[cfg(test)]
+pub(super) fn reference_run_with_dispatch(body: &[Stmt], initial: &FlowState, declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index, dispatch: &mut dyn expression_flow::Dispatch) -> Option<Outcome> {
     let graph = flow_graph::summary_graph(body)?;
     let mut seed = initial.clone();
     let mut locals = Vec::new();
@@ -214,4 +220,20 @@ mod environment_transport_tests {
   assert!(matches!(outcome.throwing.unwrap().captures[&handle],environment_state::Capture::Consumed));assert!(returning.bindings.is_empty(),"frame projects formal slots out without dropping environments");
  }
 
+}
+
+#[cfg(test)]
+mod body_equivalence {
+ use super::*;
+ #[test] fn persistent_body_matches_one_shot_reference() {
+  for body in ["return 1;","let value=0;while(value<3){value+=1;}return value;","try{throw 3;}catch(error){return error;}finally{const value=4;}","let value=0;if(true){value=1;}else{value=2;}return value;"] {
+   let source=crate::format(&format!("function root(){{{body}}}function main(){{}}")).unwrap();
+   let program=crate::syntax::parse(&source).unwrap();let effects=effect_bodies::Index::new(&program).unwrap();
+   let function=program.functions.iter().find(|function|function.name.text=="root").unwrap();let initial=FlowState::default();let declarations=HashMap::new();
+   let expected=reference_run_with_dispatch(&function.body,&initial,&declarations,&effects,&mut expression_flow::UnknownDispatch).unwrap();
+   let mut persistent=body_state::BodyState::new(&function.body,&initial,&declarations,&effects).unwrap();
+   assert!(persistent.drive(&declarations,&effects,&mut expression_flow::UnknownDispatch).unwrap()==expected);
+   assert!(persistent.drive(&declarations,&effects,&mut expression_flow::UnknownDispatch).unwrap()==expected);
+  }
+ }
 }
