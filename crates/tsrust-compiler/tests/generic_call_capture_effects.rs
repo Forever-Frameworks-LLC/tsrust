@@ -160,6 +160,7 @@ fn generic_callable_replacement_keeps_saved_values_and_runtime_selection() {
         function select(flag: boolean): int {
             let action = identity;
             const saved = action;
+            action = identity;
             if (flag) { action = second; }
             if (flag) { return saved<int>(3) + action<int>(4, 7); }
             return saved<int>(3) + action<int>(4);
