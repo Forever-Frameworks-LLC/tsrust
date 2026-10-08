@@ -13137,10 +13137,11 @@
       ],
       "workloads": [
         "nested_function_results",
-        "generic_function_results"
+        "generic_function_results",
+        "recursive_result_inference"
       ],
       "measured": true,
-      "note": "Gate173 accepts omitted result types on nonrecursive named functions: scalar, string, array, captured and generic results are inferred from checked return expressions. A recursive value-returning function needs an explicit result type. Matched scenarios measured at the named-declaration family milestone. Named-declaration family timing retains original baseline records and affected rest-snapshot optimization records separately."
+      "note": "Gate173 accepts omitted result types on nonrecursive named functions: scalar, string, array, captured and generic results are inferred from checked return expressions. Gate176 infers the result of a recursive function from a return that does not depend on the recursive call; a function with no such return needs an explicit result type. Matched scenarios measured at the named-declaration family milestone. Named-declaration family timing retains original baseline records and affected rest-snapshot optimization records separately."
     },
     {
       "id": "function.mutualRecursion",

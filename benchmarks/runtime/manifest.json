@@ -20143,6 +20143,34 @@
       "specification": "Retain seven independent scalar observations per scenario with deterministic seed and iteration inputs.",
       "sourceSha256": "c12f6e782d18d51422be3d4b73e1cda130c9db7554210ea4777fe8423c6f506f",
       "counterpartSha256": "280c7dc4e1c0d6990c76b18f464d7d669b26ec728793eee7326934e16f7874af"
+    },
+    {
+      "id": "recursive_result_inference",
+      "family": "recursive-result-inference",
+      "source": "workloads/recursive_result_inference.tsr",
+      "counterpart": "workloads/recursive_result_inference.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One complete recursive inference scenario",
+      "inputText": "recursive",
+      "category": "recursion",
+      "implementationGate": 176,
+      "measurementStatus": "pending-language-milestone",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": true,
+      "measured": false,
+      "notes": "Recursive functions without a result annotation: int, boolean and string results from top-level, nested capturing and named-expression functions. Verified untimed; no measurement.",
+      "specification": "Retain independent scalar observations per scenario with deterministic seed and iteration inputs.",
+      "sourceSha256": "4fe081f252482aa51b9ec3fd784b6b128b162cfa41592607fc758ca929177133",
+      "counterpartSha256": "12f761351c261c590e941aedd97f1f1edcb7f95e752af735a4e760b06a5f2324"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

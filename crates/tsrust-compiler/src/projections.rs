@@ -131,6 +131,16 @@ impl Analysis {
         }).collect()
     }
 
+    /// Checked result types of top-level functions, by source name. Clients
+    /// use them where the declaration leaves its result type to inference.
+    pub fn checked_function_results(&self) -> Vec<(String, String)> {
+        let mut names = HashMap::new();
+        self.program.functions.iter()
+            .filter(|function| !function.template && !function.specialization && !function.name.contains(['#', '<']))
+            .filter_map(|function| Some((function.name.clone(), type_name(&self.program, function.result, &mut names)?)))
+            .collect()
+    }
+
     pub fn projections(&self) -> Vec<ProjectionInfo> {
         self.checked_type_facts().projections
     }

@@ -339,6 +339,11 @@ impl SourceIndex {
             }
             self.apply_local_function_result(span, &fact.name, fact.result);
         }
+        for (name, result) in analysis.checked_function_results() {
+            if result != "void" {
+                self.apply_function_result(&name, &result);
+            }
+        }
         let facts = analysis.checked_type_facts();
         for &(mut span, mut declaration) in &facts.generic_values {
             if facts.generic_values.iter().any(|(other_span, other_declaration)| *other_span == span && *other_declaration != declaration) { continue; }

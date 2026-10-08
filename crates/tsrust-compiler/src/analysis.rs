@@ -668,6 +668,9 @@ struct Analyzer {
     escaping: HashSet<usize>,
     discovering_results: bool,
     known_results: HashMap<usize, Type>,
+    /// Result types of recursive functions without a result annotation,
+    /// taken from a return that does not depend on the recursive call.
+    provisional_results: HashMap<usize, Type>,
     result_shapes: HashMap<usize, usize>,
     result_waits: HashMap<usize, Span>,
     pending_shapes: HashSet<usize>,
@@ -1570,6 +1573,7 @@ impl Analyzer {
             escaping,
             discovering_results: false,
             known_results: HashMap::new(),
+            provisional_results: HashMap::new(),
             result_shapes: HashMap::new(),
             result_waits: HashMap::new(),
             pending_shapes: HashSet::new(),
@@ -4080,7 +4084,12 @@ impl Analyzer {
         let name = self.program.functions[index].name.clone();
         if self.visiting[index] {
             if self.signatures[index].inferred_result {
-                return Err(Diagnostic::new("result-inference", "A recursive function needs an explicit result type. Add a result annotation to establish the recursive checking boundary.", name.span));
+                // A return that does not depend on the recursive call fixes the
+                // type; the finished body is then checked against it as usual.
+                let Some(&provisional) = self.provisional_results.get(&index) else {
+                    return Err(Diagnostic::new("result-inference", "The result type of this recursive function cannot be inferred: every return depends on the recursive call or on a local variable. Add a result annotation.", name.span));
+                };
+                self.signatures[index].result = provisional;
             }
             let start = self
                 .function_stack
@@ -4128,6 +4137,14 @@ impl Analyzer {
             if matches!(access, Some((Mode::Read, _))) && !context.bindings[position].ty.is_copy() {
                 context.readonly_parameters.insert(position);
             }
+        }
+        if self.signatures[index].inferred_result && !self.provisional_results.contains_key(&index)
+            && let Some(provisional) = self.provisional_result(&context, &body)
+        {
+            // Type hints inside the body read the signature before the
+            // recursive call is checked, so publish the result now.
+            self.provisional_results.insert(index, provisional);
+            self.signatures[index].result = provisional;
         }
         // Move the body into analysis rather than clone the syntax tree.
         let mut result_type = self.signatures[index].result;

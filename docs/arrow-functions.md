@@ -78,7 +78,7 @@ function main() {
 }
 ```
 
-- Everything else follows nested function declarations: parameter defaults, rest and type parameters, an omitted result type for a function that does not call itself, and the rules for variables of the enclosing function. A function that calls itself needs a stated result type.
+- Everything else follows nested function declarations: parameter defaults, rest and type parameters, an omitted result type, and the rules for variables of the enclosing function. A function that calls itself infers its result from a return that does not depend on the call, as described for nested functions.
 - While the function value is alive it holds the variables its body uses, exactly like a nested function used as a value. In the example `seen` is free again after the block that declares `walk`.
 - Inside the function the name cannot be assigned, and a parameter may reuse it.
 - A named function expression cannot be a parameter default yet. Use an arrow function there, or declare the function and write its name.

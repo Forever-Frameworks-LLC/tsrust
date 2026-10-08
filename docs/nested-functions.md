@@ -22,8 +22,12 @@ Basic generic, default and rest signatures share the top-level implementation.
 A nonrecursive declaration can omit its result annotation. The compiler infers
 its result from checked return expressions, including scalar, generic, captured and
 array values. All return paths must agree on a type, and a function returning a
-value must return on every reaching path. Write an explicit result type when a
-recursive value-returning function needs a checking boundary. A body without
+value must return on every reaching path. A function that calls itself, directly
+or through another function, takes its result type from a return that does not
+depend on that call: a base case such as `return 1`, one branch of a conditional,
+or an arithmetic operand of a known type. Every other return must agree with it.
+When no return is independent of the recursion, or the independent value comes only
+from a local variable, write the result type. A body without
 value returns remains void; main remains the void program entry.
 The native fixtures in tests/fixtures/nested-function-declarations verify forward
 calls, factorial, mutually recursive even/odd functions, block shadowing, Array.map

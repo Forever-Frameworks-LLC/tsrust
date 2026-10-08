@@ -1,3 +1,5 @@
+**Gate 176 accepted:** [Recursive result inference](./milestones/176-recursive-result-inference.md). A recursive function without a result annotation takes its type from a return that does not depend on the recursive call. Compiler batch 807, editor 364, one matched workload verified untimed.
+
 **Gate 175 accepted:** [Named function expressions](./milestones/175-named-function-expressions.md). The name is private to the function body; recursion, captures, generic, default and rest forms work as values. Compiler batch 692, editor 363, one matched workload verified untimed. Part of the [compiler completion plan](./compiler-completion-plan.md).
 
 **Resumable callable summary acceptance:** [Scheduling milestone](./milestones/resumable-callable-summaries.md). Completed caller prefixes are retained across nested summary updates; ordered pending defaults resume without replaying completed defaults. Bounded eager wrapper completion passes the unchanged operation budgets. Full compiler 2,342 and editor 360 pass; three representative workloads verify untimed with unchanged emitted programs. Five consumers are refreshed and verified; closed artifacts are pruned.

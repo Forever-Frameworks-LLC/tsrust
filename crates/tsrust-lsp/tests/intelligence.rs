@@ -8376,3 +8376,19 @@ fn named_function_expressions_keep_private_name_help_and_navigation() {
     let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&misuse, "file:///test.tsr").unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "name"), "{diagnostics}");
 }
+
+#[test]
+fn recursive_inferred_results_appear_in_hover_and_call_values() {
+    let source = tsrust_compiler::format("function factorial(value:int){if(value===0){return 1;}return value*factorial(value-1);}function label(count:int){return count<=0?\"\":\"x\"+label(count-1);}function main(){const big=factorial(5);const text=label(2);console.log(big,text.length);}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&source, "file:///test.tsr").unwrap().is_empty());
+    for (needle, ty) in [("factorial(5)", "factorial(value: int): int"), ("label(2)", "label(count: int): string"), ("big =", "int"), ("text =", "string")] {
+        let hover = ask(&source, "textDocument/hover", needle, 0);
+        let text = hover["contents"]["value"].as_str().unwrap();
+        assert!(text.contains(ty), "{needle}: {text}");
+    }
+    let members = ask(&source, "textDocument/completion", "length);", 0);
+    assert!(members.as_array().unwrap().iter().any(|item| item["label"] == "length"));
+    let unresolved = "function spin(value: int) {\n    return spin(value);\n}\n\nfunction main() {\n    spin(1);\n}\n";
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(unresolved, "file:///test.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "result-inference"), "{diagnostics}");
+}

@@ -21,6 +21,16 @@ impl SourceIndex {
         }
     }
 
+    /// A top-level function without a written result type shows its checked one.
+    pub(super) fn apply_function_result(&mut self, name: &str, result: &str) {
+        if let Some(symbol) = self.symbols.iter_mut().find(|symbol| {
+            symbol.scope == 0 && symbol.name == name && symbol.signature.starts_with("function ") && symbol.ty.is_empty()
+        }) {
+            symbol.ty = result.to_owned();
+            symbol.signature.push_str(&format!(": {result}"));
+        }
+    }
+
     pub(crate) fn apply_project_local_functions(
         &mut self,
         graph: &tsrust_compiler::project::ProjectGraph,

@@ -23,3 +23,24 @@ fn omitted_named_results_keep_void_and_report_inference_boundaries() {
         assert_eq!(error.code,code,"{}: {}",error.code,error.message);
     }
 }
+
+#[test]
+fn recursive_functions_infer_their_result_from_an_independent_return() {
+    let source = include_str!("fixtures/named-result-inference/recursive.tsr");
+    assert_eq!(tsrust_compiler::format(source).unwrap(), source);
+    let directory = support::TempDirectory::new();
+    let output = support::run(support::cli().arg("run").arg(directory.source(source)), 60);
+    support::success(&output);
+    assert!(output.stdout.is_empty());
+    for (source, code) in [
+        // The recursive return must agree with the independent one.
+        ("function bad(n:int){if(n===0){return 1;}return \"x\"+bad(n-1);}function main(){bad(1);}", "type"),
+        // A caller sees the inferred type.
+        ("function count(n:int){if(n===0){return 0;}return 1+count(n-1);}function main(){const text:string=count(2);}", "type"),
+        // No return is independent of the recursion or of a local.
+        ("function spin(n:int){const next=n-1;return spin(next);}function main(){spin(1);}", "result-inference"),
+    ] {
+        let error = tsrust_compiler::check(source).err().unwrap_or_else(|| panic!("must be rejected: {source}"));
+        assert_eq!(error.code, code, "{source}: {}", error.message);
+    }
+}

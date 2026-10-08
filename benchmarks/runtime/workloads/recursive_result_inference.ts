@@ -1,0 +1,45 @@
+type int = number;
+function factorial(count: int): int {
+    if (count === 0) {
+        return 1;
+    }
+
+    return count * factorial(count - 1);
+}
+
+function parity(count: int): boolean {
+    return count === 0 ? true : !parity(count - 1);
+}
+
+function label(count: int): string {
+    return count <= 0 ? "" : "x" + label(count - 1);
+}
+
+function workload(n: int, seed: int, input: string): int[][] {
+    const output: int[][] = [];
+    let i = 0;
+    while (i < n) {
+        const value = i % 5 + seed % 5 + 1;
+        const steps: int[] = [];
+        function depth(count: int): int {
+            steps.push(count);
+            if (count === 0) {
+                return 0;
+            }
+
+            return 1 + depth(count - 1);
+        }
+
+        const fibonacci = function fib(count: int): int {
+            return count < 2 ? count : fib(count - 1) + fib(count - 2);
+        };
+        output.push([factorial(value), parity(value) ? 1 : 0, label(value).length, depth(value), steps.length, fibonacci(value)]);
+        i += 1;
+    }
+
+    return output;
+}
+
+function main() {
+    const result = workload(3, 0, "recursive");
+}

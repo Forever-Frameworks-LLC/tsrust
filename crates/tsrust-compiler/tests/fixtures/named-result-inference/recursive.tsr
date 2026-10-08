@@ -1,0 +1,59 @@
+import { strictEqual } from "std:testing";
+
+function factorial(value: int) {
+    if (value === 0) {
+        return 1;
+    }
+
+    return value * factorial(value - 1);
+}
+
+function countdown(value: int) {
+    return value <= 0 ? "done" : value + " " + countdown(value - 1);
+}
+
+function isEven(value: int) {
+    if (value === 0) {
+        return true;
+    }
+
+    return isOdd(value - 1);
+}
+
+function isOdd(value: int) {
+    if (value === 0) {
+        return false;
+    }
+
+    return isEven(value - 1);
+}
+
+function half(value: number) {
+    return value < 1 ? value : half(value / 2);
+}
+
+function main() {
+    strictEqual(factorial(5), 120);
+    strictEqual(countdown(2), "2 1 done");
+    strictEqual(isEven(4), true);
+    strictEqual(isOdd(4), false);
+    strictEqual(half(8), 0.5);
+
+    // Nested functions and function expressions follow the same rule.
+    const steps: int[] = [];
+    function depth(value: int) {
+        steps.push(value);
+        if (value === 0) {
+            return 0;
+        }
+
+        return 1 + depth(value - 1);
+    }
+
+    strictEqual(depth(3), 3);
+    strictEqual(steps.join(","), "3,2,1,0");
+    const fibonacci = function fib(value: int) {
+        return value < 2 ? value : fib(value - 1) + fib(value - 2);
+    };
+    strictEqual(fibonacci(10), 55);
+}
