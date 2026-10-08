@@ -530,3 +530,12 @@ it. Outer-block storage, parameters, record fields and conditional expressions d
 not use this transformation. The refill witness and its new-capture rejection now
 pass. The affected compiler/native batch passes 61 tests, including normal and
 failure disposal checks. Cross-block and field refill remain open B5 requirements.
+
+The matched workload now includes local Map clear/refill, mutation of the old
+capture before calling the new entry, and mutation of the new capture after the
+second clear. Its eleventh scalar observation is independently derived as
+`3 * value + 15`. Both source counterparts, exact fingerprints, oracle and
+semantic mutation guards are current. Registration and all five native/Node-after-tsc
+cases pass. Untimed evidence is preserved byte-exact in SQLite under
+`runtime/results/2026-10-08T16-17-38-835Z-verify.json`. No timing or whole B5
+acceptance is claimed.

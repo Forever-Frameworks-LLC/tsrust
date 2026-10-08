@@ -71,8 +71,24 @@ function workload(n: int, seed: int, input: string): int[][] {
             cleared = boxes[0].handlers.size;
         }
 
+        const oldCapture = [value];
+        const newCapture = [value + 4];
+        const refillMap = new Map<string, Holder>();
+        refillMap.set("old", { run: (): int => oldCapture[0] });
+        refillMap.clear();
+        refillMap.set("new", { run: (): int => newCapture[0] });
+        oldCapture[0] = value + 5;
+        let refilled = 0;
+        {
+            const current = refillMap.get("new");
+            if (current !== undefined) refilled = current.run();
+        }
+        refillMap.clear();
+        newCapture[0] = value + 6;
+        refilled += oldCapture[0] + newCapture[0];
+
         base[0] = 0;
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1]]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled]);
         i += 1;
     }
 
