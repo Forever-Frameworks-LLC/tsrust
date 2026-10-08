@@ -1,6 +1,19 @@
 mod support;
 
 #[test]
+fn counted_and_post_test_loops_release_cleared_map_captures() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function main():void{const values=[3];let turn=0;let handlers=new Map<string,Holder>();for(;turn<3;turn+=1){handlers.set('value',{run:():int=>values[0]});try{failIf(turn!==1);}catch(error){if(turn===0)continue;break;}finally{console.log('cleanup',turn,handlers.size);handlers.clear();values[0]+=2;}}console.log('after',turn,handlers.size,values[0]);}");
+ verify_disposal(&source,1,"cleanup 0 1\ndrop 0\ncleanup 1 1\ndrop 0\ncleanup 2 1\ndrop 0\nafter 2 0 9\n");
+ let initialized=source.replace("for (; turn < 3; turn += 1)", "for(let step=0;step<3;step+=1)").replace("values[0] += 2;", "values[0]+=2;turn+=1;");
+ assert_ne!(initialized,source);
+ verify_disposal(&support::format_round_trip(&initialized),1,"cleanup 0 1\ndrop 0\ncleanup 1 1\ndrop 0\ncleanup 2 1\ndrop 0\nafter 3 0 9\n");
+ verify_disposal(&support::format_round_trip(&source.replace("turn < 3", "turn < 0")),1,"after 0 0 3\n");
+ let post=source.replace("for (; turn < 3; turn += 1)","do").replace("values[0] += 2;","values[0]+=2;turn+=1;").replace("console.log('after'", "while(turn<3);console.log('after'");
+ assert_ne!(post,source);
+ verify_disposal(&support::format_round_trip(&post),1,"cleanup 0 1\ndrop 0\ncleanup 1 1\ndrop 0\ncleanup 2 1\ndrop 0\nafter 3 0 9\n");
+}
+
+#[test]
 fn empty_scoped_map_absent_calls_have_resolved_error_contracts() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function empty():int{const spare=new Map<string,Holder>();const found=spare.get('none');if(found!==undefined)return found.run();return 0;}function main():void{try{console.log(empty());throw 7;}catch(error){console.log(error);}}");
  support::execute(&source,"0\n7\n",None);

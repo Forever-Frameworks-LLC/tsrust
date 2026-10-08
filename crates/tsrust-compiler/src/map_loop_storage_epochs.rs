@@ -3,7 +3,7 @@ use super::*;
 
 impl Emitter<'_> {
     #[inline(never)]
-    pub(super) fn map_empty_while_epoch(
+    pub(super) fn map_empty_loop_epoch(
         &self,
         output: &mut String,
         fun: &CheckedFunction,
@@ -11,8 +11,11 @@ impl Emitter<'_> {
         declarations: &[Stmt],
         depth: usize,
     ) -> bool {
-        let StmtKind::While { condition, body } = &statement.kind else {
-            return false;
+        let (condition, body, tail) = match &statement.kind {
+            StmtKind::While { condition, body } => (Some(condition), body, None),
+            StmtKind::Loop { condition, body, update, post_test, tail_reachable } =>
+                (condition.as_ref(), body, Some((update, *post_test, *tail_reachable))),
+            _ => return false,
         };
         let Some(index) = declarations
             .iter()
@@ -26,6 +29,7 @@ impl Emitter<'_> {
         // Consecutive empty declarations and each owning record leaf form an
         // independent storage epoch. Prove every selected leaf is cleared.
         let mut candidates = Vec::new();
+        let mut intervening = Vec::new();
         for previous in declarations[..index].iter().rev() {
             let StmtKind::Let {
                 binding: Some(binding),
@@ -66,10 +70,14 @@ impl Emitter<'_> {
                 }
             }
             if !found {
-                break;
+                intervening.push(previous);
             }
         }
         if candidates.is_empty() {
+            return false;
+        }
+        if intervening.iter().any(|item| candidates.iter().any(|(_, binding, path)|
+            !map_independent_statement(item, *binding, path))) {
             return false;
         }
         let mut resets = Vec::new();
@@ -119,30 +127,55 @@ impl Emitter<'_> {
         if resets.is_empty()
             || resets
                 .iter()
-                .any(|(_, _, binding, path)| map_reference(condition, *binding, path))
+                .any(|(_, _, binding, path)| {
+                    condition.is_some_and(|condition| map_reference(condition, *binding, path))
+                    || tail.is_some_and(|(update, _, _)| update.iter().any(|item|
+                        !map_independent_statement(item, *binding, path)))
+                })
         {
             return false;
         }
         let indent = "    ".repeat(depth);
         let label = statement.span.start;
-        let _scope = self.control_targets.enter(ControlTarget::Loop(label));
+        let _scope = self.control_targets.enter(if tail.is_some() {
+            ControlTarget::Tail(label)
+        } else { ControlTarget::Loop(label) });
         // Keep the original empty owner for zero iterations and outer errors.
         // Cleanup empties each iteration before any exit, so no payload crosses
         // epochs; only loop-local owners ever contain callbacks.
-        let _ = writeln!(
-            output,
-            "{indent}'loop_{label}: while {} {{",
-            self.expr(fun, condition, Mode::Copy)
-        );
+        if let Some((_, post_test, _)) = tail {
+            let _ = writeln!(output, "{indent}'loop_{label}: loop {{");
+            if !post_test && let Some(condition) = condition {
+                let _ = writeln!(output, "{indent}    if !({}) {{ break 'loop_{label}; }}", self.expr(fun, condition, Mode::Copy));
+            }
+        } else {
+            let _ = writeln!(output, "{indent}'loop_{label}: while {} {{", self.expr(fun, condition.unwrap(), Mode::Copy));
+        }
+        // Tail loops need a body scope so continue still evaluates their update
+        // or post-test after finally releases each iteration's callback owners.
+        let body_depth = if tail.is_some() {
+            let _ = writeln!(output, "{indent}    'body_{label}: {{");
+            depth + 2
+        } else { depth + 1 };
+        let body_indent = "    ".repeat(body_depth);
         for (place, native, _, _) in &resets {
             let _ = writeln!(
                 output,
-                "{indent}    let mut {place}: {native} = <{native}>::new();"
+                "{body_indent}let mut {place}: {native} = <{native}>::new();"
             );
         }
         let mut nested = declarations.to_vec();
         nested.extend(body.iter().cloned());
-        self.control_block_epochs(output, fun, body, depth + 1, Some(label), Some(&nested));
+        self.control_block_epochs(output, fun, body, body_depth, Some(label), Some(&nested));
+        if let Some((update, post_test, tail_reachable)) = tail {
+            let _ = writeln!(output, "{indent}    }}");
+            if tail_reachable {
+                self.block(output, fun, update, depth + 1);
+                if post_test && let Some(condition) = condition {
+                    let _ = writeln!(output, "{indent}    if !({}) {{ break 'loop_{label}; }}", self.expr(fun, condition, Mode::Copy));
+                }
+            }
+        }
         let _ = writeln!(output, "{indent}}}");
         self.exception_regions.renew_storage(
             &resets

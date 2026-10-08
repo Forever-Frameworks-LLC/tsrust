@@ -397,8 +397,9 @@ function workload(n: int, seed: int, input: string): int[][] {
         const caughtLooped=caughtMapLoop(value,caughtLoopTrace)+caughtLoopTrace[0]*100+caughtLoopTrace[1];
         const pairedLoopTrace = [0, 0]; const pairedLooped = pairedMapLoop(value, pairedLoopTrace) + pairedLoopTrace[0] * 100 + pairedLoopTrace[1];
         const nestedPairTrace=[0,0];const nestedPairLooped=nestedPairedMapLoop(value,nestedPairTrace)+nestedPairTrace[0]*100+nestedPairTrace[1];
+        const countedMapObserved=countedMapLoop();const postMapObserved=postMapLoop();
         const emptyMapObserved=emptyScopedMap();
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped, nestedPairLooped, emptyMapObserved]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped, nestedPairLooped, emptyMapObserved, countedMapObserved, postMapObserved]);
         i += 1;
     }
 
@@ -679,4 +680,23 @@ function emptyScopedMap(): number {
  {const absent=unfilled.get("none");emptyObserved+=absent===undefined?1:0;if(absent!==undefined)emptyObserved+=absent.run();}
  for(const [key,entry] of unfilled){emptyObserved+=entry.run();}
  const emptyMoved=unfilled;emptyObserved+=emptyMoved.size;emptyMoved.clear();return emptyObserved;
+}
+
+function countedMapLoop(): number {
+ const countedValues=[3];let countedTurn=0;let countedHandlers=new Map<string,Holder>();
+ for(let step=0;step<3;step+=1){
+  countedHandlers.set("value",{run:():number=>countedValues[0]});
+  try{prefixResult(countedTurn!==1);}catch(error){if(countedTurn===0)continue;break;}
+  finally{countedHandlers.clear();countedValues[0]+=2;countedTurn+=1;}
+ }
+ return countedTurn+countedHandlers.size+countedValues[0];
+}
+function postMapLoop(): number {
+ const postValues=[3];let postTurn=0;let postHandlers=new Map<string,Holder>();
+ do{
+  postHandlers.set("value",{run:():number=>postValues[0]});
+  try{prefixResult(postTurn!==1);}catch(error){if(postTurn===0)continue;break;}
+  finally{postHandlers.clear();postValues[0]+=2;postTurn+=1;}
+ }while(postTurn<3);
+ return postTurn+postHandlers.size+postValues[0];
 }

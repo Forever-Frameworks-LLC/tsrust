@@ -8555,6 +8555,11 @@ fn consumed_exception_map_storage_does_not_revive_source_binding() {
 
 #[test]
 fn transferred_error_storage_requires_explicit_restoration() {
+    let counted=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function main():void{const values=[3];let turn=0;let handlers=new Map<string,Holder>();for(let step=0;step<3;step+=1){handlers.set('value',{run:():int=>values[0]});try{failIf(turn!==1);}catch(error){if(turn===0)continue;break;}finally{handlers.clear();values[0]+=2;turn+=1;}}console.log(turn,handlers.size,values[0]);}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&counted,"file:///counted-map-loop.tsr").unwrap().is_empty());
+    let post=counted.replace("for (let step = 0; step < 3; step += 1)","do").replace("console.log(turn, handlers.size, values[0]);", "while(turn<3);console.log(turn,handlers.size,values[0]);");
+    assert_ne!(post,counted);
+    assert!(tsrust_lsp::diagnostics(&post,"file:///post-map-loop.tsr").unwrap().is_empty());
     for source in ["type Holder={run:ReadOnly<Function<int>>;};function apply(action:ReadOnly<Function<int>>):int{return action();}function main():void{const spare=new Map<string,Holder>();{console.log('before',spare.size);}const values=[7];spare.set('value',{run:():int=>values[0]});{const found=spare.get('value');if(found!==undefined)console.log('value',found.run());}spare.clear();values[0]=9;console.log('parameter',apply(():int=>values[0]));}","type Holder={run:ReadOnly<Function<int>>;};function main():void{const spare=new Map<string,Holder>();{const found=spare.get('none');if(found!==undefined)console.log(found.run());console.log('missing',found===undefined);}console.log('empty',spare.size,spare.has('none'),spare.delete('none'));for(const [key,holder] of spare){console.log(key,holder.run());}const moved=spare;console.log('moved',moved.size);moved.clear();}","type Inner={run:ReadOnly<Function<int>>;};type Holder={inner:Inner;optional?:ReadOnly<Function<int>>;};type Box={handlers:Map<string,Holder>;marker:int;};function main():void{const box:Box={handlers:new Map<string,Holder>(),marker:23};console.log(box.handlers.size,box.marker);box.handlers.clear();}"] {
         let source=tsrust_compiler::format(source).unwrap();
         assert!(tsrust_lsp::diagnostics(&source,"file:///empty-scoped-map.tsr").unwrap().is_empty());

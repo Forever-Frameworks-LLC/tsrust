@@ -93,3 +93,10 @@ record is inserted. Lookup returns undefined and iteration executes no body.
 Its absent callback environment cannot execute or throw; it does not introduce
 an unknown failure into a surrounding catch. Later insertions retain their
 concrete callback environments, capture loans and failure contracts.
+
+The same release boundary applies to counted for loops and do-while loops whose
+finally body clears each scoped Map before changing its captured values.
+Continue runs finally before the for update or do-while condition. Break runs
+finally and skips that tail. A counted loop that executes zero iterations leaves
+the original empty Map available. Loop conditions and updates must not retain
+the callback payload across the release boundary.

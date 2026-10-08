@@ -1894,3 +1894,39 @@ fixture semantics. Add the next focused witness for broader loop forms or precis
 entry/element release, implement in isolated helpers, then native/editor/docs and
 matched support. Format the whole project, preserve SQLite evidence and stage
 explicit paths. Family regressions, timing and user consumer refresh are pending.
+
+
+## Counted and post-test loop storage checkpoint
+
+Proven-empty scoped Map storage epochs now support counted for and do-while loops
+as well as while loops. Their body scopes release callback environments before
+an update or post-test executes. Continue still executes the tail, while break
+skips it. Counted loops preserve initializer scope and zero-iteration behavior.
+The existing conservative proof requires finally to clear every selected owner
+and rejects tail expressions that retain its payload. Independent intervening
+local declarations do not prevent discovery of the empty owner. Lexical block
+emission keeps visible declaration context for the synthetic counted-loop block.
+
+A focused native witness initially failed with E0502 after cleanup changed a
+captured array. O0 and O3 now verify exact disposal and output for a counted loop,
+a counted initializer, zero iterations and a post-test loop. The affected batch
+passes 97 composition, 42 scoped-record and four fallible-record tests (143 total).
+All eight depth canaries and focused editor checks pass. Matched sources now add
+two loop observations: all 43 independent observations pass native and
+Node-after-tsc verification untimed. Registration includes mutation controls for
+both observations and their capture updates. Project formatting preserves tokens
+and fingerprints. Failed source-contract evidence remains stored separately from
+the corrected pass.
+
+SQLite contains tsrust-b5-counted-map-loops-*.log and
+runtime/results/2026-10-08T22-12-20-160Z-verify.json, imported and read back byte-exact
+before loose copies were removed. No timing or consumer refresh is claimed.
+B5 remains incomplete. For-of storage renewal, precise individual release,
+remaining callable compositions and Rust-style record Set equality/hash remain.
+
+Continuation prompt: Continue B5 from counted and post-test scoped Map renewal.
+Read AGENTS.md, development-workflow.md and this handoff. Preserve exact disposal,
+finally control semantics and owner fixtures. Add a focused for-of renewal or
+individual-release witness, then isolated implementation, editor, guide and
+matched benchmark support. Keep SQLite evidence and project formatting current;
+stage explicit paths. Family acceptance and executable refresh remain pending.
