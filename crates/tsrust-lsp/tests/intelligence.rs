@@ -8581,6 +8581,8 @@ fn transferred_error_storage_requires_explicit_restoration() {
     assert!(tsrust_lsp::diagnostics(&outer_loop,"file:///outer-loop.tsr").unwrap().is_empty());
     let initialized=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};type Box={handlers:Map<string,Holder>;marker:int;};function main():void{const old=[3];const next=[5];const box:Box={marker:23,handlers:new Map<string,Holder>()};box.handlers.set('old',{run:():int=>old[0]});box.handlers.set('next',{run:():int=>next[0]});box.handlers.clear();old[0]=13;next[0]=17;console.log(box.marker,box.handlers.size);}").unwrap();
     assert!(tsrust_lsp::diagnostics(&initialized,"file:///initialized.tsr").unwrap().is_empty());
+    let record_loop=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};type Box={handlers:Map<string,Holder>;marker:int;};function main():void{const old=[3];const next=[5];let turn=0;let box:Box={marker:23,handlers:new Map<string,Holder>()};while(turn<3){box.handlers.set('old',{run:():int=>old[0]});turn+=1;try{box.handlers.clear();box.handlers.set('next',{run:():int=>next[0]});if(turn===1)continue;if(turn===3)break;}finally{box.handlers.clear();}box.marker+=1;old[0]=9;next[0]=11;console.log(Object.keys(box)[0]);}console.log(box.marker,box.handlers.size);}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&record_loop,"file:///record-loop.tsr").unwrap().is_empty());
     let unavailable_conditional = conditional.replace("throw 7;", "console.log(handlers.size); throw 7;");
     let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&unavailable_conditional, "file:///conditional.tsr").unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "transferred"), "{diagnostics}");

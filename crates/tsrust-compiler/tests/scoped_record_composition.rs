@@ -15,6 +15,14 @@ fn nested_empty_map_initializer_adapts_record_callback_carriers() {
 fn outer_record_map_cleanup_releases_captures_across_iterations() {
     let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};type Box={handlers:Map<string,Holder>;marker:int;};function failIf(fail:boolean):void{if(fail)throw 7;}function main():void{const old=[3];const next=[5];let turn=0;const box:Box={handlers:new Map<string,Holder>(),marker:23};while(turn<3){box.handlers.set('old',{run:():int=>old[0]});console.log('before',turn);turn+=1;try{failIf(false);box.handlers.clear();box.handlers.set('next',{run:():int=>next[0]});if(turn===1)continue;if(turn===3)break;}finally{console.log('cleanup',box.handlers.size);box.handlers.clear();console.log('cleared');}old[0]=9;next[0]=11;console.log('inside',old[0],next[0],box.marker);}old[0]=13;next[0]=17;console.log('after',box.handlers.size,old[0],next[0],box.marker);}");
     verify_disposal(&source,2,"before 0\ndrop 0\ncleanup 1\ndrop 1\ncleared\nbefore 1\ndrop 0\ncleanup 1\ndrop 1\ncleared\ninside 9 11 23\nbefore 2\ndrop 0\ncleanup 1\ndrop 1\ncleared\nafter 0 13 17 23\n");
+    let zero=source.replace("turn < 3","turn < 0");
+    verify_disposal(&support::format_round_trip(&zero),2,"after 0 13 17 23\n");
+    let sibling=source.replace("const box: Box", "let box: Box")
+        .replace("old[0] = 9;", "box.marker += 1; old[0]=9;")
+        .replace("console.log('inside', old[0], next[0], box.marker);", "console.log('inside',old[0],next[0],box.marker,Object.keys(box)[0]);")
+        .replace("console.log('after', box.handlers.size, old[0], next[0], box.marker);", "console.log('after',box.handlers.size,old[0],next[0],box.marker,Object.keys(box)[1]);");
+    verify_disposal(&support::format_round_trip(&sibling),2,"before 0\ndrop 0\ncleanup 1\ndrop 1\ncleared\nbefore 1\ndrop 0\ncleanup 1\ndrop 1\ncleared\ninside 9 11 24 handlers\nbefore 2\ndrop 0\ncleanup 1\ndrop 1\ncleared\nafter 0 13 17 24 marker\n");
+
 }
 
 #[test]

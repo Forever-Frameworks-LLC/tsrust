@@ -1410,3 +1410,43 @@ witnesses. Keep compiler/editor parity, matched workloads, independent oracles
 and mutation controls current. Preserve exact evidence in SQLite, unrelated
 fixture edits and explicit Git staging. Format the whole project before commits.
 B5, full family regressions/timing and the full compiler/editor goal remain open.
+
+## Empty record-leaf loop epochs repaired
+
+The remaining record-field witness now passes. `map_loop_storage_epochs.rs`
+resolves owning Map leaves through record layouts and proves their literal
+initializers empty through checked carrier wrappers. Each iteration receives
+a fresh native Map leaf; the original empty owner and sibling fields remain
+intact. Post-cleanup path checks allow independent siblings, size reads and
+Object.keys metadata reads, while excluding transfers/refills of the selected
+leaf and whole-record operations that could retain it.
+
+Native disposal witnesses at O0/O3 cover continue, normal fallthrough, break,
+sibling mutation, record key order and zero iterations. The affected batch
+passes all 82 composition tests, 42 scoped-record and four fallible-record
+tests. Eight normal-stack depth canaries and focused editor diagnostics pass.
+All 33 independent matched observations verify untimed on native and
+Node-after-tsc, record `runtime/results/2026-10-08T19-37-33-183Z-verify.json`.
+Exact `tsrust-b5-record-leaf-loop-*.log` evidence is read-back verified in
+SQLite; loose copies are removed. Formatting changed only the new workload
+layout and its token-preserving fingerprint.
+
+B5 remains open. The epoch helper still targets a directly initialized empty
+owner, one proven cleanup boundary and while loops. Multiple renewed leaves,
+broader loop forms, nested exception regions, precise entry/element capture
+release and remaining callable/nullable compositions require witnesses and
+implementation. Retained/populated root Maps with explicit post-loop clear
+already pass; preserve the correct zero-iteration capture-conflict rule.
+Rust-style record Set equality/hash work and family regressions/timing remain
+pending. Five user consumers still represent gate181.
+
+Continuation prompt: Continue B5 from this record-leaf loop checkpoint. Read
+AGENTS.md, development-workflow.md and scoped-callable-aggregate-plan.md. Root
+and record-leaf empty loop epochs now pass disposal, sibling/key-order and
+zero-iteration checks. Add nested exception-region and broader loop witnesses,
+then extend completion storage without premature disposal or implicit cloning.
+Keep compiler/editor parity, matched workloads, independent oracles, mutation
+controls and exact SQLite evidence current. Preserve unrelated fixtures and
+explicit Git staging; format the whole project before checkpoints. Complete
+remaining B5 scope before family regressions/timing or acceptance. The full
+compiler/editor completion goal remains active.

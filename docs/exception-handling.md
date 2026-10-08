@@ -50,7 +50,11 @@ continue, return or error from cleanup replaces the pending exit. Normal
 fallthrough can mutate captures released by cleanup before the next iteration. An initially
 empty Map declared immediately before a while loop can also release its
 callback captures when every iteration clears it in unconditional finally.
-It remains empty after break or zero iterations. Maps that retain entries
+It remains empty after break or zero iterations. The same cleanup behavior
+works for an empty Map field in a record literal declared before the loop.
+Independent sibling fields retain their values and can change after cleanup;
+record key order remains the initializer's order.
+ Maps that retain entries
 across iterations still require additional storage-boundary support.
 
 

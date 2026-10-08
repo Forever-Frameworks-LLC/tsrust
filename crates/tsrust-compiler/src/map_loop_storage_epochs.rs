@@ -34,11 +34,32 @@ impl Emitter<'_> {
         else {
             return false;
         };
-        if !matches!(&value.kind, ExprKind::MapConstructor(arguments, _) if arguments.is_empty())
-            || !statement.labels.is_empty()
-            || map_reference(condition, *binding)
-        {
+        if !statement.labels.is_empty() {
             return false;
+        }
+        let mut candidates = Vec::new();
+        if empty_map_initializer(value, &[]) {
+            candidates.push((format!("value{binding}"), Vec::new()));
+        }
+        if let Some(layout) = self.owned_record_layout(fun, *binding) {
+            for leaf in &layout.leaves {
+                if !matches!(leaf.ty, Type::Map(_)) {
+                    continue;
+                }
+                let mut ty = fun.bindings[*binding].ty;
+                let mut names = Vec::new();
+                for index in &leaf.path {
+                    let Type::Record(record) = ty else {
+                        unreachable!("checked owning record path")
+                    };
+                    let field = &self.program.records[record].fields[*index];
+                    names.push(field.name.text.clone());
+                    ty = field.ty.unwrap();
+                }
+                if empty_map_initializer(value, &names) {
+                    candidates.push((leaf.native_name(*binding), names));
+                }
+            }
         }
         let mut reset = None;
         let mut cleaned = false;
@@ -51,8 +72,12 @@ impl Emitter<'_> {
                     let Some((position, place)) =
                         cleanup.iter().enumerate().find_map(|(position, item)| {
                             self.local_map_clear_storage(fun, declarations, item)
-                                .filter(|(place, _)| place == &format!("value{binding}"))
-                                .map(|place| (position, place))
+                                .and_then(|(place, native)| {
+                                    candidates
+                                        .iter()
+                                        .find(|(candidate, _)| *candidate == place)
+                                        .map(|(_, path)| (position, (place, native, path.clone())))
+                                })
                         })
                     else {
                         return false;
@@ -69,7 +94,7 @@ impl Emitter<'_> {
                     }
                     if cleanup[position + 1..]
                         .iter()
-                        .any(|item| !map_independent_statement(item, *binding))
+                        .any(|item| !map_independent_statement(item, *binding, &place.2))
                     {
                         return false;
                     }
@@ -77,13 +102,21 @@ impl Emitter<'_> {
                     cleaned = true;
                 }
                 StmtKind::Let { .. } | StmtKind::Expr(_) | StmtKind::Assign { .. }
-                    if !cleaned || map_independent_statement(item, *binding) => {}
+                    if !cleaned
+                        || map_independent_statement(
+                            item,
+                            *binding,
+                            &reset.as_ref().unwrap().2,
+                        ) => {}
                 _ => return false,
             }
         }
-        let Some((place, native)) = reset else {
+        let Some((place, native, path)) = reset else {
             return false;
         };
+        if map_reference(condition, *binding, &path) {
+            return false;
+        }
         let indent = "    ".repeat(depth);
         let label = statement.span.start;
         let _scope = self.control_targets.enter(ControlTarget::Loop(label));
@@ -105,28 +138,52 @@ impl Emitter<'_> {
     }
 }
 
-fn map_independent_statement(statement: &Stmt, binding: usize) -> bool {
+fn map_independent_statement(statement: &Stmt, binding: usize, path: &[String]) -> bool {
     match &statement.kind {
-        StmtKind::Let { value, .. } | StmtKind::Expr(value) => !map_reference(value, binding),
+        StmtKind::Let { value, .. } | StmtKind::Expr(value) => !map_reference(value, binding, path),
         StmtKind::Assign { target, value, .. } => {
-            !map_reference(target, binding) && !map_reference(value, binding)
+            !map_reference(target, binding, path) && !map_reference(value, binding, path)
         }
         StmtKind::Return(value) => value
             .as_ref()
-            .is_none_or(|value| !map_reference(value, binding)),
-        StmtKind::Throw(value) => !map_reference(value, binding),
+            .is_none_or(|value| !map_reference(value, binding, path)),
+        StmtKind::Throw(value) => !map_reference(value, binding, path),
         StmtKind::Break | StmtKind::Continue => true,
         _ => false,
     }
 }
 
 // Unknown lowered expressions conservatively retain the original loop path.
-fn map_reference(expression: &Expr, binding: usize) -> bool {
+fn map_reference(expression: &Expr, binding: usize, path: &[String]) -> bool {
     let mut pending = vec![expression];
     while let Some(value) = pending.pop() {
-        if matches!(&value.kind,ExprKind::Field(base,name) if name == "size" && base.binding == Some(binding) && matches!(base.kind,ExprKind::Name(_)))
+        if value.target == Some(CallTarget::ObjectKeys)
+            && let ExprKind::Call(_, arguments) = &value.kind
+            && arguments.len() == 1
+            && arguments[0].binding == Some(binding)
+            && matches!(arguments[0].kind, ExprKind::Name(_))
         {
             continue;
+        }
+        let mut base = value;
+        let mut fields = Vec::new();
+        while let ExprKind::Field(parent, name) = &base.kind {
+            fields.push(name.as_str());
+            base = parent;
+        }
+        fields.reverse();
+        if matches!(base.kind, ExprKind::Name(_)) && base.binding == Some(binding) {
+            let selected = path.iter().map(String::as_str).collect::<Vec<_>>();
+            if fields.starts_with(&selected) {
+                if fields[selected.len()..] == ["size"] {
+                    continue;
+                }
+                return true;
+            }
+            if selected.starts_with(&fields) {
+                return true;
+            }
+            continue; // An independent sibling leaf.
         }
         if value.binding == Some(binding) {
             return true;
@@ -182,4 +239,33 @@ fn map_reference(expression: &Expr, binding: usize) -> bool {
         }
     }
     false
+}
+
+fn empty_map_initializer(mut value: &Expr, path: &[String]) -> bool {
+    for name in path {
+        while let ExprKind::Unary {
+            op: UnaryOp::RecordCarrier,
+            value: inner,
+            ..
+        } = &value.kind
+        {
+            value = inner;
+        }
+        let ExprKind::Record(fields) = &value.kind else {
+            return false;
+        };
+        let Some((_, field)) = fields.iter().find(|(field, _)| field.text == *name) else {
+            return false;
+        };
+        value = field;
+    }
+    while let ExprKind::Unary {
+        op: UnaryOp::RecordCarrier,
+        value: inner,
+        ..
+    } = &value.kind
+    {
+        value = inner;
+    }
+    matches!(&value.kind,ExprKind::MapConstructor(arguments,_) if arguments.is_empty())
 }
