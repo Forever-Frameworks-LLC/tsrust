@@ -24,3 +24,17 @@ pub(crate) const BASENAME: NativeBinding = NativeBinding {
     },
     features: &["path"],
 };
+
+const PATH_PARAMETER: &[NativeParameter] = &[NativeParameter {
+    name: "path", ty: NativeType::String, access: Mode::Read, optional: false,
+}];
+pub(crate) const DIRNAME: NativeBinding = NativeBinding {
+    module: "std:path", name: "dirname", parameters: PATH_PARAMETER,
+    result: NativeType::String,
+    backend: NativeBackend::Bundled { symbol: "tsrust_std_path_dirname" }, features: &["path"],
+};
+pub(crate) const EXTNAME: NativeBinding = NativeBinding {
+    module: "std:path", name: "extname", parameters: PATH_PARAMETER,
+    result: NativeType::String,
+    backend: NativeBackend::Bundled { symbol: "tsrust_std_path_extname" }, features: &["path"],
+};

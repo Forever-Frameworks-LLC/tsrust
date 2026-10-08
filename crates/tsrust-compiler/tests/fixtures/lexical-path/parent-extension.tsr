@@ -1,0 +1,15 @@
+import { dirname, extname } from "std:path";
+import { strictEqual } from "std:testing";
+
+function main() {
+    const path = "/tmp/é😊.tar.gz/";
+    const parent = dirname;
+    strictEqual(parent(path), "/tmp");
+    strictEqual(extname(path), ".gz");
+    strictEqual(path, "/tmp/é😊.tar.gz/");
+    strictEqual(dirname(""), ".");
+    strictEqual(dirname("//a"), "//");
+    strictEqual(extname(".hidden"), "");
+    strictEqual(extname(".."), "");
+    strictEqual(extname("..."), ".");
+}

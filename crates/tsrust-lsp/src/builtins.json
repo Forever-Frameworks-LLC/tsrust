@@ -3460,6 +3460,40 @@
           "output": "report.txt\nreport\n"
         }
       ]
+    },
+    {
+      "name": "dirname",
+      "signature": "dirname(path: string): string",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "The lexical path text to examine. No file needs to exist."
+        }
+      ],
+      "documentation": "Returns the lexical parent of a path without reading the filesystem or resolving dot components. Accepts exactly one string path. Missing, extra and non-string arguments are compile-time errors. Returns independently owned text and leaves the input unchanged.\n\n```tsrust\nimport { dirname } from \"std:path\";\nfunction main() {\n    console.log(dirname(\"/tmp/report.txt\"));\n} // output: /tmp\n```\n\nEmpty input or a relative filename returns dot. Trailing separators are ignored. Original parent separators remain: dirname(\"a//b\") returns \"a/\". POSIX dirname(\"//a\") returns \"//\". Windows drive-relative names retain the drive prefix and UNC share roots remain intact. POSIX paths recognize slash; Windows paths recognize slash and backslash and drive-letter prefixes. Native strings contain valid UTF-8 text, preserved without Unicode normalization.\n\nOwnership: path is borrowed; the result owns its contents.",
+      "examples": [
+        {
+          "source": "import { dirname } from \"std:path\";\nfunction main() {\n    console.log(dirname(\"/tmp/report.txt\"));\n}\n",
+          "output": "/tmp\n"
+        }
+      ]
+    },
+    {
+      "name": "extname",
+      "signature": "extname(path: string): string",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "The lexical path text to examine. No file needs to exist."
+        }
+      ],
+      "documentation": "Returns the suffix beginning at the final dot in the last path component without reading the filesystem. Accepts exactly one string path. Missing, extra and non-string arguments are compile-time errors. Returns independently owned text and leaves the input unchanged.\n\n```tsrust\nimport { extname } from \"std:path\";\nfunction main() {\n    console.log(extname(\"report.tar.gz\"));\n} // output: .gz\n```\n\nTrailing separators are ignored. Empty input, a leading-dot filename, dot and dot-dot return empty text. A final dot returns dot; extname(\"...\") returns dot. Only the final suffix is returned. POSIX paths recognize slash; Windows paths recognize slash and backslash and drive-letter prefixes. Native strings contain valid UTF-8 text, preserved without Unicode normalization.\n\nOwnership: path is borrowed; the result owns its contents.",
+      "examples": [
+        {
+          "source": "import { extname } from \"std:path\";\nfunction main() {\n    console.log(extname(\"report.tar.gz\"));\n}\n",
+          "output": ".gz\n"
+        }
+      ]
     }
   ],
   "Object": [

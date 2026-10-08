@@ -1688,3 +1688,22 @@ fn imported_lexical_generic_instances_keep_rebased_owners_and_types() {
     let checked = tsrust_compiler::project::check_graph(load_project(&memory, "main.tsr").unwrap()).unwrap();
     assert_eq!(native_stdout(&checked.emit_rust(), "0"), "7 owned\n");
 }
+
+#[test]
+fn lexical_path_p1_project_contract() {
+    let entry = support::format_round_trip("import {dirname as parent,extname} from 'std:path';function main(){const path='/tmp/é😊.txt/';const stored=parent;console.log(stored(path));console.log(extname(path));console.log(path);}");
+    let memory=Memory::new(&[("main.tsr", &entry)]);
+    let checked=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).unwrap();
+    for optimization in ["0","3"] {
+        assert_eq!(native_stdout(&checked.emit_rust(),optimization),"/tmp\n.txt\n/tmp/é😊.txt/\n");
+    }
+    for name in ["dirname","extname"] {
+        for (argument, code) in [("", "arity"),("'a','b'", "arity"),("3", "type")] {
+            let source=format!("import {{{name}}} from 'std:path';function main(){{console.log({name}({argument}));}}");
+            let memory=Memory::new(&[("main.tsr", &source)]);
+            let error=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).err().unwrap();
+            assert_eq!(error.code,code,"{error:?}");
+            assert_eq!(error.location.source.0,"main.tsr");
+        }
+    }
+}

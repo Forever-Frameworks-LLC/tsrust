@@ -112,3 +112,50 @@ fn basename_matches_reference_for_utf8_paths_and_both_separator_conventions() {
     }
     assert!(rows.next().is_none());
 }
+
+#[test]
+fn lexical_directory_and_extension_boundaries() {
+    use tsrust_compiler::native_path::{dirname, extname};
+    for (path, directory, extension) in [
+        ("", ".", ""), ("/", "/", ""), ("//a", "//", ""),
+        ("/tmp/report.txt/", "/tmp", ".txt"), (".hidden", ".", ""),
+        ("..", ".", ""), ("...", ".", "."), ("a.", ".", "."),
+        ("/é😊/a.tar.gz", "/é😊", ".gz"), ("a//b", "a/", ""),
+    ] {
+        assert_eq!(dirname(path, false), directory, "{path:?}");
+        assert_eq!(extname(path, false), extension, "{path:?}");
+    }
+    for (path, directory, extension) in [
+        ("C:", "C:", ""), ("C:report.txt", "C:", ".txt"),
+        ("C:\\report.txt", "C:\\", ".txt"),
+        ("\\\\server\\share", "\\\\server\\share", ""),
+        ("\\\\server\\share\\file.txt", "\\\\server\\share\\", ".txt"),
+    ] {
+        assert_eq!(dirname(path, true), directory, "{path:?}");
+        assert_eq!(extname(path, true), extension, "{path:?}");
+    }
+}
+
+#[test]
+fn directory_and_extension_match_independent_node_reference() {
+    use tsrust_compiler::native_path::{dirname, extname};
+    let mut paths = vec!["".to_owned(), "/".into(), "//".into(), "C:".into(), "\\\\host\\share".into()];
+    for prefix in ["", "/", "//", "a//", "C:", "C:\\", "\\\\host\\share\\", "é😊/"] {
+        for component in ["a", ".", "..", "...", ".hidden", ".hidden.txt", "a.tar.gz", "a.", "é😊.txt"] {
+            for trailing in ["", "/", "//", "\\"] { paths.push(format!("{prefix}{component}{trailing}")); }
+        }
+    }
+    let json = paths.iter().map(|p| tsrust_compiler::json_string(p)).collect::<Vec<_>>().join(",");
+    let script = format!("const p=require('node:path');for(const w of [false,true])for(const s of [{json}])for(const f of ['dirname','extname'])console.log(Buffer.from((w?p.win32:p.posix)[f](s)).toString('hex')); ");
+    let output = std::process::Command::new("node").args(["-e", &script]).output().unwrap();
+    assert!(output.status.success());
+    let expected = String::from_utf8(output.stdout).unwrap();
+    let mut lines = expected.lines();
+    for windows in [false,true] { for path in &paths {
+        for actual in [dirname(path,windows), extname(path,windows)] {
+            let hex=actual.bytes().map(|b|format!("{b:02x}")).collect::<String>();
+            assert_eq!(Some(hex.as_str()),lines.next(),"windows={windows} path={path:?}");
+        }
+    }}
+    assert!(lines.next().is_none());
+}

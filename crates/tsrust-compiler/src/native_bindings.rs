@@ -54,6 +54,8 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::testing::bindings::NUMERIC_VALUE,
     crate::stdlib::testing::bindings::SHARE_CALLBACK,
     crate::stdlib::path::bindings::BASENAME,
+    crate::stdlib::path::bindings::DIRNAME,
+    crate::stdlib::path::bindings::EXTNAME,
     crate::stdlib::testing::bindings::CHECK_ASSERTION,
     crate::stdlib::testing::bindings::REGISTER_TEST,
     crate::stdlib::testing::bindings::RUN_TESTS,

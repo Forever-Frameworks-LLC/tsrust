@@ -19862,6 +19862,46 @@
       "specification": "Retain seven independent scalar observations per scenario with deterministic seed and iteration inputs.",
       "sourceSha256": "a9215deccb3b17fb0ad27d079ecabf1fc570612bc854e58dd07d323ff317bd39",
       "counterpartSha256": "6b5d71f98ac133f98feee78fed78c26555a04aa2af918edd2e3ae52ee8c3c523"
+    },
+    {
+      "id": "std_path_dirname_ascii",
+      "category": "paths",
+      "description": "Lexical POSIX dirname with retained strings",
+      "source": "workloads/std_path_dirname_ascii.tsr",
+      "counterpart": "workloads/std_path_dirname_ascii.ts",
+      "sourceSha256": "8c44924c00d00f98f72f3e125ebf38192d40d9b7021eb0f81ea82ebcfed95429",
+      "counterpartSha256": "f77231676c59d747f770060fbd45791a0bca7dd7c716027eb067f8f83364b49c",
+      "iterations": 20000,
+      "operationsPerIteration": 1,
+      "result": "string[]",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "family": "lexical-path",
+      "measurementStatus": "pending-path-family",
+      "specification": "Alternate /tmp/report.txt and /var/log/archive.tar.gz/ by (i+seed) parity. Apply dirname and retain every returned string.",
+      "notes": "Matched POSIX semantics on macOS. Input construction, transformation and output retention are timed. No isolated latency or allocation equivalence claim."
+    },
+    {
+      "id": "std_path_extname_ascii",
+      "category": "paths",
+      "description": "Lexical POSIX extname with retained strings",
+      "source": "workloads/std_path_extname_ascii.tsr",
+      "counterpart": "workloads/std_path_extname_ascii.ts",
+      "sourceSha256": "edfaf89247781d45207d4cecf42a2d5e9abb8ca43760804de03bff3203bbf8b5",
+      "counterpartSha256": "2d7bbfd0ed697c5e31a295ca2550959b43c157cb850ef2605c7703814e55b3d5",
+      "iterations": 20000,
+      "operationsPerIteration": 1,
+      "result": "string[]",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "family": "lexical-path",
+      "measurementStatus": "pending-path-family",
+      "specification": "Alternate /tmp/report.txt and /var/log/archive.tar.gz/ by (i+seed) parity. Apply extname and retain every returned string.",
+      "notes": "Matched POSIX semantics on macOS. Input construction, transformation and output retention are timed. No isolated latency or allocation equivalence claim."
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

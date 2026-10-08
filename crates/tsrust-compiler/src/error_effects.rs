@@ -677,7 +677,7 @@ fn native_binding_effect(id:usize)->FailureSet {
         // Allocation failures are outside recoverable checked error transport.
         Some(binding) if binding.module=="std:testing-runtime" && matches!(binding.name,"shareCallback"|"numericValue"|"lengthValue"|"hasLength")=>FailureSet::default(),
         // Lexical UTF-8 processing only: no I/O or recoverable runtime failure.
-        Some(binding) if binding.module=="std:path" && binding.name=="basename"=>FailureSet::default(),
+        Some(binding) if binding.module=="std:path" && matches!(binding.name,"basename"|"dirname"|"extname")=>FailureSet::default(),
         Some(binding) if binding.module=="std:testing-runtime" && binding.name=="checkAssertion"=>FailureSet::runtime(),
         Some(binding) if binding.module=="std:testing-runtime" && matches!(binding.name,"runTests"|"finishTests")=>FailureSet::runtime(),
         Some(binding) if binding.module=="std:testing-runtime" && binding.name=="registerTest"=>FailureSet::runtime(),

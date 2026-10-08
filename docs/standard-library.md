@@ -91,3 +91,17 @@ Research:
 * deprecation periods
 * language editions
 * standard-library versioning
+
+## Lexical path parent and extension
+
+`std:path` exports `dirname(path: string): string` and `extname(path: string): string`. Both borrow the input and return owned text without filesystem access. The target chooses POSIX or Windows separators. `dirname` preserves parent spelling and does not resolve dot components; empty input returns `.`. `extname` returns the last dot suffix, including its dot; leading-dot names and `..` have no extension. Trailing separators are ignored.
+
+```tsrust
+import { dirname, extname } from "std:path";
+function main() {
+    console.log(dirname("/tmp/report.tar.gz")); // /tmp on POSIX
+    console.log(extname("report.tar.gz")); // .gz
+}
+```
+
+Executable assertions: `crates/tsrust-compiler/tests/fixtures/lexical-path/parent-extension.tsr`. Missing, extra or non-string arguments are compile-time errors.

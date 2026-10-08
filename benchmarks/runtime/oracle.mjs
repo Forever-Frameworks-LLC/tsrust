@@ -1,3 +1,4 @@
+import {lexicalPathIds,lexicalPathChecksum} from './lexical-path-source-contract.mjs';
 import {expectedGenericAdapterObservation} from './generic-value-adapters-oracle.mjs';
 import {expectedScopedCallableRecordObservation} from './scoped-callable-records-oracle.mjs';
 import {expectedGenericResultObservation} from './generic-function-results-oracle.mjs';
@@ -188,6 +189,7 @@ export {expectedNumber} from './number-oracle.mjs';
 // Independent expected-result calculations from the workload specifications.
 // Linear series use closed forms, not the implementation's records/callbacks/arrays.
 export function expectedChecksum(id, n, seed, inputText) {
+ if(lexicalPathIds.includes(id))return lexicalPathChecksum(id,n,seed);
  if(id==='scoped_callable_records')return expectedScopedCallableRecordObservation(id,n,seed,inputText).checksum; if(id==='generic_value_adapters')return expectedGenericAdapterObservation(id,n,seed,inputText).checksum; if(id==='generic_function_results')return expectedGenericResultObservation(id,n,seed,inputText).checksum; if(id==='generic_function_captures')return expectedCapturedGenericObservation(id,n,seed,inputText).checksum; if(id==='generic_function_deferred')return expectedDeferredGenericObservation(id,n,seed,inputText).checksum; if(id==='generic_function_contexts')return expectedGenericContextObservation(id,n,seed,inputText).checksum; if(id==='nested_function_rest')return expectedNestedRestObservation(id,n,seed,inputText).checksum; if(id==='nested_function_defaults')return expectedNestedDefaultObservation(id,n,seed,inputText).checksum; if(id==='nested_function_results')return expectedNestedResultObservation(id,n,seed,inputText).checksum; if(id==='nested_function_owned_escape')return expectedNestedOwnedObservation(id,n,seed,inputText).checksum;
  if(id==='nested_function_captures')return expectedNestedFunctionCaptureObservation(id,n,seed,inputText).checksum;
  if(id==='nested_function_declarations')return expectedNestedFunctionDeclarationObservation(id,n,seed,inputText).checksum;
