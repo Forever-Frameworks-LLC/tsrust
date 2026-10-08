@@ -1101,3 +1101,53 @@ Add a dedicated native availability plan or scoped emitter state with explicit
 branch joins, replacement and transfer points. Verify surviving and consumed
 paths, nested branch ordering, subsequent restoration/transfer, record-field
 siblings and exact native disposal before acceptance. B5 remains incomplete.
+
+
+The conditional survivor repair separates source usability from native storage
+initialization. Checked snapshots now retain the transfer span for roots and
+moved fields. A small `native_storage_availability.rs` module tracks when native
+owners are initialized by completion entry or balanced branch/block returns.
+Error and normal completion payloads carry those owners even when source reads
+remain rejected. A later source transfer invalidates that native state. Sibling
+branch emission saves and restores its initialization state before publishing
+the join. Both consumed branches return empty internal owners without cloning.
+
+The first attempt used the `if` keyword span as the join boundary and retained
+the original disposal failure. Checked transfer endpoints provide the actual
+boundary. Native witnesses now cover both branch choices, nested blocks,
+record-field storage and a sibling marker, replacement followed by another
+transfer, subsequent restoration, and normal completion with scope-end disposal.
+All disposal assertions run at optimization levels 0 and 3. The field witness
+also exposed E0502 from a named partially moved generic record temporary. Direct
+annotated field binding removes that residual lifetime without changing source
+ownership. Two variant drafts had malformed generated test source because their
+string substitutions assumed double quotes despite preserved single quotes;
+those failed attempts are retained rather than attributed to compiler behavior.
+
+All 72 composition tests, 42 scoped callable-record tests, four fallible
+record-callback tests, eight normal-stack depth canaries, 15 exception-contract
+tests and the expanded focused editor witness pass. The editor still rejects
+reads after possible transfer and before restoration. Exact original failures,
+traces and repaired checks are verified in SQLite under the
+`tsrust-b5-native-availability-*` keys, plus
+`tsrust-b5-conditional-survivor-repair.log`,
+`tsrust-b5-conditional-survivor-repaired-boundary.log` and
+`tsrust-b5-direct-record-regressions.log`. Loose copies are removed.
+
+This native initialization state currently belongs to completion storage regions.
+Replacement after a conditional transfer outside such a region still needs a
+focused disposal witness. Loops, control exits, nested try and finally without
+catch remain pending. Broader per-entry release, callable compositions and record
+Set keys remain part of B5; this checkpoint is not family acceptance or timing.
+
+
+Matched survivor coverage now retains twenty-six observations. A record-field
+Map consumes its owner on even values and retains its callback on odd values,
+then throws and explicitly restores storage. A second scenario completes normally
+and releases the survivor at scope exit. Independent results expect
+`value + 50 + (even ? 0 : 1)` and `2 * value + 51 + (even ? 0 : 1)`.
+Guards and rehashed mutation controls pass. Native and Node-after-tsc verification
+passes untimed, preserved exactly in SQLite as
+`runtime/results/2026-10-08T18-22-16-811Z-verify.json` and
+`tsrust-b5-native-survivor-benchmark.log`; loose copies are removed. Earlier
+observations remain unchanged. No timing samples were collected.

@@ -31,8 +31,10 @@ impl Emitter<'_> {
     /// Declarations outside this block must retain their surrounding storage.
     pub(super) fn local_map_clear_epoch(&self, fun: &CheckedFunction, body: &[Stmt], statement: &Stmt) -> Option<String> {
         let (place, native) = self.local_map_clear_storage(fun, body, statement)?;
-        let drop = if matches!(statement.kind, StmtKind::Assign { .. }) && !self.exception_regions.has_native_storage()
-            && !self.map_storage_live_before(fun, statement.span.start, &place) { String::new() }
+        let (binding,names)=self.map_storage_binding(fun,&place).expect("checked Map storage");
+        let transferred=fun.storage_exits.transfer_before(statement.span.start,binding,&names);
+        let drop = if matches!(statement.kind, StmtKind::Assign { .. }) && transferred.is_some()
+            && !self.exception_regions.native_storage_available(&place,transferred) { String::new() }
             else { format!("drop({place});") };
         Some(format!("{drop} let mut {place}: {native} = <{native}>::new();"))
     }
@@ -124,56 +126,70 @@ impl Emitter<'_> {
         }
         if places.is_empty() { return false; }
         places.sort();
-        places.retain(|place| self.map_storage_live_at_exit(fun, then_body, place) || self.map_storage_live_at_exit(fun, else_body, place));
         let comma = if places.is_empty() { "" } else { "," };
         let indent = "    ".repeat(depth);
         let pattern = places.iter().map(|place| format!("mut {place}")).collect::<Vec<_>>().join(",");
-        let then_values = places.iter().map(|place| self.map_branch_exit_value(fun, then_body, place)).collect::<Vec<_>>().join(",");
-        let else_values = places.iter().map(|place| self.map_branch_exit_value(fun, else_body, place)).collect::<Vec<_>>().join(",");
         let condition = self.expr(fun, condition, Mode::Copy);
         let _ = writeln!(output, "{indent}let ({pattern}{comma}) = if {condition} {{");
-        self.control_block_epochs(output, fun, then_body, depth + 1, loop_label, Some(declarations));
-        let _ = writeln!(output, "{indent}    ({then_values}{comma})\n{indent}}} else {{");
-        self.control_block_epochs(output, fun, else_body, depth + 1, loop_label, Some(declarations));
-        let _ = writeln!(output, "{indent}    ({else_values}{comma})\n{indent}}};");
+        {
+            let _branch=self.exception_regions.storage_branch();
+            self.control_block_epochs(output, fun, then_body, depth + 1, loop_label, Some(declarations));
+            let then_values=places.iter().map(|place|self.map_branch_exit_value(fun,then_body,place)).collect::<Vec<_>>().join(",");
+            let _ = writeln!(output, "{indent}    ({then_values}{comma})\n{indent}}} else {{");
+        }
+        {
+            let _branch=self.exception_regions.storage_branch();
+            self.control_block_epochs(output, fun, else_body, depth + 1, loop_label, Some(declarations));
+            let else_values=places.iter().map(|place|self.map_branch_exit_value(fun,else_body,place)).collect::<Vec<_>>().join(",");
+            let _ = writeln!(output, "{indent}    ({else_values}{comma})\n{indent}}};");
+        }
+        let boundary=places.iter().flat_map(|place|[self.map_storage_transfer_at_exit(fun,then_body,place),self.map_storage_transfer_at_exit(fun,else_body,place)]).flatten().map(|span|span.end).max().unwrap_or(statement.span.end).max(statement.span.end);
+        self.exception_regions.renew_storage(&places,boundary);
         true
     }
 }
 
 impl Emitter<'_> {
-    pub(super) fn map_storage_live_at_exit(&self, fun: &CheckedFunction, body: &[Stmt], place: &str) -> bool {
-        self.map_storage_live(fun, place, |binding,names| fun.storage_exits.live(body,binding,names))
-    }
-    pub(super) fn map_storage_live_before(&self, fun: &CheckedFunction, start: usize, place: &str) -> bool {
-        self.map_storage_live(fun, place, |binding,names| fun.storage_exits.live_before(start,binding,names))
-    }
-    pub(super) fn map_storage_live_at_expression(&self, fun: &CheckedFunction, point: (usize,usize), place: &str) -> bool {
-        self.map_storage_live(fun, place, |binding,names| fun.storage_exits.live_at_expression(point,binding,names))
-    }
-    fn map_storage_live(&self, fun: &CheckedFunction, place: &str, live: impl Fn(usize,&[String])->bool) -> bool {
-        for (binding, value) in fun.bindings.iter().enumerate() {
-            if place == format!("value{binding}") { return live(binding, &[]); }
-            let Some(layout) = self.owned_record_layout(fun, binding) else { continue; };
+    fn map_storage_binding(&self, fun:&CheckedFunction, place:&str)->Option<(usize,Vec<String>)> {
+        for (binding,value) in fun.bindings.iter().enumerate() {
+            if place==format!("value{binding}") {return Some((binding,Vec::new()));}
+            let Some(layout)=self.owned_record_layout(fun,binding) else {continue;};
             for leaf in &layout.leaves {
-                if leaf.native_name(binding) != place { continue; }
-                let mut ty = value.ty;
-                let mut names = Vec::new();
+                if leaf.native_name(binding)!=place {continue;}
+                let mut ty=value.ty;
+                let mut names=Vec::new();
                 for &index in &leaf.path {
-                    let Type::Record(record) = ty else { return false; };
-                    let field = &self.program.records[record].fields[index];
-                    names.push(field.name.text.clone());
-                    ty = field.ty.unwrap();
+                    let Type::Record(record)=ty else {return None;};
+                    let field=&self.program.records[record].fields[index];
+                    names.push(field.name.text.clone());ty=field.ty.unwrap();
                 }
-                return live(binding, &names);
+                return Some((binding,names));
             }
         }
-        false
+        None
     }
+    pub(super) fn map_storage_value_before(&self,fun:&CheckedFunction,start:usize,place:&str)->super::native_storage_availability::Value {
+        let (binding,names)=self.map_storage_binding(fun,place).expect("checked Map storage");
+        self.map_storage_value(fun,place,fun.storage_exits.transfer_before(start,binding,&names))
+    }
+    pub(super) fn map_storage_value_at_expression(&self,fun:&CheckedFunction,point:(usize,usize),place:&str)->super::native_storage_availability::Value {
+        let (binding,names)=self.map_storage_binding(fun,place).expect("checked Map storage");
+        self.map_storage_value(fun,place,fun.storage_exits.transfer_at_expression(point,binding,&names))
+    }
+    fn map_storage_value(&self,fun:&CheckedFunction,place:&str,transferred:Option<crate::Span>)->super::native_storage_availability::Value {
+        super::native_storage_availability::Value{place:place.into(),empty:self.map_empty_storage_value(fun,place),transferred}
+    }
+
 }
 
 impl Emitter<'_> {
+    pub(super) fn map_storage_transfer_at_exit(&self,fun:&CheckedFunction,body:&[Stmt],place:&str)->Option<crate::Span> {
+        let (binding,names)=self.map_storage_binding(fun,place).expect("checked Map storage");
+        fun.storage_exits.transfer_at_exit(body,binding,&names)
+    }
     pub(super) fn map_branch_exit_value(&self, fun: &CheckedFunction, body: &[Stmt], place: &str) -> String {
-        if self.map_storage_live_at_exit(fun, body, place) { return place.to_owned(); }
+        let transferred=self.map_storage_transfer_at_exit(fun,body,place);
+        if transferred.is_none() || self.exception_regions.native_storage_available(place,transferred) {return place.to_owned();}
         self.map_empty_storage_value(fun, place)
     }
     pub(super) fn map_empty_storage_value(&self, fun: &CheckedFunction, place: &str) -> String {

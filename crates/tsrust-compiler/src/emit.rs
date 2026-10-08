@@ -28,6 +28,8 @@ mod scoped_record_console_emit;
 mod scoped_record_support_emit;
 #[path = "exception_contract_emit.rs"]
 mod exception_contract_emit;
+#[path = "native_storage_availability.rs"]
+mod native_storage_availability;
 #[path = "exception_emit.rs"]
 mod exception_emit;
 #[path = "spread_emit.rs"]
@@ -3261,14 +3263,15 @@ impl Emitter<'_> {
             if let StmtKind::Block(inner) = &stmt.kind {
                 let places = if stmt.labels.is_empty() { self.map_block_return_places(fun, declarations, inner) } else { Vec::new() };
                 if !places.is_empty() {
-                    let places = places.into_iter().filter(|place| self.map_storage_live_at_exit(fun, inner, place)).collect::<Vec<_>>();
                     let pattern = places.iter().map(|place| format!("mut {place}")).collect::<Vec<_>>().join(",");
-                    let values = places.join(",");
                     let comma = if places.is_empty() { "" } else { "," };
                     let _ = writeln!(output, "{indent}let ({pattern}{comma}) = {{");
                     self.control_block_epochs(output, fun, inner, depth + 1, loop_label, Some(declarations));
+                    let values=places.iter().map(|place|self.map_branch_exit_value(fun,inner,place)).collect::<Vec<_>>().join(",");
                     let _ = writeln!(output, "{indent}    ({values}{comma})
 {indent}}};");
+                    let boundary=places.iter().filter_map(|place|self.map_storage_transfer_at_exit(fun,inner,place)).map(|span|span.end).max().unwrap_or(stmt.span.end).max(stmt.span.end);
+                    self.exception_regions.renew_storage(&places,boundary);
                     continue;
                 }
                 let body = inner;

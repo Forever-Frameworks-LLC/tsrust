@@ -52,9 +52,19 @@ pub(crate) fn checked_catch_value(value:&str,error_name:&str,contract:&crate::er
     Ok(if arms.is_empty() {format!("match {value} {{}}") }else{format!("match {value} {{ {arms} }}")})
 }
 
-struct Storage { carry_error:bool, default:String, points:std::collections::BTreeMap<usize,String>, expressions:std::collections::BTreeMap<(usize,usize),String> }
+use super::native_storage_availability::{State as StorageState, Value as StorageValue};
+struct Storage {
+    carry_error: bool,
+    default: Vec<StorageValue>,
+    points: std::collections::BTreeMap<usize,Vec<StorageValue>>,
+    expressions: std::collections::BTreeMap<(usize,usize),Vec<StorageValue>>,
+    state: StorageState,
+}
 impl Storage {
-    fn at(&self, span:crate::Span)->&str { self.expressions.get(&(span.start,span.end)).map(String::as_str).unwrap_or_else(||self.points.range(..=span.start).next_back().map_or(self.default.as_str(),|(_,value)|value.as_str())) }
+    fn at(&self, span:crate::Span)->String {
+        let values=self.expressions.get(&(span.start,span.end)).unwrap_or_else(||self.points.range(..=span.start).next_back().map_or(&self.default,|(_,values)|values));
+        self.state.render(values)
+    }
 }
 
 struct NativeRegion {
@@ -68,6 +78,14 @@ struct NativeRegion {
 pub(crate) struct RegionStack(std::cell::RefCell<Vec<NativeRegion>>);
 
 pub(crate) struct RegionScope<'a> { stack:&'a RegionStack, previous_depth:usize }
+pub(crate) struct StorageBranch<'a> { stack:&'a RegionStack, saved:Option<(usize,StorageState)> }
+impl Drop for StorageBranch<'_> {
+    fn drop(&mut self) {
+        if let Some((id,state))=self.saved.take()
+            && let Some(region)=self.stack.0.borrow_mut().last_mut()
+            && region.id==id && let Some(storage)=&mut region.storage {storage.state=state;}
+    }
+}
 pub(crate) struct CallableScope<'a> { stack:&'a RegionStack, previous:Vec<NativeRegion> }
 
 impl RegionStack {
@@ -85,10 +103,21 @@ impl RegionStack {
         self.0.borrow_mut().last_mut().expect("entered region").transport=Some(Box::new((name,contract,runtime)));
         scope
     }
-    pub(crate) fn attach_storage(&self, storage:String, points:std::collections::BTreeMap<usize,String>, expressions:std::collections::BTreeMap<(usize,usize),String>, carry_error:bool) {
-        self.0.borrow_mut().last_mut().expect("entered storage region").storage=Some(Box::new(Storage{carry_error,default:storage,points,expressions}));
+    pub(crate) fn attach_storage(&self, values:Vec<StorageValue>, points:std::collections::BTreeMap<usize,Vec<StorageValue>>, expressions:std::collections::BTreeMap<(usize,usize),Vec<StorageValue>>, carry_error:bool, boundary:usize) {
+        let mut state=StorageState::default();
+        state.renew(&values.iter().map(|value|value.place.clone()).collect::<Vec<_>>(),boundary);
+        self.0.borrow_mut().last_mut().expect("entered storage region").storage=Some(Box::new(Storage{carry_error,default:values,points,expressions,state}));
     }
-    pub(crate) fn has_native_storage(&self)->bool { self.0.borrow().last().is_some_and(|region|region.storage.is_some()) }
+    pub(crate) fn renew_storage(&self, places:&[String], boundary:usize) {
+        if let Some(storage)=self.0.borrow_mut().last_mut().and_then(|region|region.storage.as_mut()) { storage.state.renew(places,boundary); }
+    }
+    pub(crate) fn native_storage_available(&self, place:&str, transferred:Option<crate::Span>)->bool {
+        self.0.borrow().last().and_then(|region|region.storage.as_ref()).is_some_and(|storage|storage.state.available(place,transferred))
+    }
+    pub(crate) fn storage_branch(&self)->StorageBranch<'_> {
+        let saved=self.0.borrow().last().and_then(|region|region.storage.as_ref().map(|storage|(region.id,storage.state.clone())));
+        StorageBranch{stack:self,saved}
+    }
     pub(crate) fn throw_value(&self,value:&str,ty:crate::syntax::Type,unions:&crate::unions::UnionArena,span:crate::Span)->Result<String,crate::Diagnostic> {
         let regions=self.0.borrow();
         let region=regions.last().ok_or_else(||crate::Diagnostic::new("error-effect","Throw emission requires a typed completion region.",span))?;

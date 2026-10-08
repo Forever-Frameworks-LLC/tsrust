@@ -384,8 +384,64 @@ function workload(n: int, seed: int, input: string): int[][] {
             lateExpression = expressionResult + expressionSaved.size + expressionMap.size + expressionOld[0];
         }
 
+        let conditionalRenewed = 0;
+        {
+            const conditionalOld = [value];
+            const conditionalMap = new Map<string, Holder>();
+            conditionalMap.set("old", {
+                run: (): int => conditionalOld[0]
+            });
+            const conditionalBox: Box = {
+                handlers: conditionalMap
+            };
+            let conditionalSize = -1;
+            try {
+                if (value % 2 === 0) {
+                    conditionalBox.handlers.clear();
+                    const conditionalMoved = conditionalBox.handlers;
+                    conditionalSize = conditionalMoved.size;
+                } else {
+                    conditionalSize = conditionalBox.handlers.size;
+                }
+
+                throw 9;
+            } catch (error) {
+                conditionalBox.handlers = new Map<string, Holder>();
+            }
+
+            conditionalOld[0] = value + 50;
+            conditionalRenewed = conditionalSize + conditionalBox.handlers.size + conditionalOld[0];
+        }
+
+        let normalSurvivor = 0;
+        const survivorOld = [value];
+        {
+            let survivorMap = new Map<string, Holder>();
+            survivorMap.set("old", {
+                run: (): int => survivorOld[0]
+            });
+            let survivorSize = -1;
+            try {
+                const survivorPrefix = prefixResult(false);
+                if (value % 2 === 0) {
+                    survivorMap.clear();
+                    const survivorMoved = survivorMap;
+                    survivorSize = survivorMoved.size;
+                } else {
+                    survivorSize = survivorMap.size;
+                }
+            } catch (error) {
+                survivorMap = new Map<string, Holder>();
+            }
+
+            normalSurvivor = survivorSize + survivorOld[0];
+        }
+
+        survivorOld[0] = value + 51;
+        normalSurvivor += survivorOld[0];
+
         base[0] = 0;
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor]);
         i += 1;
     }
 

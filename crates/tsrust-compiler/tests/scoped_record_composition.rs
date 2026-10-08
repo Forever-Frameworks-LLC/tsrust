@@ -3,7 +3,30 @@ mod support;
 #[test]
 fn conditional_transfer_error_preserves_survivor_until_restoration() {
     let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(branch:boolean):void{const old=[3];let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});console.log('before');try{if(branch){handlers.clear();const moved=handlers;console.log('moved');}else{console.log('kept');}console.log('throw');throw 7;}catch(error){console.log('caught');handlers=new Map<string,Holder>();console.log('restored',handlers.size);}old[0]=9;console.log('after');}function main():void{scenario(true);scenario(false);}");
-    verify_disposal(&source, 1, "before\ndrop 0\nmoved\nthrow\ncaught\nrestored 0\nafter\nbefore\nkept\nthrow\ncaught\ndrop 0\nrestored 0\nafter\n");
+    let expected = "before\ndrop 0\nmoved\nthrow\ncaught\nrestored 0\nafter\nbefore\nkept\nthrow\ncaught\ndrop 0\nrestored 0\nafter\n";
+    verify_disposal(&source, 1, expected);
+    let nested = source.replace("try {", "try { {").replace("console.log('throw');", "} console.log('throw');");
+    assert_ne!(nested, source);
+    verify_disposal(&support::format_round_trip(&nested), 1, expected);
+    let mut field = source.replace("function scenario", "type Box = { handlers: Map<string, Holder>; marker: int; }; function scenario")
+        .replace("    console.log('before');", "    const box: Box = { handlers: handlers, marker: 23 }; console.log('before');")
+        .replace("handlers.clear()", "box.handlers.clear()")
+        .replace("const moved = handlers;", "const moved = box.handlers;")
+        .replace("handlers.size", "box.handlers.size")
+        .replace("    old[0] = 9;", "    if (box.marker !== 23) throw 99; old[0] = 9;");
+    let restore = field.rfind("handlers = new Map<string, Holder>();").expect("catch restoration");
+    field.replace_range(restore..restore+"handlers".len(), "box.handlers");
+    verify_disposal(&support::format_round_trip(&field), 1, expected);
+    let moved_again = source.replace("console.log('restored', handlers.size);", "const movedAgain = handlers; console.log('restored', movedAgain.size);");
+    verify_disposal(&support::format_round_trip(&moved_again), 1, expected);
+    let restored_again = moved_again.replace("console.log('restored', movedAgain.size);", "handlers = new Map<string, Holder>(); console.log('restored', handlers.size);");
+    verify_disposal(&support::format_round_trip(&restored_again), 1, expected);
+}
+
+#[test]
+fn conditional_transfer_normal_completion_preserves_survivor_scope() {
+    let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function scenario(branch:boolean):void{const old=[3];console.log('before');{let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});try{failIf(false);if(branch){handlers.clear();const moved=handlers;console.log('moved');}else{console.log('kept');}console.log('normal');}catch(error){console.log('caught');handlers=new Map<string,Holder>();}console.log('inside');}old[0]=9;console.log('after');}function main():void{scenario(true);scenario(false);}");
+    verify_disposal(&source, 1, "before\ndrop 0\nmoved\nnormal\ninside\nafter\nbefore\nkept\nnormal\ninside\ndrop 0\nafter\n");
 }
 
 #[test]

@@ -34,7 +34,9 @@ impl Emitter<'_> {
     pub(super) fn owned_record_declaration(&self,fun:&CheckedFunction,id:usize,initializer:&str)->Option<String>{
         let layout=self.owned_record_layout(fun,id)?;
         let pattern=self.owned_record_render(id,Type::Record(layout.record),&mut Vec::new(),Mode::Consume,true,fun.bindings[id].mutable);
-        Some(format!("let record_initial{id}:{}={initializer};let {pattern}=record_initial{id};",self.native_type(fun.bindings[id].ty)))
+        // Bind every leaf directly. A named, partially moved generic record
+        // can otherwise retain its old callback lifetime until scope exit.
+        Some(format!("let {pattern}:{}={initializer};",self.native_type(fun.bindings[id].ty)))
     }
     pub(super) fn owned_record_assignment(&self,fun:&CheckedFunction,id:usize,initializer:&str)->Option<String>{
         let layout=self.owned_record_layout(fun,id)?;

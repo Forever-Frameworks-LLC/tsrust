@@ -1,7 +1,7 @@
 # B5 error restoration checkpoint
 
 B5 scoped aggregate composition remains incomplete. Gate 181 is the last accepted
-numbered gate. This checkpoint extends the work after `56db876`; it is not family
+numbered gate. This checkpoint extends the work after `6d747f3`; it is not family
 acceptance. The active goal remains the full compiler/editor completion plan.
 
 Read `AGENTS.md`, `docs/development-workflow.md`,
@@ -27,40 +27,47 @@ Native witnesses cover explicit throw, a later fallible call, a later bounds
 failure, record-field storage and an independent sibling field. Disposal tests
 at optimization levels 0 and 3 prove exactly one callback drop on both early and
 late failure paths. The editor test verifies restoration and rejects reads before
-restoration. All 70 composition tests, eight normal-stack depth canaries and 15
+restoration. All 72 composition tests, eight normal-stack depth canaries and 15
 exception-contract tests pass. The focused editor test passes.
 
-The matched workload now retains 24 observations. Source guards and rehashed
+The matched workload now retains 26 observations. Source guards and rehashed
 mutation controls pass. Native and Node-after-tsc verification passes untimed.
 The independent oracle includes `value + 29` and `value + 30` for early and late
 statement restoration, plus `value + 39` and `value + 40` for expression failures. SQLite preserves exact failures and repaired records; see the plan
-for keys, including `runtime/results/2026-10-08T18-05-25-609Z-verify.json`.
+for keys, including `runtime/results/2026-10-08T18-22-16-811Z-verify.json`.
 Loose copies are removed. Project formatting changes no files on the second pass.
 No full family regression or timing run was performed.
 
-## Confirmed next defect
+## Conditional survivor repair
 
-Red witness `conditional_transfer_error_preserves_survivor_until_restoration`
-executes both branch choices. On the retained path, the callback drops before
-catch prints `caught`; it must survive until catch explicitly replaces the Map.
-The consumed path already drops exactly once at clear. Exact failed evidence is
-in SQLite as `tsrust-b5-conditional-survivor-red.log`, with its loose copy removed.
+The committed disposal witness now passes on both branches at optimization levels
+0 and 3. `native_storage_availability.rs` separates initialized native owners from
+source usability. Checked snapshots retain transfer spans. Completion entry and
+balanced branch/block returns initialize native storage; later transfers invalidate
+that state. Branch emission isolates sibling states. Error and normal payloads
+retain survivors until replacement or scope exit. Source reads remain rejected.
 
-The branch emitter normalizes the owner into valid native storage on both paths.
-The error emitter then substitutes empty storage because the source binding is
-unavailable after the join. Separate native initialization from source usability.
-Track normalized branch owners through errors and normal exits; invalidate that
-state on subsequent transfer. Isolate state while emitting sibling branches.
-Do not revive source reads or solve disposal by dropping the survivor early.
-The witness remains failing. No compiler implementation changed in this checkpoint.
+Expanded witnesses cover nested blocks, record-field siblings, later transfer and
+subsequent restoration. Direct annotated record field binding removes a named
+partially moved temporary that otherwise kept the old callback borrow alive.
+Another 42 scoped callable-record tests and four fallible record-callback tests
+pass after that change. The 26 matched observations include conditional storage
+survivors on normal and error paths. All original failed attempts and repaired
+checks are preserved in SQLite; see the current plan for evidence keys.
+
+Native initialization tracking currently belongs to completion storage regions.
+Next add a red witness for replacement after conditional transfer outside such a
+region. Do not assume that case has been verified. Extend tracking without leaking
+state across callable boundaries, sibling branches or nested exception regions.
 
 ## Next implementation
 
 1. Audit rewritten and synthetic expression spans as new compositions land.
    Exact spans now cover the verified call, bounds and arithmetic failure cases.
-2. Add exact disposal witnesses for conditional transfers. A joined source binding
-   can be unavailable while a native owner survives on one path. Do not replace
-   that survivor with an empty Map without proving its proper disposal point.
+2. Verify and repair conditional transfer followed by replacement outside
+   completion storage regions. Keep exact disposal assertions for both branches
+   and source transfer diagnostics. Extend native initialization tracking with
+   explicit callable and lexical boundaries.
 3. Extend completion storage to loops, return, break, continue, nested try and
    finally without catch, with checked control-flow evidence.
 4. Finish precise element and Map-entry capture release and the remaining callable
@@ -89,7 +96,8 @@ before a longer handoff; do not create archives or snapshots.
 Continue Tsrust B5 from docs/handoff-2026-10-08-b5-error-restoration.md. Read
 AGENTS.md, docs/development-workflow.md and docs/scoped-callable-aggregate-plan.md
 first. Error restoration after prior-statement and within-expression transfers is verified;
-conditional partial-transfer disposal has a committed red witness and remains next. Keep Rust-style record
+conditional survivor disposal within completion storage regions now passes;
+conditional replacement outside those regions remains next. Keep Rust-style record
 Set equality/hashing, explicit cloning and existing ownership rules. Use focused
 red witnesses, native disposal checks, editor coverage and matched benchmarks.
 Preserve fifteen unrelated fixture edits, stage explicit paths, format the whole

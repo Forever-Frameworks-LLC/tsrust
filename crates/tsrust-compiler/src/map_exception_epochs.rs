@@ -39,9 +39,9 @@ impl Emitter<'_> {
         let outgoing = crate::error_effects::annotate_region_body(&mut discovery, &self.program.error_effects);
         let (in_decl, in_name) = self.completion_error_layout(&format!("StorageIncoming{first}"), incoming, runtime, statement.span);
         let (out_decl, out_name) = self.completion_error_layout(&format!("StorageOutgoing{first}"), &outgoing, runtime, statement.span);
-        let pending = self.map_storage_completion_body(fun, &region.body, declarations, first, &in_name, incoming.clone(), runtime, &values, &storage_type, &places, true);
+        let pending = self.map_storage_completion_body(fun, &region.body, declarations, first, &in_name, incoming.clone(), runtime, &storage_type, &places, true);
         let handler_throws = outgoing.runtime || outgoing.opaque || !outgoing.explicit.is_empty();
-        let handled = self.map_storage_completion_body(fun, &handler.body, declarations, first + 1, &out_name, outgoing.clone(), runtime, &values, &storage_type, &places, handler_throws);
+        let handled = self.map_storage_completion_body(fun, &handler.body, declarations, first + 1, &out_name, outgoing.clone(), runtime, &storage_type, &places, handler_throws);
         let unions = crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
         let setup = if let Some(binding) = handler.binding {
             let value = exception_contract_emit::checked_catch_value("caught_error", &in_name, incoming, &unions, runtime, statement.span).expect("checked catch payload");
@@ -57,8 +57,8 @@ impl Emitter<'_> {
             let cleanup_contract = crate::error_effects::annotate_region_body(&mut cleanup_discovery, &self.program.error_effects);
             let (declaration, cleanup_name) = self.completion_error_layout(&format!("StorageCleanup{first}"), &cleanup_contract, runtime, statement.span);
             cleanup_declaration = declaration;
-            let normal_cleanup = self.map_storage_completion_body(fun, cleanup, declarations, first + 2, &cleanup_name, cleanup_contract.clone(), runtime, &values, &storage_type, &places, false);
-            let thrown_cleanup = self.map_storage_completion_body(fun, cleanup, declarations, first + 3, &cleanup_name, cleanup_contract.clone(), runtime, &values, &storage_type, &places, false);
+            let normal_cleanup = self.map_storage_completion_body(fun, cleanup, declarations, first + 2, &cleanup_name, cleanup_contract.clone(), runtime, &storage_type, &places, false);
+            let thrown_cleanup = self.map_storage_completion_body(fun, cleanup, declarations, first + 3, &cleanup_name, cleanup_contract.clone(), runtime, &storage_type, &places, false);
             let cleanup_abrupt = self.map_storage_abrupt_dispatch(fun, "other", &cleanup_name, &cleanup_contract, runtime, statement.span);
             normal_finish = format!("{{ let {pattern}=storage; match {normal_cleanup} {{ TsrCompletion::Normal(storage)=>storage, other=>{{ {cleanup_abrupt} }} }} }}");
             let resume = if crate::completion::definitely_abrupt(cleanup, 0) { "unreachable!(\"abrupt cleanup cannot resume pending error\")".into() }
@@ -87,18 +87,14 @@ impl Emitter<'_> {
     }
 
     #[inline(never)]
-    fn map_storage_completion_body(&self, fun: &CheckedFunction, body: &[Stmt], declarations: &[Stmt], id: usize, error_name: &str, contract: crate::error_effects::FailureSet, runtime: Option<Type>, values: &str, storage_type: &str, places: &[String], carry_error: bool) -> String {
+    fn map_storage_completion_body(&self, fun: &CheckedFunction, body: &[Stmt], declarations: &[Stmt], id: usize, error_name: &str, contract: crate::error_effects::FailureSet, runtime: Option<Type>, storage_type: &str, places: &[String], carry_error: bool) -> String {
         let _region = self.exception_regions.enter_typed(id, Vec::new(), error_name.into(), contract, runtime);
         {
-            let points=fun.storage_exits.starts().map(|start| {
-                let payload=format!("({},)",places.iter().map(|place| if self.map_storage_live_before(fun,start,place) {place.clone()} else {self.map_empty_storage_value(fun,place)}).collect::<Vec<_>>().join(","));
-                (start,payload)
-            }).collect();
-            let expressions=fun.storage_exits.expression_points().map(|point| {
-                let payload=format!("({},)",places.iter().map(|place| if self.map_storage_live_at_expression(fun,point,place) {place.clone()} else {self.map_empty_storage_value(fun,place)}).collect::<Vec<_>>().join(","));
-                (point,payload)
-            }).collect();
-            self.exception_regions.attach_storage(values.into(), points, expressions, carry_error);
+            let points=fun.storage_exits.starts().map(|start| (start,places.iter().map(|place|self.map_storage_value_before(fun,start,place)).collect())).collect();
+            let expressions=fun.storage_exits.expression_points().map(|point| (point,places.iter().map(|place|self.map_storage_value_at_expression(fun,point,place)).collect())).collect();
+            let boundary=body.first().map_or(0,|statement|statement.span.start);
+            let initial=places.iter().map(|place|self.map_storage_value_before(fun,boundary,place)).collect();
+            self.exception_regions.attach_storage(initial,points,expressions,carry_error,boundary);
         }
         let mut statements = String::new();
         self.control_block_epochs(&mut statements, fun, body, 1, None, Some(declarations));

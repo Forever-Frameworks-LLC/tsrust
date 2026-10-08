@@ -8562,6 +8562,11 @@ fn transferred_error_storage_requires_explicit_restoration() {
     let unavailable_expression = expression.replace("catch (error) {", "catch (error) { console.log(handlers.size);");
     let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&unavailable_expression, "file:///expression.tsr").unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "transferred"), "{diagnostics}");
+    let conditional = tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function scenario(branch:boolean):void{const old=[3];let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});try{if(branch){handlers.clear();const moved=handlers;}else{}throw 7;}catch(error){handlers=new Map<string,Holder>();}old[0]=9;console.log(handlers.size);}function main():void{scenario(true);scenario(false);}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&conditional, "file:///conditional.tsr").unwrap().is_empty());
+    let unavailable_conditional = conditional.replace("throw 7;", "console.log(handlers.size); throw 7;");
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&unavailable_conditional, "file:///conditional.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "transferred"), "{diagnostics}");
     let unavailable = source.replace("catch (error) {", "catch (error) { console.log(handlers.size);");
     assert_ne!(unavailable, source);
     let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&unavailable, "file:///test.tsr").unwrap()).unwrap();
