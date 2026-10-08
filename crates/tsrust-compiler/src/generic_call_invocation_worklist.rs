@@ -143,6 +143,10 @@ impl<'a> Engine<'a> {
         (!self.entries[root].opaque).then(|| self.entries[root].outcome.clone())
     }
 }
+// Preserve outgoing order and unknown identities while indexing caller membership once.
+fn retain_caller_bindings(outgoing:&mut FlowState,identities:&HashSet<Option<crate::local_capture_plan::BindingId>>) {
+    outgoing.retain(|binding|identities.contains(&binding.identity));
+}
 impl expression_flow::Dispatch for Engine<'_> {
     fn reject(&mut self) {self.opaque_invocation();}
     fn validate_escape(&mut self, value: &expression_flow::Value, state: &FlowState) -> bool {
@@ -189,13 +193,14 @@ impl expression_flow::Dispatch for Engine<'_> {
             body_origins::Origin::Body(declaration)=>environment_store::Alternative::Body{declaration:*declaration,environment:None},
             _=>environment_store::Alternative::Unknown,
         }).collect());
+        let caller_identities=state.iter().map(|binding|binding.identity).collect::<HashSet<_>>();
         for alternative in alternatives {
             let environment_store::Alternative::Body{declaration,environment}=alternative else {return self.opaque_invocation()};
             let index = self.request(Request { declaration, producer: expression.span, environment, caller: state.clone(), arguments: arguments.to_vec() });
             if self.entries[index].opaque { return self.opaque_invocation(); }
             let mut outcome = self.entries[index].outcome.clone();
             for outgoing in [&mut outcome.normal,&mut outcome.returning,&mut outcome.throwing].into_iter().flatten() {
-                outgoing.retain(|binding|state.iter().any(|original|original.identity==binding.identity));
+                retain_caller_bindings(outgoing,&caller_identities);
             }
             let returned = if outcome.normal.is_some() {
                 Some(outcome.returned_value.clone().map_or_else(expression_flow::Value::undefined, |value| expression_flow::merge_value(value, expression_flow::Value::undefined(), self.declarations)))
@@ -212,6 +217,20 @@ impl expression_flow::Dispatch for Engine<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn caller_projection_preserves_unknown_identities_aliases_and_binding_order() {
+        let known=crate::local_capture_plan::BindingId{owner:1,declaration_start:7};
+        let foreign=crate::local_capture_plan::BindingId{owner:2,declaration_start:7};
+        let binding=|name:&str,identity| Binding { alternatives:None,identity,name:name.into(),scope:Span::default(),targets:vec![Target::Unknown],origins:vec![body_origins::Origin::Unknown],selection:Selection::default(),elements:None,mutable:false,contract:None };
+        let caller:FlowState=vec![binding("caller",Some(known)),binding("unknown",None)].into();
+        let identities=caller.iter().map(|binding|binding.identity).collect::<HashSet<_>>();
+        let mut outgoing:FlowState=vec![binding("first_unknown",None),binding("foreign",Some(foreign)),binding("first_alias",Some(known)),binding("second_alias",Some(known)),binding("second_unknown",None)].into();
+        retain_caller_bindings(&mut outgoing,&identities);
+        assert_eq!(outgoing.iter().map(|binding|binding.name.as_str()).collect::<Vec<_>>(),vec!["first_unknown","first_alias","second_alias","second_unknown"]);
+        let identities=HashSet::from([Some(known)]);
+        retain_caller_bindings(&mut outgoing,&identities);
+        assert_eq!(outgoing.iter().map(|binding|binding.name.as_str()).collect::<Vec<_>>(),vec!["first_alias","second_alias"]);
+    }
     #[test]
     fn direct_transitive_recursive_and_throwing_writes_reach_caller_call_facts() {
         for body in [
