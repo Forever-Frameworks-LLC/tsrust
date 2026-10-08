@@ -103,6 +103,27 @@ impl Analyzer {
                 continue;
             }
             match &value.kind {
+                ExprKind::Array(values) => {
+                    // Dense storage retains every element environment. Until
+                    // runtime element identity is known, aliases conservatively
+                    // retain all possible capture owners of the container.
+                    for value in values {
+                        pending.push((value, destination.clone(), consume));
+                    }
+                }
+                ExprKind::Index(base, _) if matches!(base.ty, Some(Type::Array(_))) => {
+                    pending.push((base, destination, false));
+                }
+                ExprKind::Call(callee, _) => {
+                    if let ExprKind::Field(base, method) = &callee.kind
+                        && matches!(base.ty, Some(Type::Array(_)))
+                        && matches!(method.as_str(), "pop" | "shift")
+                    {
+                        // Removing one runtime-selected element must not release
+                        // the capture owners of elements still in the container.
+                        pending.push((base, destination, false));
+                    }
+                }
                 ExprKind::Record(fields) => {
                     for (name, value) in fields {
                         let mut destination = destination.clone();

@@ -3000,6 +3000,9 @@ impl Analyzer {
     }
 
     fn require(&self, actual: Type, expected: Option<Type>, span: Span) -> Result<(), Diagnostic> {
+        if let (Type::Array(ArrayElement::Record(actual, depth)), Some(Type::Array(ArrayElement::Record(expected, expected_depth)))) = (actual, expected) {
+            if depth == expected_depth && self.scoped_records.declaration(actual) == expected { return Ok(()); }
+        }
         if expected.is_some_and(|expected|self.callables.storage.equivalent_result(actual,expected)) {return Ok(());}
         if !self.deferred_generic_values.is_empty() {
             self.deferred_generic_requirement(actual, expected, span)?;
@@ -10205,7 +10208,7 @@ impl Analyzer {
         if values.is_empty() && element.is_none() && self.builtin_literals {
             element = Some(ArrayElement::Int(0));
         }
-        for value in values {
+        for value in values.iter_mut() {
             if element.is_none() && let ExprKind::Closure { id, .. } = value.kind { self.escaping.insert(id); }
             let actual = if let Some(ArrayElement::StoredCallable(family, 0)) = element {
                 self.stored_callable_value(context, value, family, loans)?
@@ -10225,13 +10228,14 @@ impl Analyzer {
             self.require(actual, element.map(ArrayElement::ty), value.span)?;
             element.get_or_insert(inferred);
         }
-        Ok(Type::Array(element.ok_or_else(|| {
+        let element = element.ok_or_else(|| {
             Diagnostic::new(
                 "array-type",
                 "An empty array needs an array annotation or call/return context.",
                 span,
             )
-        })?))
+        })?;
+        Ok(Type::Array(self.scoped_record_array_element(values, element, span)?))
     }
 
     /// An array literal without a declared type whose values have different

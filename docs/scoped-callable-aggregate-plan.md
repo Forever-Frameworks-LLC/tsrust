@@ -118,7 +118,7 @@ scope ends. The independent TypeScript reference in
 Node runtime. The compiler currently rejects the array at the explicit guard in
 `scoped_record_containers.rs`. No compiler admission rule has been changed.
 
-The array analyzer currently retains the declared element type while allowing
+Before this continuation, the array analyzer retained the declared element type while allowing
 nominally compatible concrete record instances through `require`. Each record
 literal separately specializes its concrete callback field environment in
 `scoped_record_layout::Registry`. Admitting the array therefore needs a common
@@ -126,6 +126,23 @@ checked element layout that preserves those distinct environments; removing the
 final container guard alone does not establish correct native layout or source loans.
 Reuse existing checked callable and record carriers where their guarantees apply.
 Keep container layout specialization separate from ownership provenance.
+
+The current uncommitted prerequisite now joins concrete record array elements with
+`join_record_types`, wraps differing element environments with existing record
+carriers, and preserves nominal annotated array compatibility. The container guard
+still rejects the positive witness. Existing arrays (12), scoped records (42) and
+record boundary tests (7) pass. This establishes no source acceptance yet: capture
+provenance, transferred element layout and nullable results still need verification
+before admission can change. The red-witness checkpoint is `b5ee6ff`.
+
+Capture-loan attachment now traverses array construction and propagates possible
+owners through indexed aliases and pop/shift results. Removing one element does
+not release owners of elements remaining in the array. The extracted-record witness
+checks that a popped record keeps its capture conflict after the source container's
+scope ends. Dynamic element identity is currently conservative: aliases retain all
+possible container captures. Admission is still guarded, so this is an unaccepted
+prerequisite; refine identity/release precision and verify generated native lifetimes
+before accepting the composition gate.
 
 The next implementation batch must resolve common concrete record elements and
 carry their capture loans through indexing, traversal, pop/shift and scope exit.

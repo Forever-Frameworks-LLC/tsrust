@@ -4,6 +4,35 @@
 use super::*;
 
 impl Analyzer {
+    /// Array storage needs one concrete record environment for all elements.
+    /// Preserve the nominal contract while joining each checked field carrier.
+    pub(super) fn scoped_record_array_element(
+        &mut self,
+        values: &mut [Expr],
+        element: ArrayElement,
+        span: Span,
+    ) -> Result<ArrayElement, Diagnostic> {
+        let ArrayElement::Record(declaration, 0) = element else { return Ok(element); };
+        if !self.aggregate_callable_facts(Type::Record(declaration)).scoped { return Ok(element); }
+        let mut common = None;
+        for value in values.iter() {
+            let Some(Type::Record(actual)) = value.ty else { return Ok(element); };
+            common = Some(match common {
+                None => actual,
+                Some(previous) if previous == actual => actual,
+                Some(previous) => match self.join_record_types(previous, actual, span)? {
+                    Some(Type::Record(joined)) => joined,
+                    _ => return Err(Diagnostic::new("type", "Array elements require compatible concrete callback field contracts.", value.span)),
+                },
+            });
+        }
+        let Some(common) = common else { return Ok(element); };
+        for value in values {
+            if value.ty != Some(Type::Record(common)) { value.wrap_record_carrier(Type::Record(common)); }
+        }
+        Ok(ArrayElement::Record(common, 0))
+    }
+
     fn holds_scoped_record(&self, container: Type) -> bool {
         let mut pending = match container {
             Type::Array(element) => vec![element.ty()],
