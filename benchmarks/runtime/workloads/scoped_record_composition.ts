@@ -369,8 +369,10 @@ function workload(n: int, seed: int, input: string): int[][] {
 
         const returnTrace = [0, -1];
         const finallyReturned = noCatchReturn(value % 2 === 0, value, returnTrace) + returnTrace[0] * 100 + returnTrace[1];
+        const loopTrace = [0, 0];
+        const finallyLooped = noCatchLoop(value, loopTrace) + loopTrace[0] * 100 + loopTrace[1];
         base[0] = 0;
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped]);
         i += 1;
     }
 
@@ -425,4 +427,31 @@ function noCatchReturn(early: boolean, value: number, trace: number[]): number {
     returnOld[0] = value + 82;
     returnNext[0] = value + 83;
     return returnOld[0] + returnNext[0];
+}
+
+function noCatchLoop(value: number, trace: number[]): number {
+    const loopOld = [value];
+    const loopNext = [value + 1];
+    let turn = 0;
+    let loopObserved = 0;
+    while (turn < 3) {
+        let loopMap = new Map<string, Holder>();
+        loopMap.set("old", { run: (): number => loopOld[0] });
+        turn += 1;
+        try {
+            const loopPrefix = prefixResult(false);
+            loopMap.clear();
+            loopMap.set("next", { run: (): number => loopNext[0] });
+            if (turn === 1) continue;
+            if (turn === 3) break;
+        } finally {
+            trace[0] += loopMap.size;
+            loopMap.clear();
+            trace[1] += loopMap.size;
+        }
+        loopOld[0] = value + 90;
+        loopNext[0] = value + 91;
+        loopObserved = loopOld[0] + loopNext[0];
+    }
+    return loopObserved + turn;
 }

@@ -44,7 +44,11 @@ collection contents, including entries added after a clear. If cleanup completes
 normally, the saved return value is returned; a return or error from cleanup
 replaces it. Borrowed callback captures released by clear can be mutated after
 normal cleanup on a path that continues past the try statement. The compiler
-preserves the owners needed for cleanup without cloning them.
+preserves the owners needed for cleanup without cloning them. A pending break
+or continue also runs cleanup before reaching its loop destination. A break,
+continue, return or error from cleanup replaces the pending exit. Normal
+fallthrough can mutate captures released by cleanup before the next iteration.
+
 
 
 ## Runtime failures

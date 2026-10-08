@@ -8575,6 +8575,8 @@ fn transferred_error_storage_requires_explicit_restoration() {
     assert!(tsrust_lsp::diagnostics(&cleanup,"file:///cleanup.tsr").unwrap().is_empty());
     let returned = tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function scenario(early:boolean):int{const old=[3];const next=[5];let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});try{if(early)return 23;handlers.clear();handlers.set('next',{run:():int=>next[0]});}finally{handlers.clear();}old[0]=9;next[0]=11;return 29;}function main():void{console.log(scenario(false));}").unwrap();
     assert!(tsrust_lsp::diagnostics(&returned,"file:///returned.tsr").unwrap().is_empty());
+    let looped = tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function main():void{const old=[3];const next=[5];let turn=0;while(turn<3){let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});turn+=1;try{if(turn===1)continue;handlers.clear();handlers.set('next',{run:():int=>next[0]});if(turn===3)break;}finally{handlers.clear();}old[0]=9;next[0]=11;}console.log(old[0],next[0]);}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&looped,"file:///looped.tsr").unwrap().is_empty());
     let unavailable_conditional = conditional.replace("throw 7;", "console.log(handlers.size); throw 7;");
     let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&unavailable_conditional, "file:///conditional.tsr").unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "transferred"), "{diagnostics}");

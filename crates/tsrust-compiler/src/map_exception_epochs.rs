@@ -95,7 +95,7 @@ impl Emitter<'_> {
     }
 
     #[inline(never)]
-    pub(super) fn map_storage_completion_body(&self, fun: &CheckedFunction, body: &[Stmt], declarations: &[Stmt], id: usize, error_name: &str, contract: crate::error_effects::FailureSet, runtime: Option<Type>, storage_type: &str, places: &[String], carry_error: bool, carry_return: bool) -> String {
+    pub(super) fn map_storage_completion_body(&self, fun: &CheckedFunction, body: &[Stmt], declarations: &[Stmt], id: usize, error_name: &str, contract: crate::error_effects::FailureSet, runtime: Option<Type>, storage_type: &str, places: &[String], carry_error: bool, carry_control: bool) -> String {
         let _region = self.exception_regions.enter_typed(id, Vec::new(), error_name.into(), contract, runtime);
         {
             let points=fun.storage_exits.starts().map(|start| (start,places.iter().map(|place|self.map_storage_value_before(fun,start,place)).collect())).collect();
@@ -104,12 +104,12 @@ impl Emitter<'_> {
             let initial=places.iter().map(|place|self.map_storage_value_before(fun,boundary,place)).collect();
             self.exception_regions.attach_storage(initial,points,expressions,carry_error,boundary);
         }
-        if carry_return {self.exception_regions.carry_storage_on_return();}
+        if carry_control {self.exception_regions.carry_storage_on_control_exit();}
         let mut statements = String::new();
         self.control_block_epochs(&mut statements, fun, body, 1, None, Some(declarations));
         let normal_values = format!("({},)", places.iter().map(|place| self.map_branch_exit_value(fun, body, place)).collect::<Vec<_>>().join(","));
         let result = self.native_type(fun.result);
-        let result = if carry_return {format!("({result},{storage_type})")} else {result};
+        let result = if carry_control {format!("(TsrStorageExit<{result}>,{storage_type})")} else {result};
         let error = if carry_error { format!("({error_name},{storage_type})") } else { error_name.to_owned() };
         format!("{{ let completion:TsrCompletion<_,{result},{error}>='exception_region{id}: {{ {statements} TsrCompletion::Normal({normal_values}) }}; completion }}")
     }

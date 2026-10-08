@@ -1275,3 +1275,29 @@ capture mutation before the next iteration fails native E0502. Exact disposal
 assertions remain in both cases. SQLite preserves the passing initial case as
 `tsrust-b5-loop-finally-red.log` and the failing combined case as
 `tsrust-b5-loop-finally-fallthrough-red.log`.
+
+### Loop-local control exits through finally repaired
+
+The witness from `a95e5af` now passes. An internal storage-exit carrier distinguishes
+return, break and continue while carrying live Map owners into finally. Cleanup
+runs before the pending destination is dispatched and can override it. Normal
+fallthrough returns fresh storage, permitting capture mutation before another
+iteration. Root and record-field witnesses include exact disposal at O0/O3 and
+cleanup break overriding a pending continue. No implicit clone is introduced.
+
+The affected batch passes 77 composition, 42 scoped-record and four fallible-record
+tests. Eight normal-stack depth canaries, 15 exception-contract tests and the
+focused editor check pass. The matched workload has 30 observations; registration
+includes rehashed mutation rejection for both clears, loop destinations and
+cleanup observation. Full family regressions and timing remain pending.
+
+This checkpoint covers Maps declared within the loop. Storage declared before
+the loop needs its own live-owner boundary witness. Loops inside try, nested try
+regions, precise entry/element capture release and record equality/hash keys
+remain in B5 scope.
+
+The 30-observation workload verifies untimed on native and Node-after-tsc,
+record `runtime/results/2026-10-08T19-01-37-909Z-verify.json`. That record and
+`tsrust-b5-loop-finally-*.log` evidence were imported/read back byte-exact into
+SQLite before deleting loose copies. Formatting changed only workload layout
+and its token-preserving fingerprint.

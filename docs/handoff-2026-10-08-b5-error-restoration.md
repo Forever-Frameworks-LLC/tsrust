@@ -27,10 +27,10 @@ Native witnesses cover explicit throw, a later fallible call, a later bounds
 failure, record-field storage and an independent sibling field. Disposal tests
 at optimization levels 0 and 3 prove exactly one callback drop on both early and
 late failure paths. The editor test verifies restoration and rejects reads before
-restoration. All 76 composition tests, eight normal-stack depth canaries and 15
+restoration. All 77 composition tests, eight normal-stack depth canaries and 15
 exception-contract tests pass. The focused editor test passes.
 
-The matched workload now retains 29 observations. Source guards and rehashed
+The matched workload now retains 30 observations. Source guards and rehashed
 mutation controls pass. Native and Node-after-tsc verification passes untimed.
 The independent oracle includes `value + 29` and `value + 30` for early and late
 statement restoration, plus `value + 39` and `value + 40` for expression failures. SQLite preserves exact failures and repaired records; see the plan
@@ -192,3 +192,32 @@ using red witnesses, native/editor coverage and matched untimed workload support
 Preserve the fifteen unrelated fixture edits; stage explicit paths and format
 the entire project before checkpoints. Keep SQLite evidence exact and do not
 claim family acceptance or measurements before their milestone checks.
+
+## Loop-local control exits repaired
+
+After red checkpoint `a95e5af`, storage-carrying exits distinguish return, break
+and continue. Finally receives live Map owners before dispatching the pending
+exit. Root and record-field disposal witnesses at O0/O3 cover normal fallthrough,
+continue, break and cleanup break overriding pending continue. Mutation after
+normal cleanup releases the old/new callback borrows before another iteration.
+
+The affected batch passes 77 composition, 42 scoped-record and four fallible-record
+tests, eight depth canaries, 15 exception-contract tests and the focused editor
+check. All 30 matched observations verify untimed on native and Node-after-tsc.
+The record is `runtime/results/2026-10-08T19-01-37-909Z-verify.json`; exact
+`tsrust-b5-loop-finally-*.log` repair/batch/canary/registration/format evidence is
+also read-back verified in SQLite. Loose copies are removed. Formatting changed
+only the new workload layout and its verified fingerprint.
+
+These witnesses declare their Map within the loop. Next add a witness whose Map
+is declared before the loop and must survive break/continue. Loops inside try
+and nested regions remain open, along with precise entry/element release and
+record value keys. B5 remains unfinished; five user consumers remain at gate181.
+
+Continuation prompt: Read this handoff, AGENTS.md and development-workflow.md.
+Resume B5 from the loop-local completion-storage checkpoint. Add a red outer-Map
+loop-boundary witness before extending the carrier; preserve exact native
+disposal, editor behavior, matched workload/oracle/guards and SQLite evidence.
+Continue remaining B5 scope from scoped-callable-aggregate-plan.md. Use explicit
+Git paths, preserve unrelated fixtures and format the whole project. Do not
+claim family acceptance or measured performance before completing milestone work.

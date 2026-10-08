@@ -3430,11 +3430,11 @@ impl Emitter<'_> {
                     unreachable!("control flow emitted above")
                 }
                 StmtKind::Break => match stmt.control_target {
-                    Some(target)=>self.exception_regions.control(target,false),
+                    Some(target)=>self.exception_regions.control_at(target,false,stmt.span),
                     None=>loop_label.map_or_else(||"break;".into(),|label|format!("break 'loop_{label};")),
                 },
                 StmtKind::Continue => match stmt.control_target {
-                    Some(target)=>self.exception_regions.control(target,true),
+                    Some(target)=>self.exception_regions.control_at(target,true,stmt.span),
                     None=>loop_label.map_or_else(||"continue;".into(),|label|format!("break 'body_{label};")),
                 },
                 StmtKind::Let { value, binding, .. } => {

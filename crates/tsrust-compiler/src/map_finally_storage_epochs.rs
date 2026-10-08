@@ -36,7 +36,9 @@ impl Emitter<'_> {
                 | StmtKind::Expr(_)
                 | StmtKind::Assign { .. }
                 | StmtKind::Throw(_)
-                | StmtKind::Return(_) => {}
+                | StmtKind::Return(_)
+                | StmtKind::Break
+                | StmtKind::Continue => {}
                 _ => return false,
             }
             if let Some((place, native)) = self.local_map_clear_storage(fun, declarations, item)
@@ -175,11 +177,25 @@ impl Emitter<'_> {
         } else {
             "TsrCompletion::Throw((error,_))=>match error {}".into()
         };
-        let resume_return = if crate::completion::definitely_abrupt(cleanup,0) {
-            "unreachable!(\"abrupt cleanup cannot resume pending return\")".into()
-        } else {self.map_storage_abrupt_dispatch(fun,"TsrCompletion::Return(pending_return)",&incoming_name,&incoming,runtime,statement.span)};
+        let result = self.native_type(fun.result);
+        let (outer_error, _, _) = self
+            .exception_regions
+            .current_transport()
+            .expect("checked enclosing completion");
+        let resumed = format!(
+            "match pending_exit {{TsrStorageExit::Return(value)=>TsrCompletion::<(),{result},{outer_error}>::Return(value),TsrStorageExit::Break(target)=>TsrCompletion::Break(target),TsrStorageExit::Continue(target)=>TsrCompletion::Continue(target)}}"
+        );
+        let resume_control = self
+            .exception_regions
+            .dispatch(&resumed, &self.control_targets.snapshot(), statement.span)
+            .expect("checked cleanup control destination");
+        let resume_control = if crate::completion::definitely_abrupt(cleanup, 0) {
+            "unreachable!(\"abrupt cleanup cannot resume pending control\")".into()
+        } else {
+            format!("{resume_control};unreachable!()")
+        };
         let return_arm = format!(
-            "TsrCompletion::Return((pending_return,{pattern}))=>{{match {returned_cleanup}{{TsrCompletion::Normal(storage)=>{{drop(storage);{resume_return}}},other=>{{drop(pending_return);{cleanup_abrupt}}}}}}}"
+            "TsrCompletion::Return((pending_exit,{pattern}))=>{{match {returned_cleanup}{{TsrCompletion::Normal(storage)=>{{drop(storage);{resume_control}}},other=>{{drop(pending_exit);{cleanup_abrupt}}}}}}}"
         );
         let indent = "    ".repeat(depth);
         let _ = writeln!(

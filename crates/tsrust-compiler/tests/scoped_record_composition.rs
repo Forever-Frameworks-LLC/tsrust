@@ -12,6 +12,16 @@ fn loop_exits_through_finally_release_renewed_map_captures() {
         .replace("console.log('cleared');\n        }", "console.log('cleared');\n        } old[0]=9; next[0]=11; console.log('inside',old[0],next[0]);");
     verify_disposal(&support::format_round_trip(&fallthrough), 2, "before 0\ndrop 0\ncleanup 1\ndrop 1\ncleared\nbefore 1\ndrop 0\ncleanup 1\ndrop 1\ncleared\ninside 9 11\nbefore 2\ndrop 0\ncleanup 1\ndrop 1\ncleared\nafter 9 11\n");
 
+    let overriding = source.replace("console.log('cleared');", "console.log('cleared'); break;");
+    verify_disposal(&support::format_round_trip(&overriding), 2, "before 0\ndrop 0\ncleanup 1\ndrop 1\ncleared\nafter 9 11\n");
+    let field = fallthrough.replace("function main", "type Box={handlers:Map<string,Holder>;marker:int;};function main")
+        .replace("console.log('before', turn);", "const box:Box={handlers:handlers,marker:23};console.log('before',turn);")
+        .replace("handlers.clear()", "box.handlers.clear()")
+        .replace("handlers.set('next'", "box.handlers.set('next'")
+        .replace("handlers.size", "box.handlers.size")
+        .replace("console.log('inside'", "if(box.marker!==23)throw 99; console.log('inside'");
+    verify_disposal(&support::format_round_trip(&field), 2, "before 0\ndrop 0\ncleanup 1\ndrop 1\ncleared\nbefore 1\ndrop 0\ncleanup 1\ndrop 1\ncleared\ninside 9 11\nbefore 2\ndrop 0\ncleanup 1\ndrop 1\ncleared\nafter 9 11\n");
+
 }
 
 #[test]

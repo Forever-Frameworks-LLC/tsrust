@@ -5,6 +5,13 @@ enum TsrControlTarget {
     Block(usize),
 }
 
+// Storage-carrying control exits keep owners alive until finally has run.
+enum TsrStorageExit<R> {
+    Return(R),
+    Break(TsrControlTarget),
+    Continue(TsrControlTarget),
+}
+
 enum TsrCompletion<T, R, E> {
     Normal(T),
     Return(R),
