@@ -17,6 +17,7 @@ pub(crate) struct MapEntrySurvivors {
     pub(crate) input: Type,
     pub(crate) payloads: HashSet<Type>,
     pub(crate) consistent: bool,
+    pub(crate) released: HashSet<usize>,
 }
 
 #[cfg(test)]
@@ -27,12 +28,13 @@ mod map_entry_tests {
         let mut exits=Exits::default();
         let span=Span::new(10,20);
         let place=crate::capture_loan_owners::Place{binding:1,fields:vec![]};
-        exits.record_map_entry_survivors(span,place.clone(),Type::Map(3),HashSet::from([Type::Record(4)]));
-        exits.record_map_entry_survivors(span,place.clone(),Type::Map(3),HashSet::from([Type::Record(5)]));
+        exits.record_map_entry_survivors(span,place.clone(),Type::Map(3),HashSet::from([Type::Record(4)]),HashSet::from([7]));
+        exits.record_map_entry_survivors(span,place.clone(),Type::Map(3),HashSet::from([Type::Record(5)]),HashSet::from([8]));
         let state=exits.map_entry_survivors(span).unwrap();
         assert!(state.consistent);
+        assert_eq!(state.released,HashSet::from([7,8]));
         assert_eq!(state.payloads,HashSet::from([Type::Record(4),Type::Record(5)]));
-        exits.record_map_entry_survivors(span,place,Type::Map(6),HashSet::new());
+        exits.record_map_entry_survivors(span,place,Type::Map(6),HashSet::new(),HashSet::new());
         assert!(!exits.map_entry_survivors(span).unwrap().consistent);
     }
 }
@@ -46,12 +48,13 @@ impl Exits {
         self.5.as_ref()?.get(&(span.start,span.end)).copied()
     }
     pub(super) fn has_map_entry_survivors(&self) -> bool { self.3.is_some() }
-    pub(super) fn record_map_entry_survivors(&mut self, span: Span, place: crate::capture_loan_owners::Place, input: Type, payloads: HashSet<Type>) {
+    pub(super) fn record_map_entry_survivors(&mut self, span: Span, place: crate::capture_loan_owners::Place, input: Type, payloads: HashSet<Type>, released: HashSet<usize>) {
         let points=self.3.get_or_insert_with(Default::default);
         points.entry((span.start,span.end)).and_modify(|previous| {
             previous.consistent &= previous.place==place && previous.input==input;
             previous.payloads.extend(payloads.iter().copied());
-        }).or_insert(MapEntrySurvivors{place,input,payloads,consistent:true});
+            previous.released.extend(released.iter().copied());
+        }).or_insert(MapEntrySurvivors{place,input,payloads,consistent:true,released});
     }
     pub(crate) fn map_entry_survivors(&self, span: Span) -> Option<&MapEntrySurvivors> {
         self.3.as_ref()?.get(&(span.start,span.end))

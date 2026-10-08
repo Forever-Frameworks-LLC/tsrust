@@ -422,3 +422,43 @@ pruning with focused generated-code and native witnesses; conditional and loop
 transport; same-expression release; additional key, alias and failure combinations;
 then array-element release and family acceptance. Five user-facing consumers still
 require an explicit refresh from the completed checkpoint before testing them.
+
+## Demand-driven survivor conversion
+
+The no-scan red witness constructs two entries with independent borrowed captures,
+deletes one, iterates the surviving entry and clears the Map without reusing the
+released capture. Its generated source originally rebuilt surviving entries.
+
+Checked release snapshots now retain the roots of capture loans removed by the
+successful operation. Replayed snapshots union these roots conservatively. The
+isolated map_entry_demand module computes later source uses once per checked body,
+and nested planning retains the enclosing body's demand. Named calls retain
+conversion conservatively because lexical capture access can be implicit at their
+call sites. Callable values retain their captures through checked loan owners.
+Source traversal of nested closure bodies may conservatively keep extra conversions;
+this proof does not promise minimal conversion in every program.
+
+Native epoch planning skips deletion/replacement narrowing when there is no later
+use of a released root and no later opaque named call. It also avoids converting
+a Map before insertion when joining the incoming payload leaves its existing
+payload unchanged. The latter check belongs in epoch planning: changing global Map
+canonicalization caused a nested record refill carrier mismatch, which the existing
+native witness caught. Global canonicalization remains unchanged.
+
+Focused checks preserve successful deletion/replacement, later capture mutation,
+iteration, record siblings, nested refill and typed callback errors. No APIs or
+IntelliSense signatures change. The existing 47-observation matched workload,
+independent oracle and source contracts remain the behavior reference. This is an
+efficiency checkpoint, not B5 acceptance or a claim that all updates are constant
+time. Conversions required for later capture access can still scan survivors.
+
+Checkpoint evidence: the initial 108-test composition batch passed 107 and caught
+one nested refill regression. After the planner-only repair, that witness and
+all 63 Map-filtered composition tests pass, including the no-scan native O0/O3
+disposal witness. One survivor snapshot replay unit and eight normal-stack depth
+canaries pass. Two focused entry-release editor checks pass. The 47-observation
+workload passes all configured correctness cases for native and Node-after-tsc,
+untimed, with original JSON stored as
+runtime/results/2026-10-08T23-49-40-057Z-verify.json. Failed and repaired logs are
+preserved separately in SQLite with byte-exact readback. Whole-project formatting
+changes zero files and zero fingerprints.

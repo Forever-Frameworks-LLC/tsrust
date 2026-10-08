@@ -1053,3 +1053,27 @@ ordinary updates remain constant time. Conditional/loop transport, same-expressi
 release, broader composition and array-element release remain open. Keep all
 owner fixture edits uncommitted. Five user-facing executable consumers still have
 not been refreshed from this checkpoint.
+
+## Map conversion demand checkpoint
+
+Demand-driven entry narrowing now avoids rebuilding survivors when the released
+capture has no later source use or opaque named call. The isolated
+map_entry_demand module computes conservative demand once per checked body and
+passes it through nested planning. Successful release snapshots retain released
+loan roots and union them on replay. Unchanged incoming payloads retain the
+existing native epoch representation. Global Map canonicalization is unchanged.
+
+The initial composition run passed 107 of 108 and caught a nested refill carrier
+regression from an overly broad canonicalization change. The repair passes that
+witness and all 63 Map-filtered composition tests. The new no-scan witness checks
+native O0/O3 disposal and iteration. One replay unit, eight depth canaries and
+two editor entry-release tests pass. Matched native and Node-after-tsc verification
+passes untimed; SQLite holds runtime/results/2026-10-08T23-49-40-057Z-verify.json
+and exact failed/repaired logs. Formatting changes no files or hashes.
+
+This remains a source checkpoint, not B5 acceptance. Next: extend conversion demand
+to distinguish read access from conflicting mutation/consumption, reduce opaque
+call conservatism with checked capture summaries, then complete conditional/loop
+entry transport, same-expression release and array-element release. Preserve the
+owner fixtures. Five user-facing consumers still need refreshing before checks
+that execute those binaries. No timing or final family regression is claimed.

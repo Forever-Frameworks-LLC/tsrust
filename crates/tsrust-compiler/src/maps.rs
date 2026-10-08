@@ -60,6 +60,9 @@ impl Analyzer {
         let mut active = loans.clone();
         let mut entry_place = None;
         let mut replaced_environment = false;
+        let previous_loans = if matches!(method,MapMethod::Set|MapMethod::Delete)
+            && self.aggregate_callable_facts(definition.value).scoped
+        {context.capture_loan_owners.live()} else {Default::default()};
         for root in Self::loan_roots(base, Mode::Read) { active.entry(root).or_default().push((Mode::Read, base.span)); }
         for (index, argument) in arguments.iter_mut().enumerate() {
             let ty = if index == 0 { definition.key } else if matches!(definition.value, Type::Record(_) if self.aggregate_callable_facts(definition.value).scoped && Self::scoped_array_storage_path(base).is_some()) {
@@ -102,7 +105,9 @@ impl Analyzer {
                 let mut root=place;
                 root.fields.pop();
                 let payloads=context.capture_loan_owners.map_payloads(&root);
-                context.storage_exits.record_map_entry_survivors(expression.span,root,Type::Map(id),payloads);
+                let live=context.capture_loan_owners.live();
+                let released=previous_loans.difference(&live).filter_map(|id|context.capture_loan_ids.loan(*id).map(|loan|loan.0)).collect();
+                context.storage_exits.record_map_entry_survivors(expression.span,root,Type::Map(id),payloads,released);
             }
         }
         if method == MapMethod::Clear

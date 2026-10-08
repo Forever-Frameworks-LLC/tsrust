@@ -3,7 +3,13 @@ use super::*;
 
 impl Analyzer {
     #[inline(never)]
-    pub(super) fn scoped_map_entry_epochs(&mut self, context:&mut Context, body:&mut [Stmt], mut results:HashMap<usize,Type>) -> Result<(),Diagnostic> {
+    pub(super) fn scoped_map_entry_epochs(&mut self, context:&mut Context, body:&mut [Stmt], results:HashMap<usize,Type>) -> Result<(),Diagnostic> {
+        if !context.storage_exits.has_map_entry_survivors() {return Ok(());}
+        let demand=map_entry_demand::Demand::checked(body)?;
+        self.scoped_map_entry_epochs_with_demand(context,body,results,&demand)
+    }
+    #[inline(never)]
+    fn scoped_map_entry_epochs_with_demand(&mut self, context:&mut Context, body:&mut [Stmt], mut results:HashMap<usize,Type>, demand:&map_entry_demand::Demand) -> Result<(),Diagnostic> {
         if !context.storage_exits.has_map_entry_survivors() {return Ok(());}
         let mut local=std::collections::BTreeSet::new();
         for item in body.iter() {
@@ -38,7 +44,7 @@ impl Analyzer {
                 for mut place in moved {place.binding=*destination;local.insert(place);}
             }
             if let StmtKind::Block(inner)=&mut statement.kind {
-                self.scoped_map_entry_epochs(context,inner,results.clone())?;
+                self.scoped_map_entry_epochs_with_demand(context,inner,results.clone(),demand)?;
                 continue;
             }
             let mut writes=Vec::new();
@@ -62,6 +68,7 @@ impl Analyzer {
                     let payload=if empty || previous==incoming {Type::Record(incoming)} else {
                         let Some(joined)=self.join_record_types(previous,incoming,span)? else {continue;};joined
                     };
+                    if payload==Type::Record(previous) {continue;}
                     let output=self.scoped_map_value_instance(input,payload);
                     if input!=output {
                         let output=self.scoped_array_replace_field(root,&place.fields,Type::Map(output)).expect("checked Map field");
@@ -77,7 +84,7 @@ impl Analyzer {
             let field_initializer=matches!(&statement.kind,StmtKind::Let{binding:Some(binding),..} if local.iter().any(|place|place.binding==*binding && !place.fields.is_empty()));
             if !field_initializer {self.retarget_scoped_map_body(context,std::slice::from_mut(statement),&results,&HashMap::new())?;}
             if let StmtKind::ForOf{body:inner,..}=&mut statement.kind {
-                self.scoped_map_entry_epochs(context,inner,results.clone())?;
+                self.scoped_map_entry_epochs_with_demand(context,inner,results.clone(),demand)?;
             }
             let mut snapshots=Vec::new();
             crate::source_walk::body(std::slice::from_mut(statement),&mut |_|Ok(()),&mut |value| {
@@ -100,6 +107,7 @@ impl Analyzer {
             if matches!(statement.kind,StmtKind::If{..}|StmtKind::While{..}|StmtKind::Loop{..}|StmtKind::ForOf{..}|StmtKind::Try(_)) {continue;}
             snapshots.sort_by_key(|(span,_)|span.start);
             for (span,state) in snapshots {
+                if !demand.after(statement.span.end,&state.released) {continue;}
                 let Some(root)=results.get(&state.place.binding).copied() else {continue;};
                 let Some(Type::Map(input))=self.scoped_array_field_type(root,&state.place.fields) else {continue;};
                 if state.payloads.is_empty() {

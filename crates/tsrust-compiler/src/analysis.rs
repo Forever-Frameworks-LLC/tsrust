@@ -4,6 +4,8 @@ mod capture_loan_binding;
 mod map_entry_capture_owners;
 #[path="map_entry_epochs.rs"]
 mod map_entry_epochs;
+#[path = "map_entry_demand.rs"]
+mod map_entry_demand;
 #[path = "assignment_callee.rs"]
 mod assignment_callee;
 #[path = "owned_array_patterns.rs"]

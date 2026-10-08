@@ -93,6 +93,14 @@ fn narrowed_map_callback_errors_use_the_surviving_contract() {
 }
 
 #[test]
+fn ordinary_map_deletion_does_not_scan_survivor_environments() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});handlers.delete('first');for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();}");
+ let analysis=tsrust_compiler::check(&source).unwrap();
+ assert!(!analysis.emit_rust().contains("tsr_owned_items().map(|entry|"),"ordinary deletion must not rebuild surviving entries");
+ verify_disposal(&source,2,"drop 0\nsecond 5\ndrop 1\n");
+}
+
+#[test]
 fn keyed_map_release_keeps_uncertain_and_shared_capture_owners() {
  let prefix="type Holder={run:ReadOnly<Function<int>>;};function scenario(key:string,branch:boolean):void{const values=[3];let handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>values[0]});";
  for actions in [

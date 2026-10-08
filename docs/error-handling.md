@@ -143,5 +143,7 @@ A lookup view must leave scope before mutation of its Map. If another entry
 captures `first`, deleting only one such entry does not permit changing `first`.
 Dynamic keys and uncertain branch outcomes conservatively retain potentially live
 captures. Precise release across conditional and loop paths is still in progress.
-Changing a callback environment representation can currently scan surviving
-entries; this release feature does not yet promise constant-time updates.
+Changing a callback environment representation for later capture access can scan
+surviving entries. Known entry deletion avoids that conversion when the released
+capture has no later source use or opaque named call. The release feature does
+not yet promise constant-time updates in every supported program.
