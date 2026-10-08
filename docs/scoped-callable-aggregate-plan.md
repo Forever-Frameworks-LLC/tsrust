@@ -672,3 +672,23 @@ diagnostics pass. Exact evidence is verified in SQLite as
 `tsrust-b5-different-branch-target-checks.log`. Transport still needs consumption
 and early-exit coverage in addition to exception and indexed storage work; this
 checkpoint does not establish all control-flow compositions or B5 acceptance.
+
+### Next repair: moved storage at block exits
+
+`renewed_map_can_be_consumed_inside_its_clear_block` is intentionally red. Source
+analysis accepts clearing a Map, moving it into another binding inside that block,
+observing the moved Map's empty size, and mutating the former capture after the
+block. Native transport incorrectly appends the original Map to its return tuple
+after the move, producing E0382. The source witness uses std:testing and formatted
+project execution. This is an emission defect, not an ownership restriction.
+
+Block transport currently collects clear targets without an exit-availability
+snapshot. Retain the checked availability of each owning storage path at block
+and branch exits. Return only leaves that remain live at that exit; consumed leaves
+still need their clear reset at its original statement, but must not be returned.
+Retain sibling leaves independently. Do not use the function's final `transferred`
+span alone: later assignment can restore a binding and erase its earlier moved
+state. Cover local and field moves, a move followed by restoration, branches with
+consumption, and exact disposal before accepting this repair. Keep existing
+clear/refill and uncleared-sibling rejection evidence. No new compiler source was
+changed for this checkpoint; B5 remains incomplete.

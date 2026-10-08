@@ -1,6 +1,26 @@
 mod support;
 
 #[test]
+fn renewed_map_can_be_consumed_inside_its_clear_block() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function main(): void {
+            const values = [3];
+            const handlers = new Map<string, Holder>();
+            handlers.set("old", { run: (): int => values[0] });
+            {
+                handlers.clear();
+                const moved = handlers;
+                strictEqual(moved.size, 0);
+            }
+            values[0] = 9;
+            strictEqual(values[0], 9);
+        }
+    "#);
+}
+
+#[test]
 fn renewed_map_field_keeps_uncleared_sibling_capture_protected() {
     let prefix = "type Holder={run:ReadOnly<Function<int>>;};type Pair={left:Map<string,Holder>;right:Map<string,Holder>;};function scenario(branch:boolean):void{const first=[3];const second=[7];const left=new Map<string,Holder>();left.set('old',{run:():int=>first[0]});const right=new Map<string,Holder>();right.set('old',{run:():int=>second[0]});const pair:Pair={left:left,right:right};";
     for tail in [
