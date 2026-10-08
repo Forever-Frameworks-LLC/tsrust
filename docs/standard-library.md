@@ -119,3 +119,16 @@ function main() {
 ```
 
 Both inputs are borrowed and unchanged. The boolean is a value; normalized text owns its contents. Executable assertions: `crates/tsrust-compiler/tests/fixtures/lexical-path/absolute-normalize.tsr`.
+
+## Executable identity: `std:os`
+
+`platform(): string` returns the operating-system name for which the executable was compiled: `aix`, `android`, `darwin`, `freebsd`, `linux`, `openbsd`, `sunos`, or `win32`. `arch(): string` returns its compiled CPU architecture: `arm`, `arm64`, `ia32`, `loong64`, `mips`, `mipsel`, `ppc64`, `riscv64`, `s390x`, or `x64`. Both take no arguments and remain constant during execution. Neither queries environment variables, physical hardware, or the current kernel. A translated executable reports its compiled architecture. An unsupported target component produces an explicit native compilation error for that export.
+
+```tsrust
+import { platform, arch } from "std:os";
+function main() {
+    console.log(platform(), arch()); // darwin arm64 for a macOS ARM64 executable
+}
+```
+
+There are no defaults, receiver mutation, or recoverable runtime errors. Each return is an independent string value. [Exact target mappings and acceptance limits](os-identity-contract.md) define supported Rust components; [executable assertions](../crates/tsrust-compiler/tests/fixtures/os-identity/identity.tsr) also exercise aliases and stored calls. This slice accepts only these two exports, not the whole OS module.

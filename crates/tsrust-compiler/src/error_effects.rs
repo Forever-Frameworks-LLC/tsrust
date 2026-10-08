@@ -676,6 +676,8 @@ fn native_binding_effect(id:usize)->FailureSet {
         // returning NaN/false for unsupported numeric/length shapes.
         // Allocation failures are outside recoverable checked error transport.
         Some(binding) if binding.module=="std:testing-runtime" && matches!(binding.name,"shareCallback"|"numericValue"|"lengthValue"|"hasLength")=>FailureSet::default(),
+        // Target constants have no recoverable runtime failures.
+        Some(binding) if binding.module=="std:os" && matches!(binding.name,"platform"|"arch")=>FailureSet::default(),
         // Lexical UTF-8 processing only: no I/O or recoverable runtime failure.
         Some(binding) if binding.module=="std:path" && matches!(binding.name,"basename"|"dirname"|"extname"|"isAbsolute"|"normalize")=>FailureSet::default(),
         Some(binding) if binding.module=="std:testing-runtime" && binding.name=="checkAssertion"=>FailureSet::runtime(),

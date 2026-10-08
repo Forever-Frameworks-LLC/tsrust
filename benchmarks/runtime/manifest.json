@@ -19948,6 +19948,46 @@
       "specification": "Alternate /tmp//reports/../report.txt and reports/../archive/ by (i+seed) parity. Apply normalize and retain every result.",
       "notes": "Matched POSIX semantics on macOS. Input construction, transformation, observation conversion and output retention are timed. No isolated latency or allocation equivalence claim.",
       "measurementEvidence": "runtime/results/2026-10-08T01-04-01-192Z.json"
+    },
+    {
+      "id": "std_os_platform",
+      "category": "os",
+      "description": "Executable target platform with retained observations",
+      "source": "workloads/std_os_platform.tsr",
+      "counterpart": "workloads/std_os_platform.ts",
+      "iterations": 20000,
+      "operationsPerIteration": 1,
+      "result": "string[]",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "family": "os-identity",
+      "measurementStatus": "untimed-verified-timing-deferred",
+      "specification": "Query platform once per iteration and retain every target identity string. seed is unused.",
+      "notes": "Identity can constant-fold. Output collection and observation are supported; no isolated API latency or measured performance claim.",
+      "sourceSha256": "24bcfbb5f51a5fee6d35ae43eb43e610de2b251225fc1b2b73aacb6d27b6326c",
+      "counterpartSha256": "8ab684993dbec140e690b0108f186400d0b6fb7c50121e10de3ac5ae4d1f7190"
+    },
+    {
+      "id": "std_os_arch",
+      "category": "os",
+      "description": "Executable target arch with retained observations",
+      "source": "workloads/std_os_arch.tsr",
+      "counterpart": "workloads/std_os_arch.ts",
+      "iterations": 20000,
+      "operationsPerIteration": 1,
+      "result": "string[]",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "family": "os-identity",
+      "measurementStatus": "untimed-verified-timing-deferred",
+      "specification": "Query arch once per iteration and retain every target identity string. seed is unused.",
+      "notes": "Identity can constant-fold. Output collection and observation are supported; no isolated API latency or measured performance claim.",
+      "sourceSha256": "62116c5915ba0fbdd6c4a65176e63d11de1664996971767c0eec6825a3085c1f",
+      "counterpartSha256": "12432075d51d58c245f87cd4ec26d98879074835c1e4059c61781fdbc45a9eae"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

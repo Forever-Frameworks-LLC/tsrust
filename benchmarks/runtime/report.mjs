@@ -27,6 +27,8 @@ const modes = {
  bun: 'Bun', deno: 'Deno'
 };
 const examples = {
+ std_os_platform: "values.push(platform());",
+ std_os_arch: "values.push(arch());",
  string_char_at_unicode_middle_literal: 'literal.charAt(midpoint - 8 + (i * 13 + seed) % 17)',
  string_length: 'values[(i + seed) % 2].length',
  string_slice_ascii: 'input.slice(start, end)',

@@ -128,3 +128,7 @@ Before broad coverage claims, expand these family tables into machine-readable i
 The bounded primitive `std:path` family adds dirname, extname, isAbsolute and normalize alongside basename. Compiler/native execution, imported editor help, executable examples, matched benchmark registration and scoped native/Node-after-tsc measurements are accepted on the library branch. See [family acceptance](milestones/stdlib-lexical-path.md) and [integration handoff](handoff-2026-10-07-lexical-path.md).
 
 Public integration is verified on macOS; explicit-platform helpers cover POSIX/Windows reference behavior. Windows native integration and the advancing combined checkout still require their own checks. This primitive-only increment does not accept filesystem resources, the wider host family, or the rest of the standard library.
+
+## Accepted bounded OS identity slice
+
+`std:os.platform()` and `std:os.arch()` are implemented through existing zero-argument string bindings. [The contract](os-identity-contract.md) freezes exact supported target metadata mappings and explicit unsupported-target errors. Native acceptance is macOS ARM64; 16 cross-target metadata cases do not establish native acceptance on those targets. Complete compiler/editor acceptance and untimed matched workload support are required by [the OS identity plan](parallel-os-identity-plan.md). Identity timing remains deferred because the wrappers can constant-fold. Other OS exports remain unimplemented.

@@ -1254,3 +1254,20 @@ fn lexical_path_imported_editor_contracts() {
         assert!(completion.as_array().unwrap().iter().any(|item| item["label"]=="operation" && item["detail"].as_str().unwrap().contains("path: string")),"{completion}");
     }
 }
+
+#[test]
+fn os_identity_imported_editor_contracts() {
+    for name in ["platform", "arch"] {
+        let entry=format!("import {{{name} as operation}} from 'std:os';function main(){{const result=operation();}}");
+        let mut workspace=Workspace::default();let uri=source_id("file:///tsrust-intelligence/main.tsr").unwrap();
+        workspace.open(uri.clone(),1,entry.clone());
+        let checked=workspace.snapshot().check(&uri).unwrap();let index=ProjectIndex::checked(&checked);
+        let hover=ask(&index,&entry,"operation();", "textDocument/hover");
+        let docs=hover["contents"]["value"].as_str().unwrap();
+        assert!(docs.contains("operation(): string") && docs.contains("Ownership:") && docs.contains("```tsrust"),"{hover}");
+        let help=ask(&index,&entry,");}", "textDocument/signatureHelp");
+        assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),0,"{help}");
+        let completion=ask(&index,&entry,"operation();", "textDocument/completion");
+        assert!(completion.as_array().unwrap().iter().any(|item|item["label"]=="operation"),"{completion}");
+    }
+}

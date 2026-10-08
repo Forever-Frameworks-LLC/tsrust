@@ -3419,6 +3419,32 @@
     ]
   }
 ],
+  "std:os": [
+    {
+      "name": "platform",
+      "signature": "platform(): string",
+      "parameters": [],
+      "examples": [
+        {
+          "output": "true\n",
+          "source": "import { platform } from 'std:os';\nfunction main() { console.log(platform() === platform()); }"
+        }
+      ],
+      "documentation": "Returns the executable compilation target’s operating-system name. Takes no arguments and has no defaults. Returns one of aix, android, darwin, freebsd, linux, openbsd, sunos or win32; the result remains constant during execution. It describes the compiled executable, including a translated executable, rather than physical hardware. Unsupported target components produce a native compilation error. No receiver or external state is mutated.\n\n```tsrust\nimport { platform } from 'std:os';\nfunction main() { console.log(platform() === platform()); } // prints true\n```\n\nOwnership: returns an independent string value."
+    },
+    {
+      "name": "arch",
+      "signature": "arch(): string",
+      "parameters": [],
+      "examples": [
+        {
+          "output": "true\n",
+          "source": "import { arch } from 'std:os';\nfunction main() { console.log(arch() === arch()); }"
+        }
+      ],
+      "documentation": "Returns the executable compilation target’s CPU architecture name. Takes no arguments and has no defaults. Returns one of arm, arm64, ia32, loong64, mips, mipsel, ppc64, riscv64, s390x or x64; the result remains constant during execution. It describes the compiled executable, including a translated executable, rather than physical hardware. Unsupported target components produce a native compilation error. No receiver or external state is mutated.\n\n```tsrust\nimport { arch } from 'std:os';\nfunction main() { console.log(arch() === arch()); } // prints true\n```\n\nOwnership: returns an independent string value."
+    }
+  ],
   "std:path": [
     {
       "name": "basename",

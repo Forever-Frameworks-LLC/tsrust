@@ -1715,3 +1715,36 @@ fn lexical_path_p2_primitive_boolean_native_contract() {
     let checked=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).unwrap();
     for optimization in ["0","3"] {assert_eq!(native_stdout(&checked.emit_rust(),optimization),"");}
 }
+
+#[test]
+fn os_identity_zero_argument_native_contract() {
+    let entry = support::format_round_trip("import {platform as target,arch} from 'std:os';import {strictEqual} from 'std:testing';function main(){const stored=target;const system:string=stored();const cpu:string=arch();strictEqual(system,target());strictEqual(cpu,arch());console.log(system,cpu);}");
+    let memory=Memory::new(&[("main.tsr",&entry)]);
+    let checked=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).unwrap();
+    let reference=std::process::Command::new("/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node").args(["-e","console.log(require('node:os').platform(),require('node:os').arch())"]).output().unwrap();
+    assert!(reference.status.success());
+    for optimization in ["0","3"] {assert_eq!(native_stdout(&checked.emit_rust(),optimization),String::from_utf8(reference.stdout.clone()).unwrap());}
+    for name in ["platform","arch"] {
+        let source=format!("import {{{name}}} from 'std:os';function main(){{{name}(1);}}");
+        let memory=Memory::new(&[("main.tsr",&source)]);
+        let error=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).err().unwrap();
+        assert_eq!(error.code,"arity");
+        let source=format!("import {{{name}}} from 'std:os';function main(){{const value:int={name}();console.log(value);}}");
+        let memory=Memory::new(&[("main.tsr",&source)]);
+        assert_eq!(tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).err().unwrap().code,"type");
+    }
+    assert!(tsrust_compiler::native_bindings::lookup("std:os","hostname").unwrap_err().contains("does not export"));
+}
+
+#[test]
+fn os_identity_emits_only_referenced_target_components() {
+    for (name,other) in [("platform","arch"),("arch","platform")] {
+        let entry=support::format_round_trip(&format!("import {{{name}}} from 'std:os';function main(){{console.log({name}());}}"));
+        let memory=Memory::new(&[("main.tsr",&entry)]);
+        let checked=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).unwrap();
+        let rust=checked.emit_rust();
+        assert!(rust.contains(&format!("fn tsrust_std_os_{name}()")));
+        assert!(!rust.contains(&format!("tsrust_std_os_{other}")));
+        assert!(rust.contains("#[cfg(not(any("));
+    }
+}

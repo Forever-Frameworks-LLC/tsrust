@@ -2704,6 +2704,12 @@ impl Emitter<'_> {
                 output.push_str(include_str!("stdlib/testing/registration_runtime.rs"));
             }
         }
+        for &id in self.native_bindings.borrow().iter() {
+            let binding = &crate::native_bindings::BINDINGS[id];
+            if binding.module == "std:os" {
+                output.push_str(&crate::stdlib::os::bridge(binding.name));
+            }
+        }
         let numeric_support = output.contains("NumericArray<") || output.contains("NumericArray::");
         let literal_support = output.contains("LiteralStringArray");
         let split_support = output.contains("tsr_string_split(");

@@ -1,0 +1,19 @@
+import { platform } from "std:os";
+
+function workload(n: int, seed: int): string[] {
+    const values: string[] = [];
+    let i = 0;
+    while (i < n) {
+        values.push(platform());
+        i = i + 1;
+    }
+
+    return values;
+}
+
+function main() {
+    const values = workload(2, 7);
+    for (const value of values) {
+        console.log(value);
+    }
+}

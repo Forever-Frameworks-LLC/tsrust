@@ -44,3 +44,15 @@ fn lexical_path_fixed_arity_and_boolean_result() {
         assert_eq!(binding.features,&["path"]);
     }
 }
+
+#[test]
+fn os_identity_registry_has_exact_zero_argument_string_exports() {
+    for name in ["platform", "arch"] {
+        let binding=tsrust_compiler::native_bindings::lookup("std:os",name).unwrap();
+        assert!(binding.accepts_arity(0));
+        assert!(!binding.accepts_arity(1));
+        assert!(binding.parameters.is_empty());
+        assert_eq!(binding.result,tsrust_compiler::native_bindings::NativeType::String);
+    }
+    assert!(tsrust_compiler::native_bindings::lookup("std:os","hostname").is_err());
+}
