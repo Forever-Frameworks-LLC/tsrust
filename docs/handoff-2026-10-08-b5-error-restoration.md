@@ -138,3 +138,22 @@ separately: unreachable statements after unconditional cleanup throw, and a reti
 for byte before removing its loose copy. Formatting changed no files.
 
 B5 remains unfinished; user executable consumers still represent gate 181.
+
+## Next red witness
+
+`returning_through_finally_preserves_renewed_map_until_cleanup` now includes a
+passing early-return case and a failing return-or-fallthrough composition. The
+early branch returns 23 through cleanup; the other branch clears/refills, runs
+cleanup, then mutates the released old/new captures and returns 29. Source
+analysis accepts both, but the second generated native program fails with E0502.
+The no-catch helper excludes returns, so this falls back to completion emission
+without the required native lifetime renewal. Preserve both cases and extend
+completion storage to carry owners through pending returns without premature
+disposal. Exact evidence is verified in SQLite as
+`tsrust-b5-return-finally-red.log` (passing initial case) and
+`tsrust-b5-return-finally-fallthrough-red.log` (confirmed defect).
+
+Continuation: start from checkpoint `18f4833` plus this committed red witness.
+Repair the combined return/fallthrough case, keep exact Drop checks at O0/O3,
+then extend editor and matched workload coverage. Continue B5's remaining scope
+from the plan; the full compiler/editor goal remains active.

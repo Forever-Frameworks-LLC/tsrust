@@ -1241,3 +1241,11 @@ remain preserved separately. Project formatting changed no files.
 This is a B5 implementation checkpoint. Control exits, nested try regions,
 precise element/entry capture release and record Set equality/hashing remain
 open; no family regression or timing acceptance is claimed.
+
+The next control-exit witness is
+`returning_through_finally_preserves_renewed_map_until_cleanup`. Early return alone
+passes; a branch that returns and a branch that falls through cleanup before
+mutating released captures produce native E0502. Both cases remain in the test.
+SQLite preserves the initial passing observation and the combined failing
+observation under `tsrust-b5-return-finally-red.log` and
+`tsrust-b5-return-finally-fallthrough-red.log`. No implementation repair claimed.

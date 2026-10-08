@@ -1,6 +1,15 @@
 mod support;
 
 #[test]
+fn returning_through_finally_preserves_renewed_map_until_cleanup() {
+    let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function scenario(early:boolean):int{const old=[3];const next=[5];let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});console.log('before');try{failIf(false);if(early)return 23;handlers.clear();handlers.set('next',{run:():int=>next[0]});console.log('return');return 29;}finally{console.log('cleanup',handlers.size);handlers.clear();console.log('cleared');}}function main():void{console.log('result',scenario(true));console.log('result',scenario(false));}");
+    verify_disposal(&source, 2, "before\ncleanup 1\ndrop 0\ncleared\nresult 23\nbefore\ndrop 0\nreturn\ncleanup 1\ndrop 1\ncleared\nresult 29\n");
+    let fallthrough = source.replace("return 29;", "").replace("\n}\n\nfunction main", "\n    old[0] = 9; next[0] = 11; return 29;\n}\n\nfunction main");
+    assert_ne!(fallthrough, source);
+    verify_disposal(&support::format_round_trip(&fallthrough), 2, "before\ncleanup 1\ndrop 0\ncleared\nresult 23\nbefore\ndrop 0\nreturn\ncleanup 1\ndrop 1\ncleared\nresult 29\n");
+}
+
+#[test]
 fn caught_error_logging_ignores_uninspectable_callback_records() {
     support::execute("type Holder={run:ReadOnly<Function<int>>;};function fail():void{throw 7;}function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{fail();console.log(first[0]);}catch(error){console.log('caught',error);}console.log(handlers.size);}", "caught 7\n2\n", None);
 }
