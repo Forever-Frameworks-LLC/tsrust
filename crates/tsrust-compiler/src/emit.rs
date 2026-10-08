@@ -873,9 +873,14 @@ impl Emitter<'_> {
         while let Some(ty) = pending.pop() {
             if !seen.insert(ty) { continue; }
             match ty {
-                Type::StoredCallable(_) | Type::Callable(_) | Type::Closure(_) | Type::Callback(_) | Type::Void => return false,
+                Type::StoredCallable(_) | Type::BorrowedCallable(_) | Type::Callable(_) | Type::Closure(_) | Type::Callback(_) | Type::Void => return false,
                 Type::Union(id) | Type::BorrowedUnion(id) => pending.extend(self.program.unions[id.index()].members.iter().copied()),
                 Type::Array(element) => pending.push(element.ty()),
+                Type::Set(id) => pending.push(self.program.records[id].set_definition.as_ref().unwrap().key),
+                Type::Map(id) => {
+                    let map=self.program.records[id].map_definition.as_ref().unwrap();
+                    pending.extend([map.key,map.value]);
+                },
                 Type::Record(id) => pending.extend(
                     self.program.records[id]
                         .fields
@@ -9849,3 +9854,5 @@ impl Emitter<'_>{
 
 #[path="map_exception_epochs.rs"]
 mod map_exception_epochs;
+#[path = "map_finally_storage_epochs.rs"]
+mod map_finally_storage_epochs;

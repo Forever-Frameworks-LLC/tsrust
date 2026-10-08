@@ -1219,3 +1219,25 @@ finally storage repair. Exact original evidence is verified in SQLite as
 `tsrust-b5-no-catch-finally-storage-red.log`,
 `tsrust-b5-finally-console-isolation.log` and
 `tsrust-b5-console-callback-record-red.log`. Loose copies are removed.
+
+### Straight-line no-catch finally storage repaired
+
+The two red witnesses committed in `0a2a5e5` now pass. A separate completion
+helper preserves live root and record-field Map storage across normal and
+throwing execution, runs cleanup with the current owner, resumes pending errors
+and allows cleanup errors to override them. Disposal is verified at optimization
+levels 0 and 3. Record inspection admission also excludes borrowed callbacks and
+checks nested Map/Set contents, fixing caught-error logging with unrelated
+callback-bearing records.
+
+The affected batch passes 75 composition, 42 scoped-record, four fallible-record,
+eight depth-canary and 15 exception-contract tests, plus the focused editor test.
+The 28-observation matched workload passes native and Node-after-tsc verification
+untimed. Exact evidence is stored in SQLite under
+`runtime/results/2026-10-08T18-47-39-945Z-verify.json` and the
+`tsrust-b5-no-catch-finally-*.log` repair/batch/registration records. Failed drafts
+remain preserved separately. Project formatting changed no files.
+
+This is a B5 implementation checkpoint. Control exits, nested try regions,
+precise element/entry capture release and record Set equality/hashing remain
+open; no family regression or timing acceptance is claimed.

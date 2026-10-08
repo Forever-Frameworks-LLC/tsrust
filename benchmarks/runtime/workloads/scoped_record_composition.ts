@@ -358,8 +358,17 @@ function workload(n: int, seed: int, input: string): int[][] {
             outsideRestored = outsideSize + outsideMap.size + outsideOld[0];
         }
 
+        const cleanupTrace = [0, -1];
+        let finallyRenewed = 0;
+        try {
+            finallyRenewed = noCatchRenewal(value % 2 === 0, value, cleanupTrace);
+        } catch (error) {
+            finallyRenewed = 7;
+        }
+        finallyRenewed += cleanupTrace[0] * 100 + cleanupTrace[1];
+
         base[0] = 0;
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed]);
         i += 1;
     }
 
@@ -373,4 +382,25 @@ function prefixResult(fail: boolean): int {
 
 function main() {
     const result = workload(3, 0, "composition");
+}
+
+function noCatchRenewal(fail: boolean, value: number, trace: number[]): number {
+    const finallyOld = [value];
+    const finallyNext = [value + 1];
+    let finallyMap = new Map<string, Holder>();
+    finallyMap.set("old", { run: (): number => finallyOld[0] });
+    let retained = 0;
+    try {
+        const finallyPrefix = prefixResult(fail);
+        finallyMap.clear();
+        finallyMap.set("next", { run: (): number => finallyNext[0] });
+        retained = finallyMap.size;
+    } finally {
+        trace[0] = finallyMap.size;
+        finallyMap.clear();
+        trace[1] = finallyMap.size;
+    }
+    finallyOld[0] = value + 70;
+    finallyNext[0] = value + 71;
+    return retained + finallyOld[0] + finallyNext[0];
 }

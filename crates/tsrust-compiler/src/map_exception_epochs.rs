@@ -6,7 +6,7 @@ impl Emitter<'_> {
     pub(super) fn map_try_storage_epoch(&self, output: &mut String, fun: &CheckedFunction, statement: &Stmt, declarations: &[Stmt], depth: usize) -> bool {
         if !statement.labels.is_empty() { return false; }
         let StmtKind::Try(region) = &statement.kind else { return false; };
-        let Some(handler) = &region.catch else { return false; };
+        let Some(handler) = &region.catch else { return self.map_finally_storage_epoch(output,fun,statement,region,declarations,depth); };
         let mut places = Vec::new();
         let mut native_places = std::collections::HashMap::new();
         let mut statements = region.body.iter().chain(&handler.body).chain(region.finally.iter().flatten()).collect::<Vec<_>>();
@@ -80,7 +80,7 @@ impl Emitter<'_> {
     }
 
     #[inline(never)]
-    fn map_storage_abrupt_dispatch(&self, fun: &CheckedFunction, pending: &str, error_name: &str, contract: &crate::error_effects::FailureSet, runtime: Option<Type>, span: crate::Span) -> String {
+    pub(super) fn map_storage_abrupt_dispatch(&self, fun: &CheckedFunction, pending: &str, error_name: &str, contract: &crate::error_effects::FailureSet, runtime: Option<Type>, span: crate::Span) -> String {
         let (outer_name, outer_contract, _) = self.exception_regions.current_transport().expect("checked enclosing completion");
         let unions = crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
         let abrupt = exception_contract_emit::checked_completion_conversion("abrupt", error_name, &outer_name, contract, &outer_contract, &unions, runtime, span).expect("checked outgoing storage completion");
@@ -93,7 +93,7 @@ impl Emitter<'_> {
     }
 
     #[inline(never)]
-    fn map_storage_completion_body(&self, fun: &CheckedFunction, body: &[Stmt], declarations: &[Stmt], id: usize, error_name: &str, contract: crate::error_effects::FailureSet, runtime: Option<Type>, storage_type: &str, places: &[String], carry_error: bool) -> String {
+    pub(super) fn map_storage_completion_body(&self, fun: &CheckedFunction, body: &[Stmt], declarations: &[Stmt], id: usize, error_name: &str, contract: crate::error_effects::FailureSet, runtime: Option<Type>, storage_type: &str, places: &[String], carry_error: bool) -> String {
         let _region = self.exception_regions.enter_typed(id, Vec::new(), error_name.into(), contract, runtime);
         {
             let points=fun.storage_exits.starts().map(|start| (start,places.iter().map(|place|self.map_storage_value_before(fun,start,place)).collect())).collect();

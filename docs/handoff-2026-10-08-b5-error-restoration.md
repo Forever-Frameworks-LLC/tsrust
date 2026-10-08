@@ -1,7 +1,7 @@
 # B5 error restoration checkpoint
 
 B5 scoped aggregate composition remains incomplete. Gate 181 is the last accepted
-numbered gate. This checkpoint extends the work after `dbd84fd`; it is not family
+numbered gate. This checkpoint extends the work after `0a2a5e5`; it is not family
 acceptance. The active goal remains the full compiler/editor completion plan.
 
 Read `AGENTS.md`, `docs/development-workflow.md`,
@@ -27,10 +27,10 @@ Native witnesses cover explicit throw, a later fallible call, a later bounds
 failure, record-field storage and an independent sibling field. Disposal tests
 at optimization levels 0 and 3 prove exactly one callback drop on both early and
 late failure paths. The editor test verifies restoration and rejects reads before
-restoration. All 73 composition tests, eight normal-stack depth canaries and 15
+restoration. All 75 composition tests, eight normal-stack depth canaries and 15
 exception-contract tests pass. The focused editor test passes.
 
-The matched workload now retains 27 observations. Source guards and rehashed
+The matched workload now retains 28 observations. Source guards and rehashed
 mutation controls pass. Native and Node-after-tsc verification passes untimed.
 The independent oracle includes `value + 29` and `value + 30` for early and late
 statement restoration, plus `value + 39` and `value + 40` for expression failures. SQLite preserves exact failures and repaired records; see the plan
@@ -72,10 +72,8 @@ from the now-passing replacement cases.
 
 1. Audit rewritten and synthetic expression spans as new compositions land.
    Exact spans now cover the verified call, bounds and arithmetic failure cases.
-2. Add a red witness for non-leading Map renewal in try/finally without catch.
-   Verify normal completion, failure cleanup, pending-error preservation/override
-   and exact disposal. Extend completion storage without restoring source reads
-   or dropping surviving owners before their intended cleanup boundary.
+2. Extend the verified straight-line no-catch finally transport to control exits
+   and nested regions without dropping surviving owners before cleanup.
 3. Extend completion storage to loops, return, break, continue, nested try and
    finally without catch, with checked control-flow evidence.
 4. Finish precise element and Map-entry capture release and the remaining callable
@@ -104,10 +102,39 @@ before a longer handoff; do not create archives or snapshots.
 Continue Tsrust B5 from docs/handoff-2026-10-08-b5-error-restoration.md. Read
 AGENTS.md, docs/development-workflow.md and docs/scoped-callable-aggregate-plan.md
 first. Error restoration after prior-statement and within-expression transfers is verified;
-conditional survivor disposal and outside replacement now pass; finally without
-catch and control exits remain next. Keep Rust-style record
+conditional survivor disposal, outside replacement and straight-line finally
+without catch now pass; control exits and nested regions remain next. Keep Rust-style record
 Set equality/hashing, explicit cloning and existing ownership rules. Use focused
 red witnesses, native disposal checks, editor coverage and matched benchmarks.
 Preserve fifteen unrelated fixture edits, stage explicit paths, format the whole
 project before checkpoints, and preserve exact evidence in SQLite. B5 and the
 full compiler/editor completion goal remain active.
+
+## No-catch finally repair checkpoint
+
+The dedicated `map_finally_storage_epochs.rs` helper carries live Map owners into
+cleanup on both normal and throwing paths. It preserves pending errors after
+successful cleanup and lets cleanup errors override them. Root and record-field
+storage pass exact callback disposal checks at optimization levels 0 and 3.
+The helper currently covers unlabeled blocks, conditionals, declarations,
+expressions, assignments and throws. Loops, returns, break/continue and nested
+try regions remain implementation work, not accepted rejection boundaries.
+
+Record inspection admission now excludes borrowed callable fields and descends
+through Map/Set contents. Caught-error logging no longer emits invalid inspection
+helpers for unrelated callback-bearing records. The affected batch passed 75
+composition, 42 scoped-record, four fallible-record, eight depth-canary and 15
+exception-contract tests, plus the focused editor check.
+
+The matched workload has 28 independent observations and passes native and
+Node-after-tsc verification without timing. Its latest exact SQLite record is
+`runtime/results/2026-10-08T18-47-39-945Z-verify.json`. Evidence includes
+`tsrust-b5-no-catch-finally-batch.log`,
+`tsrust-b5-no-catch-finally-variants-repaired.log`,
+`tsrust-b5-no-catch-finally-registration.log` and
+`tsrust-b5-no-catch-finally-format-repaired.log`. Earlier failed drafts are retained
+separately: unreachable statements after unconditional cleanup throw, and a retired
+`mutate` annotation in the new workload helper. Every record was read back byte
+for byte before removing its loose copy. Formatting changed no files.
+
+B5 remains unfinished; user executable consumers still represent gate 181.

@@ -8571,6 +8571,8 @@ fn transferred_error_storage_requires_explicit_restoration() {
     unavailable_outside.insert_str(restoration,"console.log(handlers.size); ");
     let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&unavailable_outside, "file:///outside.tsr").unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "transferred"), "{diagnostics}");
+    let cleanup = tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function scenario(fail:boolean):void{const old=[3];const next=[5];let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});try{failIf(fail);handlers.clear();handlers.set('next',{run:():int=>next[0]});}finally{handlers.clear();}old[0]=9;next[0]=11;}function main():void{scenario(false);}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&cleanup,"file:///cleanup.tsr").unwrap().is_empty());
     let unavailable_conditional = conditional.replace("throw 7;", "console.log(handlers.size); throw 7;");
     let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&unavailable_conditional, "file:///conditional.tsr").unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "transferred"), "{diagnostics}");

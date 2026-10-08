@@ -7,8 +7,19 @@ fn caught_error_logging_ignores_uninspectable_callback_records() {
 
 #[test]
 fn finally_without_catch_renews_nonleading_map_storage() {
-    let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function scenario(fail:boolean):void{const old=[3];const next=[5];let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});console.log('before');try{failIf(fail);handlers.clear();handlers.set('next',{run:():int=>next[0]});console.log('normal');}finally{console.log('cleanup',handlers.size);handlers.clear();console.log('cleared');}old[0]=9;next[0]=11;console.log('after');}function main():void{scenario(false);try{scenario(true);}catch(error){console.log('caught');}}");
-    verify_disposal(&source, 2, "before\ndrop 0\nnormal\ncleanup 1\ndrop 1\ncleared\nafter\nbefore\ncleanup 1\ndrop 0\ncleared\ncaught\n");
+    let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function scenario(fail:boolean):void{const old=[3];const next=[5];let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});console.log('before');try{failIf(fail);handlers.clear();handlers.set('next',{run:():int=>next[0]});console.log('normal');}finally{console.log('cleanup',handlers.size);handlers.clear();console.log('cleared');}old[0]=9;next[0]=11;console.log('after');}function main():void{scenario(false);try{scenario(true);}catch(error){console.log('caught',error);}}");
+    verify_disposal(&source, 2, "before\ndrop 0\nnormal\ncleanup 1\ndrop 1\ncleared\nafter\nbefore\ncleanup 1\ndrop 0\ncleared\ncaught 7\n");
+    let overriding = source.replace("console.log('cleared');", "console.log('cleared'); throw 9;")
+        .replace("old[0] = 9;", "").replace("next[0] = 11;", "").replace("console.log('after');", "")
+        .replace("scenario(false);", "try { scenario(false); } catch (error) { console.log('caught', error); }");
+    verify_disposal(&support::format_round_trip(&overriding), 2, "before\ndrop 0\nnormal\ncleanup 1\ndrop 1\ncleared\ncaught 9\nbefore\ncleanup 1\ndrop 0\ncleared\ncaught 9\n");
+    let field = source.replace("function scenario", "type Box = { handlers: Map<string, Holder>; marker: int; }; function scenario")
+        .replace("console.log('before');", "const box: Box = { handlers: handlers, marker: 23 }; console.log('before');")
+        .replace("handlers.clear()", "box.handlers.clear()")
+        .replace("handlers.set('next'", "box.handlers.set('next'")
+        .replace("handlers.size", "box.handlers.size")
+        .replace("old[0] = 9;", "if (box.marker !== 23) throw 99; old[0] = 9;");
+    verify_disposal(&support::format_round_trip(&field), 2, "before\ndrop 0\nnormal\ncleanup 1\ndrop 1\ncleared\nafter\nbefore\ncleanup 1\ndrop 0\ncleared\ncaught 7\n");
 }
 
 #[test]
