@@ -605,3 +605,36 @@ suffix experiments as if untested; their native failures are preserved. Repair
 compiler/native/editor and matched workload coverage. Preserve checked ownership,
 cleanup order, exact disposal, current passed evidence and unrelated fixtures.
 Format the whole project and stage explicit paths before source checkpoints.
+
+## Owner-scope reduction
+
+The direct-prefix and Result-control bridge experiments also fail. Removing
+impossible Result control exits first produced E0282; specifying the unused
+return type exposed E0502 again. The inference failure had masked borrow
+checking. All experimental compiler changes are removed. Do not treat this
+bridge change as a verified ownership repair.
+
+A reduced Rust witness succeeds when both the input owner and its completion
+enum are declared inside a block that returns only the extracted owner. After
+that block ends, dropping the extracted owner permits capture mutation. The
+witness includes an unreachable control variant and an observable destructor.
+Native output is `drop` followed by `9`. This proves a useful scope construction;
+it does not prove that the full generated cleanup shape is repaired.
+
+Next, join pending try and catch outcomes into one carried completion in an
+inner scope. Extract pure control/error and storage after that scope ends, then
+emit cleanup once outside the pending and handler owner scopes. Cleanup itself
+may still need a separate prefix scope ending at its unconditional clear. Keep
+checked error conversions, pending return evaluation, cleanup overrides and
+exact disposal. Test the retained red witness before broadening this change.
+
+SQLite stores `tsrust-cleanup-owner-scope.rs` and five direct-prefix/Result-bridge
+logs with exact read-back verification. Loose copies are removed. The compiler
+source is restored to HEAD. B5 remains incomplete, and no consumer refresh,
+family regression or timing has occurred.
+
+The owner explicitly prefers Rust-style record Set equality and hashing. Eligible
+records compare by field value; insertion follows ownership transfer, with an
+explicit clone when a retained copy is needed. Stored equality/hash inputs must
+remain stable. Records with unsupported fields require a stable key rather than
+implicit object identity. Floating-point key policy remains unresolved.
