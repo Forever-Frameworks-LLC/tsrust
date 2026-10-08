@@ -9804,6 +9804,8 @@ mod exception_region_tests {
 mod set_emit;
 #[path="map_emit.rs"]
 mod map_emit;
+#[path="map_storage_epochs.rs"]
+mod map_storage_epochs;
 
 impl Emitter<'_> {
     #[inline(never)]

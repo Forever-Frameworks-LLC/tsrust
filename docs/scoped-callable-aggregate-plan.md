@@ -631,3 +631,10 @@ clear remains a semantic rejection even when the source hash is repinned.
 Registration, focused multi-field native execution and all five matched
 native/Node-after-tsc cases pass. Exact untimed evidence is verified in SQLite as
 `runtime/results/2026-10-08T16-31-37-088Z-verify.json`. B5 remains incomplete.
+
+Map storage lifetime renewal is isolated in `map_storage_epochs.rs`. Ordinary
+Map operations and runtime type emission remain in `map_emit.rs`. The extracted
+93-line helper block is byte-identical to its checkpointed source; only module
+registration changes. All 21 scoped Map compiler/native tests and focused editor
+clear diagnostics pass. This structural checkpoint adds no supported behavior,
+benchmark epoch or B5 acceptance claim.
