@@ -1,6 +1,56 @@
 //! Finite generic environments have storage identity independent of invocation arity.
 use crate::analysis::CheckedClosure;
 use crate::{Diagnostic, Span};
+use std::collections::{BTreeMap, BTreeSet};
+
+/// Storage connectivity is monotone. It does not describe which origin reaches a call.
+#[derive(Default)]
+struct Registry {
+    parents: BTreeMap<usize, usize>,
+}
+
+impl Registry {
+    fn observe(&mut self, previous: usize, replacement: usize) {
+        self.parents.entry(previous).or_insert(previous);
+        self.parents.entry(replacement).or_insert(replacement);
+        let previous = self.root(previous).unwrap();
+        let replacement = self.root(replacement).unwrap();
+        self.parents.insert(previous.max(replacement), previous.min(replacement));
+    }
+
+    fn root(&self, origin: usize) -> Option<usize> {
+        let mut root = *self.parents.get(&origin)?;
+        while let Some(&parent) = self.parents.get(&root) {
+            if parent == root { return Some(root); }
+            root = parent;
+        }
+        None
+    }
+
+    fn members(&self, origin: usize) -> Option<Vec<usize>> {
+        let root = self.root(origin)?;
+        Some(self.parents.keys().copied().filter(|&member| self.root(member) == Some(root)).collect())
+    }
+
+    fn remap(&self, ids: &[Option<usize>], span: Span) -> Result<Self, Diagnostic> {
+        let mut result = Self::default();
+        let mut seen = BTreeSet::new();
+        for &origin in self.parents.keys() {
+            let mapped = ids.get(origin).copied().flatten().ok_or_else(|| Diagnostic::new("callable-layout", "Generic storage lost an environment origin during compaction.", span))?;
+            if !seen.insert(mapped) {
+                return Err(Diagnostic::new("callable-layout", "Distinct generic environments cannot merge during compaction.", span));
+            }
+            let root = ids[self.root(origin).expect("registered root")].expect("registered root mapping");
+            result.observe(root, mapped);
+        }
+        Ok(result)
+    }
+
+    fn checked(&self, origin: usize, closures: &[CheckedClosure], span: Span) -> Result<Family, Diagnostic> {
+        let members = self.members(origin).ok_or_else(|| Diagnostic::new("callable-layout", "Generic storage origin has not been registered.", span))?;
+        Family::checked(*members.first().expect("registered member"), members, closures, span)
+    }
+}
 
 struct Family {
     id: usize,
@@ -67,6 +117,37 @@ mod tests {
         checked.program.closures[0].function.template = false;
         checked.program.closures[0].polymorphic = false;
         assert!(Family::checked(4, [0], &checked.program.closures, Span::default()).is_err());
+    }
+
+    #[test]
+    fn replacement_connectivity_is_transitive_without_merging_independent_storage() {
+        let mut registry = Registry::default();
+        registry.observe(7, 3);
+        registry.observe(9, 11);
+        registry.observe(5, 7);
+        registry.observe(3, 7);
+        assert_eq!(registry.members(5), Some(vec![3, 5, 7]));
+        assert_eq!(registry.members(11), Some(vec![9, 11]));
+        assert_eq!(registry.members(0), None);
+        registry.observe(11, 5);
+        assert_eq!(registry.members(7), Some(vec![3, 5, 7, 9, 11]));
+        let checked = environments();
+        let mut actual = Registry::default();
+        actual.observe(1, 0);
+        assert_eq!(actual.checked(1, &checked.program.closures, Span::default()).unwrap().origins, vec![0, 1]);
+    }
+
+    #[test]
+    fn compaction_preserves_distinct_environments_and_rejects_missing_origins() {
+        let mut registry = Registry::default();
+        registry.observe(0, 2);
+        registry.observe(1, 1);
+        let remapped = registry.remap(&[Some(2), Some(0), Some(1)], Span::default()).unwrap();
+        assert_eq!(remapped.members(2), Some(vec![1, 2]));
+        assert_eq!(remapped.members(0), Some(vec![0]));
+        assert!(registry.remap(&[Some(0), Some(1), None], Span::default()).is_err());
+        assert!(registry.remap(&[Some(0), Some(1), Some(0)], Span::default()).is_err());
+        assert!(registry.remap(&[Some(0)], Span::default()).is_err());
     }
 
     fn native(source: &str) {
