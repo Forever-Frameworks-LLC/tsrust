@@ -479,3 +479,13 @@ A second form transfers the removed record into an outer nullable binding and
 invokes its Map callback after the array scope ends. Both formatted project/native
 forms pass without a compiler change. This proves those ownership transfers, not
 precise capture release while unrelated sibling elements remain live.
+
+Local Map `clear` now discards the cleared payload capture owners and restores
+only loans still held by other live owners. A red native witness previously
+reported capture-conflict when mutating the former capture after clear; it now
+passes. A shared-capture rejection ensures another live Map still protects its
+capture. Parameter and captured-reference receivers, and indexed paths sharing
+conservative ownership storage, are excluded from this release change. All eight
+normal-worker depth canaries pass. The affected batch passed 59 checks; its new
+rejection helper initially used unsupported direct-check imports and was repaired
+and checked separately. Broader precise release and B5 acceptance remain pending.

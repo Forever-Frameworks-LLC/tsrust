@@ -83,6 +83,15 @@ impl Analyzer {
             }
             for root in Self::loan_roots(argument, mode) { active.entry(root).or_default().push((mode, argument.span)); }
         }
+        if method == MapMethod::Clear
+            && let Some((_, fields)) = Self::direct_fields(base)
+            && let Some(binding) = Self::root_binding(base)
+            && !context.bindings[binding].parameter
+            && !context.bindings[binding].capture_reference
+        {
+            context.capture_loan_owners.discard(&crate::capture_loan_owners::Place { binding, fields });
+            Self::restore_live_capture_loans(context);
+        }
         let mut result = self.map_method_type(id, name, expression.span)?;
         if method == MapMethod::Get && named && !result.is_copy() { result = Type::BorrowedUnion(result.union().unwrap()); }
         self.require(result, expected, expression.span)?;

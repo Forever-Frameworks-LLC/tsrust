@@ -1,6 +1,32 @@
 mod support;
 
 #[test]
+fn clearing_one_scoped_map_releases_only_its_capture_owner() {
+    let source = r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function main() {
+            const first = [3];
+            const second = [7];
+            const left = new Map<string, Holder>();
+            left.set("value", { run: (): int => first[0] });
+            const right = new Map<string, Holder>();
+            right.set("value", { run: (): int => second[0] });
+            left.clear();
+            first[0] = 9;
+            strictEqual(first[0], 9);
+            const remaining = right.get("value");
+            if (remaining !== undefined) strictEqual(remaining.run(), 7);
+        }
+    "#;
+    project(source);
+    let shared = source.replace("second[0]", "first[0]").replace("import { strictEqual } from \"std:testing\";", "function strictEqual(a: int, b: int): void {}");
+    let error = tsrust_compiler::check(&shared).err().expect("live sibling Map retains shared capture");
+    assert_eq!(error.code, "capture-conflict", "{}", error.message);
+
+}
+
+#[test]
 fn removed_record_map_preserves_owned_callback_environment() {
     let source = r#"
         import { strictEqual } from "std:testing";
