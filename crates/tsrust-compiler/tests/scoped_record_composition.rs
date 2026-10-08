@@ -1,6 +1,36 @@
 mod support;
 
 #[test]
+fn record_map_fields_preserve_new_capture_conflicts_and_reject_escape() {
+    let conflict = "type Holder={run:ReadOnly<Function<int>>;};type Box={handlers:Map<string,Holder>;};function main(){const first=[3];const second=[7];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});const box:Box={handlers:handlers};box.handlers.set('second',{run:():int=>second[0]});second[0]=9;console.log(box.handlers.size);}";
+    let error = tsrust_compiler::check(conflict).err().expect("field insertion retains the new callback owner");
+    assert_eq!(error.code, "capture-conflict", "{}", error.message);
+    let escape = "type Holder={run:ReadOnly<Function<int>>;};type Box={handlers:Map<string,Holder>;};function bad():Box{const values=[3];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>values[0]});const box:Box={handlers:handlers};return box;}function main(){}";
+    let error = tsrust_compiler::check(escape).err().expect("record Map cannot conceal a local borrowed capture");
+    assert_eq!(error.code, "callback-escape", "{}", error.message);
+}
+
+#[test]
+fn record_fields_hold_maps_with_borrowing_callback_values() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        type Box = { handlers: Map<string, Holder>; };
+        function main() {
+            const values = [3, 7];
+            const handlers = new Map<string, Holder>();
+            handlers.set("first", { run: (): int => values[0] });
+            const box: Box = { handlers: handlers };
+            box.handlers.set("second", { run: (): int => values[1] });
+            const first = box.handlers.get("first");
+            const second = box.handlers.get("second");
+            if (first !== undefined) strictEqual(first.run(), 3);
+            if (second !== undefined) strictEqual(second.run(), 7);
+        }
+    "#);
+}
+
+#[test]
 fn moved_map_can_widen_to_another_callback_origin() {
     project(r#"
         import { strictEqual } from "std:testing";

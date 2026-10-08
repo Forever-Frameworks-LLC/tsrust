@@ -134,3 +134,16 @@ function movedMapComposition() {
     if (second !== undefined) strictEqual(second.run(), 7);
 }
 movedMapComposition();
+
+function recordMapComposition() {
+    const values = [3, 7];
+    const handlers = new Map<string, Holder>();
+    handlers.set("first", { run: () => values[0] });
+    const box = { handlers };
+    box.handlers.set("second", { run: () => values[1] });
+    const first = box.handlers.get("first");
+    const second = box.handlers.get("second");
+    if (first !== undefined) strictEqual(first.run(), 3);
+    if (second !== undefined) strictEqual(second.run(), 7);
+}
+recordMapComposition();

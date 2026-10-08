@@ -4,10 +4,10 @@ impl Analyzer {
     pub(super) fn record_value_carrier_type(&mut self,context:&Context,value:&Expr,plans:&HashMap<usize,Type>)->Result<Type,Diagnostic>{
         // An expression of an unchecked generic body has no storage to plan.
         let Some(checked)=value.ty else{return Ok(Type::Void);};
-        if !matches!(checked,Type::Record(_) | Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)){return Ok(checked);}
+        if !matches!(checked,Type::Map(_) | Type::Record(_) | Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)){return Ok(checked);}
         if let(Some(binding),Some((_,path)))=(Self::root_binding(value),Self::direct_fields(value)){
             let binding_info=&context.bindings[binding];
-            if !binding_info.parameter && !binding_info.capture_reference && let Some(ty)=self.record_field_type(*plans.get(&binding).unwrap_or(&binding_info.ty),&path) && (matches!((checked,ty),(Type::Record(_),Type::Record(_))) || matches!((checked,ty),(Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_),Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)))){return Ok(ty);}
+            if !binding_info.parameter && !binding_info.capture_reference && let Some(ty)=self.record_field_type(*plans.get(&binding).unwrap_or(&binding_info.ty),&path) && (matches!((checked,ty),(Type::Record(_),Type::Record(_)) | (Type::Map(_),Type::Map(_))) || matches!((checked,ty),(Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_),Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)))){return Ok(ty);}
         }
         match &value.kind{
             ExprKind::Record(values)=>{

@@ -327,6 +327,21 @@ rejection of source use after transfer. The affected compiler batch passes 44 te
 the updated editor witness and independent Node reference also pass. Nested Map
 storage and precise removal/replacement release remain pending.
 
+Record fields now retain concrete Map value layouts at construction and widen them
+on insertion. The Map planner follows root bindings and record field paths, including
+move edges inside record literals and existing carrier wrappers. It propagates the
+final layout backward into source Maps and forward into field reads, nullable
+projections and callback targets. Maps and captured owners are moved without copying.
+The previously failing `record_fields_hold_maps_with_borrowing_callback_values`
+witness passes natively. Paired rejection witnesses preserve newly inserted capture
+conflicts and reject record escape with local borrowed captures. The affected compiler
+batch passes 46 tests, focused editor help and the independent Node reference pass,
+and all eight normal-worker depth canaries pass. Project formatting changes no files
+or benchmark fingerprints. Depth evidence is preserved under
+`tsrust-b5-record-map-fields-depth.log` in SQLite. This remains B5 work in progress;
+Map storage behind array indices, field replacement, precise removal/replacement
+release, disposal and matched benchmark support still need evidence.
+
 Remaining B5 work includes broader nested method composition,
 nullable replacement across multiple origins,
 precise element capture release, Map/Set

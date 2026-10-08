@@ -8461,3 +8461,14 @@ fn scoped_map_get_keeps_declared_callback_help_after_later_insertion() {
     assert!(!hover.is_null(), "{hover}");
     assert!(!hover["contents"]["value"].as_str().unwrap_or("").contains("BorrowedCallable"), "{hover}");
 }
+
+#[test]
+fn scoped_record_map_fields_keep_declared_callback_help() {
+    let source = tsrust_compiler::format("type Holder={run:ReadOnly<Function<int,[amount:int]>>;};type Box={handlers:Map<string,Holder>;};function main(){const values=[3,7];const handlers=new Map<string,Holder>();handlers.set('first',{run:(value:int):int=>value+values[0]});const box:Box={handlers:handlers};box.handlers.set('second',{run:(value:int):int=>value+values[1]});const first=box.handlers.get('first');if(first!==undefined)console.log(first.run(4));}").unwrap();
+    assert!(tsrust_compiler::check(&source).is_ok());
+    let help = ask(&source, "textDocument/signatureHelp", "4)", 0);
+    assert!(help["signatures"][0]["parameters"][0]["label"].as_str().unwrap_or("").contains("amount"), "{help}");
+    let hover = ask(&source, "textDocument/hover", "run(4)", 0);
+    assert!(!hover.is_null(), "{hover}");
+    assert!(!hover["contents"]["value"].as_str().unwrap_or("").contains("BorrowedCallable"), "{hover}");
+}

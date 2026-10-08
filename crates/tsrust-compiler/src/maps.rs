@@ -70,13 +70,18 @@ impl Analyzer {
             if method == MapMethod::Set && index == 1
                 && let (Type::Record(previous), Type::Record(incoming)) = (definition.value, actual)
                 && self.aggregate_callable_facts(actual).scoped
-                && matches!(base.kind, ExprKind::Name(_))
+                && Self::direct_fields(base).is_some()
             {
                 let value = if previous == self.scoped_records.declaration(previous) { actual }
                     else if previous == incoming { actual }
                     else { self.join_record_types(previous, incoming, argument.span)?.ok_or_else(|| Diagnostic::new("type", "Map callback values require compatible environment contracts.", argument.span))? };
                 let instance = self.scoped_map_value_instance(id, value);
-                context.bindings[base.binding.expect("named Map")].ty = Type::Map(instance);
+                let binding = Self::root_binding(base).expect("stable Map root");
+                let (_, path) = Self::direct_fields(base).unwrap();
+                if path.is_empty() { context.bindings[binding].ty = Type::Map(instance); }
+                else if let Type::Record(record) = context.bindings[binding].ty
+                    && let Some(record) = self.record_type_with_field(record, &path, Type::Map(instance))
+                { context.bindings[binding].ty = Type::Record(record); }
                 self.append_target_capture_loans(context, base, argument);
             }
             for root in Self::loan_roots(argument, mode) { active.entry(root).or_default().push((mode, argument.span)); }

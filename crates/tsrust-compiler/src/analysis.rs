@@ -3004,6 +3004,7 @@ impl Analyzer {
     }
 
     fn require(&self, actual: Type, expected: Option<Type>, span: Span) -> Result<(), Diagnostic> {
+        if expected.is_some_and(|expected| self.scoped_map_contract(actual, expected)) { return Ok(()); }
         if expected.is_some_and(|expected| self.scoped_record_nullable_contract(actual, expected)) { return Ok(()); }
         if let (Type::Array(ArrayElement::Record(actual, depth)), Some(Type::Array(ArrayElement::Record(expected, expected_depth)))) = (actual, expected) {
             if depth == expected_depth && self.scoped_records.declaration(actual) == expected { return Ok(()); }
@@ -9556,7 +9557,7 @@ impl Analyzer {
                 if actual != expected && self.scoped_records.declaration(actual) == expected);
             let nested_array_instance = matches!((actual, field_type), (Type::Array(ArrayElement::Record(actual, depth)), Type::Array(ArrayElement::Record(expected, expected_depth)))
                 if depth == expected_depth && actual != expected && self.scoped_records.declaration(actual) == expected);
-            if nested_instance || nested_array_instance || matches!(self.unions.payload(field_type).unwrap_or(field_type), Type::Callback(_) | Type::BorrowedCallable(_)) {
+            if nested_instance || nested_array_instance || self.scoped_map_contract(actual, field_type) || matches!(self.unions.payload(field_type).unwrap_or(field_type), Type::Callback(_) | Type::BorrowedCallable(_)) {
                 let position = self.program.records[index].fields.iter().position(|field| field.name.text == key.text).expect("checked field name");
                 concrete[position] = actual;
                 specialized = true;
