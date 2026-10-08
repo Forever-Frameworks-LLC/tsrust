@@ -373,8 +373,9 @@ function workload(n: int, seed: int, input: string): int[][] {
         const finallyLooped = noCatchLoop(value, loopTrace) + loopTrace[0] * 100 + loopTrace[1];
         const outerTrace = [0, 0];
         const finallyOuterLooped = noCatchOuterLoop(value, outerTrace) + outerTrace[0] * 100 + outerTrace[1];
+        const initializedRecordMap = nestedMapInitializer(value);
         base[0] = 0;
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap]);
         i += 1;
     }
 
@@ -483,4 +484,17 @@ function noCatchOuterLoop(value: number, trace: number[]): number {
         loopObserved = loopOld[0] + loopNext[0];
     }
     return loopObserved + turn + loopMap.size;
+}
+
+function nestedMapInitializer(value: number): number {
+    const initializerOld = [value];
+    const initializerNext = [value + 1];
+    const initializerBox: RefillBox = { marker: value + 100, handlers: new Map<string, Holder>() };
+    initializerBox.handlers.set("old", { run: (): number => initializerOld[0] });
+    initializerBox.handlers.set("next", { run: (): number => initializerNext[0] });
+    const initializerObserved = initializerBox.handlers.size + initializerBox.marker;
+    initializerBox.handlers.clear();
+    initializerOld[0] = value + 101;
+    initializerNext[0] = value + 102;
+    return initializerObserved + initializerOld[0] + initializerNext[0] + initializerBox.handlers.size;
 }

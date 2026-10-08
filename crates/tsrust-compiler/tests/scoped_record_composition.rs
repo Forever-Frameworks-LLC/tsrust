@@ -2,7 +2,13 @@ mod support;
 
 #[test]
 fn nested_empty_map_initializer_adapts_record_callback_carriers() {
-    support::execute("type Holder={run:ReadOnly<Function<int>>;};type Box={handlers:Map<string,Holder>;marker:int;};function main():void{const old=[3];const next=[5];const box:Box={handlers:new Map<string,Holder>(),marker:23};box.handlers.set('old',{run:():int=>old[0]});box.handlers.set('next',{run:():int=>next[0]});console.log(box.handlers.size,box.marker);box.handlers.clear();old[0]=13;next[0]=17;console.log(box.handlers.size,old[0],next[0]);}","2 23\n0 13 17\n",None);
+    let source = "type Holder={run:ReadOnly<Function<int>>;};type Box={handlers:Map<string,Holder>;marker:int;};function main():void{const old=[3];const next=[5];const box:Box={handlers:new Map<string,Holder>(),marker:23};box.handlers.set('old',{run:():int=>old[0]});box.handlers.set('next',{run:():int=>next[0]});console.log(box.handlers.size,box.marker);box.handlers.clear();old[0]=13;next[0]=17;console.log(box.handlers.size,old[0],next[0]);}";
+    support::execute(source,"2 23\n0 13 17\n",None);
+    let ordered=source.replace("type Box={handlers:Map<string,Holder>;marker:int;};", "type Box={handlers:Map<string,Holder>;marker:int;label?:string;};function marker():int{console.log('initialized');return 23;}")
+        .replace("handlers:new Map<string,Holder>(),marker:23", "marker:marker(),handlers:new Map<string,Holder>()")
+        .replace("console.log(box.handlers.size,box.marker);", "console.log(box.handlers.size,box.marker,box.label===undefined);");
+    support::execute(&ordered,"initialized\n2 23 true\n0 13 17\n",None);
+
 }
 
 #[test]

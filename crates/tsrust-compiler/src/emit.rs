@@ -7173,10 +7173,13 @@ impl Emitter<'_> {
                 ..
             } => self.coalesce(fun, expr, left, right, mode),
             ExprKind::Unary {op:UnaryOp::RecordCarrier,value,..}=>{
-                let input=self.expr(fun,value,Mode::Consume);
-                let source=self.owned_record_source_type(fun,value).unwrap_or_else(||value.ty.unwrap());
-                let converted=self.record_carrier_conversion(source,expr.ty.unwrap(),"record_carrier_input");
-                let code=format!("{{let record_carrier_input={input};{converted}}}");
+                let code=if let Some(code)=self.contextual_record_carrier(fun,value,expr.ty.unwrap()) {code}
+                else {
+                    let input=self.expr(fun,value,Mode::Consume);
+                    let source=self.owned_record_source_type(fun,value).unwrap_or_else(||value.ty.unwrap());
+                    let converted=self.record_carrier_conversion(source,expr.ty.unwrap(),"record_carrier_input");
+                    format!("{{let record_carrier_input={input};{converted}}}")
+                };
                 match mode{Mode::Read=>format!("&({code})"),Mode::Mutate=>format!("&mut ({code})"),_=>code}
             }
             ExprKind::Unary {

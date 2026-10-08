@@ -294,3 +294,44 @@ are in SQLite as `tsrust-b5-populated-retained-loop-red.log`,
 `tsrust-b5-outer-record-loop-red.log` and
 `tsrust-b5-map-carrier-conversion-red.log`; loose copies were removed after
 byte-exact read-back. Existing owner fixture changes remain untouched.
+
+## Contextual nested Map initializer repaired
+
+The constructor panic isolated in `8014586` is repaired. Checked record carrier
+chains now contextualize empty Map initializers in the destination carrier.
+Record literal emission retains source initializer order, once-only evaluation
+and omitted optional fields. Values and existing owners still use ordinary
+carrier conversion; the repair introduces no runtime clone. Native examples
+verify marker initialization exactly once, reordered fields and absent labels.
+
+The affected batch passes 81 composition tests, 42 scoped-record and four
+fallible-record tests; the pending outer record-field loop witness is excluded
+from that green batch and rerun independently. It now fails native E0502 rather
+than panicking, confirming the separate lifetime boundary work. Eight normal-
+stack depth canaries and focused editor diagnostics pass. All 32 matched
+observations verify untimed on native and Node-after-tsc, record
+`runtime/results/2026-10-08T19-28-27-873Z-verify.json`. Exact failed attempts and
+passing supplements are read-back verified in SQLite under
+`tsrust-b5-map-carrier-*.log`; the remaining red native witness is
+`tsrust-b5-outer-record-loop-native-red.log`. Loose copies are removed.
+The workload's first draft used Box rather than RefillBox for its marker field;
+that draft failure is preserved separately. Project formatting changed only the
+new workload layout and its token-preserving fingerprint.
+
+Next: extend `map_loop_storage_epochs.rs` to empty owning record leaves. Resolve
+the Map leaf through the record layout, prove its initializer is empty through
+checked carrier wrappers, and retain sibling fields and key-order metadata.
+Permit independent sibling access after cleanup while preventing refills or
+whole-record transfers from bypassing the epoch proof. Preserve exact root and
+record-field disposal, zero-iteration behavior and source ownership rules.
+Retained/populated root Maps with explicit post-loop clear already pass; do not
+reimplement them or weaken the correct zero-iteration capture-conflict rule.
+
+Continuation prompt: Continue B5 from this constructor repair checkpoint. Read
+AGENTS.md, development-workflow.md and scoped-callable-aggregate-plan.md. Repair
+`outer_record_map_cleanup_releases_captures_across_iterations` (native E0502) by
+extending empty loop epochs to record leaves, with sibling and zero-iteration
+witnesses. Keep compiler/editor parity, matched workloads, independent oracles
+and mutation controls current. Preserve exact evidence in SQLite, unrelated
+fixture edits and explicit Git staging. Format the whole project before commits.
+B5, full family regressions/timing and the full compiler/editor goal remain open.
