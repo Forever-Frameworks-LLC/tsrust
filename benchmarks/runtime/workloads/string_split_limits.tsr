@@ -6,7 +6,7 @@ type Probe = {
 function workload(n: int, seed: int, input: string): string[][] {
     const pool = [clone(input), "::a::::😀::\u0000::"];
     const separators = ["::", "a", "\u0000", "missing"];
-    const limits = [0, 1, 2, 7, - 1, 4294967296, 4294967297, - 4294967297];
+    const limits = [0, 1, 2, 7, -1, 4294967296, 4294967297, -4294967297];
     const probe: Probe = {
         trace: seed % 65521, calls: 0
     };

@@ -35,10 +35,10 @@ function main() {
     strictEqual(values.size, 0);
     strictEqual(snapshot.length, 4);
 
-    const numbers = new Set<number>([NaN, NaN, - 0.0, 0.0, Infinity]);
+    const numbers = new Set<number>([NaN, NaN, -0.0, 0.0, Infinity]);
     strictEqual(numbers.size, 3);
     strictEqual(numbers.has(NaN), true);
-    strictEqual(numbers.has(- 0.0), true);
+    strictEqual(numbers.has(-0.0), true);
     strictEqual(numbers.delete(NaN), true);
     strictEqual(numbers.size, 2);
 

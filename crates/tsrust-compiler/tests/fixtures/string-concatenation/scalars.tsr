@@ -46,7 +46,7 @@ function main() {
     strictEqual("u" + maybe, "uundefined");
     const counter = [0];
     strictEqual("" + step(counter) + step(counter), "12");
-    strictEqual("x" + - 1, "x-1");
+    strictEqual("x" + -1, "x-1");
     strictEqual("big " + 1e21, "big 1e+21");
     strictEqual("nan " + NaN + " " + Infinity, "nan NaN Infinity");
     const parts = [1, 2, 3].map((value) => "#" + value);

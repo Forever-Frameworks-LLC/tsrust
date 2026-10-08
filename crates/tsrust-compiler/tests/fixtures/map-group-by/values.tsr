@@ -118,7 +118,7 @@ function main() {
         return value % 2;
     });
     strictEqual(named.size, 2);
-    const numbers: number[] = [NaN, Infinity, - 0, 0, NaN];
+    const numbers: number[] = [NaN, Infinity, -0, 0, NaN];
     const same = Map.groupBy(numbers, (value: number): number => {
         return value;
     });

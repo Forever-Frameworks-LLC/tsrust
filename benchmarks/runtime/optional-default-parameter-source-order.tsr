@@ -18,7 +18,7 @@ function choose(trace: Trace, argumentTrace: Trace): (trace: Trace, first?: int,
 }
 
 function nullable(value: int | null = 9): int {
-    return value ?? - 1;
+    return value ?? -1;
 }
 
 function front(first: int = 5, required: int): int {

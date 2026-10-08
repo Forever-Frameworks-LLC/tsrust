@@ -25,7 +25,7 @@ function makeItems(seed: int): number[] {
 }
 
 function item(seed: int, ordinal: int): number {
-    const numbers: number[] = [- 0.0, 0.0, 0.0 / 0.0, 1.0 / 0.0, - 1.0 / 0.0, Number(seed) / 4.0, - 2.5];
+    const numbers: number[] = [-0.0, 0.0, 0.0 / 0.0, 1.0 / 0.0, -1.0 / 0.0, Number(seed) / 4.0, -2.5];
     return numbers[(seed + ordinal * 3) % 7];
 }
 

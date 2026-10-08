@@ -1,5 +1,5 @@
 function item(base: int, ordinal: int, input: string): number {
-    const pool: number[] = [0.0, - 0.0, 5e-324, - 2.5, 0.5, 1.0 / 0.0, - 1.0 / 0.0, 0.0 / 0.0];
+    const pool: number[] = [0.0, -0.0, 5e-324, -2.5, 0.5, 1.0 / 0.0, -1.0 / 0.0, 0.0 / 0.0];
     return pool[(base + ordinal) % 8];
 }
 

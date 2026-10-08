@@ -18,11 +18,11 @@ function workload(n: int, seed: int): int[] {
 function index(i: int, seed: int): int {
     const c = (i + seed) % 8;
     if (c === 0) {
-        return - 6;
+        return -6;
     }
 
     if (c === 1) {
-        return - 1;
+        return -1;
     }
 
     if (c === 2) {
@@ -34,7 +34,7 @@ function index(i: int, seed: int): int {
     }
 
     if (c === 4) {
-        return - 3;
+        return -3;
     }
 
     if (c === 5) {
@@ -42,7 +42,7 @@ function index(i: int, seed: int): int {
     }
 
     if (c === 6) {
-        return - 2;
+        return -2;
     }
 
     return 1;

@@ -14,7 +14,7 @@ function example1() {
 }
 
 function example2() {
-    const values: number[] = Array.of (1, 2.5, - 0.0);
+    const values: number[] = Array.of (1, 2.5, -0.0);
     console.log(values.join("|"), 1.0 / values[2]);
 }
 

@@ -12,7 +12,7 @@ function receiver(trace: int[]): int[] {
 function main() {
     const values: int[] = [1, 2];
     const trace: int[] = [];
-    const removed = values.splice(- 1, 1, insertion(values, trace, 8), insertion(values, trace, 9));
+    const removed = values.splice(-1, 1, insertion(values, trace, 8), insertion(values, trace, 9));
     console.log(removed.join(","));
     console.log(values.join(","));
     console.log(trace.join(","));

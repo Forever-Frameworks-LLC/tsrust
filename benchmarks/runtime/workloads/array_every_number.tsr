@@ -8,11 +8,11 @@ function workload(n: int, seed: int): int[][] {
         const mode = (i + seed) % 11;
         let values: number[] = [];
         if (mode !== 0) {
-            values = [Number(base) + 0.25, 0.0 / 0.0, - 0.0, 1.0 / 0.0, - 1.0 / 0.0, 0.5, 2.25, 2.5];
+            values = [Number(base) + 0.25, 0.0 / 0.0, -0.0, 1.0 / 0.0, -1.0 / 0.0, 0.5, 2.25, 2.5];
         }
 
-        let left = - 1;
-        let right = - 1;
+        let left = -1;
+        let right = -1;
         let all = false;
         if (mode === 2) {
             left = 0;

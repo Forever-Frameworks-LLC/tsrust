@@ -19,7 +19,7 @@ function main() {
         value: 0
     });
     console.log(next(2 * 3));
-    console.log(next(- 1));
+    console.log(next(-1));
     if (next(1) >= 6 && !false) {
         console.log("ready");
     }

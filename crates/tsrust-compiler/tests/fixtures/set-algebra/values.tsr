@@ -33,7 +33,7 @@ function main() {
     strictEqual(right.difference(more).size, 3);
     strictEqual(new Set<int>().union(right).size, 3);
     strictEqual(right.symmetricDifference(right).size, 0);
-    const numbers = new Set<number>([NaN, - 0]);
+    const numbers = new Set<number>([NaN, -0]);
     const other = new Set<number>([NaN, 0, 1]);
     strictEqual(numbers.union(other).size, 3);
     strictEqual(numbers.intersection(other).size, 2);

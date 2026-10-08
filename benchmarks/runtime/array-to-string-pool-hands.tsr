@@ -15,7 +15,7 @@ function main() {
     console.log(v6.toString());
     const v7: undefined[] = [undefined, undefined, undefined];
     console.log(v7.toString());
-    const v8: number[] = [0.0, - 0.0, 0.5, - 2.5, 17.0, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY];
+    const v8: number[] = [0.0, -0.0, 0.5, -2.5, 17.0, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY];
     console.log(v8.toString());
     const v9: string[] = ["a,b", "&<>", ""];
     console.log(v9.toString());

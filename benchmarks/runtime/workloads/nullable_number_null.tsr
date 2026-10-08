@@ -1,5 +1,5 @@
 function workload(n: int, seed: int): string[] {
-    const values: number[] = [Number(seed), - 0.0, 0.5, - 2.5, 17.0, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY];
+    const values: number[] = [Number(seed), -0.0, 0.5, -2.5, 17.0, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY];
     const output: string[] = [];
     let i = 0;
     while (i < n) {

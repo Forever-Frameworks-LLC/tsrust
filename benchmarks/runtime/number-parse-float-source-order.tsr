@@ -24,7 +24,7 @@ function main() {
     console.log(Number.parseFloat(input(trace, "Infinitytail")) > 1.0e308);
     console.log(trace.code);
     trace.code = 0;
-    console.log(Number.parseFloat(input(trace, "-Infinity!")) < - 1.0e308);
+    console.log(Number.parseFloat(input(trace, "-Infinity!")) < -1.0e308);
     console.log(trace.code);
     trace.code = 0;
     console.log(Number.parseFloat(input(trace, "\uFEFF.5")) === 0.5);

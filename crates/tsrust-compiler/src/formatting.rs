@@ -295,28 +295,45 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
                     && (matches!(previous.kind, TokenKind::Number | TokenKind::String)
                         || (previous.kind == TokenKind::Name && !matches!(prev, "return" | "throw" | "typeof" | "void"))
                         || matches!(prev, ")" | "]" | "}" | "!"));
-                // `-(a)` after an operator, an opening bracket or a keyword is a sign.
+                // `-a` after an operator, an opening bracket or a keyword is a sign and
+                // binds to its operand. A postfix `++`, `--` or `!` before it ends an
+                // operand instead, so the `-` or `+` that follows is a binary operator.
+                let ends_operand = |index: usize| {
+                    let token = &real[index];
+                    match token.kind {
+                        TokenKind::Symbol => match token.text.as_str() {
+                            ")" | "]" | "}" => true,
+                            "++" | "--" | "!" => index.checked_sub(1).map(|before| &real[before]).is_some_and(|before| {
+                                matches!(before.kind, TokenKind::Number | TokenKind::String)
+                                    || (before.kind == TokenKind::Name && !matches!(before.text.as_str(), "return" | "throw" | "typeof" | "void" | "case" | "of" | "in"))
+                                    || matches!(before.text.as_str(), ")" | "]" | "}" | "!")
+                            }),
+                            _ => false,
+                        },
+                        TokenKind::Name => !matches!(token.text.as_str(), "return" | "throw" | "typeof" | "void" | "case" | "of" | "in" | "await"),
+                        _ => true,
+                    }
+                };
                 let unary_sign = previous_symbol
                     && matches!(prev, "-" | "+")
-                    && i.checked_sub(2).map(|before| &real[before]).is_none_or(|before| {
-                        (before.kind == TokenKind::Symbol && !matches!(before.text.as_str(), ")" | "]" | "}"))
-                            || (before.kind == TokenKind::Name && matches!(before.text.as_str(), "return" | "typeof" | "of" | "in"))
-                    });
+                    && i.checked_sub(2).is_none_or(|before| !ends_operand(before));
+                // `- -a` and `+ +a` keep their space: joined they would lex as `--` or `++`.
+                let sign_operand = unary_sign && !(symbol && (current.starts_with('-') || current.starts_with('+')));
                 let generic_open = symbol && current == "<" && generic(token.span.start);
                 let generic_close = symbol && matches!(current, ">" | ">>" | ">>>") && generic(token.span.start);
                 let after_generic_open = previous_symbol && prev == "<" && generic(previous.span.start);
                 let optional_parameter = symbol && current == "?" && real.get(i + 1).is_some_and(|t| t.text == ":");
-                let tight = generic_open || generic_close || after_generic_open || optional_parameter || postfix_assertion || (symbol
+                let tight = sign_operand || generic_open || generic_close || after_generic_open || optional_parameter || postfix_assertion || (symbol
                     && matches!(current, "." | "," | ";" | ")" | "]" | ":" | "++" | "--")
                     && !conditional_colon[i])
                     || (previous_symbol
-                        && matches!(prev, "." | "(" | "[" | "..." | "!" | "~" | "++" | "--"))
+                        && (matches!(prev, "." | "(" | "[" | "..." | "~") || (matches!(prev, "!" | "++" | "--") && !ends_operand(i - 1))))
                     || (symbol
                         && current == "("
                         // A call or grouped callee; an operator or keyword keeps its space.
-                        && (!previous_symbol || matches!(prev, ")" | "]" | ">" | "?.") || unary_sign)
+                        && (!previous_symbol || matches!(prev, ")" | "]" | ">" | "?.") || (prev == "!" && ends_operand(i - 1)) || unary_sign)
                         && !matches!(prev, "if" | "while" | "for" | "switch" | "catch" | "return" | "typeof" | "of" | "in" | "else" | "const" | "let" | "function" | "as" | "satisfies"))
-                    || (symbol && current == "[" && ((previous.kind == TokenKind::Name && !matches!(prev, "const" | "let" | "of" | "return" | "as" | "satisfies")) || (previous_symbol && matches!(prev, "]" | ")" | ">" | ">>" | ">>>"))))
+                    || (symbol && current == "[" && ((previous.kind == TokenKind::Name && !matches!(prev, "const" | "let" | "of" | "return" | "as" | "satisfies")) || (previous_symbol && (matches!(prev, "]" | ")" | ">" | ">>" | ">>>") || (prev == "!" && ends_operand(i - 1))))))
                     || (symbol && current == "}" && prev == "{")
                     || previous.kind == TokenKind::TemplateHead
                     || previous.kind == TokenKind::TemplateMiddle

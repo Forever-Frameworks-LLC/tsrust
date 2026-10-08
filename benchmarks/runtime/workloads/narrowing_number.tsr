@@ -1,5 +1,5 @@
 function workload(n: int, seed: int): number[] {
-    const values: number[] = [Number(seed) / 4.0, - 0.0, 0.5, - 2.5, 17.0];
+    const values: number[] = [Number(seed) / 4.0, -0.0, 0.5, -2.5, 17.0];
     const output: number[] = [];
     let i = 0;
     while (i < n) {

@@ -39,7 +39,7 @@ function main() {
     strictEqual(new Set<int>([1]).isSubsetOf(mixed), true);
     strictEqual(mixed.isDisjointFrom(new Set<string | boolean>(["one", true])), false);
     strictEqual(new Set<null | undefined>([null]).isSubsetOf(new Set<null>([null])), true);
-    const numbers = new Set<number>([NaN, - 0, 1]);
+    const numbers = new Set<number>([NaN, -0, 1]);
     strictEqual(numbers.isSubsetOf(new Set<number>([NaN, 0, 1, 2])), true);
     strictEqual(numbers.isDisjointFrom(new Set<number>([NaN])), false);
     strictEqual(new Set<int>([1]).isSubsetOf(new Set<number>([1])), true);

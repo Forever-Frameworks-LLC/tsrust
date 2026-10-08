@@ -1,5 +1,5 @@
 function workload(n: int, seed: int): number {
-    const base: number[][] = [[Number(seed) / 4.0, - 0.0], [], [0.25, 1.5], [- 2.75], [0.0]];
+    const base: number[][] = [[Number(seed) / 4.0, -0.0], [], [0.25, 1.5], [-2.75], [0.0]];
     let trace: number = Number(seed) / 4.0;
     let visits = 0;
     let i = 0;

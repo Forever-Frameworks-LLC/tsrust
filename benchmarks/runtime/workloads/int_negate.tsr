@@ -3,7 +3,7 @@ function workload(n: int, seed: int): int {
     let i = 0;
     while (i < n) {
         const left = (i * 37 + seed) % 2001 - 1000;
-        const result = - left;
+        const result = -left;
         digest = (digest * 131 + result + 1100) % 1000000007;
         i = i + 1;
     }

@@ -10,7 +10,7 @@ function workload(n: int, seed: int): number[] {
     };
     let i = 0;
     while (i < n) {
-        const selected = [mark(probe, Number(seed) + Number(i) * 0.25, 1), mark(probe, - 0.0, 2), mark(probe, 0.0 / 0.0, 3), mark(probe, 1.0 / 0.0, 4), mark(probe, - 1.0 / 0.0, 5), mark(probe, 5e-324, 6), mark(probe, 1.7976931348623157e308, 7), mark(probe, - 2.5, 8)][mark_index(probe, (i * 3 + seed) % 8)];
+        const selected = [mark(probe, Number(seed) + Number(i) * 0.25, 1), mark(probe, -0.0, 2), mark(probe, 0.0 / 0.0, 3), mark(probe, 1.0 / 0.0, 4), mark(probe, -1.0 / 0.0, 5), mark(probe, 5e-324, 6), mark(probe, 1.7976931348623157e308, 7), mark(probe, -2.5, 8)][mark_index(probe, (i * 3 + seed) % 8)];
         output.push(selected);
         i = i + 1;
     }

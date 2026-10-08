@@ -16,7 +16,7 @@ function main() {
 }
 
 function make_number(seed: int, i: int): number[] {
-    return [Number(seed) + Number(i) * 0.25, - Number(i) * 0.5, - 0.0, - 2.5];
+    return [Number(seed) + Number(i) * 0.25, -Number(i) * 0.5, -0.0, -2.5];
 }
 
 function index_for(i: int, seed: int): int {

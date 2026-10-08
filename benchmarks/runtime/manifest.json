@@ -3875,7 +3875,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
       "specification": "Build six runtime-derived int elements, perform one dynamic fill operation, append all six final elements to the natural int[] output.",
       "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
-      "sourceSha256": "366e6f1329ebc0908a2fa10c56d72d99823b69340723388f61c28391adecc2b9",
+      "sourceSha256": "07d0ef619b6a6b1ce8071fcf4ba28ec9bf76080935add830e060a713386d85a1",
       "counterpartSha256": "abe317a56a51072eddbc114817a019aa97ed76fc153baeae05ab0cf4a4c64991",
       "status": "source-only, unexecuted",
       "recordSchemas": null,
@@ -3897,7 +3897,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
       "specification": "Build six runtime-derived number elements, perform one dynamic fill operation, append all six final elements to the natural number[] output.",
       "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
-      "sourceSha256": "1495f61591dac0d1db784a3294b37555b77a155e2cc6f6db7f3da390563db70f",
+      "sourceSha256": "8a02011b74f6185bca538363d0e050b332bdbac2af7cc9f88da8f35dc071e676",
       "counterpartSha256": "6d8cb978fa5f483622d44f84b65d1507349974062693276e63e166f84635273f",
       "status": "source-only, unexecuted",
       "recordSchemas": null,
@@ -3919,7 +3919,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
       "specification": "Build six runtime-derived boolean elements, perform one dynamic fill operation, append all six final elements to the natural boolean[] output.",
       "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
-      "sourceSha256": "8df5d0a8ca0143c36acdecd0208fd5aa7b9a376b5a1546569536734615be58bc",
+      "sourceSha256": "7986d68d5eb3e4de72feb1b08bb62a8ff6dc5e98a773d1069e6f2d9f32d10dfb",
       "counterpartSha256": "e01c47ba8239f00141ae11fec46ed4d3af54b0559e164dc92cbfba47d5a370b5",
       "status": "source-only, unexecuted",
       "recordSchemas": null,
@@ -3942,7 +3942,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
       "specification": "Build six runtime-derived string elements, perform one dynamic fill operation, append all six final elements to the natural string[] output.",
       "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
-      "sourceSha256": "8a2903e1ff6be9ab2559401533b4cf185229f4fa9afe3aaa4a71b96a29c32185",
+      "sourceSha256": "5d6bc638c7afe620b51f2dc457f6a41c69923d06675d20dc4aa6ff447bb5e4b5",
       "counterpartSha256": "ab81b9f857bc2eec5b868b9cb6c19070ad23e2149818f5050ac1b69b6b6817c1",
       "status": "source-only, unexecuted",
       "inputText": " x\u00e9\ud83d\ude00e\u0301 ",
@@ -3965,7 +3965,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
       "specification": "Build six runtime-derived int[] elements, perform one dynamic fill operation, append all six final elements to the natural int[][] output.",
       "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
-      "sourceSha256": "c886cbe00a247c2763b576df6e39ae8e88c715b0de2503d9d198cd76ac795f3b",
+      "sourceSha256": "0ac0cfb82e228b66eefdc32cd4b9b78887e43eb12ba655cb45af30e11556ca2a",
       "counterpartSha256": "1a4ede31c30f3f6e5a98d212f0260b662a8a0058ab226e923d81c69108488a20",
       "status": "source-only, unexecuted",
       "recordSchemas": null,
@@ -3988,7 +3988,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
       "specification": "Build six runtime-derived Row elements, perform one dynamic fill operation, append all six final elements to the natural Row[] output.",
       "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
-      "sourceSha256": "776351d91edac7ef27672a0d343e9041624333524748a954ea4a7cf9641e156b",
+      "sourceSha256": "db7714e8fd30da96908912e6cdc35799f27db5cefbe4087d1568161c84d11c6d",
       "counterpartSha256": "1c96cfed066da6a42db1930ab710ae981958f56d409bb5a0815adc5de23b6da6",
       "status": "source-only, unexecuted",
       "inputText": " x\u00e9\ud83d\ude00e\u0301 ",
@@ -4026,7 +4026,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
       "specification": "Build six runtime-derived int[][] elements, perform one dynamic fill operation, append all six final elements to the natural int[][][] output.",
       "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
-      "sourceSha256": "c03a73b631be3e2e609db5b24b72301b8e8d21e700c977aea842ebdcc3aacb4d",
+      "sourceSha256": "cf58b2d90173509c7cdc70cefe34e631ff88af836ca47a6af92452f5cdeae3a1",
       "counterpartSha256": "b99637aaffe8b8c066db3240e6734750e72c70718fd76b25a6f4fc4c7058c4e6",
       "status": "source-only, unexecuted",
       "recordSchemas": null,
@@ -4049,7 +4049,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
       "specification": "Build six runtime-derived Node elements, perform one dynamic fill operation, append all six final elements to the natural Node[] output.",
       "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
-      "sourceSha256": "2b31a2ab90605de0dfc9a958b035d9054d0e9c820dbd41ef8aab5288c7f725a4",
+      "sourceSha256": "bd698d3e4383a5a266152f0476d8009bd5609e7f77ab0a866fc8e51eb959999d",
       "counterpartSha256": "ebfe51af3f757ef617b2edf099258914d7a76f434feba662223f3381f091170e",
       "status": "source-only, unexecuted",
       "inputText": " x\u00e9\ud83d\ude00e\u0301 ",
@@ -4089,7 +4089,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
       "specification": "Build six runtime-derived int elements, perform one dynamic copy_within operation, append all six final elements to the natural int[] output.",
       "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
-      "sourceSha256": "74463ea67a520e241dbe4820e3ffac42a03e9ac65c52e0bd7d427dc957e1e774",
+      "sourceSha256": "6ada31512e72f86632a3c652308692f7744b0e1ee19e6de64e8e4af5e41e8c5f",
       "counterpartSha256": "11a65f9d6cde46968d47fc33596bd1beae3616c1024d2fe2fe317259fa78b92b",
       "status": "source-only, unexecuted",
       "recordSchemas": null,
@@ -4111,7 +4111,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
       "specification": "Build six runtime-derived number elements, perform one dynamic copy_within operation, append all six final elements to the natural number[] output.",
       "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
-      "sourceSha256": "d89ca22800bb8f222d55b3d6e2e8db906c80cb0b48ea1ed9c261b1febf0d53d7",
+      "sourceSha256": "0c10568c15c7f03f9e5cef9cd4cadddba813ad2c81260bc9f690492fef4bfd77",
       "counterpartSha256": "e8bb2d66c7172969b82c9795a5b3cf036484fdb654c4570c96b0a375ce839d6c",
       "status": "source-only, unexecuted",
       "recordSchemas": null,
@@ -4133,7 +4133,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
       "specification": "Build six runtime-derived boolean elements, perform one dynamic copy_within operation, append all six final elements to the natural boolean[] output.",
       "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
-      "sourceSha256": "9fd7da3cd8cbebcaccbf820d7fce80d1f5f9a22f51d51f4a672962ed39388471",
+      "sourceSha256": "a7eb2e7d4653911d16191932d14413eeae53ea38009573b5559e3a77f86c798a",
       "counterpartSha256": "8db2de78a958f6e8353cd0fb769ceadfcfc0208ca11e23b9ff73a8919c4bfc9c",
       "status": "source-only, unexecuted",
       "recordSchemas": null,
@@ -4156,7 +4156,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
       "specification": "Build six runtime-derived string elements, perform one dynamic copy_within operation, append all six final elements to the natural string[] output.",
       "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
-      "sourceSha256": "aeda8f95a373ce97fba26c65ad40e41314fa5ed2edab18846cce393637dc0630",
+      "sourceSha256": "0b80969f160114e509960150f3e15add582de559dca185ebb3edf34fd60c70f8",
       "counterpartSha256": "71e5870c23f7f15f22b98f93f1a78086cf8f463a6b61b0ef2f9f00918553135c",
       "status": "source-only, unexecuted",
       "inputText": " x\u00e9\ud83d\ude00e\u0301 ",
@@ -4179,7 +4179,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
       "specification": "Build six runtime-derived int[] elements, perform one dynamic copy_within operation, append all six final elements to the natural int[][] output.",
       "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
-      "sourceSha256": "78844e2c77bdb1fc91fb5fd7e86460ea282307996390cced24056c5382958ab6",
+      "sourceSha256": "a8623d5c436ecdbbf17702cf3a3fc372a48e64ca7400bab2e2e948380c2fd5a5",
       "counterpartSha256": "754a6c1a92ec8e7da3609ba05da493eaf35b84cf2efefef4334f4f5b7881612d",
       "status": "source-only, unexecuted",
       "recordSchemas": null,
@@ -4202,7 +4202,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
       "specification": "Build six runtime-derived Row elements, perform one dynamic copy_within operation, append all six final elements to the natural Row[] output.",
       "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
-      "sourceSha256": "b5f938ae504e914d29818f3890e904904ac329c145ccfcb234515bb8643529c9",
+      "sourceSha256": "b92a9e8a2fe16aa8fafe7cba923ba579346810b56550405b5f0fa853135dd347",
       "counterpartSha256": "f3417c3b8600f894b6a043a276f8642ad40807c78f7ebde37205dcbea5e0540b",
       "status": "source-only, unexecuted",
       "inputText": " x\u00e9\ud83d\ude00e\u0301 ",
@@ -4240,7 +4240,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
       "specification": "Build six runtime-derived int[][] elements, perform one dynamic copy_within operation, append all six final elements to the natural int[][][] output.",
       "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
-      "sourceSha256": "25803f8de18e2f16542fdb364517f9708fc2f12ee2f37895bc67eea2cae8759d",
+      "sourceSha256": "73d2619800249573732e5e153e605a6f585f0dff77f9f622d4d93c1f5ac3091d",
       "counterpartSha256": "cbe6dc4500588e5cd02a8edd8181357a22edf423aac2815c598ec68da60b453e",
       "status": "source-only, unexecuted",
       "recordSchemas": null,
@@ -4263,7 +4263,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, range operands, one mutation, and retained complete six-element content",
       "specification": "Build six runtime-derived Node elements, perform one dynamic copy_within operation, append all six final elements to the natural Node[] output.",
       "notes": "Native owned fill and copyWithin deep-copy storage; JavaScript shares references. Subsequent source mutation does not occur, so complete values/order compare directly. Receiver setup, replacement construction and explicit output clones are included; output observation is outside timing. Omitted bounds, reversed/clamped/no-op ranges and both overlap directions vary with (i+seed)%8.",
-      "sourceSha256": "63b6cd4cc4ea98ba6b4cf858e08300595f287462215afaecaee7e42ecc8f59aa",
+      "sourceSha256": "87b236f3ad883624da80269ecda831f8ab90d8c137965567fb00d2b47454e0a4",
       "counterpartSha256": "79294acfcfc9fbc92a51910b69cc0f98e7c44ef0fa3e459659b6c1c147604650",
       "status": "source-only, unexecuted",
       "inputText": " x\u00e9\ud83d\ude00e\u0301 ",
@@ -4323,7 +4323,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
       "specification": "Construct six runtime-derived number elements, perform one to_reversed operation, retain complete ordered natural output.",
       "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
-      "sourceSha256": "a8cb3ef39ae6539390869c53f4592417828de99282e080a9d0871360516de4cf",
+      "sourceSha256": "ebf030cd9179515d38e2a8728958f2be3d4c9b2f0b0a81a48453050fea242b45",
       "counterpartSha256": "3af12b243cdbcde18fad796b34045762edf7aa3fae09aedd8d59cbfdd38950f2",
       "status": "source-only, execution pending"
     },
@@ -4504,7 +4504,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
       "specification": "Construct six runtime-derived int elements, perform one with operation, retain complete ordered natural output.",
       "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
-      "sourceSha256": "fc6a99f284b185ca95c013cb5fc2becbf31cca05ec8dac82ef48396dde6f062b",
+      "sourceSha256": "ac88cb66fa3198682a88807852d5c3169d76cdc5bb095276b64a71c6925b9677",
       "counterpartSha256": "8ae09b67c95d0e4e372acf3ffe590ff6f6c5aaec732d3eca65f7349e96a57f69",
       "status": "source-only, execution pending"
     },
@@ -4524,7 +4524,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
       "specification": "Construct six runtime-derived number elements, perform one with operation, retain complete ordered natural output.",
       "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
-      "sourceSha256": "a8240946d9b6a33f144b1fcfb13066a20c10871dc69e21b26eea1d4d82008ad6",
+      "sourceSha256": "a65a5da54c0eed8687a9298d9823d9ab7afe6a030db9ccdc86f3d37a2cbccdef",
       "counterpartSha256": "1d1a4067bf49ea51bb48bcd366bc77dbb00df74430ffecbb38f855fc22fb77d9",
       "status": "source-only, execution pending"
     },
@@ -4544,7 +4544,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
       "specification": "Construct six runtime-derived boolean elements, perform one with operation, retain complete ordered natural output.",
       "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
-      "sourceSha256": "051937bc2ee5b50b307f26931841fcf97b350d8db20269ae9fca2cbed2d4eebc",
+      "sourceSha256": "26c90a541a85a238ceade0277ec66a38855e85d3323b4b778f22ed0b15b042f9",
       "counterpartSha256": "554a7a875be2cf75c829feabb4ddcaf9c2615e84313587d24f8392abce68e895",
       "status": "source-only, execution pending"
     },
@@ -4565,7 +4565,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
       "specification": "Construct six runtime-derived string elements, perform one with operation, retain complete ordered natural output.",
       "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
-      "sourceSha256": "9641e7f485e38fd1c28f23536d172a9c1e4d5322d0c0a2775f17c9e175f64319",
+      "sourceSha256": "9a4750767ccbfa368a69ee411034307cd6717871eb7e61e41982d5fc20542723",
       "counterpartSha256": "32bd91d5818559e7c26a3bc5aecf0ff4cd721d8155fbfcc1b0d799cfac027cd1",
       "status": "source-only, execution pending",
       "inputText": " x\u00e9\ud83d\ude00e\u0301 "
@@ -4586,7 +4586,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
       "specification": "Construct six runtime-derived nested elements, perform one with operation, retain complete ordered natural output.",
       "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
-      "sourceSha256": "04886a6714305d92c6dfbff51589d6940750947d624452a42735c0e36aec12f1",
+      "sourceSha256": "2e3862a473d7c2a332756d5f135cedab28673f262f0519375149eedd2a19641f",
       "counterpartSha256": "d06d72de0d6eceb2147a283a7e28f5d963378a0cbae134b2ffe60c8f23cb28ff",
       "status": "source-only, execution pending"
     },
@@ -4607,7 +4607,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
       "specification": "Construct six runtime-derived record elements, perform one with operation, retain complete ordered natural output.",
       "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
-      "sourceSha256": "e149643f3ce992f143d6e219bd7ab614ad8a733678a9f64b032663f340e46519",
+      "sourceSha256": "88b1b57954ca575ac9046a1b1985267b86d906e1640d1f9f86f9d555dd15bc6d",
       "counterpartSha256": "fa800557deae1ee8b1000049c840890f529366ccf53f550446370972f3ad7814",
       "status": "source-only, execution pending",
       "inputText": " x\u00e9\ud83d\ude00e\u0301 ",
@@ -4644,7 +4644,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
       "specification": "Construct six runtime-derived deep elements, perform one with operation, retain complete ordered natural output.",
       "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
-      "sourceSha256": "780a86d2053eae21b9cdbeb639c6cabbd0d7c5aaf953c5907bd240f16cf58ff4",
+      "sourceSha256": "21b43bf001b52b06445fe9fcca0b4473bf8ad628886a6c6749b86f0c8095bd5a",
       "counterpartSha256": "97e466d7791f99d22c3ca7f785afbbb483ee8c291cf7dd32bc0c3e3e74a0f20a",
       "status": "source-only, execution pending"
     },
@@ -4665,7 +4665,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, replacement construction when applicable, and retaining all six result elements",
       "specification": "Construct six runtime-derived recursive elements, perform one with operation, retain complete ordered natural output.",
       "notes": "Native owned array results independently clone descendants; JavaScript shares descendants. No later alias mutation occurs in this benchmark. Replacement transfers into the native result. Receiver setup and retained output clones are included. Complete output observation is outside timing.",
-      "sourceSha256": "afb384ce664572a0e1aabea855dc58593c95679dc3da265ac2aeca41d826bd1d",
+      "sourceSha256": "3f6d8d940fe593cf566c61dcadb20fb5dd8556c8f9a6eade186d7d6dd8529ff0",
       "counterpartSha256": "c43a630aca22615d1baad28f6b0b425362c734542fc76dca56ccf9cd1d11a6c1",
       "status": "source-only, execution pending",
       "inputText": " x\u00e9\ud83d\ude00e\u0301 ",
@@ -4705,7 +4705,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, inserted value construction when applicable, and retaining the whole result array",
       "specification": "Copy six runtime-derived int elements with zero/one/two bounds and zero through three inserted values; retain each complete natural result array.",
       "notes": "Receiver setup, inserted value construction and whole result ownership transfer into retained output are timed. Native owned descendants copy independently; JavaScript shares references. No later alias mutation is compared. Complete observations run outside timing.",
-      "sourceSha256": "f297934d468a35b9441f641a27d6f63991d8036e6139f139da49602fff2ac272",
+      "sourceSha256": "95ca713d6606e766954c6631f9b83c025bb556160fc399744d4004702ef02925",
       "counterpartSha256": "f514d4f376769f85decb37e8f5977fd9a2f0a4b0dd6c51d6c9d4c18d9be2eb27"
     },
     {
@@ -4724,7 +4724,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, inserted value construction when applicable, and retaining the whole result array",
       "specification": "Copy six runtime-derived number elements with zero/one/two bounds and zero through three inserted values; retain each complete natural result array.",
       "notes": "Receiver setup, inserted value construction and whole result ownership transfer into retained output are timed. Native owned descendants copy independently; JavaScript shares references. No later alias mutation is compared. Complete observations run outside timing.",
-      "sourceSha256": "c65ee9d12e1a81dc39a77ed99fc0ea4751d4bfdf0aed90673e715001ee0d7938",
+      "sourceSha256": "a7657dac32c2e6516bc9e0e3296b3502446be9465ed5c0ef68f9b114737114d4",
       "counterpartSha256": "144da4d3d771890c60ddd75c6b87976c9f7bce3260cec9d929fbb4fb450b1142"
     },
     {
@@ -4743,7 +4743,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, inserted value construction when applicable, and retaining the whole result array",
       "specification": "Copy six runtime-derived boolean elements with zero/one/two bounds and zero through three inserted values; retain each complete natural result array.",
       "notes": "Receiver setup, inserted value construction and whole result ownership transfer into retained output are timed. Native owned descendants copy independently; JavaScript shares references. No later alias mutation is compared. Complete observations run outside timing.",
-      "sourceSha256": "5d8410149aba11e0db6281b57510fe0099c4516e39946ac284cc16190270a3f7",
+      "sourceSha256": "6d7619df47cbe5de1b3224cc161c36bf30cb775127e178bfa1ec9fd77101c1aa",
       "counterpartSha256": "514f884d82c9c30244dc752fcb6e500ed50d62b39797bdad464ec938e8d65715"
     },
     {
@@ -4763,7 +4763,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, inserted value construction when applicable, and retaining the whole result array",
       "specification": "Copy six runtime-derived string elements with zero/one/two bounds and zero through three inserted values; retain each complete natural result array.",
       "notes": "Receiver setup, inserted value construction and whole result ownership transfer into retained output are timed. Native owned descendants copy independently; JavaScript shares references. No later alias mutation is compared. Complete observations run outside timing.",
-      "sourceSha256": "8d16dd4d0785121fb6117657b3ca914056c22b54c8d6bfe4390c94194846afc4",
+      "sourceSha256": "d30a8365994c7ac92ceedb0ecbedc47e30927b3a043d648eb2c026a934a8a96b",
       "counterpartSha256": "71b367fc04dc60b0687bcabb6f6b43bf5cf51c692c38d59a98550dfc7c9b0c70",
       "inputText": " x\u00e9\ud83d\ude00e\u0301 "
     },
@@ -4783,7 +4783,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, inserted value construction when applicable, and retaining the whole result array",
       "specification": "Copy six runtime-derived nested elements with zero/one/two bounds and zero through three inserted values; retain each complete natural result array.",
       "notes": "Receiver setup, inserted value construction and whole result ownership transfer into retained output are timed. Native owned descendants copy independently; JavaScript shares references. No later alias mutation is compared. Complete observations run outside timing.",
-      "sourceSha256": "cd642c34fa559de7132124e0740b12290ab90997181503e154bb557c911b503c",
+      "sourceSha256": "8c68d31de4a3cd11c28e488ade8ae3359422414fc6b40cc98fb3e1f29810b4aa",
       "counterpartSha256": "6d70444894f8ee45ed7e27eae2390aecd7247fcbb17c5da2158a50742f333450"
     },
     {
@@ -4803,7 +4803,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, inserted value construction when applicable, and retaining the whole result array",
       "specification": "Copy six runtime-derived record elements with zero/one/two bounds and zero through three inserted values; retain each complete natural result array.",
       "notes": "Receiver setup, inserted value construction and whole result ownership transfer into retained output are timed. Native owned descendants copy independently; JavaScript shares references. No later alias mutation is compared. Complete observations run outside timing.",
-      "sourceSha256": "70f606deb0ddce3b39889c032c1df254d1bdde895d06b6ea8c5e18c4668a4f7c",
+      "sourceSha256": "b13411898c67aa7c4af384425ac97ad1eb919f58dd86301f26595e4a8022bbeb",
       "counterpartSha256": "aa2db15d464429ed34b7dcc22d4c8c736dc81a1934578ca99cc9dca0a4bfe488",
       "inputText": " x\u00e9\ud83d\ude00e\u0301 ",
       "recordSchemas": {
@@ -4839,7 +4839,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, inserted value construction when applicable, and retaining the whole result array",
       "specification": "Copy six runtime-derived deep elements with zero/one/two bounds and zero through three inserted values; retain each complete natural result array.",
       "notes": "Receiver setup, inserted value construction and whole result ownership transfer into retained output are timed. Native owned descendants copy independently; JavaScript shares references. No later alias mutation is compared. Complete observations run outside timing.",
-      "sourceSha256": "fef9f355a5924aa91d00d9977d74bedb166bbcd42e08d69f3be6f990edd490d2",
+      "sourceSha256": "d415789e98af3379aef176ef913c4417dd0cb3fa0104a8e2a429839fa124b214",
       "counterpartSha256": "48144ad639ab8f3d6297497a13065a6fd52a846993409841866a468032599801"
     },
     {
@@ -4859,7 +4859,7 @@
       "operationUnit": "complete iteration including fresh six-element receiver, one copying operation, inserted value construction when applicable, and retaining the whole result array",
       "specification": "Copy six runtime-derived recursive elements with zero/one/two bounds and zero through three inserted values; retain each complete natural result array.",
       "notes": "Receiver setup, inserted value construction and whole result ownership transfer into retained output are timed. Native owned descendants copy independently; JavaScript shares references. No later alias mutation is compared. Complete observations run outside timing.",
-      "sourceSha256": "ea96d5e174d56a71e9fe3f79f8631f14797d065e467efc7afe9ba43eb82c892e",
+      "sourceSha256": "172caa474a73682c83ad5e325f2c045611433712201c470351dd6f48cedce1d1",
       "counterpartSha256": "bbb47e1e739b66188962f47bcd56f7ec7af956b6f323b2e8fe1bc49ca4700827",
       "inputText": " x\u00e9\ud83d\ude00e\u0301 ",
       "recordSchemas": {
@@ -4919,7 +4919,7 @@
       "operationUnit": "complete search iteration including needle and bound selection and retaining index + 1; the 129-element receiver is built once per workload invocation",
       "specification": "Search a 129-element runtime-derived number receiver with omitted fromIndex. Retain every index as index + 1, a lossless encoding of -1 through 128 into 0 through 129.",
       "notes": "Receiver setup, query support, one lastIndexOf call and complete index output retention are timed. Complete tree encoding runs outside timing. This measures complete search iterations rather than isolated-call latency.",
-      "sourceSha256": "fe670131c9184808689556bc49904ae3f574aec2b225aacb5368b824943572e0",
+      "sourceSha256": "3cdc9069de4c16d0644aa0dd19685421fc0550641a96f12890de759ba5202a7a",
       "counterpartSha256": "f1209c526ebe96e3760888ddf4ff2160a2a2fe668ea2c77edb5d230f5cdd852d"
     },
     {
@@ -4960,7 +4960,7 @@
       "operationUnit": "complete search iteration including needle and bound selection and retaining index + 1; the 129-element receiver is built once per workload invocation",
       "specification": "Search a 129-element runtime-derived string receiver with omitted fromIndex. Retain every index as index + 1, a lossless encoding of -1 through 128 into 0 through 129.",
       "notes": "Receiver setup, query support, one lastIndexOf call and complete index output retention are timed. Complete tree encoding runs outside timing. This measures complete search iterations rather than isolated-call latency. Native string setup owns independent copies while JavaScript may share immutable references; equal allocation is not claimed.",
-      "sourceSha256": "3b1616398f49a42bd68d640b2068e7d4c90e1ced61dc9a43a69169aeed3c25e3",
+      "sourceSha256": "9344cc1a9d5a07473515811da98b74921ec27d8278278bf881a2605901966ede",
       "counterpartSha256": "9e25e04719a935df6ec9579d85921c829e9a63dc2161a40ec90989efd51c92f5",
       "inputText": " x\u00e9\ud83d\ude00e\u0301 "
     },
@@ -4981,7 +4981,7 @@
       "operationUnit": "complete search iteration including needle and bound selection and retaining index + 1; the 129-element receiver is built once per workload invocation",
       "specification": "Search a 129-element runtime-derived int receiver with signed extreme, negative, zero, in-range and beyond-end fromIndex. Retain every index as index + 1, a lossless encoding of -1 through 128 into 0 through 129.",
       "notes": "Receiver setup, query support, one lastIndexOf call and complete index output retention are timed. Complete tree encoding runs outside timing. This measures complete search iterations rather than isolated-call latency.",
-      "sourceSha256": "250488adbb07f38ad23b1d09d319b446635957200460a6e993c4396d730f6698",
+      "sourceSha256": "6c75607af75933f2f069ed27884e67ca79bd6be32368d929be3f8a64ea6b7e55",
       "counterpartSha256": "1150e1c1d6d293db8534ed04cfca7c6cecf9ab719766cc3a63ee15680a9f0d1a"
     },
     {
@@ -5001,7 +5001,7 @@
       "operationUnit": "complete search iteration including needle and bound selection and retaining index + 1; the 129-element receiver is built once per workload invocation",
       "specification": "Search a 129-element runtime-derived number receiver with signed extreme, negative, zero, in-range and beyond-end fromIndex. Retain every index as index + 1, a lossless encoding of -1 through 128 into 0 through 129.",
       "notes": "Receiver setup, query support, one lastIndexOf call and complete index output retention are timed. Complete tree encoding runs outside timing. This measures complete search iterations rather than isolated-call latency.",
-      "sourceSha256": "3ff477799335e769f7d8fe50b3f011adf5ee04d6e2e605d10ad3d5da44977dd7",
+      "sourceSha256": "03f573e57ddc3cc82760aa2d6945458709963fac21b588cb3fedc5bc23afb76f",
       "counterpartSha256": "9b046301d0ec468da43d8ecf0a7920008f62b27b5ca2f5f0e5e76fe1acbd350d"
     },
     {
@@ -5021,7 +5021,7 @@
       "operationUnit": "complete search iteration including needle and bound selection and retaining index + 1; the 129-element receiver is built once per workload invocation",
       "specification": "Search a 129-element runtime-derived boolean receiver with signed extreme, negative, zero, in-range and beyond-end fromIndex. Retain every index as index + 1, a lossless encoding of -1 through 128 into 0 through 129.",
       "notes": "Receiver setup, query support, one lastIndexOf call and complete index output retention are timed. Complete tree encoding runs outside timing. This measures complete search iterations rather than isolated-call latency.",
-      "sourceSha256": "10bc8bdf78c823be5bf94d234213e16b326b0a02b4547a05f9fc964e192be612",
+      "sourceSha256": "b7e119d1dc9c0ff164e448c54cd36e8019c4a6b022be6d1b2fd1e6b8114da4aa",
       "counterpartSha256": "794965b9d844f98127768ec9169fdf8085ae99491d5cc2dd20a70e64f83a3292"
     },
     {
@@ -5042,7 +5042,7 @@
       "operationUnit": "complete search iteration including needle and bound selection and retaining index + 1; the 129-element receiver is built once per workload invocation",
       "specification": "Search a 129-element runtime-derived string receiver with signed extreme, negative, zero, in-range and beyond-end fromIndex. Retain every index as index + 1, a lossless encoding of -1 through 128 into 0 through 129.",
       "notes": "Receiver setup, query support, one lastIndexOf call and complete index output retention are timed. Complete tree encoding runs outside timing. This measures complete search iterations rather than isolated-call latency. Native string setup owns independent copies while JavaScript may share immutable references; equal allocation is not claimed.",
-      "sourceSha256": "66869deed128854d7b14b2c42ff1eed1a052d0dded0e68511d96aae1f02f4e2f",
+      "sourceSha256": "86ac5f03bb06ee9a42d95ded2f8ab667a8126af5483bb3bd9c1a9b571d906d1d",
       "counterpartSha256": "865a16147902880c35e43f7ef82b4c9f434a1a1b50134ac1dc66ad6ba03874ed",
       "inputText": " x\u00e9\ud83d\ude00e\u0301 "
     },
@@ -5109,7 +5109,7 @@
       "operationUnit": "complete reverse-search iteration including needle and position selection and retaining byte index + 1; setup runs once per workload invocation",
       "specification": "Find the greatest ascii substring match start at or before a signed-clamped, dynamically valid UTF8 byte boundary. Retain every byte index as index + 1, including misses. Empty needles return the selected position; overlapping matches remain visible.",
       "notes": "Needle pool setup, reverse search, selection and complete result retention are timed. The bounded position pool performs six fixed indexOf support searches once per invocation. ASCII byte offsets equal UTF16 offsets, so the TypeScript counterpart directly calls actual String.lastIndexOf with the same position pool and no coordinate bridge. Complete observation runs outside timing. These are complete iterations, not isolated-call latency or allocation-parity measurements.",
-      "sourceSha256": "e503656c9884aca84fbb37342750c42ac41d941ec3bee709245aeec97b68feb8",
+      "sourceSha256": "816f77da0719a0c1703c4b5e698769c30e7f35e9e01ec563a0c0e8b158a77a16",
       "counterpartSha256": "b014fa8922441c22e2f8b6b536d20f3a139fe9e9d184685b0d3f524ef84816fb"
     },
     {
@@ -5131,7 +5131,7 @@
       "operationUnit": "complete reverse-search iteration including needle and position selection and retaining byte index + 1; setup runs once per workload invocation",
       "specification": "Find the greatest unicode substring match start at or before a signed-clamped, dynamically valid UTF8 byte boundary. Retain every byte index as index + 1, including misses. Empty needles return the selected position; overlapping matches remain visible.",
       "notes": "Needle pool setup, reverse search, selection and complete result retention are timed. The bounded position pool performs six fixed indexOf support searches once per invocation. The TypeScript counterpart calls actual String.lastIndexOf and includes standard UTF8/UTF16 coordinate mapping setup and lookup costs. Complete observation runs outside timing. These are complete iterations, not isolated-call latency or allocation-parity measurements.",
-      "sourceSha256": "e45b7f55abc6901c073e179adcee713e8efdaa89c6c0997fa7bb15b4aa4ebe68",
+      "sourceSha256": "6e12e5eb131ddc91e5be5dc5f3a2e94984284f351eb7bd76da22f915c9ed9300",
       "counterpartSha256": "575dd220c4c2a95834e019d3ceb1b03e7e31015c81f1b358e2e50b4d5b0aaacf"
     },
     {
@@ -5511,7 +5511,7 @@
       "operationUnit": "one actual += assignment with complete retained result",
       "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual number compound assignment, and retain every complete primitive result in order. Arithmetic timing operands are exact quarters with nonzero power-of-two divisors; bitwise and shifts use the accepted bounded exact integer conversion tables.",
       "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact IEEE content and shape observation runs outside timing, preserving signed zero and canonical NaN. Arithmetic timing values are exact quarters with nonzero power-of-two divisors; power is restricted to exactly represented positive integer powers from 1 through 8. Bitwise and shifts reuse the accepted ToInt32/ToUint32 and count-modulo-32 contracts. No approximate exponentiation or isolated-call claim.",
-      "sourceSha256": "92cb9e9877baef7358081a9f6d046f7410d2837a88cbde33a4b927187f6f11a9",
+      "sourceSha256": "41f8515cb8166edae5d23d71c970aa113a92c6c1f39e7a02e395e571791bdf34",
       "counterpartSha256": "4366e8ee6758e76f9b552a4fce22e1d39d7ca29e09d0cdd90c8d555cdbaa9e63"
     },
     {
@@ -5531,7 +5531,7 @@
       "operationUnit": "one actual -= assignment with complete retained result",
       "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual number compound assignment, and retain every complete primitive result in order. Arithmetic timing operands are exact quarters with nonzero power-of-two divisors; bitwise and shifts use the accepted bounded exact integer conversion tables.",
       "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact IEEE content and shape observation runs outside timing, preserving signed zero and canonical NaN. Arithmetic timing values are exact quarters with nonzero power-of-two divisors; power is restricted to exactly represented positive integer powers from 1 through 8. Bitwise and shifts reuse the accepted ToInt32/ToUint32 and count-modulo-32 contracts. No approximate exponentiation or isolated-call claim.",
-      "sourceSha256": "22588c5483691e3f54e2205c579bee9e3af7e0f4ab592b722de1b0f53d5b4237",
+      "sourceSha256": "8abbf9f8d06f022ce90706dd3e8393c3fa4578ad789c1fabea18c1f52830cd7d",
       "counterpartSha256": "159bc77da4231b80ec5443bd74131e80d2e7dbf4086c245ec3cbd770f4f7d46b"
     },
     {
@@ -5551,7 +5551,7 @@
       "operationUnit": "one actual *= assignment with complete retained result",
       "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual number compound assignment, and retain every complete primitive result in order. Arithmetic timing operands are exact quarters with nonzero power-of-two divisors; bitwise and shifts use the accepted bounded exact integer conversion tables.",
       "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact IEEE content and shape observation runs outside timing, preserving signed zero and canonical NaN. Arithmetic timing values are exact quarters with nonzero power-of-two divisors; power is restricted to exactly represented positive integer powers from 1 through 8. Bitwise and shifts reuse the accepted ToInt32/ToUint32 and count-modulo-32 contracts. No approximate exponentiation or isolated-call claim.",
-      "sourceSha256": "a04455dabdc4f78d22c30b53ae05720f97cb0efd686bd837f64c450bcfd5ba38",
+      "sourceSha256": "6a446307035e699daa56f82fcb8e47bb7a974f1117850450218b1c9b7bad0779",
       "counterpartSha256": "cddc7a268614987aee173c1b18e6ff6dd02e2eb0b3959a6b5bb8e6673d0f9036"
     },
     {
@@ -5571,7 +5571,7 @@
       "operationUnit": "one actual /= assignment with complete retained result",
       "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual number compound assignment, and retain every complete primitive result in order. Arithmetic timing operands are exact quarters with nonzero power-of-two divisors; bitwise and shifts use the accepted bounded exact integer conversion tables.",
       "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact IEEE content and shape observation runs outside timing, preserving signed zero and canonical NaN. Arithmetic timing values are exact quarters with nonzero power-of-two divisors; power is restricted to exactly represented positive integer powers from 1 through 8. Bitwise and shifts reuse the accepted ToInt32/ToUint32 and count-modulo-32 contracts. No approximate exponentiation or isolated-call claim.",
-      "sourceSha256": "4ccf3b402449f4093e9ee5795e4692885426a2042089bf31c7d6fc6dd5414487",
+      "sourceSha256": "32f367f3e1c951b7db3923097564d9cfb3c0d72d24b8961c667ff6648ac83d77",
       "counterpartSha256": "1df3668ce765bfc0c7c466ebbbf20b8dd0a6d0f55653367c392c2d4a9d72d83c"
     },
     {
@@ -5591,7 +5591,7 @@
       "operationUnit": "one actual %= assignment with complete retained result",
       "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual number compound assignment, and retain every complete primitive result in order. Arithmetic timing operands are exact quarters with nonzero power-of-two divisors; bitwise and shifts use the accepted bounded exact integer conversion tables.",
       "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact IEEE content and shape observation runs outside timing, preserving signed zero and canonical NaN. Arithmetic timing values are exact quarters with nonzero power-of-two divisors; power is restricted to exactly represented positive integer powers from 1 through 8. Bitwise and shifts reuse the accepted ToInt32/ToUint32 and count-modulo-32 contracts. No approximate exponentiation or isolated-call claim.",
-      "sourceSha256": "41b5f6b8d915de0cf336f7db1678d0fff90329ee524da8b795828ad6cbb70011",
+      "sourceSha256": "9bb22c8d4133e986a0b3014b0eb44372a175004696f22c8e5263dda0e0831168",
       "counterpartSha256": "b9a14564c960ce59f061e0d92dda11452679fb1cd60cf98085120854bf0c0c02"
     },
     {
@@ -5631,7 +5631,7 @@
       "operationUnit": "one actual &= assignment with complete retained result",
       "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual number compound assignment, and retain every complete primitive result in order. Arithmetic timing operands are exact quarters with nonzero power-of-two divisors; bitwise and shifts use the accepted bounded exact integer conversion tables.",
       "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact IEEE content and shape observation runs outside timing, preserving signed zero and canonical NaN. Arithmetic timing values are exact quarters with nonzero power-of-two divisors; power is restricted to exactly represented positive integer powers from 1 through 8. Bitwise and shifts reuse the accepted ToInt32/ToUint32 and count-modulo-32 contracts. No approximate exponentiation or isolated-call claim.",
-      "sourceSha256": "6e40af5720a89ce1d3efdd46933e7e09830c8d8b06a9d7f4d16841b6d7475311",
+      "sourceSha256": "8e3a1586a6c93ccd555143a1fc9c904619dea5fdb53e9e188373e8ddfc692116",
       "counterpartSha256": "087396f679b26c958663246d69f10ceea73878d4845f93c2b067d97bb08efcb6"
     },
     {
@@ -5651,7 +5651,7 @@
       "operationUnit": "one actual |= assignment with complete retained result",
       "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual number compound assignment, and retain every complete primitive result in order. Arithmetic timing operands are exact quarters with nonzero power-of-two divisors; bitwise and shifts use the accepted bounded exact integer conversion tables.",
       "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact IEEE content and shape observation runs outside timing, preserving signed zero and canonical NaN. Arithmetic timing values are exact quarters with nonzero power-of-two divisors; power is restricted to exactly represented positive integer powers from 1 through 8. Bitwise and shifts reuse the accepted ToInt32/ToUint32 and count-modulo-32 contracts. No approximate exponentiation or isolated-call claim.",
-      "sourceSha256": "1e3fad54afac05a20dffdb3b044ab54629ba58ce24b12f6a0b0e1147b24d9f95",
+      "sourceSha256": "205613383a901d1a6539827bd89a42451bd1d2af517fdc1546317fb724d7a3de",
       "counterpartSha256": "2c3f2626dfe87221a54ee05ed308855dda379aaf7eb4fe65fb4c4c084c7ca24e"
     },
     {
@@ -5671,7 +5671,7 @@
       "operationUnit": "one actual ^= assignment with complete retained result",
       "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual number compound assignment, and retain every complete primitive result in order. Arithmetic timing operands are exact quarters with nonzero power-of-two divisors; bitwise and shifts use the accepted bounded exact integer conversion tables.",
       "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact IEEE content and shape observation runs outside timing, preserving signed zero and canonical NaN. Arithmetic timing values are exact quarters with nonzero power-of-two divisors; power is restricted to exactly represented positive integer powers from 1 through 8. Bitwise and shifts reuse the accepted ToInt32/ToUint32 and count-modulo-32 contracts. No approximate exponentiation or isolated-call claim.",
-      "sourceSha256": "30ee4ebfbccd277dbbb2b841668d4628041b57580854fadd57fcae6afffacc80",
+      "sourceSha256": "2c1321a5dfefd44b318e18b074e5f699e2c078d3dc73d2bf09908283d0105669",
       "counterpartSha256": "8c4b6f79b24aab0f4aa510b50af16f21518e893af865b92a250044664e50686e"
     },
     {
@@ -5691,7 +5691,7 @@
       "operationUnit": "one actual <<= assignment with complete retained result",
       "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual number compound assignment, and retain every complete primitive result in order. Arithmetic timing operands are exact quarters with nonzero power-of-two divisors; bitwise and shifts use the accepted bounded exact integer conversion tables.",
       "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact IEEE content and shape observation runs outside timing, preserving signed zero and canonical NaN. Arithmetic timing values are exact quarters with nonzero power-of-two divisors; power is restricted to exactly represented positive integer powers from 1 through 8. Bitwise and shifts reuse the accepted ToInt32/ToUint32 and count-modulo-32 contracts. No approximate exponentiation or isolated-call claim.",
-      "sourceSha256": "542a9a4390c8657a5fdb30681678b54bdb5cadb823a7c1d166d94b761dc15e60",
+      "sourceSha256": "8e29806e4c71ccae138b97aba54f4b907512b3656052aa8aae579449be45ece2",
       "counterpartSha256": "0d9d4861b2f8398e52edc3347fd82e8ff112c9fc661ed0c8b1e01fccc2f94f8d"
     },
     {
@@ -5711,7 +5711,7 @@
       "operationUnit": "one actual >>= assignment with complete retained result",
       "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual number compound assignment, and retain every complete primitive result in order. Arithmetic timing operands are exact quarters with nonzero power-of-two divisors; bitwise and shifts use the accepted bounded exact integer conversion tables.",
       "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact IEEE content and shape observation runs outside timing, preserving signed zero and canonical NaN. Arithmetic timing values are exact quarters with nonzero power-of-two divisors; power is restricted to exactly represented positive integer powers from 1 through 8. Bitwise and shifts reuse the accepted ToInt32/ToUint32 and count-modulo-32 contracts. No approximate exponentiation or isolated-call claim.",
-      "sourceSha256": "2b01bf83dc21f61935d5f110bda3228b05b2d0c576cc6e7647abe71cddf1fae6",
+      "sourceSha256": "f6f84c19c5521f88b6a58f6009d2bb58416a3a8bab1a64e915c44888dd7fc5d1",
       "counterpartSha256": "a4081e26ace1e4fd5b280ae929af0d9a8a5e12cef8c9b0c767922e9150560ca8"
     },
     {
@@ -5731,7 +5731,7 @@
       "operationUnit": "one actual >>>= assignment with complete retained result",
       "specification": "Initialize a mutable local from bounded runtime-selected operands, execute one actual number compound assignment, and retain every complete primitive result in order. Arithmetic timing operands are exact quarters with nonzero power-of-two divisors; bitwise and shifts use the accepted bounded exact integer conversion tables.",
       "notes": "Operand/table setup, runtime selection, compound computation and complete output retention are timed. Exact IEEE content and shape observation runs outside timing, preserving signed zero and canonical NaN. Arithmetic timing values are exact quarters with nonzero power-of-two divisors; power is restricted to exactly represented positive integer powers from 1 through 8. Bitwise and shifts reuse the accepted ToInt32/ToUint32 and count-modulo-32 contracts. No approximate exponentiation or isolated-call claim.",
-      "sourceSha256": "af9b80036aa5516766c0b86637b3a0efcf5e3655bf90c7fbc7949b7193aff33d",
+      "sourceSha256": "1f94a8300a918bed7cf4395a75f81ec74bab5de0b26c7acd0dd6afd18d8203b3",
       "counterpartSha256": "1aec9ca7daa711a6e7e1fd8092d786e32f3cb6091fc4faf5b255e9d834547bd3"
     },
     {
@@ -5882,7 +5882,7 @@
       "operationUnit": "one actual prefix ++ update and retention of both expression result and committed target",
       "specification": "Select a bounded operand from runtime iteration/seed, evaluate actual ++value once and retain expression/committed states interleaved in a flat array of length2*n. Number inputs include exact quarters, negative/positive zero and2^53 rounding boundaries. Postfix old-value bits remain separate from committed bits.",
       "notes": "Operand table/setup, runtime selection, actual update and both retained results are timed. Complete observation runs outside timing. One update counts as one operation even though two values are retained. Existing int-array and flat Number-array protocols remain unchanged. Native-only checked overflow witnesses are separate pending acceptance inputs, without a JavaScript equivalence claim.",
-      "sourceSha256": "7bcd92b72417f16068898321d0e5344ab49dedacfc42abb25f3df79ff99913a1",
+      "sourceSha256": "1ce58e95d5dbd93b9f076f5df46e85b89a8cc8959811feab31feb147d9600dfd",
       "counterpartSha256": "153d5271718377649deedd7644938847ed9e5b8dacc6995e4066e8d50be924bf"
     },
     {
@@ -5903,7 +5903,7 @@
       "operationUnit": "one actual prefix -- update and retention of both expression result and committed target",
       "specification": "Select a bounded operand from runtime iteration/seed, evaluate actual --value once and retain expression/committed states interleaved in a flat array of length2*n. Number inputs include exact quarters, negative/positive zero and2^53 rounding boundaries. Postfix old-value bits remain separate from committed bits.",
       "notes": "Operand table/setup, runtime selection, actual update and both retained results are timed. Complete observation runs outside timing. One update counts as one operation even though two values are retained. Existing int-array and flat Number-array protocols remain unchanged. Native-only checked overflow witnesses are separate pending acceptance inputs, without a JavaScript equivalence claim.",
-      "sourceSha256": "4d06e9532dfc6e564fad58aa6b874668415d71160fc601f92cb8203a9b8dd5c1",
+      "sourceSha256": "dff3fe35d3fe9a9662834243a1602d546e53764c3fe4063c93aad0c4f82f3e98",
       "counterpartSha256": "51d35461a62bd593184513782fd2a483f68be80d96c4662a872b2b67a1e113b2"
     },
     {
@@ -5924,7 +5924,7 @@
       "operationUnit": "one actual postfix ++ update and retention of both expression result and committed target",
       "specification": "Select a bounded operand from runtime iteration/seed, evaluate actual value++ once and retain expression/committed states interleaved in a flat array of length2*n. Number inputs include exact quarters, negative/positive zero and2^53 rounding boundaries. Postfix old-value bits remain separate from committed bits.",
       "notes": "Operand table/setup, runtime selection, actual update and both retained results are timed. Complete observation runs outside timing. One update counts as one operation even though two values are retained. Existing int-array and flat Number-array protocols remain unchanged. Native-only checked overflow witnesses are separate pending acceptance inputs, without a JavaScript equivalence claim.",
-      "sourceSha256": "cf567df8c4a0da758d0bb308174e21b1ca628f693ab88643d1bf2128aafa983a",
+      "sourceSha256": "676c5eeda9e8368a45ed174bad10a6a2245eb6e4ef18e2575ad9988616ad2820",
       "counterpartSha256": "11ab726cdc8b91f3fad5c1193f46f5fbf42851ddb890bcf669bdff2d0f278077"
     },
     {
@@ -5945,7 +5945,7 @@
       "operationUnit": "one actual postfix -- update and retention of both expression result and committed target",
       "specification": "Select a bounded operand from runtime iteration/seed, evaluate actual value-- once and retain expression/committed states interleaved in a flat array of length2*n. Number inputs include exact quarters, negative/positive zero and2^53 rounding boundaries. Postfix old-value bits remain separate from committed bits.",
       "notes": "Operand table/setup, runtime selection, actual update and both retained results are timed. Complete observation runs outside timing. One update counts as one operation even though two values are retained. Existing int-array and flat Number-array protocols remain unchanged. Native-only checked overflow witnesses are separate pending acceptance inputs, without a JavaScript equivalence claim.",
-      "sourceSha256": "41404548c3e265bf06cc12f8075c7b2d39517ce786a671f069e6483b213ad96d",
+      "sourceSha256": "a6cc6c13ce725260a0f099f6554a5a6e23baad1ece62082fb32dabe30bff6c95",
       "counterpartSha256": "a384fad31966632db0448dd37721c86ed4c8a0c24f85222e41357d7e097e5440"
     },
     {
@@ -5967,7 +5967,7 @@
       "operationUnit": "one actual + unary operation and retention of its result",
       "specification": "Select actual typed int operands from runtime iteration/seed, perform one unary + operation and retain every unmodified result in a flat int[] of length n. Nonnegative exact i32-safe operands/results.",
       "notes": "Operand tables/setup, dynamic selection, target initialization for compounds, actual operation and complete output construction/retention are timed. Independent full observation is outside timing. No offset, signed-output adaptation, custom protocol or JavaScript coercion emulation. Native64 differences, invalid counts and checked power overflow are separate untimed evidence.",
-      "sourceSha256": "682be0ed259bfe7f7fd5122dfc95e2c001a0814b1dd409beceea711f837fa3d5",
+      "sourceSha256": "c940431807837c71c40f1ec080f3680ce995c3198c031058faf22c2b8ff36cb7",
       "counterpartSha256": "1d5707999263771d626ff27681a8c54d038abb397fdf2571305aedf1649fb026"
     },
     {
@@ -5989,7 +5989,7 @@
       "operationUnit": "one actual ~ unary operation and retention of its result",
       "specification": "Select actual typed int operands from runtime iteration/seed, perform one unary ~ operation and retain every unmodified result in a flat int[] of length n. Exact i32-safe negative operands with natural nonnegative complements.",
       "notes": "Operand tables/setup, dynamic selection, target initialization for compounds, actual operation and complete output construction/retention are timed. Independent full observation is outside timing. No offset, signed-output adaptation, custom protocol or JavaScript coercion emulation. Native64 differences, invalid counts and checked power overflow are separate untimed evidence.",
-      "sourceSha256": "520ef431821e0a710125d7f5579b15b6dace88be2c199b79c6ee36f6d29b9e2a",
+      "sourceSha256": "7db192bea37094f4ec20536eb7480788b3a2e8b8f9260993db0ac1f73fc89469",
       "counterpartSha256": "7769f6dda31fbe725de9d4a44d90b9411728b1d3c336d00c844f625a3a7c3721"
     },
     {
@@ -6377,7 +6377,7 @@
       "operationUnit": "one actual number assignment expression and retention of result and committed target",
       "specification": "Select a dynamic old initializer and RHS, evaluate actual (target = rhsValues[rhsAt]) once, retain its result and final target interleaved with length 2*n. Ordinary assignment does not read the old target. Number uses complete IEEE values including negative zero, NaN and infinities.",
       "notes": "Dynamic selection and initialization, actual ordinary assignment, complete output construction/retention are timed. One assignment counts as one operation despite two retained leaves. Existing IEEE Number-array ABI/observer unchanged. Compiler optimization follows ordinary native semantics; dead initializers or redundant stores may be optimized, without benchmark fixups. Complete observation and source-order/chain witnesses run outside timing.",
-      "sourceSha256": "04309f319a77c3b4a369c9ceca2766f2d3b73d0e6a28ec2a670f49dcee821faf",
+      "sourceSha256": "80a0480275445ace33415451d993d8bd499a5940854e88a857094ea74263b2f4",
       "counterpartSha256": "1b1f649040470a6409b08e4363856b7f2de894a43397d2c1e3850a936583f0c7"
     },
     {
@@ -6709,7 +6709,7 @@
       "operationUnit": "one actual += expression and its retained result/committed-target pair",
       "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed number compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
       "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete IEEE observation is outside timing, preserving signed zero and canonical NaN. Accepted exact-quarter arithmetic, small exact powers and ToInt32/ToUint32/count-modulo32 domains remain unchanged.",
-      "sourceSha256": "52d4a8c57eacad3cea456c508f44ddfea86d42e0d04bb925cd1c468f27a2ae9f",
+      "sourceSha256": "eae778f2ead2511638645cc260c53ebdad6abdcd7229cae98f57c55274a9685d",
       "counterpartSha256": "149399b0634f13686f5eee9a412aa6fd2226c0196ceb653d0f9bb5fda6358ad0"
     },
     {
@@ -6733,7 +6733,7 @@
       "operationUnit": "one actual -= expression and its retained result/committed-target pair",
       "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed number compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
       "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete IEEE observation is outside timing, preserving signed zero and canonical NaN. Accepted exact-quarter arithmetic, small exact powers and ToInt32/ToUint32/count-modulo32 domains remain unchanged.",
-      "sourceSha256": "62f371618dde435f75587296e3b3d2889ed1f303214a204e602602000f2917e0",
+      "sourceSha256": "2216e64a40595f118e7484f70032be4933810d66760cfdd001983280d6c972dc",
       "counterpartSha256": "bf403a63137d52818c698b3ef006962f992aff7a2dbff59e7bb88c304b929b08"
     },
     {
@@ -6757,7 +6757,7 @@
       "operationUnit": "one actual *= expression and its retained result/committed-target pair",
       "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed number compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
       "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete IEEE observation is outside timing, preserving signed zero and canonical NaN. Accepted exact-quarter arithmetic, small exact powers and ToInt32/ToUint32/count-modulo32 domains remain unchanged.",
-      "sourceSha256": "b337bda9da9cbb7d3cf2134ef362d1f3860c700a7a6ce2f9b8acd6c794bdf728",
+      "sourceSha256": "25ab8082119dd0d9029fca276ca8a155edbe5858798bc98c81a8d84e9a2f159d",
       "counterpartSha256": "65faf35b3742fc671e4cf8c4189b87b40405bee4f57394e1a88b064e4cc0dac6"
     },
     {
@@ -6781,7 +6781,7 @@
       "operationUnit": "one actual /= expression and its retained result/committed-target pair",
       "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed number compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
       "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete IEEE observation is outside timing, preserving signed zero and canonical NaN. Accepted exact-quarter arithmetic, small exact powers and ToInt32/ToUint32/count-modulo32 domains remain unchanged.",
-      "sourceSha256": "2f004f596387c07753c199a52a80799ac91743831b6a400ec9afc9675bf4e555",
+      "sourceSha256": "9edc7a1987ec1d21c793bc8849466f864dc31fdb0ca16c88af953897ceff9acb",
       "counterpartSha256": "4095a9ed2b186733a302838537a68d1e747628d8de14b2e66bd8b2937be22aed"
     },
     {
@@ -6805,7 +6805,7 @@
       "operationUnit": "one actual %= expression and its retained result/committed-target pair",
       "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed number compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
       "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete IEEE observation is outside timing, preserving signed zero and canonical NaN. Accepted exact-quarter arithmetic, small exact powers and ToInt32/ToUint32/count-modulo32 domains remain unchanged.",
-      "sourceSha256": "b808289b94b9b7e92b6f51cad5e62ad11fae528f0c5cb80f12b6e26071f8defa",
+      "sourceSha256": "e9216e7fe3e41b9c55f692580bba05238f22c6fc2860cf90a8b6cd5e1532a6f0",
       "counterpartSha256": "3803871f5fc6e7f3fe065a1d985c85eb831e890026442b372edec2f60d92b8a6"
     },
     {
@@ -6853,7 +6853,7 @@
       "operationUnit": "one actual &= expression and its retained result/committed-target pair",
       "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed number compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
       "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete IEEE observation is outside timing, preserving signed zero and canonical NaN. Accepted exact-quarter arithmetic, small exact powers and ToInt32/ToUint32/count-modulo32 domains remain unchanged.",
-      "sourceSha256": "6f3dcbbe039fa27d0bf0cf9cde08db1b2a10613046865a2d0f1bfaf8d25fc660",
+      "sourceSha256": "f9a8a137ff02dadbdf8dcaf91f0e64ce5704770749cea66d482c2f78e08da4c6",
       "counterpartSha256": "cba1012241687421d62e49819503ef6f5db79bacc08be47785be57b311f1d07d"
     },
     {
@@ -6877,7 +6877,7 @@
       "operationUnit": "one actual |= expression and its retained result/committed-target pair",
       "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed number compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
       "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete IEEE observation is outside timing, preserving signed zero and canonical NaN. Accepted exact-quarter arithmetic, small exact powers and ToInt32/ToUint32/count-modulo32 domains remain unchanged.",
-      "sourceSha256": "cfa08ef35d400eb395d5a5958bc1a0cf130228d96ce96448b850f3851a90bcd3",
+      "sourceSha256": "d4f8af609b11dae54671a75a97bff8aae823ad6be465fce1f5154f1ae7f98547",
       "counterpartSha256": "44676458a46107266325c9b18f7669e7a7f162e207517573a8003fecaaa5b0b0"
     },
     {
@@ -6901,7 +6901,7 @@
       "operationUnit": "one actual ^= expression and its retained result/committed-target pair",
       "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed number compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
       "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete IEEE observation is outside timing, preserving signed zero and canonical NaN. Accepted exact-quarter arithmetic, small exact powers and ToInt32/ToUint32/count-modulo32 domains remain unchanged.",
-      "sourceSha256": "98d93ab9c10456679f754debf98a9865c2ee0e33648cc6e06938d0195a41c44e",
+      "sourceSha256": "b9ac220c22295172bb929f529d8eccca88b9fc3bb98dc17650d7ac2e64eb48f5",
       "counterpartSha256": "ba29a2187142657be1dc0361610fc59ccf940780970b77e1b19de58d3cb8d50e"
     },
     {
@@ -6925,7 +6925,7 @@
       "operationUnit": "one actual <<= expression and its retained result/committed-target pair",
       "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed number compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
       "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete IEEE observation is outside timing, preserving signed zero and canonical NaN. Accepted exact-quarter arithmetic, small exact powers and ToInt32/ToUint32/count-modulo32 domains remain unchanged.",
-      "sourceSha256": "9518dfd7c5fcd0171d49c3814f8ff2f05d2d3b78cc1acaf95607302f49bd465f",
+      "sourceSha256": "9e0dc852ab678471ebbf2b29ddf040a127f591e9622f48278721d89b8630819c",
       "counterpartSha256": "a108a5aeb54806120d373136cbf2324ab5d37d5aafa30b4e72da2d6a8cfbb1f2"
     },
     {
@@ -6949,7 +6949,7 @@
       "operationUnit": "one actual >>= expression and its retained result/committed-target pair",
       "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed number compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
       "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete IEEE observation is outside timing, preserving signed zero and canonical NaN. Accepted exact-quarter arithmetic, small exact powers and ToInt32/ToUint32/count-modulo32 domains remain unchanged.",
-      "sourceSha256": "e89afaba04cf1eab4b128cdf3a8e74ccbc5257ff49e1575ee89642d74170c724",
+      "sourceSha256": "1eb6f9d2b6068ca12089d732240f2e4975070ea4ad826f74f692743299bf2472",
       "counterpartSha256": "1fdb0071fc59a4a019b2261c833f9ce4d15da70f0c17473b0d432d4eccc8fb48"
     },
     {
@@ -6973,7 +6973,7 @@
       "operationUnit": "one actual >>>= expression and its retained result/committed-target pair",
       "specification": "Select bounded runtime operands and initialize a scalar target, evaluate one actual typed number compound assignment expression, and retain its observed value followed by the final target for every operation. Accepted statement-row operand domains are unchanged.",
       "notes": "Operand/table setup, selection, initialization, actual operation and both output leaves are timed. Complete IEEE observation is outside timing, preserving signed zero and canonical NaN. Accepted exact-quarter arithmetic, small exact powers and ToInt32/ToUint32/count-modulo32 domains remain unchanged.",
-      "sourceSha256": "e2443f3295fd18688a908b31a571467744d46227454ae0e383813c0921a0d745",
+      "sourceSha256": "f5f97c553cc9a7c5b08b0ac9fb7727a2569e818608cd75e674c89623eaaeae58",
       "counterpartSha256": "8635fa0b944a05e700f6be262e8713284ed5bcca92b490d2f41b75886e4056f8"
     },
     {
@@ -7015,7 +7015,7 @@
       "operationUnit": "one actual lazy conditional selection with visible predicate/branch call counters and complete output retention",
       "specification": "Evaluate a strict Boolean predicate once and call only the selected same-type branch. Retain every selected payload and complete predicate/left/right call markers in order. Both outcomes and owned sizes0..3 are selected dynamically. Number predicates use period3, independent of the period8 operand pool, so the timed2048/seed7 fixture exercises all8 exact IEEE tokens and both branches.",
       "notes": "Whole workload includes setup, selection, per-operation predicate/branch call-counter instrumentation, chosen-branch computation/construction, loop and complete output/counter-marker construction. This is instrumented workload throughput, not pure branch latency. Complete independent observation is outside timing. Number complete output preserves signed zero, canonical NaN and both infinities. ",
-      "sourceSha256": "468f9e0a096408a5ea4b9d893a3756cebf61c922259cf304c0321f74c1ba9eaf",
+      "sourceSha256": "1274f57488d1a63071d730f5f816b7b299f46a39be55d31e9f713a52d855c797",
       "counterpartSha256": "4860e263b405781ae3e396285a3cffd2a30f67fab2ace8b978eb2dcddac5fa84"
     },
     {
@@ -7126,7 +7126,7 @@
       "operationUnit": "one actual lazy conditional selection with visible predicate/branch call counters and complete output retention",
       "specification": "Evaluate a strict Boolean predicate once and call only the selected same-type branch. Retain every selected payload and complete predicate/left/right call markers in order. Both outcomes and owned sizes0..3 are selected dynamically. Number predicates use period3, independent of the period8 operand pool, so the timed2048/seed7 fixture exercises all8 exact IEEE tokens and both branches.",
       "notes": "Whole workload includes setup, selection, per-operation predicate/branch call-counter instrumentation, chosen-branch computation/construction, loop and complete output/counter-marker construction. This is instrumented workload throughput, not pure branch latency. Complete independent observation is outside timing. Fresh owner branches measure selected construction/selection/retention, not existing-owner move cost or JavaScript alias/ownership/allocation parity. Number complete output preserves signed zero, canonical NaN and both infinities. ",
-      "sourceSha256": "15b904782fb02a2baedf28c7b069012ea724604f351f2c8dc524f49f3d13707b",
+      "sourceSha256": "35246bb329839f0f44693b60d6ba423bec14dc7a2329adbd60c548eb1cb944a3",
       "counterpartSha256": "6685f4c4998e55f678333327b6551db1b01d7a2bf7324b4cfab41976cc8cf953"
     },
     {
@@ -7359,7 +7359,7 @@
           "values[at].padStart(target)"
         ]
       },
-      "sourceSha256": "08e0088df6c3b7ca3b171a537f55b0ba0a57bbb5ca2da71e579a15b20c59b301",
+      "sourceSha256": "7913ebf0484acbdf60909dd7a2b68bf30e637a575bf2f688e77ed2ec38f967bf",
       "counterpartSha256": "b880a9a4657282179266e6d3f07df34a02d250613c4ea80bf27292fd75e6903a"
     },
     {
@@ -7390,7 +7390,7 @@
           "values[at].padEnd(target)"
         ]
       },
-      "sourceSha256": "0b2d27723282f91a84e05f324cd70e1c65ffe1e89b9fb77d6663d181251e3822",
+      "sourceSha256": "b1142aa9a4408f7299ecf4a386c19df7db2cb72473931097274967ea2fa5aaa5",
       "counterpartSha256": "22a941947835ec32c8f7d0a08bb06fb5fbdfc72535044d54c5fa70faf6580476"
     },
     {
@@ -7421,7 +7421,7 @@
           "values[at].padStart(target, fillers[fillAt])"
         ]
       },
-      "sourceSha256": "f3b670d7832f5e971f2bc0f17426032f7aa1333fc819546d18bd557eac75ef3d",
+      "sourceSha256": "46045f215d046e59fb505f16f4fcb2b5879550aa5bbff50a0e52d097caebadac",
       "counterpartSha256": "a15a3e8cc30189eeeea14463c974d8bb183c4ff08d6b10b33b22e41f8a877086"
     },
     {
@@ -7452,7 +7452,7 @@
           "values[at].padEnd(target, fillers[fillAt])"
         ]
       },
-      "sourceSha256": "769c3f375dd86353a3f7b309371acc94ecec12aea31dbcac58d5fcff393b4086",
+      "sourceSha256": "b760223a5949b97e913d06a6f359eb5c32d75ae92f43229a8f78f52e59a60014",
       "counterpartSha256": "363f6ac7b2a003fc926cb3ad5411589c04df4f3f14beba0897c12ff3876900cc"
     },
     {
@@ -7483,7 +7483,7 @@
           "values[at].padStart(target, fillers[fillAt])"
         ]
       },
-      "sourceSha256": "92c8d5479299d272f88bbf243d21cec294b4a299db95bf3d381942d924fff469",
+      "sourceSha256": "65f0307523af36ca95fc7d0df16d364e1f89f16c91a420b3c91a5a82c1e23fa4",
       "counterpartSha256": "38f934d946d6397ac3f7390f520a1fa8c3325f7bb829b343861a99e635bc29eb"
     },
     {
@@ -7514,7 +7514,7 @@
           "values[at].padEnd(target, fillers[fillAt])"
         ]
       },
-      "sourceSha256": "ff73e1814cef741084fd81b85be6017fd05eef49ebf47cb1a7bb1bd5354c65f6",
+      "sourceSha256": "b202b4366829e9be570a60f04b7f9f272324703096c0fa5d89239f7056d49f78",
       "counterpartSha256": "2f2e85b929a8088520ef23183353f8f350dc558edc1147a6a42402c83b48ae83"
     },
     {
@@ -7559,7 +7559,7 @@
           "const equal: number[] = [0, 0, 1, 1, 1, 1, 0, 1];"
         ]
       },
-      "sourceSha256": "7a6f53ec2046038ff38c1dc03852d629280da8223dbc57c5bbe04adbcf3c8505",
+      "sourceSha256": "18d59ce9c1a8f78359280e77ba86746bdd2f64186e9b63f4994093dd027d21c8",
       "counterpartSha256": "0b62322d16dcf5b442b219ce6086416b9814ef707d51446af2bd3e36a28390d9",
       "sourceSchedule": {
         "native": [
@@ -7632,7 +7632,7 @@
           "const equal: number[] = [0, 0, 1, 1, 1, 2, 0, 1];"
         ]
       },
-      "sourceSha256": "45bd8aafe79cbf0d3591c83ea8b14a34fe0799873b74513710acec58cdb270e2",
+      "sourceSha256": "c83e9c3efae215d6e9f7ef9e80886d816774c5a0065ef6187f18fd57f5b75f7b",
       "counterpartSha256": "064942b02b6fd52e035b111565f4e9262f81edc8632506c8b93b5657896e685e",
       "sourceSchedule": {
         "native": [
@@ -7705,7 +7705,7 @@
           "const equal: number[] = [0, 0, 1, 1, 1, 1, 0, 1];"
         ]
       },
-      "sourceSha256": "3186cf0d7e1be2ee193562a23251e6bcb25390ea8dcc1289caf536dde32d6f68",
+      "sourceSha256": "7e4c75cf111dbcddf5f7face0c5d0c9b7a3def0e4830b12c68e67d422b9ea068",
       "counterpartSha256": "7524f8dfa565b658015a1f5d871a32c5970c3e8c8cc5065c85f014b7f2c06a87",
       "sourceSchedule": {
         "native": [
@@ -7780,7 +7780,7 @@
           "const equal: number[] = [0, 0, 1, 1, 1, 2, 0, 1];"
         ]
       },
-      "sourceSha256": "6877c2ab64c78372060486d43ed60c54d12335bd2ed70ea5fd47fc7b255e465c",
+      "sourceSha256": "f480e1eb7adfc43ca09d086a620c0f659ee856c560d4eb395c9c7dcb29070237",
       "counterpartSha256": "453f2c43e520ffa173c9e0593e6dfce706b4aa8dbdad1a44ff83e6c4561690e9",
       "sourceSchedule": {
         "native": [
@@ -7855,7 +7855,7 @@
           "const equal: number[] = [0, 0, 1, 1, 1, 1, 0, 1];"
         ]
       },
-      "sourceSha256": "5954d12fbdf64fb0678653d32dba6b897daac9f8efeb9366f7331a494294105b",
+      "sourceSha256": "26d0ee129d9d0ff722a39280f7f8900c57339d3a20604830a227c198a998631b",
       "counterpartSha256": "a50101a57b4b0470c6a7d86cea2c780efa8e1ac90f12397ef367bc1a61cb186c",
       "sourceSchedule": {
         "native": [
@@ -7930,7 +7930,7 @@
           "const equal: number[] = [0, 0, 1, 1, 1, 2, 0, 1];"
         ]
       },
-      "sourceSha256": "3b87d3c80e33e171cdde550a04c46f075370f4b5de24eb98bb08a8cc1036f446",
+      "sourceSha256": "1dadcb2f79f870fafa0c22eb2c17ceab9e4c1e0b41c8362f61099e5b9c420cf3",
       "counterpartSha256": "92a9ea56788a27a93bde9fbe6b6b3997d91f533b4bed868e185376db6e8fb4ab",
       "sourceSchedule": {
         "native": [
@@ -8266,7 +8266,7 @@
           "output.push(selected);"
         ]
       },
-      "sourceSha256": "0c273a1bb3179a7b939f94bdd1407c9aebce7fbcea9f114a31691eeb9a0c2e8d",
+      "sourceSha256": "f5943a42cb27a516217d0cac5fbece33e4fb27fd2682d2ba800e081f0a056b18",
       "counterpartSha256": "9ee2a16ed02cb99221fed78413c93326018897c96f3ef592465c6e113a4beb85"
     },
     {
@@ -8341,7 +8341,7 @@
         "i = i + 1;",
         "return output;"
       ],
-      "sourceSha256": "c89e09d50522b9ddf43761a30982e6eba2422352cc331958872c0df26a3dd98b",
+      "sourceSha256": "5f494e784aa5f51607871292e836cca3b7772854945dd69bdab5d64e720dde9e",
       "counterpartSha256": "f331e75ec1bbbe8cae1d0e5a2cdf40f655f0da6f1ee20fb9b8a542475b36e1c3"
     },
     {
@@ -8374,7 +8374,7 @@
         "i = i + 1;",
         "return output;"
       ],
-      "sourceSha256": "71126881008c17a0e7b80028d2886251d6d3a34c650c841dd7e5b47d999c3ce5",
+      "sourceSha256": "3f28e6c99ef88198a9be5b28e0f86c9f25fc9f8388400641d5aa8fec56d40270",
       "counterpartSha256": "1742cab19386ec9e2562fe7fb5a8b595d63a1d28f0ec2a5f746782af42b6042e"
     },
     {
@@ -8407,7 +8407,7 @@
         "i = i + 1;",
         "return output;"
       ],
-      "sourceSha256": "f576b078adcdff6c07e34e27d66672ed22a0fef51beb99b4ff6a3850740f362b",
+      "sourceSha256": "e3c660a706b3c8c327296908e68eafee210222f531ad82308f6094e1ddfb2bde",
       "counterpartSha256": "9c85ee39e03b7bb91f5614399d014ab17a8f5a2c47dc1503016b761c35eccaa7"
     },
     {
@@ -8440,7 +8440,7 @@
         "i = i + 1;",
         "return output;"
       ],
-      "sourceSha256": "9a541767bef4c4ea46518a4f792a216a4e34436ea2fc44c898513ab0c3742068",
+      "sourceSha256": "21bdd695824d10d6e2a4b816a42bbbc1a7dcbcad19a744d550e94d39201de52b",
       "counterpartSha256": "e6af7b05410885b033de03a42e98a36bdbcd9019ae447e8554dc04a029679f90"
     },
     {
@@ -8472,7 +8472,7 @@
         "i = i + 1;",
         "return output;"
       ],
-      "sourceSha256": "65ff75c9a1e537d90b698895c2e58db56b2bea5619393166363d88bf2a53d035",
+      "sourceSha256": "7e926646d9788dfa3a1a86cf1964f12ee80c12db83e8f9697aa527a161557648",
       "counterpartSha256": "2c055543e4e2493706322d505eb543730f0a7c358ce21851b46b6d96278328c7"
     },
     {
@@ -8504,7 +8504,7 @@
         "i = i + 1;",
         "return output;"
       ],
-      "sourceSha256": "d1386c698eb3c5fa9c780cc690c4913d370aeec525abdeebde3c594fe55950e1",
+      "sourceSha256": "00d70833687ddd69b01eea8f32de4aa31fb531b620c297626eedffe8d5cac995",
       "counterpartSha256": "08f4f20aa8ae1a7347e08edcf071473574d90e2cb993e5467a75b6f8c685f271"
     },
     {
@@ -8536,7 +8536,7 @@
         "i = i + 1;",
         "return output;"
       ],
-      "sourceSha256": "387a05d7d74e245b691845447c132f0916087655b3c3983fab21fde478690c15",
+      "sourceSha256": "539edfde70924903ba1afc9bf195a9a82b1821fdc61a5aac0a76072f34599ced",
       "counterpartSha256": "ec7df212af84f2035bc17087e214d8ba9d335f2eaca68116c8373c5530370074"
     },
     {
@@ -8568,7 +8568,7 @@
         "i = i + 1;",
         "return output;"
       ],
-      "sourceSha256": "c3ed27bcbb877136804f4942d156c6df76d3ddfabfd65ac1243ca1f8014687f7",
+      "sourceSha256": "b76e0134c91397e0ea6837c7cc788aacd4c13fe4cfd4c50f69fc4b4d567c1ea2",
       "counterpartSha256": "c4f292c7c771c1552bc0a5f1b3781c0daef778b0bf048c1f7fbebe7a709125c1"
     },
     {
@@ -8600,7 +8600,7 @@
         "i = i + 1;",
         "return output;"
       ],
-      "sourceSha256": "e4878cb8ed883b1324ca6eca0dd385ab75b763a59d9d8fbaaa1d515dd2b16006",
+      "sourceSha256": "e57ae0968f1f7ed019a40b0561e9e3cc86a14ad2d46815a06e7279f0ff614094",
       "counterpartSha256": "7f6c4c7395eecf1b702806574f215793c76212d42aca108a2cce4d330b9923c4"
     },
     {
@@ -8632,7 +8632,7 @@
         "i = i + 1;",
         "return output;"
       ],
-      "sourceSha256": "930193089b76928b4439b75fb22817baaf7a6a80fef119b5a4f90d37bca79aaf",
+      "sourceSha256": "900d37a395d5b48f6337bc9baddd7dd4f507342048185c8b13b8e0b8e6f671f7",
       "counterpartSha256": "c09244feb0dd307edac6e7a9ef7e2e51e7a5a43b2ab133842726147de5b042ef"
     },
     {
@@ -9463,7 +9463,7 @@
           "values[at].substr(bounds[at][mode][0], bounds[at][mode][1])"
         ]
       },
-      "sourceSha256": "a7ea89b25384df74396abffb59c1e53f6596ec5d33ce6693ab38661c93007836",
+      "sourceSha256": "6039dcafe9a12f482ef49346586504a8a0da550bc538bfcec34b2b7201c22d98",
       "counterpartSha256": "cd080585317aa0cd8705fef935d31bb74ca31c5e0a302a62b00a89dadc8cdd53"
     },
     {
@@ -9511,7 +9511,7 @@
           "values[at].substr(bounds[at][mode][0], bounds[at][mode][1])"
         ]
       },
-      "sourceSha256": "c6a70c9b0ca06255c339648242d2f799829b751b35592606d0d5ff2fe57721c4",
+      "sourceSha256": "39c5f4842670adecc1d9e0a03332957e32767d8a20b019cc3214622575775ea2",
       "counterpartSha256": "57e8c4c347a1386c8aa894cfca91fbe6f330f33254c460bba04e34b4f683629d"
     },
     {
@@ -10572,7 +10572,7 @@
       "pendingCheckpoint": 86,
       "specification": "Matched built-in Array.join with default comma or dynamic strict String separator, zero/one/multiple elements and complete String[] retention.",
       "notes": "Workload includes pool construction, prefix slicing, dynamic receiver/separator selection, actual joining and complete output retention; observer outside timing. No isolated join latency or JavaScript/native allocation parity claim. Nested arrays retain internal commas, null/undefined leaves contribute empty text. Number shared pool uses exact common shortest strings; broader native formatting variants remain compiler evidence. Native owned/static String storage follows ordinary Cow behavior.",
-      "sourceSha256": "7cd2a14858b5755296684e8d17c3c97061630d571175a19e3a12654b9e172154",
+      "sourceSha256": "d6d8c0023d08526bb7f048c34f2efce65909631ab3cb96a60b6d5f5d41ceb22d",
       "counterpartSha256": "e6e16857ac036eef9291afc88423674f6ffcc6375ff748ce252a14848c323b50",
       "sourceRequired": [
         {
@@ -11087,7 +11087,7 @@
           "count": 1
         }
       ],
-      "sourceSha256": "d75aed7c14dddaae9c3eccc68787a839c7a49c6c44d9e49e3850d07220b28033",
+      "sourceSha256": "2b7256f484efa38cf6a171ef3dc672195458744fcc1affded77b613779a44eed",
       "counterpartSha256": "9f197de2e5aa5dd911a5571b3213b9d3de69584fc5fe97d12c6135f28034a0c9",
       "operationUnit": "One actual zero-argument Array.toString call with complete String retention.",
       "specification": "Matched built-in Array.toString on homogeneous scalar/nested arrays with zero/one/multiple selected elements; implicit comma separator and full String[] result.",
@@ -11448,7 +11448,7 @@
           "count": 1
         }
       ],
-      "sourceSha256": "91356ddeebec02c406f5d8ac6c9b48451180bf3adbeecab0900ef3d321a9ad7a",
+      "sourceSha256": "2d051cc60ebdc4a4f8743189b3a2167f5eddb970cf1985ff84024170944a69cc",
       "counterpartSha256": "209e7920d5d230d19f0b9d2256c89c708f9013fbf65e274105f180c66ab15ba4"
     },
     {
@@ -11855,7 +11855,7 @@
           "count": 1
         }
       ],
-      "sourceSha256": "0fc4c385c9b031ca7bae9d3fd92e67c4c48b167a787f6027fbe0d96f7a028ca7",
+      "sourceSha256": "4d28bc9a9cd7679d556204cef6c93be0ba970c4bf1ac013b9ce795503ec05ce5",
       "counterpartSha256": "00cb829e25a8f70467ab819c91f1e57b09dc240a31f9c8f85d401174271f894a"
     },
     {
@@ -12171,7 +12171,7 @@
       "description": "Dense number array pop: construction, two removals, guarded value/receiver observation and retention",
       "source": "workloads/array_pop_number.tsr",
       "counterpart": "workloads/array_pop_number.ts",
-      "sourceSha256": "09fbe1009cda7a8cd5380cb670a919f6a3d816d1a9c3105b807814db81ad818b",
+      "sourceSha256": "08ee05efff61950c73721c3d2a81e0658e9903bedb79f1dac8227bdca9f5c71c",
       "counterpartSha256": "399df9f94e43e2fa26a387cbf22c5c229a55a5f868da8276f82a5dd3d6272d29",
       "iterations": 2048,
       "operationsPerIteration": 2,
@@ -12391,7 +12391,7 @@
       "description": "Dense number array shift: construction, two removals, guarded value/receiver observation and retention",
       "source": "workloads/array_shift_number.tsr",
       "counterpart": "workloads/array_shift_number.ts",
-      "sourceSha256": "526ffdb1bb1a95cac0b6b10e2505cc034fcf286ca088b38e27a708371b9714c3",
+      "sourceSha256": "d54994a308e06051ce14deab4d6e2c3335d384aa2f9735056cc13e2d9ea5cf38",
       "counterpartSha256": "f518b56fea68a8036c12f2f0b3923a5a928e98ca504ce36eb8300bce3271cb53",
       "iterations": 2048,
       "operationsPerIteration": 2,
@@ -12610,7 +12610,7 @@
       "description": "Dense number array at: setup, one relative lookup and complete selected/receiver observation",
       "source": "workloads/array_at_number.tsr",
       "counterpart": "workloads/array_at_number.ts",
-      "sourceSha256": "c0c4cca14de58cf1206771d51e0d0f2c546b71e05e9de9dd1518c6c171163e01",
+      "sourceSha256": "39325b036a3a97fb4221c817bfcc634a5999abbeef4ab71f54e18fda73ff3c94",
       "counterpartSha256": "e6a6395bd69efeb909da98c18f529ea412cc0c0c38bdfbd159cdadd4e33721d7",
       "iterations": 2048,
       "operationsPerIteration": 1,
@@ -12823,7 +12823,7 @@
       "description": "Dense number array find: construction, predicate traversal and complete selected/receiver retention",
       "source": "workloads/array_find_number.tsr",
       "counterpart": "workloads/array_find_number.ts",
-      "sourceSha256": "7a796a4cb54524605d1339385fd44e80f88d6bd630825c30420d06da67484354",
+      "sourceSha256": "8cc1f7a0f6644100a55a5b3afd6cdb4b8b0ad725ed0d2b86d22ced3fcd801c09",
       "counterpartSha256": "063260d087f0e6efac70fff3ae9625afd561f1cef80f78e064416cb5f70dbfd8",
       "iterations": 2048,
       "operationsPerIteration": 1,
@@ -13043,7 +13043,7 @@
       "description": "Dense number array findLast: construction, predicate traversal and complete selected/receiver retention",
       "source": "workloads/array_find_last_number.tsr",
       "counterpart": "workloads/array_find_last_number.ts",
-      "sourceSha256": "e327a153d14596bfe679f15770d77530308078568cac407ade2c57ade93f6036",
+      "sourceSha256": "4dfdd972386651c8f77c547f5b29ba5f8fe347c0f05e229dfafe8df460795d91",
       "counterpartSha256": "356e8367d583564fa7d996f04410f952cb9805bdf0844ab67e15eed25df9fd51",
       "iterations": 2048,
       "operationsPerIteration": 1,
@@ -13269,7 +13269,7 @@
       "description": "Dense number unshift: construction, ordered variadic front insertion and complete receiver retention",
       "source": "workloads/array_unshift_number.tsr",
       "counterpart": "workloads/array_unshift_number.ts",
-      "sourceSha256": "d36b7cc5d2150eea1b8b3444ed7d791af4bd79f8e92621e4761534b68cadd147",
+      "sourceSha256": "123bc1abce7a112a128ce0968a6252fe3aae0afefdc88676d4d9da6e4cae8c71",
       "counterpartSha256": "37ca87c778550848b4b2fe8564f0c7ff7c8ef44a2c79d67da2517c2c46715e88",
       "iterations": 2048,
       "operationsPerIteration": 1,
@@ -13441,7 +13441,7 @@
       "description": "Dense int splice: construction, signed range removal/insertion and complete removed/receiver retention",
       "source": "workloads/array_splice_int.tsr",
       "counterpart": "workloads/array_splice_int.ts",
-      "sourceSha256": "27f32e26e6c645c1507cd6e728f94883d82b6dd8c5cf737324b70298c1ce0d3d",
+      "sourceSha256": "6a54a0d712be8557571aaa56721bcdb806cd5b3edb00c27194731b38987b8dc6",
       "counterpartSha256": "a813f78b4e39c65c6eb4787d0ec71f21c0fcc64834ba918f2ba762a1befae55f",
       "iterations": 2048,
       "operationsPerIteration": 1,
@@ -13465,7 +13465,7 @@
       "description": "Dense number splice: construction, signed range removal/insertion and complete removed/receiver retention",
       "source": "workloads/array_splice_number.tsr",
       "counterpart": "workloads/array_splice_number.ts",
-      "sourceSha256": "37f586cda97a1a27f7c3921df6a6526b02c71e99af017079b558e00c6c3ca351",
+      "sourceSha256": "8bfab47440603078bbce2048af885ecf92b816ba390e9145566b829c220787d2",
       "counterpartSha256": "93c46778d2ba79298adf14cc67c308aa8e4d8ff3a76568e5d2536815faf674d4",
       "iterations": 2048,
       "operationsPerIteration": 1,
@@ -13489,7 +13489,7 @@
       "description": "Dense boolean splice: construction, signed range removal/insertion and complete removed/receiver retention",
       "source": "workloads/array_splice_boolean.tsr",
       "counterpart": "workloads/array_splice_boolean.ts",
-      "sourceSha256": "f55039c68863a7f6e6322cbe77d8a4ba850b4a82d959203959fc6e181969a2f2",
+      "sourceSha256": "5f47ded5a7138794e4977582c13073f547a31b8718c7af427752bce95584210b",
       "counterpartSha256": "d799c29eedd56c5c7b0df373cb0b66e7b1f61fce32a1f36a6f66e60ac7fd417d",
       "iterations": 2048,
       "operationsPerIteration": 1,
@@ -13513,7 +13513,7 @@
       "description": "Dense string splice: construction, signed range removal/insertion and complete removed/receiver retention",
       "source": "workloads/array_splice_string.tsr",
       "counterpart": "workloads/array_splice_string.ts",
-      "sourceSha256": "695be2864a0b0c5add369d24b04cbaed23c1988e50fc0a06e2f3a8c59de68f4b",
+      "sourceSha256": "77e36c45a837b1138fb56a5ed8a616087e15ba7e27234fa45b506d3b0a536d07",
       "counterpartSha256": "e0f17419a17cc4386aa0a2439f2236411822407a333830e0fedcdfdd79b08dca",
       "iterations": 2048,
       "operationsPerIteration": 1,
@@ -13539,7 +13539,7 @@
       "description": "Dense nested splice: construction, signed range removal/insertion and complete removed/receiver retention",
       "source": "workloads/array_splice_nested.tsr",
       "counterpart": "workloads/array_splice_nested.ts",
-      "sourceSha256": "9908e1593f7299bb15890554568bc4d7082b9bed30d34d3562891b346f4c830d",
+      "sourceSha256": "80ae5059038ab67e2945191b95480414169f7784571e637b41868edc761ee18a",
       "counterpartSha256": "b2cb9fa10622d1aef77ebd72c222128325719a92d094d18c1b9998dbaab092ec",
       "iterations": 2048,
       "operationsPerIteration": 1,
@@ -13563,7 +13563,7 @@
       "description": "Dense record splice: construction, signed range removal/insertion and complete removed/receiver retention",
       "source": "workloads/array_splice_record.tsr",
       "counterpart": "workloads/array_splice_record.ts",
-      "sourceSha256": "ec99ce39f9affee1ec8594715b2d77c548d2eb3302830357a6476ac3e323ab11",
+      "sourceSha256": "79ac48e967f8d7349c20fd778d6729248c6134fc89189258a0749fe59d25aa96",
       "counterpartSha256": "a43a8bd89b68492ec6c0c315e0a215a26a6b79f0a1831e890acdff41e6b80779",
       "iterations": 2048,
       "operationsPerIteration": 1,
@@ -13589,7 +13589,7 @@
       "description": "Dense null splice: construction, signed range removal/insertion and complete removed/receiver retention",
       "source": "workloads/array_splice_null.tsr",
       "counterpart": "workloads/array_splice_null.ts",
-      "sourceSha256": "2bfbd66389407c6878adab1bdd9baf42aaa031e5eb493e343f157d90422c48f7",
+      "sourceSha256": "672c8f03f75ccb1138537970ba31ce298af6f2020c1516682003ed0f6ffddf48",
       "counterpartSha256": "e5c6d9f55fed2d9e435b71e1eb0616306ae49bfa958ee3e55edb619f0975d23f",
       "iterations": 2048,
       "operationsPerIteration": 1,
@@ -13613,7 +13613,7 @@
       "description": "Dense undefined splice: construction, signed range removal/insertion and complete removed/receiver retention",
       "source": "workloads/array_splice_undefined.tsr",
       "counterpart": "workloads/array_splice_undefined.ts",
-      "sourceSha256": "2030538fed6bc2da280bdd219a1be951f352757c23cfdd405c4fdf357a96016c",
+      "sourceSha256": "25bc009d2a70a44f73971ed7d343b6af7975019cb6e1a473baba31b534589d05",
       "counterpartSha256": "e06718385d81aa6a9ede6baca39ff0aab0dd4d0232a84b5a511eb26814a47732",
       "iterations": 2048,
       "operationsPerIteration": 1,
@@ -13663,7 +13663,7 @@
       "description": "sort default number: dense construction, stable ordering and complete retained arrays",
       "source": "workloads/array_sort_default_number.tsr",
       "counterpart": "workloads/array_sort_default_number.ts",
-      "sourceSha256": "3af6d89b9c5162a5a01477b98de5f1942cb185af8b462817fa8cf6d76019abea",
+      "sourceSha256": "586ff6361ef07ae95dc824e04790c97ac1889fa111ba36541d066da9225ee46c",
       "counterpartSha256": "ff7c38988e9cb9e0eb6b8a030cc42a6a268ac15e099a8e53d8706e7532c351ac",
       "iterations": 2048,
       "operationsPerIteration": 1,
@@ -13821,7 +13821,7 @@
       "description": "sort compare number: dense construction, stable ordering and complete retained arrays",
       "source": "workloads/array_sort_compare_number.tsr",
       "counterpart": "workloads/array_sort_compare_number.ts",
-      "sourceSha256": "70ee75ef3db46a2219b1d3483a86d0d3045a3f87c22e388c59da857cf145a95e",
+      "sourceSha256": "b3dedaea77cb739b169ce2bf2460f378b244e88b24813e01fe760a08428b60cc",
       "counterpartSha256": "27e23c260e2ebb49c99f7db2ac2f2c4fb00c1465f65a67963a06895fa5c2cdbc",
       "iterations": 2048,
       "operationsPerIteration": 1,
@@ -13847,7 +13847,7 @@
       "description": "sort compare boolean: dense construction, stable ordering and complete retained arrays",
       "source": "workloads/array_sort_compare_boolean.tsr",
       "counterpart": "workloads/array_sort_compare_boolean.ts",
-      "sourceSha256": "664715830b86963c0ffe59fa853d487169a75f893a7686301bd131b7a8544ecd",
+      "sourceSha256": "d4dd04147d0d1f785697a9f7f887cb45f1ecebfbd4e3791211b67f8ec445e5e3",
       "counterpartSha256": "af1b8fab824f153b77270ada85839fbd9901d7b159993c9f85e3fcc664dfcd83",
       "iterations": 2048,
       "operationsPerIteration": 1,
@@ -13873,7 +13873,7 @@
       "description": "sort compare string: dense construction, stable ordering and complete retained arrays",
       "source": "workloads/array_sort_compare_string.tsr",
       "counterpart": "workloads/array_sort_compare_string.ts",
-      "sourceSha256": "fd2f29f48968ae90c1c55f25ac0036b8ecdfa78836475e2c29e9c84b5b607e6d",
+      "sourceSha256": "06083fa924bde1604b7db35624779b6e2f23688b9bb7644ba0d29cb8e7abdb41",
       "counterpartSha256": "9f0abd506b0182fe17c6c348c248e3f5917294a74d2d88d37101da42843203f6",
       "iterations": 2048,
       "operationsPerIteration": 1,
@@ -14033,7 +14033,7 @@
       "description": "toSorted default number: dense construction, stable ordering and complete retained arrays",
       "source": "workloads/array_to_sorted_default_number.tsr",
       "counterpart": "workloads/array_to_sorted_default_number.ts",
-      "sourceSha256": "04c28df4c33886f54b4adfc2fca043c35d9f347a07d2d04fa199a0b97c0df660",
+      "sourceSha256": "7709eaf3089eee1906e2bacff25a835f39f7dfec48e3b3b7f28f7a80792c6609",
       "counterpartSha256": "1bfb631fef83ecda8ae864ba18bbd2a1f25e4c0eb843bad8dfaa69011223aa33",
       "iterations": 2048,
       "operationsPerIteration": 1,
@@ -14191,7 +14191,7 @@
       "description": "toSorted compare number: dense construction, stable ordering and complete retained arrays",
       "source": "workloads/array_to_sorted_compare_number.tsr",
       "counterpart": "workloads/array_to_sorted_compare_number.ts",
-      "sourceSha256": "8c48e8b36571cd28315616b5d85687936daf383a1b0d5cbf622633077329a137",
+      "sourceSha256": "18c048a1d8dc249a1a8068727b12de85ddfc58c8618c03d5e3271cd66c9ef882",
       "counterpartSha256": "b6730dc3717c63d7317c8eb1c52523a4c9142acc7240ac7d1d3170e13632fe11",
       "iterations": 2048,
       "operationsPerIteration": 1,
@@ -14217,7 +14217,7 @@
       "description": "toSorted compare boolean: dense construction, stable ordering and complete retained arrays",
       "source": "workloads/array_to_sorted_compare_boolean.tsr",
       "counterpart": "workloads/array_to_sorted_compare_boolean.ts",
-      "sourceSha256": "f7cbe80c500ed409affa4c9b34b7e2939336a088b35e711c6af050541ee69319",
+      "sourceSha256": "a5eddc8936faa9c9ee988dc9af7e84cb36100eda0f51617743617da22f4b54a2",
       "counterpartSha256": "fad0eb13180e5b8a24315c6009846d12db762ff4b2119d3496f0bf3eba785aa4",
       "iterations": 2048,
       "operationsPerIteration": 1,
@@ -14243,7 +14243,7 @@
       "description": "toSorted compare string: dense construction, stable ordering and complete retained arrays",
       "source": "workloads/array_to_sorted_compare_string.tsr",
       "counterpart": "workloads/array_to_sorted_compare_string.ts",
-      "sourceSha256": "4f2b1d3fdf224b9c0cb19589257100a28a75f4cc221f168e50bf7cd01bfe3779",
+      "sourceSha256": "828d3f762e56af304533ce5ddb06144ac75880e4bf6a1fc5e067a1bf620e758d",
       "counterpartSha256": "b5f62c8be6048c91a4ee7787f7223fcb56938991dda6ee6e22b59c6ddc53e27a",
       "iterations": 2048,
       "operationsPerIteration": 1,
@@ -14408,7 +14408,7 @@
       "category": "arrays",
       "source": "workloads/array_flat_number.tsr",
       "counterpart": "workloads/array_flat_number.ts",
-      "sourceSha256": "b9ef7ef9111d17c8a09d4cd5f3164693437a6af8eaecf8e2a73939d54b686087",
+      "sourceSha256": "c57cebfc1cf2f48ecc1b75837cebfbcb85327db083dd0ce2060af722a6f4d96d",
       "counterpartSha256": "96280eaedf6628a10cb7f10180aa2366d09baffcfa57828b5a90a1bcd5256cd7",
       "iterations": 2048,
       "operationsPerIteration": 1,
@@ -14612,7 +14612,7 @@
       "category": "arrays",
       "source": "workloads/array_flat_map_number.tsr",
       "counterpart": "workloads/array_flat_map_number.ts",
-      "sourceSha256": "a2386f3032ee73d177fbf6cc4ec59a6de9e4dad94a0292618bf984a54bf5ddbd",
+      "sourceSha256": "1ee39a805d242c70e0e917a7057ff00ef1ddbc52d5c780804b64c2e0ed0028c6",
       "counterpartSha256": "df282faabb87063f211dbc78a87103439e542b12e5e54b558d19d8afde8949df",
       "iterations": 2048,
       "operationsPerIteration": 1,
@@ -14815,7 +14815,7 @@
       "category": "arrays",
       "source": "workloads/array_of_number.tsr",
       "counterpart": "workloads/array_of_number.ts",
-      "sourceSha256": "ab390e8ffd890a22b27118023a6f13678307b346f176af38a0883496332484ed",
+      "sourceSha256": "dc6213434f5458f4695f15da4d88f8f535ff3df64603b6ceae6bcd413c8ffe67",
       "counterpartSha256": "ee1d7c41a0e24a9bd83a7e765a33dff40e5a126b1448a8ceab4a5673adf6b46c",
       "iterations": 2048,
       "operationsPerIteration": 1,
@@ -15011,7 +15011,7 @@
       "category": "numbers",
       "source": "workloads/nullish_number_value.tsr",
       "counterpart": "workloads/nullish_number_value.ts",
-      "sourceSha256": "bf3e84a5f280b0ed97afeabfd3f589c5487d997e34a03892b966b3f143e62408",
+      "sourceSha256": "5b46accee3022b1cfb1bea38a7fd0dbf5112d88f1e31e331020be6b5338046a6",
       "counterpartSha256": "410f567065452d534e70f594e0124aa9791fea7f1e0ef6e83376399e101018bd",
       "iterations": 2048,
       "operationsPerIteration": 1,
@@ -15217,7 +15217,7 @@
       "category": "numbers",
       "source": "workloads/nullish_assign_number_value.tsr",
       "counterpart": "workloads/nullish_assign_number_value.ts",
-      "sourceSha256": "bd5edf5a89cbaea08f1fefe1eaeaf3b31499604e0c92541e636fa76c35b863cb",
+      "sourceSha256": "345fb247e4ec19ad3c42aaef17f88a1956fec2457c78fd4c7541b6bcb40fbf26",
       "counterpartSha256": "0582098d64a6383af1a6aa9f9d806978502587c906a5510aaa3a986c87cbe309",
       "iterations": 2048,
       "operationsPerIteration": 1,
@@ -15451,7 +15451,7 @@
       "category": "numbers",
       "source": "workloads/optional_chain_number_field.tsr",
       "counterpart": "workloads/optional_chain_number_field.ts",
-      "sourceSha256": "1ce654ca223d6616711e73981f0e5bac6e59e11dd7d052f3aaa824d0547e4422",
+      "sourceSha256": "b1e005f73f7b7249ea3bc4758ee17813beea6ef28720b2c660241c70538428a6",
       "counterpartSha256": "50943ccbe840b6c4af3bd154a06168f3197ee0521af86d3e875fd6ef50d7e9b1",
       "iterations": 2048,
       "operationsPerIteration": 1,
@@ -15999,7 +15999,7 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": false,
       "measured": false,
-      "sourceSha256": "b03680bbf24ef3cfc672077f361bfddf3f6ae66b67c74ef34037b805f8c9406d",
+      "sourceSha256": "31d4aa207063dc9975059e3a61bf1b9172b58b2541c3bac14bd4b65c2ae266a7",
       "counterpartSha256": "a26b1d2a5933ce32501a888d48ec196bc8323a5dadcdea6075760d6ce871244d",
       "notes": "Number default: omitted/undefined evaluates a reached factory once; provided +/-0, finite fractions, NaN and infinities skip it. Retain natural Number result and Number-converted bounded call delta through existing IEEE observer.",
       "specification": "One full optional/default scenario iteration, including input construction, supplied arguments, reached defaults, reached invocations, conversion/projection and complete result/effect retention. Default and callback counters distinguish omitted/undefined/supplied paths. Output observation and disposal occur outside measurement. Owning native environments and explicit retained String clones differ from JavaScript references; no allocation or identity parity claim."
@@ -16376,7 +16376,7 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": false,
       "measured": false,
-      "sourceSha256": "6d96d549e8a13f675f42690c57dd1db7a2a6cbd0624ab6e208579c786bf34b79",
+      "sourceSha256": "55f81aebc4479e37413abd6c3972ab308d1d45903f8c0b778c8ad076efadb919",
       "counterpartSha256": "dd9f3dcb7e53d6de2a42250531f863c74d0c934f95003219a494190b2a547619",
       "notes": "Zero, one or five homogeneous tail arguments form a fresh owning array; complete ordered pack return. Construction, argument evaluation, pack creation, body work and complete output retention are inside the workload; observation is outside. Native owned tails transfer, whereas JavaScript retains references; no identity or allocation parity claim.",
       "specification": "One whole scenario includes setup, ordered argument construction, fresh rest-pack construction, body access/formatting/projection and complete result retention. Zero, one or five tail elements; reached-call count is not the throughput denominator. Independent output observation occurs outside measurement. Native owned elements transfer into the pack; JavaScript object references differ. No isolated rest latency, ownership identity, or allocation parity claim."
@@ -16833,7 +16833,7 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": false,
       "measured": false,
-      "sourceSha256": "1ba19bf41313302cce9ecdfffde42cee330fc833a3c8348b30e3496c14f7ca83",
+      "sourceSha256": "e1effe476b3eb79e90152ba7cd51ee541f3332a5c527a58b97ffec017357046a",
       "counterpartSha256": "ba58394bb2d62b519a42f3c9fe4c48d5b8a9f57e00c1a6df91ab2c25d525afa9",
       "notes": "One actual variadic Math.max call, source construction and complete Number output retention; bit observation occurs outside timing.",
       "specification": "One whole scenario includes setup, ordered argument construction and expansion, target/default/body work, formatting or disclosed projection, and complete result retention. Absent optional paths still count one scenario. Actual reached calls are observed separately and are not the throughput denominator. Independent observation occurs outside measurement. Native owning moves/Read borrows differ from JavaScript references; no isolated spread latency, ownership identity, or allocation parity claim. Scheduled checkpoint 101 compares native and Node after TypeScript compilation when the accepted batch is ready."
@@ -17331,7 +17331,7 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": true,
       "measured": false,
-      "sourceSha256": "f5dcb7c486781f6a3b514df3c5ac07fed6d645f66e0dea7905079bc00887e360",
+      "sourceSha256": "e04a8f02a147cf63c07a7cb02111fc846d6be059ef76a31e1050f6aa3f854a3b",
       "counterpartSha256": "b3266812d4a7f3635d3c5ed98799f6a8e57953f12c3c6c8e629eeae645f0f3b9",
       "notes": "Dense literal construction and full returned content retention are timed. Native owning elements transfer; Node uses ordinary array elements/references. No reference identity or allocation equivalence claim. Untimed validation is separate from checkpoint measurements.",
       "specification": "One complete dense array-literal spread scenario per iteration, including source construction, segment evaluation, returned arrays and disclosed projections. Complete results are observed outside timing; no isolated spread latency or allocation equivalence claim."
@@ -17585,7 +17585,7 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": true,
       "measured": false,
-      "sourceSha256": "02a4b49c723469d4096ef89a9f5acbab239ed7a849288fce2224d9ebf3aa5d67",
+      "sourceSha256": "8e1cd36f11fa5f12e6bb9144ff73df740f86c17e28bc50c94896c3fcdf31a6ba",
       "counterpartSha256": "d8cd2f649c2a8a2385ed165f82554ffeaf1479a9145f2449ba0d19f4dbdb1fa2",
       "notes": "String construction, two at() selections with a fallback and full result retention are timed. Native positions count Unicode characters; the Node counterpart selects from the string's code points so both retain the same characters. Node's own String.at counts UTF-16 code units and is not the compared operation. No allocation equivalence claim. Untimed validation is separate from milestone measurements.",
       "specification": "One complete at() scenario per iteration: build the text, select one position from the start and one from the end, apply the fallback and retain both results. Complete results are observed outside timing."
@@ -17641,7 +17641,7 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": true,
       "measured": false,
-      "sourceSha256": "9cf5255ff466f205e722878984d940326080b6fa27456f09534b40b90af0be52",
+      "sourceSha256": "e67bc527371ae613f1a07fc872df1659673691e57f4f75a6b140839bb841885b",
       "counterpartSha256": "4f18174f503f00b2dfa5af234f747d08b499dd161f3a4faa9dab481de0965466",
       "notes": "Value construction, five toString calls (default, radix 2, 16, 36 and a negative value in radix 8) and full text retention are timed. Both sides run the same source expression on values with exact eighth fractions. No allocation equivalence claim. Untimed validation is separate from milestone measurements.",
       "specification": "One complete number toString scenario per iteration: build the value, format it five ways and retain every string. Complete results are observed outside timing."
@@ -17781,7 +17781,7 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": true,
       "measured": false,
-      "sourceSha256": "8524acc7bbed0a64cf260b314993295e8eb48ed921fa8b50052e8af2b02c3f73",
+      "sourceSha256": "c048aac6026bcc64bcd0ce504e2edf2b50af5c9adea140bf32c88818e17b18f4",
       "counterpartSha256": "e402e0b6885fd6a4faf0c8e93af18adf6f7e0d621b9aa4ba5476b28db832be65",
       "notes": "Text construction, three codePointAt calls (inside or past the text, always past the text, a position always inside the text), two charCodeAt calls (inside or past the text, negative position) and full result retention are timed. Both sides run the same source expression. The text holds only characters below U+10000, where character positions and UTF-16 positions agree. Missing code points are retained as -1 and missing units as NaN with a canonical bit pattern. No allocation equivalence claim. Untimed validation is separate from milestone measurements.",
       "specification": "One complete string code at scenario per iteration: build the text, read codes at five positions and retain every result. Complete results are observed outside timing."
@@ -17865,7 +17865,7 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": true,
       "measured": false,
-      "sourceSha256": "3296b14cb122e07282494c5afa35019c6a93b650aeea5642a0c7e31e47bf9441",
+      "sourceSha256": "7b429477d2ef8018852d3a9848e6e775cd85bcb00d9353945b622e23aa816373",
       "counterpartSha256": "48a74d4dc22ffea2c9ce2aa3979d396ef7e4575876c59a69dd9f23cee17d8b78",
       "notes": "Constructing numeric values, five toLocaleString calls (native integer, rounded positive/negative number, special value, large exponent) and full result retention are timed. Native uses fixed English decimal formatting; Node uses its default locale, checked against the independent oracle. The workload integers are exactly represented on both sides. No allocation equivalence claim. Verification is untimed; measurements remain pending.",
       "specification": "One complete numeric toLocaleString scenario per iteration, retaining five fully observed strings with grouping, decimal rounding, signed zero, special values and full large decimal notation."
@@ -17893,7 +17893,7 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": true,
       "measured": false,
-      "sourceSha256": "a0924cb07037423f2e06f361c02ac5fbc5ac34558d5cf966323f0bbfa8903ab9",
+      "sourceSha256": "f5dcb4bdbee3007283225a88dea786a7c79d2f011a99015acbc43a53520065e3",
       "counterpartSha256": "62d844114d3c6a79b6a3050836dbe3abc6060661dd981ec2dafd762cee752c9a",
       "notes": "Array construction (including explicit String(input) copy), eight array toLocaleString calls covering all supported leaf kinds and nested numeric arrays, and full result retention are timed. Native has fixed English numeric display; Node default locale is checked against the independent oracle. Integers remain exactly representable on both sides. No allocation equivalence claim. Verification is untimed; milestone measurements remain pending.",
       "specification": "One complete array toLocaleString scenario per iteration, retaining all eight text results for integers, numbers, strings, booleans, null, undefined, records and nested arrays."
@@ -18089,7 +18089,7 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": true,
       "measured": false,
-      "sourceSha256": "a5c2c7f2d91689cd4b6fb57942e3f8cc538503dd06f77bb7fc9fbfd639b2591d",
+      "sourceSha256": "924b6cc08f905437398b5eae668a75d787de68d40ad997c56441263d097d0760",
       "counterpartSha256": "4e430a4e62f293904611da6b7b9ab449cabc09df2aec91bac66348a049537392",
       "notes": "Construction of a four-element array with int, string and null alternatives, one push, one typeof-narrowing loop, join, includes, indexOf, at, one filter and full result retention are timed. Both sides run the same source expression. No allocation equivalence claim. Untimed validation is separate from milestone measurements.",
       "specification": "One complete union array scenario per iteration: build the mixed array, append one element, total the ints and join the strings by narrowing, search it, read its last element and count its strings. Seven result cells are retained and observed outside timing."
@@ -18350,7 +18350,7 @@
           "type Measured={length:number|null;};"
         ]
       },
-      "sourceSha256": "08f3e9e9051e81a542449d25568c3332bbcf344287c93056e5c45c36172fc26e",
+      "sourceSha256": "1d967434b76a5d68e6767caab9b6b7f5bf2a9a60af60925f2f66aba00aa5d7df",
       "counterpartSha256": "9b06ae4fd2d2f2f057dcc47dde0000d2cfb776a053babe3dc4573e10920c96ee"
     },
     {
@@ -18378,7 +18378,7 @@
       "measured": false,
       "notes": "Nine own-property queries retain every Boolean result. Untimed verification only; measurements pending.",
       "specification": "Inspect undefined record fields, absent and inherited names, dense array indices/length/noncanonical names, UTF-16 string positions/length, and numeric negative zero.",
-      "sourceSha256": "e562b467656c85392531aab11407c038055c394b98afa9ea460382dc58d2cc3f",
+      "sourceSha256": "a4ca1742b77d889014c734907c04a06519da5279f50fbc363203ff62d36797f6",
       "counterpartSha256": "97be3835e4321723aa1e373beff1ac5723f5a0a7eabcba2a3e20edc59d8f8eaa"
     },
     {
@@ -18602,7 +18602,7 @@
       "measured": false,
       "notes": "Function expressions as a captured callable argument, a map callback with an inferred parameter, a sort comparator, a forEach callback that mutates a captured total, and a function with a default and a rest parameter. Five complete observed cells per scenario. Untimed verification only; measurements pending.",
       "specification": "Pass a capturing function expression to a higher-order function, map and sort with function-expression callbacks, sum through a mutating callback, and call a function expression with default and rest parameters; retain five cells.",
-      "sourceSha256": "06d33b0bdb0615aee3e8dc54c081bef38ee6d9b86e415242bec2a26c6c2b692d",
+      "sourceSha256": "454b85c9b4167c7b7debc095b3ea7d36cf6c950ca9367ff833c365965e853f39",
       "counterpartSha256": "f3dd2d6c8c41ee1bb579770b8336dbd1ac41c99e140550b1af0bbe57003c6d46"
     },
     {
@@ -18630,7 +18630,7 @@
       "measured": false,
       "notes": "Global parseInt with and without a radix, parseFloat, isNaN, isFinite, NaN and Infinity, including a text argument that holds no number. Five complete observed cells per scenario. Untimed verification only; measurements pending.",
       "specification": "Read whole and fractional numbers from text through the global names, test the results with isNaN and isFinite, start a minimum at Infinity and select NaN for unreadable text; retain five cells.",
-      "sourceSha256": "127a4ba8b7ae5924ccdb28cf99ac31233629d3ee8ef84809507498b18776a5fc",
+      "sourceSha256": "1423d682a2d2ff477995195c77ec5a4b171ff31e20025d699dac534e3defe24d",
       "counterpartSha256": "bc93362183d7d4c20d533a320951c1d3e86f73670f3eb2217986133e0905d31a"
     },
     {
@@ -19442,7 +19442,7 @@
       "measured": false,
       "notes": "Gate 166: three interfaces, one extending two others with an optional inherited field; literals with and without that field read through a function. Five observed cells per scenario. Verified untimed; unmeasured, language milestone pending.",
       "specification": "Declare interfaces with extends and an optional inherited field, build values of the derived and base types, and retain five cells.",
-      "sourceSha256": "3514b4bc187149cdeaeb2a104d6d31eae9a9eca03d650628a2822015833c0d04",
+      "sourceSha256": "62b16e09e740753281addab4b8028f78d05451148bc0ff66feceabfb03a75eca",
       "counterpartSha256": "83097a2152ce50c5574830d2ac98a776d1d5534d7c912e8ffd9411e69feedd2d"
     },
     {
@@ -19498,7 +19498,7 @@
       "measured": false,
       "notes": "Seven retained conversion observations. Verified untimed; no timing.",
       "specification": "Convert decimal text, booleans, null, undefined and scalar unions with unary plus and Number; preserve seven observations.",
-      "sourceSha256": "0bfc2ee9e3583d1ce387a26c0b934a826bbcc79a5d60c14b4a37c17c2728082b",
+      "sourceSha256": "b5fa7e7e5606daa3f34331c7e5044052f4d89789c2f94e1797aa49a0361d451b",
       "counterpartSha256": "ca75c7d00e6f3c3f82c12b645d09b48517e5a2aaa434cb3456bcd01c962392d4"
     },
     {
@@ -19526,7 +19526,7 @@
       "measured": false,
       "notes": "Four retained observations across ten grammar/boundary cases. Untimed verification; no measurement.",
       "specification": "Whole numeric text through Number, unary plus and nullable union; signed-zero identity. Retain all observations.",
-      "sourceSha256": "cb16a29327d4df42e06c4b82aaa02ac9ff6c959023fbe21f8ecb935d023bae6e",
+      "sourceSha256": "45f8ce48c321e36c988ba49f4fcafde8f3da2c799a6f03223d66563880b1f951",
       "counterpartSha256": "e2a505d5fa305cef74441eeedd2d574a74c6abafbda957024eb9633b2f20edfa"
     },
     {
@@ -19834,7 +19834,7 @@
       "measured": true,
       "notes": "The scenario now retains 136 observations, including scoped readonly/mutable borrowed carriers and inferred common conditional carriers with scalar captures and named callable self-assignment invocation and replacement by a fresh factory instance. Concrete borrowed/owned views, generic calls, map callbacks and independent record/array storage environments. Lexical generic echo and escaped capture instances add four observations.  Polymorphic argument factories add independent one/two-argument results and string specialization. Matched execution-only measurement accepted at the named-declaration family milestone; original and affected optimization records remain separate.",
       "specification": "Retain 136 independent observations of values, ownership-preserving adapters, parameter patterns and shared/independent captured counters.",
-      "sourceSha256": "9a9f5dd4b009e6ad114a33e9dadf216e3d54d8b99e7cbeb27631b7f757fde272",
+      "sourceSha256": "e3391323d1201a19998c9990e8a85ecb10ec27049b83b68de1918a6003b9c597",
       "counterpartSha256": "33682523bef4badbf2277ff3c9b064a0061f35942f6093700eb6b1ba9f77175c"
     },
     {

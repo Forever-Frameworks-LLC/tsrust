@@ -34,7 +34,7 @@ function makeLeft(value: int): number | null | undefined {
 
     const at = value % 8;
     if (at === 0) {
-        return - 0.0;
+        return -0.0;
     }
 
     if (at === 1) {
@@ -50,7 +50,7 @@ function makeLeft(value: int): number | null | undefined {
     }
 
     if (at === 4) {
-        return - 1.0 / 0.0;
+        return -1.0 / 0.0;
     }
 
     if (at === 5) {
@@ -58,7 +58,7 @@ function makeLeft(value: int): number | null | undefined {
     }
 
     if (at === 6) {
-        return - 2.5;
+        return -2.5;
     }
 
     return Number(value) / 4.0;

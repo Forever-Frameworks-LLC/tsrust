@@ -373,3 +373,25 @@ fn generic_alias_closer_is_separated_from_assignment() {
     assert_eq!(format(&formatted).unwrap(), formatted);
     check(&formatted).unwrap();
 }
+
+#[test]
+fn unary_signs_attach_to_their_operands() {
+    let source = "function main(){const a=- 1;const b=[- 2,+ 3];let i=0;const c=i++ + - a;const d=a - - b[0];const e=a- 1;const f=[- a,- (a+1)];const g=a>- 1?- a:+ a;const h=a*- 1;const k=i-- - 1;const m=- - a;console.log(a,b,c,d,e,f,g,h,k,m,i);return;}";
+    let formatted = format(source).unwrap();
+    for expected in [
+        "const a = -1;",
+        "const b = [-2, +3];",
+        "const c = i++ + -a;",
+        "const d = a - -b[0];",
+        "const e = a - 1;",
+        "const f = [-a, -(a + 1)];",
+        "const g = a > -1 ? -a : +a;",
+        "const h = a * -1;",
+        "const k = i-- - 1;",
+        "const m = - -a;",
+    ] {
+        assert!(formatted.contains(expected), "{expected}\n{formatted}");
+    }
+    assert_eq!(format(&formatted).unwrap(), formatted);
+    check(&formatted).unwrap();
+}

@@ -55,10 +55,10 @@ function main() {
     strictEqual(copied.size, 2);
     const temporary = new Map<int, string>([[1, "temporary"]]).get(1);
     strictEqual(temporary ?? "missing", "temporary");
-    const numbers = new Map<number, int>([[NaN, 1], [NaN, 2], [- 0.0, 3], [0.0, 4]]);
+    const numbers = new Map<number, int>([[NaN, 1], [NaN, 2], [-0.0, 3], [0.0, 4]]);
     strictEqual(numbers.size, 2);
     strictEqual(numbers.get(NaN) ?? 0, 2);
-    strictEqual(numbers.get(- 0.0) ?? 0, 4);
+    strictEqual(numbers.get(-0.0) ?? 0, 4);
     strictEqual(numbers.delete(NaN), true);
     const alternatives = new Map<int | string, string>([[1, "integer"], ["1", "string"]]);
     strictEqual(alternatives.size, 2);

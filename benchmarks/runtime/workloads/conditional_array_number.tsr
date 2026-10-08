@@ -30,7 +30,7 @@ function predicate(trace: Trace, flag: boolean): boolean {
 function leftValue(trace: Trace, at: int, size: int): number[] {
     trace.left = trace.left + 1;
     const values: number[] = [];
-    const pool: number[] = [0.0, - 0.0, 0.5, - 0.5, 1.0 / 0.0, - 1.0 / 0.0, 0.0 / 0.0, 4.0];
+    const pool: number[] = [0.0, -0.0, 0.5, -0.5, 1.0 / 0.0, -1.0 / 0.0, 0.0 / 0.0, 4.0];
     let j = 0;
     while (j < size) {
         values.push(pool[(at + j + 0) % 8]);
@@ -43,7 +43,7 @@ function leftValue(trace: Trace, at: int, size: int): number[] {
 function rightValue(trace: Trace, at: int, size: int): number[] {
     trace.right = trace.right + 1;
     const values: number[] = [];
-    const pool: number[] = [0.0, - 0.0, 0.5, - 0.5, 1.0 / 0.0, - 1.0 / 0.0, 0.0 / 0.0, 4.0];
+    const pool: number[] = [0.0, -0.0, 0.5, -0.5, 1.0 / 0.0, -1.0 / 0.0, 0.0 / 0.0, 4.0];
     let j = 0;
     while (j < size) {
         values.push(pool[(at + j + 3) % 8]);

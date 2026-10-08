@@ -1,5 +1,5 @@
 function workload(n: int, seed: int): number[][] {
-    const base: number[][] = [[Number(seed) + 0.25, - 0.0], [], [2.5, - 1.25], [4.75], [0.0]];
+    const base: number[][] = [[Number(seed) + 0.25, -0.0], [], [2.5, -1.25], [4.75], [0.0]];
     let trace = seed;
     let visits = 0;
     let i = 0;

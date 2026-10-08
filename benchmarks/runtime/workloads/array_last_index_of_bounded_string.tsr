@@ -20,7 +20,7 @@ function workload(n: int, seed: int, input: string): int[] {
     let i = 0;
     while (i < n) {
         const choice = (i * 17 + seed) % 5;
-        let at = - 1;
+        let at = -1;
         if (choice === 0) {
             at = values.lastIndexOf(input, bound(i, seed));
         } else if (choice === 1) {
@@ -43,7 +43,7 @@ function workload(n: int, seed: int, input: string): int[] {
 function bound(i: int, seed: int): int {
     const c = (i * 13 + seed) % 12;
     if (c === 0) {
-        return - 9223372036854775808;
+        return -9223372036854775808;
     }
 
     if (c === 1) {
@@ -51,19 +51,19 @@ function bound(i: int, seed: int): int {
     }
 
     if (c === 2) {
-        return - 130;
+        return -130;
     }
 
     if (c === 3) {
-        return - 129;
+        return -129;
     }
 
     if (c === 4) {
-        return - 128;
+        return -128;
     }
 
     if (c === 5) {
-        return - 1;
+        return -1;
     }
 
     if (c === 6) {

@@ -29,7 +29,7 @@ function workload(n: int, seed: int, input: string): string[][] {
         const named: Named = {
             name: String(k)
         };
-        output.push([describe(plain), describe(placed), String(named.name), String(plain.score + placed.score), String(placed.y ?? - 1)]);
+        output.push([describe(plain), describe(placed), String(named.name), String(plain.score + placed.score), String(placed.y ?? -1)]);
         i += 1;
     }
 

@@ -1,5 +1,5 @@
 function workload(n: int, seed: int): number[][] {
-    const base: number[] = [Number(seed) / 4.0, - 0.0, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NaN];
+    const base: number[] = [Number(seed) / 4.0, -0.0, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NaN];
     const output: number[][] = [];
     let i = 0;
     while (i < n) {
@@ -18,7 +18,7 @@ function workload(n: int, seed: int): number[][] {
         const second = base.slice(0, mode % 2);
         const empty: number[] = [];
         const scalar0: number = Number(i) / 4.0;
-        const scalar1: number = - 0.0;
+        const scalar1: number = -0.0;
         const result = selected.concat(scalar0, first, scalar1, empty, second);
         output.push(result);
         i = i + 1;

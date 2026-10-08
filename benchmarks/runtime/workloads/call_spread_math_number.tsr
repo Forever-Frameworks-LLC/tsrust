@@ -5,7 +5,7 @@ function workload(n: int, seed: int, input: string): number[][] {
         const mode = (i + seed) % 3;
         const base = (i * 13 + seed) % 97;
         const count = mode === 0 ? 0 : mode === 1 ? 1 : 5;
-        const pool: number[] = [0.0, - 0.0, 5e-324, - 2.5, 0.5, 1.0 / 0.0, - 1.0 / 0.0, 0.0 / 0.0];
+        const pool: number[] = [0.0, -0.0, 5e-324, -2.5, 0.5, 1.0 / 0.0, -1.0 / 0.0, 0.0 / 0.0];
         const values: number[] = [];
         let at = 0;
         while (at < count) {

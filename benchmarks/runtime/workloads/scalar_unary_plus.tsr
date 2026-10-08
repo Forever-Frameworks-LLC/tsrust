@@ -6,7 +6,7 @@ function workload(n: int, seed: int, input: string): string[][] {
         const flag = k % 2 === 0;
         const text = String(k) + ".5";
         const nullable: string | undefined = flag ? clone(text) : undefined;
-        output.push([String(+ text), String(+ flag), String(+ null), String(+ undefined), String(+ nullable), String(Number(nullable)), String(Number.isNaN(+ input))]);
+        output.push([String(+text), String(+flag), String(+null), String(+undefined), String(+nullable), String(Number(nullable)), String(Number.isNaN(+input))]);
         i += 1;
     }
 

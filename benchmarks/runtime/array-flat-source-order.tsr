@@ -5,7 +5,7 @@ function receiver(trace: int[]): int[] {
 
 function depth(trace: int[]): int {
     trace.push(2);
-    return - 7;
+    return -7;
 }
 
 function main() {
@@ -15,7 +15,7 @@ function main() {
     console.log(copied.join(","));
     const groups: int[][] = [[1], [], [2, 3]];
     console.log(groups.flat(0).join("|"));
-    console.log(groups.flat(- 1).join("|"));
+    console.log(groups.flat(-1).join("|"));
     console.log(groups.flat().join(","));
     const deep: int[][][] = [[[1], []], [[2, 3]]];
     console.log(deep.flat(99).join(","));

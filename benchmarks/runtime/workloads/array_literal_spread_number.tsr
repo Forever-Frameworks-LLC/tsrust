@@ -3,7 +3,7 @@ function workload(n: int, seed: int, input: string): number[][] {
     let i = 0;
     while (i < n) {
         const count = (i + seed) % 3;
-        const values: number[] = [0.0, - 0.0, 2.5];
+        const values: number[] = [0.0, -0.0, 2.5];
         const selected: number[] = [];
         let at = 0;
         while (at < count) {
@@ -11,7 +11,7 @@ function workload(n: int, seed: int, input: string): number[][] {
             at = at + 1;
         }
 
-        const packed: number[] = [1.5, ...selected, - 2.5];
+        const packed: number[] = [1.5, ...selected, -2.5];
         output.push(packed);
         i = i + 1;
     }

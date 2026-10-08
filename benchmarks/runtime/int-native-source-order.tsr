@@ -20,7 +20,7 @@ function rhs(values: int[]): int {
 }
 
 function main() {
-    console.log(+ left());
+    console.log(+left());
     console.log(~left());
     console.log(left() & right());
     console.log(left() | right());

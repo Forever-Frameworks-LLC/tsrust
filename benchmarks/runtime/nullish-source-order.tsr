@@ -59,7 +59,7 @@ function main() {
     const skip: int[] = [];
     const flag = boolLeft(false) ?? boolRight(skip);
     console.log(flag);
-    const negativeZero = numberLeft(- 0.0) ?? numberRight(skip);
+    const negativeZero = numberLeft(-0.0) ?? numberRight(skip);
     console.log(1.0 / negativeZero);
     const nan = numberLeft(0.0 / 0.0) ?? numberRight(skip);
     console.log(Number.isNaN(nan));

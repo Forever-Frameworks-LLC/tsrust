@@ -10,7 +10,7 @@ function workload(n: int, seed: int, input: string): string[][] {
         let lowest = Infinity;
         if (part < lowest) lowest = part;
         const picked = isNaN(missing) ? NaN : missing + 1.0;
-        output.push([String(whole + hex), String(part), String(isNaN(missing)), String(isFinite(lowest) && !isFinite(- Infinity)), String(picked)]);
+        output.push([String(whole + hex), String(part), String(isNaN(missing)), String(isFinite(lowest) && !isFinite(-Infinity)), String(picked)]);
         i = i + 1;
     }
 

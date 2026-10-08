@@ -37,13 +37,13 @@ function main() {
     v.splice(1, 1);
     v[0] = "first";
     v[1] = 2;
-    v.sort((a, b) => String(a) < String(b) ? - 1 : 1);
+    v.sort((a, b) => String(a) < String(b) ? -1 : 1);
     console.log(v.join(","));
     v.reverse();
     v.fill("q", 0, 1);
     v.copyWithin(2, 0, 1);
     console.log(v.join(","), Array.isArray(v), Array.from(v).length);
-    const last = v.at(- 1);
+    const last = v.at(-1);
     if (typeof last === "number") {
         console.log(last + 1);
     } else {

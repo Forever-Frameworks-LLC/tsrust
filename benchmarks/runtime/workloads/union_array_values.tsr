@@ -21,7 +21,7 @@ function workload(n: int, seed: int, input: string): string[][] {
             }
         }
 
-        output.push([String(sum), text, values.join("|"), String(values.includes(null)), String(values.indexOf(base + 1)), String(values.at(- 1)), String(values.filter((value) => typeof value === "string").length)]);
+        output.push([String(sum), text, values.join("|"), String(values.includes(null)), String(values.indexOf(base + 1)), String(values.at(-1)), String(values.filter((value) => typeof value === "string").length)]);
         i = i + 1;
     }
 

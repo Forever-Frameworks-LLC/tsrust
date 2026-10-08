@@ -8,7 +8,7 @@ function workload(n: int, seed: int, input: string): string[] {
     while (i < n) {
         const at = (i * 13 + seed) % 8;
         const tag = (i * 7 + seed) % 9;
-        let from: int = - 1;
+        let from: int = -1;
         let to: int = 1000000000;
         if (tag === 1) {
             from = left[at];
@@ -26,7 +26,7 @@ function workload(n: int, seed: int, input: string): string[] {
         }
 
         if (tag === 4) {
-            from = - 10000;
+            from = -10000;
             to = 0;
         }
 

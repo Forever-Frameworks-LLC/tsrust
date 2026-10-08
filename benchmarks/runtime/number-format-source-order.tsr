@@ -33,7 +33,7 @@ function main() {
     trace.code = 0;
     console.log(receiver(trace).toPrecision());
     console.log(trace.code);
-    const reusable: number = - 0.0;
+    const reusable: number = -0.0;
     console.log(reusable.toFixed(2));
     console.log(1.0 / reusable < 0.0);
 }

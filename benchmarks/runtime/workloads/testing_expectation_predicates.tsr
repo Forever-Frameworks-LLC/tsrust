@@ -9,7 +9,7 @@ function workload(n: int, seed: int): int {
     let i = 0;
     while (i < n) {
         const kind = (i * 13 + seed) % 6;
-        const actual: number | null | undefined = kind === 0 ? null : kind === 1 ? undefined : kind === 2 ? 0.0 : kind === 3 ? Number.NaN : kind === 4 ? - 0.0 : 7.0;
+        const actual: number | null | undefined = kind === 0 ? null : kind === 1 ? undefined : kind === 2 ? 0.0 : kind === 3 ? Number.NaN : kind === 4 ? -0.0 : 7.0;
         const assertion = expect(actual);
         if (kind === 0) {
             assertion.toBeNull();
@@ -56,14 +56,14 @@ function workload(n: int, seed: int): int {
         assertion.not.toBeTypeOf("string");
         const numericActual = Number(kind);
         const numericAssertion = expect(numericActual);
-        numericAssertion.toBeGreaterThan(- 1.0);
+        numericAssertion.toBeGreaterThan(-1.0);
         numericAssertion.toBeGreaterThanOrEqual(numericActual);
         numericAssertion.toBeLessThan(6.0);
         numericAssertion.toBeLessThanOrEqual(numericActual);
         numericAssertion.not.toBeGreaterThan(6.0);
         numericAssertion.not.toBeGreaterThanOrEqual(6.0);
-        numericAssertion.not.toBeLessThan(- 1.0);
-        numericAssertion.not.toBeLessThanOrEqual(- 1.0);
+        numericAssertion.not.toBeLessThan(-1.0);
+        numericAssertion.not.toBeLessThanOrEqual(-1.0);
         numericAssertion.toBeCloseTo(numericActual);
         numericAssertion.not.toBeCloseTo(numericActual + 0.125, 5.0);
         const text = kind === 0 ? "😀" : "x".repeat(kind);

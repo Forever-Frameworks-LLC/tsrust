@@ -1,5 +1,5 @@
 function workload(n: int, seed: int): int[] {
-    const operands: int[] = [- 1, - 2, - 3, - 8, - 16, - 256, - 1024, - 65536];
+    const operands: int[] = [-1, -2, -3, -8, -16, -256, -1024, -65536];
     const output: int[] = [];
     let i = 0;
     while (i < n) {

@@ -27,9 +27,9 @@ function right(start: int) {
 function main() {
     let checks = 0;
     let arguments = 0;
-    const fixed: Function<int, [value: int]> = (checks++=== 0 ? (checks++=== 1 ? left : right) : right)(++arguments);
+    const fixed: Function<int, [value: int]> = (checks++ === 0 ? (checks++ === 1 ? left : right) : right)(++arguments);
     strictEqual(fixed(7), 7);
-    const mapped = [3, 4].map((checks++=== 0 ? left : (checks++=== 3 ? right : left))(++arguments));
+    const mapped = [3, 4].map((checks++ === 0 ? left : (checks++ === 3 ? right : left))(++arguments));
     strictEqual(mapped[0], 3);
     strictEqual(mapped[1], 4);
     strictEqual(checks, 4);

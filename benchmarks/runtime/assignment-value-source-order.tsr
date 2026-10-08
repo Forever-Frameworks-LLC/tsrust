@@ -67,7 +67,7 @@ function main() {
     console.log(trace.tag);
     let leftNumber: number = 8.0;
     let rightNumber: number = 9.0;
-    const negativeZero = (leftNumber = (rightNumber = - 0.0));
+    const negativeZero = (leftNumber = (rightNumber = -0.0));
     console.log(bit(1.0 / negativeZero < 0.0));
     console.log(bit(1.0 / leftNumber < 0.0));
     console.log(bit(1.0 / rightNumber < 0.0));

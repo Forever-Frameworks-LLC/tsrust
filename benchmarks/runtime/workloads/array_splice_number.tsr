@@ -1,9 +1,9 @@
 function workload(n: int, seed: int): number[] {
     const output: number[] = [];
     const sizes: int[] = [0, 1, 4, 5, 17];
-    const starts: int[] = [- 9007199254740991, - 3, - 1, 0, 1, 3, 9007199254740991];
-    const deletes: int[] = [- 9007199254740991, - 1, 0, 1, 3, 17, 9007199254740991];
-    const pool: number[] = [- 0.0, Number(seed) / 4.0, 0.0 / 0.0, 1.0 / 0.0];
+    const starts: int[] = [-9007199254740991, -3, -1, 0, 1, 3, 9007199254740991];
+    const deletes: int[] = [-9007199254740991, -1, 0, 1, 3, 17, 9007199254740991];
+    const pool: number[] = [-0.0, Number(seed) / 4.0, 0.0 / 0.0, 1.0 / 0.0];
     let i = 0;
     while (i < n) {
         const count = sizes[(i + seed) % 5];
@@ -25,11 +25,11 @@ function workload(n: int, seed: int): number[] {
         } else if (mode === 2) {
             removed = values.splice(start, deleteCount);
         } else if (mode === 3) {
-            removed = values.splice(start, deleteCount, - 0.0);
+            removed = values.splice(start, deleteCount, -0.0);
         } else if (mode === 4) {
-            removed = values.splice(start, deleteCount, - 0.0, Number(seed) / 4.0, 0.0 / 0.0);
+            removed = values.splice(start, deleteCount, -0.0, Number(seed) / 4.0, 0.0 / 0.0);
         } else {
-            removed = values.splice(start, deleteCount, - 0.0);
+            removed = values.splice(start, deleteCount, -0.0);
         }
 
         output.push(Number(removed.length));

@@ -5,7 +5,7 @@ Plan and ledger: `docs/compiler-completion-plan.md`.
 
 ## State of the tree
 
-- HEAD is `6c993c9` (gate 180). Gates 179 (`68504c0`) and 180 are accepted and committed with
+- Gate 180 is `6c993c9`. Later commits hold this handoff and the formatter repair. Gates 179 (`68504c0`) and 180 are accepted and committed with
   milestone records, coverage, SQLite evidence and matched workloads.
 - Gate 181 (truthiness, ledger row D1) is **in progress and uncommitted**. Three source files hold
   the work: `crates/tsrust-compiler/src/analysis.rs`, `emit.rs` and `logical_values_emit.rs`.
@@ -16,6 +16,17 @@ Plan and ledger: `docs/compiler-completion-plan.md`.
 - The five consumers were last refreshed from `e1fb13c`. They do not contain gates 179 and 180.
   Refresh them from an accepted commit once gate 181 is accepted or its source changes are set
   aside.
+- The formatter now attaches a unary sign to its operand (`-1`, `[-2, +3]`, `-(a + 1)`,
+  `i++ + -a`). The owner chose this on 2026-10-08. The earlier `- 1` output was a formatter defect,
+  not a decided style. The change is in `crates/tsrust-compiler/src/formatting.rs` with the witness
+  `unary_signs_attach_to_their_operands` in `tests/formatting.rs`. The project format pass rewrote
+  308 files with code tokens proven unchanged and refreshed 147 benchmark fingerprints. Checks: the
+  formatting suite (26), the eight depth canaries, the editor crate (365) and a native plus Node
+  verification of two reformatted workloads all pass.
+- Two protected owner fixtures still hold the old spacing because they were kept byte-identical:
+  `array-callback-errors/values.tsr` and `map-for-each/values.tsr`. `node tools/format-project.mjs`
+  will rewrite them on its next run. Copy them aside first and restore them, or ask the owner to
+  let the formatter touch them.
 - The session ran no whole-crate regression after the gate 181 edits. The last whole compiler run
   was at gate 180: 2,362 passed, 0 failed, 3 ignored. The editor crate passed 365.
 
@@ -93,8 +104,7 @@ The compiler is not complete. The final requirement-by-requirement audit has not
 ## Decisions the owner still owes
 
 - B14: `switch` fallthrough.
-- Formatter unary sign spacing. The formatter prints `- 1` everywhere. Changing it reformats
-  hundreds of files.
+- Whether the format pass may rewrite the two protected fixtures that still hold `- 1` spacing.
 - Gate 179 rule: the value of an owned assignment is the target read in place. It was implemented
   on recommendation and not separately confirmed.
 - Not in scope until decided: decorators, tagged templates, regular expression literals, computed

@@ -11,8 +11,8 @@ function workload(n: int, seed: int): int[][] {
             values = [base, base + 1, base + 2, base + 3, base + 4, base + 5, base + 6, base + 7];
         }
 
-        let left = - 1;
-        let right = - 1;
+        let left = -1;
+        let right = -1;
         let all = false;
         if (mode === 2) {
             left = 0;

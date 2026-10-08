@@ -21,7 +21,7 @@ function main() {
     const trace: Trace = {
         code: 0
     };
-    const partial: string = receiver(trace).substr(begin(trace, - 5), cap(trace, 4));
+    const partial: string = receiver(trace).substr(begin(trace, -5), cap(trace, 4));
     console.log(trace.code);
     console.log(partial);
     trace.code = 0;
@@ -33,6 +33,6 @@ function main() {
     const owned: string = "é😀".repeat(2);
     console.log(owned.substr(0, 2));
     console.log(owned);
-    console.log("abc".substr(- 1000000, 1000000));
+    console.log("abc".substr(-1000000, 1000000));
     console.log("abc".substr(1000000, 1000000));
 }

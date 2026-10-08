@@ -1,11 +1,11 @@
 function main() {
     const v0: number = 0.0;
     console.log(v0.toString(), v0.toString(10), v0.toString(2), v0.toString(8), v0.toString(16), v0.toString(36), v0.toString(3));
-    const v1: number = - 0.0;
+    const v1: number = -0.0;
     console.log(v1.toString(), v1.toString(10), v1.toString(2), v1.toString(8), v1.toString(16), v1.toString(36), v1.toString(3));
     const v2: number = 1.0;
     console.log(v2.toString(), v2.toString(10), v2.toString(2), v2.toString(8), v2.toString(16), v2.toString(36), v2.toString(3));
-    const v3: number = - 1.0;
+    const v3: number = -1.0;
     console.log(v3.toString(), v3.toString(10), v3.toString(2), v3.toString(8), v3.toString(16), v3.toString(36), v3.toString(3));
     const v4: number = 255.0;
     console.log(v4.toString(), v4.toString(10), v4.toString(2), v4.toString(8), v4.toString(16), v4.toString(36), v4.toString(3));
@@ -15,7 +15,7 @@ function main() {
     console.log(v6.toString(), v6.toString(10), v6.toString(2), v6.toString(8), v6.toString(16), v6.toString(36), v6.toString(3));
     const v7: number = 0.1;
     console.log(v7.toString(), v7.toString(10), v7.toString(2), v7.toString(8), v7.toString(16), v7.toString(36), v7.toString(3));
-    const v8: number = - 0.1;
+    const v8: number = -0.1;
     console.log(v8.toString(), v8.toString(10), v8.toString(2), v8.toString(8), v8.toString(16), v8.toString(36), v8.toString(3));
     const v9: number = 1.5;
     console.log(v9.toString(), v9.toString(10), v9.toString(2), v9.toString(8), v9.toString(16), v9.toString(36), v9.toString(3));
@@ -31,7 +31,7 @@ function main() {
     console.log(v14.toString(), v14.toString(10), v14.toString(2), v14.toString(8), v14.toString(16), v14.toString(36), v14.toString(3));
     const v15: number = 1.0 / 3.0;
     console.log(v15.toString(), v15.toString(10), v15.toString(2), v15.toString(8), v15.toString(16), v15.toString(36), v15.toString(3));
-    const v16: number = - 255.75;
+    const v16: number = -255.75;
     console.log(v16.toString(), v16.toString(10), v16.toString(2), v16.toString(8), v16.toString(16), v16.toString(36), v16.toString(3));
     const v17: number = 0.000001;
     console.log(v17.toString(), v17.toString(10), v17.toString(2), v17.toString(8), v17.toString(16), v17.toString(36), v17.toString(3));

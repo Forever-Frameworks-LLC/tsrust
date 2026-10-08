@@ -6,7 +6,7 @@ function workload(n: int, seed: int, input: string): string[][] {
         const k = i + seed;
         const text = texts[k % texts.length];
         const value: string | null = k % 2 === 0 ? String(text) : null;
-        output.push([String(Number(text)), String(+ text), String(Number(value)), String(Object.is(Number(text), - 0.0))]);
+        output.push([String(Number(text)), String(+text), String(Number(value)), String(Object.is(Number(text), -0.0))]);
         i += 1;
     }
 

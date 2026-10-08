@@ -25,7 +25,7 @@ function main() {
 
     console.log(total, text);
     const maybe: number | string | null = 2.5;
-    console.log(maybe === 2.5 ? maybe * 2.0 : - 1.0, maybe === "x" ? maybe.length : 0);
+    console.log(maybe === 2.5 ? maybe * 2.0 : -1.0, maybe === "x" ? maybe.length : 0);
     const flag: int | boolean = true;
     if (flag === true) {
         console.log(!flag);

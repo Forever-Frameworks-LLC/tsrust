@@ -11,8 +11,8 @@ function workload(n: int, seed: int, input: string): int[][] {
             values = [clone(input), "", "é", "😀", "e\u0301", "a\u0000b", clone(input), "Pat"];
         }
 
-        let left = - 1;
-        let right = - 1;
+        let left = -1;
+        let right = -1;
         let all = false;
         if (mode === 2) {
             left = 0;

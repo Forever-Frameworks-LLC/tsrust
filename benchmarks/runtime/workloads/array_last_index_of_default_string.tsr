@@ -20,7 +20,7 @@ function workload(n: int, seed: int, input: string): int[] {
     let i = 0;
     while (i < n) {
         const choice = (i * 17 + seed) % 5;
-        let at = - 1;
+        let at = -1;
         if (choice === 0) {
             at = values.lastIndexOf(input);
         } else if (choice === 1) {

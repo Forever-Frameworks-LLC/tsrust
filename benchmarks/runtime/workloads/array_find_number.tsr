@@ -6,7 +6,7 @@ function workload(n: int, seed: int): number[] {
         const mode = (i * 7 + seed) % 5;
         const values: number[] = [];
         if (count > 0) {
-            values.push(- 0.0);
+            values.push(-0.0);
         }
 
         if (count > 1) {

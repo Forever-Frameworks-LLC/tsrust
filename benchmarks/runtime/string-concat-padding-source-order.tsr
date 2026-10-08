@@ -38,7 +38,7 @@ function main() {
     console.log("".concat());
     console.log("x".concat("", "", "", ""));
     console.log("a".concat("b", "c", "d", "e"));
-    console.log("x".padStart(- 1));
+    console.log("x".padStart(-1));
     console.log("x".padEnd(0));
     console.log("x".padStart(4));
     console.log("x".padEnd(4));
@@ -49,7 +49,7 @@ function main() {
     console.log("é".padStart(8, "😀é"));
     console.log("é".padEnd(8, "😀é"));
     console.log("é".padStart(1, "😀"));
-    console.log("é".padEnd(- 1, "😀"));
+    console.log("é".padEnd(-1, "😀"));
     console.log("".padStart(2, "é😀"));
     console.log("".padEnd(2, "é😀"));
 }

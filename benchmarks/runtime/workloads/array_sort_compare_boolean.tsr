@@ -20,7 +20,7 @@ function workload(n: int, seed: int): boolean[][] {
 }
 
 function compare(left: boolean, right: boolean): int {
-    return left === right ? 0 : left ? 1 : - 1;
+    return left === right ? 0 : left ? 1 : -1;
 }
 
 function main() {

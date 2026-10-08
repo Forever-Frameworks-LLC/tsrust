@@ -85,7 +85,7 @@ function main() {
     strictEqual(sum(...keys, 7), 11);
     strictEqual(keys.size, 2);
     strictEqual(readonlySum(keys), 4);
-    strictEqual(Math.max(...new Set<number>([- 2.0, 4.0, 1.0])), 4.0);
+    strictEqual(Math.max(...new Set<number>([-2.0, 4.0, 1.0])), 4.0);
     strictEqual(String.fromCodePoint(...new Set<int>([65, 128578])), "A🙂");
     const values = new Map<int, int>([[1, 7], [2, 8]]);
     strictEqual(pair(...values), 18);

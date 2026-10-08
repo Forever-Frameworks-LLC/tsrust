@@ -4,7 +4,7 @@ type Trace = {
 
 function receiver(trace: Trace): int {
     trace.code = trace.code * 10 + 1;
-    return - 35;
+    return -35;
 }
 
 function radix(trace: Trace): int {
@@ -22,7 +22,7 @@ function main() {
     const decimal: string = receiver(trace).toString();
     console.log(decimal);
     console.log(trace.code);
-    const reusable: int = - 255;
+    const reusable: int = -255;
     console.log(reusable.toString(2));
     console.log(reusable);
 }

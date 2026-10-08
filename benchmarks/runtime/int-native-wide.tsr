@@ -1,7 +1,7 @@
 function main() {
-    let minimum: int = - 9223372036854775808;
+    let minimum: int = -9223372036854775808;
     let maximum: int = 9223372036854775807;
-    console.log(+ minimum);
+    console.log(+minimum);
     console.log(~maximum);
     console.log(~minimum);
     let wide: int = 4294967296;
@@ -10,7 +10,7 @@ function main() {
     console.log(wide ^ 1);
     let one: int = 1;
     let two: int = 2;
-    let negative: int = - 1;
+    let negative: int = -1;
     console.log(one << 40);
     console.log(two << 63);
     console.log(maximum << 1);
@@ -18,7 +18,7 @@ function main() {
     console.log(negative >>> 0);
     console.log(negative >>> 1);
     console.log(two ** 62);
-    let minusTwo: int = - 2;
+    let minusTwo: int = -2;
     console.log(minusTwo ** 63);
     let zero: int = 0;
     console.log(zero ** 0);

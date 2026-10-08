@@ -13,8 +13,8 @@ function main() {
     strictEqual(0O12, 10);
     strictEqual(0xDE_AD, 57005);
     strictEqual(0XfF, 255);
-    strictEqual(- 0x80, - 128);
-    strictEqual(+ 0b11, 3);
+    strictEqual(-0x80, -128);
+    strictEqual(+0b11, 3);
     const fraction: number = 1_234.5_6e+0_1;
     strictEqual(fraction, 12345.6);
     const wide: number = 0xffff_ffff_ffff_ffff;

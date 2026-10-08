@@ -17,7 +17,7 @@ function main() {
     console.log(v7.join("|"));
     const v8: undefined[] = [undefined, undefined, undefined];
     console.log(v8.join(" 😀 "));
-    const v9: number[] = [0.0, - 0.0, 0.5, - 2.5, 17.0, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY];
+    const v9: number[] = [0.0, -0.0, 0.5, -2.5, 17.0, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY];
     console.log(v9.join("|"));
     const v10: string[] = ["a,b", "&<>", ""];
     console.log(v10.join(","));

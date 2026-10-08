@@ -51,7 +51,7 @@ function makeCarrier(trace: Trace, value: int): Carrier | null | undefined {
     const at = value % 8;
     let payload: number = Number(value) / 4.0;
     if (at === 0) {
-        payload = - 0.0;
+        payload = -0.0;
     }
 
     if (at === 1) {
@@ -67,7 +67,7 @@ function makeCarrier(trace: Trace, value: int): Carrier | null | undefined {
     }
 
     if (at === 4) {
-        payload = - 1.0 / 0.0;
+        payload = -1.0 / 0.0;
     }
 
     if (at === 5) {
@@ -75,7 +75,7 @@ function makeCarrier(trace: Trace, value: int): Carrier | null | undefined {
     }
 
     if (at === 6) {
-        payload = - 2.5;
+        payload = -2.5;
     }
 
     return {

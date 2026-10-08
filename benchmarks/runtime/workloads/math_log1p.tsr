@@ -1,5 +1,5 @@
 function workload(n: int, seed: int): number {
-    const table0: number[] = [- 0.375, - 0.25, - 0.125, - 0.0625, 0.0625, 0.125, 0.25, 0.75];
+    const table0: number[] = [-0.375, -0.25, -0.125, -0.0625, 0.0625, 0.125, 0.25, 0.75];
     let sum: number = Number(seed);
     let i = 0;
     while (i < n) {

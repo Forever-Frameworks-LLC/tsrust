@@ -9,11 +9,11 @@ function workload(n: int, seed: int): string[] {
         }
 
         if (count > 1) {
-            values.push(- 0.0);
+            values.push(-0.0);
         }
 
         if (count > 2) {
-            values.push(- 2.5);
+            values.push(-2.5);
         }
 
         const removed0 = values.shift();

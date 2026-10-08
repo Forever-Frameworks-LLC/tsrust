@@ -31,7 +31,7 @@ function byteCoordinate(boundaries: int[], totalBytes: int, width: int, ordinal:
     if (ordinal < 0) {
         const index = width + ordinal;
         if (index < 0) {
-            return - totalBytes;
+            return -totalBytes;
         }
 
         return boundaries[index] - totalBytes;

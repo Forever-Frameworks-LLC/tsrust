@@ -4,7 +4,7 @@ function workload(n: int, seed: int, input: string): string[][] {
     while (i < n) {
         const mode = (i + seed) % 3;
         const text = input.repeat(mode);
-        output.push([text.at(i % 7) ?? "none", text.at(- 1 - mode) ?? "none"]);
+        output.push([text.at(i % 7) ?? "none", text.at(-1 - mode) ?? "none"]);
         i = i + 1;
     }
 

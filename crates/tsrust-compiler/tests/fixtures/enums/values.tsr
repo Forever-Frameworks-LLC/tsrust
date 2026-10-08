@@ -33,7 +33,7 @@ function advance(value: Phase): Phase {
 
 function main() {
     strictEqual(Number(Flag.Both), 3.0);
-    strictEqual(Number(Flag.Inverse), - 1.0);
+    strictEqual(Number(Flag.Inverse), -1.0);
     const ready = Phase.Ready;
     strictEqual(Number(ready), 0.0);
     strictEqual(Number(Phase.Done), 5.0);

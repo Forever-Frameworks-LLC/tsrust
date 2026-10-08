@@ -29,7 +29,7 @@ function workload(n: int, seed: int, input: string): string[][] {
 }
 
 function compare(left: string, right: string): int {
-    return left < right ? - 1 : left > right ? 1 : 0;
+    return left < right ? -1 : left > right ? 1 : 0;
 }
 
 function main() {
