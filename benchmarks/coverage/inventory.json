@@ -742,9 +742,12 @@
       "category": "Arrays",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
+      "implementation": "policy",
       "comparison": "missing",
-      "evidence": []
+      "evidence": [
+        "./compiler-completion-plan.md"
+      ],
+      "note": "Array holes are excluded by owner decision (2026-10-08)."
     },
     {
       "id": "Array.includes",
@@ -965,9 +968,12 @@
       "category": "Arrays",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
+      "implementation": "policy",
       "comparison": "missing",
-      "evidence": []
+      "evidence": [
+        "./compiler-completion-plan.md"
+      ],
+      "note": "Writing array length is excluded by owner decision (2026-10-08): use push, pop and splice."
     },
     {
       "id": "array.literal",
@@ -1389,9 +1395,12 @@
       "category": "Arrays",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
+      "implementation": "policy",
       "comparison": "missing",
-      "evidence": []
+      "evidence": [
+        "./compiler-completion-plan.md"
+      ],
+      "note": "Sparse arrays are excluded by owner decision (2026-10-08)."
     },
     {
       "id": "Array.splice",
@@ -11287,9 +11296,12 @@
       "category": "Control flow",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
+      "implementation": "policy",
       "comparison": "missing",
-      "evidence": []
+      "evidence": [
+        "./compiler-completion-plan.md"
+      ],
+      "note": "Loose equality is excluded by owner decision (2026-10-08): use === and !==."
     },
     {
       "id": "control.looseInequality",
@@ -11297,9 +11309,12 @@
       "category": "Control flow",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
+      "implementation": "policy",
       "comparison": "missing",
-      "evidence": []
+      "evidence": [
+        "./compiler-completion-plan.md"
+      ],
+      "note": "Loose inequality is excluded by owner decision (2026-10-08): use !==."
     },
     {
       "id": "control.nullishAssignment",
@@ -11445,9 +11460,12 @@
       "category": "Control flow",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
+      "implementation": "policy",
       "comparison": "missing",
-      "evidence": []
+      "evidence": [
+        "./compiler-completion-plan.md"
+      ],
+      "note": "with is excluded by owner decision (2026-10-08)."
     },
     {
       "id": "Date.[Symbol.toPrimitive]",
@@ -12440,9 +12458,12 @@
       "category": "Declarations and syntax",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
+      "implementation": "policy",
       "comparison": "missing",
-      "evidence": []
+      "evidence": [
+        "./compiler-completion-plan.md"
+      ],
+      "note": "var is excluded by owner decision (2026-10-08): use let or const."
     },
     {
       "id": "decorator.accessor",
@@ -21331,9 +21352,12 @@
       "category": "Objects",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
+      "implementation": "policy",
       "comparison": "missing",
-      "evidence": []
+      "evidence": [
+        "./compiler-completion-plan.md"
+      ],
+      "note": "delete is excluded by owner decision (2026-10-08): optional fields are assigned undefined."
     },
     {
       "id": "Object.hasOwnProperty",

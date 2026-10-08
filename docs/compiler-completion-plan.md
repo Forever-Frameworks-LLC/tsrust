@@ -205,6 +205,34 @@ Probed behavior is a syntax, type or `unsupported` error for every row.
 `type.any`, `global.eval` and `object.prototypeMutation` already carry a policy
 exclusion.
 
+## Owner decisions (2026-10-08)
+
+1. **In scope:** classes and `this`; type-level features; generators and iterators;
+   BigInt and Symbol. Each becomes a family in section D below.
+2. **Truthiness is in scope:** strings, numbers and nullable values in conditions and
+   logical operators. **Excluded by policy:** loose equality and inequality, `var`,
+   `with`, array holes and sparse arrays, writable `length`, `delete`. Their
+   diagnostics stay; the inventory rows carry `policy`.
+3. **Recursive result inference stays a superset of TypeScript** (gate 176).
+4. **Order:** B15, then scoped aggregates (B5 to B7), then the remaining B rows and
+   the section D families.
+
+Still undecided and therefore not in scope: decorators, tagged templates, regular
+expression literals, computed property names, object identity equality, `switch`
+fallthrough (B14), and the URI, `globalThis`, `JSON` and `Date` globals. The owner
+confirmed nothing about B15; it proceeds on the stated rule (the value of an owned
+assignment is a read-only view of the target) and is flagged in its record.
+
+## D. Families added by owner decision
+
+| # | Family | Depends on | Status |
+| --- | --- | --- | --- |
+| D1 | Truthiness in conditions and logical operators | none | incomplete |
+| D2 | Type-level features: literal types, discriminated unions, generic constraints and alias parameters, `keyof`/`typeof`/indexed/mapped/conditional types, utility types, `never`/`unknown`, `as const`, readonly tuples, overloads, namespaces, structural record literals | none; discriminated unions need literal types | incomplete |
+| D3 | Classes and `this`: declarations, constructors, fields, methods, getters/setters, static, `extends`/`super`, `new`, `instanceof`, object method shorthand, `Error` | ownership rule for `this` (design step of the family) | incomplete |
+| D4 | Generators and iterators: `function*`, `yield`, iterator protocol, `Symbol.iterator` | D5 for `Symbol`; async forms need B13 | incomplete |
+| D5 | BigInt and Symbol | none | incomplete |
+
 ## Dependency order
 
 1. B1–B4: independent of each other; no shared prerequisite. Gates 175–178.
