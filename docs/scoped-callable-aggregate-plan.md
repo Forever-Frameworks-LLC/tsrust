@@ -712,3 +712,14 @@ in SQLite. Cloned generic methods retain their checked exit snapshots. Compiler
 unit-test compilation and the focused move witness are checked after that metadata
 propagation adjustment. Branch consumption and exact moved-storage disposal still
 need evidence; B5 remains incomplete.
+
+Both-branch consumption now consults the checked body-exit snapshots. Renewed
+Map storage consumed on both paths is omitted from the branch return tuple while
+clear resets remain at their original statements. The native move witness executes
+both branch choices and checks empty moved storage and subsequent former-capture
+mutation. It was red with E0382 before emission used the snapshots. Storage live
+on either path remains retained; one-path consumption still needs explicit
+transport/disposal work rather than dropping the survivor early.
+The affected 64-test batch, eight depth canaries and focused sibling editor
+diagnostics pass. Exact checks are verified in SQLite as
+`tsrust-b5-both-branch-consumption-checks.log`. Whole B5 acceptance remains pending.

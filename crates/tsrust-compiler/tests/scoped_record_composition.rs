@@ -19,6 +19,10 @@ fn renewed_map_can_be_consumed_inside_its_clear_block() {
         }
     "#;
     project(source);
+    let branches = source.replace("            {\n                handlers.clear();\n                const moved = handlers;\n                strictEqual(moved.size, 0);\n            }", "            if (values[0] === 3) { handlers.clear(); const moved = handlers; strictEqual(moved.size, 0); } else { handlers.clear(); const moved = handlers; strictEqual(moved.size, 0); }");
+    assert_ne!(branches, source);
+    project(&branches);
+    project(&branches.replace("values[0] === 3", "values[0] === 4"));
     let restored = source.replace("const handlers =", "let handlers =")
         .replace("values[0] = 9;", "handlers = new Map<string, Holder>(); strictEqual(handlers.size, 0); values[0] = 9;");
     project(&restored);

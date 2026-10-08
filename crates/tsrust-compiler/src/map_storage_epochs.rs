@@ -90,15 +90,17 @@ impl Emitter<'_> {
         }
         if places.is_empty() { return false; }
         places.sort();
+        places.retain(|place| self.map_storage_live_at_exit(fun, then_body, place) || self.map_storage_live_at_exit(fun, else_body, place));
+        let comma = if places.is_empty() { "" } else { "," };
         let indent = "    ".repeat(depth);
         let pattern = places.iter().map(|place| format!("mut {place}")).collect::<Vec<_>>().join(",");
         let values = places.join(",");
         let condition = self.expr(fun, condition, Mode::Copy);
-        let _ = writeln!(output, "{indent}let ({pattern},) = if {condition} {{");
+        let _ = writeln!(output, "{indent}let ({pattern}{comma}) = if {condition} {{");
         self.control_block_epochs(output, fun, then_body, depth + 1, loop_label, Some(declarations));
-        let _ = writeln!(output, "{indent}    ({values},)\n{indent}}} else {{");
+        let _ = writeln!(output, "{indent}    ({values}{comma})\n{indent}}} else {{");
         self.control_block_epochs(output, fun, else_body, depth + 1, loop_label, Some(declarations));
-        let _ = writeln!(output, "{indent}    ({values},)\n{indent}}};");
+        let _ = writeln!(output, "{indent}    ({values}{comma})\n{indent}}};");
         true
     }
 }
