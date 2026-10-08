@@ -1,6 +1,36 @@
 mod support;
 
 #[test]
+fn error_after_map_transfer_restores_storage_in_catch() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function failIf(fail: boolean): int { if (fail) throw 5; return 1; }
+        function scenario(fail: boolean): void {
+            const old = [3];
+            let handlers = new Map<string, Holder>();
+            handlers.set("old", { run: (): int => old[0] });
+            let observed = -1;
+            try {
+                const path = failIf(fail);
+                handlers.clear();
+                const moved = handlers;
+                observed = moved.size;
+                throw 7;
+            } catch (error) {
+                handlers = new Map<string, Holder>();
+                observed += handlers.size;
+            }
+            old[0] = 9;
+            strictEqual(observed, fail ? -1 : 0);
+            strictEqual(handlers.size, 0);
+            strictEqual(old[0], 9);
+        }
+        function main(): void { scenario(false); scenario(true); }
+    "#);
+}
+
+#[test]
 fn consumed_map_on_normal_and_caught_paths_releases_capture() {
     let source = r#"
         import { strictEqual } from "std:testing";

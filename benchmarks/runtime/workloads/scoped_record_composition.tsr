@@ -248,8 +248,58 @@ function workload(n: int, seed: int, input: string): int[][] {
             caughtRenewed = prefixValue + prefixOld[0] + prefixNew[0];
         }
 
+        let normalConsumed = 0;
+        let caughtConsumed = 0;
+        {
+            const consumedOld = [value];
+            const consumedMap = new Map<string, Holder>();
+            consumedMap.set("old", {
+                run: (): int => consumedOld[0]
+            });
+            let consumedPath = 0;
+            let consumedSize = -1;
+            try {
+                consumedPath = prefixResult(false);
+                consumedMap.clear();
+                const moved = consumedMap;
+                consumedSize = moved.size;
+            } catch (error) {
+                consumedPath = 2;
+                consumedMap.clear();
+                const moved = consumedMap;
+                consumedSize = moved.size;
+            }
+
+            consumedOld[0] = value + 20;
+            normalConsumed = consumedSize + consumedPath + consumedOld[0];
+        }
+
+        {
+            const consumedOld = [value];
+            const consumedMap = new Map<string, Holder>();
+            consumedMap.set("old", {
+                run: (): int => consumedOld[0]
+            });
+            let consumedPath = 0;
+            let consumedSize = -1;
+            try {
+                consumedPath = prefixResult(true);
+                consumedMap.clear();
+                const moved = consumedMap;
+                consumedSize = moved.size;
+            } catch (error) {
+                consumedPath = 2;
+                consumedMap.clear();
+                const moved = consumedMap;
+                consumedSize = moved.size;
+            }
+
+            consumedOld[0] = value + 20;
+            caughtConsumed = consumedSize + consumedPath + consumedOld[0];
+        }
+
         base[0] = 0;
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed]);
         i += 1;
     }
 

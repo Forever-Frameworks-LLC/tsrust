@@ -964,3 +964,25 @@ focused editor test pass. Exact evidence is verified in SQLite as
 `tsrust-b5-consumed-exception-checks.log`; its loose copy is removed. Matched
 consumption coverage and point-sensitive error exits remain next. B5 remains
 incomplete and no timing was performed.
+
+Matched consumption coverage now retains twenty scalar observations. Two
+additional scenarios consume cleared Map storage on normal and caught paths,
+observe the moved size through infallible assignments, and mutate the old capture
+after release. Independent results expect `value + 21` and `value + 22`. Token
+guards require all four transfer/size observations, both final results and both
+capture mutations. Rehashed deletion controls pass. Native and Node-after-tsc
+verification passes untimed; exact evidence is verified in SQLite as
+`runtime/results/2026-10-08T17-39-22-541Z-verify.json`, with its loose copy removed.
+No timing samples were collected.
+
+Error-after-transfer transport has a confirmed red witness:
+`error_after_map_transfer_restores_storage_in_catch` fails either before transfer
+or after clearing and consuming the Map. Catch explicitly restores an empty Map
+in both cases; source analysis accepts the subsequent capture mutation and reads
+of restored storage. Generated Rust fails with E0382 because the thrown payload
+tries to carry the already moved owner. Exact evidence is verified in SQLite as
+`tsrust-b5-error-after-transfer-red.log`. Next work must track availability at
+each error-producing expression, including changes within a statement, while
+keeping the body-exit snapshots for normal completion. Empty replacement may
+also require renewing its native lifetime rather than retaining the old carrier
+lifetime. B5 acceptance and measurements remain pending.
