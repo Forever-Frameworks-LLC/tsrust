@@ -8342,3 +8342,14 @@ fn loop_transferred_factories_preserve_independent_signature_help() {
     let help=ask(source,"textDocument/signatureHelp","3,9",0);
     assert!(help.to_string().contains("other: int"),"{help}");
 }
+
+#[test]
+fn nested_loop_factories_preserve_independent_signature_help() {
+    let source="function one<T>(value:T):T{return value;}function two<T>(value:T,other:T):T{return other;}function factory<A>(initial:A){let action=initial;return(restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}function wrap<A>(initial:A){let action=factory(initial);return(restore:boolean)=>{return action(restore);};}function main(){const instances=[wrap(one)];for(let index=0;index<2;index=index+1){instances.push(wrap(one));}const seed=instances.shift()!;const first=instances.shift()!;const second=instances.shift()!;const original=first(false);const independent=second(true);const changed=first(true);console.log(original<int>(1),independent<int>(2),changed<int>(3,9));}";
+    assert!(tsrust_lsp::diagnostics(source,"file:///nested-loop-factory-state.tsr").unwrap().is_empty());
+    let independent=ask(source,"textDocument/signatureHelp","2),changed<int>",0);
+    assert!(independent.to_string().contains("value: int"),"{independent}");
+    assert!(!independent.to_string().contains("other: int"),"{independent}");
+    let help=ask(source,"textDocument/signatureHelp","3,9",0);
+    assert!(help.to_string().contains("other: int"),"{help}");
+}

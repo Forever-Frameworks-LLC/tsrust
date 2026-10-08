@@ -661,3 +661,35 @@ fn repeated_array_extraction_preserves_same_contract_mutable_instances() {
         }
     "#,"0 10\n1 11\n",None);
 }
+
+#[test]
+fn loop_extraction_keeps_nested_owned_factory_captures_independent() {
+    support::execute(r#"
+        function one<T>(value:T):T{return value;}
+        function two<T>(value:T,other:T):T{return other;}
+        function factory<A>(initial:A){let action=initial;return(restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}
+        function wrap<A>(initial:A){let action=factory(initial);return(restore:boolean)=>{return action(restore);};}
+        function main(){
+            const instances=[wrap(one)];
+            for(let index=0;index<2;index=index+1){instances.push(wrap(one));}
+            const seed=instances.shift()!;
+            const first=instances.shift()!;const second=instances.shift()!;
+            const original=first(false);const independent=second(true);const changed=first(true);
+            console.log(original<int>(1),independent<int>(2),changed<int>(3,9));
+        }
+    "#,"1 2 9\n",None);
+}
+
+#[test]
+fn fresh_loop_factory_does_not_inherit_discarded_instance_updates() {
+    support::execute(r#"
+        function one<T>(value:T):T{return value;}
+        function two<T>(value:T,other:T):T{return other;}
+        function factory<A>(initial:A){let action=initial;return()=>{const previous=action;action=two;return previous;};}
+        function main(){
+            for(let index=0;index<2;index=index+1){
+                const take=factory(one);const original=take();console.log(original<int>(index));
+            }
+        }
+    "#,"0\n1\n",None);
+}

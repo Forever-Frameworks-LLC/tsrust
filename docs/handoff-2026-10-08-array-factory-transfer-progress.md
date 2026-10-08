@@ -29,3 +29,10 @@ Keep main ownership exclusive. The stdlib worker may implement path.relative in 
 ## Environment
 
 Use `/private/tmp/tsrust-gate100-editor-target` with CARGO_INCREMENTAL=0 and offline/locked Cargo. Node 24.11.1 must be first on PATH. Use `/opt/homebrew/bin/python3` for SQLite storage tools. Preserve exact evidence identities and historical analytics. Do not create archives, stash owner edits, run routine full matrices or time unaccepted work.
+
+
+## Nested graph follow-up checkpoint
+
+After c354b84, the nested-owned-child witness exposed sharing that outer-only transfer missed. The helper now discovers reachable owned capture environments iteratively, remaps callback and array-element edges, preserves cycles and borrowed lexical identities, and commits value and outgoing flow state only after complete validation. All 89 adjacent generic-call controls and all 50 capture-effect tests pass before one additional successful focused fresh-loop allocation control. Cyclic, borrowed-root and unknown-child controls pass. Nested editor signature help and all eight rebuilt canaries pass.
+
+The matched workload now has nineteen observations. All five untimed native/Node-after-tsc cases pass. Exact SQLite record: runtime/results/2026-10-08T07-20-19-446Z-verify.json. No timing or consumer refresh is claimed. This follow-up is another implementation checkpoint; finish the wider cohort/alias audit and family milestone acceptance before declaring the overall callable replacement plan complete.

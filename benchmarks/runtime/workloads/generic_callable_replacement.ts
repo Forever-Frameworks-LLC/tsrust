@@ -101,6 +101,25 @@ function poolResult(base: int): int[] {
     return [original<int>(base), independent<int>(base), changed<int>(base, base + 9)];
 }
 
+function nestedFactory<A>(initial: A) {
+    let action = stateFactory(initial);
+    return (restore: boolean) => { return action(restore); };
+}
+
+function nestedPoolResult(base: int): int[] {
+    const nestedInstances = [nestedFactory(stateFirst)];
+    for (let index = 0; index < 2; index += 1) {
+        nestedInstances.push(nestedFactory(stateFirst));
+    }
+    const nestedSeed = nestedInstances.shift()!;
+    const nestedFirst = nestedInstances.shift()!;
+    const nestedSecond = nestedInstances.shift()!;
+    const nestedOriginal = nestedFirst(false);
+    const nestedIndependent = nestedSecond(true);
+    const nestedChanged = nestedFirst(true) as unknown as typeof stateSecond;
+    return [nestedOriginal<int>(base), nestedIndependent<int>(base), nestedChanged<int>(base, base + 9)];
+}
+
 function workload(n: int, seed: int, input: string): int[][] {
     const output: int[][] = [];
     for (let i = 0; i < n; i += 1) {
@@ -121,7 +140,8 @@ function workload(n: int, seed: int, input: string): int[][] {
         const captured = capturedResult(flag, i % 3 === 0, base);
         const state = stateResult(base);
         const pool = poolResult(base);
-        output.push([original, selected, completed, omitted, text.length, present, absent, callback, captured, state[0], state[1], state[2], state[3], pool[0], pool[1], pool[2]]);
+        const nested = nestedPoolResult(base);
+        output.push([original, selected, completed, omitted, text.length, present, absent, callback, captured, state[0], state[1], state[2], state[3], pool[0], pool[1], pool[2], nested[0], nested[1], nested[2]]);
     }
     return output;
 }

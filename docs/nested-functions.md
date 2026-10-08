@@ -606,3 +606,5 @@ function main() {
 ```
 
 This prints `1 2 9`. The first call returns its previous one-argument callback and installs the two-argument callback. The second factory still returns its original one-argument callback. Calling the first factory again returns its updated callback. No captured owner is implicitly cloned. A missing restoration branch or a throw before restoration retains the consuming invocation requirement.
+
+Owned callbacks may also capture another owned factory callback. Transferring the outer callback from an array preserves the child callback state for that instance. Independent instances do not share child updates. Borrowed lexical captures retain their existing shared identity and lifetime restrictions.
