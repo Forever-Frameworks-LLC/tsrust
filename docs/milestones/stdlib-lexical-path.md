@@ -1,6 +1,6 @@
 # Lexical path family acceptance
 
-Base: `8fe73b5`. Branch: `codex/stdlib-path`. Scope: dirname, extname, isAbsolute, normalize. Implementation and measurements remain pending.
+Base: `8fe73b5`. Branch: `codex/stdlib-path`. Scope: dirname, extname, isAbsolute, normalize. The bounded family is accepted on macOS with portable POSIX/Windows helper evidence and scoped execution measurements. Combined-checkout and Windows native integration remain pending.
 
 ## Frozen public contract
 
@@ -25,9 +25,10 @@ Use `/private/tmp/tsrust-stdlib-path-target`, CARGO_INCREMENTAL=0, offline locke
 
 ## Progress
 
-- P0 contract frozen; primitive metadata supports boolean. Native boolean adaptation awaits public execution witness.
-- P1 red runtime evidence: unresolved dirname/extname imports in `/private/tmp/stdlib-path-red.log`.
-- P1/P2/P3 acceptance, evidence import, commits and handoff remain pending.
+- P0 contract and primitive bridge accepted.
+- P1 accepted in `3492e21`; P2 accepted in `b57ec2a`.
+- P3 complete compiler/editor checks and original measurements checkpointed in `db30ab3`.
+- Runtime optimization, exact evidence retention and physical handoff complete this family.
 
 ## P1 accepted focused checks
 
@@ -54,3 +55,13 @@ Whole compiler: 2,221 passes and exactly the two named baseline callable failure
 Initial execution-only record: `runtime/results/2026-10-08T00-59-07-862Z.json`. Five workloads, native/Node-after-tsc, original 8 warmups, 31 samples, 3 processes (93 samples per engine/workload; 930 individual samples). Native/Node mean reciprocal-throughput ratios: basename 0.743, dirname 1.486, extname 0.707, isAbsolute 4.051, normalize 0.714. No historical normalized path rows exist in the canonical main SQLite store, so these are engine comparisons, not historical regression claims. No allocation profile was measured.
 
 Review identifies avoidable intermediate allocation in extname and normalization. Preserve these originals and supplement only affected checks and measurements after optimization. SQLite uses the existing `analytics.derive` API for accepted execution-only rows, with profilesAccepted=false; no nonexistent allocation/profile acceptance is fabricated to satisfy the older combined CLI ingestion contract.
+
+## P3 affected optimization acceptance
+
+Two focused allocation witnesses first fail: extname allocates twice, and representative POSIX normalization allocates four times. The optimized helpers allocate once in each witness. This is a scoped unit observation, not a matched allocation profile. extname scans the borrowed final component directly. normalize reuses one output buffer while resolving parent components, avoiding the component vector and final copied tail. Normalization reserves input length; a shortened result can retain extra capacity. Output ownership and lexical behavior are unchanged.
+
+Supplemental checks pass: six runtime/both-convention reference tests, two allocation tests, two native O0/O3 project tests, imported editor help, and all four executable catalog examples. The earlier whole compiler/editor checks are retained; only affected checks are repeated.
+
+Optimized verification: `runtime/results/2026-10-08T01-03-53-258Z-verify.json` (see SQLite identity if the exact timestamp differs). Optimized timing: `runtime/results/2026-10-08T01-04-01-192Z.json`, two workloads and 372 individual samples under the unchanged protocol. extname native/Node ratio is 1.758 with 2.483x native mean throughput versus the original; normalize ratio is 1.362 with 1.910x native mean throughput. Compiled Node mean rates differ by less than 0.3% between these runs. Samples are never merged. The original basename ratio 0.743 remains a slower signal; unchanged basename is not retimed. dirname and isAbsolute retain their original 1.486 and 4.051 ratios.
+
+Accepted original/optimized raw records and proofs are in worktree SQLite, verified byte for byte before loose removal. The store has two measured runs, seven source-bound workload rows, 1,302 timing samples and 14 rate summaries. Correctness-only records have no timing rows. No whole historical benchmark matrix or allocation profile is claimed.

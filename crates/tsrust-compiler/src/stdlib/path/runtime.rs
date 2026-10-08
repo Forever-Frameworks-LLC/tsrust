@@ -102,7 +102,14 @@ pub fn dirname(path: &str, windows: bool) -> std::string::String {
 }
 /// Last dot suffix of the final component; leading-dot names and dot-dot have no suffix.
 pub fn extname(path: &str, windows: bool) -> std::string::String {
-    let component = basename(path, None, windows);
+    let bytes = path.as_bytes();
+    let mut start = if windows && drive_prefix(bytes) { 2 } else { 0 };
+    let mut end = bytes.len();
+    while end > start && separator(bytes[end - 1], windows) { end -= 1; }
+    for index in (start..end).rev() {
+        if separator(bytes[index], windows) { start = index + 1; break; }
+    }
+    let component = &path[start..end];
     if component == ".." { return std::string::String::new(); }
     match component.rfind('.') {
         Some(index) if index > 0 => component[index..].into(),
@@ -165,19 +172,23 @@ pub fn normalize(path: &str, windows: bool) -> std::string::String {
             if reserved_device(&path[..colon]) {device=path[..=colon].into();offset=colon+1;}
         }
     }
-    let mut components:Vec<&str>=Vec::new();
+    let sep=if windows {"\\"} else {"/"};
+    let mut tail=std::string::String::new();
     for component in path[offset..].split(|ch| ch=='/' || (windows && ch=='\\')) {
         match component {
-            ""|"."=>{},
-            ".."=>{
-                if components.last().is_some_and(|last| *last!="..") {components.pop();}
-                else if !absolute {components.push(component);}
+            ""|"."=>continue,
+            ".." if !tail.is_empty() && tail.rsplit(sep).next()!=Some("..")=>{
+                tail.truncate(tail.rfind(sep).unwrap_or(0));
+                continue;
             },
-            _=>components.push(component),
+            ".." if absolute=>continue,
+            _=>{},
         }
+        // Reserve once for ordinary paths, retaining capacity when parent components truncate text.
+        if tail.capacity()==0 {tail.reserve_exact(path.len());}
+        if !tail.is_empty() {tail.push_str(sep);}
+        tail.push_str(component);
     }
-    let sep=if windows {"\\"} else {"/"};
-    let mut tail=components.join(sep);
     if tail.is_empty() && !absolute {tail.push('.');}
     if !tail.is_empty() && separator(*bytes.last().unwrap(),windows) {tail.push_str(sep);}
     if windows && !absolute && device.is_empty() && path.contains(':') {
@@ -186,5 +197,8 @@ pub fn normalize(path: &str, windows: bool) -> std::string::String {
         if suspicious {return format!(".\\{tail}");}
     }
     if windows && path.find(':').is_some_and(|colon| reserved_device(&path[..colon])) {return format!(".\\{device}{tail}");}
-    if absolute {format!("{device}{sep}{tail}")} else {format!("{device}{tail}")}
+    if device.is_empty() {
+        if absolute {tail.insert_str(0,sep);}
+        tail
+    } else if absolute {format!("{device}{sep}{tail}")} else {format!("{device}{tail}")}
 }

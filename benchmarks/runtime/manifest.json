@@ -13235,7 +13235,9 @@
       "iterations": 20000,
       "result": "string[]",
       "specification": "For n iterations alternate /tmp/report.txt and /var/log/archive.txt/ according to (i + seed) parity. Extract each final filename and remove the exact .txt suffix, retaining all n strings for content validation outside the timed interval.",
-      "notes": "Matched POSIX ASCII paths and exact suffix stripping. Native std:path is compared with node:path.posix, independent of host path conventions. Includes returned string construction and retention; no allocation equivalence or general platform/Unicode claim. Registered for the next scheduled checkpoint; no measurements yet."
+      "notes": "Matched POSIX ASCII paths and exact suffix stripping. Native std:path is compared with node:path.posix, independent of host path conventions. Includes returned string construction and retention; no allocation equivalence or general platform/Unicode claim. Scoped family execution-only measurement is accepted; original records are retained in SQLite.",
+      "measurementStatus": "measured-lexical-path-family",
+      "measurementEvidence": "runtime/results/2026-10-08T00-59-07-862Z.json"
     },
     {
       "id": "array_unshift_int",
@@ -19879,9 +19881,10 @@
         "int"
       ],
       "family": "lexical-path",
-      "measurementStatus": "pending-path-family",
+      "measurementStatus": "measured-lexical-path-family",
       "specification": "Alternate /tmp/report.txt and /var/log/archive.tar.gz/ by (i+seed) parity. Apply dirname and retain every returned string.",
-      "notes": "Matched POSIX semantics on macOS. Input construction, transformation and output retention are timed. No isolated latency or allocation equivalence claim."
+      "notes": "Matched POSIX semantics on macOS. Input construction, transformation and output retention are timed. No isolated latency or allocation equivalence claim.",
+      "measurementEvidence": "runtime/results/2026-10-08T00-59-07-862Z.json"
     },
     {
       "id": "std_path_extname_ascii",
@@ -19899,9 +19902,10 @@
         "int"
       ],
       "family": "lexical-path",
-      "measurementStatus": "pending-path-family",
+      "measurementStatus": "measured-lexical-path-family",
       "specification": "Alternate /tmp/report.txt and /var/log/archive.tar.gz/ by (i+seed) parity. Apply extname and retain every returned string.",
-      "notes": "Matched POSIX semantics on macOS. Input construction, transformation and output retention are timed. No isolated latency or allocation equivalence claim."
+      "notes": "Matched POSIX semantics on macOS. Input construction, transformation and output retention are timed. No isolated latency or allocation equivalence claim.",
+      "measurementEvidence": "runtime/results/2026-10-08T01-04-01-192Z.json"
     },
     {
       "id": "std_path_is_absolute_ascii",
@@ -19919,9 +19923,10 @@
         "int"
       ],
       "family": "lexical-path",
-      "measurementStatus": "pending-path-family",
+      "measurementStatus": "measured-lexical-path-family",
       "specification": "Alternate /tmp/report.txt and reports/../archive/ by (i+seed) parity. Apply isAbsolute and retain every result after boolean toString conversion.",
-      "notes": "Matched POSIX semantics on macOS. Input construction, transformation, observation conversion and output retention are timed. No isolated latency or allocation equivalence claim."
+      "notes": "Matched POSIX semantics on macOS. Input construction, transformation, observation conversion and output retention are timed. No isolated latency or allocation equivalence claim.",
+      "measurementEvidence": "runtime/results/2026-10-08T00-59-07-862Z.json"
     },
     {
       "id": "std_path_normalize_ascii",
@@ -19939,9 +19944,10 @@
         "int"
       ],
       "family": "lexical-path",
-      "measurementStatus": "pending-path-family",
+      "measurementStatus": "measured-lexical-path-family",
       "specification": "Alternate /tmp//reports/../report.txt and reports/../archive/ by (i+seed) parity. Apply normalize and retain every result.",
-      "notes": "Matched POSIX semantics on macOS. Input construction, transformation, observation conversion and output retention are timed. No isolated latency or allocation equivalence claim."
+      "notes": "Matched POSIX semantics on macOS. Input construction, transformation, observation conversion and output retention are timed. No isolated latency or allocation equivalence claim.",
+      "measurementEvidence": "runtime/results/2026-10-08T01-04-01-192Z.json"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",
