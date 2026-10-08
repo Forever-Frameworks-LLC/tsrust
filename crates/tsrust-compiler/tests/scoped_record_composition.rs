@@ -1,6 +1,36 @@
 mod support;
 
 #[test]
+fn cleared_map_refill_tracks_only_current_capture_owners() {
+    let source = r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function main() {
+            const first = [3];
+            const second = [7];
+            const handlers = new Map<string, Holder>();
+            handlers.set("first", { run: (): int => first[0] });
+            handlers.clear();
+            handlers.set("second", { run: (): int => second[0] });
+            first[0] = 9;
+            strictEqual(first[0], 9);
+            {
+                const result = handlers.get("second");
+                if (result !== undefined) strictEqual(result.run(), 7);
+            }
+            handlers.clear();
+            second[0] = 11;
+            strictEqual(second[0], 11);
+        }
+    "#;
+    project(source);
+    let conflict = source.replace("import { strictEqual } from \"std:testing\";", "function strictEqual(a: int, b: int): void {}")
+        .replace("first[0] = 9;", "second[0] = 9;");
+    let error = tsrust_compiler::check(&conflict).err().expect("refill retains new capture");
+    assert_eq!(error.code, "capture-conflict", "{}", error.message);
+}
+
+#[test]
 fn clearing_one_scoped_map_releases_only_its_capture_owner() {
     let source = r#"
         import { strictEqual } from "std:testing";

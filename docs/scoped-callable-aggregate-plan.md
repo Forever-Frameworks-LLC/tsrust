@@ -496,3 +496,27 @@ field remains callable. A conditional-clear rejection verifies that branch joins
 retain captures from the uncleared path. Focused editor diagnostics agree: direct
 clear is accepted and conditional clear reports capture-conflict. Both compiler
 and editor witnesses pass; native record-field execution passes after formatting.
+
+### Current blocker: clear/refill carrier lifetimes
+
+The focused `cleared_map_refill_tracks_only_current_capture_owners` witness is
+intentionally red. Clearing a local Map releases its checked capture owners, but
+refilling that same Map with a different callback origin retains the first
+capture lifetime in the shared native carrier type. Mutating the cleared first
+capture before reading the new entry passes analysis and fails generated Rust
+with E0502. The second entry must remain protected until it is cleared too.
+
+The required fix must separate concrete carrier lifetimes across clear/refill
+cycles, rather than suppressing the Rust diagnostic or restoring conservative
+source rejection. Plan point-sensitive Map carrier epochs together with storage
+emission: a completed clear ends the old payload lifetime, later insertions start
+a fresh concrete environment, and moves, record fields and control-flow joins
+must preserve the current environment. Native assertions must verify old-capture
+mutation, new-entry invocation and subsequent new-capture release. Retain the
+shared/new capture rejection and existing conditional-clear protections. The
+current witness includes the native success requirements and a paired new-capture
+rejection; its native half fails before the rejection runs.
+
+This is a B5 defect, not an accepted limit. Earlier clear-only evidence remains
+valid for its covered paths, but does not prove clear/refill support. No timing or
+whole B5 acceptance is claimed.
