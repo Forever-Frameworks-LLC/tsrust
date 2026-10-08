@@ -756,3 +756,14 @@ Exact evidence is imported and read back byte for byte in SQLite as
 `runtime/results/2026-10-08T16-52-55-903Z-verify.json`; its loose copy is removed.
 No timing samples were collected. One-path consumption now has matched runtime
 support in addition to the focused compiler, disposal and editor evidence.
+
+Caught-refill witness: `map_clear_refill_survives_caught_failure` clears an
+outer Map, refills it with a different captured array, and throws into a catch
+that observes the surviving entry. The optional get view ends in its own block
+before the final clear. Source analysis accepts mutation of the old array after
+catch; generated Rust rejects it with E0502 because the original Map storage
+lifetime was not renewed across the exception region. Exact failing evidence
+is verified in SQLite as `tsrust-b5-caught-refill-red.log`. This is an open
+compiler defect, not an accepted restriction. Next work must transport renewed
+storage together with completion outcomes, preserve throw/catch/finally order,
+and test failures before and after clear without losing live capture owners.

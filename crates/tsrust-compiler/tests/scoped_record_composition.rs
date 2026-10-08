@@ -1,6 +1,35 @@
 mod support;
 
 #[test]
+fn map_clear_refill_survives_caught_failure() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function main(): void {
+            const first = [3];
+            const second = [7];
+            const handlers = new Map<string, Holder>();
+            handlers.set("old", { run: (): int => first[0] });
+            try {
+                handlers.clear();
+                handlers.set("new", { run: (): int => second[0] });
+                throw 5;
+            } catch (error) {
+                strictEqual(handlers.size, 1);
+            }
+            first[0] = 9;
+            {
+                const current = handlers.get("new");
+                if (current !== undefined) strictEqual(current.run(), 7);
+            }
+            handlers.clear();
+            second[0] = 11;
+            strictEqual(first[0] + second[0], 20);
+        }
+    "#);
+}
+
+#[test]
 fn one_branch_map_consumption_preserves_survivor_disposal_boundary() {
     let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(branch:boolean):void{const values=[3];{const handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>values[0]});if(branch){handlers.clear();const moved=handlers;console.log('moved');}else{console.log('kept');}console.log('inside');}values[0]=9;console.log('outside');}function main():void{scenario(true);scenario(false);}");
     verify_disposal(&source, 1, "drop 0\nmoved\ninside\noutside\nkept\ninside\ndrop 0\noutside\n");
