@@ -8,6 +8,7 @@ import {createRequire} from 'node:module';
 import {assertABI} from './adapters.mjs';
 import {assertPathRelativeSource,pathRelativeIds,pathRelativeChecksum,pathRelativeValues} from './path-relative-source-contract.mjs';
 import {expectedChecksum} from './oracle.mjs';
+import {reportCategory} from './report.mjs';
 const require=createRequire(import.meta.url);
 const ts=require('./node_modules/typescript');
 const here=path.dirname(new URL(import.meta.url).pathname);
@@ -16,6 +17,8 @@ const compiler=process.env.TSRUST || path.join(root,'target/editor/debug/tsrust'
 const manifest=JSON.parse(fs.readFileSync(path.join(here,'manifest.json')));
 for(const id of pathRelativeIds) test(id+' preserves source, ABI and independent results',()=>{
     const w=manifest.workloads.find(row=>row.id===id);
+    assert.equal(reportCategory(id),'paths');
+    assert.equal(manifest.workloads.at(-1).id,id);assert.equal(manifest.workloads.at(-2).id,'generic_callable_replacement');
     const source=fs.readFileSync(path.join(here,w.source),'utf8');
     const counterpart=fs.readFileSync(path.join(here,w.counterpart),'utf8');
     for(const [text,hash] of [[source,w.sourceSha256],[counterpart,w.counterpartSha256]]){

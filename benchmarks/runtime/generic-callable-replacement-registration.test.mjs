@@ -12,7 +12,7 @@ const read=path=>fs.readFileSync(new URL(path,import.meta.url),'utf8');
 const manifest=JSON.parse(read('./manifest.json'));
 const row=manifest.workloads.find(row=>row.id==='generic_callable_replacement');
 test('Generic replacement retains source scenarios, oracle and execution registrations',()=>{
- assert.equal(manifest.workloads.at(-1).id,row.id);
+ const position=manifest.workloads.indexOf(row);assert.equal(manifest.workloads[position-1].id,'std_os_endianness');assert.equal(manifest.workloads.filter(workload=>workload.id===row.id).length,1);
  assert.equal(reportCategory(row.id),'callbacks');assert.equal(row.measured,true);
  for(const key of ['sourceAccepted','nativeSourceAccepted','implementationAccepted'])assert.equal(row[key],true);
  assert.equal(row.measurementStatus,'measured-callable-replacement-family');

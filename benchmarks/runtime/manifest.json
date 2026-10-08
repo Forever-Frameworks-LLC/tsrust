@@ -20110,7 +20110,7 @@
         "int"
       ],
       "family": "path-relative",
-      "measurementStatus": "untimed-ready",
+      "measurementStatus": "measured-path-relative-family",
       "specification": "Alternate destination reports/archive.txt and reports/é😊/2026 by (i+seed) parity; compute relative from reports/é😊.",
       "notes": "Host cwd lookup, lexical resolution, owned output retention and observation are included. No filesystem traversal or isolated method latency claim.",
       "sourceSha256": "0efb9e01c0470e4c9447f49be08a3f2d28a94c006114eb39ffd2230fbfe6f8a6",
