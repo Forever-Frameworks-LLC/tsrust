@@ -1,6 +1,15 @@
 mod support;
 
 #[test]
+fn deleting_one_map_entry_releases_only_its_capture() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];let handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});console.log('deleted',handlers.delete('first'));first[0]=9;{const saved=handlers.get('second');if(saved!==undefined)console.log('saved',saved.run());}console.log('after',handlers.size,first[0]);handlers.clear();second[0]=11;console.log('cleared',second[0]);}");
+ verify_disposal(&source,2,"drop 0\ndeleted true\nsaved 5\nafter 1 9\ndrop 1\ncleared 11\n");
+ let conflict=source.replace("first[0] = 9;", "second[0]=9;");
+ assert_ne!(conflict,source);
+ assert_eq!(tsrust_compiler::check(&conflict).err().expect("remaining entry retains capture").code,"capture-conflict");
+}
+
+#[test]
 fn for_of_loops_release_cleared_map_captures() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function main():void{const values=[3];const steps=[0,1,2];let handlers=new Map<string,Holder>();for(const step of steps){handlers.set('value',{run:():int=>values[0]});try{failIf(step!==1);}catch(error){if(step===0)continue;break;}finally{console.log('cleanup',step,handlers.size);handlers.clear();values[0]+=2;}}console.log('after',handlers.size,values[0]);}");
  verify_disposal(&source,1,"cleanup 0 1\ndrop 0\ncleanup 1 1\ndrop 0\ncleanup 2 1\ndrop 0\nafter 0 9\n");

@@ -925,3 +925,29 @@ failing witnesses and exact disposal checks. Preserve remaining entries, removed
 values and ownership semantics. Keep matched support and SQLite evidence current,
 format the whole project and stage explicit paths. B5 family acceptance, timing
 and user executable refresh remain pending.
+
+
+## Precise entry release: red witness and implementation plan
+
+The next retained red witness is deleting_one_map_entry_releases_only_its_capture.
+Deleting the first of two differently capturing callback entries still reports
+capture-conflict on mutation of the first array. Its negative partner protects
+the second entry and its O0/O3 observer specifies separate deletion and clear
+disposal. The independent Node observable reference passes. No compiler source
+has changed in this checkpoint.
+
+Read docs/map-entry-capture-release-plan.md before implementation. Both keyed
+capture ownership and point-sensitive native environment narrowing are required;
+a source-only loan deletion is insufficient. The existing carrier planner joins
+all insertions for the entire function, and record carrier conversion currently
+only widens borrowed callable families. Preserve unknown-key aliases, reaching
+branch states, moves, lookup loans, order, failures and exact disposal. Avoid
+unconditional survivor scans on ordinary deletion. B5 remains unfinished.
+
+Continuation prompt: Continue precise Map entry release from the new red witness
+and docs/map-entry-capture-release-plan.md. Read AGENTS.md and development workflow.
+Implement keyed ownership plus checked native storage epochs together, then
+negative aliases, O0/O3 disposal, editor, guide and matched benchmark support.
+The whole composition suite now includes one intentionally red entry-release
+witness; prior 157 affected checks passed before it was added. Preserve owner
+fixtures and use explicit Git paths. Keep the full goal active.
