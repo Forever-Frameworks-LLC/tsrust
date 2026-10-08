@@ -20,6 +20,14 @@ fn clearing_one_scoped_map_releases_only_its_capture_owner() {
         }
     "#;
     project(source);
+    let fields = source.replace("left.clear();", "const box: Pair = { left: left, right: right }; box.left.clear();")
+        .replace("right.get(\"value\")", "box.right.get(\"value\")").replace("function main()", "type Pair = { left: Map<string, Holder>; right: Map<string, Holder>; }; function main()");
+    project(&fields);
+    let conditional = source.replace("import { strictEqual } from \"std:testing\";", "function strictEqual(a: int, b: int): void {}")
+        .replace("function main()", "function verify(clear: boolean)")
+        .replace("left.clear();", "if (clear) left.clear();") + "function main(): void { verify(false); }";
+    let error = tsrust_compiler::check(&conditional).err().expect("uncleared branch retains captures");
+    assert_eq!(error.code, "capture-conflict", "{}", error.message);
     let shared = source.replace("second[0]", "first[0]").replace("import { strictEqual } from \"std:testing\";", "function strictEqual(a: int, b: int): void {}");
     let error = tsrust_compiler::check(&shared).err().expect("live sibling Map retains shared capture");
     assert_eq!(error.code, "capture-conflict", "{}", error.message);

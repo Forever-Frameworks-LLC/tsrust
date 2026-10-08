@@ -489,3 +489,10 @@ conservative ownership storage, are excluded from this release change. All eight
 normal-worker depth canaries pass. The affected batch passed 59 checks; its new
 rejection helper initially used unsupported direct-check imports and was repaired
 and checked separately. Broader precise release and B5 acceptance remain pending.
+
+Clear-release coverage now includes a named record with two independent Map
+fields. Clearing one field permits mutation of its former capture while the other
+field remains callable. A conditional-clear rejection verifies that branch joins
+retain captures from the uncleared path. Focused editor diagnostics agree: direct
+clear is accepted and conditional clear reports capture-conflict. Both compiler
+and editor witnesses pass; native record-field execution passes after formatting.

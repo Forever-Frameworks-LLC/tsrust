@@ -8483,3 +8483,12 @@ fn scoped_map_for_each_keeps_declared_record_callback_help() {
     assert!(!hover.is_null(), "{hover}");
     assert!(!hover["contents"]["value"].as_str().unwrap_or("").contains("BorrowedCallable"), "{hover}");
 }
+
+#[test]
+fn scoped_map_clear_releases_captures_and_keeps_conditional_diagnostics() {
+    let source = tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function main(){const values=[3];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>values[0]});handlers.clear();values[0]=9;console.log(values[0]);}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&source, "file:///test.tsr").unwrap().is_empty());
+    let conditional = source.replace("function main()", "function verify(clear: boolean)").replace("handlers.clear();", "if (clear) handlers.clear();") + "function main(): void { verify(false); }";
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&conditional, "file:///test.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "capture-conflict"), "{diagnostics}");
+}
