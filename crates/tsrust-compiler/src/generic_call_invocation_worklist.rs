@@ -4,6 +4,8 @@ use super::*;
 mod array_transfer;
 #[path = "generic_call_recursive_inputs.rs"]
 mod recursive_inputs;
+#[path = "generic_call_terminal_returns.rs"]
+mod terminal_returns;
 #[derive(Clone, PartialEq, Eq, Hash)]
 struct Request {
     declaration: Span,
@@ -182,16 +184,8 @@ impl<'a> Engine<'a> {
             for dependent in dependents { self.enqueue(dependent); }
         }
     }
-    fn terminal_parameter_return(&self, declaration: Span) -> bool {
-        let Some([statement]) = self.effects.body(declaration) else { return false; };
-        let StmtKind::Return(Some(value)) = &statement.kind else { return false; };
-        let ExprKind::Name(name) = &value.kind else { return false; };
-        let Some(parameters) = self.effects.parameters(declaration) else { return false; };
-        if parameters.iter().any(|parameter| parameter.rest || !matches!(parameter.initializer, ParameterInitializer::Required)) { return false; }
-        let identity = self.effects.binding(name, value.span);
-        identity.is_some() && parameters.iter().any(|parameter| parameter.binding.identity == identity)
-            && self.effects.captures(declaration).is_none_or(HashSet::is_empty)
-            && !self.effects.aggregate_writes(declaration)
+    fn terminal_leaf_return(&self, declaration: Span) -> bool {
+        terminal_returns::eligible(declaration,self.effects)
     }
 
 }
@@ -293,10 +287,10 @@ impl expression_flow::Dispatch for Engine<'_> {
         for alternative in alternatives {
             let environment_store::Alternative::Body{declaration,environment}=alternative else {return self.opaque_invocation()};
             let index = self.request(Request { declaration, producer: expression.span, context: self.call_context(declaration, expression.span), environment, caller: state.clone(), arguments: arguments.to_vec() });
-            // A required parameter return cannot dispatch another invocation.
+            // An eligible parameter/operator return cannot dispatch another invocation.
             // Complete its ordinary contextual summary now instead of restarting
             // the caller once for every independent identity call.
-            if environment.is_none() && self.entries[index].queued && self.terminal_parameter_return(declaration) {
+            if environment.is_none() && self.entries[index].queued && self.terminal_leaf_return(declaration) {
                 self.work.retain(|pending| *pending != index);
                 self.evaluate(index);
             }
@@ -400,14 +394,14 @@ mod tests {
     }
     #[test]
     fn terminal_return_requires_parameter_identity_and_no_entry_effects() {
-        let source = crate::format("function identity<T>(value:T):T{return value;}function defaulted(value:int=1):int{return value;}function packed(...values:int[]):int[]{return values;}function literal(value:int):int{return 1;}function outer(value:int){function captured():int{return value;}function written(other:int):int{value=other;return other;}}function main(){}").unwrap();
+        let source = crate::format("function identity<T>(value:T):T{return value;}function increment(value:int):int{return value+1;}function divided(value:int,divisor:int):int{return value/divisor;}function dispatched(value:int):int{return identity(value);}function mutated(value:int):int{return value++;}function indexed(values:int[]):int{return values[0];}function defaulted(value:int=1):int{return value;}function packed(...values:int[]):int[]{return values;}function literal(value:int):int{return 1;}function outer(value:int){function captured():int{return value;}function written(other:int):int{value=other;return other;}}function main(){}").unwrap();
         assert_eq!(crate::format(&source).unwrap(), source);
         let program = crate::syntax::parse(&source).unwrap();
         let effects = effect_bodies::Index::new(&program).unwrap();
         let declarations = HashMap::new();
         let engine = Engine::new(&declarations, &effects);
         for function in &program.functions {
-            assert_eq!(engine.terminal_parameter_return(function.name.span), function.name.text == "identity", "{}", function.name.text);
+            assert_eq!(engine.terminal_leaf_return(function.name.span), matches!(function.name.text.as_str(),"identity"|"increment"|"divided"), "{}", function.name.text);
         }
     }
     #[test]

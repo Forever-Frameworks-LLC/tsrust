@@ -1892,3 +1892,17 @@ fn caught_values_cross_generic_assertion_parameters() {
         for optimization in ["0","3"] {assert_eq!(native_stdout(&checked.emit_rust(),optimization),"");}
     }
 }
+
+#[test]
+fn eager_operator_returns_preserve_failures_and_captured_state() {
+    let entry=support::format_round_trip(r#"import {strictEqual} from 'std:testing';
+function increment(value:int):int{return value+1;}
+function divided(value:int,divisor:int):int{return value/divisor;}
+function main(){let calls=0;function captured(value:int):int{calls+=1;return value+calls;}
+strictEqual(increment(4),5);strictEqual(divided(8,2),4);let failed=false;
+try{divided(8,0);}catch(error){failed=true;}strictEqual(failed,true);
+strictEqual(captured(4),5);strictEqual(captured(4),6);strictEqual(calls,2);}"#);
+    let memory=Memory::new(&[("main.tsr",&entry)]);
+    let checked=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).unwrap();
+    for optimization in ["0","3"] {assert_eq!(native_stdout(&checked.emit_rust(),optimization),"");}
+}
