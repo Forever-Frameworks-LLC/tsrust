@@ -3250,6 +3250,7 @@ impl Emitter<'_> {
         let indent = "    ".repeat(depth);
         let declarations = declaring_body.unwrap_or(body);
         for stmt in body {
+            if self.map_try_storage_epoch(output, fun, stmt, declarations, depth) { continue; }
             if self.map_try_prefix_epoch(output, fun, stmt, declarations, depth) { continue; }
             if let Some(reset) = self.local_map_clear_epoch(fun, body, stmt)
                 .or_else(|| self.local_map_clear_epoch(fun, declarations, stmt))
@@ -9842,3 +9843,6 @@ impl Emitter<'_>{
         format!("{{{declarations} let _={value};}}")
     }
 }
+
+#[path="map_exception_epochs.rs"]
+mod map_exception_epochs;

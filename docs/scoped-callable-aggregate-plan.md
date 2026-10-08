@@ -810,3 +810,29 @@ Exact evidence is verified in SQLite as `tsrust-b5-fallible-prefix-red.log`.
 Do not hoist this clear across the call: the caught path must retain the original
 owner until its own clear executes. Next implementation must carry storage with
 completion outcomes and preserve point-sensitive availability on each exit.
+
+Straight-line try/catch storage transport now repairs the fallible-prefix witness.
+The dedicated `map_exception_epochs.rs` helper carries normal storage separately
+from thrown storage. Explicit throws, runtime failures and fallible Result calls
+attach the current Map owners to the thrown outcome. Catch receives those owners
+before executing its own statements. Each clear renews storage at its original
+point; normal and caught paths return their surviving owners to the enclosing
+scope. The initial owners move into the exception scope unconditionally so Rust
+cannot keep an obsolete conditional implicit drop in the outer scope. There is
+no clone or early clear.
+
+Admission currently covers straight-line bodies with catch, live Map storage at
+both exits, and no finally. Nested control, consumed storage and finally still
+need their checked exit-specific transport. The existing leading-clear path
+continues to cover its accepted finally cases. This is intermediate B5 progress,
+not acceptance of all exception composition.
+
+The first disposal instrumentation pass exposed E0502 from the residual old
+owner; its original 60-pass/1-fail evidence remains in SQLite as
+`tsrust-b5-exception-storage-checks.log`. After the unconditional scope move, all
+61 composition tests pass, including both failure choices, callback invocation,
+post-release capture mutation and exact disposal at optimization levels 0 and 3.
+Eight normal-worker depth canaries and the focused editor test pass. The editor
+accepts the old capture mutation and rejects mutation of the current capture.
+Final evidence is stored as `tsrust-b5-exception-storage-repaired-checks.log`.
+Matched coverage of the fallible-prefix case remains next; no timing was run.

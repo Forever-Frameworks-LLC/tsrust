@@ -34,7 +34,7 @@ impl Emitter<'_> {
         Some(format!("drop({place}); let mut {place}: {native} = <{native}>::new();"))
     }
 
-    fn local_map_clear_storage(&self, fun: &CheckedFunction, body: &[Stmt], statement: &Stmt) -> Option<(String, String)> {
+    pub(super) fn local_map_clear_storage(&self, fun: &CheckedFunction, body: &[Stmt], statement: &Stmt) -> Option<(String, String)> {
         let StmtKind::Expr(call) = &statement.kind else { return None; };
         if call.target != Some(CallTarget::MapMethod(MapMethod::Clear)) { return None; }
         let ExprKind::Call(callee, _) = &call.kind else { return None; };

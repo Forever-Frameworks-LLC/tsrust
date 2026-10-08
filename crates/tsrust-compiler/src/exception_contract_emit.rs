@@ -55,6 +55,7 @@ pub(crate) fn checked_catch_value(value:&str,error_name:&str,contract:&crate::er
 struct NativeRegion {
     id:usize,
     locals:Vec<crate::syntax::ControlTarget>,
+    storage:Option<String>,
     transport:Option<Box<(String,crate::error_effects::FailureSet,Option<crate::syntax::Type>)>>,
 }
 
@@ -71,7 +72,7 @@ impl RegionStack {
     pub(crate) fn enter(&self,id:usize,locals:Vec<crate::syntax::ControlTarget>)->RegionScope<'_> {
         let mut regions=self.0.borrow_mut();
         let previous_depth=regions.len();
-        regions.push(NativeRegion{id,locals,transport:None});
+        regions.push(NativeRegion{id,locals,storage:None,transport:None});
         RegionScope{stack:self,previous_depth}
     }
     pub(crate) fn enter_typed(&self,id:usize,locals:Vec<crate::syntax::ControlTarget>,name:String,contract:crate::error_effects::FailureSet,runtime:Option<crate::syntax::Type>)->RegionScope<'_> {
@@ -79,11 +80,15 @@ impl RegionStack {
         self.0.borrow_mut().last_mut().expect("entered region").transport=Some(Box::new((name,contract,runtime)));
         scope
     }
+    pub(crate) fn attach_storage(&self, storage:String) {
+        self.0.borrow_mut().last_mut().expect("entered storage region").storage=Some(storage);
+    }
     pub(crate) fn throw_value(&self,value:&str,ty:crate::syntax::Type,unions:&crate::unions::UnionArena,span:crate::Span)->Result<String,crate::Diagnostic> {
         let regions=self.0.borrow();
         let region=regions.last().ok_or_else(||crate::Diagnostic::new("error-effect","Throw emission requires a typed completion region.",span))?;
         let (name,contract,runtime)=region.transport.as_deref().ok_or_else(||crate::Diagnostic::new("error-effect","Throw emission requires a destination error layout.",span))?;
         let value=checked_throw_value(value,ty,name,contract,unions,*runtime,span)?;
+        let value=region.storage.as_ref().map_or(value.clone(),|storage|format!("({value},{storage})"));
         Ok(format!("break 'exception_region{} TsrCompletion::Throw({value});",region.id))
     }
     /// Resolve a declared callee's saved effect contract before emitting its Result bridge.
@@ -113,6 +118,9 @@ impl RegionStack {
         let region=regions.last().ok_or_else(||crate::Diagnostic::new("error-effect","Result call emission requires a typed completion region.",span))?;
         let (name,contract,runtime)=region.transport.as_deref().ok_or_else(||crate::Diagnostic::new("error-effect","Result call emission requires a destination error layout.",span))?;
         let pending=checked_fallible_call(call,source_name,name,source,contract,unions,*runtime,span)?;
+        if let Some(storage)=&region.storage {
+            return Ok(format!("match {pending} {{ TsrCompletion::Normal(value)=>value, TsrCompletion::Throw(error)=>break 'exception_region{} TsrCompletion::Throw((error,{storage})), TsrCompletion::Return(value)=>break 'exception_region{} TsrCompletion::Return(value), TsrCompletion::Break(target)=>break 'exception_region{} TsrCompletion::Break(target), TsrCompletion::Continue(target)=>break 'exception_region{} TsrCompletion::Continue(target) }}",region.id,region.id,region.id,region.id));
+        }
         Ok(super::exception_emit::propagate_completion(region.id,&pending))
     }
     pub(crate) fn current_transport(&self)->Option<(String,crate::error_effects::FailureSet,Option<crate::syntax::Type>)> {

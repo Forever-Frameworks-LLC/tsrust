@@ -1,6 +1,38 @@
 mod support;
 
 #[test]
+fn fallible_prefix_map_renewal_disposes_at_each_path_clear() {
+    let source = support::format_round_trip(r#"
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function failIf(fail: boolean): int { if (fail) throw 5; return 1; }
+        function scenario(fail: boolean): void {
+            const old = [3];
+            const current = [7];
+            const handlers = new Map<string, Holder>();
+            handlers.set("old", { run: (): int => old[0] });
+            console.log("before");
+            try {
+                const path = failIf(fail);
+                console.log("normal");
+                handlers.clear();
+                handlers.set("new", { run: (): int => current[0] });
+            } catch (error) {
+                console.log("caught");
+                handlers.clear();
+                handlers.set("new", { run: (): int => current[0] });
+            }
+            old[0] = 9;
+            console.log("after");
+            handlers.clear();
+            current[0] = 11;
+            console.log("done");
+        }
+        function main(): void { scenario(false); scenario(true); }
+    "#);
+    verify_disposal(&source, 3, "before\nnormal\ndrop 0\nafter\ndrop 1\ndone\nbefore\ncaught\ndrop 0\nafter\ndrop 2\ndone\n");
+}
+
+#[test]
 fn map_refill_after_fallible_prefix_preserves_both_completion_paths() {
     project(r#"
         import { strictEqual } from "std:testing";
