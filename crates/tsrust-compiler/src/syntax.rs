@@ -3518,6 +3518,23 @@ impl Parser<'_> {
     fn binary_tail(
         &mut self,
         minimum: u8,
+        left: Expr,
+        left_start: usize,
+        unary_base: bool,
+    ) -> Result<Expr, Diagnostic> {
+        // Finish ordinary operators before entering a conditional arm. Their
+        // temporaries must not remain on every recursive conditional frame.
+        let left = self.binary_operator_tail(minimum, left, left_start, unary_base)?;
+        if minimum == 0 && self.is("?") {
+            self.conditional_tail(left)
+        } else {
+            Ok(left)
+        }
+    }
+
+    fn binary_operator_tail(
+        &mut self,
+        minimum: u8,
         mut left: Expr,
         left_start: usize,
         mut unary_base: bool,
@@ -3528,10 +3545,9 @@ impl Parser<'_> {
                 unary_base = false;
                 continue;
             }
-            // Both arms are assignment expressions. Return directly so their
-            // construction does not grow the recursive binary parser frame.
+            // The caller parses conditional arms after this frame returns.
             if minimum == 0 && self.is("?") {
-                return self.conditional_tail(left);
+                break;
             }
             if self.is("in") && minimum <= 8 {
                 self.take();
