@@ -10,6 +10,8 @@ mod leaf_effects;
 mod expression_flow;
 #[path = "generic_call_array_flow.rs"]
 mod array_flow;
+#[path = "generic_call_array_shape.rs"]
+pub(super) mod array_shape;
 #[path = "generic_call_node_flow.rs"]
 mod node_flow;
 #[path = "generic_call_summary_flow.rs"]

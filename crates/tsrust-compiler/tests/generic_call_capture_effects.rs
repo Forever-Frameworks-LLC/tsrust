@@ -625,3 +625,39 @@ fn main(){source_main();assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCs
 fn restored_capture_in_a_consuming_environment_keeps_native_slot_access() {
     support::execute("type Item={id:int;};function identity<T>(value:T):T{return value;}function make(item:Item){let action=identity;return ()=>{const previous=action;action=identity;return item;};}function main(){const take=make({id:7});const result=take();console.log(result.id);}","7\n",None);
 }
+
+#[test]
+fn reinserted_factory_keeps_updated_capture_without_changing_remaining_member() {
+    support::execute(r#"
+        function one<T>(value:T):T{return value;}
+        function two<T>(value:T,other:T):T{return other;}
+        function factory<A>(initial:A){let action=initial;return(restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}
+        function main(){
+            const instances=[factory(one)];
+            instances.push(factory(one));
+            const first=instances.shift()!;
+            const original=first(false);
+            instances.push(first);
+            const independent=instances.shift()!;
+            const returned=instances.shift()!;
+            const untouched=independent(true);
+            const changed=returned(true);
+            console.log(original<int>(1),untouched<int>(2),changed<int>(3,9));
+        }
+    "#,"1 2 9\n",None);
+}
+
+#[test]
+fn repeated_array_extraction_preserves_same_contract_mutable_instances() {
+    support::execute(r#"
+        function one<T>(value:T):T{return value;}
+        function factory<A>(initial:A){let action=initial;return()=>{const previous=action;action=one;return previous;};}
+        function main(){
+            const instances=[factory(one)];instances.push(factory(one));
+            for(let index=0;index<2;index=index+1){
+                const take=instances.shift()!;const first=take();const second=take();
+                console.log(first<int>(index),second<int>(index+10));
+            }
+        }
+    "#,"0 10\n1 11\n",None);
+}

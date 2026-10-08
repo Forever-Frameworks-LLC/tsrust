@@ -23,12 +23,12 @@ test('Generic replacement retains source scenarios, oracle and execution registr
   assert.throws(()=>assertGenericReplacementSource(source+' ',row,kind));
   assert.throws(()=>assertGenericReplacementSource(source,{...row,operationsPerIteration:2},kind));
   const key=kind==='native'?'sourceSha256':'counterpartSha256';
-  for(const snippet of ['const saved = action;','action = second;','action = failing;','const completed = attempt(flag, base);','action = secondDefault;','action = ownedTail;','let action = initial;','const previous = action;','const first = stateFactory(stateFirst);','const second = stateFactory(stateSecond);','first(true)','const independent = second(true);']){
+  for(const snippet of ['const saved = action;','action = second;','action = failing;','const completed = attempt(flag, base);','action = secondDefault;','action = ownedTail;','let action = initial;','const previous = action;','const first = stateFactory(stateFirst);','const second = stateFactory(stateSecond);','first(true)','const independent = second(true);','instances.push(stateFactory(stateFirst));','const seed = instances.shift()!;','const second = instances.shift()!;','index < 2','const pool = poolResult(base);']){
    const changed=replaceCodeSnippet(source,snippet,'');
    assert.throws(()=>assertGenericReplacementSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   }
  }
- assert.deepEqual(expectedGenericReplacementValues(row.id,3,0,'replacement'),[[1,1,1,3,4,4,4,11,2,1,8,1,10],[2,9,11,7,10,8,0,9,11,2,9,2,11],[3,3,3,3,4,4,4,3,6,3,10,3,12]]);
+ assert.deepEqual(expectedGenericReplacementValues(row.id,3,0,'replacement'),[[1,1,1,3,4,4,4,11,2,1,8,1,10,1,1,10],[2,9,11,7,10,8,0,9,11,2,9,2,11,2,2,11],[3,3,3,3,4,4,4,3,6,3,10,3,12,3,3,12]]);
  for(const n of [0,1,37,2048])for(const seed of [0,7,1000000]){
   const expected=expectedGenericReplacementObservation(row.id,n,seed,'replacement');
   assert.deepEqual(expectedExactResult(row.id,n,seed,'replacement'),expected);

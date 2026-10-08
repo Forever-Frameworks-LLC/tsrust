@@ -87,6 +87,20 @@ function stateResult(base: int): int[] {
     return [original<int>(base), changed<int>(base, base + 7), restored<int>(base), independent<int>(base, base + 9)];
 }
 
+function poolResult(base: int): int[] {
+    const instances = [stateFactory(stateFirst)];
+    for (let index = 0; index < 2; index += 1) {
+        instances.push(stateFactory(stateFirst));
+    }
+    const seed = instances.shift()!;
+    const first = instances.shift()!;
+    const second = instances.shift()!;
+    const original = first(false);
+    const independent = second(true);
+    const changed = first(true) as unknown as typeof stateSecond;
+    return [original<int>(base), independent<int>(base), changed<int>(base, base + 9)];
+}
+
 function workload(n: int, seed: int, input: string): int[][] {
     const output: int[][] = [];
     for (let i = 0; i < n; i += 1) {
@@ -106,7 +120,8 @@ function workload(n: int, seed: int, input: string): int[][] {
         const callback = callbackResult(flag, i % 3 === 0, base);
         const captured = capturedResult(flag, i % 3 === 0, base);
         const state = stateResult(base);
-        output.push([original, selected, completed, omitted, text.length, present, absent, callback, captured, state[0], state[1], state[2], state[3]]);
+        const pool = poolResult(base);
+        output.push([original, selected, completed, omitted, text.length, present, absent, callback, captured, state[0], state[1], state[2], state[3], pool[0], pool[1], pool[2]]);
     }
     return output;
 }

@@ -4,7 +4,7 @@ use super::*;
 #[inline(never)]
 pub(super) fn invoke(
     expression:&Expr, arguments:&[expression_flow::Value], state:&FlowState,
-    effects:&effect_bodies::Index,
+    effects:&effect_bodies::Index, declarations:&HashMap<String,Contract>,
 )->Option<expression_flow::Invocation> {
     let ExprKind::Call(callee,_)=&expression.kind else {return None;};
     let ExprKind::Field(receiver,method)=&callee.kind else {return None;};
@@ -16,13 +16,15 @@ pub(super) fn invoke(
     let result=match method.as_str() {
         "push"|"unshift"=>{
             let added=expression_flow::Value::array(arguments).elements?;
-            if method=="push" {elements.extend(added);} else {elements.splice(0..0,added);}
-            expression_flow::Value::index(elements.len())
+            let merge=|a:&Element,b:&Element|expression_flow::merge_element(a,b,declarations);
+            if method=="push" {for element in added.prefix {elements.push(element,merge);}} else {for element in added.prefix.into_iter().rev() {elements.unshift(element,merge);}}
+            elements.exact_values().map_or_else(expression_flow::Value::default,|values|expression_flow::Value::index(values.len()))
         }
         "pop"|"shift"=>{
             if !arguments.is_empty() {return None;}
-            let element=if method=="pop" {elements.pop()} else if elements.is_empty() {None} else {Some(elements.remove(0))};
-            element.as_ref().map_or_else(expression_flow::Value::undefined,expression_flow::Value::element)
+            let removed=if method=="pop" {elements.pop(|a,b|expression_flow::merge_element(a,b,declarations))} else {elements.shift()};
+            let result=removed.present.as_ref().map_or_else(expression_flow::Value::undefined,expression_flow::Value::element);
+            if removed.present.is_some() && removed.may_be_empty {result.maybe_absent()} else {result}
         }
         _=>unreachable!(),
     };
@@ -48,6 +50,6 @@ mod tests {
             if let Some(expected)=expected {assert_eq!(result.contracts.unwrap()[0].required,expected);}
             assert!(before.captures==state.captures,"array transfer must not mutate capture contents");
         }
-        assert!(state[0].elements.as_ref().unwrap().is_empty());
+        assert!(state[0].elements.as_ref().unwrap().exact_values().unwrap().is_empty());
     }
 }

@@ -37,7 +37,7 @@ struct LeafSlot {
     origins: Vec<body_origins::Origin>,
     targets: Vec<Target>,
     selection: Selection,
-    elements: Option<Vec<LeafElement>>,
+    elements: Option<array_shape::Sequence<LeafElement>>,
     contract: Option<Contract>,
 }
 #[derive(PartialEq, Eq, Hash)]
@@ -46,9 +46,11 @@ struct Allocation {
     producer_site: Span,
     context: Vec<(Span, Span)>,
     facts: Vec<LeafSlot>,
+    transfer_root: Option<Handle>,
 }
 pub(super) struct Record {
     pub bindings: Vec<Binding>,
+    root: Handle,
     pub edges: HashMap<crate::local_capture_plan::BindingId, Vec<Alternative>>,
     pub version: u64,
 }
@@ -77,18 +79,25 @@ impl Store {
         self.allocate_context(site, producer, &[], bindings)
     }
     pub(super) fn allocate_context(&mut self, site: Span, producer: Span, context: &[(Span, Span)], bindings: &[Binding]) -> Option<Handle> {
+        self.allocate_key(site,producer,context,bindings,None)
+    }
+    pub(super) fn allocate_transfer(&mut self,site:Span,producer:Span,context:&[(Span,Span)],source:Handle,bindings:&[Binding])->Option<Handle> {
+        let root=self.get(source)?.root;
+        self.allocate_key(site,producer,context,bindings,Some(root))
+    }
+    fn allocate_key(&mut self,site:Span,producer:Span,context:&[(Span,Span)],bindings:&[Binding],transfer_root:Option<Handle>)->Option<Handle> {
         let bindings = canonical(bindings)?;
         let facts = bindings.iter().map(|binding| LeafSlot {
             identity: binding.identity.unwrap(), origins: binding.origins.clone(), targets: binding.targets.clone(), selection: binding.selection,
-            elements: binding.elements.as_ref().map(|elements| elements.iter().map(|element| LeafElement { origins: body_origins::canonical(element.origins.clone()), contracts: element.contracts.clone(), selection: element.selection }).collect()),
+            elements: binding.elements.as_ref().map(|elements| elements.map(|element| LeafElement { origins: body_origins::canonical(element.origins.clone()), contracts: element.contracts.clone(), selection: element.selection })),
             contract: binding.contract.clone(),
         }).collect();
         // Site identifies callback creation; producer identifies its producing
         // call site. Correlated environment edges are absent from this key.
-        let key = Allocation { site, producer_site: producer, context: context.to_vec(), facts };
+        let key = Allocation { site, producer_site: producer, context: context.to_vec(), facts, transfer_root };
         if let Some(handle) = self.allocations.get(&key) { return Some(*handle); }
         let handle = Handle(self.records.len());
-        self.records.push(Record { bindings, edges: HashMap::new(), version: 0 });
+        self.records.push(Record { bindings, root: transfer_root.unwrap_or(handle), edges: HashMap::new(), version: 0 });
         self.allocations.insert(key, handle);
         Some(handle)
     }
@@ -137,6 +146,23 @@ mod tests {
     use super::*;
     fn binding(body: usize) -> Binding {
         Binding { alternatives: None, identity: Some(crate::local_capture_plan::BindingId { owner: 0, declaration_start: 1 }), name: "action".into(), scope: Span::new(0,20), targets: vec![Target::Unknown], origins: vec![body_origins::Origin::Body(Span::new(body,body+1))], selection: Selection::default(), elements: None, mutable: true, contract: None }
+    }
+    #[test]
+    fn transfer_sites_separate_owners_and_repeated_transfers_have_finite_keys() {
+        let mut store=Store::default();let site=Span::new(30,31);let producer=Span::new(40,41);
+        let original=store.allocate(site,producer,&[binding(5)]).unwrap();
+        let first=store.allocate_transfer(Span::new(50,51),producer,&[],original,&[binding(5)]).unwrap();
+        let second=store.allocate_transfer(Span::new(52,53),producer,&[],original,&[binding(5)]).unwrap();
+        assert_ne!(original,first);assert_ne!(first,second);
+        let mut source=first;
+        for _ in 0..1024 {source=store.allocate_transfer(Span::new(50,51),producer,&[],source,&[binding(5)]).unwrap();assert_eq!(source,first);}
+        assert_eq!(store.records.len(),3);
+        let count=store.records.len();assert!(store.allocate_transfer(site,producer,&[],Handle(999),&[binding(5)]).is_none());assert_eq!(store.records.len(),count);
+        assert_ne!(store.allocate_transfer(Span::new(50,51),producer,&[],original,&[binding(9)]),Some(first));
+        let other=store.allocate(Span::new(32,33),producer,&[binding(5)]).unwrap();
+        assert_ne!(store.allocate_transfer(Span::new(50,51),producer,&[],other,&[binding(5)]),Some(first));
+        let context=[(Span::new(70,71),Span::new(80,81))];
+        assert_ne!(store.allocate_transfer(Span::new(50,51),producer,&context,original,&[binding(5)]),Some(first));
     }
     #[test]
     fn changed_records_schedule_only_subscribed_readers_once() {

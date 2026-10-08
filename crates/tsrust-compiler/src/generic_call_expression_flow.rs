@@ -9,7 +9,7 @@ pub(super) struct Value {
     truth: Option<bool>,
     nullish: Option<bool>,
     undefined: Option<bool>,
-    pub(super) elements: Option<Vec<Element>>,
+    pub(super) elements: Option<array_shape::Sequence<Element>>,
     pub(super) for_each: bool,
     pub(super) console: bool,
 }
@@ -19,6 +19,7 @@ impl Value {
     pub(super) fn selection(&self) -> Selection { Selection { truth: self.truth, nullish: self.nullish, undefined: self.undefined } }
     pub(super) fn undefined() -> Self { Self { truth: Some(false), nullish: Some(true), undefined: Some(true), ..Self::default() } }
     pub(super) fn index(position: usize) -> Self { Self { truth: Some(position != 0), nullish: Some(false), undefined: Some(false), ..Self::default() } }
+    pub(super) fn maybe_absent(mut self)->Self {self.truth=None;self.nullish=None;self.undefined=None;self}
     pub(super) fn known_truth(&self) -> Option<bool> { self.truth }
 }
 
@@ -28,20 +29,20 @@ impl Default for Value {
     }
 }
 
-pub(super) fn merge_elements(left: Option<Vec<Element>>, right: Option<Vec<Element>>, declarations: &HashMap<String, Contract>) -> Option<Vec<Element>> {
+pub(super) fn merge_elements(left: Option<array_shape::Sequence<Element>>, right: Option<array_shape::Sequence<Element>>, declarations: &HashMap<String, Contract>) -> Option<array_shape::Sequence<Element>> {
     let (left, right) = (left?, right?);
-    if left.len() != right.len() { return None; }
-    Some(left.into_iter().zip(right).map(|(left,right)| {
-        let value = merge_value(Value::element(&left), Value::element(&right), declarations);
-        Element { alternatives: value.alternatives.clone(), origins: value.origins.clone(), contracts: value.contracts.clone(), selection: value.selection() }
-    }).collect())
+    Some(left.join(&right,|left,right|merge_element(left,right,declarations)))
+}
+pub(super) fn merge_element(left:&Element,right:&Element,declarations:&HashMap<String,Contract>)->Element {
+    let value=merge_value(Value::element(left),Value::element(right),declarations);
+    Element {alternatives:value.alternatives.clone(),origins:value.origins.clone(),contracts:value.contracts.clone(),selection:value.selection()}
 }
 impl Value {
     pub(super) fn element(element: &Element) -> Self {
         Self { alternatives: element.alternatives.clone(), origins: element.origins.clone(), contracts: element.contracts.clone(), truth: element.selection.truth, nullish: element.selection.nullish, undefined: element.selection.undefined, elements: None, for_each: false, console: false }
     }
     pub(super) fn array(values: &[Value]) -> Self {
-        Self { truth: Some(true), nullish: Some(false), undefined: Some(false), elements: Some(values.iter().map(|value| Element { alternatives: value.alternatives.clone(), origins: value.origins.clone(), contracts: value.contracts.clone(), selection: value.selection() }).collect()), ..Self::default() }
+        Self { truth: Some(true), nullish: Some(false), undefined: Some(false), elements: Some(array_shape::Sequence::exact(values.iter().map(|value| Element { alternatives: value.alternatives.clone(), origins: value.origins.clone(), contracts: value.contracts.clone(), selection: value.selection() }).collect())), ..Self::default() }
     }
 }
 pub(super) fn merge_value(left: Value, right: Value, declarations: &HashMap<String, Contract>) -> Value {
@@ -116,6 +117,7 @@ pub(super) struct Invocation {
 }
 pub(super) trait Dispatch {
     fn reject(&mut self) {}
+    fn transfer_array_result(&mut self,_:&Expr,_:&mut Value,_:&mut FlowState)->bool {true}
     fn capture(&mut self, _: &Expr, _: &mut Value, _: &mut FlowState) {}
     fn validate_escape(&mut self, _: &mut Value, _: &mut FlowState) -> bool {true}
     fn invoke(&mut self, expression: &Expr, callee: &Value, arguments: &[Value], state: &FlowState) -> Option<Invocation>;
@@ -224,8 +226,14 @@ pub(super) fn evaluate_with_dispatch(expression: &Expr, state: &mut FlowState, f
                 if matches!(expression.kind, ExprKind::Index(..) | ExprKind::Binary { .. } | ExprKind::Unary { .. } | ExprKind::Update { .. } | ExprKind::CompoundAssign { .. }) {
                     if observe_failures { failures.push(state.clone()); }
                 }
+                if matches!(expression.kind,ExprKind::Unary {op:UnaryOp::NonNull,..}) && operands[0].nullish==Some(true) {
+                    normal=false;tasks.clear();values.clear();values.push(Value::default());continue;
+                }
                 let mut value = snapshot(expression, state, declarations, effects);
                 if let Some(origins) = preserved { value.origins = origins; value.alternatives = operands[0].alternatives.clone(); value.elements = operands[0].elements.clone(); }
+                if matches!(expression.kind,ExprKind::Unary {op:UnaryOp::NonNull,..}) {
+                    value.contracts=operands[0].contracts.clone();value.truth=operands[0].truth;value.nullish=Some(false);value.undefined=Some(false);
+                }
                 value.console = leaf_effects::console(expression, effects);
                 match &expression.kind {
                     ExprKind::Field(_, method) if method == "forEach" && operands[0].elements.is_some() => { value.elements = operands[0].elements.clone(); value.for_each = true; }
@@ -241,7 +249,15 @@ pub(super) fn evaluate_with_dispatch(expression: &Expr, state: &mut FlowState, f
                 let arguments = values.split_off(values.len() - count);
                 let callee = values.pop().unwrap();
                 fact(expression, callee.clone(), facts, declarations);
-                if let Some(invocation) = array_flow::invoke(expression,&arguments,state,effects).or_else(||dispatch.invoke(expression, &callee, &arguments, state)) {
+                let array_invocation=array_flow::invoke(expression,&arguments,state,effects,declarations).map(|mut invocation| {
+                    if matches!(&expression.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Field(_,method) if matches!(method.as_str(),"shift"|"pop"))) {
+                        if let Some(outgoing)=invocation.normal.as_mut() {
+                            if !dispatch.transfer_array_result(expression,&mut invocation.result,outgoing) {dispatch.reject();invocation.result=Value::default();}
+                        }
+                    }
+                    invocation
+                });
+                if let Some(invocation) = array_invocation.or_else(||dispatch.invoke(expression, &callee, &arguments, state)) {
                     for (key, candidates) in invocation.facts {
                         let merged = if let Some(previous) = facts.get(&key) {
                             match (previous, candidates) {
@@ -400,6 +416,14 @@ mod opaque_selection_tests {
 mod environment_transport_tests {
     use super::*;
     #[test]
+    fn known_nullish_assertion_has_no_normal_completion() {
+        let source=crate::format("function main(){const value=undefined!;}").unwrap();
+        let program=crate::syntax::parse(&source).unwrap();let effects=effect_bodies::Index::new(&program).unwrap();
+        let StmtKind::Let {value,..}=&program.functions[0].body[0].kind else {panic!("assertion")};
+        let result=evaluate_with_dispatch(value,&mut FlowState::default(),&mut HashMap::new(),&HashMap::new(),true,&effects,&mut UnknownDispatch);
+        assert!(!result.normal);assert_eq!(result.failures.len(),1);
+    }
+    #[test]
     fn correlated_environments_survive_aliases_assertions_arrays_and_value_joins() {
         let source = crate::format("function one():int{return 1;}function main(){let action=one;const saved=action;const asserted=action as Function<int>;const list=[action];const indexed=list[0];}").unwrap();
         assert_eq!(crate::format(&source).unwrap(),source);
@@ -418,7 +442,7 @@ mod environment_transport_tests {
         for statement in &main.body[1..] {
             let StmtKind::Let{name,value,..}=&statement.kind else {panic!("declaration")};
             let (value,_)=evaluate(value,&mut state,&mut facts,&declarations,false,&effects);
-            if name.text=="list" {assert_eq!(value.elements.as_ref().unwrap()[0].alternatives,Some(pairs.clone()));}
+            if name.text=="list" {assert_eq!(value.elements.as_ref().unwrap().prefix[0].alternatives,Some(pairs.clone()));}
             else {assert_eq!(value.alternatives,Some(pairs.clone()),"{}",name.text);}
             let destination=state.iter().position(|binding|binding.name==name.text).unwrap();
             state[destination].origins=value.origins;state[destination].alternatives=value.alternatives;state[destination].elements=value.elements;

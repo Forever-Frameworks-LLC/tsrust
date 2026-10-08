@@ -20092,9 +20092,9 @@
       "implementationAccepted": false,
       "measured": false,
       "notes": "Fresh generic declaration replacement with independent captured environments, saved values and selected failure transport. Nullable views and callback failures verified untimed on native and Node-after-tsc. Earlier observation protocols remain immutable; no measurements.",
-      "specification": "Thirteen scalar observations per iteration; deterministic alternating selection and caught failures.",
-      "sourceSha256": "5319c7d8f161caf3f71a3269b05bea3dd626c68819b265dd8abc42f2b68636a9",
-      "counterpartSha256": "4292ca26f1bec0f0de19c20bf811b6124a0b4de485bb489d5c1aa770d0a1d79f"
+      "specification": "Sixteen scalar observations per iteration; deterministic alternating selection, caught failures and independently retained loop-created factories.",
+      "sourceSha256": "131d808b2eacfb5a064263227398babca5e12961bda4f460afe3125b9545cd42",
+      "counterpartSha256": "60f88f7dcdca6e849e2611c66e2666f7cce464cc9d62267b5ad246de6e2cfb90"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

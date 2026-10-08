@@ -1,5 +1,7 @@
 //! Inter-call dependencies converge on an explicit finite worklist.
 use super::*;
+#[path = "generic_call_array_transfer.rs"]
+mod array_transfer;
 #[derive(Clone, PartialEq, Eq, Hash)]
 struct Request {
     declaration: Span,
@@ -71,6 +73,7 @@ impl<'a> Engine<'a> {
     }
     fn for_each(&mut self, expression: &Expr, callee: &expression_flow::Value, arguments: &[expression_flow::Value], state: &FlowState) -> Option<expression_flow::Invocation> {
         let (Some(elements), Some(callback)) = (&callee.elements, arguments.first()) else { return self.opaque_invocation(); };
+        let Some(elements)=elements.exact_values() else {return self.opaque_invocation();};
         let mut normal = Some(state.clone());
         let mut throwing = None;
         let mut facts = HashMap::new();
@@ -191,6 +194,10 @@ fn retain_caller_bindings(outgoing:&mut FlowState,identities:&HashSet<Option<cra
 }
 impl expression_flow::Dispatch for Engine<'_> {
     fn reject(&mut self) {self.opaque_invocation();}
+    fn transfer_array_result(&mut self,expression:&Expr,value:&mut expression_flow::Value,state:&mut FlowState)->bool {
+        array_transfer::transfer(self,expression,value,state)
+    }
+
     fn validate_escape(&mut self, value: &mut expression_flow::Value, state: &mut FlowState) -> bool {
         if value.alternatives.is_none() {
             let Some(current)=self.current else {return false;};
@@ -208,7 +215,7 @@ impl expression_flow::Dispatch for Engine<'_> {
             }
             value.alternatives=Some(environment_store::canonical_alternatives(alternatives));
         }
-        let alternatives=value.alternatives.iter().flatten().chain(value.elements.iter().flatten().flat_map(|element|element.alternatives.iter().flatten()));
+        let alternatives=value.alternatives.iter().flatten().chain(value.elements.iter().flat_map(|shape|shape.iter()).flat_map(|element|element.alternatives.iter().flatten()));
         for alternative in alternatives {
             let environment_store::Alternative::Body{environment:Some(handle),..}=alternative else {continue;};
             let Some(record)=self.environments.get(*handle) else {return false;};
@@ -331,6 +338,20 @@ mod tests {
         engine.entries[index].request.context[1].1=Span::new(12,13);
         assert_ne!(first,engine.call_context(factory,Span::new(20,21)));
         let cycle=engine.call_context(root,Span::new(40,41));assert_eq!(cycle,vec![(root,root)]);
+    }
+
+    #[test]
+    fn loop_array_join_keeps_prefix_and_repeated_tail_call_contracts() {
+        let source=crate::format("function one<T>(value:T):T{return value;}function two<T>(value:T,other:T):T{return other;}function root(){const values=[one];let index=0;while(index<2){values.push(two);index=index+1;}const first=values.shift()!;const second=values.shift()!;first<int>(3);second<int>(4,7);}function main(){}").unwrap();
+        let program=crate::syntax::parse(&source).unwrap();let effects=effect_bodies::Index::new(&program).unwrap();
+        let declarations=program.functions.iter().map(|function|(function.name.text.clone(),contract(function.type_parameters.len(),&function.parameter_initializers,function.rest_parameter,function.name.span))).collect::<HashMap<_,_>>();
+        let root=program.functions.iter().find(|function|function.name.text=="root").unwrap();
+        let outcome=Engine::new(&declarations,&effects).solve(root.name.span,&[],&[]).expect("bounded loop summary");
+        for (statement,required) in root.body[root.body.len()-2..].iter().zip([1,2]) {
+            let StmtKind::Expr(call)=&statement.kind else {panic!("call")};
+            let candidates=outcome.facts[&(call.span.start,call.span.end)].as_ref().expect("retained callable contract");
+            assert_eq!(candidates.len(),1);assert_eq!(candidates[0].required,required);
+        }
     }
     #[test]
     fn terminal_return_requires_parameter_identity_and_no_entry_effects() {
