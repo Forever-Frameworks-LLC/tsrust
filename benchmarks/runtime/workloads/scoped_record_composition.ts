@@ -387,7 +387,11 @@ function workload(n: int, seed: int, input: string): int[][] {
         base[0] = 0;
         const caughtNestedTrace = [0, 0, 0, 0];
         const nestedCaught = nestedCaughtMapCleanup(value % 2 === 0, value, caughtNestedTrace) + caughtNestedTrace[0] * 100 + caughtNestedTrace[1] * 10 + caughtNestedTrace[2] * 1000 + caughtNestedTrace[3];
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught]);
+        const abruptTrace=[0,0,0,0];
+        let nestedAbrupt=0;
+        try {nestedAbrupt=nestedAbruptCleanup(value % 2 === 0,value,abruptTrace);}catch(error){nestedAbrupt=11;}
+        nestedAbrupt+=abruptTrace[0]*100+abruptTrace[1]*10+abruptTrace[2]*1000+abruptTrace[3];
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt]);
         i += 1;
     }
 
@@ -595,4 +599,18 @@ function nestedMapCleanup(fail: boolean, value: number, trace: number[]): number
     nestedOld[0] = value + 120;
     nestedNext[0] = value + 121;
     return nestedObserved + nestedOld[0] + nestedNext[0];
+}
+
+function nestedAbruptCleanup(fail: boolean, value: number, trace: number[]): number {
+ const abruptOld=[value]; const abruptNext=[value+1];
+ let abruptMap=new Map<string,Holder>();
+ abruptMap.set("old",{run:():number=>abruptOld[0]});
+ let abruptObserved=-1;
+ try {
+  try {const abruptPrefix=prefixResult(fail);abruptMap.clear();abruptMap.set("next",{run:():number=>abruptNext[0]});abruptObserved=abruptMap.size;}
+  catch(error){abruptMap.clear();abruptMap.set("next",{run:():number=>abruptNext[0]});throw 9;}
+  finally {trace[0]+=abruptMap.size;abruptMap.clear();trace[1]+=abruptMap.size;if(fail)throw 11;}
+ } finally {trace[2]+=abruptMap.size;abruptMap.clear();trace[3]+=abruptMap.size;}
+ abruptOld[0]=value+120;abruptNext[0]=value+121;
+ return abruptObserved+abruptOld[0]+abruptNext[0];
 }

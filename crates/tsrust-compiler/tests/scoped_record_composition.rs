@@ -8,6 +8,11 @@ fn nested_catch_preserves_map_owners_until_outer_cleanup() {
         .replace("scenario(true);", "try{scenario(true);}catch(error){console.log('caught',error);}");
     verify_disposal(&support::format_round_trip(&rethrow),3,"before\ndrop 0\nnormal\nouter 1\ndrop 1\nouter cleared\nafter\nbefore\ninner caught 7 1\ndrop 0\nhandled\nouter 1\ndrop 2\nouter cleared\ncaught 9\n");
 
+    let cleanup = rethrow.replace("console.log('handled');throw 9;", "console.log('handled');throw 9;}finally{console.log('inner cleanup',handlers.size);handlers.clear();console.log('inner cleared');");
+    verify_disposal(&support::format_round_trip(&cleanup),3,"before\ndrop 0\nnormal\ninner cleanup 1\ndrop 1\ninner cleared\nouter 0\nouter cleared\nafter\nbefore\ninner caught 7 1\ndrop 0\nhandled\ninner cleanup 1\ndrop 2\ninner cleared\nouter 0\nouter cleared\ncaught 9\n");
+    let overriding = cleanup.replace("console.log('inner cleared');", "console.log('inner cleared');if(fail)throw 11;");
+    verify_disposal(&support::format_round_trip(&overriding),3,"before\ndrop 0\nnormal\ninner cleanup 1\ndrop 1\ninner cleared\nouter 0\nouter cleared\nafter\nbefore\ninner caught 7 1\ndrop 0\nhandled\ninner cleanup 1\ndrop 2\ninner cleared\nouter 0\nouter cleared\ncaught 11\n");
+
 }
 
 #[test]

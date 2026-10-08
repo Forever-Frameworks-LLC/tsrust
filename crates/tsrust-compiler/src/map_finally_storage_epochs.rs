@@ -227,7 +227,7 @@ impl Emitter<'_> {
         true
     }
     #[inline(never)]
-    fn map_carried_cleanup_dispatch(
+    pub(super) fn map_carried_cleanup_dispatch(
         &self,
         fun: &CheckedFunction,
         pending: &str,

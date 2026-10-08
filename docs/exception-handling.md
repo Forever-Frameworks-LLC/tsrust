@@ -95,3 +95,8 @@ Nested catch handlers can clear and refill a Map holding borrowing callbacks
 before an outer finally observes and clears it. A handler that throws again still
 runs outer cleanup. Capture mutation after successful cleanup remains checked
 against the surviving entries; cleanup does not restore a transferred source name.
+
+If a nested handler rethrows, its finally block retains the owning Map until
+cleanup finishes. A new error from that cleanup replaces the handler's error,
+then outer finally still runs. Explicit clear releases the contained callbacks
+at that boundary; transporting completion does not clone the owner.

@@ -57,13 +57,13 @@ impl Emitter<'_> {
             let cleanup_contract = crate::error_effects::annotate_region_body(&mut cleanup_discovery, &self.program.error_effects);
             let (declaration, cleanup_name) = self.completion_error_layout(&format!("StorageCleanup{first}"), &cleanup_contract, runtime, statement.span);
             cleanup_declaration = declaration;
-            let normal_cleanup = self.map_storage_completion_body(fun, cleanup, declarations, first + 2, &cleanup_name, cleanup_contract.clone(), runtime, &storage_type, &places, false, false);
-            let thrown_cleanup = self.map_storage_completion_body(fun, cleanup, declarations, first + 3, &cleanup_name, cleanup_contract.clone(), runtime, &storage_type, &places, false, false);
-            let cleanup_abrupt = self.map_storage_abrupt_dispatch(fun, "other", &cleanup_name, &cleanup_contract, runtime, statement.span);
+            let normal_cleanup = self.map_storage_completion_body(fun, cleanup, declarations, first + 2, &cleanup_name, cleanup_contract.clone(), runtime, &storage_type, &places, true, true);
+            let thrown_cleanup = self.map_storage_completion_body(fun, cleanup, declarations, first + 3, &cleanup_name, cleanup_contract.clone(), runtime, &storage_type, &places, true, true);
+            let cleanup_abrupt = self.map_carried_cleanup_dispatch(fun, "other", &cleanup_name, &cleanup_contract, runtime, &places, statement.span);
             normal_finish = format!("{{ let {pattern}=storage; match {normal_cleanup} {{ TsrCompletion::Normal(storage)=>storage, other=>{{ {cleanup_abrupt} }} }} }}");
             let resume = if crate::completion::definitely_abrupt(cleanup, 0) { "unreachable!(\"abrupt cleanup cannot resume pending error\")".into() }
                 else { self.map_storage_abrupt_dispatch(fun, "TsrCompletion::Throw(pending_error)", &out_name, &outgoing, runtime, statement.span) };
-            thrown_finish = format!("{{ match {thrown_cleanup} {{ TsrCompletion::Normal(_)=>{{ {resume} }}, other=>{{ drop(pending_error); {cleanup_abrupt} }} }} }}");
+            thrown_finish = format!("{{ match {thrown_cleanup} {{ TsrCompletion::Normal(storage)=>{{ let {pattern}=storage; {resume} }}, other=>{{ drop(pending_error); {cleanup_abrupt} }} }} }}");
         }
         let throw_arm = if handler_throws {
             format!("TsrCompletion::Throw((pending_error,{pattern}))=>{{ {thrown_finish} }}")
