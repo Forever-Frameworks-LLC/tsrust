@@ -677,6 +677,7 @@ fn native_binding_effect(id:usize)->FailureSet {
         Some(binding) if binding.module=="std:testing-runtime" && matches!(binding.name,"shareCallback"|"numericValue"|"lengthValue"|"hasLength")=>FailureSet::default(),
         // Target constants have no recoverable runtime failures.
         Some(binding) if binding.module=="std:os" && matches!(binding.name,"platform"|"arch"|"endianness")=>FailureSet::default(),
+        Some(binding) if binding.module=="std:path" && binding.name=="relative"=>FailureSet::runtime(),
         // Lexical UTF-8 processing only: no I/O or recoverable runtime failure.
         Some(binding) if binding.module=="std:path" && matches!(binding.name,"basename"|"dirname"|"extname"|"isAbsolute"|"normalize"|"join")=>FailureSet::default(),
         Some(binding) if binding.module=="std:testing-runtime" && binding.name=="checkAssertion"=>FailureSet::runtime(),
@@ -782,6 +783,14 @@ mod tests {
         assert!(checked.program.functions[relay].template);
         assert!(checked.program.error_effects.function_errors[used].opaque);
         assert!(checked.program.error_effects.function_errors[unused].opaque);
+    }
+    #[test]
+    fn relative_native_binding_has_checked_runtime_failure_contract() {
+        let id=crate::native_bindings::BINDINGS.iter().position(|binding|binding.module=="std:path" && binding.name=="relative").unwrap();
+        let effect=super::native_binding_effect(id);
+        assert!(effect.runtime);
+        assert!(!effect.opaque);
+        assert!(effect.explicit.is_empty());
     }
     #[test]
     fn lexical_native_path_origins_have_resolved_pure_contracts() {

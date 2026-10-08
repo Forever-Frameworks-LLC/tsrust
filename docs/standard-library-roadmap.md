@@ -128,3 +128,7 @@ Pin exact backend versions and features during S05/individual adapter acceptance
 The bounded primitive `std:path` family adds dirname, extname, isAbsolute and normalize alongside basename. Compiler/native execution, imported editor help, executable examples, matched benchmark registration and scoped native/Node-after-tsc measurements are accepted on the library branch. See [family acceptance](milestones/stdlib-lexical-path.md) and [integration handoff](handoff-2026-10-07-lexical-path.md).
 
 Public integration is verified on macOS; explicit-platform helpers cover POSIX/Windows reference behavior. Windows native integration and the advancing combined checkout still require their own checks. This primitive-only increment does not accept filesystem resources, the wider host family, or the rest of the standard library.
+
+## Relative path increment
+
+`std:path.relative(from: string, to: string): string` adds borrowed-pair lexical resolution with owned results and checked cwd failures. [The contract](path-relative-contract.md) distinguishes host execution from deterministic Windows helper/reference coverage. Focused native/compiler/editor examples and matched workload registration are verified in the isolated worker. Family measurements, combined-main observer verification and required source/evidence/consumer integration remain separate acceptance steps. No further path or OS family is included.

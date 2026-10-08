@@ -56,3 +56,11 @@ pub(crate) const JOIN: NativeBinding = NativeBinding {
     result: NativeType::String,
     backend: NativeBackend::Bundled {symbol:"tsrust_std_path_join"}, features:&["path"],
 };
+
+pub(crate) const RELATIVE: NativeBinding = NativeBinding {
+    module:"std:path",name:"relative",
+    parameters:&[
+        NativeParameter{name:"from",ty:NativeType::String,access:Mode::Read,optional:false,rest:false},
+        NativeParameter{name:"to",ty:NativeType::String,access:Mode::Read,optional:false,rest:false},
+    ],result:NativeType::String,backend:NativeBackend::Bundled{symbol:"tsrust_std_path_relative"},features:&["path"],
+};

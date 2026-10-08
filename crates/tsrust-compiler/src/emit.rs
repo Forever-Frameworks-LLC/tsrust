@@ -1031,13 +1031,18 @@ impl Emitter<'_> {
 
     #[inline(never)]
     fn typed_runner_result(&self,call:&str,span:crate::Span,closure:Option<usize>)->Option<String> {
+        self.typed_native_result(call,span,closure,"Error","testing")
+    }
+
+    #[inline(never)]
+    fn typed_native_result(&self,call:&str,span:crate::Span,closure:Option<usize>,error_name:&str,error_code:&str)->Option<String> {
         let (name,contract,runtime)=if let Some(id)=closure {
             let name=self.result_closures.borrow().get(&id).cloned()?;
             let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
             (name,self.program.error_effects.closure_errors[id].clone(),runtime)
         }else{self.exception_regions.current_transport()?};
         let Some(Type::Record(record))=runtime else{return None;};
-        let value=self.runtime_error_value(record,"Error","testing","",span);
+        let value=self.runtime_error_value(record,error_name,error_code,"",span);
         let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
         let failed=if closure.is_some() {
             let payload=exception_contract_emit::checked_throw_value("runner_error",Type::Record(record),&name,&contract,&unions,runtime,span).expect("checked runner contract");
@@ -2315,6 +2320,9 @@ impl Emitter<'_> {
                 }else if binding.module=="std:testing-runtime" && matches!(binding.name,"beginSuite"|"beginFile"|"endSuite") {
                     let call=if binding.name=="beginSuite"{format!("tsrust_testing_begin_suite_result({})",arguments[0])}else if binding.name=="beginFile"{format!("tsrust_testing_begin_file_result({})",arguments[0])}else{"tsrust_testing_end_suite_result()".into()};
                     self.typed_runner_result(&call,closure.span,Some(index)).unwrap_or_else(||crate::native_emit::call(binding,arguments))
+                }else if binding.module=="std:path" && binding.name=="relative" {
+                    let call=crate::native_emit::call(binding,arguments);
+                    self.typed_native_result(&call,closure.span,Some(index),"Error","path-relative").unwrap_or_else(||format!("{call}.unwrap_or_else(|message|panic!(\"path.relative: {{message}}\"))"))
                 }else{crate::native_emit::call(binding,arguments)};
                 let _ = writeln!(output, "        {call}");
             } else if let Some(ClosureForward::Abstract(contract))=closure.forward {
@@ -2669,6 +2677,7 @@ impl Emitter<'_> {
         }) {
             output.push_str("mod tsrust_native_path {\n");
             output.push_str(include_str!("stdlib/path/runtime.rs"));
+            output.push_str(include_str!("stdlib/path/relative.rs"));
             output.push_str("\n}\nfn tsrust_std_path_basename(path: &String, suffix: Option<&String>) -> String { String::Owned(tsrust_native_path::basename(path.as_ref(), suffix.map(|value| value.as_ref()), cfg!(windows))) }\n");
         }
         if self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].features.contains(&"path")) {
@@ -2676,6 +2685,9 @@ impl Emitter<'_> {
         }
         if self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].features.contains(&"path")) {
             output.push_str("fn tsrust_std_path_is_absolute(path: &String) -> bool { tsrust_native_path::is_absolute(path.as_ref(), cfg!(windows)) }\nfn tsrust_std_path_normalize(path: &String) -> String { String::Owned(tsrust_native_path::normalize(path.as_ref(), cfg!(windows))) }\n");
+        }
+        if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:path" && crate::native_bindings::BINDINGS[id].name=="relative") {
+            output.push_str("fn tsrust_std_path_relative(from:&String,to:&String)->Result<String,std::string::String>{tsrust_native_path::relative_host(from.as_ref(),to.as_ref()).map(String::Owned)}\n");
         }
         if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:path" && crate::native_bindings::BINDINGS[id].name=="join") {
             output.push_str("fn tsrust_std_path_join(paths: &[&str]) -> String { String::Owned(tsrust_native_path::join(paths, cfg!(windows))) }\n");
@@ -8050,7 +8062,10 @@ impl Emitter<'_> {
                         let call=if binding.name=="beginSuite"{format!("tsrust_testing_begin_suite_result({})",arguments[0])}else if binding.name=="beginFile"{format!("tsrust_testing_begin_file_result({})",arguments[0])}else{"tsrust_testing_end_suite_result()".into()};
                         if let Some(call)=self.typed_runner_result(&call,expr.span,None){return call;}
                     }
-                    crate::native_emit::call(binding, arguments)
+                    if binding.module=="std:path" && binding.name=="relative" {
+                        let call=crate::native_emit::call(binding,arguments);
+                        self.typed_native_result(&call,expr.span,None,"Error","path-relative").unwrap_or_else(||format!("{call}.unwrap_or_else(|message|panic!(\"path.relative: {{message}}\"))"))
+                    }else{crate::native_emit::call(binding, arguments)}
                 }
                 target @ (CallTarget::BooleanConversion
                 | CallTarget::StringConversion

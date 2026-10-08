@@ -136,3 +136,7 @@ Public integration is verified on macOS; explicit-platform helpers cover POSIX/W
 ## Accepted variadic composition and byte order
 
 `std:path.join(...paths: string[]): string` adds lexical composition through a reusable homogeneous borrowed string rest bridge. Aliases, stored values, array spread, concrete rest Function adaptation, evaluation order and failure cleanup are covered. `std:os.endianness(): string` adds compiled BE/LE metadata with explicit unsupported-selector errors. [The contract](path-join-contract.md) and [handoff](handoff-2026-10-07-path-join.md) preserve compiler/editor/native acceptance, independent POSIX/Windows reference coverage, scoped composition measurements and constant identity timing limits. Actual native acceptance remains macOS ARM64; main integration and native Windows execution remain separate. No wider path, OS or resource family is accepted.
+
+## Relative path increment
+
+`std:path.relative(from: string, to: string): string` adds borrowed-pair lexical resolution with owned results and checked cwd failures. [The contract](path-relative-contract.md) distinguishes host execution from deterministic Windows helper/reference coverage. Focused native/compiler/editor examples and matched workload registration are verified in the isolated worker. Family measurements, combined-main observer verification and required source/evidence/consumer integration remain separate acceptance steps. No further path or OS family is included.

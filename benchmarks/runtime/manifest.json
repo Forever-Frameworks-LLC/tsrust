@@ -20068,6 +20068,26 @@
       "notes": "Byte-order identity can constant-fold; no latency or measured performance claim. Timing deferred to a meaningful OS family milestone.",
       "sourceSha256": "39e87cb189e8da68a6c778ebcd7e32dbc1d391a6867c6192274f9dec0483c327",
       "counterpartSha256": "14780a18b763f7ba97dc974fd383e4d204d0705e475644c84790e46be4d2a2a5"
+    },
+    {
+      "id": "std_path_relative",
+      "category": "paths",
+      "description": "Relative sibling and descendant Unicode locations with retained output",
+      "source": "workloads/std_path_relative.tsr",
+      "counterpart": "workloads/std_path_relative.ts",
+      "iterations": 20000,
+      "operationsPerIteration": 1,
+      "result": "string[]",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "family": "path-relative",
+      "measurementStatus": "untimed-ready",
+      "specification": "Alternate destination reports/archive.txt and reports/é😊/2026 by (i+seed) parity; compute relative from reports/é😊.",
+      "notes": "Host cwd lookup, lexical resolution, owned output retention and observation are included. No filesystem traversal or isolated method latency claim.",
+      "sourceSha256": "0efb9e01c0470e4c9447f49be08a3f2d28a94c006114eb39ffd2230fbfe6f8a6",
+      "counterpartSha256": "0af0223fcbe7efff9213cc474f83113f39dca175385258c52b6589a86fb14048"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

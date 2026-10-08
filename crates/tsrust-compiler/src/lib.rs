@@ -42,6 +42,7 @@ pub mod native_bindings;
 pub mod native_cache;
 mod native_emit;
 pub use stdlib::path::runtime as native_path;
+pub use stdlib::path::relative as native_path_relative;
 pub use formatting::format;
 mod projections;
 pub use projections::{CheckedTypeFacts, LocalFunctionInfo, GenericCallInfo, GenericParameterCallInfo, GenericParameterInfo, MethodResultInfo, ProjectionInfo};

@@ -1,3 +1,4 @@
+import {pathRelativeIds,pathRelativeChecksum} from './path-relative-source-contract.mjs';
 import {pathJoinIds,pathJoinChecksum} from './path-join-source-contract.mjs';
 import {osIdentityIds,osIdentityChecksum} from './os-identity-source-contract.mjs';
 import {lexicalPathIds,lexicalPathChecksum} from './lexical-path-source-contract.mjs';
@@ -191,6 +192,7 @@ export {expectedNumber} from './number-oracle.mjs';
 // Independent expected-result calculations from the workload specifications.
 // Linear series use closed forms, not the implementation's records/callbacks/arrays.
 export function expectedChecksum(id, n, seed, inputText) {
+ if(pathRelativeIds.includes(id))return pathRelativeChecksum(id,n,seed);
  if(pathJoinIds.includes(id))return pathJoinChecksum(id,n,seed);
  if(osIdentityIds.includes(id))return osIdentityChecksum(id,n,seed);
  if(lexicalPathIds.includes(id))return lexicalPathChecksum(id,n,seed);

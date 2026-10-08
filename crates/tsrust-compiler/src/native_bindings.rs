@@ -72,6 +72,7 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::os::bindings::ARCH,
     crate::stdlib::os::bindings::ENDIANNESS,
     crate::stdlib::path::bindings::JOIN,
+    crate::stdlib::path::bindings::RELATIVE,
 ];
 pub fn lookup(module: &str, name: &str) -> Result<&'static NativeBinding, String> {
     if !BINDINGS.iter().any(|binding| binding.module == module) {

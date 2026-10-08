@@ -3584,7 +3584,29 @@
           "output": "archive/\n"
         }
       ]
-    }
+    },
+      {
+          "name": "relative",
+          "signature": "relative(from: string, to: string): string",
+          "parameters": [
+              {
+                  "label": "from: string",
+                  "documentation": "Starting lexical location. Empty text means the current working directory; relative text is resolved against that directory."
+              },
+              {
+                  "label": "to: string",
+                  "documentation": "Destination lexical location, resolved using the same directory context. No file needs to exist."
+              }
+          ],
+          "documentation": "Returns the lexical path from one location to another. Accepts exactly two strings, from and to; neither has a default. Missing, extra and non-string arguments are compile-time errors. Empty inputs use the current working directory. Relative inputs resolve against that directory before dot components and repeated separators are removed. Returns independently owned text and leaves both inputs unchanged.\n\n```tsrust\nimport { relative } from \"std:path\";\nfunction main() {\n    console.log(relative(\"reports\", \"reports/2026\"));\n} // output: 2026\n```\n\nIdentical or equivalently resolved paths return an empty string. Parent components describe leaving the starting location; component prefixes such as foo and foobar are distinct. POSIX comparisons are case-sensitive and emit slash. Windows comparisons are case-insensitive and emit backslash; another drive or UNC server can require an absolute destination. Drive-relative inputs use the corresponding drive directory when available. Trailing separators do not remain. Unicode text is preserved without normalization. No path needs to exist; no symlink resolution or containment guarantee is provided. If a required working-directory lookup fails, or that directory cannot be represented as valid UTF-8, throws an Error with code path-relative. Identical inputs and fully qualified paths avoid unnecessary directory lookup. Native strings contain valid UTF-8 text.\n\nOwnership: both inputs are borrowed; the result owns its contents.",
+          "examples": [
+              {
+                  "source": "import { relative } from \"std:path\";\nfunction main() {\n    console.log(relative(\"reports\", \"reports/2026\"));\n    console.log(relative(\"é😊\", \"é😊\"));\n}\n",
+                  "output": "2026\n\n"
+              }
+          ]
+      }
+
   ],
   "Object": [
     {

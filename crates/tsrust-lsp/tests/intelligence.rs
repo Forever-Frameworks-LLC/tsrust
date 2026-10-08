@@ -8194,7 +8194,7 @@ fn lexical_path_catalog_examples_execute() {
     let catalog:Value=serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
     let dir=std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/editor/lexical-path-docs");
     std::fs::create_dir_all(&dir).unwrap();
-    for entry in catalog["std:path"].as_array().unwrap().iter().filter(|e| matches!(e["name"].as_str(),Some("dirname"|"extname"|"isAbsolute"|"normalize"))) {
+    for entry in catalog["std:path"].as_array().unwrap().iter().filter(|e| matches!(e["name"].as_str(),Some("dirname"|"extname"|"isAbsolute"|"normalize"|"relative"))) {
         for example in entry["examples"].as_array().unwrap() {
             let source=example["source"].as_str().unwrap();
             let formatted=tsrust_compiler::format(source).unwrap();

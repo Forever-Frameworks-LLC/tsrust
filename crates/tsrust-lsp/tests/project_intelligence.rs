@@ -1289,3 +1289,14 @@ fn path_join_imported_rest_editor_contract() {
     let stored=ask(&index,entry,"stored('tmp'", "textDocument/hover");
     assert!(stored["contents"]["value"].as_str().unwrap().contains("...paths"),"{stored}");
 }
+
+#[test]
+fn path_relative_imported_borrowed_pair_editor_contract() {
+    let entry="import {relative as between} from 'std:path';function main(){const saved=between;const direct=between('reports','reports/2026');const stored=saved('a','b');}";
+    let mut workspace=Workspace::default();let uri=source_id("file:///tsrust-intelligence/main.tsr").unwrap();workspace.open(uri.clone(),1,entry.into());let checked=workspace.snapshot().check(&uri).unwrap();let index=ProjectIndex::checked(&checked);
+    for site in ["between('reports'","saved('a'"] {
+        let hover=ask(&index,entry,site,"textDocument/hover");let docs=hover["contents"]["value"].as_str().unwrap();assert!(docs.contains("from: string, to: string") && docs.contains("Ownership:") && docs.contains("path-relative") && docs.contains("```tsrust"),"{hover}");
+        let completion=ask(&index,entry,site,"textDocument/completion");assert!(completion.as_array().unwrap().iter().any(|item|item["label"]=="between" && item["detail"].as_str().unwrap().contains("from: string, to: string")),"{completion}");
+    }
+    let help=ask(&index,entry,"'reports/2026');","textDocument/signatureHelp");assert_eq!(help["signatures"][0]["parameters"][0]["label"],"from: string");assert_eq!(help["signatures"][0]["parameters"][1]["label"],"to: string");assert_eq!(help["activeParameter"],1,"{help}");
+}

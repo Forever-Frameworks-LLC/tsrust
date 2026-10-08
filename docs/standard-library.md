@@ -160,3 +160,17 @@ function main() { console.log(endianness()); } // LE for this macOS ARM64 target
 ```
 
 [Executable assertion](../crates/tsrust-compiler/tests/fixtures/os-identity/endianness.tsr). Other OS exports remain outside this bounded slice.
+
+## Relative locations
+
+`std:path.relative(from: string, to: string): string` returns the lexical route from `from` to `to`. Both required strings are borrowed; the result is independently owned. Empty arguments refer to cwd, relative inputs resolve against cwd, and identical inputs return empty text. Dot segments and redundant separators collapse without visiting the input locations or resolving symlinks. POSIX comparison is case-sensitive; Windows uses its separators, case and drive context. Required cwd lookup or UTF-8 conversion failures throw an `Error` with code `path-relative`. Arity and non-string arguments are compiler errors.
+
+```tsrust
+import { relative } from "std:path";
+function main() {
+    console.log(relative("reports", "reports/2026")); // 2026
+    console.log(relative("é😊", "é😊")); // empty line
+}
+```
+
+The operation preserves both inputs and provides no filesystem containment guarantee. See [the exact contract and platform coverage](path-relative-contract.md).
