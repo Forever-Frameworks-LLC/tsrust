@@ -305,6 +305,13 @@ impl Emitter<'_> {
     }
 
     fn native_type(&self, value: Type) -> String {
+        if let Type::Array(ArrayElement::Record(id, depth)) = value
+            && depth > 0
+        {
+            let mut native = self.native_type(Type::Array(ArrayElement::Record(id, 0)));
+            for _ in 0..depth { native = format!("Vec<{native}>"); }
+            return native;
+        }
         if let Type::Array(ArrayElement::Record(id, 0)) = value {
             let record = self.native_type(Type::Record(id));
             if let Some((_, arguments)) = record.split_once('<') { return format!("RecordArray{id}<{arguments}"); }

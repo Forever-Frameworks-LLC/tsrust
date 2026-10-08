@@ -1,6 +1,5 @@
-//! A record whose callback borrows local variables lives in a local variable,
-//! a parameter or a field of such a record. Arrays, Maps, Sets and unions have
-//! one element layout and cannot yet hold these records.
+//! Concrete callback environments give local record containers a shared layout.
+//! Declaration-only layouts remain rejected until their environments are planned.
 use super::*;
 
 impl Analyzer {
@@ -12,11 +11,15 @@ impl Analyzer {
         element: ArrayElement,
         span: Span,
     ) -> Result<ArrayElement, Diagnostic> {
-        let ArrayElement::Record(declaration, 0) = element else { return Ok(element); };
+        let ArrayElement::Record(declaration, depth) = element else { return Ok(element); };
         if !self.aggregate_callable_facts(Type::Record(declaration)).scoped { return Ok(element); }
         let mut common = None;
         for value in values.iter() {
-            let Some(Type::Record(actual)) = value.ty else { return Ok(element); };
+            let actual = match value.ty {
+                Some(Type::Record(actual)) if depth == 0 => actual,
+                Some(Type::Array(ArrayElement::Record(actual, nested))) if nested + 1 == depth => actual,
+                _ => return Ok(element),
+            };
             common = Some(match common {
                 None => actual,
                 Some(previous) if previous == actual => actual,
@@ -27,10 +30,19 @@ impl Analyzer {
             });
         }
         let Some(common) = common else { return Ok(element); };
-        for value in values {
-            if value.ty != Some(Type::Record(common)) { value.wrap_record_carrier(Type::Record(common)); }
+        let mut pending = values.iter_mut().map(|value| (value, depth)).collect::<Vec<_>>();
+        while let Some((value, depth)) = pending.pop() {
+            if depth == 0 {
+                if value.ty != Some(Type::Record(common)) { value.wrap_record_carrier(Type::Record(common)); }
+            } else if !matches!(value.kind, ExprKind::Array(_)) {
+                let target = Type::Array(ArrayElement::Record(common, depth - 1));
+                if value.ty != Some(target) { value.wrap_record_carrier(target); }
+            } else if let ExprKind::Array(elements) = &mut value.kind {
+                value.ty = Some(Type::Array(ArrayElement::Record(common, depth - 1)));
+                pending.extend(elements.iter_mut().map(|element| (element, depth - 1)));
+            }
         }
-        Ok(ArrayElement::Record(common, 0))
+        Ok(ArrayElement::Record(common, depth))
     }
 
     fn holds_scoped_record(&self, container: Type) -> bool {

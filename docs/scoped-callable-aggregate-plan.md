@@ -205,7 +205,7 @@ outer storage. Moves between named arrays propagate a common element carrier
 back through their storage dependencies; subsequent insertion can widen that
 carrier without generating incompatible native types.
 
-Sixteen focused composition tests pass, including native execution after outer-scope
+Twenty focused composition tests cover native execution after outer-scope
 assignment, insertion after a move, both branch insertion paths, and invocation of
 removed records after their source array widens. Splice results participate in the
 same storage dependency plan as moved arrays. Pop and shift results now update their
@@ -223,7 +223,19 @@ Capture-conflict and local-escape witnesses
 remain enforced. These checks establish this array storage batch, not B5 acceptance.
 Prior completed diagnostic and depth records remain verified in SQLite.
 
-Remaining B5 work includes nested storage, nullable replacement across multiple origins,
+Nested array literals now join callback environments across their leaf records.
+The transformation uses an iterative traversal, and native nested array types retain
+the concrete callback type arguments at every array level. Distinct-origin indexing
+and capture release at scope exit pass native execution; paired rejection witnesses
+check capture conflicts and local escape. The existing 24 ordinary and owned array
+tests also pass. Independently stored arrays can now move into nested storage with
+distinct callback origins. Carrier conversion consumes the source arrays and moves
+their records into the common layout, without cloning records or captured values.
+The native witness and independent Node result check pass; a rejection witness
+confirms that source arrays remain transferred. This does not yet establish insertion
+or replacement through nested storage.
+
+Remaining B5 work includes nested mutation, nullable replacement across multiple origins,
 precise element capture release, Map/Set
 composition and nullable replacement. Complete editor, guide, disposal and matched
 benchmark support before accepting the feature. Keep native execution and ownership

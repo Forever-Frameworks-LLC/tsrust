@@ -1,6 +1,60 @@
 mod support;
 
 #[test]
+fn nested_array_conversion_consumes_its_sources() {
+    let source = "type Holder={run:ReadOnly<Function<int>>;};function main(){const values=[3,7];const first:Holder[]=[{run:():int=>values[0]}];const second:Holder[]=[{run:():int=>values[1]}];const groups:Holder[][]=[first,second];console.log(first.length,groups[0][0].run());}";
+    let error = tsrust_compiler::check(source).err().expect("conversion moves existing arrays");
+    assert_eq!(error.code, "transferred", "{}", error.message);
+}
+
+#[test]
+fn nested_storage_moves_existing_arrays_with_distinct_origins() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function main() {
+            const values = [3, 7];
+            const first: Holder[] = [{ run: (): int => values[0] }];
+            const second: Holder[] = [{ run: (): int => values[1] }];
+            const groups: Holder[][] = [first, second];
+            strictEqual(groups[0][0].run(), 3);
+            strictEqual(groups[1][0].run(), 7);
+        }
+    "#);
+}
+
+#[test]
+fn nested_record_arrays_keep_capture_conflicts_and_reject_escape() {
+    let conflict = "type Holder={run:ReadOnly<Function<int>>;};function main(){const values=[3];const groups:Holder[][]=[[{run:():int=>values[0]}]];values[0]=9;console.log(groups[0][0].run());}";
+    let error = tsrust_compiler::check(conflict).err().expect("nested storage retains captures");
+    assert_eq!(error.code, "capture-conflict", "{}", error.message);
+    let escape = "type Holder={run:ReadOnly<Function<int>>;};function bad():Holder[][]{const values=[3];return [[{run:():int=>values[0]}]];}function main(){}";
+    let error = tsrust_compiler::check(escape).err().expect("nested storage cannot hide local captures");
+    assert_eq!(error.code, "callback-escape", "{}", error.message);
+}
+
+#[test]
+fn nested_arrays_preserve_distinct_record_environments() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function main() {
+            const values = [3, 7];
+            {
+                const groups: Holder[][] = [
+                    [{ run: (): int => values[0] }],
+                    [{ run: (): int => values[1] }]
+                ];
+                strictEqual(groups[0][0].run(), 3);
+                strictEqual(groups[1][0].run(), 7);
+            }
+            values[0] = 9;
+            strictEqual(values[0], 9);
+        }
+    "#);
+}
+
+#[test]
 fn reassigned_nullable_removal_retains_capture_conflicts() {
     let source = "type Holder={run:ReadOnly<Function<int>>;};function main(){const values=[3];let outer:Holder|undefined;{const holders:Holder[]=[{run:():int=>values[0]}];outer=holders.pop();}values[0]=9;if(outer!==undefined)console.log(outer.run());}";
     let error = tsrust_compiler::check(source).err().expect("nullable storage must retain its capture");
