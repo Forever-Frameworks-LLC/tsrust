@@ -23,6 +23,8 @@ pub(super) struct Engine<'a> {
     work: Vec<usize>,
     current: Option<usize>,
     environments: environment_store::Store,
+    #[cfg(test)]
+    evaluations: usize,
 }
 fn merge_state(current:&mut Option<FlowState>,incoming:Option<FlowState>,declarations:&HashMap<String,Contract>)->bool {
     if let Some(incoming)=incoming {
@@ -44,7 +46,7 @@ fn merge_facts(current: &mut HashMap<(usize, usize), Option<Vec<Contract>>>, inc
 }
 impl<'a> Engine<'a> {
     pub(super) fn new(declarations: &'a HashMap<String, Contract>, effects: &'a effect_bodies::Index) -> Self {
-        Self { declarations, effects, lookup: HashMap::new(), entries: Vec::new(), work: Vec::new(), current: None, environments: environment_store::Store::default() }
+        Self { declarations, effects, lookup: HashMap::new(), entries: Vec::new(), work: Vec::new(), current: None, environments: environment_store::Store::default(), #[cfg(test)] evaluations: 0 }
     }
     fn request(&mut self, request: Request) -> usize {
         let index = if let Some(&index) = self.lookup.get(&request) { index } else {
@@ -98,50 +100,68 @@ impl<'a> Engine<'a> {
     pub(super) fn solve(&mut self, declaration: Span, caller: &[Binding], arguments: &[expression_flow::Value]) -> Option<summary_flow::Outcome> {
         let root = self.request(Request { declaration, producer: declaration, environment: None, caller: caller.to_vec().into(), arguments: arguments.to_vec() });
         while let Some(index) = self.work.pop() {
-            self.entries[index].queued = false;
-            let previous_opaque = self.entries[index].opaque;
-            self.current = Some(index);
-            let request = self.entries[index].request.clone();
-            let declarations = self.declarations;
-            let effects = self.effects;
-            let mut caller = request.caller.clone();
-            let available = if let Some(environment) = request.environment {
-                self.environments.subscribe(environment,index).is_some() && self.environments.get(environment).is_some_and(|record| {
-                    if record.bindings.iter().any(|captured|caller.iter().any(|binding|binding.identity==captured.identity && binding!=captured)) {return false;}
-                    for captured in &record.bindings {
-                        caller.retain(|binding|binding.identity!=captured.identity);
-                        caller.push(captured.clone());
-                    }
-                    true
-                })
-            } else { true };
-            let captured_before=request.environment.and_then(|handle|self.environments.get(handle).map(|record|record.bindings.clone()));
-            let incoming = if available { summary_flow::invoke_with_dispatch(request.declaration, &caller, &request.arguments, declarations, effects, self) } else { None };
-            let readers=self.environments.take_changed_readers();
-            for reader in readers {self.enqueue(reader);}
-            self.current = None;
-            let previous = self.entries[index].outcome.clone();
-            if let Some(incoming) = incoming {
-                if let Some(captured)=&captured_before && [&incoming.normal,&incoming.returning,&incoming.throwing].into_iter().flatten().any(|state|captured.iter().any(|binding|state.iter().find(|outgoing|outgoing.identity==binding.identity)!=Some(binding))) {
-                    self.entries[index].opaque=true;
-                }
-                let entry=&mut self.entries[index];
-                let outcome = &mut entry.outcome;
-                if !merge_state(&mut outcome.normal, incoming.normal, declarations) {entry.opaque=true;}
-                if !merge_state(&mut outcome.returning, incoming.returning, declarations) {entry.opaque=true;}
-                if !merge_state(&mut outcome.throwing, incoming.throwing, declarations) {entry.opaque=true;}
-                if let Some(incoming) = incoming.returned_value {
-                    outcome.returned_value = Some(if let Some(previous) = outcome.returned_value.take() { expression_flow::merge_value(previous, incoming, declarations) } else { incoming });
-                }
-                merge_facts(&mut outcome.facts, incoming.facts, declarations);
-            } else { self.entries[index].opaque = true; }
-            if previous != self.entries[index].outcome || previous_opaque != self.entries[index].opaque {
-                let dependents = self.entries[index].dependents.iter().copied().collect::<Vec<_>>();
-                for dependent in dependents { self.enqueue(dependent); }
-            }
+            self.evaluate(index);
         }
         (!self.entries[root].opaque).then(|| self.entries[root].outcome.clone())
     }
+    fn evaluate(&mut self, index: usize) {
+        #[cfg(test)]
+        { self.evaluations += 1; }
+        self.entries[index].queued = false;
+        let previous_opaque = self.entries[index].opaque;
+        let parent = self.current;
+        self.current = Some(index);
+        let request = self.entries[index].request.clone();
+        let declarations = self.declarations;
+        let effects = self.effects;
+        let mut caller = request.caller.clone();
+        let available = if let Some(environment) = request.environment {
+            self.environments.subscribe(environment,index).is_some() && self.environments.get(environment).is_some_and(|record| {
+                if record.bindings.iter().any(|captured|caller.iter().any(|binding|binding.identity==captured.identity && binding!=captured)) {return false;}
+                for captured in &record.bindings {
+                    caller.retain(|binding|binding.identity!=captured.identity);
+                    caller.push(captured.clone());
+                }
+                true
+            })
+        } else { true };
+        let captured_before=request.environment.and_then(|handle|self.environments.get(handle).map(|record|record.bindings.clone()));
+        let incoming = if available { summary_flow::invoke_with_dispatch(request.declaration, &caller, &request.arguments, declarations, effects, self) } else { None };
+        let readers=self.environments.take_changed_readers();
+        for reader in readers {self.enqueue(reader);}
+        self.current = parent;
+        let previous = self.entries[index].outcome.clone();
+        if let Some(incoming) = incoming {
+            if let Some(captured)=&captured_before && [&incoming.normal,&incoming.returning,&incoming.throwing].into_iter().flatten().any(|state|captured.iter().any(|binding|state.iter().find(|outgoing|outgoing.identity==binding.identity)!=Some(binding))) {
+                self.entries[index].opaque=true;
+            }
+            let entry=&mut self.entries[index];
+            let outcome = &mut entry.outcome;
+            if !merge_state(&mut outcome.normal, incoming.normal, declarations) {entry.opaque=true;}
+            if !merge_state(&mut outcome.returning, incoming.returning, declarations) {entry.opaque=true;}
+            if !merge_state(&mut outcome.throwing, incoming.throwing, declarations) {entry.opaque=true;}
+            if let Some(incoming) = incoming.returned_value {
+                outcome.returned_value = Some(if let Some(previous) = outcome.returned_value.take() { expression_flow::merge_value(previous, incoming, declarations) } else { incoming });
+            }
+            merge_facts(&mut outcome.facts, incoming.facts, declarations);
+        } else { self.entries[index].opaque = true; }
+        if previous != self.entries[index].outcome || previous_opaque != self.entries[index].opaque {
+            let dependents = self.entries[index].dependents.iter().copied().collect::<Vec<_>>();
+            for dependent in dependents { self.enqueue(dependent); }
+        }
+    }
+    fn terminal_parameter_return(&self, declaration: Span) -> bool {
+        let Some([statement]) = self.effects.body(declaration) else { return false; };
+        let StmtKind::Return(Some(value)) = &statement.kind else { return false; };
+        let ExprKind::Name(name) = &value.kind else { return false; };
+        let Some(parameters) = self.effects.parameters(declaration) else { return false; };
+        if parameters.iter().any(|parameter| parameter.rest || !matches!(parameter.initializer, ParameterInitializer::Required)) { return false; }
+        let identity = self.effects.binding(name, value.span);
+        identity.is_some() && parameters.iter().any(|parameter| parameter.binding.identity == identity)
+            && self.effects.captures(declaration).is_none_or(HashSet::is_empty)
+            && !self.effects.aggregate_writes(declaration)
+    }
+
 }
 // Preserve outgoing order and unknown identities while indexing caller membership once.
 fn retain_caller_bindings(outgoing:&mut FlowState,identities:&HashSet<Option<crate::local_capture_plan::BindingId>>) {
@@ -197,6 +217,13 @@ impl expression_flow::Dispatch for Engine<'_> {
         for alternative in alternatives {
             let environment_store::Alternative::Body{declaration,environment}=alternative else {return self.opaque_invocation()};
             let index = self.request(Request { declaration, producer: expression.span, environment, caller: state.clone(), arguments: arguments.to_vec() });
+            // A required parameter return cannot dispatch another invocation.
+            // Complete its ordinary contextual summary now instead of restarting
+            // the caller once for every independent identity call.
+            if environment.is_none() && self.entries[index].queued && self.terminal_parameter_return(declaration) {
+                self.work.retain(|pending| *pending != index);
+                self.evaluate(index);
+            }
             if self.entries[index].opaque { return self.opaque_invocation(); }
             let mut outcome = self.entries[index].outcome.clone();
             for outgoing in [&mut outcome.normal,&mut outcome.returning,&mut outcome.throwing].into_iter().flatten() {
@@ -217,6 +244,37 @@ impl expression_flow::Dispatch for Engine<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn pending_callees_finish_before_revisiting_their_common_caller() {
+        let calls = 32;
+        let body = "identity(1);".repeat(calls);
+        let source = crate::format(&format!("function identity<T>(value:T):T{{return value;}}function outer(){{{body}}}function main(){{}}")).unwrap();
+        assert_eq!(crate::format(&source).unwrap(), source);
+        let program = crate::syntax::parse(&source).unwrap();
+        let effects = effect_bodies::Index::new(&program).unwrap();
+        let declarations = program.functions.iter().map(|function|(function.name.text.clone(),contract(function.type_parameters.len(),&function.parameter_initializers,function.rest_parameter,function.name.span))).collect::<HashMap<_,_>>();
+        let outer = program.functions.iter().find(|function|function.name.text=="outer").unwrap();
+        let mut engine = Engine::new(&declarations, &effects);
+        let outcome = engine.solve(outer.name.span, &[], &[]).unwrap();
+        assert_eq!(outcome.facts.len(), calls);
+        assert!(outcome.facts.values().all(|contracts|contracts.as_ref().is_some_and(|contracts|contracts.len()==1 && contracts[0].required==1)));
+        assert!(engine.evaluations <= calls + 2, "{} evaluations for {calls} independent calls", engine.evaluations);
+        let evaluations = engine.evaluations;
+        assert!(engine.solve(outer.name.span, &[], &[]).unwrap() == outcome);
+        assert_eq!(engine.evaluations, evaluations);
+    }
+    #[test]
+    fn terminal_return_requires_parameter_identity_and_no_entry_effects() {
+        let source = crate::format("function identity<T>(value:T):T{return value;}function defaulted(value:int=1):int{return value;}function packed(...values:int[]):int[]{return values;}function literal(value:int):int{return 1;}function outer(value:int){function captured():int{return value;}function written(other:int):int{value=other;return other;}}function main(){}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(), source);
+        let program = crate::syntax::parse(&source).unwrap();
+        let effects = effect_bodies::Index::new(&program).unwrap();
+        let declarations = HashMap::new();
+        let engine = Engine::new(&declarations, &effects);
+        for function in &program.functions {
+            assert_eq!(engine.terminal_parameter_return(function.name.span), function.name.text == "identity", "{}", function.name.text);
+        }
+    }
     #[test]
     fn caller_projection_preserves_unknown_identities_aliases_and_binding_order() {
         let known=crate::local_capture_plan::BindingId{owner:1,declaration_start:7};
