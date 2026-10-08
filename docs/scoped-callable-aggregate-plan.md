@@ -648,3 +648,11 @@ branch choices execute across the two clears. The affected 62-test batch, eight
 normal-worker depth canaries and focused editor diagnostics pass. Exact evidence
 is verified in SQLite as `tsrust-b5-nested-branch-refill-checks.log`. Different
 branch target sets, early exits, exceptions and indexed storage remain pending.
+
+Sibling safety now has paired source and native evidence around field renewal.
+Clearing one field on both branches permits mutation of its former capture and
+refill from that same owner; the uncleared sibling callback still returns its
+original value. Three rejection forms preserve the sibling capture through direct
+branch renewal, nested-block renewal and a one-branch clear. Editor diagnostics
+accept the released first capture and report capture-conflict for sibling mutation.
+The focused native/source and editor tests pass without another compiler change.

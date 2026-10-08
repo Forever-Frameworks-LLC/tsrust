@@ -1,6 +1,41 @@
 mod support;
 
 #[test]
+fn renewed_map_field_keeps_uncleared_sibling_capture_protected() {
+    let prefix = "type Holder={run:ReadOnly<Function<int>>;};type Pair={left:Map<string,Holder>;right:Map<string,Holder>;};function scenario(branch:boolean):void{const first=[3];const second=[7];const left=new Map<string,Holder>();left.set('old',{run:():int=>first[0]});const right=new Map<string,Holder>();right.set('old',{run:():int=>second[0]});const pair:Pair={left:left,right:right};";
+    for tail in [
+        "if(branch){pair.left.clear();}else{pair.left.clear();}second[0]=9;console.log(pair.right.size);",
+        "{if(branch){pair.left.clear();}else{pair.left.clear();}}second[0]=9;console.log(pair.right.size);",
+        "if(branch){pair.left.clear();}first[0]=9;console.log(pair.left.size);",
+    ] {
+        let source = format!("{prefix}{tail}}}function main():void{{scenario(false);}}");
+        let error = tsrust_compiler::check(&source).err().expect("uncleared payload protects its capture");
+        assert_eq!(error.code, "capture-conflict", "{}", error.message);
+    }
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        type Pair = { left: Map<string, Holder>; right: Map<string, Holder>; };
+        function main(): void {
+            const first = [3];
+            const second = [7];
+            const left = new Map<string, Holder>();
+            left.set("old", { run: (): int => first[0] });
+            const right = new Map<string, Holder>();
+            right.set("old", { run: (): int => second[0] });
+            const pair: Pair = { left: left, right: right };
+            if (first[0] === 3) { pair.left.clear(); } else { pair.left.clear(); }
+            first[0] = 9;
+            pair.left.set("new", { run: (): int => first[0] });
+            const sibling = pair.right.get("old");
+            if (sibling !== undefined) strictEqual(sibling.run(), 7);
+            const current = pair.left.get("new");
+            if (current !== undefined) strictEqual(current.run(), 9);
+        }
+    "#);
+}
+
+#[test]
 fn both_branches_renew_independent_map_fields_without_losing_siblings() {
     project(r#"
         import { strictEqual } from "std:testing";

@@ -8492,3 +8492,13 @@ fn scoped_map_clear_releases_captures_and_keeps_conditional_diagnostics() {
     let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&conditional, "file:///test.tsr").unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "capture-conflict"), "{diagnostics}");
 }
+
+#[test]
+fn map_field_renewal_preserves_sibling_capture_diagnostics() {
+    let source = tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};type Pair={left:Map<string,Holder>;right:Map<string,Holder>;};function main():void{const first=[3];const second=[7];const left=new Map<string,Holder>();left.set('old',{run:():int=>first[0]});const right=new Map<string,Holder>();right.set('old',{run:():int=>second[0]});const pair:Pair={left:left,right:right};if(first[0]===3){pair.left.clear();}else{pair.left.clear();}first[0]=9;console.log(pair.right.size);}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&source, "file:///test.tsr").unwrap().is_empty());
+    let conflict = source.replace("first[0] = 9;", "second[0] = 9;");
+    assert_ne!(conflict, source);
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&conflict, "file:///test.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "capture-conflict"), "{diagnostics}");
+}
