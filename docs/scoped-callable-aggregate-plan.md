@@ -472,3 +472,10 @@ callback results through the project/native path after formatting and verifies
 formatter idempotence. Existing carrier planning handles these paths without a
 compiler change. This evidence does not establish precise per-element capture
 release, Set key support or whole B5 acceptance.
+
+A removal witness verifies that popping a record containing a scoped Map retains
+its concrete callback environment while the remaining array element stays usable.
+A second form transfers the removed record into an outer nullable binding and
+invokes its Map callback after the array scope ends. Both formatted project/native
+forms pass without a compiler change. This proves those ownership transfers, not
+precise capture release while unrelated sibling elements remain live.

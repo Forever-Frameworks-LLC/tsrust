@@ -1,6 +1,36 @@
 mod support;
 
 #[test]
+fn removed_record_map_preserves_owned_callback_environment() {
+    let source = r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        type Box = { handlers: Map<string, Holder>; };
+        function main() {
+            const values = [3, 7];
+            const first = new Map<string, Holder>();
+            first.set("value", { run: (): int => values[0] });
+            const second = new Map<string, Holder>();
+            second.set("value", { run: (): int => values[1] });
+            const boxes: Box[] = [{ handlers: first }, { handlers: second }];
+            const removed = boxes.pop();
+            if (removed !== undefined) {
+                const result = removed.handlers.get("value");
+                if (result !== undefined) strictEqual(result.run(), 7);
+            }
+            const remaining = boxes[0].handlers.get("value");
+            if (remaining !== undefined) strictEqual(remaining.run(), 3);
+        }
+    "#;
+    project(source);
+    let escaped = source.replace("const first = new Map", "let escaped: Box | undefined; { const first = new Map")
+        .replace("const removed = boxes.pop();", "escaped = boxes.pop(); const removed = boxes.pop();")
+        .replace("const remaining = boxes[0].handlers.get(\"value\");", "} const remaining = escaped!.handlers.get(\"value\");")
+        .replace("remaining.run(), 3", "remaining.run(), 7").replace("result.run(), 7", "result.run(), 3");
+    project(&escaped);
+}
+
+#[test]
 fn pushed_record_map_elements_preserve_independent_environments() {
     let source = r#"
         import { strictEqual } from "std:testing";
