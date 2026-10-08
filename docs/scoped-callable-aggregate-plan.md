@@ -1450,3 +1450,13 @@ controls and exact SQLite evidence current. Preserve unrelated fixtures and
 explicit Git staging; format the whole project before checkpoints. Complete
 remaining B5 scope before family regressions/timing or acceptance. The full
 compiler/editor completion goal remains active.
+
+## Nested finally red witness
+
+`nested_finally_preserves_map_owners_and_cleanup_order` is source-valid but
+fails native E0502 after both cleanup blocks. It checks normal/failing body paths,
+inner-before-outer cleanup order, exact callback disposal and capture mutation
+after successful cleanup. SQLite preserves `tsrust-b5-nested-finally-red.log`
+byte-exact; its loose copy was removed. Extend nested completion dispatch to
+carry initialized storage and evaluated control payloads into enclosing regions,
+without restoring consumed source names or dropping owners before cleanup.
