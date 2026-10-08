@@ -5575,7 +5575,7 @@ impl Analyzer {
         // but rejecting a read of x after an earlier transfer. Commit only after
         // evaluation and exact type checking complete.
         let actual = self.expression(context, value, Mode::Consume, loans, Some(ty))?;
-        if !self.effects_only && !self.discovering_results && !context.template
+        if !context.template
             && let (Type::Closure(previous), Type::Closure(next)) = (ty, actual)
             && self.deferred_generic_values.contains_key(&previous)
             && self.deferred_generic_values.contains_key(&next)

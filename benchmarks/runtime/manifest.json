@@ -20091,10 +20091,10 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": true,
       "measured": false,
-      "notes": "Fresh capture-free declaration replacement, saved value and path-selected mixed failure transport. Nullable views and callback failures verified untimed on native and Node-after-tsc. Earlier observation protocols remain immutable; no measurements.",
-      "specification": "Eight scalar observations per iteration; deterministic alternating selection and caught failures.",
-      "sourceSha256": "a213b2eef9df2e4f0e2193f46dfddfc768800fdcba9d003b5dfc1fb6f17e7818",
-      "counterpartSha256": "f5ee346d173cba0d03e7bd74722a213055853a71d0ac2e66244420ffc1dfa546"
+      "notes": "Fresh generic declaration replacement with independent captured environments, saved values and selected failure transport. Nullable views and callback failures verified untimed on native and Node-after-tsc. Earlier observation protocols remain immutable; no measurements.",
+      "specification": "Nine scalar observations per iteration; deterministic alternating selection and caught failures.",
+      "sourceSha256": "8a4d5dddc9de4176c3c3fded4222b1a816ad4bf2b0121c3b9ea1c83fb4c7ebf2",
+      "counterpartSha256": "05cad684abaa24c655d1efec91f3dbe0aa24c8cc2dce7d8f97740e33a9e7f205"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

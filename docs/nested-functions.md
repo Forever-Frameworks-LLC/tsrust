@@ -568,7 +568,7 @@ function choose(flag: boolean): int {
 // choose(false) is 7; choose(true) is 10.
 ```
 
-A call reachable through several declarations must have compatible prepared arguments and results. Each declaration receives its own checked body and error transport. Borrowing the callee prevents replacement during argument evaluation. Capturing generic replacements and point-sensitive mutable factory state remain incomplete.
+A call reachable through several declarations must have compatible prepared arguments and results. Each declaration receives its own checked body and error transport. Borrowing the callee prevents replacement during argument evaluation. Fresh references to capturing generic declarations may replace compatible generic values. Each environment retains its captured values and independently checked body. Existing conflicting capture loans still reject replacement. Point-sensitive mutable factory state and broader owned environment replacement remain incomplete.
 
 When reachable declarations use the same input type with different access modes, the call requires the strongest access of those declarations. For example, a reading arm and a consuming arm make the argument owned for that call. Each selected arm borrows or moves the single prepared value as needed. This requirement also appears in signature help. Omitted defaults retain the selected declaration’s initializer; rest values retain source order without implicit clones.
 

@@ -5,7 +5,8 @@ export function expectedGenericReplacementValues(id,n,seed,input){
   const base=i%5+seed%5+1;
   const flag=(i+seed)%2===1;
   const callback=i%3===0?11:base+(flag?7:0);
-  return flag?[base,base+7,11,7,10,8,0,callback]:[base,base,base,3,4,4,4,callback];
+  const captured=flag&&i%3===0?11:2*base+(flag?7:0);
+  return flag?[base,base+7,11,7,10,8,0,callback,captured]:[base,base,base,3,4,4,4,callback,captured];
  });
 }
 export function expectedGenericReplacementObservation(id,n,seed,input){return observeSliceTree(expectedGenericReplacementValues(id,n,seed,input));}

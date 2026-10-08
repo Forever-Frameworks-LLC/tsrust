@@ -42,17 +42,12 @@ impl Analyzer {
             if origin != original {
                 let previous = &self.deferred_generic_values[&original];
                 let next = &self.deferred_generic_values[&origin];
-                if previous.declaration != next.declaration {
-                    pairs.push(self.prepare_deferred_alternative_method(context,origin,args.to_vec(),Some(result),span)?);
-                    continue;
-                }
-                // Reuse only bodies whose declaration and capture-free layout
-                // are identical. Other environments require their own body.
-                if !previous.identities.is_empty() || !next.identities.is_empty()
+                if previous.declaration != next.declaration
+                    || !previous.identities.is_empty() || !next.identities.is_empty()
                     || !self.closures[original].captures.is_empty() || !self.closures[origin].captures.is_empty()
                 {
-                    return Err(Diagnostic::new("callable-layout", "Selected generic environments require independently checked declaration and capture contracts.", span)
-                        .related(self.closures[origin].span, "Alternative environment is defined here."));
+                    pairs.push(self.prepare_deferred_alternative_method(context,origin,args.to_vec(),Some(result),span)?);
+                    continue;
                 }
             }
             let method = self.materialize_deferred_method(origin, function, result, args, accesses, invocation, span)?;

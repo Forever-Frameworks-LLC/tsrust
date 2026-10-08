@@ -8007,7 +8007,7 @@ fn fresh_generic_replacement_keeps_checked_editor_types_and_capture_diagnostics(
     assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("int[]"), "{hover}");
     let captured = "function main(){let calls=0;function identity<T>(value:T):T{calls+=1;return value;}let action=identity;action=identity;console.log(action<int>(7));}";
     let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(captured, "file:///replacement.tsr").unwrap()).unwrap();
-    assert_eq!(diagnostics[0]["code"], "callable-origin", "{diagnostics}");
+    assert_eq!(diagnostics[0]["code"], "capture-conflict", "{diagnostics}");
     assert!(!diagnostics[0]["relatedInformation"].as_array().unwrap().is_empty());
 }
 
@@ -8280,4 +8280,12 @@ fn path_join_catalog_examples_execute() {
         }
     }
     std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn captured_generic_replacement_keeps_reachable_parameter_names() {
+    let source="function choose(flag:boolean):int{const left=3;const right=7;function first<T>(original:T):int{return left;}function second<T>(selected:T):int{return right;}let action=first;if(flag){action=second;}if(flag){return action<int>(0);}return action<int>(0);}function main(){choose(true);}";
+    assert!(tsrust_lsp::diagnostics(source,"file:///captured-replacement.tsr").unwrap().is_empty());
+    let help=ask(source,"textDocument/signatureHelp","0);",0);
+    assert!(help.to_string().contains("original | selected"),"{help}");
 }

@@ -54,6 +54,19 @@ function callbackResult(flag: boolean, fail: boolean, base: int): int {
     catch (error) { if (error === "callback failed") { return 11; } return 0; }
 }
 
+function capturedResult(flag: boolean, fail: boolean, base: int): int {
+    const left = base;
+    const right = base + 7;
+    function capturedFirst<T>(value: T): int { return left; }
+    function capturedSecond<T>(value: T): int { if (fail) { throw right; } return right; }
+    let action = capturedFirst;
+    const saved = action;
+    action = capturedFirst;
+    if (flag) { action = capturedSecond; }
+    try { return saved<int>(0) + action<int>(0); }
+    catch (error) { return 11; }
+}
+
 function workload(n: int, seed: int, input: string): int[][] {
     const output: int[][] = [];
     for (let i = 0; i < n; i += 1) {
@@ -71,7 +84,8 @@ function workload(n: int, seed: int, input: string): int[][] {
         const present = nullableLength(flag, "nullable");
         const absent = nullableLength(flag, undefined);
         const callback = callbackResult(flag, i % 3 === 0, base);
-        output.push([original, selected, completed, omitted, text.length, present, absent, callback]);
+        const captured = capturedResult(flag, i % 3 === 0, base);
+        output.push([original, selected, completed, omitted, text.length, present, absent, callback, captured]);
     }
     return output;
 }

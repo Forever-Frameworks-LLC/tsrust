@@ -315,7 +315,7 @@ fn fresh_same_declaration_replacement_reuses_capture_free_generic_storage() {
 #[test]
 fn fresh_generic_replacement_does_not_copy_captures_or_restore_transferred_aliases() {
     for (source, code) in [
-        ("function main(){let calls=0;function identity<T>(value:T):T{calls+=1;return value;}let action=identity;action=identity;console.log(action<int>(7));}", "callable-origin"),
+        ("function main(){let calls=0;function identity<T>(value:T):T{calls+=1;return value;}let action=identity;action=identity;console.log(action<int>(7));}", "capture-conflict"),
         ("function identity<T>(value:T):T{return value;}function main(){let action=identity;const saved=action;action=saved;console.log(saved<int>(3));}", "closure-consumed"),
     ] {
         let formatted = support::format_round_trip(source);
@@ -455,5 +455,53 @@ fn transported_polymorphic_arguments_preserve_borrow_and_consumption_rejections(
         let source=tsrust_compiler::format(&format!("type Item={{id:int;}};function make(item:Item){{function take<T>(value:T):Item{{return item;}}return take;}}{factory}{body}")).unwrap();
         let error=tsrust_compiler::check(&source).err().unwrap_or_else(||panic!("borrow or transferred owner must be rejected: {body}"));
         assert_eq!(error.code,code,"{}",error.render("input.tsr",&source));
+    }
+}
+
+#[test]
+fn captured_generic_replacement_keeps_independent_read_environments() {
+    support::execute(r#"
+        function select(flag:boolean):int {
+            const left=3; const right=7;
+            function first<T>(value:T):int {return left;}
+            function second<T>(value:T):int {return right;}
+            let action=first;
+            const saved=action;
+            action=first;
+            if(flag){action=second;}
+            return saved<int>(0)+action<int>(0);
+        }
+        function main(){console.log(select(false),select(true));}
+    "#, "6 10\n", None);
+}
+
+#[test]
+fn captured_generic_replacement_preserves_borrowed_strings_and_selected_failures() {
+    support::execute(r#"
+        function select(flag:boolean,fail:boolean):string {
+            const left="left"; const right="right";
+            function first<T>(value:T):string {return left+String(value);}
+            function second<T>(value:T):string {if(fail){throw right;}return right+String(value);}
+            let action=first;
+            if(flag){action=second;}
+            try{return action<int>(2);}catch(error){return String(error);}
+        }
+        function main(){console.log(select(false,false),select(true,false),select(true,true));}
+    "#, "left2 right2 right\n", None);
+}
+
+#[test]
+fn captured_generic_replacement_drops_each_record_once_across_failure() {
+    let source=support::format_round_trip("type Item={id:int;};function select(flag:boolean,fail:boolean):int{const left:Item={id:1};const right:Item={id:2};function first<T>(value:T):int{return left.id;}function second<T>(value:T):int{if(fail){throw right.id;}return right.id;}let action=first;if(flag){action=second;}try{return action<int>(0);}catch(error){return 9;}}function main(){console.log(select(false,false),select(true,false),select(true,true));}");
+    let rust=tsrust_compiler::check(&source).unwrap().emit_rust().replace("fn main()","fn source_main()")+r#"
+static DROPS:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+impl Drop for Record0 {fn drop(&mut self){DROPS.fetch_add(1,std::sync::atomic::Ordering::SeqCst);}}
+fn main(){source_main();assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCst),6);}
+"#;
+    let directory=support::TempDirectory::new();let path=directory.0.join("replacement-disposal.rs");std::fs::write(&path,rust).unwrap();
+    for level in ["0","3"] {
+        let binary=directory.0.join(format!("replacement-disposal-{level}"));
+        support::success(&support::run(support::rustc().args(["--edition=2024","-C",&format!("opt-level={level}")]).arg(&path).arg("-o").arg(&binary),60));
+        let output=support::run(&mut std::process::Command::new(binary),10);support::success(&output);assert_eq!(output.stdout,b"1 2 9\n");
     }
 }

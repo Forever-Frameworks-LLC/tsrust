@@ -19,7 +19,7 @@ impl Analyzer {
         Ok((method, result))
     }
 
-    /// Fresh capture-free generic declarations retain independent construction
+    /// Fresh generic declarations retain independent construction
     /// origins while sharing the binding's registered storage family.
     #[inline(never)]
     pub(super) fn fresh_generic_replacement_type(
@@ -27,12 +27,10 @@ impl Analyzer {
     ) -> Type {
         let (Type::Closure(previous), Type::Closure(next)) = (expected, actual) else { return actual; };
         if previous == next || !matches!(value.kind, ExprKind::Closure { .. }) { return actual; }
-        let (Some(previous_source), Some(next_source)) = (
+        let (Some(_previous_source), Some(_next_source)) = (
             self.deferred_generic_values.get(&previous), self.deferred_generic_values.get(&next),
         ) else { return actual; };
-        if !previous_source.identities.is_empty() || !next_source.identities.is_empty()
-            || !self.closures[previous].captures.is_empty() || !self.closures[next].captures.is_empty()
-        { return actual; }
+        value.callable_origin = Some(CallableOrigin::Closure(next));
         value.ty = Some(expected);
         expected
     }
@@ -171,7 +169,7 @@ impl Analyzer {
         callee: &mut Expr, args: &mut Vec<Expr>, loans: &Loans, span: Span, once: bool, expected: Option<Type>, checked_receiver: bool,
     ) -> Result<(usize, Type), Diagnostic> {
         let declaration = self.deferred_generic_values[&origin].declaration.clone();
-        let reachable_origins = if !self.effects_only && !self.discovering_results && !context.template
+        let reachable_origins = if !context.template
             && let Some(reachable) = self.generic_functions.reachable_declarations(&context.function_name, span, callee.span)
         {
             self.polymorphic_storage.reachable_origins(origin, reachable, |member| {

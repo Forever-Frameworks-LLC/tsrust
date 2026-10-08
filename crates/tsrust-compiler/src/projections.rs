@@ -861,7 +861,14 @@ fn deferred_call_fact(program: &CheckedProgram, expression: &Expr, names: &mut H
         body_parameter_types: bindings.iter().map(|binding| binding.ty).collect(),
         result_type: method.function.result,
         parameters: bindings.iter().enumerate().map(|(index,binding)| GenericParameterInfo {
-            name: binding.name.clone(), ty: type_name(program, binding.input_ty.unwrap_or(binding.ty), names),
+            name: selected.as_ref().map_or_else(||binding.name.clone(),|plan| {
+                let mut labels=Vec::new();
+                for case in &plan.cases {
+                    let label=&case.body.function.bindings[case.body.parameters[index]].name;
+                    if !labels.contains(label) {labels.push(label.clone());}
+                }
+                labels.join(" | ")
+            }), ty: type_name(program, binding.input_ty.unwrap_or(binding.ty), names),
             body_ty: type_name(program, binding.ty, names), omission: binding.omission,
             rest: binding.rest, access: selected.as_ref().map_or(binding.mode,|plan|plan.argument_modes[index]),
         }).collect(),
