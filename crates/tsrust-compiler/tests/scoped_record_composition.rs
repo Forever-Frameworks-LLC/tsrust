@@ -2,7 +2,7 @@ mod support;
 
 #[test]
 fn consumed_map_on_normal_and_caught_paths_releases_capture() {
-    project(r#"
+    let source = r#"
         import { strictEqual } from "std:testing";
         type Holder = { run: ReadOnly<Function<int>>; };
         function failIf(fail: boolean): int { if (fail) throw 5; return 1; }
@@ -29,7 +29,23 @@ fn consumed_map_on_normal_and_caught_paths_releases_capture() {
             strictEqual(old[0], 9);
         }
         function main(): void { scenario(false); scenario(true); }
-    "#);
+    "#;
+    project(source);
+    let unavailable = source.replace("import { strictEqual } from \"std:testing\";", "").replace("            old[0] = 9;", "            console.log(handlers.size); old[0] = 9;");
+    let error = tsrust_compiler::check(&unavailable).err().expect("internal empty storage cannot revive a consumed binding");
+    assert_eq!(error.code, "transferred");
+    let field = source.replace("function scenario", "type Box = { handlers: Map<string, Holder>; marker: int; }; function scenario")
+        .replace("            let path = 0;", "            const box: Box = { handlers: handlers, marker: 23 }; let path = 0;")
+        .replace("handlers.clear()", "box.handlers.clear()")
+        .replace("const moved = handlers;", "const moved = box.handlers;")
+        .replace("strictEqual(observed, 0);", "strictEqual(observed, 0); strictEqual(box.marker, 23);");
+    project(&field);
+}
+
+#[test]
+fn consumed_exception_maps_add_no_capture_disposal() {
+    let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):int{if(fail)throw 5;return 1;}function scenario(fail:boolean):void{const old=[3];const handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});let observed=-1;console.log('before');try{const path=failIf(fail);console.log('normal');handlers.clear();const moved=handlers;observed=moved.size;}catch(error){console.log('caught');handlers.clear();const moved=handlers;observed=moved.size;}console.log('moved',observed);old[0]=9;console.log('after');}function main():void{scenario(false);scenario(true);}");
+    verify_disposal(&source, 1, "before\nnormal\ndrop 0\nmoved 0\nafter\nbefore\ncaught\ndrop 0\nmoved 0\nafter\n");
 }
 
 #[test]

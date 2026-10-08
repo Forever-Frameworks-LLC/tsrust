@@ -943,3 +943,24 @@ for a potentially throwing assertion after transfer; its diagnostic is retained
 as `tsrust-b5-consumed-exception-current.log`. Next work must represent unavailable
 owners at completion exits without reviving source availability or introducing
 implicit clones. Both failure choices and disposal need native verification.
+
+Consumed normal exits of exception bodies now consult the checked body-exit
+availability snapshots. Each live Map returns its owner; each consumed Map
+returns an empty internal native Map with no callback payload. This balances
+completion storage without cloning captures or reviving the source binding.
+Source diagnostics still reject later reads of that consumed binding. The same
+normal-exit normalization applies to catch and cleanup bodies. Error exits after
+transfer still require point-specific availability rather than body-exit snapshots;
+this change does not claim those paths are complete.
+
+The committed red witness executes both normal/caught choices and mutates the
+released capture. A record-field variant preserves an independent sibling.
+Disposal instrumentation proves exactly one old callback drop at each clear,
+with no callback drops added by internal empty storage, at optimization levels
+0 and 3. Observations inside the region are infallible size assignments; logging
+and assertions occur after the region when storage has been consumed. All 66
+composition tests, eight depth canaries, 15 exception-contract tests and the
+focused editor test pass. Exact evidence is verified in SQLite as
+`tsrust-b5-consumed-exception-checks.log`; its loose copy is removed. Matched
+consumption coverage and point-sensitive error exits remain next. B5 remains
+incomplete and no timing was performed.

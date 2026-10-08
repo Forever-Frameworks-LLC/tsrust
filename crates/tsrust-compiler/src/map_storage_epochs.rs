@@ -154,7 +154,7 @@ impl Emitter<'_> {
 }
 
 impl Emitter<'_> {
-    fn map_branch_exit_value(&self, fun: &CheckedFunction, body: &[Stmt], place: &str) -> String {
+    pub(super) fn map_branch_exit_value(&self, fun: &CheckedFunction, body: &[Stmt], place: &str) -> String {
         if self.map_storage_live_at_exit(fun, body, place) { return place.to_owned(); }
         // Source availability remains consumed. This empty native owner only
         // balances branch storage; it has no captured payload to copy or drop.
