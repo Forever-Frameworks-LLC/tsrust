@@ -107,3 +107,30 @@ The complete record gate remains open.
 The record gate is accepted: see milestones/173-scoped-callable-records.md. The
 array and composition gates remain open. Their shapes are rejected at source level
 with an `unsupported` diagnostic that names arrays, Maps, Sets and unions.
+
+## B5 continuation after gate 181
+
+`tests/scoped_record_composition.rs` now contains a failing array witness with two
+distinct readonly closure origins. It exercises indexed invocation, traversal,
+nullable `pop` and `shift` results, and original-owner mutation after the container
+scope ends. The independent TypeScript reference in
+`tests/fixtures/scoped-record-composition/node-reference.ts` passes on the pinned
+Node runtime. The compiler currently rejects the array at the explicit guard in
+`scoped_record_containers.rs`. No compiler admission rule has been changed.
+
+The array analyzer currently retains the declared element type while allowing
+nominally compatible concrete record instances through `require`. Each record
+literal separately specializes its concrete callback field environment in
+`scoped_record_layout::Registry`. Admitting the array therefore needs a common
+checked element layout that preserves those distinct environments; removing the
+final container guard alone does not establish correct native layout or source loans.
+Reuse existing checked callable and record carriers where their guarantees apply.
+Keep container layout specialization separate from ownership provenance.
+
+The next implementation batch must resolve common concrete record elements and
+carry their capture loans through indexing, traversal, pop/shift and scope exit.
+Pair positive execution witnesses with owner-mutation conflicts, whole-container
+escape and moved-element lifetime checks. Then extend the same guarantees to Map,
+Set and nullable replacement without silently treating their layouts as identical.
+Complete editor, documentation, disposal and matched benchmark support before
+accepting B5; this initial red witness is not acceptance.
