@@ -1,0 +1,19 @@
+# Generic state join efficiency investigation
+
+Status: in progress; no compilation speedup accepted. Last accepted checkpoint is d604c0a. Preserve the fifteen owner fixture edits.
+
+The current release compiler checking generic_value_adapters.tsr reaches a 55-second observation limit. This probe records compiler checking only, not native runtime performance. A fresh live sample again shows generic specialization, guard partitions, state joins and binding metadata cloning. The process is terminated at the limit; it is not left running or restarted from an observation timeout.
+
+A focused storage-budget witness joins identical normalized scalar facts 1,000 times. Before the change, the first join replaces the binding storage and its owned metadata. The rejected shortcut retains storage when states are equal, every binding has one unknown target and one origin, no aggregate or alternative metadata exists, and captures are unknown or consumed. Named targets, multiple origins and live captures still take the original join path. Nine environment-state tests pass, including a new equal-state control that requires named-target resolution and origin canonicalization.
+
+## Rejected experiment and next evidence
+
+Finish affected callable replacement and exception checks. Verify guard partitions and contract-set controls. Run the eight depth canaries if retaining the shared-flow change. Check representative editor projects. Build a release compiler and compare a bounded compilation probe against the recorded baseline, with identical source hashes and serialized runs. Determine whether the shortcut occurs in the slow workload before describing it as its repair. If the shortcut adds cost without material benefit, remove it and preserve rejected evidence. Do not bypass canonicalization or ownership, and do not increase recursion limits.
+
+Format the whole project before checkpointing. Preserve original and repaired evidence byte for byte in SQLite, refresh consumers only after source acceptance, prune closed artifacts and write a final handoff. Canonical SQLite records are tsrust-generic-join-current-probe.json, tsrust-generic-join-current-sample.txt, tsrust-generic-join-storage-red.log, tsrust-generic-join-storage-repaired.log and tsrust-generic-join-affected.log. All listed records are terminal, imported and read back byte for byte. The candidate passes 93 generic-flow unit controls and 23 affected native/exception tests, but lacks verified end-to-end benefit. The retained eight environment-state controls pass after removal.
+
+The candidate release build also reaches the identical 55-second observation limit with the same source hash. Neither bounded probe completes, so they provide no throughput ratio or speedup. Remove the candidate shortcut and its implementation-specific storage witness. Preserve its exact patch, red and green tests, source/binary identities and both bounded probes in SQLite. Retain the semantic equal-state test because a future equality shortcut must still resolve named targets and canonicalize provenance. The shared analyzer and installed consumers remain at the accepted behavior; no consumer refresh is necessary for a test-only checkpoint.
+
+Next instrument worklist evaluation, state-join counts and unchanged-state frequency in a bounded diagnostic build. Distinguish repeated scheduling from metadata cost. Do not accept a throughput claim from an incomplete probe or equate a storage micro-witness with fixing this workload.
+
+The worklist already has test-only evaluation counters and bounded scheduling witnesses. Extend that existing mechanism rather than adding general profiling infrastructure. The warm release target contains the rejected candidate build; installed consumers remain the accepted d604c0a behavior. Rebuild the warm release binary from current source before using it for future acceptance.

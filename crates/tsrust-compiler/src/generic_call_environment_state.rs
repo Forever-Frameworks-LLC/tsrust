@@ -111,4 +111,15 @@ mod tests {
   assert!(matches!(state.captures[&first],Capture::Unknown));assert!(state.update(first,&[binding(9)],&HashMap::new()).is_none());
  }
 
+ #[test] fn equal_states_still_resolve_named_targets_and_canonicalize_origins() {
+  let signature=contract(1,&[ParameterInitializer::Required],false,Span::new(10,11));
+  let declarations=HashMap::from([("identity".to_owned(),signature.clone())]);
+  let mut value=binding(5);value.targets=vec![Target::Name("identity".into(),Span::new(20,21))];
+  value.origins=vec![body_origins::Origin::Body(Span::new(9,10)),body_origins::Origin::Body(Span::new(5,6))];
+  let mut state:State=vec![value].into();let incoming=state.clone();
+  assert!(state.join(&incoming,&declarations).unwrap());
+  assert!(state.bindings[0].targets==vec![Target::Contract(signature)]);
+  assert!(state.bindings[0].origins==vec![body_origins::Origin::Body(Span::new(5,6)),body_origins::Origin::Body(Span::new(9,10))]);
+ }
+
 }
