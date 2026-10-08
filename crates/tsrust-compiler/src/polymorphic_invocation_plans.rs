@@ -83,9 +83,12 @@ impl<'a> Plan<'a> {
             }
             if let Some(first) = cases.first() {
                 let compatible = first.body.function.result == body.function.result && first.body.parameters.len() == body.parameters.len()
-                    && first.body.parameters.iter().zip(&body.parameters).all(|(&left, &right)| {
+                    && first.body.parameters.iter().zip(&body.parameters).enumerate().all(|(index,(&left, &right))| {
                         let left = &first.body.function.bindings[left]; let right = &body.function.bindings[right];
-                        left.ty == right.ty && left.input_ty == right.input_ty && left.omission == right.omission && left.rest == right.rest
+                        let same_callback=first.body.parameter_callbacks.get(index).copied().flatten().is_some_and(|contract|body.parameter_callbacks.get(index)==Some(&Some(contract)));
+                        let same_type=left.ty==right.ty || (matches!((left.ty,right.ty),(crate::syntax::Type::Callback(_),crate::syntax::Type::Callback(_))) && same_callback);
+                        let same_input=left.input_ty==right.input_ty || (matches!((left.input_ty,right.input_ty),(Some(crate::syntax::Type::Callback(_)),Some(crate::syntax::Type::Callback(_)))) && same_callback);
+                        same_type && same_input && left.omission == right.omission && left.rest == right.rest
                     });
                 if !compatible { return Err(Diagnostic::new("callable-layout", "Reachable generic invocation methods require compatible prepared arguments and results.", span)); }
             }
@@ -119,7 +122,11 @@ impl<'a> Plan<'a> {
         let call = |pair: Pair, receiver: &str| {
             let case=self.cases.iter().find(|case|case.pair==pair).unwrap();
             let arguments=case.body.parameters.iter().enumerate().map(|(index,&parameter)| {
-                let mode=case.body.function.bindings[parameter].mode;
+                let binding=&case.body.function.bindings[parameter];
+                let mode=binding.mode;
+                if self.argument_modes[index]==Mode::Consume && mode==Mode::Read && matches!(binding.ty,crate::syntax::Type::Union(_)|crate::syntax::Type::BorrowedUnion(_)) {
+                    return format!("method_argument{index}.tsr_view()");
+                }
                 let prefix=match (self.argument_modes[index],mode) {
                     (Mode::Consume,Mode::Read)=>"&",
                     (Mode::Consume,Mode::Mutate)=>"&mut ",

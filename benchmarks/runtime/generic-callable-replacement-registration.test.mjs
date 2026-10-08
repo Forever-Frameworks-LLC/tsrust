@@ -28,7 +28,7 @@ test('Generic replacement retains source scenarios, oracle and execution registr
    assert.throws(()=>assertGenericReplacementSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   }
  }
- assert.deepEqual(expectedGenericReplacementValues(row.id,3,0,'replacement'),[[1,1,1,3,4],[2,9,11,7,10],[3,3,3,3,4]]);
+ assert.deepEqual(expectedGenericReplacementValues(row.id,3,0,'replacement'),[[1,1,1,3,4,4,4,11],[2,9,11,7,10,8,0,9],[3,3,3,3,4,4,4,3]]);
  for(const n of [0,1,37,2048])for(const seed of [0,7,1000000]){
   const expected=expectedGenericReplacementObservation(row.id,n,seed,'replacement');
   assert.deepEqual(expectedExactResult(row.id,n,seed,'replacement'),expected);

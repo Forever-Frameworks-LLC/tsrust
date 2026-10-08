@@ -10,6 +10,14 @@ pub(super) struct Prepared {
 }
 
 impl Analyzer {
+    fn same_deferred_argument_type(&self,left:Type,right:Type)->bool {
+        if left==right {return true;}
+        match (left,right) {
+            (Type::Callback(left),Type::Callback(right))=>self.callables.callbacks[left].structural==self.callables.callbacks[right].structural,
+            _=>false,
+        }
+    }
+
     /// Join access before source evaluation; declaration preparation does not
     /// consume source arguments or mutate caller availability.
     #[inline(never)]
@@ -20,7 +28,7 @@ impl Analyzer {
         for &alternative in origins {
             if alternative==primary {continue;}
             let other=self.prepare_deferred_generic_body(context,alternative,arguments.to_vec(),expected,span)?;
-            if contracts.len()!=other.contracts.len() || contracts.iter().zip(&other.contracts).any(|(left,right)|left.ty!=right.ty || left.omission!=right.omission || left.rest!=right.rest) {
+            if contracts.len()!=other.contracts.len() || contracts.iter().zip(&other.contracts).any(|(left,right)|!self.same_deferred_argument_type(left.ty,right.ty) || left.omission!=right.omission || left.rest!=right.rest) {
                 return Err(Diagnostic::new("callable-layout","Reachable generic declarations require compatible prepared argument contracts.",span));
             }
             for (contract,other) in contracts.iter_mut().zip(other.contracts) {contract.mode=contract.mode.max(other.mode);}

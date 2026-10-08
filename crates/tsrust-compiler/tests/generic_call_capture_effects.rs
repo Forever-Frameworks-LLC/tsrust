@@ -252,6 +252,51 @@ fn joined_generic_access_does_not_leave_consumed_source_available() {
 }
 
 #[test]
+fn joined_generic_access_adapts_nullable_owned_arguments() {
+    let source=r#"
+        function read<T>(value:T):string | undefined { return "read"; }
+        function take<T>(value:T):T { return value; }
+        function choose(flag:boolean, value:Owned<string | undefined>):string | undefined {
+            let action=read;
+            if(flag){action=take;}
+            return action<string | undefined>(value);
+        }
+        function main(){console.log(choose(false,"owned"),choose(true,"owned"),choose(true,undefined));}
+    "#;
+    support::execute(source,"read owned undefined\n",None);
+}
+
+#[test]
+fn generic_replacement_callbacks_keep_selected_behavior_and_failure_effects() {
+    let source=r#"
+        function first<T>(value:T,action:ReadOnly<Function<int>>):int { return action(); }
+        function second<T>(value:T,action:ReadOnly<Function<int>>):int { return action()+7; }
+        function choose(flag:boolean,fail:boolean):int {
+            let action=first;
+            if(flag){action=second;}
+            const callback=():int=>{if(fail){throw "callback failed";}return 3;};
+            try {return action<int>(1,callback);}
+            catch(error){if(error==="callback failed"){return 11;}return 0;}
+        }
+        function main(){console.log(choose(false,false),choose(true,false),choose(false,true),choose(true,true));}
+    "#;
+    support::execute(source,"3 10 11 11\n",None);
+}
+
+#[test]
+fn generic_replacement_callback_layouts_do_not_erase_result_or_ownership_contracts() {
+    for second in [
+        "function second<T>(value:T,action:ReadOnly<Function<string>>):int{return action().length;}",
+        "function second<T>(value:T,action:Once<Function<int>>):int{return action();}",
+    ] {
+        let source=format!("function first<T>(value:T,action:ReadOnly<Function<int>>):int{{return action();}}{second}function choose(flag:boolean):int{{let action=first;if(flag){{action=second;}}return action<int>(1,():int=>3);}}function main(){{choose(true);}}");
+        let formatted=support::format_round_trip(&source);
+        let error=tsrust_compiler::check(&formatted).err().expect("incompatible callback contracts must reject");
+        assert!(matches!(error.code,"callable-layout"|"type"|"callback-contract"),"{}",error.render("callback-contract.tsr",&formatted));
+    }
+}
+
+#[test]
 fn fresh_same_declaration_replacement_reuses_capture_free_generic_storage() {
     let source = r#"
         function identity<T>(value: T): T { return value; }

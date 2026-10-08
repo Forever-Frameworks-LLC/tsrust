@@ -105,6 +105,7 @@ impl Analyzer {
             invocation: method_invocation,
             captures: method_captures,
             parameters: (0..checked.parameter_count).collect(),
+            parameter_callbacks:bindings[..checked.parameter_count].iter().map(|binding|match binding.ty {Type::Callback(id)=>Some(self.callables.callbacks[id].structural),_=>None}).collect(),
             function: CheckedFunction {
                 template: checked.template, specialization: true, name: checked.name.clone(),
                 bindings, parameter_count: 0,

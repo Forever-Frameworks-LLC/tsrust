@@ -174,6 +174,8 @@ pub struct CheckedClosureMethod {
     /// Method binding slots paired with the environment capture fields.
     pub captures: Vec<usize>,
     pub parameters: Vec<usize>,
+    /// Structural callback layout per parameter; origin IDs remain independent.
+    pub(crate) parameter_callbacks:Vec<Option<crate::callable_contracts::ContractId>>,
     pub function: CheckedFunction,
 }
 

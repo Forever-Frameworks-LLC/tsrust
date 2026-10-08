@@ -36,6 +36,24 @@ function selectedText(flag: boolean): string {
     return action<string>("head", "next-value");
 }
 
+function nullableRead<T>(value: T): string | undefined { return "read"; }
+function nullableTake<T>(value: T): T { return value; }
+function nullableLength(flag: boolean, value: string | undefined): int {
+    let action: typeof nullableRead | typeof nullableTake = nullableRead;
+    if (flag) { action = nullableTake; }
+    const selected = action<string | undefined>(value);
+    return selected?.length ?? 0;
+}
+function callbackFirst<T>(value: T, callback: () => int): int { return callback(); }
+function callbackSecond<T>(value: T, callback: () => int): int { return callback() + 7; }
+function callbackResult(flag: boolean, fail: boolean, base: int): int {
+    let action = callbackFirst;
+    if (flag) { action = callbackSecond; }
+    const callback = (): int => { if (fail) { throw "callback failed"; } return base; };
+    try { return action<int>(base, callback); }
+    catch (error) { if (error === "callback failed") { return 11; } return 0; }
+}
+
 function workload(n: int, seed: int, input: string): int[][] {
     const output: int[][] = [];
     for (let i = 0; i < n; i += 1) {
@@ -50,7 +68,10 @@ function workload(n: int, seed: int, input: string): int[][] {
         const completed = attempt(flag, base);
         const omitted = defaulted(flag);
         const text = selectedText(flag);
-        output.push([original, selected, completed, omitted, text.length]);
+        const present = nullableLength(flag, "nullable");
+        const absent = nullableLength(flag, undefined);
+        const callback = callbackResult(flag, i % 3 === 0, base);
+        output.push([original, selected, completed, omitted, text.length, present, absent, callback]);
     }
     return output;
 }

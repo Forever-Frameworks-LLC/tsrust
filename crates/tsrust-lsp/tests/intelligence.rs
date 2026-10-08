@@ -8031,6 +8031,14 @@ fn joined_generic_replacement_help_shows_consuming_access() {
 }
 
 #[test]
+fn replaced_generic_callback_help_preserves_structural_contract() {
+    let source="function first<T>(value:T,callback:ReadOnly<Function<int>>):int{return callback();}function second<T>(value:T,callback:ReadOnly<Function<int>>):int{return callback()+7;}function choose(flag:boolean):int{let action=first;if(flag){action=second;}return action<int>(1,():int=>3);}function main(){choose(true);}";
+    assert!(tsrust_lsp::diagnostics(source,"file:///callback-replacement.tsr").unwrap().is_empty());
+    let help=ask(source,"textDocument/signatureHelp","():int=>3",0);
+    assert!(help["signatures"][0]["parameters"][1]["label"].as_str().unwrap_or("").contains("ReadOnly<Function<int>>"),"{help}");
+}
+
+#[test]
 fn nested_lexical_generic_annotations_keep_source_help_and_definition() {
     let source = "function outer<T>(value:T):T{function echo(other:T):T{return other;}return echo(value);}function main(){const number=outer<int>(7);const text=outer<string>('owned');}";
     tsrust_compiler::check(source).unwrap();
