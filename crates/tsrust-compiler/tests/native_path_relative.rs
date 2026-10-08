@@ -77,7 +77,7 @@ fn relative_windows_drives_unc_and_case_are_explicit() {
 #[test]
 fn imported_relative_preserves_aliases_stored_calls_and_checked_cwd_errors() {
     let temp = support::TempDirectory::new();
-    let source = "import {relative as between} from 'std:path';import {strictEqual} from 'std:testing';function main(){const from='/a/b';const to='/a/c';const stored=between;strictEqual(between(from,to),'../c');strictEqual(stored(from,to),'../c');strictEqual(from,'/a/b');strictEqual(to,'/a/c');let caught=false;try{stored('a','b');}catch(error){caught=error.code==='path-relative';}strictEqual(caught,true);console.log('relative accepted');}";
+    let source = "import {relative as between} from 'std:path';import {strictEqual} from 'std:testing';function main(){const from='/a/b'.repeat(1);const to='/a/c'.repeat(1);const stored=between;strictEqual(between(from,to),'../c');strictEqual(stored(from,to),'../c');strictEqual(from,'/a/b');strictEqual(to,'/a/c');let caught=false;try{stored('a','b');}catch(error){caught=error.code==='path-relative';}strictEqual(caught,true);console.log('relative accepted');}";
     let formatted = tsrust_compiler::format(source).unwrap();
     assert_eq!(tsrust_compiler::format(&formatted).unwrap(), formatted);
     let file = temp.source(&formatted);
@@ -170,6 +170,42 @@ fn imported_relative_preserves_aliases_stored_calls_and_checked_cwd_errors() {
         assert_eq!(output.stdout, b"relative accepted\n");
     }
     let emitted=emitted.replace("std::env::current_dir()","Err::<std::path::PathBuf, _>(std::io::Error::new(std::io::ErrorKind::NotFound, \"cwd unavailable\"))");
+    let cleanup = emitted.replace("fn main()", "fn relative_main()")
+        + r#"
+use std::alloc::{GlobalAlloc,Layout,System};
+static LIVE:std::sync::atomic::AtomicIsize=std::sync::atomic::AtomicIsize::new(0);
+struct Counted;
+unsafe impl GlobalAlloc for Counted {
+ unsafe fn alloc(&self,layout:Layout)->*mut u8 {let pointer=unsafe{System.alloc(layout)};if !pointer.is_null(){LIVE.fetch_add(layout.size() as isize,std::sync::atomic::Ordering::Relaxed);}pointer}
+ unsafe fn dealloc(&self,pointer:*mut u8,layout:Layout){LIVE.fetch_sub(layout.size() as isize,std::sync::atomic::Ordering::Relaxed);unsafe{System.dealloc(pointer,layout)}}
+ unsafe fn realloc(&self,pointer:*mut u8,layout:Layout,size:usize)->*mut u8 {let result=unsafe{System.realloc(pointer,layout,size)};if !result.is_null(){LIVE.fetch_add(size as isize-layout.size() as isize,std::sync::atomic::Ordering::Relaxed);}result}
+}
+#[global_allocator]static ALLOCATOR:Counted=Counted;
+fn main(){relative_main();let before=LIVE.load(std::sync::atomic::Ordering::Relaxed);for _ in 0..20{assert!(tsr_result_function0().is_ok());assert_eq!(LIVE.load(std::sync::atomic::Ordering::Relaxed),before,"relative success/error values must drop");}}
+"#;
+    let rust = temp.0.join("relative-cleanup.rs");
+    let binary = temp.0.join("relative-cleanup-native");
+    std::fs::write(&rust, cleanup).unwrap();
+    let output = support::run(
+        support::rustc()
+            .arg("--edition=2024")
+            .arg(&rust)
+            .arg("-o")
+            .arg(&binary),
+        30,
+    );
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let output = support::run(&mut std::process::Command::new(binary), 10);
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(output.stdout, b"relative accepted\n".repeat(21));
     let rust = temp.0.join("relative.rs");
     let binary = temp.0.join("relative-native");
     std::fs::write(&rust, emitted).unwrap();
