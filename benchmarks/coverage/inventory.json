@@ -12966,7 +12966,8 @@
         "./milestones/173-nested-function-signatures.md",
         "./milestones/callable-replacement-family.md",
         "./nested-functions.md",
-        "./milestones/named-declaration-family.md"
+        "./milestones/named-declaration-family.md",
+        "./milestones/resumable-callable-summaries.md"
       ],
       "workloads": [
         "nested_function_defaults",
@@ -13017,7 +13018,8 @@
       "comparison": "paired group",
       "evidence": [
         "./milestones/170-nested-function-foundation.md",
-        "./milestones/named-declaration-family.md"
+        "./milestones/named-declaration-family.md",
+        "./milestones/resumable-callable-summaries.md"
       ],
       "workloads": [
         "nested_function_declarations"
@@ -13066,7 +13068,8 @@
         "./milestones/173-nested-function-signatures.md",
         "./milestones/callable-replacement-family.md",
         "./nested-functions.md",
-        "./milestones/named-declaration-family.md"
+        "./milestones/named-declaration-family.md",
+        "./milestones/resumable-callable-summaries.md"
       ],
       "workloads": [
         "generic_function_contexts",
@@ -13129,7 +13132,8 @@
         "./milestones/173-nested-function-signatures.md",
         "./milestones/callable-replacement-family.md",
         "./nested-functions.md",
-        "./milestones/named-declaration-family.md"
+        "./milestones/named-declaration-family.md",
+        "./milestones/resumable-callable-summaries.md"
       ],
       "workloads": [
         "nested_function_results",
@@ -13190,7 +13194,8 @@
         "./milestones/171-nested-function-captures.md",
         "./nested-functions.md",
         "./milestones/172-nested-function-owned-escape.md",
-        "./milestones/named-declaration-family.md"
+        "./milestones/named-declaration-family.md",
+        "./milestones/resumable-callable-summaries.md"
       ],
       "workloads": [
         "nested_function_captures",
@@ -13209,7 +13214,8 @@
       "comparison": "paired group",
       "evidence": [
         "./milestones/170-nested-function-foundation.md",
-        "./milestones/named-declaration-family.md"
+        "./milestones/named-declaration-family.md",
+        "./milestones/resumable-callable-summaries.md"
       ],
       "workloads": [
         "nested_function_declarations"
@@ -13344,7 +13350,8 @@
       "evidence": [
         "./milestones/173-scoped-callable-records.md",
         "./callable-fields.md",
-        "./milestones/named-declaration-family.md"
+        "./milestones/named-declaration-family.md",
+        "./milestones/resumable-callable-summaries.md"
       ],
       "workloads": [
         "scoped_callable_records"
