@@ -205,7 +205,7 @@ outer storage. Moves between named arrays propagate a common element carrier
 back through their storage dependencies; subsequent insertion can widen that
 carrier without generating incompatible native types.
 
-Twenty-seven focused composition tests cover native execution after outer-scope
+Twenty-nine focused composition tests cover native execution after outer-scope
 assignment, insertion after a move, both branch insertion paths, and invocation of
 removed records after their source array widens. Splice results participate in the
 same storage dependency plan as moved arrays. Pop and shift results now update their
@@ -265,7 +265,15 @@ The composition, scoped-record, field-move and array-field batch passes 99 tests
 Both focused array composition editor witnesses pass, including parameter help and
 hover through `box.items[0].run`. The expanded independent Node reference passes.
 
-Remaining B5 work includes mixed field/index containers and broader nested method composition,
+Mixed storage paths with a record-field prefix followed by array indices now retain
+that field prefix when widening callback layouts and attaching insertion captures.
+The native witness combines push, nullable removal and indexed replacement through
+`box.groups[0]`. A paired rejection protects an owner introduced only by insertion.
+The composition, array-field and field-move batch passes 59 tests, and the expanded
+Node reference passes. This does not establish a record field accessed after an
+array index, such as `boxes[0].items`, or arbitrary alternating storage paths.
+
+Remaining B5 work includes alternating index/field containers and broader nested method composition,
 nullable replacement across multiple origins,
 precise element capture release, Map/Set
 composition and nullable replacement. Complete editor, guide, disposal and matched

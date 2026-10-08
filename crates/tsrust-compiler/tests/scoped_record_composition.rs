@@ -1,6 +1,31 @@
 mod support;
 
 #[test]
+fn mixed_path_insertions_keep_new_capture_conflicts() {
+    let source = "type Holder={run:ReadOnly<Function<int>>;};type Box={groups:Holder[][];};function main(){const first=[3];const second=[7];const box:Box={groups:[[{run:():int=>first[0]}]]};box.groups[0].push({run:():int=>second[0]});second[0]=9;console.log(box.groups[0][1].run());}";
+    let error = tsrust_compiler::check(source).err().expect("mixed path insertion retains its owner");
+    assert_eq!(error.code, "capture-conflict", "{}", error.message);
+}
+
+#[test]
+fn mixed_field_index_paths_preserve_callback_record_arrays() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        type Box = { groups: Holder[][]; };
+        function main() {
+            const values = [3, 7, 11];
+            const box: Box = { groups: [[{ run: (): int => values[0] }]] };
+            box.groups[0].push({ run: (): int => values[1] });
+            const removed = box.groups[0].pop();
+            box.groups[0][0] = { run: (): int => values[2] };
+            if (removed !== undefined) strictEqual(removed.run(), 7);
+            strictEqual(box.groups[0][0].run(), 11);
+        }
+    "#);
+}
+
+#[test]
 fn record_field_removals_keep_capture_conflicts_after_record_scope() {
     let source = "type Holder={run:ReadOnly<Function<int>>;};type Box={items:Holder[];};function main(){const first=[3];const second=[7];let removed:Holder|undefined;{const box:Box={items:[{run:():int=>first[0]}]};box.items.push({run:():int=>second[0]});removed=box.items.pop();}second[0]=9;if(removed!==undefined)console.log(removed.run());}";
     let error = tsrust_compiler::check(source).err().expect("removed field payload retains its capture");

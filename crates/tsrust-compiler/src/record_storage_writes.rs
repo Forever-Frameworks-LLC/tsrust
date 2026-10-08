@@ -22,7 +22,7 @@ pub(super) fn collect(body: &[Stmt]) -> Vec<Write<'_>> {
     fn assignment<'a>(target: &Expr, value: &'a Expr) -> Option<Write<'a>> {
         if let ExprKind::Index(base, _) = &target.kind
             && let Some(binding) = Analyzer::root_binding(base)
-            && let Some(path) = Analyzer::direct_fields(base).map(|(_, path)| path).or_else(|| Analyzer::indexed_array_root(base).map(|_| Vec::new()))
+            && let Some((_, path)) = Analyzer::scoped_array_storage_path(base)
             && let Some(mut write) = selected(binding, path, value)
         { write.array_element = true; return Some(write); }
         let binding=Analyzer::root_binding(target)?;
@@ -70,7 +70,7 @@ pub(super) fn collect(body: &[Stmt]) -> Vec<Write<'_>> {
                     if matches!(expr.target,Some(crate::syntax::CallTarget::ArrayPush | crate::syntax::CallTarget::ArrayUnshift | crate::syntax::CallTarget::ArraySplice))
                         && let ExprKind::Field(base,_)=&callee.kind
                         && let Some(binding)=Analyzer::root_binding(base)
-                        && let Some(path)=Analyzer::direct_fields(base).map(|(_,path)|path).or_else(||Analyzer::indexed_array_root(base).map(|_|Vec::new()))
+                        && let Some((_,path))=Analyzer::scoped_array_storage_path(base)
                     {
                         for value in args {
                             if let Some(mut write)=selected(binding,path.clone(),value){write.array_element=true;result.push(write);}

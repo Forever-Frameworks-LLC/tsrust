@@ -31,6 +31,12 @@ function storageComposition(flag: boolean) {
     strictEqual(box.items[1].run(), 7);
     const boxLast = box.items.pop();
     if (boxLast !== undefined) strictEqual(boxLast.run(), 7);
+    const nestedBox: { groups: Holder[][] } = { groups: [[{ run: () => values[0] }]] };
+    nestedBox.groups[0].push({ run: () => values[1] });
+    const nestedBoxLast = nestedBox.groups[0].pop();
+    nestedBox.groups[0][0] = { run: () => values[2] };
+    if (nestedBoxLast !== undefined) strictEqual(nestedBoxLast.run(), 7);
+    strictEqual(nestedBox.groups[0][0].run(), 11);
     const groups: Holder[][] = [[{ run: () => values[0] }], [{ run: () => values[1] }]];
     strictEqual(groups[0][0].run(), 3);
     strictEqual(groups[1][0].run(), 7);

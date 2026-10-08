@@ -3,9 +3,13 @@ use super::*;
 
 impl Analyzer {
     pub(super) fn indexed_array_root(value: &Expr) -> Option<usize> {
+        Self::scoped_array_storage_path(value).map(|(binding, _)| binding)
+    }
+    pub(super) fn scoped_array_storage_path(value: &Expr) -> Option<(usize, Vec<String>)> {
         let mut value = value;
         while let ExprKind::Index(base, _) = &value.kind { value = base; }
-        matches!(value.kind, ExprKind::Name(_)).then_some(value.binding).flatten()
+        let (_, fields) = Self::direct_fields(value)?;
+        Some((Self::root_binding(value)?, fields))
     }
     pub(super) fn scoped_record_nullable_contract(&self, actual: Type, expected: Type) -> bool {
         let (Some(actual_id), Some(expected_id)) = (actual.union(), expected.union()) else { return false; };
@@ -25,8 +29,7 @@ impl Analyzer {
 
     #[inline(never)]
     pub(super) fn widen_scoped_array_storage(&mut self, context: &mut Context, base: &Expr, incoming: Type, span: Span) -> Result<(), Diagnostic> {
-        let Some(binding) = Self::root_binding(base) else { return Ok(()); };
-        let path = Self::direct_fields(base).map(|(_, path)| path).unwrap_or_default();
+        let Some((binding, path)) = Self::scoped_array_storage_path(base) else { return Ok(()); };
         let stored = self.record_field_type(context.bindings[binding].ty, &path).unwrap_or(context.bindings[binding].ty);
         let Type::Array(ArrayElement::Record(previous, depth)) = stored else { return Ok(()); };
         let incoming = match incoming {
