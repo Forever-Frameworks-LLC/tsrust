@@ -1,6 +1,44 @@
 mod support;
 
 #[test]
+fn map_refill_after_fallible_prefix_preserves_both_completion_paths() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function failIf(fail: boolean): int {
+            if (fail) throw 5;
+            return 1;
+        }
+        function scenario(fail: boolean): void {
+            const old = [3];
+            const current = [7];
+            const handlers = new Map<string, Holder>();
+            handlers.set("old", { run: (): int => old[0] });
+            let path = 0;
+            try {
+                path = failIf(fail);
+                handlers.clear();
+                handlers.set("new", { run: (): int => current[0] });
+            } catch (error) {
+                path = 2;
+                handlers.clear();
+                handlers.set("new", { run: (): int => current[0] });
+            }
+            old[0] = 9;
+            strictEqual(path, fail ? 2 : 1);
+            {
+                const entry = handlers.get("new");
+                if (entry !== undefined) strictEqual(entry.run(), 7);
+            }
+            handlers.clear();
+            current[0] = 11;
+            strictEqual(old[0] + current[0], 20);
+        }
+        function main(): void { scenario(false); scenario(true); }
+    "#);
+}
+
+#[test]
 fn map_clear_refill_survives_caught_failure() {
     let source = r#"
         import { strictEqual } from "std:testing";

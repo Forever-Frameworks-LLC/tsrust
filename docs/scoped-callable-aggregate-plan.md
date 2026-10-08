@@ -799,3 +799,14 @@ Untimed native and Node-after-tsc verification passes. Exact evidence is verifie
 in SQLite as `runtime/results/2026-10-08T17-03-09-859Z-verify.json` and the loose
 copy is removed. The manifest observation description now matches all thirteen
 scalars. Whole B5 acceptance and timing remain pending.
+
+General exception transport has a focused red witness:
+`map_refill_after_fallible_prefix_preserves_both_completion_paths` calls a
+fallible function before clear, renews/refills the Map on the normal path, and
+clears/refills the original Map on the caught path. Both paths release the old
+capture and preserve the new callback; the witness exercises both choices.
+Source analysis accepts the program, but generated Rust fails with E0502.
+Exact evidence is verified in SQLite as `tsrust-b5-fallible-prefix-red.log`.
+Do not hoist this clear across the call: the caught path must retain the original
+owner until its own clear executes. Next implementation must carry storage with
+completion outcomes and preserve point-sensitive availability on each exit.
