@@ -46,3 +46,11 @@ Normalization/root differential corpus has 1,710 paths per convention (3,420 pai
 All four benchmark registrations pass exact hashes, mutation guards, ABI checks and n=0,2,17 native/TypeScript results. isAbsolute observes each boolean through toString and includes that conversion cost. P3 untimed whole-run verification and timing remain pending.
 
 P2 evidence identities are worktree SQLite `stdlib-path-p2-*.log`; exact readback and loose log removal precede the acceptance commit.
+
+## P3 initial milestone review
+
+Whole compiler: 2,221 passes and exactly the two named baseline callable failures; 234 completed targets, no new failures. Whole editor: 341/341. Supplemented runtime tests retain the independent Node reference in `tests/fixtures/lexical-path/reference.ts`. Five-case untimed verification covers basename and all four new exports. Initial result-directory setup failure is preserved; the repaired record is `runtime/results/2026-10-08T00-53-21-791Z-verify.json`.
+
+Initial execution-only record: `runtime/results/2026-10-08T00-59-07-862Z.json`. Five workloads, native/Node-after-tsc, original 8 warmups, 31 samples, 3 processes (93 samples per engine/workload; 930 individual samples). Native/Node mean reciprocal-throughput ratios: basename 0.743, dirname 1.486, extname 0.707, isAbsolute 4.051, normalize 0.714. No historical normalized path rows exist in the canonical main SQLite store, so these are engine comparisons, not historical regression claims. No allocation profile was measured.
+
+Review identifies avoidable intermediate allocation in extname and normalization. Preserve these originals and supplement only affected checks and measurements after optimization. SQLite uses the existing `analytics.derive` API for accepted execution-only rows, with profilesAccepted=false; no nonexistent allocation/profile acceptance is fabricated to satisfy the older combined CLI ingestion contract.

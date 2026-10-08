@@ -22,6 +22,7 @@ for(const id of lexicalPathIds) test(id+' preserves source, ABI and independent 
         assert.equal(createHash('sha256').update(text).digest('hex'),hash);
         assertLexicalPathSource(text,w);
         assert.throws(()=>assertLexicalPathSource(text.replace('i = i + 1','i = i + 2'),w));
+        assert.throws(()=>assertLexicalPathSource(text.replace('std:path','std:fs').replace('.posix.','.win32.'),w));
     }
     assertABI(execFileSync(compiler,['emit',path.join(here,w.source)],{encoding:'utf8'}),w,{source});
     const js=ts.transpileModule(counterpart,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;

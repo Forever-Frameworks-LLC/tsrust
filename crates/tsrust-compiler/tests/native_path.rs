@@ -146,8 +146,8 @@ fn directory_and_extension_match_independent_node_reference() {
         }
     }
     let json = paths.iter().map(|p| tsrust_compiler::json_string(p)).collect::<Vec<_>>().join(",");
-    let script = format!("const p=require('node:path');for(const w of [false,true])for(const s of [{json}])for(const f of ['dirname','extname'])console.log(Buffer.from((w?p.win32:p.posix)[f](s)).toString('hex')); ");
-    let output = std::process::Command::new("node").args(["-e", &script]).output().unwrap();
+    let reference=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/lexical-path/reference.ts");
+    let output = std::process::Command::new("node").arg(reference).args(["parent-extension", &format!("[{json}]")]).output().unwrap();
     assert!(output.status.success());
     let expected = String::from_utf8(output.stdout).unwrap();
     let mut lines = expected.lines();
@@ -190,8 +190,8 @@ fn normalize_and_absolute_match_both_node_conventions() {
         }
     }
     let json=paths.iter().map(|p|tsrust_compiler::json_string(p)).collect::<Vec<_>>().join(",");
-    let script=format!("const p=require('node:path');for(const w of [false,true])for(const s of [{json}]){{const m=w?p.win32:p.posix;const n=m.normalize(s);console.log(JSON.stringify([n,m.isAbsolute(s),m.normalize(n)]));}}");
-    let output=std::process::Command::new("node").args(["-e",&script]).output().unwrap();assert!(output.status.success());
+    let reference=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/lexical-path/reference.ts");
+    let output=std::process::Command::new("node").arg(reference).args(["absolute-normalize",&format!("[{json}]")]).output().unwrap();assert!(output.status.success());
     let text=String::from_utf8(output.stdout).unwrap();let mut lines=text.lines();
     for windows in [false,true] {for path in &paths {
         let normalized=normalize(path,windows);
