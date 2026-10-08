@@ -549,3 +549,23 @@ The returned string transfers out of the callback. The first callback borrows th
 array only for the scoped call. The retained callback owns its string so it remains
 valid after `retain` returns. A second invocation of either single-use callback is
 rejected. These checks do not insert an implicit clone.
+
+## Replacing capture-free generic values
+
+A mutable local may receive a fresh reference to another capture-free generic declaration. The replacement keeps its own behavior. Calls validate declarations reachable on that path; a saved value keeps the earlier declaration. Assignment does not implicitly clone an owned callable: initialize the mutable local again after transferring it into a saved local.
+
+```tsrust
+function first<T>(value: T): T { return value; }
+function second<T>(left: T, right: T): T { return right; }
+function choose(flag: boolean): int {
+    let action = first;
+    const saved = action;
+    action = first;
+    if (flag) { action = second; }
+    if (flag) { return saved<int>(3) + action<int>(4, 7); }
+    return saved<int>(3) + action<int>(4);
+}
+// choose(false) is 7; choose(true) is 10.
+```
+
+A call reachable through several declarations must have compatible prepared arguments and results. Each declaration receives its own checked body and error transport. Borrowing the callee prevents replacement during argument evaluation. Capturing generic replacements and point-sensitive mutable factory state remain incomplete.

@@ -19,8 +19,8 @@ impl Analyzer {
         Ok((method, result))
     }
 
-    /// A fresh reference to the same capture-free declaration has no distinct
-    /// payload to preserve. Reuse its storage type without changing value moves.
+    /// Fresh capture-free generic declarations retain independent construction
+    /// origins while sharing the binding's registered storage family.
     #[inline(never)]
     pub(super) fn fresh_generic_replacement_type(
         &self, expected: Type, actual: Type, value: &mut Expr,
@@ -30,8 +30,7 @@ impl Analyzer {
         let (Some(previous_source), Some(next_source)) = (
             self.deferred_generic_values.get(&previous), self.deferred_generic_values.get(&next),
         ) else { return actual; };
-        if previous_source.declaration != next_source.declaration
-            || !previous_source.identities.is_empty() || !next_source.identities.is_empty()
+        if !previous_source.identities.is_empty() || !next_source.identities.is_empty()
             || !self.closures[previous].captures.is_empty() || !self.closures[next].captures.is_empty()
         { return actual; }
         value.ty = Some(expected);
@@ -174,14 +173,7 @@ impl Analyzer {
         let declaration = self.deferred_generic_values[&origin].declaration.clone();
         let reachable_origins = if !self.effects_only && !self.discovering_results && !context.template
             && let Some(reachable) = self.generic_functions.reachable_declarations(&context.function_name, span, callee.span)
-            && let Some(template) = self.generic_functions.template(&declaration)
         {
-            if !reachable.contains(&template.name.span) {
-                let mut error = Diagnostic::new("callable-origin", "The stored callable declaration is not reachable on this invocation path.", span)
-                    .related(template.name.span, "Stored callable declared here.");
-                for &declaration in reachable { error = error.related(declaration, "Reachable callable declared here."); }
-                return Err(error);
-            }
             self.polymorphic_storage.reachable_origins(origin, reachable, |member| {
                 self.deferred_generic_values.get(&member)
                     .and_then(|source| self.generic_functions.template(&source.declaration))
@@ -197,7 +189,10 @@ impl Analyzer {
                     .map(|template| template.name.span)
             }, span)?
         } else { vec![origin] };
-        let prepared = self.prepare_deferred_generic_body(context, origin, args.clone(), expected, span)?;
+        let preparation_origin=if reachable_origins.contains(&origin) {origin} else {
+            *reachable_origins.first().ok_or_else(||Diagnostic::new("callable-layout","Generic invocation has no reachable environment.",span))?
+        };
+        let prepared = self.prepare_deferred_generic_body(context, preparation_origin, args.clone(), expected, span)?;
         let function = prepared.function;
         let contracts = prepared.contracts;
         *args = prepared.arguments;
@@ -232,11 +227,11 @@ impl Analyzer {
         // Callable arguments can select a further concrete body specialization.
         // Check that body before retaining its invocation method.
         self.function(function)?;
-        let method = self.materialize_deferred_method(origin, function, result, args, &accesses, method_invocation, span)?;
-        if !self.effects_only && !self.discovering_results && !context.template && reachable_origins.len() > 1 {
-            callee.generic_invocation = Some(self.materialize_selected_generic_methods(origin, function, result, args, &accesses, method_invocation, &reachable_origins, span)?);
+        let method = self.materialize_deferred_method(preparation_origin, function, result, args, &accesses, method_invocation, span)?;
+        if !self.effects_only && !self.discovering_results && !context.template && (reachable_origins.len() > 1 || preparation_origin!=origin) {
+            callee.generic_invocation = Some(self.materialize_selected_generic_methods(context, preparation_origin, function, result, args, &accesses, method_invocation, &reachable_origins, span)?);
         }
-        self.retain_generic_invocation(context, origin, method, result, span)
+        self.retain_generic_invocation(context, preparation_origin, method, result, span)
     }
 }
 

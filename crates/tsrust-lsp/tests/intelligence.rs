@@ -8012,6 +8012,17 @@ fn fresh_generic_replacement_keeps_checked_editor_types_and_capture_diagnostics(
 }
 
 #[test]
+fn distinct_generic_replacement_uses_reachable_parameter_help() {
+    let source=tsrust_compiler::format("function first<T>(left:T):T{return left;}function second<T>(right:T):T{return right;}function main(){let action=first;action=second;const result=action<int>(7);console.log(result);}").unwrap();
+    assert_eq!(tsrust_compiler::format(&source).unwrap(),source);
+    assert!(tsrust_lsp::diagnostics(&source,"file:///replacement.tsr").unwrap().is_empty());
+    let help=ask(&source,"textDocument/signatureHelp","7)",0);
+    assert!(help["signatures"][0]["parameters"][0]["label"].as_str().unwrap_or("").contains("right: int"),"{help}");
+    let hover=ask(&source,"textDocument/hover","result =",0);
+    assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("int"),"{hover}");
+}
+
+#[test]
 fn nested_lexical_generic_annotations_keep_source_help_and_definition() {
     let source = "function outer<T>(value:T):T{function echo(other:T):T{return other;}return echo(value);}function main(){const number=outer<int>(7);const text=outer<string>('owned');}";
     tsrust_compiler::check(source).unwrap();

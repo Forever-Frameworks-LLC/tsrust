@@ -186,6 +186,28 @@ fn generic_callable_replacement_keeps_saved_values_and_runtime_selection() {
 }
 
 #[test]
+fn distinct_generic_replacements_dispatch_independent_bodies_and_failures() {
+    let source=r#"
+        function first<T>(value:T):int { return 3; }
+        function second<T>(value:T):int { return 7; }
+        function failing<T>(value:T):int { throw "selected failure"; }
+        function select(flag:boolean):int {
+            let action=first;
+            if(flag){action=second;}
+            return action<int>(1);
+        }
+        function attempt(flag:boolean):int {
+            let action=first;
+            if(flag){action=failing;}
+            try { return action<int>(1); }
+            catch(error){ if(error==="selected failure"){return 11;} return 0; }
+        }
+        function main(){ console.log(select(false),select(true),attempt(false),attempt(true)); }
+    "#;
+    support::execute(source,"3 7 3 11\n",None);
+}
+
+#[test]
 fn fresh_same_declaration_replacement_reuses_capture_free_generic_storage() {
     let source = r#"
         function identity<T>(value: T): T { return value; }

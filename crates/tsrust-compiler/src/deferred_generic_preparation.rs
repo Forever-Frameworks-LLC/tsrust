@@ -10,6 +10,20 @@ pub(super) struct Prepared {
 }
 
 impl Analyzer {
+    /// Prepare an alternative from its own declaration after source arguments
+    /// have been accessed. This must not replay their ownership effects.
+    #[inline(never)]
+    pub(super) fn prepare_deferred_alternative_method(
+        &mut self, context:&mut Context, origin:usize, arguments:Vec<Expr>,
+        expected:Option<Type>, span:Span,
+    )->Result<crate::polymorphic_invocation_plans::Pair,Diagnostic> {
+        let prepared=self.prepare_deferred_generic_body(context,origin,arguments,expected,span)?;
+        let (function,result)=self.resolved_call(context,prepared.function,&prepared.arguments,span)?;
+        self.function(function)?;
+        let method=self.materialize_deferred_method(origin,function,result,&prepared.arguments,&prepared.accesses,prepared.invocation,span)?;
+        Ok(crate::polymorphic_invocation_plans::Pair{origin,method})
+    }
+
     #[inline(never)]
     pub(super) fn prepare_deferred_generic_body(
         &mut self, context: &Context, origin: usize, arguments: Vec<Expr>,
@@ -74,7 +88,9 @@ mod tests {
         assert_eq!(one.arguments[0].ty, argument.ty);
         assert_eq!(two.arguments[0].ty, argument.ty);
         let first_method = analyzer.materialize_deferred_method(origin(first), one.function, Type::Int, &one.arguments, &one.accesses, one.invocation, span).unwrap();
-        let second_method = analyzer.materialize_deferred_method(origin(second), two.function, Type::Int, &two.arguments, &two.accesses, two.invocation, span).unwrap();
+        let second_pair = analyzer.prepare_deferred_alternative_method(&mut context,origin(second),vec![argument.clone()],None,span).unwrap();
+        let second_method = second_pair.method;
+        assert_eq!(second_pair.origin,origin(second));
         let plan = crate::polymorphic_invocation_plans::Plan::checked([
             crate::polymorphic_invocation_plans::Pair { origin: origin(first), method: first_method },
             crate::polymorphic_invocation_plans::Pair { origin: origin(second), method: second_method },
@@ -83,6 +99,10 @@ mod tests {
         assert!(second_body.body.iter().any(|statement| matches!(&statement.kind,
             StmtKind::Return(Some(value)) if matches!(&value.kind, ExprKind::Integer(number) if number == "10"))),
             "the second environment must receive its own behavior, not the first body");
+        let second_name=second_body.name.clone();
+        let selected=analyzer.materialize_selected_generic_methods(&mut context,origin(first),one.function,Type::Int,&one.arguments,&one.accesses,one.invocation,&[origin(first),origin(second)],span).unwrap();
+        let selected=analyzer.polymorphic_invocations.checked(selected,&analyzer.closures,span).unwrap();
+        assert_eq!(selected.cases[1].body.function.name,second_name);
         let error = analyzer.prepare_deferred_generic_body(&context, origin(pair), vec![argument], None, span).err().expect("reachable wrong arity must reject");
         assert_eq!(error.code, "arity");
         assert_eq!(error.span, span);

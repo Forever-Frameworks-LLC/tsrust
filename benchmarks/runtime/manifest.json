@@ -20068,6 +20068,33 @@
       "notes": "Byte-order identity can constant-fold; no latency or measured performance claim. Timing deferred to a meaningful OS family milestone.",
       "sourceSha256": "39e87cb189e8da68a6c778ebcd7e32dbc1d391a6867c6192274f9dec0483c327",
       "counterpartSha256": "14780a18b763f7ba97dc974fd383e4d204d0705e475644c84790e46be4d2a2a5"
+    },
+    {
+      "id": "generic_callable_replacement",
+      "family": "generic-callable-replacement",
+      "source": "workloads/generic_callable_replacement.tsr",
+      "counterpart": "workloads/generic_callable_replacement.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One complete generic callable replacement scenario",
+      "inputText": "replacement",
+      "category": "callbacks",
+      "measurementStatus": "pending-language-milestone",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": true,
+      "measured": false,
+      "notes": "Fresh capture-free declaration replacement, saved value and path-selected mixed failure transport. Five cases verified untimed; broader callable family remains open.",
+      "specification": "Three scalar observations per iteration; deterministic alternating selection and caught failures.",
+      "sourceSha256": "3ad4d93bc76e6adcb5336890b6fd9b8d1478ef69f6502ec291a1d70ed1127e62",
+      "counterpartSha256": "aca23ed32051468010158677bb047b8e5f9676cbe99e638e3b172034aba87326"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

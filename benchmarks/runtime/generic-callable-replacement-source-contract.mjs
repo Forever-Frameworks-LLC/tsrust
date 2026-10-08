@@ -1,0 +1,9 @@
+import {containsCodeSnippet} from './source-contract-tokens.mjs';
+import {createHash} from 'node:crypto';
+const required=['return base + 7;','throw "selected failure";','if (flag) { action = failing; }','if (flag) { action = second; }','const saved = action;','action = first;','const original = saved<int>(base, base);','const selected = action<int>(base, base);','const completed = attempt(flag, base);','output.push([original, selected, completed]);','return output;'];
+export function assertGenericReplacementSource(source,row,kind){
+ if(!['native','typescript'].includes(kind)||row.id!=='generic_callable_replacement'||row.family!=='generic-callable-replacement')throw Error('Generic replacement family');
+ if(createHash('sha256').update(source).digest('hex')!==(kind==='native'?row.sourceSha256:row.counterpartSha256))throw Error('Generic replacement fingerprint');
+ if(row.iterations!==2048||row.operationsPerIteration!==1||row.operationUnit!=='One complete generic callable replacement scenario'||row.resultEncoding!=='array-shape-scalar-v1')throw Error('Generic replacement denominator');
+ for(const snippet of required)if(!containsCodeSnippet(source,snippet))throw Error('Generic replacement scenario: '+snippet);
+}
