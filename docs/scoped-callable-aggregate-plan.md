@@ -1163,3 +1163,39 @@ borrow until scope exit. Exact original evidence is verified in SQLite as
 initialization tracking must extend beyond completion storage while isolating
 callables and sibling branches. Source reads after possible transfer must remain
 rejected.
+
+
+Native availability now has its own scoped stack within the dedicated module.
+It remains active when no completion-storage payload exists. Callable emission
+starts fresh state and restores its caller's emission state on exit; sibling
+branches and completion regions save/restore their own boundaries. Completion
+storage attaches its initialized entry owners to this stack. Returning balanced
+storage from a try statement publishes a new native initialization boundary.
+Source usability and transfer diagnostics are unchanged.
+
+The outside-replacement red witness now passes, including nested blocks,
+record-field storage with an independent marker, another transfer and subsequent
+restoration. Exact disposal is verified at optimization levels 0 and 3 on both
+branch choices. All 73 composition tests, 42 scoped callable-record tests, four
+fallible record-callback tests, eight depth canaries, 15 exception-contract tests
+and the focused editor witness pass. The editor accepts replacement and still
+rejects reads between a possible transfer and replacement. Original repaired
+checks are verified byte for byte in SQLite as
+`tsrust-b5-outside-replacement-repair.log`,
+`tsrust-b5-outside-replacement-variants.log` and
+`tsrust-b5-outside-replacement-batch.log`; loose copies are removed.
+
+This closes the verified outside-replacement case, not B5. Completion storage
+still needs loops, return/break/continue, nested try and finally without catch.
+Precise per-entry capture release, remaining callable compositions and record
+Set key support remain pending. No timing or whole family acceptance occurred.
+
+
+Matched outside-replacement coverage now retains twenty-seven observations. The
+new scenario transfers on even values, retains on odd values, explicitly replaces
+outside exception handling, then mutates the released capture. Independent
+arithmetic expects `value + 60 + (even ? 0 : 1)`. Guards and rehashed deletion
+controls pass. Native and Node-after-tsc verification passes untimed, preserved
+exactly in SQLite as `runtime/results/2026-10-08T18-30-50-740Z-verify.json` and
+`tsrust-b5-outside-replacement-benchmark.log`; loose copies are removed. Earlier
+observations remain unchanged. No timing samples were collected.

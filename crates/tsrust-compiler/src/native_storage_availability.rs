@@ -22,3 +22,22 @@ impl State {
         format!("({},)", values.iter().map(|value| if self.available(&value.place,value.transferred) {value.place.as_str()} else {value.empty.as_str()}).collect::<Vec<_>>().join(","))
     }
 }
+
+/// Emission state follows callable and branch boundaries even without exceptions.
+#[derive(Default)]
+pub(super) struct Stack(std::cell::RefCell<State>);
+pub(crate) struct Scope<'a> { stack: &'a Stack, previous: Option<State> }
+impl Stack {
+    pub fn scope(&self) -> Scope<'_> {
+        Scope { stack: self, previous: Some(self.0.borrow().clone()) }
+    }
+    pub fn callable_boundary(&self) -> Scope<'_> {
+        Scope { stack: self, previous: Some(std::mem::take(&mut *self.0.borrow_mut())) }
+    }
+    pub fn renew(&self, places: &[String], boundary: usize) { self.0.borrow_mut().renew(places,boundary); }
+    pub fn available(&self, place: &str, transferred: Option<Span>) -> bool { self.0.borrow().available(place,transferred) }
+    pub fn render(&self, values: &[Value]) -> String { self.0.borrow().render(values) }
+}
+impl Drop for Scope<'_> {
+    fn drop(&mut self) { *self.stack.0.borrow_mut()=self.previous.take().expect("native availability scope"); }
+}

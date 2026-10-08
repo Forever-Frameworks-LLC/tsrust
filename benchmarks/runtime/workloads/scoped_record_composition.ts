@@ -340,8 +340,26 @@ function workload(n: int, seed: int, input: string): int[][] {
         survivorOld[0] = value + 51;
         normalSurvivor += survivorOld[0];
 
+        let outsideRestored = 0;
+        {
+            const outsideOld = [value];
+            let outsideMap = new Map<string, Holder>();
+            outsideMap.set("old", { run: (): number => outsideOld[0] });
+            let outsideSize = -1;
+            if (value % 2 === 0) {
+                outsideMap.clear();
+                const outsideMoved = outsideMap;
+                outsideSize = outsideMoved.size;
+            } else {
+                outsideSize = outsideMap.size;
+            }
+            outsideMap = new Map<string, Holder>();
+            outsideOld[0] = value + 60;
+            outsideRestored = outsideSize + outsideMap.size + outsideOld[0];
+        }
+
         base[0] = 0;
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored]);
         i += 1;
     }
 

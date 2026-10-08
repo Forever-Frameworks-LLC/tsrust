@@ -8564,6 +8564,13 @@ fn transferred_error_storage_requires_explicit_restoration() {
     assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "transferred"), "{diagnostics}");
     let conditional = tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function scenario(branch:boolean):void{const old=[3];let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});try{if(branch){handlers.clear();const moved=handlers;}else{}throw 7;}catch(error){handlers=new Map<string,Holder>();}old[0]=9;console.log(handlers.size);}function main():void{scenario(true);scenario(false);}").unwrap();
     assert!(tsrust_lsp::diagnostics(&conditional, "file:///conditional.tsr").unwrap().is_empty());
+    let outside = tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function scenario(branch:boolean):void{const old=[3];let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});if(branch){handlers.clear();const moved=handlers;}else{}handlers=new Map<string,Holder>();old[0]=9;console.log(handlers.size);}function main():void{scenario(true);scenario(false);}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&outside, "file:///outside.tsr").unwrap().is_empty());
+    let mut unavailable_outside = outside.clone();
+    let restoration = outside.rfind("handlers = new Map").unwrap();
+    unavailable_outside.insert_str(restoration,"console.log(handlers.size); ");
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&unavailable_outside, "file:///outside.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "transferred"), "{diagnostics}");
     let unavailable_conditional = conditional.replace("throw 7;", "console.log(handlers.size); throw 7;");
     let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&unavailable_conditional, "file:///conditional.tsr").unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "transferred"), "{diagnostics}");

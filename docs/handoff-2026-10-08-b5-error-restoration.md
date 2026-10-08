@@ -1,7 +1,7 @@
 # B5 error restoration checkpoint
 
 B5 scoped aggregate composition remains incomplete. Gate 181 is the last accepted
-numbered gate. This checkpoint extends the work after `6d747f3`; it is not family
+numbered gate. This checkpoint extends the work after `dbd84fd`; it is not family
 acceptance. The active goal remains the full compiler/editor completion plan.
 
 Read `AGENTS.md`, `docs/development-workflow.md`,
@@ -27,14 +27,14 @@ Native witnesses cover explicit throw, a later fallible call, a later bounds
 failure, record-field storage and an independent sibling field. Disposal tests
 at optimization levels 0 and 3 prove exactly one callback drop on both early and
 late failure paths. The editor test verifies restoration and rejects reads before
-restoration. All 72 composition tests, eight normal-stack depth canaries and 15
+restoration. All 73 composition tests, eight normal-stack depth canaries and 15
 exception-contract tests pass. The focused editor test passes.
 
-The matched workload now retains 26 observations. Source guards and rehashed
+The matched workload now retains 27 observations. Source guards and rehashed
 mutation controls pass. Native and Node-after-tsc verification passes untimed.
 The independent oracle includes `value + 29` and `value + 30` for early and late
 statement restoration, plus `value + 39` and `value + 40` for expression failures. SQLite preserves exact failures and repaired records; see the plan
-for keys, including `runtime/results/2026-10-08T18-22-16-811Z-verify.json`.
+for keys, including `runtime/results/2026-10-08T18-30-50-740Z-verify.json`.
 Loose copies are removed. Project formatting changes no files on the second pass.
 No full family regression or timing run was performed.
 
@@ -51,23 +51,31 @@ Expanded witnesses cover nested blocks, record-field siblings, later transfer an
 subsequent restoration. Direct annotated record field binding removes a named
 partially moved temporary that otherwise kept the old callback borrow alive.
 Another 42 scoped callable-record tests and four fallible record-callback tests
-pass after that change. The 26 matched observations include conditional storage
+pass after that change. The 27 matched observations include conditional storage
 survivors on normal and error paths. All original failed attempts and repaired
 checks are preserved in SQLite; see the current plan for evidence keys.
 
-Native initialization tracking currently belongs to completion storage regions.
-Next add a red witness for replacement after conditional transfer outside such a
-region. Do not assume that case has been verified. Extend tracking without leaking
-state across callable boundaries, sibling branches or nested exception regions.
+Native initialization now has its own scoped stack and works outside completion
+storage regions. Callable, branch and region boundaries save/restore state.
+Outside replacement passes exact disposal checks for both branches, nested blocks,
+record-field siblings and later transfer/restoration. Source reads before
+replacement still receive transfer diagnostics. The matched workload adds one
+independent outside-replacement observation. Evidence is preserved in SQLite as
+`tsrust-b5-outside-replacement-batch.log` and the latest verify record.
+
+Next address finally without catch, then loop and other control exits, with
+focused native disposal and source witnesses. Nested exception transport and
+remaining B5 composition still need implementation; do not infer their support
+from the now-passing replacement cases.
 
 ## Next implementation
 
 1. Audit rewritten and synthetic expression spans as new compositions land.
    Exact spans now cover the verified call, bounds and arithmetic failure cases.
-2. Verify and repair conditional transfer followed by replacement outside
-   completion storage regions. Keep exact disposal assertions for both branches
-   and source transfer diagnostics. Extend native initialization tracking with
-   explicit callable and lexical boundaries.
+2. Add a red witness for non-leading Map renewal in try/finally without catch.
+   Verify normal completion, failure cleanup, pending-error preservation/override
+   and exact disposal. Extend completion storage without restoring source reads
+   or dropping surviving owners before their intended cleanup boundary.
 3. Extend completion storage to loops, return, break, continue, nested try and
    finally without catch, with checked control-flow evidence.
 4. Finish precise element and Map-entry capture release and the remaining callable
@@ -96,8 +104,8 @@ before a longer handoff; do not create archives or snapshots.
 Continue Tsrust B5 from docs/handoff-2026-10-08-b5-error-restoration.md. Read
 AGENTS.md, docs/development-workflow.md and docs/scoped-callable-aggregate-plan.md
 first. Error restoration after prior-statement and within-expression transfers is verified;
-conditional survivor disposal within completion storage regions now passes;
-conditional replacement outside those regions remains next. Keep Rust-style record
+conditional survivor disposal and outside replacement now pass; finally without
+catch and control exits remain next. Keep Rust-style record
 Set equality/hashing, explicit cloning and existing ownership rules. Use focused
 red witnesses, native disposal checks, editor coverage and matched benchmarks.
 Preserve fifteen unrelated fixture edits, stage explicit paths, format the whole

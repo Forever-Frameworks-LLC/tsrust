@@ -70,6 +70,12 @@ impl Emitter<'_> {
         } else { "TsrCompletion::Throw(error)=>match error {}".into() };
         let indent = "    ".repeat(depth);
         let _ = writeln!(output, "{indent}{in_decl} {out_decl} {cleanup_declaration} let {pattern} = {{ let {pattern} = {values}; match {pending} {{ TsrCompletion::Normal(storage)=>{normal_finish}, TsrCompletion::Throw((caught_error,{pattern}))=>{{ {setup} match {handled} {{ TsrCompletion::Normal(storage)=>{normal_finish}, {throw_arm}, TsrCompletion::Return(_)|TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"straight-line handler\") }} }}, TsrCompletion::Return(_)|TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"straight-line storage region\") }} }};");
+        let boundary=places.iter().flat_map(|place|[
+            self.map_storage_transfer_at_exit(fun,&region.body,place),
+            self.map_storage_transfer_at_exit(fun,&handler.body,place),
+            region.finally.as_ref().and_then(|body|self.map_storage_transfer_at_exit(fun,body,place)),
+        ]).flatten().map(|span|span.end).max().unwrap_or(statement.span.end).max(statement.span.end);
+        self.exception_regions.renew_storage(&places,boundary);
         true
     }
 

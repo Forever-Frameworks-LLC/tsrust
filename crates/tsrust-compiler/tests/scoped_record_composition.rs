@@ -3,7 +3,21 @@ mod support;
 #[test]
 fn conditional_transfer_replacement_preserves_disposal_without_try() {
     let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(branch:boolean):void{const old=[3];let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});console.log('before');if(branch){handlers.clear();const moved=handlers;console.log('moved');}else{console.log('kept');}console.log('replace');handlers=new Map<string,Holder>();console.log('restored',handlers.size);old[0]=9;console.log('after');}function main():void{scenario(true);scenario(false);}");
-    verify_disposal(&source, 1, "before\ndrop 0\nmoved\nreplace\nrestored 0\nafter\nbefore\nkept\nreplace\ndrop 0\nrestored 0\nafter\n");
+    let expected = "before\ndrop 0\nmoved\nreplace\nrestored 0\nafter\nbefore\nkept\nreplace\ndrop 0\nrestored 0\nafter\n";
+    verify_disposal(&source, 1, expected);
+    let nested = source.replace("if (branch) {", "{ if (branch) {").replace("console.log('replace');", "} console.log('replace');");
+    verify_disposal(&support::format_round_trip(&nested), 1, expected);
+    let mut field = source.replace("function scenario", "type Box = { handlers: Map<string, Holder>; marker: int; }; function scenario")
+        .replace("console.log('before');", "const box: Box = { handlers: handlers, marker: 23 }; console.log('before');")
+        .replace("handlers.clear()", "box.handlers.clear()")
+        .replace("const moved = handlers;", "const moved = box.handlers;")
+        .replace("handlers.size", "box.handlers.size")
+        .replace("old[0] = 9;", "if (box.marker !== 23) throw 99; old[0] = 9;");
+    let restore = field.rfind("handlers = new Map<string, Holder>();").unwrap();
+    field.replace_range(restore..restore+"handlers".len(), "box.handlers");
+    verify_disposal(&support::format_round_trip(&field), 1, expected);
+    let moved_again = source.replace("console.log('restored', handlers.size);", "const movedAgain = handlers; handlers = new Map<string, Holder>(); console.log('restored', handlers.size);");
+    verify_disposal(&support::format_round_trip(&moved_again), 1, expected);
 }
 
 #[test]
