@@ -12,7 +12,7 @@ const read=p=>fs.readFileSync(new URL(p,import.meta.url),'utf8');
 const row=JSON.parse(read('./manifest.json')).workloads.find(row=>row.id==='nested_function_rest');
 test('Captured rest values retain matched sources and independent result evidence',()=>{
  assert.equal(row.id,'nested_function_rest');
- assert.equal(row.implementationAccepted,true);assert.equal(row.measured,false);
+ assert.equal(row.implementationAccepted,true);assert.equal(row.measured,true);assert.equal(row.measurementStatus,'measured-named-declaration-family');
  assert.equal(reportCategory(row.id),'callbacks');
  const emitted='fn function0(value0: i64, value1: i64, value2: &String) -> Array<NumericArray<i64>> { todo!() }\nfn main() {}';
  assert.equal(assertABI(emitted,row,read('./'+row.source)).fallible,false);

@@ -66,7 +66,7 @@ impl Registry {
 }
 
 pub(crate) struct Case<'a> { pub pair: Pair, pub body: &'a CheckedClosureMethod }
-pub(crate) struct Plan<'a> { pub cases: Vec<Case<'a>>, pub invocation: Mode }
+pub(crate) struct Plan<'a> { pub cases: Vec<Case<'a>>, pub invocation: Mode, pub argument_modes:Vec<Mode> }
 impl<'a> Plan<'a> {
     pub(crate) fn checked(pairs: impl IntoIterator<Item = Pair>, closures: &'a [CheckedClosure], span: Span) -> Result<Self, Diagnostic> {
         let mut pairs = pairs.into_iter().collect::<Vec<_>>();
@@ -83,29 +83,58 @@ impl<'a> Plan<'a> {
             }
             if let Some(first) = cases.first() {
                 let compatible = first.body.function.result == body.function.result && first.body.parameters.len() == body.parameters.len()
-                    && first.body.parameters.iter().zip(&body.parameters).all(|(&left, &right)| {
+                    && first.body.parameters.iter().zip(&body.parameters).enumerate().all(|(index,(&left, &right))| {
                         let left = &first.body.function.bindings[left]; let right = &body.function.bindings[right];
-                        left.ty == right.ty && left.mode == right.mode && left.omission == right.omission && left.rest == right.rest
+                        let same_callback=first.body.parameter_callbacks.get(index).copied().flatten().is_some_and(|contract|body.parameter_callbacks.get(index)==Some(&Some(contract)));
+                        let same_type=left.ty==right.ty || (matches!((left.ty,right.ty),(crate::syntax::Type::Callback(_),crate::syntax::Type::Callback(_))) && same_callback);
+                        let same_input=left.input_ty==right.input_ty || (matches!((left.input_ty,right.input_ty),(Some(crate::syntax::Type::Callback(_)),Some(crate::syntax::Type::Callback(_)))) && same_callback);
+                        same_type && same_input && left.omission == right.omission && left.rest == right.rest
                     });
                 if !compatible { return Err(Diagnostic::new("callable-layout", "Reachable generic invocation methods require compatible prepared arguments and results.", span)); }
             }
             invocation = invocation.max(body.invocation);
             cases.push(Case { pair, body });
         }
-        Ok(Self { cases, invocation })
+        let argument_modes=(0..cases[0].body.parameters.len()).map(|index|cases.iter().map(|case|case.body.function.bindings[case.body.parameters[index]].mode).max().unwrap()).collect();
+        Ok(Self { cases, invocation, argument_modes })
     }
 
     /// Receiver and prepared arguments are evaluated once, before variant selection.
+    #[cfg(test)]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn render(&self, receiver: &str, arguments: &[String], supplied_count: &str, counted: impl Fn(Pair) -> bool, mutable: bool, storage: Option<(usize, &[usize])>, span: Span) -> Result<String, Diagnostic> {
+        self.render_with_transport(receiver,arguments,supplied_count,counted,mutable,storage,span,|_,call|Ok(call))
+    }
+
+    /// Adapt each concrete return before joining dispatch arms. Error layouts
+    /// belong to the selected method, independently of receiver storage.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn render_with_transport(&self, receiver: &str, arguments: &[String], supplied_count: &str, counted: impl Fn(Pair) -> bool, mutable: bool, storage: Option<(usize, &[usize])>, span: Span, transport: impl Fn(Pair,String)->Result<String,Diagnostic>) -> Result<String, Diagnostic> {
         if arguments.len() != self.cases[0].body.parameters.len() {
             return Err(Diagnostic::new("callable-layout", "Generic invocation prepared argument count does not match its methods.", span));
         }
         let mutable = if mutable { "mut " } else { "" };
         let mut text = format!("{{ let {mutable}method_environment = {receiver}; ");
-        for (index, value) in arguments.iter().enumerate() { text.push_str(&format!("let method_argument{index} = {value}; ")); }
-        let arguments = (0..arguments.len()).map(|index| format!("method_argument{index}")).collect::<Vec<_>>().join(", ");
+        for (index, value) in arguments.iter().enumerate() {
+            let mutable=if self.argument_modes[index]==Mode::Consume && self.cases.iter().any(|case|case.body.function.bindings[case.body.parameters[index]].mode==Mode::Mutate){"mut "}else{""};
+            text.push_str(&format!("let {mutable}method_argument{index} = {value}; "));
+        }
         let call = |pair: Pair, receiver: &str| {
+            let case=self.cases.iter().find(|case|case.pair==pair).unwrap();
+            let arguments=case.body.parameters.iter().enumerate().map(|(index,&parameter)| {
+                let binding=&case.body.function.bindings[parameter];
+                let mode=binding.mode;
+                if self.argument_modes[index]==Mode::Consume && mode==Mode::Read && matches!(binding.ty,crate::syntax::Type::Union(_)|crate::syntax::Type::BorrowedUnion(_)) {
+                    return format!("method_argument{index}.tsr_view()");
+                }
+                let prefix=match (self.argument_modes[index],mode) {
+                    (Mode::Consume,Mode::Read)=>"&",
+                    (Mode::Consume,Mode::Mutate)=>"&mut ",
+                    (Mode::Mutate,Mode::Read)=>"&*",
+                    _=>"",
+                };
+                format!("{prefix}method_argument{index}")
+            }).collect::<Vec<_>>().join(", ");
             if counted(pair) {
                 let separator = if arguments.is_empty() { "" } else { ", " };
                 format!("{receiver}.call{}_with_count({supplied_count}{separator}{arguments})", pair.method)
@@ -116,7 +145,7 @@ impl<'a> Plan<'a> {
             text.push_str("match method_environment { ");
             for case in &self.cases {
                 let variant = origins.iter().position(|&origin| origin == case.pair.origin).ok_or_else(|| Diagnostic::new("callable-layout", "Reachable generic invocation origin is absent from its storage family.", span))?;
-                text.push_str(&format!("TsrGenericFamily{family}::V{variant}(method_payload) => {}, ", call(case.pair, "method_payload")));
+                text.push_str(&format!("TsrGenericFamily{family}::V{variant}(method_payload) => {}, ", transport(case.pair,call(case.pair, "method_payload"))?));
             }
             if origins.iter().any(|origin| !self.cases.iter().any(|case| case.pair.origin == *origin)) {
                 text.push_str("_ => panic!(\"generic environment is outside the verified invocation alternatives\"), ");
@@ -124,7 +153,7 @@ impl<'a> Plan<'a> {
             text.push_str("} }");
         } else {
             if self.cases.len() != 1 { return Err(Diagnostic::new("callable-layout", "Multiple generic invocation environments require explicit family storage.", span)); }
-            text.push_str(&call(self.cases[0].pair, "method_environment")); text.push_str(" }");
+            text.push_str(&transport(self.cases[0].pair,call(self.cases[0].pair, "method_environment"))?); text.push_str(" }");
         }
         Ok(text)
     }
@@ -267,6 +296,40 @@ mod tests {
                 assert_eq!(evaluations, [1, 2]);
                 assert_eq!(DROPS.load(Ordering::SeqCst), 3, "owned receiver drops once on argument failure");
                 assert_eq!(CALLS.load(Ordering::SeqCst), 2, "argument failure prevents invocation");
+            }}
+        "#));
+    }
+
+    #[test]
+    fn native_dispatch_transports_mixed_result_arms_before_joining() {
+        let checked=environments();
+        let plan=Plan::checked([Pair{origin:0,method:0},Pair{origin:1,method:1}],&checked.program.closures,Span::default()).unwrap();
+        let code=plan.render_with_transport("{ evaluations.push(1); family }",&["{ evaluations.push(2); value }".into()],"1",|_|false,false,Some((4,&[0,1])),Span::default(),|pair,call| {
+            Ok(if pair.origin==1 {format!("{call}.map_err(|error|DestinationError::Message(error.0))?")} else {call})
+        }).unwrap();
+        crate::scoped_record_places::tests::native(&format!(r#"
+            use std::sync::atomic::{{AtomicUsize,Ordering}};
+            static DROPS:AtomicUsize=AtomicUsize::new(0);
+            struct Payload;
+            impl Drop for Payload {{ fn drop(&mut self){{DROPS.fetch_add(1,Ordering::SeqCst);}} }}
+            struct Closure0(Payload);
+            struct Closure1(Payload);
+            struct SourceError(String);
+            #[derive(Debug,PartialEq)] enum DestinationError {{ Message(String) }}
+            impl Closure0 {{ fn call0(&self,value:i64)->i64{{value+1}} }}
+            impl Closure1 {{ fn call1(&self,value:i64)->Result<i64,SourceError>{{if value==0{{Err(SourceError(String::from("failed")))}}else{{Ok(value+2)}}}} }}
+            enum TsrGenericFamily4 {{ V0(Closure0),V1(Closure1) }}
+            fn invoke(family:TsrGenericFamily4,value:i64,evaluations:&mut Vec<i32>)->Result<i64,DestinationError>{{Ok({code})}}
+            fn main(){{
+                let mut evaluations=Vec::new();
+                assert_eq!(invoke(TsrGenericFamily4::V0(Closure0(Payload)),4,&mut evaluations),Ok(5));
+                assert_eq!(evaluations,[1,2]);assert_eq!(DROPS.load(Ordering::SeqCst),1);
+                evaluations.clear();
+                assert_eq!(invoke(TsrGenericFamily4::V1(Closure1(Payload)),4,&mut evaluations),Ok(6));
+                assert_eq!(evaluations,[1,2]);assert_eq!(DROPS.load(Ordering::SeqCst),2);
+                evaluations.clear();
+                assert_eq!(invoke(TsrGenericFamily4::V1(Closure1(Payload)),0,&mut evaluations),Err(DestinationError::Message(String::from("failed"))));
+                assert_eq!(evaluations,[1,2]);assert_eq!(DROPS.load(Ordering::SeqCst),3);
             }}
         "#));
     }

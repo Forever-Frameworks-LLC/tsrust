@@ -186,6 +186,117 @@ fn generic_callable_replacement_keeps_saved_values_and_runtime_selection() {
 }
 
 #[test]
+fn distinct_generic_replacements_dispatch_independent_bodies_and_failures() {
+    let source=r#"
+        function first<T>(value:T):int { return 3; }
+        function second<T>(value:T):int { return 7; }
+        function failing<T>(value:T):int { throw "selected failure"; }
+        function select(flag:boolean):int {
+            let action=first;
+            if(flag){action=second;}
+            return action<int>(1);
+        }
+        function attempt(flag:boolean):int {
+            let action=first;
+            if(flag){action=failing;}
+            try { return action<int>(1); }
+            catch(error){ if(error==="selected failure"){return 11;} return 0; }
+        }
+        function main(){ console.log(select(false),select(true),attempt(false),attempt(true)); }
+    "#;
+    support::execute(source,"3 7 3 11\n",None);
+}
+
+#[test]
+fn distinct_generic_replacements_preserve_each_default_and_rest_pack() {
+    let source=r#"
+        function first<T>(value:T,offset:int=3):int { return offset; }
+        function second<T>(value:T,offset:int=7):int { return offset; }
+        function defaulted(flag:boolean):int {
+            let action=first;
+            if(flag){action=second;}
+            return action<int>(1);
+        }
+        function head<T>(value:T,...tail:int[]):int { return tail.length; }
+        function doubled<T>(value:T,...tail:int[]):int { return tail.length*2; }
+        function rest(flag:boolean):int {
+            let action=head;
+            if(flag){action=doubled;}
+            return action<int>(1,4,5);
+        }
+        function main(){console.log(defaulted(false),defaulted(true),rest(false),rest(true));}
+    "#;
+    support::execute(source,"3 7 2 4\n",None);
+}
+
+#[test]
+fn distinct_generic_replacements_preserve_owned_rest_values_and_source_order() {
+    let source=r#"
+        function first<T>(value:T,...tail:T[]):T { return value; }
+        function second<T>(value:T,...tail:T[]):T { return tail.shift()!; }
+        function select(flag:boolean):string {
+            let action=first;
+            if(flag){action=second;}
+            return action<string>((console.log("value"),"head"),(console.log("tail"),"next"));
+        }
+        function main(){console.log(select(false));console.log(select(true));}
+    "#;
+    support::execute(source,"value\ntail\nhead\nvalue\ntail\nnext\n",None);
+}
+
+#[test]
+fn joined_generic_access_does_not_leave_consumed_source_available() {
+    let source=support::format_round_trip("function read<T>(value:T):string{return \"read\";}function take<T>(value:T):T{return value;}function choose(flag:boolean){let action=read;if(flag){action=take;}const text=\"owned\";const result=action<string>(text);console.log(text,result);}function main(){choose(true);}");
+    let error=tsrust_compiler::check(&source).err().expect("one reachable consumer must transfer the argument");
+    assert_eq!(error.code,"transferred","{}",error.render("joined-access.tsr",&source));
+}
+
+#[test]
+fn joined_generic_access_adapts_nullable_owned_arguments() {
+    let source=r#"
+        function read<T>(value:T):string | undefined { return "read"; }
+        function take<T>(value:T):T { return value; }
+        function choose(flag:boolean, value:Owned<string | undefined>):string | undefined {
+            let action=read;
+            if(flag){action=take;}
+            return action<string | undefined>(value);
+        }
+        function main(){console.log(choose(false,"owned"),choose(true,"owned"),choose(true,undefined));}
+    "#;
+    support::execute(source,"read owned undefined\n",None);
+}
+
+#[test]
+fn generic_replacement_callbacks_keep_selected_behavior_and_failure_effects() {
+    let source=r#"
+        function first<T>(value:T,action:ReadOnly<Function<int>>):int { return action(); }
+        function second<T>(value:T,action:ReadOnly<Function<int>>):int { return action()+7; }
+        function choose(flag:boolean,fail:boolean):int {
+            let action=first;
+            if(flag){action=second;}
+            const callback=():int=>{if(fail){throw "callback failed";}return 3;};
+            try {return action<int>(1,callback);}
+            catch(error){if(error==="callback failed"){return 11;}return 0;}
+        }
+        function main(){console.log(choose(false,false),choose(true,false),choose(false,true),choose(true,true));}
+    "#;
+    support::execute(source,"3 10 11 11\n",None);
+}
+
+#[test]
+fn generic_replacement_callback_layouts_do_not_erase_result_or_ownership_contracts() {
+    for second in [
+        "function second<T>(value:T,action:ReadOnly<Function<string>>):int{return action().length;}",
+        "function second<T>(value:T,action:Once<Function<int>>):int{return action();}",
+    ] {
+        let source=format!("function first<T>(value:T,action:ReadOnly<Function<int>>):int{{return action();}}{second}function choose(flag:boolean):int{{let action=first;if(flag){{action=second;}}return action<int>(1,():int=>3);}}function main(){{choose(true);}}");
+        let formatted=support::format_round_trip(&source);
+        let error=tsrust_compiler::check(&formatted).err().expect("incompatible callback contracts must reject");
+        assert!(matches!(error.code,"callable-layout"|"type"|"callback-contract"),"{}",error.render("callback-contract.tsr",&formatted));
+    }
+}
+
+#[test]
 fn fresh_same_declaration_replacement_reuses_capture_free_generic_storage() {
     let source = r#"
         function identity<T>(value: T): T { return value; }
@@ -204,7 +315,7 @@ fn fresh_same_declaration_replacement_reuses_capture_free_generic_storage() {
 #[test]
 fn fresh_generic_replacement_does_not_copy_captures_or_restore_transferred_aliases() {
     for (source, code) in [
-        ("function main(){let calls=0;function identity<T>(value:T):T{calls+=1;return value;}let action=identity;action=identity;console.log(action<int>(7));}", "callable-origin"),
+        ("function main(){let calls=0;function identity<T>(value:T):T{calls+=1;return value;}let action=identity;action=identity;console.log(action<int>(7));}", "capture-conflict"),
         ("function identity<T>(value:T):T{return value;}function main(){let action=identity;const saved=action;action=saved;console.log(saved<int>(3));}", "closure-consumed"),
     ] {
         let formatted = support::format_round_trip(source);
@@ -345,4 +456,240 @@ fn transported_polymorphic_arguments_preserve_borrow_and_consumption_rejections(
         let error=tsrust_compiler::check(&source).err().unwrap_or_else(||panic!("borrow or transferred owner must be rejected: {body}"));
         assert_eq!(error.code,code,"{}",error.render("input.tsr",&source));
     }
+}
+
+#[test]
+fn captured_generic_replacement_keeps_independent_read_environments() {
+    support::execute(r#"
+        function select(flag:boolean):int {
+            const left=3; const right=7;
+            function first<T>(value:T):int {return left;}
+            function second<T>(value:T):int {return right;}
+            let action=first;
+            const saved=action;
+            action=first;
+            if(flag){action=second;}
+            return saved<int>(0)+action<int>(0);
+        }
+        function main(){console.log(select(false),select(true));}
+    "#, "6 10\n", None);
+}
+
+#[test]
+fn captured_generic_replacement_preserves_borrowed_strings_and_selected_failures() {
+    support::execute(r#"
+        function select(flag:boolean,fail:boolean):string {
+            const left="left"; const right="right";
+            function first<T>(value:T):string {return left+String(value);}
+            function second<T>(value:T):string {if(fail){throw right;}return right+String(value);}
+            let action=first;
+            if(flag){action=second;}
+            try{return action<int>(2);}catch(error){return String(error);}
+        }
+        function main(){console.log(select(false,false),select(true,false),select(true,true));}
+    "#, "left2 right2 right\n", None);
+}
+
+#[test]
+fn captured_generic_replacement_drops_each_record_once_across_failure() {
+    let source=support::format_round_trip("type Item={id:int;};function select(flag:boolean,fail:boolean):int{const left:Item={id:1};const right:Item={id:2};function first<T>(value:T):int{return left.id;}function second<T>(value:T):int{if(fail){throw right.id;}return right.id;}let action=first;if(flag){action=second;}try{return action<int>(0);}catch(error){return 9;}}function main(){console.log(select(false,false),select(true,false),select(true,true));}");
+    let rust=tsrust_compiler::check(&source).unwrap().emit_rust().replace("fn main()","fn source_main()")+r#"
+static DROPS:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+impl Drop for Record0 {fn drop(&mut self){DROPS.fetch_add(1,std::sync::atomic::Ordering::SeqCst);}}
+fn main(){source_main();assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCst),6);}
+"#;
+    let directory=support::TempDirectory::new();let path=directory.0.join("replacement-disposal.rs");std::fs::write(&path,rust).unwrap();
+    for level in ["0","3"] {
+        let binary=directory.0.join(format!("replacement-disposal-{level}"));
+        support::success(&support::run(support::rustc().args(["--edition=2024","-C",&format!("opt-level={level}")]).arg(&path).arg("-o").arg(&binary),60));
+        let output=support::run(&mut std::process::Command::new(binary),10);support::success(&output);assert_eq!(output.stdout,b"1 2 9\n");
+    }
+}
+
+#[test]
+fn owned_mutable_factory_selection_is_point_sensitive_in_native_execution() {
+    support::execute(r#"
+        function one<T>(value:T):T{return value;}
+        function two<T>(value:T,other:T):T{return other;}
+        function factory<A>(initial:A){let action=initial;return (restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}
+        function main(){
+            const first=factory(one);const second=factory(two);
+            const original=first(false);const changed=first(true);const restored=first(false);const independent=second(true);
+            console.log(original<int>(1),changed<int>(2,7),restored<int>(3),independent<int>(4,9));
+        }
+    "#, "1 7 3 9\n", None);
+}
+
+#[test]
+fn owned_mutable_factory_first_call_keeps_selected_environment() {
+    support::execute("function one<T>(value:T):T{return value;}function two<T>(value:T,other:T):T{return other;}function factory<A>(initial:A){let action=initial;return (restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}function main(){const first=factory(one);const second=factory(two);const original=first(false);const independent=second(true);console.log(original<int>(1),independent<int>(4,9));}","1 9\n",None);
+}
+
+#[test]
+fn repeated_factory_allocation_keeps_fresh_instance_state() {
+    support::execute(r#"
+        function one<T>(value:T):T{return value;}
+        function two<T>(value:T,other:T):T{return other;}
+        function factory<A>(initial:A){let action=initial;return (restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}
+        function fresh(){return factory(one);}
+        function main(){
+            const first=fresh();const original=first(false);
+            const second=fresh();const independent=second(true);
+            const changed=first(true);
+            console.log(original<int>(1),independent<int>(2),changed<int>(3,9));
+        }
+    "#, "1 2 9\n", None);
+}
+
+#[test]
+fn loop_factory_allocation_resets_each_runtime_instance() {
+    support::execute(r#"
+        function one<T>(value:T):T{return value;}
+        function two<T>(value:T,other:T):T{return other;}
+        function factory<A>(initial:A){let action=initial;return (restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}
+        function main(){
+            for(let index=0;index<2;index=index+1){
+                const take=factory(one);const original=take(false);const changed=take(true);
+                console.log(original<int>(1),changed<int>(2,9));
+            }
+        }
+    "#, "1 9\n1 9\n", None);
+}
+
+#[test]
+fn loop_factory_storage_keeps_independent_mutable_environments() {
+    support::execute(r#"
+        function one<T>(value:T):T{return value;}
+        function two<T>(value:T,other:T):T{return other;}
+        function factory<A>(initial:A){let action=initial;return (restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}
+        function main(){
+            const instances=[factory(one)];
+            for(let index=0;index<2;index=index+1){instances.push(factory(one));}
+            const seed=instances.shift()!;
+            const first=instances.shift()!;const second=instances.shift()!;
+            const original=first(false);const independent=second(true);const changed=first(true);
+            console.log(original<int>(1),independent<int>(2),changed<int>(3,9));
+        }
+    "#, "1 2 9\n", None);
+}
+
+#[test]
+fn stored_factory_returns_concrete_owned_callable() {
+    support::execute("function make(value:int){return ()=>{return ()=>{return value;};};}function main(){const factories=[make(3),make(7)];const first=factories.shift()!;const second=factories.shift()!;const left=first();const right=second();console.log(left(),right());}","3 7\n",None);
+}
+
+#[test]
+fn contextual_array_storage_keeps_generic_capture_instances() {
+    support::execute("function one<T>(value:T):T{return value;}function factory<A>(action:A){return(value:int):int=>{return action<int>(value);};}function main(){const actions=[factory(one)];actions.push(factory(one));const first=actions.shift()!;const second=actions.shift()!;console.log(first(3),second(7));}","3 7\n",None);
+}
+
+#[test]
+fn stored_factories_return_distinct_generic_construction_origins() {
+    support::execute("function one<T>(value:T):T{return value;}function factory<A>(action:A){return()=>{return action;};}function main(){const factories=[factory(one)];factories.push(factory(one));const first=factories.shift()!;const second=factories.shift()!;const left=first();const right=second();console.log(left<int>(3),right<int>(7));}","3 7\n",None);
+}
+
+#[test]
+fn pushed_factory_transfers_keep_independent_mutable_state() {
+    support::execute("function one<T>(value:T):T{return value;}function two<T>(value:T,other:T):T{return other;}function factory<A>(initial:A){let action=initial;return(restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}function main(){const instances=[factory(one)];instances.push(factory(one));const first=instances.shift()!;const second=instances.shift()!;const original=first(false);const independent=second(true);const changed=first(true);console.log(original<int>(1),independent<int>(2),changed<int>(3,9));}","1 2 9\n",None);
+}
+
+#[test]
+fn restored_owned_capture_is_reusable_without_cloning() {
+    support::execute("function identity<T>(value:T):T{return value;}function make(){let action=identity;return ()=>{const previous=action;action=identity;return previous;};}function main(){const take=make();const first=take();const second=take();console.log(first<int>(3),second<int>(7));}","3 7\n",None);
+}
+
+#[test]
+fn incomplete_capture_restoration_retains_consuming_contract() {
+    for body in ["const previous=action;return previous;","const previous=action;if(flag){action=identity;}return previous;","const previous=action;if(flag){throw 1;}action=identity;return previous;"] {
+        let source=format!("function identity<T>(value:T):T{{return value;}}function make(){{let action=identity;return (flag:boolean)=>{{{body}}};}}function main(){{const take=make();const first=take(false);const second=take(false);}}");
+        let formatted=support::format_round_trip(&source);let error=tsrust_compiler::check(&formatted).err().expect("incomplete restoration must retain once ownership");assert_eq!(error.code,"closure-consumed","{}",error.render("input.tsr",&formatted));
+    }
+}
+
+#[test]
+fn reusable_owned_capture_slots_drop_transferred_and_abandoned_records_once() {
+    let source=support::format_round_trip("type Item={id:int;};function make(){let item:Item={id:1};return ()=>{const previous=item;item={id:2};return previous;};}function main(){{const take=make();const first=take();const second=take();console.log(first.id,second.id);}{const abandoned=make();}}");
+    let rust=tsrust_compiler::check(&source).unwrap().emit_rust().replace("fn main()","fn source_main()")+r#"
+static DROPS:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+impl Drop for Record0 {fn drop(&mut self){DROPS.fetch_add(1,std::sync::atomic::Ordering::SeqCst);}}
+fn main(){source_main();assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCst),4);}
+"#;
+    let directory=support::TempDirectory::new();let path=directory.0.join("restored-owner-disposal.rs");std::fs::write(&path,rust).unwrap();
+    for level in ["0","3"] {
+        let binary=directory.0.join(format!("restored-owner-disposal-{level}"));support::success(&support::run(support::rustc().args(["--edition=2024","-C",&format!("opt-level={level}")]).arg(&path).arg("-o").arg(&binary),60));
+        let output=support::run(&mut std::process::Command::new(binary),10);support::success(&output);assert_eq!(output.stdout,b"1 2\n");
+    }
+}
+
+#[test]
+fn restored_capture_in_a_consuming_environment_keeps_native_slot_access() {
+    support::execute("type Item={id:int;};function identity<T>(value:T):T{return value;}function make(item:Item){let action=identity;return ()=>{const previous=action;action=identity;return item;};}function main(){const take=make({id:7});const result=take();console.log(result.id);}","7\n",None);
+}
+
+#[test]
+fn reinserted_factory_keeps_updated_capture_without_changing_remaining_member() {
+    support::execute(r#"
+        function one<T>(value:T):T{return value;}
+        function two<T>(value:T,other:T):T{return other;}
+        function factory<A>(initial:A){let action=initial;return(restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}
+        function main(){
+            const instances=[factory(one)];
+            instances.push(factory(one));
+            const first=instances.shift()!;
+            const original=first(false);
+            instances.push(first);
+            const independent=instances.shift()!;
+            const returned=instances.shift()!;
+            const untouched=independent(true);
+            const changed=returned(true);
+            console.log(original<int>(1),untouched<int>(2),changed<int>(3,9));
+        }
+    "#,"1 2 9\n",None);
+}
+
+#[test]
+fn repeated_array_extraction_preserves_same_contract_mutable_instances() {
+    support::execute(r#"
+        function one<T>(value:T):T{return value;}
+        function factory<A>(initial:A){let action=initial;return()=>{const previous=action;action=one;return previous;};}
+        function main(){
+            const instances=[factory(one)];instances.push(factory(one));
+            for(let index=0;index<2;index=index+1){
+                const take=instances.shift()!;const first=take();const second=take();
+                console.log(first<int>(index),second<int>(index+10));
+            }
+        }
+    "#,"0 10\n1 11\n",None);
+}
+
+#[test]
+fn loop_extraction_keeps_nested_owned_factory_captures_independent() {
+    support::execute(r#"
+        function one<T>(value:T):T{return value;}
+        function two<T>(value:T,other:T):T{return other;}
+        function factory<A>(initial:A){let action=initial;return(restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}
+        function wrap<A>(initial:A){let action=factory(initial);return(restore:boolean)=>{return action(restore);};}
+        function main(){
+            const instances=[wrap(one)];
+            for(let index=0;index<2;index=index+1){instances.push(wrap(one));}
+            const seed=instances.shift()!;
+            const first=instances.shift()!;const second=instances.shift()!;
+            const original=first(false);const independent=second(true);const changed=first(true);
+            console.log(original<int>(1),independent<int>(2),changed<int>(3,9));
+        }
+    "#,"1 2 9\n",None);
+}
+
+#[test]
+fn fresh_loop_factory_does_not_inherit_discarded_instance_updates() {
+    support::execute(r#"
+        function one<T>(value:T):T{return value;}
+        function two<T>(value:T,other:T):T{return other;}
+        function factory<A>(initial:A){let action=initial;return()=>{const previous=action;action=two;return previous;};}
+        function main(){
+            for(let index=0;index<2;index=index+1){
+                const take=factory(one);const original=take();console.log(original<int>(index));
+            }
+        }
+    "#,"0\n1\n",None);
 }

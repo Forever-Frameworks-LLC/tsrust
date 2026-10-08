@@ -12,10 +12,10 @@ const read=p=>fs.readFileSync(new URL(p,import.meta.url),'utf8');
 const manifest=JSON.parse(read('./manifest.json'));
 const row=manifest.workloads.find(x=>x.id==='scoped_callable_records');
 test('Scoped callable records retain sources, independent observations and execution hooks',()=>{
- assert.equal(manifest.workloads.at(-1).id,'scoped_callable_records');
+ assert.equal(manifest.workloads.filter(x=>x.id==='scoped_callable_records').length,1);
  const emitted='fn function0(value0: i64, value1: i64, value2: &String) -> Array<NumericArray<i64>> { todo!() }\nfn main() {}';
  assert.equal(assertABI(emitted,row,read('./'+row.source)).fallible,false);
- assert.equal(row.measured,false);assert.equal(reportCategory(row.id),'callbacks');
+ assert.equal(row.measured,true);assert.equal(row.measurementStatus,'measured-named-declaration-family');assert.equal(reportCategory(row.id),'callbacks');
  for(const [kind,path] of [['native',row.source],['typescript',row.counterpart]]){
   const source=read('./'+path);assertScopedCallableRecordsSource(source,row,kind);
   assert.throws(()=>assertScopedCallableRecordsSource(source+' ',row,kind));

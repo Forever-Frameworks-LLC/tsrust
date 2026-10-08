@@ -1837,3 +1837,89 @@ fn main(){let mut paths=vec!["é😊"];paths.extend(std::iter::repeat_n("文",64
 "#);
     for optimization in ["0","3"] {assert_eq!(native_stdout(&rust,optimization),"");}
 }
+
+#[test]
+fn imported_assertions_preserve_point_sensitive_nested_factory_contracts() {
+    let entry=support::format_round_trip(r#"import {join} from "std:path";import {strictEqual} from "std:testing";function one<T>(value:T):T{return value;}
+function two<T>(value:T,other:T):T{return other;}
+function factory<A>(initial:A){let action=initial;return(restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}
+function wrap<A>(initial:A){let action=factory(initial);return(restore:boolean)=>{return action(restore);};}
+function main(){const saved=join;strictEqual(saved("a","b"),"a/b");const instances=[wrap(one)];for(let index=0;index<2;index+=1){instances.push(wrap(one));}const seed=instances.shift()!;const first=instances.shift()!;const second=instances.shift()!;const original=first(false);const independent=second(true);const changed=first(true);strictEqual(original<int>(1),1);strictEqual(independent<int>(2),2);strictEqual(changed<int>(3,9),9);}"#);
+    let memory=Memory::new(&[("main.tsr",&entry)]);
+    let checked=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).unwrap();
+    for optimization in ["0","3"] {assert_eq!(native_stdout(&checked.emit_rust(),optimization),"");}
+}
+
+#[test]
+fn small_scalar_rest_forwarding_has_a_bounded_allocation_budget() {
+    let entry=support::format_round_trip(r#"import {strictEqual} from 'std:testing';
+function main(){const base=1;function sum(...values:int[]):int{let result=base;for(const value of values){result+=value;}return result;}const action=sum;const values=[1,2,3];for(let index=0;index<1000;index+=1){strictEqual(action(...values),7);}strictEqual(values[0],1);strictEqual(values.length,3);}"#);
+    let memory=Memory::new(&[("main.tsr",&entry)]);
+    let checked=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).unwrap();
+    let mut rust=checked.emit_rust().replacen("fn main()", "fn checked_entry()",1);
+    rust.push_str(r#"
+static SNAPSHOT_ALLOCATIONS: std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+struct SnapshotAllocator;
+unsafe impl std::alloc::GlobalAlloc for SnapshotAllocator {
+    unsafe fn alloc(&self, layout:std::alloc::Layout)->*mut u8 {
+        SNAPSHOT_ALLOCATIONS.fetch_add(1,std::sync::atomic::Ordering::Relaxed);
+        unsafe {std::alloc::System.alloc(layout)}
+    }
+    unsafe fn dealloc(&self,pointer:*mut u8,layout:std::alloc::Layout) {
+        unsafe {std::alloc::System.dealloc(pointer,layout)}
+    }
+    unsafe fn realloc(&self,pointer:*mut u8,layout:std::alloc::Layout,size:usize)->*mut u8 {
+        SNAPSHOT_ALLOCATIONS.fetch_add(1,std::sync::atomic::Ordering::Relaxed);
+        unsafe {std::alloc::System.realloc(pointer,layout,size)}
+    }
+}
+#[global_allocator] static SNAPSHOT_ALLOCATOR:SnapshotAllocator=SnapshotAllocator;
+fn main(){let before=SNAPSHOT_ALLOCATIONS.load(std::sync::atomic::Ordering::Relaxed);checked_entry();let used=SNAPSHOT_ALLOCATIONS.load(std::sync::atomic::Ordering::Relaxed)-before;assert!(used<=8,"small scalar rest snapshots must not allocate per call: {used}");}
+"#);
+    for optimization in ["0","3"] {assert_eq!(native_stdout(&rust,optimization),"");}
+}
+
+#[test]
+fn caught_values_cross_generic_assertion_parameters() {
+    for source in [
+        r#"import {strictEqual} from 'std:testing';function main(){try{strictEqual(1,1);throw 3;}catch(error){strictEqual(error,3);}}"#,
+        r#"import {strictEqual} from 'std:testing';function observe<T>(value:ReadOnly<T>):void{strictEqual(value,value);}function main(){try{strictEqual(1,1);throw 'payload';}catch(error){observe(error);strictEqual(error,'payload');}}"#,
+        r#"import {strictEqual} from 'std:testing';function observe<T>(value:ReadOnly<T>):void{strictEqual(value,value);}function main(){try{const values=[1];console.log(values[9]);}catch(error){observe(error);strictEqual(error.code,'bounds');}}"#,
+    ] {
+        let entry=support::format_round_trip(source);
+        let memory=Memory::new(&[("main.tsr",&entry)]);
+        let checked=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).unwrap();
+        for optimization in ["0","3"] {assert_eq!(native_stdout(&checked.emit_rust(),optimization),"");}
+    }
+}
+
+#[test]
+fn eager_operator_returns_preserve_failures_and_captured_state() {
+    let entry=support::format_round_trip(r#"import {strictEqual} from 'std:testing';
+function increment(value:int):int{return value+1;}
+function divided(value:int,divisor:int):int{return value/divisor;}
+function main(){let calls=0;function captured(value:int):int{calls+=1;return value+calls;}
+strictEqual(increment(4),5);strictEqual(divided(8,2),4);let failed=false;
+try{divided(8,0);}catch(error){failed=true;}strictEqual(failed,true);
+strictEqual(captured(4),5);strictEqual(captured(4),6);strictEqual(calls,2);}"#);
+    let memory=Memory::new(&[("main.tsr",&entry)]);
+    let checked=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).unwrap();
+    for optimization in ["0","3"] {assert_eq!(native_stdout(&checked.emit_rust(),optimization),"");}
+}
+
+#[test]
+fn eager_aggregate_returns_preserve_owned_storage_and_failure_edges() {
+    let entry=support::format_round_trip(r#"import {strictEqual} from 'std:testing';
+type Box={value:string;};
+function boxed(value:string):Box{return {value:value};}
+function array(value:string):string[]{return [value];}
+function failing(value:int):int[]{return [value/0];}
+function constant():int{return 7;}
+function main(){const first=boxed('first');const second=boxed('second');const saved=boxed;const third=saved('third');
+strictEqual(first.value,'first');strictEqual(second.value,'second');strictEqual(third.value,'third');
+const left=array('left');const right=array('right');strictEqual(left[0],'left');strictEqual(right[0],'right');
+strictEqual(constant(),7);let caught=false;try{failing(8);}catch(error){caught=true;}strictEqual(caught,true);}"#);
+    let memory=Memory::new(&[("main.tsr",&entry)]);
+    let checked=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).unwrap();
+    for optimization in ["0","3"] {assert_eq!(native_stdout(&checked.emit_rust(),optimization),"");}
+}

@@ -11,7 +11,6 @@ pub(super) struct State { pub bindings:Vec<Binding>, pub captures:BTreeMap<envir
 impl From<Vec<Binding>> for State {fn from(bindings:Vec<Binding>)->Self {Self {bindings,captures:BTreeMap::new()}}}
 impl std::ops::Deref for State {type Target=Vec<Binding>;fn deref(&self)->&Self::Target {&self.bindings}}
 impl std::ops::DerefMut for State {fn deref_mut(&mut self)->&mut Self::Target {&mut self.bindings}}
-#[cfg(test)]
 fn canonical(bindings:&[Binding])->Option<Vec<Binding>> {
     if bindings.iter().any(|binding|binding.identity.is_none()) {return None;}
     let mut result=bindings.to_vec();result.sort_by_key(|binding|binding.identity);
@@ -32,13 +31,11 @@ fn joined_bindings(left:&[Binding],right:&[Binding],declarations:&HashMap<String
 }
 impl State {
     /// The caller must derive OwnedSingle from checked capture and instance facts.
-    #[cfg(test)]
     pub(super) fn install(&mut self,handle:environment_store::Handle,bindings:&[Binding],instance:Instance)->Option<()> {
         if self.captures.contains_key(&handle) {return None;}
         let bindings=canonical(bindings)?;
         self.captures.insert(handle,Capture::Live {bindings,instance});Some(())
     }
-    #[cfg(test)]
     pub(super) fn update(&mut self,handle:environment_store::Handle,incoming:&[Binding],declarations:&HashMap<String,Contract>)->Option<()> {
         let incoming=canonical(incoming)?;
         let Capture::Live {bindings,instance}=self.captures.get_mut(&handle)? else {return None;};
@@ -112,6 +109,17 @@ mod tests {
  #[test] fn consuming_a_merged_instance_does_not_claim_every_instance_disposed() {
   let mut store=environment_store::Store::default();let first=handle(&mut store,20);let mut state=State::default();state.install(first,&[binding(5)],Instance::Merged).unwrap();state.consume(first).unwrap();
   assert!(matches!(state.captures[&first],Capture::Unknown));assert!(state.update(first,&[binding(9)],&HashMap::new()).is_none());
+ }
+
+ #[test] fn equal_states_still_resolve_named_targets_and_canonicalize_origins() {
+  let signature=contract(1,&[ParameterInitializer::Required],false,Span::new(10,11));
+  let declarations=HashMap::from([("identity".to_owned(),signature.clone())]);
+  let mut value=binding(5);value.targets=vec![Target::Name("identity".into(),Span::new(20,21))];
+  value.origins=vec![body_origins::Origin::Body(Span::new(9,10)),body_origins::Origin::Body(Span::new(5,6))];
+  let mut state:State=vec![value].into();let incoming=state.clone();
+  assert!(state.join(&incoming,&declarations).unwrap());
+  assert!(state.bindings[0].targets==vec![Target::Contract(signature)]);
+  assert!(state.bindings[0].origins==vec![body_origins::Origin::Body(Span::new(5,6)),body_origins::Origin::Body(Span::new(9,10))]);
  }
 
 }

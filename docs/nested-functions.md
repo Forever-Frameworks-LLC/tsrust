@@ -549,3 +549,62 @@ The returned string transfers out of the callback. The first callback borrows th
 array only for the scoped call. The retained callback owns its string so it remains
 valid after `retain` returns. A second invocation of either single-use callback is
 rejected. These checks do not insert an implicit clone.
+
+## Replacing capture-free generic values
+
+A mutable local may receive a fresh reference to another capture-free generic declaration. The replacement keeps its own behavior. Calls validate declarations reachable on that path; a saved value keeps the earlier declaration. Assignment does not implicitly clone an owned callable: initialize the mutable local again after transferring it into a saved local.
+
+```tsrust
+function first<T>(value: T): T { return value; }
+function second<T>(left: T, right: T): T { return right; }
+function choose(flag: boolean): int {
+    let action = first;
+    const saved = action;
+    action = first;
+    if (flag) { action = second; }
+    if (flag) { return saved<int>(3) + action<int>(4, 7); }
+    return saved<int>(3) + action<int>(4);
+}
+// choose(false) is 7; choose(true) is 10.
+```
+
+A call reachable through several declarations must have compatible prepared arguments and results. Each declaration receives its own checked body and error transport. Borrowing the callee prevents replacement during argument evaluation. Fresh references to capturing generic declarations may replace compatible generic values. Each environment retains its captured values and independently checked body. Existing conflicting capture loans still reject replacement. Owned factory calls preserve point-sensitive capture state across repeated calls and independent instances. Broader owned environment composition remains under development.
+
+When reachable declarations use the same input type with different access modes, the call requires the strongest access of those declarations. For example, a reading arm and a consuming arm make the argument owned for that call. Each selected arm borrows or moves the single prepared value as needed. This requirement also appears in signature help. Omitted defaults retain the selected declaration’s initializer; rest values retain source order without implicit clones.
+
+Compatible selected generic declarations may receive nullable scalar arguments through different read or consuming parameter access. Calls use the strongest reachable access, then adapt the value for the selected body. Callback arguments must have the same structural signature and ownership contract; each selected body retains its own behavior and failures. A callback returning a different type or requiring different callable ownership remains incompatible.
+
+
+## Transferring mutable factories through arrays
+
+An owned callback can remain reusable when every checked completion restores a captured value that the call transfers out. Each factory instance retains its own capture state. Removing a callback from an array with `shift()!` or `pop()!` transfers that callback; the assertion raises an error if the array is empty. Reinserted callbacks retain updates made before reinsertion. Indexed array values remain borrowed views and do not provide this ownership transfer.
+
+```tsrust
+function one<T>(value: T): T { return value; }
+function two<T>(value: T, other: T): T { return other; }
+
+function factory<A>(initial: A) {
+    let action = initial;
+    return (restore: boolean) => {
+        const previous = action;
+        if (restore) { action = one; }
+        else { action = two; }
+        return previous;
+    };
+}
+
+function main() {
+    const instances = [factory(one)];
+    instances.push(factory(one));
+    const first = instances.shift()!;
+    const second = instances.shift()!;
+    const original = first(false);
+    const independent = second(true);
+    const changed = first(true);
+    console.log(original<int>(1), independent<int>(2), changed<int>(3, 9));
+}
+```
+
+This prints `1 2 9`. The first call returns its previous one-argument callback and installs the two-argument callback. The second factory still returns its original one-argument callback. Calling the first factory again returns its updated callback. No captured owner is implicitly cloned. A missing restoration branch or a throw before restoration retains the consuming invocation requirement.
+
+Owned callbacks may also capture another owned factory callback. Transferring the outer callback from an array preserves the child callback state for that instance. Independent instances do not share child updates. Borrowed lexical captures retain their existing shared identity and lifetime restrictions.

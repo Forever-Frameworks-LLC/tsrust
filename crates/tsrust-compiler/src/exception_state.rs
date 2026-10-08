@@ -41,6 +41,7 @@ impl ErrorFrame {
 
 #[inline(never)]
 pub(super) fn record_point(context:&mut Context,span:Span) {
+    super::capture_restoration::record(context);
     let Some(outer)=context.error_frame.as_ref().map(|frame|frame.outer) else {return;};
     let state=ExitState::capture(context,outer);
     context.error_frame.as_mut().expect("active error frame").points.push((span,state));

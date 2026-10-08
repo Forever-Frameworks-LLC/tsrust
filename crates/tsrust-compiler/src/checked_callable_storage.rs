@@ -10,6 +10,19 @@ impl Analyzer {
             self.require(actual, Some(Type::StoredCallable(family)), value.span)?;
             return Ok(actual);
         }
+        if let Type::Closure(origin)=actual {
+            let result=self.closures[origin].function.result;
+            let wanted=self.callables.callbacks[declaration].result;
+            if let (Type::Closure(source),Type::Closure(destination))=(result,wanted)
+                && source!=destination
+                && let (Some(left),Some(right))=(self.deferred_generic_values.get(&source),self.deferred_generic_values.get(&destination))
+                && left.declaration==right.declaration
+                && [source,destination].into_iter().all(|id|!self.closures[id].borrowed && self.closures[id].lifetime_count==0)
+            {
+                self.polymorphic_storage.observe(source,destination);
+                self.callables.storage.note_nested_result(source,destination);
+            }
+        }
         self.require(actual, Some(expected), value.span)?;
         let Type::Closure(mut origin) = actual else {
             return Err(Diagnostic::new(

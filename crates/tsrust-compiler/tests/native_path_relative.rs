@@ -351,3 +351,50 @@ fn relative_matches_pinned_reference_with_controlled_directory_and_drive_context
     }
     assert!(rows.next().is_none());
 }
+
+#[test]
+fn imported_relative_observers_preserve_independent_callable_factory_state() {
+    let source = r#"import {relative as between} from "std:path";import {strictEqual} from "std:testing";
+function one<T>(value:T):T{return value;}
+function two<T>(value:T,other:T):T{return other;}
+function factory<A>(initial:A){let action=initial;return(restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}
+function wrap<A>(initial:A){let action=factory(initial);return(restore:boolean)=>{return action(restore);};}
+function main(){const saved=between;const instances=[wrap(one)];strictEqual(between("reports","reports/2026"),"2026");for(let index=0;index<2;index+=1){instances.push(wrap(one));}const seed=instances.shift()!;const first=instances.shift()!;const second=instances.shift()!;const original=first(false);strictEqual(saved("reports","reports/2026"),"2026");const independent=second(true);const changed=first(true);strictEqual(original<int>(1),1);strictEqual(independent<int>(2),2);strictEqual(changed<int>(3,9),9);console.log("relative factory accepted");}"#;
+    let formatted = tsrust_compiler::format(source).unwrap();
+    assert_eq!(tsrust_compiler::format(&formatted).unwrap(), formatted);
+    let temp = support::TempDirectory::new();
+    let file = temp.source(&formatted);
+    let output = support::run(support::cli().arg("emit").arg(file), 30);
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let rust = temp.0.join("relative-factory.rs");
+    std::fs::write(&rust, output.stdout).unwrap();
+    for optimization in ["0", "3"] {
+        let binary = temp.0.join(format!("relative-factory-{optimization}"));
+        let output = support::run(
+            support::rustc()
+                .arg("--edition=2024")
+                .arg("-C")
+                .arg(format!("opt-level={optimization}"))
+                .arg(&rust)
+                .arg("-o")
+                .arg(&binary),
+            30,
+        );
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let output = support::run(&mut std::process::Command::new(binary), 10);
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(output.stdout, b"relative factory accepted\n");
+    }
+}

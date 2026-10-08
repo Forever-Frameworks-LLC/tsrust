@@ -60,7 +60,7 @@ struct Binding {
     targets: Vec<Target>,
     origins: Vec<body_origins::Origin>,
     selection: Selection,
-    elements: Option<Vec<Element>>,
+    elements: Option<branch_flow::array_shape::Sequence<Element>>,
     mutable: bool,
     contract: Option<Contract>,
 }

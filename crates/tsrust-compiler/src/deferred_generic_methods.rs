@@ -34,7 +34,7 @@ impl Analyzer {
     #[inline(never)]
     #[allow(clippy::too_many_arguments)]
     pub(super) fn materialize_selected_generic_methods(
-        &mut self, original: usize, function: usize, result: Type, args: &[Expr],
+        &mut self, context:&mut Context, original: usize, function: usize, result: Type, args: &[Expr],
         accesses: &[named_capture_access::Access], invocation: Mode, origins: &[usize], span: Span,
     ) -> Result<usize, Diagnostic> {
         let mut pairs = Vec::with_capacity(origins.len());
@@ -42,15 +42,12 @@ impl Analyzer {
             if origin != original {
                 let previous = &self.deferred_generic_values[&original];
                 let next = &self.deferred_generic_values[&origin];
-                // Representation reuse currently admits only these families.
-                // Captured or different declarations need independent checking
-                // before one body's specialization can supply their layout.
                 if previous.declaration != next.declaration
                     || !previous.identities.is_empty() || !next.identities.is_empty()
                     || !self.closures[original].captures.is_empty() || !self.closures[origin].captures.is_empty()
                 {
-                    return Err(Diagnostic::new("callable-layout", "Selected generic environments require independently checked declaration and capture contracts.", span)
-                        .related(self.closures[origin].span, "Alternative environment is defined here."));
+                    pairs.push(self.prepare_deferred_alternative_method(context,origin,args.to_vec(),Some(result),span)?);
+                    continue;
                 }
             }
             let method = self.materialize_deferred_method(origin, function, result, args, accesses, invocation, span)?;
@@ -103,6 +100,7 @@ impl Analyzer {
             invocation: method_invocation,
             captures: method_captures,
             parameters: (0..checked.parameter_count).collect(),
+            parameter_callbacks:bindings[..checked.parameter_count].iter().map(|binding|match binding.ty {Type::Callback(id)=>Some(self.callables.callbacks[id].structural),_=>None}).collect(),
             function: CheckedFunction {
                 template: checked.template, specialization: true, name: checked.name.clone(),
                 bindings, parameter_count: 0,

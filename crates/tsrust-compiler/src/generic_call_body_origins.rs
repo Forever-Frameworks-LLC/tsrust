@@ -58,6 +58,8 @@ pub(super) fn resolve(initial: Vec<Origin>, bindings: &[Binding], declarations: 
                     } else { resolved.push(Origin::Unknown); }
                 } else if effects.binding(&name, span).is_some() {
                     resolved.push(Origin::Unknown);
+                } else if crate::native_bindings::by_symbol(&name).is_some() {
+                    resolved.push(Origin::Name(name,span));
                 } else if let Some(declaration) = declarations.get(&name)
                     && effects.body(declaration.declaration).is_some() {
                     resolved.push(Origin::Body(declaration.declaration));

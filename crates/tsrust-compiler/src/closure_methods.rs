@@ -118,6 +118,7 @@ impl Analyzer {
             invocation,
             captures,
             parameters: source.parameters.clone(),
+            parameter_callbacks:source.parameters.iter().map(|&parameter|match context.bindings[parameter].ty {Type::Callback(id)=>Some(self.callables.callbacks[id].structural),_=>None}).collect(),
             function: CheckedFunction {
                 template: context.template,
                 specialization: true,

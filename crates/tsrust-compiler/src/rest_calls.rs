@@ -272,6 +272,7 @@ impl Analyzer {
                     body,
                 },
                 captures: vec![Capture {
+                    restored:false,
                     outer: expression.binding.unwrap_or(0),
                     inner: 0,
                     storage,

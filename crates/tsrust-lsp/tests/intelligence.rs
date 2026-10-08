@@ -8007,8 +8007,35 @@ fn fresh_generic_replacement_keeps_checked_editor_types_and_capture_diagnostics(
     assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("int[]"), "{hover}");
     let captured = "function main(){let calls=0;function identity<T>(value:T):T{calls+=1;return value;}let action=identity;action=identity;console.log(action<int>(7));}";
     let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(captured, "file:///replacement.tsr").unwrap()).unwrap();
-    assert_eq!(diagnostics[0]["code"], "callable-origin", "{diagnostics}");
+    assert_eq!(diagnostics[0]["code"], "capture-conflict", "{diagnostics}");
     assert!(!diagnostics[0]["relatedInformation"].as_array().unwrap().is_empty());
+}
+
+#[test]
+fn distinct_generic_replacement_uses_reachable_parameter_help() {
+    let source=tsrust_compiler::format("function first<T>(left:T):T{return left;}function second<T>(right:T):T{return right;}function main(){let action=first;action=second;const result=action<int>(7);console.log(result);}").unwrap();
+    assert_eq!(tsrust_compiler::format(&source).unwrap(),source);
+    assert!(tsrust_lsp::diagnostics(&source,"file:///replacement.tsr").unwrap().is_empty());
+    let help=ask(&source,"textDocument/signatureHelp","7)",0);
+    assert!(help["signatures"][0]["parameters"][0]["label"].as_str().unwrap_or("").contains("right: int"),"{help}");
+    let hover=ask(&source,"textDocument/hover","result =",0);
+    assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("int"),"{hover}");
+}
+
+#[test]
+fn joined_generic_replacement_help_shows_consuming_access() {
+    let source="function read<T>(value:T):string{return \"read\";}function take<T>(value:T):T{return value;}function choose(flag:boolean):string{let action=read;if(flag){action=take;}return action<string>(\"owned\");}function main(){choose(true);}";
+    assert!(tsrust_lsp::diagnostics(source,"file:///joined.tsr").unwrap().is_empty());
+    let help=ask(source,"textDocument/signatureHelp","\"owned\")",0);
+    assert!(help["signatures"][0]["parameters"][0]["label"].as_str().unwrap_or("").contains("Owned<string>"),"{help}");
+}
+
+#[test]
+fn replaced_generic_callback_help_preserves_structural_contract() {
+    let source="function first<T>(value:T,callback:ReadOnly<Function<int>>):int{return callback();}function second<T>(value:T,callback:ReadOnly<Function<int>>):int{return callback()+7;}function choose(flag:boolean):int{let action=first;if(flag){action=second;}return action<int>(1,():int=>3);}function main(){choose(true);}";
+    assert!(tsrust_lsp::diagnostics(source,"file:///callback-replacement.tsr").unwrap().is_empty());
+    let help=ask(source,"textDocument/signatureHelp","():int=>3",0);
+    assert!(help["signatures"][0]["parameters"][1]["label"].as_str().unwrap_or("").contains("ReadOnly<Function<int>>"),"{help}");
 }
 
 #[test]
@@ -8253,4 +8280,76 @@ fn path_join_catalog_examples_execute() {
         }
     }
     std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn captured_generic_replacement_keeps_reachable_parameter_names() {
+    let source="function choose(flag:boolean):int{const left=3;const right=7;function first<T>(original:T):int{return left;}function second<T>(selected:T):int{return right;}let action=first;if(flag){action=second;}if(flag){return action<int>(0);}return action<int>(0);}function main(){choose(true);}";
+    assert!(tsrust_lsp::diagnostics(source,"file:///captured-replacement.tsr").unwrap().is_empty());
+    let help=ask(source,"textDocument/signatureHelp","0);",0);
+    assert!(help.to_string().contains("original | selected"),"{help}");
+}
+
+#[test]
+fn restored_owned_capture_supports_repeated_calls_in_editor() {
+    let source="function identity<T>(value:T):T{return value;}function make(){let action=identity;return ()=>{const previous=action;action=identity;return previous;};}function main(){const take=make();const first=take();const second=take();const result=second<int>(7);console.log(first<int>(3),result);}";
+    assert!(tsrust_lsp::diagnostics(source,"file:///restored-capture.tsr").unwrap().is_empty());
+    let help=ask(source,"textDocument/signatureHelp","7);",0);assert!(help.to_string().contains("value: int"),"{help}");
+    let hover=ask(source,"textDocument/hover","result=",0);assert!(hover.to_string().contains("int"),"{hover}");
+}
+
+#[test]
+fn repeated_factory_helpers_preserve_independent_signature_help() {
+    let source="function one<T>(value:T):T{return value;}function two<T>(value:T,other:T):T{return other;}function factory<A>(initial:A){let action=initial;return (restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}function fresh(){return factory(one);}function main(){const first=fresh();const original=first(false);const second=fresh();const independent=second(true);const changed=first(true);console.log(original<int>(1),independent<int>(2),changed<int>(3,9));}";
+    assert!(tsrust_lsp::diagnostics(source,"file:///factory-context.tsr").unwrap().is_empty());
+    let help=ask(source,"textDocument/signatureHelp","3,9",0);
+    assert!(help.to_string().contains("other: int"),"{help}");
+}
+
+#[test]
+fn stored_factory_concrete_results_keep_editor_types() {
+    let source="function make(value:int){return ()=>{return ()=>{return value;};};}function main(){const factories=[make(3),make(7)];const first=factories.shift()!;const second=factories.shift()!;const left=first();const right=second();const result=left();console.log(result,right());}";
+    assert!(tsrust_lsp::diagnostics(source,"file:///nested-factory.tsr").unwrap().is_empty());
+    let hover=ask(source,"textDocument/hover","result=",0);
+    assert!(hover.to_string().contains("int"),"{hover}");
+}
+
+#[test]
+fn stored_factories_return_generic_callbacks_in_editor() {
+    let source="function one<T>(value:T):T{return value;}function factory<A>(action:A){return()=>{return action;};}function main(){const factories=[factory(one)];factories.push(factory(one));const first=factories.shift()!;const second=factories.shift()!;const left=first();const right=second();const result=right<int>(7);console.log(left<int>(3),result);}";
+    assert!(tsrust_lsp::diagnostics(source,"file:///nested-generic-factory.tsr").unwrap().is_empty());
+    let help=ask(source,"textDocument/signatureHelp","7);",0);
+    assert!(help.to_string().contains("value: int"),"{help}");
+    let hover=ask(source,"textDocument/hover","result=",0);
+    assert!(hover.to_string().contains("int"),"{hover}");
+}
+
+#[test]
+fn transferred_array_factories_preserve_selected_signature_help() {
+    let source="function one<T>(value:T):T{return value;}function two<T>(value:T,other:T):T{return other;}function factory<A>(initial:A){let action=initial;return(restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}function main(){const instances=[factory(one)];instances.push(factory(one));const first=instances.shift()!;const second=instances.shift()!;const original=first(false);const independent=second(true);const changed=first(true);console.log(original<int>(1),independent<int>(2),changed<int>(3,9));}";
+    assert!(tsrust_lsp::diagnostics(source,"file:///array-factory-state.tsr").unwrap().is_empty());
+    let help=ask(source,"textDocument/signatureHelp","3,9",0);
+    assert!(help.to_string().contains("other: int"),"{help}");
+}
+
+#[test]
+fn loop_transferred_factories_preserve_independent_signature_help() {
+    let source="function one<T>(value:T):T{return value;}function two<T>(value:T,other:T):T{return other;}function factory<A>(initial:A){let action=initial;return(restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}function main(){const instances=[factory(one)];for(let index=0;index<2;index=index+1){instances.push(factory(one));}const seed=instances.shift()!;const first=instances.shift()!;const second=instances.shift()!;const original=first(false);const independent=second(true);const changed=first(true);console.log(original<int>(1),independent<int>(2),changed<int>(3,9));}";
+    assert!(tsrust_lsp::diagnostics(source,"file:///loop-factory-state.tsr").unwrap().is_empty());
+    let independent=ask(source,"textDocument/signatureHelp","2),changed<int>",0);
+    assert!(independent.to_string().contains("value: int"),"{independent}");
+    assert!(!independent.to_string().contains("other: int"),"{independent}");
+    let help=ask(source,"textDocument/signatureHelp","3,9",0);
+    assert!(help.to_string().contains("other: int"),"{help}");
+}
+
+#[test]
+fn nested_loop_factories_preserve_independent_signature_help() {
+    let source="function one<T>(value:T):T{return value;}function two<T>(value:T,other:T):T{return other;}function factory<A>(initial:A){let action=initial;return(restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}function wrap<A>(initial:A){let action=factory(initial);return(restore:boolean)=>{return action(restore);};}function main(){const instances=[wrap(one)];for(let index=0;index<2;index=index+1){instances.push(wrap(one));}const seed=instances.shift()!;const first=instances.shift()!;const second=instances.shift()!;const original=first(false);const independent=second(true);const changed=first(true);console.log(original<int>(1),independent<int>(2),changed<int>(3,9));}";
+    assert!(tsrust_lsp::diagnostics(source,"file:///nested-loop-factory-state.tsr").unwrap().is_empty());
+    let independent=ask(source,"textDocument/signatureHelp","2),changed<int>",0);
+    assert!(independent.to_string().contains("value: int"),"{independent}");
+    assert!(!independent.to_string().contains("other: int"),"{independent}");
+    let help=ask(source,"textDocument/signatureHelp","3,9",0);
+    assert!(help.to_string().contains("other: int"),"{help}");
 }

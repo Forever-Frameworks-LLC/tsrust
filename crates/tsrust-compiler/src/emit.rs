@@ -1,3 +1,5 @@
+#[path = "restored_capture_slots.rs"]
+mod restored_capture_slots;
 #[path = "polymorphic_storage_emit.rs"]
 mod polymorphic_storage_emit;
 #[path = "callback_family_result_adapters.rs"]
@@ -121,6 +123,7 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
         callback_traits,
         counted_calls,
         program,
+        restored_slots:restored_capture_slots::Index::new(program),
         entry_setup,
         source_segments: &[],
         fields,
@@ -188,6 +191,7 @@ struct Emitter<'a> {
     callback_traits: bool,
     counted_calls: bool,
     program: &'a CheckedProgram,
+    restored_slots:restored_capture_slots::Index,
     entry_setup: &'a str,
     source_segments: &'a [(crate::project::SourceId,usize,usize)],
     fields: Vec<HashMap<&'a str, usize>>,
@@ -787,7 +791,6 @@ impl Emitter<'_> {
             Some(ClosureForward::Once(inner)) => (inner, true),
             _ => (origin, false),
         };
-        let checked = &self.program.closures[closure];
         let pairs = [crate::polymorphic_invocation_plans::Pair { origin: closure, method }];
         let plan = if let Some(id) = callee.generic_invocation.or_else(|| self.program.polymorphic_invocations.index(&pairs)) {
             self.program.polymorphic_invocations.checked(id, &self.program.closures, callee.span)
@@ -799,19 +802,20 @@ impl Emitter<'_> {
         let receiver = self.expr(fun, callee, invocation);
         let receiver = if once { format!("({receiver}).capture0") } else { receiver };
         let mutable = invocation == Mode::Consume && method_invocation == Mode::Mutate;
-        let body = plan.cases[0].body;
-        let values = args.iter().zip(&body.parameters).map(|(arg, &parameter)| {
-            self.expr(fun, arg, body.function.bindings[parameter].mode)
+        let values = args.iter().zip(&plan.argument_modes).map(|(arg, &mode)| {
+            self.expr(fun, arg, mode)
         }).collect::<Vec<_>>();
         let family = self.program.polymorphic_storage.contains(closure).then(|| self.program.polymorphic_storage.checked(closure, &self.program.closures, callee.span).expect("checked invocation storage"));
-        let text = plan.render(&receiver, &values, &supplied_count.to_string(),
-            |_| matches!(checked.forward, Some(ClosureForward::RestAdapter { counted: true, .. })),
+        let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
+        plan.render_with_transport(&receiver, &values, &supplied_count.to_string(),
+            |pair| matches!(self.program.closures[pair.origin].forward, Some(ClosureForward::RestAdapter { counted: true, .. })),
             mutable, family.as_ref().map(|family| (family.id, family.origins.as_slice())), callee.span,
-        ).expect("checked materialized invocation arguments");
-        if let Some(name)=self.result_methods.borrow().get(&(closure,method)).cloned() {
-            let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
-            self.exception_regions.result_call(&text,&name,&self.program.error_effects.method_errors[&(closure,method)],&unions,callee.span).expect("checked method Result invocation")
-        }else{text}
+            |pair,text| {
+                if let Some(name)=self.result_methods.borrow().get(&(pair.origin,pair.method)).cloned() {
+                    self.exception_regions.result_call(&text,&name,&self.program.error_effects.method_errors[&(pair.origin,pair.method)],&unions,callee.span)
+                } else {Ok(text)}
+            },
+        ).expect("checked materialized invocation arguments and Result transport")
     }
 
     fn capture_layout(
@@ -827,6 +831,7 @@ impl Emitter<'_> {
                 && self.program.polymorphic_storage.contains(origin) {
                 *field = field.replace(&format!("Closure{origin}"), &self.generic_storage_type(origin));
             }
+            if capture.restored {*field=format!("Option<{field}>");continue;}
             if !self.record_capture_is_view(capture,closure){continue;}
             let lifetime=field.strip_prefix('&').unwrap().split_whitespace().next().unwrap();
             let start=lifetime.strip_prefix("'c").unwrap().parse::<usize>().unwrap()+1;
@@ -2415,15 +2420,10 @@ impl Emitter<'_> {
         {
             let contract = &self.program.callback_contracts[declaration];
             if self.program.stored_contracts.is_borrowed(id) {self.emit_borrowed_family(&mut output,id,declaration,origins);continue;}
-            let check_family = if contract.kind == crate::syntax::CallbackKind::SharedRead {
-                crate::callable_dispatch::Family::checked_shared
-            } else { crate::callable_dispatch::Family::checked };
-            let family = check_family(
-                contract,
-                &self.program.callable_shapes,
-                origins.iter().copied(),
-                &self.program.closures,
-                crate::Span::default(),
+            let family = crate::callable_dispatch::Family::checked_results(
+                contract, &self.program.callable_shapes, origins.iter().copied(),
+                &self.program.closures, crate::Span::default(),
+                |actual,expected|self.program.stored_contracts.equivalent_result(actual,expected),
             )
             .expect("checked native callable storage family");
             let result_layout=self.result_storage.borrow().get(&id).cloned();
@@ -3435,6 +3435,9 @@ impl Emitter<'_> {
                     "{};",
                     self.compound_assignment(fun, target, value, *op, *span)
                 ),
+                StmtKind::Assign {target,value,operator:None} if target.binding.is_some_and(|id|self.restored_capture(fun,id)) => {
+                    format!("{}value{} = Some({});",if fun.bindings[target.binding.unwrap()].capture_reference {"*"}else{""},target.binding.unwrap(),self.expr(fun,value,Mode::Consume))
+                }
                 StmtKind::Assign { target, value, .. }
                     if matches!(
                         target.ty,
@@ -6316,8 +6319,19 @@ impl Emitter<'_> {
         )
     }
 
+    fn restored_capture(&self,fun:&CheckedFunction,index:usize)->bool {
+        self.restored_slots.contains(fun,index)
+    }
+
     fn binding(&self, fun: &CheckedFunction, index: usize, mode: Mode) -> String {
         let b = &fun.bindings[index];
+        if self.restored_capture(fun,index) {
+            return match mode {
+                Mode::Consume=>format!("value{index}.take().expect(\"initialized capture\")"),
+                Mode::Read|Mode::Copy=>format!("value{index}.as_ref().expect(\"initialized capture\")"),
+                Mode::Mutate=>format!("value{index}.as_mut().expect(\"initialized capture\")"),
+            };
+        }
         if let Some(value)=self.owned_record_value(fun,index,&[],mode){return value;}
         if let Some(value)=self.record_parameter_borrowed_value(fun,index,&[],mode){return value;}
         if matches!(b.ty, Type::BorrowedUnion(_))
@@ -7234,7 +7248,7 @@ impl Emitter<'_> {
                 if matches!(target.kind,ExprKind::Name(_)){
                     let id=target.binding.expect("checked assignment binding");
                     let assigned=self.expr(fun,value,Mode::Consume);
-                    if let Some(store)=self.owned_record_assignment(fun,id,&assigned){format!("{{{store}}}")}else{format!("{{{}value{id}={assigned};}}",if fun.bindings[id].capture_reference{"*"}else{""})}
+                    if self.restored_capture(fun,id) {format!("{{{}value{id}=Some({assigned});}}",if fun.bindings[id].capture_reference {"*"}else{""})} else if let Some(store)=self.owned_record_assignment(fun,id,&assigned){format!("{{{store}}}")}else{format!("{{{}value{id}={assigned};}}",if fun.bindings[id].capture_reference{"*"}else{""})}
                 }else{self.storage_assignment(fun,target,value)}
             }
             ExprKind::Assign { target, value, .. } => self.scalar_assignment(fun, target, value),
@@ -7936,7 +7950,7 @@ impl Emitter<'_> {
                         format!(
                             "capture{}: {}",
                             capture.inner,
-                            if capture.storage==Mode::Read && matches!(fun.bindings[capture.outer].ty,Type::Union(id)|Type::BorrowedUnion(id) if !id.copy) {
+                            if capture.restored {format!("Some({})",self.binding(fun,capture.outer,capture.storage))} else if capture.storage==Mode::Read && matches!(fun.bindings[capture.outer].ty,Type::Union(id)|Type::BorrowedUnion(id) if !id.copy) {
                                 let code=self.binding(fun,capture.outer,Mode::Read);
                                 if matches!(fun.bindings[capture.outer].ty,Type::BorrowedUnion(_)) || (fun.bindings[capture.outer].parameter && fun.bindings[capture.outer].mode==Mode::Read && !fun.bindings[capture.outer].capture_reference) {code} else {let method=if self.callback_payload(fun.bindings[capture.outer].ty).is_some(){"tsr_view"}else{"tsr_data_view"};format!("({code}).{method}()")}
                             } else if self.record_capture_is_view(capture,&self.program.closures[id]){self.record_capture_value(fun,capture.outer,capture.storage)} else {self.binding(fun, capture.outer, capture.storage)}
@@ -9008,6 +9022,28 @@ mod exception_region_tests {
         let opening=main+rust[main..].find('{').unwrap()+1;
         rust.insert_str(opening,"carrier_witness();");
         crate::scoped_record_places::tests::native(&rust);
+    }
+    #[test]
+    fn selected_generic_method_uses_its_own_result_transport() {
+        let source=crate::format("function first<T>(value:T):int{return 1;}function second<T>(value:T):int{return 8/0;}function main(){const one=first;const two=second;one<int>(3);two<int>(4);}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let mut checked=crate::check(&source).unwrap();
+        let runtime=crate::error_effects::materialize_runtime_record(&mut checked.program);
+        let main=checked.program.functions.iter().position(|function|function.name=="main").unwrap();
+        let calls=checked.program.functions[main].body.iter().filter_map(|statement|match &statement.kind {crate::syntax::StmtKind::Expr(call)=>Some(call),_=>None}).collect::<Vec<_>>();
+        let crate::syntax::ExprKind::Call(callee,_)=&calls[1].kind else {panic!("second call");};
+        let Some(crate::syntax::Type::Closure(origin))=callee.ty else {panic!("second environment");};
+        let Some(crate::syntax::CallTarget::ClosureMethod(method))=calls[1].target else {panic!("second method");};
+        let mut statement=checked.program.functions[main].body.iter().find(|statement|matches!(statement.kind,crate::syntax::StmtKind::Expr(_))).unwrap().clone();
+        let crate::syntax::StmtKind::Expr(call)=&mut statement.kind else {unreachable!()};
+        let id=checked.program.polymorphic_invocations.publish([crate::polymorphic_invocation_plans::Pair{origin,method}],&checked.program.closures,call.span).unwrap();
+        let crate::syntax::ExprKind::Call(callee,_)=&mut call.kind else {unreachable!()};
+        callee.generic_invocation=Some(id);
+        let emitter=super::emitter_for(&checked.program,"");
+        emitter.result_methods.borrow_mut().insert((origin,method),"SelectedMethodError".into());
+        let contract=checked.program.error_effects.method_errors[&(origin,method)].clone();
+        let body=emitter.callable_result_body(&checked.program.functions[main],&[statement],123,"DestinationError",contract,Some(runtime));
+        assert!(body.contains("SelectedMethodError"),"selected Result transport missing: {body}");
     }
     #[test]
     fn source_exception_pipeline_executes_catch_finally_and_propagation() {

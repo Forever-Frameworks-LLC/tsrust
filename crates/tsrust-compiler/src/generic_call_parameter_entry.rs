@@ -2,6 +2,7 @@
 use super::*;
 pub(super) struct Entry {
     pub normal: bool,
+    pub resume_at: Option<usize>,
     pub failures: Vec<FlowState>,
     pub facts: HashMap<(usize, usize), Option<Vec<Contract>>>,
 }
@@ -14,12 +15,16 @@ fn install(binding: &mut Binding, value: &expression_flow::Value) {
 }
 pub(super) fn prepare(declaration: Span, arguments: &[expression_flow::Value], state: &mut FlowState, declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index, dispatch: &mut dyn expression_flow::Dispatch) -> Option<Entry> {
     let parameters = effects.parameters(declaration)?;
-    let mut entry = Entry { normal: true, failures: Vec::new(), facts: HashMap::new() };
     for parameter in parameters {
         let index = state.iter().position(|binding| binding.identity == parameter.binding.identity)?;
         install(&mut state[index], &expression_flow::Value::default());
     }
-    for (position, parameter) in parameters.iter().enumerate() {
+    prepare_from(declaration, arguments, state, declarations, effects, dispatch, 0)
+}
+pub(super) fn prepare_from(declaration: Span, arguments: &[expression_flow::Value], state: &mut FlowState, declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index, dispatch: &mut dyn expression_flow::Dispatch, start: usize) -> Option<Entry> {
+    let parameters = effects.parameters(declaration)?;
+    let mut entry = Entry { normal: true, resume_at: None, failures: Vec::new(), facts: HashMap::new() };
+    for (position, parameter) in parameters.iter().enumerate().skip(start) {
         let index = state.iter().position(|binding| binding.identity == parameter.binding.identity)?;
         if parameter.rest { install(&mut state[index], &expression_flow::Value::array(arguments.get(position..).unwrap_or(&[]))); continue; }
         let supplied = arguments.get(position);
@@ -31,7 +36,7 @@ pub(super) fn prepare(declaration: Span, arguments: &[expression_flow::Value], s
                 entry.failures.extend(evaluation.failures);
                 if evaluation.normal { install(&mut default_state[index], &evaluation.value); }
                 if value.selection().undefined == Some(true) {
-                    if !evaluation.normal { entry.normal = false; return Some(entry); }
+                    if !evaluation.normal { entry.normal = false; entry.resume_at = Some(position); return Some(entry); }
                     *state = default_state;
                 } else {
                     install(&mut state[index], &value);

@@ -1300,3 +1300,66 @@ fn path_relative_imported_borrowed_pair_editor_contract() {
     }
     let help=ask(&index,entry,"'reports/2026');","textDocument/signatureHelp");assert_eq!(help["signatures"][0]["parameters"][0]["label"],"from: string");assert_eq!(help["signatures"][0]["parameters"][1]["label"],"to: string");assert_eq!(help["activeParameter"],1,"{help}");
 }
+
+#[test]
+fn imported_assertions_and_native_aliases_keep_independent_factory_signatures() {
+    let entry=r#"import {join} from "std:path";import {strictEqual} from "std:testing";function one<T>(value:T):T{return value;}function two<T>(value:T,other:T):T{return other;}function factory<A>(initial:A){let action=initial;return(restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}function wrap<A>(initial:A){let action=factory(initial);return(restore:boolean)=>{return action(restore);};}function main(){const saved=join;strictEqual(saved("a","b"),"a/b");const instances=[wrap(one)];for(let index=0;index<2;index+=1){instances.push(wrap(one));}const seed=instances.shift()!;const first=instances.shift()!;const second=instances.shift()!;const original=first(false);const independent=second(true);const changed=first(true);strictEqual(original<int>(1),1);strictEqual(independent<int>(2),2);strictEqual(changed<int>(3,9),9);}"#;
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();
+    workspace.open(source_id(uri).unwrap(),1,entry.into());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index=ProjectIndex::checked(&checked);
+    let independent=ask(&index,entry,"2),2","textDocument/signatureHelp");
+    assert!(independent.to_string().contains("value: int"),"{independent}");
+    assert!(!independent.to_string().contains("other: int"),"{independent}");
+    let changed=ask(&index,entry,"3,9","textDocument/signatureHelp");
+    assert!(changed.to_string().contains("other: int"),"{changed}");
+}
+
+#[test]
+fn catch_and_finally_declarations_keep_checked_navigation_and_signatures() {
+    let entry=r#"import {strictEqual} from "std:testing";function main(){let total=0;try{const value=enter(2);function enter(value:int):int{total+=value;return total;}strictEqual(value,2);throw 3;}catch(error){const value=recover(4);function recover(value:int):int{total+=value;return total;}strictEqual(value,6);strictEqual(error===3,true);}finally{finish();function finish():void{total+=8;}}strictEqual(total,14);}"#;
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();
+    workspace.open(source_id(uri).unwrap(),1,entry.into());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index=ProjectIndex::checked(&checked);
+    for (needle,name) in [("recover(4)","recover"),("finish();","finish")] {
+        let hover=ask(&index,entry,needle,"textDocument/hover");
+        assert!(hover.to_string().contains(name),"{hover}");
+        let definition=ask(&index,entry,needle,"textDocument/definition");
+        assert_eq!(definition["uri"],uri,"{definition}");
+    }
+    let help=ask(&index,entry,"4);function recover","textDocument/signatureHelp");
+    assert!(help["signatures"][0]["label"].as_str().unwrap().replace(' ',"").contains("recover(value:int):int"),"{help}");
+}
+
+#[test]
+fn caught_values_keep_checked_generic_assertion_help() {
+    let entry="import {strictEqual} from 'std:testing';function main(){try{strictEqual(1,1);throw 3;}catch(error){strictEqual(error,3);}}";
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();
+    workspace.open(source_id(uri).unwrap(),1,entry.into());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,entry,"strictEqual(error","textDocument/hover");
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("strictEqual"),"{hover}");
+    let help=ask(&index,entry,"3);}}","textDocument/signatureHelp");
+    assert!(help["signatures"][0]["label"].as_str().unwrap().contains("expected"),"{help}");
+}
+
+#[test]
+fn relative_native_aliases_keep_point_sensitive_factory_editor_contracts() {
+    let entry=r#"import {relative as between} from "std:path";import {strictEqual} from "std:testing";
+function one<T>(value:T):T{return value;}
+function two<T>(value:T,other:T):T{return other;}
+function factory<A>(initial:A){let action=initial;return(restore:boolean)=>{const previous=action;if(restore){action=one;}else{action=two;}return previous;};}
+function wrap<A>(initial:A){let action=factory(initial);return(restore:boolean)=>{return action(restore);};}
+function main(){const saved=between;const instances=[wrap(one)];strictEqual(between("reports","reports/2026"),"2026");for(let index=0;index<2;index+=1){instances.push(wrap(one));}const seed=instances.shift()!;const first=instances.shift()!;const second=instances.shift()!;const original=first(false);strictEqual(saved("reports","reports/2026"),"2026");const independent=second(true);const changed=first(true);strictEqual(original<int>(1),1);strictEqual(independent<int>(2),2);strictEqual(changed<int>(3,9),9);console.log("relative factory accepted");}"#;
+    let entry=entry.replace('\n'," ");let entry=entry.as_str();
+    let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.into());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let independent=ask(&index,entry,"2),2","textDocument/signatureHelp");assert!(independent.to_string().contains("value: int"),"{independent}");assert!(!independent.to_string().contains("other: int"),"{independent}");
+    let changed=ask(&index,entry,"3,9","textDocument/signatureHelp");assert!(changed.to_string().contains("other: int"),"{changed}");
+    let hover=ask(&index,entry,"saved(\"reports\"","textDocument/hover");assert!(hover.to_string().contains("path-relative"),"{hover}");
+}

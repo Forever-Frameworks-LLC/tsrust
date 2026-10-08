@@ -207,7 +207,7 @@ impl Analyzer {
             matches!(&annotation.kind,crate::type_syntax::ValueAnnotationKind::Named(variable) if self.generic_functions.template(name).unwrap().type_parameters.iter().any(|parameter|parameter.text==variable.text))
         }).collect::<Vec<_>>();
         for (argument,polymorphic) in args.iter_mut().zip(polymorphic_slots) {
-            if polymorphic && expected.is_none() {self.prepare_polymorphic_argument_hint(context,argument)?;}
+            if polymorphic {self.prepare_polymorphic_argument_hint(context,argument)?;}
         }
         let mut inline_shapes = HashMap::new();
         for ((_, pattern, _), argument) in self

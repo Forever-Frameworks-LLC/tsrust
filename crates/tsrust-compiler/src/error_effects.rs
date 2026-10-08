@@ -232,6 +232,22 @@ pub(crate) fn annotate(program:&mut CheckedProgram)->ErrorEffects {
 /// Solve finite callback-origin relationships retained by source checking.
 /// Unknown source kinds and declarations without callers remain opaque.
 #[inline(never)]
+// Checked invocation alternatives own their parameter identities; receiver storage
+// cannot identify the callback contracts of a replacement method.
+fn selected_callback_arguments(callee:&Expr,arguments:&[Expr],closures:&[crate::analysis::CheckedClosure],invocations:&crate::polymorphic_invocation_plans::Registry)->Option<Vec<(usize,Type)>> {
+    let id=callee.generic_invocation?;
+    let plan=invocations.checked(id,closures,callee.span).expect("validated generic invocation");
+    let mut origins=Vec::new();
+    for case in plan.cases {
+        for (&parameter,argument) in case.body.parameters.iter().zip(arguments) {
+            if let Type::Callback(id)=case.body.function.bindings[parameter].ty {
+                origins.push((id,argument.ty.unwrap_or(Type::Void)));
+            }
+        }
+    }
+    Some(origins)
+}
+
 pub(crate) fn annotate_inferred_callbacks(program:&mut CheckedProgram)->ErrorEffects {
     use std::collections::HashMap;
     let (active_functions,active_closures)=executable_callers(program);
@@ -257,6 +273,10 @@ pub(crate) fn annotate_inferred_callbacks(program:&mut CheckedProgram)->ErrorEff
     for function in program.functions.iter().enumerate().filter(|(id,_)|active_functions.contains(id)).map(|(_,function)|function).chain(program.closures.iter().enumerate().filter(|(id,_)|active_closures.contains(id)).flat_map(|(_,closure)|std::iter::once(&closure.function).chain(closure.methods.iter().map(|method|&method.function)))) {
         for call in checked_expressions(function) {
             let ExprKind::Call(callee,args)=&call.kind else {continue;};
+            if matches!(call.target,Some(CallTarget::ClosureMethod(_))) && let Some(selected)=selected_callback_arguments(callee,args,&program.closures,&program.polymorphic_invocations) {
+                for (id,ty) in selected {origins.entry(id).or_default().push(ty);}
+                continue;
+            }
             let parameters=match call.target {
                 Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id))=>program.functions.get(id).map(|target|target.bindings.iter().take(target.parameter_count).collect::<Vec<_>>()),
                 Some(CallTarget::Closure(_)|CallTarget::ConditionalClosure(_))=>{
@@ -461,6 +481,10 @@ pub(crate) fn annotate_partial_with_callers(functions:&mut [Option<&mut CheckedF
     for function in functions.iter().filter_map(|function|function.as_deref()).chain(std::iter::once(caller)).chain(closures.iter().map(|closure|&closure.function)).chain(closures.iter().flat_map(|closure|closure.methods.iter().map(|method|&method.function))) {
         for expression in checked_expressions(function) {
             let ExprKind::Call(callee,arguments)=&expression.kind else {continue;};
+            if matches!(expression.target,Some(CallTarget::ClosureMethod(_))) && let Some(selected)=selected_callback_arguments(callee,arguments,closures,invocations) {
+                for (id,ty) in selected {origins.entry(id).or_default().extend(if let Type::Union(id)=ty {unions.members(id)}else{vec![ty]});}
+                continue;
+            }
             let parameters=match expression.target {
                 Some(CallTarget::Function(target)|CallTarget::ForwardFunction(target))=>functions.get(target).and_then(Option::as_deref).map(|target|target.bindings.iter().take(target.parameter_count).collect::<Vec<_>>()),
                 Some(CallTarget::Closure(_)|CallTarget::ConditionalClosure(_))=>{
@@ -1302,6 +1326,39 @@ mod tests {
             assert_eq!(found.opaque,name=="unused","{name}: {found:?}");
             assert_eq!(found.runtime,matches!(name,"direct"|"relay"|"borrowed"),"{name}: {found:?}");
         }
+    }
+
+    #[test]
+    fn selected_generic_method_receives_callback_argument_effects() {
+        let source = crate::format("function first<T>(value:T,f:ReadOnly<Function<int,[n:int]>>):int{return f(1);}function second<T>(value:T,f:ReadOnly<Function<int,[n:int]>>):int{return f(2);}function main(){const one=first;const two=second;one<int>(7,(n:int):int=>1/n);two<int>(9,(n:int):int=>n);}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let mut program=crate::check(&source).unwrap().program;
+        let main=program.functions.iter().position(|function|function.name=="main").unwrap();
+        let calls=program.functions[main].body.iter().filter_map(|statement|match &statement.kind {StmtKind::Expr(call)=>Some(call),_=>None}).collect::<Vec<_>>();
+        let ExprKind::Call(second,_) = &calls[1].kind else {panic!("second call");};
+        let Some(Type::Closure(origin))=second.ty else {panic!("method environment");};
+        let method=match calls[1].target {Some(CallTarget::ClosureMethod(method))=>method,_=>panic!("method target")};
+        let body=&program.closures[origin].methods[method];
+        let Type::Callback(callback)=body.function.bindings[body.parameters[1]].ty else {panic!("callback contract");};
+        let id=program.polymorphic_invocations.publish([crate::polymorphic_invocation_plans::Pair{origin,method}],&program.closures,crate::Span::default()).unwrap();
+        let mut seen=false;
+        program.functions[main].body.retain_mut(|statement| {
+            let StmtKind::Expr(call)=&mut statement.kind else {return true;};
+            if seen {return false;} seen=true;
+            let ExprKind::Call(callee,_)=&mut call.kind else {panic!("first call");};
+            callee.generic_invocation=Some(id);
+            true
+        });
+        let unions=crate::unions::UnionArena::from_snapshot(program.unions.clone());
+        let (before,remaining)=program.functions.split_at_mut(main);
+        let (caller,after)=remaining.split_first_mut().unwrap();
+        let mut functions=before.iter_mut().map(Some).chain(std::iter::once(None)).chain(after.iter_mut().map(Some)).collect::<Vec<_>>();
+        let regional=annotate_partial_with_callers(&mut functions,&mut program.closures,&[],caller,&unions,&program.polymorphic_invocations);
+        let contract=regional.callback_errors.get(&callback).expect("regional selected callback origin");
+        assert!(contract.runtime && !contract.opaque,"regional selected method must receive the failing argument: {contract:?}");
+        let effects=annotate_inferred_callbacks(&mut program);
+        let contract=effects.callback_errors.get(&callback).expect("selected callback origin");
+        assert!(contract.runtime && !contract.opaque,"selected method must receive the failing argument: {contract:?}");
     }
 
     #[test]

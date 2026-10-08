@@ -846,6 +846,12 @@ fn deferred_call_fact(program: &CheckedProgram, expression: &Expr, names: &mut H
     let CallTarget::ClosureMethod(method) = expression.target? else { return None; };
     let ExprKind::Call(callee, _) = &expression.kind else { return None; };
     let Type::Closure(origin) = callee.ty? else { return None; };
+    let selected=callee.generic_invocation.map(|id|program.polymorphic_invocations.checked(id,&program.closures,callee.span)).transpose().ok()?;
+    let (origin,method)=if let Some(plan)=&selected {
+        let case=plan.cases.iter().find(|case|case.pair.origin==origin && case.pair.method==method)
+            .or_else(||if plan.cases.len()==1 {plan.cases.first()} else {None})?;
+        (case.pair.origin,case.pair.method)
+    } else {(origin,method)};
     let declaration = program.deferred_generic_sources.get(&origin)?;
     let method = program.closures[origin].methods.get(method)?;
     let bindings = method.parameters.iter().map(|id| &method.function.bindings[*id]).collect::<Vec<_>>();
@@ -854,11 +860,39 @@ fn deferred_call_fact(program: &CheckedProgram, expression: &Expr, names: &mut H
         parameter_types: bindings.iter().map(|binding| binding.input_ty.unwrap_or(binding.ty)).collect(),
         body_parameter_types: bindings.iter().map(|binding| binding.ty).collect(),
         result_type: method.function.result,
-        parameters: bindings.iter().map(|binding| GenericParameterInfo {
-            name: binding.name.clone(), ty: type_name(program, binding.input_ty.unwrap_or(binding.ty), names),
+        parameters: bindings.iter().enumerate().map(|(index,binding)| GenericParameterInfo {
+            name: selected.as_ref().map_or_else(||binding.name.clone(),|plan| {
+                let mut labels=Vec::new();
+                for case in &plan.cases {
+                    let label=&case.body.function.bindings[case.body.parameters[index]].name;
+                    if !labels.contains(label) {labels.push(label.clone());}
+                }
+                labels.join(" | ")
+            }), ty: type_name(program, binding.input_ty.unwrap_or(binding.ty), names),
             body_ty: type_name(program, binding.ty, names), omission: binding.omission,
-            rest: binding.rest, access: binding.mode,
+            rest: binding.rest, access: selected.as_ref().map_or(binding.mode,|plan|plan.argument_modes[index]),
         }).collect(),
         result: type_name(program, method.function.result, names)?,
     })
+}
+
+#[test]
+fn deferred_projection_uses_selected_declaration_contract() {
+    let source=crate::format("function first<T>(left:T):T{return left;}function second<T>(right:T):T{return right;}function main(){const one=first;const two=second;one<int>(1);two<int>(2);}").unwrap();
+    assert_eq!(crate::format(&source).unwrap(),source);
+    let mut program=crate::check(&source).unwrap().program;
+    let main=program.functions.iter().position(|function|function.name=="main").unwrap();
+    let calls=program.functions[main].body.iter().filter_map(|statement|match &statement.kind {StmtKind::Expr(call)=>Some(call),_=>None}).collect::<Vec<_>>();
+    let ExprKind::Call(callee,_) = &calls[1].kind else {panic!("second call");};
+    let Some(Type::Closure(origin))=callee.ty else {panic!("second environment");};
+    let Some(CallTarget::ClosureMethod(method))=calls[1].target else {panic!("second method");};
+    let expected_span=program.deferred_generic_sources[&origin].span;
+    let mut expression=calls[0].clone();
+    let id=program.polymorphic_invocations.publish([crate::polymorphic_invocation_plans::Pair{origin,method}],&program.closures,expression.span).unwrap();
+    let ExprKind::Call(callee,_) = &mut expression.kind else {panic!("first call");};
+    callee.generic_invocation=Some(id);
+    let fact=deferred_call_fact(&program,&expression,&mut HashMap::new()).unwrap();
+    assert_eq!(fact.parameters[0].name,"right");
+    assert_eq!(fact.declaration_span,expected_span);
+    assert_eq!(fact.result,"int");
 }

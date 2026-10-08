@@ -28,9 +28,10 @@ impl<'a> Family<'a> {
                     span,
                 )
             })?;
-        Self::checked_storage(contract, signatures, origins, closures, span, storage)
+        Self::checked_storage(contract, signatures, origins, closures, span, storage, |actual, expected| actual == expected)
     }
 
+    #[cfg(test)]
     pub(crate) fn checked_shared(
         contract: &'a CallbackContract,
         signatures: &Contracts,
@@ -40,7 +41,17 @@ impl<'a> Family<'a> {
     ) -> Result<Self, Diagnostic> {
         let storage = StorageContract::checked_shared(signatures, contract.structural)
             .ok_or_else(|| Diagnostic::new("callback-access", "Shared callable storage requires a readonly contract.", span))?;
-        Self::checked_storage(contract, signatures, origins, closures, span, storage)
+        Self::checked_storage(contract, signatures, origins, closures, span, storage, |actual, expected| actual == expected)
+    }
+
+    pub(crate) fn checked_results(
+        contract: &'a CallbackContract, signatures: &Contracts,
+        origins: impl IntoIterator<Item=usize>, closures: &[CheckedClosure], span: Span,
+        equivalent: impl Fn(Type,Type)->bool,
+    )->Result<Self,Diagnostic> {
+        let storage=if contract.kind==crate::syntax::CallbackKind::SharedRead {StorageContract::checked_shared(signatures,contract.structural)} else {StorageContract::checked(signatures,contract.structural)}
+            .ok_or_else(||Diagnostic::new("callback-escape","Callable storage requires an owned contract.",span))?;
+        Self::checked_storage(contract,signatures,origins,closures,span,storage,equivalent)
     }
 
     fn checked_storage(
@@ -50,6 +61,7 @@ impl<'a> Family<'a> {
         closures: &[CheckedClosure],
         span: Span,
         storage: StorageContract,
+        equivalent: impl Fn(Type,Type)->bool,
     ) -> Result<Self, Diagnostic> {
         let mut origins = origins.into_iter().collect::<Vec<_>>();
         origins.sort_unstable();
@@ -71,7 +83,7 @@ impl<'a> Family<'a> {
                 ));
             }
             if closure.parameters.len() != contract.params.len()
-                || closure.function.result != contract.result
+                || !equivalent(closure.function.result, contract.result)
             {
                 return Err(Diagnostic::new(
                     "type",
@@ -95,10 +107,11 @@ impl<'a> Family<'a> {
                 param.ty,
                 Type::Callback(_) | Type::Callable(_) | Type::Closure(_) | Type::StoredCallable(_)
             )
-        }) || matches!(
-            contract.result,
-            Type::Callback(_) | Type::Callable(_) | Type::Closure(_) | Type::StoredCallable(_)
-        ) {
+        }) || match contract.result {
+            Type::Closure(id) => closures.get(id).is_none_or(|closure| closure.borrowed || closure.lifetime_count != 0),
+            Type::Callback(_) | Type::Callable(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_) => true,
+            _ => false,
+        } {
             return Err(Diagnostic::new(
                 "callable-layout",
                 "Nested callable storage signatures require their own concrete layout.",
@@ -659,6 +672,24 @@ fn shared_family_emission_invokes_through_immutable_reference_counted_handles() 
     rust.push_str(include_str!("stdlib/testing/shared_callback_runtime.rs"));
     rust.push_str("fn main(){let first=StoredCallable99::from_origin_0(function0(NumericArray::from([1i64,2i64])));let second=first.clone();assert_eq!(first.call(),2);drop(first);assert_eq!(second.call(),2);println!(\"shared readonly family\");}");
     tests::execute(&rust,"shared readonly family\n");
+}
+
+#[cfg(test)]
+#[test]
+fn nested_result_requires_a_known_owned_environment() {
+    let mut checked=crate::check("function make(value:int){return ()=>{return ()=>{return value;};};}function main(){const factories=[make(3)];}").unwrap();
+    let program=&mut checked.program;
+    let (_,declaration,origins)=program.stored_contracts.families().next().unwrap();
+    let origins=origins.to_vec();let source=&program.callback_contracts[declaration];
+    let mut contract=CallbackContract {structural:source.structural,parameter_names:source.parameter_names.clone(),params:source.params.clone(),result:source.result,kind:source.kind};
+    let Type::Closure(result)=contract.result else {panic!("concrete nested result")};
+    assert!(Family::checked(&contract,&program.callable_shapes,origins.clone(),&program.closures,Span::default()).is_ok());
+    program.closures[result].borrowed=true;
+    assert_eq!(Family::checked(&contract,&program.callable_shapes,origins.clone(),&program.closures,Span::default()).err().unwrap().code,"callable-layout");
+    program.closures[result].borrowed=false;program.closures[result].lifetime_count=1;
+    assert!(Family::checked(&contract,&program.callable_shapes,origins.clone(),&program.closures,Span::default()).is_err());
+    program.closures[result].lifetime_count=0;contract.result=Type::Closure(usize::MAX);
+    assert!(Family::checked(&contract,&program.callable_shapes,[],&program.closures,Span::default()).is_err());
 }
 
 #[cfg(test)]

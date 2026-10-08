@@ -1353,5 +1353,19 @@
     },
     "sameSourceNativeImprovedRows": 15,
     "olderFreshRows": 18
+  },
+  "resumableCallableSummaries": {
+    "status": "accepted-source-and-consumers",
+    "sourceCommit": "974fa8e",
+    "compilerChecks": 2342,
+    "compilerFailures": 0,
+    "intentionalCompilerIgnores": 3,
+    "editorChecks": 360,
+    "focusedFlowChecks": 102,
+    "depthCanaries": 8,
+    "representativeWorkloads": 3,
+    "timed": false,
+    "priorRuntimeMeasurementsRetained": true,
+    "evidence": "../../docs/milestones/resumable-callable-summaries.md"
   }
 }

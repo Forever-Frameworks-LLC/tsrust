@@ -1,0 +1,47 @@
+# Generic state join efficiency investigation
+
+Status: in progress; no compilation speedup accepted. Last accepted checkpoint is d604c0a. Preserve the fifteen owner fixture edits.
+
+The current release compiler checking generic_value_adapters.tsr reaches a 55-second observation limit. This probe records compiler checking only, not native runtime performance. A fresh live sample again shows generic specialization, guard partitions, state joins and binding metadata cloning. The process is terminated at the limit; it is not left running or restarted from an observation timeout.
+
+A focused storage-budget witness joins identical normalized scalar facts 1,000 times. Before the change, the first join replaces the binding storage and its owned metadata. The rejected shortcut retains storage when states are equal, every binding has one unknown target and one origin, no aggregate or alternative metadata exists, and captures are unknown or consumed. Named targets, multiple origins and live captures still take the original join path. Nine environment-state tests pass, including a new equal-state control that requires named-target resolution and origin canonicalization.
+
+## Rejected experiment and next evidence
+
+Finish affected callable replacement and exception checks. Verify guard partitions and contract-set controls. Run the eight depth canaries if retaining the shared-flow change. Check representative editor projects. Build a release compiler and compare a bounded compilation probe against the recorded baseline, with identical source hashes and serialized runs. Determine whether the shortcut occurs in the slow workload before describing it as its repair. If the shortcut adds cost without material benefit, remove it and preserve rejected evidence. Do not bypass canonicalization or ownership, and do not increase recursion limits.
+
+Format the whole project before checkpointing. Preserve original and repaired evidence byte for byte in SQLite, refresh consumers only after source acceptance, prune closed artifacts and write a final handoff. Canonical SQLite records are tsrust-generic-join-current-probe.json, tsrust-generic-join-current-sample.txt, tsrust-generic-join-storage-red.log, tsrust-generic-join-storage-repaired.log and tsrust-generic-join-affected.log. All listed records are terminal, imported and read back byte for byte. The candidate passes 93 generic-flow unit controls and 23 affected native/exception tests, but lacks verified end-to-end benefit. The retained eight environment-state controls pass after removal.
+
+The candidate release build also reaches the identical 55-second observation limit with the same source hash. Neither bounded probe completes, so they provide no throughput ratio or speedup. Remove the candidate shortcut and its implementation-specific storage witness. Preserve its exact patch, red and green tests, source/binary identities and both bounded probes in SQLite. Retain the semantic equal-state test because a future equality shortcut must still resolve named targets and canonicalize provenance. The shared analyzer and installed consumers remain at the accepted behavior; no consumer refresh is necessary for a test-only checkpoint.
+
+Next instrument worklist evaluation, state-join counts and unchanged-state frequency in a bounded diagnostic build. Distinguish repeated scheduling from metadata cost. Do not accept a throughput claim from an incomplete probe or equate a storage micro-witness with fixing this workload.
+
+The worklist already has test-only evaluation counters and bounded scheduling witnesses. Extend that existing mechanism rather than adding general profiling infrastructure. The warm release target contains the rejected candidate build; installed consumers remain the accepted d604c0a behavior. Rebuild the warm release binary from current source before using it for future acceptance.
+
+## Scheduling witness and next implementation gate
+
+Existing counters plus a test-only invocation-visit counter isolate independent nonterminal calls. For 8, 16, 32 and 64 calls, requests are 9, 17, 33 and 65; evaluations are 17, 33, 65 and 129; invocation visits are 44, 152, 560 and 2,144. This matches repeated prefix replay, n(n+3)/2 invocation visits. It does not prove every cost in the large adapter workload has the same cause.
+
+The new independent_operator_calls_do_not_replay_completed_prefixes witness is intentionally red: it requires at most n+2 evaluations and 3n invocation visits, with checked call facts and stable repeated solve results. At eight calls it reports 17 evaluations. Production code is unchanged. The initial diagnostic and red budget logs are canonical SQLite records with tsrust-worklist-* identities.
+
+Implement an isolated eager-leaf eligibility helper. Preserve the existing identity-return path. Admit a single return expression composed only of required parameter references, scalar literals and ordinary binary operators, with at least one parameter reference. Validate lexical parameter identity. Reject default/rest parameters, captures, writes, call expressions, indexing, fields, aggregates, nested functions and mutation expressions. A leaf cannot request another invocation, so immediate evaluation has bounded nesting. Execute the existing contextual summary, including failure edges; do not invent summaries, suppress exceptions or alter ownership. Keep literal-only returns outside this initial gate.
+
+Before acceptance, add eligibility negatives and throwing-operator/captured-state controls; make the budget green at all four sizes; run the affected worklist, generic exception and callable replacement suites, representative editor checks and eight depth canaries. Rebuild release before serial bounded large-workload checks. Report large-workload improvement only if completed equivalent probes prove it. Format the project, checkpoint, preserve exact SQLite evidence and refresh consumers after acceptance. No heavy matrix or runtime timing is required for this bounded scheduling repair.
+
+## Operator-return implementation
+
+The isolated generic_call_terminal_returns.rs helper admits only the planned invocation-free single return trees, with required lexical parameter identity and at least one parameter reference. Existing contextual summaries complete eagerly; the scheduling and failure machinery is unchanged. The operation witness is green at 8/16/32/64 calls: evaluations 10/18/34/66 and invocation visits 16/32/64/128. This proves the targeted prefix-replay budget, not a whole-workload throughput improvement.
+
+All 93 generic-flow unit controls pass. Eligibility negatives cover dispatch, mutation, indexing, defaults, rest, literal-only returns, capture and writes. A formatted project/native witness passes at optimization levels 0 and 3, including integer division failure caught by the caller and repeated captured-state mutation on the original path. Eight depth canaries, 23 affected exception/replacement checks and 57 checked editor projects pass. Release compilation comparison and final publication remain open.
+
+Operator-return scheduling is accepted in source checkpoint 450ad0b. Five consumers are atomically refreshed from this source. The large adapter check still reaches the 55-second limit with the same input hash; no whole-workload throughput improvement is established. This gate closes the proved operator-call prefix replay and does not close the wider compilation-efficiency investigation. Future evidence must count work in the large workload or isolate its other return/capture patterns.
+
+## Aggregate and literal return scheduling
+
+The same bounded diagnostic covers array literals, record literals and constant returns. Each shape has 2,144 invocation visits and 129 evaluations at 64 calls before the extension. An explicit budget fails first on eight array-return calls. The helper now traverses array elements and record field expressions, and permits literal-only returns. Names still require lexical parameter identity; capture, default/rest, mutation, indexing and nested invocation exclusions remain unchanged. This continues to use existing contextual summaries and failure transport.
+
+All nine shape/size combinations meet the linear visit budget afterward: 8/32/64 calls take 16/64/128 visits and 10/34/66 evaluations. All 94 generic-flow controls pass. A formatted native fixture passes at optimization levels 0 and 3 for independent owned string records, stored callable invocation, independent string arrays, zero-argument constant returns and caught failure during array construction. All eight shared-flow depth canaries, 23 affected native contracts and 57 checked editor projects pass. Three representative emitted programs (named results, generic results and captured rest) retain exact hashes against the previous accepted release compiler. No claim about the entire large workload is made.
+
+Aggregate/literal scheduling publication is accepted at 74eeaa0: all five consumers pass combined CLI/native/LSP smoke checks. Exact evidence is verified in SQLite; closed loose records and test executables are removed. Wider compilation-efficiency work remains open.
+
+The wider investigation now has a resumable-summary plan and an intentionally red nested-call witness. See ../resumable-callable-summaries-plan.md and ../handoff-2026-10-08-resumable-summary-plan.md. Sparse test-only traces isolate the actual workload root; production behavior is unchanged at this planning checkpoint.

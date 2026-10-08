@@ -58,6 +58,8 @@ mod logical_values;
 pub(crate) mod generic_function_values;
 #[path = "closure_methods.rs"]
 mod closure_methods;
+#[path = "capture_restoration.rs"]
+mod capture_restoration;
 #[path = "generic_value_adapters.rs"]
 mod generic_value_adapters;
 #[path = "checked_value_annotations.rs"]
@@ -149,6 +151,8 @@ pub struct CheckedFunction {
 }
 
 pub struct Capture {
+    /// Checked completion snapshots prove this moved capture is restored.
+    pub restored: bool,
     pub outer: usize,
     pub inner: usize,
     pub storage: Mode,
@@ -174,6 +178,8 @@ pub struct CheckedClosureMethod {
     /// Method binding slots paired with the environment capture fields.
     pub captures: Vec<usize>,
     pub parameters: Vec<usize>,
+    /// Structural callback layout per parameter; origin IDs remain independent.
+    pub(crate) parameter_callbacks:Vec<Option<crate::callable_contracts::ContractId>>,
     pub function: CheckedFunction,
 }
 
@@ -372,6 +378,7 @@ type CallbackMetadata = (Option<Mode>, bool, Option<CallbackKind>);
 
 #[derive(Clone)]
 struct Context {
+    capture_restoration:Option<capture_restoration::Tracker>,
     region_loop_depth:Option<usize>,
     region_entry_loans:Option<std::rc::Rc<crate::capture_loan_identity::Boundary>>,
     exception_environment:Option<std::rc::Rc<exception_state::CheckEnvironment>>,
@@ -423,6 +430,7 @@ impl Context {
 
     fn new(function_name: String) -> Self {
         Self {
+            capture_restoration:None,
             region_loop_depth:None,
             region_entry_loans:None,
             exception_environment:None,
@@ -910,6 +918,7 @@ fn callback_calls(
     functions: &[&CheckedFunction],
     closures: &[CheckedClosure],
     parameter_ids: &[usize],
+    invocations: &crate::polymorphic_invocation_plans::Registry,
 ) -> Result<Vec<CallbackCall>, Diagnostic> {
     enum Node<'a> {
         Statement(&'a Stmt),
@@ -991,7 +1000,10 @@ fn callback_calls(
                 }
                 ExprKind::Selected { .. } => (),
                 ExprKind::Call(callee, args) => {
-                    let target = match expr.target {
+                    let selected = if matches!(expr.target, Some(CallTarget::ClosureMethod(_))) {
+                        callee.generic_invocation.map(|id| invocations.checked(id, closures, callee.span)).transpose()?
+                    } else { None };
+                    let target = if selected.is_some() { None } else { match expr.target {
                         Some(
                             CallTarget::Function(target) | CallTarget::ForwardFunction(target),
                         ) => {
@@ -1021,8 +1033,12 @@ fn callback_calls(
                             ))
                         }
                         _ => None,
-                    };
-                    if let Some((target, checked, parameter_ids)) = target {
+                    }};
+                    let targets = target.into_iter().chain(selected.iter().flat_map(|plan| plan.cases.iter().map(|case| (
+                        NativeCallbackTarget::Method(case.pair.origin, case.pair.method),
+                        &case.body.function, case.body.parameters.clone(),
+                    ))));
+                    for (target, checked, parameter_ids) in targets {
                         let mut arguments = Vec::new();
                         for (&parameter, arg) in parameter_ids.iter().zip(args) {
                             if matches!(checked.bindings[parameter].ty, Type::Callback(_)) {
@@ -1118,6 +1134,7 @@ fn validate_callback_instances(
     closures: &[CheckedClosure],
     recursive: &HashSet<usize>,
     definitions: &[Function],
+    invocations: &crate::polymorphic_invocation_plans::Registry,
 ) -> Result<(), Diagnostic> {
     let mut calls = HashMap::new();
     let mut visited = HashSet::new();
@@ -1131,7 +1148,7 @@ fn validate_callback_instances(
         let parameters = (0..function.parameter_count).collect::<Vec<_>>();
         calls.insert(
             node,
-            callback_calls(function, functions, closures, &parameters)?,
+            callback_calls(function, functions, closures, &parameters, invocations)?,
         );
         if !parameters
             .iter()
@@ -1152,6 +1169,7 @@ fn validate_callback_instances(
                 functions,
                 closures,
                 &closure.parameters,
+                invocations,
             )?);
         }
         for (method, checked) in closure.methods.iter().enumerate() {
@@ -1161,7 +1179,7 @@ fn validate_callback_instances(
             let node = NativeCallbackTarget::Method(origin, method);
             calls.insert(
                 node,
-                callback_calls(&checked.function, functions, closures, &checked.parameters)?,
+                callback_calls(&checked.function, functions, closures, &checked.parameters, invocations)?,
             );
             // Every method is reached through a typed caller edge. Do not seed
             // generic methods with a fabricated empty witness vector.
@@ -2144,6 +2162,8 @@ impl Analyzer {
                 context.readonly_parameters.insert(binding);
             }
         }
+        let restoration=capture_restoration::Tracker::new((0..visible.len()).collect());
+        context.capture_restoration=Some(restoration.clone());
         let returned = self
             .check_source_callable_body(&mut context, Self::uninitialized_body(body), result)
             .map_err(|error| self.filter_ownership_fixes(&context, error))?;
@@ -2181,6 +2201,7 @@ impl Analyzer {
             result
         };
         self.finalize_nullable_locals(&mut context.bindings, body)?;
+        let restoration_bounded=capture_restoration::bounded_body(body);
         let mut captures = Vec::new();
         let mut invocation = Mode::Read;
         for (inner, &outer_id) in visible.iter().enumerate() {
@@ -2190,7 +2211,8 @@ impl Analyzer {
                     return Err(Self::pending_result(span));
                 }
                 let access = binding.mode;
-                invocation = invocation.max(access);
+                let restored=access==Mode::Consume && restoration.permits(inner) && restoration_bounded;
+                invocation = invocation.max(if restored {Mode::Mutate}else{access});
                 let storage = if binding.ty.is_copy() {
                     if access == Mode::Mutate && !escapes {
                         Mode::Mutate
@@ -2219,6 +2241,7 @@ impl Analyzer {
                     outer.capture_loans.push((outer_id, storage, span));
                 }
                 captures.push(Capture {
+                    restored,
                     outer: outer_id,
                     inner,
                     storage,
@@ -2820,6 +2843,7 @@ impl Analyzer {
                 body: Vec::new(),
             },
             captures: vec![Capture {
+                restored:false,
                 outer: 0,
                 inner: 0,
                 storage: Mode::Consume,
@@ -2891,6 +2915,7 @@ impl Analyzer {
                 body: Vec::new(),
             },
             captures: vec![Capture {
+                restored:false,
                 outer: 0,
                 inner: 0,
                 storage: Mode::Consume,
@@ -2966,6 +2991,7 @@ impl Analyzer {
     }
 
     fn require(&self, actual: Type, expected: Option<Type>, span: Span) -> Result<(), Diagnostic> {
+        if expected.is_some_and(|expected|self.callables.storage.equivalent_result(actual,expected)) {return Ok(());}
         if !self.deferred_generic_values.is_empty() {
             self.deferred_generic_requirement(actual, expected, span)?;
         }
@@ -3148,6 +3174,7 @@ impl Analyzer {
                 &self.closures,
                 &self.recursive_callbacks,
                 &self.program.functions,
+                &self.polymorphic_invocations,
             )?;
         }
         if !self.effects_only{self.scoped_record_containers()?;self.record_parameter_carriers()?;}
@@ -3541,6 +3568,7 @@ impl Analyzer {
         }
         let record=crate::error_effects::runtime_error_schema();
         let id=self.program.records.len();
+        self.record_names.insert(record.name.text.clone(),id);
         self.fields.push(record.fields.iter().map(|field|(field.name.text.clone(),field.ty.expect("runtime error field type"))).collect());
         self.program.records.push(record);
         Type::Record(id)
@@ -5123,6 +5151,7 @@ impl Analyzer {
         let facts = self.aggregate_callable_facts(ty);
         if facts.scoped || facts.unknown {return Err(Diagnostic::new("closure-escape","A thrown value must own any callable storage it contains.",value.span));}
         if ty==Type::Void {return Err(Diagnostic::new("type","A thrown expression must produce a value.",value.span));}
+        capture_restoration::record(context);
         self.record_typed_completion(context,crate::completion::CompletionKind::Throw,ty,value.span);
         Ok(ty)
     }
@@ -5248,6 +5277,7 @@ impl Analyzer {
                 } => self.assign_statement(context, target, value, *operator)?,
                 StmtKind::Return(value) => {
                     self.return_statement(context, value, result_type, stmt.span)?;
+                    capture_restoration::record(context);
                     exited = true;
                 }
                 StmtKind::Expr(value) => {
@@ -5562,7 +5592,7 @@ impl Analyzer {
         // but rejecting a read of x after an earlier transfer. Commit only after
         // evaluation and exact type checking complete.
         let actual = self.expression(context, value, Mode::Consume, loans, Some(ty))?;
-        if !self.effects_only && !self.discovering_results && !context.template
+        if !context.template
             && let (Type::Closure(previous), Type::Closure(next)) = (ty, actual)
             && self.deferred_generic_values.contains_key(&previous)
             && self.deferred_generic_values.contains_key(&next)
@@ -9397,12 +9427,13 @@ impl Analyzer {
         // A value that is already stored moves as its own family; only a
         // fresh environment is checked against the declared signature.
         let stored = matches!(self.expression_type_hint(context, value), Some(Type::StoredCallable(_)));
+        let inferred_generic_factory=matches!(&value.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if !context.names.contains_key(name) && self.generic_functions.template(name).is_some_and(|template|template.result.is_none())));
         let actual = self.expression(
             context,
             value,
             Mode::Consume,
             loans,
-            Some(if stored { Type::StoredCallable(family) } else { expected }),
+            if inferred_generic_factory {None} else {Some(if stored { Type::StoredCallable(family) } else { expected })},
         )?;
         self.checked_stored_callable_value(context,value,family,actual)
     }
@@ -16123,4 +16154,29 @@ impl Analyzer {
         }
         self.expression(context,operand,Mode::Read,loans,None)
     }
+}
+
+#[cfg(test)]
+#[test]
+fn native_callback_graph_retains_selected_generic_method_identity() {
+    let source=crate::format("function first<T>(value:T,f:ReadOnly<Function<int,[n:int]>>):int{return f(1);}function second<T>(value:T,f:ReadOnly<Function<int,[n:int]>>):int{return f(2);}function main(){const one=first;const two=second;one<int>(7,(n:int):int=>n);two<int>(9,(n:int):int=>n);}").unwrap();
+    assert_eq!(crate::format(&source).unwrap(),source);
+    let mut program=crate::check(&source).unwrap().program;
+    let main=program.functions.iter().position(|function|function.name=="main").unwrap();
+    let selected=program.functions[main].body.iter().filter_map(|statement|match &statement.kind {StmtKind::Expr(call)=>Some(call),_=>None}).nth(1).unwrap();
+    let ExprKind::Call(callee,_)=&selected.kind else {panic!("method call");};
+    let Some(Type::Closure(origin))=callee.ty else {panic!("environment");};
+    let Some(CallTarget::ClosureMethod(method))=selected.target else {panic!("method");};
+    let plan=program.polymorphic_invocations.publish([crate::polymorphic_invocation_plans::Pair{origin,method}],&program.closures,Span::default()).unwrap();
+    let mut seen=false;
+    program.functions[main].body.retain_mut(|statement| {
+        let StmtKind::Expr(call)=&mut statement.kind else {return true;};
+        if seen {return false;}seen=true;
+        let ExprKind::Call(callee,_)=&mut call.kind else {panic!("call");};
+        callee.generic_invocation=Some(plan);true
+    });
+    let functions=program.functions.iter().collect::<Vec<_>>();
+    let calls=callback_calls(&program.functions[main],&functions,&program.closures,&[],&program.polymorphic_invocations).unwrap();
+    assert!(calls.iter().any(|call|matches!(call.target,NativeCallbackTarget::Method(found,ordinal) if found==origin && ordinal==method)),"selected method must retain a native callback edge");
+    assert_eq!(calls.len(),1,"inactive receiver method must not remain a call edge");
 }

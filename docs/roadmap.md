@@ -1,3 +1,7 @@
+**Resumable callable summary acceptance:** [Scheduling milestone](./milestones/resumable-callable-summaries.md). Completed caller prefixes are retained across nested summary updates; ordered pending defaults resume without replaying completed defaults. Bounded eager wrapper completion passes the unchanged operation budgets. Full compiler 2,342 and editor 360 pass; three representative workloads verify untimed with unchanged emitted programs. Five consumers are refreshed and verified; closed artifacts are pruned.
+
+**Named declaration family source and measurement acceptance:** [Family milestone](./milestones/named-declaration-family.md). Reconciled compiler evidence covers 2,328 unique checks; current editor 359 and twelve registrations pass. Twelve workloads measured, with two changed programs remeasured after removing small scalar rest snapshot allocations. Original records remain in SQLite. Five executable consumers are refreshed and verified.
+
 **Gate 173 accepted:** [Named declaration signatures and inferred results](./milestones/173-nested-function-signatures.md). Omitted result types are inferred for nonrecursive functions; generic functions and functions with optional, default and rest parameters are values, also when they use variables of the enclosing function. Eight matched workloads verified untimed. Two callable-replacement witnesses stay red for the work that follows. Gate 172 was reconciled against the plan with no open requirement.
 
 **Scoped callable records accepted:** [Borrowing callback fields](./milestones/173-scoped-callable-records.md). Record fields declared `ReadOnly<Function<...>>` or `Mutable<Function<...>>` borrow local variables with independent field storage, record parameters, replacement, moves and escape rejection. Whole compiler crate passes except two kept callable-replacement witnesses; editor 339; one matched workload verified untimed. Seven regressions in accepted features and about 30 stale expectations were repaired. Arrays, Maps, Sets and unions of such records stay rejected.
@@ -732,3 +736,10 @@ immutable bytes with explicitly proven formatting identities. Representative nat
 and Node-after-tsc verification is untimed. The named-declaration family milestone
 and callable replacement witnesses remain separate work. See
 [milestone 174](milestones/174-benchmark-layout-contracts.md).
+
+
+## Generic callable replacement milestone
+
+Finite replacement carriers and point-specific checked invocation now preserve saved values, different declarations and arities, defaults/rest, capture access and selected failures. Owned mutable factories retain independent capture state across repeated calls, loop-created array storage, reinsertion and nested child capture graphs. Recursive array analysis widens request inputs to keep analysis finite. Existing borrowing and explicit-copy rules remain unchanged.
+
+The family regression milestone covers 2,325 compiler passes after affected publication repairs with zero failures and two intentional subprocess-worker ignores, plus 358 editor passes. Original interrupted recursion evidence and repaired checks remain in SQLite. The nineteen-observation replacement workload has 186 execution samples and a reviewed native median advantage of approximately 10.02 on this machine. All five consumers rebuilt from ea6bda3 pass combined CLI/native/checked-editor smoke. Imported assertions and stored native aliases preserve point-sensitive contracts. Broader scoped aggregate composition remains separate work. See milestones/callable-replacement-family.md.

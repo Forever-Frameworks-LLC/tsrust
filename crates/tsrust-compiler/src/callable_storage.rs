@@ -172,8 +172,17 @@ pub(crate) struct Registry {
     declarations: Vec<usize>,
     origins: Vec<Vec<usize>>,
     borrowed: std::collections::HashSet<usize>,
+    nested_results: std::collections::HashSet<(usize,usize)>,
 }
 impl Registry {
+    pub(crate) fn note_nested_result(&mut self, actual:usize, expected:usize) {
+        self.nested_results.insert((actual.min(expected),actual.max(expected)));
+    }
+    pub(crate) fn equivalent_result(&self,actual:crate::syntax::Type,expected:crate::syntax::Type)->bool {
+        if actual==expected {return true;}
+        let (crate::syntax::Type::Closure(a),crate::syntax::Type::Closure(b))=(actual,expected) else {return false;};
+        self.nested_results.contains(&(a.min(b),a.max(b)))
+    }
     pub(crate) fn intern(
         &mut self,
         signatures: &Contracts,
@@ -236,11 +245,7 @@ impl Registry {
             for &other in &origins[1..]{crate::borrowed_callable_contracts::Family::checked(closures,[origins[0],other],span)?;}
             return Ok(());
         }
-        if declaration.kind == CallbackKind::SharedRead {
-            crate::callable_dispatch::Family::checked_shared(declaration, signatures, [origin], closures, span)?;
-        } else {
-            crate::callable_dispatch::Family::checked(declaration, signatures, [origin], closures, span)?;
-        }
+        crate::callable_dispatch::Family::checked_results(declaration,signatures,[origin],closures,span,|actual,expected|self.equivalent_result(actual,expected))?;
         let origins = &mut self.origins[family];
         if let Err(index) = origins.binary_search(&origin) {
             origins.insert(index, origin);
@@ -286,6 +291,12 @@ impl Registry {
                 return Err(Diagnostic::new("callable-layout", "Callable storage retains an unresolved environment origin.", Span::default()));
             }
         }
+        let nested_results=self.nested_results.iter().map(|&(a,b)|{
+            let a=ids.get(a).copied().flatten().ok_or_else(||Diagnostic::new("callable-layout","Nested result lost its environment origin.",Span::default()))?;
+            let b=ids.get(b).copied().flatten().ok_or_else(||Diagnostic::new("callable-layout","Nested result lost its environment origin.",Span::default()))?;
+            Ok((a.min(b),a.max(b)))
+        }).collect::<Result<std::collections::HashSet<_>,Diagnostic>>()?;
+        self.nested_results=nested_results;
         self.identities=std::mem::take(&mut self.identities).into_iter().map(|(contract,id)|{
             let contract=if let StorageContract::Borrowed(signature,origins)=contract {
                 let mut origins=origins.into_iter().map(|origin|ids[origin].expect("validated borrowed origin")).collect::<Vec<_>>();origins.sort();
@@ -332,6 +343,7 @@ fn family_origin_compaction_preserves_identity_and_commits_only_valid_maps() {
     let mut registry = Registry::default();
     registry.declarations = vec![7, 9, 11];
     registry.origins = vec![vec![1, 3], Vec::new(), vec![3]];
+    registry.note_nested_result(1,3);
     let original = registry.origins.clone();
     for invalid in [
         vec![None, Some(0), None, None],
@@ -341,9 +353,12 @@ fn family_origin_compaction_preserves_identity_and_commits_only_valid_maps() {
     ] {
         assert_eq!(registry.remap_origins(&invalid).unwrap_err().code, "callable-layout");
         assert_eq!(registry.origins, original);
+        assert!(registry.equivalent_result(crate::syntax::Type::Closure(1),crate::syntax::Type::Closure(3)));
         assert_eq!(registry.declarations, [7, 9, 11]);
     }
     registry.remap_origins(&[None, Some(1), None, Some(0)]).unwrap();
+    assert!(registry.equivalent_result(crate::syntax::Type::Closure(0),crate::syntax::Type::Closure(1)));
+    assert!(!registry.equivalent_result(crate::syntax::Type::Closure(0),crate::syntax::Type::Closure(3)));
     assert_eq!(registry.origins, [vec![0, 1], Vec::new(), vec![0]]);
     assert_eq!(registry.declaration(0), Some(7));
     assert_eq!(registry.declaration(1), Some(9));
