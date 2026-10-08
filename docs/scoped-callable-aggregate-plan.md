@@ -1029,3 +1029,15 @@ original evidence is verified in SQLite as
 `runtime/results/2026-10-08T17-57-52-860Z-verify.json` and
 `tsrust-b5-restored-benchmark.log`, with loose copies removed. Project formatting
 is token-preserving and idempotent. B5 acceptance and timing remain pending.
+
+
+The within-expression transfer witness now fails in native generation with E0382:
+`expression_transfer_before_failure_restores_map_storage` assigns the cleared
+Map into another owner and then calls a throwing function in the same comma
+expression. Catch explicitly restores the original Map. A following explicit
+throw rules out a normal exit with unrestored source storage. The initial draft
+omitted that throw and correctly received a transfer diagnostic at the later
+read; both original records are verified in SQLite as
+`tsrust-b5-expression-transfer-red.log` and
+`tsrust-b5-expression-transfer-native-red.log`, with loose copies removed.
+Expression evaluation availability is the next implementation step.
