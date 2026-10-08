@@ -1267,3 +1267,11 @@ Node-after-tsc. SQLite record:
 passing supplements remain under `tsrust-b5-return-finally-*.log`.
 No family regression/timing acceptance is claimed. Loops, break/continue, nested
 regions and the remaining B5 capture/key work are open.
+
+The next loop witness is
+`loop_exits_through_finally_release_renewed_map_captures`. Break and continue
+through cleanup pass independently. Combining them with normal fallthrough and
+capture mutation before the next iteration fails native E0502. Exact disposal
+assertions remain in both cases. SQLite preserves the passing initial case as
+`tsrust-b5-loop-finally-red.log` and the failing combined case as
+`tsrust-b5-loop-finally-fallthrough-red.log`.

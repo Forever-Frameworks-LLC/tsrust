@@ -1,6 +1,20 @@
 mod support;
 
 #[test]
+fn loop_exits_through_finally_release_renewed_map_captures() {
+    let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function main():void{const old=[3];const next=[5];let turn=0;while(turn<2){let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});console.log('before',turn);try{failIf(false);handlers.clear();handlers.set('next',{run:():int=>next[0]});if(turn===0){turn+=1;continue;}break;}finally{console.log('cleanup',handlers.size);handlers.clear();console.log('cleared');}}old[0]=9;next[0]=11;console.log('after',old[0],next[0]);}");
+    verify_disposal(&source, 2, "before 0\ndrop 0\ncleanup 1\ndrop 1\ncleared\nbefore 1\ndrop 0\ncleanup 1\ndrop 1\ncleared\nafter 9 11\n");
+    let fallthrough = source.replace("turn < 2", "turn < 3")
+        .replace("console.log('before', turn);", "console.log('before', turn); turn += 1;")
+        .replace("if (turn === 0) {", "if (turn === 1) {")
+        .replace("turn += 1;\n                continue;", "continue;")
+        .replace("            break;", "            if(turn === 3) break;")
+        .replace("console.log('cleared');\n        }", "console.log('cleared');\n        } old[0]=9; next[0]=11; console.log('inside',old[0],next[0]);");
+    verify_disposal(&support::format_round_trip(&fallthrough), 2, "before 0\ndrop 0\ncleanup 1\ndrop 1\ncleared\nbefore 1\ndrop 0\ncleanup 1\ndrop 1\ncleared\ninside 9 11\nbefore 2\ndrop 0\ncleanup 1\ndrop 1\ncleared\nafter 9 11\n");
+
+}
+
+#[test]
 fn returning_through_finally_preserves_renewed_map_until_cleanup() {
     let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function scenario(early:boolean):int{const old=[3];const next=[5];let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});console.log('before');try{failIf(false);if(early)return 23;handlers.clear();handlers.set('next',{run:():int=>next[0]});console.log('return');return 29;}finally{console.log('cleanup',handlers.size);handlers.clear();console.log('cleared');}}function main():void{console.log('result',scenario(true));console.log('result',scenario(false));}");
     verify_disposal(&source, 2, "before\ncleanup 1\ndrop 0\ncleared\nresult 23\nbefore\ndrop 0\nreturn\ncleanup 1\ndrop 1\ncleared\nresult 29\n");
