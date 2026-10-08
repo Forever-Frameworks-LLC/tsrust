@@ -359,3 +359,13 @@ drops exactly once at the expected boundary. The source passes the shared format
 round trip. This proves these normal disposal paths, not failure-path disposal or
 precise compile-time capture release after individual removal. Those requirements
 remain pending. Optimization-level checks are correctness evidence, not timing.
+
+The companion failure disposal witness
+`scoped_aggregate_failure_disposes_environments_before_catch_and_finally` invokes
+throwing borrowed callbacks from an array and a Map. Drop observers verify that
+each environment is disposed exactly once before its catch body and finally body
+execute, at optimization levels 0 and 3. Both normal and failure witnesses share
+the same native observer helper and exercise formatter round trips. This covers
+these checked error propagation paths; it does not prove release of capture loans
+while a surviving container remains in scope. That analysis requirement remains
+open, as do broader composition, Set key design and matched benchmark support.

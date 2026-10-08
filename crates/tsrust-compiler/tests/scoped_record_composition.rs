@@ -43,12 +43,45 @@ fn scoped_aggregate_callback_environments_drop_once_on_each_storage_boundary() {
             }
         }
     "#);
+    verify_disposal(&source, 7, "replace\ndrop 0\ndelete\ndrop 1\nclear\ndrop 2\nscope\ndrop 3\narray\nremoved\ndrop 4\npop\ndrop 5\nrecord\nrecord scope\ndrop 6\n");
+}
+
+#[test]
+fn scoped_aggregate_failure_disposes_environments_before_catch_and_finally() {
+    let source = support::format_round_trip(r#"
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function main() {
+            const values = [3];
+            try {
+                const items: Holder[] = [{ run: (): int => { throw values[0]; } }];
+                items[0].run();
+            } catch (error) {
+                console.log("caught array");
+            } finally {
+                console.log("finally array");
+            }
+            try {
+                const handlers = new Map<string, Holder>();
+                handlers.set("fail", { run: (): int => { throw values[0]; } });
+                const handler = handlers.get("fail");
+                if (handler !== undefined) handler.run();
+            } catch (error) {
+                console.log("caught map");
+            } finally {
+                console.log("finally map");
+            }
+        }
+    "#);
+    verify_disposal(&source, 2, "drop 0\ncaught array\nfinally array\ndrop 1\ncaught map\nfinally map\n");
+}
+
+fn verify_disposal(source: &str, environments: usize, expected: &str) {
     let analysis = tsrust_compiler::check(&source).unwrap();
     let mut rust = analysis.emit_rust();
     // Attach an observer to generated borrowed environments. The checked source
     // controls disposal boundaries; each observer runs only when Rust drops one.
     let closures = analysis.closures();
-    assert_eq!(closures.len(), 7);
+    assert_eq!(closures.len(), environments);
     for closure in closures {
         assert!(!closure.captures.is_empty());
         rust.push_str(&format!("\nimpl<'a> Drop for Closure{}<'a> {{ fn drop(&mut self) {{ println!(\"drop {}\"); }} }}\n", closure.id, closure.id));
@@ -61,7 +94,7 @@ fn scoped_aggregate_callback_environments_drop_once_on_each_storage_boundary() {
         support::success(&support::run(support::rustc().arg(&path).arg("--edition=2024").arg("-C").arg(format!("opt-level={level}")).arg("-o").arg(&binary), 60));
         let output = support::run(std::process::Command::new(&binary).args(std::iter::empty::<&str>()), 60);
         support::success(&output);
-        assert_eq!(String::from_utf8(output.stdout).unwrap(), "replace\ndrop 0\ndelete\ndrop 1\nclear\ndrop 2\nscope\ndrop 3\narray\nremoved\ndrop 4\npop\ndrop 5\nrecord\nrecord scope\ndrop 6\n");
+        assert_eq!(String::from_utf8(output.stdout).unwrap(), expected);
     }
 }
 
