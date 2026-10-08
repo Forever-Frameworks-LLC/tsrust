@@ -102,7 +102,10 @@ impl Analyzer {
                 let source_value = self.program.records[source_id].map_definition.as_ref().unwrap().value;
                 let destination_value = self.program.records[destination_id].map_definition.as_ref().unwrap().value;
                 let (Type::Record(left), Type::Record(right)) = (source_value, destination_value) else { continue; };
-                let joined = if left == right { source_value } else { self.join_record_types(left, right, value.span)?.ok_or_else(|| Diagnostic::new("type", "Moved Map callback environments have incompatible contracts.", value.span))? };
+                let joined = if left == right { source_value }
+                    else if left == self.scoped_records.declaration(right) { destination_value }
+                    else if right == self.scoped_records.declaration(left) { source_value }
+                    else { self.join_record_types(left, right, value.span)?.ok_or_else(|| Diagnostic::new("type", "Moved Map callback environments have incompatible contracts.", value.span))? };
                 for (binding, path, id) in [(source_binding, source_path.as_slice(), source_id), (*destination, path.as_slice(), destination_id)] {
                     let next = Type::Map(self.scoped_map_value_instance(id, joined));
                     let root = roots[&binding];

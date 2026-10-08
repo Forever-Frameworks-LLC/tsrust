@@ -91,13 +91,26 @@ impl Emitter<'_> {
         if call.target != Some(CallTarget::MapMethod(MapMethod::Clear)) { return None; }
         let ExprKind::Call(callee, _) = &call.kind else { return None; };
         let ExprKind::Field(base, _) = &callee.kind else { return None; };
-        if !matches!(base.kind, ExprKind::Name(_)) { return None; }
-        let binding = base.binding?;
+        let mut root = base.as_ref();
+        let mut names = Vec::new();
+        while let ExprKind::Field(parent, name) = &root.kind { names.push(name); root = parent; }
+        if !matches!(root.kind, ExprKind::Name(_)) { return None; }
+        let binding = root.binding?;
         if !body.iter().any(|item| matches!(item.kind, StmtKind::Let { binding: Some(id), .. } if id == binding)) { return None; }
-        let Type::Map(id) = fun.bindings[binding].ty else { return None; };
+        let mut ty = fun.bindings[binding].ty;
+        let mut path = Vec::new();
+        for name in names.into_iter().rev() {
+            let Type::Record(record) = ty else { return None; };
+            let index = self.fields[record].get(name.as_str()).copied()?;
+            path.push(index);
+            ty = self.program.records[record].fields[index].ty?;
+        }
+        let place = if path.is_empty() { format!("value{binding}") }
+            else { self.owned_record_leaf_place(fun, binding, &path)? };
+        let Type::Map(id) = ty else { return None; };
         let value = self.program.records[id].map_definition.as_ref()?.value;
         if !self.scoped_record_native_parameter(value) { return None; }
         let native = self.native_type(Type::Map(id));
-        Some(format!("drop(value{binding}); let mut value{binding}: {native} = <{native}>::new();"))
+        Some(format!("drop({place}); let mut {place}: {native} = <{native}>::new();"))
     }
 }

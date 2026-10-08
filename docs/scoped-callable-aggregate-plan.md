@@ -539,3 +539,15 @@ semantic mutation guards are current. Registration and all five native/Node-afte
 cases pass. Untimed evidence is preserved byte-exact in SQLite under
 `runtime/results/2026-10-08T16-17-38-835Z-verify.json`. No timing or whole B5
 acceptance is claimed.
+
+Local record-field clear/refill now uses the existing independent owning leaves
+to renew only the cleared Map storage. Static field paths preserve sibling fields
+and their storage; indexed paths and outer-block declarations remain excluded.
+The formatted native witness verifies old-capture mutation, refill invocation,
+new-capture release and an unchanged sibling scalar. Its initially empty Map move
+also exposed a planner join defect: a declaration payload and its matching concrete
+record instance now join to that instance instead of requiring two concrete
+environments. This preserves the nominal record contract. The affected 61-test
+batch, eight depth canaries and focused editor diagnostics pass. Exact checks are
+stored in SQLite as `tsrust-b5-map-field-refill-checks.log`. Broader cross-block
+and indexed lifetime renewal remain pending.
