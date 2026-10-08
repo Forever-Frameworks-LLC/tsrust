@@ -38,6 +38,22 @@ for keys, including `runtime/results/2026-10-08T18-05-25-609Z-verify.json`.
 Loose copies are removed. Project formatting changes no files on the second pass.
 No full family regression or timing run was performed.
 
+## Confirmed next defect
+
+Red witness `conditional_transfer_error_preserves_survivor_until_restoration`
+executes both branch choices. On the retained path, the callback drops before
+catch prints `caught`; it must survive until catch explicitly replaces the Map.
+The consumed path already drops exactly once at clear. Exact failed evidence is
+in SQLite as `tsrust-b5-conditional-survivor-red.log`, with its loose copy removed.
+
+The branch emitter normalizes the owner into valid native storage on both paths.
+The error emitter then substitutes empty storage because the source binding is
+unavailable after the join. Separate native initialization from source usability.
+Track normalized branch owners through errors and normal exits; invalidate that
+state on subsequent transfer. Isolate state while emitting sibling branches.
+Do not revive source reads or solve disposal by dropping the survivor early.
+The witness remains failing. No compiler implementation changed in this checkpoint.
+
 ## Next implementation
 
 1. Audit rewritten and synthetic expression spans as new compositions land.
@@ -73,7 +89,7 @@ before a longer handoff; do not create archives or snapshots.
 Continue Tsrust B5 from docs/handoff-2026-10-08-b5-error-restoration.md. Read
 AGENTS.md, docs/development-workflow.md and docs/scoped-callable-aggregate-plan.md
 first. Error restoration after prior-statement and within-expression transfers is verified;
-conditional partial-transfer disposal remains next. Keep Rust-style record
+conditional partial-transfer disposal has a committed red witness and remains next. Keep Rust-style record
 Set equality/hashing, explicit cloning and existing ownership rules. Use focused
 red witnesses, native disposal checks, editor coverage and matched benchmarks.
 Preserve fifteen unrelated fixture edits, stage explicit paths, format the whole

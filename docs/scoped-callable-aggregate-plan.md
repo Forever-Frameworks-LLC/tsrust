@@ -1076,3 +1076,28 @@ results expect `value + 39` and `value + 40`. Guards and rehashed deletion contr
 pass. Untimed native and Node-after-tsc verification passes, preserved exactly in
 SQLite as `runtime/results/2026-10-08T18-05-25-609Z-verify.json` and
 `tsrust-b5-expression-benchmark.log`; loose copies are removed.
+
+
+Conditional transfer has a confirmed disposal-order defect. The new red witness
+`conditional_transfer_error_preserves_survivor_until_restoration` executes both
+choices. One branch clears and transfers the Map; the other retains its callback.
+After the join, an explicit throw enters catch, which first prints `caught` and
+then replaces the Map. The consumed branch has the expected single drop at clear.
+The surviving branch currently drops before `caught`, rather than at the explicit
+replacement. Exact evidence is verified in SQLite as
+`tsrust-b5-conditional-survivor-red.log`; the loose copy is removed.
+
+Source unavailability and native initialization must be modeled separately.
+`map_clear_if_epoch` returns initialized storage on both paths when one source
+owner survives: an empty internal owner on the consumed path and the live owner
+on the other. The subsequent error payload consults joined source unavailability
+and substitutes another empty Map, discarding the survivor at exception exit.
+Normal body exits can lose the same survivor. A correct repair must preserve the
+normalized native owner through later errors and body exits while keeping source
+reads rejected, and must invalidate native availability after a later transfer.
+Nested branches must isolate their native state during emission. Do not treat
+all source-unavailable Maps as live or globally retain a branch's initialization.
+Add a dedicated native availability plan or scoped emitter state with explicit
+branch joins, replacement and transfer points. Verify surviving and consumed
+paths, nested branch ordering, subsequent restoration/transfer, record-field
+siblings and exact native disposal before acceptance. B5 remains incomplete.
