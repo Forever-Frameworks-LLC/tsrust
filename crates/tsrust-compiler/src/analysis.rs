@@ -9552,7 +9552,9 @@ impl Analyzer {
             self.require(actual, Some(contract_type), value.span)?;
             let nested_instance = matches!((actual, field_type), (Type::Record(actual), Type::Record(expected))
                 if actual != expected && self.scoped_records.declaration(actual) == expected);
-            if nested_instance || matches!(self.unions.payload(field_type).unwrap_or(field_type), Type::Callback(_) | Type::BorrowedCallable(_)) {
+            let nested_array_instance = matches!((actual, field_type), (Type::Array(ArrayElement::Record(actual, depth)), Type::Array(ArrayElement::Record(expected, expected_depth)))
+                if depth == expected_depth && actual != expected && self.scoped_records.declaration(actual) == expected);
+            if nested_instance || nested_array_instance || matches!(self.unions.payload(field_type).unwrap_or(field_type), Type::Callback(_) | Type::BorrowedCallable(_)) {
                 let position = self.program.records[index].fields.iter().position(|field| field.name.text == key.text).expect("checked field name");
                 concrete[position] = actual;
                 specialized = true;
@@ -11122,7 +11124,7 @@ impl Analyzer {
             ));
         };
         let active = Self::selection_loans(base, loans);
-        let widening = !remove && Self::indexed_array_root(base).is_some() && matches!(element, ArrayElement::Record(id, _) if self.aggregate_callable_facts(Type::Record(id)).scoped);
+        let widening = !remove && (Self::indexed_array_root(base).is_some() || Self::direct_fields(base).is_some()) && matches!(element, ArrayElement::Record(id, _) if self.aggregate_callable_facts(Type::Record(id)).scoped);
         let argument_type = if remove { Type::Int } else { self.scoped_array_element_contract(base, element) };
         let actual = if !remove && let Type::StoredCallable(family) = argument_type {
             self.stored_callable_value(context, &mut args[0], family, &active)?

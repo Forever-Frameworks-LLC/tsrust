@@ -16,7 +16,7 @@ impl Analyzer {
         self.unions.members(actual_id).iter().all(|member| matches!(member, Type::Record(_)) || expected_members.contains(member))
     }
     pub(super) fn scoped_array_element_contract(&self, base: &Expr, element: ArrayElement) -> Type {
-        if Self::indexed_array_root(base).is_some()
+        if (Self::indexed_array_root(base).is_some() || Self::direct_fields(base).is_some())
             && let ArrayElement::Record(id, depth) = element
             && self.aggregate_callable_facts(Type::Record(id)).scoped
         { return ArrayElement::Record(self.scoped_records.declaration(id), depth).ty(); }
@@ -25,8 +25,10 @@ impl Analyzer {
 
     #[inline(never)]
     pub(super) fn widen_scoped_array_storage(&mut self, context: &mut Context, base: &Expr, incoming: Type, span: Span) -> Result<(), Diagnostic> {
-        let Some(binding) = Self::indexed_array_root(base) else { return Ok(()); };
-        let Type::Array(ArrayElement::Record(previous, depth)) = context.bindings[binding].ty else { return Ok(()); };
+        let Some(binding) = Self::root_binding(base) else { return Ok(()); };
+        let path = Self::direct_fields(base).map(|(_, path)| path).unwrap_or_default();
+        let stored = self.record_field_type(context.bindings[binding].ty, &path).unwrap_or(context.bindings[binding].ty);
+        let Type::Array(ArrayElement::Record(previous, depth)) = stored else { return Ok(()); };
         let incoming = match incoming {
             Type::Record(record) | Type::Array(ArrayElement::Record(record, _)) => record,
             _ => return Ok(()),
@@ -34,13 +36,17 @@ impl Analyzer {
         if !self.aggregate_callable_facts(Type::Record(previous)).scoped || previous == incoming { return Ok(()); }
         let joined = self.join_record_types(previous, incoming, span)?.ok_or_else(|| Diagnostic::new("type", "Array callback field environments have incompatible contracts.", span))?;
         let Type::Record(record) = joined else { unreachable!() };
-        context.bindings[binding].ty = Type::Array(ArrayElement::Record(record, depth));
+        let ty = Type::Array(ArrayElement::Record(record, depth));
+        if path.is_empty() { context.bindings[binding].ty = ty; }
+        else if let Type::Record(root) = context.bindings[binding].ty
+            && let Some(root) = self.record_type_with_field(root, &path, ty)
+        { context.bindings[binding].ty = Type::Record(root); }
         Ok(())
     }
 
     #[inline(never)]
     pub(super) fn record_array_carriers(&mut self, context: &mut Context, body: &mut [Stmt]) -> Result<(), Diagnostic> {
-        if !context.bindings.iter().any(|binding| matches!(binding.ty, Type::Array(ArrayElement::Record(_, _)))) { return Ok(()); }
+        if !context.bindings.iter().any(|binding| matches!(binding.ty, Type::Array(ArrayElement::Record(_, _)) | Type::Record(_))) { return Ok(()); }
         self.record_array_carriers_impl(context, body)
     }
 
@@ -50,9 +56,13 @@ impl Analyzer {
         let mut plans = HashMap::new();
         let writes = record_storage_writes::collect(body);
         for write in &writes {
-            if !write.path.is_empty() { continue; }
             let binding = &context.bindings[write.binding];
             if binding.parameter || binding.capture_reference { continue; }
+            if matches!(binding.ty, Type::Record(_)) && self.aggregate_callable_facts(binding.ty).scoped {
+                plans.insert(write.binding, binding.ty);
+                continue;
+            }
+            if !write.path.is_empty() { continue; }
             let Type::Array(ArrayElement::Record(record, _)) = binding.ty else { continue; };
             if !self.aggregate_callable_facts(Type::Record(record)).scoped { continue; }
             plans.insert(write.binding, binding.ty);
@@ -118,8 +128,7 @@ impl Analyzer {
         }
         for (&binding, &ty) in &plans { context.bindings[binding].ty = ty; }
         for write in &writes {
-            if !write.path.is_empty() { continue; }
-            if let Some(&ty) = plans.get(&write.binding) {
+            if let Some(ty) = plans.get(&write.binding).copied().and_then(|ty| self.record_field_type(ty, &write.path)) {
                 let destination = if write.array_element {
                     let Type::Array(ArrayElement::Record(record, _)) = ty else { continue; };
                     match write.value.ty {

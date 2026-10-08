@@ -205,7 +205,7 @@ outer storage. Moves between named arrays propagate a common element carrier
 back through their storage dependencies; subsequent insertion can widen that
 carrier without generating incompatible native types.
 
-Twenty-five focused composition tests cover native execution after outer-scope
+Twenty-seven focused composition tests cover native execution after outer-scope
 assignment, insertion after a move, both branch insertion paths, and invocation of
 removed records after their source array widens. Splice results participate in the
 same storage dependency plan as moved arrays. Pop and shift results now update their
@@ -255,7 +255,17 @@ as `tsrust-b5-nested-array-writes-depth.log`. The focused editor protocol witnes
 indexing and a narrowed nullable removal, preserving the declared parameter label
 and hiding internal carrier names from hover.
 
-Remaining B5 work includes record-field containers and broader nested method composition,
+Record construction now materializes concrete record-array field types rather than
+discarding their callback environments behind a declaration-only field. Field-array
+mutation widens that field in the root record, and record carrier joins include
+array leaf environments. Array carrier planning resolves field paths and keeps
+removed nullable payloads consistent. Native construction, push and pop pass; a
+paired rejection confirms capture protection after the root record's scope ends.
+The composition, scoped-record, field-move and array-field batch passes 99 tests.
+Both focused array composition editor witnesses pass, including parameter help and
+hover through `box.items[0].run`. The expanded independent Node reference passes.
+
+Remaining B5 work includes mixed field/index containers and broader nested method composition,
 nullable replacement across multiple origins,
 precise element capture release, Map/Set
 composition and nullable replacement. Complete editor, guide, disposal and matched

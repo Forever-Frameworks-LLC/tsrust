@@ -25,6 +25,12 @@ main();
 
 function storageComposition(flag: boolean) {
     const values = [3, 7, 11];
+    const box: { items: Holder[] } = { items: [{ run: () => values[0] }] };
+    box.items.push({ run: () => values[1] });
+    strictEqual(box.items[0].run(), 3);
+    strictEqual(box.items[1].run(), 7);
+    const boxLast = box.items.pop();
+    if (boxLast !== undefined) strictEqual(boxLast.run(), 7);
     const groups: Holder[][] = [[{ run: () => values[0] }], [{ run: () => values[1] }]];
     strictEqual(groups[0][0].run(), 3);
     strictEqual(groups[1][0].run(), 7);

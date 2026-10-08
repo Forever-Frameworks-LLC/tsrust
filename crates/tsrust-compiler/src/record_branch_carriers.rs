@@ -187,7 +187,11 @@ impl Analyzer {
         let mut fields=Vec::new();let mut changed=false;
         let pairs=self.program.records[a].fields.iter().zip(&self.program.records[b].fields).map(|(a,b)|(a.ty.unwrap(),b.ty.unwrap())).collect::<Vec<_>>();
         for(left,right) in pairs{
-            let joined=if left==right{left}else if let(Type::Record(a),Type::Record(b))=(left,right){self.join_record_types(a,b,span)?.unwrap_or(left)}else if let Some(family)=self.common_borrowed_conditional_family(left,right,span)?{Type::BorrowedCallable(family)}else{return Ok(None);};
+            let joined=if left==right{left}else if let(Type::Record(a),Type::Record(b))=(left,right){self.join_record_types(a,b,span)?.unwrap_or(left)}else if let(Type::Array(ArrayElement::Record(a, depth)),Type::Array(ArrayElement::Record(b, other_depth)))=(left,right) {
+                if depth != other_depth { return Ok(None); }
+                let Some(Type::Record(record)) = self.join_record_types(a,b,span)? else { return Ok(None); };
+                Type::Array(ArrayElement::Record(record,depth))
+            }else if let Some(family)=self.common_borrowed_conditional_family(left,right,span)?{Type::BorrowedCallable(family)}else{return Ok(None);};
             changed|=joined!=left || joined!=right;fields.push(joined);
         }
         if !changed{return Ok(None);}

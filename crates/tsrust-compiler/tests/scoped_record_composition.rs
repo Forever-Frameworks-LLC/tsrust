@@ -1,6 +1,31 @@
 mod support;
 
 #[test]
+fn record_field_removals_keep_capture_conflicts_after_record_scope() {
+    let source = "type Holder={run:ReadOnly<Function<int>>;};type Box={items:Holder[];};function main(){const first=[3];const second=[7];let removed:Holder|undefined;{const box:Box={items:[{run:():int=>first[0]}]};box.items.push({run:():int=>second[0]});removed=box.items.pop();}second[0]=9;if(removed!==undefined)console.log(removed.run());}";
+    let error = tsrust_compiler::check(source).err().expect("removed field payload retains its capture");
+    assert_eq!(error.code, "capture-conflict", "{}", error.message);
+}
+
+#[test]
+fn record_fields_hold_and_mutate_callback_record_arrays() {
+    project(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        type Box = { items: Holder[]; };
+        function main() {
+            const values = [3, 7];
+            const box: Box = { items: [{ run: (): int => values[0] }] };
+            box.items.push({ run: (): int => values[1] });
+            strictEqual(box.items[0].run(), 3);
+            strictEqual(box.items[1].run(), 7);
+            const last = box.items.pop();
+            if (last !== undefined) strictEqual(last.run(), 7);
+        }
+    "#);
+}
+
+#[test]
 fn indexed_nested_removal_retains_capture_after_container_scope() {
     let source = "type Holder={run:ReadOnly<Function<int>>;};function main(){const values=[3];let removed:Holder|undefined;{const groups:Holder[][]=[[{run:():int=>values[0]}]];removed=groups[0].pop();}values[0]=9;if(removed!==undefined)console.log(removed.run());}";
     let error = tsrust_compiler::check(source).err().expect("indexed removal retains borrowed owner");
