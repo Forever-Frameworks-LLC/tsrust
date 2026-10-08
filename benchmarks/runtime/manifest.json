@@ -20003,7 +20003,7 @@
         "int"
       ],
       "family": "path-composition",
-      "measurementStatus": "pending-path-composition-milestone",
+      "measurementStatus": "measured-path-composition-family",
       "specification": "Alternate reports and .. by (i+seed) parity; join /tmp, selected segment, archive.txt.",
       "notes": "Default target path conventions. Input setup, native variadic adaptation, lexical joining/normalization, output retention and observation are included. No isolated method latency or allocation-equivalence claim.",
       "sourceSha256": "b1cf8b6fcc3d6f42d6864375e1fc9b3ed44fe516fd4496afc481c0777092d4a6",
@@ -20023,7 +20023,7 @@
         "int"
       ],
       "family": "path-composition",
-      "measurementStatus": "pending-path-composition-milestone",
+      "measurementStatus": "measured-path-composition-family",
       "specification": "Alternate empty and root by (i+seed) parity; join first, empty, child, parent, empty.",
       "notes": "Default target path conventions. Input setup, native variadic adaptation, lexical joining/normalization, output retention and observation are included. No isolated method latency or allocation-equivalence claim.",
       "sourceSha256": "27c72280003bd9ec97f9c390c4f0307603bb03e06970e5e7219254d2dfbffbe7",
@@ -20043,7 +20043,7 @@
         "int"
       ],
       "family": "path-composition",
-      "measurementStatus": "pending-path-composition-milestone",
+      "measurementStatus": "measured-path-composition-family",
       "specification": "Create one input array containing é😊, 64 文 segments, parent, and résumé/; borrow-spread it into each join. seed unused.",
       "notes": "Default target path conventions. Input setup, native variadic adaptation, lexical joining/normalization, output retention and observation are included. No isolated method latency or allocation-equivalence claim.",
       "sourceSha256": "a3e38d5a8ff96da2661444cfa1083b50cc6eb72dd3c0342841711618e16f149b",

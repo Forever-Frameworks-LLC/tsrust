@@ -132,3 +132,7 @@ Public integration is verified on macOS; explicit-platform helpers cover POSIX/W
 ## Accepted bounded OS identity slice
 
 `std:os.platform()` and `std:os.arch()` are implemented through existing zero-argument string bindings. [The contract](os-identity-contract.md) freezes exact supported target metadata mappings and explicit unsupported-target errors. Native acceptance is macOS ARM64; 16 cross-target metadata cases do not establish native acceptance on those targets. Complete compiler/editor acceptance and untimed matched workload support are required by [the OS identity plan](parallel-os-identity-plan.md). Identity timing remains deferred because the wrappers can constant-fold. Other OS exports remain unimplemented.
+
+## Accepted variadic composition and byte order
+
+`std:path.join(...paths: string[]): string` adds lexical composition through a reusable homogeneous borrowed string rest bridge. Aliases, stored values, array spread, concrete rest Function adaptation, evaluation order and failure cleanup are covered. `std:os.endianness(): string` adds compiled BE/LE metadata with explicit unsupported-selector errors. [The contract](path-join-contract.md) and [handoff](handoff-2026-10-07-path-join.md) preserve compiler/editor/native acceptance, independent POSIX/Windows reference coverage, scoped composition measurements and constant identity timing limits. Actual native acceptance remains macOS ARM64; main integration and native Windows execution remain separate. No wider path, OS or resource family is accepted.
