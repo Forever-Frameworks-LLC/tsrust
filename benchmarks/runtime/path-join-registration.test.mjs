@@ -29,7 +29,7 @@ for(const id of pathJoinIds) test(id+' preserves source, ABI and independent res
     const evaluate=new Function('require','n','seed',js+';return workload(n,seed);');
     const dir=fs.mkdtempSync(path.join(root,'target/editor/path-join-'));
     try{for(const [n,seed] of [[0,7],[2,7],[17,0]]){
-        
+
         const expected=pathJoinValues(id,n,seed);
         assert.deepEqual(evaluate(require,n,seed),expected);
         assert.equal(expectedChecksum(id,n,seed),pathJoinChecksum(id,n,seed));
