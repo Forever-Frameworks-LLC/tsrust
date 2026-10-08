@@ -794,8 +794,9 @@ mod tests {
         assert!(!effects.closures[0]);
         assert_eq!(super::native_effect(crate::syntax::CallTarget::NativeBinding(native),&value,&effects),super::FailureSet::default());
         for (id,binding) in crate::native_bindings::BINDINGS.iter().enumerate() {
-            // Audited testing-runtime bindings have explicit contracts; every other binding stays unresolved.
-            let audited=binding.module=="std:path" || (binding.module=="std:testing-runtime" && matches!(binding.name,"checkAssertion"|"shareCallback"|"numericValue"|"lengthValue"|"hasLength"|"runTests"|"finishTests"|"registerTest"|"registerHook"|"beginSuite"|"beginFile"|"endSuite"));
+            // Audited testing-runtime and target identity bindings have explicit contracts; every other binding stays unresolved.
+            let audited=binding.module=="std:path" || (binding.module=="std:os" && matches!(binding.name,"platform"|"arch")) || (binding.module=="std:testing-runtime" && matches!(binding.name,"checkAssertion"|"shareCallback"|"numericValue"|"lengthValue"|"hasLength"|"runTests"|"finishTests"|"registerTest"|"registerHook"|"beginSuite"|"beginFile"|"endSuite"));
+            if binding.module=="std:os" {assert_eq!(super::native_binding_effect(id),super::FailureSet::default());}
             if !audited {assert!(super::native_binding_effect(id).opaque,"unreviewed binding {} must remain unresolved",binding.name);}
         }
         checked.program.closures[0].forward=Some(crate::analysis::ClosureForward::Native(usize::MAX));
