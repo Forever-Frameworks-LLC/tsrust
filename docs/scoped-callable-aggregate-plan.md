@@ -1301,3 +1301,19 @@ record `runtime/results/2026-10-08T19-01-37-909Z-verify.json`. That record and
 `tsrust-b5-loop-finally-*.log` evidence were imported/read back byte-exact into
 SQLite before deleting loose copies. Formatting changed only workload layout
 and its token-preserving fingerprint.
+
+## Outer Map loop boundary red witness
+
+The loop-local repair is committed as `2e63d02`. Its outer-storage follow-up,
+`outer_map_survives_loop_exit_cleanup_and_capture_renewal`, is source-valid but
+fails native E0502. A Map declared before the loop is refilled each iteration,
+cleared in finally on continue, normal and break paths, then observed after
+the loop. Captures are mutated after normal cleanup and after the loop. Exact
+disposal remains asserted at O0/O3. SQLite retains the original failure as
+`tsrust-b5-outer-map-loop-red.log`; its loose copy was removed after read-back.
+
+Next continuation: repair the loop storage boundary before nested regions.
+Carry renewed owners across iterations and out of the loop without extending
+callback loans or dropping owners before cleanup. Preserve the complete witness
+and the accepted loop-local cases. Continue remaining B5 work and the full
+compiler/editor plan after this repair.
