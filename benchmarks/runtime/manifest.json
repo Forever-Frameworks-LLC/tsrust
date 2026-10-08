@@ -20091,10 +20091,10 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": true,
       "measured": false,
-      "notes": "Fresh capture-free declaration replacement, saved value and path-selected mixed failure transport. Five cases verified untimed; broader callable family remains open.",
-      "specification": "Three scalar observations per iteration; deterministic alternating selection and caught failures.",
-      "sourceSha256": "3ad4d93bc76e6adcb5336890b6fd9b8d1478ef69f6502ec291a1d70ed1127e62",
-      "counterpartSha256": "aca23ed32051468010158677bb047b8e5f9676cbe99e638e3b172034aba87326"
+      "notes": "Fresh capture-free declaration replacement, saved value and path-selected mixed failure transport. Expanded defaults and owned rest: five cases verified untimed. Earlier three-observation evidence remains immutable; no measurements.",
+      "specification": "Five scalar observations per iteration; deterministic alternating selection and caught failures.",
+      "sourceSha256": "24876c466858cefe8d22ea6e0e00159b9cbe95c776461926d5ec2ce97f974162",
+      "counterpartSha256": "d974ea8bf96ce87ca5740e3a4e5541bc213a0bb5b4b22022020886e043f58926"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

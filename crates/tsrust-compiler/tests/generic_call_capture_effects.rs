@@ -208,6 +208,50 @@ fn distinct_generic_replacements_dispatch_independent_bodies_and_failures() {
 }
 
 #[test]
+fn distinct_generic_replacements_preserve_each_default_and_rest_pack() {
+    let source=r#"
+        function first<T>(value:T,offset:int=3):int { return offset; }
+        function second<T>(value:T,offset:int=7):int { return offset; }
+        function defaulted(flag:boolean):int {
+            let action=first;
+            if(flag){action=second;}
+            return action<int>(1);
+        }
+        function head<T>(value:T,...tail:int[]):int { return tail.length; }
+        function doubled<T>(value:T,...tail:int[]):int { return tail.length*2; }
+        function rest(flag:boolean):int {
+            let action=head;
+            if(flag){action=doubled;}
+            return action<int>(1,4,5);
+        }
+        function main(){console.log(defaulted(false),defaulted(true),rest(false),rest(true));}
+    "#;
+    support::execute(source,"3 7 2 4\n",None);
+}
+
+#[test]
+fn distinct_generic_replacements_preserve_owned_rest_values_and_source_order() {
+    let source=r#"
+        function first<T>(value:T,...tail:T[]):T { return value; }
+        function second<T>(value:T,...tail:T[]):T { return tail.shift()!; }
+        function select(flag:boolean):string {
+            let action=first;
+            if(flag){action=second;}
+            return action<string>((console.log("value"),"head"),(console.log("tail"),"next"));
+        }
+        function main(){console.log(select(false));console.log(select(true));}
+    "#;
+    support::execute(source,"value\ntail\nhead\nvalue\ntail\nnext\n",None);
+}
+
+#[test]
+fn joined_generic_access_does_not_leave_consumed_source_available() {
+    let source=support::format_round_trip("function read<T>(value:T):string{return \"read\";}function take<T>(value:T):T{return value;}function choose(flag:boolean){let action=read;if(flag){action=take;}const text=\"owned\";const result=action<string>(text);console.log(text,result);}function main(){choose(true);}");
+    let error=tsrust_compiler::check(&source).err().expect("one reachable consumer must transfer the argument");
+    assert_eq!(error.code,"transferred","{}",error.render("joined-access.tsr",&source));
+}
+
+#[test]
 fn fresh_same_declaration_replacement_reuses_capture_free_generic_storage() {
     let source = r#"
         function identity<T>(value: T): T { return value; }

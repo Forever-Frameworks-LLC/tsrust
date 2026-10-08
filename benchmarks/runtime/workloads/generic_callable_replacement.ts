@@ -21,6 +21,21 @@ function attempt(flag: boolean, base: int): int {
     }
 }
 
+function firstDefault<T>(value: T, offset: int = 3): int { return offset; }
+function secondDefault<T>(value: T, offset: int = 7): int { return offset; }
+function defaulted(flag: boolean): int {
+    let action = firstDefault;
+    if (flag) { action = secondDefault; }
+    return action<int>(1);
+}
+function ownedHead<T>(value: T, ...tail: T[]): T { return value; }
+function ownedTail<T>(value: T, ...tail: T[]): T { return tail.shift()!; }
+function selectedText(flag: boolean): string {
+    let action = ownedHead;
+    if (flag) { action = ownedTail; }
+    return action<string>("head", "next-value");
+}
+
 function workload(n: int, seed: int, input: string): int[][] {
     const output: int[][] = [];
     for (let i = 0; i < n; i += 1) {
@@ -33,7 +48,9 @@ function workload(n: int, seed: int, input: string): int[][] {
         const original = saved<int>(base, base);
         const selected = action<int>(base, base);
         const completed = attempt(flag, base);
-        output.push([original, selected, completed]);
+        const omitted = defaulted(flag);
+        const text = selectedText(flag);
+        output.push([original, selected, completed, omitted, text.length]);
     }
     return output;
 }

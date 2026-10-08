@@ -66,7 +66,7 @@ impl Registry {
 }
 
 pub(crate) struct Case<'a> { pub pair: Pair, pub body: &'a CheckedClosureMethod }
-pub(crate) struct Plan<'a> { pub cases: Vec<Case<'a>>, pub invocation: Mode }
+pub(crate) struct Plan<'a> { pub cases: Vec<Case<'a>>, pub invocation: Mode, pub argument_modes:Vec<Mode> }
 impl<'a> Plan<'a> {
     pub(crate) fn checked(pairs: impl IntoIterator<Item = Pair>, closures: &'a [CheckedClosure], span: Span) -> Result<Self, Diagnostic> {
         let mut pairs = pairs.into_iter().collect::<Vec<_>>();
@@ -85,14 +85,15 @@ impl<'a> Plan<'a> {
                 let compatible = first.body.function.result == body.function.result && first.body.parameters.len() == body.parameters.len()
                     && first.body.parameters.iter().zip(&body.parameters).all(|(&left, &right)| {
                         let left = &first.body.function.bindings[left]; let right = &body.function.bindings[right];
-                        left.ty == right.ty && left.mode == right.mode && left.omission == right.omission && left.rest == right.rest
+                        left.ty == right.ty && left.input_ty == right.input_ty && left.omission == right.omission && left.rest == right.rest
                     });
                 if !compatible { return Err(Diagnostic::new("callable-layout", "Reachable generic invocation methods require compatible prepared arguments and results.", span)); }
             }
             invocation = invocation.max(body.invocation);
             cases.push(Case { pair, body });
         }
-        Ok(Self { cases, invocation })
+        let argument_modes=(0..cases[0].body.parameters.len()).map(|index|cases.iter().map(|case|case.body.function.bindings[case.body.parameters[index]].mode).max().unwrap()).collect();
+        Ok(Self { cases, invocation, argument_modes })
     }
 
     /// Receiver and prepared arguments are evaluated once, before variant selection.
@@ -111,9 +112,22 @@ impl<'a> Plan<'a> {
         }
         let mutable = if mutable { "mut " } else { "" };
         let mut text = format!("{{ let {mutable}method_environment = {receiver}; ");
-        for (index, value) in arguments.iter().enumerate() { text.push_str(&format!("let method_argument{index} = {value}; ")); }
-        let arguments = (0..arguments.len()).map(|index| format!("method_argument{index}")).collect::<Vec<_>>().join(", ");
+        for (index, value) in arguments.iter().enumerate() {
+            let mutable=if self.argument_modes[index]==Mode::Consume && self.cases.iter().any(|case|case.body.function.bindings[case.body.parameters[index]].mode==Mode::Mutate){"mut "}else{""};
+            text.push_str(&format!("let {mutable}method_argument{index} = {value}; "));
+        }
         let call = |pair: Pair, receiver: &str| {
+            let case=self.cases.iter().find(|case|case.pair==pair).unwrap();
+            let arguments=case.body.parameters.iter().enumerate().map(|(index,&parameter)| {
+                let mode=case.body.function.bindings[parameter].mode;
+                let prefix=match (self.argument_modes[index],mode) {
+                    (Mode::Consume,Mode::Read)=>"&",
+                    (Mode::Consume,Mode::Mutate)=>"&mut ",
+                    (Mode::Mutate,Mode::Read)=>"&*",
+                    _=>"",
+                };
+                format!("{prefix}method_argument{index}")
+            }).collect::<Vec<_>>().join(", ");
             if counted(pair) {
                 let separator = if arguments.is_empty() { "" } else { ", " };
                 format!("{receiver}.call{}_with_count({supplied_count}{separator}{arguments})", pair.method)

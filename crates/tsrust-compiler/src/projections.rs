@@ -860,10 +860,10 @@ fn deferred_call_fact(program: &CheckedProgram, expression: &Expr, names: &mut H
         parameter_types: bindings.iter().map(|binding| binding.input_ty.unwrap_or(binding.ty)).collect(),
         body_parameter_types: bindings.iter().map(|binding| binding.ty).collect(),
         result_type: method.function.result,
-        parameters: bindings.iter().map(|binding| GenericParameterInfo {
+        parameters: bindings.iter().enumerate().map(|(index,binding)| GenericParameterInfo {
             name: binding.name.clone(), ty: type_name(program, binding.input_ty.unwrap_or(binding.ty), names),
             body_ty: type_name(program, binding.ty, names), omission: binding.omission,
-            rest: binding.rest, access: binding.mode,
+            rest: binding.rest, access: selected.as_ref().map_or(binding.mode,|plan|plan.argument_modes[index]),
         }).collect(),
         result: type_name(program, method.function.result, names)?,
     })

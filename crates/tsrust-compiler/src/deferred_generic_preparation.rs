@@ -10,6 +10,24 @@ pub(super) struct Prepared {
 }
 
 impl Analyzer {
+    /// Join access before source evaluation; declaration preparation does not
+    /// consume source arguments or mutate caller availability.
+    #[inline(never)]
+    pub(super) fn join_deferred_argument_contracts(
+        &mut self, context:&Context, primary:usize, origins:&[usize],
+        arguments:&[Expr], contracts:&mut [ArgumentContract], expected:Option<Type>, span:Span,
+    )->Result<(),Diagnostic> {
+        for &alternative in origins {
+            if alternative==primary {continue;}
+            let other=self.prepare_deferred_generic_body(context,alternative,arguments.to_vec(),expected,span)?;
+            if contracts.len()!=other.contracts.len() || contracts.iter().zip(&other.contracts).any(|(left,right)|left.ty!=right.ty || left.omission!=right.omission || left.rest!=right.rest) {
+                return Err(Diagnostic::new("callable-layout","Reachable generic declarations require compatible prepared argument contracts.",span));
+            }
+            for (contract,other) in contracts.iter_mut().zip(other.contracts) {contract.mode=contract.mode.max(other.mode);}
+        }
+        Ok(())
+    }
+
     /// Prepare an alternative from its own declaration after source arguments
     /// have been accessed. This must not replay their ownership effects.
     #[inline(never)]

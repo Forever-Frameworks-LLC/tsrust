@@ -8023,6 +8023,14 @@ fn distinct_generic_replacement_uses_reachable_parameter_help() {
 }
 
 #[test]
+fn joined_generic_replacement_help_shows_consuming_access() {
+    let source="function read<T>(value:T):string{return \"read\";}function take<T>(value:T):T{return value;}function choose(flag:boolean):string{let action=read;if(flag){action=take;}return action<string>(\"owned\");}function main(){choose(true);}";
+    assert!(tsrust_lsp::diagnostics(source,"file:///joined.tsr").unwrap().is_empty());
+    let help=ask(source,"textDocument/signatureHelp","\"owned\")",0);
+    assert!(help["signatures"][0]["parameters"][0]["label"].as_str().unwrap_or("").contains("Owned<string>"),"{help}");
+}
+
+#[test]
 fn nested_lexical_generic_annotations_keep_source_help_and_definition() {
     let source = "function outer<T>(value:T):T{function echo(other:T):T{return other;}return echo(value);}function main(){const number=outer<int>(7);const text=outer<string>('owned');}";
     tsrust_compiler::check(source).unwrap();

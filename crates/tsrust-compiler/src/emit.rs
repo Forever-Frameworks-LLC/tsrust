@@ -798,9 +798,8 @@ impl Emitter<'_> {
         let receiver = self.expr(fun, callee, invocation);
         let receiver = if once { format!("({receiver}).capture0") } else { receiver };
         let mutable = invocation == Mode::Consume && method_invocation == Mode::Mutate;
-        let body = plan.cases[0].body;
-        let values = args.iter().zip(&body.parameters).map(|(arg, &parameter)| {
-            self.expr(fun, arg, body.function.bindings[parameter].mode)
+        let values = args.iter().zip(&plan.argument_modes).map(|(arg, &mode)| {
+            self.expr(fun, arg, mode)
         }).collect::<Vec<_>>();
         let family = self.program.polymorphic_storage.contains(closure).then(|| self.program.polymorphic_storage.checked(closure, &self.program.closures, callee.span).expect("checked invocation storage"));
         let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);

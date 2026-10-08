@@ -194,8 +194,9 @@ impl Analyzer {
         };
         let prepared = self.prepare_deferred_generic_body(context, preparation_origin, args.clone(), expected, span)?;
         let function = prepared.function;
-        let contracts = prepared.contracts;
+        let mut contracts = prepared.contracts;
         *args = prepared.arguments;
+        self.join_deferred_argument_contracts(context,preparation_origin,&reachable_origins,args,&mut contracts,expected,span)?;
         let accesses = prepared.accesses;
         let method_invocation = prepared.invocation;
         let invocation = if once { Mode::Consume } else { method_invocation };

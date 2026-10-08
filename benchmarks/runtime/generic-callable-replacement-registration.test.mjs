@@ -23,12 +23,12 @@ test('Generic replacement retains source scenarios, oracle and execution registr
   assert.throws(()=>assertGenericReplacementSource(source+' ',row,kind));
   assert.throws(()=>assertGenericReplacementSource(source,{...row,operationsPerIteration:2},kind));
   const key=kind==='native'?'sourceSha256':'counterpartSha256';
-  for(const snippet of ['const saved = action;','action = second;','action = failing;','const completed = attempt(flag, base);']){
+  for(const snippet of ['const saved = action;','action = second;','action = failing;','const completed = attempt(flag, base);','action = secondDefault;','action = ownedTail;']){
    const changed=replaceCodeSnippet(source,snippet,'');
    assert.throws(()=>assertGenericReplacementSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   }
  }
- assert.deepEqual(expectedGenericReplacementValues(row.id,3,0,'replacement'),[[1,1,1],[2,9,11],[3,3,3]]);
+ assert.deepEqual(expectedGenericReplacementValues(row.id,3,0,'replacement'),[[1,1,1,3,4],[2,9,11,7,10],[3,3,3,3,4]]);
  for(const n of [0,1,37,2048])for(const seed of [0,7,1000000]){
   const expected=expectedGenericReplacementObservation(row.id,n,seed,'replacement');
   assert.deepEqual(expectedExactResult(row.id,n,seed,'replacement'),expected);
