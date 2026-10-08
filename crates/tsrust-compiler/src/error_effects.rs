@@ -319,7 +319,13 @@ pub(crate) fn annotate_inferred_callbacks(program:&mut CheckedProgram)->ErrorEff
 #[inline(never)]
 pub(crate) fn executable_callers(program:&CheckedProgram)->(std::collections::HashSet<usize>,std::collections::HashSet<usize>) {
     use std::collections::HashSet;
-    let mut functions=program.functions.iter().enumerate().filter_map(|(id,function)|(function.name=="main").then_some(id)).collect::<HashSet<_>>();
+    // A function without callback parameters has one native signature and is
+    // emitted whether or not the program calls it. Its calls supply callback
+    // origins exactly like calls reached from main.
+    let mut functions=program.functions.iter().enumerate().filter_map(|(id,function)|{
+        let fixed=!function.template && !function.bindings.iter().take(function.parameter_count).any(|binding|matches!(binding.ty,Type::Callback(_)));
+        (function.name=="main" || fixed).then_some(id)
+    }).collect::<HashSet<_>>();
     let mut closures:HashSet<usize>=HashSet::new();
     loop {
         let before=(functions.len(),closures.len());

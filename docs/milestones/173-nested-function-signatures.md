@@ -1,7 +1,11 @@
 # Gate 173: named declaration signatures and inferred results
 
-Status: in progress, not accepted. Gates170–172 are accepted. The full nested
-function plan requires this stage and the eventual feature-family audit.
+Status: accepted for its stated scope: omitted result types, and function values of
+generic functions and of functions with optional, default and rest parameters,
+including functions that use variables of the enclosing function. The sections below
+are the chronological record; the acceptance section at the end is current. Work on
+callable replacement that grew out of this gate continues separately and is listed
+there.
 
 ## Result inference checkpoint
 
@@ -877,3 +881,66 @@ Operation and sample counts remain unchanged; this is untimed support.
 Captured invocation writes still have eight red witnesses. Optional expression
 regions, stored callable fields, concrete environment replacement and the broader
 lifetime/context audit remain required. This does not complete Gate173.
+
+## Acceptance (2026-10-07)
+
+### Scope accepted
+
+- **Omitted result types.** A nonrecursive named function, nested or top level, can
+  omit its result annotation. Scalar, string, array, captured and generic results are
+  inferred from the checked return expressions; all return paths must agree. A
+  recursive value-returning function reports `result-inference` and needs an explicit
+  result type. A body without value returns is void.
+- **Optional, default and rest function values.** A nested function with such
+  parameters that uses variables of its enclosing function can be assigned, passed
+  and returned. Omission forwards to the declaration, a default is evaluated once per
+  call, and an array callback supplies the index as the second argument.
+- **Generic function values.** A generic function, also one that uses variables of
+  the enclosing function, is a value. One environment serves every type it is called
+  with; a fixed callable annotation selects one specialization; factories return
+  generic values with independent state.
+
+The fixture `nested-function-captures/function-value-signatures.tsr` exercises the
+three parts together, natively and against the pinned Node reference.
+
+### Repaired at acceptance
+
+- The unused `workload` function of `generic_value_adapters` was no longer emitted
+  since commit 4cdf1e0, so its matched verification could not run. Callback error
+  contracts were grounded only by calls reachable from `main`; an unreferenced
+  function that calls a function with a scoped `Once` parameter therefore had an
+  unresolved contract and was deferred. Functions without callback parameters have
+  one native signature and now count as callers.
+- `nested_function_captures::capture_borrows_follow_argument_and_view_rules` still
+  expected an `unsupported` diagnostic for a stored generic function value.
+- The guide no longer says that generic and rest functions cannot be values.
+
+### Limits
+
+- Recursive value-returning functions need an explicit result type.
+- An array callback lends its elements for reading; a generic function that returns
+  its argument cannot be passed to `map` over strings or other owned values. This is
+  the ordinary callback access rule, not a limit of generic values.
+- Selection and replacement across distinct polymorphic origins remain open, with two
+  witnesses kept red:
+  `generic_call_capture_effects::literal_guard_native_callable_replacement_has_common_carrier`
+  and the unit test `owned_factory_updates_are_point_sensitive_and_instances_stay_separate`.
+  They belong to the callable replacement work that follows this gate.
+
+### Evidence
+
+- Gate suites (`nested_function_captures`, `nested_function_declarations`,
+  `nested_function_owned_escape`, `named_result_inference`,
+  `captured_function_defaults`, `captured_function_rest`, `generic_function_values`,
+  `generic_value_signatures`, `generic_value_adapters`, `declared_function_values`,
+  `higher_order_function_values`): 167 pass, 0 fail.
+- Whole compiler crate: 2178 pass; the two witnesses above are the only failures.
+  Whole editor crate: 339 of 339.
+- Matched workloads `nested_function_results`, `nested_function_defaults`,
+  `nested_function_rest`, `generic_function_contexts`, `generic_function_deferred`,
+  `generic_function_captures`, `generic_function_results` and
+  `generic_value_adapters`: native and Node-after-tsc agree with their independent
+  oracles on five untimed cases each. Their acceptance flags are promoted. No timing.
+- Editor: 15 focused witnesses for inferred results, default and rest signature help
+  and generic values, inside the whole editor crate.
+- Logs and results are in SQLite, read back byte for byte.

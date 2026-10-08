@@ -129,9 +129,8 @@ declares `run` ends. A callable handed to a callback parameter of a declared
 function, or returned from the enclosing function, takes ownership of the variables
 it needs; they are no longer available afterwards.
 
-Two forms cannot be used as values yet and report a diagnostic that names the
-arrow form to write instead: a generic function, and a function with rest parameters that uses variables of
-its enclosing function.
+Functions with optional, default or rest parameters and generic functions can be
+used as values too; the sections below describe each form.
 
 Completion includes hoisted declarations throughout their block. Hover and signature
 help show source names and checked types, including imported nominal results.
@@ -167,7 +166,8 @@ function main() {
 Transferring a capture cannot overlap a borrowed argument that uses the same value.
 Use `clone()` explicitly when two independently owned copies are intended. The
 focused factory fixture verifies independent returned owners. Focused retained storage, disposal, failure and recursive owner cases are verified.
-Owned-escape gate172 is accepted; full signature coverage remains gate173.
+Returned and stored nested functions, omitted result types and function values of
+default, rest and generic functions are accepted.
 
 ### Retained callback arrays
 
@@ -242,8 +242,7 @@ value, index and source array; a rest parameter of int[] cannot receive that
 heterogeneous tuple. A compatible fixed callback contract can adapt a rest value.
 Returned values retain independent captured state. Captures and supplied owned
 values follow the existing ownership rules; consuming a capture still permits only
-one invocation. No implicit clone is introduced. Generic declaration values remain
-pending.
+one invocation. No implicit clone is introduced.
 
 ## Generic values with a concrete callable context
 

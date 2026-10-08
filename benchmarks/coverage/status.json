@@ -6390,5 +6390,49 @@
     ],
     "measured": false,
     "note": "Record fields declared ReadOnly<Function<...>> or Mutable<Function<...>> hold callbacks that borrow local variables. Fields keep independent borrows through calls, sibling arguments, nested records, record parameters, replacement, moves and scope exit. One matched seven-observation scenario is verified untimed on native and Node-after-tsc; no measurement. Arrays, Maps, Sets and unions of such records, replacement of nullable borrowing fields and fallible callback fields behind record parameters in throwing programs are rejected with diagnostics."
+  },
+  "function.inferredResult": {
+    "implementation": "native variant",
+    "comparison": "paired group",
+    "workloads": [
+      "nested_function_results",
+      "generic_function_results"
+    ],
+    "evidence": [
+      "./milestones/173-nested-function-signatures.md",
+      "./nested-functions.md"
+    ],
+    "measured": false,
+    "note": "Gate173 accepts omitted result types on nonrecursive named functions: scalar, string, array, captured and generic results are inferred from checked return expressions. A recursive value-returning function needs an explicit result type. Matched scenarios verified untimed; no measurement."
+  },
+  "function.capturedParameterValue": {
+    "implementation": "native variant",
+    "comparison": "paired group",
+    "workloads": [
+      "nested_function_defaults",
+      "nested_function_rest"
+    ],
+    "evidence": [
+      "./milestones/173-nested-function-signatures.md",
+      "./nested-functions.md"
+    ],
+    "measured": false,
+    "note": "Gate173 accepts function values of nested functions with optional, default and rest parameters that use variables of the enclosing function. Omission, single default evaluation, array callback arguments and returned factories are preserved. Matched scenarios verified untimed; no measurement."
+  },
+  "function.genericValue": {
+    "implementation": "native variant",
+    "comparison": "paired group",
+    "workloads": [
+      "generic_function_contexts",
+      "generic_function_deferred",
+      "generic_function_captures",
+      "generic_value_adapters"
+    ],
+    "evidence": [
+      "./milestones/173-nested-function-signatures.md",
+      "./nested-functions.md"
+    ],
+    "measured": false,
+    "note": "Gate173 accepts generic functions as values, including functions that use variables of the enclosing function: one environment serves every type the value is called with, a fixed callable annotation selects one specialization, and factories return generic values. Replacement of a generic callable local by a different origin and point-sensitive mutable factory state remain open witnesses. Matched scenarios verified untimed; no measurement."
   }
 }

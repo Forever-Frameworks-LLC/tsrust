@@ -1,0 +1,100 @@
+import { strictEqual } from "std:testing";
+
+function makeSelect() {
+    let calls = 0;
+    function select<T>(value: T): T {
+        calls += 1;
+        return value;
+    }
+
+    return select;
+}
+
+function makePick() {
+    const base = [10];
+    function pick(value: int, extra: int = base[0]): int {
+        return value + extra;
+    }
+
+    return pick;
+}
+
+function main() {
+    // Omitted result types.
+    const offsets = [10];
+    function twice(value: int) {
+        return value + value;
+    }
+
+    function label(count: int) {
+        return "n" + count;
+    }
+
+    function shifted(value: int) {
+        return value + offsets[0];
+    }
+
+    strictEqual(twice(4), 8);
+    strictEqual(label(2), "n2");
+    strictEqual(shifted(1), 11);
+
+    // A generic function that uses a variable of main, as one value for two types.
+    const seen: string[] = [];
+    function note<T>(value: T): T {
+        seen.push("x");
+        return value;
+    }
+
+    {
+        const action = note;
+        strictEqual(action(1), 1);
+        strictEqual(action("a"), "a");
+    }
+
+    strictEqual([1, 2].map(note).join(","), "1,2");
+    strictEqual(seen.length, 4);
+
+    const select = makeSelect();
+    strictEqual(select(7), 7);
+    strictEqual(select("x"), "x");
+
+    // Default and optional parameters on function values.
+    const base = [10];
+    function pick(value: int, extra: int = base[0]): int {
+        return value + extra;
+    }
+
+    function optional(value: int, extra?: int): int {
+        return value + (extra ?? base[0]);
+    }
+
+    {
+        const chosen = pick;
+        strictEqual(chosen(1), 11);
+        strictEqual(chosen(1, 2), 3);
+        const maybe = optional;
+        strictEqual(maybe(1), 11);
+        strictEqual(maybe(1, 2), 3);
+    }
+
+    // An array callback supplies the index as the second argument.
+    strictEqual([1, 2].map(pick).join(","), "1,3");
+
+    let total = 0;
+    function bump(by: int = 1): int {
+        total += by;
+        return total;
+    }
+
+    {
+        const step = bump;
+        strictEqual(step(), 1);
+        strictEqual(step(5), 6);
+    }
+
+    strictEqual(total, 6);
+
+    const made = makePick();
+    strictEqual(made(1), 11);
+    strictEqual(made(1, 1), 2);
+}

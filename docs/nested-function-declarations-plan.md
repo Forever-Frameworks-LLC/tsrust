@@ -258,3 +258,12 @@ exception/finally flow, expression evaluation order, capture writes, stored fiel
 concrete environment replacement and the remaining lifetime/context audit. Project
 formatting is required before every source checkpoint; exact benchmark source hashes
 refresh only after token preservation proof. No performance measurement is claimed.
+
+## Gate 173 accepted
+
+Gate 173 is accepted for omitted result types and for function values of generic,
+optional, default and rest functions: see
+milestones/173-nested-function-signatures.md. Gates 170 to 173 are complete. The
+named-declaration family milestone (requirement audit, complete regressions and
+measurement of the accumulated workloads) is the next step of this plan. Callable
+replacement across distinct polymorphic origins continues as separate work.

@@ -137,6 +137,11 @@ fn rest_callback_generic_and_recursive_signatures_receive_captures() {
 }
 
 #[test]
+fn omitted_results_generic_and_default_function_values_execute() {
+    native(include_str!("fixtures/nested-function-captures/function-value-signatures.tsr"));
+}
+
+#[test]
 fn capture_borrows_follow_argument_and_view_rules() {
     for (source, code) in [
         // The function changes `counts` while an argument lends it too.
