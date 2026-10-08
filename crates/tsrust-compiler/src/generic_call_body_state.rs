@@ -8,7 +8,6 @@ pub(super) struct BodyState<'a> {
  facts:HashMap<(usize,usize),Option<Vec<Contract>>>,
 }
 impl<'a> BodyState<'a> {
- #[cfg_attr(not(test),expect(dead_code,reason="Node resumption is verified before inter-call dependency wiring."))]
  pub(super) fn requeue(&mut self,node:usize)->Option<bool> {
     if node>=self.graph.nodes.len() || node==self.graph.exits.normal || node==self.graph.exits.returning || node==self.graph.exits.throwing {return None;}
     if self.queued[node] {return Some(false);}

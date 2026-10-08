@@ -15,18 +15,26 @@ struct Request {
     caller: FlowState,
     arguments: Vec<expression_flow::Value>,
 }
-struct Entry {
+#[derive(Clone,Copy,PartialEq,Eq,Hash)]
+struct Dependency {parent:usize,node:Option<usize>}
+struct Entry<'a> {
     request: Request,
     outcome: summary_flow::Outcome,
     opaque: bool,
     queued: bool,
-    dependents: HashSet<usize>,
+    dependents: HashSet<Dependency>,
+    session:Option<summary_flow::invocation_state::InvocationState<'a>>,
+    session_input:Option<FlowState>,
+    pending_nodes:HashSet<usize>,
+    pending_entry:bool,
+    epoch:usize,
 }
 pub(super) struct Engine<'a> {
     declarations: &'a HashMap<String, Contract>,
     effects: &'a effect_bodies::Index,
     lookup: HashMap<Request, usize>,
-    entries: Vec<Entry>,
+    entries: Vec<Entry<'a>>,
+    active_nodes:Vec<(usize,usize)>,
     work: Vec<usize>,
     current: Option<usize>,
     environments: environment_store::Store,
@@ -57,7 +65,7 @@ fn merge_facts(current: &mut HashMap<(usize, usize), Option<Vec<Contract>>>, inc
 }
 impl<'a> Engine<'a> {
     pub(super) fn new(declarations: &'a HashMap<String, Contract>, effects: &'a effect_bodies::Index) -> Self {
-        Self { declarations, effects, lookup: HashMap::new(), entries: Vec::new(), work: Vec::new(), current: None, environments: environment_store::Store::default(), #[cfg(test)] evaluations: 0, #[cfg(test)] invocations: 0, #[cfg(test)] trace:std::env::var_os("TSRUST_TRACE_WORKLIST").is_some() }
+        Self { declarations, effects, lookup: HashMap::new(), entries: Vec::new(), active_nodes:Vec::new(), work: Vec::new(), current: None, environments: environment_store::Store::default(), #[cfg(test)] evaluations: 0, #[cfg(test)] invocations: 0, #[cfg(test)] trace:std::env::var_os("TSRUST_TRACE_WORKLIST").is_some() }
     }
     // Keep a simple declaration path. Recursive edges reuse the earlier frame,
     // so allocation identity cannot grow with runtime recursion depth.
@@ -75,11 +83,11 @@ impl<'a> Engine<'a> {
         let index = if let Some(&index) = self.lookup.get(&request) { index } else {
             let index = self.entries.len();
             self.lookup.insert(request.clone(), index);
-            self.entries.push(Entry { request, outcome: summary_flow::Outcome::default(), opaque: false, queued: true, dependents: HashSet::new() });
+            self.entries.push(Entry { request, outcome: summary_flow::Outcome::default(), opaque: false, queued: true, dependents: HashSet::new(),session:None,session_input:None,pending_nodes:HashSet::new(),pending_entry:false,epoch:0 });
             self.work.push(index);
             index
         };
-        if let Some(parent) = self.current { self.entries[index].dependents.insert(parent); }
+        if let Some(parent) = self.current { let node=self.active_nodes.last().filter(|(owner,_)|*owner==parent).map(|(_,node)|*node);self.entries[index].dependents.insert(Dependency {parent,node}); }
         index
     }
     fn for_each(&mut self, expression: &Expr, callee: &expression_flow::Value, arguments: &[expression_flow::Value], state: &FlowState) -> Option<expression_flow::Invocation> {
@@ -160,7 +168,15 @@ impl<'a> Engine<'a> {
                 true
             })
         } else {true};
-        let mut incoming=if available {summary_flow::invoke_with_dispatch(request.declaration,&caller,&request.arguments,declarations,effects,self)} else {None};
+        let epoch=self.entries[index].epoch;
+        let mut session=if self.entries[index].session_input.as_ref()==Some(&caller) {self.entries[index].session.take()}else{None};
+        if std::mem::take(&mut self.entries[index].pending_entry) && session.as_mut().is_some_and(|session|!session.requeue_entry()) {session=None;}
+        if session.is_none() && available {session=summary_flow::invocation_state::InvocationState::new(request.declaration,&caller,&request.arguments,declarations,effects,self);}
+        let pending=std::mem::take(&mut self.entries[index].pending_nodes);
+        if let Some(session)=&mut session {for node in pending {if session.requeue(node).is_none() {self.entries[index].opaque=true;}}}
+        let mut incoming=if available {session.as_mut().and_then(|session|session.drive(declarations,effects,self))}else{None};
+        if self.entries[index].epoch==epoch {self.entries[index].session=session;self.entries[index].session_input=Some(caller.clone());}
+
         if let (Some(handle),Some(before),Some(outcome))=(request.environment,&captured_before,&mut incoming) {
             for state in [&mut outcome.normal,&mut outcome.returning,&mut outcome.throwing].into_iter().flatten() {
                 if state.captures.contains_key(&handle) {
@@ -170,7 +186,7 @@ impl<'a> Engine<'a> {
             }
         }
         let readers=self.environments.take_changed_readers();
-        for reader in readers {self.enqueue(reader);}
+        for reader in readers {self.entries[reader].session=None;self.entries[reader].session_input=None;self.entries[reader].epoch+=1;self.enqueue(reader);}
         self.current = parent;
         let previous = self.entries[index].outcome.clone();
         if let Some(incoming) = incoming {
@@ -189,7 +205,12 @@ impl<'a> Engine<'a> {
         } else { self.entries[index].opaque = true; }
         if previous != self.entries[index].outcome || previous_opaque != self.entries[index].opaque {
             let dependents = self.entries[index].dependents.iter().copied().collect::<Vec<_>>();
-            for dependent in dependents { self.enqueue(dependent); }
+            for dependent in dependents {
+                let active=self.current==Some(dependent.parent) && self.active_nodes.last().filter(|(owner,_)|*owner==dependent.parent).map(|(_,node)|*node)==dependent.node;
+                if active {continue;}
+                if let Some(node)=dependent.node {self.entries[dependent.parent].pending_nodes.insert(node);}else{self.entries[dependent.parent].pending_entry=true;}
+                self.enqueue(dependent.parent);
+            }
         }
     }
     fn terminal_leaf_return(&self, declaration: Span) -> bool {
@@ -202,6 +223,8 @@ fn retain_caller_bindings(outgoing:&mut FlowState,identities:&HashSet<Option<cra
     outgoing.retain(|binding|identities.contains(&binding.identity));
 }
 impl expression_flow::Dispatch for Engine<'_> {
+    fn begin_node(&mut self,node:usize){if let Some(owner)=self.current {self.active_nodes.push((owner,node));}}
+    fn end_node(&mut self){if self.current.is_some() {self.active_nodes.pop().expect("balanced node dispatch");}}
     fn reject(&mut self) {self.opaque_invocation();}
     fn transfer_array_result(&mut self,expression:&Expr,value:&mut expression_flow::Value,state:&mut FlowState)->bool {
         array_transfer::transfer(self,expression,value,state)

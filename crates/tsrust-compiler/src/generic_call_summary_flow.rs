@@ -4,7 +4,9 @@ use super::*;
 mod guard_partitions;
 use guard_partitions::Partitions;
 #[path = "generic_call_body_state.rs"]
-mod body_state;
+pub(super) mod body_state;
+#[path = "generic_call_invocation_state.rs"]
+pub(super) mod invocation_state;
 #[derive(Default, Clone, PartialEq, Eq)]
 pub(super) struct Outcome {
     pub normal: Option<FlowState>,
@@ -19,6 +21,7 @@ pub(super) struct Outcome {
 pub(super) fn run(body: &[Stmt], initial: &[Binding], declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index) -> Option<Outcome> {
     run_with_dispatch(body, &initial.to_vec().into(), declarations, effects, &mut expression_flow::UnknownDispatch)
 }
+#[cfg(test)]
 pub(super) fn run_with_dispatch(body: &[Stmt], initial: &FlowState, declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index, dispatch: &mut dyn expression_flow::Dispatch) -> Option<Outcome> {
     body_state::BodyState::new(body,initial,declarations,effects)?.drive(declarations,effects,dispatch)
 }
@@ -78,6 +81,7 @@ pub(super) fn reference_run_with_dispatch(body: &[Stmt], initial: &FlowState, de
 pub(super) fn invoke(declaration: Span, caller: &[Binding], arguments: &[expression_flow::Value], declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index) -> Option<Outcome> {
     invoke_with_dispatch(declaration, &caller.to_vec().into(), arguments, declarations, effects, &mut expression_flow::UnknownDispatch)
 }
+#[cfg(test)]
 pub(super) fn invoke_with_dispatch(declaration: Span, caller: &FlowState, arguments: &[expression_flow::Value], declarations: &HashMap<String, Contract>, effects: &effect_bodies::Index, dispatch: &mut dyn expression_flow::Dispatch) -> Option<Outcome> {
     if effects.aggregate_writes(declaration) { return None; }
     let mut frame = invocation_frame::Frame::build_with_state(declaration, caller, arguments, effects)?;
