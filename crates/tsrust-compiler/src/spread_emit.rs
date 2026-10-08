@@ -1,6 +1,13 @@
 //! Once-only spread staging uses native owners and references.
 use super::*;
 
+// Keep eager snapshots: later arguments may change the source array. Small
+// scalar snapshots use bounded inline storage and spill when they grow.
+fn inline_copy_snapshot(plan:&CheckedSpreadCall,segment:&SpreadSegment)->bool {
+    plan.builtin.is_none() && segment.spread && segment.access==Mode::Copy
+        && matches!(segment.element,Type::Int|Type::Number|Type::Boolean)
+}
+
 pub(super) const SPREAD_SLOTS:&str=r#"
 enum TsrSpreadSlot<'a,T> { Owned(T), Read(&'a T), Mutate(&'a mut T), Null, Undefined }
 impl<'a,T> TsrSpreadSlot<'a,T> {
@@ -125,7 +132,11 @@ impl Emitter<'_> {
                 write!(output,"let mut {source} = {code}; ").unwrap();
                 let iterator=if segment.value.ty==Some(Type::String) {format!("{source}.as_ref().chars().map(|character|String::Owned(character.to_string()))")}else if matches!(segment.value.ty,Some(Type::Map(_))) && segment.access==Mode::Read {format!("{source}.entry_iter()")}else{match segment.access {Mode::Copy=>format!("{source}.iter().copied()"),Mode::Read=>format!("{source}.iter()"),Mode::Mutate=>format!("{source}.tsr_spread_mut_items()"),Mode::Consume=>format!("{source}.tsr_owned_items()")}};
                 let iterator=if matches!(plan.call.kind,ExprKind::SpreadValue(_)) && let Some(Type::Array(element))=plan.call.ty && element.ty()!=segment.element {format!("{iterator}.map(|item|{})",self.element_alternative(segment.element,element.ty(),"item"))}else{iterator};
-                write!(output,"let {name}: Vec<_> = {iterator}.collect(); ").unwrap();
+                if inline_copy_snapshot(plan,segment) {
+                    write!(output,"let mut {name}: Array<_> = Array::from([]); for spread_snapshot_item in {iterator} {{ {name}.push(spread_snapshot_item); }} ").unwrap();
+                } else {
+                    write!(output,"let {name}: Vec<_> = {iterator}.collect(); ").unwrap();
+                }
             }else {write!(output,"let {name} = Some({code}); ").unwrap();}
         }
         write!(output,"let spread_count{} = 0usize",plan.slot).unwrap();
@@ -147,7 +158,8 @@ impl Emitter<'_> {
             write!(output,"let mut spread_position{} = 0usize; ",plan.slot).unwrap();
             for (index,segment) in plan.segments.iter().enumerate() {
                 if segment.length==Some(0) {continue;}
-                write!(output,"for spread_item in spread_segment{}_{index}.into_iter() {{ match spread_position{} {{ ",plan.slot,plan.slot).unwrap();
+                let iterator=if inline_copy_snapshot(plan,segment) {"tsr_owned_items"}else{"into_iter"};
+                write!(output,"for spread_item in spread_segment{}_{index}.{iterator}() {{ match spread_position{} {{ ",plan.slot,plan.slot).unwrap();
                 let carrier=if matches!(segment.element,Type::BorrowedUnion(_)) {"Owned"}else{match segment.access {Mode::Copy|Mode::Consume=>"Owned",Mode::Read=>"Read",Mode::Mutate=>"Mutate"}};
                 let (lower,upper)=crate::analysis::spread_position_range(&plan.segments,index,plan.minimum,plan.maximum);
                 for position in lower..fixed.min(upper.map_or(fixed,|upper|upper+1)) {

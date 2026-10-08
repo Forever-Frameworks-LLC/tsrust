@@ -1849,3 +1849,32 @@ function main(){const saved=join;strictEqual(saved("a","b"),"a/b");const instanc
     let checked=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).unwrap();
     for optimization in ["0","3"] {assert_eq!(native_stdout(&checked.emit_rust(),optimization),"");}
 }
+
+#[test]
+fn small_scalar_rest_forwarding_has_a_bounded_allocation_budget() {
+    let entry=support::format_round_trip(r#"import {strictEqual} from 'std:testing';
+function main(){const base=1;function sum(...values:int[]):int{let result=base;for(const value of values){result+=value;}return result;}const action=sum;const values=[1,2,3];for(let index=0;index<1000;index+=1){strictEqual(action(...values),7);}strictEqual(values[0],1);strictEqual(values.length,3);}"#);
+    let memory=Memory::new(&[("main.tsr",&entry)]);
+    let checked=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).unwrap();
+    let mut rust=checked.emit_rust().replacen("fn main()", "fn checked_entry()",1);
+    rust.push_str(r#"
+static SNAPSHOT_ALLOCATIONS: std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+struct SnapshotAllocator;
+unsafe impl std::alloc::GlobalAlloc for SnapshotAllocator {
+    unsafe fn alloc(&self, layout:std::alloc::Layout)->*mut u8 {
+        SNAPSHOT_ALLOCATIONS.fetch_add(1,std::sync::atomic::Ordering::Relaxed);
+        unsafe {std::alloc::System.alloc(layout)}
+    }
+    unsafe fn dealloc(&self,pointer:*mut u8,layout:std::alloc::Layout) {
+        unsafe {std::alloc::System.dealloc(pointer,layout)}
+    }
+    unsafe fn realloc(&self,pointer:*mut u8,layout:std::alloc::Layout,size:usize)->*mut u8 {
+        SNAPSHOT_ALLOCATIONS.fetch_add(1,std::sync::atomic::Ordering::Relaxed);
+        unsafe {std::alloc::System.realloc(pointer,layout,size)}
+    }
+}
+#[global_allocator] static SNAPSHOT_ALLOCATOR:SnapshotAllocator=SnapshotAllocator;
+fn main(){let before=SNAPSHOT_ALLOCATIONS.load(std::sync::atomic::Ordering::Relaxed);checked_entry();let used=SNAPSHOT_ALLOCATIONS.load(std::sync::atomic::Ordering::Relaxed)-before;assert!(used<=8,"small scalar rest snapshots must not allocate per call: {used}");}
+"#);
+    for optimization in ["0","3"] {assert_eq!(native_stdout(&rust,optimization),"");}
+}
