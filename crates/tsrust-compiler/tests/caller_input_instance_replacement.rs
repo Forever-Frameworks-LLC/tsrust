@@ -474,8 +474,7 @@ fn closure_body_installer_releases_independent_input_owners() {
 
 #[test]
 fn installer_function_value_releases_independent_input_owners() {
-    execute(
-        r#"
+    let source = r#"
         import { strictEqual } from "std:testing";
         type Holder = { run: ReadOnly<Function<int>> | undefined; };
         function install(holder: Mutable<Holder>, source: ReadOnly<int[]>, calls: Mutable<int[]>): void {
@@ -490,7 +489,13 @@ fn installer_function_value_releases_independent_input_owners() {
             perform(holder, second, calls); first[0] += 1;
             strictEqual(first[0], 4); strictEqual(holder.run!(), 10); strictEqual(calls[0], 2);
         }
-    "#,
+    "#;
+    execute(source);
+    execute(
+        &source
+            .replace(" | undefined", "")
+            .replace("run: undefined", "run: (): int => 0")
+            .replace("run!()", "run()"),
     );
 }
 
@@ -533,4 +538,71 @@ fn installer_function_value_retains_new_owner_and_releases_old_owner_in_analysis
             .expect("Forwarded installation retains the new owner");
         assert_eq!(error.code, "capture-conflict", "{error:?}");
     }
+}
+
+#[test]
+fn installer_function_value_carries_replacement_bounds_for_one_input() {
+    execute(
+        r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>, calls: Mutable<int[]>): void {
+            calls[0] += 1;
+            holder.run = (): int => source[0];
+        }
+        function main() {
+            const source = [7]; const calls = [0]; const holder: Holder = { run: undefined };
+            const perform = install;
+            perform(holder, source, calls);
+            strictEqual(holder.run!(), 7); strictEqual(calls[0], 1);
+        }
+    "#,
+    );
+}
+
+#[test]
+fn forwarded_mutable_installer_preserves_invocation_and_owner_release() {
+    let source = r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: Mutable<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: Mutable<int[]>): void {
+            holder.run = (): int => { source[0] += 1; return source[0]; };
+        }
+        function main() {
+            const first = [3]; const second = [10]; const holder: Holder = { run: undefined };
+            const perform = install;
+            perform(holder, first); strictEqual(holder.run!(), 4);
+            perform(holder, second); first[0] += 1;
+            strictEqual(first[0], 5); strictEqual(holder.run!(), 11);
+        }
+    "#;
+    execute(source);
+    execute(
+        &source
+            .replace(" | undefined", "")
+            .replace("run: undefined", "run: (): int => 0")
+            .replace("run!()", "run()"),
+    );
+}
+
+#[test]
+fn forwarded_installer_preserves_typed_failure_after_record_storage() {
+    execute(
+        r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>, calls: Mutable<int[]>): void {
+            calls[0] += 1; holder.run = (): int => source[0]; throw "installed";
+        }
+        function main() {
+            const first = [3]; const second = [10]; const calls = [0];
+            const holder: Holder = { run: undefined }; const perform = install;
+            let caught = 0;
+            try { perform(holder, first, calls); } catch(error) { strictEqual(error, "installed"); caught += 1; }
+            strictEqual(holder.run!(), 3);
+            try { perform(holder, second, calls); } catch(error) { strictEqual(error, "installed"); caught += 1; }
+            strictEqual(holder.run!(), 10); strictEqual(caught, 2); strictEqual(calls[0], 2);
+        }
+    "#,
+    );
 }

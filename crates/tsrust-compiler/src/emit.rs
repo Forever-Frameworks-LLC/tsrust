@@ -1,3 +1,9 @@
+#[path = "forwarded_owner_uses.rs"]
+mod forwarded_owner_uses;
+#[path = "forwarded_record_signature_emit.rs"]
+mod forwarded_record_signature_emit;
+#[path = "native_function_signature_emit.rs"]
+mod native_function_signature_emit;
 #[path = "local_borrowed_family_emit.rs"]
 mod local_borrowed_family_emit;
 #[path = "record_store_branches_emit.rs"]
@@ -881,19 +887,18 @@ impl Emitter<'_> {
             let value = self.expr(fun, arg, parameter.mode);
             text.push_str(&format!("let forward_argument{index} = {value}; "));
         }
-        let arguments = (0..args.len())
-            .map(|index| format!("forward_argument{index}"))
-            .collect::<Vec<_>>()
-            .join(", ");
+        let mut arguments = (0..args.len()).map(|index| format!("forward_argument{index}")).collect::<Vec<_>>();
+        arguments.extend(self.owner_argument_markers(fun,function,args));
+        let arguments = arguments.join(", ");
         let result_target=self.result_functions.borrow().get(&function).cloned();
         let name=self.native_call_name(function,args);
         text.push_str(&format!("{name}({arguments}) }}"));
-        if let Some((_,source_name))=result_target {
+        let code = if let Some((_,source_name))=result_target {
             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
             self.exception_regions.function_result_call(&text,function,&source_name,&self.program.error_effects,&unions,callee.span).expect("checked forwarded function Result call")
-        } else {
-            text
-        }
+        } else { text };
+        let updates=self.record_call_reification(fun,args,function);
+        if updates.is_empty(){code}else{format!("{{let forward_result={code};{updates}forward_result}}")}
     }
 
     fn materialized_method_call(
@@ -1935,6 +1940,7 @@ impl Emitter<'_> {
     fn callback_result_adapters(&self,output:&mut String,index:usize,params:&[ArgumentContract],arguments:&str,forwarded:&str,impl_lifetimes:&str,lifetime:&str,native_result:&str) {
         if !self.callback_traits || self.result_callbacks.borrow().is_empty() {return;}
         let closure=&self.program.closures[index];
+        let forwarded_where = self.forwarded_record_signature(closure).map_or_else(String::new, |(target,_)| self.forwarded_record_trait_where(target));
         let Some(source)=self.program.error_effects.closure_errors.get(index) else {return;};
         let source_name=self.result_closures.borrow().get(&index).cloned();
         if source_name.is_none() && (source.runtime || source.opaque || !source.explicit.is_empty()) {return;}
@@ -1964,7 +1970,7 @@ impl Emitter<'_> {
                     let body=convert(format!("self.call_with_count(count, {forwarded})"));
                     format!("    fn {method}_with_count({receiver}, args:{arguments}, count:usize)->{result}{{{body}}}\n")
                 }else{String::new()};
-                let _=writeln!(output,"impl{impl_lifetimes} {trait_name}<{arguments},{result}> for Closure{index}{lifetime}{{\n    fn {method}({receiver},args:{arguments})->{result}{{{body}}}\n{counted}}}\n");
+                let _=writeln!(output,"impl{impl_lifetimes} {trait_name}<{arguments},{result}> for Closure{index}{lifetime}{forwarded_where}{{\n    fn {method}({receiver},args:{arguments})->{result}{{{body}}}\n{counted}}}\n");
             }
         }
     }
@@ -2192,12 +2198,11 @@ impl Emitter<'_> {
                 let _=writeln!(output,"        {call}");
             }
             _ => {
-                let arguments = closure
-                    .parameters
-                    .iter()
-                    .map(|id| format!("value{id}"))
-                    .collect::<Vec<_>>()
-                    .join(", ");
+                let mut arguments = closure.parameters.iter().map(|id| format!("value{id}")).collect::<Vec<_>>();
+                if let Some(ClosureForward::Function(target)) = closure.forward {
+                    arguments.extend(self.owner_inputs(target).iter().map(|source| format!("std::marker::PhantomData::<O{source}>")));
+                }
+                let arguments=arguments.join(", ");
                 let _ = writeln!(output, "        self.call({arguments})");
             }
         }
@@ -2368,9 +2373,13 @@ impl Emitter<'_> {
             } else {
                 format!("<{}>", generic_bounds.join(", "))
             };
+            let forwarded_signature = self.forwarded_record_signature(closure);
+            let parameters = forwarded_signature.as_ref().map_or(parameters, |(_, signature)| format!(", {}", signature.params));
+            let call_generics = forwarded_signature.as_ref().map_or(call_generics, |(_, signature)| signature.generics.clone());
+            let replacement_where = forwarded_signature.as_ref().map_or_else(String::new, |(_, signature)| signature.replacement_where.clone());
             let _ = writeln!(
                 output,
-                "    fn call{call_generics}({receiver}{parameters}) -> {} {{",
+                "    fn call{call_generics}({receiver}{parameters}) -> {}{replacement_where} {{",
                 native_result.clone()
             );
             for capture in &closure.captures {
@@ -2395,12 +2404,9 @@ impl Emitter<'_> {
                 if self.record_capture_is_view(capture,closure){if let Some(entry)=self.record_parameter_entry_view(&closure.function,capture.inner){let _=writeln!(output,"        {entry}");}}
             }
             if let Some(ClosureForward::Function(target)) = closure.forward {
-                let arguments = closure
-                    .parameters
-                    .iter()
-                    .map(|id| format!("value{id}"))
-                    .collect::<Vec<_>>()
-                    .join(", ");
+                let mut arguments = closure.parameters.iter().map(|id| format!("value{id}")).collect::<Vec<_>>();
+                arguments.extend(self.owner_inputs(target).iter().map(|source| format!("std::marker::PhantomData::<O{source}>")));
+                let arguments=arguments.join(", ");
                 let call=if let Some(destination)=&result_layout {
                     let source=&self.program.error_effects.function_errors[target];
                     if let Some((symbol,source_name))=self.result_functions.borrow().get(&target).cloned() {
@@ -2466,7 +2472,7 @@ impl Emitter<'_> {
             }
             output.push_str("    }\n");
             if self.counted_calls {
-                let _ = writeln!(output, "    fn call_with_count{call_generics}({receiver}, supplied_count: usize{parameters}) -> {} {{", native_result.clone());
+                let _ = writeln!(output, "    fn call_with_count{call_generics}({receiver}, supplied_count: usize{parameters}) -> {}{replacement_where} {{", native_result.clone());
                 self.counted_closure_body(&mut output, closure);
                 output.push_str("    }\n");
             }
@@ -2492,12 +2498,14 @@ impl Emitter<'_> {
                 .map(|id| format!("args.{id}"))
                 .collect::<Vec<_>>()
                 .join(", ");
+            let forwarded_trait_where = forwarded_signature.as_ref().map_or_else(String::new, |(target,_)| self.forwarded_record_trait_where(*target));
+            let forwarded = forwarded_signature.as_ref().map_or_else(||forwarded.clone(), |(target,_)|self.forwarded_record_trait_arguments(*target,&forwarded));
             if self.callback_traits {
                 let result = native_result.clone();
                 let counted_method = if self.counted_calls { format!("    fn invoke_once_with_count(mut self, args: {arguments}, count: usize) -> {result} {{ self.call_with_count(count, {forwarded}) }}\n") } else { String::new() };
                 let _ = writeln!(
                     output,
-                    "impl{impl_lifetimes} OnceCallback<{arguments}, {result}> for Closure{index}{lifetime} {{\n    fn invoke_once(mut self, args: {arguments}) -> {result} {{ self.call({forwarded}) }}\n{counted_method}}}\n"
+                    "impl{impl_lifetimes} OnceCallback<{arguments}, {result}> for Closure{index}{lifetime}{forwarded_trait_where} {{\n    fn invoke_once(mut self, args: {arguments}) -> {result} {{ self.call({forwarded}) }}\n{counted_method}}}\n"
                 );
             }
             if self.callback_traits && closure.invocation == Mode::Read {
@@ -2505,7 +2513,7 @@ impl Emitter<'_> {
                 let counted_method = if self.counted_calls { format!("    fn invoke_read_with_count(&self, args: {arguments}, count: usize) -> {result} {{ self.call_with_count(count, {forwarded}) }}\n") } else { String::new() };
                 let _ = writeln!(
                     output,
-                    "impl{impl_lifetimes} ReadCallback<{arguments}, {result}> for Closure{index}{lifetime} {{\n    fn invoke_read(&self, args: {arguments}) -> {result} {{ self.call({forwarded}) }}\n{counted_method}}}\n"
+                    "impl{impl_lifetimes} ReadCallback<{arguments}, {result}> for Closure{index}{lifetime}{forwarded_trait_where} {{\n    fn invoke_read(&self, args: {arguments}) -> {result} {{ self.call({forwarded}) }}\n{counted_method}}}\n"
                 );
             }
             if self.callback_traits && closure.invocation != Mode::Consume {
@@ -2513,7 +2521,7 @@ impl Emitter<'_> {
                 let counted_method = if self.counted_calls { format!("    fn invoke_with_count(&mut self, args: {arguments}, count: usize) -> {result} {{ self.call_with_count(count, {forwarded}) }}\n") } else { String::new() };
                 let _ = writeln!(
                     output,
-                    "impl{impl_lifetimes} Callback<{arguments}, {result}> for Closure{index}{lifetime} {{\n    fn invoke(&mut self, args: {arguments}) -> {result} {{ self.call({forwarded}) }}\n{counted_method}}}\n"
+                    "impl{impl_lifetimes} Callback<{arguments}, {result}> for Closure{index}{lifetime}{forwarded_trait_where} {{\n    fn invoke(&mut self, args: {arguments}) -> {result} {{ self.call({forwarded}) }}\n{counted_method}}}\n"
                 );
             }
             self.callback_result_adapters(&mut output,index,&params,&arguments,&forwarded,&impl_lifetimes,&lifetime,&native_result);
@@ -2570,65 +2578,7 @@ impl Emitter<'_> {
             let index = plan.function;
             let fun = &self.program.functions[index];
             self.active_plan.set(Some(plan_id));
-            // Hidden capture parameters of a nested function follow its
-            // source parameters and use the same access forms.
-            let hidden = self.program.named_capture_access.get(&index).map_or(0, Vec::len);
-            let borrowed_inputs = self.record_borrow_inputs(index);
-            let borrow_lifetimes = self.record_borrow_lifetime_groups(index);
-            let params = fun
-                .bindings
-                .iter()
-                .take(fun.parameter_count + hidden)
-                .enumerate()
-                .map(|(index, b)| {
-                    let input_ty = b.input_ty.unwrap_or(b.ty);
-                    let qualifier = match b.mode {
-                        Mode::Read if matches!(input_ty,Type::Union(id) if !id.copy) => "",
-                        Mode::Read => "&",
-                        Mode::Mutate if (b.omission.is_omittable() || self.multiple_data_union(input_ty)) && matches!(input_ty,Type::Union(id) if !id.copy) => "",
-                        Mode::Mutate => "&mut ",
-                        Mode::Consume | Mode::Copy => "",
-                    };
-                    let mutable = if b.mutable && (b.mode == Mode::Consume || ((b.omission.is_omittable() || self.multiple_data_union(input_ty)) && b.mode == Mode::Mutate)) {
-                        "mut "
-                    } else {
-                        ""
-                    };
-                    let parameter_type = if let Some((union,_)) = self.nullable_record_parameter(fun,index) {
-                        format!("ViewUnion{}<N{index}>",union.index())
-                    } else if self.record_parameter_entry_view(fun,index).is_some() {
-                        format!("R{index}")
-                    } else if matches!(input_ty, Type::Callback(_)) {
-                        format!("F{index}")
-                    } else {
-                        plan.parameters.get(index).and_then(Option::as_ref).map_or_else(
-                            || {
-                                if (b.omission.is_omittable() || self.multiple_data_union(input_ty)) && b.mode == Mode::Mutate {
-                                    self.native_argument_type(ArgumentContract::from(b), "")
-                                } else if let Type::Union(id) = input_ty
-                                    && !id.copy
-                                    && b.mode == Mode::Read
-                                {
-                                    self.native_type(Type::BorrowedUnion(id))
-                                } else {
-                                    self.native_type(input_ty)
-                                }
-                            },
-                            |shape| self.shape_type(shape),
-                        )
-                    };
-                    let qualifier = if borrowed_inputs.contains(&index) && !qualifier.is_empty() {
-                        match b.mode {
-                            Mode::Read => format!("&'record_input{} ", borrow_lifetimes[&index]),
-                            Mode::Mutate => format!("&'record_input{} mut ", borrow_lifetimes[&index]),
-                            _ => qualifier.to_owned(),
-                        }
-                    } else { qualifier.to_owned() };
-                    format!("{mutable}value{index}: {qualifier}{parameter_type}")
-                })
-                .collect::<Vec<_>>()
-                .join(", ");
-            let params = format!("{params}{}",self.owner_marker_parameters(index));
+            let native_function_signature_emit::NativeSignature {params,generics,replacement_where} = self.native_function_signature(index,&plan.parameters);
             let result_target=self.result_functions.borrow().get(&index).cloned();
             if result_target.is_some() {
             }
@@ -2641,67 +2591,7 @@ impl Emitter<'_> {
             } else {
                 format!("function{index}")
             };
-            let generics = fun
-                .bindings
-                .iter()
-                .take(fun.parameter_count)
-                .enumerate()
-                .filter_map(|(index, b)| match b.input_ty.unwrap_or(b.ty) {
-                    Type::Callback(id) => {
-                        let contract = &self.program.callback_contracts[id];
-                        let trait_name = if matches!(contract.kind, crate::syntax::CallbackKind::Read | crate::syntax::CallbackKind::SharedRead) {
-                            "ReadCallback"
-                        } else if contract.kind.is_once() {
-                            "OnceCallback"
-                        } else {
-                            "Callback"
-                        };
-                        let (args, lifetimes) = self.native_argument_tuple(&contract.params);
-                        let bound = if lifetimes.is_empty() {
-                            String::new()
-                        } else {
-                            format!("for{} ", lifetime_parameters(&lifetimes))
-                        };
-                        Some(format!(
-                            "F{index}: {bound}{trait_name}<{args}, {}>",
-                            self.callback_result_type(id,contract.result)
-                        ))
-                    }
-                    _ => None,
-                })
-                .collect::<Vec<_>>();
-            let mut lifetime_generics = borrow_lifetimes.values().copied().collect::<std::collections::BTreeSet<_>>().into_iter().map(|id| format!("'record_input{id}")).collect::<Vec<_>>();
-            lifetime_generics.extend(generics);
-            lifetime_generics.extend(self.owner_inputs(index).iter().map(|source|format!("O{source}")));
-            let mut generics = lifetime_generics;
-            generics.extend((0..fun.parameter_count).filter_map(|id|self.nullable_record_parameter_bound(fun,id)));
-            generics.extend((0..fun.parameter_count+hidden).filter_map(|id|self.record_parameter_bound(fun,id,index)));
-            generics.extend(
-                self.nullable_callback_bounds(
-                    fun.bindings
-                        .iter()
-                        .take(fun.parameter_count)
-                        .enumerate().filter(|(id,_)|self.record_parameter_entry_view(fun,*id).is_none())
-                        .map(|(_,binding)| binding.input_ty.unwrap_or(binding.ty))
-                        .chain(std::iter::once(fun.result)),
-                ),
-            );
-            // A record parameter names nullable callback-record leaves by their
-            // full type; the callbacks inside them are generic parameters too.
-            let leaves = (0..fun.parameter_count+hidden).filter_map(|id|self.record_parameter_layout(fun,id))
-                .flat_map(|layout|layout.leaves.into_iter().map(|leaf|leaf.ty).filter(|ty|matches!(ty,Type::Union(_)|Type::BorrowedUnion(_))).collect::<Vec<_>>()).collect::<Vec<_>>();
-            for bound in self.nullable_callback_bounds(leaves) {
-                if !generics.contains(&bound) { generics.push(bound); }
-            }
-            let generics = if generics.is_empty() {
-                String::new()
-            } else {
-                format!("<{}>", generics.join(", "))
-            };
             let native_result=match &result_target {Some((_,error))=>format!("Result<{},{}>",self.native_type(fun.result),error),None=>self.native_type(fun.result)};
-            let mut replacements=self.nullable_parameter_replacement_bounds(index);
-            replacements.extend(self.nullable_callback_replacement_bounds(index));
-            let replacement_where=if replacements.is_empty(){String::new()}else{format!(" where {}",replacements.join(", "))};
             let _ = writeln!(output,"fn {name}{generics}({params}) -> {native_result}{replacement_where} {{");
             if name == "main" {
                 output.push_str(self.entry_setup);

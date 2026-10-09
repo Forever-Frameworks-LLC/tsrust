@@ -285,7 +285,28 @@ function workload(n: int, seed: int, input: string): int[][] {
             conditionalEffects = calls[0];
         }
 
-        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects, conditionalFirst, conditionalReleased, conditionalReplacement, conditionalEffects]);
+        let forwardedFirst = 0;
+        let forwardedReleased = 0;
+        let forwardedReplacement = 0;
+        let forwardedEffects = 0;
+        {
+            const original = [value];
+            const replacement = [value + 4];
+            const calls = [0];
+            const holder: ReadNullableHolder = {
+                run: undefined
+            };
+            const perform = installConditional;
+            perform(holder, original, true, calls);
+            forwardedFirst = holder.run!();
+            perform(holder, replacement, false, calls);
+            original[0] += 1;
+            forwardedReleased = original[0];
+            forwardedReplacement = holder.run!();
+            forwardedEffects = calls[0];
+        }
+
+        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects, conditionalFirst, conditionalReleased, conditionalReplacement, conditionalEffects, forwardedFirst, forwardedReleased, forwardedReplacement, forwardedEffects]);
         i += 1;
     }
 

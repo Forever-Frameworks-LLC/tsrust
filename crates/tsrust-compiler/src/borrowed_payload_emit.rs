@@ -37,8 +37,10 @@ pub(super) fn capture_alternatives(program: &CheckedProgram) -> Alternatives {
         pending: &mut Vec<(usize, Vec<Option<usize>>)>,
     ) {
         crate::fixed_storage::visit_function_expressions(function, &mut |expr| {
-            if let (Some(CallTarget::Function(callee)), ExprKind::Call(_, args)) =
-                (expr.target, &expr.kind)
+            if let (
+                Some(CallTarget::Function(callee) | CallTarget::ForwardFunction(callee)),
+                ExprKind::Call(_, args),
+            ) = (expr.target, &expr.kind)
             {
                 pending.push((
                     callee,

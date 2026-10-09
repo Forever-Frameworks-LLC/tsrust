@@ -68,6 +68,14 @@ impl Emitter<'_> {
         let ExprKind::Call(_, arguments) = expression else {
             return Vec::new();
         };
+        self.owner_argument_markers(function, callee, arguments)
+    }
+    pub(super) fn owner_argument_markers(
+        &self,
+        function: &CheckedFunction,
+        callee: usize,
+        arguments: &[Expr],
+    ) -> Vec<String> {
         self.owner_inputs(callee)
             .iter()
             .map(|source| {

@@ -49,20 +49,14 @@ fn walk(program: &CheckedProgram, mut pending: Vec<(usize, Vec<Option<Owner>>)>)
         return result;
     }
     let mut incomplete = BTreeSet::new();
-    // Closure contexts need explicit outer-owner transport before tagging their callees.
+    // Concrete static forwarding calls are grounded below. Abstract uses and
+    // closure bodies still require a complete environment-owner interface.
+    let unresolved_forward = forwarded_owner_uses::incomplete_targets(program);
     for closure in &program.closures {
-        if let Some(ClosureForward::Function(callee)) = closure.forward {
-            incomplete.extend(
-                program
-                    .record_parameter_borrows
-                    .get(&callee)
-                    .into_iter()
-                    .flatten()
-                    .map(|borrow| borrow.origin),
-            );
-        }
         crate::fixed_storage::visit_function_expressions(&closure.function, &mut |expr| {
-            if let Some(CallTarget::Function(callee)) = expr.target {
+            if let Some(CallTarget::Function(callee) | CallTarget::ForwardFunction(callee)) =
+                expr.target
+            {
                 incomplete.extend(
                     program
                         .record_parameter_borrows
@@ -73,6 +67,16 @@ fn walk(program: &CheckedProgram, mut pending: Vec<(usize, Vec<Option<Owner>>)>)
                 );
             }
         });
+    }
+    for target in unresolved_forward {
+        incomplete.extend(
+            program
+                .record_parameter_borrows
+                .get(&target)
+                .into_iter()
+                .flatten()
+                .map(|borrow| borrow.origin),
+        );
     }
     let mut seen = BTreeSet::new();
     while let Some((id, inputs)) = pending.pop() {
@@ -90,8 +94,10 @@ fn walk(program: &CheckedProgram, mut pending: Vec<(usize, Vec<Option<Owner>>)>)
             {
                 owned.insert(origin);
             }
-            if let (Some(CallTarget::Function(callee)), ExprKind::Call(_, arguments)) =
-                (expr.target, &expr.kind)
+            if let (
+                Some(CallTarget::Function(callee) | CallTarget::ForwardFunction(callee)),
+                ExprKind::Call(_, arguments),
+            ) = (expr.target, &expr.kind)
             {
                 let inputs = arguments
                     .iter()
@@ -252,4 +258,59 @@ fn repeating_a_call_does_not_manufacture_another_owner() {
     let result = plan(&checked.program);
     assert_eq!(result.len(), 1);
     assert_eq!(result.values().next().unwrap().len(), 1);
+}
+
+#[test]
+fn static_installer_function_values_keep_independent_named_owners() {
+    let checked = crate::check(r#"
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>, calls: Mutable<int[]>): void {
+            calls[0] += 1; holder.run = (): int => source[0];
+        }
+        function main() {
+            const first = [3]; const second = [10]; const calls = [0];
+            const holder: Holder = { run: undefined }; const perform = install;
+            perform(holder, first, calls); perform(holder, second, calls);
+            first[0] += 1; console.log(holder.run!());
+        }
+    "#).unwrap();
+    let result = plan(&checked.program);
+    assert_eq!(
+        result.len(),
+        1,
+        "Static forwarding must retain concrete owner provenance: {result:?}"
+    );
+    assert_eq!(result.values().next().unwrap().len(), 2);
+}
+
+#[test]
+fn abstract_installer_uses_do_not_invent_concrete_owner_vectors() {
+    let checked = crate::check(r#"
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>, calls: Mutable<int[]>): void {
+            calls[0] += 1; holder.run = (): int => source[0];
+        }
+        function invoke(action: ReadOnly<Function<void, [Mutable<Holder>, ReadOnly<int[]>, Mutable<int[]>]>>, holder: Mutable<Holder>, source: ReadOnly<int[]>, calls: Mutable<int[]>): void {
+            action(holder, source, calls);
+        }
+        function main() {
+            const source = [3]; const calls = [0]; const holder: Holder = { run: undefined };
+            const perform = install;
+            invoke(perform, holder, source, calls);
+        }
+    "#).unwrap();
+    assert!(
+        plan(&checked.program).is_empty(),
+        "Abstract invocations require their own complete owner interface"
+    );
+    let install = checked
+        .program
+        .functions
+        .iter()
+        .position(|function| function.name == "install")
+        .unwrap();
+    assert!(
+        parameter_vectors(&checked.program, install).is_empty(),
+        "Even grounded symbolic inputs must not bypass an abstract-use guard"
+    );
 }
