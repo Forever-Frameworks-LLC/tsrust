@@ -5,6 +5,9 @@ impl Analyzer {
     #[inline(never)]
     pub(super) fn finish_loop_body(&mut self,context:&mut Context,body:&mut [Stmt],span:Span,entry_owners:crate::capture_loan_owners::Owners,baseline:Vec<Availability>,zero_flow:crate::flow::Facts,exits:bool)->Result<bool,Diagnostic> {
         let frame = context.loops.pop().expect("matching loop frame");
+        if !exits {context.storage_exits.record_map_loop_edge(span,storage_exit_availability::MapLoopEdge::Back,&context.capture_loan_owners);}
+        if let Some(owners)=&frame.continue_owners {context.storage_exits.record_map_loop_edge(span,storage_exit_availability::MapLoopEdge::Back,owners);}
+        if let Some(owners)=&frame.break_owners {context.storage_exits.record_map_loop_edge(span,storage_exit_availability::MapLoopEdge::Break,owners);}
         context.capture_loan_owners = crate::capture_loan_owners::Owners::reaching(
             Some(entry_owners), (!exits).then(||context.capture_loan_owners.clone()));
         if let Some(owners) = &frame.continue_owners { context.capture_loan_owners.join(owners); }

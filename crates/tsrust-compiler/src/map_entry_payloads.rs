@@ -25,6 +25,15 @@ impl Payloads {
             .flat_map(|(_, types)| types.iter().copied())
             .collect()
     }
+    pub(super) fn snapshot(&self)->BTreeMap<Place,HashSet<Type>> {
+        let mut roots=BTreeMap::<Place,HashSet<Type>>::new();
+        for (place,types) in &self.0 {
+            let mut root=place.clone();
+            if root.fields.last().is_some_and(|field|field.starts_with("\0map-entry:")){root.fields.pop();}
+            roots.entry(root).or_default().extend(types.iter().copied());
+        }
+        roots
+    }
     pub(super) fn discard(&mut self, root: &Place) {
         self.0.retain(|place, _| !contains(root, place));
     }

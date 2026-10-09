@@ -1,6 +1,23 @@
 mod support;
 
 #[test]
+fn map_entry_release_inside_iteration_preserves_refill_and_survivor() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(limit:int):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});let turn=0;while(turn<limit){handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;console.log('turn',turn,first[0]);turn++;}for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();console.log('done',first[0]);}function main():void{scenario(0);scenario(2);}");
+ let conflict=source.replace("first[0] += 1;","second[0]+=1;");
+ assert_ne!(conflict,source);
+ assert_eq!(tsrust_compiler::check(&conflict).err().expect("surviving entry protects its capture").code,"capture-conflict");
+ support::execute(&source,"second 5\ndone 3\nturn 0 4\nturn 1 5\nsecond 5\ndone 5\n",None);
+}
+
+#[test]
+fn post_test_map_iteration_release_keeps_first_entry_state_distinct() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(limit:int):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});let turn=0;while(turn<limit){handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;console.log('turn',turn,first[0]);turn++;}for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();console.log('done',first[0]);}function main():void{scenario(0);scenario(2);}");
+ let post=source.replace("handlers.set('second',", "handlers.set('first',{run:():int=>first[0]});handlers.set('second',").replace("while (turn < limit)","do").replace("turn++;\n    }","turn++;}while(turn<limit);");
+ assert_ne!(post,source);
+ support::execute(&support::format_round_trip(&post),"turn 0 4\nsecond 5\ndone 4\nturn 0 4\nturn 1 5\nsecond 5\ndone 5\n",None);
+}
+
+#[test]
 fn narrowed_map_branch_refill_preserves_new_origins_at_join() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(branch:boolean):void{const first=[3];const second=[5];const third=[7];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});handlers.delete('first');first[0]=9;if(branch){handlers.set('third',{run:():int=>third[0]});}for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();third[0]=11;console.log('released',first[0],third[0]);}function main():void{scenario(true);scenario(false);}");
  support::execute(&source,"second 5\nthird 7\nreleased 9 11\nsecond 5\nreleased 9 11\n",None);

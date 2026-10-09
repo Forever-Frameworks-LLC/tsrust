@@ -675,3 +675,96 @@ B5 remains open. Next requirements include in-iteration release, same-expression
 release, precise array-element release, record Set equality/hash key constraints
 and broader alias/error composition. Family regression and timing remain deferred.
 User-facing consumers are still at gate181; scratch compiler builds are current.
+
+## In-iteration entry release: active red witness
+
+HEAD f04c9f9 remains the last accepted source checkpoint. The new
+map_entry_release_inside_iteration_preserves_refill_and_survivor witness checks
+an outer Map with a persistent second entry. Each iteration inserts and deletes
+a first entry, changes its released capture, and continues. Zero iterations must
+preserve the second entry; repeated iterations must observe changed first values.
+The source checker accepts this program, but native Rust reports E0502 because
+its persistent Map representation still carries the first callback environment.
+A negative companion asserts that mutation of the surviving second capture is
+still rejected. The witness is uncommitted; no implementation is claimed.
+
+The existing completion conversion occurs after the loop and cannot end this
+iteration's native borrow before capture mutation. Simply planning the body with
+inherited paths is insufficient: widening back to a family containing the removed
+environment would carry its reference lifetime through the backedge. Likewise,
+map_empty_loop_epoch cannot be reused by discarding storage: the second entry is
+nonempty and must survive, including its exact disposal and key order.
+
+Implement an isolated iteration transport plan with a stable carried family
+containing the actual entry and all reaching backedge payloads. Collect entry,
+normal body, continue and break ownership payloads through the existing joins;
+never derive reachability from a deletion snapshot alone. Widen inside an iteration
+before incoming writes, narrow before conflicting capture access, and move actual
+surviving storage into the carried representation at backedges. Preserve break,
+continue, post-test/update, zero-iteration, return, throw and finally behavior.
+For-of must retain iterable ownership and its existing control targets. Independent
+Map fields require independent transport without touching record siblings. No
+implicit clone or survivor drop is allowed.
+
+Acceptance must include while, counted, post-test and for-of variants, negative
+retained/early-exit paths, O0/O3 disposal, affected Map composition, editor behavior,
+matched TypeScript/oracle/contracts and whole-project formatting. Run all eight
+normal-stack canaries after recursive checking/dispatch changes. Family regression
+and timing remain deferred until B5 is complete. Keep current consumers unchanged
+until rebuilding from a source checkpoint. Original native failure evidence is
+retained in SQLite under tsrust-b5-map-iteration-release-red.log.
+
+### Iteration entry versus backedge proof
+
+Inspection of finish_loop_body confirms that pre-test completion payloads join
+entry, normal body, continue and break owners. In contrast, tail_loop explicitly
+omits a zero-body exit for do-while. Its final completion proof can therefore omit
+an environment present on the first body entry. Do not use final completion
+payloads alone as the uniform first-entry representation. Record actual entry
+and backedge payloads separately before the ownership states are consumed.
+
+A second native witness covers post-test zero-limit and repeated execution. Its
+zero-limit case must run once; this prevents lowering through a pre-test shortcut.
+A stable second callback survives all iterations in both witnesses. The initial
+while witness and this post-test witness remain red. No compiler source changed
+in this investigation.
+
+When entry and backedge families differ, consider a distinct first-iteration path
+followed by a loop carrying the proven backedge family. This can end initial
+borrow environments before mutation while retaining exact condition evaluation,
+zero-body behavior and survivors. Any such lowering must preserve continue/update,
+break/finally, condition failures and iterable advancement. Do not hide these
+requirements behind a larger common carrier that retains the eliminated borrow.
+
+The strengthened post-test witness seeds a first-entry callback before the loop,
+then replaces and deletes it inside the first body. Source checking succeeds and
+native borrow checking fails. Both original and strengthened failure logs are
+in SQLite as tsrust-b5-map-iteration-post-test-red.log and
+tsrust-b5-map-iteration-post-test-entry-red.log. No live checks remain.
+
+## Loop edge metadata checkpoint
+
+The checker now records Map payloads separately at Entry, Back and Break edges.
+Payload snapshots group decoded entry paths under their owning Map paths while
+keeping record fields independent. Ordinary loop completion records normal and
+continue owners before joining entry/exit state. Tail loops record first entry,
+reachable checked update/condition backedges and break owners before exit joins.
+Existing ownership joins are unchanged. Replay unions alternatives conservatively;
+empty reachable recorded edges are distinguishable from absent edges.
+
+The focused unit verifies that removing an entry at the backedge does not remove
+its first-entry or break payload, and that replayed incoming origins do not leak
+into entry facts. Its strengthened version verifies an empty reachable backedge.
+All eight normal-stack depth canaries pass after the checker hooks. Five editor
+entry-release checks pass. The Map composition batch passes 71 tests and retains
+exactly the two expected native failures: in-iteration while release and the
+post-test first-entry witness. Whole-project formatting changes no files/hashes.
+Original logs are imported into SQLite and read back byte for byte before removal.
+
+This is a prerequisite source checkpoint, not iteration or B5 acceptance. The
+new edge APIs are not consumed by native lowering yet; their temporary dead-code
+annotations mark that outstanding consumer explicitly. No new matched workload
+or timing is claimed for metadata alone. Implement carried storage using these
+separate facts next, preserving first-iteration evaluation and surviving entries,
+then repair both native witnesses and expand control/error/loop-form coverage.
+The five user-facing consumers remain at gate181; scratch debug compiler is current.

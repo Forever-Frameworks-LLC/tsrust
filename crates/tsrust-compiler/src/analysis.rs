@@ -4512,6 +4512,7 @@ impl Analyzer {
         let (entry, baseline) = availability;
         let (flow_entry, flow_required, zero_flow) = flows;
         let entry_owners = context.capture_loan_owners.clone();
+        context.storage_exits.record_map_loop_edge(span,storage_exit_availability::MapLoopEdge::Entry,&context.capture_loan_owners);
         Self::validate_control_labels(context,labels)?;
         context.loops.push(LoopFrame {
             labels: labels.to_vec(),
@@ -4585,6 +4586,7 @@ impl Analyzer {
                 .collect::<Vec<_>>()
         });
         let mut exit_owners = exit_state.as_ref().map(|_|context.capture_loan_owners.clone());
+        context.storage_exits.record_map_loop_edge(span,storage_exit_availability::MapLoopEdge::Entry,&context.capture_loan_owners);
         Self::validate_control_labels(context,labels)?;
         context.loops.push(LoopFrame {
             labels: labels.to_vec(),
@@ -4658,6 +4660,7 @@ impl Analyzer {
                 self.require(actual, Some(Type::Boolean), condition.span)?;
             }
             Self::check_loop_back(context)?;
+            context.storage_exits.record_map_loop_edge(span,storage_exit_availability::MapLoopEdge::Back,&context.capture_loan_owners);
             if condition.is_some() {
                 exit_owners = Some(crate::capture_loan_owners::Owners::reaching(
                     exit_owners.take(),Some(context.capture_loan_owners.clone())));
@@ -4697,6 +4700,7 @@ impl Analyzer {
             }
         }
         let frame = context.loops.pop().expect("matching new loop frame");
+        if let Some(owners)=&frame.break_owners {context.storage_exits.record_map_loop_edge(span,storage_exit_availability::MapLoopEdge::Break,owners);}
         context.capture_loan_owners = crate::capture_loan_owners::Owners::reaching(exit_owners,frame.break_owners);
         Self::restore_live_capture_loans(context);
         exception_state::consume_target(context,frame.target);

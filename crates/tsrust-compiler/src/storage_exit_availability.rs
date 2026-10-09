@@ -2,7 +2,9 @@
 use super::*;
 
 #[derive(Clone, Debug, Default)]
-pub(crate) struct Exits(HashMap<(usize, usize), Vec<Unavailable>>, HashMap<usize, Vec<Unavailable>>, HashMap<(usize, usize), Vec<Unavailable>>, Option<Box<HashMap<(usize,usize),MapEntrySurvivors>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize),Type>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntrySurvivors>>>>, Option<Box<HashMap<(usize,usize,bool),Vec<MapEntryEpoch>>>>);
+pub(crate) struct Exits(HashMap<(usize, usize), Vec<Unavailable>>, HashMap<usize, Vec<Unavailable>>, HashMap<(usize, usize), Vec<Unavailable>>, Option<Box<HashMap<(usize,usize),MapEntrySurvivors>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize),Type>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntrySurvivors>>>>, Option<Box<HashMap<(usize,usize,bool),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize,MapLoopEdge),std::collections::BTreeMap<crate::capture_loan_owners::Place,HashSet<Type>>>>>);
+#[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
+pub(crate) enum MapLoopEdge { Entry, Back, Break }
 #[derive(Clone, Debug)]
 pub(crate) struct MapEntryEpoch {
     pub(crate) place: crate::capture_loan_owners::Place,
@@ -23,6 +25,35 @@ pub(crate) struct MapEntrySurvivors {
 #[cfg(test)]
 mod map_entry_tests {
     use super::*;
+    #[test]
+    fn loop_entry_backedge_and_break_payloads_remain_distinct() {
+        use crate::capture_loan_owners::{Owners,Place};
+        let span=Span::new(30,40);
+        let root=Place{binding:2,fields:vec!["handlers".into()]};
+        let first=Place{binding:2,fields:vec!["handlers".into(),"\0map-entry:string:first".into()]};
+        let second=Place{binding:2,fields:vec!["handlers".into(),"\0map-entry:string:second".into()]};
+        let mut owners=Owners::default();
+        owners.attach_map_payload(first.clone(),Type::Record(10));
+        owners.attach_map_payload(second.clone(),Type::Record(11));
+        let mut exits=Exits::default();
+        exits.record_map_loop_edge(span,MapLoopEdge::Entry,&owners);
+        exits.record_map_loop_edge(span,MapLoopEdge::Break,&owners);
+        owners.discard(&first);
+        exits.record_map_loop_edge(span,MapLoopEdge::Back,&owners);
+        assert_eq!(exits.map_loop_edge(span,MapLoopEdge::Entry,&root),Some(&HashSet::from([Type::Record(10),Type::Record(11)])));
+        assert_eq!(exits.map_loop_edge(span,MapLoopEdge::Break,&root),exits.map_loop_edge(span,MapLoopEdge::Entry,&root));
+        assert_eq!(exits.map_loop_edge(span,MapLoopEdge::Back,&root),Some(&HashSet::from([Type::Record(11)])));
+        owners.attach_map_payload(first,Type::Record(12));
+        exits.record_map_loop_edge(span,MapLoopEdge::Back,&owners);
+        assert_eq!(exits.map_loop_edge(span,MapLoopEdge::Back,&root),Some(&HashSet::from([Type::Record(11),Type::Record(12)])));
+        assert!(!exits.map_loop_edge(span,MapLoopEdge::Entry,&root).unwrap().contains(&Type::Record(12)));
+        owners.discard(&root);
+        let empty_span=Span::new(50,60);
+        exits.record_map_loop_edge(empty_span,MapLoopEdge::Back,&owners);
+        assert!(exits.has_map_loop_edge(empty_span,MapLoopEdge::Back));
+        assert!(!exits.has_map_loop_edge(empty_span,MapLoopEdge::Break));
+        assert!(exits.map_loop_edge(empty_span,MapLoopEdge::Back,&root).is_none());
+    }
     #[test]
     fn replayed_entry_release_unions_survivors_and_invalidates_changed_input() {
         let mut exits=Exits::default();
@@ -69,6 +100,20 @@ impl Exits {
     }
     pub(crate) fn map_entry_survivors(&self, span: Span) -> Option<&MapEntrySurvivors> {
         self.3.as_ref()?.get(&(span.start,span.end))
+    }
+    pub(super) fn record_map_loop_edge(&mut self,span:Span,edge:MapLoopEdge,owners:&crate::capture_loan_owners::Owners) {
+        let snapshot=owners.map_payload_snapshot();
+        if snapshot.is_empty() && self.8.is_none() && !self.has_map_entry_survivors(){return;}
+        let roots=self.8.get_or_insert_with(Default::default).entry((span.start,span.end,edge)).or_default();
+        for (place,payloads) in snapshot {roots.entry(place).or_default().extend(payloads);}
+    }
+    #[allow(dead_code)] // Distinguishes an empty reachable edge from an absent edge.
+    pub(crate) fn has_map_loop_edge(&self,span:Span,edge:MapLoopEdge)->bool {
+        self.8.as_ref().is_some_and(|points|points.contains_key(&(span.start,span.end,edge)))
+    }
+    #[allow(dead_code)] // Consumed by the forthcoming iteration transport planner.
+    pub(crate) fn map_loop_edge(&self,span:Span,edge:MapLoopEdge,place:&crate::capture_loan_owners::Place)->Option<&HashSet<Type>> {
+        self.8.as_ref()?.get(&(span.start,span.end,edge))?.get(place)
     }
     pub(super) fn record_map_branch_restore(&mut self,span:Span,right:bool,epochs:Vec<MapEntryEpoch>) {
         self.7.get_or_insert_with(Default::default).insert((span.start,span.end,right),epochs);

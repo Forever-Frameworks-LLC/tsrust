@@ -23,6 +23,9 @@ impl Owners {
     pub(crate) fn attach_map_payload(&mut self, place: Place, ty: crate::syntax::Type) {
         self.map_payloads.attach(place,ty);
     }
+    pub(crate) fn map_payload_snapshot(&self)->BTreeMap<Place,std::collections::HashSet<crate::syntax::Type>> {
+        self.map_payloads.snapshot()
+    }
     pub(crate) fn map_payloads(&self, place: &Place) -> std::collections::HashSet<crate::syntax::Type> {
         self.map_payloads.under(place)
     }
