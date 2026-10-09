@@ -62,13 +62,15 @@ impl Analyzer {
         strip_carrier(inner);
         let concrete = match inner.ty {
             Some(Type::Record(record)) => Type::Record(record),
-            Some(Type::Undefined) => {
+            Some(Type::Null | Type::Undefined) => {
                 let Some(Type::Record(record)) = self.unions.payload(previous) else { return Ok(None); };
                 self.empty_scoped_record_environment(self.scoped_records.declaration(record))?
             }
             _ => return Ok(None),
         };
-        let ty = self.unions.intern([concrete, Type::Undefined], value.span)?;
+        let nullish = previous.union().map(|union| self.unions.members(union)).unwrap_or_default()
+            .into_iter().filter(|member|matches!(member,Type::Null|Type::Undefined));
+        let ty = self.unions.intern(std::iter::once(concrete).chain(nullish), value.span)?;
         *union = ty.union().expect("nullable record result");
         value.ty = Some(ty);
         Ok(Some(ty))

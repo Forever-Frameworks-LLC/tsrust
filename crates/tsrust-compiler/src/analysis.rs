@@ -12,6 +12,8 @@ mod array_capture_owners;
 mod array_storage_epochs;
 #[path = "array_result_storage.rs"]
 mod array_result_storage;
+#[path = "nullable_record_storage.rs"]
+mod nullable_record_storage;
 #[path = "discarded_sequence.rs"]
 mod discarded_sequence;
 #[path="map_entry_capture_owners.rs"]
@@ -4889,7 +4891,7 @@ impl Analyzer {
         operator: Option<(BinaryOp, Span)>,
     ) -> Result<(), Diagnostic> {
         if operator.is_none() && matches!(target.kind,ExprKind::Name(_))
-            && self.expression_type_hint(context,target).is_some_and(|ty|self.aggregate_callable_facts(ty).scoped)
+            && self.expression_type_hint(context,target).is_some_and(|ty|self.aggregate_callable_facts(ty).scoped || self.nullable_scoped_record_declaration(ty).is_some())
             && self.prepare_bound_removal_sequence(context,value)
         {
             return self.reassign_with_sequence(context,target,value,&Loans::new(),true);
@@ -5572,6 +5574,7 @@ impl Analyzer {
                 None => self.callable_resolver().resolve_value_annotation(a, false),
             })
             .transpose()?;
+        let expected = self.absent_nullable_record_annotation(context,expected,value)?;
         if value.is_deferred()
             && self.deferred_let(context, name, expected, value, binding)?
         {

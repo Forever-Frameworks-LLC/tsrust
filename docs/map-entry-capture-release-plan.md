@@ -1,5 +1,29 @@
 # Precise Map entry capture release
 
+## Nullable callback-record local checkpoint, 2026-10-09
+
+Local optional callback records can start as undefined or null, receive concrete
+callbacks, replace origins and clear their owners. A dedicated module creates an
+empty concrete annotation while preserving the runtime absent variant. The
+existing result planner now covers nullable locals without scoped arrays and
+preserves both declared nullish variants. The declaration-only container guard
+remains intact.
+
+Five affected nullable tests, five comma tests, 31 affected array tests, focused
+editor diagnostics and eight depth canaries pass, including exact O0/O3 disposal
+and moved-owner protection. The matched workload has 125 observations and passes
+five native/Node-after-tsc cases untimed. SQLite preserves the byte-verified record
+`runtime/results/2026-10-09T09-44-51-321Z-verify.json` and nineteen diagnostic logs.
+
+B5 remains incomplete. Next extend concrete nullable storage to record fields
+and aggregate composition, preserving independent field owners and RHS-before-drop
+semantics. Branch/loop joins, function parameters/returns, arbitrary comma final
+values and structural record keys remain open. Family regressions, performance
+review and installed-consumer refresh remain pending. See
+indexed-capture-release-plan.md for the current implementation and dependencies.
+
+
+
 ## Direct comma reassignment checkpoint, 2026-10-09
 
 Direct named assignment now supports a comma RHS ending in a known removal.

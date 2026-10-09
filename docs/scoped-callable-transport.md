@@ -143,3 +143,25 @@ capture belonging to the old destination inside the RHS remains an error.
 This applies to statement assignments of existing concrete scoped result storage;
 expression-valued assignments and declaration-only nullable record storage still
 need their own transport support.
+
+### Nullable local callback records
+
+A nullable local can begin without a callback instance and later receive one:
+
+```tsrust
+type Holder = { run: ReadOnly<Function<int>>; };
+const values = [3];
+let saved: Holder | undefined = undefined;
+saved = { run: (): int => values[0] };
+if (saved !== undefined) console.log(saved.run()); // 3
+saved = undefined;
+values[0] = 7;
+```
+
+Use `Holder | null` for null-based absence, or include both nullish types and guard
+both before accessing fields. Direct replacement evaluates the new value before
+dropping the old one. Clearing releases captures with no other owner. Moving the
+record into another local retains that local's capture protection. No callback
+object is constructed for the absent runtime variant, and no implicit clone is
+introduced. This support applies to local direct storage; field storage and
+control-flow joins still require their own environment planning.

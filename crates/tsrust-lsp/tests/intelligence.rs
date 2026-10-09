@@ -3,6 +3,16 @@ use serde_json::{Value, json};
 use tsrust_lsp::intelligence::SourceIndex;
 
 #[test]
+fn nullable_scoped_record_storage_releases_only_replaced_captures() {
+    let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];let saved:Holder|undefined=undefined;saved={run:():int=>first[0]};saved={run:():int=>second[0]};first[0]=7;if(saved!==undefined)console.log(saved.run());saved=undefined;second[0]=9;}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&source,"file:///nullable-record.tsr").unwrap().is_empty());
+    let conflict=source.replace("first[0] = 7", "second[0] = 7");
+    assert_ne!(source,conflict);
+    let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///nullable-record.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+}
+
+#[test]
 fn comma_reassignment_preserves_previous_result_until_rhs_completes() {
     let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const third=[7];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]},{run:():int=>third[0]}];let removed=handlers.pop();removed=(handlers.pop(),second[0]=9,handlers.shift());third[0]=11;if(removed!==undefined)console.log(removed.run());}").unwrap();
     assert!(tsrust_lsp::diagnostics(&source,"file:///comma-reassignment.tsr").unwrap().is_empty());

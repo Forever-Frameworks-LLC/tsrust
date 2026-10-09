@@ -1,6 +1,30 @@
 mod support;
 
 #[test]
+fn nullable_scoped_record_starts_absent_and_releases_replacements() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];let saved:Holder|undefined=undefined;console.log(String(saved));saved={run:():int=>first[0]};if(saved!==undefined)console.log(saved.run());saved={run:():int=>second[0]};first[0]=7;if(saved!==undefined)console.log(saved.run(),first[0]);saved=undefined;second[0]=9;console.log(String(saved),second[0]);}");
+    support::execute(&source,"undefined\n3\n5 7\nundefined 9\n",None);
+    verify_disposal(&source,2,"undefined\n3\ndrop 0\n5 7\ndrop 1\nundefined 9\n");
+    let absent=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const saved:Holder|undefined=undefined;console.log(saved===undefined);}");
+    support::execute(&absent,"true\n",None);
+
+}
+
+#[test]
+fn nullable_scoped_record_null_storage_moves_and_protects_captures() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const values=[3];let saved:Holder|null=null;console.log(saved===null);saved={run:():int=>values[0]};if(saved!==null)console.log(saved.run());saved=null;values[0]=7;console.log(saved===null,values[0]);}");
+    support::execute(&source,"true\n3\ntrue 7\n",None);
+    verify_disposal(&source,1,"true\n3\ndrop 0\ntrue 7\n");
+    let both=source.replace("Holder | null", "Holder | null | undefined").replace("saved = null;", "saved=undefined;").replace("if (saved !== null)", "if(saved!==null && saved!==undefined)");
+    support::execute(&support::format_round_trip(&both),"true\n3\nfalse 7\n",None);
+
+    let moved=source.replace("saved = null;", "const moved=saved;saved=null;if(moved!==null)console.log(moved.run());");
+    assert_eq!(tsrust_compiler::check(&moved).err().expect("moved result keeps captured values protected").code,"capture-conflict");
+    let conflict=source.replace("if (saved !== null)","values[0]=9;if(saved!==null)");
+    assert_eq!(tsrust_compiler::check(&conflict).err().expect("stored callback protects its capture").code,"capture-conflict");
+}
+
+#[test]
 fn comma_reassignment_releases_prefix_and_previous_result_in_order() {
     let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const third=[7];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]},{run:():int=>third[0]}];let removed=handlers.pop();removed=(handlers.pop(),second[0]=9,handlers.shift());third[0]=11;if(removed!==undefined)console.log(removed.run(),second[0],third[0]);removed=undefined;first[0]=13;console.log(first[0]);}");
     support::execute(&source,"3 9 11\n13\n",None);
@@ -13,7 +37,7 @@ fn comma_reassignment_releases_prefix_and_previous_result_in_order() {
     let empty=source.replace("removed = undefined;", "removed=(handlers.pop(),handlers.shift());");
     support::execute(&support::format_round_trip(&empty),"3 9 11\n13\n",None);
     let sentinel=source.replace("let removed = handlers.pop();", "handlers.pop();let removed:Holder|undefined=undefined;");
-    assert_eq!(tsrust_compiler::check(&support::format_round_trip(&sentinel)).err().expect("declaration-only optional record storage remains pending").code,"unsupported");
+    support::execute(&support::format_round_trip(&sentinel),"3 9 11\n13\n",None);
 
 }
 

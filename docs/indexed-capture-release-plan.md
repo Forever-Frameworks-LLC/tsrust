@@ -1,5 +1,32 @@
 # Precise indexed capture release
 
+## Nullable callback-record local checkpoint, 2026-10-09
+
+The isolated `nullable_record_storage.rs` module gives an absent local optional
+record annotation a concrete empty callback environment. It preserves the actual
+null or undefined runtime variant and nominal record contract. Later direct
+stores use existing result epochs, including functions with no scoped arrays.
+Null clearing now preserves the declared nullish alternatives instead of forcing
+an undefined-only native union. The global declaration-only container guard is
+unchanged.
+
+Focused native tests cover first population, different callback origins, null and
+undefined clearing, both nullish alternatives, never-populated constants, exact
+O0/O3 disposal, protected captures and moved result ownership. The earlier
+comma-reassignment sentinel witness is now a positive native case. Five affected nullable tests, five comma tests, 31 affected array tests, editor
+diagnostics and eight depth canaries pass. Registration and mutation guards pass.
+The matched workload has 125 observations; new independent formulas are
+`3 * value + 9` for optional replacement and `2 * value + 2` for null clearing.
+All five native and Node-after-tsc cases pass untimed. SQLite retains
+`runtime/results/2026-10-09T09-44-51-321Z-verify.json` with empty timing arrays,
+and nineteen diagnostic logs, all restored byte for byte before deleting loose
+copies. Final project formatting changes zero files and fingerprints. No full
+regression, timing or installed-consumer refresh ran.
+
+Field storage, branch/loop joins,
+aggregate composition and function parameters/returns remain separate pending
+transport requirements. B5 is not complete.
+
 ## Direct comma reassignment checkpoint, 2026-10-09
 
 A direct named assignment can now replace an existing scoped removal result with

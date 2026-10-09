@@ -20,8 +20,9 @@ impl Analyzer {
     #[inline(never)]
     pub(super) fn scoped_array_storage_epochs(&mut self, context: &mut Context, body: &mut [Stmt]) -> Result<(), Diagnostic> {
         if !context.bindings.iter().any(|binding|
-            matches!(binding.ty, Type::Record(_) | Type::Array(ArrayElement::Record(_, 0)))
+            (matches!(binding.ty, Type::Record(_) | Type::Array(ArrayElement::Record(_, 0)))
                 && self.aggregate_callable_facts(binding.ty).scoped)
+                || self.nullable_scoped_record_declaration(binding.ty).is_some())
         { return Ok(()); }
         super::discarded_sequence::lower(body, &mut context.storage_exits);
         let mut results = HashMap::new();
@@ -169,6 +170,8 @@ impl Analyzer {
                     value.ty
                 } else if matches!(value.kind, ExprKind::Name(_)) {
                     value.binding.and_then(|source| results.get(&source).copied())
+                } else if value.ty.is_some_and(|ty|self.nullable_scoped_record_declaration(ty).is_some()) {
+                    value.ty
                 } else { None };
                 if let Some(result) = result {
                     value.ty = Some(result);
