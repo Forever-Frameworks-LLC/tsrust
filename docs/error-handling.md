@@ -296,3 +296,10 @@ integer element saves that integer even if finally later changes the element.
 A return inside finally replaces the saved result; a throw inside finally replaces
 the pending return with that error. Removed Map entries stay removed during this
 cleanup, while surviving entries keep their captures borrowed.
+
+
+The same return behavior applies to a return from catch. A return directly from
+try bypasses catch but still runs finally. Deleting a Map entry before either
+return releases captures used only by that entry; finally can change those
+captures while surviving entries remain borrowed. The returned value is saved
+before finally begins, and a return or throw in finally replaces it.

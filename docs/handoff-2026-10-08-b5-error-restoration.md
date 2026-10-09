@@ -2563,3 +2563,39 @@ Next consume precise return carriers in catch-plus-finally, then replace Common
 loop-control storage with destination-specific break/continue payloads. Preserve
 returned values across cleanup and drop them exactly once on override. Complete
 remaining B5 aggregate/expression witnesses before family regressions and timing.
+
+
+## Catch-plus-finally return storage, 2026-10-09
+
+The handler return envelope now uses the checked Handled/Return Map layout.
+Body returns and handler returns join through one consuming return carrier;
+the selected owner is consumed before cleanup enters its independent return
+plan. This retains the saved return value while allowing cleanup to mutate
+captures released by deleted entries. Surviving entries retain their loans.
+Cleanup return and throw overrides dispose of the original saved result.
+
+The focused red layout witness found Map17 absent from the legacy control tuple,
+which carried Map18. The repaired witness passes with all 25 completion-layout
+proofs. Native checks cover handler returns, body returns bypassing catch, owned
+array results, return and error overrides, record-field storage, and disposal at
+both optimization levels. Existing return cleanup and normal/error catch-finally
+checks also pass. Editor checks accept the released capture and still diagnose
+mutation of the surviving capture. These are bounded checks, not full regressions.
+
+The matched workload adds three catch-return modes and independent expected
+results, totaling 95 observations per row. Source mutation checks initially found
+a duplicate trace statement masking removal of the original observation; the new
+helper now uses a distinct trace parameter, and registration checks pass. The
+original failed checks are retained with the repaired checks in SQLite. Timing
+and installed-consumer refresh remain deferred until the B5 family milestone.
+
+Next implement destination-specific break/continue carriers. Common loop-control
+storage is still a separate unfinished path. B5 remains incomplete, including
+remaining aggregate/expression precision and structural owned record keys.
+
+Final untimed verification passes all five cases on native and Node-after-tsc.
+Canonical record: runtime/results/2026-10-09T07-09-15-676Z-verify.json.
+The intermediate verification record and all closed diagnostic logs are imported
+into SQLite, restored byte for byte, and removed from loose storage. Final project
+formatting changes zero files and fingerprints. Executable consumers remain at
+the previously accepted family checkpoint; the scratch compiler is current.

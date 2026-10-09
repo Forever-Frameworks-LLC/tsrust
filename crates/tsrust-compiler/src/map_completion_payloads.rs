@@ -66,6 +66,13 @@ mod tests {
     }
 
     #[test]
+    fn catch_return_envelope_uses_checked_control_storage_layout() {
+        let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function scenario():int{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{throw 7;}catch(error){handlers.delete('first');first[0]+=1;return first[0];}finally{first[0]+=10;console.log(first[0]);for(const [key,entry] of handlers){console.log(entry.run());}}}function main():void{console.log(scenario());}").unwrap();
+        let checked=crate::check(&source).unwrap();let function=checked.program.functions.iter().find(|function|function.name=="scenario").unwrap();let region=function.body.iter().find_map(|statement|if let crate::syntax::StmtKind::Try(region)=&statement.kind{Some(region)}else{None}).unwrap();let boundary=region.body[0].span.start;let binding=function.bindings.iter().position(|binding|binding.name=="handlers").unwrap();let expected=function.storage_exits.map_completion_layout(boundary,Phase::Handled,Some(CompletionKind::Return)).unwrap()[&Place{binding,fields:vec![]}];let Type::Map(map)=expected else{panic!("return Map")};assert_ne!(expected,function.bindings[binding].ty);
+        let rust=checked.emit_rust();let envelope=rust.split("let completion:TsrCompletion<").filter_map(|part|part.split_once("='exception_region").map(|(ty,_)|ty)).find(|ty|ty.contains("StorageOutgoing")).expect("body envelope");let control=envelope.split(",(StorageOutgoing").next().unwrap();assert!(control.contains(&format!("Map{map}<")),"checked return Map{map} is absent from {control}");
+    }
+
+    #[test]
     fn cleanup_control_plans_preserve_resolved_destinations() {
         let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function scenario(mode:int):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});let turn=0;outer:while(turn<2){inner:while(true){try{if(mode===0){handlers.delete('first');first[0]+=1;break outer;}if(mode===1){handlers.delete('second');second[0]+=1;break inner;}handlers.delete('first');first[0]+=1;turn+=1;continue outer;}finally{console.log(handlers.size);}}turn+=1;}handlers.clear();}function main():void{scenario(0);scenario(1);scenario(2);}").unwrap();
         let checked=crate::check(&source).unwrap();let function=checked.program.functions.iter().find(|function|function.name=="scenario").unwrap();let binding=function.bindings.iter().position(|binding|binding.name=="handlers").unwrap();

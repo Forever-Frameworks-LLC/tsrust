@@ -8874,3 +8874,12 @@ fn return_cleanup_map_entry_release_preserves_survivor_diagnostics() {
  let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///return-cleanup.tsr").unwrap()).unwrap();
  assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
 }
+
+#[test]
+fn catch_return_cleanup_map_entry_release_preserves_survivor_diagnostics() {
+ let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function scenario():int{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{throw 7;}catch(error){handlers.delete('first');first[0]+=1;return first[0];}finally{first[0]+=10;for(const [key,entry] of handlers){console.log(entry.run());}}}function main():void{console.log(scenario());}").unwrap();
+ assert!(tsrust_lsp::diagnostics(&source,"file:///return-cleanup.tsr").unwrap().is_empty());
+ let conflict=source.replace("first[0] += 10;","second[0]+=10;");assert_ne!(conflict,source);
+ let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///return-cleanup.tsr").unwrap()).unwrap();
+ assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+}
