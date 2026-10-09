@@ -39,8 +39,11 @@ fn nullable_callback_record_values_results_and_elements_have_editor_diagnostics(
 fn record_parameters_with_nullable_callback_fields_have_editor_diagnostics() {
     let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};function reader(box:ReadOnly<Box>):int{return box.saved?.run()??-1;}function main():void{const first=[3];const box:Box={saved:undefined};console.log(reader(box));box.saved={run:():int=>first[0]};console.log(reader(box));}").unwrap();
     assert!(tsrust_lsp::diagnostics(&source,"file:///nullable-parameter.tsr").unwrap().is_empty());
-    let stored=source.replace("return box.saved?.run() ?? -1;","box.saved=undefined;return 0;").replace("box: ReadOnly<Box>","box: Mutable<Box>");
-    assert_ne!(source,stored);
+    let cleared=source.replace("return box.saved?.run() ?? -1;","box.saved=undefined;return 0;").replace("box: ReadOnly<Box>","box: Mutable<Box>");
+    assert_ne!(source,cleared);
+    assert!(tsrust_lsp::diagnostics(&cleared,"file:///nullable-parameter.tsr").unwrap().is_empty());
+    let stored=cleared.replace("box.saved=undefined;","box.saved={run:():int=>1};");
+    assert_ne!(cleared,stored);
     let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&stored,"file:///nullable-parameter.tsr").unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="unsupported"),"{diagnostics}");
 }

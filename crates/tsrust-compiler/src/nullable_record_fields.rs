@@ -115,8 +115,13 @@ impl Analyzer {
             }
             // Array element fields join through the array's carrier type.
             if array && !binding.parameter && !binding.capture_reference {continue;}
+            // Clearing through a borrowed record stores no environment.
+            if binding.parameter && !array && matches!(&write.value.kind,ExprKind::Inject{value,..} if matches!(value.kind,ExprKind::Null|ExprKind::Undefined)) {continue;}
+            if self.nullable_scoped_record_declaration(ty).is_some() && binding.parameter {
+                return Err(Diagnostic::new("unsupported","A new callback record cannot be stored into a nullable field through a record parameter yet. Store it in the function that owns the record; a parameter can clear the field with undefined or null.",write.span));
+            }
             if self.nullable_scoped_record_declaration(ty).is_some()
-                && (binding.parameter || binding.capture_reference || !direct.contains(&(write.binding,write.span.start,write.span.end))) {
+                && (binding.capture_reference || !direct.contains(&(write.binding,write.span.start,write.span.end))) {
                 return Err(Diagnostic::new("unsupported","Nullable callback-record field replacement needs a direct local assignment in a normal lexical sequence; branch, loop, indexed and borrowed field storage joins are not supported yet.",write.span));
             }
         }
@@ -351,7 +356,7 @@ impl Analyzer {
                 }
                 continue;
             }
-            let through_array=matches!(binding.ty,Type::Array(_)) || {
+            let through_array=write.array_element || matches!(binding.ty,Type::Array(_)) || {
                 let mut ty=binding.ty;let mut array=false;
                 for name in &write.path {
                     while let Type::Array(element)=ty {ty=element.ty();array=true;}
@@ -516,7 +521,8 @@ impl Analyzer {
             }
             selected(self,body,slot,payload);
         }
-        if matches!(value.kind,ExprKind::Name(_)|ExprKind::Field(_,_)|ExprKind::Index(_,_)|ExprKind::Project{..})
+        let removal=matches!(value.kind,ExprKind::Call(_,_)) && matches!(value.target,Some(CallTarget::ArrayPop|CallTarget::ArrayShift));
+        if (removal || matches!(value.kind,ExprKind::Name(_)|ExprKind::Field(_,_)|ExprKind::Index(_,_)|ExprKind::Project{..}))
             && let Some(ty)=self.planned_record_array_type(value,plans) && value.ty.is_some_and(|checked|checked!=ty && checked.union().is_some()==ty.union().is_some())
         {
             if let ExprKind::Project{value:inner,union,narrowed}=&mut value.kind {

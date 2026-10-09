@@ -244,8 +244,9 @@ box.saved = { run: (): int => first[0] };
 console.log(use(box)); // 3
 ```
 
-Storing into such a field through a parameter reports `unsupported`; store it in the
-function that owns the record. Two parameters of one function cannot both carry a
+A mutable parameter can clear such a field with `undefined` or `null`; the caller's
+captures stay borrowed. Storing a new callback record into the field through a
+parameter reports `unsupported`; store it in the function that owns the record. Two parameters of one function cannot both carry a
 nullable callback record of the same type; that form reports `unsupported` too.
 
 ### Nullable callback records in conditional values, results and array elements
@@ -299,6 +300,6 @@ slots[0] = { run: (): int => first[0] + 1 };
 for (const slot of slots) console.log(slot?.run() ?? -1); // 4, then 3
 ```
 
-A local such array supports literals, indexed stores, `push`, iteration and element
-views such as `const slot = slots[0]`. Removal with `pop` or `shift`, and such an
-array as a field of a record, report `unsupported`.
+Such an array, as a local or as a field of a local record, supports literals,
+indexed stores, `push`, `pop`, `shift`, iteration and element views such as
+`const slot = slots[0]`.

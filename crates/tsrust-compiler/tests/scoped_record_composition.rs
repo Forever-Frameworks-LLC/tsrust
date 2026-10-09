@@ -3157,6 +3157,9 @@ fn record_parameters_read_nullable_callback_fields() {
     };
     rejected("function both(left:ReadOnly<Box>,right:ReadOnly<Box>):int{return 1;}function main():void{const a=[3];const l:Box={saved:{run:():int=>a[0]}};const r:Box={saved:undefined};console.log(both(l,r));}","unsupported");
     rejected("function fill(box:Mutable<Box>,n:int):void{box.saved={run:():int=>n};}function main():void{const box:Box={saved:undefined};fill(box,4);}","unsupported");
+    // A mutable parameter can clear the field; the caller's captures stay borrowed.
+    run("function reset(box:Mutable<Box>,limit:int):int{let seen=0;if(box.saved!==undefined){seen=box.saved.run();if(seen>limit)box.saved=undefined;}return seen;}function main():void{const a=[3];const box:Box={saved:{run:():int=>a[0]}};console.log(reset(box,5),box.saved!==undefined);console.log(reset(box,1),box.saved!==undefined);}","3 true\n3 false\n");
+    rejected("function clear(box:Mutable<Box>):void{box.saved=undefined;}function main():void{const a=[3];const box:Box={saved:{run:():int=>a[0]}};clear(box);a[0]=9;console.log(a[0],box.saved===undefined);}","capture-conflict");
 }
 
 #[test]
@@ -3180,7 +3183,7 @@ fn arrays_of_nullable_callback_records_share_one_element_environment() {
         assert_eq!(tsrust_compiler::check(&source).err().unwrap_or_else(||panic!("must be rejected: {body}")).code,code,"{body}");
     };
     rejected("function main():void{const a=[3];const hs:(Holder|undefined)[]=[undefined];hs[0]={run:():int=>a[0]};hs[0]=undefined;a[0]=9;console.log(a[0],hs.length);}","capture-conflict");
-    // Removal results and such arrays inside a record field are still pending.
-    rejected("function main():void{const a=[3];const hs:(Holder|undefined)[]=[undefined,{run:():int=>a[0]}];const last=hs.pop();if(last!==undefined)console.log(last.run());}","unsupported");
-    rejected("type Shelf={slots:(Holder|undefined)[];n:int;};function main():void{const a=[3];const shelf:Shelf={slots:[undefined],n:1};shelf.slots[0]={run:():int=>a[0]};}","unsupported");
+    // Removal results and such arrays inside a record field.
+    run("function main():void{const a=[3];const hs:(Holder|undefined)[]=[{run:():int=>a[0]},undefined,{run:():int=>a[0]+1}];const last=hs.pop();if(last!==undefined)console.log(last.run());const first=hs.shift();console.log(first?.run()??-1,hs.length);}","4\n3 1\n");
+    run("type Shelf={slots:(Holder|undefined)[];n:int;};function main():void{const a=[3];const shelf:Shelf={slots:[undefined],n:1};shelf.slots[0]={run:():int=>a[0]};console.log(shelf.slots[0]?.run()??-1,shelf.n);}","3 1\n");
 }
