@@ -716,3 +716,56 @@ fn closure_body_installer_preserves_typed_failure_after_storage() {
     "#,
     );
 }
+
+#[test]
+fn captured_installer_effect_state_preserves_input_owner_replacement() {
+    execute(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>, calls: Mutable<int[]>): void {
+            calls[0] += 1;
+            holder.run = (): int => source[0];
+        }
+        function main() {
+            const first = [3]; const second = [10]; const calls = [0]; const offset = 2;
+            const holder: Holder = { run: undefined };
+            {
+                const perform = (target: Mutable<Holder>, source: ReadOnly<int[]>): void => {
+                    install(target, source, calls);
+                    calls[0] += offset;
+                };
+                perform(holder, first); strictEqual(holder.run!(), 3);
+                perform(holder, second); first[0] += 1;
+                strictEqual(first[0], 4); strictEqual(holder.run!(), 10);
+            }
+            strictEqual(calls[0], 6);
+        }
+    "#);
+}
+
+#[test]
+fn captured_installer_retains_stored_owner_after_installer_disposal() {
+    let source = support::format_round_trip(r#"
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>): void {
+            holder.run = (): int => source[0];
+        }
+        function clear(holder: Mutable<Holder>): void { holder.run = undefined; }
+        function main() {
+            const source = [3]; const holder: Holder = { run: undefined };
+            {
+                const perform = (target: Mutable<Holder>): void => { install(target, source); };
+                perform(holder);
+            }
+            console.log(holder.run!());
+        }
+    "#);
+    tsrust_compiler::check(&source).expect("A stored capture outlives the installer that created it");
+    let conflict = source.replace("console.log(holder.run!());", "source[0] += 1; console.log(holder.run!());");
+    assert_ne!(source,conflict);
+    let error = tsrust_compiler::check(&conflict).err().expect("The holder still borrows the captured source after installer disposal");
+    assert_eq!(error.code,"capture-conflict","{error:?}");
+    let released = source.replace("console.log(holder.run!());", "clear(holder); source[0] += 1;");
+    assert_ne!(source,released);
+    tsrust_compiler::check(&released).expect("Clearing the stored callback releases the captured input loan");
+}

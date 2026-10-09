@@ -9507,3 +9507,29 @@ fn closure_body_installer_keeps_editor_retained_borrows() {
     let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///closure-body-installer.tsr").unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
 }
+
+#[test]
+fn captured_installer_keeps_stored_input_borrow_after_disposal() {
+    let source = tsrust_compiler::format(r#"
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>): void {
+            holder.run = (): int => source[0];
+        }
+        function clear(holder: Mutable<Holder>): void { holder.run = undefined; }
+        function main() {
+            const source = [3]; const holder: Holder = { run: undefined };
+            {
+                const perform = (target: Mutable<Holder>): void => { install(target, source); };
+                perform(holder);
+            }
+            console.log(holder.run!());
+        }
+    "#).unwrap();
+    assert!(tsrust_lsp::diagnostics(&source,"file:///captured-installer.tsr").unwrap().is_empty());
+    let conflict = source.replace("console.log(holder.run!());", "source[0] += 1; console.log(holder.run!());");
+    assert_ne!(source,conflict);
+    let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///captured-installer.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+    let released = source.replace("console.log(holder.run!());", "clear(holder); source[0] += 1;");
+    assert!(tsrust_lsp::diagnostics(&released,"file:///captured-installer.tsr").unwrap().is_empty());
+}

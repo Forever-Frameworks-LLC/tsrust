@@ -10,6 +10,7 @@ pub(super) enum Callable {
 pub(super) struct View<'a> {
     pub(super) function: &'a CheckedFunction,
     pub(super) parameters: Vec<usize>,
+    pub(super) inputs: Vec<usize>,
 }
 
 impl Callable {
@@ -24,6 +25,7 @@ impl Callable {
                 Some(View {
                     function,
                     parameters: (0..function.parameter_count).collect(),
+                    inputs: (0..function.parameter_count).collect(),
                 })
             }
             Self::Closure(id) => {
@@ -31,6 +33,12 @@ impl Callable {
                 Some(View {
                     function: &closure.function,
                     parameters: closure.parameters.clone(),
+                    inputs: closure
+                        .parameters
+                        .iter()
+                        .copied()
+                        .chain(closure.captures.iter().map(|capture| capture.inner))
+                        .collect(),
                 })
             }
         }

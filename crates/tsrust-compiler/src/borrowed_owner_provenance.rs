@@ -113,6 +113,14 @@ fn walk(program: &CheckedProgram, mut pending: Vec<(Scope, Vec<Option<Owner>>)>)
     let unresolved_forward = forwarded_owner_uses::incomplete_targets(program);
     for target in closure_owner_uses::incomplete_targets(program) {
         incomplete.extend(
+            program
+                .closure_record_capture_borrows
+                .get(&target)
+                .into_iter()
+                .flatten()
+                .map(|borrow| borrow.origin),
+        );
+        incomplete.extend(
             Scope::Closure(target)
                 .borrows(program)
                 .iter()

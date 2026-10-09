@@ -329,7 +329,35 @@ function workload(n: int, seed: int, input: string): int[][] {
             closureEffects = calls[0];
         }
 
-        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects, conditionalFirst, conditionalReleased, conditionalReplacement, conditionalEffects, forwardedFirst, forwardedReleased, forwardedReplacement, forwardedEffects, closureFirst, closureReleased, closureReplacement, closureEffects]);
+        let capturedFirst = 0;
+        let capturedReleased = 0;
+        let capturedReplacement = 0;
+        let capturedEffects = 0;
+        {
+            const original = [value + 3];
+            const replacement = [value + 7];
+            const calls = [0];
+            const offset = 2;
+            const holder: ReadNullableHolder = {
+                run: undefined
+            };
+            {
+                const performCaptured = (target: Mutable<ReadNullableHolder>, source: ReadOnly<int[]>): void => {
+                    installConditional(target, source, true, calls);
+                    calls[0] += offset;
+                };
+                performCaptured(holder, original);
+                capturedFirst = holder.run!();
+                performCaptured(holder, replacement);
+                original[0] += 1;
+                capturedReleased = original[0];
+                capturedReplacement = holder.run!();
+            }
+
+            capturedEffects = calls[0];
+        }
+
+        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects, conditionalFirst, conditionalReleased, conditionalReplacement, conditionalEffects, forwardedFirst, forwardedReleased, forwardedReplacement, forwardedEffects, closureFirst, closureReleased, closureReplacement, closureEffects, capturedFirst, capturedReleased, capturedReplacement, capturedEffects]);
         i += 1;
     }
 

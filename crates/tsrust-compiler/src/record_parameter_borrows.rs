@@ -12,6 +12,14 @@ pub(crate) struct Borrow {
     pub(crate) capture: usize,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct CapturedBorrow {
+    pub(crate) target: Place,
+    pub(crate) source_capture: usize,
+    pub(crate) mode: Mode,
+    pub(crate) origin: usize,
+}
+
 /// Stable readonly views retain their owner's lifetime, not the local reference slot.
 fn borrowed_owner(bindings: &[Binding], mut source: usize) -> usize {
     let mut seen = HashSet::new();
@@ -51,9 +59,7 @@ pub(super) fn eligible_parameters(
         !matches!(capture.storage, Mode::Read | Mode::Mutate) || {
             let source = borrowed_owner(&function.bindings, capture.outer);
             function.bindings.get(source).is_some_and(|binding| {
-                parameters.contains(&source)
-                    && binding.parameter
-                    && matches!(binding.mode, Mode::Read | Mode::Mutate)
+                parameters.contains(&source) && matches!(binding.mode, Mode::Read | Mode::Mutate)
             })
         }
     })
@@ -165,10 +171,63 @@ pub(super) fn callable_summary(
     storage: &crate::callable_storage::Registry,
     root: Callable,
 ) -> Vec<Borrow> {
+    summary_parts(functions, closures, storage, root).0
+}
+
+pub(super) fn summary_parts(
+    functions: &[Option<CheckedFunction>],
+    closures: &[CheckedClosure],
+    storage: &crate::callable_storage::Registry,
+    root: Callable,
+) -> (Vec<Borrow>, Vec<CapturedBorrow>) {
+    let Some(view) = root.view(functions, closures) else {
+        return (Vec::new(), Vec::new());
+    };
+    let mut ordinary = Vec::new();
+    let mut captured = Vec::new();
+    for mut borrow in binding_summary(functions, closures, storage, root) {
+        let Some(target) = view
+            .parameters
+            .iter()
+            .position(|id| *id == borrow.target.binding)
+        else {
+            continue;
+        };
+        borrow.target.binding = target;
+        if let Some(source) = view.parameters.iter().position(|id| *id == borrow.source) {
+            borrow.source = source;
+            ordinary.push(borrow);
+        } else if let Callable::Closure(origin) = root {
+            if let Some(source_capture) = closures[origin]
+                .captures
+                .iter()
+                .position(|capture| capture.inner == borrow.source)
+            {
+                let effect = CapturedBorrow {
+                    target: borrow.target,
+                    source_capture,
+                    mode: borrow.mode,
+                    origin: borrow.origin,
+                };
+                if !captured.contains(&effect) {
+                    captured.push(effect);
+                }
+            }
+        }
+    }
+    (ordinary, captured)
+}
+
+fn binding_summary(
+    functions: &[Option<CheckedFunction>],
+    closures: &[CheckedClosure],
+    storage: &crate::callable_storage::Registry,
+    root: Callable,
+) -> Vec<Borrow> {
     let Some(view) = root.view(functions, closures) else {
         return Vec::new();
     };
-    if !capable(view.function, &view.parameters) {
+    if !capable(view.function, &view.inputs) {
         return Vec::new();
     }
 
@@ -183,10 +242,10 @@ pub(super) fn callable_summary(
             continue;
         };
         let function = view.function;
-        if !capable(function, &view.parameters) {
+        if !capable(function, &view.inputs) {
             continue;
         }
-        summaries.insert(id, direct(function, closures, storage, &view.parameters));
+        summaries.insert(id, direct(function, closures, storage, &view.inputs));
         let mut edges = Vec::new();
         crate::fixed_storage::visit_function_expressions(function, &mut |expr| {
             if let (Some(callee), ExprKind::Call(_, arguments)) = (Callable::call(expr), &expr.kind)
@@ -230,8 +289,8 @@ pub(super) fn callable_summary(
                         continue;
                     };
                     let source_binding = borrowed_owner(&function.bindings, source.binding);
-                    if !view.parameters.contains(&target.binding)
-                        || !view.parameters.contains(&source_binding)
+                    if !view.inputs.contains(&target.binding)
+                        || !view.inputs.contains(&source_binding)
                     {
                         continue;
                     }
@@ -255,19 +314,7 @@ pub(super) fn callable_summary(
             summaries.get_mut(&id).unwrap().push(borrow);
         }
     }
-    let parameters = root.view(functions, closures).unwrap().parameters;
-    summaries
-        .remove(&root)
-        .unwrap_or_default()
-        .into_iter()
-        .filter_map(|mut borrow| {
-            borrow.target.binding = parameters
-                .iter()
-                .position(|id| *id == borrow.target.binding)?;
-            borrow.source = parameters.iter().position(|id| *id == borrow.source)?;
-            Some(borrow)
-        })
-        .collect()
+    summaries.remove(&root).unwrap_or_default()
 }
 
 impl Analyzer {
@@ -297,7 +344,7 @@ impl Analyzer {
 
     /// A call can install a mutable wrapper even when the initial field was
     /// capture-free. Preserve all possible origins until exact stores are proved.
-    fn retain_record_invocation_contract(
+    pub(super) fn retain_record_invocation_contract(
         &mut self,
         context: &mut Context,
         target: &Place,
@@ -381,15 +428,18 @@ impl Analyzer {
         &mut self,
         context: &mut Context,
         closure: usize,
+        receiver: usize,
         args: &[Expr],
+        span: Span,
     ) -> Result<(), Diagnostic> {
-        let borrows = callable_summary(
+        let (borrows, captured) = summary_parts(
             &self.checked,
             &self.closures,
             &self.callables.storage,
             Callable::Closure(closure),
         );
-        self.retain_record_borrow_summary(context, borrows, args)
+        self.retain_record_borrow_summary(context, borrows, args)?;
+        self.retain_captured_record_borrows(context, closure, receiver, args, span, captured)
     }
 
     fn retain_record_borrow_summary(

@@ -1,3 +1,5 @@
+#[path = "captured_record_borrows.rs"]
+mod captured_record_borrows;
 #[path = "record_callable_identity.rs"]
 mod record_callable_identity;
 #[path="map_cleanup_phase_plan.rs"]
@@ -319,6 +321,7 @@ impl CallbackContract {
 pub struct CheckedProgram {
     pub(crate) record_parameter_borrows: HashMap<usize,Vec<record_parameter_borrows::Borrow>>,
     pub(crate) closure_record_parameter_borrows: HashMap<usize,Vec<record_parameter_borrows::Borrow>>,
+    pub(crate) closure_record_capture_borrows: HashMap<usize,Vec<record_parameter_borrows::CapturedBorrow>>,
     pub(crate) polymorphic_storage: crate::polymorphic_callable_storage::Registry,
     pub(crate) polymorphic_invocations: crate::polymorphic_invocation_plans::Registry,
     pub(crate) record_call_releases: HashMap<usize,Vec<(usize,Vec<String>)>>,
@@ -3352,13 +3355,17 @@ impl Analyzer {
             let borrows = record_parameter_borrows::summary(&self.checked, &self.closures, &self.callables.storage, id);
             (!borrows.is_empty()).then_some((id, borrows))
         }).collect();
-        let closure_record_parameter_borrows = (0..self.closures.len()).filter_map(|id| {
-            let borrows = record_parameter_borrows::callable_summary(&self.checked, &self.closures, &self.callables.storage, record_callable_identity::Callable::Closure(id));
-            (!borrows.is_empty()).then_some((id, borrows))
-        }).collect();
+        let mut closure_record_parameter_borrows = HashMap::new();
+        let mut closure_record_capture_borrows = HashMap::new();
+        for id in 0..self.closures.len() {
+            let (borrows, captured) = record_parameter_borrows::summary_parts(&self.checked, &self.closures, &self.callables.storage, record_callable_identity::Callable::Closure(id));
+            if !borrows.is_empty() { closure_record_parameter_borrows.insert(id, borrows); }
+            if !captured.is_empty() { closure_record_capture_borrows.insert(id, captured); }
+        }
         let checked = CheckedProgram {
             record_parameter_borrows,
             closure_record_parameter_borrows,
+            closure_record_capture_borrows,
             polymorphic_storage: self.polymorphic_storage,
             polymorphic_invocations: self.polymorphic_invocations,
             record_call_releases,
@@ -14272,7 +14279,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             };
             if let Type::Closure(origin) = context.bindings[binding].ty {
                 self.release_record_closure_captures(context, origin, args);
-                self.retain_record_closure_borrows(context, origin, args)?;
+                self.retain_record_closure_borrows(context, origin, binding, args, callee.span)?;
             }
             // Preserve origin without treating the callee name as an evaluated value.
             if let Type::Closure(origin)=context.bindings[binding].ty {

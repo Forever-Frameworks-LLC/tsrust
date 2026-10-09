@@ -29,7 +29,15 @@ pub(super) fn incomplete_targets(program: &CheckedProgram) -> BTreeSet<usize> {
         });
     }
     for (origin, closure) in program.closures.iter().enumerate() {
-        if closure.escapes || closure.polymorphic || !closure.captures.is_empty() {
+        let captured_record = closure.captures.iter().any(|capture| {
+            matches!(capture.storage, Mode::Read | Mode::Mutate)
+                && matches!(closure.function.bindings[capture.inner].ty, Type::Record(_))
+        });
+        if closure.escapes
+            || closure.polymorphic
+            || captured_record
+            || program.closure_record_capture_borrows.contains_key(&origin)
+        {
             result.insert(origin);
         }
     }

@@ -32,6 +32,11 @@ test('Caller-borrowed stores register independent observations and complete exec
    ['performBody(holder, replacement, false, calls);',''],
    ['closureReleased = original[0];','closureReleased = 0;'],
    ['closureEffects = calls[0];','closureEffects = 0;'],
+   ['capturedFirst = holder.run!();','capturedFirst = 0;'],
+   ['capturedReleased = original[0];','capturedReleased = 0;'],
+   ['capturedReplacement = holder.run!();','capturedReplacement = 0;'],
+   ['capturedEffects = calls[0];','capturedEffects = 0;'],
+   ['calls[0] += offset;','calls[0] += 1;'],
    ['const alias = source;','const alias = [0];'],
    ['installArray(holder, right);',''],
    ['holder.run = (): int => left() + right();','holder.run = (): int => left();'],
@@ -75,7 +80,7 @@ test('Caller-borrowed stores register independent observations and complete exec
    assert.throws(()=>assertCallerBorrowedRecordStoresSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   }
  }
- assert.deepEqual(expectedCallerBorrowedRecordStoreValues(row.id,2,0,row.inputText),[[1,3,4,1,10,3,4,5,6,7,7,9,10,13,1,7,10,18,2,3,1,2,8,11,2,3,6,7,3,6,7,2,2,2,2,7,331,2,2,7,331,4,4,9,335],[2,4,6,2,11,4,5,6,7,8,8,9,11,14,2,8,11,19,3,4,1,3,9,12,3,4,7,8,4,7,8,2,2,4,3,7,333,3,3,8,333,5,5,10,337]]);
+ assert.deepEqual(expectedCallerBorrowedRecordStoreValues(row.id,2,0,row.inputText),[[1,3,4,1,10,3,4,5,6,7,7,9,10,13,1,7,10,18,2,3,1,2,8,11,2,3,6,7,3,6,7,2,2,2,2,7,331,2,2,7,331,4,4,9,335,5,5,9,240],[2,4,6,2,11,4,5,6,7,8,8,9,11,14,2,8,11,19,3,4,1,3,9,12,3,4,7,8,4,7,8,2,2,4,3,7,333,3,3,8,333,5,5,10,337,6,6,10,242]]);
  for(const seed of [0,7,1000000])for(const n of [0,1,37,2048]) {
   const expected=expectedCallerBorrowedRecordStoreObservation(row.id,n,seed,row.inputText);
   assert.deepEqual(expectedExactResult(row.id,n,seed,row.inputText),expected);
