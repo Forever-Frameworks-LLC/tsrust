@@ -1,5 +1,39 @@
 # Precise indexed capture release
 
+## Direct reassignable removal results
+
+Reassignable local pop/shift results now receive point-sensitive native storage.
+Direct assignments evaluate the RHS before dropping the previous result, then
+shadow storage only when its concrete environment changes. The isolated
+`array_result_storage.rs` module handles result eligibility, nullable environment
+specialization, result-use retagging and unsupported join diagnostics. Source
+ownership snapshots also cover named result reassignment. Empty removal clears the
+old result owner rather than restoring its capture from the snapshot.
+
+Focused checks cover retained mutable results, sentinel replacement, new callback
+origins, further removals through empty, normal lexical-block replacement,
+surviving and newly captured values, and exact pop/shift disposal at optimization
+levels 0 and 3. Affected array coverage passed 30 tests and exposed one previous
+block witness: early callback specialization caused native planning to treat that
+known result invocation as opaque. The repaired witness passes separately. Three
+new reassignable-result tests pass, as do the original four pop/shift checks,
+eight depth canaries and focused editor diagnostics and hover. The final source
+helper avoids collecting write facts when no relevant mutable union exists.
+
+Fresh captured-record replacement inside branches or loops still needs native
+joins. It now produces a source diagnostic instead of generated Rust type errors.
+Canonical optional record construction and nullable fields are not expanded by
+this existing-concrete-environment specialization. Same-expression result
+lifetimes, aggregate result storage and control-flow joins remain required.
+
+The matched row has 119 observations per iteration. The added independent formulas
+are `3 * value + 5` for a mutable selected result and `3 * value + 6` for replacement
+with a new callback. Source guards, mutation rejection and literal expectations
+pass. All five cases pass untimed on native and Node-after-tsc. SQLite evidence
+is `runtime/results/2026-10-09T08-58-51-249Z-verify.json`; startup, compilation and
+execution timing arrays are empty. This remains a focused B5 checkpoint. No full
+regressions, timing or installed-consumer refresh ran.
+
 ## Immutable retained removal results
 
 Direct zero-argument `pop()` and `shift()` initializers on known dense local arrays
@@ -197,3 +231,18 @@ existing pop/shift regression tests pass. Final editor hover and diagnostics,
 eight depth canaries and zero-change project formatting pass. Pop/shift catalog
 examples include retained-result scope release, with native outputs checked by
 the focused tests. No full regression, timing or installed-consumer refresh ran.
+
+Mutable-result evidence also covers self-assignment and preservation of a moved
+result owner. Pop/shift catalog examples verify direct sentinel replacement with
+outputs `3 9` and `5 9`; exact disposal is checked independently. Nineteen closed
+diagnostic logs, including original failures and repaired checks, and the matched
+verify record were imported into SQLite, restored byte for byte, and removed from
+loose storage. Project formatting is token-preserving and idempotent; the final
+checkpoint formatter changes zero files and fingerprints.
+
+After the small eligibility-scan optimization, the current debug compiler's
+emitted Rust matches the verified workload prefix byte for byte under the
+harness's stdout trimming and entry-point rename. The initial comparison
+incorrectly required an extra newline; its corrected comparison and final
+zero-change formatter log are also stored and restored exactly in SQLite.
+No new native verification run or timing was needed for unchanged generated code.

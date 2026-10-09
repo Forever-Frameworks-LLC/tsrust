@@ -2785,3 +2785,32 @@ existing pop/shift regression tests pass. Final editor hover and diagnostics,
 eight depth canaries and zero-change project formatting pass. Pop/shift catalog
 examples include retained-result scope release, with native outputs checked by
 the focused tests. No full regression, timing or installed-consumer refresh ran.
+
+## Direct mutable-result continuation
+
+Direct reassignable pop/shift results now use separate native storage epochs,
+with RHS-before-disposal order and concrete nullable environments. New callback
+origins, repeated removals through empty and normal lexical-block replacements
+pass. Empty source snapshots clear the previous result owner. The isolated
+`array_result_storage.rs` module holds result-specific planning and retagging.
+Branch/loop replacements with new captured environments receive source diagnostics
+until their joins are implemented. Next continue same-expression release and
+aggregate/control-flow result storage; do not treat B5 as accepted. The matched row
+has 119 observations and five untimed native/Node-after-tsc cases pass. Record:
+`runtime/results/2026-10-09T08-58-51-249Z-verify.json`. The indexed capture plan
+contains focused coverage and limits. Installed consumers remain unrefreshed.
+
+Mutable-result evidence also covers self-assignment and preservation of a moved
+result owner. Pop/shift catalog examples verify direct sentinel replacement with
+outputs `3 9` and `5 9`; exact disposal is checked independently. Nineteen closed
+diagnostic logs, including original failures and repaired checks, and the matched
+verify record were imported into SQLite, restored byte for byte, and removed from
+loose storage. Project formatting is token-preserving and idempotent; the final
+checkpoint formatter changes zero files and fingerprints.
+
+After the small eligibility-scan optimization, the current debug compiler's
+emitted Rust matches the verified workload prefix byte for byte under the
+harness's stdout trimming and entry-point rename. The initial comparison
+incorrectly required an extra newline; its corrected comparison and final
+zero-change formatter log are also stored and restored exactly in SQLite.
+No new native verification run or timing was needed for unchanged generated code.

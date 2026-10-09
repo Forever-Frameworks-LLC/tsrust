@@ -2,6 +2,13 @@
 use super::*;
 
 impl Emitter<'_> {
+    pub(super) fn array_result_write_code(&self, fun: &CheckedFunction, statement: &Stmt) -> Option<String> {
+        let ty = fun.storage_exits.array_result_write(statement.span)?;
+        let StmtKind::Assign { target, value, operator: None } = &statement.kind else { return None; };
+        let binding = target.binding?;
+        Some(format!("let array_result_replacement = {}; drop(value{binding}); let mut value{binding}: {} = array_result_replacement;", self.expr(fun, value, Mode::Consume), self.native_type(ty)))
+    }
+
     pub(super) fn array_block_storage_epoch(&self, output: &mut String, fun: &CheckedFunction, statement: &Stmt, declarations: &[Stmt], depth: usize, loop_label: Option<usize>) -> bool {
         let epochs = fun.storage_exits.array_block_epochs(statement.span.start);
         if epochs.is_empty() { return false; }

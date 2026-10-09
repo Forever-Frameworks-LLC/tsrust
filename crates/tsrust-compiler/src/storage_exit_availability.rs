@@ -2,7 +2,7 @@
 use super::*;
 
 #[derive(Clone, Debug, Default)]
-pub(crate) struct Exits(HashMap<(usize, usize), Vec<Unavailable>>, HashMap<usize, Vec<Unavailable>>, HashMap<(usize, usize), Vec<Unavailable>>, Option<Box<HashMap<(usize,usize),MapEntrySurvivors>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize),Type>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntrySurvivors>>>>, Option<Box<HashMap<(usize,usize,bool),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize,MapLoopEdge),std::collections::BTreeMap<crate::capture_loan_owners::Place,HashSet<Type>>>>>, Option<Box<HashMap<(usize,usize),Vec<MapIterationEpoch>>>>, Option<Box<HashMap<(usize,usize),HashMap<usize,Type>>>>, Option<Box<HashMap<(usize,usize),(usize,bool,Vec<MapEntryEpoch>)>>>, Option<Box<map_completion_payloads::Snapshots>>, Option<Box<HashMap<usize,Vec<MapEntryEpoch>>>>, Option<std::sync::Arc<map_cleanup_phase_plan::Plans>>, Option<Box<HashMap<(usize,usize),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<usize,Vec<MapEntryEpoch>>>>);
+pub(crate) struct Exits(HashMap<(usize, usize), Vec<Unavailable>>, HashMap<usize, Vec<Unavailable>>, HashMap<(usize, usize), Vec<Unavailable>>, Option<Box<HashMap<(usize,usize),MapEntrySurvivors>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize),Type>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntrySurvivors>>>>, Option<Box<HashMap<(usize,usize,bool),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize,MapLoopEdge),std::collections::BTreeMap<crate::capture_loan_owners::Place,HashSet<Type>>>>>, Option<Box<HashMap<(usize,usize),Vec<MapIterationEpoch>>>>, Option<Box<HashMap<(usize,usize),HashMap<usize,Type>>>>, Option<Box<HashMap<(usize,usize),(usize,bool,Vec<MapEntryEpoch>)>>>, Option<Box<map_completion_payloads::Snapshots>>, Option<Box<HashMap<usize,Vec<MapEntryEpoch>>>>, Option<std::sync::Arc<map_cleanup_phase_plan::Plans>>, Option<Box<HashMap<(usize,usize),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<usize,Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize),Type>>>);
 #[derive(Clone,Debug)]
 pub(crate) struct MapIterationEpoch {
     /// Working family includes every reaching iteration origin, even when the
@@ -83,6 +83,13 @@ mod map_entry_tests {
 #[derive(Clone, Debug)]
 struct Unavailable { binding: usize, root: Option<Span>, fields: Vec<(Vec<String>, Span)> }
 impl Exits {
+    pub(super) fn record_array_result_write(&mut self, span: Span, ty: Type) {
+        self.17.get_or_insert_with(Default::default).insert((span.start, span.end), ty);
+    }
+    pub(crate) fn array_result_write(&self, span: Span) -> Option<Type> {
+        self.17.as_ref()?.get(&(span.start, span.end)).copied()
+    }
+
     pub(super) fn record_array_block_epochs(&mut self, start: usize, epochs: Vec<MapEntryEpoch>) {
         self.16.get_or_insert_with(Default::default).insert(start, epochs);
     }

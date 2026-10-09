@@ -26,6 +26,10 @@ impl Analyzer {
 
     fn finish_array_removal(context: &mut Context, value: &Expr, snapshot: Option<Box<crate::capture_loan_owners::Owners>>, destination: Option<Place>) {
         let Some(mut owners) = snapshot else { return; };
+        let mut value = value;
+        while let ExprKind::Inject { value: inner, .. } | ExprKind::Unary { op: UnaryOp::RecordCarrier, value: inner, .. } = &value.kind {
+            value = inner;
+        }
         let ExprKind::Call(callee, _) = &value.kind else { return; };
         let ExprKind::Field(base, _) = &callee.kind else { return; };
         let Some((_, fields)) = Self::direct_fields(base) else { return; };
@@ -34,6 +38,7 @@ impl Analyzer {
         let Some(length) = owners.array_length(&place) else { return; };
         let front = value.target == Some(CallTarget::ArrayShift);
         if !front && value.target != Some(CallTarget::ArrayPop) { return; }
+        if let Some(destination) = &destination { owners.discard(destination); }
         if length > 0 {
             let slot = |index| {
                 let mut slot = place.clone(); slot.fields.push(format!("\0array-slot:{index}")); slot

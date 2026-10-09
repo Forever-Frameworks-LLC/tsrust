@@ -3387,6 +3387,11 @@ impl Emitter<'_> {
                 self.map_post_entry_epochs(output,fun,stmt.span,depth);
                 continue;
             }
+            if let Some(code) = self.array_result_write_code(fun, stmt) {
+                let _ = writeln!(output, "{indent}{code}");
+                self.map_post_entry_epochs(output, fun, stmt.span, depth);
+                continue;
+            }
             let code = match &stmt.kind {
                 StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),
                 StmtKind::Try(region) => self.nested_completion(fun,stmt,region),

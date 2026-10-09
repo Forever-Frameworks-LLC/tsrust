@@ -24,42 +24,40 @@ impl Analyzer {
                 && self.aggregate_callable_facts(binding.ty).scoped)
         { return Ok(()); }
         let mut results = HashMap::new();
-        self.plan_array_storage_body(context, body, &mut std::collections::BTreeMap::new(), &mut results)?;
-        crate::source_walk::body(body, &mut |_| Ok(()), &mut |value| {
-            if let Some(ty) = self.planned_record_array_type(value, &results) { value.ty = Some(ty); }
-            if let ExprKind::Project { value: inner, union, narrowed } = &mut value.kind
-                && matches!(narrowed, Type::Record(_))
-                && let Some(Type::Union(id)) = self.planned_record_array_type(inner, &results)
-                && let Some(ty) = self.unions.payload(Type::Union(id))
-            { *union = id; *narrowed = ty; value.ty = Some(ty); }
-            if let ExprKind::Call(callee, _) = &mut value.kind
-                && let Some(Type::BorrowedCallable(family)) = self.planned_record_array_type(callee, &results)
-            { callee.ty = Some(Type::BorrowedCallable(family)); value.target = Some(CallTarget::StoredCallableField(family)); }
-            if let ExprKind::Call(callee, _) = &mut value.kind
-                && matches!(value.target, Some(CallTarget::StoredCallableField(_)))
-                && let Some(Type::Closure(origin)) = self.planned_record_array_type(callee, &results)
-            { callee.ty = Some(Type::Closure(origin)); value.target = Some(CallTarget::ConditionalClosure(origin)); }
-            Ok(())
-        })
+        let eligible = super::array_result_storage::eligible_bindings(context, body);
+        super::array_result_storage::reject_unplanned_replacements(context, body, &eligible)?;
+        self.plan_array_storage_body(context, body, &mut std::collections::BTreeMap::new(), &mut results, &eligible)?;
+        Ok(())
     }
 
     #[inline(never)]
-    fn plan_array_storage_body(&mut self, context: &mut Context, body: &mut [Stmt], storage: &mut std::collections::BTreeMap<Place, Storage>, results: &mut HashMap<usize, Type>) -> Result<(), Diagnostic> {
+    fn plan_array_storage_body(&mut self, context: &mut Context, body: &mut [Stmt], storage: &mut std::collections::BTreeMap<Place, Storage>, results: &mut HashMap<usize, Type>, eligible: &HashSet<usize>) -> Result<(), Diagnostic> {
         for statement in body {
             if statement.labels.is_empty() && let StmtKind::Block(inner) = &mut statement.kind
                 && array_normal_block(inner)
             {
+                let incoming_results = results.keys().copied().collect::<Vec<_>>();
                 let incoming = storage.keys().cloned().collect::<Vec<_>>();
-                self.plan_array_storage_body(context, inner, storage, results)?;
+                self.plan_array_storage_body(context, inner, storage, results, eligible)?;
                 let roots = self.array_epoch_root_types(context, storage);
-                let epochs = incoming.iter().filter_map(|place| {
+                let mut epochs = incoming.iter().filter_map(|place| {
                     let state = storage.get(place)?;
                     if context.storage_exits.transfer_at_exit(inner, place.binding, &place.fields).is_some() { return None; }
                     Some(MapEntryEpoch { place: place.clone(), input: roots[&place.binding], output: roots[&place.binding], empty: state.slots.is_empty(), before: false })
-                }).collect();
+                }).collect::<Vec<_>>();
+                for &binding in &incoming_results {
+                    if context.storage_exits.transfer_at_exit(inner, binding, &[]).is_none() && let Some(&ty) = results.get(&binding) {
+                        epochs.push(MapEntryEpoch { place: Place { binding, fields: vec![] }, input: ty, output: ty, empty: false, before: false });
+                    }
+                }
+                results.retain(|binding, _| incoming_results.contains(binding) && context.storage_exits.transfer_at_exit(inner, *binding, &[]).is_none());
                 context.storage_exits.record_array_block_epochs(statement.span.start, epochs);
                 storage.retain(|place, _| incoming.contains(place));
                 continue;
+            }
+            self.retag_array_result_uses(std::slice::from_mut(statement), results)?;
+            if let StmtKind::Let { value, .. } | StmtKind::Assign { value, .. } = &mut statement.kind {
+                super::array_result_storage::unwrap_removal(value);
             }
             let mut moved_slots = Vec::new();
             if let StmtKind::Let { binding: Some(destination), value, .. } = &statement.kind
@@ -79,7 +77,7 @@ impl Analyzer {
                 }
             }
             let mut replacement = None;
-            let removal_value = match &statement.kind { StmtKind::Expr(value) | StmtKind::Let { value, .. } => Some(value), _ => None };
+            let removal_value = match &statement.kind { StmtKind::Expr(value) | StmtKind::Let { value, .. } => Some(value), StmtKind::Assign { target, value, operator: None } if target.binding.is_some_and(|id| results.contains_key(&id)) => Some(value), _ => None };
             let removal = if let Some(value) = removal_value
                 && matches!(value.target, Some(CallTarget::ArrayPop | CallTarget::ArrayShift))
                 && let ExprKind::Call(callee, arguments) = &value.kind
@@ -116,8 +114,8 @@ impl Analyzer {
                 && matches!(value.kind, ExprKind::Name(_))
                 && value.binding.is_some_and(|id| storage.keys().any(|place| place.binding == id))
             { opaque = true; }
-            let retaining = removal.is_none() && matches!(statement.kind, StmtKind::Let { .. } | StmtKind::Return(_) | StmtKind::Throw(_))
-                || matches!(statement.kind, StmtKind::Assign { .. }) && replacement.is_none();
+            let retaining = removal.is_none() && (matches!(statement.kind, StmtKind::Let { .. } | StmtKind::Return(_) | StmtKind::Throw(_))
+                || matches!(statement.kind, StmtKind::Assign { .. }) && replacement.is_none());
             let mut mentions_storage = false;
             let mut effect = false;
             crate::source_walk::body(std::slice::from_mut(statement), &mut |_| Ok(()), &mut |value| {
@@ -128,6 +126,8 @@ impl Analyzer {
                 if matches!(value.kind, ExprKind::Call(_, _))
                     && !matches!(value.target, Some(CallTarget::Log | CallTarget::StoredCallableField(_) | CallTarget::MapMethod(MapMethod::Clear)))
                     && !removal.as_ref().is_some_and(|(_, _, span)| *span == value.span)
+                    && !(matches!(value.target, Some(CallTarget::ConditionalClosure(_)))
+                        && matches!(&value.kind, ExprKind::Call(callee, _) if self.planned_record_array_type(callee, results).is_some()))
                 { effect = true; }
                 if matches!(value.kind, ExprKind::Assign { .. } | ExprKind::CompoundAssign { .. } | ExprKind::CoalesceAssign { .. } | ExprKind::LogicalAssign { .. }) {
                     opaque = true;
@@ -155,7 +155,7 @@ impl Analyzer {
                 Ok(())
             })?;
             if let StmtKind::Let { binding: Some(binding), value, .. } = &mut statement.kind
-                && !context.bindings[*binding].rebindable
+                && (!context.bindings[*binding].rebindable || eligible.contains(binding))
             {
                 let selected = removal.as_ref().and_then(|(place, front, _)| {
                     let state = storage.get(place)?;
@@ -163,6 +163,8 @@ impl Analyzer {
                 });
                 let result = if let Some(selected) = selected {
                     Some(self.unions.intern([selected, Type::Undefined], value.span)?)
+                } else if removal.is_some() {
+                    value.ty
                 } else if matches!(value.kind, ExprKind::Name(_)) {
                     value.binding.and_then(|source| results.get(&source).copied())
                 } else { None };
@@ -170,6 +172,23 @@ impl Analyzer {
                     value.ty = Some(result);
                     context.bindings[*binding].ty = result;
                     results.insert(*binding, result);
+                }
+            }
+            if let StmtKind::Assign { target, value, operator: None } = &mut statement.kind
+                && matches!(target.kind, ExprKind::Name(_))
+                && let Some(binding) = target.binding
+                && let Some(previous) = results.get(&binding).copied()
+                && eligible.contains(&binding)
+            {
+                let selected = removal.as_ref().and_then(|(place, front, _)| {
+                    let state = storage.get(place)?;
+                    if *front { state.slots.first() } else { state.slots.last() }.copied()
+                });
+                if let Some(result) = self.array_result_replacement_type(value, selected, previous, results)? {
+                    if result != previous {
+                        context.storage_exits.record_array_result_write(statement.span, result);
+                    }
+                    results.insert(binding, result);
                 }
             }
             let update = replacement.map(|(place, index, ty)| (place, Some((index, ty)), false))

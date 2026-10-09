@@ -10,6 +10,8 @@ mod capture_loan_binding;
 mod array_capture_owners;
 #[path = "array_storage_epochs.rs"]
 mod array_storage_epochs;
+#[path = "array_result_storage.rs"]
+mod array_result_storage;
 #[path="map_entry_capture_owners.rs"]
 mod map_entry_capture_owners;
 #[path="map_entry_epochs.rs"]
@@ -5822,6 +5824,7 @@ impl Analyzer {
         // Check the RHS against the current availability, allowing x = take(x)
         // but rejecting a read of x after an earlier transfer. Commit only after
         // evaluation and exact type checking complete.
+        let removal = Self::array_removal_snapshot(context, value);
         let actual = self.expression(context, value, Mode::Consume, loans, Some(ty))?;
         if !context.template
             && let (Type::Closure(previous), Type::Closure(next)) = (ty, actual)
@@ -5873,6 +5876,7 @@ impl Analyzer {
         target.binding = Some(id);
         target.ty = Some(ty);
         self.replace_target_capture_loans(context, target, value);
+        Self::finish_bound_array_removal(context, value, removal, id);
         Ok(())
     }
 
@@ -8467,6 +8471,10 @@ impl Analyzer {
                 member_hint,
             )?
         };
+        if let Some(concrete) = self.scoped_record_injection(actual, union, expr.span)? {
+            expr.inject(concrete.union().expect("nullable scoped record"));
+            return Ok(concrete);
+        }
         if let Some(Type::Callback(callback)) = member_hint {
             self.require(actual, Some(Type::Callback(callback)), expr.span)?;
             if self.callables.callbacks[callback].kind.is_once()

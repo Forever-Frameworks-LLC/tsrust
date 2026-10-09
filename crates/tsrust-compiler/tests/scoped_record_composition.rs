@@ -1,6 +1,47 @@
 mod support;
 
 #[test]
+fn reassignable_array_result_tracks_new_origins_and_normal_blocks() {
+    let prefix = "type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const third=[7];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];let removed=handlers.pop();";
+    for tail in [
+        "removed={run:():int=>third[0]};second[0]=9;if(removed!==undefined)console.log(removed.run());console.log(handlers[0].run(),second[0]);}",
+        "{removed={run:():int=>third[0]};}second[0]=9;if(removed!==undefined)console.log(removed.run());console.log(handlers[0].run(),second[0]);}",
+    ] {
+        support::execute(&support::format_round_trip(&format!("{prefix}{tail}")), "7\n3 9\n", None);
+    }
+    let repeated = format!("{prefix}removed=handlers.pop();second[0]=9;if(removed!==undefined)console.log(removed.run());removed=undefined;first[0]=9;console.log(first[0],second[0]);}}");
+    support::execute(&support::format_round_trip(&repeated), "3\n9 9\n", None);
+    let empty = format!("{prefix}removed=handlers.pop();removed=handlers.pop();first[0]=9;second[0]=9;console.log(String(removed),handlers.length,first[0],second[0]);}}");
+    support::execute(&support::format_round_trip(&empty), "undefined 0 9 9\n", None);
+    let branch = format!("{prefix}if(first[0]===3)removed={{run:():int=>third[0]}};if(removed!==undefined)console.log(removed.run());}}");
+    assert_eq!(tsrust_compiler::check(&support::format_round_trip(&branch)).err().expect("unsupported joins have source diagnostics").code, "unsupported");
+    let conflict = format!("{prefix}removed={{run:():int=>third[0]}};third[0]=9;if(removed!==undefined)console.log(removed.run());}}");
+    assert_eq!(tsrust_compiler::check(&support::format_round_trip(&conflict)).err().expect("replacement keeps new capture live").code, "capture-conflict");
+}
+
+#[test]
+fn reassignable_array_result_releases_replaced_captures() {
+    let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];let removed=handlers.pop();removed=undefined;second[0]=9;console.log(handlers[0].run(),second[0]);}");
+    support::execute(&source, "3 9\n", None);
+    verify_disposal(&source, 2, "drop 1\n3 9\ndrop 0\n");
+    let front = source.replace("handlers.pop()", "handlers.shift()")
+        .replace("second[0] = 9", "first[0] = 9")
+        .replace("handlers[0].run(), second[0]", "handlers[0].run(), first[0]");
+    support::execute(&front, "5 9\n", None);
+    verify_disposal(&front, 2, "drop 0\n5 9\ndrop 1\n");
+}
+
+#[test]
+fn reassignable_array_result_keeps_only_its_selected_capture() {
+    let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];let removed=handlers.pop();handlers[0]={run:():int=>second[0]};first[0]=9;if(removed!==undefined)console.log(removed.run());console.log(handlers[0].run(),first[0]);}");
+    support::execute(&source, "5\n5 9\n", None);
+    let self_assignment = source.replace("let removed = handlers.pop();", "let removed=handlers.pop();removed=removed;");
+    support::execute(&self_assignment, "5\n5 9\n", None);
+    let moved_owner = source.replace("handlers[0] =", "const saved=removed;removed=undefined;second[0]=9;handlers[0] =");
+    assert_eq!(tsrust_compiler::check(&moved_owner).err().expect("a moved result owner retains its capture").code, "capture-conflict");
+}
+
+#[test]
 fn retained_array_result_preserves_thrown_callback_errors() {
     let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function example(value:int):int{const first=[3];const second=[value];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>{if(second[0]===5)throw 7;return second[0];}}];const removed=handlers.pop();handlers[0]={run:():int=>second[0]};first[0]=9;try{if(removed!==undefined)return removed.run();}catch(error){if(typeof error===\"number\")return error;throw error;}return 0;}function main():void{console.log(example(5));}");
     support::execute(&source, "7\n", None);
