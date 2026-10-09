@@ -46,7 +46,8 @@ impl Emitter<'_> {
             let cleanup_contract = crate::error_effects::annotate_region_body(&mut cleanup_discovery, &self.program.error_effects);
             let (declaration, cleanup_name) = self.completion_error_layout(&format!("StorageCleanup{first}"), &cleanup_contract, runtime, statement.span);
             cleanup_declaration = declaration;
-            let normal_cleanup = self.map_storage_completion_body(fun, cleanup, declarations, first + 2, &cleanup_name, cleanup_contract.clone(), runtime, &storage_type, &places, true, true);
+            let cleaned=region.body.first().and_then(|statement|fun.storage_exits.map_completion_layout(statement.span.start,crate::analysis::MapCompletionPhase::Cleaned,None));
+            let normal_cleanup = self.map_phase_storage_completion_body(fun, cleanup, declarations, first + 2, &cleanup_name, cleanup_contract.clone(), runtime, &storage_type, &places, true, true, cleaned);
             let thrown_cleanup = self.map_storage_completion_body(fun, cleanup, declarations, first + 3, &cleanup_name, cleanup_contract.clone(), runtime, &storage_type, &places, true, true);
             let returned_cleanup = self.map_storage_completion_body(fun, cleanup, declarations, first + 4, &cleanup_name, cleanup_contract.clone(), runtime, &storage_type, &places, true, true);
             let cleanup_abrupt = self.map_carried_cleanup_dispatch(fun, "other", &cleanup_name, &cleanup_contract, runtime, &places, statement.span);
@@ -134,7 +135,7 @@ impl Emitter<'_> {
         self.map_phase_storage_completion_body(fun,body,declarations,id,error_name,contract,runtime,storage_type,places,carry_error,carry_control,None)
     }
     #[inline(never)]
-    fn map_phase_storage_completion_body(&self,fun:&CheckedFunction,body:&[Stmt],declarations:&[Stmt],id:usize,error_name:&str,contract:crate::error_effects::FailureSet,runtime:Option<Type>,storage_type:&str,places:&[String],carry_error:bool,carry_control:bool,normal:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>)->String {
+    pub(super) fn map_phase_storage_completion_body(&self,fun:&CheckedFunction,body:&[Stmt],declarations:&[Stmt],id:usize,error_name:&str,contract:crate::error_effects::FailureSet,runtime:Option<Type>,storage_type:&str,places:&[String],carry_error:bool,carry_control:bool,normal:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>)->String {
         // Loops inside this phase own their controls. Forward only exits that
         // actually leave the phase to its enclosing cleanup.
         let locals=exception_contract_emit::local_control_targets(body);

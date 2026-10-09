@@ -1,6 +1,26 @@
 mod support;
 
 #[test]
+fn map_finally_normal_result_releases_deleted_capture_after_cleanup() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function scenario(flag:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{failIf(flag);}catch(error){console.log('caught');}finally{handlers.delete('first');}first[0]+=1;for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();console.log('done',first[0]);}function main():void{scenario(false);scenario(true);}");
+ support::execute(&source,"second 5\ndone 4\ncaught\nsecond 5\ndone 4\n",None);
+ verify_disposal(&source,2,"drop 0\nsecond 5\ndrop 1\ndone 4\ncaught\ndrop 0\nsecond 5\ndrop 1\ndone 4\n");
+ let no_catch=source.replace("} catch (error) {\n        console.log('caught');\n    } finally {","}finally{").replace("failIf(flag);","failIf(false);");assert_ne!(no_catch,source);
+ support::execute(&support::format_round_trip(&no_catch),"second 5\ndone 4\nsecond 5\ndone 4\n",None);
+ verify_disposal(&support::format_round_trip(&no_catch),2,"drop 0\nsecond 5\ndrop 1\ndone 4\ndrop 0\nsecond 5\ndrop 1\ndone 4\n");
+ let returned=source.replace("handlers.delete('first');","handlers.delete('first');if(flag)return;");assert_ne!(returned,source);
+ support::execute(&support::format_round_trip(&returned),"second 5\ndone 4\ncaught\n",None);
+ verify_disposal(&support::format_round_trip(&returned),2,"drop 0\nsecond 5\ndrop 1\ndone 4\ncaught\ndrop 0\ndrop 1\n");
+ let thrown=no_catch.replace("failIf(false);","failIf(flag);").replace("scenario(true);","try{scenario(true);}catch(error){console.log('caught');}");assert_ne!(thrown,no_catch);
+ support::execute(&support::format_round_trip(&thrown),"second 5\ndone 4\ncaught\n",None);
+ verify_disposal(&support::format_round_trip(&thrown),2,"drop 0\nsecond 5\ndrop 1\ndone 4\ndrop 0\ndrop 1\ncaught\n");
+ let field=("type Owner={handlers:Map<string,Holder>;};".to_owned()+&source).replace("const handlers = new Map<string, Holder>();","const owner:Owner={handlers:new Map<string,Holder>()};").replace("handlers.","owner.handlers.").replace("of handlers)","of owner.handlers)");assert_ne!(field,source);
+ support::execute(&support::format_round_trip(&field),"second 5\ndone 4\ncaught\nsecond 5\ndone 4\n",None);
+}
+
+
+
+#[test]
 fn map_phase_join_releases_capture_after_body_and_handler_deletion() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function scenario(flag:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{failIf(flag);handlers.delete('first');}catch(error){handlers.delete('first');}first[0]+=1;for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();console.log('done',first[0]);}function main():void{scenario(false);scenario(true);}");
  support::execute(&source,"second 5\ndone 4\nsecond 5\ndone 4\n",None);

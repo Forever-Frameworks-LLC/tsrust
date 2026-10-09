@@ -73,7 +73,8 @@ impl Emitter<'_> {
             true,
             true,
         );
-        let normal_cleanup = self.map_storage_completion_body(
+        let cleaned=region.body.first().and_then(|statement|fun.storage_exits.map_completion_layout(statement.span.start,crate::analysis::MapCompletionPhase::Cleaned,None));
+        let normal_cleanup = self.map_phase_storage_completion_body(
             fun,
             cleanup,
             declarations,
@@ -85,6 +86,7 @@ impl Emitter<'_> {
             &places,
             true,
             true,
+            cleaned,
         );
         let thrown_cleanup = self.map_storage_completion_body(
             fun,

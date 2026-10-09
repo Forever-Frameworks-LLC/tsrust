@@ -246,3 +246,10 @@ on either normal path remain borrowed. A handler that keeps the entry cannot
 make a later mutation safe merely because the try body's successful path deletes
 it. Normal result storage is independent of the storage carried by an error or a
 pending return/control completion.
+
+After finally completes normally, the Map result uses the cleaned normal payload
+layout. A callback deleted by cleanup does not become part of the following
+normal storage merely because it existed before cleanup. Surviving entries retain
+their borrowing restrictions. Cleanup still runs before a pending error or return
+resumes, and a return from cleanup overrides the pending completion with the usual
+callback disposal order.

@@ -1561,3 +1561,43 @@ Next continue independent phase layouts through finally and abrupt completions.
 Then finish broader aggregate/within-expression precision and structural owned
 record Set/Map keys with Rust-style equality and hashing. B5 remains open. Preserve
 the 15 unrelated fixture edits and use explicit Git paths.
+
+## Cleaned normal results after finally (2026-10-09)
+
+The initial native witness already passed on the previous checkpoint. Its log is
+named tsrust-b5-finally-result-red.log, but it is passing exploratory evidence,
+not a runtime red. The focused storage-layout witness fails against the previous
+implementation: following statements receive Map(6), while the checked cleaned
+normal result is Map(7). The baseline sources were held only in process memory
+while running that red witness and the working changes were restored afterward;
+no archive or source snapshot was created.
+
+The exit planner now selects Cleaned/normal for regions with finally and
+Handled/normal otherwise. Both catch-plus-finally and finally-without-catch emit
+normal cleanup results with the checked cleaned layout. Error and pending-control
+cleanup continuations retain their existing common transport. This completes the
+normal cleanup-result consumer, not independent abrupt layouts.
+
+Native witnesses cover successful and caught bodies, no catch, propagated errors,
+return from cleanup overriding pending completion, and Map storage in a nested
+record field. Exact disposal is checked at both optimization levels. The affected
+Map batch passes 88 tests, supplemented by expanded and record-field runs. All
+16 editor entry-release checks, 14 phase/storage proofs and eight depth canaries
+pass. The editor continues rejecting mutation of a surviving callback capture.
+
+Matched support adds finallyNormalJoinedEntry with an independent arithmetic
+oracle, a literal reference row and mutation-rejecting source guards. All five
+native/Node-after-tsc cases pass untimed with 80 observations per row. Canonical
+record: runtime/results/2026-10-09T05-24-29-449Z-verify.json. Closed logs and the
+record are imported into SQLite, read back byte for byte and removed from loose
+storage. Project formatting changes one workload and refreshes its fingerprint
+after token preservation; the final formatter pass changes zero files. Installed
+consumers remain at gate 181. No full regression or timing claim is made.
+
+Next consume checked abrupt phase layouts. Start with error storage separated
+from normal results; preserve per-operation availability and handler entry types.
+Then handle return, break and continue storage by resolved destination, including
+cleanup override and disposal. Do not combine independently checked payloads into
+one storage tuple merely to satisfy the backend. Broader aggregate/within-expression
+precision and Rust-style structural owned record Set/Map keys remain pending.
+B5 is still open. Preserve the 15 unrelated fixture edits; use explicit Git paths.

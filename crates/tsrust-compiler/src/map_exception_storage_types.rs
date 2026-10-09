@@ -1,4 +1,4 @@
-//! Normal exception transport restores the checked common storage family.
+//! Normal exception transport preserves the checked phase result layout.
 use super::*;
 
 impl Analyzer {
@@ -21,8 +21,9 @@ impl Analyzer {
         for place in places {
             let Some(root)=results.get(&place.binding).copied() else{continue;};
             let original=context.bindings[place.binding].ty;
-            let normal=region.body.first().and_then(|statement|context.storage_exits.map_completion_layout(statement.span.start,map_completion_payloads::Phase::Handled,None));
-            let leaf=if region.finally.is_none() {normal.and_then(|types|types.get(&place)).copied()}else{None}
+            let phase=if region.finally.is_some(){map_completion_payloads::Phase::Cleaned}else{map_completion_payloads::Phase::Handled};
+            let normal=region.body.first().and_then(|statement|context.storage_exits.map_completion_layout(statement.span.start,phase,None));
+            let leaf=normal.and_then(|types|types.get(&place)).copied()
                 .or_else(||self.scoped_array_field_type(original,&place.fields));
             let Some(leaf)=leaf else{continue;};
             let output=self.scoped_array_replace_field(root,&place.fields,leaf).expect("checked transported Map path");

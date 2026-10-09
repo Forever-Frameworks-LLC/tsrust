@@ -55,6 +55,17 @@ impl Snapshots {
 mod tests {
     use super::*;
     #[test]
+    fn cleaned_normal_layout_is_consumed_after_finally() {
+        let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function scenario(flag:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{failIf(flag);}catch(error){}finally{handlers.delete('first');}first[0]+=1;handlers.clear();}function main():void{scenario(false);}").unwrap();
+        let checked=crate::check(&source).unwrap();let function=checked.program.functions.iter().find(|function|function.name=="scenario").unwrap();
+        let (position,region)=function.body.iter().enumerate().find_map(|(position,statement)|if let crate::syntax::StmtKind::Try(region)=&statement.kind{Some((position,region))}else{None}).unwrap();
+        let binding=function.bindings.iter().position(|binding|binding.name=="handlers").unwrap();let place=Place{binding,fields:Vec::new()};let boundary=region.body[0].span.start;
+        let normal=function.storage_exits.map_completion_layout(boundary,Phase::Cleaned,None).unwrap()[&place];
+        let before=function.storage_exits.map_completion_layout(boundary,Phase::Handled,None).unwrap()[&place];assert_ne!(normal,before);
+        assert_eq!(function.storage_exits.map_native_input(function.body[position+1].span.start,binding),Some(normal));
+    }
+
+    #[test]
     fn handled_normal_layout_is_consumed_after_exception_join() {
         let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function scenario(flag:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{failIf(flag);handlers.delete('first');}catch(error){handlers.delete('first');}first[0]+=1;handlers.clear();}function main():void{scenario(false);}").unwrap();
         let checked=crate::check(&source).unwrap();let function=checked.program.functions.iter().find(|function|function.name=="scenario").unwrap();
