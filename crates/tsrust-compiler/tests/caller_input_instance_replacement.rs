@@ -867,3 +867,81 @@ fn closure_local_inputs_keep_independent_native_owners() {
         .replace("install(holder, second, calls);", "{ const perform = (target: Mutable<Holder>): void => { install(target, second, calls); }; perform(holder); }");
     execute(&captured);
 }
+
+#[test]
+fn mutable_captured_source_cannot_outlive_reusable_installer() {
+    let source=r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: Mutable<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: Mutable<int[]>): void {
+            holder.run = (): int => { source[0] += 1; return source[0]; };
+        }
+        function clear(holder: Mutable<Holder>): void { holder.run = undefined; }
+        function main() {
+            const source = [3]; const holder: Holder = { run: undefined };
+            {
+                const perform = (target: Mutable<Holder>): void => { install(target, source); };
+                perform(holder);
+            }
+            strictEqual(holder.run!(), 4); strictEqual(holder.run!(), 5);
+            clear(holder); source[0] += 1; strictEqual(source[0], 6);
+        }
+    "#;
+    let checkable=source.replace("import { strictEqual } from \"std:testing\";", "").replace("strictEqual(holder.run!(), 4); strictEqual(holder.run!(), 5);", "console.log(holder.run!());").replace("strictEqual(source[0], 6);", "console.log(source[0]);");
+    let error=tsrust_compiler::check(&checkable).err().expect("A reusable mutable receiver cannot lend a capture beyond its scope");
+    assert_eq!(error.code,"callback-escape","{error:?}");
+}
+
+#[test]
+fn once_installer_transfers_owned_capture_into_stored_callback() {
+    execute(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: Function<int> | undefined; };
+        function install(holder: Mutable<Holder>, source: Owned<int[]>): void {
+            holder.run = (): int => { source[0] += 1; return source[0]; };
+        }
+        function clear(holder: Mutable<Holder>): void { holder.run = undefined; }
+        function main() {
+            const source = [3]; const holder: Holder = { run: undefined };
+            {
+                const perform: Once<Function<void, [target: Mutable<Holder>]>> = (target: Mutable<Holder>): void => { install(target, source); };
+                perform(holder);
+            }
+            strictEqual(holder.run!(), 4); strictEqual(holder.run!(), 5);
+            clear(holder);
+        }
+    "#);
+}
+
+#[test]
+fn reusable_mutable_installer_lends_capture_until_callback_clear() {
+    execute(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: Mutable<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: Mutable<int[]>): void { holder.run = (): int => { source[0] += 1; return source[0]; }; }
+        function clear(holder: Mutable<Holder>): void { holder.run = undefined; }
+        function main() {
+            const source = [3]; const holder: Holder = { run: undefined };
+            {
+                const perform = (target: Mutable<Holder>): void => { install(target, source); };
+                perform(holder); strictEqual(holder.run!(), 4); clear(holder);
+                perform(holder); strictEqual(holder.run!(), 5); clear(holder);
+            }
+            source[0] += 1; strictEqual(source[0], 6);
+        }
+    "#);
+}
+
+#[test]
+fn borrowed_callback_cannot_retain_callee_owned_parameter() {
+    let source = r#"
+        type Holder = { run: Mutable<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: Owned<int[]>): void {
+            holder.run = (): int => { source[0] += 1; return source[0]; };
+        }
+        function main() { const holder: Holder = { run: undefined }; install(holder, [3]); console.log(holder.run!()); }
+    "#;
+    let source = support::format_round_trip(source);
+    let error = tsrust_compiler::check(&source).err().expect("A borrowed callback cannot outlive its callee-owned input");
+    assert_eq!(error.code, "callback-escape", "{error:?}");
+}

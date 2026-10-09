@@ -1,6 +1,7 @@
 import {createHash} from 'node:crypto';
 import {containsCodeSnippet,findCodeSnippet} from './source-contract-tokens.mjs';
 const required=[
+ 'lendMutable(holder);', 'scopedFirst = holder.run!();', 'scopedSecond = holder.run!();', 'scopedReleased = source[0];', 'scopedEffects = calls[0];', 'transferOnce(holder);', 'ownedFirst = holder.run!();', 'ownedSecond = holder.run!();',
  'installConditional(target, replacement, true, calls);', 'installLocalFirst(holder);', 'installLocalSecond(holder);', 'const localFirst = holder.run!();', 'return [localFirst, original[0], holder.run!(), calls[0]];', 'const localOwnerValues = inspectLocalOwners();',
  'keepFirst(holder);', 'keepSecond(holder);', 'installCapturedSource(target, original);', 'installCapturedSource(target, replacement);', 'independentFirst = holder.run!();', 'independentReleased = original[0];', 'independentReplacement = holder.run!();',
  'installCapturedSource(target, captured);', 'retainCaptured(holder);', 'retainedCapture = holder.run!();', 'clearCapturedSource(holder);', 'captured[0] += 1;', 'clearedCapture = captured[0];',
@@ -26,11 +27,12 @@ const required=[
  'other[0] += 10; return other[0];',
  'paired = pairHolder.run();', 'changedFirst = holder.run();',
  'changedSecond = holder.run();', 'callbackFirst = holder.run();', 'callbackSecond = holder.run();', 'callbackAfter = action();', 'holder.run = (): int => action();',
- 'output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects, conditionalFirst, conditionalReleased, conditionalReplacement, conditionalEffects, forwardedFirst, forwardedReleased, forwardedReplacement, forwardedEffects, closureFirst, closureReleased, closureReplacement, closureEffects, capturedFirst, capturedReleased, capturedReplacement, capturedEffects, retainedCapture, clearedCapture, independentFirst, independentReleased, independentReplacement, localOwnerValues[0], localOwnerValues[1], localOwnerValues[2], localOwnerValues[3]]);'
+ 'output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects, conditionalFirst, conditionalReleased, conditionalReplacement, conditionalEffects, forwardedFirst, forwardedReleased, forwardedReplacement, forwardedEffects, closureFirst, closureReleased, closureReplacement, closureEffects, capturedFirst, capturedReleased, capturedReplacement, capturedEffects, retainedCapture, clearedCapture, independentFirst, independentReleased, independentReplacement, localOwnerValues[0], localOwnerValues[1], localOwnerValues[2], localOwnerValues[3], scopedFirst, scopedSecond, scopedReleased, scopedEffects, ownedFirst, ownedSecond]);'
 ];
 export function assertCallerBorrowedRecordStoresSource(source,row,kind) {
- if(findCodeSnippet(source,'holder.run = undefined;').length!==2)throw Error('Caller-borrowed clear helper count');
- if(findCodeSnippet(source,'calls[0] += 1;').length!==3)throw Error('Caller-borrowed installer effect count');
+ if(findCodeSnippet(source,'lendMutable(holder);').length!==2)throw Error('Scoped mutable installer invocation count');
+ if(findCodeSnippet(source,'holder.run = undefined;').length!==3)throw Error('Caller-borrowed clear helper count');
+ if(findCodeSnippet(source,'calls[0] += 1;').length!==4)throw Error('Caller-borrowed installer effect count');
  if(findCodeSnippet(source,'holder.run = action;').length!==5)throw Error('Caller-borrowed direct store count');
  if(!['native','typescript'].includes(kind)||row.id!=='caller_borrowed_record_stores'||row.family!=='caller-borrowed-record-stores')throw Error('Caller-borrowed record store family');
  if(createHash('sha256').update(source).digest('hex')!==(kind==='native'?row.sourceSha256:row.counterpartSha256))throw Error('Caller-borrowed record store fingerprint');

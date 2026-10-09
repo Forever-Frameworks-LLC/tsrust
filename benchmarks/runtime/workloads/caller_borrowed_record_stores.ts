@@ -1,3 +1,4 @@
+type OwnedNullableHolder = { run: (() => int) | undefined; };
 type ReadNullableHolder = { run: (() => int) | undefined; };
 
 type NullableHolder = { run: (() => int) | undefined; };
@@ -345,7 +346,28 @@ function workload(n: int, seed: int, input: string): int[][] {
         };
         const localOwnerValues = inspectLocalOwners();
 
-        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects, conditionalFirst, conditionalReleased, conditionalReplacement, conditionalEffects, forwardedFirst, forwardedReleased, forwardedReplacement, forwardedEffects, closureFirst, closureReleased, closureReplacement, closureEffects, capturedFirst, capturedReleased, capturedReplacement, capturedEffects, retainedCapture, clearedCapture, independentFirst, independentReleased, independentReplacement, localOwnerValues[0], localOwnerValues[1], localOwnerValues[2], localOwnerValues[3]]);
+        let scopedFirst = 0; let scopedSecond = 0; let scopedReleased = 0; let scopedEffects = 0;
+        {
+            const source = [value + 20]; const calls = [0]; const holder: NullableHolder = { run: undefined };
+            {
+                const lendMutable = (target: NullableHolder): void => { calls[0] += 1; installScopedMutation(target, source); };
+                lendMutable(holder); scopedFirst = holder.run!(); clearNullable(holder);
+                lendMutable(holder); scopedSecond = holder.run!(); clearNullable(holder);
+            }
+            source[0] += 1; scopedReleased = source[0]; scopedEffects = calls[0];
+        }
+        let ownedFirst = 0; let ownedSecond = 0;
+        {
+            const source = [value + 30]; const holder: OwnedNullableHolder = { run: undefined };
+            {
+                const transferOnce: (target: OwnedNullableHolder) => void = (target: OwnedNullableHolder): void => { installOwnedMutation(target, source); };
+                transferOnce(holder);
+            }
+            ownedFirst = holder.run!(); ownedSecond = holder.run!();
+            holder.run = undefined;
+        }
+
+        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects, conditionalFirst, conditionalReleased, conditionalReplacement, conditionalEffects, forwardedFirst, forwardedReleased, forwardedReplacement, forwardedEffects, closureFirst, closureReleased, closureReplacement, closureEffects, capturedFirst, capturedReleased, capturedReplacement, capturedEffects, retainedCapture, clearedCapture, independentFirst, independentReleased, independentReplacement, localOwnerValues[0], localOwnerValues[1], localOwnerValues[2], localOwnerValues[3], scopedFirst, scopedSecond, scopedReleased, scopedEffects, ownedFirst, ownedSecond]);
         i += 1;
     }
 
@@ -438,4 +460,11 @@ function installCapturedSource(holder: ReadNullableHolder, source: number[]): vo
 }
 function clearCapturedSource(holder: ReadNullableHolder): void {
     holder.run = undefined;
+}
+
+function installScopedMutation(holder: NullableHolder, source: int[]): void {
+    holder.run = (): int => { source[0] += 1; return source[0]; };
+}
+function installOwnedMutation(holder: OwnedNullableHolder, source: int[]): void {
+    holder.run = (): int => { source[0] += 1; return source[0]; };
 }

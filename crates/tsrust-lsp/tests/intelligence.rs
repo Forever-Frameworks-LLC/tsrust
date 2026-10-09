@@ -9577,3 +9577,44 @@ fn closure_local_owner_replacement_preserves_editor_conflicts() {
     let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///closure-local-owners.tsr").unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
 }
+
+#[test]
+fn mutable_installer_capture_lifetime_matches_editor_diagnostics() {
+    let source = tsrust_compiler::format(r#"
+        type Holder = { run: Mutable<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: Mutable<int[]>): void { holder.run = (): int => { source[0] += 1; return source[0]; }; }
+        function clear(holder: Mutable<Holder>): void { holder.run = undefined; }
+        function main() {
+            const source = [3]; const holder: Holder = { run: undefined };
+            {
+                const perform = (target: Mutable<Holder>): void => { install(target, source); };
+                perform(holder); console.log(holder.run!()); clear(holder);
+                perform(holder); console.log(holder.run!()); clear(holder);
+            }
+            source[0] += 1;
+        }
+    "#).unwrap();
+    let uri = "file:///mutable-installer-capture.tsr";
+    assert!(tsrust_lsp::diagnostics(&source, uri).unwrap().is_empty());
+    let conflict = source.replacen("clear(holder);", "", 1);
+    assert_ne!(conflict, source);
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&conflict, uri).unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "capture-conflict"), "{diagnostics}");
+    let owned = tsrust_compiler::format(r#"
+        type Holder = { run: Function<int> | undefined; };
+        function install(holder: Mutable<Holder>, source: Owned<int[]>): void { holder.run = (): int => { source[0] += 1; return source[0]; }; }
+        function main() {
+            const source = [3]; const holder: Holder = { run: undefined };
+            { const perform: Once<Function<void, [target: Mutable<Holder>]>> = (target: Mutable<Holder>): void => { install(target, source); }; perform(holder); }
+            console.log(holder.run!());
+        }
+    "#).unwrap();
+    assert!(tsrust_lsp::diagnostics(&owned, uri).unwrap().is_empty());
+    let reused = owned.replace("console.log(holder.run!());", "console.log(source[0]);");
+    assert_ne!(reused, owned);
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&reused, uri).unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "transferred"), "{diagnostics}");
+    let borrowed = owned.replace("run: Function<int>", "run: Mutable<Function<int>>");
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&borrowed, uri).unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "callback-escape"), "{diagnostics}");
+}

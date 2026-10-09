@@ -5,6 +5,7 @@ use super::*;
 pub(super) struct ClosureRecordSignature {
     pub(super) signature: NativeSignature,
     pub(super) trait_where: String,
+    pub(super) receiver_lifetime: Option<&'static str>,
 }
 
 impl Emitter<'_> {
@@ -30,6 +31,7 @@ impl Emitter<'_> {
         let mut sources = closure.parameters.clone();
         let (capture_lifetimes, capture_types) = self.capture_layout(closure);
         let mut hidden_lifetimes = HashMap::new();
+        let mut receiver_lifetime = None;
         for borrow in self
             .program
             .closure_record_capture_borrows
@@ -48,7 +50,13 @@ impl Emitter<'_> {
             if !matches!(capture.storage, Mode::Read | Mode::Mutate) {
                 return None;
             }
-            hidden_lifetimes.insert(capture.inner, lifetime.clone());
+            let lifetime = if capture.storage == Mode::Mutate {
+                receiver_lifetime = Some("'record_receiver");
+                "'record_receiver".to_owned()
+            } else {
+                lifetime.clone()
+            };
+            hidden_lifetimes.insert(capture.inner, lifetime);
             let source = sources.len();
             sources.push(capture.inner);
             borrows.push(crate::analysis::record_parameter_borrows::Borrow {
@@ -250,6 +258,11 @@ impl Emitter<'_> {
         for bound in &mut trait_bounds {
             *bound = callback_capture_emit::substitute_parameters(bound, &owners);
         }
+        for bound in &mut trait_bounds {
+            if bound.contains("'record_receiver") {
+                *bound = format!("for<'record_receiver> {bound}");
+            }
+        }
         trait_bounds.sort();
         trait_bounds.dedup();
         let trait_where = if trait_bounds.is_empty() {
@@ -257,29 +270,36 @@ impl Emitter<'_> {
         } else {
             format!(" where {}", trait_bounds.join(", "))
         };
+        let mut signature = self.native_signature_from_plan(
+            NativeSignaturePlan {
+                function: &closure.function,
+                parameters: closure.parameters.clone(),
+                source_parameters: closure.parameters.clone(),
+                borrow_lifetimes: groups
+                    .into_iter()
+                    .filter(|(binding, _)| !hidden_lifetimes.contains_key(binding))
+                    .collect(),
+                owner_parameters: owner_inputs
+                    .iter()
+                    .map(|source| format!(",_owner{source}:std::marker::PhantomData<O{source}>"))
+                    .collect(),
+                owner_inputs,
+                record_bounds,
+                replacement_bounds,
+            },
+            &[],
+        );
+        if let Some(lifetime) = receiver_lifetime {
+            signature.generics = if signature.generics.is_empty() {
+                format!("<{lifetime}>")
+            } else {
+                format!("<{lifetime},{}", &signature.generics[1..])
+            };
+        }
         Some(ClosureRecordSignature {
-            signature: self.native_signature_from_plan(
-                NativeSignaturePlan {
-                    function: &closure.function,
-                    parameters: closure.parameters.clone(),
-                    source_parameters: closure.parameters.clone(),
-                    borrow_lifetimes: groups
-                        .into_iter()
-                        .filter(|(binding, _)| !hidden_lifetimes.contains_key(binding))
-                        .collect(),
-                    owner_parameters: owner_inputs
-                        .iter()
-                        .map(|source| {
-                            format!(",_owner{source}:std::marker::PhantomData<O{source}>")
-                        })
-                        .collect(),
-                    owner_inputs,
-                    record_bounds,
-                    replacement_bounds,
-                },
-                &[],
-            ),
+            signature,
             trait_where,
+            receiver_lifetime,
         })
     }
 }

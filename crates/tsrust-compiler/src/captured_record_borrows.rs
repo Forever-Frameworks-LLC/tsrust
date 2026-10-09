@@ -34,7 +34,7 @@ impl Analyzer {
             let target = Place { binding, fields };
             self.retain_record_invocation_contract(context, &target, effect.origin, span)?;
             let capture = &self.closures[closure].captures[effect.source_capture];
-            let loans = if capture.storage == Mode::Consume {
+            let loans = if matches!(capture.storage, Mode::Consume | Mode::Mutate) {
                 vec![(receiver, effect.mode, span)]
             } else {
                 let specific = context.capture_loan_owners.loans_under(&Place {

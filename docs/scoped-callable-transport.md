@@ -563,3 +563,11 @@ Direct installer invocation passes owner markers for hidden captured inputs alon
 Arrays declared inside an ordinary closure keep independent owners when an effectful named installer replaces a stored callback. After replacement, the old array can be mutated while the holder continues borrowing the new array. Readonly callbacks work with nullable and plain fields; mutable callbacks update their retained array while releasing the overwritten array. Nested local installers can capture those arrays without changing their owner scope.
 
 Captured data and installer effect state retain separate loan paths. Storing a callback that borrows an array keeps that array live, while an unrelated captured counter becomes available after its installer leaves scope. The compiler does not infer shared mutable storage or clone either capture.
+
+### Mutable captured inputs and owned transfer
+
+A reusable installer that captures a mutable array lends that capture through the installer's receiver. Clear the stored callback before invoking the installer again or leaving its scope. This preserves exclusive access without extending a mutable reborrow to the full capture lifetime. For example, starting with `[3]`, install and invoke to observe 4, clear, install and invoke again to observe 5, then clear. After disposing of the installer, the original array can be changed to 6.
+
+To transfer the array instead, use an owning callback field such as `Function<int> | undefined`, an installer input `Owned<int[]>`, and an installer value `Once<Function<void, [target: Mutable<Holder>]>>`. The once installer moves its array into the stored callback. That callback can mutate its own array repeatedly after the installer is consumed. The original array binding remains transferred; clearing the callback does not restore that binding. A borrowed callback field such as `Mutable<Function<int>>` cannot retain a callee-owned array past the call and receives a source escape diagnostic.
+
+Readonly captured inputs retain their existing behavior: a stored readonly borrow can remain after the installer leaves scope because it refers directly to the caller-owned input. No invocation contract is silently changed and no capture is cloned.

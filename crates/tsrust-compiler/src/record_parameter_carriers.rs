@@ -65,7 +65,13 @@ impl Analyzer {
                     }
                     continue;
                 }
-                let origins = match write.value.ty {
+                // Nullable injection wraps the actual callback environment. Its
+                // captures must satisfy the same escape rules as a plain field.
+                let mut value = write.value;
+                while let ExprKind::Inject { value: inner, .. } = &value.kind {
+                    value = inner;
+                }
+                let origins = match value.ty {
                     Some(Type::Closure(id)) => vec![id],
                     Some(Type::BorrowedCallable(family)) => self
                         .callables

@@ -2380,6 +2380,8 @@ impl Emitter<'_> {
             let forwarded_signature = self.forwarded_record_signature(closure);
             let closure_signature = self.closure_record_signature(index);
             let signature = forwarded_signature.as_ref().map(|(_, signature)| signature).or_else(|| closure_signature.as_ref().map(|signature| &signature.signature));
+            let receiver = closure_signature.as_ref().and_then(|signature|signature.receiver_lifetime)
+                .map_or_else(||receiver.to_owned(),|lifetime|format!("&{lifetime} mut self"));
             let parameters = signature.map_or(parameters, |signature| format!(", {}", signature.params));
             let call_generics = signature.map_or(call_generics, |signature| signature.generics.clone());
             let replacement_where = signature.map_or_else(String::new, |signature| signature.replacement_where.clone());
