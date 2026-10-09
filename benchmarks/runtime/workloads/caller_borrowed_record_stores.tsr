@@ -306,7 +306,30 @@ function workload(n: int, seed: int, input: string): int[][] {
             forwardedEffects = calls[0];
         }
 
-        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects, conditionalFirst, conditionalReleased, conditionalReplacement, conditionalEffects, forwardedFirst, forwardedReleased, forwardedReplacement, forwardedEffects]);
+        let closureFirst = 0;
+        let closureReleased = 0;
+        let closureReplacement = 0;
+        let closureEffects = 0;
+        {
+            const original = [value + 2];
+            const replacement = [value + 6];
+            const calls = [0];
+            const holder: ReadNullableHolder = {
+                run: undefined
+            };
+            const performBody = (target: Mutable<ReadNullableHolder>, source: ReadOnly<int[]>, plus: boolean, effects: Mutable<int[]>): void => {
+                installConditional(target, source, plus, effects);
+            };
+            performBody(holder, original, true, calls);
+            closureFirst = holder.run!();
+            performBody(holder, replacement, false, calls);
+            original[0] += 1;
+            closureReleased = original[0];
+            closureReplacement = holder.run!();
+            closureEffects = calls[0];
+        }
+
+        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects, conditionalFirst, conditionalReleased, conditionalReplacement, conditionalEffects, forwardedFirst, forwardedReleased, forwardedReplacement, forwardedEffects, closureFirst, closureReleased, closureReplacement, closureEffects]);
         i += 1;
     }
 

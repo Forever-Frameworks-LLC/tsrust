@@ -44,6 +44,9 @@ impl Emitter<'_> {
         Some(format!("let {mutable}record_fields{id}=value{id}.{method}();"))
     }
     pub(super) fn record_parameter_bound(&self, fun:&CheckedFunction,id:usize,function:usize)->Option<String> {
+        self.record_parameter_bound_with(fun, id, |path| self.record_replacement_bounds(function,id,path))
+    }
+    pub(super) fn record_parameter_bound_with(&self, fun:&CheckedFunction,id:usize,mut replacements:impl FnMut(&[usize])->Vec<String>)->Option<String> {
         let layout=self.record_parameter_layout(fun,id)?;
         let binding=&fun.bindings[id];
         let record=layout.record;
@@ -52,7 +55,7 @@ impl Emitter<'_> {
             if matches!(leaf.ty,Type::Callback(_)) {
                 let bounds=self.callback_bounds([leaf.ty],true);
                 let bound=bounds.first().and_then(|bound|bound.split_once(':')).map(|(_,bound)|bound.trim()).expect("callback leaf bound");
-                let replacements=self.record_replacement_bounds(function,id,&leaf.path);
+                let replacements=replacements(&leaf.path);
                 let replacements=if replacements.is_empty(){String::new()}else{format!(" + {}",replacements.join(" + "))};
                 format!("{name}:{bound} + Sized{replacements}")
             }else{format!("{name}={}",self.native_type(leaf.ty))}

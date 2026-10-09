@@ -450,8 +450,7 @@ fn saved_callback_family_preserves_generic_input_and_local_move() {
 
 #[test]
 fn closure_body_installer_releases_independent_input_owners() {
-    execute(
-        r#"
+    let source = r#"
         import { strictEqual } from "std:testing";
         type Holder = { run: ReadOnly<Function<int>> | undefined; };
         function install(holder: Mutable<Holder>, source: ReadOnly<int[]>, calls: Mutable<int[]>): void {
@@ -468,7 +467,38 @@ fn closure_body_installer_releases_independent_input_owners() {
             perform(holder, second, calls); first[0] += 1;
             strictEqual(first[0], 4); strictEqual(holder.run!(), 10); strictEqual(calls[0], 2);
         }
-    "#,
+    "#;
+    for source in [
+        source.to_owned(),
+        source.replace(
+            "install(target, source, calls);",
+            "const input = source; install(target, input, calls);",
+        ),
+    ] {
+        execute(&source);
+        execute(
+            &source
+                .replace(" | undefined", "")
+                .replace("run: undefined", "run: (): int => 0")
+                .replace("run!()", "run()"),
+        );
+    }
+    let mutable = source
+        .replace("ReadOnly<Function<int>>", "Mutable<Function<int>>")
+        .replace("source: ReadOnly<int[]>", "source: Mutable<int[]>")
+        .replace(
+            "holder.run = (): int => source[0];",
+            "holder.run = (): int => { source[0] += 1; return source[0]; };",
+        )
+        .replace("holder.run!(), 3", "holder.run!(), 4")
+        .replace("first[0], 4", "first[0], 5")
+        .replace("holder.run!(), 10", "holder.run!(), 11");
+    execute(&mutable);
+    execute(
+        &mutable
+            .replace(" | undefined", "")
+            .replace("run: undefined", "run: (): int => 0")
+            .replace("run!()", "run()"),
     );
 }
 
@@ -658,6 +688,30 @@ fn forwarded_installer_preserves_typed_failure_after_record_storage() {
             strictEqual(holder.run!(), 3);
             try { perform(holder, second, calls); } catch(error) { strictEqual(error, "installed"); caught += 1; }
             strictEqual(holder.run!(), 10); strictEqual(caught, 2); strictEqual(calls[0], 2);
+        }
+    "#,
+    );
+}
+
+#[test]
+fn closure_body_installer_preserves_typed_failure_after_storage() {
+    execute(
+        r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>, calls: Mutable<int[]>): void {
+            calls[0] += 1;
+            holder.run = (): int => source[0];
+            throw "installed";
+        }
+        function main() {
+            const source = [7]; const calls = [0]; const holder: Holder = { run: undefined };
+            const perform = (target: Mutable<Holder>, input: ReadOnly<int[]>, effects: Mutable<int[]>): void => {
+                install(target, input, effects);
+            };
+            let caught = false;
+            try { perform(holder, source, calls); } catch (error) { strictEqual(error, "installed"); caught = true; }
+            strictEqual(caught, true); strictEqual(holder.run!(), 7); strictEqual(calls[0], 1);
         }
     "#,
     );

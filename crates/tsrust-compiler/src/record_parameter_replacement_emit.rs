@@ -10,14 +10,20 @@ impl Emitter<'_> {
         args: &[Expr],
         callee: usize,
     ) -> String {
+        self.record_callable_reification(
+            fun,
+            args,
+            borrowed_owner_provenance::Scope::Function(callee),
+        )
+    }
+    pub(super) fn record_callable_reification(
+        &self,
+        fun: &CheckedFunction,
+        args: &[Expr],
+        callee: borrowed_owner_provenance::Scope,
+    ) -> String {
         let mut result = String::new();
-        for (parameter, names) in self
-            .program
-            .record_call_releases
-            .get(&callee)
-            .into_iter()
-            .flatten()
-        {
+        for (parameter, names) in callee.releases(self.program) {
             let Some(arg) = args.get(*parameter) else {
                 continue;
             };
@@ -71,12 +77,16 @@ impl Emitter<'_> {
                 continue;
             }
             if let Some(union) = ty.union() {
-                let absent_store = self.definitely_clears_nullable_callback(
-                    callee,
-                    *parameter,
-                    names,
-                    &mut HashSet::new(),
-                );
+                let absent_store = match callee {
+                    borrowed_owner_provenance::Scope::Function(id) => self
+                        .definitely_clears_nullable_callback(
+                            id,
+                            *parameter,
+                            names,
+                            &mut HashSet::new(),
+                        ),
+                    borrowed_owner_provenance::Scope::Closure(_) => false,
+                };
                 if absent_store {
                     if let Some(place) = self.owned_record_leaf_place(fun, id, &path) {
                         let arms = self.program.unions[union.index()]
@@ -113,15 +123,10 @@ impl Emitter<'_> {
             let Type::BorrowedCallable(family) = ty else {
                 continue;
             };
-            if self
-                .program
-                .record_parameter_borrows
-                .get(&callee)
-                .is_some_and(|borrows| {
-                    borrows.iter().any(|borrow| {
-                        borrow.target.binding == *parameter && borrow.target.fields == *names
-                    })
-                })
+            if callee
+                .borrows(self.program)
+                .iter()
+                .any(|borrow| borrow.target.binding == *parameter && borrow.target.fields == *names)
             {
                 if let Some(place) = self.owned_record_leaf_place(fun, id, &path) {
                     if let Some(reification) = self.record_callback_reification(
@@ -137,12 +142,9 @@ impl Emitter<'_> {
                 .stored_contracts
                 .origins(family)
                 .expect("checked record family");
-            let mut allowed = self
-                .program
-                .record_parameter_replacements
-                .get(&callee)
-                .into_iter()
-                .flatten()
+            let mut allowed = callee
+                .replacements(self.program)
+                .iter()
                 .filter(|(slot, path, _)| slot == parameter && path == names)
                 .flat_map(|(_, _, ty)| match ty {
                     Type::Closure(id) => vec![*id],

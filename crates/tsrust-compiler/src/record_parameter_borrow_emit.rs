@@ -31,20 +31,6 @@ impl Emitter<'_> {
         parents
     }
 
-    pub(super) fn record_borrow_inputs(&self, function: usize) -> Vec<usize> {
-        let mut inputs = self
-            .program
-            .record_parameter_borrows
-            .get(&function)
-            .into_iter()
-            .flatten()
-            .map(|borrow| borrow.source)
-            .collect::<Vec<_>>();
-        inputs.sort_unstable();
-        inputs.dedup();
-        inputs
-    }
-
     pub(super) fn record_borrow_replacement_type(
         &self,
         function: usize,

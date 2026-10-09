@@ -7,6 +7,17 @@ pub(super) struct NativeSignature {
     pub(super) replacement_where: String,
 }
 
+pub(super) struct NativeSignaturePlan<'a> {
+    pub(super) function: &'a CheckedFunction,
+    pub(super) parameters: Vec<usize>,
+    pub(super) source_parameters: Vec<usize>,
+    pub(super) borrow_lifetimes: std::collections::BTreeMap<usize, usize>,
+    pub(super) owner_inputs: Vec<usize>,
+    pub(super) owner_parameters: String,
+    pub(super) record_bounds: Vec<String>,
+    pub(super) replacement_bounds: Vec<String>,
+}
+
 impl Emitter<'_> {
     #[inline(never)]
     pub(super) fn native_function_signature(
@@ -22,14 +33,47 @@ impl Emitter<'_> {
             .named_capture_access
             .get(&index)
             .map_or(0, Vec::len);
-        let borrowed_inputs = self.record_borrow_inputs(index);
-        let borrow_lifetimes = self.record_borrow_lifetime_groups(index);
-        let params = fun
-            .bindings
+        let parameters = (0..fun.parameter_count + hidden).collect::<Vec<_>>();
+        let source_parameters = (0..fun.parameter_count).collect::<Vec<_>>();
+        let mut record_bounds = source_parameters
             .iter()
-            .take(fun.parameter_count + hidden)
-            .enumerate()
-            .map(|(index, b)| {
+            .filter_map(|&id| self.nullable_record_parameter_bound(fun, id))
+            .collect::<Vec<_>>();
+        record_bounds.extend(
+            parameters
+                .iter()
+                .filter_map(|&id| self.record_parameter_bound(fun, id, index)),
+        );
+        let mut replacement_bounds = self.nullable_parameter_replacement_bounds(index);
+        replacement_bounds.extend(self.nullable_callback_replacement_bounds(index));
+        self.native_signature_from_plan(
+            NativeSignaturePlan {
+                function: fun,
+                parameters,
+                source_parameters,
+                borrow_lifetimes: self.record_borrow_lifetime_groups(index),
+                owner_inputs: self.owner_inputs(index),
+                owner_parameters: self.owner_marker_parameters(index),
+                record_bounds,
+                replacement_bounds,
+            },
+            parameter_shapes,
+        )
+    }
+
+    #[inline(never)]
+    pub(super) fn native_signature_from_plan(
+        &self,
+        plan: NativeSignaturePlan<'_>,
+        parameter_shapes: &[Option<crate::fixed_storage::Shape>],
+    ) -> NativeSignature {
+        let fun = plan.function;
+        let borrow_lifetimes = &plan.borrow_lifetimes;
+        let params = plan
+            .parameters
+            .iter()
+            .map(|&index| {
+                let b = &fun.bindings[index];
                 let input_ty = b.input_ty.unwrap_or(b.ty);
                 let qualifier = match b.mode {
                     Mode::Read if matches!(input_ty,Type::Union(id) if !id.copy) => "",
@@ -82,7 +126,7 @@ impl Emitter<'_> {
                             |shape| self.shape_type(shape),
                         )
                 };
-                let qualifier = if borrowed_inputs.contains(&index) && !qualifier.is_empty() {
+                let qualifier = if borrow_lifetimes.contains_key(&index) && !qualifier.is_empty() {
                     match b.mode {
                         Mode::Read => format!("&'record_input{} ", borrow_lifetimes[&index]),
                         Mode::Mutate => format!("&'record_input{} mut ", borrow_lifetimes[&index]),
@@ -95,37 +139,39 @@ impl Emitter<'_> {
             })
             .collect::<Vec<_>>()
             .join(", ");
-        let params = format!("{params}{}", self.owner_marker_parameters(index));
-        let generics = fun
-            .bindings
+        let params = format!("{params}{}", plan.owner_parameters);
+        let generics = plan
+            .source_parameters
             .iter()
-            .take(fun.parameter_count)
-            .enumerate()
-            .filter_map(|(index, b)| match b.input_ty.unwrap_or(b.ty) {
-                Type::Callback(id) => {
-                    let contract = &self.program.callback_contracts[id];
-                    let trait_name = if matches!(
-                        contract.kind,
-                        crate::syntax::CallbackKind::Read | crate::syntax::CallbackKind::SharedRead
-                    ) {
-                        "ReadCallback"
-                    } else if contract.kind.is_once() {
-                        "OnceCallback"
-                    } else {
-                        "Callback"
-                    };
-                    let (args, lifetimes) = self.native_argument_tuple(&contract.params);
-                    let bound = if lifetimes.is_empty() {
-                        String::new()
-                    } else {
-                        format!("for{} ", lifetime_parameters(&lifetimes))
-                    };
-                    Some(format!(
-                        "F{index}: {bound}{trait_name}<{args}, {}>",
-                        self.callback_result_type(id, contract.result)
-                    ))
+            .filter_map(|&index| {
+                let b = &fun.bindings[index];
+                match b.input_ty.unwrap_or(b.ty) {
+                    Type::Callback(id) => {
+                        let contract = &self.program.callback_contracts[id];
+                        let trait_name = if matches!(
+                            contract.kind,
+                            crate::syntax::CallbackKind::Read
+                                | crate::syntax::CallbackKind::SharedRead
+                        ) {
+                            "ReadCallback"
+                        } else if contract.kind.is_once() {
+                            "OnceCallback"
+                        } else {
+                            "Callback"
+                        };
+                        let (args, lifetimes) = self.native_argument_tuple(&contract.params);
+                        let bound = if lifetimes.is_empty() {
+                            String::new()
+                        } else {
+                            format!("for{} ", lifetime_parameters(&lifetimes))
+                        };
+                        Some(format!(
+                            "F{index}: {bound}{trait_name}<{args}, {}>",
+                            self.callback_result_type(id, contract.result)
+                        ))
+                    }
+                    _ => None,
                 }
-                _ => None,
             })
             .collect::<Vec<_>>();
         let mut lifetime_generics = borrow_lifetimes
@@ -136,34 +182,27 @@ impl Emitter<'_> {
             .map(|id| format!("'record_input{id}"))
             .collect::<Vec<_>>();
         lifetime_generics.extend(generics);
-        lifetime_generics.extend(
-            self.owner_inputs(index)
-                .iter()
-                .map(|source| format!("O{source}")),
-        );
+        lifetime_generics.extend(plan.owner_inputs.iter().map(|source| format!("O{source}")));
         let mut generics = lifetime_generics;
-        generics.extend(
-            (0..fun.parameter_count).filter_map(|id| self.nullable_record_parameter_bound(fun, id)),
-        );
-        generics.extend(
-            (0..fun.parameter_count + hidden)
-                .filter_map(|id| self.record_parameter_bound(fun, id, index)),
-        );
+        generics.extend(plan.record_bounds);
         generics.extend(
             self.nullable_callback_bounds(
-                fun.bindings
+                plan.source_parameters
                     .iter()
-                    .take(fun.parameter_count)
-                    .enumerate()
-                    .filter(|(id, _)| self.record_parameter_entry_view(fun, *id).is_none())
-                    .map(|(_, binding)| binding.input_ty.unwrap_or(binding.ty))
+                    .filter(|&&id| self.record_parameter_entry_view(fun, id).is_none())
+                    .map(|&id| {
+                        let binding = &fun.bindings[id];
+                        binding.input_ty.unwrap_or(binding.ty)
+                    })
                     .chain(std::iter::once(fun.result)),
             ),
         );
         // A record parameter names nullable callback-record leaves by their
         // full type; the callbacks inside them are generic parameters too.
-        let leaves = (0..fun.parameter_count + hidden)
-            .filter_map(|id| self.record_parameter_layout(fun, id))
+        let leaves = plan
+            .parameters
+            .iter()
+            .filter_map(|&id| self.record_parameter_layout(fun, id))
             .flat_map(|layout| {
                 layout
                     .leaves
@@ -183,8 +222,7 @@ impl Emitter<'_> {
         } else {
             format!("<{}>", generics.join(", "))
         };
-        let mut replacements = self.nullable_parameter_replacement_bounds(index);
-        replacements.extend(self.nullable_callback_replacement_bounds(index));
+        let replacements = plan.replacement_bounds;
         let replacement_where = if replacements.is_empty() {
             String::new()
         } else {

@@ -1,3 +1,7 @@
+#[path = "closure_owner_uses.rs"]
+mod closure_owner_uses;
+#[path = "closure_record_signature_emit.rs"]
+mod closure_record_signature_emit;
 #[path = "forwarded_owner_uses.rs"]
 mod forwarded_owner_uses;
 #[path = "forwarded_record_signature_emit.rs"]
@@ -1940,7 +1944,7 @@ impl Emitter<'_> {
     fn callback_result_adapters(&self,output:&mut String,index:usize,params:&[ArgumentContract],arguments:&str,forwarded:&str,impl_lifetimes:&str,lifetime:&str,native_result:&str) {
         if !self.callback_traits || self.result_callbacks.borrow().is_empty() {return;}
         let closure=&self.program.closures[index];
-        let forwarded_where = self.forwarded_record_signature(closure).map_or_else(String::new, |(target,_)| self.forwarded_record_trait_where(target));
+        let forwarded_where = self.forwarded_record_signature(closure).map_or_else(||self.closure_record_signature(index).map_or_else(String::new, |signature|signature.trait_where), |(target,_)| self.forwarded_record_trait_where(target));
         let Some(source)=self.program.error_effects.closure_errors.get(index) else {return;};
         let source_name=self.result_closures.borrow().get(&index).cloned();
         if source_name.is_none() && (source.runtime || source.opaque || !source.explicit.is_empty()) {return;}
@@ -2374,9 +2378,11 @@ impl Emitter<'_> {
                 format!("<{}>", generic_bounds.join(", "))
             };
             let forwarded_signature = self.forwarded_record_signature(closure);
-            let parameters = forwarded_signature.as_ref().map_or(parameters, |(_, signature)| format!(", {}", signature.params));
-            let call_generics = forwarded_signature.as_ref().map_or(call_generics, |(_, signature)| signature.generics.clone());
-            let replacement_where = forwarded_signature.as_ref().map_or_else(String::new, |(_, signature)| signature.replacement_where.clone());
+            let closure_signature = self.closure_record_signature(index);
+            let signature = forwarded_signature.as_ref().map(|(_, signature)| signature).or_else(|| closure_signature.as_ref().map(|signature| &signature.signature));
+            let parameters = signature.map_or(parameters, |signature| format!(", {}", signature.params));
+            let call_generics = signature.map_or(call_generics, |signature| signature.generics.clone());
+            let replacement_where = signature.map_or_else(String::new, |signature| signature.replacement_where.clone());
             let _ = writeln!(
                 output,
                 "    fn call{call_generics}({receiver}{parameters}) -> {}{replacement_where} {{",
@@ -2498,8 +2504,12 @@ impl Emitter<'_> {
                 .map(|id| format!("args.{id}"))
                 .collect::<Vec<_>>()
                 .join(", ");
-            let forwarded_trait_where = forwarded_signature.as_ref().map_or_else(String::new, |(target,_)| self.forwarded_record_trait_where(*target));
-            let forwarded = forwarded_signature.as_ref().map_or_else(||forwarded.clone(), |(target,_)|self.forwarded_record_trait_arguments(*target,&forwarded));
+            let forwarded_trait_where = forwarded_signature.as_ref().map_or_else(||closure_signature.as_ref().map_or_else(String::new, |signature|signature.trait_where.clone()), |(target,_)| self.forwarded_record_trait_where(*target));
+            let forwarded = forwarded_signature.as_ref().map_or_else(|| {
+                let mut arguments = vec![forwarded.clone()];
+                arguments.extend(self.closure_owner_inputs(index).iter().map(|_|"std::marker::PhantomData::<()>".to_owned()));
+                arguments.into_iter().filter(|value|!value.is_empty()).collect::<Vec<_>>().join(", ")
+            }, |(target,_)|self.forwarded_record_trait_arguments(*target,&forwarded));
             if self.callback_traits {
                 let result = native_result.clone();
                 let counted_method = if self.counted_calls { format!("    fn invoke_once_with_count(mut self, args: {arguments}, count: usize) -> {result} {{ self.call_with_count(count, {forwarded}) }}\n") } else { String::new() };
@@ -8884,12 +8894,17 @@ impl Emitter<'_> {
                         unreachable!("checked concrete closure")
                     };
                     let closure = &self.program.closures[id];
-                    let args = args
+                    let mut arguments = args
                         .iter()
                         .zip(&closure.parameters)
                         .map(|(arg, &id)| self.expr(fun, arg, closure.function.bindings[id].mode))
-                        .collect::<Vec<_>>()
-                        .join(", ");
+                        .collect::<Vec<_>>();
+                    for parameter in self.closure_owner_inputs(id) {
+                        let slot = closure.parameters.iter().position(|candidate|*candidate==parameter).unwrap();
+                        let marker = args.get(slot).and_then(|argument|argument.binding).and_then(|binding|self.owner_binding_marker(fun,binding)).unwrap_or_else(||"()".into());
+                        arguments.push(format!("std::marker::PhantomData::<{marker}>"));
+                    }
+                    let args = arguments.join(", ");
                     let call = if fun.bindings[binding].callback_invocation == Some(Mode::Consume) {
                         let args = if args.is_empty() {
                             "()".into()
@@ -8900,7 +8915,10 @@ impl Emitter<'_> {
                     } else {
                         self.counted_call(&format!("value{binding}"), &args, expr.supplied_count.unwrap_or(CallArgumentCount::Static(closure.parameters.len())))
                     };
-                    self.registered_closure_call(call,id,expr.span)
+                    let call = self.registered_closure_call(call,id,expr.span);
+                    let ExprKind::Call(_, arguments) = &expr.kind else { unreachable!("closure call") };
+                    let reification = self.record_callable_reification(fun, arguments, borrowed_owner_provenance::Scope::Closure(id));
+                    if reification.is_empty() { call } else { format!("{{let closure_call_result={call};{reification} closure_call_result}}") }
                 }
                 CallTarget::StoredCallable(binding) => {
                     let (Type::StoredCallable(family)|Type::BorrowedCallable(family)) = fun.bindings[binding].ty else {

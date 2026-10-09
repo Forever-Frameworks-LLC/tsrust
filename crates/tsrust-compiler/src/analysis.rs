@@ -318,9 +318,11 @@ impl CallbackContract {
 
 pub struct CheckedProgram {
     pub(crate) record_parameter_borrows: HashMap<usize,Vec<record_parameter_borrows::Borrow>>,
+    pub(crate) closure_record_parameter_borrows: HashMap<usize,Vec<record_parameter_borrows::Borrow>>,
     pub(crate) polymorphic_storage: crate::polymorphic_callable_storage::Registry,
     pub(crate) polymorphic_invocations: crate::polymorphic_invocation_plans::Registry,
     pub(crate) record_call_releases: HashMap<usize,Vec<(usize,Vec<String>)>>,
+    pub(crate) closure_record_call_releases: HashMap<usize,Vec<(usize,Vec<String>)>>,
     pub(crate) record_parameter_replacements: HashMap<usize,Vec<(usize,Vec<String>,Type)>>,
     pub(crate) scoped_records: crate::scoped_record_layout::Registry,
     pub(crate) named_capture_layouts: Vec<named_capture_layout::Layout>,
@@ -3344,16 +3346,23 @@ impl Analyzer {
         }
         if !self.effects_only{self.check_dead_handlers()?;self.scoped_record_containers()?;self.record_parameter_carriers()?;}
         let record_call_releases=record_call_capture_release::summaries(&self.unions,&self.checked,&self.program.records,&self.closures);
+        let closure_record_call_releases = record_call_capture_release::closure_summaries(&self.unions,&self.checked,&self.program.records,&self.closures);
         let deferred_generic_nominals = self.deferred_generic_nominal_uses();
         let record_parameter_borrows = (0..self.checked.len()).filter_map(|id| {
             let borrows = record_parameter_borrows::summary(&self.checked, &self.closures, &self.callables.storage, id);
             (!borrows.is_empty()).then_some((id, borrows))
         }).collect();
+        let closure_record_parameter_borrows = (0..self.closures.len()).filter_map(|id| {
+            let borrows = record_parameter_borrows::callable_summary(&self.checked, &self.closures, &self.callables.storage, record_callable_identity::Callable::Closure(id));
+            (!borrows.is_empty()).then_some((id, borrows))
+        }).collect();
         let checked = CheckedProgram {
             record_parameter_borrows,
+            closure_record_parameter_borrows,
             polymorphic_storage: self.polymorphic_storage,
             polymorphic_invocations: self.polymorphic_invocations,
             record_call_releases,
+            closure_record_call_releases,
             record_parameter_replacements:self.record_parameter_replacements,
             scoped_records: self.scoped_records,
             named_capture_layouts: Vec::new(),

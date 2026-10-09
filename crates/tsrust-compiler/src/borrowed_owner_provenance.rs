@@ -12,9 +12,65 @@ pub(super) struct Owner {
 pub(super) type Vector = Vec<(usize, Owner)>;
 pub(super) type Plan = BTreeMap<usize, BTreeSet<Vector>>;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub(super) enum Scope {
+    Function(usize),
+    Closure(usize),
+}
+impl Scope {
+    pub(super) fn function(self, program: &CheckedProgram) -> &CheckedFunction {
+        match self {
+            Self::Function(id) => &program.functions[id],
+            Self::Closure(id) => &program.closures[id].function,
+        }
+    }
+    pub(super) fn parameters(self, program: &CheckedProgram) -> Vec<usize> {
+        match self {
+            Self::Function(id) => (0..program.functions[id].parameter_count).collect(),
+            Self::Closure(id) => program.closures[id].parameters.clone(),
+        }
+    }
+    pub(super) fn borrows(
+        self,
+        program: &CheckedProgram,
+    ) -> &[crate::analysis::record_parameter_borrows::Borrow] {
+        match self {
+            Self::Function(id) => program.record_parameter_borrows.get(&id),
+            Self::Closure(id) => program.closure_record_parameter_borrows.get(&id),
+        }
+        .map_or(&[], Vec::as_slice)
+    }
+    pub(super) fn releases(self, program: &CheckedProgram) -> &[(usize, Vec<String>)] {
+        match self {
+            Self::Function(id) => program.record_call_releases.get(&id),
+            Self::Closure(id) => program.closure_record_call_releases.get(&id),
+        }
+        .map_or(&[], Vec::as_slice)
+    }
+    pub(super) fn replacements(self, program: &CheckedProgram) -> &[(usize, Vec<String>, Type)] {
+        match self {
+            Self::Function(id) => program.record_parameter_replacements.get(&id),
+            Self::Closure(_) => None,
+        }
+        .map_or(&[], Vec::as_slice)
+    }
+    pub(super) fn call(expr: &Expr) -> Option<Self> {
+        match expr.target {
+            Some(CallTarget::Function(id) | CallTarget::ForwardFunction(id)) => {
+                Some(Self::Function(id))
+            }
+            Some(CallTarget::Closure(_)) => match expr.callable_origin {
+                Some(CallableOrigin::Closure(id)) => Some(Self::Closure(id)),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+}
+
 fn resolve(
     function: &CheckedFunction,
-    id: usize,
+    scope: Scope,
     inputs: &[Option<Owner>],
     binding: usize,
 ) -> Option<Owner> {
@@ -35,6 +91,9 @@ fn resolve(
             binding = *root;
             continue;
         }
+        let Scope::Function(id) = scope else {
+            return None;
+        };
         return Some(Owner {
             function: id,
             binding,
@@ -43,7 +102,7 @@ fn resolve(
     None
 }
 
-fn walk(program: &CheckedProgram, mut pending: Vec<(usize, Vec<Option<Owner>>)>) -> Plan {
+fn walk(program: &CheckedProgram, mut pending: Vec<(Scope, Vec<Option<Owner>>)>) -> Plan {
     let mut result = Plan::new();
     if program.record_parameter_borrows.is_empty() {
         return result;
@@ -52,21 +111,13 @@ fn walk(program: &CheckedProgram, mut pending: Vec<(usize, Vec<Option<Owner>>)>)
     // Concrete static forwarding calls are grounded below. Abstract uses and
     // closure bodies still require a complete environment-owner interface.
     let unresolved_forward = forwarded_owner_uses::incomplete_targets(program);
-    for closure in &program.closures {
-        crate::fixed_storage::visit_function_expressions(&closure.function, &mut |expr| {
-            if let Some(CallTarget::Function(callee) | CallTarget::ForwardFunction(callee)) =
-                expr.target
-            {
-                incomplete.extend(
-                    program
-                        .record_parameter_borrows
-                        .get(&callee)
-                        .into_iter()
-                        .flatten()
-                        .map(|borrow| borrow.origin),
-                );
-            }
-        });
+    for target in closure_owner_uses::incomplete_targets(program) {
+        incomplete.extend(
+            Scope::Closure(target)
+                .borrows(program)
+                .iter()
+                .map(|borrow| borrow.origin),
+        );
     }
     for target in unresolved_forward {
         incomplete.extend(
@@ -83,7 +134,8 @@ fn walk(program: &CheckedProgram, mut pending: Vec<(usize, Vec<Option<Owner>>)>)
         if !seen.insert((id, inputs.clone())) {
             continue;
         }
-        let function = &program.functions[id];
+        let function = id.function(program);
+        let parameters = id.parameters(program);
         if function.template {
             continue;
         }
@@ -94,38 +146,41 @@ fn walk(program: &CheckedProgram, mut pending: Vec<(usize, Vec<Option<Owner>>)>)
             {
                 owned.insert(origin);
             }
-            if let (
-                Some(CallTarget::Function(callee) | CallTarget::ForwardFunction(callee)),
-                ExprKind::Call(_, arguments),
-            ) = (expr.target, &expr.kind)
-            {
-                let inputs = arguments
+            if let (Some(callee), ExprKind::Call(_, arguments)) = (Scope::call(expr), &expr.kind) {
+                let values = arguments
                     .iter()
                     .map(|argument| {
-                        // Only exact named storage is grounded here. Dynamic projections,
-                        // computed temporaries and closure-body contexts remain unresolved.
                         if !matches!(argument.kind, ExprKind::Name(_)) {
                             return None;
                         }
                         resolve(function, id, &inputs, argument.binding?)
                     })
-                    .collect();
-                pending.push((callee, inputs));
+                    .collect::<Vec<_>>();
+                let values = match callee {
+                    Scope::Function(_) => values,
+                    Scope::Closure(origin) => {
+                        let closure = &program.closures[origin];
+                        let mut mapped = vec![None; closure.function.bindings.len()];
+                        for (&parameter, owner) in closure.parameters.iter().zip(values) {
+                            mapped[parameter] = owner;
+                        }
+                        for capture in &closure.captures {
+                            mapped[capture.inner] = resolve(function, id, &inputs, capture.outer);
+                        }
+                        mapped
+                    }
+                };
+                pending.push((callee, values));
             }
         });
         let mut vectors = BTreeMap::<usize, Vector>::new();
         let mut unresolved = BTreeSet::new();
-        for borrow in program
-            .record_parameter_borrows
-            .get(&id)
-            .into_iter()
-            .flatten()
-        {
+        for borrow in id.borrows(program) {
             if !owned.contains(&borrow.origin) {
                 continue;
             }
             let capture = &program.closures[borrow.origin].captures[borrow.capture];
-            match resolve(function, id, &inputs, borrow.source) {
+            match resolve(function, id, &inputs, parameters[borrow.source]) {
                 Some(owner) => vectors
                     .entry(borrow.origin)
                     .or_default()
@@ -157,7 +212,7 @@ pub(super) fn plan(program: &CheckedProgram) -> Plan {
         .iter()
         .enumerate()
         .filter(|(_, function)| !function.template)
-        .map(|(id, function)| (id, vec![None; function.parameter_count]))
+        .map(|(id, function)| (Scope::Function(id), vec![None; function.parameter_count]))
         .collect::<Vec<_>>();
     walk(program, pending)
 }
@@ -165,7 +220,7 @@ pub(super) fn parameter_vectors(program: &CheckedProgram, function: usize) -> Pl
     let inputs = (0..program.functions[function].parameter_count)
         .map(|binding| Some(Owner { function, binding }))
         .collect();
-    walk(program, vec![(function, inputs)])
+    walk(program, vec![(Scope::Function(function), inputs)])
 }
 
 #[test]
@@ -312,5 +367,59 @@ fn abstract_installer_uses_do_not_invent_concrete_owner_vectors() {
     assert!(
         parameter_vectors(&checked.program, install).is_empty(),
         "Even grounded symbolic inputs must not bypass an abstract-use guard"
+    );
+}
+
+#[test]
+fn ordinary_closure_installers_keep_named_caller_owner_identity() {
+    let source = r#"
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>): void { holder.run = (): int => source[0]; }
+        function main() {
+            const first = [3]; const second = [10]; const holder: Holder = { run: undefined };
+            const perform = (target: Mutable<Holder>, source: ReadOnly<int[]>): void => { install(target, source); };
+            perform(holder, first); perform(holder, second); console.log(holder.run!());
+        }
+    "#;
+    let checked = crate::check(source).unwrap();
+    let program = &checked.program;
+    let install = program
+        .functions
+        .iter()
+        .position(|function| function.name == "install")
+        .unwrap();
+    let origin = program.record_parameter_borrows[&install][0].origin;
+    let vectors = plan(program);
+    assert_eq!(vectors[&origin].len(), 2);
+    let main = program
+        .functions
+        .iter()
+        .position(|function| function.name == "main")
+        .unwrap();
+    let expected = ["first", "second"].map(|name| Owner {
+        function: main,
+        binding: program.functions[main]
+            .bindings
+            .iter()
+            .position(|binding| binding.name == name)
+            .unwrap(),
+    });
+    assert_eq!(
+        vectors[&origin]
+            .iter()
+            .flat_map(|vector| vector.iter().map(|(_, owner)| owner.clone()))
+            .collect::<BTreeSet<_>>(),
+        expected.into_iter().collect()
+    );
+    let abstract_use = source
+        .replace(
+            "perform(holder, first);",
+            "const alias = perform; alias(holder, first);",
+        )
+        .replace("perform(holder, second);", "alias(holder, second);");
+    let checked = crate::check(&abstract_use).unwrap();
+    assert!(
+        plan(&checked.program).is_empty(),
+        "alias contexts must not invent concrete owner vectors"
     );
 }

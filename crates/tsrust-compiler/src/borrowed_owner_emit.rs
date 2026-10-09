@@ -15,6 +15,21 @@ impl Emitter<'_> {
         inputs.dedup();
         inputs
     }
+    pub(super) fn closure_owner_inputs(&self, origin: usize) -> Vec<usize> {
+        let closure = &self.program.closures[origin];
+        let mut inputs = self
+            .program
+            .closure_record_parameter_borrows
+            .get(&origin)
+            .into_iter()
+            .flatten()
+            .filter(|borrow| self.borrowed_owners.contains_key(&borrow.origin))
+            .map(|borrow| closure.parameters[borrow.source])
+            .collect::<Vec<_>>();
+        inputs.sort();
+        inputs.dedup();
+        inputs
+    }
     fn function_id(&self, function: &CheckedFunction) -> Option<usize> {
         self.program
             .functions
@@ -29,6 +44,33 @@ impl Emitter<'_> {
         function: &CheckedFunction,
         mut binding: usize,
     ) -> Option<String> {
+        if let Some((origin, closure)) = self
+            .program
+            .closures
+            .iter()
+            .enumerate()
+            .find(|(_, closure)| std::ptr::eq(function, &closure.function))
+        {
+            let mut seen = HashSet::new();
+            while seen.insert(binding) {
+                if closure.parameters.contains(&binding) {
+                    return self
+                        .closure_owner_inputs(origin)
+                        .contains(&binding)
+                        .then(|| format!("O{binding}"));
+                }
+                let value = function.bindings.get(binding)?;
+                if !value.rebindable
+                    && (value.callback_reference || value.borrowed_place.is_some())
+                    && value.view_roots.len() == 1
+                {
+                    binding = value.view_roots[0];
+                } else {
+                    return None;
+                }
+            }
+            return None;
+        }
         let id = self.function_id(function)?;
         let mut seen = HashSet::new();
         while seen.insert(binding) {

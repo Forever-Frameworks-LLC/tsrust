@@ -5,7 +5,7 @@ impl Emitter<'_> {
     pub(super) fn record_callback_reification(
         &self,
         caller: &CheckedFunction,
-        callee: usize,
+        callee: borrowed_owner_provenance::Scope,
         parameter: usize,
         names: &[String],
         arguments: &[Expr],
@@ -15,20 +15,14 @@ impl Emitter<'_> {
         let Type::BorrowedCallable(family) = self.callback_payload(ty).unwrap_or(ty) else {
             return None;
         };
-        let borrows = self
-            .program
-            .record_parameter_borrows
-            .get(&callee)
-            .into_iter()
-            .flatten()
+        let borrows = callee
+            .borrows(self.program)
+            .iter()
             .filter(|borrow| borrow.target.binding == parameter && borrow.target.fields == names)
             .collect::<Vec<_>>();
-        let replacements = self
-            .program
-            .record_parameter_replacements
-            .get(&callee)
-            .into_iter()
-            .flatten()
+        let replacements = callee
+            .replacements(self.program)
+            .iter()
             .filter(|(slot, path, _)| *slot == parameter && path == names)
             .flat_map(
                 |(_, _, ty)| match self.callback_payload(*ty).unwrap_or(*ty) {

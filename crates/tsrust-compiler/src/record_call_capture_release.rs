@@ -489,6 +489,31 @@ pub(super) fn summaries(
         })
         .collect()
 }
+pub(super) fn closure_summaries(
+    unions: &crate::unions::UnionArena,
+    functions: &[Option<CheckedFunction>],
+    records: &[Record],
+    closures: &[CheckedClosure],
+) -> HashMap<usize, Vec<(usize, Vec<String>)>> {
+    let mut replay = Replay {
+        unions,
+        functions,
+        records,
+        closures,
+        active: HashSet::new(),
+    };
+    (0..closures.len())
+        .filter_map(|id| {
+            let fields = replay
+                .released_callable(Callable::Closure(id))
+                .into_iter()
+                .map(|place| (place.binding, place.fields))
+                .collect::<Vec<_>>();
+            (!fields.is_empty()).then_some((id, fields))
+        })
+        .collect()
+}
+
 impl Analyzer {
     pub(super) fn release_record_call_captures(
         &self,
