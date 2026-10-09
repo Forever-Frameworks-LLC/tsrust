@@ -260,7 +260,11 @@ pub(crate) fn record_field_origins(records:&[crate::syntax::Record],instances:&c
         if declaration==instance {continue;}
         for (declared,held) in records[declaration].fields.iter().zip(&record.fields) {
             if let (Some(Type::Callback(id)),Some(actual))=(declared.ty,held.ty) && actual!=Type::Callback(id) {
-                origins.push((id,actual));
+                if instances.parameter_contract(instance) {
+                    // A fresh parameter variable has the declaration's failure
+                    // contract, without becoming a constructed runtime origin.
+                    if let Type::Callback(parameter) = actual { origins.push((parameter,Type::Callback(id))); }
+                } else { origins.push((id,actual)); }
             }
         }
     }

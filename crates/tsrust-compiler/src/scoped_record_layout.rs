@@ -6,12 +6,16 @@ use std::collections::HashMap;
 pub(crate) struct Registry {
     bases: HashMap<usize, usize>,
     instances: HashMap<(usize, Vec<Type>), usize>,
+    parameter_contracts: std::collections::HashSet<usize>,
 }
 
 impl Registry {
     pub(crate) fn declaration(&self, id: usize) -> usize {
         self.bases.get(&id).copied().unwrap_or(id)
     }
+
+    pub(crate) fn mark_parameter_contract(&mut self, id: usize) { self.parameter_contracts.insert(id); }
+    pub(crate) fn parameter_contract(&self, id: usize) -> bool { self.parameter_contracts.contains(&id) }
 
     pub(crate) fn materialize(
         &mut self,

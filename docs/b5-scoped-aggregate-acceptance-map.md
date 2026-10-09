@@ -47,12 +47,13 @@ unless another file is named.
 | Reading a nullable callback-record field of an array element into a local readonly view, including passing that view to a parameter | `nullable_callback_record_element_field_view_preserves_array_storage`, `nullable_callback_record_views_protect_their_source_storage` |
 | `Set<Record>` for a capturing record | rejected by owner decision (`set-key`) |
 | Store an owned callback record into a nullable field through a `Mutable<Record>` parameter, including named nullable values, replacement, nested relay calls and null clearing | `mutable_record_parameter_stores_owned_nullable_callback_environments`, `nullable_parameter_stores_propagate_and_reject_borrowed_environments` |
+| Independent callback environments across parameters and nested leaves, including direct nullable values, records, arrays, nullable arrays, Map values, generic functions and relay calls | `nullable_record_parameters_keep_independent_environments`, `independent_nullable_parameter_environments_compose_across_boundaries`, `callback_record_container_parameters_keep_independent_environments` |
+| Optional callback invocation directly on a stable Map lookup, with key evaluation and receiver preservation | `map_get_optional_callback_borrows_named_receiver` |
 
 ## Diagnosed, not supported
 
 | Form | Current result | Needed |
 | --- | --- | --- |
-| Two parameters that both carry a nullable callback record of one type | `unsupported` | A generic parameter per parameter leaf instead of one per callback contract |
 | Union of two record types where one is a capturing record | `type` error | Tagged storage for a capturing member |
 
 ## Outside this row
@@ -100,3 +101,21 @@ observations. SQLite key:
 `runtime/results/2026-10-09T15-20-51-970Z-verify.json`.
 Two forms remain diagnosed. Full family regressions and timing remain pending.
 See `docs/handoff-2026-10-09-b5-parameter-stores.md`.
+
+## Independent parameter checkpoint, 2026-10-09
+
+Each callback environment leaf at a nullable or container parameter boundary has
+its own checked contract identity while retaining nominal record identity. Named
+Map lookups can directly call an optional callback, and Map iteration tuples retain
+exact key/value environments. The closing composition run produced 200 passes and
+one Map iteration regression out of 201 tests. The regression was repaired; the
+affected boundary and new container/optional-call tests pass afterward. Eight Map
+entry regressions and eight optional-chaining tests pass. Both focused editor
+witnesses, eight depth canaries and native/Node guide references pass.
+
+The final five native/Node-after-tsc correctness cases pass untimed, with 136
+observations and independent formula `12 * value + 27` for the added helper.
+SQLite key: `runtime/results/2026-10-09T15-54-48-826Z-verify.json`. Timing arrays are
+empty. Only mixed-record union scope remains undecided. Full family regressions
+and timing remain pending. See
+`docs/handoff-2026-10-09-b5-independent-parameters.md`.

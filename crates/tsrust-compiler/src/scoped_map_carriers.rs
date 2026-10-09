@@ -49,7 +49,7 @@ impl Analyzer {
         let (Some(actual), Some(expected)) = (self.program.records[actual].map_definition.as_ref(), self.program.records[expected].map_definition.as_ref()) else { return false; };
         let (Type::Record(value), Type::Record(contract)) = (actual.value, expected.value) else { return false; };
         actual.key == expected.key && self.aggregate_callable_facts(actual.value).scoped
-            && value != contract && self.scoped_records.declaration(value) == contract
+            && value != contract && (self.scoped_records.declaration(value) == contract || self.scoped_records.parameter_contract(contract) && self.scoped_records.declaration(value) == self.scoped_records.declaration(contract))
     }
 
     #[inline(never)]

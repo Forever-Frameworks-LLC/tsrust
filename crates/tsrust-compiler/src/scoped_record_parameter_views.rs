@@ -8,7 +8,17 @@ impl Emitter<'_> {
         let Type::Record(record)=binding.input_ty.unwrap_or(binding.ty) else{return None;};
         let declaration=self.program.scoped_records.declaration(record);
         if !self.borrowing_records.contains(&declaration) || self.program.records[declaration].fields.is_empty(){return None;}
-        let layout=crate::scoped_record_places::Layout::for_record(declaration,&self.program.records)?;
+        let mut layout=crate::scoped_record_places::Layout::for_record(declaration,&self.program.records)?;
+        // The bridge keeps nominal identity, while each nullable leaf binds the
+        // callback variables of this particular parameter occurrence.
+        for leaf in &mut layout.leaves {
+            let mut selected=Type::Record(record);
+            for &field in &leaf.path {
+                let Type::Record(parent)=selected else{return None;};
+                selected=self.program.records[parent].fields[field].ty?;
+            }
+            if selected.union().is_some() { leaf.ty=selected; }
+        }
         (!layout.leaves.is_empty()).then_some(layout)
     }
     /// Return an entry operation only when the nominal bridge has static leaves.

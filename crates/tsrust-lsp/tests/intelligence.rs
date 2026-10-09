@@ -3,6 +3,24 @@ use serde_json::{Value, json};
 use tsrust_lsp::intelligence::SourceIndex;
 
 #[test]
+fn optional_map_callback_read_preserves_borrowed_entry() {
+    let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function read(map:ReadOnly<Map<string,Holder>>):int{return map.get(\"k\")?.run()??-1;}function main():void{const a=[3];const map=new Map<string,Holder>();map.set(\"k\",{run:():int=>a[0]});console.log(read(map),read(map),map.size);}").unwrap();
+    let diagnostics=tsrust_lsp::diagnostics(&source,"file:///optional-map-callback.tsr").unwrap();
+    assert!(diagnostics.is_empty(),"{diagnostics:?}");
+}
+
+#[test]
+fn independent_nullable_record_parameters_preserve_capture_diagnostics() {
+    let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};function both(left:ReadOnly<Box>,right:ReadOnly<Box>):int{return (left.saved?.run()??-1)+(right.saved?.run()??-1);}function main():void{const a=[3];const b=[11];const left:Box={saved:{run:():int=>a[0]}};const right:Box={saved:{run:():int=>b[0]}};console.log(both(left,right));}").unwrap();
+    let clean=tsrust_lsp::diagnostics(&source,"file:///independent-nullable-parameters.tsr").unwrap();
+    assert!(clean.is_empty(),"{clean:?}");
+    let conflict=source.replace("console.log(both(left, right));","a[0]=9; console.log(both(left, right));");
+    assert_ne!(source,conflict);
+    let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///independent-nullable-parameters.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+}
+
+#[test]
 fn nullable_record_parameter_stores_report_capture_escape() {
     let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};function fill(box:Mutable<Box>,seed:int):void{box.saved={run:():int=>seed};}function main():void{const box:Box={saved:undefined};fill(box,4);console.log(box.saved?.run()??-1);}").unwrap();
     let clean=tsrust_lsp::diagnostics(&source,"file:///nullable-parameter-store.tsr").unwrap();

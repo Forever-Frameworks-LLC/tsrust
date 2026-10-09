@@ -201,6 +201,11 @@ impl Analyzer {
             ExprKind::Field(base, _) | ExprKind::Index(base, _) => {
                 self.optional_source_named(context, base)
             }
+            // get() on stable Map storage lends its optional entry. The
+            // optional chain must inspect that view instead of consuming it.
+            ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base,name)
+                if name == "get" && Self::stable_at_receiver(base)
+                    && matches!(self.expression_type_hint(context,base),Some(Type::Map(_)))) => true,
             ExprKind::Selected { owned, .. } => !owned,
             ExprKind::Name(name) => context.names.contains_key(name),
             _ => false,

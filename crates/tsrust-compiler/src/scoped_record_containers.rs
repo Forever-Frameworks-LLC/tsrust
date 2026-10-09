@@ -135,26 +135,6 @@ impl Analyzer {
             }
             declared.push(callbacks);
             let Some(function) = function.as_ref().filter(|function| !function.template) else { continue };
-            // One generic parameter names each nullable callback environment,
-            // so two parameters cannot bring different environments yet.
-            let mut nested = HashSet::new();
-            for binding in &function.bindings[..function.parameter_count] {
-                let mut callbacks = HashSet::new();
-                let mut pending = vec![binding.ty];
-                let mut seen = HashSet::new();
-                while let Some(ty) = pending.pop() {
-                    if !seen.insert(ty) { continue; }
-                    match ty {
-                        Type::Record(id) => pending.extend(self.program.records[id].fields.iter().filter_map(|field| field.ty)),
-                        Type::Union(_) | Type::BorrowedUnion(_) if self.nullable_scoped_record_declaration(ty).is_some() => self.reachable_callbacks(ty, &mut callbacks),
-                        _ => {}
-                    }
-                }
-                if callbacks.iter().any(|callback| !nested.insert(*callback)) {
-                    let span = binding.declaration_span.unwrap_or(self.program.functions[index].name.span);
-                    return Err(Diagnostic::new("unsupported", "Two parameters of one function cannot both carry a nullable callback record of the same type yet. Pass one record that holds both values.", span));
-                }
-            }
             for binding in &function.bindings[..function.parameter_count] {
                 if self.holds_scoped_record(binding.ty) && !self.parameter_bound_nullable_record(binding.ty, &declared[index]) {
                     let span = binding.declaration_span.unwrap_or(self.program.functions[index].name.span);

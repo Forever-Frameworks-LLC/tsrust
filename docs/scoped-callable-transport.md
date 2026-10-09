@@ -291,9 +291,34 @@ The parameter borrows the caller's storage; no clone occurs. Existing caller cap
 loans remain protected until the storage's scope ends, even after replacement or
 clearing. A stored callback that borrows a local or parameter of the storing
 function reports `callback-escape`, because the record outlives that call. Nested
-record paths and relay calls follow the same rule. Two parameters of one function
-cannot both carry a nullable callback record of the same type; that form reports
-`unsupported`.
+record paths and relay calls follow the same rule.
+
+Parameters of the same nullable callback-record type can hold independent callback
+environments. Each argument keeps its own captures and absence tag:
+
+```tsrust
+function both(left: ReadOnly<Box>, right: ReadOnly<Box>): int {
+    return (left.saved?.run() ?? -1) + (right.saved?.run() ?? -1);
+}
+function main(): void {
+    const first = [3];
+    const second = [11];
+    const left: Box = { saved: { run: (): int => first[0] } };
+    const right: Box = { saved: { run: (): int => second[0] } };
+    console.log(both(left, right)); // 14
+}
+```
+
+The same rule applies to direct nullable parameters, nullable fields nested in
+records, array and Map value parameters, relay calls and generic functions. Arrays and Maps
+of non-nullable callback records also keep independent environments.
+Mutable parameters can replace their respective fields independently. Readonly
+parameters may share an argument; overlapping mutable arguments still report
+`conflicting-access`. Parameter passing borrows the original captures and performs
+no implicit clone. Callback failures remain catchable through the declaration's
+error contract. A chain such as `map.get(key)?.run()` borrows an entry from named
+Map storage. The key is evaluated once, the callback runs only when the entry is
+present, and the Map remains available afterward.
 
 ### Nullable callback records in conditional values, results and array elements
 

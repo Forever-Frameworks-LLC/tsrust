@@ -240,7 +240,14 @@ impl Analyzer {
         let mut annotation=crate::type_syntax::ValueAnnotation{span,kind:crate::type_syntax::ValueAnnotationKind::Tuple(vec![types.annotation(map.key,span)?,types.annotation(map.value,span)?])};
         self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions)?;
         append_checked_record_fields(&mut self.program.records,&self.record_names,&self.unions,&mut self.fields,&mut self.callables)?;
-        let Type::Record(pair)=self.resolve_value_annotation(&annotation,false)?else{unreachable!("Map iteration tuple")};
+        let Type::Record(declaration)=self.resolve_value_annotation(&annotation,false)?else{unreachable!("Map iteration tuple")};
+        // Annotation round trips retain the tuple's nominal identity, but not
+        // the concrete callback environment carried by a Map value parameter.
+        let pair=if self.program.records[declaration].fields.iter().filter_map(|field|field.ty).eq([map.key,map.value]) {declaration} else {
+            let pair=self.scoped_records.materialize(declaration,vec![map.key,map.value],&mut self.program.records);
+            if self.fields.len()<=pair {self.fields.push(self.program.records[pair].fields.iter().map(|field|(field.name.text.clone(),field.ty.unwrap())).collect());}
+            pair
+        };
         self.program.records[id].map_definition.as_mut().unwrap().entry=Some(pair);
         Ok(pair)
     }

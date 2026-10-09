@@ -1,6 +1,43 @@
 mod support;
 
 #[test]
+fn map_get_optional_callback_borrows_named_receiver() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function key(count:Mutable<int[]>):string{count[0]+=1;return \"k\";}function read(map:ReadOnly<Map<string,Holder>>,name:string):int{return map.get(name)?.run()??-1;}function main():void{const a=[3];const count=[0];const map=new Map<string,Holder>();map.set(\"k\",{run:():int=>a[0]});console.log(read(map,key(count)),read(map,\"missing\"),read(map,key(count)),map.size,count[0]);}");
+    support::execute(&source,"3 -1 3 1 2\n",None);
+}
+
+#[test]
+fn callback_record_container_parameters_keep_independent_environments() {
+    let types="type Holder={run:ReadOnly<Function<int>>;};";
+    let run=|body:&str,expected:&str|support::execute(&support::format_round_trip(&format!("{types}{body}")),expected,None);
+    run("function both(left:ReadOnly<Holder[]>,right:ReadOnly<Holder[]>):int{return left[0].run()+right[0].run();}function main():void{const a=[3];const b=[11];const left:Holder[]=[{run:():int=>a[0]}];const right:Holder[]=[{run:():int=>b[0]}];console.log(both(left,right));}","14\n");
+    run("function both(left:ReadOnly<Map<string,Holder>>,right:ReadOnly<Map<string,Holder>>):int{return (left.get(\"k\")?.run()??-1)+(right.get(\"k\")?.run()??-1);}function main():void{const a=[3];const b=[11];const left=new Map<string,Holder>();const right=new Map<string,Holder>();left.set(\"k\",{run:():int=>a[0]});right.set(\"k\",{run:():int=>b[0]});console.log(both(left,right));}","14\n");
+    run("function both(left:ReadOnly<Map<string,Holder>>,right:ReadOnly<Map<string,Holder>>):int{let total=0;for(const [key,h] of left)total+=h.run();for(const [key,h] of right)total+=h.run();return total;}function main():void{const a=[3];const b=[11];const left=new Map<string,Holder>();const right=new Map<string,Holder>();left.set(\"k\",{run:():int=>a[0]});right.set(\"k\",{run:():int=>b[0]});console.log(both(left,right));}","14\n");
+}
+
+#[test]
+fn independent_nullable_parameter_environments_compose_across_boundaries() {
+    let types="type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};";
+    let run=|body:&str,expected:&str|support::execute(&support::format_round_trip(&format!("{types}{body}")),expected,None);
+    run("function both(left:ReadOnly<Holder>|undefined,right:ReadOnly<Holder>|undefined):int{return (left?.run()??-1)+(right?.run()??-1);}function main():void{const a=[3];const b=[11];const left:Holder|undefined={run:():int=>a[0]};const right:Holder|undefined={run:():int=>b[0]};console.log(both(left,right),both(undefined,right),both(left,undefined));console.log(left?.run(),right?.run());}","14 10 2\n3 11\n");
+    run("type Pair={left:Box;right:Box;};function both(left:ReadOnly<Box>,right:ReadOnly<Box>):int{return (left.saved?.run()??-1)+(right.saved?.run()??-1);}function relay(pair:ReadOnly<Pair>):int{return both(pair.left,pair.right);}function main():void{const a=[3];const b=[11];const pair:Pair={left:{saved:{run:():int=>a[0]}},right:{saved:{run:():int=>b[0]}}};console.log(relay(pair));}","14\n");
+    run("function fill(left:Mutable<Box>,right:Mutable<Box>,n:int):void{left.saved={run:():int=>n};right.saved={run:():int=>n+2};}function main():void{const a=[3];const left:Box={saved:{run:():int=>a[0]}};const right:Box={saved:undefined};fill(left,right,5);console.log(left.saved?.run(),right.saved?.run());}","5 7\n");
+    run("function both(left:ReadOnly<Box[]>,right:ReadOnly<Box[]>):int{return (left[0].saved?.run()??-1)+(right[0].saved?.run()??-1);}function main():void{const a=[3];const b=[11];const left:Box[]=[{saved:{run:():int=>a[0]}}];const right:Box[]=[{saved:{run:():int=>b[0]}}];console.log(both(left,right));}","14\n");
+    run("function both(left:ReadOnly<Map<string,Box>>,right:ReadOnly<Map<string,Box>>):int{const l=left.get(\"k\");const r=right.get(\"k\");return (l?.saved?.run()??-1)+(r?.saved?.run()??-1);}function main():void{const a=[3];const b=[11];const left=new Map<string,Box>();const right=new Map<string,Box>();left.set(\"k\",{saved:{run:():int=>a[0]}});right.set(\"k\",{saved:{run:():int=>b[0]}});console.log(both(left,right));}","14\n");
+    run("function both(left:ReadOnly<(Holder|undefined)[]>,right:ReadOnly<(Holder|undefined)[]>):int{return (left[0]?.run()??-1)+(right[0]?.run()??-1);}function main():void{const a=[3];const b=[11];const left:(Holder|undefined)[]=[{run:():int=>a[0]}];const right:(Holder|undefined)[]=[{run:():int=>b[0]}];console.log(both(left,right));}","14\n");
+    run("function both<T>(left:ReadOnly<Box>,right:ReadOnly<Box>,extra:T):int{return (left.saved?.run()??-1)+(right.saved?.run()??-1);}function main():void{const a=[3];const b=[11];const left:Box={saved:{run:():int=>a[0]}};const right:Box={saved:{run:():int=>b[0]}};console.log(both<int>(left,right,0));}","14\n");
+    run("function both(left:ReadOnly<Box>,right:ReadOnly<Box>):int{return (left.saved?.run()??-1)+(right.saved?.run()??-1);}function main():void{const a=[3];const left:Box={saved:{run:():int=>a[0]}};const right:Box={saved:{run:():int=>{throw 7;}}};try{console.log(both(left,right));}catch(error){console.log(error);}}","7\n");
+    let conflict=support::format_round_trip(&format!("{types}function fill(left:Mutable<Box>,right:Mutable<Box>):void{{left.saved=undefined;right.saved=undefined;}}function main():void{{const box:Box={{saved:undefined}};fill(box,box);}}"));
+    assert_eq!(tsrust_compiler::check(&conflict).err().expect("independent parameter types do not permit overlapping mutation").code,"conflicting-access");
+}
+
+#[test]
+fn nullable_record_parameters_keep_independent_environments() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};function both(left:ReadOnly<Box>,right:ReadOnly<Box>):int{return (left.saved?.run()??-1)+(right.saved?.run()??-1);}function main():void{const a=[3];const b=[11];const left:Box={saved:{run:():int=>a[0]}};const right:Box={saved:{run:():int=>b[0]}};console.log(both(left,right),both(right,left),both(left,left));}");
+    support::execute(&source,"14 14 6\n",None);
+}
+
+#[test]
 fn nullable_parameter_stores_propagate_and_reject_borrowed_environments() {
     let types="type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};";
     let run=|body:&str,expected:&str|support::execute(&support::format_round_trip(&format!("{types}{body}")),expected,None);
@@ -3216,7 +3253,7 @@ fn record_parameters_read_nullable_callback_fields() {
         let source=support::format_round_trip(&format!("{holder}{body}"));
         assert_eq!(tsrust_compiler::check(&source).err().unwrap_or_else(||panic!("must be rejected: {body}")).code,code,"{body}");
     };
-    rejected("function both(left:ReadOnly<Box>,right:ReadOnly<Box>):int{return 1;}function main():void{const a=[3];const l:Box={saved:{run:():int=>a[0]}};const r:Box={saved:undefined};console.log(both(l,r));}","unsupported");
+    run("function both(left:ReadOnly<Box>,right:ReadOnly<Box>):int{return 1;}function main():void{const a=[3];const l:Box={saved:{run:():int=>a[0]}};const r:Box={saved:undefined};console.log(both(l,r));}","1\n");
     run("function fill(box:Mutable<Box>,n:int):void{box.saved={run:():int=>n};}function main():void{const box:Box={saved:undefined};fill(box,4);console.log(box.saved?.run()??-1);}","4\n");
     // A mutable parameter can clear the field; the caller's captures stay borrowed.
     run("function reset(box:Mutable<Box>,limit:int):int{let seen=0;if(box.saved!==undefined){seen=box.saved.run();if(seen>limit)box.saved=undefined;}return seen;}function main():void{const a=[3];const box:Box={saved:{run:():int=>a[0]}};console.log(reset(box,5),box.saved!==undefined);console.log(reset(box,1),box.saved!==undefined);}","3 true\n3 false\n");

@@ -64,6 +64,8 @@ mod record_call_capture_release;
 mod record_parameter_carriers;
 #[path = "nullable_parameter_stores.rs"]
 mod nullable_parameter_stores;
+#[path = "nullable_parameter_environments.rs"]
+mod nullable_parameter_environments;
 #[path = "scoped_record_containers.rs"]
 mod scoped_record_containers;
 #[path = "empty_scoped_maps.rs"]
@@ -1665,13 +1667,12 @@ impl Analyzer {
             let source_params = analyzer.program.functions[index].params.clone();
             let mut params = Vec::new();
             for (_, ty, callback) in &source_params {
-                params.push(if let Some(annotation) = callback {
+                let resolved = if let Some(annotation) = callback {
                     analyzer.resolve_callback(annotation)?
                 } else {
-                    analyzer
-                        .callable_resolver()
-                        .resolve_value_annotation(ty, false)?
-                });
+                    analyzer.callable_resolver().resolve_value_annotation(ty, false)?
+                };
+                params.push(resolved);
             }
             if params.iter().copied().any(|ty| ty.union().is_some() && analyzer.unions.payload(ty).is_some_and(|payload|matches!(payload,Type::Callback(id) if analyzer.callback_needs_context(id)))) {
                 analyzer.templates.insert(index,analyzer.program.functions[index].clone());
@@ -1728,6 +1729,11 @@ impl Analyzer {
                     },
                     &mut bindings,
                 )?;
+            }
+            // Generic source constraints use nominal declarations. Bind each
+            // nullable environment only after those constraints are resolved.
+            for (parameter, (_, annotation, _)) in params.iter_mut().zip(&source_params) {
+                *parameter = analyzer.nullable_parameter_environment(*parameter, annotation.span)?;
             }
             let body_params = params.clone();
             for (ty, initializer) in params.iter_mut().zip(&analyzer.program.functions[index].parameter_initializers) {
@@ -3071,14 +3077,19 @@ impl Analyzer {
         if expected.is_some_and(|expected| self.scoped_map_contract(actual, expected)) { return Ok(()); }
         if expected.is_some_and(|expected| self.scoped_record_nullable_contract(actual, expected)) { return Ok(()); }
         if let (Type::Array(ArrayElement::Record(actual, depth)), Some(Type::Array(ArrayElement::Record(expected, expected_depth)))) = (actual, expected) {
-            if depth == expected_depth && self.scoped_records.declaration(actual) == expected { return Ok(()); }
+            if depth == expected_depth && (self.scoped_records.declaration(actual) == expected || self.scoped_records.parameter_contract(expected) && self.scoped_records.declaration(actual) == self.scoped_records.declaration(expected)) { return Ok(()); }
+        }
+        if let (Type::Array(ArrayElement::Union(actual, depth)), Some(Type::Array(ArrayElement::Union(expected, expected_depth)))) = (actual, expected) {
+            if depth == expected_depth
+                && matches!(self.unions.payload(Type::Union(expected)),Some(Type::Record(record)) if self.scoped_records.parameter_contract(record))
+                && self.scoped_record_nullable_contract(Type::Union(actual),Type::Union(expected)) { return Ok(()); }
         }
         if expected.is_some_and(|expected|self.callables.storage.equivalent_result(actual,expected)) {return Ok(());}
         if !self.deferred_generic_values.is_empty() {
             self.deferred_generic_requirement(actual, expected, span)?;
         }
         if let (Type::Record(actual), Some(Type::Record(expected))) = (actual, expected) {
-            if self.scoped_records.declaration(actual) == expected { return Ok(()); }
+            if self.scoped_records.declaration(actual) == expected || self.scoped_records.parameter_contract(expected) && self.scoped_records.declaration(actual) == self.scoped_records.declaration(expected) { return Ok(()); }
         }
         if expected.is_some_and(|ty| self.unions.accepts(ty.owning(), actual.owning())) {
             return Ok(());
