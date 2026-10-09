@@ -11,6 +11,13 @@ impl Analyzer {
     /// Absence carries no callback instance, but the tagged type still needs a
     /// concrete environment. Preserve the nullish variant and nominal contract.
     pub(super) fn absent_nullable_record_annotation(&mut self, context: &Context, expected: Option<Type>, value: &Expr) -> Result<Option<Type>, Diagnostic> {
+        // An empty array of capturing records holds no callback instance either.
+        if let (ExprKind::Array(elements), Some(Type::Array(ArrayElement::Record(record, 0)))) = (&value.kind, expected)
+            && elements.is_empty() && self.scoped_records.declaration(record) == record && self.aggregate_callable_facts(Type::Record(record)).scoped
+        {
+            let Type::Record(empty) = self.empty_scoped_record_environment(record)? else { return Ok(expected); };
+            return Ok(Some(Type::Array(ArrayElement::Record(empty, 0))));
+        }
         if !matches!(value.kind, ExprKind::Null | ExprKind::Undefined)
             && !matches!(&value.kind,ExprKind::Name(name) if name=="undefined" && !context.names.contains_key(name))
         { return Ok(expected); }

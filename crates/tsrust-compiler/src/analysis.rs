@@ -4308,6 +4308,11 @@ impl Analyzer {
         self.finalize_nullable_locals(&mut context.bindings, &mut body)?;
         // A record annotation names its declaration; the checked result must
         // retain the concrete callback environment selected by its returns.
+        if let Type::Array(ArrayElement::Record(base, depth)) = result_type
+            && let Some(joined) = self.joined_array_result(&mut body, base, depth)?
+        {
+            result_type = joined;
+        }
         if let Type::Record(base) = result_type
             && let Some(joined) = self.joined_record_result(&mut body, base)?
         {
@@ -5742,7 +5747,7 @@ impl Analyzer {
         // An absent nullable record holds no callback instance to escape.
         let absent_record = self.nullable_scoped_record_declaration(actual).is_some()
             && value.as_ref().is_some_and(|value| matches!(&value.kind, ExprKind::Inject { value, .. } if matches!(value.kind, ExprKind::Null | ExprKind::Undefined)));
-        if (facts.scoped || facts.unknown) && !absent_record {
+        if (facts.unknown || facts.scoped && self.borrows_local_storage(actual)) && !absent_record {
             return Err(Diagnostic::new("callback-escape","A returned value cannot contain a callable that borrows local storage.",span));
         }
         let converted =
@@ -11254,7 +11259,7 @@ impl Analyzer {
             ));
         };
         let active = Self::selection_loans(base, loans);
-        let widening = !remove && (Self::indexed_array_root(base).is_some() || Self::direct_fields(base).is_some()) && matches!(element, ArrayElement::Record(id, _) if self.aggregate_callable_facts(Type::Record(id)).scoped);
+        let widening = !remove && (Self::indexed_array_root(base).is_some() || Self::direct_fields(base).is_some()) && matches!(element, ArrayElement::Record(id, _) if self.aggregate_callable_facts(Type::Record(self.scoped_records.declaration(id))).scoped);
         let argument_type = if remove { Type::Int } else { self.scoped_array_element_contract(base, element) };
         let actual = if !remove && let Type::StoredCallable(family) = argument_type {
             self.stored_callable_value(context, &mut args[0], family, &active)?

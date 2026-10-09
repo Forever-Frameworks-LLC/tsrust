@@ -6,10 +6,17 @@ impl Emitter<'_> {
         if !self.program.records.iter().any(|record| record.map_definition.is_some()) { return; }
         output.push_str(runtime::MAP_RUNTIME);
         let mut scoped_entries=std::collections::HashSet::new();
+        // Every concrete environment of one Map type shares its entry layout,
+        // so a caller's Map matches a callee that iterates the entries.
+        let nominal=|map:&crate::syntax::MapDefinition|match map.value{Type::Record(value)=>Some((map.key,self.program.scoped_records.declaration(value))),_=>None};
+        let mut shared_entries=std::collections::HashMap::new();
+        for record in &self.program.records { if let Some(map)=&record.map_definition && self.scoped_record_native_parameter(map.value) && let (Some(key),Some(pair))=(nominal(map),map.entry) {
+            shared_entries.entry(key).or_insert(pair);
+        }}
         for (id, record) in self.program.records.iter().enumerate() { if let Some(map) = &record.map_definition {
             let key=self.native_type(map.key);let value=self.native_type(map.value);
             if self.scoped_record_native_parameter(map.value) {
-                if let Some(pair)=map.entry {
+                if let Some(pair)=map.entry.or_else(||nominal(map).and_then(|key|shared_entries.get(&key).copied())) {
                     let pair=self.program.scoped_records.declaration(pair);
                     let _=writeln!(output,"type Map{id}<P>=TsrMap<{key},P,Record{pair}<P>>;");
                     if scoped_entries.insert(pair) {

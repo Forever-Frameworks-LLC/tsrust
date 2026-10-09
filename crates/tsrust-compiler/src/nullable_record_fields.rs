@@ -533,3 +533,59 @@ impl Analyzer {
         }
     }
 }
+
+impl Analyzer {
+    /// Whether a value can hold a callback that borrows local storage. A
+    /// callback family whose environments own every capture does not.
+    pub(super) fn borrows_local_storage(&self,ty:Type)->bool {
+        let mut pending=vec![ty];
+        let mut seen=HashSet::new();
+        while let Some(ty)=pending.pop() {
+            if !seen.insert(ty){continue;}
+            match ty {
+                Type::Closure(id)=>if self.closures[id].borrowed || self.closures[id].lifetime_count>0 {return true;},
+                Type::BorrowedCallable(family)=>match self.callables.storage.origins(family) {
+                    Some(origins)=>if origins.iter().any(|&id|self.closures[id].borrowed || self.closures[id].lifetime_count>0) {return true;},
+                    None=>return true,
+                },
+                Type::Callback(_)=>if !self.absent_callable_type(ty) {return true;},
+                Type::Record(id)=>pending.extend(self.program.records[id].fields.iter().filter_map(|field|field.ty)),
+                Type::Array(element)=>pending.push(element.ty()),
+                Type::Map(id)=>pending.extend(self.program.records[id].map_definition.as_ref().map(|map|map.value)),
+                Type::Union(id)|Type::BorrowedUnion(id)=>pending.extend(self.unions.members(id)),
+                _=>{}
+            }
+        }
+        false
+    }
+    /// An array result of capturing records keeps the joined element
+    /// environment of its returns.
+    pub(super) fn joined_array_result(&mut self,body:&mut [Stmt],base:usize,depth:u8)->Result<Option<Type>,Diagnostic> {
+        if depth!=0 || self.scoped_records.declaration(base)!=base || !self.aggregate_callable_facts(Type::Record(base)).scoped {return Ok(None);}
+        let mut values=Vec::new();
+        returned_values(body,&mut values);
+        let mut joined:Option<usize>=None;
+        for value in &values {
+            let Some(Type::Array(ArrayElement::Record(instance,0)))=value.ty else{return Ok(None);};
+            if self.scoped_records.declaration(instance)!=base{return Ok(None);}
+            if instance==base{continue;}
+            joined=Some(match joined {
+                Some(previous) if previous!=instance=>match self.join_sticky_record_types(previous,instance,value.span)? {
+                    Some(Type::Record(next))=>next,
+                    _=>return Err(Diagnostic::new("unsupported","The returns of this function hold callbacks that cannot share one array element type.",value.span)),
+                },
+                _=>instance,
+            });
+        }
+        let Some(joined)=joined else{return Ok(None);};
+        let result=Type::Array(ArrayElement::Record(joined,0));
+        for value in values {
+            if value.ty==Some(result){continue;}
+            if let ExprKind::Array(elements)=&mut value.kind {
+                Self::apply_scoped_array_carrier(elements,joined,0);
+                value.ty=Some(result);
+            } else {value.wrap_record_carrier(result);}
+        }
+        Ok(Some(result))
+    }
+}

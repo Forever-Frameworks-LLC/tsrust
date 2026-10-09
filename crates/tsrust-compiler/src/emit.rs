@@ -461,6 +461,16 @@ impl Emitter<'_> {
                     pending.extend(self.program.records[id].fields.iter().filter_map(|field| field.ty.map(|ty| (ty, true))));
                 }
             }
+            // An array of records names the callbacks of its elements.
+            if let Type::Array(ArrayElement::Record(id, _)) = ty {
+                pending.push((Type::Record(id), true));
+            }
+            if let Type::Array(ArrayElement::Union(id, _)) = ty {
+                pending.push((Type::Union(id), true));
+            }
+            if let Type::Map(id) = ty && let Some(map) = self.program.records[id].map_definition.as_ref() && matches!(map.value, Type::Record(_)) {
+                pending.push((map.value, true));
+            }
             // A nullable callback record names its callback through the record member.
             if let Type::Union(id) | Type::BorrowedUnion(id) = ty {
                 pending.extend(self.program.unions[id.index()].members.iter().filter(|member| matches!(member, Type::Record(_))).map(|&member| (member, true)));

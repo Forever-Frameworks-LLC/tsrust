@@ -102,6 +102,7 @@ impl Analyzer {
                 Type::Callback(id) => { found.insert(id); }
                 Type::Record(id) => pending.extend(self.program.records[id].fields.iter().filter_map(|field| field.ty)),
                 Type::Array(element) => pending.push(element.ty()),
+                Type::Map(id) => pending.extend(self.program.records[id].map_definition.as_ref().map(|map| map.value)),
                 Type::Union(id) | Type::BorrowedUnion(id) => pending.extend(self.unions.members(id)),
                 _ => {}
             }
@@ -110,7 +111,15 @@ impl Analyzer {
     /// A nullable callback record whose callbacks all come from the function's
     /// own parameters has a native layout: the function is generic over them.
     fn parameter_bound_nullable_record(&self, ty: Type, declared: &HashSet<usize>) -> bool {
-        if !matches!(ty, Type::Union(_) | Type::BorrowedUnion(_)) || self.nullable_scoped_record_declaration(ty).is_none() { return false; }
+        // An array of capturing records borrowed from the caller is generic in the same way.
+        let array = matches!(ty, Type::Array(ArrayElement::Record(_, _)))
+            || matches!(ty, Type::Array(ArrayElement::Union(id, _)) if self.nullable_scoped_record_declaration(Type::Union(id)).is_some())
+            || matches!(ty, Type::Map(id) if self.program.records[id].map_definition.as_ref().is_some_and(|map| matches!(map.value, Type::Record(_)) && !matches!(map.key, Type::Record(_))));
+        let nullable = matches!(ty, Type::Union(id) | Type::BorrowedUnion(id) if {
+            let members = self.unions.members(id);
+            members.iter().filter(|member| matches!(member, Type::Record(_))).count() == 1 && members.iter().all(|member| matches!(member, Type::Record(_) | Type::Null | Type::Undefined))
+        });
+        if !array && !nullable { return false; }
         let mut callbacks = HashSet::new();
         self.reachable_callbacks(ty, &mut callbacks);
         !callbacks.is_empty() && callbacks.is_subset(declared)
@@ -160,7 +169,10 @@ impl Analyzer {
             .chain(self.closures.iter().map(|closure| (&closure.function, &none)).filter(|(function, _)| !function.template));
         for (function, declared) in bodies {
             crate::fixed_storage::visit_function_expressions(function, &mut |expr| {
-                if expr.ty.is_some_and(|ty| self.holds_scoped_record(ty) && !self.parameter_bound_nullable_record(ty, declared))
+                // An argument viewed as a nullable parameter keeps its own concrete environment.
+                let viewed_argument = matches!(&expr.kind, ExprKind::Inject { value, .. } if matches!(expr.ty, Some(Type::BorrowedUnion(_)))
+                    && value.ty.is_some_and(|ty| !self.holds_scoped_record(ty) && self.nullable_scoped_record_declaration(ty).is_some()));
+                if !viewed_argument && expr.ty.is_some_and(|ty| self.holds_scoped_record(ty) && !self.parameter_bound_nullable_record(ty, declared))
                     && found.is_none_or(|span| expr.span.start < span.start)
                 {
                     found = Some(expr.span);

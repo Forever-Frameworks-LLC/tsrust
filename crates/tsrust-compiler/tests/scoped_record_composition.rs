@@ -3187,3 +3187,21 @@ fn arrays_of_nullable_callback_records_share_one_element_environment() {
     run("function main():void{const a=[3];const hs:(Holder|undefined)[]=[{run:():int=>a[0]},undefined,{run:():int=>a[0]+1}];const last=hs.pop();if(last!==undefined)console.log(last.run());const first=hs.shift();console.log(first?.run()??-1,hs.length);}","4\n3 1\n");
     run("type Shelf={slots:(Holder|undefined)[];n:int;};function main():void{const a=[3];const shelf:Shelf={slots:[undefined],n:1};shelf.slots[0]={run:():int=>a[0]};console.log(shelf.slots[0]?.run()??-1,shelf.n);}","3 1\n");
 }
+
+#[test]
+fn arrays_and_maps_of_capturing_records_cross_function_boundaries() {
+    let holder="type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};";
+    let run=|body:&str,expected:&str|{support::execute(&support::format_round_trip(&format!("{holder}{body}")),expected,None);};
+    // Array parameters: iteration, indexing, joined environments, mutation and different callers.
+    run("function total(hs:ReadOnly<Holder[]>):int{let sum=0;for(const h of hs){sum+=h.run();}return sum;}function main():void{const a=[3];const b=[10];const n=5;const hs:Holder[]=[{run:():int=>a[0]},{run:():int=>b[0]}];const ys:Holder[]=[{run:():int=>n},{run:():int=>n+1}];console.log(total(hs),total(ys),hs.length);}","13 11 2\n");
+    run("function pick(hs:ReadOnly<Holder[]>,i:int):int{const h=hs[i];return hs.length>i?h.run():-1;}function drop(hs:Mutable<Holder[]>):int{hs.pop();return hs.length;}function main():void{const a=[3];const hs:Holder[]=[{run:():int=>a[0]},{run:():int=>a[0]*2}];console.log(pick(hs,1));console.log(drop(hs),hs[0].run());}","6\n1 3\n");
+    run("function total(boxes:ReadOnly<Box[]>):int{let sum=0;for(const box of boxes){if(box.saved!==undefined)sum+=box.saved.run();}return sum;}function count(hs:ReadOnly<(Holder|undefined)[]>):int{let sum=0;for(const h of hs){sum+=h?.run()??0;}return sum;}function main():void{const a=[3];const boxes:Box[]=[{saved:undefined},{saved:{run:():int=>a[0]}}];const hs:(Holder|undefined)[]=[undefined,{run:():int=>a[0]+1}];console.log(total(boxes),count(hs));}","3 4\n");
+    // Map parameters: iteration, lookup and deletion.
+    run("function sum(m:ReadOnly<Map<string,Holder>>):int{let total=0;for(const [key,h] of m){total+=h.run();}return total+m.size;}function look(m:ReadOnly<Map<string,Holder>>,key:string):int{const h=m.get(key);if(h!==undefined)return h.run();return -1;}function drop(m:Mutable<Map<string,Holder>>):int{m.delete(\"k\");return m.size;}function main():void{const a=[3];const b=[4];const m=new Map<string,Holder>();m.set(\"k\",{run:():int=>a[0]});m.set(\"j\",{run:():int=>b[0]});console.log(sum(m),look(m,\"k\"),look(m,\"x\"));console.log(drop(m),look(m,\"j\"));}","9 3 -1\n1 4\n");
+    // An array that starts empty, with or without later elements.
+    run("function first(hs:ReadOnly<Holder[]>):int{return hs.length>0?hs[0].run():-1;}function main():void{const a=[3];const none:Holder[]=[];console.log(first(none),none.length);const hs:Holder[]=[];let i=0;while(i<3){hs.push({run:():int=>a[0]+i});i+=1;}let sum=0;for(const h of hs){sum+=h.run();}console.log(sum,first(hs));}","-1 0\n12 3\n");
+    // Array results and joined record results own their captures.
+    run("function make(n:int):Holder[]{return [{run:():int=>n},{run:():int=>n+1}];}function pick(n:int):Holder{const h:Holder=n>1?{run:():int=>n}:{run:():int=>n*10};return h;}function main():void{const hs=make(3);console.log(hs[0].run(),hs[1].run(),pick(3).run(),pick(1).run());}","3 4 3 10\n");
+    let escaped=support::format_round_trip(&format!("{holder}function make(a:ReadOnly<int[]>):Holder[]{{return [{{run:():int=>a[0]}}];}}function main():void{{const v=[1];const hs=make(v);}}"));
+    assert_eq!(tsrust_compiler::check(&escaped).err().expect("an array result cannot borrow the callee").code,"callback-escape");
+}

@@ -59,6 +59,16 @@ fn arrays_of_nullable_callback_records_have_editor_diagnostics() {
 }
 
 #[test]
+fn capturing_record_containers_cross_function_boundaries_in_the_editor() {
+    let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function total(handlers:ReadOnly<Holder[]>):int{let sum=0;for(const handler of handlers)sum+=handler.run();return sum;}function look(m:ReadOnly<Map<string,Holder>>,key:string):int{const h=m.get(key);if(h!==undefined)return h.run();return -1;}function main():void{const first=[3];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>first[0]+1}];const m=new Map<string,Holder>();m.set(\"k\",{run:():int=>first[0]});console.log(total(handlers),look(m,\"k\"));}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&source,"file:///container-parameters.tsr").unwrap().is_empty());
+    let conflict=source.replace("console.log(total(handlers), look(m, \"k\"));","first[0]=9;console.log(total(handlers));");
+    assert_ne!(source,conflict);
+    let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///container-parameters.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+}
+
+#[test]
 fn populated_nullable_callback_records_report_capture_conflicts() {
     let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};function main():void{const first=[3];const second=[5];let saved:Holder|undefined={run:():int=>first[0]};const box:Box={saved:{run:():int=>second[0]}};saved=undefined;first[0]=7;if(box.saved!==undefined)console.log(box.saved.run());}").unwrap();
     assert!(tsrust_lsp::diagnostics(&source,"file:///populated-nullable.tsr").unwrap().is_empty());

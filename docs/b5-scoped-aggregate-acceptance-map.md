@@ -42,6 +42,7 @@ unless another file is named.
 | `ReadOnly<Record>` and `Mutable<Record>` parameters reading a nullable field, nested records, joined environments | `record_parameters_read_nullable_callback_fields` |
 | Different callbacks that own every capture joined in one local, field, array element, conditional value or function result; owned and borrowing callbacks mixed | `control_flow_stores_keep_nullable_record_captures_until_scope_end`, `nullable_callback_record_results_keep_one_owned_environment` |
 | Local array of nullable callback records `(Record \| undefined)[]`: literal, indexed store, loop, push, pop, shift, iteration, element view; also as a record field | `arrays_of_nullable_callback_records_share_one_element_environment` |
+| Array, nullable-element array and `Map<K, Record>` of capturing records as `ReadOnly` or `Mutable` parameters; empty arrays; array results with owned captures | `arrays_and_maps_of_capturing_records_cross_function_boundaries` |
 | `Set<Record>` for a capturing record | rejected by owner decision (`set-key`) |
 
 ## Diagnosed, not supported
@@ -49,7 +50,6 @@ unless another file is named.
 | Form | Current result | Needed |
 | --- | --- | --- |
 | Store a new callback record into a nullable field through a `Mutable<Record>` parameter (clearing is supported) | `unsupported` | Caller-side environment family and nested conversion bounds, with ledger row B7 |
-| Array or Map of capturing records as a function parameter, with or without nullable fields | `unsupported` | Element views over generic callback environments |
 | Two parameters that both carry a nullable callback record of one type | `unsupported` | A generic parameter per parameter leaf instead of one per callback contract |
 | Parameter typed `ReadOnly<Record> \| undefined` | `unsupported` | Borrowed view of the caller's concrete union |
 | Union of two record types where one is a capturing record | `type` error | Tagged storage for a capturing member |

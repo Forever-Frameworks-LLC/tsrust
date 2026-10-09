@@ -227,6 +227,31 @@ a number parameter.
 
 Moving the containing record transfers its field owners without cloning.
 
+### Arrays and Maps of capturing records across function boundaries
+
+A function can borrow an array or a Map whose elements are capturing records. A
+`ReadOnly<...>` parameter can iterate, index and look up; a `Mutable<...>` parameter
+can also remove elements:
+
+```tsrust
+function total(handlers: ReadOnly<Holder[]>): int {
+    let sum = 0;
+    for (const handler of handlers) sum += handler.run();
+    return sum;
+}
+const first = [3];
+const handlers: Holder[] = [{ run: (): int => first[0] }, { run: (): int => first[0] + 1 }];
+console.log(total(handlers)); // 7
+```
+
+The same function accepts arrays whose callbacks capture different variables. Arrays
+with nullable elements and Maps such as `Map<string, Holder>` work the same way. An
+array of capturing records can start empty and never receive an element.
+
+A function can return an array of records whose callbacks own every capture. A
+callback that borrows a parameter or a local of the function reports
+`callback-escape`.
+
 ### Record parameters with nullable callback fields
 
 A function can borrow a record that has a nullable callback-record field and read

@@ -27,7 +27,8 @@ Commits, oldest first:
 | `eda956de` | Record parameters read nullable callback fields; one native enum per nullable record type |
 | `2a17bbb5` | Callbacks that own every capture join in record fields, results and elements |
 | `2612264c` | Arrays whose element type is a nullable callback record |
-| this commit | `pop`/`shift` and record fields for such arrays; clearing through a mutable parameter |
+| `9e3b87fd` | `pop`/`shift` and record fields for such arrays; clearing through a mutable parameter |
+| this commit | Arrays, nullable-element arrays and Maps of capturing records as parameters; empty arrays; array results; owned families in results |
 
 ## Model
 
@@ -59,17 +60,23 @@ Commits, oldest first:
   argument in its native type.
 - Different callbacks that own their captures reached a compiler panic when assigned to
   one record variable.
+- `push` did not widen an array that started empty, and a never-populated array of
+  capturing records had no native element type.
+- Every concrete environment of one Map type now shares its entry layout, so a caller's
+  Map matches a callee that iterates entries.
+- A returned record or array whose callbacks own every capture was reported as
+  borrowing local storage once those callbacks formed a family.
 
 ## Evidence
 
 - Whole compiler crate and whole editor crate ran clean at every commit above. The last
   run for this commit is recorded in SQLite as
-  `tsrust-b5-checkpoint-whole-compiler.log` and
-  `tsrust-b5-checkpoint-whole-editor.log`.
+  `tsrust-b5-containers-whole-compiler.log` and
+  `tsrust-b5-containers-whole-editor.log` (2,575 and 424 tests, no failures).
 - `scoped_record_composition` workload: registration test passes; native and
   Node-after-tsc verification pass, untimed. New helpers: `nullableControlStores`,
   `nullableValueJoins`, `nullableParameterRead`, `nullableOwnedJoin`,
-  `nullableElementSlots`.
+  `nullableElementSlots`, `containerBoundaries`.
 - Earlier whole-crate logs for each step are in SQLite under
   `tsrust-b5-*-whole-compiler*.log`.
 
@@ -83,15 +90,14 @@ complete.
 
 | Form | Result |
 | --- | --- |
-| Array or Map of capturing records as a function parameter | `unsupported` |
 | New callback record stored into a nullable field through a `Mutable<Record>` parameter | `unsupported` |
 | Two parameters that carry a nullable callback record of one type | `unsupported` |
 | Parameter typed `ReadOnly<Record> \| undefined` | `unsupported` |
 | Union of a capturing record and another record type | `unsupported` or `type` |
 | Moving a nullable callback record out of an array element field | `unsupported` |
 
-Suggested order: container parameters first (largest user impact), then parameter
-stores together with ledger row B7.
+Suggested order: parameter stores together with ledger row B7, then the two
+nullable parameter forms.
 
 ## Other open items
 
