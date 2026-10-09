@@ -19,13 +19,17 @@ Source controls cover live-holder mutation and transfer, independent mutable cal
 invocation, callee-local escape and shorter-lived input storage. Editor diagnostics,
 hover and parameter help have focused witnesses.
 
-The matched caller_borrowed_record_stores workload retains eleven observations per
+The matched caller_borrowed_record_stores workload retains fourteen observations per
 iteration, with an independent arithmetic oracle, source contracts, ABI support,
 runner/profile/report hooks and registration controls. Verification is untimed.
 This remains progress within B7, not family acceptance or timing evidence.
 
-Remaining acceptance first includes replacement with distinct callback input
-environment types at the same destination (a committed red witness). It also includes
+Repeated replacement now accepts distinct callback input environments, including
+readonly and mutable relays and multiple independent capture positions. A finite
+native payload plan preserves whole input vectors and gives each environment a
+separate arm without changing source origins. Remaining acceptance first includes
+capturing a replaced holder, whose native capture layout still expects its initial
+field type (a committed red witness). It also includes
 direct callback assignment without a wrapper, nullable
 payload stores, mutable data aliases, failure paths, exact replacement and clearing,
 branch/loop stores, early exits and disposal. Recursive relay summaries still need

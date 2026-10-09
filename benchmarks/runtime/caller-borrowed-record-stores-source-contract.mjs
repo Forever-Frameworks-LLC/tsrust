@@ -9,9 +9,13 @@ const required=[
  'source[0] += 1; return source[0];', '} base[0] += 1; {',
  'first = holder.run();', 'replaced = holder.run();',
  'nested = box.handler.run();', 'callback = callbackHolder.run();',
+ 'installCallback(callbackHolder, constant);', 'callbackReplaced = callbackHolder.run();',
+ 'installPair(pairHolder, constant, action);', 'pairReplaced = pairHolder.run();',
+ 'installMutableCallback(holder, secondAction);', 'mutableReplaced = holder.run();',
+ 'other[0] += 10; return other[0];',
  'paired = pairHolder.run();', 'changedFirst = holder.run();',
  'changedSecond = holder.run();', 'callbackFirst = holder.run();', 'callbackSecond = holder.run();', 'callbackAfter = action();', 'holder.run = (): int => action();',
- 'output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0]]);'
+ 'output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced]);'
 ];
 export function assertCallerBorrowedRecordStoresSource(source,row,kind) {
  if(!['native','typescript'].includes(kind)||row.id!=='caller_borrowed_record_stores'||row.family!=='caller-borrowed-record-stores')throw Error('Caller-borrowed record store family');

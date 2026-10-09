@@ -53,8 +53,8 @@ impl Emitter<'_>{
             }
             (Type::Closure(origin),Type::BorrowedCallable(family))=>self.stored_callable_constructor(family,origin,value),
             (Type::BorrowedCallable(source),Type::BorrowedCallable(target))=>{
-                let origins=self.program.stored_contracts.origins(source).unwrap();
-                let arms=origins.iter().enumerate().map(|(index,&origin)|format!("BorrowedCallable{source}::{}(payload)=>{}",crate::borrowed_callable_dispatch::variant(index,origins.len()),self.stored_callable_constructor(target,origin,"payload"))).collect::<Vec<_>>().join(",");
+                let payloads=self.borrowed_payloads(source);
+                let arms=payloads.iter().enumerate().map(|(index,payload)|format!("BorrowedCallable{source}::{}(payload)=>{}",crate::borrowed_callable_dispatch::variant(index,payloads.len()),self.stored_callable_constructor(target,payload.origin,"payload"))).collect::<Vec<_>>().join(",");
                 format!("match {value}{{{arms}}}")
             }
             _=>panic!("unchecked record carrier conversion {source:?} to {target:?}"),

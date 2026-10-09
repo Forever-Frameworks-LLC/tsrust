@@ -1,39 +1,24 @@
 //! Native borrowed families preserve each concrete origin's capture lifetimes.
 use super::*;
 impl Emitter<'_> {
-    fn borrowed_origin_type(&self,origin:usize,lifetimes:&[String])->String {
-        let mut arguments = lifetimes.to_vec();
-        arguments.extend(self.captured_callback_bounds(&self.program.closures[origin]).iter().map(|_| "_".to_owned()));
-        format!("Closure{origin}{}", lifetime_parameters(&arguments))
-    }
-    pub(super) fn borrowed_family_type(&self,id:usize,lifetime:&str)->String {
-        let origins=self.program.stored_contracts.origins(id).expect("borrowed origins");
-        let types=origins.iter().map(|&origin|self.borrowed_origin_type(origin,&vec![lifetime.to_owned();self.program.closures[origin].lifetime_count])).collect::<Vec<_>>();
+    pub(super) fn borrowed_family_type(&self,id:usize)->String {
+        let types=self.borrowed_payloads(id).iter().enumerate().map(|(arm,payload)|self.borrowed_payload_type(payload,&mut Vec::new(),&mut Vec::new(),arm,true)).collect::<Vec<_>>();
         format!("BorrowedCallable{id}<{}>",types.join(", "))
     }
     pub(super) fn emit_borrowed_family(&self,output:&mut String,id:usize,declaration:usize,origins:&[usize]) {
         let contract=&self.program.callback_contracts[declaration];
         let invocation=contract.invocation(&self.program.callable_shapes);
         assert!(origins.len()>=2,"borrowed alternatives retain distinct origins");
-        crate::borrowed_callable_dispatch::emit_definition_many(output,id,origins.len());
+        let payloads=self.borrowed_payloads(id);
+        let payload_count=payloads.len();
+        crate::borrowed_callable_dispatch::emit_definition_many(output,id,payload_count);
         let mut lifetimes=Vec::new();
         let mut capture_bounds=Vec::new();
-        let types=origins.iter().enumerate().map(|(arm,&origin)|{
-            let names=(0..self.program.closures[origin].lifetime_count).map(|capture|format!("'b{arm}c{capture}")).collect::<Vec<_>>();
-            lifetimes.extend(names.iter().cloned());
-            let mut arguments = names;
-            for bound in self.captured_callback_bounds(&self.program.closures[origin]) {
-                let (parameter, _) = bound.split_once(':').expect("capture bound");
-                let renamed = format!("B{arm}{parameter}");
-                arguments.push(renamed.clone());
-                capture_bounds.push(bound.replacen(parameter, &renamed, 1));
-            }
-            format!("Closure{origin}{}", lifetime_parameters(&arguments))
-        }).collect::<Vec<_>>();
+        let types=payloads.iter().enumerate().map(|(arm,payload)|self.borrowed_payload_type(payload,&mut lifetimes,&mut capture_bounds,arm,false)).collect::<Vec<_>>();
         let name=format!("BorrowedCallable{id}<{}>",types.join(", "));
         let result=self.result_storage.borrow().get(&id).map(|(name,_)|format!("Result<{},{}>",self.native_type(contract.result),name)).unwrap_or_else(||self.native_type(contract.result));
         for(position,ty)in types.iter().enumerate(){
-            let arm=crate::borrowed_callable_dispatch::variant(position,origins.len());
+            let arm=crate::borrowed_callable_dispatch::variant(position,payload_count);
             let _=writeln!(output,"impl{} From<{ty}> for {name} {{fn from(value:{ty})->Self{{Self::{arm}(value)}}}}",lifetime_parameters(&lifetimes.iter().chain(&capture_bounds).cloned().collect::<Vec<_>>()));
         }
         let receiver=match invocation {Mode::Read=>"&self",Mode::Consume=>"mut self",_=>"&mut self"};
@@ -45,8 +30,9 @@ impl Emitter<'_> {
             let count=if counted {", count: usize"}else{""};
             let passed=if counted {if arguments.is_empty(){"count".to_owned()}else{format!("count, {arguments}")}}else{arguments.clone()};
             let _=writeln!(output,"fn {method}({receiver}{count}{parameters})->{result} {{match self {{");
-            for (position,&origin) in origins.iter().enumerate() {
-                let arm=crate::borrowed_callable_dispatch::variant(position,origins.len());
+            for (position,payload) in payloads.iter().enumerate() {
+                let origin=payload.origin;
+                let arm=crate::borrowed_callable_dispatch::variant(position,payload_count);
                 let call=self.stored_origin_result(id,origin,format!("value.{method}({passed})"));
                 let mutable=if invocation==Mode::Consume {"mut "}else{""};
                 let _=writeln!(output,"Self::{arm}({mutable}value)=>{call},");

@@ -1,5 +1,8 @@
 # B7 borrowed callback input checkpoint
 
+Superseded by `docs/handoff-2026-10-09-b7-payload-alternatives.md`. The two
+replacement defects below are repaired; holder capture remains a red witness.
+
 B7/gate 183 remains in progress. This continues the array-input checkpoint
 `946e307`; B5 remains accepted at `00214a11`. Read AGENTS.md,
 `docs/development-workflow.md`, `docs/caller-borrowed-record-stores-plan.md` and the

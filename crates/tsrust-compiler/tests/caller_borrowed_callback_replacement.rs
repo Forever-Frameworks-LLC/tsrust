@@ -121,3 +121,115 @@ fn native_alternatives_preserve_one_wrapper_origin_and_distinct_capture_types() 
     let output = support::run(&mut std::process::Command::new(&executable), 10);
     support::success(&output);
 }
+
+#[test]
+fn relayed_replacement_and_distinct_capture_positions_preserve_their_input_vector() {
+    let source = support::format_round_trip(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function install(holder: Mutable<Holder>, left: ReadOnly<Function<int>>, right: ReadOnly<Function<int>>): void {
+            holder.run = (): int => left() * 10 + right();
+        }
+        function relay(left: ReadOnly<Function<int>>, holder: Mutable<Holder>, right: ReadOnly<Function<int>>): void {
+            install(holder, left, right);
+        }
+        function observe(holder: ReadOnly<Holder>): int { return holder.run(); }
+        function main() {
+            const values = [3];
+            const first = (): int => values[0];
+            const second = (): int => 9;
+            const holder: Holder = { run: (): int => 0 };
+            relay(first, holder, second);
+            strictEqual(observe(holder), 39);
+            relay(second, holder, first);
+            strictEqual(observe(holder), 93);
+            const moved = holder;
+            strictEqual(moved.run(), 93);
+
+        }
+    "#);
+    let directory = support::TempDirectory::new();
+    support::success(&support::run(support::cli().arg("run").arg(directory.source(&source)), 60));
+}
+
+#[test]
+fn mutable_relay_replacement_releases_inputs_after_holder_disposal() {
+    let source = support::format_round_trip(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: Mutable<Function<int>>; };
+        function install(holder: Mutable<Holder>, action: Mutable<Function<int>>): void {
+            holder.run = (): int => action();
+        }
+        function relay(action: Mutable<Function<int>>, holder: Mutable<Holder>): void {
+            install(holder, action);
+        }
+        function main() {
+            let value = 1;
+            const first = (): int => { value += 1; return value; };
+            const values = [10];
+            const second = (): int => { values[0] += 2; return values[0]; };
+            {
+                const holder: Holder = { run: (): int => 0 };
+                relay(first, holder);
+                strictEqual(holder.run(), 2);
+                relay(second, holder);
+                strictEqual(holder.run(), 12);
+            }
+            strictEqual(first(), 3);
+            strictEqual(second(), 14);
+        }
+    "#);
+    let directory = support::TempDirectory::new();
+    support::success(&support::run(support::cli().arg("run").arg(directory.source(&source)), 60));
+}
+
+// Outstanding B7 witness: capture storage must use the final native carrier.
+#[test]
+fn capturing_a_replaced_holder_preserves_its_actual_record_carrier() {
+    let source = support::format_round_trip(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function install(holder: Mutable<Holder>, action: ReadOnly<Function<int>>): void {
+            holder.run = (): int => action();
+        }
+        function main() {
+            const values = [3];
+            const first = (): int => values[0];
+            const second = (): int => 9;
+            const holder: Holder = { run: (): int => 0 };
+            install(holder, first);
+            install(holder, second);
+            const read = (): int => holder.run();
+            strictEqual(read(), 9);
+        }
+    "#);
+    let directory = support::TempDirectory::new();
+    support::success(&support::run(support::cli().arg("run").arg(directory.source(&source)), 60));
+}
+
+#[test]
+fn recursive_relay_retains_callback_only_on_its_terminal_branch() {
+    let source = support::format_round_trip(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function install(holder: Mutable<Holder>, action: ReadOnly<Function<int>>): void {
+            holder.run = (): int => action();
+        }
+        function relay(holder: Mutable<Holder>, action: ReadOnly<Function<int>>, n: int): void {
+            if (n === 0) { install(holder, action); return; }
+            relay(holder, action, n - 1);
+        }
+        function main() {
+            const values = [3];
+            const first = (): int => values[0];
+            const second = (): int => 9;
+            const holder: Holder = { run: (): int => 0 };
+            relay(holder, first, 2);
+            strictEqual(holder.run(), 3);
+            relay(holder, second, 2);
+            strictEqual(holder.run(), 9);
+        }
+    "#);
+    let directory = support::TempDirectory::new();
+    support::success(&support::run(support::cli().arg("run").arg(directory.source(&source)), 60));
+}

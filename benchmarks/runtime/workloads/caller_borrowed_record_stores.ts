@@ -22,12 +22,15 @@ function workload(n: int, seed: int, input: string): int[][] {
         let replaced = 0;
         let nested = 0;
         let callback = 0;
+        let callbackReplaced = 0;
+        let pairReplaced = 0;
         let paired = 0;
         let changedFirst = 0;
         let changedSecond = 0;
         let callbackFirst = 0;
         let callbackSecond = 0;
         let callbackAfter = 0;
+        let mutableReplaced = 0;
         {
             const holder: Holder = {
                 run: (): int => 0
@@ -50,11 +53,15 @@ function workload(n: int, seed: int, input: string): int[][] {
             };
             installCallback(callbackHolder, action);
             callback = callbackHolder.run();
+            installCallback(callbackHolder, constant);
+            callbackReplaced = callbackHolder.run();
             const pairHolder: Holder = {
                 run: (): int => 0
             };
             installPair(pairHolder, action, constant);
             paired = pairHolder.run();
+            installPair(pairHolder, constant, action);
+            pairReplaced = pairHolder.run();
         }
 
         base[0] += 1;
@@ -69,15 +76,18 @@ function workload(n: int, seed: int, input: string): int[][] {
 
         {
             const action = (): int => { base[0] += 1; return base[0]; };
+            const secondAction = (): int => { other[0] += 10; return other[0]; };
             {
                 const holder: MutableHolder = { run: (): int => 0 };
                 installMutableCallback(holder, action);
                 callbackFirst = holder.run();
                 callbackSecond = holder.run();
+                installMutableCallback(holder, secondAction);
+                mutableReplaced = holder.run();
             }
             callbackAfter = action();
         }
-        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0]]);
+        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced]);
         i += 1;
     }
 

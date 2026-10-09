@@ -15,6 +15,9 @@ fn borrowed_callback_input_stores_keep_declared_editor_signatures() {
             const action = (amount: int): int => values[0] + amount;
             const holder: Holder = { run: (amount: int): int => amount };
             install(holder, action);
+            const other = [9];
+            const second = (amount: int): int => other[0] + amount;
+            install(holder, second);
             console.log(holder.run(4));
         }
     "#).unwrap();
@@ -25,7 +28,7 @@ fn borrowed_callback_input_stores_keep_declared_editor_signatures() {
     let hover = ask(&source, "textDocument/hover", "run(4)", 0);
     assert!(!hover.is_null(), "{hover}");
     assert!(!hover["contents"]["value"].as_str().unwrap_or("").contains("K1"), "{hover}");
-    let conflict = source.replace("console.log(holder.run(4));", "const saved=action; console.log(holder.run(4),saved(1));");
+    let conflict = source.replace("console.log(holder.run(4));", "const saved=second; console.log(holder.run(4),saved(1));");
     assert_ne!(source, conflict);
     let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&conflict, "file:///borrowed-callback-input.tsr").unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "capture-conflict"), "{diagnostics}");

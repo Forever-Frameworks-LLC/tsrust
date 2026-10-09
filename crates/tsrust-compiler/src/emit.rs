@@ -1,3 +1,5 @@
+#[path = "borrowed_payload_emit.rs"]
+mod borrowed_payload_emit;
 #[path = "callback_capture_emit.rs"]
 mod callback_capture_emit;
 #[path = "record_parameter_borrow_emit.rs"]
@@ -136,6 +138,7 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
             .any(|closure| matches!(closure.forward, Some(ClosureForward::Once(_))));
     let counted_calls = program.closures.iter().any(|closure| matches!(closure.forward, Some(ClosureForward::RestAdapter { counted: true, .. })));
     let mut emitter = Emitter {
+        borrowed_capture_alternatives: borrowed_payload_emit::capture_alternatives(program),
         callback_traits,
         counted_calls,
         program,
@@ -204,6 +207,7 @@ pub(crate) fn emit_with_source_segments(program:&CheckedProgram,entry_setup:&str
 }
 
 struct Emitter<'a> {
+    borrowed_capture_alternatives: borrowed_payload_emit::Alternatives,
     callback_traits: bool,
     counted_calls: bool,
     program: &'a CheckedProgram,
@@ -361,7 +365,7 @@ impl Emitter<'_> {
             }).collect::<Vec<_>>();
             if !parameters.is_empty() { return format!("Record{base}<{}>", parameters.join(", ")); }
         }
-        if let Type::BorrowedCallable(id)=value {return self.borrowed_family_type(id,"'_");}
+        if let Type::BorrowedCallable(id)=value {return self.borrowed_family_type(id);}
         if let Type::Closure(id) = value {
             if self.program.polymorphic_storage.contains(id) {
                 return self.generic_storage_type(id);
@@ -7788,10 +7792,14 @@ impl Emitter<'_> {
     /// equal type can match; int and number compare by value.
     fn stored_callable_constructor(&self, family: usize, origin: usize, value: &str) -> String {
         if self.program.stored_contracts.is_borrowed(family) {
+            if self.borrowed_payloads(family).iter().any(|payload| !payload.captures.is_empty()) {
+                let name=self.borrowed_family_type(family).replacen("<","::<",1);
+                return format!("{name}::from({value})");
+            }
             let origins=self.program.stored_contracts.origins(family).expect("borrowed origins");
             let position=origins.iter().position(|&id|id==origin).expect("registered borrowed origin");
             let variant=crate::borrowed_callable_dispatch::variant(position,origins.len());
-            let name=self.borrowed_family_type(family,"'_").replacen("<","::<",1);
+            let name=self.borrowed_family_type(family).replacen("<","::<",1);
             return format!("{name}::{variant}({value})");
         }
         let declaration=self.program.stored_contracts.declaration(family).expect("stored declaration");

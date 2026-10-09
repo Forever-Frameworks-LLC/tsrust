@@ -23,10 +23,10 @@ impl Emitter<'_>{
             allowed.sort();allowed.dedup();
             if allowed.is_empty() || allowed.iter().any(|origin|!origins.contains(origin)){continue;}
             let Some(place)=self.owned_record_leaf_place(fun,id,&path)else{continue;};
-            let arms=allowed.iter().map(|&origin|{
-                let position=origins.iter().position(|&candidate|candidate==origin).unwrap();
-                let arm=crate::borrowed_callable_dispatch::variant(position,origins.len());
-                format!("BorrowedCallable{family}::{arm}(payload)=>{}",self.stored_callable_constructor(family,origin,"payload"))
+            let payloads=self.borrowed_payloads(family);
+            let arms=payloads.iter().enumerate().filter(|(_,payload)|allowed.contains(&payload.origin)).map(|(position,payload)|{
+                let arm=crate::borrowed_callable_dispatch::variant(position,payloads.len());
+                format!("BorrowedCallable{family}::{arm}(payload)=>{}",self.stored_callable_constructor(family,payload.origin,"payload"))
             }).collect::<Vec<_>>().join(",");
             let fallback=if allowed.len()==origins.len(){String::new()}else{",_=>unreachable!(\"checked record replacement retained an old origin\")".to_owned()};
             let _=write!(result,"{place}=match {place}{{{arms}{fallback}}};");

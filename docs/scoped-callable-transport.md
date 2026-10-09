@@ -458,5 +458,25 @@ The caller must keep `action` alive while the holder retains the wrapper. Moving
 state across calls and prevents independent invocation until the holder releases
 its borrow. An owned escaping closure cannot consume a borrowed callback input.
 
+The same installer can replace a stored wrapper with a different callback capture
+layout. For example, one callback may capture an array while another captures
+nothing:
+
+```tsr
+const values = [3];
+const first = (): int => values[0];
+const second = (): int => 9;
+const holder: Holder = { run: (): int => 0 };
+installCallback(holder, first);
+console.log(holder.run()); // 3
+installCallback(holder, second);
+console.log(holder.run()); // 9
+```
+
+Readonly and mutable relays preserve those alternatives. A wrapper that captures
+multiple callback inputs keeps their positions distinct, even when their signatures
+match. Mutable callbacks keep their own state across replacement and holder disposal.
+No callback environment is implicitly cloned.
+
 Direct callback assignment without a wrapper, nullable stores and exceptional
 completion remain under implementation. The complete B7 family is not accepted yet.

@@ -33,14 +33,17 @@ test('Caller-borrowed stores register independent observations and complete exec
    ['installArray(holder, right);',''],
    ['holder.run = (): int => left() + right();','holder.run = (): int => left();'],
    ['base[0] += 1;',''],
-   ['changedSecond = holder.run();','']
+   ['changedSecond = holder.run();',''],
+   ['installCallback(callbackHolder, constant);',''],
+   ['installPair(pairHolder, constant, action);',''],
+   ['installMutableCallback(holder, secondAction);','']
   ]) {
    const changed=replaceCodeSnippet(source,from,to);
    assert.notEqual(changed,source);
    assert.throws(()=>assertCallerBorrowedRecordStoresSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   }
  }
- assert.deepEqual(expectedCallerBorrowedRecordStoreValues(row.id,2,0,row.inputText),[[1,3,4,1,10,3,4,5,6,7,7],[2,4,6,2,11,4,5,6,7,8,8]]);
+ assert.deepEqual(expectedCallerBorrowedRecordStoreValues(row.id,2,0,row.inputText),[[1,3,4,1,10,3,4,5,6,7,7,9,10,13],[2,4,6,2,11,4,5,6,7,8,8,9,11,14]]);
  for(const seed of [0,7,1000000])for(const n of [0,1,37,2048]) {
   const expected=expectedCallerBorrowedRecordStoreObservation(row.id,n,seed,row.inputText);
   assert.deepEqual(expectedExactResult(row.id,n,seed,row.inputText),expected);
