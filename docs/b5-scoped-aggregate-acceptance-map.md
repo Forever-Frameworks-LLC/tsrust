@@ -51,9 +51,9 @@ unless another file is named.
 | --- | --- | --- |
 | Store a new callback record into a nullable field through a `Mutable<Record>` parameter (clearing is supported) | `unsupported` | Caller-side environment family and nested conversion bounds, with ledger row B7 |
 | Two parameters that both carry a nullable callback record of one type | `unsupported` | A generic parameter per parameter leaf instead of one per callback contract |
-| Parameter typed `ReadOnly<Record> \| undefined` | `unsupported` | Borrowed view of the caller's concrete union |
+| Parameter typed `ReadOnly<Record> \| undefined` | `unsupported` | The argument is checked as an owned union and would move the caller's value; it needs a borrowed view of the caller's concrete union. Same root as the element-field move below |
 | Union of two record types where one is a capturing record | `type` error | Tagged storage for a capturing member |
-| Moving a nullable callback record out of an array element | `unsupported` | Take-and-replace storage for element fields |
+| Reading a nullable callback record field of an array element into a local (`const saved = boxes[0].saved`) | `unsupported` | A borrowed view of a nullable capturing record, as data records already have |
 
 ## Outside this row
 

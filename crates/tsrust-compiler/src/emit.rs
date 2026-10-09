@@ -1369,6 +1369,8 @@ impl Emitter<'_> {
                             ty == member
                                 || matches!(ty, Type::Callback(_))
                                     && matches!(member, Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_))
+                                // A concrete environment of the same nominal record.
+                                || matches!((ty, member), (Type::Record(wanted), Type::Record(found)) if self.program.scoped_records.declaration(*wanted) == self.program.scoped_records.declaration(*found))
                         })
                         .expect("subset union widening");
                     format!(

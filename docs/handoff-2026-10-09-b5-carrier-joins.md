@@ -96,8 +96,15 @@ complete.
 | Union of a capturing record and another record type | `unsupported` or `type` |
 | Moving a nullable callback record out of an array element field | `unsupported` |
 
-Suggested order: parameter stores together with ledger row B7, then the two
-nullable parameter forms.
+Two of these share one root: a nullable capturing record has no borrowed view yet.
+The argument of a `ReadOnly<Record> | undefined` parameter is checked as an owned
+union, so it would move the caller's value, and a nullable field of an array element
+cannot be read into a local. Data records already have such views
+(`Type::BorrowedUnion`); the scoped injection path in `analysis.rs` produces
+`Type::Union` instead.
+
+Suggested order: borrowed views of nullable capturing records, then parameter stores
+together with ledger row B7, then the two-parameter case.
 
 ## Other open items
 
