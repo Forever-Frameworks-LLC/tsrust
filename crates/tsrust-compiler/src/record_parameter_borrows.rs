@@ -11,14 +11,38 @@ pub(crate) struct Borrow {
     pub(crate) capture: usize,
 }
 
+/// Stable readonly views retain their owner's lifetime, not the local reference slot.
+fn borrowed_owner(bindings: &[Binding], mut source: usize) -> usize {
+    let mut seen = HashSet::new();
+    while seen.insert(source) {
+        let Some(binding) = bindings.get(source) else {
+            break;
+        };
+        if binding.rebindable
+            || (binding.borrowed_place.is_none() && !binding.callback_reference)
+            || binding.view_roots.len() != 1
+        {
+            break;
+        }
+        let next = binding.view_roots[0];
+        if next == source {
+            break;
+        }
+        source = next;
+    }
+    source
+}
+
 pub(super) fn eligible(function: &CheckedFunction, closure: &CheckedClosure) -> bool {
     closure.captures.iter().all(|capture| {
-        !matches!(capture.storage, Mode::Read | Mode::Mutate)
-            || function.bindings.get(capture.outer).is_some_and(|binding| {
-                capture.outer < function.parameter_count
+        !matches!(capture.storage, Mode::Read | Mode::Mutate) || {
+            let source = borrowed_owner(&function.bindings, capture.outer);
+            function.bindings.get(source).is_some_and(|binding| {
+                source < function.parameter_count
                     && binding.parameter
                     && matches!(binding.mode, Mode::Read | Mode::Mutate)
             })
+        }
     })
 }
 
@@ -67,7 +91,7 @@ fn direct(function: &CheckedFunction, closures: &[CheckedClosure]) -> Vec<Borrow
                                         binding: write.binding,
                                         fields: path.clone(),
                                     },
-                                    source: capture.outer,
+                                    source: borrowed_owner(&function.bindings, capture.outer),
                                     mode: capture.storage,
                                     origin,
                                     capture: index,
@@ -140,8 +164,9 @@ pub(super) fn summary(
                     ) else {
                         continue;
                     };
+                    let source_binding = borrowed_owner(&function.bindings, source.binding);
                     if target.binding >= function.parameter_count
-                        || source.binding >= function.parameter_count
+                        || source_binding >= function.parameter_count
                     {
                         continue;
                     }
@@ -151,7 +176,7 @@ pub(super) fn summary(
                         .target
                         .fields
                         .extend(borrow.target.fields.iter().cloned());
-                    mapped.source = source.binding;
+                    mapped.source = source_binding;
                     if !summaries[&id].contains(&mapped) && !added.contains(&(id, mapped.clone())) {
                         added.push((id, mapped));
                     }
@@ -180,7 +205,7 @@ impl Analyzer {
             };
             for id in context.capture_loan_owners.loans_under(&place) {
                 if let Some((source, _, span)) = context.capture_loan_ids.loan(id)
-                    && source >= first_local
+                    && borrowed_owner(&context.bindings, source) >= first_local
                 {
                     return Err(Diagnostic::new(
                         "callback-escape",
@@ -215,7 +240,11 @@ impl Analyzer {
                 ));
             };
             target.fields.extend(borrow.target.fields);
-            let loan = (source_place.binding, borrow.mode, source.span);
+            let loan = (
+                borrowed_owner(&context.bindings, source_place.binding),
+                borrow.mode,
+                source.span,
+            );
             let id = context.capture_loan_ids.intern(loan);
             context.capture_loan_owners.attach(target, [id]);
             if !context.capture_loans.contains(&loan) {

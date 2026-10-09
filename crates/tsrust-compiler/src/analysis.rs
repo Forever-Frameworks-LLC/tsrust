@@ -2293,6 +2293,10 @@ impl Analyzer {
                 let access = binding.mode;
                 let restored=access==Mode::Consume && restoration.permits(inner) && restoration_bounded;
                 invocation = invocation.max(if restored {Mode::Mutate}else{access});
+                if escapes && binding.callback_kind.is_some_and(|kind| !kind.is_owned()) {
+                    return Err(Diagnostic::new("callback-escape",
+                        "An owned escaping closure cannot retain a borrowed callback input. Use an owned callback parameter or keep the borrowing closure in the caller's scope.", span));
+                }
                 let storage = if binding.ty.is_copy() {
                     if access == Mode::Mutate && !escapes {
                         Mode::Mutate
@@ -5735,6 +5739,7 @@ impl Analyzer {
             context.bindings[id].callback_invocation = invocation;
             context.bindings[id].callback_reference = reference;
             context.bindings[id].callback_kind = kind;
+            if reference { context.bindings[id].view_roots = Self::view_sources(context, value); }
         }
         if !context.bindings[id].rebindable && let Some(ty)=crate::flow::sentinel(value) {
             context.constant_absence.insert(id,ty);
@@ -14093,17 +14098,6 @@ self.names_materialized_type(element.with_depth(0).ty())
                 return self.shared_callback_call(context, expr, loans);
             }
             if let Some((local, _)) = stored_native {
-                if context.is_capture(local)
-                    && context.bindings[local]
-                        .callback_kind
-                        .is_some_and(|kind| !kind.is_owned())
-                {
-                    return Err(Diagnostic::new(
-                        "callback-escape",
-                        "Capturing a callback requires an owned parameter contract.",
-                        callee.span,
-                    ));
-                }
                 let invocation = context.bindings[local]
                     .callback_invocation
                     .unwrap_or(Mode::Read);
@@ -14143,17 +14137,6 @@ self.names_materialized_type(element.with_depth(0).ty())
             return Err(Self::pending_result(span));
         }
         if let Some(&binding) = context.names.get(name) {
-            if context.is_capture(binding)
-                && context.bindings[binding]
-                    .callback_kind
-                    .is_some_and(|kind| !kind.is_owned())
-            {
-                return Err(Diagnostic::new(
-                    "callback-escape",
-                    "Capturing a callback requires an owned parameter contract.",
-                    callee.span,
-                ));
-            }
             if let Type::Closure(origin) = context.bindings[binding].ty
                 && let Some(ClosureForward::Function(function)) = self.closures[origin].forward
             {
@@ -14202,15 +14185,6 @@ self.names_materialized_type(element.with_depth(0).ty())
                     )
                 }
                 Type::Callback(id) => {
-                    if context.is_capture(binding)
-                        && !self.callables.callbacks[id].kind.is_owned()
-                    {
-                        return Err(Diagnostic::new(
-                            "callback-escape",
-                            "Capturing a callback requires an owned parameter contract.",
-                            callee.span,
-                        ));
-                    }
                     let contract = &self.callables.callbacks[id];
                     let invocation = contract.invocation(&self.callables.shapes);
                     (
@@ -15373,8 +15347,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             self.observing_values && mode == Mode::Read && !context.is_capture(index);
         if let Some(kind) = context.bindings[index].callback_kind {
             if !kind.is_owned()
-                && (context.is_capture(index)
-                    || (context.returning_closure && !callback_argument))
+                && context.returning_closure && !callback_argument
             {
                 return Err(Diagnostic::new(
                     "callback-escape",

@@ -1,3 +1,5 @@
+#[path = "callback_capture_emit.rs"]
+mod callback_capture_emit;
 #[path = "record_parameter_borrow_emit.rs"]
 mod record_parameter_borrow_emit;
 #[path = "nullable_record_parameter_emit.rs"]
@@ -911,6 +913,10 @@ impl Emitter<'_> {
             |ty, lifetimes| Some(self.named_record_environment_type(ty, lifetimes)),
         );
         for (capture,field) in closure.captures.iter().zip(&mut fields){
+            if !matches!(closure.forward, Some(ClosureForward::RestAdapter { .. } | ClosureForward::Abstract(_)))
+                && let Type::Callback(id) = closure.function.bindings[capture.inner].ty {
+                *field = field.replace(&format!("C{id}"), &format!("K{}", capture.inner));
+            }
             if let Type::Closure(origin) = closure.function.bindings[capture.inner].ty
                 && self.program.polymorphic_storage.contains(origin) {
                 *field = field.replace(&format!("Closure{origin}"), &self.generic_storage_type(origin));
@@ -2161,37 +2167,6 @@ impl Emitter<'_> {
         }
     }
 
-    fn captured_callback_bounds(&self, closure: &crate::analysis::CheckedClosure) -> Vec<String> {
-        if !matches!(closure.forward, Some(ClosureForward::RestAdapter { .. } | ClosureForward::Abstract(_))) {
-            return Vec::new();
-        }
-        let Type::Callback(id) = closure.function.bindings[0].ty else {
-            return Vec::new();
-        };
-        let contract = &self.program.callback_contracts[id];
-        let (args, lifetimes) = self.native_argument_tuple(&contract.params);
-        let args = args.replace("'p", "'capture_p");
-        let lifetimes = lifetimes.into_iter().map(|name| name.replace("'p", "'capture_p")).collect::<Vec<_>>();
-        let borrow = if lifetimes.is_empty() {
-            String::new()
-        } else {
-            format!("for{} ", lifetime_parameters(&lifetimes))
-        };
-        let trait_name = if matches!(contract.kind, CallbackKind::Read | CallbackKind::SharedRead) {
-            "ReadCallback"
-        } else if contract.kind.is_once() {
-            "OnceCallback"
-        } else {
-            "Callback"
-        };
-        let mut bounds = vec![format!(
-            "C{id}: {borrow}{trait_name}<{args}, {}>",
-            self.callback_result_type(id,contract.result)
-        )];
-        bounds.extend(self.nullable_callback_bounds([Type::Callback(id)]));
-        bounds
-    }
-
     #[inline(never)]
     fn result_entry_adapter(&self,index:usize,symbol:&str,error_name:&str)->String {
         let function=&self.program.functions[index];
@@ -2562,6 +2537,7 @@ impl Emitter<'_> {
             // source parameters and use the same access forms.
             let hidden = self.program.named_capture_access.get(&index).map_or(0, Vec::len);
             let borrowed_inputs = self.record_borrow_inputs(index);
+            let borrow_lifetimes = self.record_borrow_lifetime_groups(index);
             let params = fun
                 .bindings
                 .iter()
@@ -2606,8 +2582,8 @@ impl Emitter<'_> {
                     };
                     let qualifier = if borrowed_inputs.contains(&index) && !qualifier.is_empty() {
                         match b.mode {
-                            Mode::Read => format!("&'record_input{index} "),
-                            Mode::Mutate => format!("&'record_input{index} mut "),
+                            Mode::Read => format!("&'record_input{} ", borrow_lifetimes[&index]),
+                            Mode::Mutate => format!("&'record_input{} mut ", borrow_lifetimes[&index]),
                             _ => qualifier.to_owned(),
                         }
                     } else { qualifier.to_owned() };
@@ -2656,7 +2632,7 @@ impl Emitter<'_> {
                     _ => None,
                 })
                 .collect::<Vec<_>>();
-            let mut lifetime_generics = borrowed_inputs.iter().map(|id| format!("'record_input{id}")).collect::<Vec<_>>();
+            let mut lifetime_generics = borrow_lifetimes.values().copied().collect::<std::collections::BTreeSet<_>>().into_iter().map(|id| format!("'record_input{id}")).collect::<Vec<_>>();
             lifetime_generics.extend(generics);
             let mut generics = lifetime_generics;
             generics.extend((0..fun.parameter_count).filter_map(|id|self.nullable_record_parameter_bound(fun,id)));
@@ -3505,7 +3481,7 @@ impl Emitter<'_> {
                     if value.is_deferred() {
                         if let Some(declarations)=self.owned_record_deferred(fun,index){let _=writeln!(output,"{indent}{declarations}");continue;}
                         // Assigned later; definite assignment was checked.
-                        let _ = writeln!(output, "{indent}let mut value{index}: {};", self.native_type(b.ty));
+                        let _ = writeln!(output, "{indent}let mut value{index}: {};", self.local_callback_environment_type(b.ty));
                         continue;
                     }
                     let scoped_alias =
@@ -3542,10 +3518,10 @@ impl Emitter<'_> {
                         } else if matches!(b.ty, Type::Callback(_)) {
                             "_".into()
                         } else if b.borrowed_place.is_some() {
-                            format!("&{}", self.native_type(b.ty))
+                            format!("&{}", self.local_callback_environment_type(b.ty))
                         } else {
                             self.binding_shape(index).as_ref().map_or_else(
-                                || self.native_type(b.ty),
+                                || self.local_callback_environment_type(b.ty),
                                 |shape| self.shape_type(shape),
                             )
                         },

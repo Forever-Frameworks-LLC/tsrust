@@ -439,6 +439,24 @@ Callee-local arrays cannot escape through the holder either. Mutable array input
 allow a mutable callback to change the caller's array; repeated calls preserve those
 changes. No array or callback environment is implicitly cloned.
 
-This B7 slice covers direct array inputs and named relay calls. Nullable stores,
-input aliases, borrowed callback inputs and exceptional completion remain under
-implementation; the complete family is not accepted yet.
+Stable readonly aliases keep the original array owner protected. Named relays can
+pass those aliases through additional functions. Nested record destinations and
+callbacks capturing multiple inputs follow the same rule.
+
+A wrapper can also borrow a callback input:
+
+```tsr
+function installCallback(holder: Mutable<Holder>, action: ReadOnly<Function<int>>): void {
+    const alias = action;
+    holder.run = (): int => alias();
+}
+```
+
+The caller must keep `action` alive while the holder retains the wrapper. Moving
+`action` during that borrow is rejected. A mutable callback input uses
+`Mutable<Function<int>>` with a mutable holder field; the wrapper preserves its
+state across calls and prevents independent invocation until the holder releases
+its borrow. An owned escaping closure cannot consume a borrowed callback input.
+
+Direct callback assignment without a wrapper, nullable stores and exceptional
+completion remain under implementation. The complete B7 family is not accepted yet.

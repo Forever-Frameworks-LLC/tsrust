@@ -5,20 +5,32 @@ Read the completion ledger and B5 acceptance handoff before implementation.
 
 ## Current implementation progress
 
-The first slice transports direct readonly and mutable array-input borrows through
-callback stores and named relay calls. Native replacement bounds use explicit
-input lifetimes. Reordered relay parameters and independent caller environments
-have native witnesses. Source controls reject mutation and transfer while the
-holder remains live, callee-local capture escape, and an inner-block owner retained
-by an outer holder. Editor diagnostics, hover and parameter help have a focused
-witness. This is progress within B7, not family acceptance.
+Direct readonly and mutable array inputs, stable readonly view aliases, nested
+record destinations and multiple input captures have native witnesses. Named relays
+preserve provenance through reordered parameters and alias chains. Repeated stores
+of one origin from different inputs use a common reborrow lifetime for the affected
+carrier slot, while separate destinations retain independent lifetimes.
 
-Remaining acceptance includes input aliases, nested and nullable storage, borrowed
-callback inputs, failure paths, replacement and clearing, and matched workloads.
-Destination-specific bounds cover the same installer used for different holder
-fields and different source parameters. Repeated stores to the same destination
-with different inputs still need witnesses. Recursive relay summaries need a
-finite-path proof before acceptance.
+Borrowed readonly and mutable callback inputs can be captured by a stored wrapper.
+Stable callback aliases retain their original input owner. Native generic capture
+slots are independent even when callback signatures match. Local borrowing wrappers
+also work; an owned escaping closure still cannot consume a borrowed callback.
+Source controls cover live-holder mutation and transfer, independent mutable callback
+invocation, callee-local escape and shorter-lived input storage. Editor diagnostics,
+hover and parameter help have focused witnesses.
+
+The matched caller_borrowed_record_stores workload retains eleven observations per
+iteration, with an independent arithmetic oracle, source contracts, ABI support,
+runner/profile/report hooks and registration controls. Verification is untimed.
+This remains progress within B7, not family acceptance or timing evidence.
+
+Remaining acceptance first includes replacement with distinct callback input
+environment types at the same destination (a committed red witness). It also includes
+direct callback assignment without a wrapper, nullable
+payload stores, mutable data aliases, failure paths, exact replacement and clearing,
+branch/loop stores, early exits and disposal. Recursive relay summaries still need
+finite-path evidence before acceptance. Complete the required family before heavy
+regression and timing; do not remove the existing conservative release guards blindly.
 
 ## Required behavior
 

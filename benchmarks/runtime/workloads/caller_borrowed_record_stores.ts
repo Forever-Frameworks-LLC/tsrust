@@ -1,0 +1,122 @@
+type int = number;
+type Holder = {
+    run: () => int;
+};
+
+type MutableHolder = {
+    run: () => int;
+};
+
+type Box = {
+    handler: Holder;
+};
+
+function workload(n: int, seed: int, input: string): int[][] {
+    const output: int[][] = [];
+    let i = 0;
+    while (i < n) {
+        const value = i % 5 + seed % 5 + 1;
+        const base = [value];
+        const other = [value + 2];
+        let first = 0;
+        let replaced = 0;
+        let nested = 0;
+        let callback = 0;
+        let paired = 0;
+        let changedFirst = 0;
+        let changedSecond = 0;
+        let callbackFirst = 0;
+        let callbackSecond = 0;
+        let callbackAfter = 0;
+        {
+            const holder: Holder = {
+                run: (): int => 0
+            };
+            installArray(holder, base);
+            first = holder.run();
+            replaceBoth(holder, base, other);
+            replaced = holder.run();
+            const box: Box = {
+                handler: {
+                    run: (): int => 0
+                }
+            };
+            installNested(box, base, other);
+            nested = box.handler.run();
+            const action = (): int => base[0];
+            const constant = (): int => 9;
+            const callbackHolder: Holder = {
+                run: (): int => 0
+            };
+            installCallback(callbackHolder, action);
+            callback = callbackHolder.run();
+            const pairHolder: Holder = {
+                run: (): int => 0
+            };
+            installPair(pairHolder, action, constant);
+            paired = pairHolder.run();
+        }
+
+        base[0] += 1;
+        {
+            const holder: MutableHolder = {
+                run: (): int => 0
+            };
+            installMutable(holder, base);
+            changedFirst = holder.run();
+            changedSecond = holder.run();
+        }
+
+        {
+            const action = (): int => { base[0] += 1; return base[0]; };
+            {
+                const holder: MutableHolder = { run: (): int => 0 };
+                installMutableCallback(holder, action);
+                callbackFirst = holder.run();
+                callbackSecond = holder.run();
+            }
+            callbackAfter = action();
+        }
+        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0]]);
+        i += 1;
+    }
+
+    return output;
+}
+
+function installArray(holder: Holder, source: readonly int[]): void {
+    const alias = source;
+    holder.run = (): int => alias[0];
+}
+
+function replaceBoth(holder: Holder, left: readonly int[], right: readonly int[]): void {
+    installArray(holder, left);
+    installArray(holder, right);
+}
+
+function installNested(box: Box, left: readonly int[], right: readonly int[]): void {
+    box.handler.run = (): int => left[0] + right[0];
+}
+
+function installCallback(holder: Holder, action: () => int): void {
+    const alias = action;
+    holder.run = (): int => alias();
+}
+
+function installPair(holder: Holder, left: () => int, right: () => int): void {
+    holder.run = (): int => left() + right();
+}
+
+function installMutable(holder: MutableHolder, source: int[]): void {
+    holder.run = (): int => {
+        source[0] += 1;
+        return source[0];
+    };
+}
+
+function installMutableCallback(holder: MutableHolder, action: () => int): void {
+    holder.run = (): int => action();
+}
+
+function main() {
+}

@@ -67,6 +67,16 @@ impl Emitter<'_>{
         }
         if !matches!(leaf.ty,Type::Callback(_)) || !matches!(value.ty,Some(Type::Closure(_) | Type::BorrowedCallable(_))){return None;}
         let field=path.iter().map(|id|format!("Field{id}")).collect::<String>();
-        Some(format!("<<R{id} as TsrReadRecord{}>::{field} as From<{}>>::from({code})",layout.record,self.native_type(value.ty.unwrap())))
+        let function = self.program.functions.iter().position(|candidate| std::ptr::eq(candidate, fun));
+        let mut record = layout.record;
+        let mut names = Vec::new();
+        for (index, &selected) in path.iter().enumerate() {
+            let selected = &self.program.records[record].fields[selected];
+            names.push(selected.name.text.clone());
+            if index + 1 < path.len() { let Some(Type::Record(child)) = selected.ty else { return None; }; record = child; }
+        }
+        let replacement = function.map_or_else(|| self.native_type(value.ty.unwrap()),
+            |function| self.record_borrow_replacement_type(function, value.ty.unwrap(), id, &names));
+        Some(format!("<<R{id} as TsrReadRecord{}>::{field} as From<{replacement}>>::from({code})",layout.record))
     }
 }

@@ -3,6 +3,35 @@ use serde_json::{Value, json};
 use tsrust_lsp::intelligence::SourceIndex;
 
 #[test]
+fn borrowed_callback_input_stores_keep_declared_editor_signatures() {
+    let source = tsrust_compiler::format(r#"
+        type Holder = { run: ReadOnly<Function<int, [amount: int]>>; };
+        function install(holder: Mutable<Holder>, action: ReadOnly<Function<int, [amount: int]>>): void {
+            const alias = action;
+            holder.run = (amount: int): int => alias(amount);
+        }
+        function main() {
+            const values = [3];
+            const action = (amount: int): int => values[0] + amount;
+            const holder: Holder = { run: (amount: int): int => amount };
+            install(holder, action);
+            console.log(holder.run(4));
+        }
+    "#).unwrap();
+    let diagnostics = tsrust_lsp::diagnostics(&source, "file:///borrowed-callback-input.tsr").unwrap();
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    let help = ask(&source, "textDocument/signatureHelp", "4)", 0);
+    assert!(help["signatures"][0]["parameters"][0]["label"].as_str().unwrap_or("").contains("amount"), "{help}");
+    let hover = ask(&source, "textDocument/hover", "run(4)", 0);
+    assert!(!hover.is_null(), "{hover}");
+    assert!(!hover["contents"]["value"].as_str().unwrap_or("").contains("K1"), "{hover}");
+    let conflict = source.replace("console.log(holder.run(4));", "const saved=action; console.log(holder.run(4),saved(1));");
+    assert_ne!(source, conflict);
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&conflict, "file:///borrowed-callback-input.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "capture-conflict"), "{diagnostics}");
+}
+
+#[test]
 fn caller_borrowed_record_stores_preserve_editor_contracts() {
     let source = tsrust_compiler::format(r#"
         type Holder = { run: ReadOnly<Function<int, [amount: int]>>; };

@@ -24,8 +24,6 @@ fn rejected(body: &str, code: &str) {
 #[test]
 fn callbacks_stored_through_a_record_parameter_cannot_borrow_the_callee() {
     for body in [
-        // A borrowed parameter of the callee.
-        "function replace(holder:Mutable<Holder>,next:ReadOnly<int[]>):void{holder.run=():int=>next[0];} function main(){const a=[3];const b=[7];let holder:Holder={run:():int=>a[0]};replace(holder,b);}",
         // A local of the callee.
         "function replace(holder:Mutable<Holder>):void{const local=[4];holder.run=():int=>local[0];} function main(){const a=[3];let holder:Holder={run:():int=>a[0]};replace(holder);}",
         // A callback parameter lent for the call.
@@ -33,6 +31,8 @@ fn callbacks_stored_through_a_record_parameter_cannot_borrow_the_callee() {
     ] {
         rejected(body, "callback-escape");
     }
+    // Caller-owned input storage can outlive the installed callback.
+    native("function replace(holder:Mutable<Holder>,next:ReadOnly<int[]>):void{holder.run=():int=>next[0];} function main(){const a=[3];const b=[7];let holder:Holder={run:():int=>a[0]};replace(holder,b);strictEqual(holder.run(),7);}");
     // A copied number is not a borrow.
     native("function replace(holder:Mutable<Holder>,amount:int):void{holder.run=():int=>amount;} function main(){const a=[3];let holder:Holder={run:():int=>a[0]};replace(holder,12);a[0]=5;strictEqual(holder.run(),12);}");
 }

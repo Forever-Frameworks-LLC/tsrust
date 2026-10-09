@@ -324,6 +324,7 @@ fn all_callback_kinds_and_argument_dependent_owned_factory_methods() {
 
 #[test]
 fn aliases_captures_exact_contracts_source_order_and_loan_rejections() {
+    native(&support::format_round_trip("function apply(f:Mutable<Function<int,[x:int]>>):int{const c=():int=>f(1);return c();}function main(){console.log(apply((x:int):int=>x+4));}"), "5\n", "", "");
     let analysis = native(
         r#"
         function add(x:int):int{return x+1;}
@@ -352,10 +353,6 @@ fn aliases_captures_exact_contracts_source_order_and_loan_rejections() {
         ),
         (
             "function bad(f:Mutable<Function<int, [x:int]>>):(x:int)=>int{return f;}function main(){}",
-            "callback-escape",
-        ),
-        (
-            "function bad(f:Mutable<Function<int, [x:int]>>):int{const c=():int=>{return f(1);};return c();}function main(){}",
             "callback-escape",
         ),
         (
