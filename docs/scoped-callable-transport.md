@@ -512,3 +512,11 @@ function clear(slot: Mutable<Slot>): void { slot.run = undefined; }
 
 Loop completion, more complex replacement paths and recursive retained-store
 summaries remain under implementation. The complete B7 family is not accepted yet.
+
+
+Replacing a nullable stored callback with another borrowed callback releases the
+old retained input. The new input stays borrowed until its callback is cleared or
+disposed. Named relays, nested fields and stable callback aliases preserve this
+rule. A branch that might skip the replacement retains the old borrow. A branch
+that installs either a borrowed callback or a capture-free callback preserves both
+possible behaviors; it does not assume the borrowed alternative was selected.

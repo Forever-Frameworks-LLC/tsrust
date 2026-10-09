@@ -35,7 +35,12 @@ impl Emitter<'_> {
                     .into_iter()
                     .flatten()
                     .filter(|(id, path, _)| *id == parameter && *path == names)
-                    .filter_map(|(_, _, source)| self.callback_payload(*source))
+                    .filter_map(|(_, _, source)| {
+                        self.callback_payload(*source).or_else(|| {
+                            matches!(source, Type::Closure(_) | Type::BorrowedCallable(_))
+                                .then_some(*source)
+                        })
+                    })
                     .chain(
                         self.program
                             .record_parameter_borrows

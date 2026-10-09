@@ -99,11 +99,39 @@ impl Emitter<'_> {
                         );
                     }
                 }
+                if !absent_store {
+                    if let Some(place) = self.owned_record_leaf_place(fun, id, &path) {
+                        if let Some(reification) = self.record_callback_reification(
+                            callee, *parameter, names, args, ty, &place,
+                        ) {
+                            result.push_str(&reification);
+                        }
+                    }
+                }
                 continue;
             }
             let Type::BorrowedCallable(family) = ty else {
                 continue;
             };
+            if self
+                .program
+                .record_parameter_borrows
+                .get(&callee)
+                .is_some_and(|borrows| {
+                    borrows.iter().any(|borrow| {
+                        borrow.target.binding == *parameter && borrow.target.fields == *names
+                    })
+                })
+            {
+                if let Some(place) = self.owned_record_leaf_place(fun, id, &path) {
+                    if let Some(reification) = self
+                        .record_callback_reification(callee, *parameter, names, args, ty, &place)
+                    {
+                        result.push_str(&reification);
+                        continue;
+                    }
+                }
+            }
             let origins = self
                 .program
                 .stored_contracts

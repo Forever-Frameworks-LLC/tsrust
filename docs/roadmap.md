@@ -784,3 +784,10 @@ callback failures. Editor behavior and a 21-observation matched workload are che
 without timing. Recursive retained-store summaries, broader branches/loops and
 replacement completeness remain open. See
 [the nullable-store handoff](handoff-2026-10-09-b7-nullable-callback-stores.md).
+
+
+The next B7 checkpoint supports nullable replacement by distinct readonly/mutable
+callback environments, exact old-input release, nested relays and input aliases.
+Borrowed and capture-free branch alternatives both survive native conversion.
+New-input conflicts and skipped-replacement conflicts remain source diagnostics.
+The caller-transport family remains in progress; see [the replacement handoff](handoff-2026-10-09-b7-callback-replacement.md).

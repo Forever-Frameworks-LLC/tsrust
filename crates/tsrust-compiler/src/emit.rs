@@ -1,5 +1,7 @@
 #[path = "record_point_call_emit.rs"]
 mod record_point_call_emit;
+#[path = "record_callback_reification_emit.rs"]
+mod record_callback_reification_emit;
 #[path = "nullable_callback_clear_emit.rs"]
 mod nullable_callback_clear_emit;
 #[path = "nullable_callback_replacement_emit.rs"]

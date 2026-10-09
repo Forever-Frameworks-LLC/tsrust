@@ -8,7 +8,7 @@ impl Emitter<'_> {
     pub(super) fn emit_borrowed_family(&self,output:&mut String,id:usize,declaration:usize,origins:&[usize]) {
         let contract=&self.program.callback_contracts[declaration];
         let invocation=contract.invocation(&self.program.callable_shapes);
-        assert!(origins.len()>=2,"borrowed alternatives retain distinct origins");
+        assert!(!origins.is_empty(),"borrowed alternatives retain checked origins");
         let payloads=self.borrowed_payloads(id);
         let payload_count=payloads.len();
         crate::borrowed_callable_dispatch::emit_definition_many(output,id,payload_count);

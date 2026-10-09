@@ -2,24 +2,27 @@
 use super::*;
 impl Analyzer {
     pub(super) fn common_borrowed_conditional_family(&mut self,left:Type,right:Type,span:Span)->Result<Option<usize>,Diagnostic> {
-        self.callback_family(left,right,span,false)
+        self.callback_family(left,right,span,false,false)
     }
     /// The family of a callback field of a record. Unlike a bare callable, it
     /// also joins environments that own every capture.
     pub(super) fn record_field_callback_family(&mut self,left:Type,right:Type,span:Span)->Result<Option<usize>,Diagnostic> {
-        self.callback_family(left,right,span,true)
+        self.callback_family(left,right,span,true,false)
     }
-    fn callback_family(&mut self,left:Type,right:Type,span:Span,owned:bool)->Result<Option<usize>,Diagnostic> {
+    pub(super) fn borrowed_environment_family(&mut self,origin:usize,span:Span)->Result<Option<usize>,Diagnostic> {
+        self.callback_family(Type::Closure(origin),Type::Closure(origin),span,false,true)
+    }
+    fn callback_family(&mut self,left:Type,right:Type,span:Span,owned:bool,singleton:bool)->Result<Option<usize>,Diagnostic> {
         let origins=|ty|match ty{Type::Closure(id)=>Some(vec![id]),Type::BorrowedCallable(id)=>self.callables.storage.origins(id).map(<[usize]>::to_vec),_=>None};
         let(Some(mut ids),Some(other))=(origins(left),origins(right)) else{return Ok(None);};
         ids.extend(other);ids.sort_unstable();ids.dedup();
-        if ids.len()<2{return Ok(None);}
+        if ids.len()<2 && !singleton{return Ok(None);}
         let a=match ids.iter().copied().find(|&id|self.closures[id].borrowed) {
             Some(a)=>a,
             None if owned && ids.iter().all(|&id|!self.closures[id].polymorphic && !self.closures[id].function.template && !self.deferred_generic_values.contains_key(&id))=>ids[0],
             None=>return Ok(None),
         };
-        let b=*ids.iter().find(|&&id|id!=a).unwrap();
+        let b=ids.iter().copied().find(|&id|id!=a).unwrap_or(a);
         let checked=|closures:&[CheckedClosure],origins:[usize;2]|if owned{crate::borrowed_callable_contracts::Family::checked_for_record_field(closures,origins,span)}else{crate::borrowed_callable_contracts::Family::checked(closures,origins,span)};
         let mut family=checked(&self.closures,[a,b])?;
         for &id in &ids{if id==a{continue;}let checked=checked(&self.closures,[a,id])?;family.invocation=family.invocation.max(checked.invocation);}

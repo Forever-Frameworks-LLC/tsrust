@@ -92,8 +92,8 @@ This witness is implementation evidence to repair, not acceptance.
 
 ## Baseline traps
 
-The existing record_call_capture_release replay deliberately returns no precise
-release summary when a callee creates a new borrow, has defaults or exception syntax.
+The initial record_call_capture_release replay deliberately returned no precise
+release summary when a callee created a new borrow, had defaults or exception syntax.
 It currently tracks incoming callback payload tokens rather than caller-owner
 provenance. Do not simply remove those guards: new borrow transport and exceptional
 completion require explicit evidence. Existing boundary rejection tests include
@@ -124,3 +124,34 @@ Nullable record field payloads also contribute concrete error origins. This keep
 nullable parameter callback bounds consistent with the installed wrapper's fallible
 result, including when other callbacks in the same program introduce failures.
 Typed callback throws are checked through native execution and editor catch hover.
+
+## Nullable callback replacement checkpoint
+
+Replacement now releases an overwritten callback's input while retaining the new
+input. Release replay permits new captures only when the existing caller-owner
+transport can account for them. Original incoming payload tokens still prove
+whether the old environment survives any normal exit. Conditional stores that skip
+replacement retain the old loan. Defaults and exception syntax remain conservative.
+
+One source closure origin may contain different concrete callback environments at
+different calls. Nullable borrowed forwarding wrappers therefore use checked
+singleton source families, with finite native alternatives for whole capture
+vectors. This adds no source callable kind or dynamic dispatch. Nullable replacement
+metadata records the actual injected closure payload, not its abstract annotation.
+The final carrier joins all genuine branch alternatives, including capture-free
+callbacks.
+
+The isolated record_callback_reification_emit module filters native alternatives
+using this call's checked callback arguments and retained-capture positions. It
+preserves unknown alternatives conservatively and reconstructs only admitted
+payloads after a proven overwrite. Native reconstruction is distinct from source
+loan release; neither substitutes for the other.
+
+Witnesses cover different readonly/mutable environments, nested record fields,
+input aliases and relays, borrowed/capture-free branches, old-input reuse and
+new-input conflict rejection. More complex retained-store loops, recursive
+completion and nested generic environments remain pending.
+
+The same checked-environment reconstruction also applies to non-nullable fields.
+Its focused witness previously retained the old mutable input in generated Rust;
+it now releases that input while invoking the distinct replacement environment.

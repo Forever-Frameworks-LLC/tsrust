@@ -94,7 +94,8 @@ impl Replay<'_> {
             self.active.remove(&id);
             return Vec::new();
         }
-        // Defaults and new borrowed captures need argument-origin transport.
+        // Default evaluation still needs its own completion summary.
+        // Eligible new captures use the separate caller-owner borrow transport.
         if function.bindings[..function.parameter_count]
             .iter()
             .any(|binding| binding.omission.is_omittable())
@@ -102,23 +103,23 @@ impl Replay<'_> {
             self.active.remove(&id);
             return Vec::new();
         }
-        let mut creates_borrow = false;
+        let mut untransported_borrow = false;
         crate::fixed_storage::visit_function_expressions(function, &mut |expr| {
             if matches!(expr.kind, ExprKind::Closure { .. })
                 && let Some(Type::Closure(id)) = expr.ty
             {
-                creates_borrow |= self.closures.get(id).is_none_or(|closure| {
-                    closure.captures.iter().any(|capture| {
-                        capture.storage != Mode::Consume
-                            && function
-                                .bindings
-                                .get(capture.outer)
-                                .is_some_and(|binding| binding.parameter && !binding.ty.is_copy())
-                    })
+                untransported_borrow |= self.closures.get(id).is_none_or(|closure| {
+                    !record_parameter_borrows::eligible(function, closure)
+                        && closure.captures.iter().any(|capture| {
+                            capture.storage != Mode::Consume
+                                && function.bindings.get(capture.outer).is_some_and(|binding| {
+                                    binding.parameter && !binding.ty.is_copy()
+                                })
+                        })
                 });
             }
         });
-        if creates_borrow {
+        if untransported_borrow {
             self.active.remove(&id);
             return Vec::new();
         }

@@ -103,14 +103,37 @@ impl Analyzer {
                     .into_iter()
                     .filter_map(|write| {
                         let binding = &function.bindings[write.binding];
+                        let mut ty = write.value.ty?;
+                        if let ExprKind::Inject { value, .. } = &write.value.kind
+                            && let Some(actual @ (Type::Closure(_) | Type::BorrowedCallable(_))) =
+                                value.ty
+                            && let Some(union) = ty.union()
+                        {
+                            let members = self
+                                .unions
+                                .members(union)
+                                .into_iter()
+                                .map(|member| {
+                                    if matches!(member, Type::Null | Type::Undefined) {
+                                        member
+                                    } else {
+                                        actual
+                                    }
+                                })
+                                .collect::<Vec<_>>();
+                            ty = self
+                                .unions
+                                .intern(members, write.value.span)
+                                .expect("existing nullable replacement shape");
+                        }
                         (write.binding < function.parameter_count
                             && binding.parameter
                             && binding.mode == Mode::Mutate
                             && !write.path.is_empty()
                             && (matches!(
-                                write.value.ty,
+                                Some(ty),
                                 Some(Type::Closure(_) | Type::BorrowedCallable(_))
-                            ) || write.value.ty.is_some_and(|ty| {
+                            ) || Some(ty).is_some_and(|ty| {
                                 matches!(
                                     self.unions.payload(ty),
                                     Some(Type::Closure(_) | Type::BorrowedCallable(_))
@@ -119,7 +142,7 @@ impl Analyzer {
                         .then(|| Replacement {
                             parameter: write.binding,
                             path: write.path,
-                            ty: write.value.ty.unwrap(),
+                            ty,
                         })
                     })
                     .collect::<Vec<_>>()
@@ -211,6 +234,32 @@ impl Analyzer {
                     if previous == replacement.ty {
                         continue;
                     }
+                    if let (Some(union), Some(left), Some(right)) = (
+                        previous.union(),
+                        self.unions.payload(previous),
+                        self.unions.payload(replacement.ty),
+                    ) && let Some(family) =
+                        self.common_borrowed_conditional_family(left, right, call.span)?
+                    {
+                        let members = self
+                            .unions
+                            .members(union)
+                            .into_iter()
+                            .map(|member| {
+                                if matches!(member, Type::Null | Type::Undefined) {
+                                    member
+                                } else {
+                                    Type::BorrowedCallable(family)
+                                }
+                            })
+                            .collect::<Vec<_>>();
+                        let joined = self.unions.intern(members, call.span)?;
+                        if let Some(record) = self.record_type_with_field(record, &path, joined) {
+                            context.bindings[*root].ty = Type::Record(record);
+                        }
+                        continue;
+                    }
+
                     if let Some(joined) =
                         self.join_nullable_record_unions(previous, replacement.ty, call.span)?
                     {

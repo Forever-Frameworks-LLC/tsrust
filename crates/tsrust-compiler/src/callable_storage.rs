@@ -239,10 +239,10 @@ impl Registry {
             })?;
         if self.is_borrowed(family) {
             let origins=self.origins(family).expect("known borrowed family");
-            if !origins.contains(&origin) || origins.len()<2 {
+            if !origins.contains(&origin) || origins.is_empty() {
                 return Err(Diagnostic::new("borrowed-callable-layout","A borrowed family must retain its checked environment origins.",span));
             }
-            for &other in &origins[1..]{crate::borrowed_callable_contracts::Family::checked(closures,[origins[0],other],span)?;}
+            for &other in origins{crate::borrowed_callable_contracts::Family::checked(closures,[origins[0],other],span)?;}
             return Ok(());
         }
         crate::callable_dispatch::Family::checked_results(declaration,signatures,[origin],closures,span,|actual,expected|self.equivalent_result(actual,expected))?;

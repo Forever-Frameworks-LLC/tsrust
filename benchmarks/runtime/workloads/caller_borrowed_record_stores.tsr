@@ -191,7 +191,32 @@ function workload(n: int, seed: int, input: string): int[][] {
             nullableEmpty = holder.run === undefined ? 1 : 0;
         }
 
-        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty]);
+        let nullableReleased = 0;
+        let nullableReplacement = 0;
+        let nullableReplacementAfter = 0;
+        {
+            const originalData = [value];
+            const replacementData = [value + 4];
+            const originalAction = (): int => {
+                originalData[0] += 1;
+                return originalData[0];
+            };
+            const replacementAction = (): int => {
+                replacementData[0] += 3;
+                return replacementData[0];
+            };
+            const holder: NullableHolder = {
+                run: undefined
+            };
+            installNullable(holder, originalAction);
+            installNullable(holder, replacementAction);
+            nullableReleased = originalAction();
+            nullableReplacement = holder.run!();
+            clearNullable(holder);
+            nullableReplacementAfter = replacementAction() + (holder.run === undefined ? 0 : 100);
+        }
+
+        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter]);
         i += 1;
     }
 

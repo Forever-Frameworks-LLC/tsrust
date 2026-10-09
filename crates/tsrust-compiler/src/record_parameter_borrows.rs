@@ -245,7 +245,20 @@ impl Analyzer {
             let mut members = self.unions.members(union);
             let old = self.unions.payload(previous).unwrap_or(previous);
             let payload = if self.absent_callable_type(previous) {
-                incoming
+                let abstract_borrow = self.closures[origin].captures.iter().any(|capture| {
+                    matches!(capture.storage, Mode::Read | Mode::Mutate)
+                        && matches!(
+                            self.closures[origin].function.bindings[capture.inner].ty,
+                            Type::Callback(_)
+                        )
+                });
+                if abstract_borrow {
+                    self.borrowed_environment_family(origin, span)?
+                        .map(Type::BorrowedCallable)
+                        .unwrap_or(incoming)
+                } else {
+                    incoming
+                }
             } else if let Some(family) =
                 self.common_borrowed_conditional_family(old, incoming, span)?
             {

@@ -9339,3 +9339,27 @@ fn nullable_installed_callback_failure_has_typed_catch_hover() {
     let text = hover["contents"]["value"].as_str().unwrap();
     assert!(text.contains("string"), "{hover}");
 }
+
+#[test]
+fn nullable_callback_replacement_editor_releases_only_the_old_input() {
+    let source = tsrust_compiler::format(r#"
+        type Holder = { run: Mutable<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, action: Mutable<Function<int>>): void { holder.run = action; }
+        function main() {
+            const a = [3]; const b = [10];
+            const first = (): int => { a[0] += 1; return a[0]; };
+            const second = (): int => { b[0] += 2; return b[0]; };
+            const holder: Holder = { run: undefined };
+            install(holder, first); install(holder, second);
+            console.log(first(), holder.run!());
+        }
+    "#).unwrap();
+    assert!(tsrust_lsp::diagnostics(&source, "file:///nullable-replacement.tsr").unwrap().is_empty());
+    let hover = ask(&source, "textDocument/hover", "run!", 0);
+    let text = hover["contents"]["value"].as_str().unwrap();
+    assert!(text.contains("Mutable") && text.contains("undefined"), "{hover}");
+    let conflict = source.replace("console.log(first(),", "console.log(second(),");
+    assert_ne!(source, conflict);
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&conflict, "file:///nullable-replacement.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "capture-conflict"), "{diagnostics}");
+}
