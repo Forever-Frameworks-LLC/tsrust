@@ -35,6 +35,9 @@ test('Caller-borrowed stores register independent observations and complete exec
    ['base[0] += 1;',''],
    ['installOnce(holder, once);',''],
    ['throw payload[0];','throw 0;'],
+   ['nullableAfter = action();','nullableAfter = 0;'],
+   ['holder.run = undefined;',''],
+   ['relayClearNullable(holder, i % 2 === 0);',''],
    ['callbackFailure = guarded();','callbackFailure = 0;'],
    ['throw "installed";', ''],
    ['beforeFailure = holder.run() + (caught ? 0 : 100);','beforeFailure = 0;'],
@@ -51,7 +54,7 @@ test('Caller-borrowed stores register independent observations and complete exec
    assert.throws(()=>assertCallerBorrowedRecordStoresSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   }
  }
- assert.deepEqual(expectedCallerBorrowedRecordStoreValues(row.id,2,0,row.inputText),[[1,3,4,1,10,3,4,5,6,7,7,9,10,13,1,7,10,18],[2,4,6,2,11,4,5,6,7,8,8,9,11,14,2,8,11,19]]);
+ assert.deepEqual(expectedCallerBorrowedRecordStoreValues(row.id,2,0,row.inputText),[[1,3,4,1,10,3,4,5,6,7,7,9,10,13,1,7,10,18,2,3,1],[2,4,6,2,11,4,5,6,7,8,8,9,11,14,2,8,11,19,3,4,1]]);
  for(const seed of [0,7,1000000])for(const n of [0,1,37,2048]) {
   const expected=expectedCallerBorrowedRecordStoreObservation(row.id,n,seed,row.inputText);
   assert.deepEqual(expectedExactResult(row.id,n,seed,row.inputText),expected);

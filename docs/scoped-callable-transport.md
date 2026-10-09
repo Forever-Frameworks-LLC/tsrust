@@ -494,5 +494,21 @@ throws after storing a callback, the installed callback and its mutable borrow r
 live. Throwing before the store preserves the previous callback. Holder disposal
 releases retained mutable inputs. Typed failures from the stored callback reach a bound catch variable with their
 checked error type, including a handler in a closure that captures the holder.
-The compiler requires concrete callback origins to infer that type. Nullable stores
-and the remaining branch, loop and exact-release forms remain under implementation. The complete B7 family is not accepted yet.
+The compiler requires concrete callback origins to infer that type. Nullable callback fields can start as `undefined`, receive a borrowed callback,
+invoke it through a non-null assertion, and be cleared through a mutable record
+parameter. A clear on every normal exit releases the retained input. The input can
+then be called again while the holder remains available and reports `undefined`.
+Relays and early returns preserve this rule. A conditional clear that leaves one
+path populated does not release the input. Callee-local captures still cannot
+escape through the holder. No callback environment is cloned.
+
+```tsr
+type Slot = { run: Mutable<Function<int>> | undefined; };
+function install(slot: Mutable<Slot>, action: Mutable<Function<int>>): void {
+    slot.run = action;
+}
+function clear(slot: Mutable<Slot>): void { slot.run = undefined; }
+```
+
+Loop completion, more complex replacement paths and recursive retained-store
+summaries remain under implementation. The complete B7 family is not accepted yet.

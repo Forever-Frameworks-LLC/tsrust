@@ -253,13 +253,15 @@ pub(crate) const UNRESOLVED_CATCH:&str="Catch value requires a resolved error co
 /// A callback field of a record declaration receives the concrete callbacks
 /// that its constructed instances hold. A function that calls the field of a
 /// record parameter fails exactly as those callbacks can.
-pub(crate) fn record_field_origins(records:&[crate::syntax::Record],instances:&crate::scoped_record_layout::Registry)->Vec<(usize,Type)> {
+pub(crate) fn record_field_origins(unions:&crate::unions::UnionArena,records:&[crate::syntax::Record],instances:&crate::scoped_record_layout::Registry)->Vec<(usize,Type)> {
     let mut origins=Vec::new();
     for (instance,record) in records.iter().enumerate() {
         let declaration=instances.declaration(instance);
         if declaration==instance {continue;}
         for (declared,held) in records[declaration].fields.iter().zip(&record.fields) {
-            if let (Some(Type::Callback(id)),Some(actual))=(declared.ty,held.ty) && actual!=Type::Callback(id) {
+            let declared = declared.ty.map(|ty|unions.payload(ty).unwrap_or(ty));
+            let actual = held.ty.map(|ty|unions.payload(ty).unwrap_or(ty));
+            if let (Some(Type::Callback(id)),Some(actual))=(declared,actual) && actual!=Type::Callback(id) {
                 if instances.parameter_contract(instance) {
                     // A fresh parameter variable has the declaration's failure
                     // contract, without becoming a constructed runtime origin.
@@ -330,10 +332,10 @@ pub(crate) fn annotate_inferred_callbacks(program:&mut CheckedProgram)->ErrorEff
             }
         }
     }
-    for (id,actual) in record_field_origins(&program.records,&program.scoped_records) {
+    let unions=crate::unions::UnionArena::from_snapshot(program.unions.clone());
+    for (id,actual) in record_field_origins(&unions,&program.records,&program.scoped_records) {
         origins.entry(id).or_default().push(actual);
     }
-    let unions=crate::unions::UnionArena::from_snapshot(program.unions.clone());
     for types in origins.values_mut() {
         *types=types.iter().flat_map(|ty|if let Type::Union(id)=ty {unions.members(*id)}else{vec![*ty]}).collect();
     }

@@ -220,15 +220,56 @@ impl Analyzer {
 
     /// A call can install a mutable wrapper even when the initial field was
     /// capture-free. Preserve all possible origins until exact stores are proved.
-    fn retain_record_invocation_contract(&mut self, context: &mut Context, target: &Place, origin: usize, span: Span) -> Result<(), Diagnostic> {
+    fn retain_record_invocation_contract(
+        &mut self,
+        context: &mut Context,
+        target: &Place,
+        origin: usize,
+        span: Span,
+    ) -> Result<(), Diagnostic> {
         let binding = &context.bindings[target.binding];
-        if binding.parameter || binding.capture_reference { return Ok(()); }
-        let Type::Record(record) = binding.ty else { return Ok(()); };
-        let Some(previous) = self.record_field_type(binding.ty, &target.fields) else { return Ok(()); };
+        if binding.parameter || binding.capture_reference {
+            return Ok(());
+        }
+        let Type::Record(record) = binding.ty else {
+            return Ok(());
+        };
+        let Some(previous) = self.record_field_type(binding.ty, &target.fields) else {
+            return Ok(());
+        };
         let incoming = Type::Closure(origin);
-        if previous == incoming { return Ok(()); }
+        if previous == incoming {
+            return Ok(());
+        }
+        if let Some(union) = previous.union() {
+            let mut members = self.unions.members(union);
+            let old = self.unions.payload(previous).unwrap_or(previous);
+            let payload = if self.absent_callable_type(previous) {
+                incoming
+            } else if let Some(family) =
+                self.common_borrowed_conditional_family(old, incoming, span)?
+            {
+                Type::BorrowedCallable(family)
+            } else if old == incoming {
+                incoming
+            } else {
+                return Ok(());
+            };
+            for member in &mut members {
+                if !matches!(member, Type::Null | Type::Undefined) {
+                    *member = payload;
+                }
+            }
+            let joined = self.unions.intern(members, span)?;
+            if let Some(record) = self.record_type_with_field(record, &target.fields, joined) {
+                context.bindings[target.binding].ty = Type::Record(record);
+            }
+            return Ok(());
+        }
         if let Some(family) = self.common_borrowed_conditional_family(previous, incoming, span)?
-            && let Some(record) = self.record_type_with_field(record, &target.fields, Type::BorrowedCallable(family)) {
+            && let Some(record) =
+                self.record_type_with_field(record, &target.fields, Type::BorrowedCallable(family))
+        {
             context.bindings[target.binding].ty = Type::Record(record);
         }
         Ok(())

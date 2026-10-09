@@ -1,3 +1,5 @@
+type NullableHolder = { run: (() => int) | undefined; };
+
 type OnceHolder = { run: () => int; };
 
 type int = number;
@@ -130,7 +132,21 @@ function workload(n: int, seed: int, input: string): int[][] {
             callbackFailure = guarded();
         }
 
-        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure]);
+        let nullableBefore = 0;
+        let nullableAfter = 0;
+        let nullableEmpty = 0;
+        {
+            const data = [value];
+            const action = (): int => { data[0] += 1; return data[0]; };
+            const holder: NullableHolder = { run: undefined };
+            installNullable(holder, action);
+            nullableBefore = holder.run!();
+            relayClearNullable(holder, i % 2 === 0);
+            nullableAfter = action();
+            nullableEmpty = holder.run === undefined ? 1 : 0;
+        }
+
+        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty]);
         i += 1;
     }
 
@@ -182,4 +198,13 @@ function installAndFail(holder: Holder, action: () => int): void { holder.run = 
 function failBeforeInstall(holder: Holder, action: () => int, fail: boolean): void { if (fail) { throw "before"; } holder.run = action; }
 
 function main() {
+}
+
+function installNullable(holder: NullableHolder, action: () => int): void {
+    holder.run = action;
+}
+function clearNullable(holder: NullableHolder): void { holder.run = undefined; }
+function relayClearNullable(holder: NullableHolder, early: boolean): void {
+    if (early) { clearNullable(holder); return; }
+    clearNullable(holder);
 }

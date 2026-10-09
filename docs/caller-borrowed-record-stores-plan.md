@@ -99,3 +99,28 @@ provenance. Do not simply remove those guards: new borrow transport and exceptio
 completion require explicit evidence. Existing boundary rejection tests include
 borrowed callee inputs; convert only the forms that become genuinely supported and
 retain callee-local and invalid-escape controls.
+
+## Nullable callback installation and clearing checkpoint
+
+Nullable callable fields now retain the concrete installed callback carrier while
+preserving the source-level nullable annotation. Present payload conversion uses
+the checked callback conversion; absent values carry no callback environment.
+Nested local record annotations infer capture generic arguments instead of naming
+signature-only parameters.
+
+Release replay traverses nullable union members. Native emission separately proves
+absence on every normal exit and reconstructs only absent variants after the call.
+This ends the old Rust borrow without a lifetime cast and keeps the holder usable.
+The proof handles direct clears, blocks, both branches, bare early returns and
+named relays. Unknown effects, loops and recursive proof cycles stay conservative.
+A released original payload alone does not prove that the replacement is absent.
+
+Focused witnesses cover readonly and mutable installation, invocation, clearing,
+input reuse while the cleared holder remains live, both relay exits, local-capture
+escape rejection and an uncleared conditional path. Broader B7 acceptance and
+measurements remain pending.
+
+Nullable record field payloads also contribute concrete error origins. This keeps
+nullable parameter callback bounds consistent with the installed wrapper's fallible
+result, including when other callbacks in the same program introduce failures.
+Typed callback throws are checked through native execution and editor catch hover.

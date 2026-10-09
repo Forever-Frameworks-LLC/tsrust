@@ -9294,3 +9294,48 @@ fn nullable_default_callback_record_parameter_preserves_capture_diagnostics() {
     let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///nullable-default-record.tsr").unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
 }
+
+#[test]
+fn nullable_caller_callback_clear_preserves_editor_contracts_and_loans() {
+    let source = tsrust_compiler::format(r#"
+        type Holder = { run: Mutable<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, action: Mutable<Function<int>>): void { holder.run = action; }
+        function clear(holder: Mutable<Holder>): void { holder.run = undefined; }
+        function main() {
+            const values = [3];
+            const action = (): int => { values[0] += 1; return values[0]; };
+            const holder: Holder = { run: undefined };
+            install(holder, action);
+            console.log(holder.run!());
+            clear(holder);
+            console.log(action(), holder.run === undefined);
+        }
+    "#).unwrap();
+    assert!(tsrust_lsp::diagnostics(&source, "file:///nullable-caller-store.tsr").unwrap().is_empty());
+    let hover = ask(&source, "textDocument/hover", "run!", 0);
+    let text = hover["contents"]["value"].as_str().unwrap();
+    assert!(text.contains("undefined") && text.contains("Mutable"), "{hover}");
+    let conflict = source.replace("clear(holder);", "");
+    assert_ne!(source, conflict);
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&conflict, "file:///nullable-caller-store.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "capture-conflict"), "{diagnostics}");
+}
+
+#[test]
+fn nullable_installed_callback_failure_has_typed_catch_hover() {
+    let source = tsrust_compiler::format(r#"
+        type Holder = { run: Mutable<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, action: Mutable<Function<int>>): void { holder.run = action; }
+        function main() {
+            const fail = true;
+            const action = (): int => { if (fail) { throw "failed"; } return 0; };
+            const holder: Holder = { run: undefined };
+            install(holder, action);
+            try { console.log(holder.run!()); } catch (error) { console.log(error); }
+        }
+    "#).unwrap();
+    assert!(tsrust_lsp::diagnostics(&source, "file:///nullable-error.tsr").unwrap().is_empty());
+    let hover = ask(&source, "textDocument/hover", "error);", 0);
+    let text = hover["contents"]["value"].as_str().unwrap();
+    assert!(text.contains("string"), "{hover}");
+}

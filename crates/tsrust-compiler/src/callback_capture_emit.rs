@@ -4,11 +4,30 @@ use super::*;
 impl Emitter<'_> {
     pub(super) fn local_callback_environment_type(&self, ty: Type) -> String {
         let rendered = self.native_type(ty);
-        let Type::Closure(origin) = ty else {
-            return rendered;
-        };
-        let parameters = self
-            .captured_callback_bounds(&self.program.closures[origin])
+        let mut pending = vec![ty];
+        let mut seen = HashSet::new();
+        let mut bounds = Vec::new();
+        while let Some(ty) = pending.pop() {
+            if !seen.insert(ty) {
+                continue;
+            }
+            match ty {
+                Type::Closure(origin) => {
+                    bounds.extend(self.captured_callback_bounds(&self.program.closures[origin]))
+                }
+                Type::Record(record) => pending.extend(
+                    self.program.records[record]
+                        .fields
+                        .iter()
+                        .filter_map(|field| field.ty),
+                ),
+                Type::Union(id) | Type::BorrowedUnion(id) => {
+                    pending.extend(self.program.unions[id.index()].members.iter().copied())
+                }
+                _ => {}
+            }
+        }
+        let parameters = bounds
             .iter()
             .map(|bound| {
                 (

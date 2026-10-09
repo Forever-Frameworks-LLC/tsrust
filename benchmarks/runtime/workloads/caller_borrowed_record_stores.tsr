@@ -1,3 +1,7 @@
+type NullableHolder = {
+    run: Mutable<Function<int>> | undefined;
+};
+
 type OnceHolder = {
     run: Once<Function<int>>;
 };
@@ -168,7 +172,26 @@ function workload(n: int, seed: int, input: string): int[][] {
             callbackFailure = guarded();
         }
 
-        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure]);
+        let nullableBefore = 0;
+        let nullableAfter = 0;
+        let nullableEmpty = 0;
+        {
+            const data = [value];
+            const action = (): int => {
+                data[0] += 1;
+                return data[0];
+            };
+            const holder: NullableHolder = {
+                run: undefined
+            };
+            installNullable(holder, action);
+            nullableBefore = holder.run!();
+            relayClearNullable(holder, i % 2 === 0);
+            nullableAfter = action();
+            nullableEmpty = holder.run === undefined ? 1 : 0;
+        }
+
+        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty]);
         i += 1;
     }
 
@@ -231,4 +254,21 @@ function failBeforeInstall(holder: Mutable<Holder>, action: ReadOnly<Function<in
 }
 
 function main() {
+}
+
+function installNullable(holder: Mutable<NullableHolder>, action: Mutable<Function<int>>): void {
+    holder.run = action;
+}
+
+function clearNullable(holder: Mutable<NullableHolder>): void {
+    holder.run = undefined;
+}
+
+function relayClearNullable(holder: Mutable<NullableHolder>, early: boolean): void {
+    if (early) {
+        clearNullable(holder);
+        return;
+    }
+
+    clearNullable(holder);
 }

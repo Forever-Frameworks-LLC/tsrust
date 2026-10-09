@@ -1,5 +1,9 @@
 #[path = "record_point_call_emit.rs"]
 mod record_point_call_emit;
+#[path = "nullable_callback_clear_emit.rs"]
+mod nullable_callback_clear_emit;
+#[path = "nullable_callback_replacement_emit.rs"]
+mod nullable_callback_replacement_emit;
 #[path = "native_capture_storage.rs"]
 mod native_capture_storage;
 #[path = "borrowed_payload_emit.rs"]
@@ -2674,7 +2678,8 @@ impl Emitter<'_> {
                 format!("<{}>", generics.join(", "))
             };
             let native_result=match &result_target {Some((_,error))=>format!("Result<{},{}>",self.native_type(fun.result),error),None=>self.native_type(fun.result)};
-            let replacements=self.nullable_parameter_replacement_bounds(index);
+            let mut replacements=self.nullable_parameter_replacement_bounds(index);
+            replacements.extend(self.nullable_callback_replacement_bounds(index));
             let replacement_where=if replacements.is_empty(){String::new()}else{format!(" where {}",replacements.join(", "))};
             let _ = writeln!(output,"fn {name}{generics}({params}) -> {native_result}{replacement_where} {{");
             if name == "main" {

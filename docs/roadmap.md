@@ -775,3 +775,12 @@ this captured pipeline. See milestones/182-scoped-aggregate-composition.md.
 Mixed-record unions move to the dedicated D2 discriminated-union family by owner
 decision, with validation-library composition as a motivating use case. The scope
 remains required. B7 caller-borrowing stores through record parameters are next.
+
+
+B7/gate 183 is in progress. Caller-owned readonly, mutable and once callbacks can
+be installed through record parameters. The nullable-store checkpoint adds
+installation, invocation, definite clearing, relay/early-return release and typed
+callback failures. Editor behavior and a 21-observation matched workload are checked
+without timing. Recursive retained-store summaries, broader branches/loops and
+replacement completeness remain open. See
+[the nullable-store handoff](handoff-2026-10-09-b7-nullable-callback-stores.md).

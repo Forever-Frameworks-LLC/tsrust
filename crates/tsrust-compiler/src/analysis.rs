@@ -3236,7 +3236,7 @@ impl Analyzer {
         // failures to the same field; check such a function again.
         {
             loop {
-                let known = crate::error_effects::record_field_origins(&self.program.records, &self.scoped_records).len();
+                let known = crate::error_effects::record_field_origins(&self.unions,&self.program.records, &self.scoped_records).len();
                 let stale = (0..sources.len())
                     .filter(|&index| sources[index].is_some() && field_origins[index] < known && self.checked[index].as_ref().is_some_and(|function| !function.template))
                     .collect::<Vec<_>>();
@@ -3341,7 +3341,7 @@ impl Analyzer {
             )?;
         }
         if !self.effects_only{self.check_dead_handlers()?;self.scoped_record_containers()?;self.record_parameter_carriers()?;}
-        let record_call_releases=record_call_capture_release::summaries(&self.checked,&self.program.records,&self.closures);
+        let record_call_releases=record_call_capture_release::summaries(&self.unions,&self.checked,&self.program.records,&self.closures);
         let deferred_generic_nominals = self.deferred_generic_nominal_uses();
         let record_parameter_borrows = (0..self.checked.len()).filter_map(|id| {
             let borrows = record_parameter_borrows::summary(&self.checked, &self.closures, id);
@@ -5338,7 +5338,7 @@ impl Analyzer {
     fn region_caller_error_effects(&mut self,context:&Context,body:&[Stmt],result:Type)->crate::error_effects::ErrorEffects {
         let caller=CheckedFunction{storage_exits:Default::default(),template:false,specialization:false,name:"#region".into(),bindings:context.bindings.clone(),parameter_count:0,result,body:body.to_vec()};
         let families=self.callables.storage.families().map(|(id,_,origins)|(id,origins.iter().copied().collect())).collect::<Vec<_>>();
-        let mut fields=crate::error_effects::record_field_origins(&self.program.records,&self.scoped_records);
+        let mut fields=crate::error_effects::record_field_origins(&self.unions,&self.program.records,&self.scoped_records);
         fields.extend(self.absent_callback_payloads.values().map(|id|(*id,Type::Undefined)));
         fields.extend(context.caller_error_origins.iter().copied());
         crate::error_effects::annotate_partial_with_callers(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,&caller,&self.unions,&self.polymorphic_invocations,&fields)
