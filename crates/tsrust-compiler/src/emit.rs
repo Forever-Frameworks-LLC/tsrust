@@ -3351,7 +3351,10 @@ impl Emitter<'_> {
                 else_body,
             } = &stmt.kind
             {
-                if self.map_clear_if_epoch(output, fun, stmt, declarations, depth, loop_label) { continue; }
+                if self.map_clear_if_epoch(output, fun, stmt, declarations, depth, loop_label) {
+                    self.map_post_entry_epochs(output,fun,stmt.span,depth);
+                    continue;
+                }
                 let _ = writeln!(
                     output,
                     "{indent}if {} {{",
@@ -3361,6 +3364,7 @@ impl Emitter<'_> {
                 let _ = writeln!(output, "{indent}}} else {{");
                 self.control_block(output, fun, else_body, depth + 1, loop_label);
                 let _ = writeln!(output, "{indent}}}");
+                self.map_post_entry_epochs(output,fun,stmt.span,depth);
                 continue;
             }
             let code = match &stmt.kind {
@@ -3529,10 +3533,7 @@ impl Emitter<'_> {
             } else {
                 let _ = writeln!(output, "{indent}{{ {declarations} {code} }}");
             }
-            for epoch in fun.storage_exits.map_entry_epochs(stmt.span).iter().filter(|epoch|!epoch.before) {
-                let _=writeln!(output,"{indent}{}",self.map_entry_epoch_code(fun,epoch));
-                self.exception_regions.renew_storage(&[format!("value{}",epoch.place.binding)],stmt.span.end);
-            }
+            self.map_post_entry_epochs(output,fun,stmt.span,depth);
         }
     }
 

@@ -104,7 +104,12 @@ impl Analyzer {
             })?;
             // Nested controls have distinct reaching states and need their own
             // return transport; do not apply their deletion to the parent scope.
-            if matches!(statement.kind,StmtKind::If{..}|StmtKind::While{..}|StmtKind::Loop{..}|StmtKind::ForOf{..}|StmtKind::Try(_)) {continue;}
+            if matches!(statement.kind,StmtKind::If{..}) {
+                snapshots.clear();
+                for state in context.storage_exits.map_branch_survivors(statement.span) {
+                    if state.consistent && local.contains(&state.place) {snapshots.push((statement.span,state.clone()));}
+                }
+            } else if matches!(statement.kind,StmtKind::While{..}|StmtKind::Loop{..}|StmtKind::ForOf{..}|StmtKind::Try(_)) {continue;}
             snapshots.sort_by_key(|(span,_)|span.start);
             for (span,state) in snapshots {
                 if !demand.after(statement.span.end,&state.released) {continue;}

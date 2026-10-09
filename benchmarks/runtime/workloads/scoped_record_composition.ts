@@ -400,7 +400,7 @@ function workload(n: int, seed: int, input: string): int[][] {
         const forOfMapObserved=forOfMapLoop();
         const countedMapObserved=countedMapLoop();const postMapObserved=postMapLoop();
         const emptyMapObserved=emptyScopedMap();
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped, nestedPairLooped, emptyMapObserved, countedMapObserved, postMapObserved, forOfMapObserved, knownEntryRelease(value), movedFieldEntryRelease(value), replacementEntryOutcome(value,value%2!==0)]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped, nestedPairLooped, emptyMapObserved, countedMapObserved, postMapObserved, forOfMapObserved, knownEntryRelease(value), movedFieldEntryRelease(value), replacementEntryOutcome(value,value%2!==0), branchEntryRelease(value, value % 2 === 0), mixedBranchEntryRelease(value, value % 2 === 0), pairedBranchEntryRelease(value, value % 2 === 0)]);
         i += 1;
     }
 
@@ -739,4 +739,62 @@ function replacementEntryOutcome(value:number,fail:boolean):number {
  {const outcomeSaved=outcomeMap.get("first");if(outcomeSaved!==undefined)outcomeObserved+=outcomeSaved.run();}
  outcomeMap.clear();outcomeFirst[0]=value+4;outcomeNext[0]=value+5;
  return outcomeObserved+outcomeFirst[0]+outcomeNext[0];
+}
+
+function branchEntryRelease(value: number, branch: boolean): number {
+    const branchFirst = [value];
+    const branchSecond = [value + 1];
+    const branchHandlers = new Map<string, Holder>();
+    branchHandlers.set("first", { run: (): number => branchFirst[0] });
+    branchHandlers.set("second", { run: (): number => branchSecond[0] });
+    let branchObserved = 0;
+    if (branch) {
+        branchHandlers.delete("first");
+        branchObserved = 1;
+    } else {
+        branchHandlers.delete("first");
+        branchObserved = 2;
+    }
+    branchFirst[0] = value + 2;
+    for (const [key, entry] of branchHandlers) { branchObserved += entry.run(); }
+    branchObserved += branchFirst[0] + branchHandlers.size;
+    branchHandlers.clear();
+    branchSecond[0] = value + 3;
+    return branchObserved + branchSecond[0];
+}
+
+function mixedBranchEntryRelease(value: number, branch: boolean): number {
+    const mixedFirst = [value];
+    const mixedSecond = [value + 1];
+    const mixedHandlers = new Map<string, Holder>();
+    mixedHandlers.set("first", { run: (): number => mixedFirst[0] });
+    mixedHandlers.set("second", { run: (): number => mixedSecond[0] });
+    if (branch) { mixedHandlers.clear(); } else { mixedHandlers.delete("first"); }
+    mixedFirst[0] = value + 2;
+    let mixedObserved = mixedHandlers.size + mixedFirst[0];
+    for (const [key, entry] of mixedHandlers) { mixedObserved += entry.run(); }
+    mixedHandlers.clear();
+    mixedSecond[0] = value + 3;
+    return mixedObserved + mixedSecond[0];
+}
+
+function pairedBranchEntryRelease(value: number, branch: boolean): number {
+    const pairedFirst = [value];
+    const pairedSecond = [value + 1];
+    const pairedThird = [value + 2];
+    const pairedLeft = new Map<string, Holder>();
+    const pairedRight = new Map<string, Holder>();
+    pairedLeft.set("first", { run: (): number => pairedFirst[0] });
+    pairedLeft.set("second", { run: (): number => pairedSecond[0] });
+    pairedRight.set("first", { run: (): number => pairedFirst[0] });
+    pairedRight.set("third", { run: (): number => pairedThird[0] });
+    if (branch) { pairedLeft.delete("first"); pairedRight.delete("first"); }
+    else { pairedRight.delete("first"); pairedLeft.delete("first"); }
+    pairedFirst[0] = value + 3;
+    let pairedObserved = pairedFirst[0] + pairedLeft.size + pairedRight.size;
+    for (const [key, entry] of pairedLeft) { pairedObserved += entry.run(); }
+    for (const [key, entry] of pairedRight) { pairedObserved += entry.run(); }
+    pairedLeft.clear(); pairedRight.clear();
+    pairedSecond[0] = value + 4; pairedThird[0] = value + 5;
+    return pairedObserved + pairedSecond[0] + pairedThird[0];
 }

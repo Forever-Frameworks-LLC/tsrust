@@ -93,6 +93,49 @@ fn narrowed_map_callback_errors_use_the_surviving_contract() {
 }
 
 #[test]
+fn deleting_the_same_entry_on_both_branches_releases_its_capture() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(branch:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});if(branch){console.log('left',handlers.delete('first'));}else{console.log('right',handlers.delete('first'));}first[0]=9;for(const [key,entry] of handlers){console.log(key,entry.run());}console.log('released',first[0]);handlers.clear();}function main():void{scenario(true);scenario(false);}");
+ verify_disposal(&source,2,"drop 0\nleft true\nsecond 5\nreleased 9\ndrop 1\ndrop 0\nright true\nsecond 5\nreleased 9\ndrop 1\n");
+ let conflict=source.replace("console.log('right', handlers.delete('first'));", "console.log('right');");
+ assert_ne!(conflict,source);
+ assert_eq!(tsrust_compiler::check(&conflict).err().expect("one branch retains capture").code,"capture-conflict");
+ let reinserted=source.replace("console.log('right', handlers.delete('first'));", "handlers.delete('first');handlers.set('first',{run:():int=>first[0]});");
+ assert_ne!(reinserted,source);
+ assert_eq!(tsrust_compiler::check(&reinserted).err().expect("reinserted capture remains live").code,"capture-conflict");
+ let exiting=source.replace("console.log('left', handlers.delete('first'));", "console.log('left');return;");
+ assert_ne!(exiting,source);
+ verify_disposal(&support::format_round_trip(&exiting),2,"left\ndrop 0\ndrop 1\ndrop 0\nright true\nsecond 5\nreleased 9\ndrop 1\n");
+}
+
+#[test]
+fn conditional_deletion_releases_shared_capture_from_two_maps() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(branch:boolean):void{const first=[3];const second=[5];const third=[7];const left=new Map<string,Holder>();const right=new Map<string,Holder>();left.set('first',{run:():int=>first[0]});left.set('second',{run:():int=>second[0]});right.set('first',{run:():int=>first[0]});right.set('third',{run:():int=>third[0]});if(branch){left.delete('first');right.delete('first');}else{right.delete('first');left.delete('first');}first[0]=9;for(const [key,entry] of left){console.log(key,entry.run());}for(const [key,entry] of right){console.log(key,entry.run());}console.log('released',first[0]);left.clear();right.clear();}function main():void{scenario(true);scenario(false);}");
+ verify_disposal(&source,4,"drop 0\ndrop 2\nsecond 5\nthird 7\nreleased 9\ndrop 1\ndrop 3\ndrop 2\ndrop 0\nsecond 5\nthird 7\nreleased 9\ndrop 1\ndrop 3\n");
+ let fields=source.replace("function scenario", "type Pair={left:Map<string,Holder>;right:Map<string,Holder>;marker:int;};function scenario").replace("const left = new Map<string, Holder>();\n    const right = new Map<string, Holder>();", "const box:Pair={left:new Map<string,Holder>(),right:new Map<string,Holder>(),marker:23};").replace("left.","box.left.").replace("right.","box.right.").replace("of left)","of box.left)").replace("of right)","of box.right)").replace("console.log('released', first[0]);", "console.log('released',first[0],box.marker);");
+ assert_ne!(fields,source);
+ verify_disposal(&support::format_round_trip(&fields),4,"drop 0\ndrop 2\nsecond 5\nthird 7\nreleased 9 23\ndrop 1\ndrop 3\ndrop 2\ndrop 0\nsecond 5\nthird 7\nreleased 9 23\ndrop 1\ndrop 3\n");
+
+}
+
+#[test]
+fn conditional_clear_and_delete_release_the_common_capture() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(branch:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});if(branch){handlers.clear();}else{handlers.delete('first');}first[0]=9;for(const [key,entry] of handlers){console.log(key,entry.run());}console.log('released',first[0],handlers.size);handlers.clear();}function main():void{scenario(true);scenario(false);}");
+ verify_disposal(&source,2,"drop 0\ndrop 1\nreleased 9 0\ndrop 0\nsecond 5\nreleased 9 1\ndrop 1\n");
+}
+
+#[test]
+fn replacing_the_same_entry_on_both_branches_releases_its_old_capture() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(branch:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});if(branch){handlers.set('first',{run:():int=>second[0]});}else{handlers.set('first',{run:():int=>second[0]+1});}first[0]=9;for(const [key,entry] of handlers){console.log(key,entry.run());}console.log('released',first[0]);handlers.clear();}function main():void{scenario(true);scenario(false);}");
+ verify_disposal(&source,3,"drop 0\nfirst 5\nreleased 9\ndrop 1\ndrop 0\nfirst 6\nreleased 9\ndrop 2\n");
+}
+
+#[test]
+fn branch_local_insertion_and_deletion_release_at_the_join() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(branch:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();if(branch){handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});handlers.delete('first');}else{handlers.set('second',{run:():int=>second[0]+1});}first[0]=9;for(const [key,entry] of handlers){console.log(key,entry.run());}console.log('released',first[0]);handlers.clear();}function main():void{scenario(true);scenario(false);}");
+ verify_disposal(&source,3,"drop 0\nsecond 5\nreleased 9\ndrop 1\nsecond 6\nreleased 9\ndrop 2\n");
+}
+
+#[test]
 fn ordinary_map_deletion_does_not_scan_survivor_environments() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});handlers.delete('first');for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();}");
  let analysis=tsrust_compiler::check(&source).unwrap();

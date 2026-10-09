@@ -142,7 +142,11 @@ function main(): void {
 A lookup view must leave scope before mutation of its Map. If another entry
 captures `first`, deleting only one such entry does not permit changing `first`.
 Dynamic keys and uncertain branch outcomes conservatively retain potentially live
-captures. Precise release across conditional and loop paths is still in progress.
+captures. At an if statement's normal completion join, entries deleted or
+replaced on every reaching path release their old captures. An early return does
+not retain its entries on the remaining path. Reinsertion retains the newly stored
+capture. Release before that join, within loops or within the same expression
+remains under development.
 Changing a callback environment representation for later capture access can scan
 surviving entries. Known entry deletion avoids that conversion when the released
 capture has no later source use or opaque named call. The release feature does

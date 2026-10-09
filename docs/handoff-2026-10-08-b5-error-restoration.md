@@ -1077,3 +1077,30 @@ call conservatism with checked capture summaries, then complete conditional/loop
 entry transport, same-expression release and array-element release. Preserve the
 owner fixtures. Five user-facing consumers still need refreshing before checks
 that execute those binaries. No timing or final family regression is claimed.
+
+## Conditional entry-release checkpoint
+
+Conditional normal-completion joins now narrow Map environments from joined
+reaching payloads. Both-arm deletion/replacement, mixed clear/delete, early return,
+branch-local insertion/deletion, independent Maps sharing a capture and multiple
+Map fields with preserved siblings have native O0/O3 witnesses. The isolated
+map_entry_branch_release module records lazy per-join survivor collections;
+map_post_entry_epochs handles ordinary and custom conditional emission. Existing
+ownership joins remain authoritative. One-arm retention or reinsertion continues
+to reject conflicting capture mutation.
+
+The final composition batch passes 113 tests, eight depth canaries pass and three
+focused entry-release editor tests pass. Matched support has fifty observations
+with independent arithmetic oracles and source-contract mutation guards. Whole
+project formatting changes only that Tsrust workload and its proven token-preserving
+fingerprint. Final matched native and Node-after-tsc verification passes all five configured
+correctness cases, untimed. SQLite preserves runtime/results/2026-10-09T00-02-52-098Z-verify.json
+and the earlier verification, plus exact original failure and repaired logs.
+Readback is byte-exact and verified loose copies are removed. Do not claim timing
+or B5 acceptance.
+
+Next requirements: loop join transport, release inside a branch before its normal
+completion join, same-expression release, array-element release and remaining
+composition cases. Five user-facing consumers remain at gate181 until an explicit
+refresh; the scratch debug compiler includes this source. Preserve the fifteen
+unrelated fixture edits. Do not restart completed checks after a repaired witness.

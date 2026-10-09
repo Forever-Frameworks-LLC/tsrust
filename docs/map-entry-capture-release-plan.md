@@ -462,3 +462,48 @@ untimed, with original JSON stored as
 runtime/results/2026-10-08T23-49-40-057Z-verify.json. Failed and repaired logs are
 preserved separately in SQLite with byte-exact readback. Whole-project formatting
 changes zero files and zero fingerprints.
+
+## Conditional normal-completion joins
+
+A focused red witness deleted the same known entry in both arms of an if statement
+and then changed its captured array. Source analysis accepted the program, but
+native Rust retained the removed environment in the Map payload type. Conversion
+now occurs after the normally completing if statement, using the joined reaching
+payloads rather than either arm's local snapshot.
+
+The isolated map_entry_branch_release module gathers candidate roots from checked
+release snapshots and records the actual joined payloads. It handles entries
+introduced inside a branch as well as entries present before the branch. This does
+not require another clone of the pre-branch capture owners. Exit storage keeps a
+lazy collection of survivor proofs per conditional join, so independent Maps and
+separate Map fields in one record can narrow at the same source point. Replayed
+proofs remain conservative about changed inputs and union their payloads.
+
+Native emission uses a shared post-entry-epoch helper after ordinary statements
+and conditional emission, including the existing clear/storage return transport.
+The focused clear/delete witness caught the missing post-conversion on that custom
+path. Normal completion can therefore carry empty storage from one arm and a
+surviving environment from the other. Returning arms do not contribute surviving
+entries. Conditional reinsertion and branches that leave an entry untouched still
+retain their captures and reject conflicting mutation.
+
+Native O0/O3 witnesses cover both branch outcomes, two Maps sharing one capture,
+two Map fields with an observed record sibling, clear/delete, early return,
+replacement by distinct callback origins and branch-local insertion/deletion.
+The final composition batch passes 113 tests. All eight depth canaries and three
+focused entry-release editor checks pass. The matched workload now has fifty
+observations, adding both-branch deletion, mixed clear/delete and paired shared
+capture release. Tsrust and TypeScript sources, independent arithmetic oracle,
+token contracts, rehashed mutation guards, exact registration expectations and
+manifest source hashes are updated. Existing oracle/run/profile/report hooks are
+retained and verified by the focused registration test.
+
+Whole-project formatting changes only the matched Tsrust workload and proves
+unchanged tokens before refreshing its fingerprint. Final native and Node-after-tsc
+verification passes all five configured correctness cases. SQLite retains the
+exact final JSON as runtime/results/2026-10-09T00-02-52-098Z-verify.json and the
+preceding verification record, together with original failed and repaired logs.
+Every imported record is read back byte for byte before its loose copy is removed. This remains focused implementation progress,
+not full B5 acceptance. Loop joins, release inside a branch before its join,
+same-expression release and array-element release remain open. No timing or full
+compiler/LSP family regression is claimed.

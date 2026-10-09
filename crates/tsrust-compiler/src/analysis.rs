@@ -6,6 +6,8 @@ mod map_entry_capture_owners;
 mod map_entry_epochs;
 #[path = "map_entry_demand.rs"]
 mod map_entry_demand;
+#[path = "map_entry_branch_release.rs"]
+mod map_entry_branch_release;
 #[path = "assignment_callee.rs"]
 mod assignment_callee;
 #[path = "owned_array_patterns.rs"]
@@ -4802,6 +4804,7 @@ impl Analyzer {
         then_body: &mut [Stmt],
         else_body: &mut [Stmt],
         result_type: Type,
+        span: Span,
     ) -> Result<bool, Diagnostic> {
         self.truthy_condition(context, condition);
         let actual = self.expression(
@@ -4858,6 +4861,7 @@ impl Analyzer {
             };
             joined.restore(&mut context.bindings[id]);
         }
+        self.record_map_branch_release(context,then_body,else_body,span)?;
         self.record_branch_carriers(context,then_body,else_body)?;
         Ok(then_exits && else_exits)
     }
@@ -5465,7 +5469,7 @@ impl Analyzer {
                     else_body,
                 } => {
                     exited =
-                        self.if_statement(context, condition, then_body, else_body, result_type)?;
+                        self.if_statement(context, condition, then_body, else_body, result_type,stmt.span)?;
                 }
                 StmtKind::Let {
                     rebindable,

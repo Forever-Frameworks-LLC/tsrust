@@ -20279,9 +20279,9 @@
       "implementationAccepted": false,
       "measured": false,
       "notes": "Focused B5 workload support; whole feature acceptance and timing remain pending. Array removal and widening, independent Maps in indexed record fields, nullable reads, whole-field replacement, borrowed iteration, clear and scope release.",
-      "specification": "Retain forty-seven scalar observations per iteration, including nested refill, finally visibility, branch execution, consumed normal/caught storage and explicit restoration after early/late errors and expression transfers, plus conditional survivor storage on normal/error completion and replacement outside exception handling and finally without catch, including pending returns, loop exits, outer-loop empty storage, contextual nested Map initialization, record-leaf loop storage, sibling mutation, key order, nested finally completion, nested caught refill, handler rethrow and cleanup-error override, evaluated handler returns, caught loop continue/break and fallthrough; known-key entry deletion, moved nested record-field release/refill and successful or failed entry replacement; independent arithmetic oracle.",
-      "sourceSha256": "b68167f50d33cbef7f88cb90632e5f7b569faba930ecfe5722ef4004409ec9e6",
-      "counterpartSha256": "1a55f474476214836cb697a3017e83bef2c90168b0bb2c39d085c7a7cd1ef565"
+      "specification": "Retain fifty scalar observations per iteration, including nested refill, finally visibility, branch execution, consumed normal/caught storage and explicit restoration after early/late errors and expression transfers, plus conditional survivor storage on normal/error completion and replacement outside exception handling and finally without catch, including pending returns, loop exits, outer-loop empty storage, contextual nested Map initialization, record-leaf loop storage, sibling mutation, key order, nested finally completion, nested caught refill, handler rethrow and cleanup-error override, evaluated handler returns, caught loop continue/break and fallthrough; known-key entry deletion, moved nested record-field release/refill and successful or failed entry replacement; both-branch deletion, mixed clear/delete and paired Map shared-capture release; independent arithmetic oracle.",
+      "sourceSha256": "67f0843a70b5ed72b4caf42fa2817ee7edac73761ebc0343e8ece1678adeec94",
+      "counterpartSha256": "067d2be3e8ca23fcee4454acd7415baa503a5e0446f549b8a40fe12165d87e30"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

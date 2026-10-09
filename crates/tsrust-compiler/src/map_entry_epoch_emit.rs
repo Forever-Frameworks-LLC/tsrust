@@ -2,6 +2,13 @@
 use super::*;
 
 impl Emitter<'_> {
+    pub(super) fn map_post_entry_epochs(&self,output:&mut String,fun:&CheckedFunction,span:crate::Span,depth:usize) {
+        let indent="    ".repeat(depth);
+        for epoch in fun.storage_exits.map_entry_epochs(span).iter().filter(|epoch|!epoch.before) {
+            let _=writeln!(output,"{indent}{}",self.map_entry_epoch_code(fun,epoch));
+            self.exception_regions.renew_storage(&[format!("value{}",epoch.place.binding)],span.end);
+        }
+    }
     pub(super) fn map_entry_epoch_code(&self,fun:&CheckedFunction,epoch:&crate::analysis::MapEntryEpoch)->String {
         let mut source=epoch.input;
         let mut target=epoch.output;
