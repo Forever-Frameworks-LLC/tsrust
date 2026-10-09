@@ -9,7 +9,7 @@ impl Analyzer {
         self.scoped_map_entry_epochs_with_demand(context,body,&mut results,&demand,&std::collections::BTreeSet::new()).map(|_|())
     }
     #[inline(never)]
-    fn scoped_map_entry_epochs_with_demand(&mut self, context:&mut Context, body:&mut [Stmt], results:&mut HashMap<usize,Type>, demand:&map_entry_demand::Demand, inherited:&std::collections::BTreeSet<crate::capture_loan_owners::Place>) -> Result<std::collections::BTreeSet<crate::capture_loan_owners::Place>,Diagnostic> {
+    pub(super) fn scoped_map_entry_epochs_with_demand(&mut self, context:&mut Context, body:&mut [Stmt], results:&mut HashMap<usize,Type>, demand:&map_entry_demand::Demand, inherited:&std::collections::BTreeSet<crate::capture_loan_owners::Place>) -> Result<std::collections::BTreeSet<crate::capture_loan_owners::Place>,Diagnostic> {
         if !context.storage_exits.has_map_entry_survivors() {return Ok(inherited.clone());}
         let mut local=inherited.clone();
         for item in body.iter() {
@@ -93,6 +93,7 @@ impl Analyzer {
             self.empty_map_iteration_carriers(context,std::slice::from_ref(statement),results)?;
             let field_initializer=matches!(&statement.kind,StmtKind::Let{binding:Some(binding),..} if local.iter().any(|place|place.binding==*binding && !place.fields.is_empty()));
             if !field_initializer {self.retarget_scoped_map_body(context,std::slice::from_mut(statement),&results,&HashMap::new())?;}
+            self.scoped_map_branch_entries(context,statement,results,demand,&local)?;
             if let StmtKind::ForOf{body:inner,..}=&mut statement.kind {
                 let mut inner_results=results.clone();
                 self.scoped_map_entry_epochs_with_demand(context,inner,&mut inner_results,demand,&std::collections::BTreeSet::new())?;

@@ -161,6 +161,22 @@ fn pre_test_map_entry_release_preserves_zero_and_repeated_iterations() {
 }
 
 #[test]
+fn map_entry_release_inside_branch_precedes_capture_mutation() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(branch:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});if(branch){handlers.delete('first');first[0]=9;console.log('released',first[0]);for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();return;}console.log('retained',handlers.size);handlers.clear();}function main():void{scenario(true);scenario(false);}");
+ verify_disposal(&source,2,"drop 0\nreleased 9\nsecond 5\ndrop 1\nretained 2\ndrop 0\ndrop 1\n");
+}
+
+#[test]
+fn map_entry_release_inside_falling_branch_transports_remaining_storage() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(branch:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});if(branch){handlers.delete('first');first[0]=9;console.log('released',first[0]);for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();}console.log('retained',handlers.size);handlers.clear();}function main():void{scenario(true);scenario(false);}");
+ verify_disposal(&source,2,"drop 0\nreleased 9\nsecond 5\ndrop 1\nretained 0\nretained 2\ndrop 0\ndrop 1\n");
+ let retained=source.replace("        handlers.clear();", "");
+ assert_ne!(retained,source);
+ verify_disposal(&support::format_round_trip(&retained),2,"drop 0\nreleased 9\nsecond 5\nretained 1\ndrop 1\nretained 2\ndrop 0\ndrop 1\n");
+
+}
+
+#[test]
 fn narrowed_map_refill_in_loop_keeps_survivors_and_new_origins() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(limit:int):void{const first=[3];const second=[5];const third=[7];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});handlers.delete('first');first[0]=9;let turn=0;while(turn<limit){handlers.set('third',{run:():int=>third[0]});turn++;}for(const [key,entry] of handlers){console.log(key,entry.run());}console.log('released',first[0],turn);handlers.clear();third[0]=11;console.log('cleared',third[0]);}function main():void{scenario(0);scenario(2);}");
  support::execute(&source,"second 5\nreleased 9 0\ncleared 11\nsecond 5\nthird 7\nreleased 9 2\ncleared 11\n",None);

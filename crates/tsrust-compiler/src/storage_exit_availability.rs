@@ -2,7 +2,7 @@
 use super::*;
 
 #[derive(Clone, Debug, Default)]
-pub(crate) struct Exits(HashMap<(usize, usize), Vec<Unavailable>>, HashMap<usize, Vec<Unavailable>>, HashMap<(usize, usize), Vec<Unavailable>>, Option<Box<HashMap<(usize,usize),MapEntrySurvivors>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize),Type>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntrySurvivors>>>>);
+pub(crate) struct Exits(HashMap<(usize, usize), Vec<Unavailable>>, HashMap<usize, Vec<Unavailable>>, HashMap<(usize, usize), Vec<Unavailable>>, Option<Box<HashMap<(usize,usize),MapEntrySurvivors>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize),Type>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntrySurvivors>>>>, Option<Box<HashMap<(usize,usize,bool),Vec<MapEntryEpoch>>>>);
 #[derive(Clone, Debug)]
 pub(crate) struct MapEntryEpoch {
     pub(crate) place: crate::capture_loan_owners::Place,
@@ -69,6 +69,12 @@ impl Exits {
     }
     pub(crate) fn map_entry_survivors(&self, span: Span) -> Option<&MapEntrySurvivors> {
         self.3.as_ref()?.get(&(span.start,span.end))
+    }
+    pub(super) fn record_map_branch_restore(&mut self,span:Span,right:bool,epochs:Vec<MapEntryEpoch>) {
+        self.7.get_or_insert_with(Default::default).insert((span.start,span.end,right),epochs);
+    }
+    pub(crate) fn map_branch_restore(&self,span:Span,right:bool)->&[MapEntryEpoch] {
+        self.7.as_ref().and_then(|points|points.get(&(span.start,span.end,right))).map(Vec::as_slice).unwrap_or(&[])
     }
     pub(super) fn record_map_entry_epoch(&mut self, span: Span, epoch: MapEntryEpoch) {
         let epochs=self.4.get_or_insert_with(Default::default).entry((span.start,span.end)).or_default();

@@ -1184,3 +1184,34 @@ This remains focused B5 progress. Release inside an iteration or branch before
 completion, same-expression release, precise array-element release, record Set
 keys and broader error/alias/composition checks remain open. Full family regression
 and timing remain deferred. User-facing consumers are still at gate181.
+
+## Release inside branch source checkpoint
+
+Two red O0/O3 disposal witnesses demonstrated native borrow errors when a branch
+deleted an entry and then changed its released capture before completion. The
+isolated map_entry_branch_transport planner now plans each arm with independent
+storage types and the enclosing capture demand. Nonabrupt arms record restoration
+to the incoming common storage family; abrupt arms keep their exit disposal.
+Native tuple transport emits these restoration conversions before normal joins.
+The lazy restoration table lives in storage_exit_availability and follows existing
+checked-storage cloning. Existing ownership joins remain authoritative.
+
+Witnesses cover returning arms, falling-through arms, clearing before completion
+and retaining the surviving entry across the join. All 70 Map-filtered composition
+tests pass. Eight normal-stack depth canaries pass. One editor witness accepts
+released-capture mutation and rejects mutation of a still-captured sibling.
+
+Matched support has 55 observations. Paired sources, independent oracle, exact
+registration values, whole-output token contracts and rehashed mutation guards
+cover deletion and capture mutation inside a branch. Whole-project formatting
+changes one workload and one token-preserving fingerprint. Registration passes;
+native and Node-after-tsc verification passes all five cases, untimed. SQLite
+retains runtime/results/2026-10-09T01-01-45-311Z-verify.json and failed/repaired logs,
+read back byte for byte before loose removal.
+
+B5 is incomplete. Next verify branch refill after prior narrowing, including new
+callback origins and aliases; do not assume restoring the incoming family can
+represent newly introduced origins. Also complete in-iteration and same-expression
+release, precise array-element release, record Set key rules and broader error
+composition. Full family regressions and timing remain deferred. User-facing
+consumers remain at gate181; scratch compilers contain current source.

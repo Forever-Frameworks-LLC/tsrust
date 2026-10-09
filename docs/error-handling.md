@@ -151,8 +151,11 @@ potentially live captures. This covers while, counted for, do-while and for-of
 completion. A later loop may refill a narrowed local Map with new callback
 environments while keeping surviving entries. Its storage representation widens
 before entry, including the zero-iteration path. Multiple incoming origins and
-counted-loop block transport are supported. Release inside an iteration before completion, before a branch join,
-or within the same expression remains under development.
+counted-loop block transport are supported. A branch may delete a known entry
+and change its released capture before the branch ends. Surviving storage returns
+through the branch join; returning arms dispose it at their exit. Other retained
+entries continue to protect their captures. Release inside an iteration before
+completion or within the same expression remains under development.
 Changing a callback environment representation for later capture access can scan
 surviving entries. Known entry deletion avoids that conversion when the released
 capture has no later source use or opaque named call. The release feature does

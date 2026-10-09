@@ -8673,3 +8673,13 @@ fn loop_map_refill_keeps_new_capture_protected_until_clear() {
  let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///loop-map-refill.tsr").unwrap()).unwrap();
  assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
 }
+
+#[test]
+fn map_entry_release_inside_branch_retains_other_capture_diagnostics() {
+ let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function scenario(branch:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});if(branch){handlers.delete('first');first[0]=9;console.log(first[0]);}handlers.clear();}function main():void{scenario(true);}").unwrap();
+ assert!(tsrust_lsp::diagnostics(&source,"file:///branch-inner-release.tsr").unwrap().is_empty());
+ let conflict=source.replace("first[0] = 9;","second[0]=9;");
+ assert_ne!(conflict,source);
+ let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///branch-inner-release.tsr").unwrap()).unwrap();
+ assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+}

@@ -131,6 +131,12 @@ impl Emitter<'_> {
         for place in self.map_block_return_places(fun, declarations, else_body) {
             if !places.contains(&place) { places.push(place); }
         }
+        for right in [false,true] {
+            for epoch in fun.storage_exits.map_branch_restore(statement.span,right) {
+                let place=self.map_entry_epoch_place(fun,epoch);
+                if !places.contains(&place){places.push(place);}
+            }
+        }
         if places.is_empty() { return false; }
         places.sort();
         let comma = if places.is_empty() { "" } else { "," };
@@ -141,12 +147,18 @@ impl Emitter<'_> {
         {
             let _branch=self.exception_regions.storage_branch();
             self.control_block_epochs(output, fun, then_body, depth + 1, loop_label, Some(declarations));
+            for epoch in fun.storage_exits.map_branch_restore(statement.span,false) {
+                let _=writeln!(output,"{indent}    {}",self.map_entry_epoch_code(fun,epoch));
+            }
             let then_values=places.iter().map(|place|self.map_branch_exit_value(fun,then_body,place)).collect::<Vec<_>>().join(",");
             let _ = writeln!(output, "{indent}    ({then_values}{comma})\n{indent}}} else {{");
         }
         {
             let _branch=self.exception_regions.storage_branch();
             self.control_block_epochs(output, fun, else_body, depth + 1, loop_label, Some(declarations));
+            for epoch in fun.storage_exits.map_branch_restore(statement.span,true) {
+                let _=writeln!(output,"{indent}    {}",self.map_entry_epoch_code(fun,epoch));
+            }
             let else_values=places.iter().map(|place|self.map_branch_exit_value(fun,else_body,place)).collect::<Vec<_>>().join(",");
             let _ = writeln!(output, "{indent}    ({else_values}{comma})\n{indent}}};");
         }

@@ -4,6 +4,8 @@ mod capture_loan_binding;
 mod map_entry_capture_owners;
 #[path="map_entry_epochs.rs"]
 mod map_entry_epochs;
+#[path = "map_entry_branch_transport.rs"]
+mod map_entry_branch_transport;
 #[path = "map_entry_demand.rs"]
 mod map_entry_demand;
 #[path = "map_entry_completion_release.rs"]
