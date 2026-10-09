@@ -1519,3 +1519,31 @@ No cleanup implementation acceptance, new matched observation, timing or install
 consumer refresh is claimed. The next source chunk must consume phase payload
 proofs, preserve per-operation storage types and source availability, and carry
 normal/error/control storage through finally before resuming loop control.
+
+
+### Native storage projections and post-test conditions
+
+Native completion values now consult point-specific Map storage representations.
+When live storage differs from the destination family, emission moves entries and
+projects callback payloads into that family. An unavailable transferred binding
+produces typed empty storage; projection cannot revive its source owner. The
+availability regression covers transfer boundaries and storage renewal.
+
+Focused proof tests cover narrowing after deletion, widening before refill and
+post-test conditions. The post-test witness initially failed because lexical
+lookup retained the last body statement's working family. The loop planner now
+records the condition after backedge conversion with the carried family. All four
+phase/native-point proofs pass. This is a prerequisite for cleanup transport,
+not cleanup acceptance. The retained finally/control native witness remains red;
+phase-specific cleanup storage, nested control transport and structural record
+Set keys still require implementation. No timing or consumer refresh is claimed.
+
+
+Final native-point prerequisite checks: all four phase/point proofs pass, the
+projection availability proof passes, all eight depth canaries pass, and the
+existing post-test native witness passes. Six editor checks and the matched
+workload registration pass. The final cleanup/control witness still fails native
+compilation; earlier affected batches retain their 75 passes plus that red.
+Whole-project formatting changes zero files and zero fingerprints. Closed check
+logs, including the post-condition red and repaired proof, are imported into
+SQLite and verified byte for byte before deleting loose copies. B5 remains open.

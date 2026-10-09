@@ -6,6 +6,8 @@ use crate::Span;
 pub(super) struct Value {
     pub place: String,
     pub empty: String,
+    /// Conversion moves the live owner; unavailable source bindings use empty.
+    pub live: Option<String>,
     pub transferred: Option<Span>,
 }
 
@@ -19,7 +21,7 @@ impl State {
         transferred.is_none_or(|span| self.0.get(place).is_some_and(|boundary|span.end<=*boundary))
     }
     pub fn render(&self, values: &[Value]) -> String {
-        format!("({},)", values.iter().map(|value| if self.available(&value.place,value.transferred) {value.place.as_str()} else {value.empty.as_str()}).collect::<Vec<_>>().join(","))
+        format!("({},)", values.iter().map(|value| if self.available(&value.place,value.transferred) {value.live.as_deref().unwrap_or(value.place.as_str())} else {value.empty.as_str()}).collect::<Vec<_>>().join(","))
     }
 }
 
@@ -40,4 +42,21 @@ impl Stack {
 }
 impl Drop for Scope<'_> {
     fn drop(&mut self) { *self.stack.0.borrow_mut()=self.previous.take().expect("native availability scope"); }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn projected_storage_never_revives_a_transferred_source_owner() {
+        let mut state=State::default();
+        let value=Value{place:"owner".into(),empty:"Empty::new()".into(),live:Some("move_survivors(owner)".into()),transferred:Some(Span::new(10,20))};
+        assert_eq!(state.render(std::slice::from_ref(&value)),"(Empty::new(),)");
+        state.renew(&["owner".into()],19);
+        assert_eq!(state.render(std::slice::from_ref(&value)),"(Empty::new(),)");
+        state.renew(&["owner".into()],20);
+        assert_eq!(state.render(std::slice::from_ref(&value)),"(move_survivors(owner),)");
+        let mut ordinary=value;ordinary.live=None;
+        assert_eq!(state.render(&[ordinary]),"(owner,)");
+    }
 }

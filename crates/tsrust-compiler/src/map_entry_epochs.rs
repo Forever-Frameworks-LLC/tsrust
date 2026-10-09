@@ -98,6 +98,8 @@ impl Analyzer {
             if let StmtKind::Let{binding:Some(binding),value,..}=&statement.kind
                 && let Some(ty)=self.planned_scoped_map_result(value,&results)
             {results.insert(*binding,ty);context.bindings[*binding].ty=ty;}
+            let native_inputs=results.iter().filter(|(_,ty)|self.contains_scoped_map_storage(**ty)).map(|(binding,ty)|(*binding,*ty)).collect();
+            context.storage_exits.record_map_native_inputs(statement.span.start,native_inputs);
             self.empty_map_iteration_carriers(context,std::slice::from_ref(statement),results)?;
             let field_initializer=matches!(&statement.kind,StmtKind::Let{binding:Some(binding),..} if local.iter().any(|place|place.binding==*binding && !place.fields.is_empty()));
             if !field_initializer {self.retarget_scoped_map_body(context,std::slice::from_mut(statement),&results,&HashMap::new())?;}

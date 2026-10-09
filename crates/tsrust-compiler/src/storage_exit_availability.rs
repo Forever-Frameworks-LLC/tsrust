@@ -107,6 +107,12 @@ impl Exits {
     pub(crate) fn map_entry_survivors(&self, span: Span) -> Option<&MapEntrySurvivors> {
         self.3.as_ref()?.get(&(span.start,span.end))
     }
+    pub(super) fn record_map_native_inputs(&mut self,start:usize,inputs:std::collections::BTreeMap<usize,Type>) {
+        if !inputs.is_empty(){self.12.get_or_insert_with(Default::default).record_native_inputs(start,inputs);}
+    }
+    pub(crate) fn map_native_input(&self,start:usize,binding:usize)->Option<Type> {
+        self.12.as_ref()?.native_input(start,binding)
+    }
     pub(super) fn record_map_completion_phase(&mut self,boundary:usize,phase:map_completion_payloads::Phase,kind:Option<crate::completion::CompletionKind>,payloads:std::collections::BTreeMap<crate::capture_loan_owners::Place,HashSet<Type>>) {
         self.12.get_or_insert_with(Default::default).record(boundary,phase,kind,payloads);
     }

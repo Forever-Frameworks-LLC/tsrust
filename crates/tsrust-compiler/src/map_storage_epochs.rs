@@ -189,14 +189,39 @@ impl Emitter<'_> {
     }
     pub(super) fn map_storage_value_before(&self,fun:&CheckedFunction,start:usize,place:&str)->super::native_storage_availability::Value {
         let (binding,names)=self.map_storage_binding(fun,place).expect("checked Map storage");
-        self.map_storage_value(fun,place,fun.storage_exits.transfer_before(start,binding,&names))
+        self.map_storage_value(fun,place,fun.storage_exits.transfer_before(start,binding,&names),start)
     }
     pub(super) fn map_storage_value_at_expression(&self,fun:&CheckedFunction,point:(usize,usize),place:&str)->super::native_storage_availability::Value {
         let (binding,names)=self.map_storage_binding(fun,place).expect("checked Map storage");
-        self.map_storage_value(fun,place,fun.storage_exits.transfer_at_expression(point,binding,&names))
+        self.map_storage_value(fun,place,fun.storage_exits.transfer_at_expression(point,binding,&names),point.0)
     }
-    fn map_storage_value(&self,fun:&CheckedFunction,place:&str,transferred:Option<crate::Span>)->super::native_storage_availability::Value {
-        super::native_storage_availability::Value{place:place.into(),empty:self.map_empty_storage_value(fun,place),transferred}
+    fn map_storage_value(&self,fun:&CheckedFunction,place:&str,transferred:Option<crate::Span>,start:usize)->super::native_storage_availability::Value {
+        let (binding,_)=self.map_storage_binding(fun,place).expect("checked Map storage");
+        self.map_epoch_storage_value(fun,place,transferred,start,fun.bindings[binding].ty)
+    }
+    pub(super) fn map_epoch_storage_value(&self,fun:&CheckedFunction,place:&str,transferred:Option<crate::Span>,start:usize,output:Type)->super::native_storage_availability::Value {
+        let (binding,fields)=self.map_storage_binding(fun,place).expect("checked Map storage");
+        let target=self.map_storage_leaf_type(output,&fields).expect("destination Map path");
+        let empty=format!("<{}>::new()",self.native_type(target));
+        let live=fun.storage_exits.map_native_input(start,binding).and_then(|input| {
+            let source=self.map_storage_leaf_type(input,&fields)?;
+            let target=self.map_storage_leaf_type(output,&fields)?;
+            if source==target{return None;}
+            let (Type::Map(source),Type::Map(target))=(source,target) else{return None;};
+            let source=self.program.records[source].map_definition.as_ref()?.value;
+            let target_value=self.program.records[target].map_definition.as_ref()?.value;
+            let native=self.native_type(Type::Map(target));
+            let converted=self.map_entry_payload_projection(source,target_value,"entry_value");
+            Some(format!("<{native}>::from_values(({place}).tsr_owned_items().map(|entry|{{let (entry_key,entry_value)=TsrMapEntry::into_pair(entry);(entry_key,{converted})}}))"))
+        });
+        super::native_storage_availability::Value{place:place.into(),empty,live,transferred}
+    }
+    fn map_storage_leaf_type(&self,mut ty:Type,fields:&[String])->Option<Type> {
+        for name in fields {
+            let Type::Record(record)=ty else{return None;};
+            ty=self.program.records[record].fields.iter().find(|field|field.name.text==*name)?.ty?;
+        }
+        Some(ty)
     }
 
 }

@@ -67,6 +67,12 @@ impl Analyzer {
         }
         self.plan_map_iteration_controls(context,statement,&epochs)?;
         for epoch in &mut epochs{epoch.back.input=*inner.get(&epoch.entry.place.binding).expect("carried Map root");}
+        if let StmtKind::Loop{condition:Some(condition),post_test:true,..}=&statement.kind {
+            // The condition runs after backedge conversion, not in the last
+            // body statement's working storage representation.
+            let inputs=results.iter().filter(|(_,ty)|self.contains_scoped_map_storage(**ty)).map(|(binding,ty)|(*binding,*ty)).collect();
+            context.storage_exits.record_map_native_inputs(condition.span.start,inputs);
+        }
         context.storage_exits.record_map_iteration_epochs(statement.span,epochs);
         Ok(())
     }

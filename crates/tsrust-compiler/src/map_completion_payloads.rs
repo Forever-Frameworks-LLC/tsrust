@@ -12,17 +12,26 @@ pub(crate) struct Snapshot {
     pub(crate) payloads:BTreeMap<Place,HashSet<Type>>,
 }
 #[derive(Clone,Debug,Default)]
-pub(crate) struct Snapshots(HashMap<usize,Vec<Snapshot>>);
+pub(crate) struct Snapshots {
+    phases:HashMap<usize,Vec<Snapshot>>,
+    native_inputs:BTreeMap<usize,BTreeMap<usize,Type>>,
+}
 impl Snapshots {
     pub(crate) fn record(&mut self,boundary:usize,phase:Phase,kind:Option<CompletionKind>,payloads:BTreeMap<Place,HashSet<Type>>) {
-        let states=self.0.entry(boundary).or_default();
+        let states=self.phases.entry(boundary).or_default();
         if let Some(previous)=states.iter_mut().find(|state|state.phase==phase && state.kind==kind) {
             for (place,types) in payloads {previous.payloads.entry(place).or_default().extend(types);}
         } else {states.push(Snapshot{phase,kind,payloads});}
     }
+    pub(crate) fn record_native_inputs(&mut self,start:usize,inputs:BTreeMap<usize,Type>) {
+        self.native_inputs.insert(start,inputs);
+    }
+    pub(crate) fn native_input(&self,start:usize,binding:usize)->Option<Type> {
+        self.native_inputs.range(..=start).rev().find_map(|(_,inputs)|inputs.get(&binding).copied())
+    }
     #[cfg(test)]
     pub(crate) fn at(&self,boundary:usize,phase:Phase,kind:Option<CompletionKind>)->Option<&BTreeMap<Place,HashSet<Type>>> {
-        self.0.get(&boundary)?.iter().find(|state|state.phase==phase && state.kind==kind).map(|state|&state.payloads)
+        self.phases.get(&boundary)?.iter().find(|state|state.phase==phase && state.kind==kind).map(|state|&state.payloads)
     }
 }
 
@@ -79,6 +88,39 @@ mod tests {
         let boundary=region.body[0].span.start;
         assert!(function.storage_exits.map_completion_payloads(boundary,Phase::Cleaned,None).unwrap().is_empty());
         assert!(function.storage_exits.map_completion_payloads(boundary,Phase::Cleaned,Some(CompletionKind::Return)).unwrap().is_empty());
+    }
+
+    #[test]
+    fn checked_native_points_follow_deletion_and_refill_families() {
+        let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const third=[7];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});handlers.delete('first');first[0]=9;handlers.set('third',{run:():int=>third[0]});handlers.clear();third[0]=11;}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let checked=crate::check(&source).unwrap();
+        let function=checked.program.functions.iter().find(|function|function.name=="main").unwrap();
+        let binding=function.bindings.iter().position(|binding|binding.name=="handlers").unwrap();
+        let mutation=function.body.iter().find(|statement|matches!(&statement.kind,crate::syntax::StmtKind::Assign{target,..} if matches!(&target.kind,crate::syntax::ExprKind::Index(base,_) if matches!(&base.kind,crate::syntax::ExprKind::Name(name) if name=="first")))).unwrap();
+        let narrowed=function.storage_exits.map_native_input(mutation.span.start,binding).unwrap();
+        let insertion=function.body.iter().rev().find_map(|statement|if let crate::syntax::StmtKind::Expr(expression)=&statement.kind && expression.target==Some(crate::syntax::CallTarget::MapMethod(crate::syntax::MapMethod::Set)){Some((statement,expression))}else{None}).unwrap();
+        let widened=function.storage_exits.map_native_input(insertion.0.span.start,binding).unwrap();
+        assert_ne!(narrowed,widened);
+        let crate::syntax::ExprKind::Call(callee,_)=&insertion.1.kind else{unreachable!()};
+        let crate::syntax::ExprKind::Field(receiver,_)=&callee.kind else{unreachable!()};
+        assert_eq!(receiver.ty,Some(widened));
+        let Type::Map(narrowed)=narrowed else{panic!("narrowed Map")};
+        let Type::Map(widened)=widened else{panic!("widened Map")};
+        assert_ne!(checked.program.records[narrowed].map_definition.as_ref().unwrap().value,checked.program.records[widened].map_definition.as_ref().unwrap().value);
+    }
+
+    #[test]
+    fn post_test_condition_native_point_uses_carried_storage() {
+        let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});do{handlers.delete('first');}while(handlers.size>1);first[0]=9;handlers.clear();}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let checked=crate::check(&source).unwrap();
+        let function=checked.program.functions.iter().find(|function|function.name=="main").unwrap();
+        let binding=function.bindings.iter().position(|binding|binding.name=="handlers").unwrap();
+        let condition=function.body.iter().find_map(|statement|if let crate::syntax::StmtKind::Loop{condition:Some(condition),post_test:true,..}=&statement.kind{Some(condition)}else{None}).unwrap();
+        let crate::syntax::ExprKind::Binary{left,..}=&condition.kind else{panic!("condition comparison")};
+        let crate::syntax::ExprKind::Field(receiver,_)=&left.kind else{panic!("Map size")};
+        assert_eq!(function.storage_exits.map_native_input(condition.span.start,binding),receiver.ty);
     }
 
 }
