@@ -125,6 +125,7 @@ impl Exits {
     pub(super) fn record_map_completion_phase(&mut self,boundary:usize,phase:map_completion_payloads::Phase,kind:Option<crate::completion::CompletionKind>,payloads:std::collections::BTreeMap<crate::capture_loan_owners::Place,HashSet<Type>>) {
         self.12.get_or_insert_with(Default::default).record(boundary,phase,kind,payloads);
     }
+    pub(super) fn has_map_completion_layouts(&self)->bool {self.12.as_ref().is_some_and(|states|states.has_layouts())}
     pub(super) fn map_completion_snapshots(&self,boundary:usize)->Vec<map_completion_payloads::Snapshot> {
         self.12.as_ref().map_or_else(Vec::new,|states|states.snapshots(boundary))
     }

@@ -2144,3 +2144,50 @@ cleanup override and disposal. Do not combine independently checked payloads int
 one storage tuple merely to satisfy the backend. Broader aggregate/within-expression
 precision and Rust-style structural owned record Set/Map keys remain pending.
 B5 is still open. Preserve the 15 unrelated fixture edits; use explicit Git paths.
+
+## Body error storage and handler entry
+
+Try/catch bodies without finally now transport checked Body/Throw Map layouts
+independently from normal and control results. Explicit throw, fallible calls and
+nested completion dispatch use per-operation error projections. Handler analysis
+starts with the corresponding error layout. A separate emitter helper owns this
+projection logic; no implicit clone is introduced.
+
+The initial native witness already passed; the failing witness was the emitted
+error envelope contract, which still used the common owner type. Focused checks
+exposed clear/refill regressions. Clear-only regions now participate in storage
+planning, exit conversion is based on actual Map operations, and eligible places
+follow explicit moves into record fields. Treating every layout key as an emitted
+storage conversion was incorrect for nested regions with no Map operations and
+was removed. Original failures and repair runs are retained in SQLite.
+
+All 89 affected Map native tests, 16 phase/storage proofs, 17 editor entry-release
+checks and eight depth canaries pass. New native coverage checks direct throws,
+fallible calls, nested finally, record fields and exact disposal at both
+optimization levels. Existing moved-field clear/refill and borrowed get coverage
+passes. The standalone borrowed-get type proof was positive coverage, not a red
+witness. No complete regression or timing run is claimed.
+
+Next separate errors through finally, outgoing handler errors and cleanup errors,
+then return/break/continue storage by resolved destination. Rust-style structural
+owned record Set/Map keys remain subsequent work. B5 remains open. Installed
+consumers remain at gate 181; preserve the 15 unrelated fixture edits.
+
+Matched verification exposed three borrowed-get mismatches in loop-local Maps.
+A focused while-loop native witness reproduced the failure. Clear-only layouts
+were bypassed by an early local-storage guard, and loops without carried Map
+epochs only recursively planned for-of bodies. Those paths now plan while,
+counted and post-test bodies as well. The new witness executes all three forms.
+The original 89-test pass is preserved; the repaired batch includes this witness.
+
+Final repair acceptance: 90 affected native tests pass, with the 16 storage
+proofs, 17 editor checks and eight depth canaries rerun on the repaired source.
+Matched native/Node-after-tsc verification passes all five cases, with 81
+observations per row. Canonical record:
+runtime/results/2026-10-09T05-44-53-954Z-verify.json. The errorPhaseEntry helper
+has an independent arithmetic oracle, literal reference rows and deletion/mutation
+source guards. Existing ABI, driver and report support applies unchanged.
+Project formatting is token-preserving and idempotent; its final pass changes
+zero files. Closed evidence is imported, read back byte for byte and removed
+from loose storage. Focused acceptance is complete; family measurements and
+complete regressions remain deferred until B5 is ready.

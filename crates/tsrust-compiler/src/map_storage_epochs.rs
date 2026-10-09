@@ -171,7 +171,7 @@ impl Emitter<'_> {
 }
 
 impl Emitter<'_> {
-    fn map_storage_binding(&self, fun:&CheckedFunction, place:&str)->Option<(usize,Vec<String>)> {
+    pub(super) fn map_storage_binding(&self, fun:&CheckedFunction, place:&str)->Option<(usize,Vec<String>)> {
         for (binding,value) in fun.bindings.iter().enumerate() {
             if place==format!("value{binding}") {return Some((binding,Vec::new()));}
             let Some(layout)=self.owned_record_layout(fun,binding) else {continue;};
@@ -210,7 +210,7 @@ impl Emitter<'_> {
         let target=self.map_storage_leaf_type(output,&fields).expect("destination Map path");
         self.map_typed_storage_leaf_value(place,transferred,input.and_then(|input|self.map_storage_leaf_type(input,&fields)),target)
     }
-    fn map_typed_storage_leaf_value(&self,place:&str,transferred:Option<crate::Span>,input:Option<Type>,target:Type)->super::native_storage_availability::Value {
+    pub(super) fn map_typed_storage_leaf_value(&self,place:&str,transferred:Option<crate::Span>,input:Option<Type>,target:Type)->super::native_storage_availability::Value {
         let empty=format!("<{}>::new()",self.native_type(target));
         let live=input.and_then(|source| {
             if source==target{return None;}

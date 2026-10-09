@@ -59,11 +59,15 @@ struct Storage {
     default: Vec<StorageValue>,
     points: std::collections::BTreeMap<usize,Vec<StorageValue>>,
     expressions: std::collections::BTreeMap<(usize,usize),Vec<StorageValue>>,
+    errors: Option<Box<Storage>>,
 }
 impl Storage {
     fn at(&self, span:crate::Span,state:&StorageStack)->String {
         let values=self.expressions.get(&(span.start,span.end)).unwrap_or_else(||self.points.range(..=span.start).next_back().map_or(&self.default,|(_,values)|values));
         state.render(values)
+    }
+    fn error_at(&self,span:crate::Span,state:&StorageStack)->String {
+        self.errors.as_deref().unwrap_or(self).at(span,state)
     }
 }
 
@@ -97,7 +101,10 @@ impl RegionStack {
     }
     pub(crate) fn attach_storage(&self, values:Vec<StorageValue>, points:std::collections::BTreeMap<usize,Vec<StorageValue>>, expressions:std::collections::BTreeMap<(usize,usize),Vec<StorageValue>>, carry_error:bool, boundary:usize) {
         self.1.renew(&values.iter().map(|value|value.place.clone()).collect::<Vec<_>>(),boundary);
-        self.0.borrow_mut().last_mut().expect("entered storage region").storage=Some(Box::new(Storage{carry_error,carry_control:false,default:values,points,expressions}));
+        self.0.borrow_mut().last_mut().expect("entered storage region").storage=Some(Box::new(Storage{carry_error,carry_control:false,default:values,points,expressions,errors:None}));
+    }
+    pub(crate) fn attach_error_storage(&self,values:Vec<StorageValue>,points:std::collections::BTreeMap<usize,Vec<StorageValue>>,expressions:std::collections::BTreeMap<(usize,usize),Vec<StorageValue>>) {
+        self.0.borrow_mut().last_mut().expect("entered region").storage.as_mut().expect("attached storage").errors=Some(Box::new(Storage{carry_error:true,carry_control:false,default:values,points,expressions,errors:None}));
     }
     pub(crate) fn carry_storage_on_control_exit(&self) {
         self.0.borrow_mut().last_mut().expect("entered storage region").storage.as_mut().expect("attached storage").carry_control=true;
@@ -115,7 +122,7 @@ impl RegionStack {
         let region=regions.last().ok_or_else(||crate::Diagnostic::new("error-effect","Throw emission requires a typed completion region.",span))?;
         let (name,contract,runtime)=region.transport.as_deref().ok_or_else(||crate::Diagnostic::new("error-effect","Throw emission requires a destination error layout.",span))?;
         let value=checked_throw_value(value,ty,name,contract,unions,*runtime,span)?;
-        let value=region.storage.as_ref().filter(|storage|storage.carry_error).map_or(value.clone(),|storage|format!("({value},{})",storage.at(span,&self.1)));
+        let value=region.storage.as_ref().filter(|storage|storage.carry_error).map_or(value.clone(),|storage|format!("({value},{})",storage.error_at(span,&self.1)));
         Ok(format!("break 'exception_region{} TsrCompletion::Throw({value});",region.id))
     }
     /// Resolve a declared callee's saved effect contract before emitting its Result bridge.
@@ -147,7 +154,7 @@ impl RegionStack {
         let pending=checked_fallible_call(call,source_name,name,source,contract,unions,*runtime,span)?;
         if let Some(storage)=region.storage.as_ref().filter(|storage|storage.carry_error) {
             let returned=if storage.carry_control {format!("(TsrStorageExit::Return(value),{})",storage.at(span,&self.1))}else{"value".into()};
-            let storage=storage.at(span,&self.1);
+            let storage=storage.error_at(span,&self.1);
             return Ok(format!("match {pending} {{ TsrCompletion::Normal(value)=>value, TsrCompletion::Throw(error)=>break 'exception_region{} TsrCompletion::Throw((error,{storage})), TsrCompletion::Return(value)=>break 'exception_region{} TsrCompletion::Return({returned}), TsrCompletion::Break(target)=>break 'exception_region{} TsrCompletion::Break(target), TsrCompletion::Continue(target)=>break 'exception_region{} TsrCompletion::Continue(target) }}",region.id,region.id,region.id,region.id));
         }
         Ok(super::exception_emit::propagate_completion(region.id,&pending))
@@ -183,7 +190,7 @@ impl RegionStack {
         let region=regions.last().ok_or_else(||crate::Diagnostic::new("error-effect","Completion dispatch requires an enclosing region.",span))?;
         let carried=region.storage.as_ref().map(|storage|(storage,storage.at(span,&self.1)));
         let returned=carried.as_ref().filter(|(storage,_)|storage.carry_control).map_or_else(||"value".to_owned(),|(_,owner)|format!("(TsrStorageExit::Return(value),{owner})"));
-        let thrown=carried.as_ref().filter(|(storage,_)|storage.carry_error).map_or_else(||"error".to_owned(),|(_,owner)|format!("(error,{owner})"));
+        let thrown=region.storage.as_ref().filter(|storage|storage.carry_error).map_or_else(||"error".to_owned(),|storage|format!("(error,{})",storage.error_at(span,&self.1)));
         let escaped_break=carried.as_ref().filter(|(storage,_)|storage.carry_control).map_or_else(||"TsrCompletion::Break(target)".to_owned(),|(_,owner)|format!("TsrCompletion::Return((TsrStorageExit::Break(target),{owner}))"));
         let escaped_continue=carried.as_ref().filter(|(storage,_)|storage.carry_control).map_or_else(||"TsrCompletion::Continue(target)".to_owned(),|(_,owner)|format!("TsrCompletion::Return((TsrStorageExit::Continue(target),{owner}))"));
         let mut breaks=vec![];let mut continues=vec![];

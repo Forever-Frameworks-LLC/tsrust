@@ -4,13 +4,13 @@ use super::*;
 impl Analyzer {
     #[inline(never)]
     pub(super) fn scoped_map_entry_epochs(&mut self, context:&mut Context, body:&mut [Stmt], mut results:HashMap<usize,Type>) -> Result<(),Diagnostic> {
-        if !context.storage_exits.has_map_entry_survivors() {return Ok(());}
+        if !context.storage_exits.has_map_entry_survivors() && !context.storage_exits.has_map_completion_layouts() {return Ok(());}
         let demand=map_entry_demand::Demand::checked(body)?;
         self.scoped_map_entry_epochs_with_demand(context,body,&mut results,&demand,&std::collections::BTreeSet::new()).map(|_|())
     }
     #[inline(never)]
     pub(super) fn scoped_map_entry_epochs_with_demand(&mut self, context:&mut Context, body:&mut [Stmt], results:&mut HashMap<usize,Type>, demand:&map_entry_demand::Demand, inherited:&std::collections::BTreeSet<crate::capture_loan_owners::Place>) -> Result<std::collections::BTreeSet<crate::capture_loan_owners::Place>,Diagnostic> {
-        if !context.storage_exits.has_map_entry_survivors() {return Ok(inherited.clone());}
+        if !context.storage_exits.has_map_entry_survivors() && !context.storage_exits.has_map_completion_layouts() {return Ok(inherited.clone());}
         let mut local=inherited.clone();
         for item in body.iter() {
             if let StmtKind::Let{binding:Some(binding),value,..}=&item.kind {
@@ -25,7 +25,7 @@ impl Analyzer {
                 }
             }
         }
-        if local.is_empty() && !results.keys().any(|binding|context.storage_exits.map_entry_epoch_root(*binding)) {
+        if local.is_empty() && !context.storage_exits.has_map_completion_layouts() && !results.keys().any(|binding|context.storage_exits.map_entry_epoch_root(*binding)) {
             return Ok(local);
         }
         let boundary=body.first().map(|statement|statement.span.start);
@@ -33,20 +33,7 @@ impl Analyzer {
             if matches!(statement.kind,StmtKind::Break|StmtKind::Continue) {
                 context.storage_exits.record_map_control_inputs(statement.span,results);
             }
-            let moved_source=if let StmtKind::Let{value,..}=&statement.kind {
-                let mut value=value;
-                while let ExprKind::Unary{op:UnaryOp::RecordCarrier,value:inner,..}=&value.kind {value=inner;}
-                matches!(value.kind,ExprKind::Name(_)).then_some(value).and_then(|value|value.binding)
-            }else{None};
-            if let StmtKind::Let{binding:Some(destination),value,..}=&statement.kind
-                && let Some(source)=moved_source
-                && local.iter().any(|place|place.binding==source)
-                && matches!(value.ty,Some(Type::Map(_)|Type::Record(_)))
-            {
-                let moved=local.iter().filter(|place|place.binding==source).cloned().collect::<Vec<_>>();
-                local.retain(|place|place.binding!=source);
-                for mut place in moved {place.binding=*destination;local.insert(place);}
-            }
+            self.move_map_entry_places(statement,&mut local);
             if let StmtKind::Block(inner)=&mut statement.kind {
                 if statement.labels.is_empty() {
                     local=self.scoped_map_entry_epochs_with_demand(context,inner,results,demand,&local)?;
@@ -111,8 +98,16 @@ impl Analyzer {
             if let StmtKind::Try(region)=&mut statement.kind {
                 let mut inner=results.clone();
                 self.scoped_map_entry_epochs_with_demand(context,&mut region.body,&mut inner,demand,&local)?;
+                let error=if region.finally.is_none(){region.body.first().and_then(|statement|context.storage_exits.map_completion_layout(statement.span.start,map_completion_payloads::Phase::Body,Some(crate::completion::CompletionKind::Throw))).cloned()}else{None};
                 if let Some(handler)=&mut region.catch {
                     let mut inner=results.clone();
+                    if let Some(layout)=error {
+                        for (place,leaf) in layout {
+                            if let Some(root)=inner.get(&place.binding).copied() {
+                                if let Some(output)=self.scoped_array_replace_field(root,&place.fields,leaf){inner.insert(place.binding,output);}
+                            }
+                        }
+                    }
                     self.scoped_map_entry_epochs_with_demand(context,&mut handler.body,&mut inner,demand,&local)?;
                 }
                 if let Some(cleanup)=&mut region.finally {
@@ -125,7 +120,7 @@ impl Analyzer {
             }
             if context.storage_exits.map_iteration_epochs(statement.span).is_empty() {
                 match &mut statement.kind {
-                    StmtKind::ForOf{body:inner,..}=>{
+                    StmtKind::While{body:inner,..}|StmtKind::Loop{body:inner,..}|StmtKind::ForOf{body:inner,..}=>{
                         let mut inner_results=results.clone();
                         self.scoped_map_entry_epochs_with_demand(context,inner,&mut inner_results,demand,&std::collections::BTreeSet::new())?;
                     },

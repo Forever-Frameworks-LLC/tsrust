@@ -253,3 +253,10 @@ normal storage merely because it existed before cleanup. Surviving entries retai
 their borrowing restrictions. Cleanup still runs before a pending error or return
 resumes, and a return from cleanup overrides the pending completion with the usual
 callback disposal order.
+
+For a try/catch without finally, a thrown error carries the Map entries still
+live at that error point into the handler. Deleting a known entry before a
+fallible call releases its capture in the handler; an error before deletion
+retains that capture. Other entries remain borrowed. This also applies when the
+Map has been moved into a record field. The handler's normal result and the
+body's error payload have independent storage layouts.

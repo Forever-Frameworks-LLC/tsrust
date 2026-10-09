@@ -20,6 +20,9 @@ pub(crate) struct Snapshots {
     layouts:HashMap<usize,Vec<(Phase,Option<CompletionKind>,BTreeMap<Place,Type>)>>,
 }
 impl Snapshots {
+    pub(super) fn has_layouts(&self)->bool {
+        self.layouts.values().any(|states|states.iter().any(|(_,_,types)|!types.is_empty()))
+    }
     pub(crate) fn record(&mut self,boundary:usize,phase:Phase,kind:Option<CompletionKind>,payloads:BTreeMap<Place,HashSet<Type>>) {
         let states=self.phases.entry(boundary).or_default();
         if let Some(previous)=states.iter_mut().find(|state|state.phase==phase && state.kind==kind) {
@@ -54,6 +57,33 @@ impl Snapshots {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn borrowed_map_get_matches_the_phase_payload() {
+        let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[7];const handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>first[0]});try{handlers.clear();handlers.set('new',{run:():int=>second[0]});throw 5;}catch(error){console.log(handlers.size);}first[0]=9;{const current=handlers.get('new');if(current!==undefined)console.log(current.run());}handlers.clear();second[0]=11;}").unwrap();
+        let checked=crate::check(&source).unwrap();let function=checked.program.functions.iter().find(|function|function.name=="main").unwrap();let mut body=function.body.clone();
+        for statement in &function.body {if let crate::syntax::StmtKind::Block(inner)=&statement.kind {for statement in inner {if let crate::syntax::StmtKind::Let{binding:Some(binding),value,..}=&statement.kind {assert_eq!(function.bindings[*binding].ty,value.ty.unwrap(),"borrowed get binding follows its initializer");}}}}
+        let unions=crate::unions::UnionArena::from_snapshot_with_records(checked.program.unions.clone(),&checked.program.records);
+        let mut found=false;
+        crate::source_walk::body(&mut body,&mut |_|Ok(()),&mut |value| {
+            if value.target==Some(crate::syntax::CallTarget::MapMethod(crate::syntax::MapMethod::Get)) && let crate::syntax::ExprKind::Call(callee,_)=&value.kind && let crate::syntax::ExprKind::Field(base,_)=&callee.kind && let Some(Type::Map(map))=base.ty {
+                found=true;assert_eq!(unions.payload(value.ty.unwrap().owning()),Some(checked.program.records[map].map_definition.as_ref().unwrap().value));
+            }
+            Ok(())
+        }).unwrap();assert!(found);
+    }
+
+    #[test]
+    fn body_error_envelope_uses_checked_throw_storage_layout() {
+        let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function scenario(flag:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{handlers.delete('first');failIf(flag);}catch(error){first[0]+=1;for(const [key,entry] of handlers){console.log(entry.run());}}handlers.clear();}function main():void{scenario(false);scenario(true);}").unwrap();
+        let checked=crate::check(&source).unwrap();let function=checked.program.functions.iter().find(|function|function.name=="scenario").unwrap();let region=function.body.iter().find_map(|statement|if let crate::syntax::StmtKind::Try(region)=&statement.kind{Some(region)}else{None}).unwrap();
+        let binding=function.bindings.iter().position(|binding|binding.name=="handlers").unwrap();let place=Place{binding,fields:Vec::new()};let boundary=region.body[0].span.start;
+        let error=function.storage_exits.map_completion_layout(boundary,Phase::Body,Some(CompletionKind::Throw)).unwrap()[&place];assert_ne!(error,function.bindings[binding].ty);
+        assert_eq!(function.storage_exits.map_native_input(region.catch.as_ref().unwrap().body[0].span.start,binding),Some(error),"handler starts with checked error storage");
+        let Type::Map(map)=error else{panic!("Map error storage")};let rust=checked.emit_rust();
+        let envelope=rust.split("let completion:TsrCompletion<").filter_map(|part|part.split_once("='exception_region").map(|(ty,_)|ty)).find(|ty|ty.contains("StorageIncoming")).expect("body error envelope");
+        assert!(envelope.contains(&format!("Map{map}<")),"checked throw storage Map{map} is absent from {envelope}");
+    }
+
     #[test]
     fn cleaned_normal_layout_is_consumed_after_finally() {
         let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function scenario(flag:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{failIf(flag);}catch(error){}finally{handlers.delete('first');}first[0]+=1;handlers.clear();}function main():void{scenario(false);}").unwrap();

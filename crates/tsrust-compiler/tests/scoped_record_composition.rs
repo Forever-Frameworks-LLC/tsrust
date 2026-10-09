@@ -1,6 +1,31 @@
 mod support;
 
 #[test]
+fn loop_local_map_error_storage_retargets_borrowed_get() {
+ let source="type Holder={run:ReadOnly<Function<int>>;};function main():void{let turn=0;while(turn<2){const first=[3];const second=[7];const handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>first[0]});try{handlers.clear();handlers.set('new',{run:():int=>second[0]});throw 5;}catch(error){console.log(handlers.size);}first[0]=9;{const current=handlers.get('new');if(current!==undefined)console.log(current.run());}handlers.clear();second[0]=11;turn+=1;}}";
+ support::execute(&support::format_round_trip(source),"1\n7\n1\n7\n",None);
+ let counted=source.replace("let turn=0;while(turn<2){","for(let turn=0;turn<2;turn+=1){").replace("turn+=1;}}","}}");
+ support::execute(&support::format_round_trip(&counted),"1\n7\n1\n7\n",None);
+ let post=source.replace("while(turn<2){","do{").replace("turn+=1;}}","turn+=1;}while(turn<2);}");
+ support::execute(&support::format_round_trip(&post),"1\n7\n1\n7\n",None);
+}
+
+
+#[test]
+fn map_error_phase_releases_deleted_capture_at_handler_entry() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function scenario(flag:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{handlers.delete('first');failIf(flag);}catch(error){first[0]+=1;for(const [key,entry] of handlers){console.log('caught',key,entry.run());}}handlers.clear();console.log('done',first[0]);}function main():void{scenario(false);scenario(true);}");
+ support::execute(&source,"done 3\ncaught second 5\ndone 4\n",None);
+ verify_disposal(&source,2,"drop 0\ndrop 1\ndone 3\ndrop 0\ncaught second 5\ndrop 1\ndone 4\n");
+ let direct=source.replace("failIf(flag);","if(flag)throw 7;");assert_ne!(direct,source);
+ support::execute(&support::format_round_trip(&direct),"done 3\ncaught second 5\ndone 4\n",None);
+ let nested=source.replace("failIf(flag);","try{failIf(flag);}finally{console.log('cleanup');}");assert_ne!(nested,source);
+ support::execute(&support::format_round_trip(&nested),"cleanup\ndone 3\ncleanup\ncaught second 5\ndone 4\n",None);
+ let field=("type Owner={handlers:Map<string,Holder>;};".to_owned()+&source).replace("const handlers = new Map<string, Holder>();","const owner:Owner={handlers:new Map<string,Holder>()};").replace("handlers.","owner.handlers.").replace("of handlers)","of owner.handlers)");assert_ne!(field,source);
+ support::execute(&support::format_round_trip(&field),"done 3\ncaught second 5\ndone 4\n",None);
+}
+
+
+#[test]
 fn map_finally_normal_result_releases_deleted_capture_after_cleanup() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function scenario(flag:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{failIf(flag);}catch(error){console.log('caught');}finally{handlers.delete('first');}first[0]+=1;for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();console.log('done',first[0]);}function main():void{scenario(false);scenario(true);}");
  support::execute(&source,"second 5\ndone 4\ncaught\nsecond 5\ndone 4\n",None);

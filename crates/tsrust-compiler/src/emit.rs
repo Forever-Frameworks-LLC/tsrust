@@ -1,3 +1,5 @@
+#[path="map_error_storage_emit.rs"]
+mod map_error_storage_emit;
 #[path="map_block_storage_emit.rs"]
 mod map_block_storage_emit;
 #[path = "restored_capture_slots.rs"]
