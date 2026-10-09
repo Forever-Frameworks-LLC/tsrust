@@ -1,5 +1,25 @@
 # B5 error restoration checkpoint
 
+<!-- current-b5-state -->
+## Current state, 2026-10-09
+
+The latest checkpoint implements typed controls created inside finally, following
+8c8fb60. Direct and record-field Map completion transport now has focused coverage
+for normal completion, errors, returns, labelled break/continue, nested cleanup
+and cleanup overrides. The affected batch passes 101 tests, 27 layout proofs
+pass, and six related editor checks pass. This is focused acceptance, not B5
+family acceptance.
+
+Next reconcile and implement the remaining aggregate and same-expression capture
+release requirements in scoped-callable-aggregate-plan.md, starting with precise
+array-element storage. Structural owned record keys follow the owner's Rust-style
+equality/hash decision. Full compiler/LSP regressions, matched measurements,
+performance review and installed-consumer refresh remain required at the completed
+family milestone. The older dated sections below retain historical evidence and
+superseded next-step notes; use this section for the current direction.
+<!-- /current-b5-state -->
+
+
 B5 scoped aggregate composition remains incomplete. Gate 181 is the last accepted
 numbered gate. This checkpoint extends the work after `0a2a5e5`; it is not family
 acceptance. The active goal remains the full compiler/editor completion plan.
@@ -2655,3 +2675,48 @@ restored byte for byte and removed from loose storage. Final project formatting
 changes zero files and fingerprints; source diff checks pass. No timings or
 complete family regressions were run. The scratch compiler is current, while
 installed executable consumers remain deferred to the family checkpoint.
+
+
+## Controls created by finally, 2026-10-09
+
+Cleanup now emits its own checked return, break and continue payload layouts.
+The shared map_cleanup_storage module handles normal cleanup, pending errors,
+pending returns and pending loop controls. It consumes the cleanup completion
+enum before restoring the selected owner and forwarding it. Error storage stays
+independent, and replaced saved returns or errors are dropped before dispatch.
+Control overrides use the exact cleaned destination layout, including local loop
+or block restoration and forwarding through an enclosing finally.
+
+The native baseline for the override example already passed; the red proof
+identified native type widening rather than a wrong baseline result. It found
+checked cleanup Map7 absent from the legacy Map6 control tuple. The new proof
+passes, along with all 27 completion-layout proofs. New native coverage includes
+cleanup continue followed by break, replacing pending return, throw or break,
+record fields, catch handlers, owned array results and survivor disposal.
+Editor coverage accepts mutation of a deleted entry's capture and rejects
+mutation of a surviving entry's capture.
+
+The matched workload adds eight cases: pending return, throw, continue and break,
+from both body and catch paths. Each case has an independent result formula,
+literal reference rows and source mutation guards. The workload now has 109
+observations per row. Full B5 regressions and timing remain deferred. Generic
+unknown forwarding retains a common fallback; do not treat that fallback as
+proof of precision for aggregate or expression paths that still need witnesses.
+
+
+The affected Map batch passes all 101 cases without failures. All 27 layout
+proofs, the new editor check and five related editor checks pass. The new owned
+result, field and handler variants pass formatted native execution, with direct
+survivor disposal checked at both optimization levels. Source registration and
+mutation rejection controls pass. These checks cover the changed storage family;
+no whole compiler or LSP regression run is claimed.
+
+Final formatted-source matched verification passes native and Node-after-tsc,
+all five cases, with 109 observations per row. Canonical record:
+runtime/results/2026-10-09T07-36-51-906Z-verify.json. The intermediate record,
+original red layout proof, passing native baseline and closed acceptance logs
+are stored in SQLite, restored byte for byte and removed from loose storage.
+Final project formatting changes zero files and fingerprints; source diff checks
+pass. The scratch compiler is current. Family timing and installed-consumer
+refresh remain deferred. Current-state sections now supersede the older dated
+next-step notes; precise indexed-element release is the next implementation.

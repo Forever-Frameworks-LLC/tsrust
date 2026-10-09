@@ -8892,3 +8892,12 @@ fn labelled_cleanup_map_entry_release_preserves_survivor_diagnostics() {
  let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///labelled-cleanup.tsr").unwrap()).unwrap();
  assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
 }
+
+#[test]
+fn cleanup_override_map_entry_release_preserves_survivor_diagnostics() {
+ let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function scenario():int{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});outer:while(true){try{return 42;}finally{handlers.delete('first');first[0]+=1;break outer;}}handlers.clear();return first[0];}function main():void{console.log(scenario());}").unwrap();
+ assert!(tsrust_lsp::diagnostics(&source,"file:///cleanup-override.tsr").unwrap().is_empty());
+ let conflict=source.replace("first[0] += 1;","second[0]+=1;");assert_ne!(conflict,source);
+ let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///cleanup-override.tsr").unwrap()).unwrap();
+ assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+}

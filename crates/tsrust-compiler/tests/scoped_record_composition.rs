@@ -1,6 +1,20 @@
 mod support;
 
 #[test]
+fn map_cleanup_controls_override_pending_return_throw_and_break() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(mode:int):int{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});let turn=0;outer:while(turn<2){inner:while(true){try{if(mode===0)return 42;if(mode===1)throw 7;break inner;}finally{handlers.delete('first');first[0]+=1;turn+=1;if(turn<2)continue outer;break outer;}}}console.log('done',first[0]);for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();return 99;}function main():void{console.log(scenario(0));console.log(scenario(1));console.log(scenario(2));}");
+ support::execute(&source,"done 5\nsecond 5\n99\ndone 5\nsecond 5\n99\ndone 5\nsecond 5\n99\n",None);
+ verify_disposal(&source,2,"drop 0\ndone 5\nsecond 5\ndrop 1\n99\ndrop 0\ndone 5\nsecond 5\ndrop 1\n99\ndrop 0\ndone 5\nsecond 5\ndrop 1\n99\n");
+ let field=("type Owner={handlers:Map<string,Holder>;};".to_owned()+&source).replace("const handlers = new Map<string, Holder>();","const owner:Owner={handlers:new Map<string,Holder>()};").replace("handlers.","owner.handlers.").replace("of handlers)","of owner.handlers)");assert_ne!(field,source);
+ support::execute(&support::format_round_trip(&field),"done 5\nsecond 5\n99\ndone 5\nsecond 5\n99\ndone 5\nsecond 5\n99\n",None);
+ let caught=source.replacen("try {","try{throw 17;}catch(error){",1);assert_ne!(caught,source);
+ support::execute(&support::format_round_trip(&caught),"done 5\nsecond 5\n99\ndone 5\nsecond 5\n99\ndone 5\nsecond 5\n99\n",None);
+ let owned=source.replace("function scenario(mode: int): int", "function scenario(mode:int):string[]").replace("return 42;","return ['saved'];").replace("return 99;","return ['done'];").replace("scenario(0))","scenario(0)[0])").replace("scenario(1))","scenario(1)[0])").replace("scenario(2))","scenario(2)[0])");assert_ne!(owned,source);
+ support::execute(&support::format_round_trip(&owned),"done 5\nsecond 5\ndone\ndone 5\nsecond 5\ndone\ndone 5\nsecond 5\ndone\n",None);
+
+}
+
+#[test]
 fn map_cleanup_controls_preserve_distinct_label_destinations() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(mode:int):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});let turn=0;outer:while(turn<2){inner:while(true){try{if(mode===0){handlers.delete('first');first[0]+=1;break outer;}if(mode===1){handlers.delete('second');second[0]+=1;break inner;}handlers.delete('first');first[0]+=1;turn+=1;continue outer;}finally{console.log(handlers.size);}}turn+=1;}handlers.clear();}function main():void{scenario(0);scenario(1);scenario(2);}");
  support::execute(&source,"1\n1\n1\n1\n1\n",None);

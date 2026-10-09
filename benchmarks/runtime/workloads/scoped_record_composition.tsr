@@ -513,7 +513,7 @@ function workload(n: int, seed: int, input: string): int[][] {
         const countedMapObserved = countedMapLoop();
         const postMapObserved = postMapLoop();
         const emptyMapObserved = emptyScopedMap();
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped, nestedPairLooped, emptyMapObserved, countedMapObserved, postMapObserved, forOfMapObserved, knownEntryRelease(value), movedFieldEntryRelease(value), replacementEntryOutcome(value, value % 2 !== 0), branchEntryRelease(value, value % 2 === 0), mixedBranchEntryRelease(value, value % 2 === 0), pairedBranchEntryRelease(value, value % 2 === 0), postEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), countedEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), forOfEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), loopEntryRefill(value, value % 2 === 0 ? 0 : 2), innerBranchEntryRelease(value, value % 2 === 0), branchEntryRefill(value, value % 2 === 0), iterationEntryMutation(value, value % 2 === 0 ? 0 : 2), postIterationEntryMutation(value, value % 2 === 0 ? 0 : 2), abruptIterationEntryMutation(value, value % 2 === 0), countedUpdateEntryMutation(value, value % 2 === 0), finallyEntryMutation(value), cleanupIterationMutation(value, value % 2 === 0), returnCleanupEntryMutation(value, 0), returnCleanupEntryMutation(value, 1), returnCleanupEntryMutation(value, 2), returnCleanupEntryMutation(value, 3), returnCleanupEntryMutation(value, 4), nestedCleanupEntryMutation(value, value % 2 === 0, false), nestedCleanupEntryMutation(value, value % 2 === 0, true), directNestedEntryMutation(value, value % 2 === 0), labelledBlockEntryMutation(value, value % 2 === 0), labelledLoopBlockEntryMutation(value, value % 2 === 0), ordinaryEntryEdges(value, value % 2 === 0 ? 0 : 2, false), ordinaryEntryEdges(value, 2, true), narrowedOrdinaryEntryEdges(value, 2, false), noBackedgeEntryBreak(value), noBackedgeEntryReturn(value), phaseJoinedEntry(value, false), phaseJoinedEntry(value, true), finallyNormalJoinedEntry(value, value % 2 !== 0), errorPhaseEntry(value, value % 2 !== 0), finallyErrorEntry(value, value % 2 !== 0), finallyPendingError(value, value % 2 !== 0), handlerRethrowEntry(value), cleanupOutgoingEntry(value, value % 2 !== 0), catchFinallyEntry(value, 0), catchFinallyEntry(value, 1), catchFinallyEntry(value, 2), catchFinallyEntry(value, 3), returnCarrierEntry(value, 0), returnCarrierEntry(value, 1), returnCarrierEntry(value, 2), catchReturnCarrierEntry(value, 0), catchReturnCarrierEntry(value, 1), catchReturnCarrierEntry(value, 2), controlCarrierEntry(value, 0), controlCarrierEntry(value, 1), controlCarrierEntry(value, 2), handlerControlCarrierEntry(value, 0), handlerControlCarrierEntry(value, 1), handlerControlCarrierEntry(value, 2)]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped, nestedPairLooped, emptyMapObserved, countedMapObserved, postMapObserved, forOfMapObserved, knownEntryRelease(value), movedFieldEntryRelease(value), replacementEntryOutcome(value, value % 2 !== 0), branchEntryRelease(value, value % 2 === 0), mixedBranchEntryRelease(value, value % 2 === 0), pairedBranchEntryRelease(value, value % 2 === 0), postEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), countedEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), forOfEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), loopEntryRefill(value, value % 2 === 0 ? 0 : 2), innerBranchEntryRelease(value, value % 2 === 0), branchEntryRefill(value, value % 2 === 0), iterationEntryMutation(value, value % 2 === 0 ? 0 : 2), postIterationEntryMutation(value, value % 2 === 0 ? 0 : 2), abruptIterationEntryMutation(value, value % 2 === 0), countedUpdateEntryMutation(value, value % 2 === 0), finallyEntryMutation(value), cleanupIterationMutation(value, value % 2 === 0), returnCleanupEntryMutation(value, 0), returnCleanupEntryMutation(value, 1), returnCleanupEntryMutation(value, 2), returnCleanupEntryMutation(value, 3), returnCleanupEntryMutation(value, 4), nestedCleanupEntryMutation(value, value % 2 === 0, false), nestedCleanupEntryMutation(value, value % 2 === 0, true), directNestedEntryMutation(value, value % 2 === 0), labelledBlockEntryMutation(value, value % 2 === 0), labelledLoopBlockEntryMutation(value, value % 2 === 0), ordinaryEntryEdges(value, value % 2 === 0 ? 0 : 2, false), ordinaryEntryEdges(value, 2, true), narrowedOrdinaryEntryEdges(value, 2, false), noBackedgeEntryBreak(value), noBackedgeEntryReturn(value), phaseJoinedEntry(value, false), phaseJoinedEntry(value, true), finallyNormalJoinedEntry(value, value % 2 !== 0), errorPhaseEntry(value, value % 2 !== 0), finallyErrorEntry(value, value % 2 !== 0), finallyPendingError(value, value % 2 !== 0), handlerRethrowEntry(value), cleanupOutgoingEntry(value, value % 2 !== 0), catchFinallyEntry(value, 0), catchFinallyEntry(value, 1), catchFinallyEntry(value, 2), catchFinallyEntry(value, 3), returnCarrierEntry(value, 0), returnCarrierEntry(value, 1), returnCarrierEntry(value, 2), catchReturnCarrierEntry(value, 0), catchReturnCarrierEntry(value, 1), catchReturnCarrierEntry(value, 2), controlCarrierEntry(value, 0), controlCarrierEntry(value, 1), controlCarrierEntry(value, 2), handlerControlCarrierEntry(value, 0), handlerControlCarrierEntry(value, 1), handlerControlCarrierEntry(value, 2), cleanupOverrideEntry(value, 0), cleanupOverrideEntry(value, 1), cleanupOverrideEntry(value, 2), cleanupOverrideEntry(value, 3), handlerCleanupOverrideEntry(value, 0), handlerCleanupOverrideEntry(value, 1), handlerCleanupOverrideEntry(value, 2), handlerCleanupOverrideEntry(value, 3)]);
         i += 1;
     }
 
@@ -2332,4 +2332,83 @@ function handlerControlCarrierEntry(value: int, mode: int): int {
 
     handlerDestinationEntries.clear();
     return handlerDestinationObserved + handlerDestinationFirst[0] + handlerDestinationSecond[0];
+}
+
+
+function cleanupOverrideEntry(value: int, mode: int): int {
+    const overrideFirst = [value];
+    const overrideSecond = [value + 1];
+    const overrideEntries = new Map<string, Holder>();
+    overrideEntries.set("first", {
+        run: (): int => overrideFirst[0]
+    });
+    overrideEntries.set("second", {
+        run: (): int => overrideSecond[0]
+    });
+    let overrideTurn = 0;
+    let overrideObserved = 0;
+    overrideOuter: while (overrideTurn < 2) {
+        overrideInner: while (true) {
+            try {
+                if (mode === 0) return 100;
+                if (mode === 1) throw 31;
+                if (mode === 2) continue overrideOuter;
+                break overrideInner;
+            } finally {
+                overrideEntries.delete("first");
+                overrideFirst[0] += 1;
+                overrideTurn += 1;
+                overrideObserved += overrideTurn + overrideEntries.size;
+                for (const [key, entry] of overrideEntries) {
+                    overrideObserved += entry.run();
+                }
+
+                if (overrideTurn < 2) continue overrideOuter;
+                break overrideOuter;
+            }
+        }
+    }
+
+    overrideEntries.clear();
+    return overrideFirst[0] + overrideSecond[0] + overrideObserved;
+}
+
+function handlerCleanupOverrideEntry(value: int, mode: int): int {
+    const handlerOverrideFirst = [value];
+    const handlerOverrideSecond = [value + 1];
+    const handlerOverrideEntries = new Map<string, Holder>();
+    handlerOverrideEntries.set("first", {
+        run: (): int => handlerOverrideFirst[0]
+    });
+    handlerOverrideEntries.set("second", {
+        run: (): int => handlerOverrideSecond[0]
+    });
+    let handlerOverrideTurn = 0;
+    let handlerOverrideObserved = 0;
+    handlerOverrideOuter: while (handlerOverrideTurn < 2) {
+        handlerOverrideInner: while (true) {
+            try {
+                throw 37;
+            } catch (error) {
+                if (mode === 0) return 100;
+                if (mode === 1) throw 31;
+                if (mode === 2) continue handlerOverrideOuter;
+                break handlerOverrideInner;
+            } finally {
+                handlerOverrideEntries.delete("first");
+                handlerOverrideFirst[0] += 1;
+                handlerOverrideTurn += 1;
+                handlerOverrideObserved += handlerOverrideTurn + handlerOverrideEntries.size;
+                for (const [key, entry] of handlerOverrideEntries) {
+                    handlerOverrideObserved += entry.run();
+                }
+
+                if (handlerOverrideTurn < 2) continue handlerOverrideOuter;
+                break handlerOverrideOuter;
+            }
+        }
+    }
+
+    handlerOverrideEntries.clear();
+    return handlerOverrideFirst[0] + handlerOverrideSecond[0] + handlerOverrideObserved;
 }

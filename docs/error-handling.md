@@ -310,3 +310,10 @@ target. Nested cleanup runs from the innermost region outward. Entries deleted
 before the control transfer remain deleted during cleanup, and surviving entries
 retain their captures until removed or dropped. Returning, throwing, or targeting
 a different label inside finally replaces the pending control transfer.
+
+
+A control transfer created inside finally uses the Map state at that transfer.
+For example, finally can delete an entry and continue an outer loop instead of
+completing a pending return. A later break from finally can then finish the loop.
+The removed entry's capture stays released, surviving entries stay borrowed, and
+the replaced return value or error is disposed before control reaches its target.

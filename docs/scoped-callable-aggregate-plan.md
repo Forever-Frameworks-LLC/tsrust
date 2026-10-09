@@ -15,13 +15,20 @@ and local/record-field clear/refill lifetimes across blocks, branches and leadin
 infallible clears in exception regions. These checkpoints are
 focused implementation evidence, not separate accepted gates.
 
-Finish capture release for individual indexed elements and Map entries, lifetime
-renewal across control-flow and outer-block storage, and remaining nullable/union
-composition. Implement record Set keys using the owner's value equality/hashing
-direction; callback records require an explicit stable-key design. Then reconcile
-all named composition requirements, complete editor and guide coverage, and run
-feature-family regression/performance acceptance. The matched workload is current
-and untimed; executable consumers still require acceptance refresh.
+Known Map entry release now has focused source, native and editor coverage through
+branches, loops, exception phases and typed normal/error/return/control transport,
+including controls created by finally. The latest affected batch passes 101 Map
+cases and 27 completion-layout proofs. This does not establish indexed element
+release or every aggregate composition.
+
+Next implement precise capture release for individual indexed elements, then
+reconcile remaining nullable/union, expression and outer-storage compositions
+against the named requirements below. Implement record Set keys using the owner's
+value equality/hashing direction; callback records require an explicit stable-key
+design. Complete editor and guide coverage and run feature-family regression and
+performance acceptance. The matched workload is current and untimed; executable
+consumers still require acceptance refresh. Older implementation notes below are
+retained history, including superseded gate status and next-step instructions.
 
 ## Record gate
 

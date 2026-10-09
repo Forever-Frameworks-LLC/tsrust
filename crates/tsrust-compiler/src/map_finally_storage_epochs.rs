@@ -80,89 +80,16 @@ impl Emitter<'_> {
             error,
             return_carrier.as_ref(),
         );
-        let cleaned=region.body.first().and_then(|statement|fun.storage_exits.map_completion_layout(statement.span.start,crate::analysis::MapCompletionPhase::Cleaned,None));
-        let cleaned_error=region.body.first().and_then(|statement|fun.storage_exits.map_completion_layout(statement.span.start,crate::analysis::MapCompletionPhase::Cleaned,Some(crate::completion::CompletionKind::Throw)));
-        let normal_cleanup = self.map_error_phase_storage_completion_body(
-            fun,
-            cleanup,
-            declarations,
-            first + 1,
-            &cleanup_name,
-            cleanup_contract.clone(),
-            runtime,
-            &storage_type,
-            &places,
-            true,
-            true,
-            cleaned,
-            cleaned_error,
-        );
-        let error_plan=region.body.first().and_then(|statement|fun.storage_exits.map_cleanup_plan(statement.span.start,Some(crate::completion::CompletionKind::Throw))).map(|plan|plan.function(fun));
-        let error_fun=error_plan.as_ref().unwrap_or(fun);
-        let error_body=error_plan.as_ref().map_or(cleanup.as_slice(),|plan|plan.body.as_slice());
-        let thrown_cleanup = self.map_error_phase_storage_completion_body(
-            error_fun,
-            error_body,
-            declarations,
-            first + 2,
-            &cleanup_name,
-            cleanup_contract.clone(),
-            runtime,
-            &storage_type,
-            &places,
-            true,
-            true,
-            cleaned_error,
-            cleaned_error,
-        );
-        let returned_cleanup = self.map_error_phase_storage_completion_body(
-            fun,
-            cleanup,
-            declarations,
-            first + 3,
-            &cleanup_name,
-            cleanup_contract.clone(),
-            runtime,
-            &storage_type,
-            &places,
-            true,
-            true,
-            None,
-            cleaned_error,
-        );
-        let cleanup_abrupt = self.map_layout_carried_cleanup_dispatch(
-            fun,
-            "other",
-            &cleanup_name,
-            &cleanup_contract,
-            runtime,
-            &places,
-            statement.span,
-            cleaned_error,
-        );
-        let normal_finish = format!(
-            "{{match {normal_cleanup}{{TsrCompletion::Normal(storage)=>storage,other=>{{{cleanup_abrupt}}}}}}}"
-        );
-        let throw_finish = if incoming.runtime || incoming.opaque || !incoming.explicit.is_empty() {
-            let resume = if crate::completion::definitely_abrupt(cleanup, 0) {
-                "unreachable!(\"abrupt cleanup cannot resume pending error\")".into()
-            } else {
-                self.map_layout_storage_abrupt_dispatch(
-                    fun,
-                    "TsrCompletion::Throw(pending_error)",
-                    &incoming_name,
-                    &incoming,
-                    runtime,
-                    statement.span,
-                    cleaned_error,
-                )
-            };
-            format!(
-                "match {thrown_cleanup}{{TsrCompletion::Normal(storage)=>{{let {pattern}=storage;{resume}}},other=>{{drop(pending_error);{cleanup_abrupt}}}}}"
-            )
-        } else {
-            "match pending_error {}".into()
-        };
+        let cleaned=fun.storage_exits.map_completion_layout(boundary,crate::analysis::MapCompletionPhase::Cleaned,None);
+        let cleaned_error=fun.storage_exits.map_completion_layout(boundary,crate::analysis::MapCompletionPhase::Cleaned,Some(crate::completion::CompletionKind::Throw));
+        let normal_finish=self.map_finish_cleanup(fun,fun,region,cleanup,declarations,first+1,&cleanup_name,&cleanup_contract,runtime,&places,&storage_type,&pattern,statement.span,cleaned,"storage","");
+        let error_plan=fun.storage_exits.map_cleanup_plan(boundary,Some(crate::completion::CompletionKind::Throw)).map(|plan|plan.function(fun));
+        let error_fun=error_plan.as_ref().unwrap_or(fun);let error_body=error_plan.as_ref().map_or(cleanup.as_slice(),|plan|plan.body.as_slice());
+        let throw_finish=if incoming.runtime || incoming.opaque || !incoming.explicit.is_empty(){
+            let resume=if crate::completion::definitely_abrupt(cleanup,0){"unreachable!(\"abrupt cleanup cannot resume pending error\")".into()}else{self.map_layout_storage_abrupt_dispatch(fun,"TsrCompletion::Throw(pending_error)",&incoming_name,&incoming,runtime,statement.span,cleaned_error)};
+            let normal=format!("let {pattern}=storage;{resume}");
+            self.map_finish_cleanup(fun,error_fun,region,error_body,declarations,first+2,&cleanup_name,&cleanup_contract,runtime,&places,&storage_type,&pattern,statement.span,cleaned_error,&normal,"drop(pending_error);")
+        }else{"match pending_error {}".into()};
         let result = self.native_type(fun.result);
         let (outer_error, _, _) = self
             .exception_regions
@@ -177,9 +104,8 @@ impl Emitter<'_> {
         } else {
             format!("{resume_control};unreachable!()")
         };
-        let return_finish = format!(
-            "match {returned_cleanup}{{TsrCompletion::Normal(storage)=>{{let {pattern}=storage;{resume_control}}},other=>{{drop(pending_exit);{cleanup_abrupt}}}}}"
-        );
+        let normal=format!("let {pattern}=storage;{resume_control}");
+        let return_finish=self.map_finish_cleanup(fun,fun,region,cleanup,declarations,first+3,&cleanup_name,&cleanup_contract,runtime,&places,&storage_type,&pattern,statement.span,None,&normal,"drop(pending_exit);");
         let indent = "    ".repeat(depth);
         // Finish the completion enum's scope before cleanup borrows captures.
         // Each optional owner keeps its own native type; exactly one is live.

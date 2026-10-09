@@ -36,22 +36,19 @@ impl Emitter<'_> {
             let caught=exception_contract_emit::checked_catch_value("caught_error",&in_name,incoming,&unions,runtime,statement.span).expect("checked catch payload");
             format!("let {}value{binding}={caught};",if fun.bindings[binding].mutable{"mut "}else{""})
         }else{"drop(caught_error);".into()};
-        let normal_cleanup=self.map_error_phase_storage_completion_body(fun,cleanup,declarations,first+2,&cleanup_name,cleanup_contract.clone(),runtime,&storage_type,&places,true,true,cleaned,cleaned_error);
+        let normal_finish=self.map_finish_cleanup(fun,fun,region,cleanup,declarations,first+2,&cleanup_name,&cleanup_contract,runtime,&places,&storage_type,&pattern,statement.span,cleaned,"storage","");
         let error_plan=fun.storage_exits.map_cleanup_plan(boundary,Some(crate::completion::CompletionKind::Throw)).map(|plan|plan.function(fun));
-        let error_fun=error_plan.as_ref().unwrap_or(fun);
-        let error_body=error_plan.as_ref().map_or(cleanup.as_slice(),|plan|plan.body.as_slice());
-        let thrown_cleanup=self.map_error_phase_storage_completion_body(error_fun,error_body,declarations,first+3,&cleanup_name,cleanup_contract.clone(),runtime,&storage_type,&places,true,true,cleaned_error,cleaned_error);
-        let returned_cleanup=self.map_error_phase_storage_completion_body(fun,cleanup,declarations,first+4,&cleanup_name,cleanup_contract.clone(),runtime,&storage_type,&places,true,true,None,cleaned_error);
-        let cleanup_abrupt=self.map_layout_carried_cleanup_dispatch(fun,"other",&cleanup_name,&cleanup_contract,runtime,&places,statement.span,cleaned_error);
-        let normal_finish=format!("match {normal_cleanup}{{TsrCompletion::Normal(storage)=>storage,other=>{{{cleanup_abrupt}}}}}");
+        let error_fun=error_plan.as_ref().unwrap_or(fun);let error_body=error_plan.as_ref().map_or(cleanup.as_slice(),|plan|plan.body.as_slice());
         let abrupt_cleanup=crate::completion::definitely_abrupt(cleanup,0);
         let resume_error=if abrupt_cleanup{"unreachable!(\"abrupt cleanup cannot resume pending error\")".into()}else{self.map_layout_storage_abrupt_dispatch(fun,"TsrCompletion::Throw(pending_error)",&out_name,&outgoing,runtime,statement.span,cleaned_error)};
-        let throw_finish=if handler_throws {format!("match {thrown_cleanup}{{TsrCompletion::Normal(storage)=>{{let {pattern}=storage;{resume_error}}},other=>{{drop(pending_error);{cleanup_abrupt}}}}}")}else{"match pending_error {}".into()};
+        let normal=format!("let {pattern}=storage;{resume_error}");
+        let throw_finish=if handler_throws{self.map_finish_cleanup(fun,error_fun,region,error_body,declarations,first+3,&cleanup_name,&cleanup_contract,runtime,&places,&storage_type,&pattern,statement.span,cleaned_error,&normal,"drop(pending_error);")}else{"match pending_error {}".into()};
         let result=self.native_type(fun.result);
         let (outer_error,_,_)=self.exception_regions.current_transport().expect("checked cleanup destination");
         let resumed=format!("match pending_exit{{TsrStorageExit::Return(value)=>TsrCompletion::<(),{result},{outer_error}>::Return(value),TsrStorageExit::Break(target)=>TsrCompletion::Break(target),TsrStorageExit::Continue(target)=>TsrCompletion::Continue(target)}}");
         let resume_control=if abrupt_cleanup{"unreachable!(\"abrupt cleanup cannot resume pending control\")".into()}else{format!("{};unreachable!()",self.map_cleanup_control_dispatch(fun,&resumed,statement.span))};
-        let return_finish=format!("match {returned_cleanup}{{TsrCompletion::Normal(storage)=>{{let {pattern}=storage;{resume_control}}},other=>{{drop(pending_exit);{cleanup_abrupt}}}}}");
+        let normal=format!("let {pattern}=storage;{resume_control}");
+        let return_finish=self.map_finish_cleanup(fun,fun,region,cleanup,declarations,first+4,&cleanup_name,&cleanup_contract,runtime,&places,&storage_type,&pattern,statement.span,None,&normal,"drop(pending_exit);");
         let impossible="TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried catch completion\")";
         let normal_arm="TsrCompletion::Normal(storage)=>(Some(storage),None,None)";
         let return_arm=if return_carrier.is_some(){"TsrCompletion::Return(control)=>(None,None,Some(control))"}else{"TsrCompletion::Return((exit,storage))=>(None,None,Some((exit,storage)))"};

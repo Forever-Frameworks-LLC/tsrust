@@ -88,12 +88,10 @@ impl Emitter<'_> {
         let mut arms=Vec::new();for (_index,(kind,_)) in carrier.controls.iter().enumerate(){
             let plan=fun.storage_exits.map_cleanup_plan(boundary,Some(*kind)).map(|plan|plan.function(fun));let planned=plan.as_ref().unwrap_or(fun);let body=plan.as_ref().map_or(cleanup.as_slice(),|plan|plan.body.as_slice());
             let normal=fun.storage_exits.map_completion_layout(boundary,crate::analysis::MapCompletionPhase::Cleaned,Some(*kind));
-            let error=fun.storage_exits.map_completion_layout(boundary,crate::analysis::MapCompletionPhase::Cleaned,Some(crate::completion::CompletionKind::Throw));
             let id=self.completion_next.get();self.completion_next.set(id+1);
-            let cleaned=self.map_error_phase_storage_completion_body(planned,body,declarations,id,cleanup_name,contract.clone(),runtime,storage,places,true,true,normal,error);
             let resume=if crate::completion::definitely_abrupt(cleanup,0){"unreachable!(\"cleanup cannot resume control\")".into()}else{self.map_selected_control_dispatch(fun,*kind,normal,span)};
-            let abrupt=self.map_layout_carried_cleanup_dispatch(fun,"other",cleanup_name,contract,runtime,places,span,error);
-            arms.push(format!("match {cleaned}{{TsrCompletion::Normal(storage)=>{{let {pattern}=storage;{resume}}},other=>{{{abrupt}}}}}"));
+            let normal_code=format!("let {pattern}=storage;{resume}");
+            arms.push(self.map_finish_cleanup(fun,planned,region,body,declarations,id,cleanup_name,contract,runtime,places,storage,pattern,span,normal,&normal_code,""));
         }arms
     }
     pub(super) fn map_select_control_owner(&self,carrier:&Carrier<'_>,pattern:&str,returned:String,common:String,controls:Vec<String>)->String {
