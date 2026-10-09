@@ -3,7 +3,7 @@ use super::*;
 use crate::capture_loan_owners::Place;
 
 impl Analyzer {
-    pub(super) fn discarded_array_removal_snapshot(context: &Context, value: &Expr) -> Option<Box<crate::capture_loan_owners::Owners>> {
+    pub(super) fn array_removal_snapshot(context: &Context, value: &Expr) -> Option<Box<crate::capture_loan_owners::Owners>> {
         let ExprKind::Call(callee, arguments) = &value.kind else { return None; };
         let ExprKind::Field(base, method) = &callee.kind else { return None; };
         if !arguments.is_empty() || !matches!(method.as_str(), "pop" | "shift") { return None; }
@@ -15,6 +15,16 @@ impl Analyzer {
     }
 
     pub(super) fn finish_discarded_array_removal(context: &mut Context, value: &Expr, snapshot: Option<Box<crate::capture_loan_owners::Owners>>) {
+        Self::finish_array_removal(context, value, snapshot, None);
+    }
+
+    /// A bound removal transfers only the removed slot to its result owner.
+    /// The result remains live until normal move and lexical-scope disposal.
+    pub(super) fn finish_bound_array_removal(context: &mut Context, value: &Expr, snapshot: Option<Box<crate::capture_loan_owners::Owners>>, binding: usize) {
+        Self::finish_array_removal(context, value, snapshot, Some(Place { binding, fields: vec![] }));
+    }
+
+    fn finish_array_removal(context: &mut Context, value: &Expr, snapshot: Option<Box<crate::capture_loan_owners::Owners>>, destination: Option<Place>) {
         let Some(mut owners) = snapshot else { return; };
         let ExprKind::Call(callee, _) = &value.kind else { return; };
         let ExprKind::Field(base, _) = &callee.kind else { return; };
@@ -28,14 +38,19 @@ impl Analyzer {
             let slot = |index| {
                 let mut slot = place.clone(); slot.fields.push(format!("\0array-slot:{index}")); slot
             };
-            owners.discard(&slot(if front { 0 } else { length - 1 }));
+            let removed = slot(if front { 0 } else { length - 1 });
+            if let Some(destination) = &destination {
+                owners.transfer(&removed, destination);
+            } else {
+                owners.discard(&removed);
+            }
             if front {
                 for index in 1..length { owners.transfer(&slot(index), &slot(index - 1)); }
             }
             owners.set_array_length(place, length - 1);
         }
         // A direct named receiver with no arguments has no intervening payload
-        // effects. The removed value is dropped at this statement boundary.
+        // effects. Bound results keep the selected slot; discarded results drop it.
         context.capture_loan_owners = *owners;
         Self::restore_live_capture_loans(context);
     }

@@ -1,6 +1,34 @@
 mod support;
 
 #[test]
+fn retained_array_removal_source_ownership_follows_the_result() {
+    let prefix = "type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];";
+    for tail in [
+        "{const removed=handlers.pop();if(removed!==undefined)console.log(removed.run());}second[0]=9;console.log(handlers[0].run());}",
+        "{const removed=handlers.shift();if(removed!==undefined)console.log(removed.run());}first[0]=9;console.log(handlers[0].run());}",
+        "{const removed=handlers.pop();const moved=removed;if(moved!==undefined)console.log(moved.run());}second[0]=9;console.log(handlers[0].run());}",
+    ] {
+        let source = support::format_round_trip(&format!("{prefix}{tail}"));
+        tsrust_compiler::check(&source).expect("removed result releases only its own capture at scope exit");
+    }
+    for tail in [
+        "const removed=handlers.pop();second[0]=9;if(removed!==undefined)console.log(removed.run());}",
+        "{const removed=handlers.pop();}first[0]=9;console.log(handlers[0].run());}",
+        "const removed=handlers.shift();first[0]=9;if(removed!==undefined)console.log(removed.run());}",
+        "{const removed=handlers.shift();}second[0]=9;console.log(handlers[0].run());}",
+    ] {
+        let source = support::format_round_trip(&format!("{prefix}{tail}"));
+        assert_eq!(tsrust_compiler::check(&source).err().expect("live result or surviving element protects capture").code, "capture-conflict");
+    }
+}
+
+#[test]
+fn scoped_removed_array_result_releases_its_capture_after_disposal() {
+    let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];{const removed=handlers.pop();if(removed!==undefined)console.log(removed.run());}second[0]=9;console.log(handlers[0].run(),second[0]);}");
+    support::execute(&source, "5\n3 9\n", None);
+}
+
+#[test]
 fn discarded_array_pop_releases_only_the_removed_capture() {
     let raw = "type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];handlers.pop();second[0]=9;console.log(handlers[0].run(),second[0]);}";
     let source = support::format_round_trip(raw);

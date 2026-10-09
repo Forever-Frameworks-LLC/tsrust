@@ -2035,3 +2035,13 @@ negative aliases, O0/O3 disposal, editor, guide and matched benchmark support.
 The whole composition suite now includes one intentionally red entry-release
 witness; prior 157 affected checks passed before it was added. Preserve owner
 fixtures and use explicit Git paths. Keep the full goal active.
+
+## Owner decision: structural record keys
+
+The owner selected Rust-style equality for future record Set and Map keys. Equal
+field values identify the same key. Insertion transfers ownership; retaining a
+separate copy requires explicit clone. Stored keys cannot be mutated in a way
+that changes equality or hashing. Unsupported field types receive source
+diagnostics. Float and callable field policies require explicit design before
+support. This decision replaces the earlier object-identity alternative; its
+implementation remains pending after the indexed capture work.

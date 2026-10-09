@@ -5504,7 +5504,7 @@ impl Analyzer {
                 }
                 StmtKind::Expr(value) => {
                     self.truthy_logical_assignment(context,value);
-                    let removal = Self::discarded_array_removal_snapshot(context, value);
+                    let removal = Self::array_removal_snapshot(context, value);
                     let view = self
                         .expression_type_hint(context, value)
                         .is_some_and(|ty| matches!(ty, Type::BorrowedUnion(_)));
@@ -5581,6 +5581,7 @@ impl Analyzer {
             .is_some_and(|ty| matches!(ty, Type::BorrowedUnion(_)));
         let place_view = self.borrowed_place_hint(context, value)
             || self.indexed_element_hint(context, value);
+        let removal = Self::array_removal_snapshot(context, value);
         let mut actual = self.expression(
             context,
             value,
@@ -5648,6 +5649,7 @@ impl Analyzer {
         }
         let id = Self::bind(context, name, actual, false)?;
         self.attach_binding_capture_loans(context, value, id, !(view || place_view));
+        Self::finish_bound_array_removal(context, value, removal, id);
         if let Some(kind) = nullable_callback {
             context.bindings[id].callback_kind = Some(kind);
             context.bindings[id].callback_invocation = Some(kind.invocation());

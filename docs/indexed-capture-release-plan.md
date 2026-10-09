@@ -1,5 +1,32 @@
 # Precise indexed capture release
 
+## Retained removal provenance: implementation in progress
+
+Direct zero-argument `pop()` and `shift()` initializers on known dense local arrays
+now transfer the removed slot's capture owners to the declared result. Surviving
+slots retain independent ownership, and shift reindexes those slots. Normal result
+moves and lexical disposal govern the removed capture. The implementation reuses
+the boxed pre-call ownership snapshot; uncertain shapes and other expression forms
+remain conservative.
+
+The focused source checks cover pop, shift, moving the result, release after result
+scope, and rejection while either the result or a surviving element remains live.
+The existing later-argument temporary rejection still passes. All eight normal-stack
+depth canaries pass, and project formatting changes zero files and fingerprints.
+This is not native
+acceptance: `scoped_removed_array_result_releases_its_capture_after_disposal` now
+passes source analysis but fails generated Rust with E0502. The surviving array
+still carries the removed callback environment. Keep this executable witness red.
+
+Next extend native epoch planning to bound removal expressions. Project the nullable
+result into the selected slot's concrete environment, narrow the survivors, and
+transport their changed carrier out of lexical blocks. Both result and container
+must have independent native lifetimes. Reuse checked payload projections and
+block storage transport rather than erasing lifetimes or cloning. Then add native
+pop/shift, moves, retained aliases, empty results, field storage and exact disposal
+checks, editor evidence, guide examples and matched workload support. Same-expression
+release and control-flow slot joins remain subsequent requirements.
+
 ## Discarded removal checkpoint
 
 Standalone `pop()` and `shift()` calls now release the removed callback's captures
