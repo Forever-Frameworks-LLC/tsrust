@@ -26,9 +26,12 @@ impl Emitter<'_> {
             // A body that cannot reach its tail has no checked condition or
             // update to emit. Return/error/control already ran its cleanup.
             if matches!(statement.kind,StmtKind::Loop{tail_reachable:false,..}) {
-                // Every path already leaves through its checked completion.
-                // A post-loop empty projection has no reaching normal owner
-                // and would change the type of the unreachable phase tail.
+                // A missing tail can still have a reaching break. Convert that
+                // owner before following statements use its narrowed layout.
+                // Return/throw-only bodies have no owner at the normal exit.
+                if fun.storage_exits.map_loop_has_break(statement.span) {
+                    self.map_post_entry_epochs(output,fun,statement.span,depth);
+                }
                 return true;
             }
         }

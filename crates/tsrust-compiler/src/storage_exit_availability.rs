@@ -176,6 +176,10 @@ impl Exits {
         let roots=self.8.get_or_insert_with(Default::default).entry((span.start,span.end,edge)).or_default();
         for (place,payloads) in snapshot {roots.entry(place).or_default().extend(payloads);}
     }
+    pub(crate) fn map_loop_has_break(&self,span:Span)->bool {
+        self.8.as_ref().is_some_and(|points|points.contains_key(&(span.start,span.end,MapLoopEdge::Break)))
+    }
+    #[cfg(test)]
     pub(crate) fn has_map_loop_edge(&self,span:Span,edge:MapLoopEdge)->bool {
         self.8.as_ref().is_some_and(|points|points.contains_key(&(span.start,span.end,edge)))
     }

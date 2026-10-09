@@ -17,9 +17,8 @@ impl Analyzer {
             if !context.storage_exits.map_completion_survivors(statement.span).iter().any(|state|state.consistent && state.place==*place && !state.released.is_empty()){continue;}
             let entry=context.storage_exits.map_loop_edge(statement.span,storage_exit_availability::MapLoopEdge::Entry,place);
             let back=context.storage_exits.map_loop_edge(statement.span,storage_exit_availability::MapLoopEdge::Back,place);
-            // A callable exit can leave no backedge at all. Its cleanup still
-            // needs the working storage family for entry deletion and disposal.
-            if !context.storage_exits.has_map_loop_edge(statement.span,storage_exit_availability::MapLoopEdge::Back) && !cleanup_body {continue;}
+            // An absent backedge does not make reaching entry or break storage
+            // empty. Direct exits still need local deletion and owner transport.
             let broken=context.storage_exits.map_loop_edge(statement.span,storage_exit_availability::MapLoopEdge::Break,place);
             let break_empty=broken.is_none_or(HashSet::is_empty);
             let entry_empty=entry.is_none_or(HashSet::is_empty);

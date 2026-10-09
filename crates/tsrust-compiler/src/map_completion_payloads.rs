@@ -56,6 +56,16 @@ impl Snapshots {
 mod tests {
     use super::*;
     #[test]
+    fn ordinary_no_backedge_break_keeps_live_storage() {
+        let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});while(true){handlers.delete('first');first[0]+=1;break;}for(const [key,entry] of handlers){console.log(entry.run());}handlers.clear();}").unwrap();
+        let checked=crate::check(&source).unwrap();let function=checked.program.functions.iter().find(|function|function.name=="main").unwrap();
+        let statement=function.body.iter().find(|statement|matches!(statement.kind,crate::syntax::StmtKind::While{..})).unwrap();
+        let epochs=function.storage_exits.map_iteration_epochs(statement.span);assert_eq!(epochs.len(),1);
+        assert!(!function.storage_exits.has_map_loop_edge(statement.span,crate::analysis::storage_exit_availability::MapLoopEdge::Back));
+        assert!(epochs[0].back.empty);assert!(!epochs[0].break_empty);assert!(!epochs[0].carrier_empty);
+    }
+
+    #[test]
     fn ordinary_loop_edges_keep_distinct_origins_and_empty_break() {
         let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function scenario(limit:int,stop:boolean):void{const first=[7];const second=[11];const handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>first[0]});let turn=0;while(turn<limit){handlers.delete('old');first[0]+=1;turn++;if(stop)break;handlers.set('new',{run:():int=>second[0]});if(turn<limit)continue;}handlers.clear();first[0]+=10;}function main():void{scenario(0,false);scenario(2,false);scenario(2,true);}").unwrap();
         let checked=crate::check(&source).unwrap();

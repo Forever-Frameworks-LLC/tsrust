@@ -231,3 +231,10 @@ callable on later iterations. An empty break remains empty instead of inheriting
 backedge entries. If a break happens before deletion, that entry remains live.
 The compiler keeps the first owner's representation separate from the working
 family required by later iterations and by cleanup observation.
+
+A loop does not need a reachable next iteration to release a deleted entry.
+Direct break, return and throw paths release the deleted callback before a later
+mutation of its capture. Remaining entries retain their callbacks and borrowing
+restrictions. This applies to while, counted, post-test and for-of loops. A
+post-test body ending in break still reaches the code after the loop; its surviving
+Map is converted to the checked exit layout before that code executes.

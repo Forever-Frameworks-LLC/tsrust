@@ -1484,3 +1484,37 @@ and structural owned record keys remain pending. No timing is claimed. Next add 
 focused ordinary no-backedge break/return witness before removing its eligibility
 guard. Preserve the original failed evidence and the 15 unrelated fixture edits,
 and commit only explicit paths.
+
+## Ordinary loops without a backedge (2026-10-09)
+
+The ordinary-loop eligibility guard incorrectly excluded loops whose bodies only
+break, return or throw. The failing break witness now preserves the live second
+entry while releasing the deleted first callback before capture mutation.
+While, counted, post-test and for-of variants pass native execution. Return and
+throw witnesses also verify exact callback disposal; those already passed before
+the eligibility repair and are retained as regression coverage.
+
+The variant batch exposed a second defect in post-test loops. A body without a
+reachable tail can still break to the normal exit. Emission previously skipped
+the exit projection, leaving a physical Map carrier incompatible with the next
+borrowed iterator's checked record binding. The emitter now projects storage when
+a break edge reaches that exit, while leaving return/throw-only tails untouched.
+The original diagnosis of a for-of defect was incorrect; the failing generated
+program was the post-test variant.
+
+Focused acceptance passes 86 affected Map native tests, 14 editor release checks,
+12 raw storage/completion proofs and all eight depth canaries. Matched support
+adds noBackedgeEntryBreak and noBackedgeEntryReturn, independent arithmetic
+oracles, mutation-rejecting source guards and two literal reference rows. All five
+native/Node-after-tsc cases pass untimed with 77 observations per row. The canonical
+record is runtime/results/2026-10-09T05-12-18-733Z-verify.json. Closed logs and this
+record are imported into SQLite, read back byte for byte and removed from loose
+storage. Whole-project formatting changes one workload and refreshes its verified
+formatting fingerprint. Installed consumers remain at gate 181.
+
+B5 remains incomplete. Next implement independent native phase layouts, then
+broader aggregate and within-expression release precision. Structural owned
+record Set/Map keys remain pending with the owner's Rust-style equality and
+hashing decision. No full regressions or timing are claimed. Preserve the 15
+unrelated fixture edits; use explicit Git paths. This is focused acceptance,
+not the B5 feature-family milestone.

@@ -1,6 +1,29 @@
 mod support;
 
 #[test]
+fn ordinary_map_loop_without_backedge_preserves_break_survivor() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});while(true){handlers.delete('first');first[0]+=1;break;}console.log('after',handlers.size);for(const [key,entry] of handlers){console.log('kept',key,entry.run());}handlers.clear();first[0]+=10;console.log('done',first[0]);}");
+    support::execute(&source,"after 1\nkept second 5\ndone 14\n",None);
+    verify_disposal(&source,2,"drop 0\nafter 1\nkept second 5\ndrop 1\ndone 14\n");
+    for replacement in ["for(let step=0;step<1;step+=1){","do{","for(const step of [0]){"] {
+        let mut variant=source.replace("while (true) {",replacement);assert_ne!(variant,source);
+        if replacement=="do{" {variant=variant.replace("console.log('after', handlers.size);","while(false);console.log('after',handlers.size);");}
+        support::execute(&support::format_round_trip(&variant),"after 1\nkept second 5\ndone 14\n",None);
+    }
+}
+
+#[test]
+fn ordinary_map_loop_without_backedge_releases_capture_before_return() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario():int{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});while(true){handlers.delete('first');first[0]+=1;return first[0];}return 0;}function main():void{console.log('result',scenario());}");
+    support::execute(&source,"result 4\n",None);
+    verify_disposal(&source,2,"drop 0\ndrop 1\nresult 4\n");
+    let failed=source.replace("return first[0];","throw first[0];").replace("console.log('result', scenario());","try{console.log('result',scenario());}catch(error){if(typeof error==='number')console.log('error',error);else throw error;}");
+    support::execute(&support::format_round_trip(&failed),"error 4\n",None);
+    verify_disposal(&support::format_round_trip(&failed),2,"drop 0\ndrop 1\nerror 4\n");
+}
+
+
+#[test]
 fn ordinary_map_loop_preserves_different_entry_back_and_break_origins() {
     let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(limit:int,stop:boolean):void{const first=[7];const second=[11];const handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>first[0]});let turn=0;while(turn<limit){handlers.delete('old');first[0]+=1;turn++;if(stop)break;handlers.set('new',{run:():int=>second[0]});if(turn<limit)continue;}console.log('after',turn,handlers.size);for(const [key,entry] of handlers){console.log('kept',key,entry.run());}handlers.clear();first[0]+=10;console.log('done',first[0]);}function main():void{scenario(0,false);scenario(2,false);scenario(2,true);}");
     support::execute(&source,"after 0 1\nkept old 7\ndone 17\nafter 2 1\nkept new 11\ndone 19\nafter 1 0\ndone 18\n",None);
