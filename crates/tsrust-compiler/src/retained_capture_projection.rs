@@ -30,7 +30,7 @@ impl Projection {
     pub(crate) fn is_direct(&self) -> bool {
         matches!(self, Self::Direct)
     }
-    pub(super) fn captures(&self) -> &[usize] {
+    pub(crate) fn captures(&self) -> &[usize] {
         match self {
             Self::Captures(path) => path,
             _ => &[],

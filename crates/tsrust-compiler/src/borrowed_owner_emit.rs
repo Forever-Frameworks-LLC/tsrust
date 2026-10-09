@@ -32,12 +32,62 @@ impl Emitter<'_> {
                 .get(&origin)
                 .into_iter()
                 .flatten()
-                .filter(|borrow| self.borrowed_owners.contains_key(&borrow.origin))
-                .map(|borrow| closure.captures[borrow.source_capture].inner),
+                .enumerate()
+                .filter(|(_, borrow)| self.borrowed_owners.contains_key(&borrow.origin))
+                .filter_map(|(position, borrow)| {
+                    if borrow.source_projection.is_direct() {
+                        Some(closure.captures[borrow.source_capture].inner)
+                    } else {
+                        // An opaque projection has no capture path and no owner input.
+                        (!borrow.source_projection.captures().is_empty()).then(|| Self::projected_owner_key(position))
+                    }
+                }),
         );
         inputs.sort();
         inputs.dedup();
         inputs
+    }
+    /// A retained source inside a captured environment has its own owner
+    /// input: two retained fields of one receiver can have different owners.
+    /// The key is the position of its captured borrow, outside binding IDs.
+    pub(super) fn projected_owner_key(position: usize) -> usize {
+        usize::MAX - position
+    }
+    fn projected_owner_position(key: usize) -> Option<usize> {
+        (key > usize::MAX / 2).then(|| usize::MAX - key)
+    }
+    /// The storage binding in `function` that a captured environment retains
+    /// along `path`, when every environment on the way was constructed there.
+    pub(super) fn constructed_capture_binding(&self, function: &CheckedFunction, mut binding: usize, path: &[usize]) -> Option<usize> {
+        for &inner in path {
+            let value = function.bindings.get(binding)?;
+            if value.parameter || value.capture_reference {
+                return None;
+            }
+            let Type::Closure(origin) = value.ty else { return None; };
+            binding = self.program.closures[origin].captures.iter().find(|capture| capture.inner == inner)?.outer;
+        }
+        Some(binding)
+    }
+    /// The owner marker, in `function`, of what the closure value `receiver`
+    /// retains along `path`.
+    fn receiver_owner_marker(&self, function: &CheckedFunction, receiver: usize, path: &[usize]) -> Option<String> {
+        let value = function.bindings.get(receiver)?;
+        if let Some((origin, closure)) = self.program.closures.iter().enumerate().find(|(_, closure)| std::ptr::eq(function, &closure.function))
+            && let Some(capture) = closure.captures.iter().position(|capture| capture.inner == receiver)
+        {
+            // A held environment: this closure names the owner through its own input.
+            let position = self.program.closure_record_capture_borrows.get(&origin)?.iter().position(|borrow| {
+                borrow.source_capture == capture && borrow.source_projection.captures() == path
+            })?;
+            let key = Self::projected_owner_key(position);
+            return self.closure_owner_inputs(origin).contains(&key).then(|| format!("O{key}"));
+        }
+        if value.parameter || value.capture_reference {
+            return None;
+        }
+        let binding = self.constructed_capture_binding(function, receiver, path)?;
+        self.owner_binding_marker(function, binding)
     }
     /// Hidden retained sources use their capture binding, not a written argument slot.
     pub(super) fn retained_call_binding(
@@ -63,27 +113,26 @@ impl Emitter<'_> {
         function: &CheckedFunction,
         origin: usize,
         arguments: &[Expr],
+        receiver: usize,
     ) -> Vec<String> {
         let closure = &self.program.closures[origin];
         self.closure_owner_inputs(origin)
             .into_iter()
             .map(|parameter| {
-                let source = closure
-                    .parameters
-                    .iter()
-                    .position(|candidate| *candidate == parameter)
-                    .and_then(|slot| arguments.get(slot).and_then(|argument| argument.binding))
-                    .or_else(|| {
-                        closure
-                            .captures
-                            .iter()
-                            .find(|capture| capture.inner == parameter)
-                            .map(|capture| capture.outer)
-                    });
-                let marker = source
-                    .and_then(|binding| self.owner_binding_marker(function, binding))
-                    .unwrap_or_else(|| "()".into());
-                format!("std::marker::PhantomData::<{marker}>")
+                let marker = if let Some(slot) = closure.parameters.iter().position(|candidate| *candidate == parameter) {
+                    arguments.get(slot).and_then(|argument| argument.binding)
+                        .and_then(|binding| self.owner_binding_marker(function, binding))
+                } else {
+                    // A hidden source: resolve it through the receiver value.
+                    let path = match Self::projected_owner_position(parameter) {
+                        Some(position) => self.program.closure_record_capture_borrows.get(&origin).and_then(|borrows| borrows.get(position)).map(|borrow| {
+                            std::iter::once(closure.captures[borrow.source_capture].inner).chain(borrow.source_projection.captures().iter().copied()).collect::<Vec<_>>()
+                        }),
+                        None => Some(vec![parameter]),
+                    };
+                    path.and_then(|path| self.receiver_owner_marker(function, receiver, &path))
+                };
+                format!("std::marker::PhantomData::<{}>", marker.unwrap_or_else(|| "()".into()))
             })
             .collect()
     }
@@ -115,6 +164,9 @@ impl Emitter<'_> {
             .enumerate()
             .find(|(_, closure)| std::ptr::eq(function, &closure.function))
         {
+            if Self::projected_owner_position(binding).is_some() {
+                return self.closure_owner_inputs(origin).contains(&binding).then(|| format!("O{binding}"));
+            }
             let mut seen = HashSet::new();
             while seen.insert(binding) {
                 if closure.parameters.contains(&binding)
@@ -232,11 +284,21 @@ impl Emitter<'_> {
             |marker| format!("TsrOwnedCapture::<_,{marker}>({value},std::marker::PhantomData)"),
         )
     }
+    /// Owner markers for a callback trait implementation, where no caller
+    /// names the owners. One owner keeps the unit marker. Several owners need
+    /// distinct markers: replacement bounds that differ only in a lifetime
+    /// would otherwise be ambiguous.
+    pub(super) fn unnamed_owner_markers(&self, count: usize) -> Vec<String> {
+        if count <= 1 {
+            return vec!["()".to_owned(); count];
+        }
+        (0..count).map(|position| format!("TsrUnnamedOwner<{position}>")).collect()
+    }
     pub(super) fn emit_owner_markers(&self, output: &mut String) {
         if self.borrowed_owners.is_empty() {
             return;
         }
-        output.push_str("struct TsrOwnedCapture<T,O>(T,std::marker::PhantomData<O>);\n");
+        output.push_str("struct TsrOwnedCapture<T,O>(T,std::marker::PhantomData<O>);\nstruct TsrUnnamedOwner<const N: usize>;\n");
         let owners = self
             .borrowed_owners
             .values()

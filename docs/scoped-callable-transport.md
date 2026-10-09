@@ -556,7 +556,46 @@ When the stored callback instead borrows an input captured by the installer, sou
 
 Two local installer closures can capture different caller-owned arrays and replace the same stored callback. After both installers leave their blocks, the old array can be mutated while the holder continues borrowing the replacement array. Nullable and plain readonly callback fields preserve this behavior. Mutating the replacement array before releasing its stored callback reports a capture conflict.
 
-Direct installer invocation passes owner markers for hidden captured inputs alongside markers for written inputs. Replacement reconstructs only the checked owner payload, ending the old borrow without cloning. Consuming wrappers, indirect invocation through captured receivers, owned capture storage and closure-local owner identities still require their remaining interfaces.
+Direct installer invocation passes owner markers for hidden captured inputs alongside markers for written inputs. Replacement reconstructs only the checked owner payload, ending the old borrow without cloning. Consuming wrappers, owned capture storage and closure-local owner identities still require their remaining interfaces.
+
+### Installers called through another closure
+
+A closure can call an installer closure that it captured. The stored callback still
+borrows the data that the installer captured, however many closures the call passes
+through. Each installation keeps its own source, so a later installation releases the
+earlier one:
+
+```tsrust
+type Holder = { run: ReadOnly<Function<int>> | undefined; };
+function install(holder: Mutable<Holder>, source: ReadOnly<int[]>): void {
+    holder.run = (): int => source[0];
+}
+const first = [3];
+const second = [10];
+const holder: Holder = { run: undefined };
+{
+    const inner = (destination: Mutable<Holder>): void => { install(destination, first); };
+    const outer = (target: Mutable<Holder>): void => { inner(target); };
+    outer(holder);
+}
+console.log(holder.run!()); // 3
+{
+    const inner = (destination: Mutable<Holder>): void => { install(destination, second); };
+    const outer = (target: Mutable<Holder>): void => { inner(target); };
+    outer(holder);
+}
+first[0] += 1;              // allowed: the holder now borrows `second`
+console.log(holder.run!()); // 10
+```
+
+Changing `second` while the holder keeps that callback reports `capture-conflict`.
+Plain and nullable callback fields behave the same way, and one installer can store
+callbacks that borrow two different captured sources into two holders.
+
+This form needs a readonly captured source, and every closure on the path must be
+created in the function that makes the call. An installer that captures a mutable
+source keeps the restriction described under "Mutable captured inputs and owned
+transfer".
 
 ### Owners declared inside closures
 

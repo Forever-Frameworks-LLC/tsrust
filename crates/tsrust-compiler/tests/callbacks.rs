@@ -214,10 +214,14 @@ function main() {
 }
 
 #[test]
+fn local_closures_can_borrow_callback_parameters() {
+    execute("function twice(action: Mutable<Function<void>>) { const captured = (): void => { action(); }; captured(); captured(); } function main() { let n = 0; twice((): void => { n += 1; }); console.log(n); }", "2\n", None);
+}
+
+#[test]
 fn callback_parameters_cannot_escape_through_return_or_capture() {
     for body in [
         "return action;",
-        "const captured = (): void => { action(); };",
         "const captured = (): void => { forward(action); };",
         "console.log(action);",
     ] {

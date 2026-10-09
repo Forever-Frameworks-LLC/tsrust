@@ -1065,3 +1065,81 @@ fn captured_installer_receivers_preserve_native_hidden_sources() {
         }
     "#);
 }
+
+#[test]
+fn captured_installer_receivers_cover_plain_fields_and_three_layers() {
+    execute(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>, calls: Mutable<int[]>): void { calls[0] += 1; holder.run = (): int => source[0]; }
+        function main() {
+            const zero = [0]; const first = [3]; const second = [10]; const calls = [0];
+            const holder: Holder = { run: (): int => zero[0] };
+            {
+                const inner = (destination: Mutable<Holder>): void => { install(destination, first, calls); };
+                const middle = (between: Mutable<Holder>): void => { inner(between); };
+                const outer = (target: Mutable<Holder>): void => { middle(target); };
+                outer(holder);
+            }
+            strictEqual(holder.run(), 3);
+            {
+                const inner = (destination: Mutable<Holder>): void => { install(destination, second, calls); };
+                const outer = (target: Mutable<Holder>): void => { inner(target); };
+                outer(holder);
+            }
+            first[0] += 1; strictEqual(first[0], 4); strictEqual(holder.run(), 10); strictEqual(calls[0], 2);
+        }
+    "#);
+}
+
+#[test]
+fn one_installer_receiver_retains_two_independent_hidden_sources() {
+    // Two retained fields of one receiver have different owners.
+    for wrapped in [false, true] {
+        let call = if wrapped {
+            "const outer = (x: Mutable<Holder>, y: Mutable<Holder>): void => { inner(x, y); }; outer(left, right);"
+        } else {
+            "inner(left, right);"
+        };
+        execute(&format!(r#"
+            import {{ strictEqual }} from "std:testing";
+            type Holder = {{ run: ReadOnly<Function<int>> | undefined; }};
+            function install(holder: Mutable<Holder>, source: ReadOnly<int[]>): void {{ holder.run = (): int => source[0]; }}
+            function main() {{
+                const first = [3]; const second = [10];
+                const left: Holder = {{ run: undefined }}; const right: Holder = {{ run: undefined }};
+                {{
+                    const inner = (x: Mutable<Holder>, y: Mutable<Holder>): void => {{ install(x, first); install(y, second); }};
+                    {call}
+                }}
+                strictEqual(left.run!(), 3); strictEqual(right.run!(), 10);
+            }}
+        "#));
+    }
+}
+
+#[test]
+fn captured_installer_receivers_keep_live_sources_borrowed() {
+    for tail in [
+        // The installed callback still reads the source.
+        "first[0] += 1; console.log(holder.run!());",
+        // A second installation retains its own source, not the first one.
+        "{ const inner = (destination: Mutable<Holder>): void => { install(destination, second, calls); }; const outer = (target: Mutable<Holder>): void => { inner(target); }; outer(holder); } second[0] += 1; console.log(holder.run!());",
+    ] {
+        let source = support::format_round_trip(&format!(r#"
+            type Holder = {{ run: ReadOnly<Function<int>> | undefined; }};
+            function install(holder: Mutable<Holder>, source: ReadOnly<int[]>, calls: Mutable<int[]>): void {{ calls[0] += 1; holder.run = (): int => source[0]; }}
+            function main() {{
+                const first = [3]; const second = [10]; const calls = [0]; const holder: Holder = {{ run: undefined }};
+                {{
+                    const inner = (destination: Mutable<Holder>): void => {{ install(destination, first, calls); }};
+                    const outer = (target: Mutable<Holder>): void => {{ inner(target); }};
+                    outer(holder);
+                }}
+                {tail}
+            }}
+        "#));
+        let error = tsrust_compiler::check(&source).err().unwrap_or_else(|| panic!("a live hidden source must stay borrowed: {tail}"));
+        assert_eq!(error.code, "capture-conflict", "{error:?}");
+    }
+}

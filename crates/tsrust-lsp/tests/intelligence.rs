@@ -9647,6 +9647,34 @@ fn nested_installer_hidden_sources_keep_editor_owner_conflicts() {
 }
 
 #[test]
+fn captured_installer_receivers_release_replaced_hidden_sources_in_the_editor() {
+    let source = tsrust_compiler::format(r#"
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>): void { holder.run = (): int => source[0]; }
+        function main() {
+            const first = [3]; const second = [10]; const holder: Holder = { run: undefined };
+            {
+                const inner = (destination: Mutable<Holder>): void => { install(destination, first); };
+                const outer = (target: Mutable<Holder>): void => { inner(target); };
+                outer(holder);
+            }
+            {
+                const inner = (destination: Mutable<Holder>): void => { install(destination, second); };
+                const outer = (target: Mutable<Holder>): void => { inner(target); };
+                outer(holder);
+            }
+            first[0] += 1; console.log(holder.run!());
+        }
+    "#).unwrap();
+    let uri = "file:///captured-installer-replacement.tsr";
+    assert!(tsrust_lsp::diagnostics(&source, uri).unwrap().is_empty());
+    let conflict = source.replace("first[0] += 1;", "second[0] += 1;");
+    assert_ne!(conflict, source);
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&conflict, uri).unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "capture-conflict"), "{diagnostics}");
+}
+
+#[test]
 fn captured_installer_receiver_keeps_hidden_borrow_diagnostic() {
     let source = tsrust_compiler::format(r#"
         type Holder = { run: ReadOnly<Function<int>> | undefined; };

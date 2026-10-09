@@ -59,10 +59,15 @@ impl Replay<'_> {
                             pending.push((field.ty.unwrap(), path));
                         }
                     }
+                    // A nullable callable can be released: native emission
+                    // reconstructs it after the call. A nullable record that
+                    // holds a callback has no such reconstruction, so its
+                    // environments stay borrowed while the caller's record lives.
                     Type::Union(id) | Type::BorrowedUnion(id) => pending.extend(
                         self.unions
                             .members(id)
                             .into_iter()
+                            .filter(|member| !matches!(member, Type::Record(_)))
                             .map(|member| (member, path.clone())),
                     ),
                     Type::Callback(_)

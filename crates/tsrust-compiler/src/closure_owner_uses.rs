@@ -4,20 +4,24 @@ use std::collections::BTreeSet;
 
 pub(super) fn incomplete_targets(program: &CheckedProgram) -> BTreeSet<usize> {
     let mut result = BTreeSet::new();
-    for function in program
+    // Written parameters only: a closure's capture bindings are not parameters.
+    let scopes = program
         .functions
         .iter()
-        .chain(program.closures.iter().map(|closure| &closure.function))
-    {
+        .map(|function| (function, (0..function.parameter_count).collect::<Vec<_>>()))
+        .chain(program.closures.iter().map(|closure| (&closure.function, closure.parameters.clone())));
+    for (function, parameters) in scopes {
         let mut callees = BTreeSet::new();
         crate::fixed_storage::visit_function_expressions(function, &mut |expr| {
             if matches!(expr.target, Some(CallTarget::Closure(_)))
                 && let ExprKind::Call(callee, _) = &expr.kind
             {
                 callees.insert((callee.span.start, callee.span.end));
+                // A captured receiver carries its construction environment;
+                // the provenance walk rejects it when that is unknown. A
+                // parameter receiver has no environment interface.
                 if let Some(CallTarget::Closure(binding)) = expr.target
-                    && (function.bindings[binding].parameter
-                        || function.bindings[binding].capture_reference)
+                    && parameters.contains(&binding)
                     && let Some(CallableOrigin::Closure(origin)) = expr.callable_origin
                 {
                     result.insert(origin);

@@ -58,6 +58,7 @@ impl Emitter<'_> {
                         })
                         .any(|borrow| {
                             self.retained_call_binding(callee, borrow.source, arguments)
+                                .and_then(|binding| self.constructed_capture_binding(caller, binding, borrow.source_projection.captures()))
                                 .and_then(|binding| self.owner_binding_marker(caller, binding))
                                 .is_some_and(|marker| marker == Self::owner_name(owner))
                         })

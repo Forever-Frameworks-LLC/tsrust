@@ -394,7 +394,47 @@ function workload(n: int, seed: int, input: string): int[][] {
             original[0] += 1; nestedReleased = original[0]; nestedReplacement = holder.run!(); nestedEffects = calls[0];
         }
 
-        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects, conditionalFirst, conditionalReleased, conditionalReplacement, conditionalEffects, forwardedFirst, forwardedReleased, forwardedReplacement, forwardedEffects, closureFirst, closureReleased, closureReplacement, closureEffects, capturedFirst, capturedReleased, capturedReplacement, capturedEffects, retainedCapture, clearedCapture, independentFirst, independentReleased, independentReplacement, localOwnerValues[0], localOwnerValues[1], localOwnerValues[2], localOwnerValues[3], scopedFirst, scopedSecond, scopedReleased, scopedEffects, ownedFirst, ownedSecond, nestedFirst, nestedReleased, nestedReplacement, nestedEffects]);
+        let heldFirst = 0;
+        let heldReleased = 0;
+        let heldReplacement = 0;
+        let heldEffects = 0;
+        {
+            const original = [value + 50];
+            const replacement = [value + 60];
+            const calls = [0];
+            const holder: ReadNullableHolder = {
+                run: undefined
+            };
+            {
+                const heldInstallerFirst = (destination: ReadNullableHolder): void => {
+                    calls[0] += 1;
+                    installCapturedSource(destination, original);
+                };
+                const heldCallerFirst = (target: ReadNullableHolder): void => {
+                    heldInstallerFirst(target);
+                };
+                heldCallerFirst(holder);
+            }
+
+            heldFirst = holder.run!();
+            {
+                const heldInstallerSecond = (destination: ReadNullableHolder): void => {
+                    calls[0] += 1;
+                    installCapturedSource(destination, replacement);
+                };
+                const heldCallerSecond = (target: ReadNullableHolder): void => {
+                    heldInstallerSecond(target);
+                };
+                heldCallerSecond(holder);
+            }
+
+            original[0] += 1;
+            heldReleased = original[0];
+            heldReplacement = holder.run!();
+            heldEffects = calls[0];
+        }
+
+        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects, conditionalFirst, conditionalReleased, conditionalReplacement, conditionalEffects, forwardedFirst, forwardedReleased, forwardedReplacement, forwardedEffects, closureFirst, closureReleased, closureReplacement, closureEffects, capturedFirst, capturedReleased, capturedReplacement, capturedEffects, retainedCapture, clearedCapture, independentFirst, independentReleased, independentReplacement, localOwnerValues[0], localOwnerValues[1], localOwnerValues[2], localOwnerValues[3], scopedFirst, scopedSecond, scopedReleased, scopedEffects, ownedFirst, ownedSecond, nestedFirst, nestedReleased, nestedReplacement, nestedEffects, heldFirst, heldReleased, heldReplacement, heldEffects]);
         i += 1;
     }
 

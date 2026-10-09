@@ -2509,7 +2509,7 @@ impl Emitter<'_> {
             let forwarded_trait_where = forwarded_signature.as_ref().map_or_else(||closure_signature.as_ref().map_or_else(String::new, |signature|signature.trait_where.clone()), |(target,_)| self.forwarded_record_trait_where(*target));
             let forwarded = forwarded_signature.as_ref().map_or_else(|| {
                 let mut arguments = vec![forwarded.clone()];
-                arguments.extend(self.closure_owner_inputs(index).iter().map(|_|"std::marker::PhantomData::<()>".to_owned()));
+                arguments.extend(self.unnamed_owner_markers(self.closure_owner_inputs(index).len()).into_iter().map(|marker|format!("std::marker::PhantomData::<{marker}>")));
                 arguments.into_iter().filter(|value|!value.is_empty()).collect::<Vec<_>>().join(", ")
             }, |(target,_)|self.forwarded_record_trait_arguments(*target,&forwarded));
             if self.callback_traits {
@@ -8901,7 +8901,7 @@ impl Emitter<'_> {
                         .zip(&closure.parameters)
                         .map(|(arg, &id)| self.expr(fun, arg, closure.function.bindings[id].mode))
                         .collect::<Vec<_>>();
-                    arguments.extend(self.closure_owner_arguments(fun,id,args));
+                    arguments.extend(self.closure_owner_arguments(fun,id,args,binding));
                     let args = arguments.join(", ");
                     let call = if fun.bindings[binding].callback_invocation == Some(Mode::Consume) {
                         let args = if args.is_empty() {

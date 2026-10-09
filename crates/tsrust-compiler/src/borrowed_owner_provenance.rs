@@ -121,7 +121,55 @@ fn resolve(
     None
 }
 
-fn walk(program: &CheckedProgram, mut pending: Vec<(Scope, Vec<Option<Owner>>)>) -> Plan {
+/// Owners of the inputs of one closure value, resolved where that value was
+/// constructed. Capture `outer` bindings belong to the construction context,
+/// so a caller that only holds the value must receive them, not resolve them.
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+struct Environment {
+    inputs: Vec<Option<Owner>>,
+    nested: BTreeMap<usize, Environment>,
+}
+
+/// The environment of a closure literal's origin constructed in `function`.
+fn constructed_environment(
+    program: &CheckedProgram,
+    function: &CheckedFunction,
+    scope: Scope,
+    inputs: &[Option<Owner>],
+    environments: &BTreeMap<usize, Environment>,
+    owned: &HashSet<usize>,
+    origin: usize,
+    depth: usize,
+) -> Option<Environment> {
+    if depth > program.closures.len() {
+        return None;
+    }
+    let closure = &program.closures[origin];
+    let mut result = Environment {
+        inputs: vec![None; closure.function.bindings.len()],
+        nested: BTreeMap::new(),
+    };
+    for capture in &closure.captures {
+        result.inputs[capture.inner] = resolve(function, scope, inputs, capture.outer);
+        if let Some(Type::Closure(inner)) = function.bindings.get(capture.outer).map(|binding| binding.ty) {
+            let environment = if owned.contains(&inner) {
+                constructed_environment(program, function, scope, inputs, environments, owned, inner, depth + 1)
+            } else {
+                environments.get(&capture.outer).cloned()
+            };
+            if let Some(environment) = environment {
+                result.nested.insert(capture.inner, environment);
+            }
+        }
+    }
+    Some(result)
+}
+
+fn walk(program: &CheckedProgram, pending: Vec<(Scope, Vec<Option<Owner>>)>) -> Plan {
+    let mut pending = pending
+        .into_iter()
+        .map(|(scope, inputs)| (scope, inputs, BTreeMap::<usize, Environment>::new()))
+        .collect::<Vec<_>>();
     let mut result = Plan::new();
     if program.record_parameter_borrows.is_empty() {
         return result;
@@ -157,8 +205,10 @@ fn walk(program: &CheckedProgram, mut pending: Vec<(Scope, Vec<Option<Owner>>)>)
         );
     }
     let mut seen = BTreeSet::new();
-    while let Some((id, inputs)) = pending.pop() {
-        if !seen.insert((id, inputs.clone())) {
+    // A closure reached through a held value whose environment is unknown here.
+    let mut unresolved_receivers = BTreeSet::new();
+    while let Some((id, inputs, environments)) = pending.pop() {
+        if !seen.insert((id, inputs.clone(), environments.clone())) {
             continue;
         }
         let function = id.function(program);
@@ -173,7 +223,18 @@ fn walk(program: &CheckedProgram, mut pending: Vec<(Scope, Vec<Option<Owner>>)>)
             {
                 owned.insert(origin);
             }
-            if let (Some(callee), ExprKind::Call(_, arguments)) = (Scope::call(expr), &expr.kind) {
+        });
+        crate::fixed_storage::visit_function_expressions(function, &mut |expr| {
+            // A call through a held closure value can lack origin metadata on
+            // the call; the receiver binding's checked type still names it.
+            let callee = Scope::call(expr).or_else(|| match expr.target {
+                Some(CallTarget::Closure(binding)) => match function.bindings.get(binding)?.ty {
+                    Type::Closure(origin) => Some(Scope::Closure(origin)),
+                    _ => None,
+                },
+                _ => None,
+            });
+            if let (Some(callee), ExprKind::Call(_, arguments)) = (callee, &expr.kind) {
                 let values = arguments
                     .iter()
                     .map(|argument| {
@@ -183,21 +244,35 @@ fn walk(program: &CheckedProgram, mut pending: Vec<(Scope, Vec<Option<Owner>>)>)
                         resolve(function, id, &inputs, argument.binding?)
                     })
                     .collect::<Vec<_>>();
-                let values = match callee {
-                    Scope::Function(_) => values,
+                let (values, nested) = match callee {
+                    Scope::Function(_) => (values, BTreeMap::new()),
                     Scope::Closure(origin) => {
                         let closure = &program.closures[origin];
-                        let mut mapped = vec![None; closure.function.bindings.len()];
+                        let receiver = match expr.target {
+                            Some(CallTarget::Closure(binding)) => function.bindings.get(binding).map(|value| (binding, value)),
+                            _ => None,
+                        };
+                        let environment = match receiver {
+                            Some((binding, _)) if !parameters.contains(&binding) && owned.contains(&origin) => {
+                                constructed_environment(program, function, id, &inputs, &environments, &owned, origin, 0)
+                            }
+                            Some((binding, _)) => environments.get(&binding).cloned(),
+                            None => None,
+                        };
+                        let mut environment = environment.unwrap_or_else(|| {
+                            unresolved_receivers.insert(origin);
+                            Environment {
+                                inputs: vec![None; closure.function.bindings.len()],
+                                nested: BTreeMap::new(),
+                            }
+                        });
                         for (&parameter, owner) in closure.parameters.iter().zip(values) {
-                            mapped[parameter] = owner;
+                            environment.inputs[parameter] = owner;
                         }
-                        for capture in &closure.captures {
-                            mapped[capture.inner] = resolve(function, id, &inputs, capture.outer);
-                        }
-                        mapped
+                        (environment.inputs, environment.nested)
                     }
                 };
-                pending.push((callee, values));
+                pending.push((callee, values, nested));
             }
         });
         let mut vectors = BTreeMap::<usize, Vector>::new();
@@ -228,6 +303,24 @@ fn walk(program: &CheckedProgram, mut pending: Vec<(Scope, Vec<Option<Owner>>)>)
             vector.dedup();
             result.entry(origin).or_default().insert(vector);
         }
+    }
+    // A callee whose environment was unknown at some call cannot name the
+    // owners of what it installs; neither can any closure it installs through.
+    for target in unresolved_receivers {
+        incomplete.extend(
+            program
+                .closure_record_capture_borrows
+                .get(&target)
+                .into_iter()
+                .flatten()
+                .map(|borrow| borrow.origin),
+        );
+        incomplete.extend(
+            Scope::Closure(target)
+                .borrows(program)
+                .iter()
+                .map(|borrow| borrow.origin),
+        );
     }
     result.retain(|origin, _| !incomplete.contains(origin));
     result

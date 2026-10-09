@@ -5,6 +5,16 @@ Read the completion ledger and B5 acceptance handoff before implementation.
 
 ## Current implementation progress
 
+Captured installer receivers are native. A closure that calls an installer closure it
+captured now has a record-view signature whose replacement bound names the data
+lifetime inside the captured environment, a distinct owner input for every retained
+source of that receiver, and owner markers passed through each layer. The owner walk
+resolves a closure's captured owners where the closure was constructed and hands that
+environment to whoever holds the value. Readonly captured sources through one, two and
+three layers, plain and nullable fields, and two independent sources through one
+receiver have native witnesses. Mutable captured sources through a held receiver keep
+the earlier restriction. Details: `docs/handoff-2026-10-10-b7-captured-receiver-native.md`.
+
 The latest focused checkpoint adds transitive hidden-source borrowing through locally
 constructed installer closures, including three-layer calls and conditional old-owner
 retention. Reusable mutable captures and explicit owning Once/Owned transfer are also

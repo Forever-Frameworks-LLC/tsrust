@@ -277,11 +277,8 @@ fn declaration_moves_preserve_callback_and_escape_boundaries() {
     ] {
         execute(source, "", None);
     }
-    for source in [
-        "function use(f: Mutable<Function<void>>) { const outer = (): void => { const inner = (): void => { f(); }; }; } function main() {}",
-    ] {
-        reject(source, "callback-escape");
-    }
+    // Nested local closures can borrow a callback parameter for the call.
+    execute("function use(f: Mutable<Function<void>>) { const outer = (): void => { const inner = (): void => { f(); }; inner(); }; outer(); } function main() { let n = 0; use((): void => { n += 1; }); console.log(n); }", "1\n", None);
     reject(
         "function main() { const outer = (): () int => { return (): int => { return 7; }; }; }",
         "syntax",

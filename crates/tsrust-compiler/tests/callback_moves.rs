@@ -13,10 +13,11 @@ fn reusable_moves_transfer_local_borrows_and_preserve_caller_ownership() {
     for hidden in ["Box<", "dyn ", "Rc<", "Clone::clone("] {
         assert!(!rust.contains(hidden));
     }
-    for name in ["action", "next"] {
+    // The first alias borrows the parameter; moving that alias on consumes it.
+    for (name, code) in [("action", "view-conflict"), ("next", "callback-consumed")] {
         let error = reject(
             &source.replace("console.log(last());", &format!("{name}();")),
-            "callback-consumed",
+            code,
         );
         assert_eq!(error.related.len(), 1);
     }
@@ -180,11 +181,13 @@ fn branch_and_loop_joins_track_moved_callback_bindings() {
 #[test]
 fn moves_do_not_relax_callback_escape_or_contract_rules() {
     for contract in ["Mutable<Function<int>>", "ReadOnly<Function<int>>"] {
-        reject(
+        // A local closure can borrow a callback parameter through a stable alias.
+        execute(
             &format!(
-                "function bad(action: {contract}) {{ const next = action; const f = (): int => {{ return next(); }}; }} function main() {{}}"
+                "function twice(action: {contract}): int {{ const next = action; const f = (): int => {{ return next(); }}; return f() + f(); }} function main() {{ const base = [3]; console.log(twice((): int => {{ return base[0]; }})); }}"
             ),
-            "callback-escape",
+            "6\n",
+            None,
         );
         reject(
             &format!(

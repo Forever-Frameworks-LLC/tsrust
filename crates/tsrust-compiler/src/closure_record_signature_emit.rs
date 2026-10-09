@@ -8,7 +8,67 @@ pub(super) struct ClosureRecordSignature {
     pub(super) receiver_lifetime: Option<&'static str>,
 }
 
+/// The capture lifetime slots that one rendered capture field names, in slot order.
+fn field_lifetime_slots(field: &str) -> Vec<usize> {
+    let mut slots = field
+        .split(|ch: char| !ch.is_alphanumeric() && ch != '\'' && ch != '_')
+        .filter_map(|word| word.strip_prefix("'c")?.parse::<usize>().ok())
+        .collect::<Vec<_>>();
+    slots.sort_unstable();
+    slots.dedup();
+    slots
+}
+
 impl Emitter<'_> {
+    /// The lifetime, in `closure`'s own parameters, of data that a captured
+    /// environment retains along `path`. Every step enters the environment
+    /// that the previous capture holds: a borrowed capture spends its first
+    /// slot on the reference, and the nested environment's slots follow in
+    /// its own layout order. Only shared data references are resolved; other
+    /// shapes keep the conservative path without a native signature.
+    fn projected_capture_lifetime(
+        &self,
+        closure: &crate::analysis::CheckedClosure,
+        capture: usize,
+        path: &[usize],
+    ) -> Option<String> {
+        if path.is_empty() {
+            return None;
+        }
+        let (_, fields) = self.capture_layout(closure);
+        let mut slots = field_lifetime_slots(fields.get(capture)?);
+        let mut current = closure.captures.get(capture)?;
+        let mut function = &closure.function;
+        for &inner in path {
+            if matches!(current.storage, Mode::Read | Mode::Mutate) {
+                if slots.is_empty() {
+                    return None;
+                }
+                slots.remove(0);
+            }
+            let Type::Closure(origin) = function.bindings.get(current.inner)?.ty else {
+                return None;
+            };
+            let nested = self.program.closures.get(origin)?;
+            let (nested_lifetimes, nested_fields) = self.capture_layout(nested);
+            if nested_lifetimes.len() != slots.len() {
+                return None;
+            }
+            let position = nested
+                .captures
+                .iter()
+                .position(|candidate| candidate.inner == inner)?;
+            slots = field_lifetime_slots(&nested_fields[position])
+                .into_iter()
+                .map(|slot| slots.get(slot).copied())
+                .collect::<Option<Vec<_>>>()?;
+            current = &nested.captures[position];
+            function = &nested.function;
+        }
+        (current.storage == Mode::Read)
+            .then(|| slots.first().map(|slot| format!("'c{slot}")))?
+    }
+
     pub(super) fn closure_record_signature(&self, index: usize) -> Option<ClosureRecordSignature> {
         let closure = &self.program.closures[index];
         if closure.forward.is_some() {
@@ -28,17 +88,11 @@ impl Emitter<'_> {
         {
             return None;
         }
-        // Projected environments require their own native lifetime and owner interface.
+        // A projected parameter source has no native interface yet. A projected
+        // capture source is resolved through the nested capture layouts below.
         if borrows
             .iter()
             .any(|borrow| !borrow.source_projection.is_direct())
-            || self
-                .program
-                .closure_record_capture_borrows
-                .get(&index)
-                .into_iter()
-                .flatten()
-                .any(|borrow| !borrow.source_projection.is_direct())
         {
             return None;
         }
@@ -46,14 +100,40 @@ impl Emitter<'_> {
         let (capture_lifetimes, capture_types) = self.capture_layout(closure);
         let mut hidden_lifetimes = HashMap::new();
         let mut receiver_lifetime = None;
-        for borrow in self
+        for (position, borrow) in self
             .program
             .closure_record_capture_borrows
             .get(&index)
             .into_iter()
             .flatten()
+            .enumerate()
         {
             let capture = &closure.captures[borrow.source_capture];
+            if !borrow.source_projection.is_direct() {
+                // The retained data lives inside the captured environment. Its
+                // lifetime is that environment's own slot for the data, not the
+                // lifetime of the reference that holds the environment. Each
+                // projected source keeps a distinct key: two retained fields of
+                // one receiver can have different owners.
+                let lifetime = self.projected_capture_lifetime(
+                    closure,
+                    borrow.source_capture,
+                    borrow.source_projection.captures(),
+                )?;
+                let key = Self::projected_owner_key(position);
+                hidden_lifetimes.insert(key, lifetime);
+                let source = sources.len();
+                sources.push(key);
+                borrows.push(crate::analysis::record_parameter_borrows::Borrow {
+                    target: borrow.target.clone(),
+                    source,
+                    source_projection: borrow.source_projection.clone(),
+                    mode: borrow.mode,
+                    origin: borrow.origin,
+                    capture: borrow.capture,
+                });
+                continue;
+            }
             let field = &capture_types[borrow.source_capture];
             let lifetime = capture_lifetimes.iter().find(|lifetime| {
                 field
@@ -268,7 +348,8 @@ impl Emitter<'_> {
         let owner_inputs = self.closure_owner_inputs(index);
         let owners = owner_inputs
             .iter()
-            .map(|source| (format!("O{source}"), "()".to_owned()))
+            .zip(self.unnamed_owner_markers(owner_inputs.len()))
+            .map(|(source, marker)| (format!("O{source}"), marker))
             .collect();
         for bound in &mut trait_bounds {
             *bound = callback_capture_emit::substitute_parameters(bound, &owners);

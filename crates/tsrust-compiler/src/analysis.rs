@@ -6729,7 +6729,10 @@ impl Analyzer {
                         span,
                     ));
                 }
-                for &view in context.names.values() {
+                // Name the earliest holder: map iteration order is not stable.
+                let mut views = context.names.values().copied().collect::<Vec<_>>();
+                views.sort_unstable();
+                for view in views {
                     if context.bindings[view].view_roots.contains(&index) {
                         let holder = &context.bindings[view];
                         // A borrowed const names itself; other views keep the element wording.
@@ -6737,6 +6740,11 @@ impl Analyzer {
                             (
                                 format!("Cannot mutate, replace, or transfer this storage while {:?} borrows part of it. Use the borrow in an inner block, or clone() the part.", holder.name),
                                 format!("{:?} borrows here.", holder.name),
+                            )
+                        } else if holder.callback_reference {
+                            (
+                                format!("Cannot call or transfer this callback while its alias {:?} borrows it. Call the alias instead, or keep the alias in an inner block.", holder.name),
+                                format!("{:?} borrows the callback here.", holder.name),
                             )
                         } else {
                             (
@@ -14445,6 +14453,26 @@ self.names_materialized_type(element.with_depth(0).ty())
         };
         Self::prepare_arguments(args, &params, span)?;
         self.check_call_arguments(context, args, &params, loans)?;
+        // A function still being checked is on a recursive path. A new closure
+        // around a borrowed callback would give every level a larger callback
+        // type, which has no finite native instantiation. Owned callbacks have
+        // their own specialization limit check.
+        if self.visiting.get(index).copied().unwrap_or(false) {
+            for argument in args.iter() {
+                let mut value = argument;
+                while let ExprKind::Unary { value: inner, .. } | ExprKind::Inject { value: inner, .. } = &value.kind { value = inner; }
+                if matches!(value.kind, ExprKind::Closure { .. })
+                    && let Some(Type::Closure(origin)) = value.ty
+                    && self.closures.get(origin).is_some_and(|closure| closure.captures.iter().any(|capture| matches!(closure.function.bindings[capture.inner].ty, Type::Callback(id) if !self.callables.callbacks[id].kind.is_owned())))
+                {
+                    return Err(Diagnostic::new(
+                        "callback-escape",
+                        "A recursive call cannot wrap a borrowed callback in a new closure: every level would need a larger callback type. Pass the callback itself, or build the closure before the recursion starts.",
+                        value.span,
+                    ));
+                }
+            }
+        }
         if !capture_slots.is_empty() {
             self.named_capture_arguments(context, &capture_slots, args, &params, callee.span, loans)?;
         }
