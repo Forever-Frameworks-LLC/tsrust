@@ -9457,3 +9457,28 @@ fn saved_conditional_family_keeps_editor_loans_and_hover_consistent() {
     let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///saved-conditional-family.tsr").unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
 }
+
+#[test]
+fn installer_function_value_keeps_editor_retained_borrows() {
+    let source=tsrust_compiler::format(r#"
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>, calls: Mutable<int[]>): void {
+            calls[0] += 1;
+            holder.run = (): int => source[0];
+        }
+        function main() {
+            const first = [3]; const second = [10]; const calls = [0];
+            const holder: Holder = { run: undefined }; const perform = install;
+            perform(holder, first, calls); perform(holder, second, calls);
+            first[0] += 1; console.log(holder.run!());
+        }
+    "#).unwrap();
+    assert!(tsrust_lsp::diagnostics(&source,"file:///installer-function-value.tsr").unwrap().is_empty());
+    let hover=ask(&source,"textDocument/hover","run!",0);
+    let text=hover["contents"]["value"].as_str().unwrap();
+    assert!(text.contains("ReadOnly") && text.contains("undefined"),"{hover}");
+    let conflict=source.replace("first[0] += 1;","second[0] += 1;");
+    assert_ne!(source,conflict);
+    let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///installer-function-value.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+}

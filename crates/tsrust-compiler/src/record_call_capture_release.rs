@@ -316,7 +316,7 @@ impl Replay<'_> {
             ExprKind::Call(callee, args) => {
                 let mut payload = self.expression(function, callee, state, false);
                 let target = match expr.target {
-                    Some(CallTarget::Function(id)) => Some(id),
+                    Some(CallTarget::Function(id) | CallTarget::ForwardFunction(id)) => Some(id),
                     _ => None,
                 };
                 for (index, arg) in args.iter().enumerate() {

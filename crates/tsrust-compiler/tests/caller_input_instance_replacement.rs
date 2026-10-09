@@ -447,3 +447,90 @@ fn saved_callback_family_preserves_generic_input_and_local_move() {
     "#,
     );
 }
+
+#[test]
+fn closure_body_installer_releases_independent_input_owners() {
+    execute(
+        r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>, calls: Mutable<int[]>): void {
+            calls[0] += 1;
+            holder.run = (): int => source[0];
+        }
+        function main() {
+            const first = [3]; const second = [10]; const calls = [0];
+            const holder: Holder = { run: undefined };
+            const perform = (target: Mutable<Holder>, source: ReadOnly<int[]>, calls: Mutable<int[]>): void => {
+                install(target, source, calls);
+            };
+            perform(holder, first, calls); strictEqual(holder.run!(), 3);
+            perform(holder, second, calls); first[0] += 1;
+            strictEqual(first[0], 4); strictEqual(holder.run!(), 10); strictEqual(calls[0], 2);
+        }
+    "#,
+    );
+}
+
+#[test]
+fn installer_function_value_releases_independent_input_owners() {
+    execute(
+        r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>, calls: Mutable<int[]>): void {
+            calls[0] += 1;
+            holder.run = (): int => source[0];
+        }
+        function main() {
+            const first = [3]; const second = [10]; const calls = [0];
+            const holder: Holder = { run: undefined };
+            const perform = install;
+            perform(holder, first, calls); strictEqual(holder.run!(), 3);
+            perform(holder, second, calls); first[0] += 1;
+            strictEqual(first[0], 4); strictEqual(holder.run!(), 10); strictEqual(calls[0], 2);
+        }
+    "#,
+    );
+}
+
+#[test]
+fn installer_function_value_retains_new_owner_and_releases_old_owner_in_analysis() {
+    let source = r#"
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>, calls: Mutable<int[]>): void {
+            calls[0] += 1;
+            holder.run = (): int => source[0];
+        }
+        function relay(holder: Mutable<Holder>, source: ReadOnly<int[]>, calls: Mutable<int[]>): void {
+            const perform = install;
+            perform(holder, source, calls);
+        }
+        function main() {
+            const first = [3]; const second = [10]; const calls = [0];
+            const holder: Holder = { run: undefined };
+            const perform = install;
+            perform(holder, first, calls);
+            relay(holder, second, calls);
+            first[0] += 1;
+            console.log(holder.run!());
+        }
+    "#;
+    let source = support::format_round_trip(source);
+    for source in [
+        source.clone(),
+        source.replace(
+            "relay(holder, second, calls);",
+            "perform(holder, second, calls);",
+        ),
+    ] {
+        tsrust_compiler::check(&source)
+            .expect("A complete forwarded replacement releases the old owner");
+        let conflict = source.replace("first[0] += 1", "second[0] += 1");
+        assert_ne!(source, conflict);
+        let error = tsrust_compiler::check(&conflict)
+            .err()
+            .expect("Forwarded installation retains the new owner");
+        assert_eq!(error.code, "capture-conflict", "{error:?}");
+    }
+}

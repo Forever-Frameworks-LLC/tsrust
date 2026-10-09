@@ -15,8 +15,10 @@ struct Call {
 fn calls(function: &CheckedFunction) -> Vec<Call> {
     let mut result = Vec::new();
     crate::fixed_storage::visit_function_expressions(function, &mut |expr| {
-        if let (Some(CallTarget::Function(callee)), ExprKind::Call(_, args)) =
-            (expr.target, &expr.kind)
+        if let (
+            Some(CallTarget::Function(callee) | CallTarget::ForwardFunction(callee)),
+            ExprKind::Call(_, args),
+        ) = (expr.target, &expr.kind)
         {
             result.push(Call {
                 span: expr.span,

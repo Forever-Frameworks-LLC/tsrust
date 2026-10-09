@@ -166,8 +166,10 @@ pub(super) fn summary(
         summaries.insert(id, direct(function, closures, storage));
         let mut edges = Vec::new();
         crate::fixed_storage::visit_function_expressions(function, &mut |expr| {
-            if let (Some(CallTarget::Function(callee)), ExprKind::Call(_, arguments)) =
-                (expr.target, &expr.kind)
+            if let (
+                Some(CallTarget::Function(callee) | CallTarget::ForwardFunction(callee)),
+                ExprKind::Call(_, arguments),
+            ) = (expr.target, &expr.kind)
             {
                 edges.push((
                     callee,

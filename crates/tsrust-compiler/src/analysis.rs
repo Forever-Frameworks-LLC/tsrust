@@ -13343,7 +13343,10 @@ self.names_materialized_type(element.with_depth(0).ty())
             }
         }
         capture_boundary.unwind(&mut context.capture_loans);
-        self.resolved_call(context, function, args, span)
+        let (function, result) = self.resolved_call(context, function, args, span)?;
+        self.release_record_call_captures(context, function, args);
+        self.retain_record_parameter_borrows(context, function, args)?;
+        Ok((function, result))
     }
 
     #[inline(never)]
