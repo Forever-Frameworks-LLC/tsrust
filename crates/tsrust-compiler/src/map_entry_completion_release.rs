@@ -1,9 +1,9 @@
-//! Capture release proofs at an if statement's normal completion join.
+//! Capture release proofs at a control statement's normal completion join.
 use super::*;
 
 impl Analyzer {
     #[inline(never)]
-    pub(super) fn record_map_branch_release(&mut self,context:&mut Context,left:&mut [Stmt],right:&mut [Stmt],span:Span)->Result<(),Diagnostic> {
+    pub(super) fn record_map_completion_release(&mut self,context:&mut Context,left:&mut [Stmt],right:&mut [Stmt],span:Span)->Result<(),Diagnostic> {
         if !context.storage_exits.has_map_entry_survivors() {return Ok(());}
         let mut places=std::collections::BTreeMap::<crate::capture_loan_owners::Place,HashSet<usize>>::new();
         for body in [left,right] {
@@ -20,7 +20,7 @@ impl Analyzer {
             // Join reaching payloads, rather than taking either arm's local
             // snapshot. Reinserted and conditionally retained entries stay live.
             let payloads=context.capture_loan_owners.map_payloads(&place);
-            context.storage_exits.record_map_branch_survivors(span,storage_exit_availability::MapEntrySurvivors{place,input,payloads,released,consistent:true});
+            context.storage_exits.record_map_completion_survivors(span,storage_exit_availability::MapEntrySurvivors{place,input,payloads,released,consistent:true});
         }
         Ok(())
     }

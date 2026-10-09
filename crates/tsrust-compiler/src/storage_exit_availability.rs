@@ -56,7 +56,7 @@ impl Exits {
             previous.released.extend(released.iter().copied());
         }).or_insert(MapEntrySurvivors{place,input,payloads,consistent:true,released});
     }
-    pub(super) fn record_map_branch_survivors(&mut self,span:Span,state:MapEntrySurvivors) {
+    pub(super) fn record_map_completion_survivors(&mut self,span:Span,state:MapEntrySurvivors) {
         let states=self.6.get_or_insert_with(Default::default).entry((span.start,span.end)).or_default();
         if let Some(previous)=states.iter_mut().find(|previous|previous.place==state.place) {
             previous.consistent &= previous.input==state.input;
@@ -64,7 +64,7 @@ impl Exits {
             previous.released.extend(state.released);
         } else {states.push(state);}
     }
-    pub(crate) fn map_branch_survivors(&self,span:Span)->&[MapEntrySurvivors] {
+    pub(crate) fn map_completion_survivors(&self,span:Span)->&[MapEntrySurvivors] {
         self.6.as_ref().and_then(|points|points.get(&(span.start,span.end))).map(Vec::as_slice).unwrap_or(&[])
     }
     pub(crate) fn map_entry_survivors(&self, span: Span) -> Option<&MapEntrySurvivors> {

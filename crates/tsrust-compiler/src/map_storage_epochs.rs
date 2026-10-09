@@ -97,6 +97,12 @@ impl Emitter<'_> {
         let mut pending = inner.iter().collect::<Vec<_>>();
         while let Some(statement) = pending.pop() {
             if !statement.labels.is_empty() { return Vec::new(); }
+            for epoch in fun.storage_exits.map_entry_epochs(statement.span).iter().filter(|epoch|!epoch.before) {
+                if declaring_body.iter().any(|item|matches!(item.kind,StmtKind::Let{binding:Some(binding),..} if binding==epoch.place.binding)) {
+                    let place=self.map_entry_epoch_place(fun,epoch);
+                    if !places.contains(&place){places.push(place);}
+                }
+            }
             match &statement.kind {
                 StmtKind::Block(body) => pending.extend(body.iter()),
                 StmtKind::If { then_body, else_body, .. } => {
@@ -108,6 +114,7 @@ impl Emitter<'_> {
                     if let Some((place, _)) = self.local_map_clear_storage(fun, declaring_body, statement)
                         && !places.contains(&place) { places.push(place); }
                 },
+                StmtKind::While{..}|StmtKind::Loop{..}|StmtKind::ForOf{..} => {},
                 _ => return Vec::new(),
             }
         }

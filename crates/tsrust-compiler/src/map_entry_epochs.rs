@@ -3,15 +3,15 @@ use super::*;
 
 impl Analyzer {
     #[inline(never)]
-    pub(super) fn scoped_map_entry_epochs(&mut self, context:&mut Context, body:&mut [Stmt], results:HashMap<usize,Type>) -> Result<(),Diagnostic> {
+    pub(super) fn scoped_map_entry_epochs(&mut self, context:&mut Context, body:&mut [Stmt], mut results:HashMap<usize,Type>) -> Result<(),Diagnostic> {
         if !context.storage_exits.has_map_entry_survivors() {return Ok(());}
         let demand=map_entry_demand::Demand::checked(body)?;
-        self.scoped_map_entry_epochs_with_demand(context,body,results,&demand)
+        self.scoped_map_entry_epochs_with_demand(context,body,&mut results,&demand,&std::collections::BTreeSet::new()).map(|_|())
     }
     #[inline(never)]
-    fn scoped_map_entry_epochs_with_demand(&mut self, context:&mut Context, body:&mut [Stmt], mut results:HashMap<usize,Type>, demand:&map_entry_demand::Demand) -> Result<(),Diagnostic> {
-        if !context.storage_exits.has_map_entry_survivors() {return Ok(());}
-        let mut local=std::collections::BTreeSet::new();
+    fn scoped_map_entry_epochs_with_demand(&mut self, context:&mut Context, body:&mut [Stmt], results:&mut HashMap<usize,Type>, demand:&map_entry_demand::Demand, inherited:&std::collections::BTreeSet<crate::capture_loan_owners::Place>) -> Result<std::collections::BTreeSet<crate::capture_loan_owners::Place>,Diagnostic> {
+        if !context.storage_exits.has_map_entry_survivors() {return Ok(inherited.clone());}
+        let mut local=inherited.clone();
         for item in body.iter() {
             if let StmtKind::Let{binding:Some(binding),value,..}=&item.kind {
                 let mut pending=vec![(value,Vec::new())];
@@ -26,7 +26,7 @@ impl Analyzer {
             }
         }
         if local.is_empty() && !results.keys().any(|binding|context.storage_exits.map_entry_epoch_root(*binding)) {
-            return Ok(());
+            return Ok(local);
         }
         for statement in body {
             let moved_source=if let StmtKind::Let{value,..}=&statement.kind {
@@ -44,11 +44,15 @@ impl Analyzer {
                 for mut place in moved {place.binding=*destination;local.insert(place);}
             }
             if let StmtKind::Block(inner)=&mut statement.kind {
-                self.scoped_map_entry_epochs_with_demand(context,inner,results.clone(),demand)?;
+                if statement.labels.is_empty() {
+                    local=self.scoped_map_entry_epochs_with_demand(context,inner,results,demand,&local)?;
+                }
                 continue;
             }
             let mut writes=Vec::new();
+            let mut statement_end=statement.span.end;
             crate::source_walk::body(std::slice::from_mut(statement),&mut |_|Ok(()),&mut |value| {
+                statement_end=statement_end.max(value.span.end);
                 if value.target==Some(CallTarget::MapMethod(MapMethod::Set))
                     && let ExprKind::Call(callee,_) =&value.kind
                     && let ExprKind::Field(base,_) =&callee.kind
@@ -80,11 +84,12 @@ impl Analyzer {
             if let StmtKind::Let{binding:Some(binding),value,..}=&statement.kind
                 && let Some(ty)=self.planned_scoped_map_result(value,&results)
             {results.insert(*binding,ty);context.bindings[*binding].ty=ty;}
-            self.empty_map_iteration_carriers(context,std::slice::from_ref(statement),&mut results)?;
+            self.empty_map_iteration_carriers(context,std::slice::from_ref(statement),results)?;
             let field_initializer=matches!(&statement.kind,StmtKind::Let{binding:Some(binding),..} if local.iter().any(|place|place.binding==*binding && !place.fields.is_empty()));
             if !field_initializer {self.retarget_scoped_map_body(context,std::slice::from_mut(statement),&results,&HashMap::new())?;}
             if let StmtKind::ForOf{body:inner,..}=&mut statement.kind {
-                self.scoped_map_entry_epochs_with_demand(context,inner,results.clone(),demand)?;
+                let mut inner_results=results.clone();
+                self.scoped_map_entry_epochs_with_demand(context,inner,&mut inner_results,demand,&std::collections::BTreeSet::new())?;
             }
             let mut snapshots=Vec::new();
             crate::source_walk::body(std::slice::from_mut(statement),&mut |_|Ok(()),&mut |value| {
@@ -104,15 +109,15 @@ impl Analyzer {
             })?;
             // Nested controls have distinct reaching states and need their own
             // return transport; do not apply their deletion to the parent scope.
-            if matches!(statement.kind,StmtKind::If{..}) {
+            if matches!(statement.kind,StmtKind::If{..}|StmtKind::While{..}|StmtKind::Loop{..}|StmtKind::ForOf{..}) {
                 snapshots.clear();
-                for state in context.storage_exits.map_branch_survivors(statement.span) {
+                for state in context.storage_exits.map_completion_survivors(statement.span) {
                     if state.consistent && local.contains(&state.place) {snapshots.push((statement.span,state.clone()));}
                 }
-            } else if matches!(statement.kind,StmtKind::While{..}|StmtKind::Loop{..}|StmtKind::ForOf{..}|StmtKind::Try(_)) {continue;}
+            } else if matches!(statement.kind,StmtKind::Try(_)) {continue;}
             snapshots.sort_by_key(|(span,_)|span.start);
             for (span,state) in snapshots {
-                if !demand.after(statement.span.end,&state.released) {continue;}
+                if !demand.after(statement_end,&state.released) {continue;}
                 let Some(root)=results.get(&state.place.binding).copied() else {continue;};
                 let Some(Type::Map(input))=self.scoped_array_field_type(root,&state.place.fields) else {continue;};
                 if state.payloads.is_empty() {
@@ -144,7 +149,7 @@ impl Analyzer {
                 results.insert(state.place.binding,self.scoped_array_replace_field(root,&state.place.fields,Type::Map(output)).expect("checked Map field"));
             }
         }
-        Ok(())
+        Ok(local)
     }
     fn absent_record_environment(&self, record:usize) -> bool {
         let mut pending=vec![Type::Record(record)];

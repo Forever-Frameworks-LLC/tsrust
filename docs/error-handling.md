@@ -145,8 +145,11 @@ Dynamic keys and uncertain branch outcomes conservatively retain potentially liv
 captures. At an if statement's normal completion join, entries deleted or
 replaced on every reaching path release their old captures. An early return does
 not retain its entries on the remaining path. Reinsertion retains the newly stored
-capture. Release before that join, within loops or within the same expression
-remains under development.
+capture. Loop completion uses the same rule: all reaching exit states must release
+the entry. Zero-iteration paths and early break or continue paths retain any
+potentially live captures. This covers while, counted for, do-while and for-of
+completion. Release inside an iteration before completion, before a branch join,
+or within the same expression remains under development.
 Changing a callback environment representation for later capture access can scan
 surviving entries. Known entry deletion avoids that conversion when the released
 capture has no later source use or opaque named call. The release feature does

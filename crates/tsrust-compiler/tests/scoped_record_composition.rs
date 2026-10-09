@@ -136,6 +136,48 @@ fn branch_local_insertion_and_deletion_release_at_the_join() {
 }
 
 #[test]
+fn post_test_map_deletion_releases_capture_after_every_exit() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(limit:int):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});let turn=0;do{handlers.delete('first');turn+=1;}while(turn<limit);first[0]=9;for(const [key,entry] of handlers){console.log(key,entry.run());}console.log('released',first[0],turn);handlers.clear();}function main():void{scenario(0);scenario(2);}");
+ verify_disposal(&source,2,"drop 0\nsecond 5\nreleased 9 1\ndrop 1\ndrop 0\nsecond 5\nreleased 9 2\ndrop 1\n");
+ let infinite=source.replace("do {\n        handlers.delete('first');\n        turn += 1;\n    }\n\n    while (turn < limit);", "for(;;){handlers.delete('first');turn+=1;break;}");
+ assert_ne!(infinite,source);
+ verify_disposal(&support::format_round_trip(&infinite),2,"drop 0\nsecond 5\nreleased 9 1\ndrop 1\ndrop 0\nsecond 5\nreleased 9 1\ndrop 1\n");
+}
+
+#[test]
+fn pre_test_map_entry_release_preserves_zero_and_repeated_iterations() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(limit:int):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();let turn=0;while(turn<limit){handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});handlers.delete('first');turn+=1;}first[0]=9;for(const [key,entry] of handlers){console.log(key,entry.run());}console.log('released',first[0],turn);handlers.clear();}function main():void{scenario(0);scenario(2);}");
+ let expected="released 9 0\ndrop 0\ndrop 1\ndrop 0\nsecond 5\nreleased 9 2\ndrop 1\n";
+ verify_disposal(&source,2,expected);
+ let counted=source.replace("while (turn < limit)", "for(;turn<limit;)");
+ assert_ne!(counted,source);
+ verify_disposal(&support::format_round_trip(&counted),2,expected);
+ let iterated=source.replace("while (turn < limit)", "for(const step of steps)").replace("let turn = 0;", "const steps:int[]=[];for(let step=0;step<limit;step+=1){steps.push(step);}let turn=0;");
+ assert_ne!(iterated,source);
+ verify_disposal(&support::format_round_trip(&iterated),2,expected);
+ let text=source.replace("while (turn < limit)", "for(const step of steps)").replace("let turn = 0;", "const steps=limit===0?'':'ab';let turn=0;");
+ assert_ne!(text,source);
+ verify_disposal(&support::format_round_trip(&text),2,expected);
+}
+
+#[test]
+fn ordinary_loop_deletion_does_not_scan_unused_released_captures() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();let turn=0;while(turn<2){handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});console.log('before',first[0]);handlers.delete('first');turn+=1;}for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();}");
+ let analysis=tsrust_compiler::check(&source).unwrap();
+ assert!(!analysis.emit_rust().contains("tsr_owned_items().map(|entry|"),"loop-internal capture reads do not require conversion after the loop");
+ verify_disposal(&source,2,"before 3\ndrop 0\ndrop 1\nbefore 3\ndrop 0\nsecond 5\ndrop 1\n");
+}
+
+#[test]
+fn zero_iteration_and_early_loop_exits_keep_map_capture_loans() {
+ let prefix="type Holder={run:ReadOnly<Function<int>>;};function scenario(branch:boolean):void{const first=[3];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});";
+ for action in ["while(branch){handlers.delete('first');break;}","for(let turn=0;turn<2;turn+=1){handlers.delete('first');}","do{if(branch)break;handlers.delete('first');}while(false);","do{if(branch)continue;handlers.delete('first');}while(false);"] {
+  let source=support::format_round_trip(&format!("{prefix}{action}first[0]=9;console.log(handlers.size);}}function main():void{{scenario(false);}}"));
+  assert_eq!(tsrust_compiler::check(&source).err().expect("a reaching exit keeps the entry").code,"capture-conflict","{action}");
+ }
+}
+
+#[test]
 fn ordinary_map_deletion_does_not_scan_survivor_environments() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});handlers.delete('first');for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();}");
  let analysis=tsrust_compiler::check(&source).unwrap();

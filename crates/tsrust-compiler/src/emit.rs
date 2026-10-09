@@ -3261,7 +3261,10 @@ impl Emitter<'_> {
                 let _=writeln!(output,"{indent}{}",self.map_entry_epoch_code(fun,epoch));
                 self.exception_regions.renew_storage(&[format!("value{}",epoch.place.binding)],stmt.span.start);
             }
-            if self.map_empty_loop_epoch(output, fun, stmt, declarations, depth) { continue; }
+            if self.map_empty_loop_epoch(output, fun, stmt, declarations, depth) {
+                self.map_post_entry_epochs(output,fun,stmt.span,depth);
+                continue;
+            }
             if self.map_try_storage_epoch(output, fun, stmt, declarations, depth) { continue; }
             if self.map_try_prefix_epoch(output, fun, stmt, declarations, depth) { continue; }
             if let Some(reset) = self.local_map_clear_epoch(fun, body, stmt)
@@ -3328,10 +3331,12 @@ impl Emitter<'_> {
                     }
                 }
                 let _ = writeln!(output, "{indent}}}");
+                self.map_post_entry_epochs(output,fun,stmt.span,depth);
                 continue;
             }
             if matches!(stmt.kind, StmtKind::ForOf { .. }) {
                 self.for_of_loop(output,fun,stmt,depth,None,&[]);
+                self.map_post_entry_epochs(output,fun,stmt.span,depth);
                 continue;
             }
             if let StmtKind::While { condition, body } = &stmt.kind {
@@ -3343,6 +3348,7 @@ impl Emitter<'_> {
                 );
                 self.block(output, fun, body, depth + 1);
                 let _ = writeln!(output, "{indent}}}");
+                self.map_post_entry_epochs(output,fun,stmt.span,depth);
                 continue;
             }
             if let StmtKind::If {

@@ -1104,3 +1104,38 @@ completion join, same-expression release, array-element release and remaining
 composition cases. Five user-facing consumers remain at gate181 until an explicit
 refresh; the scratch debug compiler includes this source. Preserve the fifteen
 unrelated fixture edits. Do not restart completed checks after a repaired witness.
+
+## Loop completion source checkpoint
+
+The synthetic-block transport defect is repaired. Eligible Map paths and changed
+storage types now pass through unlabeled lexical blocks; native block returns
+transport the renewed Map representation. Loop completion proofs use the actual
+joined exit payloads. Zero iterations and early break/continue retain potentially
+live captures. Native witnesses cover post-test and unconditional-break loops,
+zero/repeated while and counted loops, and array/string for-of loops at O0/O3,
+including callback disposal order. Conversion inside iterations remains pending.
+
+The initial normal-stack depth run passed closures and overflowed in for-of.
+Inspection of compiled frames showed loop_body retained 6,592 bytes. Moving its
+post-recursion join into loop_body_completion reduced that frame to 3,456 bytes.
+The failed for-of canary and the six unrun canaries then passed on the ordinary
+worker stack. No stack-size increase was used.
+
+A strengthened no-scan witness exposed a separate demand boundary defect: reads
+inside a loop were mistaken for reads after completion because the statement span
+covered its keyword. The existing expression walk now computes the full statement
+end. The witness passes O0/O3 and verifies no survivor conversion is emitted.
+
+The earlier coherent composition batch passed 116 tests. After the final demand
+repair, all 67 Map-filtered tests pass, and the separate new no-scan witness passes.
+Four focused editor checks pass. Matched support has 53 observations with paired
+TypeScript, independent arithmetic oracles, source contracts and rehashed mutation
+guards. Final native and Node-after-tsc verification passes all five correctness
+cases, untimed. Whole-project formatting changes no files or fingerprints; the
+current registration check passes. Final verification record:
+runtime/results/2026-10-09T00-46-58-730Z-verify.json.
+
+This is a source checkpoint, not B5 acceptance. Loop-carried refill/widening,
+in-iteration release, array-element release, same-expression release and broader
+composition remain open. Full family regression and timing are deferred. The
+five user-facing consumers remain at gate181; scratch compiler builds are current.

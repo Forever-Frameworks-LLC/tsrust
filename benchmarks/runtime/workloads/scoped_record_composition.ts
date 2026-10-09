@@ -400,7 +400,7 @@ function workload(n: int, seed: int, input: string): int[][] {
         const forOfMapObserved=forOfMapLoop();
         const countedMapObserved=countedMapLoop();const postMapObserved=postMapLoop();
         const emptyMapObserved=emptyScopedMap();
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped, nestedPairLooped, emptyMapObserved, countedMapObserved, postMapObserved, forOfMapObserved, knownEntryRelease(value), movedFieldEntryRelease(value), replacementEntryOutcome(value,value%2!==0), branchEntryRelease(value, value % 2 === 0), mixedBranchEntryRelease(value, value % 2 === 0), pairedBranchEntryRelease(value, value % 2 === 0)]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped, nestedPairLooped, emptyMapObserved, countedMapObserved, postMapObserved, forOfMapObserved, knownEntryRelease(value), movedFieldEntryRelease(value), replacementEntryOutcome(value,value%2!==0), branchEntryRelease(value, value % 2 === 0), mixedBranchEntryRelease(value, value % 2 === 0), pairedBranchEntryRelease(value, value % 2 === 0), postEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), countedEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), forOfEntryLoopRelease(value, value % 2 === 0 ? 0 : 2)]);
         i += 1;
     }
 
@@ -797,4 +797,50 @@ function pairedBranchEntryRelease(value: number, branch: boolean): number {
     pairedLeft.clear(); pairedRight.clear();
     pairedSecond[0] = value + 4; pairedThird[0] = value + 5;
     return pairedObserved + pairedSecond[0] + pairedThird[0];
+}
+
+function postEntryLoopRelease(value: number, limit: number): number {
+    const postFirst = [value]; const postSecond = [value + 1];
+    const postHandlers = new Map<string, Holder>();
+    postHandlers.set("first", { run: (): number => postFirst[0] });
+    postHandlers.set("second", { run: (): number => postSecond[0] });
+    let postTurn = 0;
+    do { postHandlers.delete("first"); postTurn += 1; } while (postTurn < limit);
+    postFirst[0] = value + 2;
+    let postObserved = postFirst[0] + postTurn + postHandlers.size;
+    for (const [key, entry] of postHandlers) { postObserved += entry.run(); }
+    postHandlers.clear(); postSecond[0] = value + 3;
+    return postObserved + postSecond[0];
+}
+
+function countedEntryLoopRelease(value: number, limit: number): number {
+    const countedFirst = [value]; const countedSecond = [value + 1];
+    const countedEntries = new Map<string, Holder>(); let countedTurns = 0;
+    for (let step = 0; step < limit; step += 1) {
+        countedEntries.set("first", { run: (): number => countedFirst[0] });
+        countedEntries.set("second", { run: (): number => countedSecond[0] });
+        countedEntries.delete("first"); countedTurns += 1;
+    }
+    countedFirst[0] = value + 2;
+    let countedObserved = countedFirst[0] + countedTurns + countedEntries.size;
+    for (const [key, entry] of countedEntries) { countedObserved += entry.run(); }
+    countedEntries.clear(); countedSecond[0] = value + 3;
+    return countedObserved + countedSecond[0];
+}
+
+function forOfEntryLoopRelease(value: number, limit: number): number {
+    const forOfFirst = [value]; const forOfSecond = [value + 1];
+    const forOfEntries = new Map<string, Holder>(); const entrySteps: number[] = [];
+    for (let step = 0; step < limit; step += 1) { entrySteps.push(step); }
+    let forOfTurns = 0;
+    for (const step of entrySteps) {
+        forOfEntries.set("first", { run: (): number => forOfFirst[0] });
+        forOfEntries.set("second", { run: (): number => forOfSecond[0] });
+        forOfEntries.delete("first"); forOfTurns += 1;
+    }
+    forOfFirst[0] = value + 2;
+    let forOfObserved = forOfFirst[0] + forOfTurns + forOfEntries.size;
+    for (const [key, entry] of forOfEntries) { forOfObserved += entry.run(); }
+    forOfEntries.clear(); forOfSecond[0] = value + 3;
+    return forOfObserved + forOfSecond[0];
 }

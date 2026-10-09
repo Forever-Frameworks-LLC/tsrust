@@ -9,6 +9,16 @@ impl Emitter<'_> {
             self.exception_regions.renew_storage(&[format!("value{}",epoch.place.binding)],span.end);
         }
     }
+    pub(super) fn map_entry_epoch_place(&self,fun:&CheckedFunction,epoch:&crate::analysis::MapEntryEpoch)->String {
+        let mut ty=epoch.input;
+        let mut indices=Vec::new();
+        for name in &epoch.place.fields {
+            let Type::Record(record)=ty else {unreachable!("checked Map path")};
+            let index=self.program.records[record].fields.iter().position(|field|field.name.text==*name).expect("checked Map field");
+            indices.push(index);ty=self.program.records[record].fields[index].ty.unwrap();
+        }
+        if indices.is_empty(){format!("value{}",epoch.place.binding)}else{self.owned_record_leaf_place(fun,epoch.place.binding,&indices).expect("owning Map leaf")}
+    }
     pub(super) fn map_entry_epoch_code(&self,fun:&CheckedFunction,epoch:&crate::analysis::MapEntryEpoch)->String {
         let mut source=epoch.input;
         let mut target=epoch.output;

@@ -8653,3 +8653,13 @@ fn branch_map_entry_release_requires_every_reaching_path() {
     let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///branch-map-release.tsr").unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
 }
+
+#[test]
+fn loop_map_entry_release_retains_zero_iteration_capture_diagnostics() {
+    let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function scenario(limit:int):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});let turn=0;do{handlers.delete('first');turn+=1;}while(turn<limit);first[0]=9;for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();}function main():void{scenario(0);}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&source,"file:///loop-map-release.tsr").unwrap().is_empty());
+    let start=source.find("    do {").unwrap();let end=source[start..].find("    first[0] = 9;").unwrap()+start;
+    let conflict=format!("{}while(turn<limit){{handlers.delete('first');turn+=1;}}{}",&source[..start],&source[end..]);
+    let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///loop-map-release.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+}

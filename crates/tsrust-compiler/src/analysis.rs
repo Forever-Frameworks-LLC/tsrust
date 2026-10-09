@@ -6,8 +6,10 @@ mod map_entry_capture_owners;
 mod map_entry_epochs;
 #[path = "map_entry_demand.rs"]
 mod map_entry_demand;
-#[path = "map_entry_branch_release.rs"]
-mod map_entry_branch_release;
+#[path = "map_entry_completion_release.rs"]
+mod map_entry_completion_release;
+#[path = "loop_body_completion.rs"]
+mod loop_body_completion;
 #[path = "assignment_callee.rs"]
 mod assignment_callee;
 #[path = "owned_array_patterns.rs"]
@@ -4527,28 +4529,7 @@ impl Analyzer {
         if !exits {
             Self::check_loop_back(context)?;
         }
-        let frame = context.loops.pop().expect("matching loop frame");
-        context.capture_loan_owners = crate::capture_loan_owners::Owners::reaching(
-            Some(entry_owners), (!exits).then(||context.capture_loan_owners.clone()));
-        if let Some(owners) = &frame.continue_owners { context.capture_loan_owners.join(owners); }
-        if let Some(owners) = &frame.break_owners { context.capture_loan_owners.join(owners); }
-        Self::restore_live_capture_loans(context);
-        exception_state::consume_target(context,frame.target);
-        context.flow = crate::flow::join(&zero_flow, &context.flow);
-        if let Some(breaks) = frame.break_flow {
-            context.flow = crate::flow::join(&context.flow, &breaks);
-        }
-        let break_seen = frame.break_seen;
-        for ((id, _), (condition_state, break_state)) in frame
-            .entry
-            .into_iter()
-            .zip(baseline.into_iter().zip(frame.breaks))
-        {
-            condition_state
-                .join(break_state)
-                .restore(&mut context.bindings[id]);
-        }
-        Ok(break_seen)
+        self.finish_loop_body(context,body,span,entry_owners,baseline,zero_flow,exits)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -4745,6 +4726,7 @@ impl Analyzer {
                 state.restore(&mut context.bindings[id]);
             }
         }
+        self.record_map_completion_release(context,body,update,span)?;
         Ok(exits)
     }
 
@@ -4861,7 +4843,7 @@ impl Analyzer {
             };
             joined.restore(&mut context.bindings[id]);
         }
-        self.record_map_branch_release(context,then_body,else_body,span)?;
+        self.record_map_completion_release(context,then_body,else_body,span)?;
         self.record_branch_carriers(context,then_body,else_body)?;
         Ok(then_exits && else_exits)
     }

@@ -507,3 +507,69 @@ Every imported record is read back byte for byte before its loose copy is remove
 not full B5 acceptance. Loop joins, release inside a branch before its join,
 same-expression release and array-element release remain open. No timing or full
 compiler/LSP family regression is claimed.
+
+## Loop completion transport in progress
+
+The do/while release witness initially failed generated Rust. Completion proof
+collection is now shared through map_entry_completion_release (renamed from the
+branch-only module), and loops record the actual joined exit payloads after their
+existing ownership joins. Native post-epoch emission is connected to ordinary
+while, counted/post-test, for-of and custom empty-loop emission. The ordinary
+while case in the zero/repeated-iteration witness executes with correct O0/O3
+disposal. These changes are uncommitted and not accepted.
+
+The counted-loop variant still fails native borrow checking. Temporary tracing
+shows a completion proof at its checked for span, but no corresponding planner
+visit. The parser lowers for into a synthetic Block. scoped_map_entry_epochs
+recurses into that block with cloned results, then returns early because the Map
+is declared in the enclosing body and no prior epoch exists. Its later converted
+representation would also have to leave the block through native return transport.
+The source proof itself retains the correct surviving payload. Tracing is removed.
+
+Next implementation must carry eligible Map paths into lexical/synthetic blocks,
+propagate changed storage types back to the enclosing sequence, and extend native
+block return transport to include checked entry epochs. Keep loop iteration-body
+planning separate: converting outer storage inside an iteration requires loop-carried
+transport and is not authorized by this completion proof alone. Retain zero-body
+and early break/continue ownership states. Do not merely emit a conversion in an
+inner block and leave the original outer storage type alive.
+
+New tests retain post-test and unconditional-break paths, zero/repeated while,
+counted and for-of array/string variants, and negative zero-body and early
+break/continue cases. The for variants and final combined checks remain pending.
+No matched workload expansion, source checkpoint or loop acceptance is claimed.
+
+## Loop completion source checkpoint
+
+The synthetic-block transport defect is repaired. Eligible Map paths and changed
+storage types now pass through unlabeled lexical blocks; native block returns
+transport the renewed Map representation. Loop completion proofs use the actual
+joined exit payloads. Zero iterations and early break/continue retain potentially
+live captures. Native witnesses cover post-test and unconditional-break loops,
+zero/repeated while and counted loops, and array/string for-of loops at O0/O3,
+including callback disposal order. Conversion inside iterations remains pending.
+
+The initial normal-stack depth run passed closures and overflowed in for-of.
+Inspection of compiled frames showed loop_body retained 6,592 bytes. Moving its
+post-recursion join into loop_body_completion reduced that frame to 3,456 bytes.
+The failed for-of canary and the six unrun canaries then passed on the ordinary
+worker stack. No stack-size increase was used.
+
+A strengthened no-scan witness exposed a separate demand boundary defect: reads
+inside a loop were mistaken for reads after completion because the statement span
+covered its keyword. The existing expression walk now computes the full statement
+end. The witness passes O0/O3 and verifies no survivor conversion is emitted.
+
+The earlier coherent composition batch passed 116 tests. After the final demand
+repair, all 67 Map-filtered tests pass, and the separate new no-scan witness passes.
+Four focused editor checks pass. Matched support has 53 observations with paired
+TypeScript, independent arithmetic oracles, source contracts and rehashed mutation
+guards. Final native and Node-after-tsc verification passes all five correctness
+cases, untimed. Whole-project formatting changes no files or fingerprints; the
+current registration check passes. Final verification record:
+runtime/results/2026-10-09T00-46-58-730Z-verify.json.
+
+This is a source checkpoint, not B5 acceptance. Loop-carried refill/widening,
+in-iteration release, array-element release, same-expression release and broader
+composition remain open. Full family regression and timing are deferred. The
+five user-facing consumers remain at gate181; scratch compiler builds are current.
