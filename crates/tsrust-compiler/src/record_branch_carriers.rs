@@ -112,6 +112,7 @@ impl Analyzer {
         })?;
         self.scoped_map_carriers(context,body)?;
         self.record_array_carriers(context,body)?;
+        self.scoped_array_storage_epochs(context,body)?;
         let results=context.bindings.iter().enumerate().map(|(id,binding)|(id,binding.ty)).collect();
         self.scoped_map_entry_epochs(context,body,results)
     }

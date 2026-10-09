@@ -209,7 +209,7 @@ impl Analyzer {
         })
     }
 
-    fn planned_record_array_type(&self, value: &Expr, plans: &HashMap<usize, Type>) -> Option<Type> {
+    pub(super) fn planned_record_array_type(&self, value: &Expr, plans: &HashMap<usize, Type>) -> Option<Type> {
         match &value.kind {
             ExprKind::Name(_) => plans.get(&value.binding?).copied(),
             ExprKind::Index(base, _) => match self.planned_record_array_type(base, plans)? { Type::Array(element) => Some(element.ty()), _ => None },

@@ -1,5 +1,38 @@
 # Scoped callable transport
 
+## Replacing a captured array element
+
+A dense local array can hold records whose callbacks borrow different values.
+Replacing a known constant index releases the previous element's captures when
+no other element or borrowed handle retains them. Surviving callbacks keep their
+captures protected. Replacement evaluates its new value before dropping the old
+element; it does not clone either environment.
+
+```tsr
+type Holder = { run: ReadOnly<Function<int>>; };
+
+function main() {
+    const first = [3];
+    const second = [5];
+    const handlers: Holder[] = [
+        { run: (): int => first[0] },
+        { run: (): int => second[0] }
+    ];
+    handlers[1] = { run: (): int => first[0] };
+    second[0] = 9;
+    console.log(handlers[0].run(), handlers[1].run(), second[0]);
+    // 3 3 9
+}
+```
+
+Mutating `first` here is rejected because both surviving elements borrow it.
+A borrowed element handle prevents replacement while the handle is live.
+Unknown indices retain conservative capture protection. Precise native release
+currently covers straight-line local dense arrays; field storage, removal and
+control-flow joins remain part of the unfinished aggregate work.
+
+## Local callback selection
+
 Conditional callbacks can borrow the variables around them and remain local to
 that scope. Selection preserves the original captured references. It does not
 clone a value or change a borrowed value into an owned value.

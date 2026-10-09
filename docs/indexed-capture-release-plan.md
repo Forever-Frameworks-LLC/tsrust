@@ -5,8 +5,39 @@ B5 remains incomplete. The first replacement witness is
 `scoped_record_composition.rs`. Replacing index 1 with a callback borrowing the
 first array must release the previous callback borrowing the second array.
 Expected native output is `3 3 9`. The independent Node assertion passes;
-current source checking rejects mutation of the second array with
-`capture-conflict`. No compiler implementation has changed for this slice yet.
+the baseline source checker rejected mutation of the second array with
+`capture-conflict`. The red witnesses and plan are checkpointed in `a79ac42`.
+
+Source ownership is now implemented in the working tree through the isolated
+`array_capture_owners.rs` module. Literal elements have separate internal owner
+paths, known replacement stages its RHS and replaces only that path, and indexed
+reads retain the conservative container view. Reordering and removal operations
+collapse positional paths into conservative root loans. Push preserves prior
+positions and retains new payloads conservatively. The duplicate unconditional
+append in indexed assignment is removed.
+
+The positive source test and six rejection cases pass. Native epoch planning and
+emission now live in separate array modules. The original witness passes,
+including exact disposal at optimization levels 0 and 3, a later borrowed handle
+and repeated replacement. Twenty affected array tests and the new editor
+diagnostic test pass. Replay metadata replaces matching epochs instead of emitting
+the same conversion twice. Opaque uses and control flow restore the baseline
+carrier and stop positional planning rather than guessing reaching slot types.
+The eight normal-stack depth canaries pass with the new pipeline.
+
+The matched workload adds one independent observation, `3 * value + 3`, for
+known indexed replacement followed by mutation of the released capture. Source
+contracts, rehashed mutation guards and literal oracle expectations are updated.
+All five matched cases pass untimed on native and Node-after-tsc. SQLite preserves
+`runtime/results/2026-10-09T07-57-50-707Z-verify.json`, with zero timing rows, and
+14 diagnostic records restored byte for byte before loose copies were removed.
+The final project formatter changes zero files and zero fingerprints.
+No installed consumer is refreshed
+from this unfinished B5 implementation.
+
+Carrier narrowing scans and moves the retained array. Repeated replacement may
+also widen back to its baseline family before storing and narrowing again. These
+conversion costs require the B5 performance review; they are not timing evidence.
 
 The companion rejection cases protect surviving captures, a borrowed element
 handle, and an unknown replacement index. A borrowed handle currently rejects

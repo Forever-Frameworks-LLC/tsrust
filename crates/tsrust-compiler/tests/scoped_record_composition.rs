@@ -6,6 +6,9 @@ fn array_element_replacement_keeps_surviving_and_aliased_captures_live() {
         ("first[0]=9;", "capture-conflict"),
         ("const saved=handlers[1];handlers[1]={run:():int=>first[0]};second[0]=9;console.log(saved.run());", "view-conflict"),
         ("let index=0;handlers[index]={run:():int=>first[0]};second[0]=9;", "capture-conflict"),
+        ("handlers.reverse();handlers[1]={run:():int=>second[0]};first[0]=9;", "capture-conflict"),
+        ("handlers.shift();handlers[0]={run:():int=>first[0]};second[0]=9;", "capture-conflict"),
+        ("handlers.unshift({run:():int=>first[0]});handlers[1]={run:():int=>first[0]};second[0]=9;", "capture-conflict"),
     ] {
         let source = support::format_round_trip(&format!(
             "type Holder={{run:ReadOnly<Function<int>>;}};function main():void{{const first=[3];const second=[5];const handlers:Holder[]=[{{run:():int=>first[0]}},{{run:():int=>second[0]}}];{tail}}}"
@@ -17,11 +20,32 @@ fn array_element_replacement_keeps_surviving_and_aliased_captures_live() {
 }
 
 #[test]
+fn known_array_slot_replacement_source_ownership_is_precise() {
+    let source = support::format_round_trip(
+        "type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];handlers[1]={run:():int=>first[0]};second[0]=9;console.log(handlers[0].run(),handlers[1].run(),second[0]);}",
+    );
+    tsrust_compiler::check(&source).expect("replacing the only owner releases its capture");
+}
+
+#[test]
 fn replacing_known_array_element_releases_only_its_capture() {
     let source = support::format_round_trip(
         "type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];handlers[1]={run:():int=>first[0]};second[0]=9;console.log(handlers[0].run(),handlers[1].run(),second[0]);}",
     );
     support::execute(&source, "3 3 9\n", None);
+    verify_disposal(&source, 3, "drop 1\n3 3 9\ndrop 0\ndrop 2\n");
+    let alias = source.replace(
+        "console.log(handlers[0].run(), handlers[1].run(), second[0]);",
+        "const saved=handlers[0];console.log(saved.run(),handlers[1].run(),second[0]);",
+    );
+    assert_ne!(alias, source);
+    support::execute(&support::format_round_trip(&alias), "3 3 9\n", None);
+    let repeated = source.replace(
+        "second[0] = 9;",
+        "second[0]=9;handlers[0]={run:():int=>first[0]};",
+    );
+    assert_ne!(repeated, source);
+    support::execute(&support::format_round_trip(&repeated), "3 3 9\n", None);
 }
 
 #[test]

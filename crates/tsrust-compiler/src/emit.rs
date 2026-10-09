@@ -3263,6 +3263,9 @@ impl Emitter<'_> {
         let indent = "    ".repeat(depth);
         let declarations = declaring_body.unwrap_or(body);
         for stmt in body {
+            for epoch in fun.storage_exits.array_epochs(stmt.span).iter().filter(|epoch| epoch.before) {
+                let _ = writeln!(output, "{indent}{}", self.array_storage_epoch_code(epoch));
+            }
             let shared_block_span=matches!(&stmt.kind,StmtKind::Block(inner) if inner.iter().any(|item|item.span==stmt.span));
             for epoch in fun.storage_exits.map_entry_epochs(stmt.span).iter().filter(|epoch|epoch.before && !shared_block_span) {
                 let _=writeln!(output,"{indent}{}",self.map_entry_epoch_code(fun,epoch));
@@ -9840,6 +9843,8 @@ mod map_loop_storage_epochs;
 mod iteration_emit;
 #[path="map_entry_epoch_emit.rs"]
 mod map_entry_epoch_emit;
+#[path="array_storage_epoch_emit.rs"]
+mod array_storage_epoch_emit;
 
 #[path="map_iteration_emit.rs"]
 mod map_iteration_emit;

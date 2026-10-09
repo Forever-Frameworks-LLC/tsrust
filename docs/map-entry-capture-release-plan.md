@@ -1,5 +1,21 @@
 # Precise Map entry capture release
 
+## Indexed replacement checkpoint, 2026-10-09
+
+Known constant-index replacement in straight-line dense local record arrays now
+releases the replaced callback capture through source ownership and a moving
+native carrier epoch. Twenty affected array tests, exact disposal at optimization
+levels 0 and 3, repeated replacement, later element borrowing, the focused editor
+check and all eight depth canaries pass. The matched composition workload has
+110 observations and passes all five cases untimed on native and Node-after-tsc.
+Evidence and conversion costs are documented in indexed-capture-release-plan.md.
+
+B5 remains incomplete. Next extend native epochs to record-field arrays and moves,
+then precise removal and reaching slot states across control flow. Nullable and
+same-expression compositions, structural record keys, family regressions,
+performance review and installed-consumer refresh remain pending.
+
+
 <!-- current-b5-state -->
 ## Current state, 2026-10-09
 

@@ -6,6 +6,10 @@ mod map_entry_moves;
 mod map_block_storage_plan;
 #[path = "capture_loan_binding.rs"]
 mod capture_loan_binding;
+#[path = "array_capture_owners.rs"]
+mod array_capture_owners;
+#[path = "array_storage_epochs.rs"]
+mod array_storage_epochs;
 #[path="map_entry_capture_owners.rs"]
 mod map_entry_capture_owners;
 #[path="map_entry_epochs.rs"]
@@ -4962,7 +4966,6 @@ impl Analyzer {
         Self::storage_access(context, target, Mode::Mutate, target.span, loans)?;
         if let ExprKind::Index(base, _) = &target.kind {
             self.widen_scoped_array_storage(context, base, actual, value.span)?;
-            self.append_target_capture_loans(context, base, value);
         }
         self.update_local_record_field_type(context,target,actual)?;
         self.replace_target_capture_loans(context, target, value);
@@ -15117,6 +15120,14 @@ self.names_materialized_type(element.with_depth(0).ty())
                 ));
             }
         };
+        if let ExprKind::Field(base, _) = &callee.kind
+            && matches!(expr.target, Some(CallTarget::ArrayPop | CallTarget::ArrayShift
+                | CallTarget::ArraySplice | CallTarget::ArrayUnshift | CallTarget::ArrayRemove
+                | CallTarget::ArraySort | CallTarget::ArrayReverse | CallTarget::ArrayFill
+                | CallTarget::ArrayCopyWithin))
+        {
+            Self::collapse_array_capture_slots(context, base);
+        }
         if let ExprKind::Field(base, _) = &callee.kind
             && crate::cloneability::copies_array_receiver(
                 expr.target,

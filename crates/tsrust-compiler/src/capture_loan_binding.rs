@@ -57,8 +57,9 @@ impl Analyzer {
         value: &Expr,
     ) {
         let direct = Self::direct_fields(target);
-        let indexed = direct.is_none();
-        let Some(fields) = direct.map(|(_, fields)| fields).or_else(|| Self::scoped_array_storage_path(target).map(|(_, fields)| fields)) else {
+        let precise = Self::array_capture_place(target);
+        let indexed = direct.is_none() && precise.is_none();
+        let Some(fields) = precise.map(|place| place.fields).or_else(|| direct.map(|(_, fields)| fields)).or_else(|| Self::scoped_array_storage_path(target).map(|(_, fields)| fields)) else {
             return;
         };
         let Some(binding) = Self::root_binding(target) else {
@@ -123,11 +124,10 @@ impl Analyzer {
             }
             match &value.kind {
                 ExprKind::Array(values) => {
-                    // Dense storage retains every element environment. Until
-                    // runtime element identity is known, aliases conservatively
-                    // retain all possible capture owners of the container.
-                    for value in values {
-                        pending.push((value, destination.clone(), consume));
+                    for (index, value) in values.iter().enumerate() {
+                        let mut slot = destination.clone();
+                        slot.fields.push(format!("\0array-slot:{index}"));
+                        pending.push((value, slot, consume));
                     }
                 }
                 ExprKind::Index(base, _) if matches!(base.ty, Some(Type::Array(_))) => {
