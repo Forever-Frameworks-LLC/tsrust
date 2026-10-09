@@ -2,7 +2,7 @@
 use super::*;
 
 #[derive(Clone, Debug, Default)]
-pub(crate) struct Exits(HashMap<(usize, usize), Vec<Unavailable>>, HashMap<usize, Vec<Unavailable>>, HashMap<(usize, usize), Vec<Unavailable>>, Option<Box<HashMap<(usize,usize),MapEntrySurvivors>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize),Type>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntrySurvivors>>>>, Option<Box<HashMap<(usize,usize,bool),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize,MapLoopEdge),std::collections::BTreeMap<crate::capture_loan_owners::Place,HashSet<Type>>>>>, Option<Box<HashMap<(usize,usize),Vec<MapIterationEpoch>>>>, Option<Box<HashMap<(usize,usize),HashMap<usize,Type>>>>, Option<Box<HashMap<(usize,usize),(usize,bool,Vec<MapEntryEpoch>)>>>);
+pub(crate) struct Exits(HashMap<(usize, usize), Vec<Unavailable>>, HashMap<usize, Vec<Unavailable>>, HashMap<(usize, usize), Vec<Unavailable>>, Option<Box<HashMap<(usize,usize),MapEntrySurvivors>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize),Type>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntrySurvivors>>>>, Option<Box<HashMap<(usize,usize,bool),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize,MapLoopEdge),std::collections::BTreeMap<crate::capture_loan_owners::Place,HashSet<Type>>>>>, Option<Box<HashMap<(usize,usize),Vec<MapIterationEpoch>>>>, Option<Box<HashMap<(usize,usize),HashMap<usize,Type>>>>, Option<Box<HashMap<(usize,usize),(usize,bool,Vec<MapEntryEpoch>)>>>, Option<Box<map_completion_payloads::Snapshots>>);
 #[derive(Clone,Debug)]
 pub(crate) struct MapIterationEpoch {
     pub(crate) entry:MapEntryEpoch,
@@ -106,6 +106,13 @@ impl Exits {
     }
     pub(crate) fn map_entry_survivors(&self, span: Span) -> Option<&MapEntrySurvivors> {
         self.3.as_ref()?.get(&(span.start,span.end))
+    }
+    pub(super) fn record_map_completion_phase(&mut self,boundary:usize,phase:map_completion_payloads::Phase,kind:Option<crate::completion::CompletionKind>,payloads:std::collections::BTreeMap<crate::capture_loan_owners::Place,HashSet<Type>>) {
+        self.12.get_or_insert_with(Default::default).record(boundary,phase,kind,payloads);
+    }
+    #[cfg(test)]
+    pub(crate) fn map_completion_payloads(&self,boundary:usize,phase:map_completion_payloads::Phase,kind:Option<crate::completion::CompletionKind>)->Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,HashSet<Type>>> {
+        self.12.as_ref()?.at(boundary,phase,kind)
     }
     pub(super) fn record_map_control_inputs(&mut self,span:Span,inputs:&HashMap<usize,Type>) {
         self.10.get_or_insert_with(Default::default).insert((span.start,span.end),inputs.clone());

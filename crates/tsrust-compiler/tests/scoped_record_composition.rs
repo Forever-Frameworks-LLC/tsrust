@@ -1,6 +1,13 @@
 mod support;
 
 #[test]
+fn map_entry_iteration_control_runs_finally_before_leaving_body() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(stop:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});let turn=0;while(turn<3){try{handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;turn++;if(stop)break;if(turn<3)continue;console.log('tail',turn);}finally{console.log('cleanup',turn,handlers.size);for(const [key,entry] of handlers){console.log('kept',key,entry.run());}}}handlers.clear();console.log('done',first[0]);}function main():void{scenario(false);scenario(true);}");
+    support::execute(&source,"cleanup 1 1\nkept second 5\ncleanup 2 1\nkept second 5\ntail 3\ncleanup 3 1\nkept second 5\ndone 6\ncleanup 1 1\nkept second 5\ndone 4\n",None);
+    verify_disposal(&source,2,"drop 1\ncleanup 1 1\nkept second 5\ndrop 1\ncleanup 2 1\nkept second 5\ndrop 1\ntail 3\ncleanup 3 1\nkept second 5\ndrop 0\ndone 6\ndrop 1\ncleanup 1 1\nkept second 5\ndrop 0\ndone 4\n");
+}
+
+#[test]
 fn counted_map_update_keeps_body_payload_until_update_deletes_it() {
     let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const third=[7];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});let turn=0;for(let step=0;step<3;step=(console.log('update',step,handlers.size),handlers.delete('temporary'),step+1)){handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;handlers.set('temporary',{run:():int=>third[0]});turn++;if(turn<3)continue;console.log('tail',turn);}third[0]=9;for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();console.log('done',first[0],third[0]);}");
     support::execute(&source,"update 0 2\nupdate 1 2\ntail 3\nupdate 2 2\nsecond 5\ndone 6 9\n",None);

@@ -53,6 +53,17 @@ pub(super) struct CompletionStates {
     exits:Vec<(CompletionKind,ExitState)>,
 }
 impl CompletionStates {
+    #[inline(never)]
+    pub(super) fn record_map_payloads(&self,exits:&mut storage_exit_availability::Exits,boundary:usize,phase:map_completion_payloads::Phase) {
+        if let Some(state)=&self.normal {
+            let payloads=state.capture_loan_owners.map_payload_snapshot();
+            if !payloads.is_empty() || exits.has_map_entry_survivors(){exits.record_map_completion_phase(boundary,phase,None,payloads);}
+        }
+        for (kind,state) in &self.exits {
+            let payloads=state.capture_loan_owners.map_payload_snapshot();
+            if !payloads.is_empty() || exits.has_map_entry_survivors(){exits.record_map_completion_phase(boundary,phase,Some(*kind),payloads);}
+        }
+    }
     pub(super) fn joined_entry(&self)->Option<ExitState> {
         self.normal.iter().chain(self.exits.iter().map(|(_,state)|state)).cloned().reduce(ExitState::join)
     }

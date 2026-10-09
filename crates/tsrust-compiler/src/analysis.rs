@@ -6,6 +6,8 @@ mod map_entry_capture_owners;
 mod map_entry_epochs;
 #[path = "map_iteration_plan.rs"]
 mod map_iteration_plan;
+#[path="map_completion_payloads.rs"]
+mod map_completion_payloads;
 #[path = "map_entry_branch_transport.rs"]
 mod map_entry_branch_transport;
 #[path = "map_entry_demand.rs"]
@@ -5088,6 +5090,8 @@ impl Analyzer {
         let outer=frame.outer;
         let mut pending=exception_state::CompletionStates::from_completions(normal,frame,unwind);
         pending.record_failures(errors,unwind);
+        let map_boundary=region.body.first().map(|statement|statement.span.start);
+        if let Some(boundary)=map_boundary {pending.record_map_payloads(&mut context.storage_exits,boundary,map_completion_payloads::Phase::Body);}
         let mut outgoing=incoming.clone();
         if let Some(handler)=&mut region.catch {
             handler.binding=None;
@@ -5113,6 +5117,7 @@ impl Analyzer {
                 }
             }
         }
+        if let Some(boundary)=map_boundary {pending.record_map_payloads(&mut context.storage_exits,boundary,map_completion_payloads::Phase::Handled);}
         if let Some(cleanup)=&mut region.finally {
             let entry=context.clone();
             let source=cleanup.clone();
@@ -5137,6 +5142,7 @@ impl Analyzer {
             }
             if crate::completion::definitely_abrupt(&source,0) {outgoing=cleanup_contract;}else{outgoing|=cleanup_contract;}
         }
+        if let Some(boundary)=map_boundary {pending.record_map_payloads(&mut context.storage_exits,boundary,map_completion_payloads::Phase::Cleaned);}
         pending.restore_normal(context);
         Ok((pending,outgoing))
     }

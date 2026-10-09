@@ -906,3 +906,50 @@ Original failing and repaired checks are retained independently in SQLite with
 byte-exact readback; closed loose copies are removed. The implementation chunk
 is ready for its source checkpoint; B5 and family measurements remain pending.
 Next cover cleanup/nested-control transport and distinct pre-test entry families.
+
+## Exception-phase payload prerequisite
+
+The new map_entry_iteration_control_runs_finally_before_leaving_body native
+witness fails before implementation. It deletes a known first entry, mutates its
+released capture, then continues or breaks through finally. Cleanup must inspect
+and call the surviving second entry before the loop control takes effect. Its
+O0/O3 disposal expectations remain asserted; native lowering is not accepted yet.
+
+The isolated map_completion_payloads module records checked payload alternatives
+at Body, Handled and Cleaned phase boundaries, separately for normal, return,
+throw, and each targeted break/continue. Repeated alternatives are conservatively
+joined within their own phase/completion identity. A recorded empty normal state
+means reachable empty storage; a missing state means that completion was not
+recorded. No phase may substitute its normal payloads for error or control
+payloads. Source availability remains governed by storage_exit_availability;
+payload metadata alone cannot revive a transferred source binding.
+
+Two focused proof tests cover different control targets, repeated alternatives,
+empty-versus-missing states and real checker states. The checker witness has
+explicit failures before deletion in both body and handler. Normal/return paths
+retain only second; pre-deletion errors retain first and second. Cleanup clearing
+records reachable empty normal and return storage. Earlier failed proof assertions
+assumed the wrong handler error shape; strengthened explicit-error witnesses
+replace those assumptions. Original logs remain separate evidence.
+
+The phase hooks run after checked body/error collection, after catch, and after
+finally, without changing native dispatch. Native accessors remain test-only
+until lowering consumes this metadata; no unused production API is introduced.
+This prerequisite has no new observable method, catalog entry, workload or timing
+claim. Existing 60-observation matched support remains current. Final bounded
+checks and source checkpoint are pending. B5 and cleanup implementation remain
+open. Next plan phase-specific native storage and completion payload layouts,
+then route control through cleanup before yielding loop survivor storage.
+
+Final prerequisite evidence: both phase proof tests pass, all eight normal-stack
+canaries pass, six existing editor entry-release checks pass, and the affected
+Map batch passes 75 tests with exactly the newly retained native cleanup witness
+red. The independent transpiled Node runtime reference passes its complete
+observable-output expectation. Whole-project formatting changes no files or
+fingerprints. Existing matched workload registration passes. Original failed
+proof assumptions and the repaired explicit-error tests, plus all closed check
+logs, are imported into SQLite and read back byte for byte before loose removal.
+No cleanup implementation acceptance, new matched observation, timing or installed
+consumer refresh is claimed. The next source chunk must consume phase payload
+proofs, preserve per-operation storage types and source availability, and carry
+normal/error/control storage through finally before resuming loop control.
