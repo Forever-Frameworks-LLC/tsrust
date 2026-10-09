@@ -53,6 +53,9 @@ impl Analyzer {
             let mut statement_end=statement.span.end;
             crate::source_walk::body(std::slice::from_mut(statement),&mut |_|Ok(()),&mut |value| {
                 statement_end=statement_end.max(value.span.end);
+                if let ExprKind::Call(_,arguments)=&value.kind {
+                    for argument in arguments {if let Some(binding)=Self::root_binding(argument){local.retain(|place|place.binding!=binding);}}
+                }
                 if value.target==Some(CallTarget::MapMethod(MapMethod::Set))
                     && let ExprKind::Call(callee,_) =&value.kind
                     && let ExprKind::Field(base,_) =&callee.kind
@@ -63,10 +66,12 @@ impl Analyzer {
                 {writes.push((crate::capture_loan_owners::Place{binding,fields},incoming,value.span));}
                 Ok(())
             })?;
+            self.plan_map_iteration_entry(context,statement,results,&local)?;
             // Conditional and loop storage include incoming payloads before entry,
             // retaining the untaken-arm or zero-iteration survivor.
             if !matches!(statement.kind,StmtKind::Try(_)) {
                 for (place,incoming,span) in writes {
+                    if context.storage_exits.map_iteration_epochs(statement.span).iter().any(|epoch|epoch.entry.place==place){continue;}
                     let Some(root)=results.get(&place.binding).copied() else {continue;};
                     let Some(Type::Map(input))=self.scoped_array_field_type(root,&place.fields) else {continue;};
                     let Type::Record(previous)=self.program.records[input].map_definition.as_ref().unwrap().value else {continue;};
@@ -94,7 +99,8 @@ impl Analyzer {
             let field_initializer=matches!(&statement.kind,StmtKind::Let{binding:Some(binding),..} if local.iter().any(|place|place.binding==*binding && !place.fields.is_empty()));
             if !field_initializer {self.retarget_scoped_map_body(context,std::slice::from_mut(statement),&results,&HashMap::new())?;}
             self.scoped_map_branch_entries(context,statement,results,demand,&local)?;
-            if let StmtKind::ForOf{body:inner,..}=&mut statement.kind {
+            self.plan_map_iteration_body(context,statement,results,demand)?;
+            if context.storage_exits.map_iteration_epochs(statement.span).is_empty() && let StmtKind::ForOf{body:inner,..}=&mut statement.kind {
                 let mut inner_results=results.clone();
                 self.scoped_map_entry_epochs_with_demand(context,inner,&mut inner_results,demand,&std::collections::BTreeSet::new())?;
             }

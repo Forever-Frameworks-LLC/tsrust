@@ -165,7 +165,7 @@ impl Analyzer {
                 && let Some(Type::Closure(origin))=self.planned_scoped_map_result(callee,results)
             {callee.ty=Some(Type::Closure(origin));value.target=Some(CallTarget::ConditionalClosure(origin));}
             if let ExprKind::Call(callee,_) = &mut value.kind
-                && matches!(value.target,Some(CallTarget::ConditionalCallback(_)))
+                && matches!(value.target,Some(CallTarget::ConditionalCallback(_)|CallTarget::ConditionalClosure(_)|CallTarget::StoredCallableField(_)))
                 && let Some(Type::Callback(contract))=self.planned_scoped_map_result(callee,results)
                 && self.absent_callable_type(Type::Callback(contract))
             {callee.ty=Some(Type::Callback(contract));value.target=Some(CallTarget::ConditionalCallback(contract));}

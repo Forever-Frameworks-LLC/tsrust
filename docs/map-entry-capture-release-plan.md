@@ -768,3 +768,66 @@ or timing is claimed for metadata alone. Implement carried storage using these
 separate facts next, preserving first-iteration evaluation and surviving entries,
 then repair both native witnesses and expand control/error/loop-form coverage.
 The five user-facing consumers remain at gate181; scratch debug compiler is current.
+
+## Native iteration transport in progress
+
+The ordinary while witness is now green, including exact O0/O3 disposal. The
+isolated map_iteration_plan and map_iteration_emit modules use separate checked
+Entry and Back payloads. For equal nonempty families on a normally completing
+body, native storage narrows before loop entry. Each body can widen before an
+insertion and narrow after deletion, then moves its surviving Map back through a
+tuple assignment. This preserves the existing second callback and its key order;
+it does not clear, clone or discard surviving entries.
+
+Planning requires a consistent checked release candidate and invalidates local
+paths passed to opaque callees before selecting iteration transport. The initial
+path supports ordinary while bodies; abrupt controls, nested loops/try regions and
+differing first-entry/backedge families are deliberately not claimed yet. The
+new metadata is consumed by lowering, while the separate edge-presence query is
+still needed by the forthcoming empty/different-entry path.
+
+The current Map-filtered batch passes 72 tests and retains only the expected
+post_test_map_iteration_release_keeps_first_entry_state_distinct failure. The
+ordinary while mutation witness and its retained-sibling rejection pass. All eight
+normal-stack canaries pass. Original green, batch and canary logs are preserved
+in SQLite under tsrust-b5-map-iteration-transport-*.log with exact readback.
+These compiler edits are uncommitted. No implementation acceptance, benchmark
+expansion, timing or user-facing executable refresh is claimed.
+
+Next implement distinct first-entry transport for post-test/populated entry cases,
+then targeted continue/break and cleanup transport, counted/for-of forms, independent
+record Map fields and failures. Complete editor and matched workload support and
+whole-project formatting before accepting the implementation chunk. HEAD fd2aa00
+remains the prerequisite source checkpoint; preserve the fifteen fixture edits.
+
+## Normal iteration transport verification
+
+Native transport now covers normally completing while, counted for, do-while
+and array/string for-of bodies, including a local record Map field and empty
+backedge storage. Do-while emits its first body using the original entry family;
+subsequent bodies use the separately proven backedge family. Conditions execute
+after each body, and body-local storage leaves scope before counted updates.
+Surviving entries retain their key order without implicit cloning. O0/O3 disposal
+witnesses cover the while and post-test paths.
+
+The final Map batch passed 72 checks and exposed one additional empty post-test
+defect: iteration callback calls retained a concrete closure target after their
+payload became absent. Retargeting to the absent callback contract repairs the
+focused post-test witness. All eight normal-stack depth canaries passed. One
+focused editor check covers accepted while/count bodies and surviving-capture
+rejection. Matched support now has 58 observations, including counted and
+post-test transport; verification results remain pending until recorded.
+
+These changes remain uncommitted until final formatting and matched verification
+finish. B5 is not accepted. Abrupt break/continue, nested control/cleanup, differing
+pre-test entry and backedge families, multiple independent Map fields, same-
+expression release, precise array element release and structural record Set keys
+remain open. The owner selected Rust-style equality and hashing for record Set
+keys. No timing or user-facing consumer refresh is claimed.
+
+Final bounded verification: benchmark registration passes; all five independent
+result cases pass for native and Node-after-tsc with 58 observations. The untimed
+record is runtime/results/2026-10-09T01-51-04-431Z-verify.json in SQLite. Final
+project formatting changes zero files and zero fingerprints. Closed logs, including
+the original failed batch and repaired focused check, are imported into SQLite
+and read back byte for byte before their loose copies are removed.

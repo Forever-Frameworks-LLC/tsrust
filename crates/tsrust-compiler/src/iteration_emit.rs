@@ -62,7 +62,7 @@ impl Emitter<'_> {
                 output,
                 "{indent}    let {mutable}value{id} = &String::Borrowed(literal_element);"
             );
-            self.iteration_body(output, fun, body, depth + 1, declaring_body, resets);
+            self.iteration_body(output, fun, body, depth + 1, declaring_body, resets,statement);
             let _ = writeln!(output, "{indent}}}");
             if temporary_scope {
                 let _ = writeln!(output, "{indent}}}");
@@ -85,7 +85,7 @@ impl Emitter<'_> {
             "{indent}'loop_{}: for {mutable}value{id} in ({}).{iterator}(){copied} {{",
             statement.span.start, iterable_code
         );
-        self.iteration_body(output, fun, body, depth + 1, declaring_body, resets);
+        self.iteration_body(output, fun, body, depth + 1, declaring_body, resets,statement);
         let _ = writeln!(output, "{indent}}}");
         if temporary_scope {
             let _ = writeln!(output, "{indent}}}");
@@ -101,7 +101,9 @@ impl Emitter<'_> {
         depth: usize,
         declaring_body: Option<&[Stmt]>,
         resets: &[(String, String)],
+        statement:&Stmt,
     ) {
+        if self.map_for_of_iteration_body(output,fun,statement,depth,declaring_body){return;}
         let indent = "    ".repeat(depth);
         for (place, native) in resets {
             let _ = writeln!(

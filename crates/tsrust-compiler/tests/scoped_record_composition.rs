@@ -7,6 +7,22 @@ fn map_entry_release_inside_iteration_preserves_refill_and_survivor() {
  assert_ne!(conflict,source);
  assert_eq!(tsrust_compiler::check(&conflict).err().expect("surviving entry protects its capture").code,"capture-conflict");
  support::execute(&source,"second 5\ndone 3\nturn 0 4\nturn 1 5\nsecond 5\ndone 5\n",None);
+ let counted=source.replace("while (turn < limit)","for(let step=0;step<limit;step+=1)");
+ assert_ne!(counted,source);
+ support::execute(&support::format_round_trip(&counted),"second 5\ndone 3\nturn 0 4\nturn 1 5\nsecond 5\ndone 5\n",None);
+ let for_of=source.replace("let turn = 0;","let turn=0;const steps:int[]=[];for(let step=0;step<limit;step++){steps.push(step);}").replace("while (turn < limit)","for(const step of steps)");
+ assert_ne!(for_of,source);
+ support::execute(&support::format_round_trip(&for_of),"second 5\ndone 3\nturn 0 4\nturn 1 5\nsecond 5\ndone 5\n",None);
+ let text=for_of.replace("for(const step of steps)","for(const step of (limit===0?'':'ab'))");
+ assert_ne!(text,for_of);
+ support::execute(&support::format_round_trip(&text),"second 5\ndone 3\nturn 0 4\nturn 1 5\nsecond 5\ndone 5\n",None);
+ let field="type Box={handlers:Map<string,Holder>;marker:int;};".to_owned()+&source.replace("const handlers = new Map<string, Holder>();","const box:Box={handlers:new Map<string,Holder>(),marker:17};").replace("handlers.","box.handlers.").replace("of handlers)","of box.handlers)").replace("console.log('done', first[0]);","console.log('done',first[0],box.marker);");
+ assert_ne!(field,source);
+ support::execute(&support::format_round_trip(&field),"second 5\ndone 3 17\nturn 0 4\nturn 1 5\nsecond 5\ndone 5 17\n",None);
+ let start=source.find("    handlers.set('second'").unwrap();let end=source.find("    let turn").unwrap();
+ let empty=format!("{}{}",&source[..start],&source[end..]);
+ support::execute(&support::format_round_trip(&empty),"done 3\nturn 0 4\nturn 1 5\ndone 5\n",None);
+ verify_disposal(&source,2,"second 5\ndrop 0\ndone 3\ndrop 1\nturn 0 4\ndrop 1\nturn 1 5\nsecond 5\ndrop 0\ndone 5\n");
 }
 
 #[test]
@@ -15,6 +31,15 @@ fn post_test_map_iteration_release_keeps_first_entry_state_distinct() {
  let post=source.replace("handlers.set('second',", "handlers.set('first',{run:():int=>first[0]});handlers.set('second',").replace("while (turn < limit)","do").replace("turn++;\n    }","turn++;}while(turn<limit);");
  assert_ne!(post,source);
  support::execute(&support::format_round_trip(&post),"turn 0 4\nsecond 5\ndone 4\nturn 0 4\nturn 1 5\nsecond 5\ndone 5\n",None);
+ verify_disposal(&support::format_round_trip(&post),3,"drop 0\ndrop 2\nturn 0 4\nsecond 5\ndrop 1\ndone 4\ndrop 0\ndrop 2\nturn 0 4\ndrop 2\nturn 1 5\nsecond 5\ndrop 1\ndone 5\n");
+ let formatted=support::format_round_trip(&post);
+ let start=formatted.find("    handlers.set('second'").unwrap();let end=formatted.find("    let turn").unwrap();
+ let empty=format!("{}{}",&formatted[..start],&formatted[end..]);
+ support::execute(&support::format_round_trip(&empty),"turn 0 4\ndone 4\nturn 0 4\nturn 1 5\ndone 5\n",None);
+ let guarded="function repeat(turn:int,limit:int):boolean{console.log('check',turn);return turn<limit;}".to_owned()+&post.replace("while(turn<limit);","while(repeat(turn,limit));");
+ assert_ne!(guarded,post);
+ support::execute(&support::format_round_trip(&guarded),"turn 0 4\ncheck 1\nsecond 5\ndone 4\nturn 0 4\ncheck 1\nturn 1 5\ncheck 2\nsecond 5\ndone 5\n",None);
+
 }
 
 #[test]

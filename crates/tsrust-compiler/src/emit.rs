@@ -3262,6 +3262,7 @@ impl Emitter<'_> {
                 let _=writeln!(output,"{indent}{}",self.map_entry_epoch_code(fun,epoch));
                 self.exception_regions.renew_storage(&[format!("value{}",epoch.place.binding)],stmt.span.start);
             }
+            if self.map_iteration_epoch(output,fun,stmt,declarations,depth){continue;}
             if self.map_empty_loop_epoch(output, fun, stmt, declarations, depth) {
                 self.map_post_entry_epochs(output,fun,stmt.span,depth);
                 continue;
@@ -9792,7 +9793,7 @@ impl Emitter<'_> {
         let _=writeln!(output,"{indent}{{ let string_source_{label}={source};");
         let _=writeln!(output,"{indent}'loop_{label}: for string_character_{label} in string_source_{label}.as_ref().chars() {{");
         let _=writeln!(output,"{indent}    let value{id}=&String::Owned(string_character_{label}.to_string());");
-        self.iteration_body(output,fun,body,depth+1,declaring_body,resets);
+        self.iteration_body(output,fun,body,depth+1,declaring_body,resets,stmt);
         let _=writeln!(output,"{indent}}} }}");
     }
 }
@@ -9827,3 +9828,6 @@ mod map_loop_storage_epochs;
 mod iteration_emit;
 #[path="map_entry_epoch_emit.rs"]
 mod map_entry_epoch_emit;
+
+#[path="map_iteration_emit.rs"]
+mod map_iteration_emit;

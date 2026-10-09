@@ -156,8 +156,13 @@ and change its released capture before the branch ends. Surviving storage return
 through the branch join; returning arms dispose it at their exit. Refilling a
 previously narrowed Map inside a branch widens its storage before entry, so new
 callback origins survive the join even when the other arm inserts nothing. Other retained
-entries continue to protect their captures. Release inside an iteration before
-completion or within the same expression remains under development.
+entries continue to protect their captures. Normally completing while, counted
+for, do-while and array/string for-of bodies may delete a known entry and mutate
+its released capture before the iteration ends. Surviving entries retain their
+key order and captures, including Maps stored in local record fields. Do-while
+preserves its initial entries for the first body and tests its condition after
+each body. Empty carried storage is supported. Abrupt controls, nested loops,
+cleanup transport and release within the same expression remain under development.
 Changing a callback environment representation for later capture access can scan
 surviving entries. Known entry deletion avoids that conversion when the released
 capture has no later source use or opaque named call. The release feature does

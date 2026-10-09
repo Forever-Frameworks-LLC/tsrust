@@ -2,7 +2,12 @@
 use super::*;
 
 #[derive(Clone, Debug, Default)]
-pub(crate) struct Exits(HashMap<(usize, usize), Vec<Unavailable>>, HashMap<usize, Vec<Unavailable>>, HashMap<(usize, usize), Vec<Unavailable>>, Option<Box<HashMap<(usize,usize),MapEntrySurvivors>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize),Type>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntrySurvivors>>>>, Option<Box<HashMap<(usize,usize,bool),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize,MapLoopEdge),std::collections::BTreeMap<crate::capture_loan_owners::Place,HashSet<Type>>>>>);
+pub(crate) struct Exits(HashMap<(usize, usize), Vec<Unavailable>>, HashMap<usize, Vec<Unavailable>>, HashMap<(usize, usize), Vec<Unavailable>>, Option<Box<HashMap<(usize,usize),MapEntrySurvivors>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize),Type>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntrySurvivors>>>>, Option<Box<HashMap<(usize,usize,bool),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize,MapLoopEdge),std::collections::BTreeMap<crate::capture_loan_owners::Place,HashSet<Type>>>>>, Option<Box<HashMap<(usize,usize),Vec<MapIterationEpoch>>>>);
+#[derive(Clone,Debug)]
+pub(crate) struct MapIterationEpoch {
+    pub(crate) entry:MapEntryEpoch,
+    pub(crate) back:MapEntryEpoch,
+}
 #[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
 pub(crate) enum MapLoopEdge { Entry, Back, Break }
 #[derive(Clone, Debug)]
@@ -101,17 +106,21 @@ impl Exits {
     pub(crate) fn map_entry_survivors(&self, span: Span) -> Option<&MapEntrySurvivors> {
         self.3.as_ref()?.get(&(span.start,span.end))
     }
+    pub(super) fn record_map_iteration_epochs(&mut self,span:Span,epochs:Vec<MapIterationEpoch>) {
+        self.9.get_or_insert_with(Default::default).insert((span.start,span.end),epochs);
+    }
+    pub(crate) fn map_iteration_epochs(&self,span:Span)->&[MapIterationEpoch] {
+        self.9.as_ref().and_then(|points|points.get(&(span.start,span.end))).map(Vec::as_slice).unwrap_or(&[])
+    }
     pub(super) fn record_map_loop_edge(&mut self,span:Span,edge:MapLoopEdge,owners:&crate::capture_loan_owners::Owners) {
         let snapshot=owners.map_payload_snapshot();
         if snapshot.is_empty() && self.8.is_none() && !self.has_map_entry_survivors(){return;}
         let roots=self.8.get_or_insert_with(Default::default).entry((span.start,span.end,edge)).or_default();
         for (place,payloads) in snapshot {roots.entry(place).or_default().extend(payloads);}
     }
-    #[allow(dead_code)] // Distinguishes an empty reachable edge from an absent edge.
     pub(crate) fn has_map_loop_edge(&self,span:Span,edge:MapLoopEdge)->bool {
         self.8.as_ref().is_some_and(|points|points.contains_key(&(span.start,span.end,edge)))
     }
-    #[allow(dead_code)] // Consumed by the forthcoming iteration transport planner.
     pub(crate) fn map_loop_edge(&self,span:Span,edge:MapLoopEdge,place:&crate::capture_loan_owners::Place)->Option<&HashSet<Type>> {
         self.8.as_ref()?.get(&(span.start,span.end,edge))?.get(place)
     }
