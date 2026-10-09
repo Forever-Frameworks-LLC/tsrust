@@ -1,6 +1,30 @@
 mod support;
 
 #[test]
+fn array_element_replacement_keeps_surviving_and_aliased_captures_live() {
+    for (tail, expected) in [
+        ("first[0]=9;", "capture-conflict"),
+        ("const saved=handlers[1];handlers[1]={run:():int=>first[0]};second[0]=9;console.log(saved.run());", "view-conflict"),
+        ("let index=0;handlers[index]={run:():int=>first[0]};second[0]=9;", "capture-conflict"),
+    ] {
+        let source = support::format_round_trip(&format!(
+            "type Holder={{run:ReadOnly<Function<int>>;}};function main():void{{const first=[3];const second=[5];const handlers:Holder[]=[{{run:():int=>first[0]}},{{run:():int=>second[0]}}];{tail}}}"
+        ));
+        let error = tsrust_compiler::check(&source)
+            .err().expect("a surviving or aliased element must protect its capture");
+        assert_eq!(error.code, expected, "{tail}: {}", error.message);
+    }
+}
+
+#[test]
+fn replacing_known_array_element_releases_only_its_capture() {
+    let source = support::format_round_trip(
+        "type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];handlers[1]={run:():int=>first[0]};second[0]=9;console.log(handlers[0].run(),handlers[1].run(),second[0]);}",
+    );
+    support::execute(&source, "3 3 9\n", None);
+}
+
+#[test]
 fn map_cleanup_controls_override_pending_return_throw_and_break() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(mode:int):int{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});let turn=0;outer:while(turn<2){inner:while(true){try{if(mode===0)return 42;if(mode===1)throw 7;break inner;}finally{handlers.delete('first');first[0]+=1;turn+=1;if(turn<2)continue outer;break outer;}}}console.log('done',first[0]);for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();return 99;}function main():void{console.log(scenario(0));console.log(scenario(1));console.log(scenario(2));}");
  support::execute(&source,"done 5\nsecond 5\n99\ndone 5\nsecond 5\n99\ndone 5\nsecond 5\n99\n",None);
