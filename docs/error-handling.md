@@ -303,3 +303,10 @@ try bypasses catch but still runs finally. Deleting a Map entry before either
 return releases captures used only by that entry; finally can change those
 captures while surviving entries remain borrowed. The returned value is saved
 before finally begins, and a return or throw in finally replaces it.
+
+
+A labelled break or continue waits for each enclosing finally before reaching its
+target. Nested cleanup runs from the innermost region outward. Entries deleted
+before the control transfer remain deleted during cleanup, and surviving entries
+retain their captures until removed or dropped. Returning, throwing, or targeting
+a different label inside finally replaces the pending control transfer.

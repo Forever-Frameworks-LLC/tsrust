@@ -2056,3 +2056,59 @@ The intermediate verification record and all closed diagnostic logs are imported
 into SQLite, restored byte for byte, and removed from loose storage. Final project
 formatting changes zero files and fingerprints. Executable consumers remain at
 the previously accepted family checkpoint; the scratch compiler is current.
+
+
+## Destination-specific pending loop controls, 2026-10-09
+
+Pending break and continue completions now have distinct native payload variants
+for each resolved label. Body and handler phases attach only the source points
+that can reach that destination. Each variant enters the checked cleanup plan
+for its exact CompletionKind and resumes through a selected destination dispatch.
+Local loop and block restoration project from the actual surviving Map payload,
+including record fields. Enclosing finally regions receive the selected owner
+before an outer loop or block consumes the control.
+
+The red layout witness found destination Map7 missing from the common Map6
+control tuple. Source planning already distinguished two break labels and one
+continue label; native transport now retains those separate layouts. The native
+witness covers all three destinations, catch handlers, nested finally forwarding,
+record-field storage and disposal. A mixed return/empty-break case also passes.
+
+Implementation checks exposed and repaired eager projections at unrelated branch
+points, a record-root versus Map-leaf projection error, and nested generic dispatch
+that tried to use a precise owner for hypothetical inactive control alternatives.
+The 100-case affected Map batch preserved 94 passes and six failures. Follow-up
+repairs consume the completion enum completely before cleanup so inactive variants
+cannot retain capture loans through a match temporary. Passed batch evidence is
+retained; only affected cases are rerun.
+
+The new map_control_storage module owns control layout selection, attachment,
+cleanup entry and selected dispatch. Generic unknown completion forwarding keeps
+its common fallback; fresh controls overriding cleanup still need dedicated
+precision witnesses. Do not describe every cleanup override as independently
+transported yet. Remaining B5 work includes aggregate/expression precision and
+structural owned record keys. Full family regressions, timing and installed
+consumer refresh remain deferred.
+
+
+Focused acceptance retains the initial 94 Map passes and targeted green repairs
+for all six failed cases. Final expanded disposal checks also pass for direct
+Maps, record fields and catch handlers. All 26 layout proofs and five related
+editor checks pass. The matched workload adds body and handler variants for two
+break labels and one continue label, with six independent result formulas and
+101 observations per row. Source registration and mutation guards pass. The
+intermediate five-case native and Node-after-tsc verification record is
+runtime/results/2026-10-09T07-22-54-565Z-verify.json; this is untimed evidence.
+
+Next add precision witnesses for controls created by cleanup overrides, preserving
+common fallback behavior until each override has a checked destination-specific
+projection. Then finish remaining B5 aggregate/expression precision and owned
+structural record keys before family regressions and measurements.
+
+Final formatted-source verification passes both engines and all five cases.
+Canonical record: runtime/results/2026-10-09T07-24-52-777Z-verify.json.
+The intermediate record and all closed diagnostic logs are stored in SQLite,
+restored byte for byte and removed from loose storage. Final project formatting
+changes zero files and fingerprints; source diff checks pass. No timings or
+complete family regressions were run. The scratch compiler is current, while
+installed executable consumers remain deferred to the family checkpoint.

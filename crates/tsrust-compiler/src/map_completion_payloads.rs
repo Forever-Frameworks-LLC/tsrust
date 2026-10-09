@@ -87,6 +87,22 @@ mod tests {
     }
 
     #[test]
+    fn control_envelope_preserves_resolved_destination_layouts() {
+        let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function scenario(mode:int):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});let turn=0;outer:while(turn<2){inner:while(true){try{if(mode===0){handlers.delete('first');first[0]+=1;break outer;}if(mode===1){handlers.delete('second');second[0]+=1;break inner;}handlers.delete('first');first[0]+=1;turn+=1;continue outer;}finally{console.log(handlers.size);}}turn+=1;}handlers.clear();}function main():void{scenario(0);scenario(1);scenario(2);}").unwrap();
+        let checked=crate::check(&source).unwrap();let function=checked.program.functions.iter().find(|function|function.name=="scenario").unwrap();let binding=function.bindings.iter().position(|binding|binding.name=="handlers").unwrap();
+        let mut pending=function.body.iter().collect::<Vec<_>>();let region=loop{let statement=pending.pop().expect("control finally");match &statement.kind{crate::syntax::StmtKind::Try(region)=>break region,crate::syntax::StmtKind::While{body,..}|crate::syntax::StmtKind::Block(body)=>pending.extend(body),_=>{}}};
+        let boundary=region.body[0].span.start;let states=function.storage_exits.map_completion_snapshots(boundary);let controls=states.iter().filter(|state|state.phase==Phase::Handled && matches!(state.kind,Some(CompletionKind::Break(_)|CompletionKind::Continue(_)))).collect::<Vec<_>>();assert_eq!(controls.len(),3,"two break destinations and one continue destination");
+        let mut outputs=Vec::new();for state in controls {
+            let layout=function.storage_exits.map_completion_layout(boundary,Phase::Handled,state.kind).unwrap();let expected=layout[&Place{binding,fields:vec![]}];
+            let plan=function.storage_exits.map_cleanup_plan(boundary,state.kind).expect("independent control cleanup plan");
+            assert_eq!(plan.exits.map_native_input(plan.body[0].span.start,binding),Some(expected),"cleanup entry follows its resolved destination");outputs.push(expected);
+        }
+        let rust=checked.emit_rust();let envelope=rust.split("let completion:TsrCompletion<").filter_map(|part|part.split_once("='exception_region").map(|(ty,_)|ty)).find(|ty|ty.contains("FinallyIncoming")).expect("control body envelope");let control=envelope.split(",(FinallyIncoming").next().unwrap();
+        for ty in &outputs{let Type::Map(map)=ty else{panic!("Map control")};assert!(control.contains(&format!("Map{map}<")),"destination Map{map} absent from {control}");}
+        assert!(outputs.iter().any(|ty|*ty!=outputs[0]),"different break destinations keep different survivors");
+    }
+
+    #[test]
     fn cleanup_return_has_independent_native_plan() {
         let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function scenario():int{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{handlers.delete('first');first[0]+=1;return first[0];}finally{for(const [key,entry] of handlers){console.log(entry.run());}}}function main():void{console.log(scenario());}").unwrap();
         let checked=crate::check(&source).unwrap();let function=checked.program.functions.iter().find(|function|function.name=="scenario").unwrap();let region=function.body.iter().find_map(|statement|if let crate::syntax::StmtKind::Try(region)=&statement.kind{Some(region)}else{None}).unwrap();let boundary=region.body[0].span.start;let binding=function.bindings.iter().position(|binding|binding.name=="handlers").unwrap();let kind=Some(CompletionKind::Return);

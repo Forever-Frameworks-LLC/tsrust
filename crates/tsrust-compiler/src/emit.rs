@@ -9846,3 +9846,6 @@ mod map_iteration_emit;
 
 #[path="map_cleanup_control_emit.rs"]
 mod map_cleanup_control_emit;
+
+#[path="map_control_storage.rs"]
+mod map_control_storage;

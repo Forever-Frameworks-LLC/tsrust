@@ -61,8 +61,9 @@ impl Emitter<'_> {
             statement.span,
         );
         let error=region.body.first().and_then(|statement|fun.storage_exits.map_completion_layout(statement.span.start,crate::analysis::MapCompletionPhase::Body,Some(crate::completion::CompletionKind::Throw)));
-        let return_layout=region.body.first().and_then(|statement|fun.storage_exits.map_completion_layout(statement.span.start,crate::analysis::MapCompletionPhase::Body,Some(crate::completion::CompletionKind::Return)));
-        let return_carrier=return_layout.map(|layout|self.map_return_carrier(fun,format!("MapControl{first}"),&places,&storage_type,layout));
+        let fallback=std::collections::BTreeMap::new();
+        let boundary=region.body.first().map_or(statement.span.start,|statement|statement.span.start);
+        let return_carrier=self.map_completion_carrier(fun,format!("MapControl{first}"),&places,&storage_type,boundary,crate::analysis::MapCompletionPhase::Body,&fallback);
         let pending = self.map_return_phase_storage_completion_body(
             fun,
             &region.body,
@@ -182,13 +183,14 @@ impl Emitter<'_> {
         let indent = "    ".repeat(depth);
         // Finish the completion enum's scope before cleanup borrows captures.
         // Each optional owner keeps its own native type; exactly one is live.
-        let carrier_declaration=return_carrier.as_ref().map_or(String::new(),|carrier|format!("enum {}<R,S,C>{{Return((R,S)),Common((TsrStorageExit<R>,C))}}",carrier.name));
+        let carrier_declaration=return_carrier.as_ref().map_or(String::new(),|carrier|self.map_carrier_declaration(carrier));
         let carried=if return_carrier.is_some(){"TsrCompletion::Return(control)=>(None,None,Some(control))"}else{"TsrCompletion::Return((exit,storage))=>(None,None,Some((exit,storage)))"};
         let selected_control=if let Some(carrier)=&return_carrier {
+            let control_cleanups=self.map_precise_control_cleanups(fun,region,declarations,carrier,&cleanup_name,&cleanup_contract,runtime,&places,&storage_type,&pattern,statement.span);
             let precise=self.map_precise_return_cleanup(fun,region,declarations,first+3,carrier,&cleanup_name,&cleanup_contract,runtime,&places,&storage_type,&pattern,statement.span);
             let has_other=region.body.first().is_some_and(|statement|self.control_targets.snapshot().iter().any(|target|[crate::completion::CompletionKind::Break(Some(*target)),crate::completion::CompletionKind::Continue(Some(*target))].into_iter().any(|kind|fun.storage_exits.map_completion_layout(statement.span.start,crate::analysis::MapCompletionPhase::Body,Some(kind)).is_some())));
             let common=if has_other{format!("{{{return_finish}}}")}else{"unreachable!(\"no pending loop control\")".into()};
-            format!("match control_owner.unwrap(){{{}::Return((pending_return,{pattern}))=>{{{precise}}},{}::Common((pending_exit,{pattern}))=>{common}}}",carrier.name,carrier.name)
+            self.map_select_control_owner(carrier,&pattern,precise,common,control_cleanups)
         }else{format!("let (pending_exit,{pattern})=control_owner.unwrap();{return_finish}")};
         let split=format!("{{let completed={pending};match completed{{TsrCompletion::Normal(storage)=>(Some(storage),None,None),TsrCompletion::Throw((error,storage))=>(None,Some((error,storage)),None),{carried},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried finally completion\")}}}}");
         let _=writeln!(output,"{indent}{incoming_decl} {cleanup_decl} {carrier_declaration} let {pattern}={{let (normal_owner,error_owner,control_owner)={{let {pattern}={values};{split}}};if normal_owner.is_some(){{let {pattern}=normal_owner.unwrap();drop(error_owner);drop(control_owner);{normal_finish}}}else{{drop(normal_owner);if error_owner.is_some(){{let (pending_error,{pattern})=error_owner.unwrap();drop(control_owner);{throw_finish}}}else{{drop(error_owner);if control_owner.is_some(){{{selected_control}}}else{{unreachable!(\"exactly one pending finally owner\")}}}}}}}};");

@@ -4,13 +4,14 @@ type Layout=std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>;
 pub(super) struct Carrier<'a> {
     pub(super) name:String,
     pub(super) native:String,
+    pub(super) controls:Vec<(crate::completion::CompletionKind,&'a Layout)>,
     pub(super) layout:&'a Layout,
 }
 impl Emitter<'_> {
     pub(super) fn map_return_carrier<'a>(&self,fun:&CheckedFunction,name:String,places:&[String],storage:&str,layout:&'a Layout)->Carrier<'a> {
         let result=self.native_type(fun.result);
         let returned=self.map_error_storage_type(fun,places,layout);
-        Carrier{native:format!("{name}<{result},{returned},{storage}>"),name,layout}
+        Carrier{controls:vec![],native:format!("{name}<{result},{returned},{storage}>"),name,layout}
     }
     pub(super) fn attach_map_return_storage(&self,fun:&CheckedFunction,body:&[Stmt],places:&[String],carrier:&Carrier<'_>) {
         let value=|place:&str,start:usize,point:Option<(usize,usize)>| {
@@ -46,7 +47,7 @@ impl Emitter<'_> {
             let name=&cleaned_carrier.name;
             let override_return=self.exception_regions.dispatch_return("override_return",span,owner.as_deref());
             let thrown=self.map_layout_storage_abrupt_dispatch(fun,"TsrCompletion::Throw(pending_error)",cleanup_name,cleanup_contract,runtime,span,error);
-            format!("match other{{TsrCompletion::Return(control)=>match control{{{name}::Return((override_return,{pattern}))=>{{{override_return}}},{name}::Common((pending_exit,{pattern}))=>{{let legacy:{legacy_native}=TsrCompletion::Return((pending_exit,{}));{legacy}}}}},TsrCompletion::Throw((pending_error,{pattern}))=>{{{thrown}}},_=>unreachable!(\"carried return cleanup\")}}",format!("({},)",places.join(",")))
+            format!("match other{{TsrCompletion::Return(control)=>match control{{{name}::Return((override_return,{pattern}))=>{{{override_return}}},{name}::Common((pending_exit,{pattern}))=>{{let legacy:{legacy_native}=TsrCompletion::Return((pending_exit,{}));{legacy}}},_=>unreachable!(\"inactive cleanup control variant\")}},TsrCompletion::Throw((pending_error,{pattern}))=>{{{thrown}}},_=>unreachable!(\"carried return cleanup\")}}",format!("({},)",places.join(",")))
         }else{format!("let legacy=other;{legacy}")};
         format!("match {cleaned}{{TsrCompletion::Normal(storage)=>{{let {pattern}=storage;{resumed}}},other=>{{drop(pending_return);{abrupt}}}}}")
     }
