@@ -8773,3 +8773,12 @@ fn labelled_block_map_entry_release_preserves_survivor_diagnostics() {
  let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///labelled-block-map.tsr").unwrap()).unwrap();
  assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
 }
+
+#[test]
+fn ordinary_loop_map_entry_release_preserves_survivor_diagnostics() {
+ let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[7];const second=[11];const handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>first[0]});let turn=0;while(turn<2){handlers.delete('old');first[0]+=1;turn++;if(turn===1)continue;handlers.set('new',{run:():int=>second[0]});}handlers.clear();first[0]+=10;}").unwrap();
+ assert!(tsrust_lsp::diagnostics(&source,"file:///ordinary-map-edges.tsr").unwrap().is_empty());
+ let conflict=source.replace("handlers.clear();", "second[0]+=1;handlers.clear();");assert_ne!(source,conflict);
+ let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///ordinary-map-edges.tsr").unwrap()).unwrap();
+ assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+}

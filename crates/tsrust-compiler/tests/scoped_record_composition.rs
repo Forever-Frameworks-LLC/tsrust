@@ -1,6 +1,25 @@
 mod support;
 
 #[test]
+fn ordinary_map_loop_preserves_different_entry_back_and_break_origins() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(limit:int,stop:boolean):void{const first=[7];const second=[11];const handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>first[0]});let turn=0;while(turn<limit){handlers.delete('old');first[0]+=1;turn++;if(stop)break;handlers.set('new',{run:():int=>second[0]});if(turn<limit)continue;}console.log('after',turn,handlers.size);for(const [key,entry] of handlers){console.log('kept',key,entry.run());}handlers.clear();first[0]+=10;console.log('done',first[0]);}function main():void{scenario(0,false);scenario(2,false);scenario(2,true);}");
+    support::execute(&source,"after 0 1\nkept old 7\ndone 17\nafter 2 1\nkept new 11\ndone 19\nafter 1 0\ndone 18\n",None);
+    verify_disposal(&source,2,"after 0 1\nkept old 7\ndrop 0\ndone 17\ndrop 0\ndrop 1\nafter 2 1\nkept new 11\ndrop 1\ndone 19\ndrop 0\nafter 1 0\ndone 18\n");
+    for replacement in ["for(let step=0;step<limit;step+=1){","for(const step of [0,1].slice(0,limit)){"] {
+        let variant=source.replace("while (turn < limit) {",replacement);assert_ne!(variant,source);
+        support::execute(&support::format_round_trip(&variant),"after 0 1\nkept old 7\ndone 17\nafter 2 1\nkept new 11\ndone 19\nafter 1 0\ndone 18\n",None);
+    }
+    let post=source.replace("while (turn < limit) {","do{").replace("console.log('after', turn, handlers.size);","while(turn<limit);console.log('after',turn,handlers.size);");
+    support::execute(&support::format_round_trip(&post),"after 1 1\nkept new 11\ndone 18\nafter 2 1\nkept new 11\ndone 19\nafter 1 0\ndone 18\n",None);
+    let narrowed=source.replace("handlers.set('old', {","const discarded=[13];handlers.set('discard',{run:():int=>discarded[0]});handlers.delete('discard');discarded[0]+=1;handlers.set('old',{");
+    assert_ne!(narrowed,source);
+    support::execute(&support::format_round_trip(&narrowed),"after 0 1\nkept old 7\ndone 17\nafter 2 1\nkept new 11\ndone 19\nafter 1 0\ndone 18\n",None);
+    let early=source.replace("handlers.delete('old');","if(stop)break;handlers.delete('old');");
+    support::execute(&support::format_round_trip(&early),"after 0 1\nkept old 7\ndone 17\nafter 2 1\nkept new 11\ndone 19\nafter 0 1\nkept old 7\ndone 17\n",None);
+}
+
+
+#[test]
 fn labelled_map_block_exit_from_nested_loop_preserves_cleanup() {
     let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});exit:{try{while(true){handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;break exit;}}finally{console.log('cleanup',handlers.size);for(const [key,entry] of handlers){console.log('kept',key,entry.run());}}}first[0]+=10;console.log('after',handlers.size,first[0]);handlers.clear();}");
     support::execute(&source,"cleanup 1\nkept second 5\nafter 1 14\n",None);

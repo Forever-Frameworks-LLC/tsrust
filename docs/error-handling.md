@@ -222,3 +222,12 @@ result. Required finally bodies run before that result is returned. Cleanup can
 replace a pending completion with its own block break. This storage transport
 moves entries and does not clone captured values. Source ownership checks still
 reject mutation of surviving captures.
+
+
+Ordinary loops can carry different callback origins at first entry, on a backedge
+and on break. A zero-iteration path retains its original entries. Deletion can
+release an old capture before mutation, and a replacement callback remains
+callable on later iterations. An empty break remains empty instead of inheriting
+backedge entries. If a break happens before deletion, that entry remains live.
+The compiler keeps the first owner's representation separate from the working
+family required by later iterations and by cleanup observation.

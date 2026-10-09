@@ -20,20 +20,15 @@ impl Analyzer {
             // A callable exit can leave no backedge at all. Its cleanup still
             // needs the working storage family for entry deletion and disposal.
             if !context.storage_exits.has_map_loop_edge(statement.span,storage_exit_availability::MapLoopEdge::Back) && !cleanup_body {continue;}
-            if !post_test && entry!=back && !cleanup_body {continue;}
             let broken=context.storage_exits.map_loop_edge(statement.span,storage_exit_availability::MapLoopEdge::Break,place);
             let break_empty=broken.is_none_or(HashSet::is_empty);
-            if context.storage_exits.has_map_loop_edge(statement.span,storage_exit_availability::MapLoopEdge::Break)
-                && broken!=back && !cleanup_body {continue;}
             let entry_empty=entry.is_none_or(HashSet::is_empty);
             let back_empty=back.is_none_or(HashSet::is_empty);
-            // A cleanup override can turn an error into a loop control. Carry
-            // every reaching edge family without discarding the first entry.
+            // Both ordinary and cleaned controls can retain different owners.
+            // Include the first entry so a zero-iteration path is never erased.
             let mut carried=back.cloned().unwrap_or_default();
-            if cleanup_body {
-                if let Some(entry)=entry {carried.extend(entry.iter().copied());}
-                if let Some(broken)=broken {carried.extend(broken.iter().copied());}
-            }
+            if let Some(entry)=entry {carried.extend(entry.iter().copied());}
+            if let Some(broken)=broken {carried.extend(broken.iter().copied());}
             let empty=carried.is_empty();
             let Some(input)=results.get(&place.binding).copied() else{continue;};
             let Some(Type::Map(map))=self.scoped_array_field_type(input,&place.fields) else{continue;};
@@ -50,12 +45,23 @@ impl Analyzer {
             };
             let output_map=self.scoped_map_value_instance(map,payload);
             let output=self.scoped_array_replace_field(input,&place.fields,Type::Map(output_map)).expect("checked Map path");
-            if input==output && !cleanup_body {continue;}
+            if input==output && !cleanup_body && entry==back && broken==back {continue;}
+            // Working storage includes physical incoming environments as well
+            // as all reaching edges. Cleanup can observe an incoming type even
+            // when its payload is removed before the next iteration.
+            let working=if input==output || self.map_iteration_empty_root(output,&place.fields){input}
+                else if self.map_iteration_empty_root(input,&place.fields){output}
+                else{
+                    let left=self.scoped_array_field_type(input,&place.fields).expect("incoming Map path");
+                    let right=self.scoped_array_field_type(output,&place.fields).expect("carried Map path");
+                    let joined=self.join_scoped_map_types(left,right,statement.span)?.expect("compatible incoming/carried Map families");
+                    self.scoped_array_replace_field(input,&place.fields,joined).expect("working Map path")
+                };
             let entry=storage_exit_availability::MapEntryEpoch{place:place.clone(),input,output,empty:entry_empty,before:true};
             if !post_test && input!=output {context.storage_exits.record_map_entry_epoch(statement.span,entry.clone());}
             results.insert(place.binding,output);
             let back=storage_exit_availability::MapEntryEpoch{place:place.clone(),input:output,output,empty:back_empty,before:false};
-            epochs.push(storage_exit_availability::MapIterationEpoch{entry,body:back.clone(),back,carrier_empty:empty,break_empty});
+            epochs.push(storage_exit_availability::MapIterationEpoch{working,entry,body:back.clone(),back,carrier_empty:empty,break_empty});
         }
         if !epochs.is_empty(){context.storage_exits.record_map_iteration_epochs(statement.span,epochs);}
         Ok(())
@@ -67,11 +73,11 @@ impl Analyzer {
         let body=match &mut statement.kind {StmtKind::While{body,..}|StmtKind::Loop{body,..}|StmtKind::ForOf{body,..}=>body,_=>return Ok(())};
         let local=epochs.iter().map(|epoch|epoch.entry.place.clone()).collect();
         let mut inner=results.clone();
-        // Both first and repeated bodies use the original working family.
-        // Only the backedge storage excludes released environments.
+        // First and repeated bodies share the complete reaching family.
+        // The first owner can be narrower than a later backedge owner.
         for epoch in &epochs {
             let root=inner[&epoch.entry.place.binding];
-            let working=self.scoped_array_field_type(epoch.entry.input,&epoch.entry.place.fields).expect("entry Map path");
+            let working=self.scoped_array_field_type(epoch.working,&epoch.entry.place.fields).expect("working Map path");
             inner.insert(epoch.entry.place.binding,self.scoped_array_replace_field(root,&epoch.entry.place.fields,working).expect("working Map path"));
         }
         self.scoped_map_entry_epochs_with_demand(context,body,&mut inner,demand,&local)?;
@@ -110,7 +116,12 @@ impl Analyzer {
                 let incoming=self.scoped_array_field_type(inputs[&place.binding],&place.fields).expect("control Map path");
                 let previous=self.scoped_array_field_type(output,&place.fields).expect("body Map path");
                 if previous!=incoming {
-                    let joined=self.join_scoped_map_types(previous,incoming,*span)?.expect("compatible iteration Map families");
+                    // Empty native environments carry no callback payload.
+                    // Their phantom callable type is not another live origin.
+                    if self.map_iteration_empty_root(inputs[&place.binding],&place.fields){continue;}
+                    let joined=if self.map_iteration_empty_root(output,&place.fields){incoming}else{
+                        self.join_scoped_map_types(previous,incoming,*span)?.expect("compatible iteration Map families")
+                    };
                     output=self.scoped_array_replace_field(output,&place.fields,joined).expect("joined body Map path");
                 }
             }

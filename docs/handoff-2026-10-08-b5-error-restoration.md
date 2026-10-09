@@ -1975,3 +1975,55 @@ Next add a focused witness for an ordinary loop whose entry, backedge and break
 retain different callback origins before changing its carrier eligibility.
 Keep benchmark support current as it lands and preserve the 15 unrelated fixtures
 using explicit Git paths.
+
+
+### Ordinary loops with distinct Map edge families accepted
+
+The ordinary-loop red passed source checking but retained the deleted capture in
+native Rust. The planner previously excluded different entry/backedge and
+break/backedge payload sets. It now joins every reaching edge while preserving
+entry, backedge and break emptiness independently. Empty environments contribute
+no live callable origin when joining control inputs; treating their phantom
+callable as an origin caused an internal join panic and is repaired.
+
+A narrowed pre-loop owner exposed a runtime excluded-environment panic. The first
+owner held only the old callback, while a later backedge held the new callback.
+MapIterationEpoch now records a separate working family. That family joins
+physical incoming environments with reaching carrier environments; first and
+repeated bodies convert into it before their local deletion/refill transitions.
+It must retain physical incoming types because exception cleanup can observe them
+before deletion finishes. An intermediate narrower working-family implementation
+broke five cleanup witnesses; the repaired join restores them. Source capture
+availability remains authoritative and no implicit clone is added.
+
+Native witnesses cover zero/repeated iterations, empty break, an early break
+retaining the old entry, replacement origins, while/counted/post-test/for-of forms,
+a pre-loop deletion and refill that narrows the initial owner, and exact disposal
+at both optimization levels. Raw proofs distinguish entry/backedge origins and
+empty break, and prove a narrowed incoming type differs from its working family.
+The editor rejects mutation of a surviving capture. The first editor rejection
+attempt mutated before capture and was legal; the repaired witness mutates after
+the loop while the Map still owns the callback.
+
+Bounded evidence is retained without replacing failed runs. The original affected
+batch passed 84 tests. After adding the working-family repair, a later batch
+passed 79 and failed five cleanup cases. All five failures and the ordinary-loop
+witness pass the six-case focused repair run. Current source also passes 13 editor
+entry-release checks, 11 phase/storage proofs and all eight normal-stack canaries.
+There is no claim of a new full compiler/LSP or whole-family run.
+
+Matched support adds ordinaryEntryEdges and narrowedOrdinaryEntryEdges with three
+observations, independent arithmetic oracles, current token guards and mutation
+rejection. Native and Node-after-tsc untimed verification passes all five cases
+with 75 observations per row. Canonical record:
+runtime/results/2026-10-09T04-55-27-316Z-verify.json. Twenty-eight closed logs and
+the matched record are imported into SQLite, read back byte for byte and removed
+from loose storage. Final project formatting changes zero files and fingerprints.
+Installed consumers remain at gate 181; scratch compilers are current.
+
+B5 remains open: ordinary loops with no backedge and no completion boundary,
+independent native phase layouts, broader aggregate/within-expression precision
+and structural owned record keys remain pending. No timing is claimed. Next add a
+focused ordinary no-backedge break/return witness before removing its eligibility
+guard. Preserve the original failed evidence and the 15 unrelated fixture edits,
+and commit only explicit paths.

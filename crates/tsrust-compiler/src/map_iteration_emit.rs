@@ -44,11 +44,9 @@ impl Emitter<'_> {
         let epochs=fun.storage_exits.map_iteration_epochs(statement.span);
         let label=statement.span.start;
         let indent="    ".repeat(depth);
-        if widen {
-            for epoch in epochs {
-                let working=crate::analysis::MapEntryEpoch{place:epoch.entry.place.clone(),input:epoch.entry.output,output:epoch.entry.input,empty:epoch.carrier_empty,before:true};
-                if working.input!=working.output{let _=writeln!(output,"{indent}{}",self.map_entry_epoch_code(fun,&working));}
-            }
+        for epoch in epochs {
+            let working=crate::analysis::MapEntryEpoch{place:epoch.entry.place.clone(),input:if widen{epoch.entry.output}else{epoch.entry.input},output:epoch.working,empty:if widen{epoch.carrier_empty}else{epoch.entry.empty},before:true};
+            if working.input!=working.output{let _=writeln!(output,"{indent}{}",self.map_entry_epoch_code(fun,&working));}
         }
         let body=match &statement.kind{StmtKind::While{body,..}|StmtKind::Loop{body,..}|StmtKind::ForOf{body,..}=>body,_=>unreachable!("checked iteration body")};
         let places=epochs.iter().map(|epoch|self.map_entry_epoch_place(fun,&epoch.entry)).collect::<Vec<_>>();

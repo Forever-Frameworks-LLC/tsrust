@@ -56,6 +56,29 @@ impl Snapshots {
 mod tests {
     use super::*;
     #[test]
+    fn ordinary_loop_edges_keep_distinct_origins_and_empty_break() {
+        let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function scenario(limit:int,stop:boolean):void{const first=[7];const second=[11];const handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>first[0]});let turn=0;while(turn<limit){handlers.delete('old');first[0]+=1;turn++;if(stop)break;handlers.set('new',{run:():int=>second[0]});if(turn<limit)continue;}handlers.clear();first[0]+=10;}function main():void{scenario(0,false);scenario(2,false);scenario(2,true);}").unwrap();
+        let checked=crate::check(&source).unwrap();
+        let function=checked.program.functions.iter().find(|function|function.name=="scenario").unwrap();
+        let loop_statement=function.body.iter().find(|statement|matches!(statement.kind,crate::syntax::StmtKind::While{..})).unwrap();
+        let epochs=function.storage_exits.map_iteration_epochs(loop_statement.span);
+        assert_eq!(epochs.len(),1);
+        let entry=function.storage_exits.map_loop_edge(loop_statement.span,crate::analysis::storage_exit_availability::MapLoopEdge::Entry,&epochs[0].entry.place).unwrap();
+        let back=function.storage_exits.map_loop_edge(loop_statement.span,crate::analysis::storage_exit_availability::MapLoopEdge::Back,&epochs[0].entry.place).unwrap();
+        assert_ne!(entry,back);
+        assert_eq!(entry.len(),1);assert_eq!(back.len(),1);
+        assert!(epochs[0].break_empty);assert!(!epochs[0].back.empty);assert!(!epochs[0].carrier_empty);
+        let narrowed=source.replace("handlers.set('old', {","const discarded=[13];handlers.set('discard',{run:():int=>discarded[0]});handlers.delete('discard');discarded[0]+=1;handlers.set('old',{");assert_ne!(narrowed,source);
+        let narrowed=crate::check(&narrowed).unwrap();
+        let function=narrowed.program.functions.iter().find(|function|function.name=="scenario").unwrap();
+        let statement=function.body.iter().find(|statement|matches!(statement.kind,crate::syntax::StmtKind::While{..})).unwrap();
+        let epoch=&function.storage_exits.map_iteration_epochs(statement.span)[0];
+        assert_ne!(epoch.entry.input,epoch.working,"later origins must not be projected into the narrow first-entry family");
+        assert_eq!(epoch.entry.output,epoch.working);
+
+    }
+
+    #[test]
     fn labelled_block_join_preserves_normal_and_break_survivors() {
         let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function scenario(stop:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});exit:{handlers.set('first',{run:():int=>first[0]});handlers.delete('first');if(stop)break exit;}handlers.clear();}function main():void{scenario(false);scenario(true);}").unwrap();
         for (source,expected) in [(source.clone(),1),(source.replace("handlers.delete('first');", "if(stop)break exit;handlers.delete('first');"),2)] {
