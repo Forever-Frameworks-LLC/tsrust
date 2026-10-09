@@ -32,9 +32,12 @@ covers straight-line local dense arrays, arrays in nested record fields, and
 explicit moves of arrays or their owning records. Independent sibling fields keep
 their own captures protected. A standalone `pop()` or `shift()` statement also drops its removed value and
 releases captures belonging only to that value when the dense shape is known.
-Repeated removal can release all captures when the array becomes empty. A bound
-removal result keeps its captures protected; precise result provenance and
-control-flow slot joins remain part of the unfinished aggregate work.
+Repeated removal can release all captures when the array becomes empty. An immutable bound
+removal result keeps only the removed element's captures protected. After that
+result leaves scope, its captures are released while surviving elements remain
+usable. Moving the result preserves this ownership. Native storage moves surviving
+records out of normal lexical blocks without cloning. Reassignable result storage,
+same-expression release and control-flow slot joins remain unfinished.
 
 ## Local callback selection
 

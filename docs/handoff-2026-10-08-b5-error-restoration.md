@@ -2755,3 +2755,33 @@ Final project formatting changes zero files and fingerprints; source diff checks
 pass. The scratch compiler is current. Family timing and installed-consumer
 refresh remain deferred. Current-state sections now supersede the older dated
 next-step notes; precise indexed-element release is the next implementation.
+
+## Current continuation: retained array removal results
+
+The source ownership foundation is checkpointed in `d27d463`. Native follow-up
+now specializes immutable pop/shift results, narrows surviving arrays, and carries
+survivors out of normal lexical blocks. The original red witness passes, including
+shift, result moves, nested blocks, record fields, mixed Map storage and exact
+disposal at optimization levels 0 and 3. The affected array batch passes 27 tests.
+A fallible result regression also passes after retargeting invocation error effects
+to the specialized callback origin. Keep the indexed capture plan authoritative
+for remaining requirements and final evidence. Reassignable result storage and
+same-expression release are not yet accepted. Structural record keys follow the
+owner's Rust-style equality decision. B5 remains incomplete.
+
+### Retained-result checkpoint evidence
+
+All five matched cases pass untimed on native and Node-after-tsc. The workload
+has 117 observations per iteration; the added independent formulas are
+`3 * value + 4` for result-scope disposal and `3 * value + 5` for result
+independence. Source contracts, mutation guards and literal oracle expectations
+pass. SQLite preserves `runtime/results/2026-10-09T08-38-50-598Z-verify.json`,
+with empty startup, compilation and execution timing arrays. Twenty-three
+diagnostic logs, including original failures and repaired checks, were imported
+and restored byte for byte before deleting their loose copies. A supplementary
+explicit thrown-callback test passes after narrowing the caught runtime-error
+union; its original rejection and repaired result are also retained. All four
+existing pop/shift regression tests pass. Final editor hover and diagnostics,
+eight depth canaries and zero-change project formatting pass. Pop/shift catalog
+examples include retained-result scope release, with native outputs checked by
+the focused tests. No full regression, timing or installed-consumer refresh ran.

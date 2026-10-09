@@ -1,31 +1,32 @@
 # Precise indexed capture release
 
-## Retained removal provenance: implementation in progress
+## Immutable retained removal results
 
 Direct zero-argument `pop()` and `shift()` initializers on known dense local arrays
-now transfer the removed slot's capture owners to the declared result. Surviving
-slots retain independent ownership, and shift reindexes those slots. Normal result
-moves and lexical disposal govern the removed capture. The implementation reuses
-the boxed pre-call ownership snapshot; uncertain shapes and other expression forms
-remain conservative.
+transfer the removed slot's capture owners to the declared result. Surviving slots
+retain independent ownership, and shift reindexes those slots. Normal result moves
+and lexical disposal govern the removed capture. Uncertain shapes and other
+expression forms remain conservative.
 
-The focused source checks cover pop, shift, moving the result, release after result
-scope, and rejection while either the result or a surviving element remains live.
-The existing later-argument temporary rejection still passes. All eight normal-stack
-depth canaries pass, and project formatting changes zero files and fingerprints.
-This is not native
-acceptance: `scoped_removed_array_result_releases_its_capture_after_disposal` now
-passes source analysis but fails generated Rust with E0502. The surviving array
-still carries the removed callback environment. Keep this executable witness red.
+Native planning projects an immutable result into its selected slot's concrete
+nullable environment and narrows surviving array carriers. Normal lexical blocks
+return the surviving owners into the enclosing scope. Map storage transport remains
+active in combined blocks. Callback invocation targets follow specialized result
+origins, including fallible calls; the matched workload exposed an error-conversion
+mismatch that now has a focused native regression witness. Non-record optional
+removal results retain their existing conversion path.
 
-Next extend native epoch planning to bound removal expressions. Project the nullable
-result into the selected slot's concrete environment, narrow the survivors, and
-transport their changed carrier out of lexical blocks. Both result and container
-must have independent native lifetimes. Reuse checked payload projections and
-block storage transport rather than erasing lifetimes or cloning. Then add native
-pop/shift, moves, retained aliases, empty results, field storage and exact disposal
-checks, editor evidence, guide examples and matched workload support. Same-expression
-release and control-flow slot joins remain subsequent requirements.
+The affected array batch passes 27 tests. Supplementary checks pass for record-field
+storage, mixed Map/array blocks and fallible selected-result calls. Exact disposal
+passes at optimization levels 0 and 3. The focused editor diagnostic and eight
+normal-stack depth canaries pass. Source checks retain rejection while either the
+result or surviving elements hold a conflicting capture. Project formatting and
+matched untimed verification are recorded separately below when complete.
+
+Remaining work includes reassignable result storage, nullable result assignment
+through aggregates, same-expression release, indexed aggregate arrays and
+control-flow slot joins. B5 remains incomplete; this checkpoint does not authorize
+family acceptance, timing claims or installed-consumer refresh.
 
 ## Discarded removal checkpoint
 
@@ -179,3 +180,20 @@ depth canaries after analyzer dispatch changes. Format the complete project
 before committing; preserve unrelated fixture semantics and use explicit paths.
 Full family regressions, timing review and installed consumer refresh remain
 pending until the complete B5 scope is ready.
+
+### Retained-result checkpoint evidence
+
+All five matched cases pass untimed on native and Node-after-tsc. The workload
+has 117 observations per iteration; the added independent formulas are
+`3 * value + 4` for result-scope disposal and `3 * value + 5` for result
+independence. Source contracts, mutation guards and literal oracle expectations
+pass. SQLite preserves `runtime/results/2026-10-09T08-38-50-598Z-verify.json`,
+with empty startup, compilation and execution timing arrays. Twenty-three
+diagnostic logs, including original failures and repaired checks, were imported
+and restored byte for byte before deleting their loose copies. A supplementary
+explicit thrown-callback test passes after narrowing the caught runtime-error
+union; its original rejection and repaired result are also retained. All four
+existing pop/shift regression tests pass. Final editor hover and diagnostics,
+eight depth canaries and zero-change project formatting pass. Pop/shift catalog
+examples include retained-result scope release, with native outputs checked by
+the focused tests. No full regression, timing or installed-consumer refresh ran.

@@ -3272,6 +3272,7 @@ impl Emitter<'_> {
                 self.exception_regions.renew_storage(&[format!("value{}",epoch.place.binding)],stmt.span.start);
             }
             if let Some(code)=self.map_iteration_control_code(fun,stmt){let _=writeln!(output,"{indent}{code}");continue;}
+            if self.array_block_storage_epoch(output,fun,stmt,declarations,depth,loop_label){continue;}
             if self.map_block_storage_epoch(output,fun,stmt,declarations,depth,loop_label){continue;}
             if self.map_iteration_epoch(output,fun,stmt,declarations,depth){continue;}
             if self.map_empty_loop_epoch(output, fun, stmt, declarations, depth) {
@@ -6314,7 +6315,11 @@ impl Emitter<'_> {
                 let Type::Array(element) = base.ty.expect("array receiver") else {
                     unreachable!()
                 };
-                let present = self.optional_element_present(union, element.ty(), false, "value");
+                let target = members.iter().copied().find(|member| matches!(member, Type::Record(_))).unwrap_or(element.ty());
+                let (present_type, projected) = if element.ty() != target && matches!((element.ty(), target), (Type::Record(_), Type::Record(_))) {
+                    (target, self.map_entry_payload_projection(element.ty(), target, "value"))
+                } else { (element.ty(), "value".to_owned()) };
+                let present = self.optional_element_present(union, present_type, false, &projected);
                 format!(
                     "match removal_result {{ Some(value)=>{present},None=>Union{}::V{absent}(TsrUndefined) }}",
                     union.index()

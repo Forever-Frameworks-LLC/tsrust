@@ -3,6 +3,17 @@ use serde_json::{Value, json};
 use tsrust_lsp::intelligence::SourceIndex;
 
 #[test]
+fn retained_array_removal_releases_capture_after_result_scope() {
+    let source = tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];{const removed=handlers.pop();if(removed!==undefined)console.log(removed.run());}second[0]=9;console.log(handlers[0].run());}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&source, "file:///retained-array-removal.tsr").unwrap().is_empty());
+    let hover = ask(&source, "textDocument/hover", "pop()", 0);
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("leaving its lexical scope releases"));
+    let conflict = source.replace("second[0] = 9;", "first[0]=9;");
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&conflict, "file:///retained-array-removal.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "capture-conflict"), "{diagnostics}");
+}
+
+#[test]
 fn discarded_array_removal_releases_only_its_capture() {
     let source = tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];handlers.pop();second[0]=9;console.log(handlers[0].run());}").unwrap();
     assert!(tsrust_lsp::diagnostics(&source, "file:///array-removal.tsr").unwrap().is_empty());

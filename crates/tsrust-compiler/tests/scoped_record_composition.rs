@@ -1,6 +1,22 @@
 mod support;
 
 #[test]
+fn retained_array_result_preserves_thrown_callback_errors() {
+    let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function example(value:int):int{const first=[3];const second=[value];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>{if(second[0]===5)throw 7;return second[0];}}];const removed=handlers.pop();handlers[0]={run:():int=>second[0]};first[0]=9;try{if(removed!==undefined)return removed.run();}catch(error){if(typeof error===\"number\")return error;throw error;}return 0;}function main():void{console.log(example(5));}");
+    support::execute(&source, "7\n", None);
+}
+
+#[test]
+fn retained_array_result_does_not_keep_other_slots_borrowed() {
+    let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];const removed=handlers.pop();handlers[0]={run:():int=>second[0]};first[0]=9;if(removed!==undefined)console.log(removed.run());console.log(handlers[0].run(),first[0]);}");
+    support::execute(&source, "5\n5 9\n", None);
+    let fallible = source.replace("function main(): void", "function example(value:int): void")
+        .replace("const first = [3]", "const first = [value]")
+        .replace("const second = [5]", "const second = [value+2]");
+    support::execute(&(fallible + "function main():void{example(3);}"), "5\n5 9\n", None);
+}
+
+#[test]
 fn retained_array_removal_source_ownership_follows_the_result() {
     let prefix = "type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];";
     for tail in [
@@ -26,6 +42,29 @@ fn retained_array_removal_source_ownership_follows_the_result() {
 fn scoped_removed_array_result_releases_its_capture_after_disposal() {
     let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];{const removed=handlers.pop();if(removed!==undefined)console.log(removed.run());}second[0]=9;console.log(handlers[0].run(),second[0]);}");
     support::execute(&source, "5\n3 9\n", None);
+    verify_disposal(&source, 2, "5\ndrop 1\n3 9\ndrop 0\n");
+    let front = source.replace("handlers.pop()", "handlers.shift()")
+        .replace("second[0] = 9", "first[0] = 9")
+        .replace("handlers[0].run(), second[0]", "handlers[0].run(), first[0]");
+    assert_ne!(front, source);
+    support::execute(&front, "3\n5 9\n", None);
+    let moved = source.replace("if (removed !== undefined)", "const moved=removed;if (moved !== undefined)")
+        .replace("console.log(removed.run())", "console.log(moved.run())");
+    assert_ne!(moved, source);
+    support::execute(&moved, "5\n3 9\n", None);
+    let nested = source.replace("const removed = handlers.pop();", "{const removed = handlers.pop();")
+        .replace("second[0] = 9;", "}second[0] = 9;");
+    support::execute(&nested, "5\n3 9\n", None);
+    let field = source.replace("function main()", "type Owner={handlers:Holder[];};function main()")
+        .replace("const handlers: Holder[] =", "const owner:Owner={handlers:")
+        .replace("}];", "}]};")
+        .replace("handlers.pop()", "owner.handlers.pop()")
+        .replace("handlers[0]", "owner.handlers[0]");
+    support::execute(&field, "5\n3 9\n", None);
+    let combined = source.replace("const first =", "const extra=[7];const map=new Map<string,Holder>();map.set(\"x\",{run:():int=>extra[0]});const first =")
+        .replace("const removed = handlers.pop();", "map.clear();const removed = handlers.pop();")
+        .replace("second[0] = 9;", "second[0]=9;extra[0]=9;");
+    support::execute(&combined, "5\n3 9\n", None);
 }
 
 #[test]
