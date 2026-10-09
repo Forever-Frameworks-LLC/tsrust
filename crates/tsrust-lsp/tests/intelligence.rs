@@ -8856,3 +8856,12 @@ fn cleanup_outgoing_map_entry_release_preserves_survivor_diagnostics() {
   assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
  }
 }
+
+#[test]
+fn catch_finally_map_entry_release_preserves_survivor_diagnostics() {
+ let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{try{throw 7;}catch(error){handlers.delete('first');first[0]+=1;throw 8;}finally{first[0]+=1;for(const [key,entry] of handlers){console.log(entry.run());}}}catch(error){first[0]+=1;}handlers.clear();}").unwrap();
+ assert!(tsrust_lsp::diagnostics(&source,"file:///catch-finally.tsr").unwrap().is_empty());
+ let conflict=source.replace("first[0] += 1;","second[0]+=1;");assert_ne!(conflict,source);
+ let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///catch-finally.tsr").unwrap()).unwrap();
+ assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+}

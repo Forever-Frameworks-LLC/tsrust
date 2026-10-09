@@ -283,3 +283,9 @@ A finally block can remove a known Map entry before propagating an earlier error
 or throwing a replacement error. The enclosing catch receives the survivors in
 either case. A replacement error takes precedence over the pending error; removal
 does not release captures belonging to surviving entries.
+
+
+A catch body may remove a known Map entry and then rethrow. Its finally block
+receives the survivors, so it can change a capture used only by the removed
+entry. This also applies when finally throws a replacement error. Captures used
+by surviving entries remain borrowed until those entries are removed or dropped.

@@ -198,19 +198,6 @@ impl Emitter<'_> {
         true
     }
     #[inline(never)]
-    pub(super) fn map_carried_cleanup_dispatch(
-        &self,
-        fun: &CheckedFunction,
-        pending: &str,
-        error_name: &str,
-        contract: &crate::error_effects::FailureSet,
-        runtime: Option<Type>,
-        places: &[String],
-        span: crate::Span,
-    ) -> String {
-        self.map_layout_carried_cleanup_dispatch(fun,pending,error_name,contract,runtime,places,span,None)
-    }
-    #[inline(never)]
     pub(super) fn map_layout_carried_cleanup_dispatch(&self,fun:&CheckedFunction,pending:&str,error_name:&str,contract:&crate::error_effects::FailureSet,runtime:Option<Type>,places:&[String],span:crate::Span,layout:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>)->String {
         let pattern = format!(
             "({},)",

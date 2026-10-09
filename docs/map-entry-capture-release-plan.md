@@ -1856,3 +1856,52 @@ changes zero files and fingerprints. Source diff checks pass.
 Next: consume independent handler/cleanup error plans in catch-plus-finally,
 then destination-specific return/break/continue owners and cleanup overrides.
 Keep those phases separate rather than widening all pending owners together.
+
+
+### Independent catch-plus-finally owners
+
+Catch-plus-finally now has a dedicated emitter module,
+map_catch_finally_storage.rs. Body completion is consumed before entering catch;
+handler completion is then consumed into independent normal, error and control
+owners before entering cleanup. Errors use the checked Handled/Throw layout and
+the existing phase-local cleanup plan. Cleanup failures and resumed errors use
+the checked Cleaned/Throw layout. Normal and control owners remain separate;
+inactive alternatives cannot retain a deleted entry's capture borrow.
+
+Two baseline witnesses fail before this implementation: the handler error
+transport widens checked Map7 back to Map6, and generated Rust rejects a capture
+write in cleanup after catch removes the only entry borrowing that capture.
+Both pass with independent owners. The former joined-owner/clear-all special
+case and unused dispatch wrappers are removed, reducing shared exception code.
+
+Focused execution covers normal body completion, handled failure, handler
+rethrow, cleanup replacement, surviving callback invocation, direct Map bindings
+and record fields. Disposal is checked exactly once at both optimization levels.
+Editor diagnostics accept released-capture writes and still reject writes to a
+surviving capture. The affected Map batch has 94 passes; an additional expanded
+completion-mode witness passes separately. All 21 phase/storage proofs pass.
+No parser or analyzer dispatch changes; no depth/full-family/timing run is claimed.
+
+The matched catchFinallyEntry helper covers all four completion modes. Independent
+results are 2 * value + 3, +4, +43 and +44 respectively. Literal reference rows and
+mutation guards include each mode, handler deletion, rethrow and cleanup override.
+Each workload row now contains 89 observations. Final verification and SQLite
+record details follow below when the run closes.
+
+Still pending: destination-specific return/break/continue storage, cleanup
+control overrides and remaining aggregate/expression precision. Rust-style
+structural owned record keys follow the capture-release work. B5 remains open;
+installed executable consumers remain at gate 181.
+
+
+Final matched verification passes all five cases on native and Node-after-tsc,
+with 89 observations per row. Canonical record:
+runtime/results/2026-10-09T06-37-22-450Z-verify.json. Closed logs and the matched
+record are stored in SQLite, restored byte for byte and removed from loose
+storage. Final project formatting changes zero files and fingerprints; source
+diff checks pass. The current compiler build has no warnings.
+
+Next: resolve return/break/continue owners by their actual destination, preserve
+cleanup overrides and disposal, then complete the remaining B5 aggregate and
+expression witnesses before the family regression/performance review. Structural
+owned record keys retain the accepted Rust-style value semantics.

@@ -1,6 +1,23 @@
 mod support;
 
 #[test]
+fn map_catch_finally_completion_modes_preserve_survivors_and_disposal() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(mode:int):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{try{handlers.delete('first');if(mode!==0)throw 37;}catch(error){first[0]+=1;if(mode>=2)throw 38;}finally{first[0]+=1;console.log('cleanup',first[0]);for(const [key,entry] of handlers){console.log(key,entry.run());}if(mode===3)throw 39;}}catch(error){first[0]+=1;console.log('outer',first[0]);}handlers.clear();console.log('done',first[0]);}function main():void{scenario(0);scenario(1);scenario(2);scenario(3);}");
+ support::execute(&source,"cleanup 4\nsecond 5\ndone 4\ncleanup 5\nsecond 5\ndone 5\ncleanup 5\nsecond 5\nouter 6\ndone 6\ncleanup 5\nsecond 5\nouter 6\ndone 6\n",None);
+ verify_disposal(&source,2,"drop 0\ncleanup 4\nsecond 5\ndrop 1\ndone 4\ndrop 0\ncleanup 5\nsecond 5\ndrop 1\ndone 5\ndrop 0\ncleanup 5\nsecond 5\nouter 6\ndrop 1\ndone 6\ndrop 0\ncleanup 5\nsecond 5\nouter 6\ndrop 1\ndone 6\n");
+ let field=("type Owner={handlers:Map<string,Holder>;};".to_owned()+&source).replace("const handlers = new Map<string, Holder>();","const owner:Owner={handlers:new Map<string,Holder>()};").replace("handlers.","owner.handlers.").replace("of handlers)","of owner.handlers)");assert_ne!(field,source);
+ support::execute(&support::format_round_trip(&field),"cleanup 4\nsecond 5\ndone 4\ncleanup 5\nsecond 5\ndone 5\ncleanup 5\nsecond 5\nouter 6\ndone 6\ncleanup 5\nsecond 5\nouter 6\ndone 6\n",None);
+ verify_disposal(&support::format_round_trip(&field),2,"drop 0\ncleanup 4\nsecond 5\ndrop 1\ndone 4\ndrop 0\ncleanup 5\nsecond 5\ndrop 1\ndone 5\ndrop 0\ncleanup 5\nsecond 5\nouter 6\ndrop 1\ndone 6\ndrop 0\ncleanup 5\nsecond 5\nouter 6\ndrop 1\ndone 6\n");
+}
+
+#[test]
+fn map_handler_finally_errors_preserve_survivors_and_disposal() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{try{throw 7;}catch(error){handlers.delete('first');first[0]+=1;throw 8;}finally{first[0]+=1;console.log('cleanup',first[0]);for(const [key,entry] of handlers){console.log(key,entry.run());}}}catch(error){first[0]+=1;console.log('outer',first[0]);}handlers.clear();console.log('done',first[0]);}");
+ support::execute(&source,"cleanup 5\nsecond 5\nouter 6\ndone 6\n",None);
+ verify_disposal(&source,2,"drop 0\ncleanup 5\nsecond 5\nouter 6\ndrop 1\ndone 6\n");
+}
+
+#[test]
 fn map_finally_outgoing_error_preserves_survivors_and_disposal() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{try{throw 7;}finally{handlers.delete('first');first[0]+=0;}}catch(error){first[0]+=1;console.log('outer',first[0]);for(const [key,entry] of handlers){console.log(key,entry.run());}}handlers.clear();console.log('done',first[0]);}");
  support::execute(&source,"outer 4\nsecond 5\ndone 4\n",None);
