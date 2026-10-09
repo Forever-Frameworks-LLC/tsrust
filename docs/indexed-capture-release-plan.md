@@ -1,5 +1,32 @@
 # Precise indexed capture release
 
+## Record fields and moves checkpoint
+
+The next slice extends epoch planning from a binding ID to an owning record field
+path. Native conversion shadows only the selected independent array leaf, keeping
+sibling fields in place. Root expression types are rebuilt from the currently
+active leaf epochs. Local moves transfer the known slot payloads to the destination
+storage after restoring any source carrier needed by the original declaration.
+
+The record-field and move witnesses initially failed generated Rust with E0502.
+They now pass with nested records, whole-record moves, moves after narrowing,
+sibling scalar mutation and exact disposal at optimization levels 0 and 3.
+Twenty-two affected array tests, two editor diagnostic checks and all eight depth
+canaries pass. Independent sibling-array capture protection, field extraction and whole-record
+moves after narrowing also pass.
+The matched workload adds two observations, `3 * value + 10` for field storage and
+`3 * value + 4` for a moved array, bringing the row to 112 observations. Source
+contracts and mutation guards pass. All five cases pass untimed on native and
+Node-after-tsc. SQLite preserves
+`runtime/results/2026-10-09T08-07-01-526Z-verify.json`, with zero timing rows, and
+15 diagnostic records, all restored byte for byte before removing loose copies.
+The final project formatter changes zero files and zero fingerprints.
+
+B5 remains incomplete. Next implement precise element removal and retained result
+ownership, then indexed arrays inside aggregates and reaching slot states through
+control flow. Nullable and same-expression compositions, structural record keys,
+family regressions, timing review and installed-consumer refresh remain pending.
+
 B5 remains incomplete. The first replacement witness is
 `replacing_known_array_element_releases_only_its_capture` in
 `scoped_record_composition.rs`. Replacing index 1 with a callback borrowing the
@@ -8,7 +35,7 @@ Expected native output is `3 3 9`. The independent Node assertion passes;
 the baseline source checker rejected mutation of the second array with
 `capture-conflict`. The red witnesses and plan are checkpointed in `a79ac42`.
 
-Source ownership is now implemented in the working tree through the isolated
+Source ownership is implemented through the isolated
 `array_capture_owners.rs` module. Literal elements have separate internal owner
 paths, known replacement stages its RHS and replaces only that path, and indexed
 reads retain the conservative container view. Reordering and removal operations

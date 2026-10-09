@@ -1,6 +1,52 @@
 mod support;
 
 #[test]
+fn replacing_record_field_array_element_releases_only_its_capture() {
+    let raw = "type Holder={run:ReadOnly<Function<int>>;};type Owner={handlers:Holder[];marker:int;};function main():void{const first=[3];const second=[5];const owner:Owner={handlers:[{run:():int=>first[0]},{run:():int=>second[0]}],marker:7};owner.handlers[1]={run:():int=>first[0]};second[0]=9;console.log(owner.handlers[0].run(),owner.handlers[1].run(),second[0],owner.marker);}";
+    let source = support::format_round_trip(raw);
+    support::execute(&source, "3 3 9 7\n", None);
+    verify_disposal(&source, 3, "drop 1\n3 3 9 7\ndrop 0\ndrop 2\n");
+    let nested = raw.replace("type Owner={", "type Outer={owner:Owner;};type Owner={")
+        .replace("const owner:Owner={handlers:", "const outer:Outer={owner:{handlers:")
+        .replace("],marker:7};", "],marker:7}};")
+        .replace("owner.handlers", "outer.owner.handlers")
+        .replace("owner.marker", "outer.owner.marker");
+    assert_ne!(nested, raw);
+    support::execute(&support::format_round_trip(&nested), "3 3 9 7\n", None);
+    let moved = raw.replace("const owner:Owner=", "const original:Owner=")
+        .replace("owner.handlers[1]=", "const owner=original;owner.handlers[1]=");
+    support::execute(&support::format_round_trip(&moved), "3 3 9 7\n", None);
+    let moved_after = raw.replace("const owner:Owner=", "const original:Owner=")
+        .replace("owner.handlers[1]=", "original.handlers[1]=")
+        .replace("second[0]=9;", "second[0]=9;const owner=original;");
+    support::execute(&support::format_round_trip(&moved_after), "3 3 9 7\n", None);
+    let moved_field = raw.replace("owner.handlers[1]=", "const handlers=owner.handlers;handlers[1]=")
+        .replace("owner.handlers[0].run()", "handlers[0].run()")
+        .replace("owner.handlers[1].run()", "handlers[1].run()");
+    support::execute(&support::format_round_trip(&moved_field), "3 3 9 7\n", None);
+    let sibling = raw.replace("second[0]=9;", "second[0]=9;owner.marker+=1;");
+    support::execute(&support::format_round_trip(&sibling), "3 3 9 8\n", None);
+    let independent = raw.replace("handlers:Holder[];marker:int;", "handlers:Holder[];other:Holder[];marker:int;")
+        .replace("const first=[3];", "const third=[7];const first=[3];")
+        .replace("],marker:7};", "],other:[{run:():int=>third[0]}],marker:7};")
+        .replace("second[0],owner.marker", "second[0],owner.other[0].run()");
+    support::execute(&support::format_round_trip(&independent), "3 3 9 7\n", None);
+    let conflict = independent.replace("second[0]=9;", "third[0]=9;");
+    assert_eq!(tsrust_compiler::check(&conflict).err().expect("the sibling array retains its capture").code, "capture-conflict");
+}
+
+#[test]
+fn moved_array_preserves_known_slot_capture_release() {
+    let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const original:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];const handlers=original;handlers[1]={run:():int=>first[0]};second[0]=9;console.log(handlers[0].run(),handlers[1].run(),second[0]);}");
+    support::execute(&source, "3 3 9\n", None);
+    let after = source.replace("const handlers = original;", "")
+        .replace("handlers[1] =", "original[1] =")
+        .replace("second[0] = 9;", "second[0]=9;const handlers=original;");
+    assert_ne!(after, source);
+    support::execute(&support::format_round_trip(&after), "3 3 9\n", None);
+}
+
+#[test]
 fn array_element_replacement_keeps_surviving_and_aliased_captures_live() {
     for (tail, expected) in [
         ("first[0]=9;", "capture-conflict"),

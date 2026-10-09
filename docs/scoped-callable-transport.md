@@ -28,8 +28,10 @@ function main() {
 Mutating `first` here is rejected because both surviving elements borrow it.
 A borrowed element handle prevents replacement while the handle is live.
 Unknown indices retain conservative capture protection. Precise native release
-currently covers straight-line local dense arrays; field storage, removal and
-control-flow joins remain part of the unfinished aggregate work.
+covers straight-line local dense arrays, arrays in nested record fields, and
+explicit moves of arrays or their owning records. Independent sibling fields keep
+their own captures protected. Precise removal and control-flow slot joins remain
+part of the unfinished aggregate work.
 
 ## Local callback selection
 

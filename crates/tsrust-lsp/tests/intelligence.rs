@@ -12,6 +12,16 @@ fn known_array_replacement_releases_only_the_replaced_capture() {
     assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "capture-conflict"), "{diagnostics}");
 }
 
+#[test]
+fn moved_record_field_array_replacement_preserves_capture_diagnostics() {
+    let source = tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};type Owner={handlers:Holder[];marker:int;};function main():void{const first=[3];const second=[5];const original:Owner={handlers:[{run:():int=>first[0]},{run:():int=>second[0]}],marker:7};const owner=original;owner.handlers[1]={run:():int=>first[0]};second[0]=9;console.log(owner.handlers[0].run(),owner.handlers[1].run(),owner.marker);}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&source, "file:///field-array-replacement.tsr").unwrap().is_empty());
+    let conflict = source.replace("second[0] = 9;", "first[0]=9;");
+    assert_ne!(conflict, source);
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&conflict, "file:///field-array-replacement.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "capture-conflict"), "{diagnostics}");
+}
+
 fn at(source: &str, needle: &str, n: usize) -> Position {
     let offset = source.match_indices(needle).nth(n).unwrap().0;
     let prefix = &source[..offset];

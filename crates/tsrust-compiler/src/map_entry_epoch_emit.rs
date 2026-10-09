@@ -5,7 +5,7 @@ impl Emitter<'_> {
     pub(super) fn map_post_entry_epochs(&self,output:&mut String,fun:&CheckedFunction,span:crate::Span,depth:usize) {
         let indent="    ".repeat(depth);
         for epoch in fun.storage_exits.array_epochs(span).iter().filter(|epoch| !epoch.before) {
-            let _ = writeln!(output, "{indent}{}", self.array_storage_epoch_code(epoch));
+            let _ = writeln!(output, "{indent}{}", self.array_storage_epoch_code(fun, epoch));
         }
         for epoch in fun.storage_exits.map_entry_epochs(span).iter().filter(|epoch|!epoch.before) {
             let _=writeln!(output,"{indent}{}",self.map_entry_epoch_code(fun,epoch));
