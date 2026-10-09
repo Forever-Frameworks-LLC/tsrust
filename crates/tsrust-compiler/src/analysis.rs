@@ -3344,7 +3344,7 @@ impl Analyzer {
         let record_call_releases=record_call_capture_release::summaries(&self.unions,&self.checked,&self.program.records,&self.closures);
         let deferred_generic_nominals = self.deferred_generic_nominal_uses();
         let record_parameter_borrows = (0..self.checked.len()).filter_map(|id| {
-            let borrows = record_parameter_borrows::summary(&self.checked, &self.closures, id);
+            let borrows = record_parameter_borrows::summary(&self.checked, &self.closures, &self.callables.storage, id);
             (!borrows.is_empty()).then_some((id, borrows))
         }).collect();
         let checked = CheckedProgram {

@@ -1,3 +1,5 @@
+#[path = "local_borrowed_family_emit.rs"]
+mod local_borrowed_family_emit;
 #[path = "record_store_branches_emit.rs"]
 mod record_store_branches_emit;
 #[path = "borrowed_owner_provenance.rs"]
@@ -3559,7 +3561,7 @@ impl Emitter<'_> {
                             format!("&{}", self.local_callback_environment_type(b.ty))
                         } else {
                             self.binding_shape(index).as_ref().map_or_else(
-                                || self.local_callback_environment_type(b.ty),
+                                || self.local_borrowed_family_type(fun,b.ty).unwrap_or_else(||self.local_callback_environment_type(b.ty)),
                                 |shape| self.shape_type(shape),
                             )
                         },
@@ -7282,7 +7284,7 @@ impl Emitter<'_> {
                     unreachable!();
                 };
                 let inner = self.expr(fun, value, Mode::Consume);
-                let code = self.stored_callable_constructor(family, origin, &inner);
+                let code = self.local_borrowed_family_constructor(fun,family,&inner).unwrap_or_else(||self.stored_callable_constructor(family, origin, &inner));
                 match mode {
                     Mode::Read => format!("&({code})"),
                     Mode::Mutate => format!("&mut ({code})"),

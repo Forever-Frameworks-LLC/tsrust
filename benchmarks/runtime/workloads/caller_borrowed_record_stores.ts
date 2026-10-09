@@ -1,3 +1,5 @@
+type ReadNullableHolder = { run: (() => int) | undefined; };
+
 type NullableHolder = { run: (() => int) | undefined; };
 
 type OnceHolder = { run: () => int; };
@@ -212,7 +214,7 @@ function workload(n: int, seed: int, input: string): int[][] {
             const original = [value];
             const replacement = [value + 4];
             const calls = [0];
-            const holder: NullableHolder = { run: undefined };
+            const holder: ReadNullableHolder = { run: undefined };
             installConditional(holder, original, i % 2 === 0, calls);
             conditionalFirst = holder.run!();
             installConditional(holder, replacement, i % 2 !== 0, calls);
@@ -298,9 +300,11 @@ function installWithEffects(holder: NullableHolder, action: () => int, calls: in
     installNullable(holder, action);
 }
 
-function installConditional(holder: NullableHolder, source: int[], plus: boolean, calls: int[]): void {
+function installConditional(holder: ReadNullableHolder, source: int[], plus: boolean, calls: int[]): void {
     calls[0] += 1;
-    holder.run = chooseCallbackBranch(plus, calls) ? (calls[0] += 100, (): int => source[0] + 1) : (calls[0] += 200, (): int => source[0] + 2);
+    const selected = chooseCallbackBranch(plus, calls) ? (calls[0] += 100, (): int => source[0] + 1) : (calls[0] += 200, (): int => source[0] + 2);
+    calls[0] += selected();
+    holder.run = selected;
 }
 function chooseCallbackBranch(plus: boolean, calls: int[]): boolean {
     calls[0] += 10;

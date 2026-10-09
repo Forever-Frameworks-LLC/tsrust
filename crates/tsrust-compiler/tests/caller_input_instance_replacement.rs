@@ -288,6 +288,15 @@ fn conditional_installer_cannot_retain_a_local_owner() {
         .err()
         .expect("A conditional callback cannot outlive its local owner");
     assert_eq!(error.code, "callback-escape", "{error:?}");
+    let saved = source
+        .replace("holder.run = plus ?", "const selected = plus ?")
+        .replace("local[0] + 2;", "local[0] + 2; holder.run = selected;");
+    assert_ne!(source, saved);
+    let saved = support::format_round_trip(&saved);
+    let error = tsrust_compiler::check(&saved)
+        .err()
+        .expect("A saved family cannot outlive its local owner");
+    assert_eq!(error.code, "callback-escape", "{error:?}");
 }
 
 #[test]
@@ -330,5 +339,111 @@ fn conditional_installer_evaluates_predicate_and_only_selected_branch_once() {
         }
 
 function choose(plus: boolean, calls: Mutable<int[]>): boolean { calls[0] += 10; return plus; }"#,
+    );
+}
+
+#[test]
+fn conditional_local_family_keeps_its_value_before_record_storage() {
+    let source = r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>, plus: boolean, calls: Mutable<int[]>): void {
+            calls[0] += 1;
+            const selected = plus ? (): int => source[0] + 1 : (): int => source[0] + 2;
+            strictEqual(selected(), source[0] + (plus ? 1 : 2));
+            holder.run = selected;
+        }
+        function main() {
+            const first = [3]; const second = [10]; const calls = [0]; const holder: Holder = { run: undefined };
+            install(holder, first, true, calls); strictEqual(holder.run!(), 4);
+            install(holder, second, false, calls); first[0] += 1;
+            strictEqual(first[0], 4); strictEqual(holder.run!(), 12); strictEqual(calls[0], 2);
+        }
+    "#;
+    execute(source);
+    execute(
+        &source
+            .replace(" | undefined", "")
+            .replace("run: undefined", "run: (): int => 0")
+            .replace("run!()", "run()"),
+    );
+}
+
+#[test]
+fn saved_conditional_family_retains_new_owner_and_releases_old_owner() {
+    let source = r#"
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>, plus: boolean): void {
+            const selected = plus ? (): int => source[0] + 1 : (): int => source[0] + 2;
+            console.log(selected());
+            holder.run = selected;
+        }
+        function main() {
+            const first = [3]; const second = [10];
+            const holder: Holder = { run: undefined };
+            install(holder, first, true);
+            install(holder, second, false);
+            first[0] += 1;
+            console.log(holder.run!());
+        }
+    "#;
+    let source = support::format_round_trip(source);
+    tsrust_compiler::check(&source).expect("Replacement releases the old owner");
+    let conflict = source.replace("first[0] += 1", "second[0] += 1");
+    let error = tsrust_compiler::check(&conflict)
+        .err()
+        .expect("The saved family retains its new owner while the holder is live");
+    assert_eq!(error.code, "capture-conflict", "{error:?}");
+}
+
+#[test]
+fn saved_mutable_family_moves_selected_payload_after_local_invocation() {
+    let source = r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: Mutable<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: Mutable<int[]>, plus: boolean, calls: Mutable<int[]>): void {
+            const selected = plus
+                ? (calls[0] += 1, (): int => { source[0] += 1; return source[0]; })
+                : (calls[0] += 10, (): int => { source[0] += 2; return source[0]; });
+            strictEqual(selected(), plus ? 4 : 12);
+            holder.run = selected;
+        }
+        function main() {
+            const first = [3]; const second = [10]; const calls = [0];
+            const holder: Holder = { run: undefined };
+            install(holder, first, true, calls); strictEqual(holder.run!(), 5);
+            install(holder, second, false, calls); first[0] += 1;
+            strictEqual(first[0], 6); strictEqual(holder.run!(), 14); strictEqual(calls[0], 11);
+        }
+    "#;
+    execute(source);
+    execute(
+        &source
+            .replace(" | undefined", "")
+            .replace("run: undefined", "run: (): int => 0")
+            .replace("run!()", "run()"),
+    );
+}
+
+#[test]
+fn saved_callback_family_preserves_generic_input_and_local_move() {
+    execute(
+        r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, action: ReadOnly<Function<int>>, plus: boolean): void {
+            const selected = plus ? (): int => action() + 1 : (): int => action() + 2;
+            strictEqual(selected(), plus ? 4 : 12);
+            const moved = selected;
+            holder.run = moved;
+        }
+        function main() {
+            const first = (): int => 3; const second = (): int => 10;
+            const holder: Holder = { run: undefined };
+            install(holder, first, true); strictEqual(holder.run!(), 4);
+            install(holder, second, false); strictEqual(first(), 3);
+            strictEqual(holder.run!(), 12);
+        }
+    "#,
     );
 }

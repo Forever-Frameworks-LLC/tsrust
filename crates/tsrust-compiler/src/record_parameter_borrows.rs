@@ -57,7 +57,11 @@ fn capable(function: &CheckedFunction) -> bool {
             })
 }
 
-fn direct(function: &CheckedFunction, closures: &[CheckedClosure]) -> Vec<Borrow> {
+fn direct(
+    function: &CheckedFunction,
+    closures: &[CheckedClosure],
+    storage: &crate::callable_storage::Registry,
+) -> Vec<Borrow> {
     let mut result = Vec::new();
     for write in record_storage_writes::collect(&function.body) {
         if write.binding >= function.parameter_count
@@ -92,7 +96,15 @@ fn direct(function: &CheckedFunction, closures: &[CheckedClosure]) -> Vec<Borrow
                 | ExprKind::TypeAssertion { value, .. }
                 | ExprKind::Unary { value, .. } => pending.push((value, path)),
                 _ => {
-                    if let Some(Type::Closure(origin)) = value.ty {
+                    let origins = match value.ty {
+                        Some(Type::Closure(origin)) => vec![origin],
+                        Some(Type::BorrowedCallable(family)) => storage
+                            .origins(family)
+                            .map(<[usize]>::to_vec)
+                            .unwrap_or_default(),
+                        _ => Vec::new(),
+                    };
+                    for origin in origins {
                         let closure = &closures[origin];
                         if !eligible(function, closure) {
                             continue;
@@ -128,6 +140,7 @@ fn argument_place(expr: &Expr) -> Option<Place> {
 pub(super) fn summary(
     functions: &[Option<CheckedFunction>],
     closures: &[CheckedClosure],
+    storage: &crate::callable_storage::Registry,
     root: usize,
 ) -> Vec<Borrow> {
     let Some(function) = functions.get(root).and_then(Option::as_ref) else {
@@ -150,7 +163,7 @@ pub(super) fn summary(
         else {
             continue;
         };
-        summaries.insert(id, direct(function, closures));
+        summaries.insert(id, direct(function, closures, storage));
         let mut edges = Vec::new();
         crate::fixed_storage::visit_function_expressions(function, &mut |expr| {
             if let (Some(CallTarget::Function(callee)), ExprKind::Call(_, arguments)) =
@@ -304,7 +317,12 @@ impl Analyzer {
         callee: usize,
         args: &[Expr],
     ) -> Result<(), Diagnostic> {
-        for borrow in summary(&self.checked, &self.closures, callee) {
+        for borrow in summary(
+            &self.checked,
+            &self.closures,
+            &self.callables.storage,
+            callee,
+        ) {
             let (Some(target), Some(source)) =
                 (args.get(borrow.target.binding), args.get(borrow.source))
             else {

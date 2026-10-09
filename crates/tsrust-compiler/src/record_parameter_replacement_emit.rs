@@ -290,6 +290,18 @@ impl Emitter<'_> {
         {
             return None;
         }
+        if let (Type::Callback(_), Some(Type::BorrowedCallable(family))) = (leaf.ty, value.ty) {
+            let field = path
+                .iter()
+                .map(|index| format!("Field{index}"))
+                .collect::<String>();
+            let destination = format!("<R{id} as TsrReadRecord{}>::{field}", layout.record);
+            if let Some(converted) =
+                self.local_borrowed_family_store(fun, family, &destination, code)
+            {
+                return Some(converted);
+            }
+        }
         let field = path
             .iter()
             .map(|id| format!("Field{id}"))

@@ -115,7 +115,17 @@ impl Emitter<'_> {
                     } else {
                         "payload".to_owned()
                     };
-                    format!("C{callback}::from({payload})")
+                    if let Some(Type::BorrowedCallable(family)) = inner.ty {
+                        self.local_borrowed_family_store(
+                            fun,
+                            family,
+                            &format!("C{callback}"),
+                            &payload,
+                        )
+                        .unwrap_or_else(|| format!("C{callback}::from({payload})"))
+                    } else {
+                        format!("C{callback}::from({payload})")
+                    }
                 };
                 format!(
                     "Union{}::V{index}(payload)=>Union{}::<C{callback}>::V{selected}({payload})",

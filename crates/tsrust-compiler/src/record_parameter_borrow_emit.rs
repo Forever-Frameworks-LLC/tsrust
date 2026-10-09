@@ -67,10 +67,10 @@ impl Emitter<'_> {
                 .stored_contracts
                 .origins(family)
                 .expect("checked replacement origins");
-            if origins
-                .iter()
-                .any(|origin| self.borrowed_owners.contains_key(origin))
-            {
+            if origins.iter().any(|origin| {
+                self.borrowed_owners.contains_key(origin)
+                    || self.borrowed_capture_alternatives.contains_key(origin)
+            }) {
                 return origins
                     .iter()
                     .flat_map(|origin| {
