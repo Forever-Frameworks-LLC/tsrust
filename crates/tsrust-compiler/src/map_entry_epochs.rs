@@ -98,7 +98,7 @@ impl Analyzer {
             if let StmtKind::Try(region)=&mut statement.kind {
                 let mut inner=results.clone();
                 self.scoped_map_entry_epochs_with_demand(context,&mut region.body,&mut inner,demand,&local)?;
-                let error=if region.finally.is_none(){region.body.first().and_then(|statement|context.storage_exits.map_completion_layout(statement.span.start,map_completion_payloads::Phase::Body,Some(crate::completion::CompletionKind::Throw))).cloned()}else{None};
+                let error=region.body.first().and_then(|statement|context.storage_exits.map_completion_layout(statement.span.start,map_completion_payloads::Phase::Body,Some(crate::completion::CompletionKind::Throw))).cloned();
                 if let Some(handler)=&mut region.catch {
                     let mut inner=results.clone();
                     if let Some(layout)=error {
@@ -121,8 +121,16 @@ impl Analyzer {
             if context.storage_exits.map_iteration_epochs(statement.span).is_empty() {
                 match &mut statement.kind {
                     StmtKind::While{body:inner,..}|StmtKind::Loop{body:inner,..}|StmtKind::ForOf{body:inner,..}=>{
+                        // A checked loop completion can own the outer Map's
+                        // narrowing conversion. Do not also move that owner
+                        // into a body-local shadow. Other outer places remain
+                        // eligible for phase entry and refill planning.
+                        let mut inherited=local.clone();
+                        for state in context.storage_exits.map_completion_survivors(statement.span) {
+                            if state.consistent && !state.released.is_empty(){inherited.remove(&state.place);}
+                        }
                         let mut inner_results=results.clone();
-                        self.scoped_map_entry_epochs_with_demand(context,inner,&mut inner_results,demand,&std::collections::BTreeSet::new())?;
+                        self.scoped_map_entry_epochs_with_demand(context,inner,&mut inner_results,demand,&inherited)?;
                     },
                     _=>{},
                 }

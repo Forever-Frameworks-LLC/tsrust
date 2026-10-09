@@ -254,9 +254,13 @@ their borrowing restrictions. Cleanup still runs before a pending error or retur
 resumes, and a return from cleanup overrides the pending completion with the usual
 callback disposal order.
 
-For a try/catch without finally, a thrown error carries the Map entries still
+For a try/catch, a thrown error carries the Map entries still
 live at that error point into the handler. Deleting a known entry before a
 fallible call releases its capture in the handler; an error before deletion
 retains that capture. Other entries remain borrowed. This also applies when the
 Map has been moved into a record field. The handler's normal result and the
 body's error payload have independent storage layouts.
+
+A finally clause does not restore a capture already released before handler
+entry. The handler observes the surviving Map entries, then cleanup runs before
+its completion resumes. Errors before deletion still retain the original capture.

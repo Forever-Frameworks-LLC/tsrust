@@ -2191,3 +2191,62 @@ Project formatting is token-preserving and idempotent; its final pass changes
 zero files. Closed evidence is imported, read back byte for byte and removed
 from loose storage. Focused acceptance is complete; family measurements and
 complete regressions remain deferred until B5 is ready.
+
+## Handler entry with finally
+
+A finally clause no longer disables precise Body/Throw transport into a catch
+handler. The handler's initial native Map type now matches the checked error
+payload, and the body error envelope uses that layout. Normal cleanup, outgoing
+handler errors and pending controls retain their existing independent paths.
+
+The new failing phase proof exposed the old common Map type at handler entry.
+Native coverage adds finally observation to the existing successful/caught
+scenario and verifies exact callback disposal at both optimization levels.
+Editor coverage checks successful analysis, rejection of surviving-capture
+mutation and rejection when failure can precede deletion, with and without
+finally. Matched support adds finallyErrorEntry, an independent arithmetic
+oracle and mutation-rejecting source guards. The first registration attempt
+found the old full observation row contract; it was updated for the added row
+element. This is a support-contract repair, not a native semantic defect.
+
+This chunk covers body errors entering a catch when finally follows it. Errors
+propagating through finally without a catch, outgoing handler/cleanup errors and
+return/break/continue layouts remain pending. B5 remains open; no family timing
+or complete regression run is claimed.
+
+The affected native batch initially passed 89 cases and failed the existing
+outer_map_catch_loop_releases_iteration_captures witness. The no-carried-epoch
+loop path dropped inherited outer Map eligibility, so a handler refill could
+retain the narrowed input family rather than add its new callback origin.
+Preserving eligible outer places repairs the witness, including record-field
+storage and exact disposal. An exploratory contextual-carrier change did not
+repair the defect and was removed; no general carrier conversion was changed.
+The initial matched run exposed the same failure during compiler emission.
+Both original failures and focused repair evidence are retained.
+
+The next affected batch passed 89 cases and exposed one post-test direct-break
+regression: an outer Map was narrowed both inside the body and at the checked
+loop completion, moving the same owner twice. The fallback now retains inherited
+places except when a consistent releasing loop completion already owns their
+conversion. The post-test witness passes again. Matched verification on the
+intermediate repair passed and is retained as an intermediate record; it does
+not replace the affected native failure or final-source verification.
+
+Final acceptance: 90 affected Map native tests, 17 phase/storage proofs, 17
+editor entry-release checks and eight depth canaries pass on the final source.
+The full native batch includes the newly expanded finally/disposal witness.
+Matched native/Node-after-tsc verification passes all five cases with 82
+observations per row. Canonical final record:
+runtime/results/2026-10-09T05-57-32-074Z-verify.json. The earlier passing
+intermediate record is runtime/results/2026-10-09T05-54-22-483Z-verify.json.
+Closed logs and both records are imported into SQLite, read back byte for byte
+and removed from loose storage. Project formatting is token-preserving and
+idempotent; the final formatter pass changes zero files. Installed consumers
+remain at gate 181. No timing or whole-regression claim is made.
+
+Next consume Body/Throw storage through finally without a catch, then outgoing
+handler and cleanup errors. Cleanup entry must respect the pending completion's
+Map layout; normal results, error results and resolved control destinations must
+not be forced into one common tuple. Preserve disposal order, replacement and
+cleanup override. Structural owned record keys and the wider B5 family are
+still pending.

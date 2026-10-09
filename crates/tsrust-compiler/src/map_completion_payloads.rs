@@ -85,6 +85,19 @@ mod tests {
     }
 
     #[test]
+    fn finally_body_error_envelope_uses_checked_throw_storage_layout() {
+        let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function scenario(flag:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{handlers.delete('first');failIf(flag);}catch(error){first[0]+=1;for(const [key,entry] of handlers){console.log(entry.run());}}handlers.clear();}function main():void{scenario(false);scenario(true);}").unwrap();
+        let source=source.replace("    handlers.clear();\n}","    finally { console.log(handlers.size); }\n    handlers.clear();\n}");
+        let checked=crate::check(&source).unwrap();let function=checked.program.functions.iter().find(|function|function.name=="scenario").unwrap();let region=function.body.iter().find_map(|statement|if let crate::syntax::StmtKind::Try(region)=&statement.kind{Some(region)}else{None}).unwrap();
+        let binding=function.bindings.iter().position(|binding|binding.name=="handlers").unwrap();let place=Place{binding,fields:Vec::new()};let boundary=region.body[0].span.start;
+        let error=function.storage_exits.map_completion_layout(boundary,Phase::Body,Some(CompletionKind::Throw)).unwrap()[&place];assert_ne!(error,function.bindings[binding].ty);
+        assert_eq!(function.storage_exits.map_native_input(region.catch.as_ref().unwrap().body[0].span.start,binding),Some(error),"handler starts with checked error storage");
+        let Type::Map(map)=error else{panic!("Map error storage")};let rust=checked.emit_rust();
+        let envelope=rust.split("let completion:TsrCompletion<").filter_map(|part|part.split_once("='exception_region").map(|(ty,_)|ty)).find(|ty|ty.contains("StorageIncoming")).expect("body error envelope");
+        assert!(envelope.contains(&format!("Map{map}<")),"checked throw storage Map{map} is absent from {envelope}");
+    }
+
+    #[test]
     fn cleaned_normal_layout_is_consumed_after_finally() {
         let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function scenario(flag:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{failIf(flag);}catch(error){}finally{handlers.delete('first');}first[0]+=1;handlers.clear();}function main():void{scenario(false);}").unwrap();
         let checked=crate::check(&source).unwrap();let function=checked.program.functions.iter().find(|function|function.name=="scenario").unwrap();

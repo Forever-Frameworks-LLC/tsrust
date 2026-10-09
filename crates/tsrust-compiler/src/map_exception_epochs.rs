@@ -23,7 +23,7 @@ impl Emitter<'_> {
         let (in_decl, in_name) = self.completion_error_layout(&format!("StorageIncoming{first}"), incoming, runtime, statement.span);
         let (out_decl, out_name) = self.completion_error_layout(&format!("StorageOutgoing{first}"), &outgoing, runtime, statement.span);
         let normal=if region.finally.is_none(){region.body.first().and_then(|statement|fun.storage_exits.map_completion_layout(statement.span.start,crate::analysis::MapCompletionPhase::Handled,None))}else{None};
-        let error=if region.finally.is_none(){region.body.first().and_then(|statement|fun.storage_exits.map_completion_layout(statement.span.start,crate::analysis::MapCompletionPhase::Body,Some(crate::completion::CompletionKind::Throw)))}else{None};
+        let error=region.body.first().and_then(|statement|fun.storage_exits.map_completion_layout(statement.span.start,crate::analysis::MapCompletionPhase::Body,Some(crate::completion::CompletionKind::Throw)));
         let pending = self.map_error_phase_storage_completion_body(fun, &region.body, declarations, first, &in_name, incoming.clone(), runtime, &storage_type, &places, true, true, normal, error);
         let handler_throws = outgoing.runtime || outgoing.opaque || !outgoing.explicit.is_empty();
         let handled = self.map_phase_storage_completion_body(fun, &handler.body, declarations, first + 1, &out_name, outgoing.clone(), runtime, &storage_type, &places, handler_throws, true, normal);

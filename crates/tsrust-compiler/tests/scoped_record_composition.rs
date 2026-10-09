@@ -16,6 +16,9 @@ fn map_error_phase_releases_deleted_capture_at_handler_entry() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function scenario(flag:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{handlers.delete('first');failIf(flag);}catch(error){first[0]+=1;for(const [key,entry] of handlers){console.log('caught',key,entry.run());}}handlers.clear();console.log('done',first[0]);}function main():void{scenario(false);scenario(true);}");
  support::execute(&source,"done 3\ncaught second 5\ndone 4\n",None);
  verify_disposal(&source,2,"drop 0\ndrop 1\ndone 3\ndrop 0\ncaught second 5\ndrop 1\ndone 4\n");
+ let finally=source.replace("    handlers.clear();\n", "    finally{console.log('cleanup',handlers.size); }\n    handlers.clear();\n");assert_ne!(finally,source);
+ support::execute(&support::format_round_trip(&finally),"cleanup 1\ndone 3\ncaught second 5\ncleanup 1\ndone 4\n",None);
+ verify_disposal(&support::format_round_trip(&finally),2,"drop 0\ncleanup 1\ndrop 1\ndone 3\ndrop 0\ncaught second 5\ncleanup 1\ndrop 1\ndone 4\n");
  let direct=source.replace("failIf(flag);","if(flag)throw 7;");assert_ne!(direct,source);
  support::execute(&support::format_round_trip(&direct),"done 3\ncaught second 5\ndone 4\n",None);
  let nested=source.replace("failIf(flag);","try{failIf(flag);}finally{console.log('cleanup');}");assert_ne!(nested,source);
