@@ -8704,3 +8704,13 @@ fn iteration_map_entry_release_keeps_surviving_capture_diagnostics() {
   assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
  }
 }
+
+#[test]
+fn counted_map_update_preserves_body_capture_diagnostics() {
+ let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const third=[7];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});for(let step=0;step<3;step=(handlers.delete('temporary'),step+1)){handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;handlers.set('temporary',{run:():int=>third[0]});continue;}third[0]=9;handlers.clear();}").unwrap();
+ assert!(tsrust_lsp::diagnostics(&source,"file:///counted-map-update.tsr").unwrap().is_empty());
+ let conflict=source.replace("handlers.delete('temporary'),", "third[0]=8,handlers.delete('temporary'),");
+ assert_ne!(source,conflict);
+ let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///counted-map-update.tsr").unwrap()).unwrap();
+ assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+}

@@ -10,13 +10,6 @@ impl Analyzer {
             _=>return Ok(()),
         };
         if !statement.labels.is_empty() || !ordinary_body(body,statement.span.start){return Ok(());}
-        if let StmtKind::Loop{update,..}=&statement.kind {
-            if has_controls(body) {
-                let mut touches_map=false;let mut copied=update.clone();
-                crate::source_walk::body(&mut copied,&mut |_|Ok(()),&mut |value|{touches_map|=value.ty.is_some_and(|ty|matches!(ty,Type::Map(_)) || self.contains_scoped_map_storage(ty));Ok(())})?;
-                if touches_map{return Ok(());}
-            }
-        }
         let mut epochs=Vec::new();
         for place in local {
             if !context.storage_exits.map_completion_survivors(statement.span).iter().any(|state|state.consistent && state.place==*place && !state.released.is_empty()){continue;}
@@ -68,7 +61,7 @@ impl Analyzer {
             inner.insert(epoch.entry.place.binding,self.scoped_array_replace_field(root,&epoch.entry.place.fields,working).expect("working Map path"));
         }
         self.scoped_map_entry_epochs_with_demand(context,body,&mut inner,demand,&local)?;
-        for epoch in &mut epochs{epoch.body.input=*inner.get(&epoch.entry.place.binding).expect("body Map root");}
+        self.plan_map_iteration_body_family(context,body,&mut inner,&mut epochs)?;
         if let StmtKind::Loop{update,..}=&mut statement.kind {
             self.scoped_map_entry_epochs_with_demand(context,update,&mut inner,demand,&local)?;
         }
@@ -76,6 +69,39 @@ impl Analyzer {
         for epoch in &mut epochs{epoch.back.input=*inner.get(&epoch.entry.place.binding).expect("carried Map root");}
         context.storage_exits.record_map_iteration_epochs(statement.span,epochs);
         Ok(())
+    }
+    #[inline(never)]
+    fn plan_map_iteration_body_family(&mut self,context:&mut Context,body:&[Stmt],inner:&mut HashMap<usize,Type>,epochs:&mut [storage_exit_availability::MapIterationEpoch])->Result<(),Diagnostic> {
+        let mut controls=Vec::new();let mut pending=body.iter().collect::<Vec<_>>();
+        while let Some(statement)=pending.pop(){match &statement.kind {
+            StmtKind::Block(body)=>pending.extend(body),
+            StmtKind::If{then_body,else_body,..}=>{pending.extend(then_body);pending.extend(else_body);},
+            StmtKind::Break|StmtKind::Continue=>controls.push(statement.span),
+            _=>{},
+        }}
+        for epoch in epochs {
+            let place=&epoch.entry.place;
+            epoch.body.input=inner[&place.binding];
+            let mut output=epoch.body.input;
+            for span in &controls {
+                let inputs=context.storage_exits.map_control_inputs(*span).expect("planned control input");
+                let incoming=self.scoped_array_field_type(inputs[&place.binding],&place.fields).expect("control Map path");
+                let previous=self.scoped_array_field_type(output,&place.fields).expect("body Map path");
+                if previous!=incoming {
+                    let joined=self.join_scoped_map_types(previous,incoming,*span)?.expect("compatible iteration Map families");
+                    output=self.scoped_array_replace_field(output,&place.fields,joined).expect("joined body Map path");
+                }
+            }
+            epoch.body.output=output;
+            epoch.body.empty=self.map_iteration_empty_root(epoch.body.input,&place.fields);
+            inner.insert(place.binding,output);
+        }
+        Ok(())
+    }
+    fn map_iteration_empty_root(&self,root:Type,fields:&[String])->bool {
+        let Some(Type::Map(map))=self.scoped_array_field_type(root,fields) else{return false;};
+        let Type::Record(record)=self.program.records[map].map_definition.as_ref().unwrap().value else{return false;};
+        self.absent_record_environment(record)
     }
     fn plan_map_iteration_controls(&mut self,context:&mut Context,statement:&Stmt,epochs:&[storage_exit_availability::MapIterationEpoch])->Result<(),Diagnostic> {
         let body=match &statement.kind{StmtKind::While{body,..}|StmtKind::Loop{body,..}|StmtKind::ForOf{body,..}=>body,_=>return Ok(())};
@@ -86,7 +112,7 @@ impl Analyzer {
                 StmtKind::If{then_body,else_body,..}=>{pending.extend(then_body);pending.extend(else_body);},
                 StmtKind::Break|StmtKind::Continue=>{
                     let inputs=context.storage_exits.map_control_inputs(control.span).expect("planned control input");
-                    let conversions=epochs.iter().map(|epoch|storage_exit_availability::MapEntryEpoch{place:epoch.entry.place.clone(),input:inputs[&epoch.entry.place.binding],output:epoch.entry.output,empty:epoch.back.empty,before:false}).collect();
+                    let conversions=epochs.iter().map(|epoch|storage_exit_availability::MapEntryEpoch{place:epoch.entry.place.clone(),input:inputs[&epoch.entry.place.binding],output:epoch.body.output,empty:self.map_iteration_empty_root(inputs[&epoch.entry.place.binding],&epoch.entry.place.fields),before:false}).collect();
                     context.storage_exits.record_map_iteration_control(control.span,statement.span.start,matches!(control.kind,StmtKind::Continue),conversions);
                 },
                 _=>{},
@@ -109,15 +135,4 @@ fn ordinary_body(body:&[Stmt],label:usize)->bool {
         }
     }
     true
-}
-
-fn has_controls(body:&[Stmt])->bool {
-    let mut pending=body.iter().collect::<Vec<_>>();
-    while let Some(statement)=pending.pop(){match &statement.kind {
-        StmtKind::Break|StmtKind::Continue=>return true,
-        StmtKind::Block(body)=>pending.extend(body),
-        StmtKind::If{then_body,else_body,..}=>{pending.extend(then_body);pending.extend(else_body);},
-        _=>{},
-    }}
-    false
 }

@@ -57,7 +57,7 @@ impl Analyzer {
             crate::source_walk::body(std::slice::from_mut(statement),&mut |_|Ok(()),&mut |value| {
                 statement_end=statement_end.max(value.span.end);
                 if let ExprKind::Call(_,arguments)=&value.kind {
-                    for argument in arguments {if let Some(binding)=Self::root_binding(argument){local.retain(|place|place.binding!=binding);}}
+                    for argument in arguments {if argument.ty.is_some_and(|ty|self.contains_scoped_map_storage(ty)) && let Some(binding)=Self::root_binding(argument){local.retain(|place|place.binding!=binding);}}
                 }
                 if value.target==Some(CallTarget::MapMethod(MapMethod::Set))
                     && let ExprKind::Call(callee,_) =&value.kind
@@ -114,7 +114,7 @@ impl Analyzer {
                 // local snapshot can authorize environment elimination.
                 if let ExprKind::Call(_,arguments)=&value.kind {
                     for argument in arguments {
-                        if let Some(binding)=Self::root_binding(argument) {local.retain(|place|place.binding!=binding);}
+                        if argument.ty.is_some_and(|ty|self.contains_scoped_map_storage(ty)) && let Some(binding)=Self::root_binding(argument) {local.retain(|place|place.binding!=binding);}
                     }
                 }
                 if matches!(value.target,Some(CallTarget::MapMethod(MapMethod::Delete|MapMethod::Set)))
@@ -167,7 +167,7 @@ impl Analyzer {
         }
         Ok(local)
     }
-    fn absent_record_environment(&self, record:usize) -> bool {
+    pub(super) fn absent_record_environment(&self, record:usize) -> bool {
         let mut pending=vec![Type::Record(record)];
         while let Some(ty)=pending.pop() {
             match ty {

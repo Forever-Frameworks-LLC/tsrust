@@ -63,18 +63,21 @@ impl Emitter<'_> {
             return;
         }
         if let StmtKind::Loop{update,..}=&statement.kind {
-            let _=writeln!(output,"{indent}if !map_stop_{label} {{");
-            let _=writeln!(output,"{indent}    ({names},) = {{");
+            let _=writeln!(output,"{indent}let ({pattern},) = if !map_stop_{label} {{");
+            self.control_block_epochs(output,fun,update,depth+1,Some(statement.span.start),Some(declarations));
             for epoch in epochs {
-                let working=crate::analysis::MapEntryEpoch{place:epoch.entry.place.clone(),input:epoch.body.output,output:epoch.body.input,empty:epoch.back.empty,before:true};
-                if working.input!=working.output{let _=writeln!(output,"{indent}        {}",self.map_entry_epoch_code(fun,&working));}
+                if epoch.back.input!=epoch.back.output{let _=writeln!(output,"{indent}    {}",self.map_entry_epoch_code(fun,&epoch.back));}
             }
-            self.control_block_epochs(output,fun,update,depth+2,Some(statement.span.start),Some(declarations));
+            let _=writeln!(output,"{indent}    ({names},)\n{indent}}} else {{");
             for epoch in epochs {
-                if epoch.back.input!=epoch.back.output{let _=writeln!(output,"{indent}        {}",self.map_entry_epoch_code(fun,&epoch.back));}
+                let stopped=crate::analysis::MapEntryEpoch{place:epoch.entry.place.clone(),input:epoch.body.output,output:epoch.back.output,empty:epoch.back.empty,before:false};
+                if stopped.input!=stopped.output{let _=writeln!(output,"{indent}    {}",self.map_entry_epoch_code(fun,&stopped));}
             }
-            let _=writeln!(output,"{indent}        ({names},)\n{indent}    }};");
-            let _=writeln!(output,"{indent}}}");
+            let _=writeln!(output,"{indent}    ({names},)\n{indent}}};");
+        } else {
+            for epoch in epochs {
+                if epoch.back.input!=epoch.back.output{let _=writeln!(output,"{indent}{}",self.map_entry_epoch_code(fun,&epoch.back));}
+            }
         }
     }
     pub(super) fn map_for_of_iteration_body(&self,output:&mut String,fun:&CheckedFunction,statement:&Stmt,depth:usize,declarations:Option<&[Stmt]>)->bool {

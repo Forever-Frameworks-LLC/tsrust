@@ -164,8 +164,10 @@ preserves its initial entries for the first body and tests its condition after
 each body. Empty carried storage is supported. Break and continue after deletion return
 surviving entries before leaving the body. Counted continue still executes its
 update; break skips the update and the next condition. A break before deletion
-keeps the original capture live. Map-changing counted updates, nested loops,
-cleanup transport and release within the same expression remain under development.
+keeps the original capture live. Counted updates may inspect and delete entries created by the body. A temporary
+entry survives continue until the update deletes it; break skips the update.
+A capture remains protected until that deletion. Nested loops, cleanup transport
+and release within the same expression remain under development.
 Changing a callback environment representation for later capture access can scan
 surviving entries. Known entry deletion avoids that conversion when the released
 capture has no later source use or opaque named call. The release feature does

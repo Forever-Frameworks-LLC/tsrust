@@ -1433,3 +1433,42 @@ runtime/results/2026-10-09T02-00-12-888Z-verify.json in SQLite. Original red,
 intermediate compiler errors, repaired checks and both verification records are
 retained independently with byte-exact readback; loose copies are removed.
 This is a source checkpoint for abrupt iteration transport, not B5 acceptance.
+
+## Counted Map update transport
+
+The new counted_map_update_keeps_body_payload_until_update_deletes_it witness
+first failed in generated Rust with E0502 for the body capture and the temporary
+update capture. The body creates a temporary third entry after deleting first;
+continue must preserve third until the counted update observes size two and
+deletes it. Narrowing to the backedge family at body completion would discard
+that still-live entry.
+
+Planning now joins normally completing body storage with each break/continue
+input into a separate body-completion family. Update expressions are retargeted
+to that family. The update converts to the backedge family only after its effects;
+the stopped path skips the update and converts its separately proven survivors.
+The emitter shadows the body storage when the native type changes instead of
+assigning incompatible families. Normal loops retain their previous lowering.
+The blanket prohibition on Map-touching counted updates is removed. Distinct
+pre-test entry/backedge and break/backedge payloads still need later transport.
+
+Scalar observations such as console.log(handlers.size) no longer invalidate a
+local Map proof. They pass a scalar, not storage. Passing scoped Map storage or
+a record containing it to an opaque callee still invalidates the proof.
+
+Focused checks cover observable update order, surviving second entries, third
+release, break skipping updates, capture-conflict before deletion, formatting
+and exact O0/O3 disposal. The affected Map batch passes 75 tests. One focused
+editor witness and all eight normal-stack depth canaries pass. Matched support
+appends a 60th observation with independent arithmetic and rehashed source guards.
+Final registration, native/Node verification and SQLite import remain pending.
+No timing or user-facing consumer refresh is claimed. B5 remains open.
+
+Final counted-update registration and all five independent native/Node result
+cases pass with 60 observations. The untimed record is
+runtime/results/2026-10-09T02-07-31-272Z-verify.json in SQLite. Formatting
+preserves tokens, formats one changed workload and refreshes its fingerprint.
+Original failing and repaired checks are retained independently in SQLite with
+byte-exact readback; closed loose copies are removed. The implementation chunk
+is ready for its source checkpoint; B5 and family measurements remain pending.
+Next cover cleanup/nested-control transport and distinct pre-test entry families.

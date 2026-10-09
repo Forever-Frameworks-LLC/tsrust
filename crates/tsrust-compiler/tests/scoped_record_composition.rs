@@ -1,6 +1,19 @@
 mod support;
 
 #[test]
+fn counted_map_update_keeps_body_payload_until_update_deletes_it() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const third=[7];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});let turn=0;for(let step=0;step<3;step=(console.log('update',step,handlers.size),handlers.delete('temporary'),step+1)){handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;handlers.set('temporary',{run:():int=>third[0]});turn++;if(turn<3)continue;console.log('tail',turn);}third[0]=9;for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();console.log('done',first[0],third[0]);}");
+    support::execute(&source,"update 0 2\nupdate 1 2\ntail 3\nupdate 2 2\nsecond 5\ndone 6 9\n",None);
+    verify_disposal(&source,3,"drop 1\nupdate 0 2\ndrop 2\ndrop 1\nupdate 1 2\ndrop 2\ndrop 1\ntail 3\nupdate 2 2\ndrop 2\nsecond 5\ndrop 0\ndone 6 9\n");
+    let stopped=source.replace("turn++;", "turn++;if(turn===2){handlers.delete('temporary');break;}");
+    assert_ne!(stopped,source);
+    support::execute(&support::format_round_trip(&stopped),"update 0 2\nsecond 5\ndone 5 9\n",None);
+    verify_disposal(&support::format_round_trip(&stopped),3,"drop 1\nupdate 0 2\ndrop 2\ndrop 1\ndrop 2\nsecond 5\ndrop 0\ndone 5 9\n");
+    let conflict=source.replace("handlers.delete('temporary'),", "third[0]=8,handlers.delete('temporary'),");
+    assert_eq!(tsrust_compiler::check(&conflict).err().expect("update cannot change a retained temporary capture").code,"capture-conflict");
+}
+
+#[test]
 fn map_iteration_release_survives_continue_and_break() {
     let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(stop:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});let turn=0;while(turn<3){handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;turn++;if(stop)break;if(turn<3)continue;console.log('tail',turn);}for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();console.log('done',first[0]);}function main():void{scenario(false);scenario(true);}");
     let conflict = source.replace("first[0] += 1;", "second[0]+=1;");
