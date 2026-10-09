@@ -170,6 +170,7 @@ impl Analyzer {
                 Ok(())
             })?;
             if let StmtKind::Let{binding:Some(binding),value,..}=&mut statement.kind
+                && !self.sticky_nullable(context,*binding)
                 && let Some(ty)=self.nullable_record_initializer(value) {
                 context.bindings[*binding].ty=ty;
                 results.insert(*binding,ty);

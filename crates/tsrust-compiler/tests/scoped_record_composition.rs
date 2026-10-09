@@ -28,15 +28,48 @@ fn nullable_record_fields_compose_with_scoped_array_storage() {
 }
 
 #[test]
-fn nullable_record_field_branch_stores_have_source_diagnostics() {
-    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};function example(flag:boolean):void{const values=[3];const box:Box={saved:undefined};if(flag)box.saved={run:():int=>values[0]};if(box.saved!==undefined)console.log(box.saved.run());}function main():void{example(true);}");
-    assert_eq!(tsrust_compiler::check(&source).err().expect("branch field environment joins are still pending").code,"unsupported");
+fn nullable_callback_records_join_environments_through_control_flow() {
+    let holder="type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};";
+    let run=|body:&str,expected:&str|{support::execute(&support::format_round_trip(&format!("{holder}{body}")),expected,None);};
+    // Locals: one branch, both branches, loop, exception region and clearing in a branch.
+    run("function f(flag:boolean):void{const a=[3];let s:Holder|undefined=undefined;if(flag)s={run:():int=>a[0]};if(s!==undefined)console.log(s.run());else console.log(\"none\");}function main():void{f(true);f(false);}","3\nnone\n");
+    run("function f(flag:boolean):void{const a=[3];const b=[4];let s:Holder|undefined=undefined;if(flag){s={run:():int=>a[0]};}else{s={run:():int=>b[0]};}if(s!==undefined)console.log(s.run());s=undefined;console.log(s===undefined);}function main():void{f(true);f(false);}","3\ntrue\n4\ntrue\n");
+    run("function main():void{const a=[3];const b=[4];let s:Holder|undefined=undefined;let i=0;while(true){i+=1;if(i===2){s={run:():int=>a[0]*i};continue;}if(i===4)break;if(i===3){s=undefined;s={run:():int=>b[0]+i};}}if(s!==undefined)console.log(s.run(),i);}","7 4\n");
+    run("function main():void{const a=[3];let s:Holder|undefined=undefined;try{s={run:():int=>a[0]};}finally{console.log(\"f\");}if(s!==undefined)console.log(s.run());}","f\n3\n");
+    run("function f(flag:boolean):void{const a=[3];let s:Holder|undefined={run:():int=>a[0]};if(flag)s=undefined;if(s!==undefined)console.log(s.run());else console.log(\"cleared\");}function main():void{f(true);f(false);}","cleared\n3\n");
+    run("function main():void{const a=[3];let s:Holder|undefined=undefined;if(a[0]>1)s={run:():int=>a[0]};const t=s;if(t!==undefined)console.log(t.run());if(a[0]>1){let u:Holder|undefined=undefined;if(a[0]>2)u={run:():int=>a[0]+1};if(u)console.log(u.run());}}","3\n4\n");
+    // Fields: branch, loop over two fields, nested path, for-of and optional call.
+    run("function f(flag:boolean):void{const a=[3];const box:Box={saved:undefined};if(flag)box.saved={run:():int=>a[0]};if(box.saved!==undefined)console.log(box.saved.run());else console.log(\"none\");}function main():void{f(true);f(false);}","3\nnone\n");
+    run("type Pair={left:Holder|undefined;right:Holder|null;n:int;};function f(k:int):void{const a=[1];const b=[2];const c=[3];const p:Pair={left:undefined,right:null,n:0};let i=0;while(i<k){if(i%2===0){p.left={run:():int=>a[0]};}else{p.right={run:():int=>b[0]};}p.n+=1;i+=1;}if(k>2)p.left={run:():int=>c[0]};console.log(p.left!==undefined?p.left.run():-1,p.right!==null?p.right.run():-1,p.n);}function main():void{f(0);f(1);f(2);f(3);}","-1 -1 0\n1 -1 1\n1 2 2\n3 2 3\n");
+    run("type Inner={saved:Holder|undefined;};type Outer={inner:Inner;tag:int;};function f(flag:boolean):void{const a=[3];const o:Outer={inner:{saved:undefined},tag:1};if(flag){o.inner.saved={run:():int=>a[0]};}else{o.tag=2;}console.log(o.inner.saved!==undefined?o.inner.saved.run():0,o.tag);}function main():void{f(true);f(false);}","3 1\n0 2\n");
+    run("function main():void{const a=[3,4,5];const box:Box={saved:undefined};for(const v of a){if(v===4)box.saved={run:():int=>v};}console.log(box.saved?.run()??-1);}","4\n");
+    // Whole-record replacement, straight-line and in a loop.
+    run("function main():void{const a=[3];const b=[4];let box:Box={saved:undefined};box.saved={run:():int=>a[0]};box={saved:{run:():int=>b[0]}};if(box.saved!==undefined)console.log(box.saved.run());box={saved:undefined};console.log(box.saved===undefined);}","4\ntrue\n");
+    run("function main():void{const a=[3];let box:Box={saved:undefined};let i=0;while(i<2){box={saved:{run:():int=>a[0]}};i+=1;}console.log(box.saved!==undefined?box.saved.run():0);}","3\n");
+    // A scope end releases the joined environments.
+    run("function main():void{const a=[3];{let s:Holder|undefined=undefined;if(a[0]>1)s={run:():int=>a[0]};if(s!==undefined)console.log(s.run());}a[0]=9;console.log(a[0]);}","3\n9\n");
+    let disposal=support::format_round_trip(&format!("{holder}function f(flag:boolean):void{{const a=[3];const b=[4];let s:Holder|undefined=undefined;if(flag){{s={{run:():int=>a[0]}};}}else{{s={{run:():int=>b[0]}};}}if(s!==undefined)console.log(s.run());s=undefined;console.log(\"cleared\");}}function main():void{{f(true);f(false);}}"));
+    verify_disposal(&disposal,2,"3\ndrop 0\ncleared\n4\ndrop 1\ncleared\n");
 }
 
 #[test]
-fn nullable_record_whole_replacement_has_a_source_diagnostic_until_drop_planned() {
-    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};function main():void{const values=[3];let box:Box={saved:undefined};box.saved={run:():int=>values[0]};box={saved:undefined};values[0]=9;console.log(values[0]);}");
-    assert_eq!(tsrust_compiler::check(&source).err().expect("whole-record replacement needs live-leaf drop planning").code,"unsupported");
+fn control_flow_stores_keep_nullable_record_captures_until_scope_end() {
+    let holder="type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};";
+    for body in [
+        // Clearing after a branch store does not release the capture.
+        "function f(flag:boolean):void{const a=[3];let s:Holder|undefined=undefined;if(flag)s={run:():int=>a[0]};s=undefined;a[0]=9;console.log(a[0]);}function main():void{f(true);}",
+        "function f(flag:boolean):void{const a=[3];const box:Box={saved:undefined};if(flag)box.saved={run:():int=>a[0]};box.saved=undefined;a[0]=9;console.log(a[0]);}function main():void{f(true);}",
+        // A whole-record replacement keeps the replaced field environments.
+        "function main():void{const values=[3];let box:Box={saved:undefined};box.saved={run:():int=>values[0]};box={saved:undefined};values[0]=9;console.log(values[0]);}",
+    ] {
+        let source=support::format_round_trip(&format!("{holder}{body}"));
+        assert_eq!(tsrust_compiler::check(&source).err().unwrap_or_else(||panic!("captures must stay borrowed: {body}")).code,"capture-conflict","{body}");
+    }
+    // Without control-flow stores the precise release rule is unchanged.
+    support::execute(&support::format_round_trip(&format!("{holder}function main():void{{const a=[3];let s:Holder|undefined=undefined;s={{run:():int=>a[0]}};s=undefined;a[0]=9;console.log(a[0]);}}")),"9\n",None);
+    // Callbacks that own every capture have no shared family yet.
+    let owned=support::format_round_trip(&format!("{holder}function f(n:int):void{{let s:Holder|undefined=undefined;if(n>1)s={{run:():int=>n}};else if(n===1)s={{run:():int=>n*10}};console.log(s!==undefined?s.run():-1);}}function main():void{{f(1);}}"));
+    assert_eq!(tsrust_compiler::check(&owned).err().expect("owned callback families are pending").code,"unsupported");
 }
 
 #[test]
@@ -137,7 +170,7 @@ fn reassignable_array_result_tracks_new_origins_and_normal_blocks() {
     let empty = format!("{prefix}removed=handlers.pop();removed=handlers.pop();first[0]=9;second[0]=9;console.log(String(removed),handlers.length,first[0],second[0]);}}");
     support::execute(&support::format_round_trip(&empty), "undefined 0 9 9\n", None);
     let branch = format!("{prefix}if(first[0]===3)removed={{run:():int=>third[0]}};if(removed!==undefined)console.log(removed.run());}}");
-    assert_eq!(tsrust_compiler::check(&support::format_round_trip(&branch)).err().expect("unsupported joins have source diagnostics").code, "unsupported");
+    support::execute(&support::format_round_trip(&branch), "7\n", None);
     let conflict = format!("{prefix}removed={{run:():int=>third[0]}};third[0]=9;if(removed!==undefined)console.log(removed.run());}}");
     assert_eq!(tsrust_compiler::check(&support::format_round_trip(&conflict)).err().expect("replacement keeps new capture live").code, "capture-conflict");
 }

@@ -56,15 +56,25 @@ impl Analyzer {
                 let binding=&context.bindings[write.binding];
                 if binding.parameter || binding.capture_reference{continue;}
                 let ty=*plans.entry(write.binding).or_insert(binding.ty);
+                let sticky=self.sticky_nullable(context,write.binding);
+                if sticky && write.path.is_empty() && ty.union().is_some() {
+                    let Some(incoming)=write.value.ty else{continue;};
+                    if let Some(joined)=self.join_nullable_record_unions(ty,incoming,write.span)? && joined!=ty{plans.insert(write.binding,joined);changed=true;}
+                    continue;
+                }
                 let Type::Record(record)=ty else{continue;};
                 if write.value.ty.is_none(){continue;}
                 let incoming=self.record_value_carrier_type(context,write.value,&plans)?;
                 let joined=if write.path.is_empty(){
                     let Type::Record(incoming)=incoming else{continue;};
-                    self.join_record_types(record,incoming,write.span)?
+                    if sticky {self.join_sticky_record_types(record,incoming,write.span)?}
+                    else {self.join_record_types(record,incoming,write.span)?}
                 }else{
                     let Some(previous)=self.record_field_type(ty,&write.path)else{continue;};
                     if previous==incoming{None}
+                    else if sticky && let Some(joined)=self.join_nullable_record_unions(previous,incoming,write.span)?{
+                        self.record_type_with_field(record,&write.path,joined).map(Type::Record)
+                    }
                     else if let Some(family)=self.common_borrowed_conditional_family(previous,incoming,write.span)?{
                         self.record_type_with_field(record,&write.path,Type::BorrowedCallable(family)).map(Type::Record)
                     }else{None}
@@ -74,10 +84,12 @@ impl Analyzer {
             if !changed{break;}
         }
         let mut destinations=HashMap::new();
+        let mut sticky_destinations=HashSet::new();
         for write in writes {
             let Some(&plan)=plans.get(&write.binding)else{continue;};
             let Some(destination)=self.record_field_type(plan,&write.path)else{continue;};
             destinations.insert((write.span.start,write.span.end),destination);
+            if self.sticky_nullable(context,write.binding) {sticky_destinations.insert((write.span.start,write.span.end));}
         }
         for(&id,&ty)in &plans{context.bindings[id].ty=ty;}
         self.record_field_move_carriers(context,body);
@@ -103,13 +115,38 @@ impl Analyzer {
             let Some(destination)=destinations.remove(&(value.span.start,value.span.end))else{return Ok(());};
             let source=self.record_value_carrier_type(context,value,&plans)?;
             if source==destination{return Ok(());}
+            if sticky_destinations.contains(&(value.span.start,value.span.end)) {
+                return self.retarget_nullable_store(value,destination);
+            }
             match(source,destination){
                 (Type::Closure(_),Type::BorrowedCallable(family))=>Self::retarget_record_callback(value,family),
-                (Type::Record(_),Type::Record(_))|(Type::BorrowedCallable(_),Type::BorrowedCallable(_))=>value.wrap_record_carrier(destination),
+                (Type::Record(_),Type::Record(_))|(Type::BorrowedCallable(_),Type::BorrowedCallable(_))=>{
+                    if self.distinct_owned_closures(source,destination) {
+                        return Err(Diagnostic::new("unsupported","Different callbacks that own all their captures cannot share one record variable yet. Capture a local array or record, or keep each callback in its own variable.",value.span));
+                    }
+                    value.wrap_record_carrier(destination)
+                }
                 _=>{}
             }
             Ok(())
         })?;
+        // Reads of a carrier-typed nullable local use the carrier type.
+        let sticky=plans.iter().filter(|(id,_)|self.sticky_nullable(context,**id)).map(|(&id,&ty)|(id,ty)).collect::<HashMap<_,_>>();
+        if !sticky.is_empty() {
+            crate::source_walk::body(body,&mut |_|Ok(()),&mut |value|{
+                if !matches!(value.kind,ExprKind::Name(_)|ExprKind::Field(_,_)|ExprKind::Project{..}){return Ok(());}
+                if let Some(ty)=self.planned_record_array_type(value,&sticky) && value.ty.is_some_and(|checked|checked!=ty
+                    && (checked.union().is_some()==ty.union().is_some()) && matches!(self.unions.payload(ty).unwrap_or(ty),Type::Record(_)|Type::BorrowedCallable(_)|Type::Closure(_)|Type::Callback(_)))
+                {
+                    if let ExprKind::Project{value:inner,union,narrowed}=&mut value.kind {
+                        if let Some(carrier)=self.planned_record_array_type(inner,&sticky).and_then(|ty|ty.union()) {*union=carrier;}
+                        *narrowed=ty;
+                    }
+                    value.ty=Some(ty);
+                }
+                Ok(())
+            })?;
+        }
         self.scoped_map_carriers(context,body)?;
         self.record_array_carriers(context,body)?;
         self.scoped_array_storage_epochs(context,body)?;
@@ -192,6 +229,90 @@ impl Analyzer {
         let instance=self.scoped_records.materialize(declaration,fields,&mut self.program.records);
         if self.fields.len()<=instance{self.fields.push(self.program.records[instance].fields.iter().map(|field|(field.name.text.clone(),field.ty.unwrap())).collect());}
         let ty=Type::Record(instance);left.ty=Some(ty);right.ty=Some(ty);Ok(Some(ty))
+    }
+    /// Give a stored value the carrier type of its destination. Tagged values
+    /// and record literals are retyped in place; other values are converted.
+    /// Whether generated code can convert a stored value into its carrier.
+    fn carrier_convertible(&self,source:Type,target:Type)->bool{
+        if source==target{return true;}
+        match(source,target){
+            (Type::Array(source),Type::Array(target))=>self.carrier_convertible(source.ty(),target.ty()),
+            (Type::Record(source),Type::Record(target))=>self.program.records[source].fields.iter().zip(&self.program.records[target].fields).all(|(source,target)|self.carrier_convertible(source.ty.unwrap(),target.ty.unwrap())),
+            (Type::Closure(origin),Type::BorrowedCallable(family))=>self.callables.storage.origins(family).is_some_and(|origins|origins.contains(&origin)),
+            (Type::BorrowedCallable(source),Type::BorrowedCallable(target))=>match(self.callables.storage.origins(source),self.callables.storage.origins(target)){(Some(source),Some(target))=>source.iter().all(|origin|target.contains(origin)),_=>false},
+            (Type::Callback(id),_)=>self.absent_callback_payloads.values().any(|&empty|empty==id),
+            (Type::Union(source),Type::Union(target))=>{
+                let targets=self.unions.members(target);
+                self.unions.members(source).into_iter().all(|member|targets.iter().any(|&candidate|candidate==member || matches!((candidate,member),(Type::Record(_),Type::Record(_))) && self.carrier_convertible(member,candidate)))
+            }
+            _=>false,
+        }
+    }
+    /// A conversion that would turn one concrete closure into another.
+    fn distinct_owned_closures(&self,source:Type,target:Type)->bool{
+        match(source,target){
+            (Type::Closure(source),Type::Closure(target))=>source!=target,
+            (Type::Record(source),Type::Record(target))=>self.program.records[source].fields.iter().zip(&self.program.records[target].fields).any(|(source,target)|self.distinct_owned_closures(source.ty.unwrap(),target.ty.unwrap())),
+            _=>false,
+        }
+    }
+    fn checked_carrier(&self,value:&mut Expr,destination:Type)->Result<(),Diagnostic>{
+        if value.ty.is_some_and(|source|!self.carrier_convertible(source,destination)) {
+            return Err(Diagnostic::new("unsupported","Different callbacks that own all their captures cannot share one record variable yet. Capture a local array or record, or keep each callback in its own variable.",value.span));
+        }
+        value.wrap_record_carrier(destination);
+        Ok(())
+    }
+    fn retarget_nullable_store(&mut self,value:&mut Expr,destination:Type)->Result<(),Diagnostic>{
+        if value.ty==Some(destination){return Ok(());}
+        match &mut value.kind {
+            ExprKind::Inject{value:inner,union:tag} if destination.union().is_some()=>{
+                if let(Some(Type::Record(_)),Some(payload))=(inner.ty,self.unions.payload(destination)){self.retarget_nullable_store(inner,payload)?;}
+                *tag=destination.union().unwrap();value.ty=Some(destination);
+            }
+            ExprKind::Record(values)=>{
+                let(Type::Record(target),Some(Type::Record(mut current)))=(destination,value.ty)else{return self.checked_carrier(value,destination);};
+                for(name,field)in values.iter_mut(){
+                    let Some(wanted)=self.program.records[target].fields.iter().find(|candidate|candidate.name.text==name.text).and_then(|candidate|candidate.ty)else{continue;};
+                    if field.ty==Some(wanted) || !(wanted.union().is_some() || matches!(wanted,Type::Record(_))){continue;}
+                    self.retarget_nullable_store(field,wanted)?;
+                    if field.ty==Some(wanted) && let Some(next)=self.record_type_with_field(current,std::slice::from_ref(&name.text),wanted){current=next;}
+                }
+                value.ty=Some(Type::Record(current));
+                if current!=target{self.checked_carrier(value,destination)?;}
+            }
+            ExprKind::Unary{op:UnaryOp::RecordCarrier,value:inner,..}=>{self.retarget_nullable_store(inner,destination)?;if inner.ty==Some(destination){let span=value.span;let old=std::mem::replace(value,Expr::new(ExprKind::Null,span));let ExprKind::Unary{value:inner,..}=old.kind else{unreachable!()};*value=*inner;}else{value.ty=Some(destination);}}
+            _=>self.checked_carrier(value,destination)?,
+        }
+        Ok(())
+    }
+    /// Join two nullable callback-record unions of one declaration. The result
+    /// keeps the nullish members and holds one environment for every origin.
+    pub(super) fn join_nullable_record_unions(&mut self,left:Type,right:Type,span:Span)->Result<Option<Type>,Diagnostic>{
+        if left==right{return Ok(None);}
+        let(Some(union),Some(_))=(left.union(),right.union())else{return Ok(None);};
+        let(Some(Type::Record(a)),Some(Type::Record(b)))=(self.unions.payload(left),self.unions.payload(right))else{return Ok(None);};
+        if self.scoped_records.declaration(a)!=self.scoped_records.declaration(b){return Ok(None);}
+        // An absent value holds no callback instance; the other environment is the join.
+        let empty=self.empty_scoped_record_environment(self.scoped_records.declaration(a))?;
+        let payload=if a==b || empty==Type::Record(b){Type::Record(a)}else if empty==Type::Record(a){Type::Record(b)}else{
+            let Some(joined)=self.join_sticky_record_types(a,b,span)? else{return Ok(None);};
+            joined
+        };
+        let members=self.unions.members(union).into_iter().map(|member|if matches!(member,Type::Record(_)){payload}else{member}).collect::<Vec<_>>();
+        self.unions.intern(members,span).map(Some)
+    }
+    /// Record join that also joins nullable callback-record fields.
+    pub(super) fn join_sticky_record_types(&mut self,a:usize,b:usize,span:Span)->Result<Option<Type>,Diagnostic>{
+        let(mut left,mut right)=(a,b);
+        for path in self.nullable_record_field_paths(Type::Record(a)) {
+            let(Some(first),Some(second))=(self.record_field_type(Type::Record(left),&path),self.record_field_type(Type::Record(right),&path))else{continue;};
+            let Some(joined)=self.join_nullable_record_unions(first,second,span)? else{continue;};
+            left=self.record_type_with_field(left,&path,joined).expect("checked nullable field path");
+            right=self.record_type_with_field(right,&path,joined).expect("checked nullable field path");
+        }
+        if left==right{return Ok((left!=a || right!=b).then_some(Type::Record(left)));}
+        Ok(self.join_record_types(left,right,span)?.or((left!=a).then_some(Type::Record(left))))
     }
     pub(super) fn join_record_types(&mut self,a:usize,b:usize,span:Span)->Result<Option<Type>,Diagnostic>{
         let declaration=self.scoped_records.declaration(a);if declaration!=self.scoped_records.declaration(b){return Ok(None);}

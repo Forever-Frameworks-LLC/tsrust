@@ -13,6 +13,16 @@ fn nullable_record_fields_preserve_independent_capture_diagnostics() {
 }
 
 #[test]
+fn nullable_callback_record_control_flow_stores_keep_captures_until_scope_end() {
+    let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};function pick(flag:boolean):void{const first=[3];const second=[4];let saved:Holder|undefined=undefined;const box:Box={saved:undefined};if(flag){saved={run:():int=>first[0]};}else{box.saved={run:():int=>second[0]};}if(saved!==undefined)console.log(saved.run());if(box.saved!==undefined)console.log(box.saved.run());}function main():void{pick(true);}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&source,"file:///control-nullable.tsr").unwrap().is_empty());
+    let conflict=source.replace("if (saved !== undefined) console.log(saved.run());","saved=undefined;first[0]=9;");
+    assert_ne!(source,conflict);
+    let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///control-nullable.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+}
+
+#[test]
 fn populated_nullable_callback_records_report_capture_conflicts() {
     let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};function main():void{const first=[3];const second=[5];let saved:Holder|undefined={run:():int=>first[0]};const box:Box={saved:{run:():int=>second[0]}};saved=undefined;first[0]=7;if(box.saved!==undefined)console.log(box.saved.run());}").unwrap();
     assert!(tsrust_lsp::diagnostics(&source,"file:///populated-nullable.tsr").unwrap().is_empty());

@@ -183,7 +183,48 @@ own capture owners. Clearing one field does not release a sibling field's
 captures, and ordinary sibling fields remain assignable. A record may combine
 these fields with a scoped callback array.
 
-Whole-record replacement, conditional or loop field stores, indexed field stores
-and borrowed field stores still require environment and disposal planning. These
-forms receive source diagnostics. Moving the containing record transfers its
-field owners without cloning.
+### Nullable callback records stored through control flow
+
+A nullable callback record local, or a nullable field of a local record, can be
+stored inside a branch, a loop or a `try` block. A record that has such a field can
+also be replaced as a whole:
+
+```tsrust
+type Holder = { run: ReadOnly<Function<int>>; };
+function pick(flag: boolean): void {
+    const first = [3];
+    const second = [4];
+    let saved: Holder | undefined = undefined;
+    if (flag) {
+        saved = { run: (): int => first[0] };
+    } else {
+        saved = { run: (): int => second[0] };
+    }
+    if (saved !== undefined) console.log(saved.run()); // 3 when flag is true, 4 otherwise
+}
+```
+
+These stores change when captured variables become free. When any assignment to the
+local or to one of its nullable fields sits inside a branch, loop, `try` block or
+labelled block, or replaces the whole record, every environment stored in that local
+keeps its captures borrowed until the local's scope ends. Clearing the value does not
+release them earlier:
+
+```tsrust
+let saved: Holder | undefined = undefined;
+if (flag) saved = { run: (): int => first[0] };
+saved = undefined;
+first[0] = 9; // error: capture-conflict
+```
+
+Declare the local in an inner block to end the borrow sooner. A local whose stores
+are all direct assignments in a normal lexical sequence keeps the precise rule
+described above.
+
+Callbacks that own every capture, for example an arrow that reads only a number
+parameter, cannot yet share one record variable with a different callback. That form
+reports `unsupported`.
+
+Indexed field stores and stores through a borrowed record parameter still report
+source diagnostics. Moving the containing record transfers its field owners without
+cloning.

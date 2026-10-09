@@ -65,6 +65,7 @@ impl Analyzer {
             let mut context=Context::new(function.name.clone());
             context.storage_exits=function.storage_exits.clone();
             context.bindings=std::mem::take(&mut function.bindings);
+            self.mark_control_stored(&mut context,&function.body);
             for call in &calls[index]{for replacement in &replacements[call.callee]{
                 let Some(Some((root,prefix)))=call.arguments.get(replacement.parameter)else{continue;};
                 let binding=&context.bindings[*root];

@@ -36,6 +36,17 @@ impl Emitter<'_>{
                 let metadata=if self.record_runtime.ordered.contains(&target){format!(",key_order:({value}).key_order")}else{String::new()};
                 format!("Record{}{{{fields}{metadata}}}",self.program.scoped_records.declaration(target))
             }
+            // No value of an absent callback environment exists at run time.
+            (Type::Callback(id),_) if self.program.absent_callback_payloads.contains(&id)=>"unreachable!(\"absent callback environment\")".into(),
+            (Type::Union(source),Type::Union(target))=>{
+                // A nullable record joins environments; other members keep their value.
+                let targets=&self.program.unions[target.index()].members;
+                let arms=self.program.unions[source.index()].members.iter().enumerate().map(|(index,&member)|{
+                    let to=targets.iter().position(|&candidate|candidate==member || matches!((candidate,member),(Type::Record(_),Type::Record(_)))).expect("checked nullable carrier member");
+                    format!("Union{}::V{index}(payload)=>Union{}::V{to}({})",source.index(),target.index(),self.record_carrier_conversion(member,targets[to],"payload"))
+                }).collect::<Vec<_>>().join(",");
+                format!("match {value}{{{arms}}}")
+            }
             (Type::Closure(origin),Type::BorrowedCallable(family))=>self.stored_callable_constructor(family,origin,value),
             (Type::BorrowedCallable(source),Type::BorrowedCallable(target))=>{
                 let origins=self.program.stored_contracts.origins(source).unwrap();

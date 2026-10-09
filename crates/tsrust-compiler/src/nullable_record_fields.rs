@@ -43,6 +43,7 @@ impl Analyzer {
         let Some((_,path))=Self::direct_fields(target) else{return Ok(());};
         if path.is_empty(){return Ok(());}
         let Some(binding)=Self::root_binding(target) else{return Ok(());};
+        if self.sticky_nullable(context,binding){return Ok(());}
         let Some(Type::Record(record))=results.get(&binding).copied() else{return Ok(());};
         let Some(previous)=self.record_field_type(Type::Record(record),&path) else{return Ok(());};
         if self.nullable_scoped_record_declaration(previous).is_none(){return Ok(());}
@@ -83,6 +84,7 @@ impl Analyzer {
             }
         }
         for write in record_storage_writes::collect(body) {
+            if self.sticky_nullable(context,write.binding) {continue;}
             let binding=&context.bindings[write.binding];
             if write.path.is_empty() {
                 if !declarations.contains(&(write.binding,write.span.start,write.span.end))
@@ -106,5 +108,62 @@ impl Analyzer {
             }
         }
         Ok(())
+    }
+}
+
+/// Names assigned inside a branch, loop, exception region or labelled block of
+/// this body, and names assigned as a whole after their declaration.
+pub(super) fn control_stores(body:&[Stmt]) -> (HashSet<String>,HashSet<String>) {
+    let mut nested=HashSet::new();
+    let mut whole=HashSet::new();
+    let mut pending=body.iter().map(|statement|(statement,false)).collect::<Vec<_>>();
+    while let Some((statement,inside))=pending.pop() {
+        let inside=inside || !statement.labels.is_empty();
+        match &statement.kind {
+            StmtKind::Assign{target,operator:None,..}=>{
+                let mut root:&Expr=target;
+                while let ExprKind::Field(base,_)=&root.kind {root=base;}
+                let ExprKind::Name(name)=&root.kind else{continue;};
+                if inside {nested.insert(name.clone());}
+                if matches!(target.kind,ExprKind::Name(_)) {whole.insert(name.clone());}
+            }
+            StmtKind::Block(body)=>pending.extend(body.iter().map(|statement|(statement,inside))),
+            StmtKind::While{body,..}|StmtKind::ForOf{body,..}=>pending.extend(body.iter().map(|statement|(statement,true))),
+            StmtKind::If{then_body,else_body,..}=>pending.extend(then_body.iter().chain(else_body).map(|statement|(statement,true))),
+            StmtKind::Loop{body,update,..}=>pending.extend(body.iter().chain(update).map(|statement|(statement,true))),
+            StmtKind::Try(region)=>pending.extend(region.statements().map(|statement|(statement,true))),
+            _=>{}
+        }
+    }
+    (nested,whole)
+}
+
+impl Analyzer {
+    /// Recompute the control-stored locals of a checked body. Each block marks
+    /// only its own declarations, exactly as the checking pass does.
+    pub(super) fn mark_control_stored(&self,context:&mut Context,body:&[Stmt]) {
+        let (nested,whole)=control_stores(body);
+        for statement in body {
+            match &statement.kind {
+                StmtKind::Let{name,binding:Some(id),..}=>{
+                    if nested.contains(&name.text) || whole.contains(&name.text) && !self.nullable_record_field_paths(context.bindings[*id].ty).is_empty() {context.control_stored.insert(*id);}
+                }
+                StmtKind::Block(body)|StmtKind::While{body,..}|StmtKind::ForOf{body,..}=>self.mark_control_stored(context,body),
+                StmtKind::If{then_body,else_body,..}=>{self.mark_control_stored(context,then_body);self.mark_control_stored(context,else_body);}
+                StmtKind::Loop{body,update,..}=>{self.mark_control_stored(context,body);self.mark_control_stored(context,update);}
+                StmtKind::Try(region)=>{
+                    self.mark_control_stored(context,&region.body);
+                    if let Some(catch)=&region.catch {self.mark_control_stored(context,&catch.body);}
+                    if let Some(finally)=&region.finally {self.mark_control_stored(context,finally);}
+                }
+                _=>{}
+            }
+        }
+    }
+    /// A local whose nullable callback records are stored through control flow.
+    pub(super) fn sticky_nullable(&self,context:&Context,binding:usize)->bool {
+        let info=&context.bindings[binding];
+        context.control_stored.contains(&binding) && !info.parameter && !info.capture_reference
+            && (self.nullable_scoped_record_declaration(info.ty).is_some() || !self.nullable_record_field_paths(info.ty).is_empty())
     }
 }

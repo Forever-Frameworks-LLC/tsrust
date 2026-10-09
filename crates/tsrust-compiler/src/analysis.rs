@@ -431,6 +431,10 @@ type CallbackMetadata = (Option<Mode>, bool, Option<CallbackKind>);
 
 #[derive(Clone)]
 struct Context {
+    /// Locals stored inside a branch, loop or exception region, or replaced as
+    /// a whole record. Their nullable callback records keep one carrier type
+    /// and their capture loans until the scope ends.
+    control_stored: HashSet<usize>,
     storage_exits: storage_exit_availability::Exits,
     capture_restoration:Option<capture_restoration::Tracker>,
     region_loop_depth:Option<usize>,
@@ -484,6 +488,7 @@ impl Context {
 
     fn new(function_name: String) -> Self {
         Self {
+            control_stored: HashSet::new(),
             storage_exits: Default::default(),
             capture_restoration:None,
             region_loop_depth:None,
@@ -5421,6 +5426,8 @@ impl Analyzer {
         let first_local = context.bindings.len();
         let entry_loans = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
         let mut exited = false;
+        let (nested_stores, whole_stores) = nullable_record_fields::control_stores(body);
+        let mut declared = first_local;
         for stmt in body.iter_mut() {
             if exited {
                 return Err(Diagnostic::new(
@@ -5429,6 +5436,14 @@ impl Analyzer {
                     stmt.span,
                 ));
             }
+            for id in declared..context.bindings.len() {
+                let binding = &context.bindings[id];
+                if !context.lexical_scopes.last().is_some_and(|names| names.contains(&binding.name)) { continue; }
+                if nested_stores.contains(&binding.name)
+                    || whole_stores.contains(&binding.name) && !self.nullable_record_field_paths(binding.ty).is_empty()
+                { context.control_stored.insert(id); }
+            }
+            declared = context.bindings.len();
             context.storage_exits.record_before(stmt.span, &context.bindings);
             match &mut stmt.kind {
                 StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),

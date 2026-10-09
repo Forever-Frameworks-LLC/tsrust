@@ -74,9 +74,11 @@ impl Analyzer {
         };
         self.attach_payload_capture_loans(context, value, temporary.clone(), true);
         let destination = Place { binding, fields };
-        if indexed {
+        if indexed || self.sticky_nullable(context, binding) {
             // Runtime indices share conservative ownership paths. Replacement
             // consumes its RHS but must retain captures owned by other elements.
+            // A nullable callback record stored through control flow keeps
+            // every stored environment borrowed until its scope ends.
             context.capture_loan_owners.extend_from(&temporary, &destination, true);
         } else {
             let _ = context.capture_loan_owners.transfer(&temporary, &destination);
