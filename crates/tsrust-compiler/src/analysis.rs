@@ -1,3 +1,5 @@
+#[path="map_block_storage_plan.rs"]
+mod map_block_storage_plan;
 #[path = "capture_loan_binding.rs"]
 mod capture_loan_binding;
 #[path="map_entry_capture_owners.rs"]

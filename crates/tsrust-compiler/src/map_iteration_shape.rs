@@ -16,8 +16,9 @@ pub(super) fn supports(body:&[Stmt],_label:usize)->bool {
             StmtKind::Let{..}|StmtKind::Expr(_)|StmtKind::Assign{..}|StmtKind::Return(_)|StmtKind::Throw(_)=>{},
             // Checked loop targets may name an ancestor. Its carried body
             // receives the current owner directly; exited inner scopes never
-            // read that owner again. Block targets need separate transport.
-            StmtKind::Break|StmtKind::Continue if matches!(statement.control_target,Some(ControlTarget::Loop(_)|ControlTarget::Tail(_)))=>{},
+            // read that owner again. A block destination uses its own planned
+            // result tuple rather than a loop stop flag.
+            StmtKind::Break|StmtKind::Continue if matches!(statement.control_target,Some(ControlTarget::Loop(_)|ControlTarget::Tail(_)|ControlTarget::Block(_)))=>{},
             _=>return false,
         }
     }
@@ -31,6 +32,7 @@ pub(super) fn has_nonlocal_control(body:&[Stmt],label:usize)->bool {
         StmtKind::Block(body)=>pending.extend(body),
         StmtKind::If{then_body,else_body,..}=>pending.extend(then_body.iter().chain(else_body)),
         StmtKind::Break|StmtKind::Continue if matches!(statement.control_target,Some(ControlTarget::Loop(target)|ControlTarget::Tail(target)) if target!=label)=>return true,
+        StmtKind::Break if matches!(statement.control_target,Some(ControlTarget::Block(_)))=>return true,
         _=>{},
     }}
     false

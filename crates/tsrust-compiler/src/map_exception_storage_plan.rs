@@ -7,7 +7,7 @@ impl Emitter<'_> {
         let mut places=Vec::new();
         let mut native_places=std::collections::HashMap::new();
         while let Some(item)=statements.pop() {
-            if !item.labels.is_empty() && !matches!(item.kind,StmtKind::Break|StmtKind::Continue|StmtKind::While{..}|StmtKind::Loop{..}|StmtKind::ForOf{..}) {return None;}
+            if !item.labels.is_empty() && !matches!(item.kind,StmtKind::Break|StmtKind::Continue|StmtKind::While{..}|StmtKind::Loop{..}|StmtKind::ForOf{..}) && !(matches!(item.kind,StmtKind::Block(_)) && !fun.storage_exits.map_block_epochs(item.span.start).is_empty()) {return None;}
             match &item.kind {
                 StmtKind::Block(body)|StmtKind::ForOf{body,..}=>statements.extend(body),
                 StmtKind::If{then_body,else_body,..}=>{statements.extend(then_body);statements.extend(else_body);},
@@ -20,7 +20,7 @@ impl Emitter<'_> {
                 StmtKind::Let{..}|StmtKind::Expr(_)|StmtKind::Assign{..}|StmtKind::Throw(_)|StmtKind::Return(_)|StmtKind::Break|StmtKind::Continue=>{},
                 _=>return None,
             }
-            for epoch in fun.storage_exits.map_entry_epochs(item.span) {
+            for epoch in fun.storage_exits.map_entry_epochs(item.span).iter().chain(fun.storage_exits.map_block_epochs(item.span.start)) {
                 let place=self.map_entry_epoch_place(fun,epoch);
                 if !places.contains(&place) {
                     let original=fun.bindings[epoch.place.binding].ty;

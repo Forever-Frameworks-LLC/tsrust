@@ -207,4 +207,18 @@ that loop's carried body before leaving the inner scopes. The enclosing loop
 then selects its break or backedge conversion. Deleted callback captures are
 released; surviving entries remain callable and keep their captures borrowed.
 Controls crossing try/finally still run each required cleanup before dispatch.
-Arbitrary labelled block exits remain a separate storage transport requirement.
+Labelled block breaks return their planned Map storage after required cleanup.
+
+
+Labelled blocks preserve local Map callback storage across normal fallthrough and
+breaks to the block. The compiler joins entries retained by each reaching exit.
+An early break before deletion retains that entry; a refill with a different
+callback remains callable after the block. Deleted captures can be mutated once
+all reaching owners have released them. Remaining entries keep their captures
+borrowed until deletion, clear or disposal.
+
+A break from an inner loop to a labelled block carries the live owner to the block
+result. Required finally bodies run before that result is returned. Cleanup can
+replace a pending completion with its own block break. This storage transport
+moves entries and does not clone captured values. Source ownership checks still
+reject mutation of surviving captures.

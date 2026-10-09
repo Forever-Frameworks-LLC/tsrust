@@ -56,6 +56,22 @@ impl Snapshots {
 mod tests {
     use super::*;
     #[test]
+    fn labelled_block_join_preserves_normal_and_break_survivors() {
+        let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function scenario(stop:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});exit:{handlers.set('first',{run:():int=>first[0]});handlers.delete('first');if(stop)break exit;}handlers.clear();}function main():void{scenario(false);scenario(true);}").unwrap();
+        for (source,expected) in [(source.clone(),1),(source.replace("handlers.delete('first');", "if(stop)break exit;handlers.delete('first');"),2)] {
+            let checked=crate::check(&source).unwrap();
+            let function=checked.program.functions.iter().find(|function|function.name=="scenario").unwrap();
+            let block=function.body.iter().find(|statement|matches!(statement.kind,crate::syntax::StmtKind::Block(_))&&!statement.labels.is_empty()).unwrap();
+            let states=function.storage_exits.map_completion_survivors(block.span);
+            assert_eq!(states.len(),1,"labelled block must retain its joined source owner proof");
+            assert!(states[0].consistent);
+            assert_eq!(states[0].payloads.len(),expected,"an early break must retain the first entry");
+            let first=function.bindings.iter().position(|binding|binding.name=="first").unwrap();
+            assert!(states[0].released.contains(&first));
+        }
+    }
+
+    #[test]
     fn nested_loop_break_storage_is_not_an_empty_backedge() {
         let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});let turn=0;outer:while(turn<3){try{inner:while(true){try{handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;turn++;if(turn<3)continue outer;break inner;}finally{console.log('inner',turn);}}}finally{for(const [key,entry] of handlers){console.log(entry.run());}}}handlers.clear();}").unwrap();
         assert_eq!(crate::format(&source).unwrap(),source);

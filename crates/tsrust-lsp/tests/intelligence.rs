@@ -8761,3 +8761,15 @@ fn direct_nested_map_entry_release_preserves_survivor_diagnostics() {
  let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///direct-map-control.tsr").unwrap()).unwrap();
  assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
 }
+
+#[test]
+fn labelled_block_map_entry_release_preserves_survivor_diagnostics() {
+ let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});exit:{try{handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;break exit;}finally{for(const [key,entry] of handlers){console.log(entry.run());}}}first[0]+=10;handlers.clear();}").unwrap();
+ assert!(tsrust_lsp::diagnostics(&source,"file:///labelled-block-map.tsr").unwrap().is_empty());
+ let loop_source=source.replace("try {","try {while(true){").replace("} finally {","} }finally{");
+ assert_ne!(loop_source,source);
+ assert!(tsrust_lsp::diagnostics(&loop_source,"file:///loop-labelled-block-map.tsr").unwrap().is_empty());
+ let conflict=source.replace("first[0] += 1;","second[0]+=1;");assert_ne!(source,conflict);
+ let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///labelled-block-map.tsr").unwrap()).unwrap();
+ assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+}

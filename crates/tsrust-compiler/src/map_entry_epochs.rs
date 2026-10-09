@@ -50,6 +50,8 @@ impl Analyzer {
             if let StmtKind::Block(inner)=&mut statement.kind {
                 if statement.labels.is_empty() {
                     local=self.scoped_map_entry_epochs_with_demand(context,inner,results,demand,&local)?;
+                } else {
+                    self.plan_map_block_storage(context,statement,results,demand,&local)?;
                 }
                 continue;
             }

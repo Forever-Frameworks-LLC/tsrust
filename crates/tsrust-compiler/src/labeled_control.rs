@@ -85,6 +85,9 @@ impl Analyzer {
             }
             if let Some(flow)=frame.break_flow{context.flow=if exits {flow}else{crate::flow::join(&context.flow,&flow)};}
         }
+        // Preserve the normal/break owner join for later native storage planning.
+        // A deletion on one path cannot eliminate entries retained on another.
+        self.record_map_completion_release(context,body,&mut [],span)?;
         Ok(exits && !frame.break_seen)
     }
 }

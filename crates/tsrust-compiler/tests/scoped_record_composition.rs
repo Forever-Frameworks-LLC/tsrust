@@ -1,6 +1,52 @@
 mod support;
 
 #[test]
+fn labelled_map_block_exit_from_nested_loop_preserves_cleanup() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});exit:{try{while(true){handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;break exit;}}finally{console.log('cleanup',handlers.size);for(const [key,entry] of handlers){console.log('kept',key,entry.run());}}}first[0]+=10;console.log('after',handlers.size,first[0]);handlers.clear();}");
+    support::execute(&source,"cleanup 1\nkept second 5\nafter 1 14\n",None);
+    verify_disposal(&source,2,"drop 1\ncleanup 1\nkept second 5\nafter 1 14\ndrop 0\n");
+    for replacement in ["for(let step=0;step<1;step+=1){","do{","for(const step of [0]){"] {
+        let mut variant=source.replace("while (true) {",replacement);assert_ne!(variant,source);
+        if replacement=="do{" {variant=variant.replace("} finally {","while(false);}finally{");}
+        support::execute(&support::format_round_trip(&variant),"cleanup 1\nkept second 5\nafter 1 14\n",None);
+    }
+}
+
+
+#[test]
+fn labelled_map_block_reaching_exit_retains_early_entries_and_refill() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(stop:boolean):void{const first=[3];const second=[5];const third=[7];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});exit:{handlers.set('first',{run:():int=>first[0]});if(stop)break exit;handlers.delete('first');first[0]+=1;handlers.set('third',{run:():int=>third[0]});}console.log('after',handlers.size);for(const [key,entry] of handlers){console.log('kept',key,entry.run());}handlers.clear();first[0]+=10;third[0]+=10;console.log('done',first[0],third[0]);}function main():void{scenario(false);scenario(true);}");
+    support::execute(&source,"after 2\nkept second 5\nkept third 7\ndone 14 17\nafter 2\nkept second 5\nkept first 3\ndone 13 17\n",None);
+}
+
+
+#[test]
+fn labelled_map_block_direct_exit_preserves_survivors() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(stop:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});exit:{handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;if(stop)break exit;console.log('tail');}console.log('after',handlers.size);for(const [key,entry] of handlers){console.log('kept',key,entry.run());}handlers.clear();console.log('done',first[0]);}function main():void{scenario(false);scenario(true);}");
+    support::execute(&source,"tail\nafter 1\nkept second 5\ndone 4\nafter 1\nkept second 5\ndone 4\n",None);
+    verify_disposal(&source,2,"drop 1\ntail\nafter 1\nkept second 5\ndrop 0\ndone 4\ndrop 1\nafter 1\nkept second 5\ndrop 0\ndone 4\n");
+    let nested=source.replace("exit: {","outer:{exit:{").replace("break exit;","break outer;").replace("console.log('after', handlers.size);","}console.log('after',handlers.size);");
+    assert_ne!(nested,source);
+    support::execute(&support::format_round_trip(&nested),"tail\nafter 1\nkept second 5\ndone 4\nafter 1\nkept second 5\ndone 4\n",None);
+}
+
+
+#[test]
+fn labelled_map_block_exit_preserves_survivors_after_cleanup() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(stop:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});exit:{try{handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;if(stop)break exit;console.log('tail');}finally{console.log('cleanup',handlers.size);for(const [key,entry] of handlers){console.log('kept',key,entry.run());}}}console.log('after',handlers.size);handlers.clear();console.log('done',first[0]);}function main():void{scenario(false);scenario(true);}");
+    support::execute(&source,"tail\ncleanup 1\nkept second 5\nafter 1\ndone 4\ncleanup 1\nkept second 5\nafter 1\ndone 4\n",None);
+    verify_disposal(&source,2,"drop 1\ntail\ncleanup 1\nkept second 5\nafter 1\ndrop 0\ndone 4\ndrop 1\ncleanup 1\nkept second 5\nafter 1\ndrop 0\ndone 4\n");
+    let overwritten=source.replace("console.log('cleanup', handlers.size);","console.log('cleanup',handlers.size);if(!stop)break exit;");
+    support::execute(&support::format_round_trip(&overwritten),"tail\ncleanup 1\nafter 1\ndone 4\ncleanup 1\nkept second 5\nafter 1\ndone 4\n",None);
+    let outside=source.replace("console.log('after', handlers.size);","first[0]+=10;console.log('after',handlers.size);");
+    support::execute(&support::format_round_trip(&outside),"tail\ncleanup 1\nkept second 5\nafter 1\ndone 14\ncleanup 1\nkept second 5\nafter 1\ndone 14\n",None);
+
+    let conflict=source.replace("first[0] += 1;","second[0]+=1;");
+    assert_eq!(tsrust_compiler::check(&conflict).err().expect("surviving block capture remains borrowed").code,"capture-conflict");
+}
+
+
+#[test]
 fn nested_map_direct_outer_controls_preserve_survivors() {
     let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(stop:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});let turn=0;outer:while(turn<3){inner:while(true){handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;turn++;if(stop)break outer;if(turn<3)continue outer;break inner;}console.log('tail',turn);}console.log('size',handlers.size);for(const [key,entry] of handlers){console.log('kept',key,entry.run());}handlers.clear();console.log('done',first[0]);}function main():void{scenario(false);scenario(true);}");
     support::execute(&source,"tail 3\nsize 1\nkept second 5\ndone 6\nsize 1\nkept second 5\ndone 4\n",None);

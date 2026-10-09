@@ -26,7 +26,9 @@ impl Emitter<'_> {
             // A body that cannot reach its tail has no checked condition or
             // update to emit. Return/error/control already ran its cleanup.
             if matches!(statement.kind,StmtKind::Loop{tail_reachable:false,..}) {
-                self.map_post_entry_epochs(output,fun,statement.span,depth);
+                // Every path already leaves through its checked completion.
+                // A post-loop empty projection has no reaching normal owner
+                // and would change the type of the unreachable phase tail.
                 return true;
             }
         }
@@ -52,13 +54,24 @@ impl Emitter<'_> {
         let places=epochs.iter().map(|epoch|self.map_entry_epoch_place(fun,&epoch.entry)).collect::<Vec<_>>();
         let pattern=places.iter().map(|place|format!("mut {place}")).collect::<Vec<_>>().join(",");
         let names=places.join(",");
-        let _=writeln!(output,"{indent}let (map_stop_{label},{pattern},) = 'map_body_{label}: {{");
+        let exits=crate::completion::definitely_abrupt(body,0);
+        let annotation=if exits {
+            let types=epochs.iter().map(|epoch|self.native_type(self.map_storage_leaf_type(epoch.body.output,&epoch.entry.place.fields).expect("checked iteration owner"))).collect::<Vec<_>>().join(",");
+            format!(":(bool,{types},)")
+        }else{String::new()};
+        let _=writeln!(output,"{indent}let (map_stop_{label},{pattern},){annotation} = 'map_body_{label}: {{");
         self.control_block_epochs(output,fun,body,depth+1,Some(statement.span.start),Some(declarations));
         let abrupt=fun.storage_exits.has_map_iteration_controls(label);
-        if abrupt {for epoch in epochs {
-            if epoch.body.input!=epoch.body.output{let _=writeln!(output,"{indent}    {}",self.map_entry_epoch_code(fun,&epoch.body));}
-        }}
-        let _=writeln!(output,"{indent}    (false,{names},)\n{indent}}};");
+        if exits {
+            // Every checked path already leaves. Repeating its conversion in
+            // an unreachable tail can read a different, already moved family.
+            let _=writeln!(output,"{indent}    unreachable!(\"checked abrupt iteration body\");\n{indent}}};");
+        }else{
+            if abrupt {for epoch in epochs {
+                if epoch.body.input!=epoch.body.output{let _=writeln!(output,"{indent}    {}",self.map_entry_epoch_code(fun,&epoch.body));}
+            }}
+            let _=writeln!(output,"{indent}    (false,{names},)\n{indent}}};");
+        }
         if !abrupt {
             if let StmtKind::Loop{update,tail_reachable:true,..}=&statement.kind {
                 self.control_block_epochs(output,fun,update,depth,Some(label),Some(declarations));
@@ -102,7 +115,9 @@ impl Emitter<'_> {
         let mut code=String::new();
         for epoch in epochs {if epoch.input!=epoch.output{code.push_str(&self.map_entry_epoch_code(fun,epoch));}}
         let names=epochs.iter().map(|epoch|self.map_entry_epoch_place(fun,epoch)).collect::<Vec<_>>().join(",");
-        code.push_str(&format!("break 'map_body_{label} ({},{names},);",!continuing));
+        if matches!(statement.control_target,Some(ControlTarget::Block(_))) {
+            code.push_str(&format!("break 'map_block_{label} ({names},);"));
+        } else {code.push_str(&format!("break 'map_body_{label} ({},{names},);",!continuing));}
         Some(code)
     }
 

@@ -1303,3 +1303,132 @@ layouts, broader aggregate/within-expression precision and structural owned
 record keys remain pending. Installed consumers remain at gate 181; scratch debug
 compiler and benchmark-built native compiler are current. Preserve the 15
 unrelated fixture edits and stage only explicit paths.
+
+
+### Labelled block exits: active failing witnesses
+
+After checkpoint 9e3cdb3, two uncommitted witnesses cover a labelled block whose
+normal path and break path retain a second callback entry after deleting the
+first. `labelled_map_block_direct_exit_preserves_survivors` tests direct break.
+`labelled_map_block_exit_preserves_survivors_after_cleanup` tests break through
+finally, including cleanup observation followed by continued use outside the
+block. Both check and format successfully, but generated Rust rejects mutation
+of the deleted capture with E0502. Both independent Node references produce the
+expected output. These tests are active red witnesses, not accepted features.
+
+The current local epoch planner explicitly skips labelled blocks. The lexical
+block emitter likewise declines storage results for labelled blocks; plain
+control dispatch emits a valueless break. Existing labelled-block analysis joins
+normal and break capture owners, but does not retain distinct native storage
+inputs for a storage-bearing exit. This is separate from the now-fixed loop
+transport, whose targets return carried tuples.
+
+Implementation requirements:
+
+1. Preserve normal and break owner proofs for the labelled block after cleaned
+   completions join. Discover eligible local Map places without admitting maps
+   whose source ownership remains unavailable on any reaching path.
+2. Plan the block's working and output families in an isolated module. Recurse
+   through its body with local Map epochs, retaining each direct break input.
+   Convert each reaching path to one checked block result family.
+3. Emit a labelled block expression returning its Map owner tuple. Direct breaks
+   return that tuple; cleaned breaks return it only after every exited finally
+   runs. Valueless dispatch cannot exit a storage-bearing block expression.
+   Preserve destination identity for nested blocks and loops.
+4. Verify skipped bodies, conditional retained entries, nested block destinations,
+   cleanup overriding the pending break, exact disposal at both optimization
+   levels and surviving-capture rejection. Add editor checks and matched workload,
+   independent oracle, scoped token guards and registration mutation controls.
+5. Run affected tests and all eight depth canaries, format the entire project,
+   retain SQLite evidence and commit explicit paths. B5 remains open until its
+   remaining family requirements are fulfilled.
+
+Three closed logs are imported into SQLite, read back byte for byte and removed:
+tsrust-b5-labelled-block-red.log, tsrust-b5-labelled-block-direct-red.log and
+tsrust-b5-labelled-block-node.log. No compiler source or installed consumer is
+changed in this investigation. The two new tests remain uncommitted together with
+this plan update; the 15 unrelated fixture edits remain untouched.
+
+
+### Labelled block source join proof implemented; native transport pending
+
+The labelled-block analyzer now records completion survivor metadata after its
+normal/break capture-owner and availability joins. It reuses the existing
+record_map_completion_release helper; it does not authorize elimination from an
+individual deletion path. The new raw proof checks both deletion on every exit
+(one retained payload) and an early break before deletion (both payloads remain).
+The valid red showed missing block completion metadata. The repaired proof and
+all ten phase/native-boundary tests pass. All eight normal-stack depth canaries
+pass on the modified analyzer.
+
+The first attempted proof lacked main and failed entry validation. It was repaired
+and rerun red with implementation removed before adding the analyzer change.
+Those failed attempts remain distinct immutable records, not acceptance evidence.
+The two native labelled-block witnesses still fail E0502 after the metadata fix;
+there is no claim of usable labelled-block storage transport yet.
+
+Next add a dedicated block storage plan using this joined proof. Carry the checked
+working family into the block, collect point-sensitive direct-break inputs, and
+return a common result owner on normal and break paths. Wire cleaned block breaks
+through completion dispatch without bypassing finally. The existing epoch walk's
+early labelled-block skip and valueless block break must be replaced together.
+Keep the block destination distinct from loop stop flags. Verify the retained
+native reds plus conditional retained entries and disposal before acceptance.
+
+Seven new closed logs are retained in SQLite, read back byte for byte and removed:
+proof-red, proof-first, proof-valid-red, proof-fixed, proofs, canaries and
+native-still-red under the tsrust-b5-labelled-block prefix. Compiler changes,
+raw proof, native witnesses and plan updates remain uncommitted in-progress work.
+HEAD remains 9e3cdb3. Preserve the 15 unrelated fixture edits. B5 remains open.
+
+
+### Labelled block Map transport accepted
+
+Labelled blocks now retain checked normal/break owner joins and plan their storage
+in map_block_storage_plan. The planner recurses with eligible local Map places,
+joins all reaching callback payloads, records point-sensitive direct break
+conversions and restores the output family at the block boundary. Early exits
+retain entries they bypass; newly inserted callback origins remain present.
+Source ownership proofs remain authoritative and opaque callee effects do not
+create a local elimination proof.
+
+map_block_storage_emit emits a labelled result expression carrying the Map owner
+tuple. Direct breaks return that tuple. Cleaned breaks dispatch to the block only
+after required finally bodies have completed. Nested block and loop destinations
+remain distinct. Exception discovery and lexical outer scopes now recognize
+planned labelled-block results. No captured value is cloned implicitly.
+
+Expanded witnesses exposed two additional native defects. A post-test body that
+cannot reach its tail emitted a non-reaching empty projection after its completion.
+It now returns without that projection. A body ending in a checked break emitted
+its conversion before the break and again in an unreachable tail; the second
+conversion used an obsolete carrier family. Definitely abrupt iteration bodies
+now emit a typed unreachable tail instead of repeating conversions or reading
+moved owners. Failed logs are retained separately from repaired evidence.
+
+Native witnesses cover direct and cleaned block breaks, nested block destinations,
+loop-to-block breaks for while, counted, post-test and for-of loops, an early exit
+retaining the first entry, a refill with a third origin, cleanup overriding the
+pending completion, mutation after deletion and after the block, survivor conflict
+rejection and exact disposal at both optimization levels. The raw join proof
+preserves one payload after unconditional deletion and two after an early break.
+
+Final bounded evidence passes 83 affected Map tests, 12 editor entry-release
+checks, ten phase/storage proofs and all eight normal-stack depth canaries.
+Whole-project formatting changes zero files and zero fingerprints at the final
+checkpoint. Matched sources, independent arithmetic oracles, token guards and
+mutation controls cover plain labelled blocks and nested-loop block exits.
+All five native and Node-after-tsc cases agree on 72 observations per row.
+Current record: runtime/results/2026-10-09T04-36-26-109Z-verify.json. The earlier
+successful 71-observation record, runtime/results/2026-10-09T04-28-28-494Z-verify.json,
+is preserved independently. Twenty-nine closed logs and both records are imported
+into SQLite, read back byte for byte and removed from loose storage.
+
+B5 remains open: ordinary differing loop edge families, independent native phase
+layouts, broader aggregate/within-expression precision and structural owned
+record Set/Map keys remain pending. No whole-family regression or timing is
+claimed. Installed consumers remain at gate 181; scratch compilers are current.
+Next add a focused witness for an ordinary loop whose entry, backedge and break
+retain different callback origins before changing its carrier eligibility.
+Keep benchmark support current as it lands and preserve the 15 unrelated fixtures
+using explicit Git paths.

@@ -1,3 +1,5 @@
+#[path="map_block_storage_emit.rs"]
+mod map_block_storage_emit;
 #[path = "restored_capture_slots.rs"]
 mod restored_capture_slots;
 #[path = "polymorphic_storage_emit.rs"]
@@ -3265,6 +3267,7 @@ impl Emitter<'_> {
                 self.exception_regions.renew_storage(&[format!("value{}",epoch.place.binding)],stmt.span.start);
             }
             if let Some(code)=self.map_iteration_control_code(fun,stmt){let _=writeln!(output,"{indent}{code}");continue;}
+            if self.map_block_storage_epoch(output,fun,stmt,declarations,depth,loop_label){continue;}
             if self.map_iteration_epoch(output,fun,stmt,declarations,depth){continue;}
             if self.map_empty_loop_epoch(output, fun, stmt, declarations, depth) {
                 self.map_post_entry_epochs(output,fun,stmt.span,depth);

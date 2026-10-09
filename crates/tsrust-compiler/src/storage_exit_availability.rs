@@ -2,7 +2,7 @@
 use super::*;
 
 #[derive(Clone, Debug, Default)]
-pub(crate) struct Exits(HashMap<(usize, usize), Vec<Unavailable>>, HashMap<usize, Vec<Unavailable>>, HashMap<(usize, usize), Vec<Unavailable>>, Option<Box<HashMap<(usize,usize),MapEntrySurvivors>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize),Type>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntrySurvivors>>>>, Option<Box<HashMap<(usize,usize,bool),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize,MapLoopEdge),std::collections::BTreeMap<crate::capture_loan_owners::Place,HashSet<Type>>>>>, Option<Box<HashMap<(usize,usize),Vec<MapIterationEpoch>>>>, Option<Box<HashMap<(usize,usize),HashMap<usize,Type>>>>, Option<Box<HashMap<(usize,usize),(usize,bool,Vec<MapEntryEpoch>)>>>, Option<Box<map_completion_payloads::Snapshots>>);
+pub(crate) struct Exits(HashMap<(usize, usize), Vec<Unavailable>>, HashMap<usize, Vec<Unavailable>>, HashMap<(usize, usize), Vec<Unavailable>>, Option<Box<HashMap<(usize,usize),MapEntrySurvivors>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize),Type>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntrySurvivors>>>>, Option<Box<HashMap<(usize,usize,bool),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize,MapLoopEdge),std::collections::BTreeMap<crate::capture_loan_owners::Place,HashSet<Type>>>>>, Option<Box<HashMap<(usize,usize),Vec<MapIterationEpoch>>>>, Option<Box<HashMap<(usize,usize),HashMap<usize,Type>>>>, Option<Box<HashMap<(usize,usize),(usize,bool,Vec<MapEntryEpoch>)>>>, Option<Box<map_completion_payloads::Snapshots>>, Option<Box<HashMap<usize,Vec<MapEntryEpoch>>>>);
 #[derive(Clone,Debug)]
 pub(crate) struct MapIterationEpoch {
     pub carrier_empty: bool,
@@ -141,6 +141,12 @@ impl Exits {
     }
     pub(super) fn map_control_inputs(&self,span:Span)->Option<&HashMap<usize,Type>> {
         self.10.as_ref()?.get(&(span.start,span.end))
+    }
+    pub(super) fn record_map_block_epochs(&mut self,label:usize,epochs:Vec<MapEntryEpoch>) {
+        self.13.get_or_insert_with(Default::default).insert(label,epochs);
+    }
+    pub(crate) fn map_block_epochs(&self,label:usize)->&[MapEntryEpoch] {
+        self.13.as_ref().and_then(|points|points.get(&label)).map(Vec::as_slice).unwrap_or(&[])
     }
     pub(super) fn record_map_iteration_control(&mut self,span:Span,label:usize,continuing:bool,epochs:Vec<MapEntryEpoch>) {
         self.11.get_or_insert_with(Default::default).insert((span.start,span.end),(label,continuing,epochs));
