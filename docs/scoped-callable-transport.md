@@ -557,3 +557,9 @@ When the stored callback instead borrows an input captured by the installer, sou
 Two local installer closures can capture different caller-owned arrays and replace the same stored callback. After both installers leave their blocks, the old array can be mutated while the holder continues borrowing the replacement array. Nullable and plain readonly callback fields preserve this behavior. Mutating the replacement array before releasing its stored callback reports a capture conflict.
 
 Direct installer invocation passes owner markers for hidden captured inputs alongside markers for written inputs. Replacement reconstructs only the checked owner payload, ending the old borrow without cloning. Consuming wrappers, indirect invocation through captured receivers, owned capture storage and closure-local owner identities still require their remaining interfaces.
+
+### Owners declared inside closures
+
+Arrays declared inside an ordinary closure keep independent owners when an effectful named installer replaces a stored callback. After replacement, the old array can be mutated while the holder continues borrowing the new array. Readonly callbacks work with nullable and plain fields; mutable callbacks update their retained array while releasing the overwritten array. Nested local installers can capture those arrays without changing their owner scope.
+
+Captured data and installer effect state retain separate loan paths. Storing a callback that borrows an array keeps that array live, while an unrelated captured counter becomes available after its installer leaves scope. The compiler does not infer shared mutable storage or clone either capture.

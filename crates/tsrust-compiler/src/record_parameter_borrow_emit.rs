@@ -83,7 +83,7 @@ impl Emitter<'_> {
             .flatten()
             .filter(|owners| {
                 owners.iter().all(|(inner, owner)| {
-                    owner.function == function
+                    owner.scope == borrowed_owner_provenance::Scope::Function(function)
                         && owner.binding < self.program.functions[function].parameter_count
                         && self
                             .program

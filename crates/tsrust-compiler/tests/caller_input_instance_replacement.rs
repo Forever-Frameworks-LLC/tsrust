@@ -836,3 +836,34 @@ fn independent_captured_installers_release_the_previous_source_owner() {
     let error=tsrust_compiler::check(&conflict).err().expect("The replacement captured source remains borrowed");
     assert_eq!(error.code,"capture-conflict","{error:?}");
 }
+
+#[test]
+fn closure_local_inputs_keep_independent_native_owners() {
+    let source = r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>, calls: Mutable<int[]>): void { calls[0] += 1; holder.run = (): int => source[0]; }
+        function main() {
+            const run = (): void => {
+                const first = [3]; const second = [10]; const calls = [0]; const holder: Holder = { run: undefined };
+                install(holder, first, calls); strictEqual(holder.run!(), 3);
+                install(holder, second, calls); first[0] += 1;
+                strictEqual(first[0], 4); strictEqual(holder.run!(), 10); strictEqual(calls[0], 2);
+            };
+            run();
+        }
+    "#;
+    execute(source);
+    let plain=source.replace(" | undefined", "").replace("run: undefined", "run: (): int => 0").replace("run!()", "run()");
+    execute(&plain);
+    let mutable=source.replace("ReadOnly<Function<int>>", "Mutable<Function<int>>")
+        .replace("source: ReadOnly<int[]>", "source: Mutable<int[]>")
+        .replace("(): int => source[0]", "(): int => { source[0] += 1; return source[0]; }")
+        .replace("strictEqual(holder.run!(), 3);", "strictEqual(holder.run!(), 4);")
+        .replace("strictEqual(first[0], 4);", "strictEqual(first[0], 5);")
+        .replace("strictEqual(holder.run!(), 10);", "strictEqual(holder.run!(), 11);");
+    execute(&mutable);
+    let captured = source.replace("install(holder, first, calls);", "{ const perform = (target: Mutable<Holder>): void => { install(target, first, calls); }; perform(holder); }")
+        .replace("install(holder, second, calls);", "{ const perform = (target: Mutable<Holder>): void => { install(target, second, calls); }; perform(holder); }");
+    execute(&captured);
+}

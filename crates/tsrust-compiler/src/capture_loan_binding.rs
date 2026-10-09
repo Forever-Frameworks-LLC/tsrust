@@ -184,6 +184,13 @@ impl Analyzer {
                         for capture in &closure.captures {
                             let mut target = destination.clone();
                             target.fields.push(format!("$capture{}", capture.inner));
+                            // Keep direct capture loans on their own field as well
+                            // as the environment root. A stored projection must not
+                            // retain unrelated effect-state captures.
+                            let direct = context.capture_loans.iter()
+                                .filter(|(source,_,span)|*source==capture.outer && *span==value.span)
+                                .map(|loan|context.capture_loan_ids.intern(*loan)).collect::<Vec<_>>();
+                            context.capture_loan_owners.attach(target.clone(),direct);
                             let source = Place {
                                     binding: capture.outer,
                                     fields: vec![],

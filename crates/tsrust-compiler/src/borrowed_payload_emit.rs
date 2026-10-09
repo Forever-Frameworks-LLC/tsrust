@@ -173,8 +173,7 @@ impl Emitter<'_> {
                                 .iter()
                                 .find(|(capture, _)| capture == inner)
                                 .is_none_or(|(_, owner)| {
-                                    self.program.functions[owner.function].bindings[owner.binding]
-                                        .ty
+                                    owner.scope.function(self.program).bindings[owner.binding].ty
                                         == Type::Closure(*actual)
                                 })
                         })

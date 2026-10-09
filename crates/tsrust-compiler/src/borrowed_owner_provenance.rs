@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(super) struct Owner {
-    pub(super) function: usize,
+    pub(super) scope: Scope,
     pub(super) binding: usize,
 }
 
@@ -105,7 +105,7 @@ fn resolve(
             return Some(owner.clone());
         }
         let value = function.bindings.get(binding)?;
-        if value.parameter {
+        if value.parameter || value.capture_reference {
             return None;
         }
         if !value.rebindable && (value.callback_reference || value.borrowed_place.is_some()) {
@@ -115,13 +115,7 @@ fn resolve(
             binding = *root;
             continue;
         }
-        let Scope::Function(id) = scope else {
-            return None;
-        };
-        return Some(Owner {
-            function: id,
-            binding,
-        });
+        return Some(Owner { scope, binding });
     }
     None
 }
@@ -250,7 +244,12 @@ pub(super) fn plan(program: &CheckedProgram) -> Plan {
 }
 pub(super) fn parameter_vectors(program: &CheckedProgram, function: usize) -> Plan {
     let inputs = (0..program.functions[function].parameter_count)
-        .map(|binding| Some(Owner { function, binding }))
+        .map(|binding| {
+            Some(Owner {
+                scope: Scope::Function(function),
+                binding,
+            })
+        })
         .collect();
     walk(program, vec![(Scope::Function(function), inputs)])
 }
@@ -429,7 +428,7 @@ fn ordinary_closure_installers_keep_named_caller_owner_identity() {
         .position(|function| function.name == "main")
         .unwrap();
     let expected = ["first", "second"].map(|name| Owner {
-        function: main,
+        scope: Scope::Function(main),
         binding: program.functions[main]
             .bindings
             .iter()
@@ -453,5 +452,67 @@ fn ordinary_closure_installers_keep_named_caller_owner_identity() {
     assert!(
         plan(&checked.program).is_empty(),
         "alias contexts must not invent concrete owner vectors"
+    );
+}
+
+#[test]
+fn closure_local_storage_uses_its_own_owner_scope() {
+    let checked = crate::check(r#"
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>, calls: Mutable<int[]>): void { calls[0] += 1; holder.run = (): int => source[0]; }
+        function main() {
+            const inspect = (): void => {
+                const first = [3]; const second = [10]; const calls = [0]; const holder: Holder = { run: undefined };
+                install(holder, first, calls); install(holder, second, calls); console.log(holder.run!());
+            };
+            inspect();
+        }
+    "#).unwrap();
+    let program = &checked.program;
+    let install = program
+        .functions
+        .iter()
+        .position(|function| function.name == "install")
+        .unwrap();
+    let origin = program.record_parameter_borrows[&install][0].origin;
+    let closure = program
+        .closures
+        .iter()
+        .position(|closure| {
+            closure
+                .function
+                .bindings
+                .iter()
+                .any(|binding| binding.name == "first")
+        })
+        .unwrap();
+    let owners = plan(program)[&origin]
+        .iter()
+        .flat_map(|vector| vector.iter().map(|(_, owner)| owner.clone()))
+        .collect::<BTreeSet<_>>();
+    let expected = ["first", "second"]
+        .map(|name| Owner {
+            scope: Scope::Closure(closure),
+            binding: program.closures[closure]
+                .function
+                .bindings
+                .iter()
+                .position(|binding| binding.name == name)
+                .unwrap(),
+        })
+        .into_iter()
+        .collect();
+    assert_eq!(owners, expected);
+    assert!(
+        owners
+            .iter()
+            .all(|owner| Emitter::owner_name(owner).starts_with("TsrClosureOwner"))
+    );
+    assert_eq!(
+        Emitter::owner_name(&Owner {
+            scope: Scope::Function(closure),
+            binding: 0
+        }),
+        format!("TsrOwner{closure}_0")
     );
 }

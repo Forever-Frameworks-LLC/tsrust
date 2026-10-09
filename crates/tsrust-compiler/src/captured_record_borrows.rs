@@ -34,17 +34,21 @@ impl Analyzer {
             let target = Place { binding, fields };
             self.retain_record_invocation_contract(context, &target, effect.origin, span)?;
             let capture = &self.closures[closure].captures[effect.source_capture];
-            let declared_here = !context.bindings[receiver].capture_reference
-                && context.bindings[receiver].initializer.as_deref().is_some_and(|initializer|matches!(initializer.kind,ExprKind::Closure{id,..} if id==closure));
-            let loans = if declared_here && matches!(capture.storage, Mode::Read | Mode::Mutate) {
-                vec![(capture.outer, effect.mode, span)]
-            } else if capture.storage == Mode::Consume {
+            let loans = if capture.storage == Mode::Consume {
                 vec![(receiver, effect.mode, span)]
             } else {
-                let inherited = context.capture_loan_owners.loans_under(&Place {
+                let specific = context.capture_loan_owners.loans_under(&Place {
                     binding: receiver,
-                    fields: Vec::new(),
+                    fields: vec![format!("$capture{}", capture.inner)],
                 });
+                let inherited = if specific.is_empty() {
+                    context.capture_loan_owners.loans_under(&Place {
+                        binding: receiver,
+                        fields: Vec::new(),
+                    })
+                } else {
+                    specific
+                };
                 let loans = inherited
                     .into_iter()
                     .filter_map(|id| context.capture_loan_ids.loan(id))

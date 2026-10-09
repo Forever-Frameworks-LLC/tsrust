@@ -94,7 +94,14 @@ impl Emitter<'_> {
             .position(|candidate| std::ptr::eq(candidate, function))
     }
     pub(super) fn owner_name(owner: &borrowed_owner_provenance::Owner) -> String {
-        format!("TsrOwner{}_{}", owner.function, owner.binding)
+        match owner.scope {
+            borrowed_owner_provenance::Scope::Function(id) => {
+                format!("TsrOwner{id}_{}", owner.binding)
+            }
+            borrowed_owner_provenance::Scope::Closure(id) => {
+                format!("TsrClosureOwner{id}_{}", owner.binding)
+            }
+        }
     }
     pub(super) fn owner_binding_marker(
         &self,
@@ -128,7 +135,13 @@ impl Emitter<'_> {
                 {
                     binding = value.view_roots[0];
                 } else {
-                    return None;
+                    if value.parameter || value.capture_reference {
+                        return None;
+                    }
+                    return Some(Self::owner_name(&borrowed_owner_provenance::Owner {
+                        scope: borrowed_owner_provenance::Scope::Closure(origin),
+                        binding,
+                    }));
                 }
             }
             return None;
@@ -151,7 +164,7 @@ impl Emitter<'_> {
                 continue;
             }
             return Some(Self::owner_name(&borrowed_owner_provenance::Owner {
-                function: id,
+                scope: borrowed_owner_provenance::Scope::Function(id),
                 binding,
             }));
         }
@@ -260,7 +273,7 @@ pub(super) fn lifetime_alternatives(
                                     .iter()
                                     .find(|(capture, _)| capture == inner)
                                     .is_none_or(|(_, owner)| {
-                                        program.functions[owner.function].bindings[owner.binding].ty
+                                        owner.scope.function(program).bindings[owner.binding].ty
                                             == Type::Closure(*actual)
                                     })
                             })
@@ -297,7 +310,7 @@ pub(super) fn marker_plan(program: &CheckedProgram) -> borrowed_owner_provenance
                                 .iter()
                                 .find(|(capture, _)| capture == inner)
                                 .map(|(_, owner)| {
-                                    program.functions[owner.function].bindings[owner.binding].ty
+                                    owner.scope.function(program).bindings[owner.binding].ty
                                 })
                         };
                         ty(left) == ty(right)

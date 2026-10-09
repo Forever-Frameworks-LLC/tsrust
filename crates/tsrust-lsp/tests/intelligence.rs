@@ -9553,3 +9553,27 @@ fn independent_captured_installers_keep_replacement_owner_diagnostics() {
     let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///independent-captured-installers.tsr").unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
 }
+
+#[test]
+fn closure_local_owner_replacement_preserves_editor_conflicts() {
+    let source=tsrust_compiler::format(r#"
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>, calls: Mutable<int[]>): void { calls[0] += 1; holder.run = (): int => source[0]; }
+        function main() {
+            const inspect = (): void => {
+                const first = [3]; const second = [10]; const calls = [0]; const holder: Holder = { run: undefined };
+                install(holder, first, calls); install(holder, second, calls);
+                first[0] += 1; console.log(holder.run!());
+            };
+            inspect();
+        }
+    "#).unwrap();
+    let captured=source.replace("install(holder, first, calls);", "{ const perform = (target: Mutable<Holder>): void => { install(target, first, calls); }; perform(holder); }")
+        .replace("install(holder, second, calls);", "{ const perform = (target: Mutable<Holder>): void => { install(target, second, calls); }; perform(holder); }");
+    assert!(tsrust_lsp::diagnostics(&captured,"file:///closure-local-captured-owners.tsr").unwrap().is_empty());
+    assert!(tsrust_lsp::diagnostics(&source,"file:///closure-local-owners.tsr").unwrap().is_empty());
+    let conflict=source.replace("first[0] += 1;","second[0] += 1;");
+    assert_ne!(source,conflict);
+    let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///closure-local-owners.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+}

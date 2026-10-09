@@ -326,7 +326,26 @@ function workload(n: int, seed: int, input: string): int[][] {
             independentReplacement = holder.run!();
         }
 
-        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects, conditionalFirst, conditionalReleased, conditionalReplacement, conditionalEffects, forwardedFirst, forwardedReleased, forwardedReplacement, forwardedEffects, closureFirst, closureReleased, closureReplacement, closureEffects, capturedFirst, capturedReleased, capturedReplacement, capturedEffects, retainedCapture, clearedCapture, independentFirst, independentReleased, independentReplacement]);
+        const inspectLocalOwners = (): int[] => {
+            const original = [value + 14];
+            const replacement = [value + 18];
+            const calls = [0];
+            const holder: ReadNullableHolder = { run: undefined };
+            {
+                const installLocalFirst = (target: ReadNullableHolder): void => { installConditional(target, original, true, calls); };
+                installLocalFirst(holder);
+            }
+            const localFirst = holder.run!();
+            {
+                const installLocalSecond = (target: ReadNullableHolder): void => { installConditional(target, replacement, true, calls); };
+                installLocalSecond(holder);
+            }
+            original[0] += 1;
+            return [localFirst, original[0], holder.run!(), calls[0]];
+        };
+        const localOwnerValues = inspectLocalOwners();
+
+        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects, conditionalFirst, conditionalReleased, conditionalReplacement, conditionalEffects, forwardedFirst, forwardedReleased, forwardedReplacement, forwardedEffects, closureFirst, closureReleased, closureReplacement, closureEffects, capturedFirst, capturedReleased, capturedReplacement, capturedEffects, retainedCapture, clearedCapture, independentFirst, independentReleased, independentReplacement, localOwnerValues[0], localOwnerValues[1], localOwnerValues[2], localOwnerValues[3]]);
         i += 1;
     }
 
