@@ -99,3 +99,54 @@ Private debug/compiler/editor and release builds include this slice. The five
 installed consumers remain at the last accepted B5 source. Refresh them atomically
 when the B7 acceptance requirements are met; this checkpoint is not family acceptance.
 Disposable standalone B7 emit/build probes were removed after preserving their logs.
+
+## Replacement investigation after this checkpoint
+
+The two source witnesses in `caller_borrowed_callback_replacement.rs` remain red.
+The additional mutable witness uses callbacks with scalar and array captures,
+checks outputs 2, 12 and 14 through the holder, then checks 3 and 16 through the
+original callbacks after the holder's scope ends. It reaches the same native E0308
+as the readonly witness; this is not a source ownership rejection. Independent Node
+execution passes both observable sequences.
+
+The native representation witness in that test file passes. It retains one generic
+wrapper definition and gives its two concrete capture environments separate static
+enum arms. Concrete `From<Wrapper<Counter>>` and
+`From<Wrapper<ArrayCounter>>` implementations allow the existing generic installer
+shape to accept both calls. Native execution preserves mutable callback state and
+releases the holder's borrows. This proves the representation is feasible without
+boxing, dynamic dispatch, shared cells, cloning or lifetime casts. It does not prove
+that the compiler emits that representation yet.
+
+The next implementation must distinguish a source origin from its native payload
+alternatives. A borrowed-family arm currently corresponds to exactly one origin;
+`borrowed_family_type`, `emit_borrowed_family`, `stored_callable_constructor`,
+record carrier conversion/reification and `record_environment_type` all depend on
+that assumption. Changing only the family definition would leave construction,
+conversion, dispatch and lifetime accounting inconsistent.
+
+Build a separate finite payload plan keyed by source origin and concrete captured
+callback environment vector. Collect vectors from checked installer calls, preserve
+independent capture positions even when signatures match, and map relays to their
+caller inputs. Deduplicate complete vectors, not individual capture slots: a Cartesian
+product would invent unobserved combinations. Keep ordering deterministic. Native
+family definitions, type rendering, `From` implementations and dispatch must consume
+the same plan. Concrete input environment types in conversion implementations avoid
+overlapping Rust implementations for unconstrained generic alternatives. Every
+alternative for a source origin dispatches to that origin's existing invocation and
+failure contract. Keep point-sensitive source origins and ownership loans unchanged.
+
+Do not extend source-origin registries with fake origins to get extra enum arms.
+Nested captured callbacks and native lifetime counts require recursive environment
+rendering from the same payload plan. Preserve the one-environment path and the
+seventeen passing caller-store tests while integrating the expanded representation.
+Before claiming replacement acceptance, make both red source witnesses pass, add
+readonly and mutable relay coverage, and extend the matched workload and editor
+witness. No complete regressions or timing were run during this investigation.
+
+The new evidence keys in SQLite are `tsrust-b7-replacement-reproduce.log`,
+`tsrust-b7-replacement-expanded-red.log`, `tsrust-b7-replacement-native-proof.log`,
+`tsrust-b7-replacement-node-reference.log` and
+`tsrust-b7-replacement-checkpoint-format.log`. The first two preserve expected
+compiler defects; the native proof and Node reference pass. Installed consumers
+remain unchanged. B7 remains open.
