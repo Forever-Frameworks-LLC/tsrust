@@ -1,3 +1,5 @@
+#[path = "record_parameter_borrow_emit.rs"]
+mod record_parameter_borrow_emit;
 #[path = "nullable_record_parameter_emit.rs"]
 mod nullable_record_parameter_emit;
 #[path="map_error_storage_emit.rs"]
@@ -2559,6 +2561,7 @@ impl Emitter<'_> {
             // Hidden capture parameters of a nested function follow its
             // source parameters and use the same access forms.
             let hidden = self.program.named_capture_access.get(&index).map_or(0, Vec::len);
+            let borrowed_inputs = self.record_borrow_inputs(index);
             let params = fun
                 .bindings
                 .iter()
@@ -2601,6 +2604,13 @@ impl Emitter<'_> {
                             |shape| self.shape_type(shape),
                         )
                     };
+                    let qualifier = if borrowed_inputs.contains(&index) && !qualifier.is_empty() {
+                        match b.mode {
+                            Mode::Read => format!("&'record_input{index} "),
+                            Mode::Mutate => format!("&'record_input{index} mut "),
+                            _ => qualifier.to_owned(),
+                        }
+                    } else { qualifier.to_owned() };
                     format!("{mutable}value{index}: {qualifier}{parameter_type}")
                 })
                 .collect::<Vec<_>>()
@@ -2646,7 +2656,9 @@ impl Emitter<'_> {
                     _ => None,
                 })
                 .collect::<Vec<_>>();
-            let mut generics = generics;
+            let mut lifetime_generics = borrowed_inputs.iter().map(|id| format!("'record_input{id}")).collect::<Vec<_>>();
+            lifetime_generics.extend(generics);
+            let mut generics = lifetime_generics;
             generics.extend((0..fun.parameter_count).filter_map(|id|self.nullable_record_parameter_bound(fun,id)));
             generics.extend((0..fun.parameter_count+hidden).filter_map(|id|self.record_parameter_bound(fun,id,index)));
             generics.extend(

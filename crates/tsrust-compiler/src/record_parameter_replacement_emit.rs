@@ -50,7 +50,7 @@ impl Emitter<'_>{
         let Some(layout)=self.record_parameter_layout(fun,parameter)else{return Vec::new();};
         let mut record=layout.record;let mut names=Vec::new();
         for(index,&field)in path.iter().enumerate(){let selected=&self.program.records[record].fields[field];names.push(selected.name.text.clone());if index+1<path.len(){let Some(Type::Record(child))=selected.ty else{return Vec::new();};record=child;}}
-        let mut bounds=self.program.record_parameter_replacements.get(&function).into_iter().flatten().filter(|(id,selected,_)|*id==parameter && selected==&names).map(|(_,_,ty)|format!("From<{}>",self.native_type(*ty))).collect::<Vec<_>>();
+        let mut bounds=self.program.record_parameter_replacements.get(&function).into_iter().flatten().filter(|(id,selected,_)|*id==parameter && selected==&names).map(|(_,_,ty)|format!("From<{}>",self.record_borrow_replacement_type(function,*ty,parameter,&names))).collect::<Vec<_>>();
         bounds.sort();bounds.dedup();bounds
     }
     pub(super) fn record_parameter_replacement(&self,fun:&CheckedFunction,target:&Expr,value:&Expr,code:&str)->Option<String>{

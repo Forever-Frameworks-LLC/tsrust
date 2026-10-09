@@ -35,7 +35,7 @@ impl Analyzer {
                     Some(Type::Callback(_))=>return Err(Diagnostic::new("callback-escape","A callback parameter cannot be stored through a record parameter; the record outlives the call. Build the record where the callback is created.",write.value.span)),
                     _=>continue,
                 };
-                if origins.iter().any(|&id|self.closures[id].lifetime_count>0){
+                if origins.iter().any(|&id|self.closures[id].lifetime_count>0 && !record_parameter_borrows::eligible(function,&self.closures[id])){
                     return Err(Diagnostic::new("callback-escape","A callback stored through a record parameter cannot borrow a variable of this function. Capture numbers and booleans, or build the record where the variable is declared.",write.value.span));
                 }
             }

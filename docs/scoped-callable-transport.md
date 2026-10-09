@@ -407,3 +407,38 @@ and explicit `undefined` select that default. Passing a present record borrows i
 fields, including captured callbacks and nested string/data fields; the caller can
 reuse the record after the call. This uses the same nominal readonly record contract
 as an ordinary borrowed parameter and does not clone or transfer its fields.
+
+## Installing a callback that borrows caller storage
+
+A mutable holder parameter can receive a callback that borrows a readonly or mutable
+array input. Returning from the installing function does not end that borrow. The
+holder keeps the array protected until the callback is disposed of. Declaring the
+array outside the holder's block gives it a sufficient lifetime:
+
+```tsr
+type Holder = { run: ReadOnly<Function<int>>; };
+
+function install(holder: Mutable<Holder>, values: ReadOnly<int[]>): void {
+    holder.run = (): int => values[0];
+}
+
+function main() {
+    const values = [3];
+    {
+        const holder: Holder = { run: (): int => 0 };
+        install(holder, values);
+        console.log(holder.run()); // 3
+    }
+    values[0] = 7;
+}
+```
+
+Mutating or moving `values` while the holder retains this callback is rejected.
+An array declared in a shorter inner block cannot be retained by an outer holder.
+Callee-local arrays cannot escape through the holder either. Mutable array inputs
+allow a mutable callback to change the caller's array; repeated calls preserve those
+changes. No array or callback environment is implicitly cloned.
+
+This B7 slice covers direct array inputs and named relay calls. Nullable stores,
+input aliases, borrowed callback inputs and exceptional completion remain under
+implementation; the complete family is not accepted yet.

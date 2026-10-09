@@ -62,6 +62,8 @@ mod borrowed_conditional_carriers;
 mod record_call_capture_release;
 #[path = "record_parameter_carriers.rs"]
 mod record_parameter_carriers;
+#[path = "record_parameter_borrows.rs"]
+pub(crate) mod record_parameter_borrows;
 #[path = "nullable_parameter_stores.rs"]
 mod nullable_parameter_stores;
 #[path = "nullable_parameter_environments.rs"]
@@ -309,6 +311,7 @@ impl CallbackContract {
 
 
 pub struct CheckedProgram {
+    pub(crate) record_parameter_borrows: HashMap<usize,Vec<record_parameter_borrows::Borrow>>,
     pub(crate) polymorphic_storage: crate::polymorphic_callable_storage::Registry,
     pub(crate) polymorphic_invocations: crate::polymorphic_invocation_plans::Registry,
     pub(crate) record_call_releases: HashMap<usize,Vec<(usize,Vec<String>)>>,
@@ -3329,7 +3332,12 @@ impl Analyzer {
         if !self.effects_only{self.check_dead_handlers()?;self.scoped_record_containers()?;self.record_parameter_carriers()?;}
         let record_call_releases=record_call_capture_release::summaries(&self.checked,&self.program.records,&self.closures);
         let deferred_generic_nominals = self.deferred_generic_nominal_uses();
+        let record_parameter_borrows = (0..self.checked.len()).filter_map(|id| {
+            let borrows = record_parameter_borrows::summary(&self.checked, &self.closures, id);
+            (!borrows.is_empty()).then_some((id, borrows))
+        }).collect();
         let checked = CheckedProgram {
+            record_parameter_borrows,
             polymorphic_storage: self.polymorphic_storage,
             polymorphic_invocations: self.polymorphic_invocations,
             record_call_releases,
@@ -5579,6 +5587,7 @@ impl Analyzer {
         }
         self.record_sequence_carriers(context,body)?;
         context.storage_exits.record(body, &context.bindings[..first_local]);
+        if !keep_names { Self::check_retained_scope_borrows(context, first_local)?; }
         context.lexical_scopes.pop();
         if !keep_names {
             entry_loans.unwind(&mut context.capture_loans);
@@ -14450,6 +14459,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             }
         }
         self.release_record_call_captures(context,index,args);
+        self.retain_record_parameter_borrows(context,index,args)?;
         expr.target = Some(CallTarget::Function(index));
         if !capture_slots.is_empty() {
             expr.capture_slots = Some(capture_slots.iter().map(|&(slot, _)| slot).collect());

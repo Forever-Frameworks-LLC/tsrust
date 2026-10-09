@@ -3,6 +3,23 @@
 Status: gate 183 started; not accepted. B5/gate 182 is accepted at `00214a1`.
 Read the completion ledger and B5 acceptance handoff before implementation.
 
+## Current implementation progress
+
+The first slice transports direct readonly and mutable array-input borrows through
+callback stores and named relay calls. Native replacement bounds use explicit
+input lifetimes. Reordered relay parameters and independent caller environments
+have native witnesses. Source controls reject mutation and transfer while the
+holder remains live, callee-local capture escape, and an inner-block owner retained
+by an outer holder. Editor diagnostics, hover and parameter help have a focused
+witness. This is progress within B7, not family acceptance.
+
+Remaining acceptance includes input aliases, nested and nullable storage, borrowed
+callback inputs, failure paths, replacement and clearing, and matched workloads.
+Destination-specific bounds cover the same installer used for different holder
+fields and different source parameters. Repeated stores to the same destination
+with different inputs still need witnesses. Recursive relay summaries need a
+finite-path proof before acceptance.
+
 ## Required behavior
 
 A callback installed through a mutable record parameter may retain a borrow of an

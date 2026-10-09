@@ -3,6 +3,33 @@ use serde_json::{Value, json};
 use tsrust_lsp::intelligence::SourceIndex;
 
 #[test]
+fn caller_borrowed_record_stores_preserve_editor_contracts() {
+    let source = tsrust_compiler::format(r#"
+        type Holder = { run: ReadOnly<Function<int, [amount: int]>>; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>): void {
+            holder.run = (amount: int): int => source[0] + amount;
+        }
+        function main() {
+            const values = [3];
+            const holder: Holder = { run: (amount: int): int => amount };
+            install(holder, values);
+            console.log(holder.run(4));
+        }
+    "#).unwrap();
+    let diagnostics = tsrust_lsp::diagnostics(&source, "file:///caller-borrowed-store.tsr").unwrap();
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    let help = ask(&source, "textDocument/signatureHelp", "4)", 0);
+    assert!(help["signatures"][0]["parameters"][0]["label"].as_str().unwrap_or("").contains("amount"), "{help}");
+    let hover = ask(&source, "textDocument/hover", "run(4)", 0);
+    assert!(!hover.is_null(), "{hover}");
+    assert!(!hover["contents"]["value"].as_str().unwrap_or("").contains("BorrowedCallable"), "{hover}");
+    let conflict = source.replace("console.log(holder.run(4));", "values[0]=9; console.log(holder.run(4));");
+    assert_ne!(source, conflict);
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&conflict, "file:///caller-borrowed-store.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "capture-conflict"), "{diagnostics}");
+}
+
+#[test]
 fn optional_map_callback_read_preserves_borrowed_entry() {
     let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function read(map:ReadOnly<Map<string,Holder>>):int{return map.get(\"k\")?.run()??-1;}function main():void{const a=[3];const map=new Map<string,Holder>();map.set(\"k\",{run:():int=>a[0]});console.log(read(map),read(map),map.size);}").unwrap();
     let diagnostics=tsrust_lsp::diagnostics(&source,"file:///optional-map-callback.tsr").unwrap();
