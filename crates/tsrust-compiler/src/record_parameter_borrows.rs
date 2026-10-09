@@ -7,6 +7,7 @@ use crate::capture_loan_owners::Place;
 pub(crate) struct Borrow {
     pub(crate) target: Place,
     pub(crate) source: usize,
+    pub(crate) source_projection: retained_capture_projection::Projection,
     pub(crate) mode: Mode,
     pub(crate) origin: usize,
     pub(crate) capture: usize,
@@ -16,6 +17,7 @@ pub(crate) struct Borrow {
 pub(crate) struct CapturedBorrow {
     pub(crate) target: Place,
     pub(crate) source_capture: usize,
+    pub(crate) source_projection: retained_capture_projection::Projection,
     pub(crate) capture: usize,
     pub(crate) mode: Mode,
     pub(crate) origin: usize,
@@ -137,6 +139,8 @@ fn direct(
                                         fields: path.clone(),
                                     },
                                     source: borrowed_owner(&function.bindings, capture.outer),
+                                    source_projection:
+                                        retained_capture_projection::Projection::default(),
                                     mode: capture.storage,
                                     origin,
                                     capture: index,
@@ -207,6 +211,7 @@ pub(super) fn summary_parts(
                 let effect = CapturedBorrow {
                     target: borrow.target,
                     source_capture,
+                    source_projection: borrow.source_projection,
                     capture: borrow.capture,
                     mode: borrow.mode,
                     origin: borrow.origin,
@@ -261,16 +266,20 @@ fn binding_summary(
                 edges.push((
                     callee,
                     arguments.iter().map(argument_place).collect::<Vec<_>>(),
+                    match expr.target {
+                        Some(CallTarget::Closure(binding)) => Some(binding),
+                        _ => None,
+                    },
                 ));
                 pending.push(callee);
             }
         });
         let edges = edges
             .into_iter()
-            .map(|(callee, arguments)| {
+            .map(|(callee, arguments, receiver)| {
                 let local_captures =
                     matches!(callee, Callable::Closure(origin) if local_closures.contains(&origin));
-                (callee, arguments, local_captures)
+                (callee, arguments, receiver, local_captures)
             })
             .collect::<Vec<_>>();
         calls.insert(id, edges);
@@ -280,7 +289,7 @@ fn binding_summary(
         for (&id, edges) in &calls {
             let view = id.view(functions, closures).unwrap();
             let function = view.function;
-            for (callee, arguments, local_capture_layout) in edges {
+            for (callee, arguments, receiver, local_capture_layout) in edges {
                 let Some(callee_view) = callee.view(functions, closures) else {
                     continue;
                 };
@@ -295,6 +304,7 @@ fn binding_summary(
                     let Some(Some(target)) = arguments.get(target_slot) else {
                         continue;
                     };
+                    let mut source_projection = borrow.source_projection.clone();
                     let source = if let Some(source_slot) = callee_view
                         .parameters
                         .iter()
@@ -312,6 +322,17 @@ fn binding_summary(
                             .iter()
                             .find(|capture| capture.inner == borrow.source)
                             .map(|capture| capture.outer)
+                    } else if let Callable::Closure(origin) = callee {
+                        if closures[*origin]
+                            .captures
+                            .iter()
+                            .any(|capture| capture.inner == borrow.source)
+                        {
+                            source_projection.prepend(borrow.source);
+                            *receiver
+                        } else {
+                            None
+                        }
                     } else {
                         None
                     };
@@ -319,6 +340,7 @@ fn binding_summary(
                         continue;
                     };
                     let source_binding = borrowed_owner(&function.bindings, source);
+                    source_projection.validate(closures, function.bindings[source_binding].ty);
                     if !view.inputs.contains(&target.binding)
                         || !view.inputs.contains(&source_binding)
                     {
@@ -331,6 +353,7 @@ fn binding_summary(
                         .fields
                         .extend(borrow.target.fields.iter().cloned());
                     mapped.source = source_binding;
+                    mapped.source_projection = source_projection;
                     if !summaries[&id].contains(&mapped) && !added.contains(&(id, mapped.clone())) {
                         added.push((id, mapped));
                     }
@@ -495,15 +518,45 @@ impl Analyzer {
             };
             target.fields.extend(borrow.target.fields);
             self.retain_record_invocation_contract(context, &target, borrow.origin, source.span)?;
-            let loan = (
-                borrowed_owner(&context.bindings, source_place.binding),
-                borrow.mode,
-                source.span,
+            let mut projected = source_place.clone();
+            projected.fields.extend(
+                borrow
+                    .source_projection
+                    .captures()
+                    .iter()
+                    .map(|inner| format!("$capture{inner}")),
             );
-            let id = context.capture_loan_ids.intern(loan);
-            context.capture_loan_owners.attach(target, [id]);
-            if !context.capture_loans.contains(&loan) {
-                context.capture_loans.push(loan);
+            let inherited = if !borrow.source_projection.is_direct()
+                && retained_capture_projection::mode(
+                    &self.closures,
+                    context.bindings[source_place.binding].ty,
+                    borrow.source_projection.captures(),
+                ) == Some(Mode::Read)
+            {
+                context
+                    .capture_loan_owners
+                    .loans_under(&projected)
+                    .into_iter()
+                    .filter_map(|id| context.capture_loan_ids.loan(id))
+                    .collect::<Vec<_>>()
+            } else {
+                Vec::new()
+            };
+            let loans = if inherited.is_empty() {
+                vec![(
+                    borrowed_owner(&context.bindings, source_place.binding),
+                    borrow.mode,
+                    source.span,
+                )]
+            } else {
+                inherited
+            };
+            for loan in loans {
+                let id = context.capture_loan_ids.intern(loan);
+                context.capture_loan_owners.attach(target.clone(), [id]);
+                if !context.capture_loans.contains(&loan) {
+                    context.capture_loans.push(loan);
+                }
             }
         }
         Ok(())

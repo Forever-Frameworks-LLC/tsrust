@@ -56,6 +56,7 @@ impl Scope {
                     .map(|borrow| crate::analysis::record_parameter_borrows::Borrow {
                         target: borrow.target.clone(),
                         source: closure.parameters.len() + borrow.source_capture,
+                        source_projection: borrow.source_projection.clone(),
                         mode: borrow.mode,
                         origin: borrow.origin,
                         capture: borrow.capture,

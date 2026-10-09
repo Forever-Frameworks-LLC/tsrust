@@ -577,3 +577,7 @@ Readonly captured inputs retain their existing behavior: a stored readonly borro
 A locally constructed installer can call another locally constructed installer whose stored callback borrows a captured input. The hidden source remains attached to the destination record through each call. Two and three nested installer layers preserve readonly capture lifetimes, plain and nullable fields, exact effects and replacement of independent owners. After complete replacement, the old input becomes available while the replacement input remains borrowed. Conditional replacement retains the previous input conservatively.
 
 The compiler maps capture bindings only in the context that constructs the called closure. Calling an already captured or abstract installer needs a separate environment interface; its capture IDs cannot be interpreted as bindings in an arbitrary caller. Mutable captured data still follows receiver lifetime rules: an inner reusable installer cannot lend its mutable capture beyond its own scope merely because an outer installer called it.
+
+### Captured installer receiver boundary
+
+Source analysis now retains hidden readonly data borrows when an outer closure invokes a captured installer created elsewhere. Conflicting mutation receives a capture diagnostic. Native transport for this shape is still in progress; it is not yet an executable supported form. Locally constructed nested installers described above remain verified. A captured receiver's own lifetime and its nested data lifetimes must stay distinct.

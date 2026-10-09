@@ -34,31 +34,46 @@ impl Analyzer {
             let target = Place { binding, fields };
             self.retain_record_invocation_contract(context, &target, effect.origin, span)?;
             let capture = &self.closures[closure].captures[effect.source_capture];
-            let loans = if matches!(capture.storage, Mode::Consume | Mode::Mutate) {
-                vec![(receiver, effect.mode, span)]
-            } else {
-                let specific = context.capture_loan_owners.loans_under(&Place {
-                    binding: receiver,
-                    fields: vec![format!("$capture{}", capture.inner)],
-                });
-                let inherited = if specific.is_empty() {
-                    context.capture_loan_owners.loans_under(&Place {
-                        binding: receiver,
-                        fields: Vec::new(),
-                    })
-                } else {
-                    specific
-                };
-                let loans = inherited
-                    .into_iter()
-                    .filter_map(|id| context.capture_loan_ids.loan(id))
-                    .collect::<Vec<_>>();
-                if loans.is_empty() {
+            let projected_read = !effect.source_projection.is_direct()
+                && retained_capture_projection::mode(
+                    &self.closures,
+                    self.closures[closure].function.bindings[capture.inner].ty,
+                    effect.source_projection.captures(),
+                ) == Some(Mode::Read);
+            let loans =
+                if matches!(capture.storage, Mode::Consume | Mode::Mutate) && !projected_read {
                     vec![(receiver, effect.mode, span)]
                 } else {
-                    loans
-                }
-            };
+                    let mut fields = vec![format!("$capture{}", capture.inner)];
+                    fields.extend(
+                        effect
+                            .source_projection
+                            .captures()
+                            .iter()
+                            .map(|inner| format!("$capture{inner}")),
+                    );
+                    let specific = context.capture_loan_owners.loans_under(&Place {
+                        binding: receiver,
+                        fields,
+                    });
+                    let inherited = if specific.is_empty() {
+                        context.capture_loan_owners.loans_under(&Place {
+                            binding: receiver,
+                            fields: Vec::new(),
+                        })
+                    } else {
+                        specific
+                    };
+                    let loans = inherited
+                        .into_iter()
+                        .filter_map(|id| context.capture_loan_ids.loan(id))
+                        .collect::<Vec<_>>();
+                    if loans.is_empty() {
+                        vec![(receiver, effect.mode, span)]
+                    } else {
+                        loans
+                    }
+                };
             for loan in loans {
                 let id = context.capture_loan_ids.intern(loan);
                 context.capture_loan_owners.attach(target.clone(), [id]);

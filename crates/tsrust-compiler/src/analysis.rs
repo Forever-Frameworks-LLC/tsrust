@@ -1,3 +1,5 @@
+#[path = "retained_capture_projection.rs"]
+mod retained_capture_projection;
 #[path = "captured_record_borrows.rs"]
 mod captured_record_borrows;
 #[path = "record_callable_identity.rs"]

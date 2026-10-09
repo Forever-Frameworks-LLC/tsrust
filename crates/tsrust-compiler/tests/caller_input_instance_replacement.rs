@@ -1022,3 +1022,46 @@ fn conditional_nested_install_keeps_the_previous_hidden_owner() {
     let error = tsrust_compiler::check(&source).err().expect("Conditional nested replacement must retain its previous owner");
     assert_eq!(error.code, "capture-conflict", "{error:?}");
 }
+
+#[test]
+fn captured_installer_receiver_retains_hidden_source_in_analysis() {
+    let source = support::format_round_trip(r#"
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>): void { holder.run = (): int => source[0]; }
+        function main() {
+            const source = [3]; const holder: Holder = { run: undefined };
+            {
+                const inner = (destination: Mutable<Holder>): void => { install(destination, source); };
+                const outer = (target: Mutable<Holder>): void => { inner(target); };
+                outer(holder);
+            }
+            source[0] += 1; console.log(holder.run!());
+        }
+    "#);
+    let error = tsrust_compiler::check(&source).err().expect("Calling a captured installer must retain its hidden data input");
+    assert_eq!(error.code, "capture-conflict", "{error:?}");
+}
+
+#[test]
+fn captured_installer_receivers_preserve_native_hidden_sources() {
+    execute(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>, calls: Mutable<int[]>): void { calls[0] += 1; holder.run = (): int => source[0]; }
+        function main() {
+            const first = [3]; const second = [10]; const calls = [0]; const holder: Holder = { run: undefined };
+            {
+                const inner = (destination: Mutable<Holder>): void => { install(destination, first, calls); };
+                const outer = (target: Mutable<Holder>): void => { inner(target); };
+                outer(holder);
+            }
+            strictEqual(holder.run!(), 3);
+            {
+                const inner = (destination: Mutable<Holder>): void => { install(destination, second, calls); };
+                const outer = (target: Mutable<Holder>): void => { inner(target); };
+                outer(holder);
+            }
+            first[0] += 1; strictEqual(first[0], 4); strictEqual(holder.run!(), 10); strictEqual(calls[0], 2);
+        }
+    "#);
+}

@@ -28,6 +28,20 @@ impl Emitter<'_> {
         {
             return None;
         }
+        // Projected environments require their own native lifetime and owner interface.
+        if borrows
+            .iter()
+            .any(|borrow| !borrow.source_projection.is_direct())
+            || self
+                .program
+                .closure_record_capture_borrows
+                .get(&index)
+                .into_iter()
+                .flatten()
+                .any(|borrow| !borrow.source_projection.is_direct())
+        {
+            return None;
+        }
         let mut sources = closure.parameters.clone();
         let (capture_lifetimes, capture_types) = self.capture_layout(closure);
         let mut hidden_lifetimes = HashMap::new();
@@ -62,6 +76,7 @@ impl Emitter<'_> {
             borrows.push(crate::analysis::record_parameter_borrows::Borrow {
                 target: borrow.target.clone(),
                 source,
+                source_projection: borrow.source_projection.clone(),
                 mode: borrow.mode,
                 origin: borrow.origin,
                 capture: borrow.capture,
