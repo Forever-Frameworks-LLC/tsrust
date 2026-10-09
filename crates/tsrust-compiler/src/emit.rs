@@ -9832,3 +9832,6 @@ mod map_entry_epoch_emit;
 
 #[path="map_iteration_emit.rs"]
 mod map_iteration_emit;
+
+#[path="map_cleanup_control_emit.rs"]
+mod map_cleanup_control_emit;

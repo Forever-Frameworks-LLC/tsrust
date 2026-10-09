@@ -16,19 +16,29 @@ impl Analyzer {
             let entry=context.storage_exits.map_loop_edge(statement.span,storage_exit_availability::MapLoopEdge::Entry,place);
             let back=context.storage_exits.map_loop_edge(statement.span,storage_exit_availability::MapLoopEdge::Back,place);
             if !context.storage_exits.has_map_loop_edge(statement.span,storage_exit_availability::MapLoopEdge::Back){continue;}
-            if !post_test && entry!=back {continue;}
+            let cleanup_body=body.iter().any(|statement|matches!(statement.kind,StmtKind::Try(_)));
+            if !post_test && entry!=back && !cleanup_body {continue;}
+            let broken=context.storage_exits.map_loop_edge(statement.span,storage_exit_availability::MapLoopEdge::Break,place);
             if context.storage_exits.has_map_loop_edge(statement.span,storage_exit_availability::MapLoopEdge::Break)
-                && context.storage_exits.map_loop_edge(statement.span,storage_exit_availability::MapLoopEdge::Break,place)!=back {continue;}
-            let empty=back.is_none_or(HashSet::is_empty);
+                && broken!=back && !cleanup_body {continue;}
+            let entry_empty=entry.is_none_or(HashSet::is_empty);
+            let back_empty=back.is_none_or(HashSet::is_empty);
+            // A cleanup override can turn an error into a loop control. Carry
+            // every reaching edge family without discarding the first entry.
+            let mut carried=back.cloned().unwrap_or_default();
+            if cleanup_body {
+                if let Some(entry)=entry {carried.extend(entry.iter().copied());}
+                if let Some(broken)=broken {carried.extend(broken.iter().copied());}
+            }
+            let empty=carried.is_empty();
             let Some(input)=results.get(&place.binding).copied() else{continue;};
             let Some(Type::Map(map))=self.scoped_array_field_type(input,&place.fields) else{continue;};
             let payload=if empty {
                 let Type::Record(record)=self.program.records[map].map_definition.as_ref().unwrap().value else{continue;};
                 self.empty_scoped_record_environment(self.scoped_records.declaration(record))?
             }else{
-                let back=back.unwrap();
-                let mut records=back.iter().filter_map(|ty|if let Type::Record(record)=ty{Some(*record)}else{None}).collect::<Vec<_>>();
-                if records.len()!=back.len(){continue;}
+                let mut records=carried.iter().filter_map(|ty|if let Type::Record(record)=ty{Some(*record)}else{None}).collect::<Vec<_>>();
+                if records.len()!=carried.len(){continue;}
                 records.sort_unstable();
                 let mut payload=Type::Record(records[0]);
                 for record in records.into_iter().skip(1){let Type::Record(previous)=payload else{unreachable!()};let Some(joined)=self.join_record_types(previous,record,statement.span)? else{return Ok(());};payload=joined;}
@@ -36,12 +46,12 @@ impl Analyzer {
             };
             let output_map=self.scoped_map_value_instance(map,payload);
             let output=self.scoped_array_replace_field(input,&place.fields,Type::Map(output_map)).expect("checked Map path");
-            if input==output{continue;}
-            let entry=storage_exit_availability::MapEntryEpoch{place:place.clone(),input,output,empty,before:true};
-            if !post_test {context.storage_exits.record_map_entry_epoch(statement.span,entry.clone());}
+            if input==output && !cleanup_body {continue;}
+            let entry=storage_exit_availability::MapEntryEpoch{place:place.clone(),input,output,empty:entry_empty,before:true};
+            if !post_test && input!=output {context.storage_exits.record_map_entry_epoch(statement.span,entry.clone());}
             results.insert(place.binding,output);
-            let back=storage_exit_availability::MapEntryEpoch{place:place.clone(),input:output,output,empty,before:false};
-            epochs.push(storage_exit_availability::MapIterationEpoch{entry,body:back.clone(),back});
+            let back=storage_exit_availability::MapEntryEpoch{place:place.clone(),input:output,output,empty:back_empty,before:false};
+            epochs.push(storage_exit_availability::MapIterationEpoch{entry,body:back.clone(),back,carrier_empty:empty});
         }
         if !epochs.is_empty(){context.storage_exits.record_map_iteration_epochs(statement.span,epochs);}
         Ok(())
@@ -116,6 +126,16 @@ impl Analyzer {
             match &control.kind {
                 StmtKind::Block(body)=>pending.extend(body),
                 StmtKind::If{then_body,else_body,..}=>{pending.extend(then_body);pending.extend(else_body);},
+                StmtKind::Try(region)=>{
+                    let mut nested=region.body.iter().chain(region.catch.iter().flat_map(|handler|&handler.body)).chain(region.finally.iter().flatten()).collect::<Vec<_>>();
+                    while let Some(item)=nested.pop(){match &item.kind {
+                        StmtKind::Block(body)=>nested.extend(body),
+                        StmtKind::If{then_body,else_body,..}=>{nested.extend(then_body);nested.extend(else_body);},
+                        StmtKind::Try(region)=>{nested.extend(&region.body);if let Some(handler)=&region.catch{nested.extend(&handler.body);}nested.extend(region.finally.iter().flatten());},
+                        StmtKind::Break|StmtKind::Continue if matches!(item.control_target,Some(crate::syntax::ControlTarget::Loop(id)|crate::syntax::ControlTarget::Tail(id)) if id==statement.span.start)=>context.storage_exits.record_map_cleanup_loop(statement.span.start),
+                        _=>{},
+                    }}
+                },
                 StmtKind::Break|StmtKind::Continue=>{
                     let inputs=context.storage_exits.map_control_inputs(control.span).expect("planned control input");
                     let conversions=epochs.iter().map(|epoch|storage_exit_availability::MapEntryEpoch{place:epoch.entry.place.clone(),input:inputs[&epoch.entry.place.binding],output:epoch.body.output,empty:self.map_iteration_empty_root(inputs[&epoch.entry.place.binding],&epoch.entry.place.fields),before:false}).collect();
@@ -134,6 +154,14 @@ fn ordinary_body(body:&[Stmt],label:usize)->bool {
         if !statement.labels.is_empty(){return false;}
         match &statement.kind {
             StmtKind::Block(body)=>pending.extend(body),
+            StmtKind::Try(region)=>{
+                pending.extend(&region.body);
+                if let Some(handler)=&region.catch{pending.extend(&handler.body);}
+                for cleanup in region.finally.iter().flatten() {
+                    if let StmtKind::ForOf{body,..}=&cleanup.kind {pending.extend(body);}
+                    else {pending.push(cleanup);}
+                }
+            },
             StmtKind::If{then_body,else_body,..}=>{pending.extend(then_body);pending.extend(else_body);},
             StmtKind::Let{..}|StmtKind::Expr(_)|StmtKind::Assign{..}=>{},
             StmtKind::Break|StmtKind::Continue if matches!(statement.control_target,Some(crate::syntax::ControlTarget::Loop(id)|crate::syntax::ControlTarget::Tail(id)) if id==label)=>{},

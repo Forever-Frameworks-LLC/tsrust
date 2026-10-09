@@ -179,5 +179,11 @@ before later mutation in the body. Remaining entries stay available in catch
 and finally. Borrowed iteration in cleanup finishes its iterator borrow before
 an error transfers completion storage. Deletion does not release captures held
 by other entries. These guarantees also apply to straight-line handler and
-cleanup entry conversions. Loop break/continue with per-entry release across
-finally is still pending; the native control-transport witness is not accepted.
+cleanup entry conversions. In while, counted, post-test and for-of loops,
+finally runs before a pending break or continue resumes. Cleanup can replace
+that control with its own break or continue. Surviving entries remain available
+in cleanup; deleted captures are released before later mutation in the body.
+Nested finally blocks run from the inner block outward before the loop resumes.
+A populated first entry remains visible even when cleanup empties later
+iterations. Broader labelled/nested-loop compositions and abrupt return/error
+families still require acceptance.

@@ -65,7 +65,7 @@ impl Emitter<'_> {
         let result_type=self.native_type(fun.result);
         let (outer_error,_,_)=self.exception_regions.current_transport().expect("checked enclosing handler completion");
         let resumed=format!("match pending_exit{{TsrStorageExit::Return(value)=>TsrCompletion::<(),{result_type},{outer_error}>::Return(value),TsrStorageExit::Break(target)=>TsrCompletion::Break(target),TsrStorageExit::Continue(target)=>TsrCompletion::Continue(target)}}");
-        let resume_control=self.exception_regions.dispatch(&resumed,&self.control_targets.snapshot(),statement.span).expect("checked handler control destination");
+        let resume_control=self.map_cleanup_control_dispatch(fun,&resumed,statement.span);
         let mut returned_finish=format!("{resume_control};unreachable!()");
         let mut cleanup_declaration = String::new();
         let mut normal_finish = values.clone();
@@ -150,7 +150,7 @@ impl Emitter<'_> {
         let (outer_name, outer_contract, _) = self.exception_regions.current_transport().expect("checked enclosing completion");
         let unions = crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
         let abrupt = exception_contract_emit::checked_completion_conversion("abrupt", error_name, &outer_name, contract, &outer_contract, &unions, runtime, span).expect("checked outgoing storage completion");
-        let dispatch = self.exception_regions.dispatch(&abrupt, &self.control_targets.snapshot(), span).expect("checked enclosing destination");
+        let dispatch = self.map_cleanup_control_dispatch(fun,&abrupt,span);
         let result = self.native_type(fun.result);
         let pending = if pending == "TsrCompletion::Throw(pending_error)" {
             format!("TsrCompletion::<(),{result},{error_name}>::Throw(pending_error)")

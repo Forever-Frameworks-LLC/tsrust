@@ -16,6 +16,7 @@ pub(crate) struct Snapshots {
     phases:HashMap<usize,Vec<Snapshot>>,
     native_inputs:BTreeMap<usize,BTreeMap<usize,Type>>,
     native_exits:HashMap<usize,BTreeMap<usize,Type>>,
+    pub(super) cleanup_loops:HashSet<usize>,
     layouts:HashMap<usize,Vec<(Phase,Option<CompletionKind>,BTreeMap<Place,Type>)>>,
 }
 impl Snapshots {
@@ -54,6 +55,34 @@ impl Snapshots {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn loop_cleanup_plans_storage_without_bypassing_inner_finally() {
+        let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});let turn=0;while(turn<3){try{handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;turn++;if(turn===2)break;continue;}finally{for(const [key,entry] of handlers){console.log(entry.run());}}}handlers.clear();}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let checked=crate::check(&source).unwrap();
+        let function=checked.program.functions.iter().find(|function|function.name=="main").unwrap();
+        let loop_statement=function.body.iter().find(|statement|matches!(statement.kind,crate::syntax::StmtKind::While{..})).unwrap();
+        assert!(!function.storage_exits.map_iteration_epochs(loop_statement.span).is_empty(),"cleanup loop needs carried storage");
+        let crate::syntax::StmtKind::While{body,..}=&loop_statement.kind else{unreachable!()};
+        let crate::syntax::StmtKind::Try(region)=&body[0].kind else{unreachable!()};
+        let mut pending=region.body.iter().collect::<Vec<_>>();let mut count=0;
+        while let Some(statement)=pending.pop(){match &statement.kind {
+            crate::syntax::StmtKind::If{then_body,else_body,..}=>{pending.extend(then_body);pending.extend(else_body);},
+            crate::syntax::StmtKind::Break|crate::syntax::StmtKind::Continue=>{count+=1;assert!(function.storage_exits.map_iteration_control(statement.span).is_none(),"source control must pass through finally");},
+            _=>{},
+        }}
+        assert_eq!(count,2);
+        assert!(function.storage_exits.has_map_iteration_controls(loop_statement.span.start));
+        let override_source=source.replace("} finally {","}finally{if(turn===1)continue;if(turn===2)break;");
+        assert_ne!(override_source,source);
+        let override_checked=crate::check(&override_source).unwrap();
+        let function=override_checked.program.functions.iter().find(|function|function.name=="main").unwrap();
+        let statement=function.body.iter().find(|statement|matches!(statement.kind,crate::syntax::StmtKind::While{..})).unwrap();
+        let binding=function.bindings.iter().position(|binding|binding.name=="handlers").unwrap();
+        let place=Place{binding,fields:Vec::new()};
+        assert!(!function.storage_exits.map_iteration_epochs(statement.span).is_empty(),"override storage: entry {:?}, back {:?}, break {:?}",function.storage_exits.map_loop_edge(statement.span,super::super::storage_exit_availability::MapLoopEdge::Entry,&place),function.storage_exits.map_loop_edge(statement.span,super::super::storage_exit_availability::MapLoopEdge::Back,&place),function.storage_exits.map_loop_edge(statement.span,super::super::storage_exit_availability::MapLoopEdge::Break,&place));
+    }
+
     #[test]
     fn native_body_exit_tracks_tail_replacement_conversion() {
         let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function main():void{const first=[3];const next=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});try{handlers.set('first',(failIf(false),{run:():int=>next[0]}));}catch(error){}handlers.clear();first[0]=9;next[0]=11;}").unwrap();

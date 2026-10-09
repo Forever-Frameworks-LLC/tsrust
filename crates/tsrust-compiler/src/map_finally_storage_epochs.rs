@@ -203,10 +203,7 @@ impl Emitter<'_> {
         let resumed = format!(
             "match pending_exit {{TsrStorageExit::Return(value)=>TsrCompletion::<(),{result},{outer_error}>::Return(value),TsrStorageExit::Break(target)=>TsrCompletion::Break(target),TsrStorageExit::Continue(target)=>TsrCompletion::Continue(target)}}"
         );
-        let resume_control = self
-            .exception_regions
-            .dispatch(&resumed, &self.control_targets.snapshot(), statement.span)
-            .expect("checked cleanup control destination");
+        let resume_control = self.map_cleanup_control_dispatch(fun,&resumed,statement.span);
         let resume_control = if crate::completion::definitely_abrupt(cleanup, 0) {
             "unreachable!(\"abrupt cleanup cannot resume pending control\")".into()
         } else {
@@ -279,10 +276,7 @@ impl Emitter<'_> {
         let resumed = format!(
             "match pending_exit{{TsrStorageExit::Return(value)=>TsrCompletion::<(),{result},{outer_error}>::Return(value),TsrStorageExit::Break(target)=>TsrCompletion::Break(target),TsrStorageExit::Continue(target)=>TsrCompletion::Continue(target)}}"
         );
-        let control = self
-            .exception_regions
-            .dispatch(&resumed, &self.control_targets.snapshot(), span)
-            .expect("checked carried cleanup control");
+        let control = self.map_cleanup_control_dispatch(fun,&resumed,span);
         format!(
             "match {pending}{{TsrCompletion::Throw((pending_error,{pattern}))=>{{{error}}},TsrCompletion::Return((pending_exit,{pattern}))=>{{{control};unreachable!()}},_=>unreachable!(\"checked carried cleanup exit\")}}"
         )

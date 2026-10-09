@@ -155,6 +155,9 @@ impl RegionStack {
     pub(crate) fn current_transport(&self)->Option<(String,crate::error_effects::FailureSet,Option<crate::syntax::Type>)> {
         self.0.borrow().last().and_then(|region|region.transport.as_deref().cloned())
     }
+    pub(crate) fn local_control_target(&self,target:crate::syntax::ControlTarget)->bool {
+        self.0.borrow().last().is_some_and(|region|region.locals.contains(&target))
+    }
     pub(crate) fn carries_storage(&self)->bool {
         self.0.borrow().last().is_some_and(|region|region.storage.is_some())
     }

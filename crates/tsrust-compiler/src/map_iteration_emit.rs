@@ -38,7 +38,7 @@ impl Emitter<'_> {
         let indent="    ".repeat(depth);
         if widen {
             for epoch in epochs {
-                let working=crate::analysis::MapEntryEpoch{place:epoch.entry.place.clone(),input:epoch.entry.output,output:epoch.entry.input,empty:epoch.back.empty,before:true};
+                let working=crate::analysis::MapEntryEpoch{place:epoch.entry.place.clone(),input:epoch.entry.output,output:epoch.entry.input,empty:epoch.carrier_empty,before:true};
                 if working.input!=working.output{let _=writeln!(output,"{indent}{}",self.map_entry_epoch_code(fun,&working));}
             }
         }

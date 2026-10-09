@@ -1080,3 +1080,55 @@ formatting changes zero files and zero fingerprints. Original failed checks,
 repaired checks and both successful untimed records are imported into SQLite
 and read back byte for byte before their loose copies are removed. B5 remains
 open; this is a focused native transport checkpoint, not a family milestone.
+
+
+### Cleanup controls and carried iteration storage
+
+The retained finally/control witness now passes. Iteration planning accepts
+checked exception regions and records cleanup controls separately from direct
+source controls. A source break or continue inside try receives no direct
+map_body hook. Resuming cleanup yields the enclosing body tuple only when that
+loop belongs to the current completion region; an enclosing finally receives
+its pending control first. The isolated map_cleanup_control_emit module owns
+this dispatch. Its fallback excludes already intercepted loop targets so native
+control flow cannot syntactically skip tuple reassignment on impossible arms.
+The first native attempt exposed that moved-owner path; its failure is retained.
+
+Cleanup can replace a pre-deletion error with continue or break. Those edges may
+retain a wider payload family than normal execution or initial loop entry.
+For cleanup loops, the carrier joins entry, back and break payloads. Proven
+emptiness is recorded for the carrier separately from the actual entry and
+backedge. Initial populated storage is not discarded merely because the
+backedge is empty. A focused native/disposal witness exposed an absent-callback
+conversion panic before this repair and now observes size one on first entry,
+size zero on the next, and correct callback disposal.
+
+Native execution and disposal pass for while, counted, post-test and for-of
+loops, pending continue/break, cleanup overriding both controls, a wider break
+family, and nested finally ordering. The nested witness proves inner cleanup
+precedes outer cleanup before loop control resumes. Seven phase/native proofs
+and all eight normal-stack canaries pass. The affected native map_ batch has
+74 passes and no retained red. The separate populated-entry/empty-backedge
+witness passes. Eight editor checks preserve acceptance of the deleted capture
+and rejection of mutation of a surviving capture. These are bounded checks;
+whole compiler/LSP regressions and timing are not claimed.
+
+Matched support adds cleanupIterationMutation as observation 62, with an
+independent arithmetic oracle for one and three iterations. Source guards are
+scoped to individual helpers where identical control snippets occur in both;
+an initially weakened presence guard failed its mutation test and is repaired.
+Registration passes. Native and Node-after-tsc untimed verification passes for
+all retained cases. Final formatting, immutable record identities and SQLite
+retention are recorded below after checkpoint verification.
+
+B5 is still incomplete. This acceptance covers the tested cleanup iteration
+paths, not all Return/Throw, labelled/nested-loop compositions or phase-specific
+normal/error/cleanup emission. Ordinary loops with different entry/back/break
+families remain separate pending work. Stable owned record Set keys should use
+the owner's chosen structural equality and hashing, with borrowing keys and
+mutable stored keys excluded, explicit cloning for retained copies, and a
+consistent numeric-field policy before float-containing records are accepted.
+That key feature is not implemented in this chunk.
+
+
+Final untimed correctness record: runtime/results/2026-10-09T03-29-23-041Z-verify.json. Whole-project checkpoint formatting changes zero files and zero fingerprints. All 27 closed logs, including red proofs, native failures and repaired checks, plus the matched record are imported into SQLite and read back byte for byte before loose removal. No installed consumer refresh, whole-family acceptance or timing is claimed.

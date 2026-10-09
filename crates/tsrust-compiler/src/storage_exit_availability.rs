@@ -5,6 +5,7 @@ use super::*;
 pub(crate) struct Exits(HashMap<(usize, usize), Vec<Unavailable>>, HashMap<usize, Vec<Unavailable>>, HashMap<(usize, usize), Vec<Unavailable>>, Option<Box<HashMap<(usize,usize),MapEntrySurvivors>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize),Type>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntrySurvivors>>>>, Option<Box<HashMap<(usize,usize,bool),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize,MapLoopEdge),std::collections::BTreeMap<crate::capture_loan_owners::Place,HashSet<Type>>>>>, Option<Box<HashMap<(usize,usize),Vec<MapIterationEpoch>>>>, Option<Box<HashMap<(usize,usize),HashMap<usize,Type>>>>, Option<Box<HashMap<(usize,usize),(usize,bool,Vec<MapEntryEpoch>)>>>, Option<Box<map_completion_payloads::Snapshots>>);
 #[derive(Clone,Debug)]
 pub(crate) struct MapIterationEpoch {
+    pub carrier_empty: bool,
     pub(crate) entry:MapEntryEpoch,
     pub(crate) back:MapEntryEpoch,
     pub(crate) body:MapEntryEpoch,
@@ -144,7 +145,11 @@ impl Exits {
         self.11.get_or_insert_with(Default::default).insert((span.start,span.end),(label,continuing,epochs));
     }
     pub(crate) fn has_map_iteration_controls(&self,label:usize)->bool {
-        self.11.as_ref().is_some_and(|points|points.values().any(|(target,_,_)|*target==label))
+        self.11.as_ref().is_some_and(|points|points.values().any(|(target,_,_)|*target==label)) || self.12.as_ref().is_some_and(|states|states.cleanup_loops.contains(&label))
+    }
+    pub(super) fn record_map_cleanup_loop(&mut self,label:usize) {self.12.get_or_insert_with(Default::default).cleanup_loops.insert(label);}
+    pub(crate) fn map_iteration_epochs_at_label(&self,label:usize)->&[MapIterationEpoch] {
+        self.9.as_ref().and_then(|points|points.iter().find(|((start,_),_)|*start==label)).map(|(_,epochs)|epochs.as_slice()).unwrap_or(&[])
     }
     pub(crate) fn map_iteration_control(&self,span:Span)->Option<&(usize,bool,Vec<MapEntryEpoch>)> {
         self.11.as_ref()?.get(&(span.start,span.end))

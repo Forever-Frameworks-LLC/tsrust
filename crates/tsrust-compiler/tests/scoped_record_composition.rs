@@ -1,6 +1,13 @@
 mod support;
 
 #[test]
+fn cleanup_loop_preserves_populated_entry_before_empty_backedge() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});let turn=0;while(turn<2){try{console.log('entry',turn,handlers.size);handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;turn++;}finally{handlers.clear();if(turn===1)continue;}}handlers.clear();console.log('done',first[0]);}");
+    support::execute(&source,"entry 0 1\nentry 1 0\ndone 5\n",None);
+    verify_disposal(&source,2,"entry 0 1\ndrop 1\ndrop 0\nentry 1 0\ndrop 1\ndone 5\n");
+}
+
+#[test]
 fn map_deletion_inside_try_carries_survivor_through_finally() {
     let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{handlers.delete('first');first[0]=9;console.log('body',first[0]);}finally{console.log('cleanup',handlers.size);for(const [key,entry] of handlers){console.log(key,entry.run());}}handlers.clear();console.log('done',first[0]);}");
     support::execute(&source,"body 9\ncleanup 1\nsecond 5\ndone 9\n",None);
@@ -27,6 +34,29 @@ fn map_entry_iteration_control_runs_finally_before_leaving_body() {
     let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(stop:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});let turn=0;while(turn<3){try{handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;turn++;if(stop)break;if(turn<3)continue;console.log('tail',turn);}finally{console.log('cleanup',turn,handlers.size);for(const [key,entry] of handlers){console.log('kept',key,entry.run());}}}handlers.clear();console.log('done',first[0]);}function main():void{scenario(false);scenario(true);}");
     support::execute(&source,"cleanup 1 1\nkept second 5\ncleanup 2 1\nkept second 5\ntail 3\ncleanup 3 1\nkept second 5\ndone 6\ncleanup 1 1\nkept second 5\ndone 4\n",None);
     verify_disposal(&source,2,"drop 1\ncleanup 1 1\nkept second 5\ndrop 1\ncleanup 2 1\nkept second 5\ndrop 1\ntail 3\ncleanup 3 1\nkept second 5\ndrop 0\ndone 6\ndrop 1\ncleanup 1 1\nkept second 5\ndrop 0\ndone 4\n");
+    for replacement in ["for(let step=0;step<3;step+=1){","do{","for(const step of [0,1,2]){"] {
+        let mut variant=source.replace("while (turn < 3) {",replacement);
+        assert_ne!(variant,source);
+        if replacement=="do{" {variant=variant.replace("handlers.clear();","while(turn<3);handlers.clear();");}
+        let variant=support::format_round_trip(&variant);
+        support::execute(&variant,"cleanup 1 1\nkept second 5\ncleanup 2 1\nkept second 5\ntail 3\ncleanup 3 1\nkept second 5\ndone 6\ncleanup 1 1\nkept second 5\ndone 4\n",None);
+        verify_disposal(&variant,2,"drop 1\ncleanup 1 1\nkept second 5\ndrop 1\ncleanup 2 1\nkept second 5\ndrop 1\ntail 3\ncleanup 3 1\nkept second 5\ndrop 0\ndone 6\ndrop 1\ncleanup 1 1\nkept second 5\ndrop 0\ndone 4\n");
+    }
+    let override_control=source.replace("} finally {","}finally{if(turn===1){console.log('override',turn);continue;}if(turn===2){console.log('override',turn);break;}");
+    assert_ne!(override_control,source);
+    let override_control=support::format_round_trip(&override_control);
+    support::execute(&override_control,"override 1\noverride 2\ndone 5\noverride 1\noverride 2\ndone 5\n",None);
+    verify_disposal(&override_control,2,"drop 1\noverride 1\ndrop 1\noverride 2\ndrop 0\ndone 5\ndrop 1\noverride 1\ndrop 1\noverride 2\ndrop 0\ndone 5\n");
+    let override_break=source.replace("} finally {","}finally{if(turn===1){console.log('override',turn);break;}");
+    assert_ne!(override_break,source);
+    let override_break=support::format_round_trip(&override_break);
+    support::execute(&override_break,"override 1\ndone 4\noverride 1\ndone 4\n",None);
+    verify_disposal(&override_break,2,"drop 1\noverride 1\ndrop 0\ndone 4\ndrop 1\noverride 1\ndrop 0\ndone 4\n");
+    let nested=source.replace("try {","try{try{").replace("} finally {","}finally{console.log('inner',turn);}}finally{");
+    assert_ne!(nested,source);
+    let nested=support::format_round_trip(&nested);
+    support::execute(&nested,"inner 1\ncleanup 1 1\nkept second 5\ninner 2\ncleanup 2 1\nkept second 5\ntail 3\ninner 3\ncleanup 3 1\nkept second 5\ndone 6\ninner 1\ncleanup 1 1\nkept second 5\ndone 4\n",None);
+    verify_disposal(&nested,2,"drop 1\ninner 1\ncleanup 1 1\nkept second 5\ndrop 1\ninner 2\ncleanup 2 1\nkept second 5\ndrop 1\ntail 3\ninner 3\ncleanup 3 1\nkept second 5\ndrop 0\ndone 6\ndrop 1\ninner 1\ncleanup 1 1\nkept second 5\ndrop 0\ndone 4\n");
 }
 
 #[test]

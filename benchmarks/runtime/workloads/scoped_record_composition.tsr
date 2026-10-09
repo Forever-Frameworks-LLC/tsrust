@@ -513,7 +513,7 @@ function workload(n: int, seed: int, input: string): int[][] {
         const countedMapObserved = countedMapLoop();
         const postMapObserved = postMapLoop();
         const emptyMapObserved = emptyScopedMap();
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped, nestedPairLooped, emptyMapObserved, countedMapObserved, postMapObserved, forOfMapObserved, knownEntryRelease(value), movedFieldEntryRelease(value), replacementEntryOutcome(value, value % 2 !== 0), branchEntryRelease(value, value % 2 === 0), mixedBranchEntryRelease(value, value % 2 === 0), pairedBranchEntryRelease(value, value % 2 === 0), postEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), countedEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), forOfEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), loopEntryRefill(value, value % 2 === 0 ? 0 : 2), innerBranchEntryRelease(value, value % 2 === 0), branchEntryRefill(value, value % 2 === 0), iterationEntryMutation(value, value % 2 === 0 ? 0 : 2), postIterationEntryMutation(value, value % 2 === 0 ? 0 : 2), abruptIterationEntryMutation(value, value % 2 === 0), countedUpdateEntryMutation(value, value % 2 === 0), finallyEntryMutation(value)]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped, nestedPairLooped, emptyMapObserved, countedMapObserved, postMapObserved, forOfMapObserved, knownEntryRelease(value), movedFieldEntryRelease(value), replacementEntryOutcome(value, value % 2 !== 0), branchEntryRelease(value, value % 2 === 0), mixedBranchEntryRelease(value, value % 2 === 0), pairedBranchEntryRelease(value, value % 2 === 0), postEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), countedEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), forOfEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), loopEntryRefill(value, value % 2 === 0 ? 0 : 2), innerBranchEntryRelease(value, value % 2 === 0), branchEntryRefill(value, value % 2 === 0), iterationEntryMutation(value, value % 2 === 0 ? 0 : 2), postIterationEntryMutation(value, value % 2 === 0 ? 0 : 2), abruptIterationEntryMutation(value, value % 2 === 0), countedUpdateEntryMutation(value, value % 2 === 0), finallyEntryMutation(value), cleanupIterationMutation(value, value % 2 === 0)]);
         i += 1;
     }
 
@@ -1574,4 +1574,39 @@ function finallyEntryMutation(value: int): int {
 
     finallyEntries.clear();
     return finallyEntryObserved + finallyEntryFirst[0];
+}
+
+
+function cleanupIterationMutation(value: int, stop: boolean): int {
+    const cleanupFirst = [value];
+    const cleanupSecond = [value + 1];
+    const cleanupEntries = new Map<string, Holder>();
+    cleanupEntries.set("second", {
+        run: (): int => cleanupSecond[0]
+    });
+    let cleanupTurns = 0;
+    let cleanupTails = 0;
+    let cleanupObserved = 0;
+    while (cleanupTurns < 3) {
+        try {
+            cleanupEntries.set("first", {
+                run: (): int => cleanupFirst[0]
+            });
+            cleanupEntries.delete("first");
+            cleanupFirst[0] += 1;
+            cleanupTurns += 1;
+            if (stop) break;
+            if (cleanupTurns < 3) continue;
+            cleanupTails += 1;
+        } finally {
+            cleanupObserved += cleanupEntries.size;
+            for (const [key, entry] of cleanupEntries) {
+                cleanupObserved += entry.run();
+            }
+        }
+    }
+
+    cleanupEntries.clear();
+    cleanupSecond[0] = value + 4;
+    return cleanupFirst[0] + cleanupTurns + cleanupTails + cleanupObserved + cleanupSecond[0];
 }
