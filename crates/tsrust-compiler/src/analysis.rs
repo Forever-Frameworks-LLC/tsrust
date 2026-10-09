@@ -5504,6 +5504,7 @@ impl Analyzer {
                 }
                 StmtKind::Expr(value) => {
                     self.truthy_logical_assignment(context,value);
+                    let removal = Self::discarded_array_removal_snapshot(context, value);
                     let view = self
                         .expression_type_hint(context, value)
                         .is_some_and(|ty| matches!(ty, Type::BorrowedUnion(_)));
@@ -5520,6 +5521,7 @@ impl Analyzer {
                             value.span,
                         ));
                     }
+                    Self::finish_discarded_array_removal(context, value, removal);
                 }
             }
         }

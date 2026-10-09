@@ -1,5 +1,23 @@
 # Scoped callable aggregate plan
 
+## Discarded array removal checkpoint, 2026-10-09
+
+Standalone pop/shift now release only the removed payload's captures for known
+dense local or record-field arrays, including moved arrays and repeated removal
+to empty. Source shape state follows moves and rejects uncertain positional
+inference. Native survivor conversion and empty environments preserve exact
+payload disposal. The affected batch passed 22 tests; two expectation repairs pass
+separately. Thirteen owner-module tests, the focused editor check and all eight
+depth canaries pass. Pop/shift hover examples are verified. All five matched cases
+pass untimed with 115 observations; indexed-capture-release-plan.md records the
+SQLite evidence and conversion costs.
+
+B5 remains incomplete. Next implement precise provenance and release for retained
+removal results, then same-expression release points and aggregate/control-flow
+compositions. Structural record keys, family regressions, performance review and
+installed-consumer refresh remain pending. Earlier sections retain prior evidence.
+
+
 ## Indexed replacement checkpoint, 2026-10-09
 
 Known constant-index replacement in straight-line dense local record arrays and

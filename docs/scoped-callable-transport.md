@@ -30,8 +30,11 @@ A borrowed element handle prevents replacement while the handle is live.
 Unknown indices retain conservative capture protection. Precise native release
 covers straight-line local dense arrays, arrays in nested record fields, and
 explicit moves of arrays or their owning records. Independent sibling fields keep
-their own captures protected. Precise removal and control-flow slot joins remain
-part of the unfinished aggregate work.
+their own captures protected. A standalone `pop()` or `shift()` statement also drops its removed value and
+releases captures belonging only to that value when the dense shape is known.
+Repeated removal can release all captures when the array becomes empty. A bound
+removal result keeps its captures protected; precise result provenance and
+control-flow slot joins remain part of the unfinished aggregate work.
 
 ## Local callback selection
 

@@ -3,6 +3,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use crate::Span;
 #[path="map_entry_payloads.rs"]
 mod map_entry_payloads;
+#[path="array_capture_shapes.rs"]
+mod array_capture_shapes;
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct Place {
@@ -12,6 +14,7 @@ pub(crate) struct Place {
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct Owners {
+    array_shapes: array_capture_shapes::Shapes,
     map_payloads: map_entry_payloads::Payloads,
     entries: BTreeMap<Place, BTreeSet<usize>>,
     pending: BTreeMap<(Place, usize, usize), BTreeSet<usize>>,
@@ -20,6 +23,10 @@ pub(crate) struct Owners {
 }
 
 impl Owners {
+    pub(crate) fn record_array_shape(&mut self, place: Place, length: usize) { self.array_shapes.record(place, length); }
+    pub(crate) fn array_length(&self, place: &Place) -> Option<usize> { self.array_shapes.length(place) }
+    pub(crate) fn set_array_length(&mut self, place: Place, length: usize) { self.array_shapes.set_length(place, length); }
+    pub(crate) fn invalidate_array_shape(&mut self, place: &Place) { self.array_shapes.invalidate(place); }
     pub(crate) fn attach_map_payload(&mut self, place: Place, ty: crate::syntax::Type) {
         self.map_payloads.attach(place,ty);
     }
@@ -56,6 +63,7 @@ impl Owners {
             return;
         }
         self.map_payloads.extend_from(source,destination,consume);
+        self.array_shapes.extend_from(source,destination,consume);
         let selected = self
             .entries
             .iter()
@@ -105,6 +113,7 @@ impl Owners {
     /// Discard this owner without removing loans held by other owners or payloads.
     pub(crate) fn discard(&mut self,source:&Place){
         self.map_payloads.discard(source);
+        self.array_shapes.discard(source);
         self.entries.retain(|place,_|place.binding!=source.binding || !place.fields.starts_with(&source.fields));
     }
 
@@ -129,6 +138,7 @@ impl Owners {
         );
         let previous = self.live();
         self.map_payloads.transfer(source,destination);
+        self.array_shapes.transfer(source,destination);
         let moved = self
             .entries
             .keys()
@@ -163,6 +173,7 @@ impl Owners {
 
     pub(crate) fn leave_scope(&mut self, first_binding: usize) -> BTreeSet<usize> {
         self.map_payloads.leave_scope(first_binding);
+        self.array_shapes.leave_scope(first_binding);
         let previous = self.live();
         self.entries
             .retain(|place, _| place.binding < first_binding);
@@ -182,6 +193,7 @@ impl Owners {
 
     pub(crate) fn join(&mut self, other: &Self) {
         self.map_payloads.join(&other.map_payloads);
+        self.array_shapes.join(&other.array_shapes);
         self.tracked.extend(other.tracked.iter().copied());
         self.payload.extend(other.payload.iter().copied());
         for (place, loans) in &other.entries {

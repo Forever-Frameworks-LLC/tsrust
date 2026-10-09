@@ -14,10 +14,11 @@ impl Emitter<'_> {
             target = self.program.records[output].fields[index].ty.unwrap();
         }
         let (Type::Array(source), Type::Array(target)) = (source, target) else { unreachable!("checked array epoch") };
-        let converted = self.map_entry_payload_projection(source.ty(), target.ty(), "array_epoch_item");
         let native = self.native_type(Type::Array(target));
         let binding = epoch.place.binding;
         let place = if indices.is_empty() { format!("value{binding}") } else { self.owned_record_leaf_place(fun, binding, &indices).expect("owning array leaf") };
+        if epoch.empty { return format!("drop({place}); let mut {place}: {native} = Vec::new();"); }
+        let converted = self.map_entry_payload_projection(source.ty(), target.ty(), "array_epoch_item");
         format!("let mut {place}: {native} = ({place}).tsr_owned_items().map(|array_epoch_item|{{{converted}}}).collect::<{native}>();")
     }
 }

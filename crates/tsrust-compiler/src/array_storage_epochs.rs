@@ -43,6 +43,16 @@ impl Analyzer {
                 }
             }
             let mut replacement = None;
+            let removal = if let StmtKind::Expr(value) = &statement.kind
+                && matches!(value.target, Some(CallTarget::ArrayPop | CallTarget::ArrayShift))
+                && let ExprKind::Call(callee, arguments) = &value.kind
+                && arguments.is_empty()
+                && let ExprKind::Field(base, _) = &callee.kind
+                && let Some((_, fields)) = Self::direct_fields(base)
+                && let Some(binding) = Self::root_binding(base)
+                && storage.contains_key(&Place { binding, fields: fields.clone() })
+            { Some((Place { binding, fields }, value.target == Some(CallTarget::ArrayShift), value.span)) }
+            else { None };
             if let StmtKind::Assign { target, value, operator: None } = &statement.kind
                 && let ExprKind::Index(base, index) = &target.kind
                 && let Some((_, fields)) = Self::direct_fields(base)
@@ -77,6 +87,7 @@ impl Analyzer {
                 { opaque = true; }
                 if matches!(value.kind, ExprKind::Call(_, _))
                     && !matches!(value.target, Some(CallTarget::Log | CallTarget::StoredCallableField(_)))
+                    && !removal.as_ref().is_some_and(|(_, _, span)| *span == value.span)
                 { opaque = true; }
                 if matches!(value.kind, ExprKind::Assign { .. } | ExprKind::CompoundAssign { .. } | ExprKind::CoalesceAssign { .. } | ExprKind::LogicalAssign { .. }) {
                     opaque = true;
@@ -102,12 +113,20 @@ impl Analyzer {
                 }
                 Ok(())
             })?;
-            if let Some((place, index, ty)) = replacement {
+            let update = replacement.map(|(place, index, ty)| (place, Some((index, ty)), false))
+                .or_else(|| removal.map(|(place, front, _)| (place, None, front)));
+            if let Some((place, replacement, front)) = update && storage.contains_key(&place) {
                 let roots = self.array_epoch_root_types(context, &storage);
                 let state = storage.get_mut(&place).unwrap();
-                state.slots[index] = ty;
+                if let Some((index, ty)) = replacement { state.slots[index] = ty; }
+                else if !state.slots.is_empty() {
+                    if front { state.slots.remove(0); } else { state.slots.pop(); }
+                }
                 let mut records = state.slots.iter().copied();
-                let mut joined = records.next().unwrap();
+                let mut joined = if let Some(record) = records.next() { record } else {
+                    let Type::Array(ArrayElement::Record(record, _)) = state.baseline else { unreachable!() };
+                    self.empty_scoped_record_environment(self.scoped_records.declaration(record))?
+                };
                 for ty in records {
                     let (Type::Record(left), Type::Record(right)) = (joined, ty) else { unreachable!() };
                     joined = self.join_record_types(left, right, statement.span)?.expect("checked compatible array slots");
@@ -116,7 +135,7 @@ impl Analyzer {
                 if output != state.current {
                     context.storage_exits.record_array_epoch(statement.span, MapEntryEpoch {
                         place: place.clone(), input: roots[&place.binding],
-                        output: self.scoped_array_replace_field(roots[&place.binding], &place.fields, output).expect("checked array field"), empty: false, before: false,
+                        output: self.scoped_array_replace_field(roots[&place.binding], &place.fields, output).expect("checked array field"), empty: state.slots.is_empty(), before: false,
                     });
                     state.current = output;
                 }
@@ -163,7 +182,7 @@ impl Analyzer {
             if state.current != state.baseline {
                 let input = roots[&place.binding];
                 let output = self.scoped_array_replace_field(input, &place.fields, state.baseline).expect("checked array field");
-                context.storage_exits.record_array_epoch(span, MapEntryEpoch { place, input, output, empty: false, before: true });
+                context.storage_exits.record_array_epoch(span, MapEntryEpoch { place, input, output, empty: state.slots.is_empty(), before: true });
                 state.current = state.baseline;
             }
         }

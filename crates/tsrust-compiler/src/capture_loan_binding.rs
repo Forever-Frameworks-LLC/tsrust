@@ -88,6 +88,7 @@ impl Analyzer {
     pub(super) fn append_target_capture_loans(&self, context: &mut Context, target: &Expr, value: &Expr) {
         let Some((_, fields)) = Self::scoped_array_storage_path(target) else { return; };
         let Some(binding) = Self::root_binding(target) else { return; };
+        context.capture_loan_owners.invalidate_array_shape(&Place { binding, fields: fields.clone() });
         self.attach_payload_capture_loans(context, value, Place { binding, fields }, true);
     }
 
@@ -124,6 +125,7 @@ impl Analyzer {
             }
             match &value.kind {
                 ExprKind::Array(values) => {
+                    context.capture_loan_owners.record_array_shape(destination.clone(), values.len());
                     for (index, value) in values.iter().enumerate() {
                         let mut slot = destination.clone();
                         slot.fields.push(format!("\0array-slot:{index}"));

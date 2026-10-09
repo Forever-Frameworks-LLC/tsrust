@@ -1,5 +1,43 @@
 # Precise indexed capture release
 
+## Discarded removal checkpoint
+
+Standalone `pop()` and `shift()` calls now release the removed callback's captures
+at the statement boundary. Dense lengths live in an isolated ownership-path
+module: moves transfer them, incompatible or branch-only shapes become unknown,
+and unmodelled mutations invalidate positional precision. Three shape tests cover
+moves, sticky uncertainty and reaching-state joins. A snapshot is taken only for
+a direct named/record-field zero-argument removal with a known shape; it is boxed
+to keep recursive statement dispatch small. Other expressions retain conservative
+ownership. The snapshot currently copies retained owner metadata during analysis;
+compiler allocation costs remain subject to the family performance review.
+
+Native epochs move surviving records to their concrete carrier after removal.
+Empty arrays drop their old carrier and create an empty environment without
+cloning. Focused native coverage includes front removal, repeated removal through
+empty, record fields, moves and exact disposal at optimization levels 0 and 3.
+Bound results and removal temporaries passed before a later conflicting argument
+remain protected. One previous rejection became a valid shift/replacement program;
+the revised negative case retains the same capture in the replacement.
+
+The affected batch passed 22 tests and exposed two test expectations. Both repaired
+checks pass separately. The new editor test, three shape tests and all eight depth
+canaries pass. Pop/shift IntelliSense documents the behavior with native-verified
+examples. The matched workload has 115 observations, adding `2 * value + 3`,
+`2 * value + 4` and `2 * value + 6` for pop, shift and empty removal. Source and
+mutation guards pass. All five matched cases pass untimed on native and
+Node-after-tsc. SQLite preserves
+`runtime/results/2026-10-09T08-21-40-026Z-verify.json`, with zero timing rows,
+and 15 diagnostic records restored byte for byte before loose copies were removed.
+All 13 owner-module tests pass. The final project formatter changes zero files
+and zero fingerprints.
+
+Retained removal results still conservatively retain the container's capture set.
+Precise result provenance, release after the result's last owner, same-expression
+release points and aggregate/control-flow compositions remain required. This is
+focused implementation progress; B5, its family regressions, timing review and
+installed-consumer refresh remain incomplete.
+
 ## Record fields and moves checkpoint
 
 The next slice extends epoch planning from a binding ID to an owning record field

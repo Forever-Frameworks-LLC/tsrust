@@ -3,6 +3,17 @@ use serde_json::{Value, json};
 use tsrust_lsp::intelligence::SourceIndex;
 
 #[test]
+fn discarded_array_removal_releases_only_its_capture() {
+    let source = tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];handlers.pop();second[0]=9;console.log(handlers[0].run());}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&source, "file:///array-removal.tsr").unwrap().is_empty());
+    for conflict in [source.replace("second[0] = 9;", "first[0]=9;"), source.replace("handlers.pop();", "const removed=handlers.pop();")] {
+        assert_ne!(conflict, source);
+        let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&conflict, "file:///array-removal.tsr").unwrap()).unwrap();
+        assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "capture-conflict"), "{diagnostics}");
+    }
+}
+
+#[test]
 fn known_array_replacement_releases_only_the_replaced_capture() {
     let source = tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];handlers[1]={run:():int=>first[0]};second[0]=9;console.log(handlers[0].run(),handlers[1].run());}").unwrap();
     assert!(tsrust_lsp::diagnostics(&source, "file:///array-replacement.tsr").unwrap().is_empty());

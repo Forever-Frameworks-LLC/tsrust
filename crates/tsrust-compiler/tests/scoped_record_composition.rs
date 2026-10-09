@@ -1,6 +1,37 @@
 mod support;
 
 #[test]
+fn discarded_array_pop_releases_only_the_removed_capture() {
+    let raw = "type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];handlers.pop();second[0]=9;console.log(handlers[0].run(),second[0]);}";
+    let source = support::format_round_trip(raw);
+    support::execute(&source, "3 9\n", None);
+    verify_disposal(&source, 2, "drop 1\n3 9\ndrop 0\n");
+    let front = raw.replace("handlers.pop();second[0]=9;", "handlers.shift();first[0]=9;")
+        .replace("handlers[0].run(),second[0]", "handlers[0].run(),first[0]");
+    support::execute(&support::format_round_trip(&front), "5 9\n", None);
+    let empty = raw.replace("handlers.pop();second[0]=9;", "handlers.pop();handlers.pop();handlers.pop();first[0]=9;second[0]=9;")
+        .replace("handlers[0].run(),second[0]", "handlers.length,first[0],second[0]");
+    support::execute(&support::format_round_trip(&empty), "0 9 9\n", None);
+    let field = raw.replace("function main()", "type Owner={handlers:Holder[];};function main()")
+        .replace("const handlers:Holder[]=", "const owner:Owner={handlers:")
+        .replace("}];handlers.pop();", "}]};owner.handlers.pop();")
+        .replace("console.log(handlers[0]", "console.log(owner.handlers[0]");
+    support::execute(&support::format_round_trip(&field), "3 9\n", None);
+    let moved = raw.replace("handlers.pop();", "const moved=handlers;moved.pop();")
+        .replace("console.log(handlers[0]", "console.log(moved[0]");
+    support::execute(&support::format_round_trip(&moved), "3 9\n", None);
+}
+
+#[test]
+fn retained_array_pop_result_keeps_its_capture_live() {
+    let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];const removed=handlers.pop();second[0]=9;if(removed!==undefined)console.log(removed.run());}");
+    assert_eq!(tsrust_compiler::check(&source).err().expect("a retained removal result protects its capture").code, "capture-conflict");
+    let temporary = format!("{}observe(handlers.pop(),second[0]=9);}}function observe(entry:Holder|undefined,value:int):void{{if(entry!==undefined)console.log(entry.run(),value);}}", source.split_once("const removed =").expect("formatted binding").0);
+    let error = tsrust_compiler::check(&temporary).err().expect("a removal temporary remains live during later arguments");
+    assert_eq!(error.code, "capture-conflict", "{}", error.message);
+}
+
+#[test]
 fn replacing_record_field_array_element_releases_only_its_capture() {
     let raw = "type Holder={run:ReadOnly<Function<int>>;};type Owner={handlers:Holder[];marker:int;};function main():void{const first=[3];const second=[5];const owner:Owner={handlers:[{run:():int=>first[0]},{run:():int=>second[0]}],marker:7};owner.handlers[1]={run:():int=>first[0]};second[0]=9;console.log(owner.handlers[0].run(),owner.handlers[1].run(),second[0],owner.marker);}";
     let source = support::format_round_trip(raw);
@@ -53,7 +84,7 @@ fn array_element_replacement_keeps_surviving_and_aliased_captures_live() {
         ("const saved=handlers[1];handlers[1]={run:():int=>first[0]};second[0]=9;console.log(saved.run());", "view-conflict"),
         ("let index=0;handlers[index]={run:():int=>first[0]};second[0]=9;", "capture-conflict"),
         ("handlers.reverse();handlers[1]={run:():int=>second[0]};first[0]=9;", "capture-conflict"),
-        ("handlers.shift();handlers[0]={run:():int=>first[0]};second[0]=9;", "capture-conflict"),
+        ("handlers.shift();handlers[0]={run:():int=>second[0]};second[0]=9;", "capture-conflict"),
         ("handlers.unshift({run:():int=>first[0]});handlers[1]={run:():int=>first[0]};second[0]=9;", "capture-conflict"),
     ] {
         let source = support::format_round_trip(&format!(
