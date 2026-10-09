@@ -488,5 +488,9 @@ closure cannot hide a borrowed holder or its borrowed callback environment.
 
 Direct readonly and mutable callback inputs can also be assigned with
 `holder.run = action`. Argument forwarding, optional/default invocation, rest packs
-and stable aliases preserve the declared callable contract. Consuming direct inputs,
-nullable stores and exceptional completion remain under implementation. The complete B7 family is not accepted yet.
+and stable aliases preserve the declared callable contract. Consuming direct inputs transfer their environment into storage and permit one
+invocation; a second call reports that the field was transferred. If an installer
+throws after storing a callback, the installed callback and its mutable borrow remain
+live. Throwing before the store preserves the previous callback. Holder disposal
+releases retained mutable inputs. Nullable stores and typed failures from the stored
+callback itself remain under implementation. The complete B7 family is not accepted yet.

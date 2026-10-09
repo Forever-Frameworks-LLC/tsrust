@@ -79,3 +79,23 @@ Its fourteen observations, denominator and independent result oracle are unchang
 A source contract and mutation guard require the direct assignment. Consuming callback
 inputs, exceptional completion and the remaining B7 forms are not accepted by this
 slice. Verify those forms explicitly before family acceptance.
+
+## Consuming stores and installer completion
+
+The forwarding helper also handles owned callback contracts. A consuming input
+resolves to an owned single-use contract; skipping owned contracts left the original
+abstract parameter in the stored-value conversion and caused callable-layout.
+Removing that skip lets the ordinary capture analysis transfer the environment.
+Single invocation passes; repeated invocation reports partial-transfer on the record
+field. The original callback is not implicitly copied.
+
+Installer failures before and after storage pass native assertions. Mutable state
+survives failure after installation, independent invocation remains rejected while
+the holder retains the input, and disposal releases the input. These are installer
+completion checks, not acceptance of every exception path in B7.
+
+The new directly_stored_callback_preserves_typed_failure_and_success witness remains
+red: catching the installed callback's string failure reports error-effect with an
+unresolved catch contract. Investigate inferred callback error origins, retained
+wrapper reachability and record field origins in error_effects.rs. Keep the witness;
+do not erase the catch binding or substitute an untyped handler.

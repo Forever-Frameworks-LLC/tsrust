@@ -1,3 +1,5 @@
+type OnceHolder = { run: () => int; };
+
 type int = number;
 type Holder = {
     run: () => int;
@@ -89,7 +91,32 @@ function workload(n: int, seed: int, input: string): int[][] {
             }
             callbackAfter = action();
         }
-        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced]);
+        let consumed = 0;
+        let afterFailure = 0;
+        let beforeFailure = 0;
+        {
+            const owned = [value];
+            const once = (): int => { const moved = owned; return moved[0]; };
+            const holder: OnceHolder = { run: (): int => 0 };
+            installOnce(holder, once);
+            consumed = holder.run();
+        }
+        {
+            const action = (): int => base[0];
+            const holder: Holder = { run: (): int => value + 9 };
+            let caught = false;
+            try { installAndFail(holder, action); } catch (error) { caught = error === "installed"; }
+            afterFailure = holder.run() + (caught ? 0 : 100);
+        }
+        {
+            const action = (): int => base[0];
+            const holder: Holder = { run: (): int => value + 9 };
+            let caught = false;
+            try { failBeforeInstall(holder, action, true); } catch (error) { caught = error === "before"; }
+            beforeFailure = holder.run() + (caught ? 0 : 100);
+        }
+
+        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure]);
         i += 1;
     }
 
@@ -133,6 +160,12 @@ function installMutableCallback(holder: MutableHolder, action: () => int): void 
 function installDirect(holder: Holder, action: () => int): void {
     holder.run = action;
 }
+
+function installOnce(holder: OnceHolder, action: () => int): void { holder.run = action; }
+
+function installAndFail(holder: Holder, action: () => int): void { holder.run = action; throw "installed"; }
+
+function failBeforeInstall(holder: Holder, action: () => int, fail: boolean): void { if (fail) { throw "before"; } holder.run = action; }
 
 function main() {
 }

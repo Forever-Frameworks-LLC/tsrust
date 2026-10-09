@@ -3,6 +3,31 @@ use serde_json::{Value, json};
 use tsrust_lsp::intelligence::SourceIndex;
 
 #[test]
+fn direct_once_store_keeps_declared_result_and_reports_consumed_field() {
+    let source = tsrust_compiler::format(r#"
+        type Holder = { run: Once<Function<string>>; };
+        function install(holder: Mutable<Holder>, action: Once<Function<string>>): void {
+            holder.run = action;
+        }
+        function main() {
+            const text = "Pat";
+            const action = (): string => text;
+            const holder: Holder = { run: (): string => "initial" };
+            install(holder, action);
+            console.log(holder.run());
+        }
+    "#).unwrap();
+    let diagnostics = tsrust_lsp::diagnostics(&source, "file:///direct-once-store.tsr").unwrap();
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    let hover = ask(&source, "textDocument/hover", "run()", 0);
+    let text = hover["contents"]["value"].as_str().unwrap_or("");
+    assert!(text.contains("string") && !text.contains("#stored-callback"), "{hover}");
+    let conflict = source.replace("console.log(holder.run());", "console.log(holder.run()); console.log(holder.run());");
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&conflict, "file:///direct-once-store.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"] == "partial-transfer"), "{diagnostics}");
+}
+
+#[test]
 fn direct_callback_store_keeps_declared_signature_and_owner_conflicts() {
     let source = tsrust_compiler::format(r#"
         type Holder = { run: Mutable<Function<int, [amount: int]>>; };

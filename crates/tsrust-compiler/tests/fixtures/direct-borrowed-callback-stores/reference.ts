@@ -37,3 +37,28 @@ const read = () => inputs[0];
 const holder: Holder = { run: () => 0 };
 relay(read, holder);
 strictEqual(holder.run(), 7);
+
+function installThenFail(holder: Holder, action: () => number): never {
+    holder.run = action;
+    throw 'installed';
+}
+function failBeforeInstall(holder: Holder, action: () => number, fail: boolean): void {
+    if (fail) throw 'before';
+    holder.run = action;
+}
+const failureValues = [3];
+const failureAction = () => failureValues[0];
+const after: Holder = { run: () => 0 };
+let afterCaught = false;
+try { installThenFail(after, failureAction); } catch (error) { afterCaught = error === 'installed'; }
+strictEqual(afterCaught, true);
+strictEqual(after.run(), 3);
+const before: Holder = { run: () => 9 };
+let beforeCaught = false;
+try { failBeforeInstall(before, failureAction, true); } catch (error) { beforeCaught = error === 'before'; }
+strictEqual(beforeCaught, true);
+strictEqual(before.run(), 9);
+const onceHolder = { run: () => 'initial' };
+const text = 'Pat';
+onceHolder.run = () => text;
+strictEqual(onceHolder.run(), 'Pat');

@@ -27,9 +27,6 @@ impl Analyzer {
         let Type::Callback(contract) = context.bindings[binding].ty else {
             return Ok(());
         };
-        if self.callables.callbacks[contract].kind.is_owned() {
-            return Ok(());
-        }
         let span = value.span;
         let annotation = self.checked_value_annotation(Type::Callback(contract), span)?;
         let signature = crate::callable_annotations::callback(&annotation)
