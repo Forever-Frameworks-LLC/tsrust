@@ -20,6 +20,7 @@ pub(crate) struct Snapshots {
     layouts:HashMap<usize,Vec<(Phase,Option<CompletionKind>,BTreeMap<Place,Type>)>>,
 }
 impl Snapshots {
+    pub(super) fn clear_native(&mut self) {self.native_inputs.clear();self.native_exits.clear();self.cleanup_loops.clear();}
     pub(super) fn has_layouts(&self)->bool {
         self.layouts.values().any(|states|states.iter().any(|(_,_,types)|!types.is_empty()))
     }
@@ -57,6 +58,21 @@ impl Snapshots {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn finally_cleanup_error_entry_has_independent_native_plan() {
+        let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function scenario(flag:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{handlers.delete('first');failIf(flag);}finally{for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();}first[0]+=1;}function main():void{try{scenario(false);scenario(true);}catch(error){console.log('caught');}}").unwrap();
+        let checked=crate::check(&source).unwrap();let function=checked.program.functions.iter().find(|function|function.name=="scenario").unwrap();
+        let region=function.body.iter().find_map(|statement|if let crate::syntax::StmtKind::Try(region)=&statement.kind{Some(region)}else{None}).unwrap();
+        let boundary=region.body[0].span.start;let binding=function.bindings.iter().position(|binding|binding.name=="handlers").unwrap();
+        let error=function.storage_exits.map_completion_layout(boundary,Phase::Body,Some(CompletionKind::Throw)).unwrap()[&Place{binding,fields:vec![]}];
+        assert_ne!(error,function.bindings[binding].ty);
+        let plan=function.storage_exits.map_cleanup_plan(boundary,Some(CompletionKind::Throw)).expect("checked error cleanup plan");
+        assert_eq!(plan.exits.map_native_input(plan.body[0].span.start,binding),Some(error),"cleanup entry uses the pending error Map");
+        let Type::Map(map)=error else{panic!("Map error storage")};let rust=checked.emit_rust();
+        let envelope=rust.split("let completion:TsrCompletion<").filter_map(|part|part.split_once("='exception_region").map(|(ty,_)|ty)).find(|ty|ty.contains("FinallyIncoming")).expect("finally body error envelope");
+        assert!(envelope.contains(&format!("Map{map}<")),"checked error Map{map} is absent from {envelope}");
+    }
+
     #[test]
     fn borrowed_map_get_matches_the_phase_payload() {
         let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[7];const handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>first[0]});try{handlers.clear();handlers.set('new',{run:():int=>second[0]});throw 5;}catch(error){console.log(handlers.size);}first[0]=9;{const current=handlers.get('new');if(current!==undefined)console.log(current.run());}handlers.clear();second[0]=11;}").unwrap();

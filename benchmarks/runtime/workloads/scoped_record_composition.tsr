@@ -513,7 +513,7 @@ function workload(n: int, seed: int, input: string): int[][] {
         const countedMapObserved = countedMapLoop();
         const postMapObserved = postMapLoop();
         const emptyMapObserved = emptyScopedMap();
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped, nestedPairLooped, emptyMapObserved, countedMapObserved, postMapObserved, forOfMapObserved, knownEntryRelease(value), movedFieldEntryRelease(value), replacementEntryOutcome(value, value % 2 !== 0), branchEntryRelease(value, value % 2 === 0), mixedBranchEntryRelease(value, value % 2 === 0), pairedBranchEntryRelease(value, value % 2 === 0), postEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), countedEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), forOfEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), loopEntryRefill(value, value % 2 === 0 ? 0 : 2), innerBranchEntryRelease(value, value % 2 === 0), branchEntryRefill(value, value % 2 === 0), iterationEntryMutation(value, value % 2 === 0 ? 0 : 2), postIterationEntryMutation(value, value % 2 === 0 ? 0 : 2), abruptIterationEntryMutation(value, value % 2 === 0), countedUpdateEntryMutation(value, value % 2 === 0), finallyEntryMutation(value), cleanupIterationMutation(value, value % 2 === 0), returnCleanupEntryMutation(value, 0), returnCleanupEntryMutation(value, 1), returnCleanupEntryMutation(value, 2), returnCleanupEntryMutation(value, 3), returnCleanupEntryMutation(value, 4), nestedCleanupEntryMutation(value, value % 2 === 0, false), nestedCleanupEntryMutation(value, value % 2 === 0, true), directNestedEntryMutation(value, value % 2 === 0), labelledBlockEntryMutation(value, value % 2 === 0), labelledLoopBlockEntryMutation(value, value % 2 === 0), ordinaryEntryEdges(value, value % 2 === 0 ? 0 : 2, false), ordinaryEntryEdges(value, 2, true), narrowedOrdinaryEntryEdges(value, 2, false), noBackedgeEntryBreak(value), noBackedgeEntryReturn(value), phaseJoinedEntry(value, false), phaseJoinedEntry(value, true), finallyNormalJoinedEntry(value, value % 2 !== 0), errorPhaseEntry(value, value % 2 !== 0), finallyErrorEntry(value, value % 2 !== 0)]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped, nestedPairLooped, emptyMapObserved, countedMapObserved, postMapObserved, forOfMapObserved, knownEntryRelease(value), movedFieldEntryRelease(value), replacementEntryOutcome(value, value % 2 !== 0), branchEntryRelease(value, value % 2 === 0), mixedBranchEntryRelease(value, value % 2 === 0), pairedBranchEntryRelease(value, value % 2 === 0), postEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), countedEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), forOfEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), loopEntryRefill(value, value % 2 === 0 ? 0 : 2), innerBranchEntryRelease(value, value % 2 === 0), branchEntryRefill(value, value % 2 === 0), iterationEntryMutation(value, value % 2 === 0 ? 0 : 2), postIterationEntryMutation(value, value % 2 === 0 ? 0 : 2), abruptIterationEntryMutation(value, value % 2 === 0), countedUpdateEntryMutation(value, value % 2 === 0), finallyEntryMutation(value), cleanupIterationMutation(value, value % 2 === 0), returnCleanupEntryMutation(value, 0), returnCleanupEntryMutation(value, 1), returnCleanupEntryMutation(value, 2), returnCleanupEntryMutation(value, 3), returnCleanupEntryMutation(value, 4), nestedCleanupEntryMutation(value, value % 2 === 0, false), nestedCleanupEntryMutation(value, value % 2 === 0, true), directNestedEntryMutation(value, value % 2 === 0), labelledBlockEntryMutation(value, value % 2 === 0), labelledLoopBlockEntryMutation(value, value % 2 === 0), ordinaryEntryEdges(value, value % 2 === 0 ? 0 : 2, false), ordinaryEntryEdges(value, 2, true), narrowedOrdinaryEntryEdges(value, 2, false), noBackedgeEntryBreak(value), noBackedgeEntryReturn(value), phaseJoinedEntry(value, false), phaseJoinedEntry(value, true), finallyNormalJoinedEntry(value, value % 2 !== 0), errorPhaseEntry(value, value % 2 !== 0), finallyErrorEntry(value, value % 2 !== 0), finallyPendingError(value, value % 2 !== 0)]);
         i += 1;
     }
 
@@ -2034,4 +2034,35 @@ function finallyErrorEntry(value: int, fail: boolean): int {
 
     catchEntries.clear();
     return catchFirst[0] + catchObserved;
+}
+
+function finallyPendingError(value: int, fail: boolean): int {
+    const pendingFirst = [value];
+    const pendingSecond = [value + 2];
+    const pendingEntries = new Map<string, Holder>();
+    pendingEntries.set("first", {
+        run: (): int => pendingFirst[0]
+    });
+    pendingEntries.set("second", {
+        run: (): int => pendingSecond[0]
+    });
+    let pendingObserved = 0;
+    let pendingCaught = 0;
+    try {
+        try {
+            pendingEntries.delete("first");
+            phaseJoinFailure(fail);
+        } finally {
+            pendingObserved += pendingEntries.size;
+            for (const [key, entry] of pendingEntries) pendingObserved += entry.run();
+            pendingEntries.clear();
+        }
+
+        pendingObserved += 4;
+    } catch (error) {
+        pendingCaught = 10;
+    }
+
+    pendingFirst[0] += 1;
+    return pendingFirst[0] + pendingObserved + pendingCaught;
 }

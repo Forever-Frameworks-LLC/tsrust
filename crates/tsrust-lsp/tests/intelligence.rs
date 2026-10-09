@@ -8826,3 +8826,13 @@ fn error_phase_map_entry_release_preserves_survivor_diagnostics() {
  }
 }
 }
+
+#[test]
+fn pending_error_finally_map_entry_release_preserves_survivor_diagnostics() {
+ let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function scenario(flag:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{handlers.delete('first');failIf(flag);}finally{first[0]+=1;for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();}}function main():void{try{scenario(false);scenario(true);}catch(error){console.log('caught');}}").unwrap();
+ assert!(tsrust_lsp::diagnostics(&source,"file:///pending-error-cleanup.tsr").unwrap().is_empty());
+ for conflict in [source.replace("first[0] += 1;","second[0]+=1;"),source.replace("handlers.delete('first');\n        failIf(flag);","failIf(flag);handlers.delete('first');")] {
+  assert_ne!(conflict,source);let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///pending-error-cleanup.tsr").unwrap()).unwrap();
+  assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+ }
+}

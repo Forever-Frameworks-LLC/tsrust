@@ -1,3 +1,5 @@
+#[path="map_cleanup_phase_plan.rs"]
+mod map_cleanup_phase_plan;
 #[path="map_entry_moves.rs"]
 mod map_entry_moves;
 #[path="map_block_storage_plan.rs"]

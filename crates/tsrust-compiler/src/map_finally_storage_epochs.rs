@@ -60,7 +60,8 @@ impl Emitter<'_> {
             runtime,
             statement.span,
         );
-        let pending = self.map_storage_completion_body(
+        let error=region.body.first().and_then(|statement|fun.storage_exits.map_completion_layout(statement.span.start,crate::analysis::MapCompletionPhase::Body,Some(crate::completion::CompletionKind::Throw)));
+        let pending = self.map_error_phase_storage_completion_body(
             fun,
             &region.body,
             declarations,
@@ -72,6 +73,8 @@ impl Emitter<'_> {
             &places,
             true,
             true,
+            None,
+            error,
         );
         let cleaned=region.body.first().and_then(|statement|fun.storage_exits.map_completion_layout(statement.span.start,crate::analysis::MapCompletionPhase::Cleaned,None));
         let normal_cleanup = self.map_phase_storage_completion_body(
@@ -88,9 +91,12 @@ impl Emitter<'_> {
             true,
             cleaned,
         );
+        let error_plan=region.body.first().and_then(|statement|fun.storage_exits.map_cleanup_plan(statement.span.start,Some(crate::completion::CompletionKind::Throw))).map(|plan|plan.function(fun));
+        let error_fun=error_plan.as_ref().unwrap_or(fun);
+        let error_body=error_plan.as_ref().map_or(cleanup.as_slice(),|plan|plan.body.as_slice());
         let thrown_cleanup = self.map_storage_completion_body(
-            fun,
-            cleanup,
+            error_fun,
+            error_body,
             declarations,
             first + 2,
             &cleanup_name,
@@ -126,7 +132,7 @@ impl Emitter<'_> {
         let normal_finish = format!(
             "{{match {normal_cleanup}{{TsrCompletion::Normal(storage)=>storage,other=>{{{cleanup_abrupt}}}}}}}"
         );
-        let throw_arm = if incoming.runtime || incoming.opaque || !incoming.explicit.is_empty() {
+        let throw_finish = if incoming.runtime || incoming.opaque || !incoming.explicit.is_empty() {
             let resume = if crate::completion::definitely_abrupt(cleanup, 0) {
                 "unreachable!(\"abrupt cleanup cannot resume pending error\")".into()
             } else {
@@ -140,10 +146,10 @@ impl Emitter<'_> {
                 )
             };
             format!(
-                "TsrCompletion::Throw(pending_error)=>{{match {thrown_cleanup}{{TsrCompletion::Normal(storage)=>{{let {pattern}=storage;{resume}}},other=>{{drop(pending_error);{cleanup_abrupt}}}}}}}"
+                "match {thrown_cleanup}{{TsrCompletion::Normal(storage)=>{{let {pattern}=storage;{resume}}},other=>{{drop(pending_error);{cleanup_abrupt}}}}}"
             )
         } else {
-            "TsrCompletion::Throw(error)=>match error {}".into()
+            "match pending_error {}".into()
         };
         let result = self.native_type(fun.result);
         let (outer_error, _, _) = self
@@ -159,22 +165,14 @@ impl Emitter<'_> {
         } else {
             format!("{resume_control};unreachable!()")
         };
-        let return_arm = format!(
-            "TsrCompletion::Return(pending_exit)=>{{match {returned_cleanup}{{TsrCompletion::Normal(storage)=>{{let {pattern}=storage;{resume_control}}},other=>{{drop(pending_exit);{cleanup_abrupt}}}}}}}"
+        let return_finish = format!(
+            "match {returned_cleanup}{{TsrCompletion::Normal(storage)=>{{let {pattern}=storage;{resume_control}}},other=>{{drop(pending_exit);{cleanup_abrupt}}}}}"
         );
         let indent = "    ".repeat(depth);
-        if self.map_phase_has_entry_narrowing(fun,cleanup) {
-        let split=self.map_split_pending_storage(fun,&pending,&incoming_name,&storage_type);
-        let _ = writeln!(
-            output,
-            "{indent}{incoming_decl} {cleanup_decl} let {pattern}={{let (pending_control,{pattern})={{let {pattern}={values};{split}}};match pending_control{{TsrCompletion::Normal(())=>{normal_finish},{throw_arm},{return_arm},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"straight-line finally storage\")}}}};"
-        );
-        }else {
-            let normal_finish=format!("{{let {pattern}=storage;{normal_finish}}}");
-            let throw_arm=throw_arm.replace("TsrCompletion::Throw(pending_error)=>",&format!("TsrCompletion::Throw((pending_error,{pattern}))=>")).replace("TsrCompletion::Throw(error)=>match error {}","TsrCompletion::Throw((error,_))=>match error {}");
-            let return_arm=return_arm.replace("TsrCompletion::Return(pending_exit)=>",&format!("TsrCompletion::Return((pending_exit,{pattern}))=>"));
-            let _=writeln!(output,"{indent}{incoming_decl} {cleanup_decl} let {pattern}={{let {pattern}={values};match {pending}{{TsrCompletion::Normal(storage)=>{normal_finish},{throw_arm},{return_arm},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"straight-line finally storage\")}}}};");
-        }
+        // Finish the completion enum's scope before cleanup borrows captures.
+        // Each optional owner keeps its own native type; exactly one is live.
+        let split=format!("{{let completed={pending};match completed{{TsrCompletion::Normal(storage)=>(Some(storage),None,None),TsrCompletion::Throw((error,storage))=>(None,Some((error,storage)),None),TsrCompletion::Return((exit,storage))=>(None,None,Some((exit,storage))),TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried finally completion\")}}}}");
+        let _=writeln!(output,"{indent}{incoming_decl} {cleanup_decl} let {pattern}={{let (normal_owner,error_owner,control_owner)={{let {pattern}={values};{split}}};if normal_owner.is_some(){{let {pattern}=normal_owner.unwrap();drop(error_owner);drop(control_owner);{normal_finish}}}else{{drop(normal_owner);if error_owner.is_some(){{let (pending_error,{pattern})=error_owner.unwrap();drop(control_owner);{throw_finish}}}else{{drop(error_owner);if control_owner.is_some(){{let (pending_exit,{pattern})=control_owner.unwrap();{return_finish}}}else{{unreachable!(\"exactly one pending finally owner\")}}}}}}}};");
         let boundary = places
             .iter()
             .flat_map(|place| {

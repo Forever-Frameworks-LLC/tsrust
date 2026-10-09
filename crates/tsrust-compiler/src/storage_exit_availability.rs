@@ -2,7 +2,7 @@
 use super::*;
 
 #[derive(Clone, Debug, Default)]
-pub(crate) struct Exits(HashMap<(usize, usize), Vec<Unavailable>>, HashMap<usize, Vec<Unavailable>>, HashMap<(usize, usize), Vec<Unavailable>>, Option<Box<HashMap<(usize,usize),MapEntrySurvivors>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize),Type>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntrySurvivors>>>>, Option<Box<HashMap<(usize,usize,bool),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize,MapLoopEdge),std::collections::BTreeMap<crate::capture_loan_owners::Place,HashSet<Type>>>>>, Option<Box<HashMap<(usize,usize),Vec<MapIterationEpoch>>>>, Option<Box<HashMap<(usize,usize),HashMap<usize,Type>>>>, Option<Box<HashMap<(usize,usize),(usize,bool,Vec<MapEntryEpoch>)>>>, Option<Box<map_completion_payloads::Snapshots>>, Option<Box<HashMap<usize,Vec<MapEntryEpoch>>>>);
+pub(crate) struct Exits(HashMap<(usize, usize), Vec<Unavailable>>, HashMap<usize, Vec<Unavailable>>, HashMap<(usize, usize), Vec<Unavailable>>, Option<Box<HashMap<(usize,usize),MapEntrySurvivors>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize),Type>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntrySurvivors>>>>, Option<Box<HashMap<(usize,usize,bool),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize,MapLoopEdge),std::collections::BTreeMap<crate::capture_loan_owners::Place,HashSet<Type>>>>>, Option<Box<HashMap<(usize,usize),Vec<MapIterationEpoch>>>>, Option<Box<HashMap<(usize,usize),HashMap<usize,Type>>>>, Option<Box<HashMap<(usize,usize),(usize,bool,Vec<MapEntryEpoch>)>>>, Option<Box<map_completion_payloads::Snapshots>>, Option<Box<HashMap<usize,Vec<MapEntryEpoch>>>>, Option<std::sync::Arc<map_cleanup_phase_plan::Plans>>);
 #[derive(Clone,Debug)]
 pub(crate) struct MapIterationEpoch {
     /// Working family includes every reaching iteration origin, even when the
@@ -121,6 +121,16 @@ impl Exits {
     }
     pub(crate) fn map_native_input(&self,start:usize,binding:usize)->Option<Type> {
         self.12.as_ref()?.native_input(start,binding)
+    }
+    pub(crate) fn map_cleanup_plan(&self,boundary:usize,kind:Option<crate::completion::CompletionKind>)->Option<&map_cleanup_phase_plan::Plan> {
+        self.14.as_ref()?.get(boundary,kind)
+    }
+    pub(super) fn record_map_cleanup_plan(&mut self,boundary:usize,kind:Option<crate::completion::CompletionKind>,plan:map_cleanup_phase_plan::Plan) {
+        std::sync::Arc::make_mut(self.14.get_or_insert_with(Default::default)).insert(boundary,kind,plan);
+    }
+    pub(super) fn reset_map_cleanup_native_plans(&mut self) {
+        self.4=None;self.7=None;self.9=None;self.10=None;self.11=None;self.13=None;self.14=None;
+        if let Some(states)=&mut self.12{states.clear_native();}
     }
     pub(super) fn record_map_completion_phase(&mut self,boundary:usize,phase:map_completion_payloads::Phase,kind:Option<crate::completion::CompletionKind>,payloads:std::collections::BTreeMap<crate::capture_loan_owners::Place,HashSet<Type>>) {
         self.12.get_or_insert_with(Default::default).record(boundary,phase,kind,payloads);

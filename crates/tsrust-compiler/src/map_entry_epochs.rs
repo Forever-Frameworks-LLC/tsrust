@@ -114,6 +114,7 @@ impl Analyzer {
                     let mut inner=results.clone();
                     self.scoped_map_entry_epochs_with_demand(context,cleanup,&mut inner,demand,&local)?;
                 }
+                self.plan_map_cleanup_phases(context,region,results,demand,&local)?;
                 self.plan_map_exception_storage_exit(context,region,results,&local);
                 let inputs=results.iter().filter(|(_,ty)|self.contains_scoped_map_storage(**ty)).map(|(binding,ty)|(*binding,*ty)).collect();
                 context.storage_exits.record_map_native_inputs(statement_end,inputs);

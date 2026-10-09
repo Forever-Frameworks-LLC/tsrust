@@ -218,10 +218,22 @@ impl Emitter<'_> {
             let source=self.program.records[source].map_definition.as_ref()?.value;
             let target_value=self.program.records[target].map_definition.as_ref()?.value;
             let native=self.native_type(Type::Map(target));
+            if self.map_payload_absent_environment(source) || self.map_payload_absent_environment(target_value) {
+                return Some(format!("{{drop({place});<{native}>::new()}}"));
+            }
             let converted=self.map_entry_payload_projection(source,target_value,"entry_value");
             Some(format!("<{native}>::from_values(({place}).tsr_owned_items().map(|entry|{{let (entry_key,entry_value)=TsrMapEntry::into_pair(entry);(entry_key,{converted})}}))"))
         });
         super::native_storage_availability::Value{place:place.into(),empty,live,transferred}
+    }
+    fn map_payload_absent_environment(&self,ty:Type)->bool {
+        let mut pending=vec![ty];
+        while let Some(ty)=pending.pop(){match ty {
+            Type::Record(id)=>pending.extend(self.program.records[id].fields.iter().filter_map(|field|field.ty)),
+            Type::Callback(id) if self.program.absent_callback_payloads.contains(&id)=>return true,
+            _=>{},
+        }}
+        false
     }
     pub(super) fn map_storage_leaf_type(&self,mut ty:Type,fields:&[String])->Option<Type> {
         for name in fields {

@@ -21,7 +21,8 @@ impl Analyzer {
         while let Some(ty) = pending.pop() {
             if !seen.insert(ty) { continue; }
             match ty {
-                Type::Map(_) if self.aggregate_callable_facts(ty).scoped => return true,
+                Type::Map(id) if self.aggregate_callable_facts(ty).scoped
+                    || matches!(self.program.records[id].map_definition.as_ref().map(|map|map.value),Some(Type::Record(record)) if self.absent_record_environment(record)) => return true,
                 Type::Array(element) => pending.push(element.ty()),
                 Type::Record(id) => pending.extend(self.program.records[id].fields.iter().filter_map(|field| field.ty)),
                 _ => {}

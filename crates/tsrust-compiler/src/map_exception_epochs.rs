@@ -140,7 +140,7 @@ impl Emitter<'_> {
         self.map_error_phase_storage_completion_body(fun,body,declarations,id,error_name,contract,runtime,storage_type,places,carry_error,carry_control,normal,None)
     }
     #[inline(never)]
-    fn map_error_phase_storage_completion_body(&self,fun:&CheckedFunction,body:&[Stmt],declarations:&[Stmt],id:usize,error_name:&str,contract:crate::error_effects::FailureSet,runtime:Option<Type>,storage_type:&str,places:&[String],carry_error:bool,carry_control:bool,normal:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>,error_layout:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>)->String {
+    pub(super) fn map_error_phase_storage_completion_body(&self,fun:&CheckedFunction,body:&[Stmt],declarations:&[Stmt],id:usize,error_name:&str,contract:crate::error_effects::FailureSet,runtime:Option<Type>,storage_type:&str,places:&[String],carry_error:bool,carry_control:bool,normal:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>,error_layout:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>)->String {
         // Loops inside this phase own their controls. Forward only exits that
         // actually leave the phase to its enclosing cleanup.
         let locals=exception_contract_emit::local_control_targets(body);

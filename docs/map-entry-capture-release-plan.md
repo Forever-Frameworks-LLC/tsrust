@@ -1707,3 +1707,66 @@ Map layout; normal results, error results and resolved control destinations must
 not be forced into one common tuple. Preserve disposal order, replacement and
 cleanup override. Structural owned record keys and the wider B5 family are
 still pending.
+
+## Independent cleanup entry for pending errors
+
+Finally without a catch now carries Body/Throw Map storage separately into
+cleanup. A dedicated map_cleanup_phase_plan module plans the cleanup AST and
+native snapshots from the checked Handled/Throw input, which equals the body
+error input when no handler runs. Only the error-entry plan is materialized and
+consumed in this chunk. The plan interface retains the completion identity for
+later normal/control consumers. Native planning snapshots are reset before
+replanning; source ownership facts remain intact. Plans share their registry
+through Arc when contexts are cloned, and store binding-type differences rather
+than copies of every binding's metadata. Nested plans remain separate.
+
+The failing witness initially found no error-entry cleanup plan. The proof now
+checks its input type and emitted FinallyIncoming error envelope. Native coverage
+checks normal and thrown body outcomes, cleanup iteration, cleanup-time mutation
+of a released capture, record fields and exact callback disposal at both
+optimization levels. Editor coverage rejects mutation of a surviving capture
+and rejects a body error that can precede deletion.
+
+The first native run exposed conversion into an absent callable environment.
+An empty Map environment has no payload to convert: changing its representation
+now drops the old empty owner and constructs the checked empty destination.
+Empty environments are retained in native storage snapshots, preventing fallback
+to a stale nonempty type. Matched verification exposed this snapshot omission
+in the new nested outer-catch helper.
+
+The first affected batch passed 90 cases and failed the existing cleanup-deletion
+witness because the pending completion enum kept a capture loan alive. Finally
+now separates normal, error and control owners into independently typed options
+inside a completed enum scope. Exactly one option is live; every option is
+fully consumed or dropped before cleanup runs. The owner tuple is destructured
+directly, avoiding a residual tuple temporary that can retain a loan. This
+preserves phase types instead of merging them into one common storage tuple.
+Original failures and repair runs are preserved in SQLite. A mutation variant's
+initial source substitution missed the formatter's `} finally {` spelling; the
+assertion caught the no-op, and the witness now executes the intended source.
+
+Cleanup outgoing errors, resumed pending-error storage after cleanup and distinct
+return/break/continue result layouts still use their existing transport and
+remain pending. This acceptance concerns precise body-error transport into
+cleanup; it does not claim all abrupt phases complete. B5 remains open.
+
+Final acceptance: 91 affected Map native tests pass, supplemented by the expanded
+cleanup-mutation and record-field witness. All 18 phase/storage proofs, 18 editor
+entry-release checks and eight depth canaries pass. Matched native/Node-after-tsc
+verification passes all five cases, with 83 observations per row. The new
+finallyPendingError helper includes a nested outer catch, cleanup iteration and
+clear, normal-only work after cleanup, and a distinct caught-error observation.
+Its oracle is independent arithmetic; literal reference rows and mutation guards
+are registered. Existing ABI/driver/oracle/run/profile/report hooks apply.
+Canonical record: runtime/results/2026-10-09T06-12-33-163Z-verify.json. Closed
+logs and the record are imported into SQLite, restored byte for byte and removed
+from loose storage. Project formatting preserves tokens and is idempotent; the
+final pass changes zero files. Installed consumers remain at gate 181. No full
+regression or timing claim is made.
+
+Next consume checked outgoing handler/cleanup error layouts and the cleaned
+pending-error result. The new error-entry Plan supplies phase-local native
+metadata; do not fall back to the joined cleanup AST for that path. Extend the
+independent owner transport to resolved return/break/continue destinations, with
+cleanup override and disposal witnesses. Structural owned record keys remain
+subsequent work. B5 is not complete.

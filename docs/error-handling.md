@@ -264,3 +264,10 @@ body's error payload have independent storage layouts.
 A finally clause does not restore a capture already released before handler
 entry. The handler observes the surviving Map entries, then cleanup runs before
 its completion resumes. Errors before deletion still retain the original capture.
+
+For finally without a catch, cleanup starts with the Map entries surviving the
+pending body error. It observes those entries and their callbacks before the
+error resumes. A capture deleted before every body error can be mutated during
+cleanup; an error before deletion keeps that capture borrowed. Cleanup still
+runs on normal completion, and its own abrupt completion overrides the pending
+one with the normal disposal rules.

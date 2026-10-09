@@ -1,6 +1,19 @@
 mod support;
 
 #[test]
+fn map_finally_error_entry_preserves_survivors_and_disposal() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function scenario(flag:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{handlers.delete('first');failIf(flag);}finally{for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();}first[0]+=1;console.log('normal',first[0]);}function main():void{try{scenario(false);scenario(true);}catch(error){console.log('caught');}}");
+ support::execute(&source,"second 5\nnormal 4\nsecond 5\ncaught\n",None);
+ verify_disposal(&source,2,"drop 0\nsecond 5\ndrop 1\nnormal 4\ndrop 0\nsecond 5\ndrop 1\ncaught\n");
+ let mutated=source.replace("} finally {\n        for", "} finally {\n        first[0]+=1;console.log('released',first[0]);\n        for");assert_ne!(mutated,source);
+ support::execute(&support::format_round_trip(&mutated),"released 4\nsecond 5\nnormal 5\nreleased 4\nsecond 5\ncaught\n",None);
+ verify_disposal(&support::format_round_trip(&mutated),2,"drop 0\nreleased 4\nsecond 5\ndrop 1\nnormal 5\ndrop 0\nreleased 4\nsecond 5\ndrop 1\ncaught\n");
+ let field=("type Owner={handlers:Map<string,Holder>;};".to_owned()+&mutated).replace("const handlers = new Map<string, Holder>();","const owner:Owner={handlers:new Map<string,Holder>()};").replace("handlers.","owner.handlers.").replace("of handlers)","of owner.handlers)");assert_ne!(field,mutated);
+ support::execute(&support::format_round_trip(&field),"released 4\nsecond 5\nnormal 5\nreleased 4\nsecond 5\ncaught\n",None);
+ verify_disposal(&support::format_round_trip(&field),2,"drop 0\nreleased 4\nsecond 5\ndrop 1\nnormal 5\ndrop 0\nreleased 4\nsecond 5\ndrop 1\ncaught\n");
+}
+
+#[test]
 fn loop_local_map_error_storage_retargets_borrowed_get() {
  let source="type Holder={run:ReadOnly<Function<int>>;};function main():void{let turn=0;while(turn<2){const first=[3];const second=[7];const handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>first[0]});try{handlers.clear();handlers.set('new',{run:():int=>second[0]});throw 5;}catch(error){console.log(handlers.size);}first[0]=9;{const current=handlers.get('new');if(current!==undefined)console.log(current.run());}handlers.clear();second[0]=11;turn+=1;}}";
  support::execute(&support::format_round_trip(source),"1\n7\n1\n7\n",None);
