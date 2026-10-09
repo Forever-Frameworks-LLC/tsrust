@@ -1,3 +1,5 @@
+#[path = "record_callable_identity.rs"]
+mod record_callable_identity;
 #[path="map_cleanup_phase_plan.rs"]
 mod map_cleanup_phase_plan;
 #[path="map_entry_moves.rs"]
@@ -14259,6 +14261,10 @@ self.names_materialized_type(element.with_depth(0).ty())
             } else {
                 result
             };
+            if let Type::Closure(origin) = context.bindings[binding].ty {
+                self.release_record_closure_captures(context, origin, args);
+                self.retain_record_closure_borrows(context, origin, args)?;
+            }
             // Preserve origin without treating the callee name as an evaluated value.
             if let Type::Closure(origin)=context.bindings[binding].ty {
                 expr.callable_origin=Some(CallableOrigin::Closure(origin));

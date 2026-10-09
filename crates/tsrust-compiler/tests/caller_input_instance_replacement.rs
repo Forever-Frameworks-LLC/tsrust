@@ -473,6 +473,62 @@ fn closure_body_installer_releases_independent_input_owners() {
 }
 
 #[test]
+fn closure_body_installer_retains_new_owner_in_analysis() {
+    let source = support::format_round_trip(
+        r#"
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>): void {
+            holder.run = (): int => source[0];
+        }
+        function main() {
+            const first = [3]; const second = [10];
+            const holder: Holder = { run: undefined };
+            const perform = (target: Mutable<Holder>, source: ReadOnly<int[]>): void => {
+                install(target, source);
+            };
+            perform(holder, first);
+            perform(holder, second);
+            first[0] += 1;
+            console.log(holder.run!());
+        }
+    "#,
+    );
+    let relay = r#"
+        function relay(holder: Mutable<Holder>, source: ReadOnly<int[]>): void {
+            const perform = (target: Mutable<Holder>, input: ReadOnly<int[]>): void => {
+                install(target, input);
+            };
+            perform(holder, source);
+        }
+    "#;
+    for source in [
+        source.clone(),
+        format!("{source}\n{relay}").replace("perform(holder, second);", "relay(holder, second);"),
+        source.replace(
+            "install(target, source);",
+            "if (source.length > 0) { install(target, source); }",
+        ),
+    ] {
+        let source = support::format_round_trip(&source);
+        if !source.contains("if (") {
+            tsrust_compiler::check(&source)
+                .expect("Complete closure installation releases the previous owner");
+        } else {
+            let error = tsrust_compiler::check(&source)
+                .err()
+                .expect("Conditional replacement must retain the old owner");
+            assert_eq!(error.code, "capture-conflict", "{error:?}");
+        }
+        let conflict = source.replace("first[0] += 1", "second[0] += 1");
+        assert_ne!(source, conflict);
+        let error = tsrust_compiler::check(&conflict)
+            .err()
+            .expect("Closure installation retains the new owner");
+        assert_eq!(error.code, "capture-conflict", "{error:?}");
+    }
+}
+
+#[test]
 fn installer_function_value_releases_independent_input_owners() {
     let source = r#"
         import { strictEqual } from "std:testing";

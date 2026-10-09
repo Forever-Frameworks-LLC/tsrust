@@ -2,9 +2,24 @@
 use super::*;
 
 impl Emitter<'_> {
+    /// Closure binding tables retain outer bindings before their actual parameters.
+    /// Their parameter count is an arity, not a binding-index boundary.
+    fn record_parameter_binding(&self, fun: &CheckedFunction, id: usize) -> bool {
+        for closure in &self.program.closures {
+            if std::ptr::eq(fun, &closure.function) {
+                return closure.parameters.contains(&id);
+            }
+            for method in &closure.methods {
+                if std::ptr::eq(fun, &method.function) {
+                    return method.parameters.contains(&id);
+                }
+            }
+        }
+        id < fun.parameter_count
+    }
     pub(super) fn record_parameter_layout(&self,fun:&CheckedFunction,id:usize)->Option<crate::scoped_record_places::Layout> {
         let binding=fun.bindings.get(id)?;
-        if !(binding.parameter && id<fun.parameter_count || binding.capture_reference) || !matches!(binding.mode,Mode::Read|Mode::Mutate) {return None;}
+        if !((binding.parameter && self.record_parameter_binding(fun,id)) || binding.capture_reference) || !matches!(binding.mode,Mode::Read|Mode::Mutate) {return None;}
         let Type::Record(record)=binding.input_ty.unwrap_or(binding.ty) else{return None;};
         let declaration=self.program.scoped_records.declaration(record);
         if !self.borrowing_records.contains(&declaration) || self.program.records[declaration].fields.is_empty(){return None;}
@@ -79,6 +94,41 @@ impl Emitter<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn closure_parameter_layout_uses_checked_binding_identity() {
+        let source = crate::format(r#"
+            type Holder = { run: ReadOnly<Function<int>> | undefined; };
+            function drive(outer: ReadOnly<Holder>): void {
+                const prefix = [1];
+                const holder: Holder = { run: undefined };
+                const action = (target: Mutable<Holder>): void => {
+                    console.log(prefix[0]);
+                    target.run = (): int => prefix[0];
+                };
+                action(holder);
+            }
+            function main() {}
+        "#).unwrap();
+        assert_eq!(crate::format(&source).unwrap(), source);
+        let checked = crate::check(&source).unwrap();
+        let emitter = emitter_for(&checked.program, "");
+        let closure = checked.program.closures.iter().find(|closure| {
+            closure.parameters.iter().any(|&id| matches!(closure.function.bindings[id].input_ty.unwrap_or(closure.function.bindings[id].ty), Type::Record(_)))
+        }).expect("record-taking closure");
+        let id = closure.parameters[0];
+        assert!(id >= closure.function.parameter_count, "witness must use an offset binding ID");
+        assert!(closure.function.bindings[id].parameter);
+        let mut outer_parameters = 0;
+        for candidate in 0..closure.function.bindings.len() {
+            let binding = &closure.function.bindings[candidate];
+            if binding.parameter && !binding.capture_reference && !closure.parameters.contains(&candidate) {
+                outer_parameters += 1;
+                assert!(emitter.record_parameter_layout(&closure.function, candidate).is_none(), "outer parameter is not a closure parameter");
+            }
+        }
+        assert!(outer_parameters > 0, "witness must retain an outer parameter binding");
+        assert!(emitter.record_parameter_layout(&closure.function, id).is_some(), "checked closure parameter needs a record view");
+    }
     #[test]
     fn ordinary_borrowed_record_parameters_use_one_entry_view() {
         let source=crate::format("type Holder={run:ReadOnly<Function<int>>;label:string;};function touch(holder:Mutable<Holder>):void{holder.label=\"changed\";}function inspect(holder:ReadOnly<Holder>):int{return holder.run();}function main(){}").unwrap();

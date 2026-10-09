@@ -1,4 +1,5 @@
 //! Symbolic original payload ownership proves which call inputs are discarded.
+use super::record_callable_identity::Callable;
 use super::*;
 use crate::capture_loan_owners::{Owners, Place};
 use std::collections::BTreeSet;
@@ -38,17 +39,13 @@ struct Replay<'a> {
     functions: &'a [Option<CheckedFunction>],
     records: &'a [Record],
     closures: &'a [CheckedClosure],
-    active: HashSet<usize>,
+    active: HashSet<Callable>,
 }
 impl Replay<'_> {
-    fn inputs(&self, function: &CheckedFunction) -> Vec<Place> {
+    fn inputs(&self, function: &CheckedFunction, parameters: &[usize]) -> Vec<Place> {
         let mut result = Vec::new();
-        for (id, binding) in function
-            .bindings
-            .iter()
-            .take(function.parameter_count)
-            .enumerate()
-        {
+        for &id in parameters {
+            let binding = &function.bindings[id];
             if binding.mode != Mode::Mutate {
                 continue;
             }
@@ -82,23 +79,28 @@ impl Replay<'_> {
         result
     }
     fn released(&mut self, id: usize) -> Vec<Place> {
-        let Some(function) = self.functions.get(id).and_then(Option::as_ref) else {
+        self.released_callable(Callable::Function(id))
+    }
+    fn released_callable(&mut self, id: Callable) -> Vec<Place> {
+        let Some(view) = id.view(self.functions, self.closures) else {
             return Vec::new();
         };
+        let function = view.function;
         // Exception payload and captured-owner transport have separate summaries.
         if function.template || has_exception_syntax(&function.body) || !self.active.insert(id) {
             return Vec::new();
         }
-        let inputs = self.inputs(function);
+        let inputs = self.inputs(function, &view.parameters);
         if inputs.is_empty() {
             self.active.remove(&id);
             return Vec::new();
         }
         // Default evaluation still needs its own completion summary.
         // Eligible new captures use the separate caller-owner borrow transport.
-        if function.bindings[..function.parameter_count]
+        if view
+            .parameters
             .iter()
-            .any(|binding| binding.omission.is_omittable())
+            .any(|&id| function.bindings[id].omission.is_omittable())
         {
             self.active.remove(&id);
             return Vec::new();
@@ -109,13 +111,17 @@ impl Replay<'_> {
                 && let Some(Type::Closure(id)) = expr.ty
             {
                 untransported_borrow |= self.closures.get(id).is_none_or(|closure| {
-                    !record_parameter_borrows::eligible(function, closure)
-                        && closure.captures.iter().any(|capture| {
-                            capture.storage != Mode::Consume
-                                && function.bindings.get(capture.outer).is_some_and(|binding| {
-                                    binding.parameter && !binding.ty.is_copy()
-                                })
-                        })
+                    !record_parameter_borrows::eligible_parameters(
+                        function,
+                        closure,
+                        &view.parameters,
+                    ) && closure.captures.iter().any(|capture| {
+                        capture.storage != Mode::Consume
+                            && function
+                                .bindings
+                                .get(capture.outer)
+                                .is_some_and(|binding| binding.parameter && !binding.ty.is_copy())
+                    })
                 });
             }
         });
@@ -135,7 +141,7 @@ impl Replay<'_> {
         for state in exits {
             retained.extend(state.escaped);
             for (id, binding) in function.bindings.iter().enumerate() {
-                if id < function.parameter_count || binding.capture_reference {
+                if view.parameters.contains(&id) || binding.capture_reference {
                     retained.extend(state.owners.loans_under(&Place {
                         binding: id,
                         fields: Vec::new(),
@@ -147,7 +153,13 @@ impl Replay<'_> {
         inputs
             .into_iter()
             .enumerate()
-            .filter_map(|(token, place)| (!retained.contains(&token)).then_some(place))
+            .filter_map(|(token, mut place)| {
+                if retained.contains(&token) {
+                    return None;
+                }
+                place.binding = view.parameters.iter().position(|id| *id == place.binding)?;
+                Some(place)
+            })
             .collect()
     }
     fn body(
@@ -315,19 +327,19 @@ impl Replay<'_> {
             }
             ExprKind::Call(callee, args) => {
                 let mut payload = self.expression(function, callee, state, false);
-                let target = match expr.target {
-                    Some(CallTarget::Function(id) | CallTarget::ForwardFunction(id)) => Some(id),
-                    _ => None,
-                };
+                let target = Callable::call(expr);
                 for (index, arg) in args.iter().enumerate() {
                     let consumes = target
-                        .and_then(|id| self.functions.get(id).and_then(Option::as_ref))
-                        .and_then(|callee| callee.bindings.get(index))
-                        .is_some_and(|binding| binding.mode == Mode::Consume);
+                        .and_then(|id| id.view(self.functions, self.closures))
+                        .is_some_and(|view| {
+                            view.parameters
+                                .get(index)
+                                .is_some_and(|&id| view.function.bindings[id].mode == Mode::Consume)
+                        });
                     payload.extend(self.expression(function, arg, state, consumes));
                 }
                 if let Some(id) = target {
-                    for released in self.released(id) {
+                    for released in self.released_callable(id) {
                         if let Some(Some(mut selected)) = args.get(released.binding).map(place) {
                             selected.fields.extend(released.fields);
                             state.owners.discard(&selected);
@@ -484,6 +496,19 @@ impl Analyzer {
         id: usize,
         args: &[Expr],
     ) {
+        self.release_record_callable_captures(context, Callable::Function(id), args);
+    }
+
+    pub(super) fn release_record_closure_captures(
+        &self,
+        context: &mut Context,
+        id: usize,
+        args: &[Expr],
+    ) {
+        self.release_record_callable_captures(context, Callable::Closure(id), args);
+    }
+
+    fn release_record_callable_captures(&self, context: &mut Context, id: Callable, args: &[Expr]) {
         let mut replay = Replay {
             unions: &self.unions,
             functions: &self.checked,
@@ -491,7 +516,7 @@ impl Analyzer {
             closures: &self.closures,
             active: HashSet::new(),
         };
-        let released = replay.released(id);
+        let released = replay.released_callable(id);
         for released in released {
             let Some(Some(mut selected)) = args.get(released.binding).map(place) else {
                 continue;

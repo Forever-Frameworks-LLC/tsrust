@@ -1,4 +1,5 @@
 //! Caller-owned capture provenance retained by stores through record parameters.
+use super::record_callable_identity::Callable;
 use super::*;
 use crate::capture_loan_owners::Place;
 
@@ -34,11 +35,23 @@ fn borrowed_owner(bindings: &[Binding], mut source: usize) -> usize {
 }
 
 pub(super) fn eligible(function: &CheckedFunction, closure: &CheckedClosure) -> bool {
+    eligible_parameters(
+        function,
+        closure,
+        &(0..function.parameter_count).collect::<Vec<_>>(),
+    )
+}
+
+pub(super) fn eligible_parameters(
+    function: &CheckedFunction,
+    closure: &CheckedClosure,
+    parameters: &[usize],
+) -> bool {
     closure.captures.iter().all(|capture| {
         !matches!(capture.storage, Mode::Read | Mode::Mutate) || {
             let source = borrowed_owner(&function.bindings, capture.outer);
             function.bindings.get(source).is_some_and(|binding| {
-                source < function.parameter_count
+                parameters.contains(&source)
                     && binding.parameter
                     && matches!(binding.mode, Mode::Read | Mode::Mutate)
             })
@@ -46,25 +59,25 @@ pub(super) fn eligible(function: &CheckedFunction, closure: &CheckedClosure) -> 
     })
 }
 
-fn capable(function: &CheckedFunction) -> bool {
-    function.bindings[..function.parameter_count]
-        .iter()
-        .any(|binding| binding.mode == Mode::Mutate && matches!(binding.ty, Type::Record(_)))
-        && function.bindings[..function.parameter_count]
-            .iter()
-            .any(|binding| {
-                !binding.ty.is_copy() && matches!(binding.mode, Mode::Read | Mode::Mutate)
-            })
+fn capable(function: &CheckedFunction, parameters: &[usize]) -> bool {
+    parameters.iter().any(|&id| {
+        let binding = &function.bindings[id];
+        binding.mode == Mode::Mutate && matches!(binding.ty, Type::Record(_))
+    }) && parameters.iter().any(|&id| {
+        let binding = &function.bindings[id];
+        !binding.ty.is_copy() && matches!(binding.mode, Mode::Read | Mode::Mutate)
+    })
 }
 
 fn direct(
     function: &CheckedFunction,
     closures: &[CheckedClosure],
     storage: &crate::callable_storage::Registry,
+    parameters: &[usize],
 ) -> Vec<Borrow> {
     let mut result = Vec::new();
     for write in record_storage_writes::collect(&function.body) {
-        if write.binding >= function.parameter_count
+        if !parameters.contains(&write.binding)
             || function.bindings[write.binding].mode != Mode::Mutate
         {
             continue;
@@ -106,7 +119,7 @@ fn direct(
                     };
                     for origin in origins {
                         let closure = &closures[origin];
-                        if !eligible(function, closure) {
+                        if !eligible_parameters(function, closure, parameters) {
                             continue;
                         }
                         for (index, capture) in closure.captures.iter().enumerate() {
@@ -143,12 +156,22 @@ pub(super) fn summary(
     storage: &crate::callable_storage::Registry,
     root: usize,
 ) -> Vec<Borrow> {
-    let Some(function) = functions.get(root).and_then(Option::as_ref) else {
+    callable_summary(functions, closures, storage, Callable::Function(root))
+}
+
+pub(super) fn callable_summary(
+    functions: &[Option<CheckedFunction>],
+    closures: &[CheckedClosure],
+    storage: &crate::callable_storage::Registry,
+    root: Callable,
+) -> Vec<Borrow> {
+    let Some(view) = root.view(functions, closures) else {
         return Vec::new();
     };
-    if !capable(function) {
+    if !capable(view.function, &view.parameters) {
         return Vec::new();
     }
+
     let mut summaries = HashMap::new();
     let mut calls = HashMap::new();
     let mut pending = vec![root];
@@ -156,20 +179,17 @@ pub(super) fn summary(
         if summaries.contains_key(&id) {
             continue;
         }
-        let Some(function) = functions
-            .get(id)
-            .and_then(Option::as_ref)
-            .filter(|function| capable(function))
-        else {
+        let Some(view) = id.view(functions, closures) else {
             continue;
         };
-        summaries.insert(id, direct(function, closures, storage));
+        let function = view.function;
+        if !capable(function, &view.parameters) {
+            continue;
+        }
+        summaries.insert(id, direct(function, closures, storage, &view.parameters));
         let mut edges = Vec::new();
         crate::fixed_storage::visit_function_expressions(function, &mut |expr| {
-            if let (
-                Some(CallTarget::Function(callee) | CallTarget::ForwardFunction(callee)),
-                ExprKind::Call(_, arguments),
-            ) = (expr.target, &expr.kind)
+            if let (Some(callee), ExprKind::Call(_, arguments)) = (Callable::call(expr), &expr.kind)
             {
                 edges.push((
                     callee,
@@ -183,18 +203,35 @@ pub(super) fn summary(
     loop {
         let mut added = Vec::new();
         for (&id, edges) in &calls {
-            let function = functions[id].as_ref().unwrap();
+            let view = id.view(functions, closures).unwrap();
+            let function = view.function;
             for (callee, arguments) in edges {
+                let Some(callee_view) = callee.view(functions, closures) else {
+                    continue;
+                };
                 for borrow in summaries.get(callee).into_iter().flatten() {
-                    let (Some(Some(target)), Some(Some(source))) = (
-                        arguments.get(borrow.target.binding),
-                        arguments.get(borrow.source),
-                    ) else {
+                    let Some(target_slot) = callee_view
+                        .parameters
+                        .iter()
+                        .position(|id| *id == borrow.target.binding)
+                    else {
+                        continue;
+                    };
+                    let Some(source_slot) = callee_view
+                        .parameters
+                        .iter()
+                        .position(|id| *id == borrow.source)
+                    else {
+                        continue;
+                    };
+                    let (Some(Some(target)), Some(Some(source))) =
+                        (arguments.get(target_slot), arguments.get(source_slot))
+                    else {
                         continue;
                     };
                     let source_binding = borrowed_owner(&function.bindings, source.binding);
-                    if target.binding >= function.parameter_count
-                        || source_binding >= function.parameter_count
+                    if !view.parameters.contains(&target.binding)
+                        || !view.parameters.contains(&source_binding)
                     {
                         continue;
                     }
@@ -218,7 +255,19 @@ pub(super) fn summary(
             summaries.get_mut(&id).unwrap().push(borrow);
         }
     }
-    summaries.remove(&root).unwrap_or_default()
+    let parameters = root.view(functions, closures).unwrap().parameters;
+    summaries
+        .remove(&root)
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|mut borrow| {
+            borrow.target.binding = parameters
+                .iter()
+                .position(|id| *id == borrow.target.binding)?;
+            borrow.source = parameters.iter().position(|id| *id == borrow.source)?;
+            Some(borrow)
+        })
+        .collect()
 }
 
 impl Analyzer {
@@ -319,12 +368,37 @@ impl Analyzer {
         callee: usize,
         args: &[Expr],
     ) -> Result<(), Diagnostic> {
-        for borrow in summary(
+        let borrows = summary(
             &self.checked,
             &self.closures,
             &self.callables.storage,
             callee,
-        ) {
+        );
+        self.retain_record_borrow_summary(context, borrows, args)
+    }
+
+    pub(super) fn retain_record_closure_borrows(
+        &mut self,
+        context: &mut Context,
+        closure: usize,
+        args: &[Expr],
+    ) -> Result<(), Diagnostic> {
+        let borrows = callable_summary(
+            &self.checked,
+            &self.closures,
+            &self.callables.storage,
+            Callable::Closure(closure),
+        );
+        self.retain_record_borrow_summary(context, borrows, args)
+    }
+
+    fn retain_record_borrow_summary(
+        &mut self,
+        context: &mut Context,
+        borrows: Vec<Borrow>,
+        args: &[Expr],
+    ) -> Result<(), Diagnostic> {
+        for borrow in borrows {
             let (Some(target), Some(source)) =
                 (args.get(borrow.target.binding), args.get(borrow.source))
             else {
