@@ -26,9 +26,66 @@ impl Emitter<'_> {
             .filter(|borrow| self.borrowed_owners.contains_key(&borrow.origin))
             .map(|borrow| closure.parameters[borrow.source])
             .collect::<Vec<_>>();
+        inputs.extend(
+            self.program
+                .closure_record_capture_borrows
+                .get(&origin)
+                .into_iter()
+                .flatten()
+                .filter(|borrow| self.borrowed_owners.contains_key(&borrow.origin))
+                .map(|borrow| closure.captures[borrow.source_capture].inner),
+        );
         inputs.sort();
         inputs.dedup();
         inputs
+    }
+    /// Hidden retained sources use their capture binding, not a written argument slot.
+    pub(super) fn retained_call_binding(
+        &self,
+        scope: borrowed_owner_provenance::Scope,
+        source: usize,
+        arguments: &[Expr],
+    ) -> Option<usize> {
+        match scope {
+            borrowed_owner_provenance::Scope::Closure(origin)
+                if source >= self.program.closures[origin].parameters.len() =>
+            {
+                self.program.closures[origin]
+                    .captures
+                    .get(source - self.program.closures[origin].parameters.len())
+                    .map(|capture| capture.outer)
+            }
+            _ => arguments.get(source).and_then(|argument| argument.binding),
+        }
+    }
+    pub(super) fn closure_owner_arguments(
+        &self,
+        function: &CheckedFunction,
+        origin: usize,
+        arguments: &[Expr],
+    ) -> Vec<String> {
+        let closure = &self.program.closures[origin];
+        self.closure_owner_inputs(origin)
+            .into_iter()
+            .map(|parameter| {
+                let source = closure
+                    .parameters
+                    .iter()
+                    .position(|candidate| *candidate == parameter)
+                    .and_then(|slot| arguments.get(slot).and_then(|argument| argument.binding))
+                    .or_else(|| {
+                        closure
+                            .captures
+                            .iter()
+                            .find(|capture| capture.inner == parameter)
+                            .map(|capture| capture.outer)
+                    });
+                let marker = source
+                    .and_then(|binding| self.owner_binding_marker(function, binding))
+                    .unwrap_or_else(|| "()".into());
+                format!("std::marker::PhantomData::<{marker}>")
+            })
+            .collect()
     }
     fn function_id(&self, function: &CheckedFunction) -> Option<usize> {
         self.program
@@ -53,7 +110,12 @@ impl Emitter<'_> {
         {
             let mut seen = HashSet::new();
             while seen.insert(binding) {
-                if closure.parameters.contains(&binding) {
+                if closure.parameters.contains(&binding)
+                    || closure
+                        .captures
+                        .iter()
+                        .any(|capture| capture.inner == binding)
+                {
                     return self
                         .closure_owner_inputs(origin)
                         .contains(&binding)

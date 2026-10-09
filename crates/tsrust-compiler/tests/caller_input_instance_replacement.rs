@@ -803,3 +803,36 @@ fn captured_source_installer_keeps_native_input_alive_after_disposal() {
     let error = tsrust_compiler::check(&alias).err().expect("A plain local alias transfers ownership into the shorter block");
     assert_eq!(error.code, "callback-escape", "{error:?}");
 }
+
+#[test]
+fn independent_captured_installers_release_the_previous_source_owner() {
+    let source = r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>): void {
+            holder.run = (): int => source[0];
+        }
+        function main() {
+            const first = [3]; const second = [10];
+            const holder: Holder = { run: undefined };
+            {
+                const perform = (target: Mutable<Holder>): void => { install(target, first); };
+                perform(holder);
+            }
+            strictEqual(holder.run!(), 3);
+            {
+                const perform = (target: Mutable<Holder>): void => { install(target, second); };
+                perform(holder);
+            }
+            first[0] += 1;
+            strictEqual(first[0], 4); strictEqual(holder.run!(), 10);
+        }
+    "#;
+    execute(source);
+    let plain = source.replace(" | undefined", "").replace("run: undefined", "run: (): int => 0").replace("run!()", "run()");
+    execute(&plain);
+    let checkable=source.replace("import { strictEqual } from \"std:testing\";", "").replace("strictEqual(holder.run!(), 3);", "console.log(holder.run!());").replace("strictEqual(first[0], 4); strictEqual(holder.run!(), 10);", "console.log(first[0], holder.run!());");
+    let conflict=checkable.replace("first[0] += 1;", "second[0] += 1;");
+    let error=tsrust_compiler::check(&conflict).err().expect("The replacement captured source remains borrowed");
+    assert_eq!(error.code,"capture-conflict","{error:?}");
+}

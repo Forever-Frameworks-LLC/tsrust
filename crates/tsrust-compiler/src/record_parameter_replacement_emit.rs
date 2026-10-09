@@ -124,7 +124,7 @@ impl Emitter<'_> {
                 continue;
             };
             if callee
-                .borrows(self.program)
+                .retained_borrows(self.program)
                 .iter()
                 .any(|borrow| borrow.target.binding == *parameter && borrow.target.fields == *names)
             {

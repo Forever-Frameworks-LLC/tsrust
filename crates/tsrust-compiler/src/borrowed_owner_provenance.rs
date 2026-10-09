@@ -40,6 +40,30 @@ impl Scope {
         }
         .map_or(&[], Vec::as_slice)
     }
+    pub(super) fn retained_borrows(
+        self,
+        program: &CheckedProgram,
+    ) -> Vec<crate::analysis::record_parameter_borrows::Borrow> {
+        let mut borrows = self.borrows(program).to_vec();
+        if let Self::Closure(origin) = self {
+            let closure = &program.closures[origin];
+            borrows.extend(
+                program
+                    .closure_record_capture_borrows
+                    .get(&origin)
+                    .into_iter()
+                    .flatten()
+                    .map(|borrow| crate::analysis::record_parameter_borrows::Borrow {
+                        target: borrow.target.clone(),
+                        source: closure.parameters.len() + borrow.source_capture,
+                        mode: borrow.mode,
+                        origin: borrow.origin,
+                        capture: borrow.capture,
+                    }),
+            );
+        }
+        borrows
+    }
     pub(super) fn releases(self, program: &CheckedProgram) -> &[(usize, Vec<String>)] {
         match self {
             Self::Function(id) => program.record_call_releases.get(&id),

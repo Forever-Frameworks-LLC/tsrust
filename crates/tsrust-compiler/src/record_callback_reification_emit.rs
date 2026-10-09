@@ -15,8 +15,8 @@ impl Emitter<'_> {
         let Type::BorrowedCallable(family) = self.callback_payload(ty).unwrap_or(ty) else {
             return None;
         };
-        let borrows = callee
-            .borrows(self.program)
+        let retained = callee.retained_borrows(self.program);
+        let borrows = retained
             .iter()
             .filter(|borrow| borrow.target.binding == parameter && borrow.target.fields == names)
             .collect::<Vec<_>>();
@@ -57,9 +57,7 @@ impl Emitter<'_> {
                                 == *inner
                         })
                         .any(|borrow| {
-                            arguments
-                                .get(borrow.source)
-                                .and_then(|argument| argument.binding)
+                            self.retained_call_binding(callee, borrow.source, arguments)
                                 .and_then(|binding| self.owner_binding_marker(caller, binding))
                                 .is_some_and(|marker| marker == Self::owner_name(owner))
                         })
@@ -73,10 +71,17 @@ impl Emitter<'_> {
                             self.program.closures[borrow.origin].captures[borrow.capture].inner
                                 == *inner
                         })
-                        .filter_map(|borrow| {
-                            arguments
+                        .filter_map(|borrow| match callee {
+                            borrowed_owner_provenance::Scope::Closure(origin)
+                                if borrow.source
+                                    >= self.program.closures[origin].parameters.len() =>
+                            {
+                                self.retained_call_binding(callee, borrow.source, arguments)
+                                    .map(|binding| caller.bindings[binding].ty)
+                            }
+                            _ => arguments
                                 .get(borrow.source)
-                                .and_then(|argument| argument.ty)
+                                .and_then(|argument| argument.ty),
                         })
                         .collect::<Vec<_>>();
                     // An abstract argument cannot exclude a concrete environment.

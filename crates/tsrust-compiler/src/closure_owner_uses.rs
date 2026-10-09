@@ -15,6 +15,13 @@ pub(super) fn incomplete_targets(program: &CheckedProgram) -> BTreeSet<usize> {
                 && let ExprKind::Call(callee, _) = &expr.kind
             {
                 callees.insert((callee.span.start, callee.span.end));
+                if let Some(CallTarget::Closure(binding)) = expr.target
+                    && (function.bindings[binding].parameter
+                        || function.bindings[binding].capture_reference)
+                    && let Some(CallableOrigin::Closure(origin)) = expr.callable_origin
+                {
+                    result.insert(origin);
+                }
             }
         });
         crate::fixed_storage::visit_function_expressions(function, &mut |expr| {
@@ -34,9 +41,20 @@ pub(super) fn incomplete_targets(program: &CheckedProgram) -> BTreeSet<usize> {
                 && matches!(closure.function.bindings[capture.inner].ty, Type::Record(_))
         });
         if closure.escapes
+            || closure.invocation == Mode::Consume
             || closure.polymorphic
             || captured_record
-            || program.closure_record_capture_borrows.contains_key(&origin)
+            || program
+                .closure_record_capture_borrows
+                .get(&origin)
+                .is_some_and(|borrows| {
+                    borrows.iter().any(|borrow| {
+                        !matches!(
+                            closure.captures[borrow.source_capture].storage,
+                            Mode::Read | Mode::Mutate
+                        )
+                    })
+                })
         {
             result.insert(origin);
         }

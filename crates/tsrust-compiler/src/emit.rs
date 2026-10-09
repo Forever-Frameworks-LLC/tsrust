@@ -8899,11 +8899,7 @@ impl Emitter<'_> {
                         .zip(&closure.parameters)
                         .map(|(arg, &id)| self.expr(fun, arg, closure.function.bindings[id].mode))
                         .collect::<Vec<_>>();
-                    for parameter in self.closure_owner_inputs(id) {
-                        let slot = closure.parameters.iter().position(|candidate|*candidate==parameter).unwrap();
-                        let marker = args.get(slot).and_then(|argument|argument.binding).and_then(|binding|self.owner_binding_marker(fun,binding)).unwrap_or_else(||"()".into());
-                        arguments.push(format!("std::marker::PhantomData::<{marker}>"));
-                    }
+                    arguments.extend(self.closure_owner_arguments(fun,id,args));
                     let args = arguments.join(", ");
                     let call = if fun.bindings[binding].callback_invocation == Some(Mode::Consume) {
                         let args = if args.is_empty() {

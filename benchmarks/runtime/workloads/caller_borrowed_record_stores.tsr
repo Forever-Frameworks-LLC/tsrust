@@ -377,7 +377,36 @@ function workload(n: int, seed: int, input: string): int[][] {
             clearedCapture = captured[0];
         }
 
-        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects, conditionalFirst, conditionalReleased, conditionalReplacement, conditionalEffects, forwardedFirst, forwardedReleased, forwardedReplacement, forwardedEffects, closureFirst, closureReleased, closureReplacement, closureEffects, capturedFirst, capturedReleased, capturedReplacement, capturedEffects, retainedCapture, clearedCapture]);
+        let independentFirst = 0;
+        let independentReleased = 0;
+        let independentReplacement = 0;
+        {
+            const original = [value + 9];
+            const replacement = [value + 13];
+            const holder: ReadNullableHolder = {
+                run: undefined
+            };
+            {
+                const keepFirst = (target: Mutable<ReadNullableHolder>): void => {
+                    installCapturedSource(target, original);
+                };
+                keepFirst(holder);
+            }
+
+            independentFirst = holder.run!();
+            {
+                const keepSecond = (target: Mutable<ReadNullableHolder>): void => {
+                    installCapturedSource(target, replacement);
+                };
+                keepSecond(holder);
+            }
+
+            original[0] += 1;
+            independentReleased = original[0];
+            independentReplacement = holder.run!();
+        }
+
+        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects, conditionalFirst, conditionalReleased, conditionalReplacement, conditionalEffects, forwardedFirst, forwardedReleased, forwardedReplacement, forwardedEffects, closureFirst, closureReleased, closureReplacement, closureEffects, capturedFirst, capturedReleased, capturedReplacement, capturedEffects, retainedCapture, clearedCapture, independentFirst, independentReleased, independentReplacement]);
         i += 1;
     }
 
