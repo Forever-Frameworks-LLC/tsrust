@@ -16,7 +16,7 @@ function workload(n: int, seed: int): int[][] {
         const bi = trace.indices;
         const ba = trace.args;
         const carrier: int[] | null | undefined = makeCarrier(trace, value);
-        const selected = carrier ?. [nextIndex(trace, value)];
+        const selected = carrier?.[nextIndex(trace, value)];
         const db = trace.bases - bb;
         const di = trace.indices - bi;
         const da = trace.args - ba;

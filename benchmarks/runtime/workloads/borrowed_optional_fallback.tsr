@@ -12,7 +12,7 @@ function workload(n: int, seed: int, input: string): string[][] {
             label: ""
         }];
         for (const item of rows) {
-            const label = item ?. label ?? "none";
+            const label = item?.label ?? "none";
             output.push([label.toUpperCase(), label.slice(), String(i)]);
         }
 

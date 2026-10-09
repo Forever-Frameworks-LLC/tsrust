@@ -58,22 +58,22 @@ function main() {
     let tag = 0;
     while (tag < 5) {
         const trace: int[] = [];
-        const selected = base(trace, tag) ?. child ?. text.concat(argument(trace));
+        const selected = base(trace, tag)?.child?.text.concat(argument(trace));
         console.log(String(selected));
         console.log(trace.join(","));
         tag = tag + 1;
     }
 
     const absent: int[] = [];
-    const skipped = arrayBase(absent, true) ?. [index(absent)];
+    const skipped = arrayBase(absent, true)?.[index(absent)];
     console.log(String(skipped));
     console.log(absent.join(","));
     const present: int[] = [];
-    const selected = arrayBase(present, false) ?. [index(present)];
+    const selected = arrayBase(present, false)?.[index(present)];
     console.log(String(selected));
     console.log(present.join(","));
     const grouped: int[] = [];
-    const value = (base(grouped, 0) ?. child) ?. text;
+    const value = (base(grouped, 0)?.child)?.text;
     console.log(String(value));
     console.log(grouped.join(","));
 }

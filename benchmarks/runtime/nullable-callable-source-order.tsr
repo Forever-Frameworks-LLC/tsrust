@@ -66,9 +66,9 @@ function main() {
     const trace: Trace = {
         calls: 0, arguments: 0, fallbacks: 0, factories: 0
     };
-    const absent = makeBase(trace, 1) ?.(argument(trace, 7), trace);
+    const absent = makeBase(trace, 1)?.(argument(trace, 7), trace);
     console.log(typeof absent, trace.factories, trace.arguments, trace.calls);
-    const present = makeBase(trace, 0) ?.(argument(trace, 4), trace);
+    const present = makeBase(trace, 0)?.(argument(trace, 4), trace);
     if (present !== undefined) {
         console.log(present, trace.factories, trace.arguments, trace.calls);
     }

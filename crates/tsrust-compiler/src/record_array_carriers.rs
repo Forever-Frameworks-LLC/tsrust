@@ -50,7 +50,7 @@ impl Analyzer {
     pub(super) fn scoped_array_element_contract(&self, base: &Expr, element: ArrayElement) -> Type {
         if (Self::indexed_array_root(base).is_some() || Self::direct_fields(base).is_some())
             && let ArrayElement::Record(id, depth) = element
-            && self.aggregate_callable_facts(Type::Record(id)).scoped
+            && self.aggregate_callable_facts(Type::Record(self.scoped_records.declaration(id))).scoped
         { return ArrayElement::Record(self.scoped_records.declaration(id), depth).ty(); }
         element.ty()
     }
@@ -64,8 +64,12 @@ impl Analyzer {
             Type::Record(record) | Type::Array(ArrayElement::Record(record, _)) => record,
             _ => return Ok(()),
         };
-        if !self.aggregate_callable_facts(Type::Record(previous)).scoped || previous == incoming { return Ok(()); }
-        let joined = self.join_record_types(previous, incoming, span)?.ok_or_else(|| Diagnostic::new("type", "Array callback field environments have incompatible contracts.", span))?;
+        if !self.aggregate_callable_facts(Type::Record(self.scoped_records.declaration(previous))).scoped || previous == incoming { return Ok(()); }
+        let joined = match self.join_record_types(previous, incoming, span)? {
+            Some(joined) => joined,
+            // Elements can differ in a nullable callback-record field only.
+            None => self.join_sticky_record_types(previous, incoming, span)?.ok_or_else(|| Diagnostic::new("type", "Array callback field environments have incompatible contracts.", span))?,
+        };
         let Type::Record(record) = joined else { unreachable!() };
         let ty = Type::Array(ArrayElement::Record(record, depth));
         if let Some(root) = self.scoped_array_replace_field(context.bindings[binding].ty, &path, ty) { context.bindings[binding].ty = root; }

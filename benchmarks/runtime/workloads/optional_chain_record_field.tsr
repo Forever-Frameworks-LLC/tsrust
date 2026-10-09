@@ -25,7 +25,7 @@ function workload(n: int, seed: int, input: string): string[][] {
         const bi = trace.indices;
         const ba = trace.args;
         const carrier: Carrier | null | undefined = makeCarrier(trace, value, input);
-        const selected = carrier ?. item;
+        const selected = carrier?.item;
         const db = trace.bases - bb;
         const di = trace.indices - bi;
         const da = trace.args - ba;

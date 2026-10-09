@@ -225,6 +225,48 @@ Callbacks that own every capture, for example an arrow that reads only a number
 parameter, cannot yet share one record variable with a different callback. That form
 reports `unsupported`.
 
-Indexed field stores and stores through a borrowed record parameter still report
-source diagnostics. Moving the containing record transfers its field owners without
-cloning.
+Stores through a borrowed record parameter still report source diagnostics. Moving
+the containing record transfers its field owners without cloning.
+
+### Nullable callback records in conditional values, results and array elements
+
+A conditional expression can select between two callback records, or between a
+callback record and `undefined` or `null`. The value holds whichever environment was
+selected, so both branches' captures stay borrowed while the value is alive:
+
+```tsrust
+const chosen: Holder | undefined = flag ? { run: (): int => first[0] } : undefined;
+if (chosen !== undefined) console.log(chosen.run()); // 3 when flag is true
+```
+
+A function can return `Holder | undefined` or `Holder | null`, and a record result
+can leave a nullable callback field absent on one path and populated on another:
+
+```tsrust
+function make(seed: int): Holder | undefined {
+    if (seed > 0) return { run: (): int => seed };
+    return undefined;
+}
+const made = make(4);
+if (made !== undefined) console.log(made.run()); // 4
+```
+
+A returned callback must own every capture; a callback that borrows a parameter or a
+local of the function reports `callback-escape`. All populated returns of one function
+must use the same callback; different callbacks report `unsupported`.
+
+A nullable callback-record field of an array element can be stored through an index,
+and whole elements can be pushed, replaced and removed:
+
+```tsrust
+type Box = { saved: Holder | undefined; };
+const boxes: Box[] = [{ saved: undefined }];
+boxes[0].saved = { run: (): int => first[0] };
+console.log(boxes[0].saved?.run() ?? -1); // 3
+```
+
+Every environment stored through an element stays borrowed until the array's scope
+ends; clearing one element field does not release it. Read such a field in place, with
+a guard or an optional call. Moving it out of the element, as in
+`const saved = boxes[0].saved`, reports `unsupported`. An array whose element type is
+itself nullable, such as `(Holder | undefined)[]`, is not supported yet.

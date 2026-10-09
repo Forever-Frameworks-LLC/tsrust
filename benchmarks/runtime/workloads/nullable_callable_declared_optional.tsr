@@ -20,7 +20,7 @@ function workload(n: int, seed: int, input: string): int[][] {
         const beforeFactories = trace.factories;
         const observed: int[] = [];
         const action: (ReadOnly<Function<int, [input: int, trace: Mutable<Trace>]>>) | null | undefined = tag === 0 ? step : tag === 1 ? null : undefined;
-        const selected: int | undefined = action ?.(argument(trace, value), trace);
+        const selected: int | undefined = action?.(argument(trace, value), trace);
         if (selected !== undefined) {
             observed.push(selected);
         }

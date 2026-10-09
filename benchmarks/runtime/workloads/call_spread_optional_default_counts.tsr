@@ -55,7 +55,7 @@ function workload(n: int, seed: int, input: string): int[][] {
         const argumentBefore = argumentsTrace.calls;
         const defaultBefore = defaults.defaults;
         const action = (i + seed) % 4 === 0 ? undefined : apply;
-        const result = action ?.(defaults, ...argumentsValues(argumentsTrace, base, count));
+        const result = action?.(defaults, ...argumentsValues(argumentsTrace, base, count));
         output.push(result ?? []);
         output.push([argumentsTrace.calls - argumentBefore, defaults.defaults - defaultBefore]);
         i = i + 1;

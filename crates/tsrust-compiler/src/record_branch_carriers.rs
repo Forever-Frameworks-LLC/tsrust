@@ -134,6 +134,7 @@ impl Analyzer {
         let sticky=plans.iter().filter(|(id,_)|self.sticky_nullable(context,**id)).map(|(&id,&ty)|(id,ty)).collect::<HashMap<_,_>>();
         if !sticky.is_empty() {
             crate::source_walk::body(body,&mut |_|Ok(()),&mut |value|{
+                self.retarget_planned_callback_call(value,&sticky);
                 if !matches!(value.kind,ExprKind::Name(_)|ExprKind::Field(_,_)|ExprKind::Project{..}){return Ok(());}
                 if let Some(ty)=self.planned_record_array_type(value,&sticky) && value.ty.is_some_and(|checked|checked!=ty
                     && (checked.union().is_some()==ty.union().is_some()) && matches!(self.unions.payload(ty).unwrap_or(ty),Type::Record(_)|Type::BorrowedCallable(_)|Type::Closure(_)|Type::Callback(_)))
@@ -147,6 +148,7 @@ impl Analyzer {
                 Ok(())
             })?;
         }
+        self.nullable_array_slot_carriers(context,body)?;
         self.scoped_map_carriers(context,body)?;
         self.record_array_carriers(context,body)?;
         self.scoped_array_storage_epochs(context,body)?;
@@ -263,18 +265,23 @@ impl Analyzer {
         value.wrap_record_carrier(destination);
         Ok(())
     }
-    fn retarget_nullable_store(&mut self,value:&mut Expr,destination:Type)->Result<(),Diagnostic>{
+    pub(super) fn retarget_nullable_store(&mut self,value:&mut Expr,destination:Type)->Result<(),Diagnostic>{
         if value.ty==Some(destination){return Ok(());}
         match &mut value.kind {
             ExprKind::Inject{value:inner,union:tag} if destination.union().is_some()=>{
                 if let(Some(Type::Record(_)),Some(payload))=(inner.ty,self.unions.payload(destination)){self.retarget_nullable_store(inner,payload)?;}
                 *tag=destination.union().unwrap();value.ty=Some(destination);
             }
+            ExprKind::Array(elements) if matches!(destination,Type::Array(_))=>{
+                let Type::Array(element)=destination else{unreachable!()};
+                for item in elements.iter_mut(){self.retarget_nullable_store(item,element.ty())?;}
+                value.ty=Some(destination);
+            }
             ExprKind::Record(values)=>{
                 let(Type::Record(target),Some(Type::Record(mut current)))=(destination,value.ty)else{return self.checked_carrier(value,destination);};
                 for(name,field)in values.iter_mut(){
                     let Some(wanted)=self.program.records[target].fields.iter().find(|candidate|candidate.name.text==name.text).and_then(|candidate|candidate.ty)else{continue;};
-                    if field.ty==Some(wanted) || !(wanted.union().is_some() || matches!(wanted,Type::Record(_))){continue;}
+                    if field.ty==Some(wanted) || !(wanted.union().is_some() || matches!(wanted,Type::Record(_)|Type::Array(_))){continue;}
                     self.retarget_nullable_store(field,wanted)?;
                     if field.ty==Some(wanted) && let Some(next)=self.record_type_with_field(current,std::slice::from_ref(&name.text),wanted){current=next;}
                 }
@@ -294,8 +301,10 @@ impl Analyzer {
         let(Some(Type::Record(a)),Some(Type::Record(b)))=(self.unions.payload(left),self.unions.payload(right))else{return Ok(None);};
         if self.scoped_records.declaration(a)!=self.scoped_records.declaration(b){return Ok(None);}
         // An absent value holds no callback instance; the other environment is the join.
-        let empty=self.empty_scoped_record_environment(self.scoped_records.declaration(a))?;
-        let payload=if a==b || empty==Type::Record(b){Type::Record(a)}else if empty==Type::Record(a){Type::Record(b)}else{
+        // The declaration itself names no environment either.
+        let declaration=self.scoped_records.declaration(a);
+        let empty=self.empty_scoped_record_environment(declaration)?;
+        let payload=if a==b || empty==Type::Record(b) || b==declaration{Type::Record(a)}else if empty==Type::Record(a) || a==declaration{Type::Record(b)}else{
             let Some(joined)=self.join_sticky_record_types(a,b,span)? else{return Ok(None);};
             joined
         };

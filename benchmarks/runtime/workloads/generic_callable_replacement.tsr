@@ -76,7 +76,7 @@ function nullableLength(flag: boolean, value: Owned<string | undefined>): int {
     }
 
     const selected = action<string | undefined>(value);
-    return selected ?. length ?? 0;
+    return selected?.length ?? 0;
 }
 
 function callbackFirst<T>(value: T, callback: ReadOnly<Function<int>>): int {

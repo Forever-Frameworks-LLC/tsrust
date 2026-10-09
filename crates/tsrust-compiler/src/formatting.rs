@@ -324,10 +324,10 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
                 let after_generic_open = previous_symbol && prev == "<" && generic(previous.span.start);
                 let optional_parameter = symbol && current == "?" && real.get(i + 1).is_some_and(|t| t.text == ":");
                 let tight = sign_operand || generic_open || generic_close || after_generic_open || optional_parameter || postfix_assertion || (symbol
-                    && matches!(current, "." | "," | ";" | ")" | "]" | ":" | "++" | "--")
+                    && matches!(current, "." | "?." | "," | ";" | ")" | "]" | ":" | "++" | "--")
                     && !conditional_colon[i])
                     || (previous_symbol
-                        && (matches!(prev, "." | "(" | "[" | "..." | "~") || (matches!(prev, "!" | "++" | "--") && !ends_operand(i - 1))))
+                        && (matches!(prev, "." | "?." | "(" | "[" | "..." | "~") || (matches!(prev, "!" | "++" | "--") && !ends_operand(i - 1))))
                     || (symbol
                         && current == "("
                         // A call or grouped callee; an operator or keyword keeps its space.

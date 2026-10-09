@@ -23,7 +23,7 @@ function workload(n: int, seed: int, input: string): int[][] {
         const beforeInner = trace.innerCalls;
         const beforeFallbacks = trace.fallbacks;
         const observed: int[] = [];
-        const result = makeHigher(tag, i % 7, trace) ?.(makeInner(trace, seed % 11), argument(trace, value), trace);
+        const result = makeHigher(tag, i % 7, trace)?.(makeInner(trace, seed % 11), argument(trace, value), trace);
         if (result !== undefined) {
             observed.push(result);
         }

@@ -3081,8 +3081,57 @@ fn nullable_callback_records_can_start_populated() {
     // A closure that owns its captures fills the same nullable position, and the record can be returned.
     let owned=support::format_round_trip(&format!("{holder}type Box={{saved:Holder|undefined;}};function make(n:int):Box{{return {{saved:{{run:():int=>n}}}};}}function local(n:int):Box{{const box:Box={{saved:{{run:():int=>n}}}};return box;}}function main():void{{const first=make(4);if(first.saved!==undefined)console.log(first.saved.run());const second=local(5);if(second.saved!==undefined)console.log(second.saved.run());const n=6;const box:Box={{saved:{{run:():int=>n}}}};if(box.saved!==undefined)console.log(box.saved.run());box.saved=undefined;console.log(box.saved===undefined);}}"));
     support::execute(&owned,"4\n5\n6\ntrue\n",None);
-    let indexed=support::format_round_trip(&format!("{holder}type Box={{saved:Holder|undefined;}};function main():void{{const a=[3];const boxes:Box[]=[{{saved:undefined}}];boxes[0].saved={{run:():int=>a[0]}};}}"));
-    assert_eq!(tsrust_compiler::check(&indexed).err().expect("indexed field stores are still pending").code,"unsupported");
     let held=support::format_round_trip(&format!("{holder}function main():void{{const a=[3];let saved:Holder|undefined={{run:():int=>a[0]}};a[0]=9;if(saved!==undefined)console.log(saved.run());}}"));
     assert_eq!(tsrust_compiler::check(&held).err().expect("a populated initializer keeps its capture loan").code,"capture-conflict");
+}
+
+#[test]
+fn nullable_callback_record_results_keep_one_owned_environment() {
+    let holder="type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};";
+    let run=|body:&str,expected:&str|{support::execute(&support::format_round_trip(&format!("{holder}{body}")),expected,None);};
+    run("function make(n:int):Holder|undefined{if(n>0)return {run:():int=>n};return undefined;}function main():void{let h=make(4);if(h!==undefined)console.log(h.run());h=make(0);console.log(h===undefined);const box:Box={saved:make(7)};if(box.saved!==undefined)console.log(box.saved.run());box.saved=make(0);console.log(box.saved===undefined);}","4\ntrue\n7\ntrue\n");
+    run("function make(n:int):Holder|undefined{return undefined;}function main():void{const h=make(4);console.log(h===undefined);}","true\n");
+    run("function inner(n:int):Holder|null{if(n>0)return {run:():int=>n};return null;}function outer(n:int):Holder|null{return inner(n+1);}function main():void{const h=outer(1);if(h!==null)console.log(h.run());}","2\n");
+    run("function make(n:int):Box{if(n>0)return {saved:{run:():int=>n}};return {saved:undefined};}function main():void{const b=make(3);if(b.saved!==undefined)console.log(b.saved.run());console.log(make(0).saved===undefined);}","3\ntrue\n");
+    let rejected=|body:&str,code:&str|{
+        let source=support::format_round_trip(&format!("{holder}{body}"));
+        assert_eq!(tsrust_compiler::check(&source).err().unwrap_or_else(||panic!("must be rejected: {body}")).code,code,"{body}");
+    };
+    // A result cannot carry a callback that borrows the callee's parameters or locals.
+    rejected("function make(a:ReadOnly<int[]>):Holder|undefined{return {run:():int=>a[0]};}function main():void{const v=[1];const h=make(v);}","callback-escape");
+    rejected("function make(n:int):Holder|null{if(n>1)return {run:():int=>n};if(n===1)return {run:():int=>n+10};return null;}function main():void{const h=make(1);}","unsupported");
+    rejected("function make(n:int):Holder{if(n>0)return {run:():int=>n};return {run:():int=>0};}function main():void{console.log(make(3).run());}","unsupported");
+}
+
+#[test]
+fn conditional_expressions_join_callback_record_environments() {
+    let holder="type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};";
+    let run=|body:&str,expected:&str|{support::execute(&support::format_round_trip(&format!("{holder}{body}")),expected,None);};
+    run("function f(flag:boolean):void{const a=[3];const box:Box={saved:undefined};box.saved=flag?{run:():int=>a[0]}:undefined;console.log(box.saved!==undefined?box.saved.run():-1);}function main():void{f(true);f(false);}","3\n-1\n");
+    run("function f(flag:boolean):void{const a=[3];const b=[4];const s:Holder|undefined=flag?{run:():int=>a[0]}:undefined;if(s!==undefined)console.log(s.run());const h:Holder=flag?{run:():int=>a[0]}:{run:():int=>b[0]};console.log(h.run());}function main():void{f(true);f(false);}","3\n3\n4\n");
+    run("function f(flag:boolean):void{const a=[3];const b=[4];let s:Holder|undefined=flag?{run:():int=>a[0]}:{run:():int=>b[0]};if(s!==undefined)console.log(s.run());s=undefined;a[0]=7;b[0]=8;console.log(a[0],b[0]);}function main():void{f(true);f(false);}","3\n7 8\n4\n7 8\n");
+    let held=support::format_round_trip(&format!("{holder}function f(flag:boolean):void{{const b=[4];const s:Holder|undefined=flag?undefined:{{run:():int=>b[0]}};b[0]=9;if(s!==undefined)console.log(s.run());}}function main():void{{f(true);}}"));
+    assert_eq!(tsrust_compiler::check(&held).err().expect("either branch environment keeps its capture").code,"capture-conflict");
+}
+
+#[test]
+fn nullable_callback_record_fields_of_array_elements_share_the_array_carrier() {
+    let holder="type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};";
+    let run=|body:&str,expected:&str|{support::execute(&support::format_round_trip(&format!("{holder}{body}")),expected,None);};
+    run("function main():void{const a=[3];const boxes:Box[]=[{saved:undefined}];boxes[0].saved={run:():int=>a[0]};console.log(boxes[0].saved?.run()??-1);}","3\n");
+    run("function main():void{const a=[3];const b=[4];const boxes:Box[]=[{saved:undefined},{saved:undefined}];let i=0;while(i<2){if(i===0)boxes[i].saved={run:():int=>a[0]};else boxes[i].saved={run:():int=>b[0]};i+=1;}for(const box of boxes){if(box.saved!==undefined)console.log(box.saved.run());}boxes[0].saved=undefined;console.log(boxes[0].saved===undefined,boxes.length);}","3\n4\ntrue 2\n");
+    run("type Shelf={boxes:Box[];n:int;};function main():void{const a=[3];const shelf:Shelf={boxes:[{saved:undefined}],n:1};shelf.boxes[0].saved={run:():int=>a[0]};console.log(shelf.boxes[0].saved?.run()??-1,shelf.n);}","3 1\n");
+    // A callback contract that can fail elsewhere keeps its result layout for element calls.
+    run("function main():void{const a=[3];const risky:Holder={run:():int=>{if(a[0]>5)throw \"big\";return 1;}};try{console.log(risky.run());}catch(error){console.log(\"caught\");}const boxes:Box[]=[{saved:undefined}];boxes[0].saved={run:():int=>a[0]};let observed=0;for(const box of boxes){if(box.saved!==undefined)observed+=box.saved.run();}console.log(observed);}","1\n3\n");
+    // Whole elements: literal with mixed elements, push, replacement and removal.
+    run("function main():void{const a=[3];const boxes:Box[]=[{saved:undefined},{saved:{run:():int=>a[0]}}];let total=0;for(const box of boxes){if(box.saved!==undefined)total+=box.saved.run();}console.log(total);}","3\n");
+    run("function main():void{const a=[3];const boxes:Box[]=[];boxes.push({saved:undefined});boxes.push({saved:{run:():int=>a[0]}});boxes[0].saved={run:():int=>a[0]+1};for(const box of boxes){console.log(box.saved?.run()??-1);}}","4\n3\n");
+    run("function main():void{const a=[3];const boxes:Box[]=[{saved:undefined}];boxes[0]={saved:{run:():int=>a[0]}};console.log(boxes[0].saved?.run()??-1);const last=boxes.pop();if(last!==undefined&&last.saved!==undefined)console.log(last.saved.run());}","3\n3\n");
+    let rejected=|body:&str,code:&str|{
+        let source=support::format_round_trip(&format!("{holder}{body}"));
+        assert_eq!(tsrust_compiler::check(&source).err().unwrap_or_else(||panic!("must be rejected: {body}")).code,code,"{body}");
+    };
+    // Clearing one element field does not release captures held through the array.
+    rejected("function main():void{const a=[3];const boxes:Box[]=[{saved:undefined}];boxes[0].saved={run:():int=>a[0]};boxes[0].saved=undefined;a[0]=9;console.log(a[0],boxes.length);}","capture-conflict");
+    rejected("function main():void{const a=[3];const boxes:Box[]=[{saved:undefined}];boxes[0].saved={run:():int=>a[0]};const s=boxes[0].saved;if(s!==undefined)console.log(s.run());}","unsupported");
 }

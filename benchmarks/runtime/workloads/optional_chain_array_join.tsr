@@ -16,7 +16,7 @@ function workload(n: int, seed: int, input: string): string[][] {
         const bi = trace.indices;
         const ba = trace.args;
         const carrier: string[] | null | undefined = makeCarrier(trace, value, input);
-        const selected = carrier ?. join(nextArgument(trace, value, input));
+        const selected = carrier?.join(nextArgument(trace, value, input));
         const db = trace.bases - bb;
         const di = trace.indices - bi;
         const da = trace.args - ba;

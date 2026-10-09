@@ -73,8 +73,13 @@ impl Analyzer {
             fields: vec![],
         };
         self.attach_payload_capture_loans(context, value, temporary.clone(), true);
+        // A nullable callback-record field of an array element shares the
+        // array's carrier: every stored environment stays borrowed.
+        let array_slot = Self::passes_through_index(target)
+            && self.expression_type_hint(context, target).is_some_and(|ty| self.nullable_scoped_record_declaration(ty).is_some());
+        let fields = if array_slot { Self::scoped_array_storage_path(target).map_or(fields, |(_, fields)| fields) } else { fields };
         let destination = Place { binding, fields };
-        if indexed || self.sticky_nullable(context, binding) {
+        if indexed || array_slot || self.sticky_nullable(context, binding) {
             // Runtime indices share conservative ownership paths. Replacement
             // consumes its RHS but must retain captures owned by other elements.
             // A nullable callback record stored through control flow keeps
@@ -84,6 +89,16 @@ impl Analyzer {
             let _ = context.capture_loan_owners.transfer(&temporary, &destination);
         }
         Self::restore_live_capture_loans(context);
+    }
+
+    fn passes_through_index(mut target: &Expr) -> bool {
+        loop {
+            match &target.kind {
+                ExprKind::Index(_, _) => return true,
+                ExprKind::Field(base, _) => target = base,
+                _ => return false,
+            }
+        }
     }
 
     /// Insertion adds another payload without discarding existing element loans.

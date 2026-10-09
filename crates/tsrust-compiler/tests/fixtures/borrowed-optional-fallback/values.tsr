@@ -11,9 +11,9 @@ function main() {
         label: "é😀"
     }];
     for (const item of rows) {
-        const label = item ?. label ?? "none";
+        const label = item?.label ?? "none";
         console.log(label);
     }
 
-    console.log(rows[0] ?. label ?? "missing");
+    console.log(rows[0]?.label ?? "missing");
 }

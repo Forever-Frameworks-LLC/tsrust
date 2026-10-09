@@ -395,3 +395,13 @@ fn unary_signs_attach_to_their_operands() {
     assert_eq!(format(&formatted).unwrap(), formatted);
     check(&formatted).unwrap();
 }
+
+#[test]
+fn optional_chains_stay_attached_to_their_operands() {
+    let source = "type Item={label:string;next:Item|undefined;};function main(){const items:Item[]=[{label:\"a\",next:undefined}];const first:Item|undefined=items[0];console.log(first?.label??\"none\",first?.next?.label??\"end\",items[0]?.label.length??-1);}";
+    let formatted = format(source).unwrap();
+    for expected in ["first?.label ?? \"none\"", "first?.next?.label ?? \"end\"", "items[0]?.label.length ?? -1"] {
+        assert!(formatted.contains(expected), "{expected}\n{formatted}");
+    }
+    assert_eq!(format(&formatted).unwrap(), formatted);
+}

@@ -45,7 +45,7 @@ function main() {
     });
     {
         const box = boxes.get(1);
-        strictEqual(box ?. label ?? "missing", "box");
+        strictEqual(box?.label ?? "missing", "box");
     }
 
     boxes.delete(1);
@@ -84,7 +84,7 @@ function main() {
     arrays.set("values", [5, 6]);
     {
         const values = arrays.get("values");
-        strictEqual(values ?. length ?? 0, 2);
+        strictEqual(values?.length ?? 0, 2);
     }
 
     arrays.clear();

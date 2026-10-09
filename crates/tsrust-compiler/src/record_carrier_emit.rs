@@ -45,7 +45,8 @@ impl Emitter<'_>{
                     let to=targets.iter().position(|&candidate|candidate==member || matches!((candidate,member),(Type::Record(_),Type::Record(_)))).expect("checked nullable carrier member");
                     format!("Union{}::V{index}(payload)=>Union{}::V{to}({})",source.index(),target.index(),self.record_carrier_conversion(member,targets[to],"payload"))
                 }).collect::<Vec<_>>().join(",");
-                format!("match {value}{{{arms}}}")
+                // Name the source type: an absent payload leaves its parameter unconstrained.
+                format!("{{let nullable_carrier: {} = {value}; match nullable_carrier{{{arms}}}}}",self.native_type(Type::Union(source)))
             }
             (Type::Closure(origin),Type::BorrowedCallable(family))=>self.stored_callable_constructor(family,origin,value),
             (Type::BorrowedCallable(source),Type::BorrowedCallable(target))=>{

@@ -28,7 +28,7 @@ function workload(n: int, seed: int, input: string): int[][] {
             observed.push(nil(makeInner(trace, seed % 11), argument(trace, value), trace));
         }
 
-        const skipped = forwardEmpty(tag, trace) ?.(makeInner(trace, seed % 11), argument(trace, value), trace);
+        const skipped = forwardEmpty(tag, trace)?.(makeInner(trace, seed % 11), argument(trace, value), trace);
         if (skipped !== undefined) {
             observed.push(skipped);
         }

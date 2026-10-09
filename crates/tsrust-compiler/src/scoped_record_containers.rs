@@ -25,7 +25,11 @@ impl Analyzer {
                 Some(previous) if previous == actual => actual,
                 Some(previous) => match self.join_record_types(previous, actual, span)? {
                     Some(Type::Record(joined)) => joined,
-                    _ => return Err(Diagnostic::new("type", "Array elements require compatible concrete callback field contracts.", value.span)),
+                    // Elements can differ in a nullable callback-record field only.
+                    _ => match self.join_sticky_record_types(previous, actual, span)? {
+                        Some(Type::Record(joined)) => joined,
+                        _ => return Err(Diagnostic::new("type", "Array elements require compatible concrete callback field contracts.", value.span)),
+                    },
                 },
             });
         }

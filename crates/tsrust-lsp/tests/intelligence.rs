@@ -23,6 +23,19 @@ fn nullable_callback_record_control_flow_stores_keep_captures_until_scope_end() 
 }
 
 #[test]
+fn nullable_callback_record_values_results_and_elements_have_editor_diagnostics() {
+    let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};function make(seed:int):Holder|undefined{if(seed>0)return {run:():int=>seed};return undefined;}function main():void{const first=[3];const made=make(4);if(made!==undefined)console.log(made.run());const chosen:Holder|undefined=first[0]>1?{run:():int=>first[0]}:undefined;if(chosen!==undefined)console.log(chosen.run());const boxes:Box[]=[{saved:undefined}];boxes[0].saved={run:():int=>first[0]};console.log(boxes[0].saved?.run()??-1);}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&source,"file:///nullable-values.tsr").unwrap().is_empty());
+    let codes=|changed:String|{
+        assert_ne!(source,changed);
+        let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&changed,"file:///nullable-values.tsr").unwrap()).unwrap();
+        diagnostics.as_array().unwrap().iter().map(|item|item["code"].as_str().unwrap().to_owned()).collect::<Vec<_>>()
+    };
+    assert!(codes(source.replace("console.log(boxes[0].saved?.run() ?? -1);","boxes[0].saved=undefined;first[0]=9;console.log(boxes.length);")).contains(&"capture-conflict".to_owned()));
+    assert!(codes(source.replace("console.log(boxes[0].saved?.run() ?? -1);","const moved=boxes[0].saved;")).contains(&"unsupported".to_owned()));
+}
+
+#[test]
 fn populated_nullable_callback_records_report_capture_conflicts() {
     let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};function main():void{const first=[3];const second=[5];let saved:Holder|undefined={run:():int=>first[0]};const box:Box={saved:{run:():int=>second[0]}};saved=undefined;first[0]=7;if(box.saved!==undefined)console.log(box.saved.run());}").unwrap();
     assert!(tsrust_lsp::diagnostics(&source,"file:///populated-nullable.tsr").unwrap().is_empty());

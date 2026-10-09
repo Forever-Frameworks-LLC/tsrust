@@ -128,7 +128,7 @@ function main() {
     strictEqual(caught, 1);
     strictEqual(counter.value, 14);
     const action: ReadOnly<Function<int, [...values: int[]]>> | null = null;
-    strictEqual(String(action ?.(...make(counter))), "undefined");
+    strictEqual(String(action?.(...make(counter))), "undefined");
     strictEqual(counter.value, 14);
     const inserts = new Set<string>([String("a"), "b"]);
     strictEqual(String.raw({

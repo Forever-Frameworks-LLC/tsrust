@@ -49,7 +49,7 @@ function emitText(values: string[]) {
 }
 
 function optional(action: ((...values: int[]) => int[]) | undefined, trace: Trace): int[] | undefined {
-    return action ?.(...segment(trace, 99));
+    return action?.(...segment(trace, 99));
 }
 
 function main() {

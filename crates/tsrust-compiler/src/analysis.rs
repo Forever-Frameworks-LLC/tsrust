@@ -4308,7 +4308,11 @@ impl Analyzer {
         self.finalize_nullable_locals(&mut context.bindings, &mut body)?;
         // A record annotation names its declaration; the checked result must
         // retain the concrete callback environment selected by its returns.
-        if let Type::Record(base) = result_type {
+        if let Type::Record(base) = result_type
+            && let Some(joined) = self.joined_record_result(&mut body, base)?
+        {
+            result_type = joined;
+        } else if let Type::Record(base) = result_type {
             let actual = self.inferred_body_result(&body)?;
             if let Type::Record(instance) = actual {
                 if self.scoped_records.declaration(instance) == base {
@@ -4321,6 +4325,7 @@ impl Analyzer {
         } else {
             result_type
         };
+        let result_type = self.nullable_record_result(&mut body, result_type)?;
         self.finalize_nullable_returns(&mut body, result_type)?;
         self.declared_parameter_access(index, &mut context)?;
         if self.assumed_modes.is_some() && self.callable_result_type(self.signatures[index].result)
@@ -5734,7 +5739,10 @@ impl Analyzer {
         };
         context.returning_closure = false;
         let facts = self.aggregate_callable_facts(actual);
-        if facts.scoped || facts.unknown {
+        // An absent nullable record holds no callback instance to escape.
+        let absent_record = self.nullable_scoped_record_declaration(actual).is_some()
+            && value.as_ref().is_some_and(|value| matches!(&value.kind, ExprKind::Inject { value, .. } if matches!(value.kind, ExprKind::Null | ExprKind::Undefined)));
+        if (facts.scoped || facts.unknown) && !absent_record {
             return Err(Diagnostic::new("callback-escape","A returned value cannot contain a callable that borrows local storage.",span));
         }
         let converted =
@@ -9470,6 +9478,10 @@ impl Analyzer {
             consequent.wrap_storage(family);consequent.ty=Some(Type::BorrowedCallable(family));
             alternate.wrap_storage(family);alternate.ty=Some(Type::BorrowedCallable(family));
             left=Type::BorrowedCallable(family);right=left;
+        }
+        if left != right && let Some(joined) = self.conditional_record_join(consequent, alternate, left, right)? {
+            left = joined;
+            right = joined;
         }
         if left != right && !(assignment_alias && left.owning() == right.owning()) {
             return Err(Diagnostic::new(
