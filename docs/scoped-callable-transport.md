@@ -129,3 +129,17 @@ and an empty final removal produces `undefined`. Discarded owned string prefixes
 are borrowed and remain available afterward. This does not yet extend to comma
 results stored through aggregate fields, arbitrary final expressions or direct
 sequence reassignment.
+
+Direct named reassignment supports the same final-removal form:
+
+```tsrust
+removed = (handlers.pop(), second[0] = 9, handlers.shift());
+```
+
+The previous `removed` value remains alive through the whole RHS. The discarded
+prefix result drops before the next operand. Once the final removal finishes,
+the old destination drops and the new result takes its place. Mutation of a
+capture belonging to the old destination inside the RHS remains an error.
+This applies to statement assignments of existing concrete scoped result storage;
+expression-valued assignments and declaration-only nullable record storage still
+need their own transport support.

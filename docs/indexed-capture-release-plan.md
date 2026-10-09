@@ -1,5 +1,27 @@
 # Precise indexed capture release
 
+## Direct comma reassignment checkpoint, 2026-10-09
+
+A direct named assignment can now replace an existing scoped removal result with
+a comma sequence ending in a known removal. Discarded prefix results release in
+source order. The previous destination owner remains live through RHS evaluation;
+the final selected slot then replaces it. Native lowering reuses normal lexical
+block/result transport. Expression-valued assignments do not receive this
+statement-only transformation.
+
+The focused witness checks exact O0/O3 disposal, old-owner protection inside the
+RHS, final-owner protection afterward and replacement with an empty removal.
+Declaration-only optional callback-record storage still has the existing source
+rejection and remains required in the nullable-storage work. The matched workload
+adds a `4 * value + 12` oracle and 123 observations. Five focused comma tests, 31 affected array tests, existing comma suites, five
+editor checks and eight depth canaries pass. Registration mutation controls pass
+after adding the missing initial-removal contract. All five native and
+Node-after-tsc workload cases pass untimed. SQLite preserves
+`runtime/results/2026-10-09T09-35-36-979Z-verify.json` with empty timing arrays,
+plus fifteen diagnostic logs, all restored byte for byte before loose copies were
+removed. Final formatting changes zero files and fingerprints. No full regression,
+timing or installed-consumer refresh ran. B5 remains incomplete.
+
 ## Retained comma removal result checkpoint, 2026-10-09
 
 Local declarations whose comma sequence ends in a direct known removal now
@@ -300,3 +322,17 @@ harness's stdout trimming and entry-point rename. The initial comparison
 incorrectly required an extra newline; its corrected comparison and final
 zero-change formatter log are also stored and restored exactly in SQLite.
 No new native verification run or timing was needed for unchanged generated code.
+
+## Next nullable-storage dependency
+
+The declaration-only optional-record rejection comes from
+`scoped_record_containers.rs`: a canonical record declaration has no checked
+callback environment. Do not remove that guard globally. Optional storage must
+first receive a concrete empty environment for an absent initializer, then track
+reaching concrete environments for later stores. Reuse
+`empty_scoped_record_environment` and the isolated result-storage planner where
+possible. Preserve the actual undefined runtime variant, nominal field contracts,
+old-owner protection during replacement, moves and scope disposal. Add separate
+source/native witnesses for absence, first population, empty replacement, field
+storage and branch joins before expanding acceptance. This dependency remains
+open after direct comma reassignment.

@@ -4888,6 +4888,12 @@ impl Analyzer {
         value: &mut Expr,
         operator: Option<(BinaryOp, Span)>,
     ) -> Result<(), Diagnostic> {
+        if operator.is_none() && matches!(target.kind,ExprKind::Name(_))
+            && self.expression_type_hint(context,target).is_some_and(|ty|self.aggregate_callable_facts(ty).scoped)
+            && self.prepare_bound_removal_sequence(context,value)
+        {
+            return self.reassign_with_sequence(context,target,value,&Loans::new(),true);
+        }
         self.assign_statement_with_loans(context,target,value,operator,&Loans::new())
     }
     #[inline(never)]
@@ -5823,6 +5829,10 @@ impl Analyzer {
     }
     #[inline(never)]
     fn reassign_with_loans(&mut self,context:&mut Context,target:&mut Expr,value:&mut Expr,loans:&Loans)->Result<(),Diagnostic>{
+        self.reassign_with_sequence(context,target,value,loans,false)
+    }
+    #[inline(never)]
+    fn reassign_with_sequence(&mut self,context:&mut Context,target:&mut Expr,value:&mut Expr,loans:&Loans,precise_sequence:bool)->Result<(),Diagnostic>{
         let id = self.rebind_target(context, target)?;
         let ty = context.bindings[id].ty;
         if !context.effects_only && let Some(active)=loans.get(&id) && let Some((_,earlier))=active.first(){
@@ -5831,8 +5841,12 @@ impl Analyzer {
         // Check the RHS against the current availability, allowing x = take(x)
         // but rejecting a read of x after an earlier transfer. Commit only after
         // evaluation and exact type checking complete.
-        let removal = Self::array_removal_snapshot(context, value);
-        let actual = self.expression(context, value, Mode::Consume, loans, Some(ty))?;
+        let mut removal = Self::array_removal_snapshot(context, value);
+        let actual = if precise_sequence {
+            let actual=self.sequence_expression_removal_snapshot(context,value,Mode::Consume,loans,Some(ty),false,true,Some(&mut removal))?;
+            context.storage_exits.record_bound_sequence(value.span);
+            actual
+        }else{self.expression(context, value, Mode::Consume, loans, Some(ty))?};
         if !context.template
             && let (Type::Closure(previous), Type::Closure(next)) = (ty, actual)
             && self.deferred_generic_values.contains_key(&previous)

@@ -1,5 +1,26 @@
 # Precise Map entry capture release
 
+## Direct comma reassignment checkpoint, 2026-10-09
+
+Direct named assignment now supports a comma RHS ending in a known removal.
+Discarded prefix captures release in order. The previous destination remains
+protected through the RHS, then drops after the replacement is evaluated.
+Focused native order/disposal checks, empty replacement, ownership diagnostics,
+five comma tests, 31 affected array tests, existing comma suites, editor checks
+and eight depth canaries pass. The matched workload has 123 observations and
+passes five native/Node-after-tsc cases untimed. SQLite preserves the byte-verified
+record `runtime/results/2026-10-09T09-35-36-979Z-verify.json` and diagnostic logs.
+
+B5 remains incomplete. Declaration-only nullable callback-record storage still
+has its existing source rejection. Its next dependency is concrete empty storage
+and reaching-environment planning, not removal of the container guard. Arbitrary
+comma final values, expression-valued assignments, function returns, aggregate
+result storage, control-flow joins and structural record keys remain open.
+Family regressions, measurements and installed-consumer refresh remain pending.
+See indexed-capture-release-plan.md for the next nullable-storage dependency.
+
+
+
 ## Retained comma removal result checkpoint, 2026-10-09
 
 Local declarations can retain the final direct removal after discarded comma

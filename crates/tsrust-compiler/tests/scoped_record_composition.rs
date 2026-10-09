@@ -1,6 +1,23 @@
 mod support;
 
 #[test]
+fn comma_reassignment_releases_prefix_and_previous_result_in_order() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const third=[7];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]},{run:():int=>third[0]}];let removed=handlers.pop();removed=(handlers.pop(),second[0]=9,handlers.shift());third[0]=11;if(removed!==undefined)console.log(removed.run(),second[0],third[0]);removed=undefined;first[0]=13;console.log(first[0]);}");
+    support::execute(&source,"3 9 11\n13\n",None);
+    verify_disposal(&source,3,"drop 1\ndrop 2\n3 9 11\ndrop 0\n13\n");
+    for (from,to) in [("second[0] = 9", "third[0] = 9"),("third[0] = 11", "first[0] = 11")] {
+        let conflict=source.replace(from,to);
+        assert_ne!(source,conflict);
+        assert_eq!(tsrust_compiler::check(&conflict).err().expect("current result owner stays live").code,"capture-conflict");
+    }
+    let empty=source.replace("removed = undefined;", "removed=(handlers.pop(),handlers.shift());");
+    support::execute(&support::format_round_trip(&empty),"3 9 11\n13\n",None);
+    let sentinel=source.replace("let removed = handlers.pop();", "handlers.pop();let removed:Holder|undefined=undefined;");
+    assert_eq!(tsrust_compiler::check(&support::format_round_trip(&sentinel)).err().expect("declaration-only optional record storage remains pending").code,"unsupported");
+
+}
+
+#[test]
 fn retained_comma_removal_releases_only_discarded_prefix_captures() {
     let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];{const removed=(handlers.pop(),second[0]=9,handlers.shift());if(removed!==undefined)console.log(removed.run(),second[0]);}first[0]=7;console.log(first[0],second[0],handlers.length);}");
     support::execute(&source,"3 9\n7 9 0\n",None);

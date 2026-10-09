@@ -92,6 +92,19 @@ pub(super) fn lower(body: &mut [Stmt], exits: &mut Exits) {
             exits.record_sequence_export(statement.span.start,binding.unwrap());
             statement.kind=StmtKind::Block(body);
         }
+        if matches!(&statement.kind, StmtKind::Assign { target,value,operator:None } if matches!(target.kind,ExprKind::Name(_)) && exits.bound_sequence(value.span)) {
+            let old=std::mem::replace(&mut statement.kind,StmtKind::Break);
+            let StmtKind::Assign { target,mut value,operator }=old else{unreachable!()};
+            let ExprKind::Sequence(values)=&mut value.kind else{unreachable!()};
+            let mut values=std::mem::take(values);
+            let last=values.pop().expect("nonempty checked sequence");
+            let mut body=values.into_iter().map(|value|{
+                exits.record_comma_operand(value.span);
+                Stmt{labels:vec![],control_target:None,span:value.span,kind:StmtKind::Expr(value)}
+            }).collect::<Vec<_>>();
+            body.push(Stmt{labels:vec![],control_target:None,span:last.span,kind:StmtKind::Assign{target,value:last,operator}});
+            statement.kind=StmtKind::Block(body);
+        }
         if let StmtKind::Expr(value) = &mut statement.kind
             && exits.discarded_sequence(value.span)
             && let ExprKind::Sequence(values) = &mut value.kind {
