@@ -23,6 +23,7 @@ impl Analyzer {
             matches!(binding.ty, Type::Record(_) | Type::Array(ArrayElement::Record(_, 0)))
                 && self.aggregate_callable_facts(binding.ty).scoped)
         { return Ok(()); }
+        super::discarded_sequence::lower(body, &mut context.storage_exits);
         let mut results = HashMap::new();
         let eligible = super::array_result_storage::eligible_bindings(context, body);
         super::array_result_storage::reject_unplanned_replacements(context, body, &eligible)?;

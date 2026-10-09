@@ -1,5 +1,35 @@
 # Precise indexed capture release
 
+## Discarded comma operand checkpoint, 2026-10-09
+
+A standalone discarded comma sequence can now release a known local array's
+removed capture before the next scalar operand. The dedicated
+`discarded_sequence.rs` module checks eligibility, flattens nested discarded
+sequences and lowers checked operands into lexical native temporary boundaries.
+Operand emission preserves the existing read-and-discard behavior. Surviving array
+slots retain their capture loans, and saved indexed views still prevent removal.
+
+Focused pop, shift, nested sequence, repeated removal, empty removal and exact
+native disposal checks pass. A discarded owned string prefix remains usable.
+Thirty-one affected array tests, both new comma tests, existing comma suites,
+argument-lifetime safety, focused editor diagnostics and all eight depth canaries
+pass. Catalog text describes the operand boundary and retained argument protection.
+
+The matched workload now has 121 observations per iteration. Independent new
+formulas are `2 * value + 3` for direct comma removal and `2 * value + 6` for nested
+front/back removal through empty. Source guards, mutation controls and literal
+oracle witnesses pass before and after project formatting. All five native and
+Node-after-tsc cases pass untimed. SQLite retains
+`runtime/results/2026-10-09T09-21-54-716Z-verify.json` with empty timing arrays.
+Closed diagnostic logs and this record were restored byte for byte before their
+loose copies were removed. No full regression, timing or installed-consumer
+refresh ran.
+
+B5 remains incomplete. Returned sequences, removal results passed to other calls,
+aggregate result storage and control-flow joins remain open. Structural record
+keys follow the owner's Rust-style equality and ownership decision. Native
+survivor conversion costs still require review at the family milestone.
+
 ## Direct reassignable removal results
 
 Reassignable local pop/shift results now receive point-sensitive native storage.

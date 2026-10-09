@@ -3523,6 +3523,7 @@ impl Emitter<'_> {
                         value.map_or_else(||"return;".into(),|value|format!("return {value};"))
                     }
                 },
+                StmtKind::Expr(value) if fun.storage_exits.comma_operand(value.span) => self.comma_discard_code(fun, value),
                 StmtKind::Expr(value) => {
                     let code = self.expr(
                         fun,

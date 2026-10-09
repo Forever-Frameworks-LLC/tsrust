@@ -100,3 +100,18 @@ This support covers monomorphic conditional families and nullable handles. Gener
 scoped record/array storage, combining distinct carrier families in a fallback,
 polymorphic selection/replacement and mutable factory restoration remain separate
 parts of the callable transport plan.
+
+### Discarded comma removal results
+
+For a known dense local array of capturing records, a standalone discarded comma
+sequence releases each directly removed result before evaluating its next operand.
+For example, `(handlers.pop(), second[0] = 9)` permits mutation of `second` when
+only the removed element captured it. Nested discarded sequences preserve source
+order, and empty removal remains harmless. Surviving elements retain their captures.
+A saved indexed view still prevents mutation of its array.
+
+This refinement currently applies to direct removals combined with scalar
+operations or scalar console output. It does not release a result passed to a
+function before that function's later arguments are evaluated. Returning comma
+results, storing them in aggregates and joining different environments through
+control flow require their own storage planning.

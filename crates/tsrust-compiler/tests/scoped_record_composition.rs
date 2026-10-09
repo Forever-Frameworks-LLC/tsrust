@@ -1,6 +1,30 @@
 mod support;
 
 #[test]
+fn discarded_comma_removal_releases_before_the_next_operand() {
+    let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];(handlers.pop(),second[0]=9);console.log(handlers[0].run(),second[0]);}");
+    support::execute(&source, "3 9\n", None);
+    verify_disposal(&source, 2, "drop 1\n3 9\ndrop 0\n");
+}
+
+#[test]
+fn discarded_comma_removals_preserve_order_and_surviving_owners() {
+    let prefix="type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];";
+    let source=support::format_round_trip(&format!("{prefix}(handlers.shift(),first[0]=9);console.log(handlers[0].run(),first[0]);}}"));
+    support::execute(&source,"5 9\n",None);
+    verify_disposal(&source,2,"drop 0\n5 9\ndrop 1\n");
+    let source=support::format_round_trip(&format!("{prefix}((handlers.pop(),second[0]=9),(handlers.pop(),first[0]=7),handlers.pop());console.log(first[0],second[0],handlers.length);}}"));
+    support::execute(&source,"7 9 0\n",None);
+    verify_disposal(&source,2,"drop 1\ndrop 0\n7 9 0\n");
+    let read_prefix=support::format_round_trip(&format!("{prefix}const note=\"kept\";(note,handlers.pop(),second[0]=9);console.log(note,handlers[0].run(),second[0]);}}"));
+    support::execute(&read_prefix,"kept 3 9\n",None);
+    let conflict=format!("{prefix}(handlers.pop(),first[0]=9);console.log(handlers[0].run());}}");
+    assert_eq!(tsrust_compiler::check(&support::format_round_trip(&conflict)).err().expect("retained capture remains borrowed").code,"capture-conflict");
+    let retained=format!("{prefix}const saved=handlers[0];(handlers.pop(),handlers.shift(),first[0]=9);console.log(saved.run());}}");
+    assert_eq!(tsrust_compiler::check(&support::format_round_trip(&retained)).err().expect("indexed view prevents removal").code,"view-conflict");
+}
+
+#[test]
 fn reassignable_array_result_tracks_new_origins_and_normal_blocks() {
     let prefix = "type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const third=[7];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];let removed=handlers.pop();";
     for tail in [

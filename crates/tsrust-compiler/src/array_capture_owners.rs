@@ -3,14 +3,20 @@ use super::*;
 use crate::capture_loan_owners::Place;
 
 impl Analyzer {
-    pub(super) fn array_removal_snapshot(context: &Context, value: &Expr) -> Option<Box<crate::capture_loan_owners::Owners>> {
+    pub(super) fn known_array_removal_place(context: &Context, value: &Expr) -> Option<Place> {
         let ExprKind::Call(callee, arguments) = &value.kind else { return None; };
         let ExprKind::Field(base, method) = &callee.kind else { return None; };
         if !arguments.is_empty() || !matches!(method.as_str(), "pop" | "shift") { return None; }
         let (name, fields) = Self::direct_fields(base)?;
         let binding = *context.names.get(&name)?;
         if context.bindings[binding].parameter || context.bindings[binding].capture_reference { return None; }
-        context.capture_loan_owners.array_length(&Place { binding, fields })?;
+        let place = Place { binding, fields };
+        context.capture_loan_owners.array_length(&place)?;
+        Some(place)
+    }
+
+    pub(super) fn array_removal_snapshot(context: &Context, value: &Expr) -> Option<Box<crate::capture_loan_owners::Owners>> {
+        Self::known_array_removal_place(context, value)?;
         Some(Box::new(context.capture_loan_owners.clone()))
     }
 

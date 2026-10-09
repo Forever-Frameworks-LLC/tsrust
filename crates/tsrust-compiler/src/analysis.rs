@@ -12,6 +12,8 @@ mod array_capture_owners;
 mod array_storage_epochs;
 #[path = "array_result_storage.rs"]
 mod array_result_storage;
+#[path = "discarded_sequence.rs"]
+mod discarded_sequence;
 #[path="map_entry_capture_owners.rs"]
 mod map_entry_capture_owners;
 #[path="map_entry_epochs.rs"]
@@ -5512,7 +5514,7 @@ impl Analyzer {
                         .is_some_and(|ty| matches!(ty, Type::BorrowedUnion(_)));
                     let place_view = self.borrowed_place_hint(context, value);
                     let ty = if matches!(value.kind,ExprKind::Sequence(_)) {
-                        self.sequence_expression(context,value,Mode::Read,&Loans::new(),None,true)?
+                        self.discarded_sequence_statement(context,value,&Loans::new())?
                     } else {
                         self.expression(context,value,if view || place_view {Mode::Read}else{Mode::Consume},&Loans::new(),None)?
                     };
@@ -16415,20 +16417,30 @@ impl Analyzer {
 impl Analyzer {
     #[inline(never)]
     fn sequence_expression(&mut self,context:&mut Context,expression:&mut Expr,mode:Mode,loans:&Loans,expected:Option<Type>,discarded:bool)->Result<Type,Diagnostic>{
+        self.sequence_expression_with_removal(context,expression,mode,loans,expected,discarded,false)
+    }
+    #[inline(never)]
+    pub(super) fn sequence_expression_with_removal(&mut self,context:&mut Context,expression:&mut Expr,mode:Mode,loans:&Loans,expected:Option<Type>,discarded:bool,precise:bool)->Result<Type,Diagnostic>{
         let ExprKind::Sequence(values)=&mut expression.kind else{unreachable!()};
         let (last,prefixes)=values.split_last_mut().expect("nonempty sequence");
         for prefix in prefixes{
-            let captures=context.capture_loans.len();
+            let captures=crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
+            let removal=precise.then(||Self::array_removal_snapshot(context,prefix)).flatten();
             let projection=context.projection.take();
             let checked=self.discarded_comma_operand(context,prefix,loans);
+            if checked.is_ok(){Self::finish_discarded_array_removal(context,prefix,removal);}
             context.projection=projection;
-            context.capture_loans.truncate(captures);
+            captures.unwind(&mut context.capture_loans);
+            Self::restore_live_capture_loans(context);
             checked?;
         }
         let ty=if discarded {
-            let captures=context.capture_loans.len();
+            let captures=crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
+            let removal=precise.then(||Self::array_removal_snapshot(context,last)).flatten();
             let checked=self.discarded_comma_operand(context,last,loans);
-            context.capture_loans.truncate(captures);
+            if checked.is_ok(){Self::finish_discarded_array_removal(context,last,removal);}
+            captures.unwind(&mut context.capture_loans);
+            Self::restore_live_capture_loans(context);
             checked?;Type::Void
         }else{self.expression(context,last,mode,loans,expected)?};
         expression.ty=Some(ty);expression.binding=if discarded{None}else{last.binding};expression.callable_origin=if discarded{None}else{last.callable_origin};

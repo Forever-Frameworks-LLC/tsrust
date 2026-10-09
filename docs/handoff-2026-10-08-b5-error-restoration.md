@@ -1,5 +1,23 @@
 # B5 error restoration checkpoint
 
+## Discarded comma operand checkpoint, 2026-10-09
+
+Standalone discarded comma sequences now release directly removed array captures
+before later scalar operands. A dedicated module preserves nested source order,
+read-and-discard ownership and native temporary boundaries. Surviving captures and
+retained arguments remain protected. Two focused native tests, exact O0/O3 disposal,
+31 affected array tests, existing comma suites, editor diagnostics and all eight
+depth canaries pass. The matched workload has 121 observations; five native and
+Node-after-tsc cases pass untimed. Evidence is byte-verified in SQLite under
+`runtime/results/2026-10-09T09-21-54-716Z-verify.json`.
+
+B5 remains incomplete. Next cover returned comma results and aggregate result
+storage, then control-flow joins, nullable/outer storage and structural record
+keys. Full family regressions, timing, optimization review and installed-consumer
+refresh remain pending. See indexed-capture-release-plan.md for current details.
+
+
+
 ## Discarded array removal checkpoint, 2026-10-09
 
 Standalone pop/shift now release only the removed payload's captures for known
