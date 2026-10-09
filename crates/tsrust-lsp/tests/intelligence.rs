@@ -72,7 +72,7 @@ fn nullable_callback_record_values_results_and_elements_have_editor_diagnostics(
         diagnostics.as_array().unwrap().iter().map(|item|item["code"].as_str().unwrap().to_owned()).collect::<Vec<_>>()
     };
     assert!(codes(source.replace("console.log(boxes[0].saved?.run() ?? -1);","boxes[0].saved=undefined;first[0]=9;console.log(boxes.length);")).contains(&"capture-conflict".to_owned()));
-    assert!(codes(source.replace("console.log(boxes[0].saved?.run() ?? -1);","const moved=boxes[0].saved;")).contains(&"unsupported".to_owned()));
+    assert!(codes(source.replace("console.log(boxes[0].saved?.run() ?? -1);","const saved=boxes[0].saved;console.log(saved?.run()??-1);console.log(boxes.length);")).is_empty());
 }
 
 #[test]
@@ -84,8 +84,11 @@ fn record_parameters_with_nullable_callback_fields_have_editor_diagnostics() {
     assert!(tsrust_lsp::diagnostics(&cleared,"file:///nullable-parameter.tsr").unwrap().is_empty());
     let stored=cleared.replace("box.saved=undefined;","box.saved={run:():int=>1};");
     assert_ne!(cleared,stored);
-    let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&stored,"file:///nullable-parameter.tsr").unwrap()).unwrap();
-    assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="unsupported"),"{diagnostics}");
+    assert!(tsrust_lsp::diagnostics(&stored,"file:///nullable-parameter.tsr").unwrap().is_empty());
+    let escaped=stored.replace("box.saved={run:():int=>1};","const local=[1];box.saved={run:():int=>local[0]};");
+    assert_ne!(stored,escaped);
+    let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&escaped,"file:///nullable-parameter.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="callback-escape"),"{diagnostics}");
 }
 
 #[test]
@@ -9116,4 +9119,15 @@ fn cleanup_override_map_entry_release_preserves_survivor_diagnostics() {
  let conflict=source.replace("first[0] += 1;","second[0]+=1;");assert_ne!(conflict,source);
  let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///cleanup-override.tsr").unwrap()).unwrap();
  assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+}
+
+#[test]
+fn nullable_default_callback_record_parameter_preserves_capture_diagnostics() {
+    let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function call(holder:ReadOnly<Holder>|undefined=undefined):int{return holder?.run()??0;}function main(){const values=[3];const holder:Holder={run:():int=>values[0]};console.log(call(),call(undefined),call(holder),holder.run());}").unwrap();
+    let clean=tsrust_lsp::diagnostics(&source,"file:///nullable-default-record.tsr").unwrap();
+    assert!(clean.is_empty(),"{clean:?}");
+    let conflict=source.replace("console.log(call()", "values[0]=9; console.log(call()");
+    assert_ne!(source,conflict);
+    let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///nullable-default-record.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
 }

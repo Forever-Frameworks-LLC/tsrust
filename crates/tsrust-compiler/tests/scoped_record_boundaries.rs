@@ -38,12 +38,12 @@ fn callbacks_stored_through_a_record_parameter_cannot_borrow_the_callee() {
 }
 
 #[test]
-fn declaration_only_containers_remain_rejected_and_concrete_arrays_work() {
-    for body in [
-        "function call(extra:int,holder:ReadOnly<Holder>|undefined=undefined):int{return extra;} function main(){call(1);}",
-    ] {
-        rejected(body, "unsupported");
-    }
+fn nullable_default_parameters_and_concrete_containers_work() {
+    // Omission, explicit absence and an independently captured record share the
+    // nullable source contract without transferring the readonly argument.
+    native("function call(extra:int,holder:ReadOnly<Holder>|undefined=undefined):int{return extra+(holder?.run()??0);} function main(){const a=[3];const holder:Holder={run:():int=>a[0]};strictEqual(call(1),1);strictEqual(call(1,holder),4);strictEqual(call(2,undefined),2);strictEqual(holder.run(),3);}");
+    // Borrowed views retain ordinary owners and nested data fields too.
+    native("type Data={label:string;count:int;};type Rich={run:ReadOnly<Function<int>>;data:Data;};function read(holder:ReadOnly<Rich>|undefined=undefined):int{if(holder===undefined)return 0;strictEqual(holder.data.label,\"kept\");return holder.run()+holder.data.count;}function main(){const a=[3];const holder:Rich={run:():int=>a[0],data:{label:\"kept\",count:4}};strictEqual(read(),0);strictEqual(read(holder),7);strictEqual(read(holder),7);strictEqual(holder.data.label,\"kept\");}");
     // A local Map of capturing records has concrete storage.
     native("function main(){const a=[3];const m=new Map<string,Holder>();m.set(\"k\",{run:():int=>a[0]});const h=m.get(\"k\");if(h!==undefined)strictEqual(h.run(),3);strictEqual(m.size,1);}");
     native("function main(){const a=[3];{const holders:Holder[]=[{run:():int=>a[0]}];strictEqual(holders[0].run(),3);}a[0]=4;strictEqual(a[0],4);}");

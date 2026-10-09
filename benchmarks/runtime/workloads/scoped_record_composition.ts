@@ -1809,13 +1809,13 @@ function containerBoundaries(value: int): int {
     return containerTotal(handlers) + containerLookup(table, value % 2 === 0 ? "first" : "none") + handlers.length;
 }
 
-function borrowedNullableReader(holder: Holder | undefined): int {
+function borrowedNullableReader(holder: Holder | undefined = undefined): int {
     return holder?.run() ?? 1;
 }
 function borrowedNullableViews(value: int): int {
     const viewValues = [value];
     const viewBoxes: NullableFieldSlot[] = [{saved: undefined}];
-    let observed = borrowedNullableReader(viewBoxes[0].saved);
+    let observed = borrowedNullableReader() + borrowedNullableReader(undefined) - 1;
     viewBoxes[0].saved = {run: (): int => viewValues[0]};
     const savedView = viewBoxes[0].saved;
     observed += borrowedNullableReader(savedView) + borrowedNullableReader(savedView);

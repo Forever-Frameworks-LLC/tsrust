@@ -7186,7 +7186,10 @@ impl Analyzer {
             argument.ty = Some(physical);
             return Ok(physical);
         }
+        // Nullable callback records must retain their concrete capture environment.
+        // Their ordinary injection path already borrows present and absent values.
         if contract.omission.is_omittable() && contract.mode==Mode::Read
+            && self.nullable_scoped_record_declaration(contract.ty).is_none()
             && let Type::Union(id)=contract.ty && !id.copy
             && !matches!(argument.kind,ExprKind::Conditional{..}) {
                 let hint=self.expression_type_hint(context,argument);
@@ -8564,7 +8567,7 @@ impl Analyzer {
         if let Some(concrete) = self.scoped_record_injection(actual, union, expr.span)? {
             let concrete_union = concrete.union().expect("nullable scoped record");
             expr.inject(concrete_union);
-            if borrowing_record && actual.union().is_some() {
+            if borrowing_record {
                 expr.ty = Some(Type::BorrowedUnion(concrete_union));
                 return Ok(Type::BorrowedUnion(concrete_union));
             }

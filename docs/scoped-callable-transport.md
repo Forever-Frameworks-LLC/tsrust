@@ -399,3 +399,11 @@ for (const slot of slots) console.log(slot?.run() ?? -1); // 4, then 3
 Such an array, as a local or as a field of a local record, supports literals,
 indexed stores, `push`, `pop`, `shift`, iteration and element views such as
 `const slot = slots[0]`.
+
+### Defaults for readonly nullable record parameters
+
+A readonly nullable callback-record parameter may default to `undefined`. Omission
+and explicit `undefined` select that default. Passing a present record borrows its
+fields, including captured callbacks and nested string/data fields; the caller can
+reuse the record after the call. This uses the same nominal readonly record contract
+as an ordinary borrowed parameter and does not clone or transfer its fields.

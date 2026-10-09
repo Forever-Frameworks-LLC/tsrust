@@ -136,3 +136,9 @@ compiler and 424 editor tests). This checkpoint makes no whole-crate claim. Fina
 whole-project formatting changes zero files and zero fingerprints, with all
 fifteen owner fixture edits preserved in memory. Consumer refresh evidence is
 stored separately under this checkpoint's log prefix after the source commit.
+
+## Subsequent owner decision (2026-10-09)
+
+The owner chose a dedicated discriminated-union feature for mixed-record unions.
+The decision above is resolved: retain the requirement in D2, and complete B5 family
+regressions and timing. Do not reopen the choice or describe union support as done.

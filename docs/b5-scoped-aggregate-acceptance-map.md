@@ -50,11 +50,16 @@ unless another file is named.
 | Independent callback environments across parameters and nested leaves, including direct nullable values, records, arrays, nullable arrays, Map values, generic functions and relay calls | `nullable_record_parameters_keep_independent_environments`, `independent_nullable_parameter_environments_compose_across_boundaries`, `callback_record_container_parameters_keep_independent_environments` |
 | Optional callback invocation directly on a stable Map lookup, with key evaluation and receiver preservation | `map_get_optional_callback_borrows_named_receiver` |
 
-## Diagnosed, not supported
+## Deferred by owner decision (2026-10-09)
 
-| Form | Current result | Needed |
-| --- | --- | --- |
-| Union of two record types where one is a capturing record | `type` error | Tagged storage for a capturing member |
+Mixed-record unions such as `Holder | Other`, where Holder contains a capturing
+callback, belong to a dedicated discriminated-union feature in D2. The owner
+confirmed this separation on 2026-10-09. The feature remains required; it is not a
+policy exclusion or implemented support. It needs literal discriminants, narrowing,
+tagged storage, capture lifetime checks and validation-library composition witnesses.
+
+No diagnosed storage form remains within the agreed B5 scope. Complete family
+regressions and matched performance review are still required for acceptance.
 
 ## Outside this row
 

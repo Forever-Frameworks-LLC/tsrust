@@ -1,3 +1,5 @@
+#[path = "nullable_record_parameter_emit.rs"]
+mod nullable_record_parameter_emit;
 #[path="map_error_storage_emit.rs"]
 mod map_error_storage_emit;
 #[path="map_block_storage_emit.rs"]
@@ -2576,7 +2578,9 @@ impl Emitter<'_> {
                     } else {
                         ""
                     };
-                    let parameter_type = if self.record_parameter_entry_view(fun,index).is_some() {
+                    let parameter_type = if let Some((union,_)) = self.nullable_record_parameter(fun,index) {
+                        format!("ViewUnion{}<N{index}>",union.index())
+                    } else if self.record_parameter_entry_view(fun,index).is_some() {
                         format!("R{index}")
                     } else if matches!(input_ty, Type::Callback(_)) {
                         format!("F{index}")
@@ -2643,6 +2647,7 @@ impl Emitter<'_> {
                 })
                 .collect::<Vec<_>>();
             let mut generics = generics;
+            generics.extend((0..fun.parameter_count).filter_map(|id|self.nullable_record_parameter_bound(fun,id)));
             generics.extend((0..fun.parameter_count+hidden).filter_map(|id|self.record_parameter_bound(fun,id,index)));
             generics.extend(
                 self.nullable_callback_bounds(
@@ -7099,6 +7104,7 @@ impl Emitter<'_> {
     }
 
     fn expr_dispatch(&self, fun: &CheckedFunction, expr: &Expr, mode: Mode) -> String {
+        if let Some(value)=self.nullable_record_parameter_field(fun,expr,mode) { return value; }
         match &expr.kind {
             ExprKind::SetConstructor(_, _) => self.set_constructor_expression(fun, expr, mode),
             ExprKind::MapConstructor(_, _) => self.map_constructor_expression(fun,expr,mode),
