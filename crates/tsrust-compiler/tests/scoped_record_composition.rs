@@ -1,6 +1,23 @@
 mod support;
 
 #[test]
+fn map_phase_join_releases_capture_after_body_and_handler_deletion() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function scenario(flag:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{failIf(flag);handlers.delete('first');}catch(error){handlers.delete('first');}first[0]+=1;for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();console.log('done',first[0]);}function main():void{scenario(false);scenario(true);}");
+ support::execute(&source,"second 5\ndone 4\nsecond 5\ndone 4\n",None);
+ verify_disposal(&source,2,"drop 0\nsecond 5\ndrop 1\ndone 4\ndrop 0\nsecond 5\ndrop 1\ndone 4\n");
+ let handled=source.replace("} catch (error) {\n        handlers.delete('first');", "}catch(error){handlers.delete('first');first[0]+=2;");
+ assert_ne!(handled,source);
+ support::execute(&support::format_round_trip(&handled),"second 5\ndone 4\nsecond 5\ndone 6\n",None);
+ let field=("type Owner={handlers:Map<string,Holder>;};".to_owned()+&source).replace("const handlers = new Map<string, Holder>();", "const owner:Owner={handlers:new Map<string,Holder>()};").replace("handlers.","owner.handlers.").replace("of handlers)","of owner.handlers)");
+ assert_ne!(field,source);
+ support::execute(&support::format_round_trip(&field),"second 5\ndone 4\nsecond 5\ndone 4\n",None);
+ let throwing=source.replace("} catch (error) {\n        handlers.delete('first');", "}catch(error){throw error;").replace("scenario(true);", "try{scenario(true);}catch(error){console.log('caught');}");assert_ne!(throwing,source);
+ support::execute(&support::format_round_trip(&throwing),"second 5\ndone 4\ncaught\n",None);
+ verify_disposal(&support::format_round_trip(&throwing),2,"drop 0\nsecond 5\ndrop 1\ndone 4\ndrop 0\ndrop 1\ncaught\n");
+}
+
+
+#[test]
 fn ordinary_map_loop_without_backedge_preserves_break_survivor() {
     let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});while(true){handlers.delete('first');first[0]+=1;break;}console.log('after',handlers.size);for(const [key,entry] of handlers){console.log('kept',key,entry.run());}handlers.clear();first[0]+=10;console.log('done',first[0]);}");
     support::execute(&source,"after 1\nkept second 5\ndone 14\n",None);

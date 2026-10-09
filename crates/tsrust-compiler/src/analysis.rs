@@ -57,6 +57,7 @@ mod map_storage_edges;
 #[path="storage_exit_availability.rs"]
 mod storage_exit_availability;
 pub(crate) use storage_exit_availability::MapEntryEpoch;
+pub(crate) use map_completion_payloads::Phase as MapCompletionPhase;
 #[path = "record_array_carriers.rs"]
 mod record_array_carriers;
 #[path = "record_value_carriers.rs"]

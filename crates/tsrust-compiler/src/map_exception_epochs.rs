@@ -22,9 +22,10 @@ impl Emitter<'_> {
         let outgoing = crate::error_effects::annotate_region_body(&mut discovery, &self.program.error_effects);
         let (in_decl, in_name) = self.completion_error_layout(&format!("StorageIncoming{first}"), incoming, runtime, statement.span);
         let (out_decl, out_name) = self.completion_error_layout(&format!("StorageOutgoing{first}"), &outgoing, runtime, statement.span);
-        let pending = self.map_storage_completion_body(fun, &region.body, declarations, first, &in_name, incoming.clone(), runtime, &storage_type, &places, true, true);
+        let normal=if region.finally.is_none(){region.body.first().and_then(|statement|fun.storage_exits.map_completion_layout(statement.span.start,crate::analysis::MapCompletionPhase::Handled,None))}else{None};
+        let pending = self.map_phase_storage_completion_body(fun, &region.body, declarations, first, &in_name, incoming.clone(), runtime, &storage_type, &places, true, true, normal);
         let handler_throws = outgoing.runtime || outgoing.opaque || !outgoing.explicit.is_empty();
-        let handled = self.map_storage_completion_body(fun, &handler.body, declarations, first + 1, &out_name, outgoing.clone(), runtime, &storage_type, &places, handler_throws, true);
+        let handled = self.map_phase_storage_completion_body(fun, &handler.body, declarations, first + 1, &out_name, outgoing.clone(), runtime, &storage_type, &places, handler_throws, true, normal);
         let unions = crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
         let setup = if let Some(binding) = handler.binding {
             let value = exception_contract_emit::checked_catch_value("caught_error", &in_name, incoming, &unions, runtime, statement.span).expect("checked catch payload");
@@ -76,7 +77,7 @@ impl Emitter<'_> {
             } else { "TsrCompletion::Throw(error)=>match error {}".into() };
             let return_arm=format!("TsrCompletion::Return((pending_exit,{pattern}))=>{{{returned_finish}}}");
             let indent = "    ".repeat(depth);
-            if self.map_phase_has_entry_narrowing(fun,&handler.body) || region.finally.as_ref().is_some_and(|body|self.map_phase_has_entry_narrowing(fun,body)) {
+            if normal.is_none() && (self.map_phase_has_entry_narrowing(fun,&handler.body) || region.finally.as_ref().is_some_and(|body|self.map_phase_has_entry_narrowing(fun,body))) {
             let split=self.map_split_pending_storage(fun,&pending,&in_name,&storage_type);
             let outer_return=format!("TsrCompletion::Return(pending_exit)=>{{{returned_finish}}}");
             let _ = writeln!(output, "{indent}{in_decl} {out_decl} {cleanup_declaration} let {pattern} = {{ let (pending_control,{pattern})={{let {pattern}={values};{split}}};match pending_control {{ TsrCompletion::Normal(())=>{{let storage={values};{normal_finish}}}, TsrCompletion::Throw(caught_error)=>{{ {setup} match {handled} {{ TsrCompletion::Normal(storage)=>{normal_finish}, {throw_arm}, {return_arm},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried handler control\") }} }}, {outer_return},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried storage control\") }} }};");
@@ -130,6 +131,10 @@ impl Emitter<'_> {
 
     #[inline(never)]
     pub(super) fn map_storage_completion_body(&self, fun: &CheckedFunction, body: &[Stmt], declarations: &[Stmt], id: usize, error_name: &str, contract: crate::error_effects::FailureSet, runtime: Option<Type>, storage_type: &str, places: &[String], carry_error: bool, carry_control: bool) -> String {
+        self.map_phase_storage_completion_body(fun,body,declarations,id,error_name,contract,runtime,storage_type,places,carry_error,carry_control,None)
+    }
+    #[inline(never)]
+    fn map_phase_storage_completion_body(&self,fun:&CheckedFunction,body:&[Stmt],declarations:&[Stmt],id:usize,error_name:&str,contract:crate::error_effects::FailureSet,runtime:Option<Type>,storage_type:&str,places:&[String],carry_error:bool,carry_control:bool,normal:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>)->String {
         // Loops inside this phase own their controls. Forward only exits that
         // actually leave the phase to its enclosing cleanup.
         let locals=exception_contract_emit::local_control_targets(body);
@@ -144,7 +149,7 @@ impl Emitter<'_> {
         if carry_control {self.exception_regions.carry_storage_on_control_exit();}
         let mut statements = String::new();
         self.control_block_epochs(&mut statements, fun, body, 1, None, Some(declarations));
-        let normal_values = format!("({},)", places.iter().map(|place| self.map_completion_exit_value(fun, body, place)).collect::<Vec<_>>().join(","));
+        let normal_values = format!("({},)", places.iter().map(|place| self.map_phase_completion_exit_value(fun, body, place, normal)).collect::<Vec<_>>().join(","));
         let result = self.native_type(fun.result);
         let result = if carry_control {format!("(TsrStorageExit<{result}>,{storage_type})")} else {result};
         let error = if carry_error { format!("({error_name},{storage_type})") } else { error_name.to_owned() };

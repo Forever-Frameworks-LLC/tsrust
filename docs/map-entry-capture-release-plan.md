@@ -1518,3 +1518,46 @@ record Set/Map keys remain pending with the owner's Rust-style equality and
 hashing decision. No full regressions or timing are claimed. Preserve the 15
 unrelated fixture edits; use explicit Git paths. This is focused acceptance,
 not the B5 feature-family milestone.
+
+## Independent normal results after a catch (2026-10-09)
+
+A new native witness showed that a try body and catch handler could both delete
+the first entry, yet the joined native Map still retained its capture. Source
+analysis correctly permitted a following mutation, but generated Rust rejected
+it with E0502. Both paths now return the checked Handled/normal payload layout,
+independent of the common storage carried by errors and pending controls.
+The exit planner records that same layout for subsequent statements. Native
+storage projection is factored through a leaf conversion helper so named Maps
+and Maps in record fields use the same conversion.
+
+This checkpoint consumes normal phase layouts for catch regions without finally.
+It does not claim independent error/control layouts or cleanup-result emission.
+Those remain the next phase-consumer work. Existing finally transport retains
+its accepted implementation and lifetime behavior.
+
+The focused witness passes successful and caught paths, mutation inside the
+handler, nested record-field storage, and a throwing handler that retains both
+entries until unwinding. Disposal is checked exactly at both optimization levels.
+Editor checks accept released captures and reject both retained survivors and a
+handler that omits deletion. Three failed field-test setup attempts are preserved:
+the record needed a top-level named declaration and a field terminator. They were
+witness setup defects, not accepted compiler behavior. Benchmark guard failures
+from reused throw literals are also retained; the new helper uses a distinct
+literal so the older exact-count guards keep their existing meaning.
+
+Evidence: 87 affected Map native tests pass, supplemented by the repaired and
+expanded focused witness. Fifteen editor release tests, one strengthened editor
+negative check, 13 phase/storage proofs and eight depth canaries pass. Matched
+support adds phaseJoinedEntry with successful and caught observations, independent
+arithmetic oracles, literal reference rows and mutation rejection. All five
+native/Node-after-tsc cases pass untimed with 79 observations per row. Canonical
+record: runtime/results/2026-10-09T05-17-56-492Z-verify.json. Closed evidence is
+imported into SQLite, read back byte for byte and removed from loose storage.
+Project formatting changes the workload and refreshes its fingerprint after token
+preservation; the final formatter pass changes zero files. Installed consumers
+remain at gate 181. No full regression or timing claim is made.
+
+Next continue independent phase layouts through finally and abrupt completions.
+Then finish broader aggregate/within-expression precision and structural owned
+record Set/Map keys with Rust-style equality and hashing. B5 remains open. Preserve
+the 15 unrelated fixture edits and use explicit Git paths.

@@ -238,3 +238,11 @@ mutation of its capture. Remaining entries retain their callbacks and borrowing
 restrictions. This applies to while, counted, post-test and for-of loops. A
 post-test body ending in break still reaches the code after the loop; its surviving
 Map is converted to the checked exit layout before that code executes.
+
+When a try body and its catch handler both delete the same known Map entry, the
+normal result releases that entry's captures before following statements. The
+handler can mutate the deleted capture after its own deletion. Entries retained
+on either normal path remain borrowed. A handler that keeps the entry cannot
+make a later mutation safe merely because the try body's successful path deletes
+it. Normal result storage is independent of the storage carried by an error or a
+pending return/control completion.

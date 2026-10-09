@@ -208,10 +208,11 @@ impl Emitter<'_> {
     fn map_typed_storage_value(&self,fun:&CheckedFunction,place:&str,transferred:Option<crate::Span>,input:Option<Type>,output:Type)->super::native_storage_availability::Value {
         let (_,fields)=self.map_storage_binding(fun,place).expect("checked Map storage");
         let target=self.map_storage_leaf_type(output,&fields).expect("destination Map path");
+        self.map_typed_storage_leaf_value(place,transferred,input.and_then(|input|self.map_storage_leaf_type(input,&fields)),target)
+    }
+    fn map_typed_storage_leaf_value(&self,place:&str,transferred:Option<crate::Span>,input:Option<Type>,target:Type)->super::native_storage_availability::Value {
         let empty=format!("<{}>::new()",self.native_type(target));
-        let live=input.and_then(|input| {
-            let source=self.map_storage_leaf_type(input,&fields)?;
-            let target=self.map_storage_leaf_type(output,&fields)?;
+        let live=input.and_then(|source| {
             if source==target{return None;}
             let (Type::Map(source),Type::Map(target))=(source,target) else{return None;};
             let source=self.program.records[source].map_definition.as_ref()?.value;
@@ -242,12 +243,15 @@ impl Emitter<'_> {
         if transferred.is_none() || self.exception_regions.native_storage_available(place,transferred) {return place.to_owned();}
         self.map_empty_storage_value(fun,place)
     }
-    pub(super) fn map_completion_exit_value(&self, fun: &CheckedFunction, body: &[Stmt], place: &str) -> String {
+    pub(super) fn map_phase_completion_exit_value(&self,fun:&CheckedFunction,body:&[Stmt],place:&str,normal:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>)->String {
         let transferred=self.map_storage_transfer_at_exit(fun,body,place);
         let start=body.iter().map(|statement|statement.span.end).max().unwrap_or(0);
         let (binding,_)=self.map_storage_binding(fun,place).expect("checked Map storage");
         let input=body.first().and_then(|statement|fun.storage_exits.map_native_exit(statement.span.start,binding)).or_else(||fun.storage_exits.map_native_input(start,binding));
-        let value=self.map_typed_storage_value(fun,place,transferred,input,fun.bindings[binding].ty);
+        let (_,fields)=self.map_storage_binding(fun,place).expect("checked Map storage");
+        let target=normal.and_then(|types|types.get(&crate::capture_loan_owners::Place{binding,fields:fields.clone()})).copied();
+        let value=if let Some(target)=target {self.map_typed_storage_leaf_value(place,transferred,input.and_then(|root|self.map_storage_leaf_type(root,&fields)),target)}
+            else {self.map_typed_storage_value(fun,place,transferred,input,fun.bindings[binding].ty)};
         if transferred.is_none() || self.exception_regions.native_storage_available(place,transferred) {return value.live.unwrap_or_else(||place.to_owned());}
         value.empty
     }

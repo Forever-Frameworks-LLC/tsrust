@@ -8791,3 +8791,16 @@ fn no_backedge_map_entry_release_preserves_survivor_diagnostics() {
  let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///no-backedge-map.tsr").unwrap()).unwrap();
  assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
 }
+
+#[test]
+fn phase_join_map_entry_release_preserves_survivor_diagnostics() {
+ let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function scenario(flag:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{failIf(flag);handlers.delete('first');}catch(error){handlers.delete('first');}first[0]+=1;for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();}function main():void{scenario(false);scenario(true);}").unwrap();
+ assert!(tsrust_lsp::diagnostics(&source,"file:///phase-join-map.tsr").unwrap().is_empty());
+ let conflict=source.replace("first[0] += 1;", "second[0]+=1;first[0]+=1;");assert_ne!(source,conflict);
+ let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///phase-join-map.tsr").unwrap()).unwrap();
+ assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+ let handler=source.rfind("handlers.delete('first');").unwrap();
+ let unreleased=format!("{}{}",&source[..handler],&source[handler+"handlers.delete('first');".len()..]);
+ let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&unreleased,"file:///phase-join-map.tsr").unwrap()).unwrap();
+ assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+}

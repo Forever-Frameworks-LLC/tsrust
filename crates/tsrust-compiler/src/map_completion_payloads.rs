@@ -42,7 +42,6 @@ impl Snapshots {
         if let Some((_,_,previous))=layouts.iter_mut().find(|(p,k,_)|*p==phase && *k==kind) {*previous=types;}
         else {layouts.push((phase,kind,types));}
     }
-    #[cfg(test)]
     pub(crate) fn layout(&self,boundary:usize,phase:Phase,kind:Option<CompletionKind>)->Option<&BTreeMap<Place,Type>> {
         self.layouts.get(&boundary)?.iter().find(|(p,k,_)|*p==phase && *k==kind).map(|(_,_,types)|types)
     }
@@ -55,6 +54,17 @@ impl Snapshots {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn handled_normal_layout_is_consumed_after_exception_join() {
+        let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function scenario(flag:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{failIf(flag);handlers.delete('first');}catch(error){handlers.delete('first');}first[0]+=1;handlers.clear();}function main():void{scenario(false);}").unwrap();
+        let checked=crate::check(&source).unwrap();let function=checked.program.functions.iter().find(|function|function.name=="scenario").unwrap();
+        let (position,region)=function.body.iter().enumerate().find_map(|(position,statement)|if let crate::syntax::StmtKind::Try(region)=&statement.kind{Some((position,region))}else{None}).unwrap();
+        let binding=function.bindings.iter().position(|binding|binding.name=="handlers").unwrap();let place=Place{binding,fields:Vec::new()};let boundary=region.body[0].span.start;
+        let normal=function.storage_exits.map_completion_layout(boundary,Phase::Handled,None).unwrap()[&place];
+        let error=function.storage_exits.map_completion_layout(boundary,Phase::Body,Some(CompletionKind::Throw)).unwrap()[&place];assert_ne!(normal,error);
+        assert_eq!(function.storage_exits.map_native_input(function.body[position+1].span.start,binding),Some(normal));
+    }
+
     #[test]
     fn ordinary_no_backedge_break_keeps_live_storage() {
         let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});while(true){handlers.delete('first');first[0]+=1;break;}for(const [key,entry] of handlers){console.log(entry.run());}handlers.clear();}").unwrap();
