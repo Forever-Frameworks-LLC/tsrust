@@ -1,3 +1,5 @@
+#[path = "record_store_branches_emit.rs"]
+mod record_store_branches_emit;
 #[path = "borrowed_owner_provenance.rs"]
 mod borrowed_owner_provenance;
 #[path = "borrowed_owner_emit.rs"]

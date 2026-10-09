@@ -9409,3 +9409,26 @@ fn effectful_data_replacement_preserves_editor_owner_conflicts() {
     let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///data-owner-replacement.tsr").unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
 }
+
+#[test]
+fn conditional_data_store_keeps_editor_loans_and_hover_consistent() {
+    let source=tsrust_compiler::format(r#"
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>, plus: boolean): void {
+            holder.run = plus ? (): int => source[0] + 1 : (): int => source[0] + 2;
+        }
+        function main() {
+            const first = [3]; const second = [10]; const holder: Holder = { run: undefined };
+            install(holder, first, true); install(holder, second, false);
+            first[0] += 1; console.log(holder.run!());
+        }
+    "#).unwrap();
+    assert!(tsrust_lsp::diagnostics(&source,"file:///conditional-data-store.tsr").unwrap().is_empty());
+    let hover=ask(&source,"textDocument/hover","run!",0);
+    let text=hover["contents"]["value"].as_str().unwrap();
+    assert!(text.contains("ReadOnly") && text.contains("undefined"),"{hover}");
+    let conflict=source.replace("first[0] += 1;","second[0] += 1;");
+    assert_ne!(source,conflict);
+    let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///conditional-data-store.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+}

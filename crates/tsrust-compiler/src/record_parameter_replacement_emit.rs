@@ -257,6 +257,9 @@ impl Emitter<'_> {
         value: &Expr,
         code: &str,
     ) -> Option<String> {
+        if let Some(converted) = self.record_callback_store_branches(fun, target, value) {
+            return Some(converted);
+        }
         let (root, steps) = self.storage_steps(target);
         let id = root.binding?;
         let binding = &fun.bindings[id];

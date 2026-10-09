@@ -75,6 +75,19 @@ fn direct(function: &CheckedFunction, closures: &[CheckedClosure]) -> Vec<Borrow
                         pending.push((value, path));
                     }
                 }
+                ExprKind::Sequence(values) => {
+                    if let Some(last) = values.last() {
+                        pending.push((last, path));
+                    }
+                }
+                ExprKind::Conditional {
+                    consequent,
+                    alternate,
+                    ..
+                } => {
+                    pending.push((consequent, path.clone()));
+                    pending.push((alternate, path));
+                }
                 ExprKind::Inject { value, .. }
                 | ExprKind::TypeAssertion { value, .. }
                 | ExprKind::Unary { value, .. } => pending.push((value, path)),

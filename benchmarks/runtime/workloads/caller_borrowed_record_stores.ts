@@ -204,7 +204,24 @@ function workload(n: int, seed: int, input: string): int[][] {
             dataAfter = replacement[0] + (holder.run === undefined ? 0 : 100);
         }
 
-        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects]);
+        let conditionalFirst = 0;
+        let conditionalReleased = 0;
+        let conditionalReplacement = 0;
+        let conditionalEffects = 0;
+        {
+            const original = [value];
+            const replacement = [value + 4];
+            const calls = [0];
+            const holder: NullableHolder = { run: undefined };
+            installConditional(holder, original, i % 2 === 0, calls);
+            conditionalFirst = holder.run!();
+            installConditional(holder, replacement, i % 2 !== 0, calls);
+            original[0] += 1;
+            conditionalReleased = original[0];
+            conditionalReplacement = holder.run!();
+            conditionalEffects = calls[0];
+        }
+        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects, conditionalFirst, conditionalReleased, conditionalReplacement, conditionalEffects]);
         i += 1;
     }
 
@@ -279,4 +296,13 @@ function installNullableData(holder: NullableHolder, source: int[], calls: int[]
 function installWithEffects(holder: NullableHolder, action: () => int, calls: int[]): void {
     calls[0] += 1;
     installNullable(holder, action);
+}
+
+function installConditional(holder: NullableHolder, source: int[], plus: boolean, calls: int[]): void {
+    calls[0] += 1;
+    holder.run = chooseCallbackBranch(plus, calls) ? (calls[0] += 100, (): int => source[0] + 1) : (calls[0] += 200, (): int => source[0] + 2);
+}
+function chooseCallbackBranch(plus: boolean, calls: int[]): boolean {
+    calls[0] += 10;
+    return plus;
 }

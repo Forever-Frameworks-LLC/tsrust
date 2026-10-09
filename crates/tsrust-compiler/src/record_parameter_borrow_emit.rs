@@ -61,6 +61,29 @@ impl Emitter<'_> {
         parameter: usize,
         path: &[String],
     ) -> Vec<String> {
+        if let Type::BorrowedCallable(family) = ty {
+            let origins = self
+                .program
+                .stored_contracts
+                .origins(family)
+                .expect("checked replacement origins");
+            if origins
+                .iter()
+                .any(|origin| self.borrowed_owners.contains_key(origin))
+            {
+                return origins
+                    .iter()
+                    .flat_map(|origin| {
+                        self.record_borrow_replacement_types(
+                            function,
+                            Type::Closure(*origin),
+                            parameter,
+                            path,
+                        )
+                    })
+                    .collect();
+            }
+        }
         let Some(Type::Closure(origin)) = self.callback_payload(ty).or(Some(ty)) else {
             return vec![self.record_borrow_replacement_type(function, ty, parameter, path)];
         };

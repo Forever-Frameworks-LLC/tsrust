@@ -1,6 +1,7 @@
 import {createHash} from 'node:crypto';
 import {containsCodeSnippet,findCodeSnippet} from './source-contract-tokens.mjs';
 const required=[
+ 'installConditional(holder, original, i % 2 === 0, calls);', 'installConditional(holder, replacement, i % 2 !== 0, calls);', 'conditionalFirst = holder.run!();', 'conditionalReleased = original[0];', 'conditionalReplacement = holder.run!();', 'conditionalEffects = calls[0];', 'calls[0] += 10;', 'holder.run = chooseCallbackBranch(plus, calls) ? (calls[0] += 100, (): int => source[0] + 1) : (calls[0] += 200, (): int => source[0] + 2);',
  'installWithEffects(holder, original, effects);', 'installWithEffects(holder, replacement, effects);', 'factoryEffects = effects[0];', 'dataEffects = dataCalls[0];', 'calls[0] += 1;', 'installNullable(holder, action);', 'const original = counter(value);', 'const replacement = counter(value + 4);', 'factoryBefore = holder.run!();', 'factoryReleased = original();', 'factoryReplacement = holder.run!();', 'factoryAfter = replacement() + (holder.run === undefined ? 0 : 100);', 'installNullableData(holder, original, dataCalls);', 'installNullableData(holder, replacement, dataCalls);', 'original[0] += 1;', 'dataReleased = original[0];', 'dataReplacement = holder.run!();', 'dataAfter = replacement[0] + (holder.run === undefined ? 0 : 100);',
  'installNullable(holder, originalAction);', 'installNullable(holder, replacementAction);', 'nullableReleased = originalAction();', 'nullableReplacement = holder.run!();', 'nullableReplacementAfter = replacementAction() + (holder.run === undefined ? 0 : 100);',
  'installNullable(holder, action);', 'nullableBefore = holder.run!();', 'relayClearNullable(holder, i % 2 === 0);', 'nullableAfter = action();', 'nullableEmpty = holder.run === undefined ? 1 : 0;', 'holder.run = undefined;', 'if (early) { clearNullable(holder); return; }',
@@ -18,10 +19,10 @@ const required=[
  'other[0] += 10; return other[0];',
  'paired = pairHolder.run();', 'changedFirst = holder.run();',
  'changedSecond = holder.run();', 'callbackFirst = holder.run();', 'callbackSecond = holder.run();', 'callbackAfter = action();', 'holder.run = (): int => action();',
- 'output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects]);'
+ 'output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects, conditionalFirst, conditionalReleased, conditionalReplacement, conditionalEffects]);'
 ];
 export function assertCallerBorrowedRecordStoresSource(source,row,kind) {
- if(findCodeSnippet(source,'calls[0] += 1;').length!==2)throw Error('Caller-borrowed installer effect count');
+ if(findCodeSnippet(source,'calls[0] += 1;').length!==3)throw Error('Caller-borrowed installer effect count');
  if(findCodeSnippet(source,'holder.run = action;').length!==5)throw Error('Caller-borrowed direct store count');
  if(!['native','typescript'].includes(kind)||row.id!=='caller_borrowed_record_stores'||row.family!=='caller-borrowed-record-stores')throw Error('Caller-borrowed record store family');
  if(createHash('sha256').update(source).digest('hex')!==(kind==='native'?row.sourceSha256:row.counterpartSha256))throw Error('Caller-borrowed record store fingerprint');

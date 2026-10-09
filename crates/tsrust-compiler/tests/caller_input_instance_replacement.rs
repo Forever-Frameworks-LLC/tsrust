@@ -251,3 +251,84 @@ fn effectful_data_installer_releases_equal_type_record_owners() {
     "#,
     );
 }
+
+#[test]
+fn conditional_data_installer_preserves_selected_behavior_and_releases_old_owner() {
+    execute(
+        r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>, plus: boolean, calls: Mutable<int[]>): void {
+            calls[0] += 1;
+            holder.run = plus ? (): int => source[0] + 1 : (): int => source[0] + 2;
+        }
+        function main() {
+            const first = [3]; const second = [10]; const calls = [0];
+            const holder: Holder = { run: undefined };
+            install(holder, first, true, calls); strictEqual(holder.run!(), 4);
+            install(holder, second, false, calls); first[0] += 1;
+            strictEqual(first[0], 4); strictEqual(holder.run!(), 12); strictEqual(calls[0], 2);
+        }
+    "#,
+    );
+}
+
+#[test]
+fn conditional_installer_cannot_retain_a_local_owner() {
+    let source = r#"
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, plus: boolean): void {
+            const local = [3];
+            holder.run = plus ? (): int => local[0] + 1 : (): int => local[0] + 2;
+        }
+        function main() { const holder: Holder = { run: undefined }; install(holder,true); console.log(holder.run!()); }
+    "#;
+    let source = support::format_round_trip(source);
+    let error = tsrust_compiler::check(&source)
+        .err()
+        .expect("A conditional callback cannot outlive its local owner");
+    assert_eq!(error.code, "callback-escape", "{error:?}");
+}
+
+#[test]
+fn conditional_plain_data_installer_releases_old_owner() {
+    execute(
+        r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>, plus: boolean, calls: Mutable<int[]>): void {
+            calls[0] += 1;
+            holder.run = plus ? (): int => source[0] + 1 : (): int => source[0] + 2;
+        }
+        function main() {
+            const first = [3]; const second = [10]; const calls = [0];
+            const holder: Holder = { run: (): int => 0 };
+            install(holder, first, true, calls); strictEqual(holder.run(), 4);
+            install(holder, second, false, calls); first[0] += 1;
+            strictEqual(first[0], 4); strictEqual(holder.run(), 12); strictEqual(calls[0], 2);
+        }
+"#,
+    );
+}
+
+#[test]
+fn conditional_installer_evaluates_predicate_and_only_selected_branch_once() {
+    execute(
+        r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>, plus: boolean, calls: Mutable<int[]>): void {
+            calls[0] += 1;
+            holder.run = choose(plus, calls) ? (calls[0] += 100, (): int => source[0] + 1) : (calls[0] += 200, (): int => source[0] + 2);
+        }
+        function main() {
+            const first = [3]; const second = [10]; const calls = [0];
+            const holder: Holder = { run: undefined };
+            install(holder, first, true, calls); strictEqual(holder.run!(), 4);
+            install(holder, second, false, calls); first[0] += 1;
+            strictEqual(first[0], 4); strictEqual(holder.run!(), 12); strictEqual(calls[0], 322);
+        }
+
+function choose(plus: boolean, calls: Mutable<int[]>): boolean { calls[0] += 10; return plus; }"#,
+    );
+}
