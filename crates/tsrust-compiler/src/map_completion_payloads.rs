@@ -59,6 +59,16 @@ impl Snapshots {
 mod tests {
     use super::*;
     #[test]
+    fn cleanup_error_envelope_uses_checked_outgoing_storage_layout() {
+        let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function scenario():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{throw 7;}finally{handlers.delete('first');first[0]+=1;console.log(first[0]);throw 8;}}function main():void{try{scenario();}catch(error){console.log('caught');}}").unwrap();
+        let checked=crate::check(&source).unwrap();let function=checked.program.functions.iter().find(|function|function.name=="scenario").unwrap();let region=function.body.iter().find_map(|statement|if let crate::syntax::StmtKind::Try(region)=&statement.kind{Some(region)}else{None}).unwrap();
+        let binding=function.bindings.iter().position(|binding|binding.name=="handlers").unwrap();let error=function.storage_exits.map_completion_layout(region.body[0].span.start,Phase::Cleaned,Some(CompletionKind::Throw)).unwrap()[&Place{binding,fields:vec![]}];assert_ne!(error,function.bindings[binding].ty);
+        let Type::Map(map)=error else{panic!("Map outgoing storage")};let rust=checked.emit_rust();
+        let envelopes=rust.split("let completion:TsrCompletion<").filter_map(|part|part.split_once("='exception_region").map(|(ty,_)|ty)).filter(|ty|ty.contains("FinallyCleanup")).collect::<Vec<_>>();assert!(!envelopes.is_empty());
+        for envelope in envelopes {let error=envelope.rsplit("FinallyCleanup").next().unwrap();assert!(error.contains(&format!("Map{map}<")),"checked outgoing Map{map} is absent from {error}");}
+    }
+
+    #[test]
     fn handler_error_envelope_uses_checked_outgoing_storage_layout() {
         let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function scenario():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{throw 7;}catch(error){handlers.delete('first');first[0]+=1;console.log(first[0]);throw 8;}}function main():void{try{scenario();}catch(error){console.log('caught');}}").unwrap();
         let checked=crate::check(&source).unwrap();let function=checked.program.functions.iter().find(|function|function.name=="scenario").unwrap();let region=function.body.iter().find_map(|statement|if let crate::syntax::StmtKind::Try(region)=&statement.kind{Some(region)}else{None}).unwrap();

@@ -77,7 +77,8 @@ impl Emitter<'_> {
             error,
         );
         let cleaned=region.body.first().and_then(|statement|fun.storage_exits.map_completion_layout(statement.span.start,crate::analysis::MapCompletionPhase::Cleaned,None));
-        let normal_cleanup = self.map_phase_storage_completion_body(
+        let cleaned_error=region.body.first().and_then(|statement|fun.storage_exits.map_completion_layout(statement.span.start,crate::analysis::MapCompletionPhase::Cleaned,Some(crate::completion::CompletionKind::Throw)));
+        let normal_cleanup = self.map_error_phase_storage_completion_body(
             fun,
             cleanup,
             declarations,
@@ -90,11 +91,12 @@ impl Emitter<'_> {
             true,
             true,
             cleaned,
+            cleaned_error,
         );
         let error_plan=region.body.first().and_then(|statement|fun.storage_exits.map_cleanup_plan(statement.span.start,Some(crate::completion::CompletionKind::Throw))).map(|plan|plan.function(fun));
         let error_fun=error_plan.as_ref().unwrap_or(fun);
         let error_body=error_plan.as_ref().map_or(cleanup.as_slice(),|plan|plan.body.as_slice());
-        let thrown_cleanup = self.map_storage_completion_body(
+        let thrown_cleanup = self.map_error_phase_storage_completion_body(
             error_fun,
             error_body,
             declarations,
@@ -106,8 +108,10 @@ impl Emitter<'_> {
             &places,
             true,
             true,
+            cleaned_error,
+            cleaned_error,
         );
-        let returned_cleanup = self.map_storage_completion_body(
+        let returned_cleanup = self.map_error_phase_storage_completion_body(
             fun,
             cleanup,
             declarations,
@@ -119,8 +123,10 @@ impl Emitter<'_> {
             &places,
             true,
             true,
+            None,
+            cleaned_error,
         );
-        let cleanup_abrupt = self.map_carried_cleanup_dispatch(
+        let cleanup_abrupt = self.map_layout_carried_cleanup_dispatch(
             fun,
             "other",
             &cleanup_name,
@@ -128,6 +134,7 @@ impl Emitter<'_> {
             runtime,
             &places,
             statement.span,
+            cleaned_error,
         );
         let normal_finish = format!(
             "{{match {normal_cleanup}{{TsrCompletion::Normal(storage)=>storage,other=>{{{cleanup_abrupt}}}}}}}"
@@ -136,13 +143,14 @@ impl Emitter<'_> {
             let resume = if crate::completion::definitely_abrupt(cleanup, 0) {
                 "unreachable!(\"abrupt cleanup cannot resume pending error\")".into()
             } else {
-                self.map_storage_abrupt_dispatch(
+                self.map_layout_storage_abrupt_dispatch(
                     fun,
                     "TsrCompletion::Throw(pending_error)",
                     &incoming_name,
                     &incoming,
                     runtime,
                     statement.span,
+                    cleaned_error,
                 )
             };
             format!(
@@ -200,6 +208,10 @@ impl Emitter<'_> {
         places: &[String],
         span: crate::Span,
     ) -> String {
+        self.map_layout_carried_cleanup_dispatch(fun,pending,error_name,contract,runtime,places,span,None)
+    }
+    #[inline(never)]
+    pub(super) fn map_layout_carried_cleanup_dispatch(&self,fun:&CheckedFunction,pending:&str,error_name:&str,contract:&crate::error_effects::FailureSet,runtime:Option<Type>,places:&[String],span:crate::Span,layout:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>)->String {
         let pattern = format!(
             "({},)",
             places
@@ -208,13 +220,14 @@ impl Emitter<'_> {
                 .collect::<Vec<_>>()
                 .join(",")
         );
-        let error = self.map_storage_abrupt_dispatch(
+        let error = self.map_layout_storage_abrupt_dispatch(
             fun,
             "TsrCompletion::Throw(pending_error)",
             error_name,
             contract,
             runtime,
             span,
+            layout,
         );
         let result = self.native_type(fun.result);
         let (outer_error, _, _) = self

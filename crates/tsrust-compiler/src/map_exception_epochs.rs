@@ -129,7 +129,7 @@ impl Emitter<'_> {
         let unions = crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
         let abrupt = exception_contract_emit::checked_completion_conversion("abrupt", error_name, &outer_name, contract, &outer_contract, &unions, runtime, span).expect("checked outgoing storage completion");
         let error_owner=self.map_outgoing_error_storage(fun,span,layout);
-        let dispatch = if let Some(owner)=error_owner {self.exception_regions.dispatch_error(&abrupt,span,&owner).expect("outgoing error destination")}else{self.map_cleanup_control_dispatch(fun,&abrupt,span)};
+        let dispatch = if layout.is_some() {self.exception_regions.dispatch_error(&abrupt,span,error_owner.as_deref().unwrap_or("()")).expect("outgoing error destination")}else{self.map_cleanup_control_dispatch(fun,&abrupt,span)};
         let result = self.native_type(fun.result);
         let pending = if pending == "TsrCompletion::Throw(pending_error)" {
             format!("TsrCompletion::<(),{result},{error_name}>::Throw(pending_error)")

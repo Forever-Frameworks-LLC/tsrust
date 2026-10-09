@@ -617,7 +617,7 @@ original failed/repaired evidence, read back byte for byte before loose removal.
 This remains focused B5 progress. Release inside an iteration or branch before
 completion, same-expression release, precise array-element release, record Set
 keys and broader error/alias/composition checks remain open. Full family regression
-and timing remain deferred. User-facing consumers are still at gate181.
+and timing remain deferred. User-facing consumers are still at gate 181.
 
 ## Release inside branch source checkpoint
 
@@ -1806,3 +1806,53 @@ Still pending: handler errors with finally, cleanup errors, resumed pending
 errors after cleanup and distinct return/break/continue destination layouts.
 Structural owned record keys follow those capture-release repairs. B5 remains
 open; installed consumers remain at gate 181.
+
+
+### Cleanup outgoing error transport without catch
+
+The no-catch finally emitter now consumes the checked Cleaned/Throw Map layout
+for cleanup errors and for the normal completion that resumes a pending error.
+It attaches that layout to each cleanup error envelope and projects the selected
+outgoing owner into the enclosing error destination. Return and loop-control
+owners retain their separate existing representation.
+
+The original execution witness already passed on the previous checkpoint. A
+stronger native-layout witness first missed the specialized path; adding a
+released-capture write activates it and proves the actual defect: checked Map7
+was widened to Map6 in the cleanup error envelope. That focused witness fails on
+the previous emitter and passes with this change. Runtime witnesses cover resumed
+and replacement errors, released and surviving captures, record-field storage
+and exactly-once disposal. Editor diagnostics retain surviving-capture conflicts.
+
+The matched cleanupOutgoingEntry helper observes both error identity and the
+surviving callback. Its independent result is 2 * value + 30, plus one when
+cleanup replaces the pending error. The workload now observes 85 values per row;
+literal reference rows and mutation guards cover the added behavior. Timing
+remains deferred. Final checks and the canonical record are recorded below.
+
+This slice concerns finally without its own catch. Catch-plus-finally still uses
+its joined pending owner path and needs separate outgoing handler/cleanup plans.
+Distinct return/break/continue layouts remain pending. B5 remains open, followed
+by Rust-style structural owned record keys. Installed consumers remain at gate 181.
+
+
+The affected Map batch completed with 92 passes and one loop-cleanup failure.
+The failure exposed unrelated return/control arms being generated for an already
+selected error when the enclosing function had no carried Map owner. Selected
+errors now use the error-only dispatch even without an outer storage tuple. The
+failed loop witness passes after repair; passed batch evidence is retained rather
+than rerunning the entire group. All 20 phase/storage proofs, the new editor
+witness and expanded record-field/disposal checks pass. Parser/analyzer dispatch
+is unchanged; no depth, full-family or timing run is claimed.
+
+
+Final matched verification passes all five cases on native and Node-after-tsc,
+with 85 observations per row. Canonical record:
+runtime/results/2026-10-09T06-30-32-665Z-verify.json. Original failed checks,
+repair checks, final checks and both matched records are preserved in SQLite,
+restored byte for byte and removed from loose storage. Final project formatting
+changes zero files and fingerprints. Source diff checks pass.
+
+Next: consume independent handler/cleanup error plans in catch-plus-finally,
+then destination-specific return/break/continue owners and cleanup overrides.
+Keep those phases separate rather than widening all pending owners together.

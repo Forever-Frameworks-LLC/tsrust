@@ -277,3 +277,9 @@ When a catch removes a known Map entry and rethrows, an enclosing catch receives
 the remaining entries. A capture used only by the removed entry can be changed
 in that enclosing catch. Captures still used by surviving entries remain
 borrowed. Native cleanup disposes removed and surviving entries exactly once.
+
+
+A finally block can remove a known Map entry before propagating an earlier error
+or throwing a replacement error. The enclosing catch receives the survivors in
+either case. A replacement error takes precedence over the pending error; removal
+does not release captures belonging to surviving entries.

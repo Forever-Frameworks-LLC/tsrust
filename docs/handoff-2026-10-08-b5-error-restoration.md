@@ -212,7 +212,7 @@ only the new workload layout and its verified fingerprint.
 These witnesses declare their Map within the loop. Next add a witness whose Map
 is declared before the loop and must survive break/continue. Loops inside try
 and nested regions remain open, along with precise entry/element release and
-record value keys. B5 remains unfinished; five user consumers remain at gate181.
+record value keys. B5 remains unfinished; five user consumers remain at gate 181.
 
 Continuation prompt: Read this handoff, AGENTS.md and development-workflow.md.
 Resume B5 from the loop-local completion-storage checkpoint. Add a red outer-Map
@@ -258,7 +258,7 @@ All 31 matched observations verify untimed on native and Node-after-tsc, record
 `runtime/results/2026-10-08T19-14-53-091Z-verify.json`. Failed attempts and passing
 supplements are verified byte-exact in SQLite under
 `tsrust-b5-outer-map-loop-*.log`; loose copies are removed. Final formatting
-changed no files. Five user consumers still represent gate181.
+changed no files. Five user consumers still represent gate 181.
 
 This is not general loop-family acceptance. Maps retaining entries across
 iterations, populated initial owners, outer record-field storage, broader loop
@@ -363,7 +363,7 @@ release and remaining callable/nullable compositions require witnesses and
 implementation. Retained/populated root Maps with explicit post-loop clear
 already pass; preserve the correct zero-iteration capture-conflict rule.
 Rust-style record Set equality/hash work and family regressions/timing remain
-pending. Five user consumers still represent gate181.
+pending. Five user consumers still represent gate 181.
 
 Continuation prompt: Continue B5 from this record-leaf loop checkpoint. Read
 AGENTS.md, development-workflow.md and scoped-callable-aggregate-plan.md. Root
@@ -409,7 +409,7 @@ owners, precise entry/element capture release and remaining callable composition
 still need implementation witnesses. Record Set keys will use Rust-style value
 equality and hashing, immutable stored keys and explicit ownership transfer or
 clone. Floating-point key policy remains unresolved. Family regressions and
-timing remain pending. Five user executable consumers still represent gate181.
+timing remain pending. Five user executable consumers still represent gate 181.
 
 Continuation prompt: Continue B5 from this nested-finally repair checkpoint. Read
 AGENTS.md, docs/development-workflow.md and docs/scoped-callable-aggregate-plan.md.
@@ -441,7 +441,7 @@ This checkpoint does not accept B5. Nested catch regions with their own abrupt
 cleanup or return/control exits still need witnesses. Broader loops, multiple
 renewed owners, precise entry/element release, remaining callable compositions
 and Rust-style record Set keys remain open, followed by family regressions and
-timing. Five user executable consumers remain at gate181.
+timing. Five user executable consumers remain at gate 181.
 
 Continuation prompt: Continue B5 after nested catch storage discovery. Read
 AGENTS.md, docs/development-workflow.md and docs/scoped-callable-aggregate-plan.md.
@@ -478,7 +478,7 @@ the original native failure and failed check attempts, plus verification record
 B5 remains open. Return/break/continue through nested handlers, broader loops,
 multiple renewed owners, precise element/entry release, remaining callable
 compositions and record Set equality/hash remain pending. Family regressions and
-timing are not run. Five user executable consumers remain at gate181.
+timing are not run. Five user executable consumers remain at gate 181.
 
 Continuation prompt: Continue B5 from the nested handler cleanup checkpoint.
 Read AGENTS.md, docs/development-workflow.md and the scoped aggregate plan. Add
@@ -514,7 +514,7 @@ and the original rejection/native failure, plus verification record
 B5 remains open; loop exits through handlers, broader loops, multiple owners,
 precise element/entry release, remaining callable compositions and record Set
 equality/hash still need work. Family regressions and timing remain pending.
-Five user executable consumers remain at gate181.
+Five user executable consumers remain at gate 181.
 
 Continuation prompt: Continue B5 from the nested handler return checkpoint.
 Read AGENTS.md, docs/development-workflow.md and the scoped aggregate plan. Add
@@ -556,7 +556,7 @@ plus `runtime/results/2026-10-08T20-14-14-148Z-verify.json`. Loose copies are re
 B5 is not accepted. Fix the retained cleanup-mutation defect next, then broader
 loops, multiple owners, precise entry/element release, remaining callable
 compositions and Rust-style record Set equality/hash. Family regressions and
-timing remain pending. Five user executable consumers remain at gate181.
+timing remain pending. Five user executable consumers remain at gate 181.
 
 Continuation prompt: Continue B5 from this catch-loop checkpoint. Read AGENTS.md,
 docs/development-workflow.md and the scoped aggregate plan. Repair the retained
@@ -709,7 +709,7 @@ B5 remains active. Next extend discovery across nested exception regions and
 broader loop shapes, then precise entry/element release and remaining callable
 compositions. Rust-style record Set equality/hash remains planned. No family
 regression, timing or user consumer refresh has occurred. The scratch CLI includes
-the paired-owner repair; user executable consumers remain at gate181.
+the paired-owner repair; user executable consumers remain at gate 181.
 
 Continuation prompt: Continue B5 from the multiple empty Map loop owners checkpoint.
 Read AGENTS.md, development-workflow.md and the scoped aggregate plan. Root and
@@ -747,7 +747,7 @@ loose copies are removed.
 B5 remains active. Broader loop forms, precise entry/element release, remaining
 callable compositions and Rust-style record Set equality/hash remain. Family
 regressions, timing and user consumer refresh remain pending. Scratch CLI includes
-this repair; five user executable consumers remain at gate181.
+this repair; five user executable consumers remain at gate 181.
 
 Continuation prompt: Continue B5 from nested paired-owner cleanup. Read AGENTS.md,
 development-workflow.md and the scoped aggregate plan. Nested catch/finally Map
@@ -1183,7 +1183,7 @@ original failed/repaired evidence, read back byte for byte before loose removal.
 This remains focused B5 progress. Release inside an iteration or branch before
 completion, same-expression release, precise array-element release, record Set
 keys and broader error/alias/composition checks remain open. Full family regression
-and timing remain deferred. User-facing consumers are still at gate181.
+and timing remain deferred. User-facing consumers are still at gate 181.
 
 ## Release inside branch source checkpoint
 
@@ -2349,3 +2349,53 @@ Still pending: handler errors with finally, cleanup errors, resumed pending
 errors after cleanup and distinct return/break/continue destination layouts.
 Structural owned record keys follow those capture-release repairs. B5 remains
 open; installed consumers remain at gate 181.
+
+
+### Cleanup outgoing error transport without catch
+
+The no-catch finally emitter now consumes the checked Cleaned/Throw Map layout
+for cleanup errors and for the normal completion that resumes a pending error.
+It attaches that layout to each cleanup error envelope and projects the selected
+outgoing owner into the enclosing error destination. Return and loop-control
+owners retain their separate existing representation.
+
+The original execution witness already passed on the previous checkpoint. A
+stronger native-layout witness first missed the specialized path; adding a
+released-capture write activates it and proves the actual defect: checked Map7
+was widened to Map6 in the cleanup error envelope. That focused witness fails on
+the previous emitter and passes with this change. Runtime witnesses cover resumed
+and replacement errors, released and surviving captures, record-field storage
+and exactly-once disposal. Editor diagnostics retain surviving-capture conflicts.
+
+The matched cleanupOutgoingEntry helper observes both error identity and the
+surviving callback. Its independent result is 2 * value + 30, plus one when
+cleanup replaces the pending error. The workload now observes 85 values per row;
+literal reference rows and mutation guards cover the added behavior. Timing
+remains deferred. Final checks and the canonical record are recorded below.
+
+This slice concerns finally without its own catch. Catch-plus-finally still uses
+its joined pending owner path and needs separate outgoing handler/cleanup plans.
+Distinct return/break/continue layouts remain pending. B5 remains open, followed
+by Rust-style structural owned record keys. Installed consumers remain at gate 181.
+
+
+The affected Map batch completed with 92 passes and one loop-cleanup failure.
+The failure exposed unrelated return/control arms being generated for an already
+selected error when the enclosing function had no carried Map owner. Selected
+errors now use the error-only dispatch even without an outer storage tuple. The
+failed loop witness passes after repair; passed batch evidence is retained rather
+than rerunning the entire group. All 20 phase/storage proofs, the new editor
+witness and expanded record-field/disposal checks pass. Parser/analyzer dispatch
+is unchanged; no depth, full-family or timing run is claimed.
+
+
+Final matched verification passes all five cases on native and Node-after-tsc,
+with 85 observations per row. Canonical record:
+runtime/results/2026-10-09T06-30-32-665Z-verify.json. Original failed checks,
+repair checks, final checks and both matched records are preserved in SQLite,
+restored byte for byte and removed from loose storage. Final project formatting
+changes zero files and fingerprints. Source diff checks pass.
+
+Next: consume independent handler/cleanup error plans in catch-plus-finally,
+then destination-specific return/break/continue owners and cleanup overrides.
+Keep those phases separate rather than widening all pending owners together.
