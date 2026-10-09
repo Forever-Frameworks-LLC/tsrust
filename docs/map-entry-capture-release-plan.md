@@ -981,3 +981,36 @@ compilation; earlier affected batches retain their 75 passes plus that red.
 Whole-project formatting changes zero files and zero fingerprints. Closed check
 logs, including the post-condition red and repaired proof, are imported into
 SQLite and verified byte for byte before deleting loose copies. B5 remains open.
+
+
+### Materialized exception phase storage families
+
+The isolated map_completion_layouts analyzer now materializes a concrete Map
+payload family for each recorded phase and completion identity. It joins only
+payloads reaching that identity, preserving normal, return, error and targeted
+control boundaries. Places present in another phase but empty in this phase get
+an empty callback environment. Missing completion identities get no layout.
+Record field paths remain distinct; layout types describe storage, not renewed
+source availability. The planner runs outside recursive exception dispatch.
+
+A new red proof initially found no normal layout. Its repaired witness proves
+that normal and return storage retain only the surviving callback, pre-deletion
+errors retain the wider family, and normal/return cleanup clearing gets a third,
+empty family. The normal layout's payload is checked against the exact single
+record in the ownership proof. An absent break completion remains absent.
+
+Five phase/native-point proofs, all eight normal-stack depth canaries and six
+editor entry-release checks pass. The selected map_ native batch has 72 passes
+and the retained finally/control compilation failure; this is not full compiler
+acceptance. Phase layouts are checked metadata with test-only accessors pending
+native consumers. They do not yet repair that cleanup witness. No new catalog
+entry, workload observation, timing or installed consumer refresh is claimed.
+Next consume phase layouts in carried completion emission, specialize cleanup
+storage for its incoming family, and resume control only after cleanup. Keep
+error and cleanup override behavior, ownership and disposal assertions intact.
+
+
+Whole-project formatting changes zero files and zero fingerprints. Matched
+scoped-record-composition registration passes. Ten closed logs, including both
+red witnesses and strengthened proof checks, are imported into SQLite, read back
+byte for byte, then removed from scratch storage. B5 remains incomplete.

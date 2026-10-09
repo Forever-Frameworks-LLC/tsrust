@@ -116,6 +116,16 @@ impl Exits {
     pub(super) fn record_map_completion_phase(&mut self,boundary:usize,phase:map_completion_payloads::Phase,kind:Option<crate::completion::CompletionKind>,payloads:std::collections::BTreeMap<crate::capture_loan_owners::Place,HashSet<Type>>) {
         self.12.get_or_insert_with(Default::default).record(boundary,phase,kind,payloads);
     }
+    pub(super) fn map_completion_snapshots(&self,boundary:usize)->Vec<map_completion_payloads::Snapshot> {
+        self.12.as_ref().map_or_else(Vec::new,|states|states.snapshots(boundary))
+    }
+    pub(super) fn record_map_completion_layout(&mut self,boundary:usize,phase:map_completion_payloads::Phase,kind:Option<crate::completion::CompletionKind>,types:std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>) {
+        self.12.get_or_insert_with(Default::default).record_layout(boundary,phase,kind,types);
+    }
+    #[cfg(test)]
+    pub(crate) fn map_completion_layout(&self,boundary:usize,phase:map_completion_payloads::Phase,kind:Option<crate::completion::CompletionKind>)->Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>> {
+        self.12.as_ref()?.layout(boundary,phase,kind)
+    }
     #[cfg(test)]
     pub(crate) fn map_completion_payloads(&self,boundary:usize,phase:map_completion_payloads::Phase,kind:Option<crate::completion::CompletionKind>)->Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,HashSet<Type>>> {
         self.12.as_ref()?.at(boundary,phase,kind)

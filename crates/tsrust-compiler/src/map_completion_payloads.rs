@@ -15,6 +15,7 @@ pub(crate) struct Snapshot {
 pub(crate) struct Snapshots {
     phases:HashMap<usize,Vec<Snapshot>>,
     native_inputs:BTreeMap<usize,BTreeMap<usize,Type>>,
+    layouts:HashMap<usize,Vec<(Phase,Option<CompletionKind>,BTreeMap<Place,Type>)>>,
 }
 impl Snapshots {
     pub(crate) fn record(&mut self,boundary:usize,phase:Phase,kind:Option<CompletionKind>,payloads:BTreeMap<Place,HashSet<Type>>) {
@@ -29,6 +30,18 @@ impl Snapshots {
     pub(crate) fn native_input(&self,start:usize,binding:usize)->Option<Type> {
         self.native_inputs.range(..=start).rev().find_map(|(_,inputs)|inputs.get(&binding).copied())
     }
+    pub(super) fn snapshots(&self,boundary:usize)->Vec<Snapshot> {
+        self.phases.get(&boundary).cloned().unwrap_or_default()
+    }
+    pub(super) fn record_layout(&mut self,boundary:usize,phase:Phase,kind:Option<CompletionKind>,types:BTreeMap<Place,Type>) {
+        let layouts=self.layouts.entry(boundary).or_default();
+        if let Some((_,_,previous))=layouts.iter_mut().find(|(p,k,_)|*p==phase && *k==kind) {*previous=types;}
+        else {layouts.push((phase,kind,types));}
+    }
+    #[cfg(test)]
+    pub(crate) fn layout(&self,boundary:usize,phase:Phase,kind:Option<CompletionKind>)->Option<&BTreeMap<Place,Type>> {
+        self.layouts.get(&boundary)?.iter().find(|(p,k,_)|*p==phase && *k==kind).map(|(_,_,types)|types)
+    }
     #[cfg(test)]
     pub(crate) fn at(&self,boundary:usize,phase:Phase,kind:Option<CompletionKind>)->Option<&BTreeMap<Place,HashSet<Type>>> {
         self.phases.get(&boundary)?.iter().find(|state|state.phase==phase && state.kind==kind).map(|state|&state.payloads)
@@ -38,6 +51,29 @@ impl Snapshots {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn phase_layouts_keep_error_payloads_and_empty_cleanup_separate() {
+        let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function scenario(flag:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{failIf(flag);handlers.delete('first');if(flag)return;}finally{handlers.clear();}}function main():void{scenario(false);}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let checked=crate::check(&source).unwrap();
+        let function=checked.program.functions.iter().find(|function|function.name=="scenario").unwrap();
+        let region=function.body.iter().find_map(|statement|if let crate::syntax::StmtKind::Try(region)=&statement.kind{Some(region)}else{None}).unwrap();
+        let boundary=region.body[0].span.start;
+        let binding=function.bindings.iter().position(|binding|binding.name=="handlers").unwrap();
+        let place=Place{binding,fields:Vec::new()};
+        let normal=function.storage_exits.map_completion_layout(boundary,Phase::Body,None).expect("normal storage layout")[&place];
+        let error=function.storage_exits.map_completion_layout(boundary,Phase::Body,Some(CompletionKind::Throw)).expect("error storage layout")[&place];
+        let empty=function.storage_exits.map_completion_layout(boundary,Phase::Cleaned,None).expect("cleanup storage layout")[&place];
+        assert_ne!(normal,error);assert_ne!(normal,empty);assert_ne!(error,empty);
+        assert_eq!(function.storage_exits.map_completion_layout(boundary,Phase::Body,Some(CompletionKind::Return)).unwrap()[&place],normal);
+        assert_eq!(function.storage_exits.map_completion_layout(boundary,Phase::Cleaned,Some(CompletionKind::Return)).unwrap()[&place],empty);
+        assert!(function.storage_exits.map_completion_layout(boundary,Phase::Body,Some(CompletionKind::Break(None))).is_none());
+        let Type::Map(normal_map)=normal else{panic!("normal Map layout")};
+        let payloads=&function.storage_exits.map_completion_payloads(boundary,Phase::Body,None).unwrap()[&place];
+        assert_eq!(payloads.len(),1);
+        assert_eq!(checked.program.records[normal_map].map_definition.as_ref().unwrap().value,*payloads.iter().next().unwrap());
+    }
+
     #[test]
     fn empty_reachable_states_and_control_targets_remain_distinct() {
         let mut states=Snapshots::default();

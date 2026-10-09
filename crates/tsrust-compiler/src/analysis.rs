@@ -8,6 +8,8 @@ mod map_entry_epochs;
 mod map_iteration_plan;
 #[path="map_completion_payloads.rs"]
 mod map_completion_payloads;
+#[path="map_completion_layouts.rs"]
+mod map_completion_layouts;
 #[path = "map_entry_branch_transport.rs"]
 mod map_entry_branch_transport;
 #[path = "map_entry_demand.rs"]
@@ -5143,6 +5145,7 @@ impl Analyzer {
             if crate::completion::definitely_abrupt(&source,0) {outgoing=cleanup_contract;}else{outgoing|=cleanup_contract;}
         }
         if let Some(boundary)=map_boundary {pending.record_map_payloads(&mut context.storage_exits,boundary,map_completion_payloads::Phase::Cleaned);}
+        if let Some(boundary)=map_boundary {self.plan_map_completion_layouts(context,boundary)?;}
         pending.restore_normal(context);
         Ok((pending,outgoing))
     }
