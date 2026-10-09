@@ -2,11 +2,12 @@
 use super::*;
 
 #[derive(Clone, Debug, Default)]
-pub(crate) struct Exits(HashMap<(usize, usize), Vec<Unavailable>>, HashMap<usize, Vec<Unavailable>>, HashMap<(usize, usize), Vec<Unavailable>>, Option<Box<HashMap<(usize,usize),MapEntrySurvivors>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize),Type>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntrySurvivors>>>>, Option<Box<HashMap<(usize,usize,bool),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize,MapLoopEdge),std::collections::BTreeMap<crate::capture_loan_owners::Place,HashSet<Type>>>>>, Option<Box<HashMap<(usize,usize),Vec<MapIterationEpoch>>>>);
+pub(crate) struct Exits(HashMap<(usize, usize), Vec<Unavailable>>, HashMap<usize, Vec<Unavailable>>, HashMap<(usize, usize), Vec<Unavailable>>, Option<Box<HashMap<(usize,usize),MapEntrySurvivors>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize),Type>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntrySurvivors>>>>, Option<Box<HashMap<(usize,usize,bool),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize,MapLoopEdge),std::collections::BTreeMap<crate::capture_loan_owners::Place,HashSet<Type>>>>>, Option<Box<HashMap<(usize,usize),Vec<MapIterationEpoch>>>>, Option<Box<HashMap<(usize,usize),HashMap<usize,Type>>>>, Option<Box<HashMap<(usize,usize),(usize,bool,Vec<MapEntryEpoch>)>>>);
 #[derive(Clone,Debug)]
 pub(crate) struct MapIterationEpoch {
     pub(crate) entry:MapEntryEpoch,
     pub(crate) back:MapEntryEpoch,
+    pub(crate) body:MapEntryEpoch,
 }
 #[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
 pub(crate) enum MapLoopEdge { Entry, Back, Break }
@@ -105,6 +106,21 @@ impl Exits {
     }
     pub(crate) fn map_entry_survivors(&self, span: Span) -> Option<&MapEntrySurvivors> {
         self.3.as_ref()?.get(&(span.start,span.end))
+    }
+    pub(super) fn record_map_control_inputs(&mut self,span:Span,inputs:&HashMap<usize,Type>) {
+        self.10.get_or_insert_with(Default::default).insert((span.start,span.end),inputs.clone());
+    }
+    pub(super) fn map_control_inputs(&self,span:Span)->Option<&HashMap<usize,Type>> {
+        self.10.as_ref()?.get(&(span.start,span.end))
+    }
+    pub(super) fn record_map_iteration_control(&mut self,span:Span,label:usize,continuing:bool,epochs:Vec<MapEntryEpoch>) {
+        self.11.get_or_insert_with(Default::default).insert((span.start,span.end),(label,continuing,epochs));
+    }
+    pub(crate) fn has_map_iteration_controls(&self,label:usize)->bool {
+        self.11.as_ref().is_some_and(|points|points.values().any(|(target,_,_)|*target==label))
+    }
+    pub(crate) fn map_iteration_control(&self,span:Span)->Option<&(usize,bool,Vec<MapEntryEpoch>)> {
+        self.11.as_ref()?.get(&(span.start,span.end))
     }
     pub(super) fn record_map_iteration_epochs(&mut self,span:Span,epochs:Vec<MapIterationEpoch>) {
         self.9.get_or_insert_with(Default::default).insert((span.start,span.end),epochs);

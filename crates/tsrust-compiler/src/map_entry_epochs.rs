@@ -29,6 +29,9 @@ impl Analyzer {
             return Ok(local);
         }
         for statement in body {
+            if matches!(statement.kind,StmtKind::Break|StmtKind::Continue) {
+                context.storage_exits.record_map_control_inputs(statement.span,results);
+            }
             let moved_source=if let StmtKind::Let{value,..}=&statement.kind {
                 let mut value=value;
                 while let ExprKind::Unary{op:UnaryOp::RecordCarrier,value:inner,..}=&value.kind {value=inner;}

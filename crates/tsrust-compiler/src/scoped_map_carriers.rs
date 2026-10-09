@@ -15,7 +15,7 @@ impl Analyzer {
         Ok(Some(Type::Map(self.scoped_map_value_instance(left, value))))
     }
 
-    fn contains_scoped_map_storage(&self, ty: Type) -> bool {
+    pub(super) fn contains_scoped_map_storage(&self, ty: Type) -> bool {
         let mut pending = vec![ty];
         let mut seen = HashSet::new();
         while let Some(ty) = pending.pop() {

@@ -1397,3 +1397,39 @@ record is runtime/results/2026-10-09T01-51-04-431Z-verify.json in SQLite. Final
 project formatting changes zero files and zero fingerprints. Closed logs, including
 the original failed batch and repaired focused check, are imported into SQLite
 and read back byte for byte before their loose copies are removed.
+
+## Abrupt iteration transport
+
+A focused native witness first failed with E0502 when break/continue followed
+known-entry deletion and capture mutation. Each abrupt statement now records its
+point-sensitive storage inputs. Selected loop controls convert to the proven
+carried survivor family and yield a stop flag plus owned Maps from a labelled
+body scope. The enclosing loop restores those Maps before acting on the flag.
+Break skips counted updates and condition evaluation; continue runs counted
+updates. Do-while retains its first-entry distinction, and for-of retains its
+shared iterator evaluation and binding layouts. No surviving entry is cloned.
+
+The focused witness covers while, counted, post-test and array for-of, observable
+counted updates, exact O0/O3 disposal and retained-capture errors. Break before
+deletion rejects a later mutation because the entry remains live. The affected
+Map batch passed 71 checks, the editor witness passes, and all eight normal-stack
+canaries pass before the final update guard. Separate body/update representations
+preserve existing normal-loop lowering. Abrupt loops whose counted update touches
+Map storage require further transport and are not claimed by this chunk.
+
+Matched support appends a 59th observation for abrupt iteration, with independent
+arithmetic oracle and rehashed guards for deletion, break, continue and tail
+execution. Registration and native/Node-after-tsc verification pass on the initial
+implementation. Final guarded-source verification and evidence import remain
+pending. B5 remains open: cleanup/nested control transport, different pre-test
+entry families, independent Map fields, same-expression/array release and
+structural record Set keys still need work. User-facing consumers are unchanged.
+
+Final guarded-source checks pass: abrupt four-form native/disposal witness, normal
+iteration regression witness and all eight depth canaries. Final formatting
+changes no files/fingerprints. All five independent result cases pass for native
+and Node-after-tsc with 59 observations. The final untimed record is
+runtime/results/2026-10-09T02-00-12-888Z-verify.json in SQLite. Original red,
+intermediate compiler errors, repaired checks and both verification records are
+retained independently with byte-exact readback; loose copies are removed.
+This is a source checkpoint for abrupt iteration transport, not B5 acceptance.

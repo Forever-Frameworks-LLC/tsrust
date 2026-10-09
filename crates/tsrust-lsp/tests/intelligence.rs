@@ -8697,7 +8697,7 @@ fn narrowed_map_branch_refill_keeps_new_capture_until_clear() {
 #[test]
 fn iteration_map_entry_release_keeps_surviving_capture_diagnostics() {
  let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function scenario(limit:int):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});let turn=0;while(turn<limit){handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;turn++;}handlers.clear();}function main():void{scenario(2);}").unwrap();
- for source in [source.clone(),source.replace("while (turn < limit)","for(let step=0;step<limit;step+=1)")] {
+ for source in [source.clone(),source.replace("while (turn < limit)","for(let step=0;step<limit;step+=1)"),source.replace("turn++;", "turn++;if(turn===1)continue;if(turn===2)break;")] {
   assert!(tsrust_lsp::diagnostics(&source,"file:///iteration-entry-release.tsr").unwrap().is_empty());
   let conflict=source.replace("first[0] += 1;","second[0]+=1;");assert_ne!(conflict,source);
   let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///iteration-entry-release.tsr").unwrap()).unwrap();

@@ -161,7 +161,10 @@ for, do-while and array/string for-of bodies may delete a known entry and mutate
 its released capture before the iteration ends. Surviving entries retain their
 key order and captures, including Maps stored in local record fields. Do-while
 preserves its initial entries for the first body and tests its condition after
-each body. Empty carried storage is supported. Abrupt controls, nested loops,
+each body. Empty carried storage is supported. Break and continue after deletion return
+surviving entries before leaving the body. Counted continue still executes its
+update; break skips the update and the next condition. A break before deletion
+keeps the original capture live. Map-changing counted updates, nested loops,
 cleanup transport and release within the same expression remain under development.
 Changing a callback environment representation for later capture access can scan
 surviving entries. Known entry deletion avoids that conversion when the released

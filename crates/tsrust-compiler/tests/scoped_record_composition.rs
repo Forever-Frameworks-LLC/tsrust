@@ -1,6 +1,27 @@
 mod support;
 
 #[test]
+fn map_iteration_release_survives_continue_and_break() {
+    let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(stop:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});let turn=0;while(turn<3){handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;turn++;if(stop)break;if(turn<3)continue;console.log('tail',turn);}for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();console.log('done',first[0]);}function main():void{scenario(false);scenario(true);}");
+    let conflict = source.replace("first[0] += 1;", "second[0]+=1;");
+    assert_ne!(conflict, source);
+    assert_eq!(tsrust_compiler::check(&conflict).err().expect("retained entry protects its capture on abrupt edges").code, "capture-conflict");
+    let early = source.replace("handlers.delete('first');", "if(stop)break;handlers.delete('first');")
+        .replace("handlers.clear();", "first[0]=99;handlers.clear();");
+    assert_eq!(tsrust_compiler::check(&early).err().expect("break before deletion keeps the first capture live").code,"capture-conflict");
+    support::execute(&source, "tail 3\nsecond 5\ndone 6\nsecond 5\ndone 4\n", None);
+    let counted = "function advance(value:int):int{console.log('update',value);return value+1;}".to_owned()
+        + &source.replace("while (turn < 3)", "for(let step=0;step<3;step=advance(step))");
+    support::execute(&support::format_round_trip(&counted), "update 0\nupdate 1\ntail 3\nupdate 2\nsecond 5\ndone 6\nsecond 5\ndone 4\n", None);
+    let post = source.replace("while (turn < 3)", "do").replace("console.log('tail', turn);\n    }", "console.log('tail',turn);}while(turn<3);");
+    assert_ne!(post,source);
+    support::execute(&support::format_round_trip(&post), "tail 3\nsecond 5\ndone 6\nsecond 5\ndone 4\n", None);
+    let for_of = source.replace("while (turn < 3)", "for(const step of [0,1,2])");
+    support::execute(&support::format_round_trip(&for_of), "tail 3\nsecond 5\ndone 6\nsecond 5\ndone 4\n", None);
+    verify_disposal(&source,2,"drop 1\ndrop 1\ndrop 1\ntail 3\nsecond 5\ndrop 0\ndone 6\ndrop 1\nsecond 5\ndrop 0\ndone 4\n");
+}
+
+#[test]
 fn map_entry_release_inside_iteration_preserves_refill_and_survivor() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(limit:int):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});let turn=0;while(turn<limit){handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;console.log('turn',turn,first[0]);turn++;}for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();console.log('done',first[0]);}function main():void{scenario(0);scenario(2);}");
  let conflict=source.replace("first[0] += 1;","second[0]+=1;");
