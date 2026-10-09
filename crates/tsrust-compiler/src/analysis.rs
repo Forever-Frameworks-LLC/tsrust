@@ -64,6 +64,8 @@ mod record_call_capture_release;
 mod record_parameter_carriers;
 #[path = "direct_callback_stores.rs"]
 mod direct_callback_stores;
+#[path = "caller_error_origins.rs"]
+mod caller_error_origins;
 #[path = "record_parameter_borrows.rs"]
 pub(crate) mod record_parameter_borrows;
 #[path = "nullable_parameter_stores.rs"]
@@ -449,6 +451,7 @@ struct Context {
     region_loop_depth:Option<usize>,
     region_entry_loans:Option<std::rc::Rc<crate::capture_loan_identity::Boundary>>,
     exception_environment:Option<std::rc::Rc<exception_state::CheckEnvironment>>,
+    caller_error_origins: Vec<(usize, Type)>,
     completion_frame:Option<Box<exception_state::CompletionFrame>>,
     error_frame:Option<Box<exception_state::ErrorFrame>>,
     selected_access: HashMap<usize, Mode>,
@@ -503,6 +506,7 @@ impl Context {
             region_loop_depth:None,
             region_entry_loans:None,
             exception_environment:None,
+            caller_error_origins: Vec::new(),
             completion_frame:None,
             error_frame:None,
             selected_access: HashMap::new(),
@@ -2156,6 +2160,7 @@ impl Analyzer {
         // Preserve lexical aliases as well as binding declaration names. Adapter
         // wrappers introduce a private alias to avoid parameter-name shadowing.
         context.names = outer.names.iter().map(|(name, slot)| (name.clone(), visible.binary_search(slot).expect("visible name"))).collect();
+        context.caller_error_origins = outer.caller_error_origins.clone();
         context.inferred_body_result = inferred_result;
         if self.discovering_results {
             context.pending_names = outer.pending_names.clone();
@@ -5335,6 +5340,7 @@ impl Analyzer {
         let families=self.callables.storage.families().map(|(id,_,origins)|(id,origins.iter().copied().collect())).collect::<Vec<_>>();
         let mut fields=crate::error_effects::record_field_origins(&self.program.records,&self.scoped_records);
         fields.extend(self.absent_callback_payloads.values().map(|id|(*id,Type::Undefined)));
+        fields.extend(context.caller_error_origins.iter().copied());
         crate::error_effects::annotate_partial_with_callers(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,&caller,&self.unions,&self.polymorphic_invocations,&fields)
     }
 
@@ -14437,6 +14443,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         }
         self.release_record_call_captures(context,index,args);
         self.retain_record_parameter_borrows(context,index,args)?;
+        self.retain_caller_error_origins(context, index, args);
         expr.target = Some(CallTarget::Function(index));
         if !capture_slots.is_empty() {
             expr.capture_slots = Some(capture_slots.iter().map(|&(slot, _)| slot).collect());

@@ -699,6 +699,11 @@ impl SourceIndex {
             let mut found = self.checked_method_results.iter().filter(|(fact, _)| *fact == span);
             let (Some((_, ty)), None) = (found.next(), found.next()) else { continue };
             let ty = ty.clone();
+            if self.symbols[symbol].signature.starts_with("(catch) ") {
+                self.symbols[symbol].signature = format!("(catch) {}: {ty}", self.symbols[symbol].name);
+                self.symbols[symbol].ty = ty;
+                continue;
+            }
             let Some(keyword) = self.symbols[symbol].signature.split(' ').next().filter(|word| matches!(*word, "const" | "let")) else {
                 continue;
             };

@@ -99,3 +99,19 @@ red: catching the installed callback's string failure reports error-effect with 
 unresolved catch contract. Investigate inferred callback error origins, retained
 wrapper reachability and record field origins in error_effects.rs. Keep the witness;
 do not erase the catch binding or substitute an untyped handler.
+
+## Completed caller error origins
+
+The earlier callback-thrown-error witness is repaired. Catch checking previously
+considered the current try body before the caller had a stored checked body; an
+installation before the try was therefore absent from callback-origin inference.
+The isolated caller_error_origins module retains completed named-call argument types
+in the checking context. Region inference includes those facts, and nested closures
+inherit the outer facts. These are error-type facts, not ownership loans or runtime
+storage. Checked point types and final native carrier types remain separate.
+
+Native checks cover the original typed string failure and success path, conditional
+installation of number/string failures, and a bound handler in a closure capturing
+the installed holder. A negative check keeps the error-effect diagnostic when there
+is no concrete callback origin. Catch hover also now refreshes from the compiler's
+checked declaration type after those facts load, rather than remaining untyped.

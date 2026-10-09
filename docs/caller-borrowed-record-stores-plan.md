@@ -19,7 +19,7 @@ Source controls cover live-holder mutation and transfer, independent mutable cal
 invocation, callee-local escape and shorter-lived input storage. Editor diagnostics,
 hover and parameter help have focused witnesses.
 
-The matched caller_borrowed_record_stores workload retains seventeen observations per
+The matched caller_borrowed_record_stores workload retains eighteen observations per
 iteration, with an independent arithmetic oracle, source contracts, ABI support,
 runner/profile/report hooks and registration controls. Verification is untimed.
 This remains progress within B7, not family acceptance or timing evidence.
@@ -37,8 +37,9 @@ Focused replacement checks pass twelve tests; this is not family acceptance.
 Direct readonly and mutable callback assignment now has focused forwarding,
 optional/default, rest and alias-relay witnesses. Consuming direct inputs now have native single-use and repeated-call rejection
 witnesses. Installer failures before and after stores preserve the selected callback,
-state and retained mutable loans. Typed failures from the installed callback itself
-still have an unresolved catch-contract witness. Remaining acceptance includes nullable
+state and retained mutable loans. Typed failures from the installed callback itself now retain completed caller
+argument origins, including conditional installation and handlers in captured closures.
+Absent concrete origins remain unresolved rather than acquiring a fabricated type. Remaining acceptance includes nullable
 payload stores, mutable data aliases, failure paths, exact replacement and clearing,
 branch/loop stores, early exits and disposal. Recursive relay summaries still need
 finite-path evidence before acceptance. Complete the required family before heavy

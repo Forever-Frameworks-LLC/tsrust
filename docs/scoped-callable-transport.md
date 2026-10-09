@@ -492,5 +492,7 @@ and stable aliases preserve the declared callable contract. Consuming direct inp
 invocation; a second call reports that the field was transferred. If an installer
 throws after storing a callback, the installed callback and its mutable borrow remain
 live. Throwing before the store preserves the previous callback. Holder disposal
-releases retained mutable inputs. Nullable stores and typed failures from the stored
-callback itself remain under implementation. The complete B7 family is not accepted yet.
+releases retained mutable inputs. Typed failures from the stored callback reach a bound catch variable with their
+checked error type, including a handler in a closure that captures the holder.
+The compiler requires concrete callback origins to infer that type. Nullable stores
+and the remaining branch, loop and exact-release forms remain under implementation. The complete B7 family is not accepted yet.

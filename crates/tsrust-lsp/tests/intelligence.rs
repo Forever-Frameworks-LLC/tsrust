@@ -3,6 +3,28 @@ use serde_json::{Value, json};
 use tsrust_lsp::intelligence::SourceIndex;
 
 #[test]
+fn stored_callback_catch_hover_uses_the_completed_installer_origin() {
+    let source = tsrust_compiler::format(r#"
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function install(holder: Mutable<Holder>, action: ReadOnly<Function<int>>): void {
+            holder.run = action;
+        }
+        function main() {
+            const values = [3];
+            const action = (): int => { if (values[0] > 0) { throw "callback"; } return 0; };
+            const holder: Holder = { run: (): int => 0 };
+            install(holder, action);
+            try { holder.run(); } catch (error) { console.log(error); }
+        }
+    "#).unwrap();
+    let diagnostics = tsrust_lsp::diagnostics(&source, "file:///stored-callback-catch.tsr").unwrap();
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    let hover = ask(&source, "textDocument/hover", "error);", 0);
+    let text = hover["contents"]["value"].as_str().unwrap_or("");
+    assert!(text.contains("string") && !text.contains("unknown"), "{hover}");
+}
+
+#[test]
 fn direct_once_store_keeps_declared_result_and_reports_consumed_field() {
     let source = tsrust_compiler::format(r#"
         type Holder = { run: Once<Function<string>>; };

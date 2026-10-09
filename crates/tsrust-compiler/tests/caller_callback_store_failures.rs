@@ -1,6 +1,68 @@
 mod support;
 
 #[test]
+fn absent_concrete_callback_origin_does_not_invent_a_catch_type() {
+    support::reject(r#"
+        function guarded(action: ReadOnly<Function<int>>): int {
+            try { return action(); } catch (error) { return error.length; }
+        }
+        function main() {}
+    "#, "error-effect");
+}
+
+#[test]
+fn captured_holder_handler_retains_outer_installation_error_origins() {
+    native(
+        r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function install(holder: Mutable<Holder>, action: ReadOnly<Function<int>>): void {
+            holder.run = action;
+        }
+        function main() {
+            const values = [3];
+            const action = (): int => { throw values[0]; };
+            const holder: Holder = { run: (): int => 0 };
+            install(holder, action);
+            const guarded = (): int => {
+                try { return holder.run(); } catch (error) {
+                    return typeof error === "number" ? error : 0;
+                }
+            };
+            strictEqual(guarded(), 3);
+        }
+    "#,
+    );
+}
+
+#[test]
+fn conditional_installation_retains_both_typed_failure_origins() {
+    native(
+        r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function install(holder: Mutable<Holder>, action: ReadOnly<Function<int>>): void {
+            holder.run = action;
+        }
+        function choose(flag: boolean): int {
+            const values = [3];
+            const number = (): int => { throw values[0]; };
+            const text = (): int => { throw "four"; };
+            const holder: Holder = { run: (): int => 0 };
+            if (flag) { install(holder, number); } else { install(holder, text); }
+            try { return holder.run(); } catch (error) {
+                return typeof error === "number" ? error : typeof error === "string" ? error.length : 0;
+            }
+        }
+        function main() {
+            strictEqual(choose(true), 3);
+            strictEqual(choose(false), 4);
+        }
+    "#,
+    );
+}
+
+#[test]
 fn directly_stored_callback_preserves_typed_failure_and_success() {
     native(
         r#"

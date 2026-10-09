@@ -116,7 +116,21 @@ function workload(n: int, seed: int, input: string): int[][] {
             beforeFailure = holder.run() + (caught ? 0 : 100);
         }
 
-        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure]);
+        let callbackFailure = 0;
+        {
+            const payload = [value + 17];
+            const action = (): int => { throw payload[0]; };
+            const holder: Holder = { run: (): int => 0 };
+            installDirect(holder, action);
+            const guarded = (): int => {
+                try { return holder.run(); } catch (error) {
+                    return typeof error === "number" ? error : 0;
+                }
+            };
+            callbackFailure = guarded();
+        }
+
+        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure]);
         i += 1;
     }
 

@@ -62,3 +62,29 @@ const onceHolder = { run: () => 'initial' };
 const text = 'Pat';
 onceHolder.run = () => text;
 strictEqual(onceHolder.run(), 'Pat');
+
+const failurePayload = [3];
+const typedAction = (fail: boolean): number => {
+    if (fail) throw 'callback';
+    return failurePayload[0];
+};
+const typedHolder = { run: (_fail: boolean): number => 0 };
+typedHolder.run = typedAction;
+let typedCaught = false;
+try { typedHolder.run(true); } catch (error) { typedCaught = typeof error === 'string' && error === 'callback'; }
+strictEqual(typedCaught, true);
+strictEqual(typedHolder.run(false), 3);
+
+function chooseFailure(flag: boolean): number {
+    const holder: Holder = { run: () => 0 };
+    if (flag) install(holder, () => { throw 3; });
+    else install(holder, () => { throw 'four'; });
+    const guarded = () => {
+        try { return holder.run(); } catch (error) {
+            return typeof error === 'number' ? error : typeof error === 'string' ? error.length : 0;
+        }
+    };
+    return guarded();
+}
+strictEqual(chooseFailure(true), 3);
+strictEqual(chooseFailure(false), 4);
