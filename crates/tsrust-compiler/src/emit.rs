@@ -1,3 +1,6 @@
+#[cfg(test)]
+#[path = "borrowed_owner_provenance.rs"]
+mod borrowed_owner_provenance;
 #[path = "record_point_call_emit.rs"]
 mod record_point_call_emit;
 #[path = "direct_record_store_emit.rs"]
