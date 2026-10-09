@@ -46,6 +46,16 @@ fn record_parameters_with_nullable_callback_fields_have_editor_diagnostics() {
 }
 
 #[test]
+fn arrays_of_nullable_callback_records_have_editor_diagnostics() {
+    let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const slots:(Holder|undefined)[]=[undefined,{run:():int=>first[0]}];slots[0]={run:():int=>first[0]+1};for(const slot of slots)console.log(slot?.run()??-1);}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&source,"file:///nullable-elements.tsr").unwrap().is_empty());
+    let conflict=source.replace("for (const slot of slots) console.log(slot?.run() ?? -1);","slots[0]=undefined;first[0]=9;console.log(slots.length);");
+    assert_ne!(source,conflict);
+    let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///nullable-elements.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+}
+
+#[test]
 fn populated_nullable_callback_records_report_capture_conflicts() {
     let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};function main():void{const first=[3];const second=[5];let saved:Holder|undefined={run:():int=>first[0]};const box:Box={saved:{run:():int=>second[0]}};saved=undefined;first[0]=7;if(box.saved!==undefined)console.log(box.saved.run());}").unwrap();
     assert!(tsrust_lsp::diagnostics(&source,"file:///populated-nullable.tsr").unwrap().is_empty());

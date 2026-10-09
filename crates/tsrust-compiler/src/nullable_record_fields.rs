@@ -67,6 +67,8 @@ impl Analyzer {
                 StmtKind::Let{binding:Some(binding),value,..}=>{
                     declarations.insert((*binding,value.span.start,value.span.end));
                     let mut place=value;let mut indexed=false;
+                    // A whole element is read as a view; only a field of an element would move.
+                    if matches!(place.kind,ExprKind::Index(_,_)) {continue;}
                     loop {match &place.kind {ExprKind::Index(base,_)=>{indexed=true;place=base;}ExprKind::Field(base,_)=>place=base,_=>break,}}
                     if indexed && matches!(place.kind,ExprKind::Name(_)) && value.ty.is_some_and(|ty|ty.union().is_some() && self.nullable_scoped_record_declaration(ty).is_some()) {
                         return Err(Diagnostic::new("unsupported","A nullable callback record cannot be moved out of an array element. Read it in place with a guard or an optional call.",value.span));
@@ -301,16 +303,18 @@ impl Analyzer {
     }
     fn with_nullable_slot(&mut self,ty:Type,path:&[String],slot:Type)->Option<Type> {
         match ty {
+            Type::Array(ArrayElement::Union(_,depth)) if path.is_empty()=>Some(Type::Array(ArrayElement::Union(slot.union()?,depth))),
             Type::Array(ArrayElement::Record(record,depth))=>{
                 let Type::Record(record)=self.with_nullable_slot(Type::Record(record),path,slot)? else{return None;};
                 Some(Type::Array(ArrayElement::Record(record,depth)))
             }
             Type::Record(record)=>{
                 let (name,rest)=path.split_first()?;
-                let field=if rest.is_empty(){slot}else{
-                    let current=self.program.records[record].fields.iter().find(|field|field.name.text==*name)?.ty?;
-                    self.with_nullable_slot(current,rest,slot)?
-                };
+                let current=self.program.records[record].fields.iter().find(|field|field.name.text==*name)?.ty?;
+                let field=if rest.is_empty(){
+                    // The slot is the field itself, or each element of an array field.
+                    if let Type::Array(ArrayElement::Union(_,depth))=current {Type::Array(ArrayElement::Union(slot.union()?,depth))} else {slot}
+                }else{self.with_nullable_slot(current,rest,slot)?};
                 self.record_type_with_field(record,std::slice::from_ref(name),field).map(Type::Record)
             }
             _=>None,
@@ -323,7 +327,30 @@ impl Analyzer {
         let mut stores=Vec::new();
         for write in record_storage_writes::collect(body) {
             let binding=&context.bindings[write.binding];
-            if binding.parameter || binding.capture_reference || write.path.is_empty(){continue;}
+            if binding.parameter || binding.capture_reference{continue;}
+            // An array whose elements are nullable callback records joins every stored element.
+            if write.path.is_empty() {
+                let Type::Array(ArrayElement::Union(element,_))=binding.ty else{continue;};
+                if self.nullable_scoped_record_declaration(Type::Union(element)).is_none(){continue;}
+                let mut values=vec![write.value];
+                while let Some(value)=values.pop() {
+                    match &value.kind {
+                        ExprKind::Array(elements) if !write.array_element=>values.extend(elements),
+                        ExprKind::Inject{value:inner,..}=>{
+                            let incoming=match inner.ty {
+                                Some(payload @ Type::Record(_))=>{
+                                    let members=self.unions.members(element).into_iter().map(|member|if matches!(member,Type::Record(_)){payload}else{member}).collect::<Vec<_>>();
+                                    Some(self.unions.intern(members,write.span)?)
+                                }
+                                _=>None,
+                            };
+                            stores.push((write.binding,Vec::new(),incoming,write.span));
+                        }
+                        _=>{}
+                    }
+                }
+                continue;
+            }
             let through_array=matches!(binding.ty,Type::Array(_)) || {
                 let mut ty=binding.ty;let mut array=false;
                 for name in &write.path {
@@ -350,6 +377,35 @@ impl Analyzer {
             };
             stores.push((write.binding,write.path.clone(),incoming,write.span));
         }
+        // Declarations of nullable-element arrays are not storage writes of a
+        // record type; collect their initial elements here.
+        let mut declarations=Vec::new();
+        let mut pending=body.iter().collect::<Vec<_>>();
+        while let Some(statement)=pending.pop() {
+            match &statement.kind {
+                StmtKind::Let{binding:Some(id),value,..}=>{
+                    let Type::Array(ArrayElement::Union(element,_))=context.bindings[*id].ty else{continue;};
+                    if self.nullable_scoped_record_declaration(Type::Union(element)).is_none(){continue;}
+                    declarations.push((*id,value.span));
+                    let mut values=vec![value];
+                    while let Some(value)=values.pop() {
+                        match &value.kind {
+                            ExprKind::Array(elements)=>values.extend(elements),
+                            ExprKind::Inject{value:inner,..}=>if let Some(payload @ Type::Record(_))=inner.ty {
+                                let members=self.unions.members(element).into_iter().map(|member|if matches!(member,Type::Record(_)){payload}else{member}).collect::<Vec<_>>();
+                                stores.push((*id,Vec::new(),Some(self.unions.intern(members,value.span)?),value.span));
+                            },
+                            _=>{}
+                        }
+                    }
+                }
+                StmtKind::Block(body)|StmtKind::While{body,..}|StmtKind::ForOf{body,..}=>pending.extend(body),
+                StmtKind::If{then_body,else_body,..}=>{pending.extend(then_body);pending.extend(else_body);}
+                StmtKind::Loop{body,update,..}=>{pending.extend(body);pending.extend(update);}
+                StmtKind::Try(region)=>pending.extend(region.statements()),
+                _=>{}
+            }
+        }
         if stores.is_empty(){return Ok(());}
         loop {
             let mut changed=false;
@@ -364,6 +420,7 @@ impl Analyzer {
             if !changed{break;}
         }
         for (&binding,&plan) in &plans {context.bindings[binding].ty=plan;}
+        let roots=plans.keys().copied().collect::<HashSet<_>>();
         // A for-of variable over a planned array reads the carrier element type.
         let mut pending=body.iter().collect::<Vec<_>>();
         while let Some(statement)=pending.pop() {
@@ -374,6 +431,13 @@ impl Analyzer {
                     }
                     pending.extend(body);
                 }
+                // A view of a planned element reads the carrier union.
+                StmtKind::Let{binding:Some(id),value,..} if matches!(value.kind,ExprKind::Index(_,_)|ExprKind::Call(_,_)) && !plans.contains_key(id)=>{
+                    if let Some(planned)=self.planned_record_array_type(value,&plans) && let Some(union)=planned.union() {
+                        let ty=if matches!(context.bindings[*id].ty,Type::BorrowedUnion(_)){Type::BorrowedUnion(union)}else{planned};
+                        if context.bindings[*id].ty.union().is_some() {plans.insert(*id,ty);context.bindings[*id].ty=ty;}
+                    }
+                }
                 StmtKind::Block(body)|StmtKind::While{body,..}|StmtKind::ForOf{body,..}=>pending.extend(body),
                 StmtKind::If{then_body,else_body,..}=>{pending.extend(then_body);pending.extend(else_body);}
                 StmtKind::Loop{body,update,..}=>{pending.extend(body);pending.extend(update);}
@@ -381,11 +445,14 @@ impl Analyzer {
                 _=>{}
             }
         }
-        let mut destinations=stores.iter().filter_map(|(binding,path,_,span)|Some(((span.start,span.end),self.nullable_slot_type(*plans.get(binding)?,path)?))).collect::<HashMap<_,_>>();
+        let mut destinations=stores.iter().filter(|(_,path,_,_)|!path.is_empty()).filter_map(|(binding,path,_,span)|Some(((span.start,span.end),self.nullable_slot_type(*plans.get(binding)?,path)?))).collect::<HashMap<_,_>>();
+        for (binding,span) in declarations {
+            if let Some(&plan)=plans.get(&binding) {destinations.entry((span.start,span.end)).or_insert(plan);}
+        }
         // Whole values stored into a planned root take the carrier type in place.
         for write in record_storage_writes::collect(body) {
             let Some(&plan)=plans.get(&write.binding) else{continue;};
-            if !write.path.is_empty(){continue;}
+            if !write.path.is_empty() || !roots.contains(&write.binding){continue;}
             let destination=if write.array_element {match plan {Type::Array(element)=>element.ty(),other=>other}} else {plan};
             destinations.entry((write.span.start,write.span.end)).or_insert(destination);
         }

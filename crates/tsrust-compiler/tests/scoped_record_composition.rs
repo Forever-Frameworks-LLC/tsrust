@@ -3165,3 +3165,22 @@ fn nullable_callback_record_unions_share_one_enum_with_text_support() {
     let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const left:Holder[]=[{run:():int=>first[0]}];const right:Holder[]=[{run:():int=>second[0]}];const a=left.pop();const b=right.pop();if(a!==undefined&&b!==undefined)console.log(a.run(),b.run());const labels:(string|undefined)[]=[\"x\",undefined];console.log(labels.join(\"-\"),[1,2].join());}");
     support::execute(&source,"3 5\nx- 1,2\n",None);
 }
+
+#[test]
+fn arrays_of_nullable_callback_records_share_one_element_environment() {
+    let holder="type Holder={run:ReadOnly<Function<int>>;};";
+    let run=|body:&str,expected:&str|{support::execute(&support::format_round_trip(&format!("{holder}{body}")),expected,None);};
+    run("function main():void{const a=[3];const hs:(Holder|undefined)[]=[undefined,{run:():int=>a[0]}];for(const h of hs){console.log(h?.run()??-1);}}","-1\n3\n");
+    run("function main():void{const a=[3];const hs:(Holder|undefined)[]=[undefined];hs[0]={run:():int=>a[0]};const h=hs[0];if(h!==undefined)console.log(h.run());}","3\n");
+    run("function main():void{const a=[3];const b=[4];const hs:(Holder|undefined)[]=[undefined,undefined,undefined];let i=0;while(i<2){if(i===0)hs[i]={run:():int=>a[0]};else hs[i]={run:():int=>b[0]};i+=1;}for(const h of hs){console.log(h?.run()??-1);}hs[0]=undefined;console.log(hs[0]===undefined);}","3\n4\n-1\ntrue\n");
+    run("function main():void{const a=[3];const hs:(Holder|undefined)[]=[];hs.push(undefined);hs.push({run:():int=>a[0]});let i=0;while(i<hs.length){const h=hs[i];if(h!==undefined)console.log(h.run());i+=1;}}","3\n");
+    run("function main():void{const n=4;const hs:(Holder|null)[]=[null,{run:():int=>n},{run:():int=>n*2}];for(const h of hs){console.log(h?.run()??-1);}}","-1\n4\n8\n");
+    let rejected=|body:&str,code:&str|{
+        let source=support::format_round_trip(&format!("{holder}{body}"));
+        assert_eq!(tsrust_compiler::check(&source).err().unwrap_or_else(||panic!("must be rejected: {body}")).code,code,"{body}");
+    };
+    rejected("function main():void{const a=[3];const hs:(Holder|undefined)[]=[undefined];hs[0]={run:():int=>a[0]};hs[0]=undefined;a[0]=9;console.log(a[0],hs.length);}","capture-conflict");
+    // Removal results and such arrays inside a record field are still pending.
+    rejected("function main():void{const a=[3];const hs:(Holder|undefined)[]=[undefined,{run:():int=>a[0]}];const last=hs.pop();if(last!==undefined)console.log(last.run());}","unsupported");
+    rejected("type Shelf={slots:(Holder|undefined)[];n:int;};function main():void{const a=[3];const shelf:Shelf={slots:[undefined],n:1};shelf.slots[0]={run:():int=>a[0]};}","unsupported");
+}

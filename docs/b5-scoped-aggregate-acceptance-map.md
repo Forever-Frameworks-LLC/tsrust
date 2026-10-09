@@ -41,6 +41,7 @@ unless another file is named.
 | Nullable field of an array element: indexed store, loop, nested array field, literal with mixed elements, push, element replacement, pop | `nullable_callback_record_fields_of_array_elements_share_the_array_carrier` |
 | `ReadOnly<Record>` and `Mutable<Record>` parameters reading a nullable field, nested records, joined environments | `record_parameters_read_nullable_callback_fields` |
 | Different callbacks that own every capture joined in one local, field, array element, conditional value or function result; owned and borrowing callbacks mixed | `control_flow_stores_keep_nullable_record_captures_until_scope_end`, `nullable_callback_record_results_keep_one_owned_environment` |
+| Local array of nullable callback records `(Record \| undefined)[]`: literal, indexed store, loop, push, iteration, element view | `arrays_of_nullable_callback_records_share_one_element_environment` |
 | `Set<Record>` for a capturing record | rejected by owner decision (`set-key`) |
 
 ## Diagnosed, not supported
@@ -51,7 +52,7 @@ unless another file is named.
 | Two parameters that both carry a nullable callback record of one type | `unsupported` | A generic parameter per parameter leaf instead of one per callback contract |
 | Parameter typed `ReadOnly<Record> \| undefined` | `unsupported` | Borrowed view of the caller's concrete union |
 | `ReadOnly<Record[]>` parameter where the record has a nullable callback field | `unsupported` | Array element views over the carrier element type |
-| Array element type `(Record \| undefined)[]` | `unsupported` | Nullable slot storage |
+| `pop` or `shift` on an array of nullable callback records; such an array as a record field | `unsupported` | Removal result typing and field paths for nullable element arrays |
 | Union of two record types where one is a capturing record | `type` error | Tagged storage for a capturing member |
 | Moving a nullable callback record out of an array element | `unsupported` | Take-and-replace storage for element fields |
 

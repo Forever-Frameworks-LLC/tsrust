@@ -288,5 +288,17 @@ console.log(boxes[0].saved?.run() ?? -1); // 3
 Every environment stored through an element stays borrowed until the array's scope
 ends; clearing one element field does not release it. Read such a field in place, with
 a guard or an optional call. Moving it out of the element, as in
-`const saved = boxes[0].saved`, reports `unsupported`. An array whose element type is
-itself nullable, such as `(Holder | undefined)[]`, is not supported yet.
+`const saved = boxes[0].saved`, reports `unsupported`.
+
+An array whose element type is itself nullable holds callback records and absence
+side by side:
+
+```tsrust
+const slots: (Holder | undefined)[] = [undefined, { run: (): int => first[0] }];
+slots[0] = { run: (): int => first[0] + 1 };
+for (const slot of slots) console.log(slot?.run() ?? -1); // 4, then 3
+```
+
+A local such array supports literals, indexed stores, `push`, iteration and element
+views such as `const slot = slots[0]`. Removal with `pop` or `shift`, and such an
+array as a field of a record, report `unsupported`.

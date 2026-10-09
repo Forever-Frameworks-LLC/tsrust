@@ -335,6 +335,14 @@ impl Emitter<'_> {
                 return if matches!(value, Type::BorrowedUnion(_)) { format!("ViewUnion{}<'_, {payload}>", id.index()) } else { format!("Union{}<{payload}>", id.index()) };
             }
         }
+        // Elements that are nullable callback records name their environment.
+        if let Type::Array(ArrayElement::Union(id, depth)) = value
+            && self.program.unions[id.index()].members.iter().any(|&member| matches!(member, Type::Record(_)) && self.scoped_record_native_parameter(member))
+        {
+            let mut native = self.native_type(Type::Union(id));
+            for _ in 0..=depth { native = format!("Vec<{native}>"); }
+            return native;
+        }
         if let Type::Record(id) = value {
             // The declaration decides which fields are generic. An instance
             // whose nullable field owns all captures still fills that position.

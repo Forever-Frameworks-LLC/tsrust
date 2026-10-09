@@ -227,7 +227,11 @@ impl Analyzer {
             ExprKind::Call(callee, _) if matches!(value.target, Some(CallTarget::ArrayPop | CallTarget::ArrayShift)) => {
                 let ExprKind::Field(base, _) = &callee.kind else { return None; };
                 let Type::Array(element) = self.planned_record_array_type(base, plans)? else { return None; };
-                self.unions.intern([element.ty(), Type::Undefined], value.span).ok()
+                // A nullable element already carries its absent alternatives.
+                match element.ty() {
+                    Type::Union(id) => self.unions.intern(self.unions.members(id).into_iter().chain([Type::Undefined]), value.span).ok(),
+                    other => self.unions.intern([other, Type::Undefined], value.span).ok(),
+                }
             }
             ExprKind::Project { value, narrowed, .. } if matches!(narrowed, Type::Record(_)) => self.unions.payload(self.planned_record_array_type(value, plans)?),
             _ => None,
