@@ -118,3 +118,28 @@ fn direct_record_replacement_releases_the_overwritten_owner() {
     "#,
     );
 }
+
+#[test]
+fn effectful_installer_releases_an_independent_same_origin_factory() {
+    execute(
+        r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: Mutable<Function<int>> | undefined; };
+        function counter(start: int): () => int {
+            let value = start;
+            return (): int => { value += 1; return value; };
+        }
+        function install(holder: Mutable<Holder>, action: Mutable<Function<int>>, calls: Mutable<int[]>): void {
+            calls[0] += 1;
+            holder.run = action;
+        }
+        function main() {
+            const first = counter(3); const second = counter(10); const calls = [0];
+            const holder: Holder = { run: undefined };
+            install(holder, first, calls); strictEqual(holder.run!(), 4);
+            install(holder, second, calls);
+            strictEqual(calls[0], 2); strictEqual(first(), 5); strictEqual(holder.run!(), 11);
+        }
+    "#,
+    );
+}
