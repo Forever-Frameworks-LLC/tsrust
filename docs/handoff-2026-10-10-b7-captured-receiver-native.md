@@ -102,4 +102,7 @@ All of these existed at `4c120ea5`. Earlier checkpoints ran subsets and missed t
 - No timing. The workload keeps `measured: false`.
 - B7 rows listed in the plan: recursive relay summaries, branch and loop stores, early
   exits, failure paths beyond the covered ones.
-- The five installed consumers are refreshed at this checkpoint; see the commit.
+- The five installed consumers stay at the accepted B5 build (`00214a11`), as the
+  previous handoff requires. They were refreshed from this unaccepted checkpoint by
+  mistake and then rebuilt from `00214a11` and restored. Refresh them only at B7
+  family acceptance.
