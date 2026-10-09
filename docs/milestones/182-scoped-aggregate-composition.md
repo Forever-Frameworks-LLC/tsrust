@@ -1,6 +1,6 @@
 # Gate 182: scoped aggregate composition family
 
-Status: family verification in progress. B5 in the compiler completion ledger.
+Status: accepted. B5 in the compiler completion ledger.
 
 ## Agreed scope
 
@@ -51,3 +51,38 @@ run evidence, compiler correctness is 2,586 passes with three intentional ignore
 editor correctness is 429 passes with no ignores. These counts retain successful
 groups and substitute the repaired affected suites, rather than claiming another
 complete rerun. Timing and final family publication remain pending.
+
+## Final measurement and review
+
+Both workloads pass five correctness cases per engine and retain the original
+three-process, eight-warmup, 31-sample execution-only protocol. SQLite stores
+`runtime/results/2026-10-09T16-27-56-788Z.json` and exact proof
+`tsrust-b5-family-acceptance.json`; 372 normalized execution samples are verified.
+Startup, compilation and allocation profiles were not measured.
+
+| Complete workload batch | Native median (ms) | Node-after-tsc median (ms) | Node/native |
+| --- | ---: | ---: | ---: |
+| Scoped record composition | 153.913583 | 155.239750 | 1.009 |
+| Fallible record callbacks | 0.072625 | 2.184375 | 30.08 |
+
+Composition is effectively tied in this run. Native process medians are stable
+(153.886 to 154.056 ms); Node process medians range from 152.480 to 158.061 ms.
+The near-unity ratio provides no material win or regression signal. Fallible
+callbacks have a substantial native advantage for this exact pipeline. Neither
+workload has an earlier comparable timing baseline. No optimization is justified
+by a demonstrated regression. Existing scoped-callable measurements remain intact.
+
+B5 is accepted for its agreed scope. B7 caller-borrowing parameter stores remain
+separate and incomplete. Discriminated unions remain a dedicated D2 feature.
+
+SQLite also retains min/mean/max throughput, in complete scenarios per second:
+
+| Workload / engine | Minimum | Mean | Maximum |
+| --- | ---: | ---: | ---: |
+| Composition / native | 12,726.74 | 13,316.14 | 13,798.61 |
+| Composition / Node | 5,680.40 | 13,048.30 | 13,504.50 |
+| Fallible / native | 25,666,733.51 | 28,071,981.58 | 28,777,787.15 |
+| Fallible / Node | 784,011.07 | 936,474.44 | 985,069.08 |
+
+The Node composition minimum reflects a slower sample; the median comparison above
+remains the useful central signal. All samples remain preserved rather than filtered.

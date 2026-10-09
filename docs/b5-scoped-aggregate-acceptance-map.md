@@ -124,3 +124,26 @@ SQLite key: `runtime/results/2026-10-09T15-54-48-826Z-verify.json`. Timing array
 empty. Only mixed-record union scope remains undecided. Full family regressions
 and timing remain pending. See
 `docs/handoff-2026-10-09-b5-independent-parameters.md`.
+
+## Family acceptance: gate 182 (2026-10-09)
+
+The agreed B5 scope is accepted. Mixed-record unions remain required in D2 by the
+owner's dedicated-feature decision; see docs/discriminated-unions-plan.md.
+The whole compiler run plus repaired affected suites proves 2,586 passes and three
+intentional ignores. The whole editor run plus repaired intelligence suite proves
+429 passes. All eight depth canaries pass. Defaulted readonly nullable record
+parameters also accept omitted, absent and present values without moving fields.
+
+Both scoped composition and fallible record callbacks pass all five native and
+Node-after-tsc correctness cases and the original execution-only timing protocol:
+three processes, eight warmups and 31 samples per engine per process. All 372
+samples are indexed in SQLite. Record key:
+`runtime/results/2026-10-09T16-27-56-788Z.json`. Exact acceptance proof:
+`tsrust-b5-family-acceptance.json`. No allocation profile was run or claimed.
+
+Composition batch medians are 153.913583 ms native and 155.239750 ms Node. This is
+near parity; the 1.009 ratio does not establish a material speed advantage. Fallible
+callback medians are 0.072625 ms native and 2.184375 ms Node (30.08 ratio). These
+are first measured baselines for the captured source pairs, not historical regression
+comparisons or universal runtime claims. No performance defect requires optimization
+on this evidence.

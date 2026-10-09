@@ -22416,9 +22416,11 @@
       "comparison": "compound",
       "evidence": [],
       "workloads": [
-        "record_mutation"
+        "record_mutation",
+        "scoped_record_composition",
+        "fallible_record_callbacks"
       ],
-      "note": "Normalized allocation probe also exists; heap metrics exclude stack/static storage.",
+      "note": "Normalized allocation probe also exists; heap metrics exclude stack/static storage. Gate 182 accepts scoped callback-record composition through arrays, Maps, nullable carriers and independent readonly/default parameter environments. Whole compiler/editor evidence and 372 matched execution samples are recorded; composition is near parity and fallible callbacks favor native in the captured workloads. Caller-borrowing parameter stores and mixed-record discriminated unions remain separate requirements.",
       "allocationProbes": [
         "record_value"
       ]

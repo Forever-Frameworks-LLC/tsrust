@@ -19,7 +19,7 @@ test('Scoped record composition retain sources, independent observations and exe
  const binding=assertABI(fallible,row,{source:read('./'+row.source)});
  assert.equal(binding.fallible,true);assert.equal(binding.functionName,'tsr_result_function0');
  assert.throws(()=>assertABI(fallible,{...row,family:'unregistered-fallible-family'}));
- assert.equal(row.measured,false);assert.equal(row.implementationAccepted,false);assert.equal(row.measurementStatus,'pending-scoped-aggregate-family');assert.equal(reportCategory(row.id),'callbacks');
+ assert.equal(row.measured,true);assert.equal(row.implementationAccepted,true);assert.equal(row.measurementStatus,'measured-scoped-aggregate-family');assert.equal(reportCategory(row.id),'callbacks');
  for(const [kind,path] of [['native',row.source],['typescript',row.counterpart]]){
   const source=read('./'+path);assertScopedRecordCompositionSource(source,row,kind);
   assert.throws(()=>assertScopedRecordCompositionSource(source+' ',row,kind));
