@@ -248,8 +248,14 @@ fn binding_summary(
             continue;
         }
         summaries.insert(id, direct(function, closures, storage, &view.inputs));
+        let mut local_closures = HashSet::new();
         let mut edges = Vec::new();
         crate::fixed_storage::visit_function_expressions(function, &mut |expr| {
+            if matches!(expr.kind, ExprKind::Closure { .. })
+                && let Some(Type::Closure(origin)) = expr.ty
+            {
+                local_closures.insert(origin);
+            }
             if let (Some(callee), ExprKind::Call(_, arguments)) = (Callable::call(expr), &expr.kind)
             {
                 edges.push((
@@ -259,6 +265,14 @@ fn binding_summary(
                 pending.push(callee);
             }
         });
+        let edges = edges
+            .into_iter()
+            .map(|(callee, arguments)| {
+                let local_captures =
+                    matches!(callee, Callable::Closure(origin) if local_closures.contains(&origin));
+                (callee, arguments, local_captures)
+            })
+            .collect::<Vec<_>>();
         calls.insert(id, edges);
     }
     loop {
@@ -266,7 +280,7 @@ fn binding_summary(
         for (&id, edges) in &calls {
             let view = id.view(functions, closures).unwrap();
             let function = view.function;
-            for (callee, arguments) in edges {
+            for (callee, arguments, local_capture_layout) in edges {
                 let Some(callee_view) = callee.view(functions, closures) else {
                     continue;
                 };
@@ -278,19 +292,33 @@ fn binding_summary(
                     else {
                         continue;
                     };
-                    let Some(source_slot) = callee_view
+                    let Some(Some(target)) = arguments.get(target_slot) else {
+                        continue;
+                    };
+                    let source = if let Some(source_slot) = callee_view
                         .parameters
                         .iter()
                         .position(|id| *id == borrow.source)
-                    else {
+                    {
+                        arguments
+                            .get(source_slot)
+                            .and_then(Option::as_ref)
+                            .map(|place| place.binding)
+                    } else if *local_capture_layout && let Callable::Closure(origin) = callee {
+                        // Capture outer IDs belong to the construction context.
+                        // Use them only when this caller constructs the callee.
+                        closures[*origin]
+                            .captures
+                            .iter()
+                            .find(|capture| capture.inner == borrow.source)
+                            .map(|capture| capture.outer)
+                    } else {
+                        None
+                    };
+                    let Some(source) = source else {
                         continue;
                     };
-                    let (Some(Some(target)), Some(Some(source))) =
-                        (arguments.get(target_slot), arguments.get(source_slot))
-                    else {
-                        continue;
-                    };
-                    let source_binding = borrowed_owner(&function.bindings, source.binding);
+                    let source_binding = borrowed_owner(&function.bindings, source);
                     if !view.inputs.contains(&target.binding)
                         || !view.inputs.contains(&source_binding)
                     {

@@ -945,3 +945,80 @@ fn borrowed_callback_cannot_retain_callee_owned_parameter() {
     let error = tsrust_compiler::check(&source).err().expect("A borrowed callback cannot outlive its callee-owned input");
     assert_eq!(error.code, "callback-escape", "{error:?}");
 }
+
+#[test]
+fn nested_installer_call_retains_hidden_source_in_analysis() {
+    let source = support::format_round_trip(r#"
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>): void { holder.run = (): int => source[0]; }
+        function main() {
+            const source = [3]; const holder: Holder = { run: undefined };
+            {
+                const outer = (target: Mutable<Holder>): void => {
+                    const inner = (destination: Mutable<Holder>): void => { install(destination, source); };
+                    inner(target);
+                };
+                outer(holder);
+            }
+            source[0] += 1; console.log(holder.run!());
+        }
+    "#);
+    let error = tsrust_compiler::check(&source).err().expect("Nested installer call must retain its hidden input");
+    assert_eq!(error.code, "capture-conflict", "{error:?}");
+}
+
+#[test]
+fn nested_installer_calls_preserve_native_hidden_sources() {
+    let source = r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>, calls: Mutable<int[]>): void { calls[0] += 1; holder.run = (): int => source[0]; }
+        function main() {
+            const first = [3]; const second = [10]; const calls = [0]; const holder: Holder = { run: undefined };
+            {
+                const outer = (target: Mutable<Holder>): void => {
+                    const inner = (destination: Mutable<Holder>): void => { install(destination, first, calls); };
+                    inner(target);
+                };
+                outer(holder);
+            }
+            strictEqual(holder.run!(), 3);
+            {
+                const outer = (target: Mutable<Holder>): void => {
+                    const inner = (destination: Mutable<Holder>): void => { install(destination, second, calls); };
+                    inner(target);
+                };
+                outer(holder);
+            }
+            first[0] += 1; strictEqual(first[0], 4); strictEqual(holder.run!(), 10); strictEqual(calls[0], 2);
+        }
+    "#;
+    execute(source);
+    let plain = source.replace(" | undefined", "").replace("run: undefined", "run: (): int => 0").replace("run!()", "run()");
+    execute(&plain);
+    let deeper = source.replace("const inner =", "const middle = (next: Mutable<Holder>): void => { const inner =")
+        .replace("inner(target);", "inner(next); }; middle(target);");
+    execute(&deeper);
+}
+
+#[test]
+fn conditional_nested_install_keeps_the_previous_hidden_owner() {
+    let source = support::format_round_trip(r#"
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>): void { holder.run = (): int => source[0]; }
+        function main() {
+            const first = [3]; const second = [10]; const holder: Holder = { run: undefined };
+            install(holder, first);
+            {
+                const outer = (target: Mutable<Holder>, replace: boolean): void => {
+                    const inner = (destination: Mutable<Holder>): void => { install(destination, second); };
+                    if (replace) { inner(target); }
+                };
+                outer(holder, false);
+            }
+            first[0] += 1; console.log(holder.run!());
+        }
+    "#);
+    let error = tsrust_compiler::check(&source).err().expect("Conditional nested replacement must retain its previous owner");
+    assert_eq!(error.code, "capture-conflict", "{error:?}");
+}

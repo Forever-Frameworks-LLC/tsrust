@@ -114,7 +114,7 @@ impl Replay<'_> {
                     !record_parameter_borrows::eligible_parameters(
                         function,
                         closure,
-                        &view.parameters,
+                        &view.inputs,
                     ) && closure.captures.iter().any(|capture| {
                         capture.storage != Mode::Consume
                             && function

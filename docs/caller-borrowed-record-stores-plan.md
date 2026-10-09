@@ -5,6 +5,13 @@ Read the completion ledger and B5 acceptance handoff before implementation.
 
 ## Current implementation progress
 
+The latest focused checkpoint adds transitive hidden-source borrowing through locally
+constructed installer closures, including three-layer calls and conditional old-owner
+retention. Reusable mutable captures and explicit owning Once/Owned transfer are also
+verified. Foreign captured callees, abstract environment transport and the remaining
+control-flow/recursive interfaces are still open. Five installed consumers remain B5.
+The sections below preserve earlier checkpoint boundaries and evidence.
+
 Direct readonly and mutable array inputs, stable readonly view aliases, nested
 record destinations and multiple input captures have native witnesses. Named relays
 preserve provenance through reordered parameters and alias chains. Repeated stores
@@ -19,7 +26,7 @@ Source controls cover live-holder mutation and transfer, independent mutable cal
 invocation, callee-local escape and shorter-lived input storage. Editor diagnostics,
 hover and parameter help have focused witnesses.
 
-The matched caller_borrowed_record_stores workload retains eighteen observations per
+The matched caller_borrowed_record_stores workload now retains 68 observations per
 iteration, with an independent arithmetic oracle, source contracts, ABI support,
 runner/profile/report hooks and registration controls. Verification is untimed.
 This remains progress within B7, not family acceptance or timing evidence.
@@ -307,3 +314,13 @@ The ownership-taking witness uses an owning `Function<int>` field and `Owned<int
 The matched workload adds six observations: two scoped callback results, released source state, exact installer effects and two owned callback results. Each row now contains 64 values. Family acceptance and timing remain pending.
 
 Focused acceptance for this checkpoint totals 107 affected integration tests, eight owner-provenance units, 27 capture-loan units, one editor witness and eight depth canaries. Five matched native and Node-after-tsc cases pass untimed. The final registration control requires both scoped installer calls and rejects changes to every new observation. Whole-project formatting changes one workload and its fingerprint, then zero files. SQLite preserves both correctness records (`2026-10-09T22-33-57-820Z` and `2026-10-09T22-34-26-050Z`), exact compiler/harness inputs, generated text and failed-attempt logs. Source hashes, trimmed emission and instrumented prefix are verified. Five disposable outputs totaling 1,092,118 bytes are removed. No full regression, timing or consumer refresh is claimed.
+
+### Transitive locally constructed hidden sources
+
+Retained-borrow summaries now propagate a callee's captured source through a direct call when the caller constructs that callee. The collector records local closure origins during its existing expression walk. Written arguments map through parameter slots; hidden sources map from the callee's inner capture binding to its outer construction binding. The mapping is rejected for foreign construction contexts rather than interpreting an unrelated binding table. No second expression walk is required.
+
+The source red witness exposed a missing retained borrow. Restoring it exposed a separate old-owner release failure: release replay classified captures from the enclosing closure's explicit inputs as untransported because it inspected only written parameters. Eligibility now includes the callable's checked captures as well as parameters. Native signatures and concrete owner transport then work through the existing retained summary interface. No emitter change, lifetime cast or clone is needed.
+
+Native assertions cover nullable and plain fields and three nested installer layers with exact effects. Source and editor controls retain the new input and preserve the previous input across conditional replacement. The matched workload adds four nested observations, bringing each row to 68 values. Captured callee receivers, abstract calls and the broader hidden environment interfaces remain pending; this checkpoint establishes locally constructed callees only.
+
+Focused verification totals 110 affected integration tests, eight owner-provenance units, 27 capture-loan units, one editor witness and eight depth canaries. Registration controls and all five native/Node-after-tsc cases pass on the formatted 68-observation workload. SQLite record `runtime/results/2026-10-09T22-44-14-386Z-verify.json` and 652 exact source/text/log entries under `runtime/source-evidence/nested-hidden-installers/` preserve the source red, native red, release failure, repairs and final checks. All input hashes, trimmed emission and generated prefix match. Five disposable outputs totaling 1,126,667 bytes are removed. The shared Cargo target is 2.2 GiB with no incremental entries. No complete regression, timing or consumer refresh is claimed.

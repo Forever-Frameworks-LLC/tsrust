@@ -571,3 +571,9 @@ A reusable installer that captures a mutable array lends that capture through th
 To transfer the array instead, use an owning callback field such as `Function<int> | undefined`, an installer input `Owned<int[]>`, and an installer value `Once<Function<void, [target: Mutable<Holder>]>>`. The once installer moves its array into the stored callback. That callback can mutate its own array repeatedly after the installer is consumed. The original array binding remains transferred; clearing the callback does not restore that binding. A borrowed callback field such as `Mutable<Function<int>>` cannot retain a callee-owned array past the call and receives a source escape diagnostic.
 
 Readonly captured inputs retain their existing behavior: a stored readonly borrow can remain after the installer leaves scope because it refers directly to the caller-owned input. No invocation contract is silently changed and no capture is cloned.
+
+### Nested local installers
+
+A locally constructed installer can call another locally constructed installer whose stored callback borrows a captured input. The hidden source remains attached to the destination record through each call. Two and three nested installer layers preserve readonly capture lifetimes, plain and nullable fields, exact effects and replacement of independent owners. After complete replacement, the old input becomes available while the replacement input remains borrowed. Conditional replacement retains the previous input conservatively.
+
+The compiler maps capture bindings only in the context that constructs the called closure. Calling an already captured or abstract installer needs a separate environment interface; its capture IDs cannot be interpreted as bindings in an arbitrary caller. Mutable captured data still follows receiver lifetime rules: an inner reusable installer cannot lend its mutable capture beyond its own scope merely because an outer installer called it.

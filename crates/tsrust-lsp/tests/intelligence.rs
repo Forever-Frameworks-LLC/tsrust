@@ -9618,3 +9618,30 @@ fn mutable_installer_capture_lifetime_matches_editor_diagnostics() {
     let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&borrowed, uri).unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "callback-escape"), "{diagnostics}");
 }
+
+#[test]
+fn nested_installer_hidden_sources_keep_editor_owner_conflicts() {
+    let source = tsrust_compiler::format(r#"
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>): void { holder.run = (): int => source[0]; }
+        function main() {
+            const first = [3]; const second = [10]; const holder: Holder = { run: undefined };
+            install(holder, first);
+            {
+                const outer = (target: Mutable<Holder>, replace: boolean): void => {
+                    const inner = (destination: Mutable<Holder>): void => { install(destination, second); };
+                    inner(target);
+                };
+                outer(holder, true);
+            }
+            first[0] += 1; console.log(holder.run!());
+        }
+    "#).unwrap();
+    let uri = "file:///nested-installer-hidden-sources.tsr";
+    assert!(tsrust_lsp::diagnostics(&source, uri).unwrap().is_empty());
+    for conflict in [source.replace("first[0] += 1;", "second[0] += 1;"), source.replace("inner(target);", "if (replace) { inner(target); }")] {
+        assert_ne!(conflict, source);
+        let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&conflict, uri).unwrap()).unwrap();
+        assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "capture-conflict"), "{diagnostics}");
+    }
+}
