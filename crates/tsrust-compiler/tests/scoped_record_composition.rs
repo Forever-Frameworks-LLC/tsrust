@@ -1,6 +1,41 @@
 mod support;
 
 #[test]
+fn nested_map_cleanup_loops_run_inner_finally_before_outer_control() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(stop:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});let turn=0;outer:while(turn<3){try{inner:while(true){try{handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;turn++;if(stop)break outer;if(turn<3)continue outer;break inner;}finally{console.log('inner',turn);}}console.log('tail',turn);}finally{console.log('cleanup',turn,handlers.size);for(const [key,entry] of handlers){console.log('kept',key,entry.run());}}}handlers.clear();console.log('done',first[0]);}function main():void{scenario(false);scenario(true);}");
+    support::execute(&source,"inner 1\ncleanup 1 1\nkept second 5\ninner 2\ncleanup 2 1\nkept second 5\ninner 3\ntail 3\ncleanup 3 1\nkept second 5\ndone 6\ninner 1\ncleanup 1 1\nkept second 5\ndone 4\n",None);
+    verify_disposal(&source,2,"drop 1\ninner 1\ncleanup 1 1\nkept second 5\ndrop 1\ninner 2\ncleanup 2 1\nkept second 5\ndrop 1\ninner 3\ntail 3\ncleanup 3 1\nkept second 5\ndrop 0\ndone 6\ndrop 1\ninner 1\ncleanup 1 1\nkept second 5\ndrop 0\ndone 4\n");
+    for replacement in ["inner:for(let step=0;step<1;step+=1){","inner:do{","inner:for(const step of [0]){"] {
+        let mut variant=source.replace("inner: while (true) {",replacement);
+        assert_ne!(variant,source);
+        if replacement=="inner:do{" {variant=variant.replace("console.log('tail', turn);","while(false);console.log('tail',turn);");}
+        support::execute(&support::format_round_trip(&variant),"inner 1\ncleanup 1 1\nkept second 5\ninner 2\ncleanup 2 1\nkept second 5\ninner 3\ntail 3\ncleanup 3 1\nkept second 5\ndone 6\ninner 1\ncleanup 1 1\nkept second 5\ndone 4\n",None);
+    }
+    let overridden=source.replace("console.log('inner', turn);","console.log('inner',turn);if(turn===1)continue inner;");
+    assert_ne!(overridden,source);
+    support::execute(&support::format_round_trip(&overridden),"inner 1\ninner 2\ncleanup 2 1\nkept second 5\ninner 3\ntail 3\ncleanup 3 1\nkept second 5\ndone 6\ninner 1\ninner 2\ncleanup 2 1\nkept second 5\ndone 5\n",None);
+    let mut caught=source.replace("if (stop) break outer;","if(stop)throw 7;");
+    let boundary=caught.rfind("} finally {").expect("outer cleanup");
+    caught.insert_str(boundary+1,"catch(error){console.log('caught',error);if(stop)break outer;}");
+    support::execute(&support::format_round_trip(&caught),"inner 1\ncleanup 1 1\nkept second 5\ninner 2\ncleanup 2 1\nkept second 5\ninner 3\ntail 3\ncleanup 3 1\nkept second 5\ndone 6\ninner 1\ncaught 7\ncleanup 1 1\nkept second 5\ndone 4\n",None);
+    let conflict=source.replace("first[0] += 1;","second[0]+=1;");
+    assert_eq!(tsrust_compiler::check(&conflict).err().expect("nested survivor capture remains borrowed").code,"capture-conflict");
+}
+
+#[test]
+fn labelled_map_cleanup_loop_preserves_survivors_and_control() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(stop:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});let turn=0;outer:while(turn<3){try{handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;turn++;if(stop)break outer;if(turn<3)continue outer;console.log('tail',turn);}finally{console.log('cleanup',turn,handlers.size);for(const [key,entry] of handlers){console.log('kept',key,entry.run());}}}handlers.clear();console.log('done',first[0]);}function main():void{scenario(false);scenario(true);}");
+    support::execute(&source,"cleanup 1 1\nkept second 5\ncleanup 2 1\nkept second 5\ntail 3\ncleanup 3 1\nkept second 5\ndone 6\ncleanup 1 1\nkept second 5\ndone 4\n",None);
+    verify_disposal(&source,2,"drop 1\ncleanup 1 1\nkept second 5\ndrop 1\ncleanup 2 1\nkept second 5\ndrop 1\ntail 3\ncleanup 3 1\nkept second 5\ndrop 0\ndone 6\ndrop 1\ncleanup 1 1\nkept second 5\ndrop 0\ndone 4\n");
+    for replacement in ["outer:for(let step=0;step<3;step+=1){","outer:do{","outer:for(const step of [0,1,2]){"] {
+        let mut variant=source.replace("outer: while (turn < 3) {",replacement);
+        assert_ne!(variant,source);
+        if replacement=="outer:do{" {variant=variant.replace("handlers.clear();","while(turn<3);handlers.clear();");}
+        support::execute(&support::format_round_trip(&variant),"cleanup 1 1\nkept second 5\ncleanup 2 1\nkept second 5\ntail 3\ncleanup 3 1\nkept second 5\ndone 6\ncleanup 1 1\nkept second 5\ndone 4\n",None);
+    }
+}
+
+#[test]
 fn map_cleanup_loop_without_backedge_releases_deleted_capture() {
     let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario():int{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});while(true){try{handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;return first[0];}finally{console.log('cleanup',handlers.size);for(const [key,entry] of handlers){console.log('kept',key,entry.run());}}}return 0;}function main():void{console.log('result',scenario());}");
     support::execute(&source,"cleanup 1\nkept second 5\nresult 4\n",None);

@@ -1745,3 +1745,62 @@ open: labelled/nested-loop compositions, ordinary differing loop edge families,
 phase-specialized native storage, broader aggregate/within-expression precision
 and structural owned record Set/Map keys remain pending. This checkpoint does
 not claim those features or feature-family acceptance.
+
+
+### Labelled and nested Map cleanup loops
+
+The labelled-loop red checked successfully but failed native capture mutation.
+Eligibility and exception storage discovery had both excluded labelled controls,
+even though their checked destinations are the same loop targets used by
+unlabelled controls. The new map_iteration_shape module inspects resolved targets
+and completion boundaries with an iterative walk. The shared
+map_exception_storage_plan module discovers conversions for body, handler and
+cleanup, including planned nested loops. It replaces duplicated discovery code.
+
+The nested witness exposed two further defects. Completion storage had no local
+control destinations, so an inner break incorrectly escaped its owning phase and
+ultimately reached the callable's impossible-control arm. Phase emission now
+records its local destinations. Once that path ran, an absent inner backedge was
+mistaken for an empty break: the survivor disappeared before outer cleanup.
+MapIterationEpoch now preserves break emptiness independently, and all loop
+forms select the appropriate back or stopped conversion after cleanup.
+
+Counted variants exposed physical exit and lexical scope mismatches. A checked
+exception transport returns the common native family, although its body may
+narrow storage before leaving. The isolated map_exception_storage_types module
+records that normal exit representation without cloning the source tree.
+Counted-loop initializer blocks now return storage converted by their labelled
+loop, rather than dropping the new owner in the block and using the moved outer
+owner afterwards. The original native failures and repaired checks are retained.
+
+Native witnesses pass labelled while, counted, post-test and for-of controls;
+nested versions of those loop forms; inner-finally before outer-finally order;
+catching an inner error; inner cleanup continue replacing a pending outer exit;
+and rejection of mutation of a surviving capture. The base labelled and nested
+witnesses verify exact callback disposal at both optimization levels. A raw
+storage proof distinguishes absent backedge, live break payload, common phase
+exit and the narrowed body representation.
+
+Final bounded checks pass: 78 affected map_ tests, nine phase/native-boundary
+proofs, eight normal-stack depth canaries and ten editor entry-release checks.
+Matched support adds nestedCleanupEntryMutation with and without inner cleanup
+override, bringing the family to 69 scalar observations per iteration. Independent
+arithmetic oracles, token guards and mutation rejection pass. Native and
+Node-after-tsc untimed verification passes all five retained correctness cases.
+Canonical record: runtime/results/2026-10-09T04-05-37-523Z-verify.json.
+
+Whole-project final formatting changes zero files and zero fingerprints. All
+23 closed logs and the matched record are imported into SQLite and read back
+byte for byte before loose removal. Installed consumers remain at gate 181;
+scratch compilers are current. No whole-family regression, timing or B5
+completion is claimed. Pending work includes arbitrary labelled blocks, direct
+nonlocal controls outside completion regions, ordinary differing loop edge
+families, independent native phase layouts, broader aggregate/within-expression
+precision and structural owned record Set/Map keys.
+
+Next continuation should add a focused direct nonlocal-control witness in nested
+loops before changing eligibility. Source control outside try must not skip a
+carried tuple reassignment. Labelled block exits need their own owner transport;
+do not treat a labelled block as an ordinary lexical block. Keep source ownership
+proofs authoritative, run the eight normal-stack canaries after analyzer changes,
+and preserve the 15 unrelated fixtures with explicit Git paths.

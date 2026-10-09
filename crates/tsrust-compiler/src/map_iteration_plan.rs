@@ -5,11 +5,12 @@ impl Analyzer {
     pub(super) fn plan_map_iteration_entry(&mut self,context:&mut Context,statement:&Stmt,results:&mut HashMap<usize,Type>,local:&std::collections::BTreeSet<crate::capture_loan_owners::Place>)->Result<(),Diagnostic> {
         let (body,post_test)=match &statement.kind {
             StmtKind::While{body,..}=>(body,false),
-            StmtKind::Loop{condition:Some(_),body,update,post_test,tail_reachable} if !tail_reachable || ordinary_body(update,statement.span.start)=>(body,*post_test),
+            StmtKind::Loop{condition:Some(_),body,update,post_test,tail_reachable} if !tail_reachable || map_iteration_shape::supports(update,statement.span.start)=>(body,*post_test),
             StmtKind::ForOf{body,..}=>(body,false),
             _=>return Ok(()),
         };
-        if !statement.labels.is_empty() || !ordinary_body(body,statement.span.start){return Ok(());}
+        // Labels resolve to the same checked loop target as unlabelled control.
+        if !map_iteration_shape::supports(body,statement.span.start){return Ok(());}
         let cleanup_body=body.iter().any(|statement|matches!(statement.kind,StmtKind::Try(_)));
         let mut epochs=Vec::new();
         for place in local {
@@ -21,6 +22,7 @@ impl Analyzer {
             if !context.storage_exits.has_map_loop_edge(statement.span,storage_exit_availability::MapLoopEdge::Back) && !cleanup_body {continue;}
             if !post_test && entry!=back && !cleanup_body {continue;}
             let broken=context.storage_exits.map_loop_edge(statement.span,storage_exit_availability::MapLoopEdge::Break,place);
+            let break_empty=broken.is_none_or(HashSet::is_empty);
             if context.storage_exits.has_map_loop_edge(statement.span,storage_exit_availability::MapLoopEdge::Break)
                 && broken!=back && !cleanup_body {continue;}
             let entry_empty=entry.is_none_or(HashSet::is_empty);
@@ -53,7 +55,7 @@ impl Analyzer {
             if !post_test && input!=output {context.storage_exits.record_map_entry_epoch(statement.span,entry.clone());}
             results.insert(place.binding,output);
             let back=storage_exit_availability::MapEntryEpoch{place:place.clone(),input:output,output,empty:back_empty,before:false};
-            epochs.push(storage_exit_availability::MapIterationEpoch{entry,body:back.clone(),back,carrier_empty:empty});
+            epochs.push(storage_exit_availability::MapIterationEpoch{entry,body:back.clone(),back,carrier_empty:empty,break_empty});
         }
         if !epochs.is_empty(){context.storage_exits.record_map_iteration_epochs(statement.span,epochs);}
         Ok(())
@@ -134,6 +136,8 @@ impl Analyzer {
                         StmtKind::Block(body)=>nested.extend(body),
                         StmtKind::If{then_body,else_body,..}=>{nested.extend(then_body);nested.extend(else_body);},
                         StmtKind::Try(region)=>{nested.extend(&region.body);if let Some(handler)=&region.catch{nested.extend(&handler.body);}nested.extend(region.finally.iter().flatten());},
+                        StmtKind::While{body,..}|StmtKind::ForOf{body,..}=>nested.extend(body),
+                        StmtKind::Loop{body,update,tail_reachable,..}=>{nested.extend(body);if *tail_reachable{nested.extend(update);}},
                         StmtKind::Break|StmtKind::Continue if matches!(item.control_target,Some(crate::syntax::ControlTarget::Loop(id)|crate::syntax::ControlTarget::Tail(id)) if id==statement.span.start)=>context.storage_exits.record_map_cleanup_loop(statement.span.start),
                         _=>{},
                     }}
@@ -149,28 +153,4 @@ impl Analyzer {
         Ok(())
     }
 
-}
-fn ordinary_body(body:&[Stmt],label:usize)->bool {
-    let mut pending=body.iter().collect::<Vec<_>>();
-    while let Some(statement)=pending.pop(){
-        if !statement.labels.is_empty(){return false;}
-        match &statement.kind {
-            StmtKind::Block(body)=>pending.extend(body),
-            StmtKind::Try(region)=>{
-                pending.extend(&region.body);
-                if let Some(handler)=&region.catch{pending.extend(&handler.body);}
-                for cleanup in region.finally.iter().flatten() {
-                    if let StmtKind::ForOf{body,..}=&cleanup.kind {pending.extend(body);}
-                    else {pending.push(cleanup);}
-                }
-            },
-            StmtKind::If{then_body,else_body,..}=>{pending.extend(then_body);pending.extend(else_body);},
-            // Callable exits are transported by the completion region. They
-            // cannot resume the loop before its owning cleanup has run.
-            StmtKind::Let{..}|StmtKind::Expr(_)|StmtKind::Assign{..}|StmtKind::Return(_)|StmtKind::Throw(_)=>{},
-            StmtKind::Break|StmtKind::Continue if matches!(statement.control_target,Some(crate::syntax::ControlTarget::Loop(id)|crate::syntax::ControlTarget::Tail(id)) if id==label)=>{},
-            _=>return false,
-        }
-    }
-    true
 }

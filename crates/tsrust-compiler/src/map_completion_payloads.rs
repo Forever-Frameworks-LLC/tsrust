@@ -56,6 +56,29 @@ impl Snapshots {
 mod tests {
     use super::*;
     #[test]
+    fn nested_loop_break_storage_is_not_an_empty_backedge() {
+        let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});let turn=0;outer:while(turn<3){try{inner:while(true){try{handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;turn++;if(turn<3)continue outer;break inner;}finally{console.log('inner',turn);}}}finally{for(const [key,entry] of handlers){console.log(entry.run());}}}handlers.clear();}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let checked=crate::check(&source).unwrap();
+        let function=checked.program.functions.iter().find(|function|function.name=="main").unwrap();
+        let outer=function.body.iter().find(|statement|matches!(statement.kind,crate::syntax::StmtKind::While{..})).unwrap();
+        let crate::syntax::StmtKind::While{body,..}=&outer.kind else{unreachable!()};
+        let crate::syntax::StmtKind::Try(region)=&body[0].kind else{unreachable!()};
+        let inner=&region.body[0];
+        let epochs=function.storage_exits.map_iteration_epochs(inner.span);
+        assert_eq!(epochs.len(),1);
+        assert!(epochs[0].back.empty,"inner callable controls leave no backedge");
+        assert!(!epochs[0].break_empty,"inner break keeps the survivor");
+        assert!(!epochs[0].carrier_empty);
+        assert!(function.storage_exits.has_map_iteration_controls(outer.span.start),"outer continue must resume through its carried tuple");
+        let crate::syntax::StmtKind::While{body,..}=&inner.kind else{unreachable!()};
+        let crate::syntax::StmtKind::Try(region)=&body[0].kind else{unreachable!()};
+        let binding=epochs[0].entry.place.binding;
+        assert_eq!(function.storage_exits.map_native_input(body[0].span.end,binding),Some(function.bindings[binding].ty),"phase exit returns the common physical storage family");
+        assert_ne!(function.storage_exits.map_native_exit(region.body[0].span.start,binding),Some(function.bindings[binding].ty),"body deletion remains narrow before transport");
+    }
+
+    #[test]
     fn returning_cleanup_loop_plans_storage_without_a_backedge() {
         let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function scenario():int{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});while(true){try{handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;return first[0];}finally{for(const [key,entry] of handlers){console.log(entry.run());}}}return 0;}function main():void{console.log(scenario());}").unwrap();
         assert_eq!(crate::format(&source).unwrap(),source);

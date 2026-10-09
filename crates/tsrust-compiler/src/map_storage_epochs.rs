@@ -96,7 +96,9 @@ impl Emitter<'_> {
         let mut places = Vec::new();
         let mut pending = inner.iter().collect::<Vec<_>>();
         while let Some(statement) = pending.pop() {
-            if !statement.labels.is_empty() { return Vec::new(); }
+            // A labelled loop keeps the same storage result as its unlabelled
+            // form. The surrounding lexical for initializer must return it.
+            if !statement.labels.is_empty() && !(matches!(statement.kind,StmtKind::While{..}|StmtKind::Loop{..}|StmtKind::ForOf{..}) && !fun.storage_exits.map_iteration_epochs(statement.span).is_empty()) { return Vec::new(); }
             for epoch in fun.storage_exits.map_entry_epochs(statement.span) {
                 if declaring_body.iter().any(|item|matches!(item.kind,StmtKind::Let{binding:Some(binding),..} if binding==epoch.place.binding)) {
                     let place=self.map_entry_epoch_place(fun,epoch);

@@ -6,6 +6,7 @@ pub(crate) struct Exits(HashMap<(usize, usize), Vec<Unavailable>>, HashMap<usize
 #[derive(Clone,Debug)]
 pub(crate) struct MapIterationEpoch {
     pub carrier_empty: bool,
+    pub(crate) break_empty: bool,
     pub(crate) entry:MapEntryEpoch,
     pub(crate) back:MapEntryEpoch,
     pub(crate) body:MapEntryEpoch,

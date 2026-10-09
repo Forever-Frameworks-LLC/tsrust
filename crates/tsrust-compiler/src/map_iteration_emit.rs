@@ -68,23 +68,21 @@ impl Emitter<'_> {
             }
             return;
         }
+        // A break can retain storage even when no backedge exists. Select the
+        // reaching edge proof before converting its actual working owner.
+        let _=writeln!(output,"{indent}let ({pattern},) = if !map_stop_{label} {{");
         if let StmtKind::Loop{update,tail_reachable:true,..}=&statement.kind {
-            let _=writeln!(output,"{indent}let ({pattern},) = if !map_stop_{label} {{");
             self.control_block_epochs(output,fun,update,depth+1,Some(statement.span.start),Some(declarations));
-            for epoch in epochs {
-                if epoch.back.input!=epoch.back.output{let _=writeln!(output,"{indent}    {}",self.map_entry_epoch_code(fun,&epoch.back));}
-            }
-            let _=writeln!(output,"{indent}    ({names},)\n{indent}}} else {{");
-            for epoch in epochs {
-                let stopped=crate::analysis::MapEntryEpoch{place:epoch.entry.place.clone(),input:epoch.body.output,output:epoch.back.output,empty:epoch.back.empty,before:false};
-                if stopped.input!=stopped.output{let _=writeln!(output,"{indent}    {}",self.map_entry_epoch_code(fun,&stopped));}
-            }
-            let _=writeln!(output,"{indent}    ({names},)\n{indent}}};");
-        } else {
-            for epoch in epochs {
-                if epoch.back.input!=epoch.back.output{let _=writeln!(output,"{indent}{}",self.map_entry_epoch_code(fun,&epoch.back));}
-            }
         }
+        for epoch in epochs {
+            if epoch.back.input!=epoch.back.output{let _=writeln!(output,"{indent}    {}",self.map_entry_epoch_code(fun,&epoch.back));}
+        }
+        let _=writeln!(output,"{indent}    ({names},)\n{indent}}} else {{");
+        for epoch in epochs {
+            let stopped=crate::analysis::MapEntryEpoch{place:epoch.entry.place.clone(),input:epoch.body.output,output:epoch.back.output,empty:epoch.break_empty,before:false};
+            if stopped.input!=stopped.output{let _=writeln!(output,"{indent}    {}",self.map_entry_epoch_code(fun,&stopped));}
+        }
+        let _=writeln!(output,"{indent}    ({names},)\n{indent}}};");
     }
     pub(super) fn map_for_of_iteration_body(&self,output:&mut String,fun:&CheckedFunction,statement:&Stmt,depth:usize,declarations:Option<&[Stmt]>)->bool {
         let epochs=fun.storage_exits.map_iteration_epochs(statement.span);

@@ -7,40 +7,8 @@ impl Emitter<'_> {
         if !statement.labels.is_empty() { return false; }
         let StmtKind::Try(region) = &statement.kind else { return false; };
         let Some(handler) = &region.catch else { return self.map_finally_storage_epoch(output,fun,statement,region,declarations,depth); };
-        let mut places = Vec::new();
-        let mut native_places = std::collections::HashMap::new();
-        let mut statements = region.body.iter().chain(&handler.body).chain(region.finally.iter().flatten()).collect::<Vec<_>>();
-        while let Some(item) = statements.pop() {
-            if !item.labels.is_empty() { return false; }
-            match &item.kind {
-                StmtKind::Block(body) => statements.extend(body),
-                StmtKind::If { then_body, else_body, .. } => {
-                    statements.extend(then_body); statements.extend(else_body);
-                },
-                StmtKind::Let { .. } | StmtKind::Expr(_) | StmtKind::Assign { .. } | StmtKind::Throw(_) | StmtKind::Return(_) | StmtKind::Break | StmtKind::Continue => {},
-                StmtKind::ForOf { body, .. } => statements.extend(body),
-                StmtKind::Try(inner) => {
-                    statements.extend(&inner.body);
-                    if let Some(handler)=&inner.catch {statements.extend(&handler.body);}
-                    statements.extend(inner.finally.iter().flatten());
-                },
-                // Loops require additional storage discovery.
-                _ => return false,
-            }
-            for epoch in fun.storage_exits.map_entry_epochs(item.span) {
-                let place=self.map_entry_epoch_place(fun,epoch);
-                if !places.contains(&place) {
-                    let original=fun.bindings[epoch.place.binding].ty;
-                    let ty=self.map_storage_leaf_type(original,&epoch.place.fields).expect("checked Map path");
-                    native_places.insert(place.clone(),self.native_type(ty));
-                    places.push(place);
-                }
-            }
-            if let Some((place, native)) = self.local_map_clear_storage(fun, declarations, item)
-                && !places.contains(&place) { native_places.insert(place.clone(), native); places.push(place); }
-        }
-        if places.is_empty() { return false; }
-        places.sort();
+        let statements=region.body.iter().chain(&handler.body).chain(region.finally.iter().flatten()).collect();
+        let Some((places,native_places))=self.map_exception_storage_plan(fun,statements,declarations) else{return false;};
         let values = format!("({},)", places.join(","));
         let storage_type = format!("({},)", places.iter().map(|place| native_places[place].as_str()).collect::<Vec<_>>().join(","));
         let pattern = format!("({},)", places.iter().map(|place| format!("mut {place}")).collect::<Vec<_>>().join(","));
@@ -162,7 +130,10 @@ impl Emitter<'_> {
 
     #[inline(never)]
     pub(super) fn map_storage_completion_body(&self, fun: &CheckedFunction, body: &[Stmt], declarations: &[Stmt], id: usize, error_name: &str, contract: crate::error_effects::FailureSet, runtime: Option<Type>, storage_type: &str, places: &[String], carry_error: bool, carry_control: bool) -> String {
-        let _region = self.exception_regions.enter_typed(id, Vec::new(), error_name.into(), contract, runtime);
+        // Loops inside this phase own their controls. Forward only exits that
+        // actually leave the phase to its enclosing cleanup.
+        let locals=exception_contract_emit::local_control_targets(body);
+        let _region = self.exception_regions.enter_typed(id, locals, error_name.into(), contract, runtime);
         {
             let points=fun.storage_exits.starts().map(|start| (start,places.iter().map(|place|self.map_storage_value_before(fun,start,place)).collect())).collect();
             let expressions=fun.storage_exits.expression_points().map(|point| (point,places.iter().map(|place|self.map_storage_value_at_expression(fun,point,place)).collect())).collect();

@@ -28,6 +28,8 @@ mod scoped_record_console_emit;
 mod scoped_record_support_emit;
 #[path = "exception_contract_emit.rs"]
 mod exception_contract_emit;
+#[path = "map_exception_storage_plan.rs"]
+mod map_exception_storage_plan;
 #[path = "native_storage_availability.rs"]
 mod native_storage_availability;
 #[path = "exception_emit.rs"]

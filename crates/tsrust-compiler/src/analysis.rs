@@ -6,6 +6,10 @@ mod map_entry_capture_owners;
 mod map_entry_epochs;
 #[path = "map_iteration_plan.rs"]
 mod map_iteration_plan;
+#[path = "map_iteration_shape.rs"]
+mod map_iteration_shape;
+#[path = "map_exception_storage_types.rs"]
+mod map_exception_storage_types;
 #[path="map_completion_payloads.rs"]
 mod map_completion_payloads;
 #[path="map_completion_layouts.rs"]

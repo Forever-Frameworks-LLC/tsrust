@@ -190,5 +190,12 @@ A return expression is evaluated before cleanup. A return or throw in cleanup
 replaces the pending result; a continue in cleanup can cancel it and resume the
 loop. This includes a loop whose body exits without any backedge. If a failing
 operation before deletion can retain the entry, cleanup must delete that entry
-(or clear the Map) before changing its capture. Broader labelled/nested-loop
-compositions and independently specialized phase storage still require acceptance.
+(or clear the Map) before changing its capture. Labelled while, counted, post-test and for-of loops preserve the same storage
+rules. In nested cleanup loops, an inner break keeps its surviving entries and
+stays inside the enclosing phase. A break or continue targeting an outer loop
+runs each exited finally from the inside outward. An inner cleanup continue can
+cancel an outer exit and remain in the inner loop; outer cleanup runs when that
+phase subsequently exits. Catching an inner error also preserves survivor
+storage before outer cleanup. Arbitrary labelled blocks, nonlocal direct
+controls outside completion regions and independently specialized phase storage
+still require acceptance.

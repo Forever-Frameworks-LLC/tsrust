@@ -15,60 +15,8 @@ impl Emitter<'_> {
         let Some(cleanup) = &region.finally else {
             return false;
         };
-        let mut places = Vec::new();
-        let mut native_places = std::collections::HashMap::new();
-        let mut statements = region.body.iter().chain(cleanup).collect::<Vec<_>>();
-        while let Some(item) = statements.pop() {
-            if !item.labels.is_empty() {
-                return false;
-            }
-            match &item.kind {
-                StmtKind::Block(body) => statements.extend(body),
-                StmtKind::If {
-                    then_body,
-                    else_body,
-                    ..
-                } => {
-                    statements.extend(then_body);
-                    statements.extend(else_body);
-                }
-                StmtKind::ForOf { body, .. } => statements.extend(body),
-                StmtKind::Try(inner) => {
-                    statements.extend(&inner.body);
-                    if let Some(handler) = &inner.catch {
-                        statements.extend(&handler.body);
-                    }
-                    statements.extend(inner.finally.iter().flatten());
-                }
-                StmtKind::Let { .. }
-                | StmtKind::Expr(_)
-                | StmtKind::Assign { .. }
-                | StmtKind::Throw(_)
-                | StmtKind::Return(_)
-                | StmtKind::Break
-                | StmtKind::Continue => {}
-                _ => return false,
-            }
-            for epoch in fun.storage_exits.map_entry_epochs(item.span) {
-                let place=self.map_entry_epoch_place(fun,epoch);
-                if !places.contains(&place) {
-                    let original=fun.bindings[epoch.place.binding].ty;
-                    let ty=self.map_storage_leaf_type(original,&epoch.place.fields).expect("checked Map path");
-                    native_places.insert(place.clone(),self.native_type(ty));
-                    places.push(place);
-                }
-            }
-            if let Some((place, native)) = self.local_map_clear_storage(fun, declarations, item)
-                && !places.contains(&place)
-            {
-                native_places.insert(place.clone(), native);
-                places.push(place);
-            }
-        }
-        if places.is_empty() {
-            return false;
-        }
-        places.sort();
+        let statements=region.body.iter().chain(cleanup).collect();
+        let Some((places,native_places))=self.map_exception_storage_plan(fun,statements,declarations) else{return false;};
         let values = format!("({},)", places.join(","));
         let pattern = format!(
             "({},)",
