@@ -1,6 +1,20 @@
 mod support;
 
 #[test]
+fn narrowed_map_branch_refill_preserves_new_origins_at_join() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(branch:boolean):void{const first=[3];const second=[5];const third=[7];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});handlers.delete('first');first[0]=9;if(branch){handlers.set('third',{run:():int=>third[0]});}for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();third[0]=11;console.log('released',first[0],third[0]);}function main():void{scenario(true);scenario(false);}");
+ support::execute(&source,"second 5\nthird 7\nreleased 9 11\nsecond 5\nreleased 9 11\n",None);
+ verify_disposal(&source,3,"drop 0\nsecond 5\nthird 7\ndrop 1\ndrop 2\nreleased 9 11\ndrop 0\nsecond 5\ndrop 1\nreleased 9 11\n");
+ let split=source.find("    if (branch)").unwrap();
+ let moved=format!("{}const moved=handlers;{}",&source[..split],source[split..].replace("handlers","moved"));
+ support::execute(&support::format_round_trip(&moved),"second 5\nthird 7\nreleased 9 11\nsecond 5\nreleased 9 11\n",None);
+ let multiple=source.replace("const third = [7];","const third=[7];const fourth=[8];").replace("handlers.set('third',", "handlers.set('fourth',{run:():int=>fourth[0]});handlers.set('third',");
+ assert_ne!(multiple,source);
+ support::execute(&support::format_round_trip(&multiple),"second 5\nfourth 8\nthird 7\nreleased 9 11\nsecond 5\nreleased 9 11\n",None);
+
+}
+
+#[test]
 fn deleting_last_map_entry_releases_its_capture() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const values=[3];let handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>values[0]});console.log('deleted',handlers.delete('first'));values[0]=9;console.log('after',handlers.size,values[0],handlers.has('first'));handlers.clear();}");
  verify_disposal(&source,1,"drop 0\ndeleted true\nafter 0 9 false\n");

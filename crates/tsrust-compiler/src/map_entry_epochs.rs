@@ -63,9 +63,9 @@ impl Analyzer {
                 {writes.push((crate::capture_loan_owners::Place{binding,fields},incoming,value.span));}
                 Ok(())
             })?;
-            // Loop-carried storage needs one representation containing its incoming
-            // payloads before entry, including the zero-iteration survivor.
-            if !matches!(statement.kind,StmtKind::If{..}|StmtKind::Try(_)) {
+            // Conditional and loop storage include incoming payloads before entry,
+            // retaining the untaken-arm or zero-iteration survivor.
+            if !matches!(statement.kind,StmtKind::Try(_)) {
                 for (place,incoming,span) in writes {
                     let Some(root)=results.get(&place.binding).copied() else {continue;};
                     let Some(Type::Map(input))=self.scoped_array_field_type(root,&place.fields) else {continue;};

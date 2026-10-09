@@ -649,3 +649,29 @@ represent newly introduced origins. Also complete in-iteration and same-expressi
 release, precise array-element release, record Set key rules and broader error
 composition. Full family regressions and timing remain deferred. User-facing
 consumers remain at gate181; scratch compilers contain current source.
+
+## Branch refill after narrowing checkpoint
+
+A new witness compiled but panicked in native execution: restoration from a
+branch-local callback family to the previously narrowed incoming family excluded
+the newly inserted origin. Conditional pre-entry widening now includes checked
+incoming payloads, just as loop widening does. Arm restoration therefore targets
+a family that represents both the untaken arm and newly inserted callbacks.
+
+Native witnesses cover both branch outcomes, a moved Map, multiple incoming
+origins and exact O0/O3 disposal. All 71 Map-filtered composition tests pass. One
+editor check accepts mutation after clear and rejects mutation while the new
+entry may retain its capture. No recursive checker dispatch changed.
+
+Matched support now has 56 observations. Paired sources, independent oracle,
+whole-output token contracts, exact registration values and rehashed mutation
+guards cover two incoming origins after prior narrowing. Whole-project formatting
+changes one workload and one token-preserving fingerprint. Registration passes.
+Native and Node-after-tsc verification passes all five cases, untimed. SQLite
+preserves runtime/results/2026-10-09T01-04-58-652Z-verify.json and original failure
+and repair logs; byte-exact readback precedes loose removal.
+
+B5 remains open. Next requirements include in-iteration release, same-expression
+release, precise array-element release, record Set equality/hash key constraints
+and broader alias/error composition. Family regression and timing remain deferred.
+User-facing consumers are still at gate181; scratch compiler builds are current.

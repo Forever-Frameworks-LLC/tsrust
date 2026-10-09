@@ -153,7 +153,9 @@ environments while keeping surviving entries. Its storage representation widens
 before entry, including the zero-iteration path. Multiple incoming origins and
 counted-loop block transport are supported. A branch may delete a known entry
 and change its released capture before the branch ends. Surviving storage returns
-through the branch join; returning arms dispose it at their exit. Other retained
+through the branch join; returning arms dispose it at their exit. Refilling a
+previously narrowed Map inside a branch widens its storage before entry, so new
+callback origins survive the join even when the other arm inserts nothing. Other retained
 entries continue to protect their captures. Release inside an iteration before
 completion or within the same expression remains under development.
 Changing a callback environment representation for later capture access can scan

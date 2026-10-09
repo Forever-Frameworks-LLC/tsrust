@@ -8683,3 +8683,13 @@ fn map_entry_release_inside_branch_retains_other_capture_diagnostics() {
  let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///branch-inner-release.tsr").unwrap()).unwrap();
  assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
 }
+
+#[test]
+fn narrowed_map_branch_refill_keeps_new_capture_until_clear() {
+ let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function scenario(branch:boolean):void{const first=[3];const second=[5];const third=[7];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});handlers.delete('first');first[0]=9;if(branch){handlers.set('third',{run:():int=>third[0]});}handlers.clear();third[0]=11;}function main():void{scenario(true);}").unwrap();
+ assert!(tsrust_lsp::diagnostics(&source,"file:///branch-refill.tsr").unwrap().is_empty());
+ let conflict=source.replace("handlers.clear();\n    third[0] = 11;","third[0]=11;handlers.clear();");
+ assert_ne!(conflict,source);
+ let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///branch-refill.tsr").unwrap()).unwrap();
+ assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+}
