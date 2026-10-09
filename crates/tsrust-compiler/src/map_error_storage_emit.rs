@@ -5,6 +5,12 @@ impl Emitter<'_> {
     pub(super) fn map_outgoing_error_storage(&self,fun:&CheckedFunction,span:crate::Span,layout:Option<&Layout>)->Option<String> {
         let layout=layout?;
         let destinations=self.exception_regions.error_storage_values(span)?;
+        Some(self.map_project_outgoing_storage(fun,layout,destinations))
+    }
+    pub(super) fn map_outgoing_return_storage(&self,fun:&CheckedFunction,span:crate::Span,layout:Option<&Layout>)->Option<String> {
+        Some(self.map_project_outgoing_storage(fun,layout?,self.exception_regions.return_storage_values(span)?))
+    }
+    fn map_project_outgoing_storage(&self,fun:&CheckedFunction,layout:&Layout,destinations:Vec<native_storage_availability::Value>)->String {
         let values=destinations.into_iter().map(|value| {
             let (binding,fields)=self.map_storage_binding(fun,&value.place).expect("checked outgoing Map storage");
             let source=layout.get(&crate::capture_loan_owners::Place{binding,fields:fields.clone()}).copied().unwrap_or_else(||self.map_storage_leaf_type(fun.bindings[binding].ty,&fields).expect("checked outgoing Map path"));
@@ -14,7 +20,7 @@ impl Emitter<'_> {
             let projected=self.map_typed_storage_leaf_value(&value.place,None,Some(source),target);
             projected.live.unwrap_or(projected.place)
         }).collect::<Vec<_>>();
-        Some(format!("({},)",values.join(",")))
+        format!("({},)",values.join(","))
     }
 
     pub(super) fn map_error_storage_type(&self,fun:&CheckedFunction,places:&[String],layout:&Layout)->String {

@@ -1960,3 +1960,63 @@ closed checks and the matched record are preserved in SQLite, restored byte for
 byte and removed from loose storage. Source acceptance concerns control cleanup
 planning only; the destination-specific native carrier remains the immediate
 next implementation. B5 and the broader compiler completion plan remain open.
+
+
+### Precise return transport through finally without catch
+
+map_return_storage.rs introduces a consuming generic control carrier. Its Return
+variant owns both the evaluated result and the checked return-phase Map storage;
+its Common variant preserves the existing loop-control transport. Generic payload
+parameters keep local enum declarations independent of closure lifetimes.
+No-catch finally emission attaches the checked Body/Return layout to return
+production, consumes that owner before cleanup and uses the independent Return
+cleanup plan. Normal cleanup results and overriding returns project the checked
+Cleaned/Return storage into the enclosing return destination. Cleanup errors
+continue to use independent error storage.
+
+The baseline execution example already passed. The focused failing layout
+witness proves the actual precision defect: checked Map16 was absent from the
+return envelope, which used the common Map18 storage. The new carrier includes
+the checked return layout and native execution preserves the result evaluated
+before cleanup. Cases cover scalar and owned array results, cleanup return and
+throw overrides, record fields, nested catch-plus-finally forwarding, surviving
+callbacks and exactly-once disposal at both optimization levels. Editor checks
+retain surviving-capture diagnostics.
+
+The affected batch initially has 95 passes and two failures. Both failures concern
+cleanup that clears all entries: absence of a Map layout does not imply absence
+of reachable return completion. Return resumption now uses cleanup reachability,
+and both failed witnesses pass after repair. A nested-return witness also checks
+that forwarding selects the outer Return variant rather than a loop-control
+fallback. Passed original checks are preserved. All 24 phase/storage proofs and
+the new editor witness pass. No parser/analyzer dispatch changes or full-family
+regression/timing run is claimed.
+
+The matched returnCarrierEntry helpers observe a pending return, an overriding
+cleanup return and an overriding cleanup error. Independent results are
+2 * value + 3, +13 and +13. Literal reference rows and mutation guards cover all
+three modes and cleanup survivor observations. Each workload row now contains
+92 observations; verification details follow below after the run closes.
+
+Precise control work remains open: break/continue destinations still use common
+storage, and catch-plus-finally return transport still needs this carrier. Extend
+the carrier by resolved target, consume the existing target-specific cleanup
+plans and verify cleanup control overrides. B5 remains open, followed by the
+accepted Rust-style structural owned record key work. Installed consumers remain
+at gate 181.
+
+
+Final matched verification passes all five cases on native and Node-after-tsc,
+with 92 observations per row. Canonical record:
+runtime/results/2026-10-09T06-59-05-488Z-verify.json. The current return-envelope
+proof passes after the repairs. The original 95 native passes, both repaired
+cases, nested forwarding and expanded owned-result/disposal evidence are retained;
+no complete batch restart is claimed. The current compiler build has no warnings.
+Closed baseline, red, repair and final logs plus the matched record are stored
+in SQLite, restored byte for byte and removed from loose storage. Final project
+formatting changes zero files and fingerprints; source diff checks pass.
+
+Next consume precise return carriers in catch-plus-finally, then replace Common
+loop-control storage with destination-specific break/continue payloads. Preserve
+returned values across cleanup and drop them exactly once on override. Complete
+remaining B5 aggregate/expression witnesses before family regressions and timing.

@@ -77,7 +77,12 @@ struct NativeRegion {
     id:usize,
     locals:Vec<crate::syntax::ControlTarget>,
     storage:Option<Box<Storage>>,
+    return_storage:Option<Box<(String,Storage)>>,
     transport:Option<Box<(String,crate::error_effects::FailureSet,Option<crate::syntax::Type>)>>,
+}
+
+fn wrap_control(region:&NativeRegion,payload:String)->String {
+    match region.return_storage.as_deref(){Some((name,_))=>format!("{name}::Common({payload})"),None=>payload}
 }
 
 #[derive(Default)]
@@ -93,7 +98,7 @@ impl RegionStack {
     pub(crate) fn enter(&self,id:usize,locals:Vec<crate::syntax::ControlTarget>)->RegionScope<'_> {
         let mut regions=self.0.borrow_mut();
         let previous_depth=regions.len();
-        regions.push(NativeRegion{id,locals,storage:None,transport:None});
+        regions.push(NativeRegion{id,locals,storage:None,return_storage:None,transport:None});
         RegionScope{stack:self,previous_depth,_storage:self.1.scope()}
     }
     pub(crate) fn enter_typed(&self,id:usize,locals:Vec<crate::syntax::ControlTarget>,name:String,contract:crate::error_effects::FailureSet,runtime:Option<crate::syntax::Type>)->RegionScope<'_> {
@@ -108,12 +113,15 @@ impl RegionStack {
     pub(crate) fn attach_error_storage(&self,values:Vec<StorageValue>,points:std::collections::BTreeMap<usize,Vec<StorageValue>>,expressions:std::collections::BTreeMap<(usize,usize),Vec<StorageValue>>) {
         self.0.borrow_mut().last_mut().expect("entered region").storage.as_mut().expect("attached storage").errors=Some(Box::new(Storage{carry_error:true,carry_control:false,default:values,points,expressions,errors:None}));
     }
+    pub(crate) fn attach_return_storage(&self,name:String,values:Vec<StorageValue>,points:std::collections::BTreeMap<usize,Vec<StorageValue>>,expressions:std::collections::BTreeMap<(usize,usize),Vec<StorageValue>>) {
+        self.0.borrow_mut().last_mut().expect("entered region").return_storage=Some(Box::new((name,Storage{carry_error:false,carry_control:true,default:values,points,expressions,errors:None})));
+    }
     pub(crate) fn carry_storage_on_control_exit(&self) {
         self.0.borrow_mut().last_mut().expect("entered storage region").storage.as_mut().expect("attached storage").carry_control=true;
     }
     pub(crate) fn return_value(&self,value:&str,span:crate::Span)->String {
         let regions=self.0.borrow();let region=regions.last().expect("entered return region");
-        let payload=region.storage.as_ref().filter(|storage|storage.carry_control).map_or_else(||value.to_owned(),|storage|format!("{{let pending_return={value};(TsrStorageExit::Return(pending_return),{})}}",storage.at(span,&self.1)));
+        let payload=if let Some((name,storage))=region.return_storage.as_deref() {format!("{{let pending_return={value};{name}::Return((pending_return,{}))}}",storage.at(span,&self.1))}else{region.storage.as_ref().filter(|storage|storage.carry_control).map_or_else(||value.to_owned(),|storage|format!("{{let pending_return={value};(TsrStorageExit::Return(pending_return),{})}}",storage.at(span,&self.1)))};
         format!("break 'exception_region{} TsrCompletion::Return({payload});",region.id)
     }
     pub(crate) fn renew_storage(&self, places:&[String], boundary:usize) {self.1.renew(places,boundary);}
@@ -155,7 +163,7 @@ impl RegionStack {
         let (name,contract,runtime)=region.transport.as_deref().ok_or_else(||crate::Diagnostic::new("error-effect","Result call emission requires a destination error layout.",span))?;
         let pending=checked_fallible_call(call,source_name,name,source,contract,unions,*runtime,span)?;
         if let Some(storage)=region.storage.as_ref().filter(|storage|storage.carry_error) {
-            let returned=if storage.carry_control {format!("(TsrStorageExit::Return(value),{})",storage.at(span,&self.1))}else{"value".into()};
+            let returned=if storage.carry_control {wrap_control(region,format!("(TsrStorageExit::Return(value),{})",storage.at(span,&self.1)))}else{"value".into()};
             let storage=storage.error_at(span,&self.1);
             return Ok(format!("match {pending} {{ TsrCompletion::Normal(value)=>value, TsrCompletion::Throw(error)=>break 'exception_region{} TsrCompletion::Throw((error,{storage})), TsrCompletion::Return(value)=>break 'exception_region{} TsrCompletion::Return({returned}), TsrCompletion::Break(target)=>break 'exception_region{} TsrCompletion::Break(target), TsrCompletion::Continue(target)=>break 'exception_region{} TsrCompletion::Continue(target) }}",region.id,region.id,region.id,region.id));
         }
@@ -182,7 +190,8 @@ impl RegionStack {
             use crate::syntax::ControlTarget;
             let destination=match target {ControlTarget::Loop(id)|ControlTarget::Tail(id)=>format!("TsrControlTarget::Loop({id})"),ControlTarget::Block(id)=>format!("TsrControlTarget::Block({id})")};
             let kind=if continuing {"Continue"}else{"Break"};
-            return format!("break 'exception_region{} TsrCompletion::Return((TsrStorageExit::{kind}({destination}),{}));",region.id,storage.at(span,&self.1));
+            let owner=wrap_control(region,format!("(TsrStorageExit::{kind}({destination}),{})",storage.at(span,&self.1)));
+            return format!("break 'exception_region{} TsrCompletion::Return({owner});",region.id);
         }
         control_transfer(target,continuing,regions.last().map(|region|(region.id,region.locals.as_slice())))
     }
@@ -190,6 +199,16 @@ impl RegionStack {
         let regions=self.0.borrow();
         let storage=regions.last()?.storage.as_ref().filter(|storage|storage.carry_error)?;
         Some(storage.errors.as_deref().unwrap_or(storage).values_at(span).to_vec())
+    }
+    pub(crate) fn return_storage_values(&self,span:crate::Span)->Option<Vec<StorageValue>> {
+        let regions=self.0.borrow();let region=regions.last()?;
+        if let Some((_,storage))=region.return_storage.as_deref(){return Some(storage.values_at(span).to_vec());}
+        Some(region.storage.as_ref().filter(|storage|storage.carry_control)?.values_at(span).to_vec())
+    }
+    pub(crate) fn dispatch_return(&self,value:&str,span:crate::Span,owner:Option<&str>)->String {
+        let regions=self.0.borrow();let region=regions.last().expect("selected return destination");
+        let payload=if let Some((name,storage))=region.return_storage.as_deref(){format!("{name}::Return(({value},{}))",owner.map(str::to_owned).unwrap_or_else(||storage.at(span,&self.1)))}else if let Some(storage)=region.storage.as_ref().filter(|storage|storage.carry_control){format!("(TsrStorageExit::Return({value}),{})",owner.map(str::to_owned).unwrap_or_else(||storage.at(span,&self.1)))}else{value.to_owned()};
+        format!("break 'exception_region{} TsrCompletion::Return({payload});",region.id)
     }
     /// Forward a completion already selected as Throw with its projected owner.
     pub(crate) fn dispatch_error(&self,pending:&str,span:crate::Span,owner:&str)->Result<String,crate::Diagnostic> {
@@ -203,10 +222,10 @@ impl RegionStack {
         let regions=self.0.borrow();
         let region=regions.last().ok_or_else(||crate::Diagnostic::new("error-effect","Completion dispatch requires an enclosing region.",span))?;
         let carried=region.storage.as_ref().map(|storage|(storage,storage.at(span,&self.1)));
-        let returned=carried.as_ref().filter(|(storage,_)|storage.carry_control).map_or_else(||"value".to_owned(),|(_,owner)|format!("(TsrStorageExit::Return(value),{owner})"));
+        let returned=if let Some((name,storage))=region.return_storage.as_deref(){format!("{name}::Return((value,{}))",storage.at(span,&self.1))}else{carried.as_ref().filter(|(storage,_)|storage.carry_control).map_or_else(||"value".to_owned(),|(_,owner)|format!("(TsrStorageExit::Return(value),{owner})"))};
         let thrown=region.storage.as_ref().filter(|storage|storage.carry_error).map_or_else(||"error".to_owned(),|storage|format!("(error,{})",storage.error_at(span,&self.1)));
-        let escaped_break=carried.as_ref().filter(|(storage,_)|storage.carry_control).map_or_else(||"TsrCompletion::Break(target)".to_owned(),|(_,owner)|format!("TsrCompletion::Return((TsrStorageExit::Break(target),{owner}))"));
-        let escaped_continue=carried.as_ref().filter(|(storage,_)|storage.carry_control).map_or_else(||"TsrCompletion::Continue(target)".to_owned(),|(_,owner)|format!("TsrCompletion::Return((TsrStorageExit::Continue(target),{owner}))"));
+        let escaped_break=carried.as_ref().filter(|(storage,_)|storage.carry_control).map_or_else(||"TsrCompletion::Break(target)".to_owned(),|(_,owner)|format!("TsrCompletion::Return({})",wrap_control(region,format!("(TsrStorageExit::Break(target),{owner})"))));
+        let escaped_continue=carried.as_ref().filter(|(storage,_)|storage.carry_control).map_or_else(||"TsrCompletion::Continue(target)".to_owned(),|(_,owner)|format!("TsrCompletion::Return({})",wrap_control(region,format!("(TsrStorageExit::Continue(target),{owner})"))));
         let mut breaks=vec![];let mut continues=vec![];
         for target in active.iter().filter(|target|region.locals.contains(target)) {
             let pattern=match target {ControlTarget::Loop(id)|ControlTarget::Tail(id)=>format!("TsrControlTarget::Loop({id})"),ControlTarget::Block(id)=>format!("TsrControlTarget::Block({id})")};

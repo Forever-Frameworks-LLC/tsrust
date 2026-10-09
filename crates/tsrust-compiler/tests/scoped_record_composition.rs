@@ -1,6 +1,27 @@
 mod support;
 
 #[test]
+fn map_return_cleanup_overrides_owned_results_and_disposes_survivors() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(mode:int):string[]{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{handlers.delete('first');first[0]+=1;return ['saved'];}finally{first[0]+=10;console.log('cleanup',first[0]);for(const [key,entry] of handlers){console.log(key,entry.run());}if(mode===1)return ['override'];if(mode===2)throw 8;}}function main():void{console.log(scenario(0)[0]);console.log(scenario(1)[0]);try{console.log(scenario(2)[0]);}catch(error){console.log('caught');}}");
+ support::execute(&source,"cleanup 14\nsecond 5\nsaved\ncleanup 14\nsecond 5\noverride\ncleanup 14\nsecond 5\ncaught\n",None);
+ verify_disposal(&source,2,"drop 0\ncleanup 14\nsecond 5\ndrop 1\nsaved\ndrop 0\ncleanup 14\nsecond 5\ndrop 1\noverride\ndrop 0\ncleanup 14\nsecond 5\ndrop 1\ncaught\n");
+}
+
+#[test]
+fn map_return_cleanup_mutates_released_capture_and_preserves_return_value() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario():int{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{handlers.delete('first');first[0]+=1;return first[0];}finally{first[0]+=10;console.log('cleanup',first[0]);for(const [key,entry] of handlers){console.log(key,entry.run());}}}function main():void{console.log('result',scenario());}");
+ support::execute(&source,"cleanup 14\nsecond 5\nresult 4\n",None);
+ verify_disposal(&source,2,"drop 0\ncleanup 14\nsecond 5\ndrop 1\nresult 4\n");
+ let field=("type Owner={handlers:Map<string,Holder>;};".to_owned()+&source).replace("const handlers = new Map<string, Holder>();","const owner:Owner={handlers:new Map<string,Holder>()};").replace("handlers.","owner.handlers.").replace("of handlers)","of owner.handlers)");assert_ne!(field,source);
+ support::execute(&support::format_round_trip(&field),"cleanup 14\nsecond 5\nresult 4\n",None);
+ verify_disposal(&support::format_round_trip(&field),2,"drop 0\ncleanup 14\nsecond 5\ndrop 1\nresult 4\n");
+
+ let nested=source.replace("try {\n        handlers.delete('first');","try {try {\n        handlers.delete('first');").replace("} finally {","}catch(error){throw error;}finally{console.log('inner');}} finally {");assert_ne!(nested,source);
+ support::execute(&support::format_round_trip(&nested),"inner\ncleanup 14\nsecond 5\nresult 4\n",None);
+ verify_disposal(&support::format_round_trip(&nested),2,"drop 0\ninner\ncleanup 14\nsecond 5\ndrop 1\nresult 4\n");
+}
+
+#[test]
 fn map_catch_finally_completion_modes_preserve_survivors_and_disposal() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(mode:int):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{try{handlers.delete('first');if(mode!==0)throw 37;}catch(error){first[0]+=1;if(mode>=2)throw 38;}finally{first[0]+=1;console.log('cleanup',first[0]);for(const [key,entry] of handlers){console.log(key,entry.run());}if(mode===3)throw 39;}}catch(error){first[0]+=1;console.log('outer',first[0]);}handlers.clear();console.log('done',first[0]);}function main():void{scenario(0);scenario(1);scenario(2);scenario(3);}");
  support::execute(&source,"cleanup 4\nsecond 5\ndone 4\ncleanup 5\nsecond 5\ndone 5\ncleanup 5\nsecond 5\nouter 6\ndone 6\ncleanup 5\nsecond 5\nouter 6\ndone 6\n",None);

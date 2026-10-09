@@ -289,3 +289,10 @@ A catch body may remove a known Map entry and then rethrow. Its finally block
 receives the survivors, so it can change a capture used only by the removed
 entry. This also applies when finally throws a replacement error. Captures used
 by surviving entries remain borrowed until those entries are removed or dropped.
+
+
+A return expression is evaluated before finally runs. For example, returning an
+integer element saves that integer even if finally later changes the element.
+A return inside finally replaces the saved result; a throw inside finally replaces
+the pending return with that error. Removed Map entries stay removed during this
+cleanup, while surviving entries keep their captures borrowed.

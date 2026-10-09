@@ -72,6 +72,10 @@ impl Emitter<'_> {
 
     #[inline(never)]
     pub(super) fn map_error_phase_storage_completion_body(&self,fun:&CheckedFunction,body:&[Stmt],declarations:&[Stmt],id:usize,error_name:&str,contract:crate::error_effects::FailureSet,runtime:Option<Type>,storage_type:&str,places:&[String],carry_error:bool,carry_control:bool,normal:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>,error_layout:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>)->String {
+        self.map_return_phase_storage_completion_body(fun,body,declarations,id,error_name,contract,runtime,storage_type,places,carry_error,carry_control,normal,error_layout,None)
+    }
+    #[inline(never)]
+    pub(super) fn map_return_phase_storage_completion_body(&self,fun:&CheckedFunction,body:&[Stmt],declarations:&[Stmt],id:usize,error_name:&str,contract:crate::error_effects::FailureSet,runtime:Option<Type>,storage_type:&str,places:&[String],carry_error:bool,carry_control:bool,normal:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>,error_layout:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>,returned:Option<&map_return_storage::Carrier<'_>>)->String {
         // Loops inside this phase own their controls. Forward only exits that
         // actually leave the phase to its enclosing cleanup.
         let locals=exception_contract_emit::local_control_targets(body);
@@ -85,11 +89,12 @@ impl Emitter<'_> {
         }
         if let Some(layout)=error_layout {self.attach_map_error_storage(fun,body,places,layout);}
         if carry_control {self.exception_regions.carry_storage_on_control_exit();}
+        if let Some(carrier)=returned{self.attach_map_return_storage(fun,body,places,carrier);}
         let mut statements = String::new();
         self.control_block_epochs(&mut statements, fun, body, 1, None, Some(declarations));
         let normal_values = format!("({},)", places.iter().map(|place| self.map_phase_completion_exit_value(fun, body, place, normal)).collect::<Vec<_>>().join(","));
         let result = self.native_type(fun.result);
-        let result = if carry_control {format!("(TsrStorageExit<{result}>,{storage_type})")} else {result};
+        let result = if let Some(carrier)=returned{carrier.native.clone()}else if carry_control {format!("(TsrStorageExit<{result}>,{storage_type})")} else {result};
         let error_storage=error_layout.map(|layout|self.map_error_storage_type(fun,places,layout)).unwrap_or_else(||storage_type.to_owned());
         let error = if carry_error { format!("({error_name},{error_storage})") } else { error_name.to_owned() };
         format!("{{ let completion:TsrCompletion<_,{result},{error}>='exception_region{id}: {{ {statements} TsrCompletion::Normal({normal_values}) }}; completion }}")

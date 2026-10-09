@@ -9825,6 +9825,8 @@ impl Emitter<'_>{
     }
 }
 
+#[path="map_return_storage.rs"]
+mod map_return_storage;
 #[path="map_catch_finally_storage.rs"]
 mod map_catch_finally_storage;
 #[path="map_exception_epochs.rs"]
