@@ -1,6 +1,7 @@
 import {createHash} from 'node:crypto';
 import {containsCodeSnippet,findCodeSnippet} from './source-contract-tokens.mjs';
 const required=[
+ 'installCapturedSource(target, captured);', 'retainCaptured(holder);', 'retainedCapture = holder.run!();', 'clearCapturedSource(holder);', 'captured[0] += 1;', 'clearedCapture = captured[0];',
  'installConditional(target, source, true, calls);', 'calls[0] += offset;', 'performCaptured(holder, original);', 'performCaptured(holder, replacement);', 'capturedFirst = holder.run!();', 'capturedReleased = original[0];', 'capturedReplacement = holder.run!();', 'capturedEffects = calls[0];',
  'installConditional(target, source, plus, effects);', 'performBody(holder, original, true, calls);', 'performBody(holder, replacement, false, calls);', 'closureFirst = holder.run!();', 'closureReleased = original[0];', 'closureReplacement = holder.run!();', 'closureEffects = calls[0];',
  'const perform = installConditional;', 'perform(holder, original, true, calls);', 'perform(holder, replacement, false, calls);', 'forwardedFirst = holder.run!();', 'forwardedReleased = original[0];', 'forwardedReplacement = holder.run!();', 'forwardedEffects = calls[0];',
@@ -23,9 +24,10 @@ const required=[
  'other[0] += 10; return other[0];',
  'paired = pairHolder.run();', 'changedFirst = holder.run();',
  'changedSecond = holder.run();', 'callbackFirst = holder.run();', 'callbackSecond = holder.run();', 'callbackAfter = action();', 'holder.run = (): int => action();',
- 'output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects, conditionalFirst, conditionalReleased, conditionalReplacement, conditionalEffects, forwardedFirst, forwardedReleased, forwardedReplacement, forwardedEffects, closureFirst, closureReleased, closureReplacement, closureEffects, capturedFirst, capturedReleased, capturedReplacement, capturedEffects]);'
+ 'output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects, conditionalFirst, conditionalReleased, conditionalReplacement, conditionalEffects, forwardedFirst, forwardedReleased, forwardedReplacement, forwardedEffects, closureFirst, closureReleased, closureReplacement, closureEffects, capturedFirst, capturedReleased, capturedReplacement, capturedEffects, retainedCapture, clearedCapture]);'
 ];
 export function assertCallerBorrowedRecordStoresSource(source,row,kind) {
+ if(findCodeSnippet(source,'holder.run = undefined;').length!==2)throw Error('Caller-borrowed clear helper count');
  if(findCodeSnippet(source,'calls[0] += 1;').length!==3)throw Error('Caller-borrowed installer effect count');
  if(findCodeSnippet(source,'holder.run = action;').length!==5)throw Error('Caller-borrowed direct store count');
  if(!['native','typescript'].includes(kind)||row.id!=='caller_borrowed_record_stores'||row.family!=='caller-borrowed-record-stores')throw Error('Caller-borrowed record store family');

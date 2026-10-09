@@ -13,15 +13,63 @@ impl Emitter<'_> {
         if closure.forward.is_some() {
             return None;
         }
-        let borrows = self.program.closure_record_parameter_borrows.get(&index)?;
+        let mut borrows = self
+            .program
+            .closure_record_parameter_borrows
+            .get(&index)
+            .cloned()
+            .unwrap_or_default();
+        if borrows.is_empty()
+            && !self
+                .program
+                .closure_record_capture_borrows
+                .contains_key(&index)
+        {
+            return None;
+        }
+        let mut sources = closure.parameters.clone();
+        let (capture_lifetimes, capture_types) = self.capture_layout(closure);
+        let mut hidden_lifetimes = HashMap::new();
+        for borrow in self
+            .program
+            .closure_record_capture_borrows
+            .get(&index)
+            .into_iter()
+            .flatten()
+        {
+            let capture = &closure.captures[borrow.source_capture];
+            let field = &capture_types[borrow.source_capture];
+            let lifetime = capture_lifetimes.iter().find(|lifetime| {
+                field
+                    .split(|ch: char| !ch.is_alphanumeric() && ch != '\'' && ch != '_')
+                    .any(|word| word == lifetime.as_str())
+            })?;
+            // Owned capture storage needs a receiver lifetime, not an input lifetime.
+            if !matches!(capture.storage, Mode::Read | Mode::Mutate) {
+                return None;
+            }
+            hidden_lifetimes.insert(capture.inner, lifetime.clone());
+            let source = sources.len();
+            sources.push(capture.inner);
+            borrows.push(crate::analysis::record_parameter_borrows::Borrow {
+                target: borrow.target.clone(),
+                source,
+                mode: borrow.mode,
+                origin: borrow.origin,
+                capture: borrow.capture,
+            });
+        }
+        if borrows.is_empty() {
+            return None;
+        }
         let mut groups = std::collections::BTreeMap::new();
         let mut slots = std::collections::BTreeMap::new();
-        for borrow in borrows {
-            let source = closure.parameters[borrow.source];
+        for borrow in &borrows {
+            let source = sources[borrow.source];
             groups.insert(source, source);
         }
-        for borrow in borrows {
-            let source = closure.parameters[borrow.source];
+        for borrow in &borrows {
+            let source = sources[borrow.source];
             let key = (borrow.target.clone(), borrow.origin, borrow.capture);
             if let Some(previous) = slots.insert(key, source) {
                 let left = groups[&previous];
@@ -67,10 +115,12 @@ impl Emitter<'_> {
                             .split(|ch: char| !ch.is_alphanumeric() && ch != '\'' && ch != '_')
                             .any(|word| word == token)
                         {
-                            *lifetime = format!(
-                                "'record_input{}",
-                                groups[&closure.parameters[source.source]]
-                            );
+                            *lifetime = hidden_lifetimes
+                                .get(&sources[source.source])
+                                .cloned()
+                                .unwrap_or_else(|| {
+                                    format!("'record_input{}", groups[&sources[source.source]])
+                                });
                         }
                     }
                 }
@@ -87,7 +137,7 @@ impl Emitter<'_> {
                     ) {
                         substitutions.insert(
                             format!("K{}", capture.inner),
-                            format!("F{}", closure.parameters[source.source]),
+                            format!("F{}", sources[source.source]),
                         );
                     }
                 }
@@ -107,7 +157,7 @@ impl Emitter<'_> {
                                         && installed.captures[source.capture].inner == capture.inner
                                 })
                                 .expect("retained closure owner input");
-                            format!("O{}", closure.parameters[source.source])
+                            format!("O{}", sources[source.source])
                         })
                         .collect::<Vec<_>>()
                         .join(",");
@@ -158,6 +208,7 @@ impl Emitter<'_> {
         for bound in &mut trait_bounds {
             let mut substitutions = groups
                 .iter()
+                .filter(|(parameter, _)| !hidden_lifetimes.contains_key(parameter))
                 .map(|(&parameter, &group)| {
                     let slot = closure
                         .parameters
@@ -174,7 +225,10 @@ impl Emitter<'_> {
             }
         }
         for (&parameter, &group) in &groups {
-            if parameter != group {
+            if parameter != group
+                && !hidden_lifetimes.contains_key(&parameter)
+                && !hidden_lifetimes.contains_key(&group)
+            {
                 let source = closure
                     .parameters
                     .iter()
@@ -209,7 +263,10 @@ impl Emitter<'_> {
                     function: &closure.function,
                     parameters: closure.parameters.clone(),
                     source_parameters: closure.parameters.clone(),
-                    borrow_lifetimes: groups,
+                    borrow_lifetimes: groups
+                        .into_iter()
+                        .filter(|(binding, _)| !hidden_lifetimes.contains_key(binding))
+                        .collect(),
                     owner_parameters: owner_inputs
                         .iter()
                         .map(|source| {

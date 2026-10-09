@@ -769,3 +769,37 @@ fn captured_installer_retains_stored_owner_after_installer_disposal() {
     assert_ne!(source,released);
     tsrust_compiler::check(&released).expect("Clearing the stored callback releases the captured input loan");
 }
+
+#[test]
+fn captured_source_installer_keeps_native_input_alive_after_disposal() {
+    let source = r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>): void {
+            holder.run = (): int => source[0];
+        }
+        function clear(holder: Mutable<Holder>): void { holder.run = undefined; }
+        function main() {
+            const source = [3]; const holder: Holder = { run: undefined };
+            {
+                const perform = (target: Mutable<Holder>): void => { install(target, source); };
+                perform(holder);
+            }
+            strictEqual(holder.run!(), 3);
+            clear(holder); source[0] += 1; strictEqual(source[0], 4);
+        }
+    "#;
+    execute(source);
+    let plain = source.replace(" | undefined", "").replace("run: undefined", "run: (): int => 0").replace("run!()", "run()").replace("            clear(holder); source[0] += 1; strictEqual(source[0], 4);", "").replace("        function clear(holder: Mutable<Holder>): void { holder.run = undefined; }", "");
+    execute(&plain);
+    let pair = source.replace("source: ReadOnly<int[]>", "source: ReadOnly<int[]>, other: ReadOnly<int[]>")
+        .replace("(): int => source[0]", "(): int => source[0] + other[0]")
+        .replace("const source = [3];", "const source = [3]; const other = [11];")
+        .replace("install(target, source);", "install(target, source, other);")
+        .replace("strictEqual(holder.run!(), 3);", "strictEqual(holder.run!(), 14);");
+    execute(&pair);
+    let alias = source.replace("const perform = (target", "const alias = source; const perform = (target").replace("install(target, source);", "install(target, alias);");
+    let alias = alias.replace("import { strictEqual } from \"std:testing\";", "").replace("strictEqual(holder.run!(), 3);", "console.log(holder.run!());").replace("strictEqual(source[0], 4);", "console.log(source[0]);");
+    let error = tsrust_compiler::check(&alias).err().expect("A plain local alias transfers ownership into the shorter block");
+    assert_eq!(error.code, "callback-escape", "{error:?}");
+}

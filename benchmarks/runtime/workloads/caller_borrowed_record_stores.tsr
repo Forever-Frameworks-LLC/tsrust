@@ -357,7 +357,27 @@ function workload(n: int, seed: int, input: string): int[][] {
             capturedEffects = calls[0];
         }
 
-        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects, conditionalFirst, conditionalReleased, conditionalReplacement, conditionalEffects, forwardedFirst, forwardedReleased, forwardedReplacement, forwardedEffects, closureFirst, closureReleased, closureReplacement, closureEffects, capturedFirst, capturedReleased, capturedReplacement, capturedEffects]);
+        let retainedCapture = 0;
+        let clearedCapture = 0;
+        {
+            const captured = [value + 8];
+            const holder: ReadNullableHolder = {
+                run: undefined
+            };
+            {
+                const retainCaptured = (target: Mutable<ReadNullableHolder>): void => {
+                    installCapturedSource(target, captured);
+                };
+                retainCaptured(holder);
+            }
+
+            retainedCapture = holder.run!();
+            clearCapturedSource(holder);
+            captured[0] += 1;
+            clearedCapture = captured[0];
+        }
+
+        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects, conditionalFirst, conditionalReleased, conditionalReplacement, conditionalEffects, forwardedFirst, forwardedReleased, forwardedReplacement, forwardedEffects, closureFirst, closureReleased, closureReplacement, closureEffects, capturedFirst, capturedReleased, capturedReplacement, capturedEffects, retainedCapture, clearedCapture]);
         i += 1;
     }
 
@@ -470,4 +490,12 @@ function installConditional(holder: Mutable<ReadNullableHolder>, source: ReadOnl
 function chooseCallbackBranch(plus: boolean, calls: Mutable<int[]>): boolean {
     calls[0] += 10;
     return plus;
+}
+
+function installCapturedSource(holder: Mutable<ReadNullableHolder>, source: ReadOnly<int[]>): void {
+    holder.run = (): int => source[0];
+}
+
+function clearCapturedSource(holder: Mutable<ReadNullableHolder>): void {
+    holder.run = undefined;
 }

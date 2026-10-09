@@ -16,6 +16,7 @@ pub(crate) struct Borrow {
 pub(crate) struct CapturedBorrow {
     pub(crate) target: Place,
     pub(crate) source_capture: usize,
+    pub(crate) capture: usize,
     pub(crate) mode: Mode,
     pub(crate) origin: usize,
 }
@@ -206,6 +207,7 @@ pub(super) fn summary_parts(
                 let effect = CapturedBorrow {
                     target: borrow.target,
                     source_capture,
+                    capture: borrow.capture,
                     mode: borrow.mode,
                     origin: borrow.origin,
                 };
