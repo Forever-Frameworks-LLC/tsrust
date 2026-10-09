@@ -130,6 +130,10 @@ impl Analyzer {
         let(_,path)=Self::scoped_array_storage_path(target)?;if path.is_empty(){return None;}
         let mut ty=binding.ty;
         for name in path{while let Type::Array(element)=ty{ty=element.ty();}let Type::Record(record)=ty else{return None;};let record=self.scoped_records.declaration(record);ty=self.program.records[record].fields.iter().find(|field|field.name.text==name)?.ty?;}
+        if self.nullable_scoped_record_declaration(ty).is_some() {
+            let (_,path)=Self::direct_fields(target)?;
+            return self.record_field_type(binding.ty,&path);
+        }
         (matches!(ty,Type::Callback(_)) || matches!(ty,Type::Map(_)) && self.aggregate_callable_facts(ty).scoped).then_some(ty)
     }
     /// A local record field declared as a borrowing callback or an absent value.

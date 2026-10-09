@@ -513,7 +513,7 @@ function workload(n: int, seed: int, input: string): int[][] {
         const countedMapObserved = countedMapLoop();
         const postMapObserved = postMapLoop();
         const emptyMapObserved = emptyScopedMap();
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped, nestedPairLooped, emptyMapObserved, countedMapObserved, postMapObserved, forOfMapObserved, knownEntryRelease(value), movedFieldEntryRelease(value), replacementEntryOutcome(value, value % 2 !== 0), branchEntryRelease(value, value % 2 === 0), mixedBranchEntryRelease(value, value % 2 === 0), pairedBranchEntryRelease(value, value % 2 === 0), postEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), countedEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), forOfEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), loopEntryRefill(value, value % 2 === 0 ? 0 : 2), innerBranchEntryRelease(value, value % 2 === 0), branchEntryRefill(value, value % 2 === 0), iterationEntryMutation(value, value % 2 === 0 ? 0 : 2), postIterationEntryMutation(value, value % 2 === 0 ? 0 : 2), abruptIterationEntryMutation(value, value % 2 === 0), countedUpdateEntryMutation(value, value % 2 === 0), finallyEntryMutation(value), cleanupIterationMutation(value, value % 2 === 0), returnCleanupEntryMutation(value, 0), returnCleanupEntryMutation(value, 1), returnCleanupEntryMutation(value, 2), returnCleanupEntryMutation(value, 3), returnCleanupEntryMutation(value, 4), nestedCleanupEntryMutation(value, value % 2 === 0, false), nestedCleanupEntryMutation(value, value % 2 === 0, true), directNestedEntryMutation(value, value % 2 === 0), labelledBlockEntryMutation(value, value % 2 === 0), labelledLoopBlockEntryMutation(value, value % 2 === 0), ordinaryEntryEdges(value, value % 2 === 0 ? 0 : 2, false), ordinaryEntryEdges(value, 2, true), narrowedOrdinaryEntryEdges(value, 2, false), noBackedgeEntryBreak(value), noBackedgeEntryReturn(value), phaseJoinedEntry(value, false), phaseJoinedEntry(value, true), finallyNormalJoinedEntry(value, value % 2 !== 0), errorPhaseEntry(value, value % 2 !== 0), finallyErrorEntry(value, value % 2 !== 0), finallyPendingError(value, value % 2 !== 0), handlerRethrowEntry(value), cleanupOutgoingEntry(value, value % 2 !== 0), catchFinallyEntry(value, 0), catchFinallyEntry(value, 1), catchFinallyEntry(value, 2), catchFinallyEntry(value, 3), returnCarrierEntry(value, 0), returnCarrierEntry(value, 1), returnCarrierEntry(value, 2), catchReturnCarrierEntry(value, 0), catchReturnCarrierEntry(value, 1), catchReturnCarrierEntry(value, 2), controlCarrierEntry(value, 0), controlCarrierEntry(value, 1), controlCarrierEntry(value, 2), handlerControlCarrierEntry(value, 0), handlerControlCarrierEntry(value, 1), handlerControlCarrierEntry(value, 2), cleanupOverrideEntry(value, 0), cleanupOverrideEntry(value, 1), cleanupOverrideEntry(value, 2), cleanupOverrideEntry(value, 3), handlerCleanupOverrideEntry(value, 0), handlerCleanupOverrideEntry(value, 1), handlerCleanupOverrideEntry(value, 2), handlerCleanupOverrideEntry(value, 3), indexedReplacementEntry(value), indexedFieldReplacementEntry(value), indexedMovedReplacementEntry(value), indexedPopEntry(value), indexedShiftEntry(value), indexedEmptyEntry(value), indexedRetainedEntry(value), indexedIndependentResult(value), indexedMutableResult(value), indexedReplacedResult(value), indexedCommaRemoval(value), indexedNestedCommaRemoval(value), indexedRetainedCommaResult(value), indexedCommaReassignment(value), nullableRecordReplacement(value), nullableRecordNullResult(value)]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped, nestedPairLooped, emptyMapObserved, countedMapObserved, postMapObserved, forOfMapObserved, knownEntryRelease(value), movedFieldEntryRelease(value), replacementEntryOutcome(value, value % 2 !== 0), branchEntryRelease(value, value % 2 === 0), mixedBranchEntryRelease(value, value % 2 === 0), pairedBranchEntryRelease(value, value % 2 === 0), postEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), countedEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), forOfEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), loopEntryRefill(value, value % 2 === 0 ? 0 : 2), innerBranchEntryRelease(value, value % 2 === 0), branchEntryRefill(value, value % 2 === 0), iterationEntryMutation(value, value % 2 === 0 ? 0 : 2), postIterationEntryMutation(value, value % 2 === 0 ? 0 : 2), abruptIterationEntryMutation(value, value % 2 === 0), countedUpdateEntryMutation(value, value % 2 === 0), finallyEntryMutation(value), cleanupIterationMutation(value, value % 2 === 0), returnCleanupEntryMutation(value, 0), returnCleanupEntryMutation(value, 1), returnCleanupEntryMutation(value, 2), returnCleanupEntryMutation(value, 3), returnCleanupEntryMutation(value, 4), nestedCleanupEntryMutation(value, value % 2 === 0, false), nestedCleanupEntryMutation(value, value % 2 === 0, true), directNestedEntryMutation(value, value % 2 === 0), labelledBlockEntryMutation(value, value % 2 === 0), labelledLoopBlockEntryMutation(value, value % 2 === 0), ordinaryEntryEdges(value, value % 2 === 0 ? 0 : 2, false), ordinaryEntryEdges(value, 2, true), narrowedOrdinaryEntryEdges(value, 2, false), noBackedgeEntryBreak(value), noBackedgeEntryReturn(value), phaseJoinedEntry(value, false), phaseJoinedEntry(value, true), finallyNormalJoinedEntry(value, value % 2 !== 0), errorPhaseEntry(value, value % 2 !== 0), finallyErrorEntry(value, value % 2 !== 0), finallyPendingError(value, value % 2 !== 0), handlerRethrowEntry(value), cleanupOutgoingEntry(value, value % 2 !== 0), catchFinallyEntry(value, 0), catchFinallyEntry(value, 1), catchFinallyEntry(value, 2), catchFinallyEntry(value, 3), returnCarrierEntry(value, 0), returnCarrierEntry(value, 1), returnCarrierEntry(value, 2), catchReturnCarrierEntry(value, 0), catchReturnCarrierEntry(value, 1), catchReturnCarrierEntry(value, 2), controlCarrierEntry(value, 0), controlCarrierEntry(value, 1), controlCarrierEntry(value, 2), handlerControlCarrierEntry(value, 0), handlerControlCarrierEntry(value, 1), handlerControlCarrierEntry(value, 2), cleanupOverrideEntry(value, 0), cleanupOverrideEntry(value, 1), cleanupOverrideEntry(value, 2), cleanupOverrideEntry(value, 3), handlerCleanupOverrideEntry(value, 0), handlerCleanupOverrideEntry(value, 1), handlerCleanupOverrideEntry(value, 2), handlerCleanupOverrideEntry(value, 3), indexedReplacementEntry(value), indexedFieldReplacementEntry(value), indexedMovedReplacementEntry(value), indexedPopEntry(value), indexedShiftEntry(value), indexedEmptyEntry(value), indexedRetainedEntry(value), indexedIndependentResult(value), indexedMutableResult(value), indexedReplacedResult(value), indexedCommaRemoval(value), indexedNestedCommaRemoval(value), indexedRetainedCommaResult(value), indexedCommaReassignment(value), nullableRecordReplacement(value), nullableRecordNullResult(value), nullableFieldReplacement(value), nullableFieldArray(value)]);
         i += 1;
     }
 
@@ -2674,4 +2674,60 @@ function nullableRecordNullResult(value: int): int {
     nullSaved = null;
     nullableValues[0] += 2;
     return observed + nullableValues[0];
+}
+
+type NullableFieldPair = {
+    left: Holder | undefined;
+    right: Holder | undefined;
+};
+
+type NullableFieldArray = {
+    saved: Holder | undefined;
+    items: Holder[];
+};
+
+function nullableFieldReplacement(value: int): int {
+    const fieldFirst = [value];
+    const fieldSecond = [value + 1];
+    const fieldThird = [value + 2];
+    const pair: NullableFieldPair = {
+        left: undefined, right: undefined
+    };
+    pair.left = {
+        run: (): int => fieldFirst[0]
+    };
+    pair.right = {
+        run: (): int => fieldSecond[0]
+    };
+    pair.left = {
+        run: (): int => fieldThird[0]
+    };
+    fieldFirst[0] += 3;
+    let observed = 0;
+    if (pair.left !== undefined && pair.right !== undefined) observed = pair.left.run() + pair.right.run();
+    pair.left = undefined;
+    fieldThird[0] += 4;
+    pair.right = undefined;
+    fieldSecond[0] += 5;
+    return observed + fieldFirst[0] + fieldSecond[0] + fieldThird[0];
+}
+
+function nullableFieldArray(value: int): int {
+    const fieldArrayFirst = [value];
+    const fieldArraySecond = [value + 1];
+    const box: NullableFieldArray = {
+        saved: undefined, items: [{
+            run: (): int => fieldArrayFirst[0]
+        }]
+    };
+    box.saved = {
+        run: (): int => fieldArraySecond[0]
+    };
+    box.items.pop();
+    fieldArrayFirst[0] += 2;
+    let observed = 0;
+    if (box.saved !== undefined) observed = box.saved.run() + fieldArrayFirst[0] + box.items.length;
+    box.saved = undefined;
+    fieldArraySecond[0] += 3;
+    return observed + fieldArraySecond[0];
 }

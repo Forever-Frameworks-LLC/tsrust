@@ -30,7 +30,7 @@ impl Emitter<'_> {
             remaining.retain(|candidate|*candidate!=target);
             let mut conversions=String::new();
             for epoch in epochs {
-                let conversion=crate::analysis::MapEntryEpoch{place:epoch.entry.place.clone(),input:fun.bindings[epoch.entry.place.binding].ty,output:epoch.body.output,empty:false,before:false};
+                let conversion=crate::analysis::MapEntryEpoch{place:epoch.entry.place.clone(),input:fun.bindings[epoch.entry.place.binding].ty,output:epoch.body.output,empty:epoch.body.empty,before:false};
                 if conversion.input!=conversion.output {conversions.push_str(&self.map_entry_epoch_code(fun,&conversion));}
             }
             let names=epochs.iter().map(|epoch|self.map_entry_epoch_place(fun,&epoch.entry)).collect::<Vec<_>>().join(",");

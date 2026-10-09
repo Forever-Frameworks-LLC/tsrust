@@ -5,8 +5,21 @@ impl Emitter<'_> {
     pub(super) fn array_result_write_code(&self, fun: &CheckedFunction, statement: &Stmt) -> Option<String> {
         let ty = fun.storage_exits.array_result_write(statement.span)?;
         let StmtKind::Assign { target, value, operator: None } = &statement.kind else { return None; };
-        let binding = target.binding?;
-        Some(format!("let array_result_replacement = {}; drop(value{binding}); let mut value{binding}: {} = array_result_replacement;", self.expr(fun, value, Mode::Consume), self.native_type(ty)))
+        let mut root=target;
+        let mut names=Vec::new();
+        while let ExprKind::Field(base,name)=&root.kind {names.push(name);root=base;}
+        let binding=root.binding?;
+        let place=if names.is_empty(){format!("value{binding}")}else{
+            let mut current=fun.bindings[binding].ty;
+            let mut path=Vec::new();
+            for name in names.into_iter().rev(){
+                let Type::Record(record)=current else{return None;};
+                let index=self.program.records[record].fields.iter().position(|field|field.name.text==*name)?;
+                path.push(index);current=self.program.records[record].fields[index].ty?;
+            }
+            self.owned_record_leaf_place(fun,binding,&path)?
+        };
+        Some(format!("let array_result_replacement = {}; drop({place}); let mut {place}: {} = array_result_replacement;", self.expr(fun, value, Mode::Consume), self.native_type(ty)))
     }
 
     pub(super) fn array_block_storage_epoch(&self, output: &mut String, fun: &CheckedFunction, statement: &Stmt, declarations: &[Stmt], depth: usize, loop_label: Option<usize>) -> bool {

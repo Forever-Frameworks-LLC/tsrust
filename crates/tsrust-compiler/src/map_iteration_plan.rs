@@ -20,6 +20,15 @@ impl Analyzer {
             // An absent backedge does not make reaching entry or break storage
             // empty. Direct exits still need local deletion and owner transport.
             let broken=context.storage_exits.map_loop_edge(statement.span,storage_exit_availability::MapLoopEdge::Break,place);
+            // Distinct edge environments cost a conversion on every iteration.
+            // They are required only when the loop can write a released owner.
+            if !post_test && !cleanup_body
+                && (entry!=back || broken.is_some() && broken!=back)
+            {
+                let released=context.storage_exits.map_completion_survivors(statement.span).iter()
+                    .filter(|state|state.consistent && state.place==*place).flat_map(|state|state.released.iter().copied()).collect::<HashSet<_>>();
+                if !map_entry_demand::mutates(std::slice::from_ref(statement),&released)? {continue;}
+            }
             let break_empty=broken.is_none_or(HashSet::is_empty);
             let entry_empty=entry.is_none_or(HashSet::is_empty);
             let back_empty=back.is_none_or(HashSet::is_empty);

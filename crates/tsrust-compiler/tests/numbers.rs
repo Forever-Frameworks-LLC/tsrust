@@ -195,7 +195,6 @@ fn number_parameters_callbacks_reject_implicit_int_conversion_and_wrong_coordina
         ),
         ("function main(){const values:int[]=[1.5];}", "type"),
         ("function main(){const integer:int=1.5;}", "type"),
-        ("function main(){if(1.0){}}", "type"),
         ("function main(){const number:number=true;}", "type"),
         ("type number={value:int;};function main(){}", "duplicate"),
         (

@@ -163,5 +163,27 @@ both before accessing fields. Direct replacement evaluates the new value before
 dropping the old one. Clearing releases captures with no other owner. Moving the
 record into another local retains that local's capture protection. No callback
 object is constructed for the absent runtime variant, and no implicit clone is
-introduced. This support applies to local direct storage; field storage and
-control-flow joins still require their own environment planning.
+introduced.
+
+A nullable local or field can also start populated. The initializer keeps its
+capture protection until the value is replaced or cleared:
+
+```tsrust
+let saved: Holder | undefined = { run: (): int => values[0] };
+if (saved !== undefined) console.log(saved.run()); // 3
+saved = undefined;
+values[0] = 7;
+```
+
+Direct nullable fields support population, replacement and clearing in normal
+lexical sequences, including ordinary blocks and nested record paths such as
+`outer.inner.saved`. The right operand can read the old field value; the old
+environment is released only after the new value exists. Each field retains its
+own capture owners. Clearing one field does not release a sibling field's
+captures, and ordinary sibling fields remain assignable. A record may combine
+these fields with a scoped callback array.
+
+Whole-record replacement, conditional or loop field stores, indexed field stores
+and borrowed field stores still require environment and disposal planning. These
+forms receive source diagnostics. Moving the containing record transfers its
+field owners without cloning.

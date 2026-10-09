@@ -14,6 +14,8 @@ mod array_storage_epochs;
 mod array_result_storage;
 #[path = "nullable_record_storage.rs"]
 mod nullable_record_storage;
+#[path = "nullable_record_fields.rs"]
+mod nullable_record_fields;
 #[path = "discarded_sequence.rs"]
 mod discarded_sequence;
 #[path="map_entry_capture_owners.rs"]
@@ -9642,7 +9644,8 @@ impl Analyzer {
             let actual = if let Type::StoredCallable(family) = field_type {
                 self.stored_callable_value(context, value, family, loans)?
             } else {
-                self.scoped_record_field_value(context, value, field_type, loans)?
+                let concrete_expected=self.absent_nullable_record_annotation(context,Some(field_type),value)?.unwrap_or(field_type);
+                self.scoped_record_field_value(context, value, concrete_expected, loans)?
             };
             let contract_type=if let Type::BorrowedCallable(family)=field_type{Type::Callback(self.callables.storage.declaration(family).expect("borrowed field declaration"))}else{field_type};
             self.require(actual, Some(contract_type), value.span)?;
@@ -9650,7 +9653,7 @@ impl Analyzer {
                 if actual != expected && self.scoped_records.declaration(actual) == expected);
             let nested_array_instance = matches!((actual, field_type), (Type::Array(ArrayElement::Record(actual, depth)), Type::Array(ArrayElement::Record(expected, expected_depth)))
                 if depth == expected_depth && actual != expected && self.scoped_records.declaration(actual) == expected);
-            if nested_instance || nested_array_instance || self.scoped_map_contract(actual, field_type) || matches!(self.unions.payload(field_type).unwrap_or(field_type), Type::Callback(_) | Type::BorrowedCallable(_)) {
+            if nested_instance || nested_array_instance || self.scoped_record_nullable_contract(actual,field_type) || self.scoped_map_contract(actual, field_type) || matches!(self.unions.payload(field_type).unwrap_or(field_type), Type::Callback(_) | Type::BorrowedCallable(_)) {
                 let position = self.program.records[index].fields.iter().position(|field| field.name.text == key.text).expect("checked field name");
                 concrete[position] = actual;
                 specialized = true;

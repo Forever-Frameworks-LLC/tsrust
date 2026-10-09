@@ -1,6 +1,45 @@
 mod support;
 
 #[test]
+fn nullable_record_fields_release_independent_capture_owners() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};type Pair={left:Holder|undefined;right:Holder|undefined;};function main():void{const first=[3];const second=[5];const third=[7];const pair:Pair={left:undefined,right:undefined};pair.left={run:():int=>first[0]};pair.right={run:():int=>second[0]};if(pair.left!==undefined && pair.right!==undefined)console.log(pair.left.run(),pair.right.run());pair.left={run:():int=>third[0]};first[0]=9;if(pair.left!==undefined && pair.right!==undefined)console.log(pair.left.run(),pair.right.run(),first[0]);pair.left=undefined;third[0]=11;pair.right=undefined;second[0]=13;console.log(first[0],second[0],third[0]);}");
+    support::execute(&source,"3 5\n7 5 9\n9 13 11\n",None);
+    verify_disposal(&source,3,"3 5\ndrop 0\n7 5 9\ndrop 2\ndrop 1\n9 13 11\n");
+    let block=source.replace("pair.left = {\n        run: (): int => third[0]\n    };", "{pair.left={run:():int=>third[0]};}");
+    assert_ne!(block,source);
+    support::execute(&support::format_round_trip(&block),"3 5\n7 5 9\n9 13 11\n",None);
+    let moved=source.replace("pair.left = {\n        run: (): int => third[0]\n    };", "const moved=pair;moved.left={run:():int=>third[0]};");
+    let split=moved.find("const moved=pair").unwrap();
+    let moved=format!("{}{}",&moved[..split],moved[split..].replace("pair.","moved."));
+    support::execute(&support::format_round_trip(&moved),"3 5\n7 5 9\n9 13 11\n",None);
+
+}
+
+#[test]
+fn nullable_record_field_replacement_preserves_sibling_capture_loans() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};type Pair={left:Holder|undefined;right:Holder|undefined;};function main():void{const first=[3];const second=[5];const pair:Pair={left:undefined,right:undefined};pair.left={run:():int=>first[0]};pair.right={run:():int=>second[0]};pair.left=undefined;second[0]=9;if(pair.right!==undefined)console.log(pair.right.run());}");
+    assert_eq!(tsrust_compiler::check(&source).err().expect("clearing left must preserve right's capture loan").code,"capture-conflict");
+}
+
+#[test]
+fn nullable_record_fields_compose_with_scoped_array_storage() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;items:Holder[];};function main():void{const first=[3];const second=[5];const box:Box={saved:undefined,items:[{run:():int=>first[0]}]};box.saved={run:():int=>second[0]};box.items.pop();first[0]=7;if(box.saved!==undefined)console.log(box.saved.run(),first[0],box.items.length);box.saved=undefined;second[0]=9;console.log(first[0],second[0]);}");
+    support::execute(&source,"5 7 0\n7 9\n",None);
+}
+
+#[test]
+fn nullable_record_field_branch_stores_have_source_diagnostics() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};function example(flag:boolean):void{const values=[3];const box:Box={saved:undefined};if(flag)box.saved={run:():int=>values[0]};if(box.saved!==undefined)console.log(box.saved.run());}function main():void{example(true);}");
+    assert_eq!(tsrust_compiler::check(&source).err().expect("branch field environment joins are still pending").code,"unsupported");
+}
+
+#[test]
+fn nullable_record_whole_replacement_has_a_source_diagnostic_until_drop_planned() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};function main():void{const values=[3];let box:Box={saved:undefined};box.saved={run:():int=>values[0]};box={saved:undefined};values[0]=9;console.log(values[0]);}");
+    assert_eq!(tsrust_compiler::check(&source).err().expect("whole-record replacement needs live-leaf drop planning").code,"unsupported");
+}
+
+#[test]
 fn nullable_scoped_record_starts_absent_and_releases_replacements() {
     let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];let saved:Holder|undefined=undefined;console.log(String(saved));saved={run:():int=>first[0]};if(saved!==undefined)console.log(saved.run());saved={run:():int=>second[0]};first[0]=7;if(saved!==undefined)console.log(saved.run(),first[0]);saved=undefined;second[0]=9;console.log(String(saved),second[0]);}");
     support::execute(&source,"undefined\n3\n5 7\nundefined 9\n",None);
@@ -2976,4 +3015,41 @@ fn dense_arrays_of_borrowing_records_keep_capture_owners_live() {
     let output = support::run(support::cli().arg("run").arg(directory.source(&source)), 60);
     support::success(&output);
     assert!(output.stdout.is_empty());
+}
+
+#[test]
+fn nullable_record_fields_protect_old_destination_nested_paths_and_siblings() {
+    let holder="type Holder={run:ReadOnly<Function<int>>;};";
+    // The right operand reads the old field before the old environment is released.
+    let source=support::format_round_trip(&format!("{holder}type Box={{saved:Holder|undefined;}};function main():void{{const a=[3];const b=[5];const box:Box={{saved:undefined}};box.saved={{run:():int=>a[0]}};const old=box.saved!==undefined?box.saved.run():0;box.saved={{run:():int=>b[0]+old}};a[0]=9;if(box.saved!==undefined)console.log(box.saved.run(),a[0]);}}"));
+    support::execute(&source,"8 9\n",None);
+    let nested=support::format_round_trip(&format!("{holder}type Inner={{saved:Holder|undefined;}};type Outer={{inner:Inner;tag:int;}};function main():void{{const a=[3];const b=[5];const o:Outer={{inner:{{saved:undefined}},tag:1}};o.inner.saved={{run:():int=>a[0]}};if(o.inner.saved!==undefined)console.log(o.inner.saved.run());o.inner.saved={{run:():int=>b[0]}};a[0]=9;if(o.inner.saved!==undefined)console.log(o.inner.saved.run(),a[0],o.tag);o.inner.saved=undefined;b[0]=1;console.log(b[0]);}}"));
+    support::execute(&nested,"3\n5 9 1\n1\n",None);
+    verify_disposal(&nested,2,"3\ndrop 0\n5 9 1\ndrop 1\n1\n");
+    let null=support::format_round_trip(&format!("{holder}type Box={{saved:Holder|null;}};function main():void{{const a=[3];const box:Box={{saved:null}};box.saved={{run:():int=>a[0]}};if(box.saved!==null)console.log(box.saved.run());box.saved=null;a[0]=9;console.log(a[0]);}}"));
+    support::execute(&null,"3\n9\n",None);
+    let siblings=support::format_round_trip(&format!("{holder}type Box={{saved:Holder|undefined;name:string;count:int;plain:Holder;}};function main():void{{const a=[3];const c=[1];const box:Box={{saved:undefined,name:\"n\",count:2,plain:{{run:():int=>c[0]}}}};box.saved={{run:():int=>a[0]}};box.count+=1;box.name=\"m\";if(box.saved!==undefined)console.log(box.saved.run(),box.plain.run(),box.name,box.count);box.saved=undefined;a[0]=9;console.log(a[0],box.plain.run());}}"));
+    support::execute(&siblings,"3 1 m 3\n9 1\n",None);
+    let optional=support::format_round_trip(&format!("{holder}type Box={{saved?:Holder;}};function main():void{{const a=[3];const box:Box={{}};box.saved={{run:():int=>a[0]}};if(box.saved!==undefined)console.log(box.saved.run());box.saved=undefined;a[0]=9;console.log(a[0]);}}"));
+    support::execute(&optional,"3\n9\n",None);
+    let held=support::format_round_trip(&format!("{holder}type Box={{saved:Holder|undefined;}};function main():void{{const a=[3];const box:Box={{saved:undefined}};box.saved={{run:():int=>a[0]}};a[0]=9;if(box.saved!==undefined)console.log(box.saved.run());}}"));
+    assert_eq!(tsrust_compiler::check(&held).err().expect("a live field environment keeps its capture loan").code,"capture-conflict");
+}
+
+#[test]
+fn nullable_callback_records_can_start_populated() {
+    let holder="type Holder={run:ReadOnly<Function<int>>;};";
+    let local=support::format_round_trip(&format!("{holder}function main():void{{const a=[3];const b=[4];let saved:Holder|undefined={{run:():int=>a[0]}};if(saved!==undefined)console.log(saved.run());saved={{run:():int=>b[0]}};a[0]=9;if(saved!==undefined)console.log(saved.run(),a[0]);saved=undefined;b[0]=8;console.log(a[0],b[0]);}}"));
+    support::execute(&local,"3\n4 9\n9 8\n",None);
+    verify_disposal(&local,2,"3\ndrop 0\n4 9\ndrop 1\n9 8\n");
+    let field=support::format_round_trip(&format!("{holder}type Box={{saved:Holder|undefined;}};function main():void{{const a=[3];const b=[4];const box:Box={{saved:{{run:():int=>a[0]}}}};if(box.saved!==undefined)console.log(box.saved.run());box.saved={{run:():int=>b[0]}};a[0]=9;box.saved=undefined;b[0]=8;console.log(a[0],b[0]);}}"));
+    support::execute(&field,"3\n9 8\n",None);
+    verify_disposal(&field,2,"3\ndrop 0\ndrop 1\n9 8\n");
+    // A closure that owns its captures fills the same nullable position, and the record can be returned.
+    let owned=support::format_round_trip(&format!("{holder}type Box={{saved:Holder|undefined;}};function make(n:int):Box{{return {{saved:{{run:():int=>n}}}};}}function local(n:int):Box{{const box:Box={{saved:{{run:():int=>n}}}};return box;}}function main():void{{const first=make(4);if(first.saved!==undefined)console.log(first.saved.run());const second=local(5);if(second.saved!==undefined)console.log(second.saved.run());const n=6;const box:Box={{saved:{{run:():int=>n}}}};if(box.saved!==undefined)console.log(box.saved.run());box.saved=undefined;console.log(box.saved===undefined);}}"));
+    support::execute(&owned,"4\n5\n6\ntrue\n",None);
+    let indexed=support::format_round_trip(&format!("{holder}type Box={{saved:Holder|undefined;}};function main():void{{const a=[3];const boxes:Box[]=[{{saved:undefined}}];boxes[0].saved={{run:():int=>a[0]}};}}"));
+    assert_eq!(tsrust_compiler::check(&indexed).err().expect("indexed field stores are still pending").code,"unsupported");
+    let held=support::format_round_trip(&format!("{holder}function main():void{{const a=[3];let saved:Holder|undefined={{run:():int=>a[0]}};a[0]=9;if(saved!==undefined)console.log(saved.run());}}"));
+    assert_eq!(tsrust_compiler::check(&held).err().expect("a populated initializer keeps its capture loan").code,"capture-conflict");
 }

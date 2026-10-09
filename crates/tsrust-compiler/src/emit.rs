@@ -336,11 +336,14 @@ impl Emitter<'_> {
             }
         }
         if let Type::Record(id) = value {
-            let parameters = self.program.records[id].fields.iter().filter_map(|field| {
+            // The declaration decides which fields are generic. An instance
+            // whose nullable field owns all captures still fills that position.
+            let base = self.program.scoped_records.declaration(id);
+            let parameters = self.program.records[id].fields.iter().zip(&self.program.records[base].fields).filter_map(|(field, declared)| {
                 let ty = field.ty.expect("checked field");
-                self.scoped_record_native_parameter(ty).then(|| self.native_type(ty))
+                (self.scoped_record_native_parameter(ty) || self.scoped_record_native_parameter(declared.ty.expect("checked field"))).then(|| self.native_type(ty))
             }).collect::<Vec<_>>();
-            if !parameters.is_empty() { let base = self.program.scoped_records.declaration(id); return format!("Record{base}<{}>", parameters.join(", ")); }
+            if !parameters.is_empty() { return format!("Record{base}<{}>", parameters.join(", ")); }
         }
         if let Type::BorrowedCallable(id)=value {return self.borrowed_family_type(id,"'_");}
         if let Type::Closure(id) = value {

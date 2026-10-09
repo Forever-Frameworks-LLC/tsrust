@@ -312,10 +312,6 @@ fn narrowing_invalidations_loans_partial_moves_closures_and_depth_are_sound() {
             "type",
         ),
         (
-            "function main(){const x:string|null=null;if(x){console.log(1);}}",
-            "type",
-        ),
-        (
             "function main(){let x:string|null=\"x\";if(x!==null){x=null;console.log(x.length);}}",
             "type",
         ),

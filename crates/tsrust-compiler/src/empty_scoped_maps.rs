@@ -68,6 +68,7 @@ impl Analyzer {
                     }
                     self.unions.intern(concrete, span)?
                 }
+                Type::Map(_) => self.empty_scoped_map_layout(field)?,
                 other => other,
             };
             types.push(ty);

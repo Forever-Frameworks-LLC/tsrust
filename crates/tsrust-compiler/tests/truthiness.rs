@@ -77,3 +77,10 @@ fn owned_logical_assignment_preserves_target_and_short_circuits() {
         None,
     );
 }
+
+#[test]
+fn literal_number_string_and_nullish_conditions_select_by_truthiness() {
+    // These forms were type errors before conditions accepted truthiness.
+    support::execute("function main(){if(\"a\"){console.log(\"t\");}if(\"\"){console.log(\"no\");}let n=2;while(n){n-=1;}console.log(n);let i=3;for(;i;){i-=1;}console.log(i);if(1.0){console.log(\"one\");}if(0.0){console.log(\"zero\");}if(null){console.log(1);}else{console.log(\"absent\");}const x:string|null=null;if(x){console.log(1);}else{console.log(\"nox\");}}", "t\n0\n0\none\nabsent\nnox\n", None);
+    support::execute("function main(){let k=0;do{k+=1;}while(k-3);console.log(k);do{console.log(\"once\");return;}while(1);}", "3\nonce\n", None);
+}

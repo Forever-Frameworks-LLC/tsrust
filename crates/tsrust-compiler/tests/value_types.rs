@@ -81,7 +81,6 @@ fn nullish_values_do_not_erase_static_errors_or_move_ownership() {
         "function main(){const n=null;n.foo;}",
         "function main(){const n=undefined;n.foo();}",
         "function main(){console.log(null+1);}",
-        "function main(){if(null){console.log(1);}}",
         "function effect():void{} function main(){console.log(effect()===null);}",
         "function main(){let null=1;}",
         "function main(){undefined=1;}",

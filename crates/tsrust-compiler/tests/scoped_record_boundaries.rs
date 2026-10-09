@@ -40,11 +40,12 @@ fn callbacks_stored_through_a_record_parameter_cannot_borrow_the_callee() {
 #[test]
 fn declaration_only_containers_remain_rejected_and_concrete_arrays_work() {
     for body in [
-        "function main(){const a=[3];const m=new Map<string,Holder>();m.set(\"k\",{run:():int=>a[0]});}",
         "function call(extra:int,holder:ReadOnly<Holder>|undefined=undefined):int{return extra;} function main(){call(1);}",
     ] {
         rejected(body, "unsupported");
     }
+    // A local Map of capturing records has concrete storage.
+    native("function main(){const a=[3];const m=new Map<string,Holder>();m.set(\"k\",{run:():int=>a[0]});const h=m.get(\"k\");if(h!==undefined)strictEqual(h.run(),3);strictEqual(m.size,1);}");
     native("function main(){const a=[3];{const holders:Holder[]=[{run:():int=>a[0]}];strictEqual(holders[0].run(),3);}a[0]=4;strictEqual(a[0],4);}");
     // A tuple is a record; its fields keep separate layouts.
     native("function main(){const a=[3];const pair:[Holder,int]=[{run:():int=>a[0]},1];strictEqual(pair[0].run()+pair[1],4);}");

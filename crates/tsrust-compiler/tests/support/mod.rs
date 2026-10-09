@@ -108,7 +108,7 @@ pub fn success(output: &Output) {
 }
 
 pub fn reject(source: &str, code: &str) -> Diagnostic {
-    let diagnostic = check(source).err().expect("source must be rejected");
+    let diagnostic = check(source).err().unwrap_or_else(|| panic!("source must be rejected: {source}"));
     assert_eq!(diagnostic.code, code, "{source}\n{}", diagnostic.message);
     let directory = TempDirectory::new();
     let path = directory.source(source);

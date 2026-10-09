@@ -177,9 +177,6 @@ fn new_loops_keep_scope_type_transfer_and_control_diagnostics() {
             "function main() { for (let i = 0; i < 1; i = i + 1) {} console.log(i); }",
             "name",
         ),
-        ("function main() { for (; 1;) {} }", "type"),
-        ("function main() { do {} while (1); }", "type"),
-        ("function main() { do { return; } while (1); }", "type"),
         (
             "function main() { do { return; } while (missing); }",
             "name",

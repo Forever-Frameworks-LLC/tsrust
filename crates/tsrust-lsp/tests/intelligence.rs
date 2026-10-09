@@ -3,6 +3,26 @@ use serde_json::{Value, json};
 use tsrust_lsp::intelligence::SourceIndex;
 
 #[test]
+fn nullable_record_fields_preserve_independent_capture_diagnostics() {
+    let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};type Pair={left:Holder|undefined;right:Holder|undefined;};function main():void{const first=[3];const second=[5];const pair:Pair={left:undefined,right:undefined};pair.left={run:():int=>first[0]};pair.right={run:():int=>second[0]};pair.left=undefined;first[0]=7;if(pair.right!==undefined)console.log(pair.right.run());}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&source,"file:///nullable-fields.tsr").unwrap().is_empty());
+    let conflict=source.replace("first[0] = 7","second[0] = 7");
+    assert_ne!(source,conflict);
+    let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///nullable-fields.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+}
+
+#[test]
+fn populated_nullable_callback_records_report_capture_conflicts() {
+    let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};function main():void{const first=[3];const second=[5];let saved:Holder|undefined={run:():int=>first[0]};const box:Box={saved:{run:():int=>second[0]}};saved=undefined;first[0]=7;if(box.saved!==undefined)console.log(box.saved.run());}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&source,"file:///populated-nullable.tsr").unwrap().is_empty());
+    let conflict=source.replace("first[0] = 7","second[0] = 7");
+    assert_ne!(source,conflict);
+    let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///populated-nullable.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+}
+
+#[test]
 fn nullable_scoped_record_storage_releases_only_replaced_captures() {
     let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];let saved:Holder|undefined=undefined;saved={run:():int=>first[0]};saved={run:():int=>second[0]};first[0]=7;if(saved!==undefined)console.log(saved.run());saved=undefined;second[0]=9;}").unwrap();
     assert!(tsrust_lsp::diagnostics(&source,"file:///nullable-record.tsr").unwrap().is_empty());
@@ -1238,6 +1258,14 @@ impl CatalogExampleSource {
                 self.declarations.push(declaration.to_owned());
             }
             snippet = snippet[end..].trim_start();
+        }
+        // A snippet written as a whole program contributes its `main` body.
+        if let Some(program) = snippet.strip_prefix("function main()") {
+            let program = program.strip_prefix(":void").unwrap_or(program).trim();
+            snippet = program
+                .strip_prefix('{')
+                .and_then(|body| body.strip_suffix('}'))
+                .expect("braced example main body");
         }
         self.body.push_str(&format!("{{{snippet}}}\n"));
         format!("{prelude}function main(){{{snippet}}}")

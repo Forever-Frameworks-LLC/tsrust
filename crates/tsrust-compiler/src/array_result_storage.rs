@@ -41,7 +41,7 @@ impl Analyzer {
     pub(super) fn scoped_record_injection(&self, actual: Type, expected: UnionId, span: Span) -> Result<Option<Type>, Diagnostic> {
         let Type::Record(record) = actual else { return Ok(None); };
         let Some(Type::Record(target)) = self.unions.payload(Type::Union(expected)) else { return Ok(None); };
-        if target == self.scoped_records.declaration(target) || actual == Type::Record(target) || !self.aggregate_callable_facts(actual).scoped
+        if actual == Type::Record(target) || !self.aggregate_callable_facts(Type::Record(self.scoped_records.declaration(record))).scoped
             || self.scoped_records.declaration(record) != self.scoped_records.declaration(target)
         { return Ok(None); }
         self.unions.intern(self.unions.members(expected).into_iter().map(|member| {

@@ -198,7 +198,8 @@ fn invalid_control_flow_and_return_coverage_fail_in_frontend() {
         "function f(): int { while (true) { return 7; } } function main() {}",
         "type",
     );
-    reject("function main() { while (1) {} }", "type");
+    // A number condition selects by truthiness: zero ends the loop.
+    support::execute("function main() { let turns = 2; while (turns) { turns -= 1; } console.log(turns); }", "0\n", None);
     reject("function main() { while (true) let a = 1; }", "syntax");
     reject(
         "function main() { while (true) { break outer; } }",

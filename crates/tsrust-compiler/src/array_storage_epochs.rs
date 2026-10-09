@@ -19,10 +19,14 @@ fn payload(mut value: &Expr) -> &Expr {
 impl Analyzer {
     #[inline(never)]
     pub(super) fn scoped_array_storage_epochs(&mut self, context: &mut Context, body: &mut [Stmt]) -> Result<(), Diagnostic> {
+        // Unplanned stores are diagnosed for every binding shape, including
+        // records reached through arrays that this planner does not track.
+        self.reject_unplanned_nullable_field_stores(context,body)?;
         if !context.bindings.iter().any(|binding|
             (matches!(binding.ty, Type::Record(_) | Type::Array(ArrayElement::Record(_, 0)))
                 && self.aggregate_callable_facts(binding.ty).scoped)
-                || self.nullable_scoped_record_declaration(binding.ty).is_some())
+                || self.nullable_scoped_record_declaration(binding.ty).is_some()
+                || !self.nullable_record_field_paths(binding.ty).is_empty())
         { return Ok(()); }
         super::discarded_sequence::lower(body, &mut context.storage_exits);
         let mut results = HashMap::new();
@@ -42,7 +46,7 @@ impl Analyzer {
                 let incoming = storage.keys().cloned().collect::<Vec<_>>();
                 self.plan_array_storage_body(context, inner, storage, results, eligible)?;
                 if let Some(binding)=context.storage_exits.sequence_export(statement.span.start) { incoming_results.push(binding); }
-                let roots = self.array_epoch_root_types(context, storage);
+                let roots = self.array_epoch_point_types(context, storage,results);
                 let mut epochs = incoming.iter().filter_map(|place| {
                     let state = storage.get(place)?;
                     if context.storage_exits.transfer_at_exit(inner, place.binding, &place.fields).is_some() { return None; }
@@ -50,7 +54,12 @@ impl Analyzer {
                 }).collect::<Vec<_>>();
                 for &binding in &incoming_results {
                     if context.storage_exits.transfer_at_exit(inner, binding, &[]).is_none() && let Some(&ty) = results.get(&binding) {
-                        epochs.push(MapEntryEpoch { place: Place { binding, fields: vec![] }, input: ty, output: ty, empty: false, before: false });
+                        let fields=if matches!(ty,Type::Record(_)){self.nullable_record_field_paths(ty)}else{vec![vec![]]};
+                        for fields in fields {
+                            if context.storage_exits.transfer_at_exit(inner,binding,&fields).is_none() {
+                                epochs.push(MapEntryEpoch { place: Place { binding, fields }, input: ty, output: ty, empty: false, before: false });
+                            }
+                        }
                     }
                 }
                 results.retain(|binding, _| incoming_results.contains(binding) && context.storage_exits.transfer_at_exit(inner, *binding, &[]).is_none());
@@ -108,16 +117,19 @@ impl Analyzer {
             // Until control-flow slot joins are implemented, an opaque use or
             // nonlocal store restores the original carrier before leaving this
             // straight-line epoch. Existing global layouts remain authoritative.
+            let nullable_field_store=matches!(&statement.kind,StmtKind::Assign{target,operator:None,..}
+                if Self::direct_fields(target).is_some_and(|(_,path)|!path.is_empty())
+                && self.planned_record_array_type(target,results).is_some_and(|ty|self.nullable_scoped_record_declaration(ty).is_some()));
             let mut opaque = !matches!(statement.kind, StmtKind::Let { .. } | StmtKind::Assign { .. } | StmtKind::Expr(_) | StmtKind::Return(_) | StmtKind::Throw(_));
             if let StmtKind::Assign { target, .. } = &statement.kind
                 && Self::root_binding(target).is_some_and(|id| storage.keys().any(|place| place.binding == id))
-                && replacement.is_none()
+                && replacement.is_none() && !nullable_field_store
             { opaque = true; }
             if let StmtKind::Let { value, .. } | StmtKind::Return(Some(value)) | StmtKind::Throw(value) = &statement.kind
                 && matches!(value.kind, ExprKind::Name(_))
                 && value.binding.is_some_and(|id| storage.keys().any(|place| place.binding == id))
             { opaque = true; }
-            let retaining = removal.is_none() && (matches!(statement.kind, StmtKind::Let { .. } | StmtKind::Return(_) | StmtKind::Throw(_))
+            let retaining = !nullable_field_store && removal.is_none() && (matches!(statement.kind, StmtKind::Let { .. } | StmtKind::Return(_) | StmtKind::Throw(_))
                 || matches!(statement.kind, StmtKind::Assign { .. }) && replacement.is_none());
             let mut mentions_storage = false;
             let mut effect = false;
@@ -146,7 +158,7 @@ impl Analyzer {
             if let Some((place, _, _)) = &replacement {
                 self.restore_array_storage_baselines(context, storage, statement.span, Some(place))?;
             }
-            let plans = self.array_epoch_root_types(context, storage);
+            let plans = self.array_epoch_point_types(context, storage,results);
             crate::source_walk::body(std::slice::from_mut(statement), &mut |_| Ok(()), &mut |value| {
                 if let Some(ty) = self.planned_record_array_type(value, &plans) { value.ty = Some(ty); }
                 if let ExprKind::Call(callee, _) = &mut value.kind
@@ -157,6 +169,12 @@ impl Analyzer {
                 }
                 Ok(())
             })?;
+            if let StmtKind::Let{binding:Some(binding),value,..}=&mut statement.kind
+                && let Some(ty)=self.nullable_record_initializer(value) {
+                context.bindings[*binding].ty=ty;
+                results.insert(*binding,ty);
+            }
+            self.nullable_record_field_write(context,statement,results)?;
             if let StmtKind::Let { binding: Some(binding), value, .. } = &mut statement.kind
                 && (!context.bindings[*binding].rebindable || eligible.contains(binding))
             {
@@ -199,7 +217,7 @@ impl Analyzer {
             let update = replacement.map(|(place, index, ty)| (place, Some((index, ty)), false))
                 .or_else(|| removal.map(|(place, front, _)| (place, None, front)));
             if let Some((place, replacement, front)) = update && storage.contains_key(&place) {
-                let roots = self.array_epoch_root_types(context, storage);
+                let roots = self.array_epoch_point_types(context, storage,results);
                 let state = storage.get_mut(&place).unwrap();
                 if let Some((index, ty)) = replacement { state.slots[index] = ty; }
                 else if !state.slots.is_empty() {
@@ -247,6 +265,19 @@ impl Analyzer {
             storage.extend(moved_slots);
         }
         Ok(())
+    }
+    fn array_epoch_point_types(&mut self, context:&Context, storage:&std::collections::BTreeMap<Place,Storage>, results:&HashMap<usize,Type>)->HashMap<usize,Type>{
+        let mut roots=self.array_epoch_root_types(context,storage);
+        for (&binding,&point) in results {
+            let Some(Type::Record(mut root))=roots.get(&binding).copied() else{continue;};
+            for path in self.nullable_record_field_paths(point) {
+                if let Some(field)=self.record_field_type(point,&path) {
+                    root=self.record_type_with_field(root,&path,field).expect("checked nullable sibling path");
+                }
+            }
+            roots.insert(binding,Type::Record(root));
+        }
+        roots
     }
     fn array_epoch_root_types(&mut self, context: &Context, storage: &std::collections::BTreeMap<Place, Storage>) -> HashMap<usize, Type> {
         let mut roots = HashMap::new();
