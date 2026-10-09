@@ -1,6 +1,17 @@
 mod support;
 
 #[test]
+fn map_handler_rethrow_preserves_survivors_and_disposal() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{try{throw 7;}catch(error){handlers.delete('first');first[0]+=1;console.log('inner',first[0]);throw 8;}}catch(error){first[0]+=1;console.log('outer',first[0]);for(const [key,entry] of handlers){console.log(key,entry.run());}}handlers.clear();second[0]+=1;console.log('done',second[0]);}");
+    support::execute(&source,"inner 4\nouter 5\nsecond 5\ndone 6\n",None);
+    verify_disposal(&source,2,"drop 0\ninner 4\nouter 5\nsecond 5\ndrop 1\ndone 6\n");
+    let field=("type Owner={handlers:Map<string,Holder>;};".to_owned()+&source).replace("const handlers = new Map<string, Holder>();","const owner:Owner={handlers:new Map<string,Holder>()};").replace("handlers.","owner.handlers.").replace("of handlers)","of owner.handlers)");assert_ne!(field,source);
+    support::execute(&support::format_round_trip(&field),"inner 4\nouter 5\nsecond 5\ndone 6\n",None);
+    verify_disposal(&support::format_round_trip(&field),2,"drop 0\ninner 4\nouter 5\nsecond 5\ndrop 1\ndone 6\n");
+
+}
+
+#[test]
 fn map_finally_error_entry_preserves_survivors_and_disposal() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function scenario(flag:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{handlers.delete('first');failIf(flag);}finally{for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();}first[0]+=1;console.log('normal',first[0]);}function main():void{try{scenario(false);scenario(true);}catch(error){console.log('caught');}}");
  support::execute(&source,"second 5\nnormal 4\nsecond 5\ncaught\n",None);

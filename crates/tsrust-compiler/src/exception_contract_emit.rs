@@ -63,8 +63,10 @@ struct Storage {
 }
 impl Storage {
     fn at(&self, span:crate::Span,state:&StorageStack)->String {
-        let values=self.expressions.get(&(span.start,span.end)).unwrap_or_else(||self.points.range(..=span.start).next_back().map_or(&self.default,|(_,values)|values));
-        state.render(values)
+        state.render(self.values_at(span))
+    }
+    fn values_at(&self,span:crate::Span)->&[StorageValue] {
+        self.expressions.get(&(span.start,span.end)).unwrap_or_else(||self.points.range(..=span.start).next_back().map_or(&self.default,|(_,values)|values))
     }
     fn error_at(&self,span:crate::Span,state:&StorageStack)->String {
         self.errors.as_deref().unwrap_or(self).at(span,state)
@@ -183,6 +185,18 @@ impl RegionStack {
             return format!("break 'exception_region{} TsrCompletion::Return((TsrStorageExit::{kind}({destination}),{}));",region.id,storage.at(span,&self.1));
         }
         control_transfer(target,continuing,regions.last().map(|region|(region.id,region.locals.as_slice())))
+    }
+    pub(crate) fn error_storage_values(&self,span:crate::Span)->Option<Vec<StorageValue>> {
+        let regions=self.0.borrow();
+        let storage=regions.last()?.storage.as_ref().filter(|storage|storage.carry_error)?;
+        Some(storage.errors.as_deref().unwrap_or(storage).values_at(span).to_vec())
+    }
+    /// Forward a completion already selected as Throw with its projected owner.
+    pub(crate) fn dispatch_error(&self,pending:&str,span:crate::Span,owner:&str)->Result<String,crate::Diagnostic> {
+        let regions=self.0.borrow();
+        let region=regions.last().ok_or_else(||crate::Diagnostic::new("error-effect","Error dispatch requires an enclosing region.",span))?;
+        let thrown=if region.storage.as_ref().is_some_and(|storage|storage.carry_error){format!("(error,{owner})")}else{"error".into()};
+        Ok(format!("match {pending} {{TsrCompletion::Throw(error)=>break 'exception_region{} TsrCompletion::Throw({thrown}),_=>unreachable!(\"selected error completion\")}}",region.id))
     }
     pub(crate) fn dispatch(&self,pending:&str,active:&[crate::syntax::ControlTarget],span:crate::Span)->Result<String,crate::Diagnostic> {
         use crate::syntax::ControlTarget;

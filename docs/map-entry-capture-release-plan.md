@@ -1770,3 +1770,39 @@ metadata; do not fall back to the joined cleanup AST for that path. Extend the
 independent owner transport to resolved return/break/continue destinations, with
 cleanup override and disposal witnesses. Structural owned record keys remain
 subsequent work. B5 is not complete.
+
+
+### Handler rethrow storage
+
+A catch body that removes a known Map entry and then throws carries its checked
+survivor layout to the enclosing handler. Error forwarding projects that layout
+into the enclosing error destination instead of reusing the ordinary statement
+input layout. Native transport retains an initialized owner independently of
+source-name availability; forwarding does not make a transferred source binding
+usable again. The error dispatch helper accepts only an already selected Throw
+completion, so unrelated return and loop-control storage is not converted.
+
+Catch entry consumes the pending completion into independent normal, error and
+control owners before selecting a branch. This matters for owners with disposal:
+an inactive completion alternative must not retain the deleted entry's capture
+loan while the outer catch mutates that capture. Native witnesses cover direct
+Map bindings and record fields, survivor invocation, released-capture mutation
+and exactly-once disposal at both optimization levels. Editor checks accept the
+released capture and reject mutation of the surviving capture.
+
+Focused evidence: 92 affected Map tests and 19 storage proofs pass. The expanded
+record-field/disposal witness and isolated error dispatch pass separately. The
+new editor diagnostic witness passes. No analyzer/parser dispatch changed, so
+this chunk does not repeat the depth canaries or run a family regression.
+The matched workload adds handlerRethrowEntry with independent arithmetic
+2 * value + 3, literal reference rows and mutation guards; each row now has 84
+observations. Native and Node-after-tsc verification is untimed. Canonical final record:
+runtime/results/2026-10-09T06-23-10-157Z-verify.json. All five cases pass on both
+engines. Closed logs and both matched records are imported into SQLite, restored
+byte for byte and removed from loose storage. Project formatting changes zero
+files on its final pass; diff checks pass.
+
+Still pending: handler errors with finally, cleanup errors, resumed pending
+errors after cleanup and distinct return/break/continue destination layouts.
+Structural owned record keys follow those capture-release repairs. B5 remains
+open; installed consumers remain at gate 181.

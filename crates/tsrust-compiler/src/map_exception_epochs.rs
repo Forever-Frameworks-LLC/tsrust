@@ -26,7 +26,8 @@ impl Emitter<'_> {
         let error=region.body.first().and_then(|statement|fun.storage_exits.map_completion_layout(statement.span.start,crate::analysis::MapCompletionPhase::Body,Some(crate::completion::CompletionKind::Throw)));
         let pending = self.map_error_phase_storage_completion_body(fun, &region.body, declarations, first, &in_name, incoming.clone(), runtime, &storage_type, &places, true, true, normal, error);
         let handler_throws = outgoing.runtime || outgoing.opaque || !outgoing.explicit.is_empty();
-        let handled = self.map_phase_storage_completion_body(fun, &handler.body, declarations, first + 1, &out_name, outgoing.clone(), runtime, &storage_type, &places, handler_throws, true, normal);
+        let handler_error=if region.finally.is_none(){region.body.first().and_then(|statement|fun.storage_exits.map_completion_layout(statement.span.start,crate::analysis::MapCompletionPhase::Handled,Some(crate::completion::CompletionKind::Throw)))}else{None};
+        let handled = self.map_error_phase_storage_completion_body(fun, &handler.body, declarations, first + 1, &out_name, outgoing.clone(), runtime, &storage_type, &places, handler_throws, true, normal, handler_error);
         let unions = crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
         let setup = if let Some(binding) = handler.binding {
             let value = exception_contract_emit::checked_catch_value("caught_error", &in_name, incoming, &unions, runtime, statement.span).expect("checked catch payload");
@@ -41,7 +42,7 @@ impl Emitter<'_> {
         let mut normal_finish = values.clone();
         let mut thrown_finish = if region.finally.as_ref().is_some_and(|body| crate::completion::definitely_abrupt(body, 0)) {
             "unreachable!(\"abrupt cleanup cannot resume pending error\")".into()
-        } else { self.map_storage_abrupt_dispatch(fun, "TsrCompletion::Throw(pending_error)", &out_name, &outgoing, runtime, statement.span) };
+        } else { self.map_layout_storage_abrupt_dispatch(fun, "TsrCompletion::Throw(pending_error)", &out_name, &outgoing, runtime, statement.span, handler_error) };
         if let Some(cleanup) = &region.finally {
             let mut cleanup_discovery = cleanup.clone();
             let cleanup_contract = crate::error_effects::annotate_region_body(&mut cleanup_discovery, &self.program.error_effects);
@@ -79,7 +80,10 @@ impl Emitter<'_> {
             } else { "TsrCompletion::Throw(error)=>match error {}".into() };
             let return_arm=format!("TsrCompletion::Return((pending_exit,{pattern}))=>{{{returned_finish}}}");
             let indent = "    ".repeat(depth);
-            if normal.is_none() && (self.map_phase_has_entry_narrowing(fun,&handler.body) || region.finally.as_ref().is_some_and(|body|self.map_phase_has_entry_narrowing(fun,body))) {
+            if region.finally.is_none() {
+                let split=format!("{{let completed={pending};match completed{{TsrCompletion::Normal(storage)=>(Some(storage),None,None),TsrCompletion::Throw((error,storage))=>(None,Some((error,storage)),None),TsrCompletion::Return((exit,storage))=>(None,None,Some((exit,storage))),TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried handler completion\")}}}}");
+                let _=writeln!(output,"{indent}{in_decl} {out_decl} let {pattern}={{let (normal_owner,error_owner,control_owner)={{let {pattern}={values};{split}}};if normal_owner.is_some(){{let storage=normal_owner.unwrap();drop(error_owner);drop(control_owner);{normal_finish}}}else{{drop(normal_owner);if error_owner.is_some(){{let (caught_error,{pattern})=error_owner.unwrap();drop(control_owner);{setup}match {handled}{{TsrCompletion::Normal(storage)=>{normal_finish},{throw_arm},{return_arm},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried handler control\")}}}}else{{drop(error_owner);if control_owner.is_some(){{let (pending_exit,{pattern})=control_owner.unwrap();{returned_finish}}}else{{unreachable!(\"exactly one pending handler owner\")}}}}}}}};");
+            }else if normal.is_none() && (self.map_phase_has_entry_narrowing(fun,&handler.body) || region.finally.as_ref().is_some_and(|body|self.map_phase_has_entry_narrowing(fun,body))) {
             let split=self.map_split_pending_storage(fun,&pending,&in_name,&storage_type);
             let outer_return=format!("TsrCompletion::Return(pending_exit)=>{{{returned_finish}}}");
             let _ = writeln!(output, "{indent}{in_decl} {out_decl} {cleanup_declaration} let {pattern} = {{ let (pending_control,{pattern})={{let {pattern}={values};{split}}};match pending_control {{ TsrCompletion::Normal(())=>{{let storage={values};{normal_finish}}}, TsrCompletion::Throw(caught_error)=>{{ {setup} match {handled} {{ TsrCompletion::Normal(storage)=>{normal_finish}, {throw_arm}, {return_arm},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried handler control\") }} }}, {outer_return},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried storage control\") }} }};");
@@ -118,10 +122,14 @@ impl Emitter<'_> {
 
     #[inline(never)]
     pub(super) fn map_storage_abrupt_dispatch(&self, fun: &CheckedFunction, pending: &str, error_name: &str, contract: &crate::error_effects::FailureSet, runtime: Option<Type>, span: crate::Span) -> String {
+        self.map_layout_storage_abrupt_dispatch(fun,pending,error_name,contract,runtime,span,None)
+    }
+    pub(super) fn map_layout_storage_abrupt_dispatch(&self, fun: &CheckedFunction, pending: &str, error_name: &str, contract: &crate::error_effects::FailureSet, runtime: Option<Type>, span: crate::Span, layout:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>) -> String {
         let (outer_name, outer_contract, _) = self.exception_regions.current_transport().expect("checked enclosing completion");
         let unions = crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
         let abrupt = exception_contract_emit::checked_completion_conversion("abrupt", error_name, &outer_name, contract, &outer_contract, &unions, runtime, span).expect("checked outgoing storage completion");
-        let dispatch = self.map_cleanup_control_dispatch(fun,&abrupt,span);
+        let error_owner=self.map_outgoing_error_storage(fun,span,layout);
+        let dispatch = if let Some(owner)=error_owner {self.exception_regions.dispatch_error(&abrupt,span,&owner).expect("outgoing error destination")}else{self.map_cleanup_control_dispatch(fun,&abrupt,span)};
         let result = self.native_type(fun.result);
         let pending = if pending == "TsrCompletion::Throw(pending_error)" {
             format!("TsrCompletion::<(),{result},{error_name}>::Throw(pending_error)")

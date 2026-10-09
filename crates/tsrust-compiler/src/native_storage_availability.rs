@@ -9,6 +9,7 @@ pub(super) struct Value {
     /// Conversion moves the live owner; unavailable source bindings use empty.
     pub live: Option<String>,
     pub transferred: Option<Span>,
+    pub target: Option<crate::syntax::Type>,
 }
 
 #[derive(Clone, Default)]
@@ -50,7 +51,7 @@ mod tests {
     #[test]
     fn projected_storage_never_revives_a_transferred_source_owner() {
         let mut state=State::default();
-        let value=Value{place:"owner".into(),empty:"Empty::new()".into(),live:Some("move_survivors(owner)".into()),transferred:Some(Span::new(10,20))};
+        let value=Value{place:"owner".into(),empty:"Empty::new()".into(),live:Some("move_survivors(owner)".into()),transferred:Some(Span::new(10,20)),target:None};
         assert_eq!(state.render(std::slice::from_ref(&value)),"(Empty::new(),)");
         state.renew(&["owner".into()],19);
         assert_eq!(state.render(std::slice::from_ref(&value)),"(Empty::new(),)");

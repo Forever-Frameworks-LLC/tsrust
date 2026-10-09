@@ -224,7 +224,7 @@ impl Emitter<'_> {
             let converted=self.map_entry_payload_projection(source,target_value,"entry_value");
             Some(format!("<{native}>::from_values(({place}).tsr_owned_items().map(|entry|{{let (entry_key,entry_value)=TsrMapEntry::into_pair(entry);(entry_key,{converted})}}))"))
         });
-        super::native_storage_availability::Value{place:place.into(),empty,live,transferred}
+        super::native_storage_availability::Value{place:place.into(),empty,live,transferred,target:Some(target)}
     }
     fn map_payload_absent_environment(&self,ty:Type)->bool {
         let mut pending=vec![ty];
