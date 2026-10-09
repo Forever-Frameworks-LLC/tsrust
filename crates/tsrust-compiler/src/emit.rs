@@ -2714,9 +2714,10 @@ impl Emitter<'_> {
                 } else {
                     "Vec"
                 };
-                let parameters = self.program.records[index].fields.iter().enumerate().filter_map(|(field, value)| self.scoped_record_native_parameter(value.ty.expect("checked field")).then(||format!("P{field}"))).collect::<Vec<_>>();
-                let arguments = if parameters.is_empty() {String::new()} else {format!("<{}>",parameters.join(", "))};
+                // The declaration decides which fields are generic, as for the record itself.
                 let declaration = self.program.scoped_records.declaration(index);
+                let parameters = self.program.records[index].fields.iter().zip(&self.program.records[declaration].fields).enumerate().filter_map(|(field, (value, declared))| (self.scoped_record_native_parameter(value.ty.expect("checked field")) || self.scoped_record_native_parameter(declared.ty.expect("checked field"))).then(||format!("P{field}"))).collect::<Vec<_>>();
+                let arguments = if parameters.is_empty() {String::new()} else {format!("<{}>",parameters.join(", "))};
                 let _ = writeln!(
                     output,
                     "type RecordArray{index}{arguments} = {storage}<Record{declaration}{arguments}>;"

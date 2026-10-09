@@ -67,9 +67,14 @@ fn control_flow_stores_keep_nullable_record_captures_until_scope_end() {
     }
     // Without control-flow stores the precise release rule is unchanged.
     support::execute(&support::format_round_trip(&format!("{holder}function main():void{{const a=[3];let s:Holder|undefined=undefined;s={{run:():int=>a[0]}};s=undefined;a[0]=9;console.log(a[0]);}}")),"9\n",None);
-    // Callbacks that own every capture have no shared family yet.
-    let owned=support::format_round_trip(&format!("{holder}function f(n:int):void{{let s:Holder|undefined=undefined;if(n>1)s={{run:():int=>n}};else if(n===1)s={{run:():int=>n*10}};console.log(s!==undefined?s.run():-1);}}function main():void{{f(1);}}"));
-    assert_eq!(tsrust_compiler::check(&owned).err().expect("owned callback families are pending").code,"unsupported");
+    // Callbacks that own every capture join like borrowing callbacks.
+    let owned=|body:&str,expected:&str|{support::execute(&support::format_round_trip(&format!("{holder}{body}")),expected,None);};
+    owned("function f(n:int):void{let s:Holder|undefined=undefined;if(n>1)s={run:():int=>n};else if(n===1)s={run:():int=>n*10};console.log(s!==undefined?s.run():-1);}function main():void{f(0);f(1);f(2);}","-1\n10\n2\n");
+    owned("function f(n:int):void{let s:Holder={run:():int=>0};if(n>1)s={run:():int=>n};else if(n===1)s={run:():int=>n*10};console.log(s.run());}function main():void{f(0);f(1);f(2);}","0\n10\n2\n");
+    owned("function use(box:ReadOnly<Box>):int{return box.saved?.run()??-1;}function f(n:int):void{const box:Box={saved:undefined};if(n>1)box.saved={run:():int=>n};else if(n===1)box.saved={run:():int=>n*10};console.log(box.saved?.run()??-1,use(box));}function main():void{f(0);f(1);f(2);}","-1 -1\n10 10\n2 2\n");
+    owned("function main():void{const n=4;const boxes:Box[]=[{saved:undefined},{saved:undefined}];boxes[0].saved={run:():int=>n};boxes[1].saved={run:():int=>n*10};for(const box of boxes){console.log(box.saved?.run()??-1);}const hs:Holder[]=[{run:():int=>n},{run:():int=>n+1}];console.log(hs[0].run(),hs[1].run());const h:Holder=n>1?{run:():int=>n}:{run:():int=>n*10};console.log(h.run());}","4\n40\n4 5\n4\n");
+    // An owned callback and a borrowing callback share one variable too.
+    owned("function f(n:int):void{const a=[7];let s:Holder|undefined=undefined;if(n>1)s={run:():int=>n};else s={run:():int=>a[0]};console.log(s!==undefined?s.run():-1);}function main():void{f(0);f(2);}","7\n2\n");
 }
 
 #[test]
@@ -3099,8 +3104,10 @@ fn nullable_callback_record_results_keep_one_owned_environment() {
     };
     // A result cannot carry a callback that borrows the callee's parameters or locals.
     rejected("function make(a:ReadOnly<int[]>):Holder|undefined{return {run:():int=>a[0]};}function main():void{const v=[1];const h=make(v);}","callback-escape");
-    rejected("function make(n:int):Holder|null{if(n>1)return {run:():int=>n};if(n===1)return {run:():int=>n+10};return null;}function main():void{const h=make(1);}","unsupported");
-    rejected("function make(n:int):Holder{if(n>0)return {run:():int=>n};return {run:():int=>0};}function main():void{console.log(make(3).run());}","unsupported");
+    // Returns with different owned callbacks join into one result environment.
+    run("function make(n:int):Holder|null{if(n>1)return {run:():int=>n};if(n===1)return {run:():int=>n+10};return null;}function main():void{const h=make(1);if(h!==null)console.log(h.run());const g=make(5);if(g!==null)console.log(g.run());console.log(make(0)===null);}","11\n5\ntrue\n");
+    run("function make(n:int):Holder{if(n>0)return {run:():int=>n};return {run:():int=>0};}function main():void{console.log(make(3).run(),make(0).run());}","3 0\n");
+    run("function make(n:int):Box{if(n>1)return {saved:{run:():int=>n}};if(n===1)return {saved:{run:():int=>n+10}};return {saved:undefined};}function main():void{console.log(make(1).saved?.run()??-1,make(5).saved?.run()??-1,make(0).saved?.run()??-1);}","11 5 -1\n");
 }
 
 #[test]

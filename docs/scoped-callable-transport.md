@@ -221,9 +221,9 @@ Declare the local in an inner block to end the borrow sooner. A local whose stor
 are all direct assignments in a normal lexical sequence keeps the precise rule
 described above.
 
-Callbacks that own every capture, for example an arrow that reads only a number
-parameter, cannot yet share one record variable with a different callback. That form
-reports `unsupported`.
+Different callbacks can share one record variable, field or array element, whether
+they borrow local storage or own every capture, for example an arrow that reads only
+a number parameter.
 
 Moving the containing record transfers its field owners without cloning.
 
@@ -272,8 +272,8 @@ if (made !== undefined) console.log(made.run()); // 4
 ```
 
 A returned callback must own every capture; a callback that borrows a parameter or a
-local of the function reports `callback-escape`. All populated returns of one function
-must use the same callback; different callbacks report `unsupported`.
+local of the function reports `callback-escape`. Returns with different callbacks
+share one result environment.
 
 A nullable callback-record field of an array element can be stored through an index,
 and whole elements can be pushed, replaced and removed:

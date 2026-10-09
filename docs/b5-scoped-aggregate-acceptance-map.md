@@ -40,6 +40,7 @@ unless another file is named.
 | Function result `Record \| undefined` and `Record \| null` with owned captures; record result mixing absent and populated fields | `nullable_callback_record_results_keep_one_owned_environment` |
 | Nullable field of an array element: indexed store, loop, nested array field, literal with mixed elements, push, element replacement, pop | `nullable_callback_record_fields_of_array_elements_share_the_array_carrier` |
 | `ReadOnly<Record>` and `Mutable<Record>` parameters reading a nullable field, nested records, joined environments | `record_parameters_read_nullable_callback_fields` |
+| Different callbacks that own every capture joined in one local, field, array element, conditional value or function result; owned and borrowing callbacks mixed | `control_flow_stores_keep_nullable_record_captures_until_scope_end`, `nullable_callback_record_results_keep_one_owned_environment` |
 | `Set<Record>` for a capturing record | rejected by owner decision (`set-key`) |
 
 ## Diagnosed, not supported
@@ -52,7 +53,6 @@ unless another file is named.
 | `ReadOnly<Record[]>` parameter where the record has a nullable callback field | `unsupported` | Array element views over the carrier element type |
 | Array element type `(Record \| undefined)[]` | `unsupported` | Nullable slot storage |
 | Union of two record types where one is a capturing record | `type` error | Tagged storage for a capturing member |
-| Different callbacks that own every capture joined in one variable, field or result | `unsupported` | Owned callable family for record fields; conditional expressions already have one for bare callbacks |
 | Moving a nullable callback record out of an array element | `unsupported` | Take-and-replace storage for element fields |
 
 ## Outside this row

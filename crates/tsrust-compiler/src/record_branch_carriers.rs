@@ -134,17 +134,7 @@ impl Analyzer {
         let sticky=plans.iter().filter(|(id,_)|self.sticky_nullable(context,**id)).map(|(&id,&ty)|(id,ty)).collect::<HashMap<_,_>>();
         if !sticky.is_empty() {
             crate::source_walk::body(body,&mut |_|Ok(()),&mut |value|{
-                self.retarget_planned_callback_call(value,&sticky);
-                if !matches!(value.kind,ExprKind::Name(_)|ExprKind::Field(_,_)|ExprKind::Project{..}){return Ok(());}
-                if let Some(ty)=self.planned_record_array_type(value,&sticky) && value.ty.is_some_and(|checked|checked!=ty
-                    && (checked.union().is_some()==ty.union().is_some()) && matches!(self.unions.payload(ty).unwrap_or(ty),Type::Record(_)|Type::BorrowedCallable(_)|Type::Closure(_)|Type::Callback(_)))
-                {
-                    if let ExprKind::Project{value:inner,union,narrowed}=&mut value.kind {
-                        if let Some(carrier)=self.planned_record_array_type(inner,&sticky).and_then(|ty|ty.union()) {*union=carrier;}
-                        *narrowed=ty;
-                    }
-                    value.ty=Some(ty);
-                }
+                self.retype_carrier_read(value,&sticky);
                 Ok(())
             })?;
         }
@@ -332,7 +322,8 @@ impl Analyzer {
                 if depth != other_depth { return Ok(None); }
                 let Some(Type::Record(record)) = self.join_record_types(a,b,span)? else { return Ok(None); };
                 Type::Array(ArrayElement::Record(record,depth))
-            }else if let Some(map)=self.join_scoped_map_types(left,right,span)?{map}else if let Some(family)=self.common_borrowed_conditional_family(left,right,span)?{Type::BorrowedCallable(family)}else{return Ok(None);};
+            }else if let Some(map)=self.join_scoped_map_types(left,right,span)?{map}else if let Some(family)=self.common_borrowed_conditional_family(left,right,span)?{Type::BorrowedCallable(family)}
+            else if let Some(family)=self.record_field_callback_family(left,right,span)?{Type::BorrowedCallable(family)}else{return Ok(None);};
             changed|=joined!=left || joined!=right;fields.push(joined);
         }
         if !changed{return Ok(None);}

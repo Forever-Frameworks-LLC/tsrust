@@ -190,13 +190,17 @@ impl Analyzer {
         let mut values=Vec::new();
         returned_values(body,&mut values);
         let mut concrete=None;
+        let mut joins=false;
         for value in &values {
             let Some(ty)=value.ty else{continue;};
             if ty==result || !matches!(self.unions.payload(ty),Some(Type::Record(record)) if self.scoped_records.declaration(record)==declaration){continue;}
-            if concrete.is_some_and(|previous|previous!=ty){
-                return Err(Diagnostic::new("unsupported","A function that returns a nullable callback record must return one callback environment; returns with different callbacks are not supported yet.",value.span));
-            }
-            concrete=Some(ty);
+            concrete=Some(match concrete {
+                Some(previous) if previous!=ty=>match self.join_nullable_record_unions(previous,ty,value.span)? {
+                    Some(joined)=>{joins=true;joined}
+                    None=>return Err(Diagnostic::new("unsupported","The returns of this function hold callbacks that cannot share one nullable callback record.",value.span)),
+                },
+                _=>ty,
+            });
         }
         // A function that only returns absence still needs a concrete tagged type.
         let concrete=match concrete {
@@ -212,6 +216,8 @@ impl Analyzer {
             if value.ty==Some(result) && let ExprKind::Inject{value:inner,union}=&mut value.kind && matches!(inner.kind,ExprKind::Null|ExprKind::Undefined) {
                 *union=concrete.union().expect("nullable record result");
                 value.ty=Some(concrete);
+            } else if joins && value.ty.is_some_and(|ty|ty!=concrete && self.nullable_scoped_record_declaration(ty)==Some(declaration)) {
+                self.retarget_nullable_store(value,concrete)?;
             }
         }
         Ok(concrete)
@@ -252,11 +258,10 @@ impl Analyzer {
             differs=true;
             match self.join_sticky_record_types(previous,instance,value.span)? {
                 Some(Type::Record(next))=>joined=Some(next),
-                _=>return Err(Diagnostic::new("unsupported","A function that returns a callback record must return one callback environment; returns with different callbacks are not supported yet.",value.span)),
+                _=>return Err(Diagnostic::new("unsupported","The returns of this function hold callbacks that cannot share one callback record.",value.span)),
             }
         }
         let Some(joined)=joined.filter(|_|differs) else{return Ok(None);};
-        if self.nullable_record_field_paths(Type::Record(joined)).is_empty(){return Ok(None);}
         for value in values {self.retarget_nullable_store(value,Type::Record(joined))?;}
         Ok(Some(Type::Record(joined)))
     }
@@ -388,33 +393,7 @@ impl Analyzer {
         crate::source_walk::body(body,&mut |_|Ok(()),&mut |value|{
             if let Some(destination)=destinations.remove(&(value.span.start,value.span.end)) && failure.is_none()
                 && let Err(error)=self.retarget_nullable_store(value,destination) {failure=Some(error);}
-            self.retarget_planned_callback_call(value,&plans);
-            // An optional chain selects through the carrier union of its base.
-            if let ExprKind::Optional{base,body,slot,union,..}=&mut value.kind
-                && let Some(carrier)=self.planned_record_array_type(base,&plans) && let Some(id)=carrier.union() && *union!=Some(id)
-            {
-                *union=Some(id);
-                let (slot,payload)=(*slot,self.unions.payload(carrier));
-                let mut pending=vec![body.as_mut()];
-                while let Some(node)=pending.pop() {
-                    match &mut node.kind {
-                        ExprKind::Selected{slot:selected,..} if *selected==slot=>{if let Some(payload)=payload {node.ty=Some(payload);}}
-                        ExprKind::Field(base,_)=>pending.push(base),
-                        ExprKind::Call(callee,_)=>pending.push(callee),
-                        ExprKind::Index(base,_)=>pending.push(base),
-                        _=>{}
-                    }
-                }
-            }
-            if matches!(value.kind,ExprKind::Name(_)|ExprKind::Field(_,_)|ExprKind::Index(_,_)|ExprKind::Project{..})
-                && let Some(ty)=self.planned_record_array_type(value,&plans) && value.ty.is_some_and(|checked|checked!=ty && checked.union().is_some()==ty.union().is_some())
-            {
-                if let ExprKind::Project{value:inner,union,narrowed}=&mut value.kind {
-                    if let Some(carrier)=self.planned_record_array_type(inner,&plans).and_then(|ty|ty.union()) {*union=carrier;}
-                    *narrowed=ty;
-                }
-                value.ty=Some(ty);
-            }
+            self.retype_carrier_read(value,&plans);
             Ok(())
         })?;
         failure.map_or(Ok(()),Err)
@@ -426,11 +405,58 @@ impl Analyzer {
     /// planned environment, not the one seen when the call was checked.
     pub(super) fn retarget_planned_callback_call(&self,value:&mut Expr,plans:&HashMap<usize,Type>) {
         let ExprKind::Call(callee,_)=&mut value.kind else{return;};
+        let planned=self.planned_record_array_type(callee,plans);
+        Self::retarget_callback_call(value,planned);
+    }
+    fn retarget_callback_call(value:&mut Expr,planned:Option<Type>) {
+        let ExprKind::Call(callee,_)=&mut value.kind else{return;};
         if !matches!(value.target,Some(CallTarget::ConditionalCallback(_)|CallTarget::ConditionalClosure(_)|CallTarget::StoredCallableField(_))){return;}
-        match self.planned_record_array_type(callee,plans) {
-            Some(Type::BorrowedCallable(family))=>{callee.ty=Some(Type::BorrowedCallable(family));value.target=Some(CallTarget::StoredCallableField(family));}
+        match planned {
+            Some(ty @ Type::BorrowedCallable(family))=>{callee.ty=Some(ty);value.target=Some(CallTarget::StoredCallableField(family));}
             Some(Type::Closure(origin))=>{callee.ty=Some(Type::Closure(origin));value.target=Some(CallTarget::ConditionalClosure(origin));}
             _=>{}
+        }
+    }
+    /// Give one expression that reads carrier-planned storage the planned
+    /// type: names, fields, indexed elements, narrowed payloads, optional
+    /// chains and calls through callback fields.
+    pub(super) fn retype_carrier_read(&self,value:&mut Expr,plans:&HashMap<usize,Type>) {
+        self.retarget_planned_callback_call(value,plans);
+        // An optional chain selects through the carrier union of its base.
+        if let ExprKind::Optional{base,body,slot,union,..}=&mut value.kind
+            && let Some(carrier)=self.planned_record_array_type(base,plans) && let Some(id)=carrier.union()
+        {
+            *union=Some(id);
+            let slot=*slot;
+            let Some(payload)=self.unions.payload(carrier) else{return;};
+            // Types below the selected payload follow its record fields.
+            fn selected(analyzer:&Analyzer,node:&mut Expr,slot:usize,payload:Type)->Option<Type> {
+                let ty=match &mut node.kind {
+                    ExprKind::Selected{slot:found,..} if *found==slot=>Some(payload),
+                    ExprKind::Field(base,name)=>{
+                        let Type::Record(record)=selected(analyzer,base,slot,payload)? else{return None;};
+                        analyzer.program.records[record].fields.iter().find(|field|field.name.text==*name)?.ty
+                    }
+                    ExprKind::Call(callee,_)=>{
+                        let planned=selected(analyzer,callee,slot,payload);
+                        Analyzer::retarget_callback_call(node,planned);
+                        return None;
+                    }
+                    _=>None,
+                }?;
+                node.ty=Some(ty);
+                Some(ty)
+            }
+            selected(self,body,slot,payload);
+        }
+        if matches!(value.kind,ExprKind::Name(_)|ExprKind::Field(_,_)|ExprKind::Index(_,_)|ExprKind::Project{..})
+            && let Some(ty)=self.planned_record_array_type(value,plans) && value.ty.is_some_and(|checked|checked!=ty && checked.union().is_some()==ty.union().is_some())
+        {
+            if let ExprKind::Project{value:inner,union,narrowed}=&mut value.kind {
+                if let Some(carrier)=self.planned_record_array_type(inner,plans).and_then(|ty|ty.union()) {*union=carrier;}
+                *narrowed=ty;
+            }
+            value.ty=Some(ty);
         }
     }
 }

@@ -12,6 +12,14 @@ pub(crate) struct Family {
 }
 impl Family {
     pub(crate) fn checked(closures:&[CheckedClosure],origins:[usize;2],span:Span)->Result<Self,Diagnostic> {
+        Self::checked_layout(closures,origins,span,false)
+    }
+    /// A record field is invoked through a shared borrow of its record, so
+    /// environments that own every capture use this family layout there too.
+    pub(crate) fn checked_for_record_field(closures:&[CheckedClosure],origins:[usize;2],span:Span)->Result<Self,Diagnostic> {
+        Self::checked_layout(closures,origins,span,true)
+    }
+    fn checked_layout(closures:&[CheckedClosure],origins:[usize;2],span:Span,owned:bool)->Result<Self,Diagnostic> {
         let [left,right]=origins.map(|id|closures.get(id));
         let (Some(left),Some(right))=(left,right) else {
             return Err(Diagnostic::new("borrowed-callable-layout","A borrowed family requires two known concrete environment origins.",span));
@@ -19,7 +27,7 @@ impl Family {
         if [left,right].iter().any(|closure|closure.polymorphic || closure.function.template) {
             return Err(Diagnostic::new("borrowed-callable-layout","A borrowed family requires concrete monomorphic invocation bodies.",span));
         }
-        if !left.borrowed && !right.borrowed {
+        if !owned && !left.borrowed && !right.borrowed {
             return Err(Diagnostic::new("borrowed-callable-layout","Owned environments use owned callable storage, not a borrowed family.",span));
         }
         if [left,right].iter().any(|closure|!matches!(closure.invocation,Mode::Read|Mode::Mutate|Mode::Consume)) {
