@@ -1,6 +1,28 @@
 mod support;
 
 #[test]
+fn map_deletion_inside_try_carries_survivor_through_finally() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{handlers.delete('first');first[0]=9;console.log('body',first[0]);}finally{console.log('cleanup',handlers.size);for(const [key,entry] of handlers){console.log(key,entry.run());}}handlers.clear();console.log('done',first[0]);}");
+    support::execute(&source,"body 9\ncleanup 1\nsecond 5\ndone 9\n",None);
+    verify_disposal(&source,2,"drop 0\nbody 9\ncleanup 1\nsecond 5\ndrop 1\ndone 9\n");
+    let failed=source.replace("console.log('body', first[0]);","for(const [key,entry] of handlers){console.log('value',entry.run());throw 7;}").replace("} finally {","}catch(error){console.log('caught',handlers.size);}finally{");
+    assert_ne!(failed,source);
+    let failed=support::format_round_trip(&failed);
+    support::execute(&failed,"value 5\ncaught 1\ncleanup 1\nsecond 5\ndone 9\n",None);
+    verify_disposal(&failed,2,"drop 0\nvalue 5\ncaught 1\ncleanup 1\nsecond 5\ndrop 1\ndone 9\n");
+    let handled=source.replace("try {","try{throw 7;}catch(error){");
+    assert_ne!(handled,source);
+    let handled=support::format_round_trip(&handled);
+    support::execute(&handled,"body 9\ncleanup 1\nsecond 5\ndone 9\n",None);
+    verify_disposal(&handled,2,"drop 0\nbody 9\ncleanup 1\nsecond 5\ndrop 1\ndone 9\n");
+    let cleaned=source.replace("handlers.delete('first');", "").replace("first[0] = 9;", "").replace("} finally {", "}finally{handlers.delete('first');first[0]=9;");
+    assert_ne!(cleaned,source);
+    let cleaned=support::format_round_trip(&cleaned);
+    support::execute(&cleaned,"body 3\ncleanup 1\nsecond 5\ndone 9\n",None);
+    verify_disposal(&cleaned,2,"body 3\ndrop 0\ncleanup 1\nsecond 5\ndrop 1\ndone 9\n");
+}
+
+#[test]
 fn map_entry_iteration_control_runs_finally_before_leaving_body() {
     let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(stop:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});let turn=0;while(turn<3){try{handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;turn++;if(stop)break;if(turn<3)continue;console.log('tail',turn);}finally{console.log('cleanup',turn,handlers.size);for(const [key,entry] of handlers){console.log('kept',key,entry.run());}}}handlers.clear();console.log('done',first[0]);}function main():void{scenario(false);scenario(true);}");
     support::execute(&source,"cleanup 1 1\nkept second 5\ncleanup 2 1\nkept second 5\ntail 3\ncleanup 3 1\nkept second 5\ndone 6\ncleanup 1 1\nkept second 5\ndone 4\n",None);

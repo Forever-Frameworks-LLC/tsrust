@@ -155,6 +155,9 @@ impl RegionStack {
     pub(crate) fn current_transport(&self)->Option<(String,crate::error_effects::FailureSet,Option<crate::syntax::Type>)> {
         self.0.borrow().last().and_then(|region|region.transport.as_deref().cloned())
     }
+    pub(crate) fn carries_storage(&self)->bool {
+        self.0.borrow().last().is_some_and(|region|region.storage.is_some())
+    }
     pub(crate) fn current_id(&self)->Option<usize> {self.0.borrow().last().map(|region|region.id)}
     #[cfg(test)]
     pub(crate) fn control(&self,target:crate::syntax::ControlTarget,continuing:bool)->String {

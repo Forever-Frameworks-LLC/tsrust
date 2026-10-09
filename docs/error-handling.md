@@ -172,3 +172,12 @@ Changing a callback environment representation for later capture access can scan
 surviving entries. Known entry deletion avoids that conversion when the released
 capture has no later source use or opaque named call. The release feature does
 not yet promise constant-time updates in every supported program.
+
+
+Known-key deletion inside a try body can release that entry's callback capture
+before later mutation in the body. Remaining entries stay available in catch
+and finally. Borrowed iteration in cleanup finishes its iterator borrow before
+an error transfers completion storage. Deletion does not release captures held
+by other entries. These guarantees also apply to straight-line handler and
+cleanup entry conversions. Loop break/continue with per-entry release across
+finally is still pending; the native control-transport witness is not accepted.

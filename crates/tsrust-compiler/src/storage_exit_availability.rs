@@ -107,6 +107,10 @@ impl Exits {
     pub(crate) fn map_entry_survivors(&self, span: Span) -> Option<&MapEntrySurvivors> {
         self.3.as_ref()?.get(&(span.start,span.end))
     }
+    pub(super) fn record_map_native_exit(&mut self,boundary:usize,types:std::collections::BTreeMap<usize,Type>) {
+        self.12.get_or_insert_with(Default::default).record_native_exit(boundary,types);
+    }
+    pub(crate) fn map_native_exit(&self,boundary:usize,binding:usize)->Option<Type> {self.12.as_ref()?.native_exit(boundary,binding)}
     pub(super) fn record_map_native_inputs(&mut self,start:usize,inputs:std::collections::BTreeMap<usize,Type>) {
         if !inputs.is_empty(){self.12.get_or_insert_with(Default::default).record_native_inputs(start,inputs);}
     }

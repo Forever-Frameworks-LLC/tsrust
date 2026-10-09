@@ -32,6 +32,7 @@ impl Emitter<'_> {
                     statements.extend(then_body);
                     statements.extend(else_body);
                 }
+                StmtKind::ForOf { body, .. } => statements.extend(body),
                 StmtKind::Try(inner) => {
                     statements.extend(&inner.body);
                     if let Some(handler) = &inner.catch {
@@ -47,6 +48,15 @@ impl Emitter<'_> {
                 | StmtKind::Break
                 | StmtKind::Continue => {}
                 _ => return false,
+            }
+            for epoch in fun.storage_exits.map_entry_epochs(item.span) {
+                let place=self.map_entry_epoch_place(fun,epoch);
+                if !places.contains(&place) {
+                    let original=fun.bindings[epoch.place.binding].ty;
+                    let ty=self.map_storage_leaf_type(original,&epoch.place.fields).expect("checked Map path");
+                    native_places.insert(place.clone(),self.native_type(ty));
+                    places.push(place);
+                }
             }
             if let Some((place, native)) = self.local_map_clear_storage(fun, declarations, item)
                 && !places.contains(&place)
@@ -164,7 +174,7 @@ impl Emitter<'_> {
             statement.span,
         );
         let normal_finish = format!(
-            "{{let {pattern}=storage;match {normal_cleanup}{{TsrCompletion::Normal(storage)=>storage,other=>{{{cleanup_abrupt}}}}}}}"
+            "{{match {normal_cleanup}{{TsrCompletion::Normal(storage)=>storage,other=>{{{cleanup_abrupt}}}}}}}"
         );
         let throw_arm = if incoming.runtime || incoming.opaque || !incoming.explicit.is_empty() {
             let resume = if crate::completion::definitely_abrupt(cleanup, 0) {
@@ -180,10 +190,10 @@ impl Emitter<'_> {
                 )
             };
             format!(
-                "TsrCompletion::Throw((pending_error,{pattern}))=>{{match {thrown_cleanup}{{TsrCompletion::Normal(storage)=>{{let {pattern}=storage;{resume}}},other=>{{drop(pending_error);{cleanup_abrupt}}}}}}}"
+                "TsrCompletion::Throw(pending_error)=>{{match {thrown_cleanup}{{TsrCompletion::Normal(storage)=>{{let {pattern}=storage;{resume}}},other=>{{drop(pending_error);{cleanup_abrupt}}}}}}}"
             )
         } else {
-            "TsrCompletion::Throw((error,_))=>match error {}".into()
+            "TsrCompletion::Throw(error)=>match error {}".into()
         };
         let result = self.native_type(fun.result);
         let (outer_error, _, _) = self
@@ -203,13 +213,21 @@ impl Emitter<'_> {
             format!("{resume_control};unreachable!()")
         };
         let return_arm = format!(
-            "TsrCompletion::Return((pending_exit,{pattern}))=>{{match {returned_cleanup}{{TsrCompletion::Normal(storage)=>{{let {pattern}=storage;{resume_control}}},other=>{{drop(pending_exit);{cleanup_abrupt}}}}}}}"
+            "TsrCompletion::Return(pending_exit)=>{{match {returned_cleanup}{{TsrCompletion::Normal(storage)=>{{let {pattern}=storage;{resume_control}}},other=>{{drop(pending_exit);{cleanup_abrupt}}}}}}}"
         );
         let indent = "    ".repeat(depth);
+        if self.map_phase_has_entry_narrowing(fun,cleanup) {
+        let split=self.map_split_pending_storage(fun,&pending,&incoming_name,&storage_type);
         let _ = writeln!(
             output,
-            "{indent}{incoming_decl} {cleanup_decl} let {pattern}={{let {pattern}={values};match {pending}{{TsrCompletion::Normal(storage)=>{normal_finish},{throw_arm},{return_arm},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"straight-line finally storage\")}}}};"
+            "{indent}{incoming_decl} {cleanup_decl} let {pattern}={{let (pending_control,{pattern})={{let {pattern}={values};{split}}};match pending_control{{TsrCompletion::Normal(())=>{normal_finish},{throw_arm},{return_arm},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"straight-line finally storage\")}}}};"
         );
+        }else {
+            let normal_finish=format!("{{let {pattern}=storage;{normal_finish}}}");
+            let throw_arm=throw_arm.replace("TsrCompletion::Throw(pending_error)=>",&format!("TsrCompletion::Throw((pending_error,{pattern}))=>")).replace("TsrCompletion::Throw(error)=>match error {}","TsrCompletion::Throw((error,_))=>match error {}");
+            let return_arm=return_arm.replace("TsrCompletion::Return(pending_exit)=>",&format!("TsrCompletion::Return((pending_exit,{pattern}))=>"));
+            let _=writeln!(output,"{indent}{incoming_decl} {cleanup_decl} let {pattern}={{let {pattern}={values};match {pending}{{TsrCompletion::Normal(storage)=>{normal_finish},{throw_arm},{return_arm},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"straight-line finally storage\")}}}};");
+        }
         let boundary = places
             .iter()
             .flat_map(|place| {

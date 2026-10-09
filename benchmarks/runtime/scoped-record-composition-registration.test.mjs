@@ -32,7 +32,7 @@ test('Scoped record composition retain sources, independent observations and exe
  }
  for(const [kind,path] of [['native',row.source],['typescript',row.counterpart]]) {
   const source=read('./'+path);const key=kind==='native'?'sourceSha256':'counterpartSha256';
-  for(const text of ['updateObservedSize+=updateEntries.size,','updateEntries.delete("temporary"),','updateEntries.set("temporary",','updateTurns+=1;','if(stop&&updateTurns===2){updateEntries.delete("temporary");break;}','abruptEntries.delete("first");','if(stop)break;','if(abruptTurns<3)continue;','abruptTails+=1;']) {
+  for(const text of ['finallyEntries.delete("first");','finallyEntryFirst[0]=value+4;','finallyEntryObserved+=entry.run();','updateObservedSize+=updateEntries.size,','updateEntries.delete("temporary"),','updateEntries.set("temporary",','updateTurns+=1;','if(stop&&updateTurns===2){updateEntries.delete("temporary");break;}','abruptEntries.delete("first");','if(stop)break;','if(abruptTurns<3)continue;','abruptTails+=1;']) {
    const changed=replaceCodeSnippet(source,text,'');
    assert.throws(()=>assertScopedRecordCompositionSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   }
@@ -44,7 +44,7 @@ test('Scoped record composition retain sources, independent observations and exe
    }
   }
  }
- assert.deepEqual(expectedScopedRecordCompositionValues(row.id,2,0,'composition'),[[1,2,1,2,3,3,4,2,0,2,19,0,31,43,45,1,1,4,22,23,30,31,40,41,52,54,62,244,267,486,486,308,644,344,1244,344,102,873,906,912,1,12,12,9,11,44,17,12,10,22,12,12,12,32,14,21,13,13,16,21],[2,3,2,3,4,5,5,2,0,3,22,0,34,46,48,1,1,2,23,24,31,32,41,42,52,55,62,107,182,488,488,311,647,107,352,111,105,877,908,914,1,12,12,9,14,48,16,14,9,27,14,9,9,24,19,36,12,14,14,18]]);
+ assert.deepEqual(expectedScopedRecordCompositionValues(row.id,2,0,'composition'),[[1,2,1,2,3,3,4,2,0,2,19,0,31,43,45,1,1,4,22,23,30,31,40,41,52,54,62,244,267,486,486,308,644,344,1244,344,102,873,906,912,1,12,12,9,11,44,17,12,10,22,12,12,12,32,14,21,13,13,16,21,13],[2,3,2,3,4,5,5,2,0,3,22,0,34,46,48,1,1,2,23,24,31,32,41,42,52,55,62,107,182,488,488,311,647,107,352,111,105,877,908,914,1,12,12,9,14,48,16,14,9,27,14,9,9,24,19,36,12,14,14,18,16]]);
  for(const seed of [0,7,1000000])for(const n of [0,1,37,2048]){
   const expected=expectedScopedRecordCompositionObservation(row.id,n,seed,'composition');
   assert.deepEqual(expectedExactResult(row.id,n,seed,'composition'),expected);assert.equal(expectedChecksum(row.id,n,seed,'composition'),expected.checksum);

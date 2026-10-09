@@ -15,6 +15,7 @@ pub(crate) struct Snapshot {
 pub(crate) struct Snapshots {
     phases:HashMap<usize,Vec<Snapshot>>,
     native_inputs:BTreeMap<usize,BTreeMap<usize,Type>>,
+    native_exits:HashMap<usize,BTreeMap<usize,Type>>,
     layouts:HashMap<usize,Vec<(Phase,Option<CompletionKind>,BTreeMap<Place,Type>)>>,
 }
 impl Snapshots {
@@ -27,6 +28,8 @@ impl Snapshots {
     pub(crate) fn record_native_inputs(&mut self,start:usize,inputs:BTreeMap<usize,Type>) {
         self.native_inputs.insert(start,inputs);
     }
+    pub(super) fn record_native_exit(&mut self,boundary:usize,types:BTreeMap<usize,Type>) {self.native_exits.insert(boundary,types);}
+    pub(crate) fn native_exit(&self,boundary:usize,binding:usize)->Option<Type> {self.native_exits.get(&boundary)?.get(&binding).copied()}
     pub(crate) fn native_input(&self,start:usize,binding:usize)->Option<Type> {
         self.native_inputs.range(..=start).rev().find_map(|(_,inputs)|inputs.get(&binding).copied())
     }
@@ -51,6 +54,20 @@ impl Snapshots {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn native_body_exit_tracks_tail_replacement_conversion() {
+        let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function main():void{const first=[3];const next=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});try{handlers.set('first',(failIf(false),{run:():int=>next[0]}));}catch(error){}handlers.clear();first[0]=9;next[0]=11;}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let checked=crate::check(&source).unwrap();
+        let function=checked.program.functions.iter().find(|function|function.name=="main").unwrap();
+        let binding=function.bindings.iter().position(|binding|binding.name=="handlers").unwrap();
+        let region=function.body.iter().find_map(|statement|if let crate::syntax::StmtKind::Try(region)=&statement.kind{Some(region)}else{None}).unwrap();
+        let last=region.body.last().unwrap();
+        let conversion=function.storage_exits.map_entry_epochs(last.span).iter().find(|epoch|!epoch.before).expect("replacement conversion");
+        assert_ne!(conversion.input,conversion.output);
+        assert_eq!(function.storage_exits.map_native_exit(region.body[0].span.start,binding),Some(conversion.output));
+    }
+
     #[test]
     fn phase_layouts_keep_error_payloads_and_empty_cleanup_separate() {
         let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function scenario(flag:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{failIf(flag);handlers.delete('first');if(flag)return;}finally{handlers.clear();}}function main():void{scenario(false);}").unwrap();

@@ -18,6 +18,7 @@ impl Emitter<'_> {
                     statements.extend(then_body); statements.extend(else_body);
                 },
                 StmtKind::Let { .. } | StmtKind::Expr(_) | StmtKind::Assign { .. } | StmtKind::Throw(_) | StmtKind::Return(_) | StmtKind::Break | StmtKind::Continue => {},
+                StmtKind::ForOf { body, .. } => statements.extend(body),
                 StmtKind::Try(inner) => {
                     statements.extend(&inner.body);
                     if let Some(handler)=&inner.catch {statements.extend(&handler.body);}
@@ -25,6 +26,15 @@ impl Emitter<'_> {
                 },
                 // Loops require additional storage discovery.
                 _ => return false,
+            }
+            for epoch in fun.storage_exits.map_entry_epochs(item.span) {
+                let place=self.map_entry_epoch_place(fun,epoch);
+                if !places.contains(&place) {
+                    let original=fun.bindings[epoch.place.binding].ty;
+                    let ty=self.map_storage_leaf_type(original,&epoch.place.fields).expect("checked Map path");
+                    native_places.insert(place.clone(),self.native_type(ty));
+                    places.push(place);
+                }
             }
             if let Some((place, native)) = self.local_map_clear_storage(fun, declarations, item)
                 && !places.contains(&place) { native_places.insert(place.clone(), native); places.push(place); }
@@ -98,7 +108,13 @@ impl Emitter<'_> {
             } else { "TsrCompletion::Throw(error)=>match error {}".into() };
             let return_arm=format!("TsrCompletion::Return((pending_exit,{pattern}))=>{{{returned_finish}}}");
             let indent = "    ".repeat(depth);
-            let _ = writeln!(output, "{indent}{in_decl} {out_decl} {cleanup_declaration} let {pattern} = {{ let {pattern} = {values}; match {pending} {{ TsrCompletion::Normal(storage)=>{normal_finish}, TsrCompletion::Throw((caught_error,{pattern}))=>{{ {setup} match {handled} {{ TsrCompletion::Normal(storage)=>{normal_finish}, {throw_arm}, {return_arm},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried handler control\") }} }}, {return_arm},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried storage control\") }} }};");
+            if self.map_phase_has_entry_narrowing(fun,&handler.body) || region.finally.as_ref().is_some_and(|body|self.map_phase_has_entry_narrowing(fun,body)) {
+            let split=self.map_split_pending_storage(fun,&pending,&in_name,&storage_type);
+            let outer_return=format!("TsrCompletion::Return(pending_exit)=>{{{returned_finish}}}");
+            let _ = writeln!(output, "{indent}{in_decl} {out_decl} {cleanup_declaration} let {pattern} = {{ let (pending_control,{pattern})={{let {pattern}={values};{split}}};match pending_control {{ TsrCompletion::Normal(())=>{{let storage={values};{normal_finish}}}, TsrCompletion::Throw(caught_error)=>{{ {setup} match {handled} {{ TsrCompletion::Normal(storage)=>{normal_finish}, {throw_arm}, {return_arm},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried handler control\") }} }}, {outer_return},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried storage control\") }} }};");
+            }else {
+                let _ = writeln!(output, "{indent}{in_decl} {out_decl} {cleanup_declaration} let {pattern} = {{ let {pattern} = {values}; match {pending} {{ TsrCompletion::Normal(storage)=>{normal_finish}, TsrCompletion::Throw((caught_error,{pattern}))=>{{ {setup} match {handled} {{ TsrCompletion::Normal(storage)=>{normal_finish}, {throw_arm}, {return_arm},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried handler control\") }} }}, {return_arm},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried storage control\") }} }};");
+            }
         }
         let boundary=places.iter().flat_map(|place|[
             self.map_storage_transfer_at_exit(fun,&region.body,place),
@@ -107,6 +123,26 @@ impl Emitter<'_> {
         ]).flatten().map(|span|span.end).max().unwrap_or(statement.span.end).max(statement.span.end);
         self.exception_regions.renew_storage(&places,boundary);
         true
+    }
+
+    pub(super) fn map_phase_has_entry_narrowing(&self,fun:&CheckedFunction,body:&[Stmt])->bool {
+        let mut pending=body.iter().collect::<Vec<_>>();
+        while let Some(statement)=pending.pop() {
+            if fun.storage_exits.map_entry_epochs(statement.span).iter().any(|epoch|!epoch.before && !epoch.empty){return true;}
+            match &statement.kind {
+                StmtKind::Block(body)|StmtKind::While{body,..}|StmtKind::Loop{body,..}|StmtKind::ForOf{body,..}=>pending.extend(body),
+                StmtKind::If{then_body,else_body,..}=>{pending.extend(then_body);pending.extend(else_body);},
+                StmtKind::Try(region)=>{pending.extend(&region.body);if let Some(handler)=&region.catch{pending.extend(&handler.body);}pending.extend(region.finally.iter().flatten());},
+                _=>{},
+            }
+        }
+        false
+    }
+
+    /// Finish the owner-bearing completion scope before executing its next phase.
+    pub(super) fn map_split_pending_storage(&self,fun:&CheckedFunction,pending:&str,error:&str,storage:&str)->String {
+        let result=self.native_type(fun.result);
+        format!("{{let pending_completion={pending};let separated:(TsrCompletion<(),TsrStorageExit<{result}>,{error}>,{storage})=match pending_completion{{TsrCompletion::Normal(storage)=>(TsrCompletion::Normal(()),storage),TsrCompletion::Throw((error,storage))=>(TsrCompletion::Throw(error),storage),TsrCompletion::Return((exit,storage))=>(TsrCompletion::Return(exit),storage),TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried phase completion\")}};separated}}")
     }
 
     #[inline(never)]
@@ -137,7 +173,7 @@ impl Emitter<'_> {
         if carry_control {self.exception_regions.carry_storage_on_control_exit();}
         let mut statements = String::new();
         self.control_block_epochs(&mut statements, fun, body, 1, None, Some(declarations));
-        let normal_values = format!("({},)", places.iter().map(|place| self.map_branch_exit_value(fun, body, place)).collect::<Vec<_>>().join(","));
+        let normal_values = format!("({},)", places.iter().map(|place| self.map_completion_exit_value(fun, body, place)).collect::<Vec<_>>().join(","));
         let result = self.native_type(fun.result);
         let result = if carry_control {format!("(TsrStorageExit<{result}>,{storage_type})")} else {result};
         let error = if carry_error { format!("({error_name},{storage_type})") } else { error_name.to_owned() };

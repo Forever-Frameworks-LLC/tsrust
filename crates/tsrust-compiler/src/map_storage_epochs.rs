@@ -200,10 +200,14 @@ impl Emitter<'_> {
         self.map_epoch_storage_value(fun,place,transferred,start,fun.bindings[binding].ty)
     }
     pub(super) fn map_epoch_storage_value(&self,fun:&CheckedFunction,place:&str,transferred:Option<crate::Span>,start:usize,output:Type)->super::native_storage_availability::Value {
-        let (binding,fields)=self.map_storage_binding(fun,place).expect("checked Map storage");
+        let (binding,_)=self.map_storage_binding(fun,place).expect("checked Map storage");
+        self.map_typed_storage_value(fun,place,transferred,fun.storage_exits.map_native_input(start,binding),output)
+    }
+    fn map_typed_storage_value(&self,fun:&CheckedFunction,place:&str,transferred:Option<crate::Span>,input:Option<Type>,output:Type)->super::native_storage_availability::Value {
+        let (_,fields)=self.map_storage_binding(fun,place).expect("checked Map storage");
         let target=self.map_storage_leaf_type(output,&fields).expect("destination Map path");
         let empty=format!("<{}>::new()",self.native_type(target));
-        let live=fun.storage_exits.map_native_input(start,binding).and_then(|input| {
+        let live=input.and_then(|input| {
             let source=self.map_storage_leaf_type(input,&fields)?;
             let target=self.map_storage_leaf_type(output,&fields)?;
             if source==target{return None;}
@@ -216,7 +220,7 @@ impl Emitter<'_> {
         });
         super::native_storage_availability::Value{place:place.into(),empty,live,transferred}
     }
-    fn map_storage_leaf_type(&self,mut ty:Type,fields:&[String])->Option<Type> {
+    pub(super) fn map_storage_leaf_type(&self,mut ty:Type,fields:&[String])->Option<Type> {
         for name in fields {
             let Type::Record(record)=ty else{return None;};
             ty=self.program.records[record].fields.iter().find(|field|field.name.text==*name)?.ty?;
@@ -234,7 +238,16 @@ impl Emitter<'_> {
     pub(super) fn map_branch_exit_value(&self, fun: &CheckedFunction, body: &[Stmt], place: &str) -> String {
         let transferred=self.map_storage_transfer_at_exit(fun,body,place);
         if transferred.is_none() || self.exception_regions.native_storage_available(place,transferred) {return place.to_owned();}
-        self.map_empty_storage_value(fun, place)
+        self.map_empty_storage_value(fun,place)
+    }
+    pub(super) fn map_completion_exit_value(&self, fun: &CheckedFunction, body: &[Stmt], place: &str) -> String {
+        let transferred=self.map_storage_transfer_at_exit(fun,body,place);
+        let start=body.iter().map(|statement|statement.span.end).max().unwrap_or(0);
+        let (binding,_)=self.map_storage_binding(fun,place).expect("checked Map storage");
+        let input=body.first().and_then(|statement|fun.storage_exits.map_native_exit(statement.span.start,binding)).or_else(||fun.storage_exits.map_native_input(start,binding));
+        let value=self.map_typed_storage_value(fun,place,transferred,input,fun.bindings[binding].ty);
+        if transferred.is_none() || self.exception_regions.native_storage_available(place,transferred) {return value.live.unwrap_or_else(||place.to_owned());}
+        value.empty
     }
     pub(super) fn map_empty_storage_value(&self, fun: &CheckedFunction, place: &str) -> String {
         // Source availability remains consumed. This empty native owner only

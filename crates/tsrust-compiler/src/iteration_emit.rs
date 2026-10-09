@@ -20,6 +20,10 @@ impl Emitter<'_> {
         else {
             unreachable!("checked for-of");
         };
+        if matches!(iterable.ty,Some(Type::Map(_))) && self.exception_regions.carries_storage() {
+            self.map_borrowed_iteration_completion(output,fun,statement,depth,declaring_body,resets);
+            return;
+        }
         let indent = "    ".repeat(depth);
         let _control_scope = self
             .control_targets
@@ -112,5 +116,24 @@ impl Emitter<'_> {
             );
         }
         self.control_block_epochs(output, fun, body, depth, None, declaring_body);
+    }
+}
+
+impl Emitter<'_> {
+    /// Leave the iterator borrow scope before moving completion storage.
+    #[inline(never)]
+    fn map_borrowed_iteration_completion(&self,output:&mut String,fun:&CheckedFunction,statement:&Stmt,depth:usize,declaring_body:Option<&[Stmt]>,resets:&[(String,String)]) {
+        let (error,contract,runtime)=self.exception_regions.current_transport().expect("typed storage region");
+        let id=self.completion_next.get();self.completion_next.set(id+1);
+        let result=self.native_type(fun.result);
+        let mut body=String::new();
+        {
+            let _scope=self.exception_regions.enter_typed(id,vec![ControlTarget::Loop(statement.span.start)],error.clone(),contract,runtime);
+            self.for_of_loop(&mut body,fun,statement,depth+1,declaring_body,resets);
+        }
+        let pending=format!("{{let iteration_completion:TsrCompletion<(),{result},{error}>='exception_region{id}:{{{body} TsrCompletion::Normal(())}};iteration_completion}}");
+        let dispatch=self.exception_regions.dispatch(&pending,&self.control_targets.snapshot(),statement.span).expect("enclosing iteration completion");
+        let indent="    ".repeat(depth);
+        let _=writeln!(output,"{indent}{dispatch};");
     }
 }

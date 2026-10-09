@@ -1580,3 +1580,69 @@ Whole-project formatting changes zero files and zero fingerprints. Matched
 scoped-record-composition registration passes. Ten closed logs, including both
 red witnesses and strengthened proof checks, are imported into SQLite, read back
 byte for byte, then removed from scratch storage. B5 remains incomplete.
+
+
+### Deletion through straight-line exception cleanup
+
+Checked local entry epochs now run within try bodies, handlers and cleanup.
+Native carried completion discovers these entry conversions as well as clears.
+Normal completion moves a narrowed live Map into the existing common transport
+family; unavailable source owners remain typed empty. Plain branch tuple emission
+keeps its existing survivor family instead of converting to the function-wide
+family. The first experimental shared helper caused two branch regressions;
+separating completion conversion repaired both without weakening their witnesses.
+
+Borrowed Map iteration under carried storage now uses an inner typed completion
+region. It finishes the iterator scope before transporting the owning Map on
+error or escaping control. Local loop controls still act on the iterator loop.
+This fixes moving a Map while its iterator temporary still borrows it. The new
+native witness checks deletion, mutation of the released capture, surviving
+callback invocation in finally, error during borrowed iteration, catch visibility,
+cleanup order and exact disposal at both optimization levels. The editor witness
+accepts mutation of the deleted capture and rejects mutation of the survivor.
+
+Matched verification exposed a tail-expression boundary defect in an existing
+replacement scenario. Short statement spans did not include the final native
+conversion. The planner now records exact body-exit storage types, and normal
+completion uses that type before projecting into the common transport family.
+A focused proof checks the exit against the actual tail replacement epoch.
+Phase-specific normal/error/cleanup layouts remain available checked metadata;
+separate phase-specialized emission is still required. This chunk does not claim
+that the phase layout consumer or the broader B5 family is complete.
+
+The original loop-cleanup witness remains red. Planning its inner try exposed a
+moved outer Map on repeated iterations: resuming break/continue must first
+reassign the carried loop tuple. The exploratory while recursion is removed;
+the failing evidence is retained. Next combine loop entry/back/body transport
+with resumed cleanup control, without installing direct source control hooks
+inside try that could bypass finally. Preserve cleanup overrides and disposal.
+
+
+Additional handler and cleanup witnesses now pass native execution and exact
+callback disposal at both optimization levels. A named pending completion alone
+was insufficient: its inactive storage variants kept capture lifetimes alive.
+For phases with nonempty entry narrowing, control and storage leave that owner
+scope separately before entering the phase. Clear-only renewal retains its
+existing independently inferred normal storage lifetime; unconditionally
+combining normal/error storage under one explicit tuple type regressed six
+accepted clear/restoration checks. Those failed runs are preserved. Selecting
+transport by the checked entry conversion restores all accepted cases; the final
+selected batch is 73 passing tests and only the retained loop-cleanup red.
+
+Six phase/native-boundary proofs, eight normal-stack depth canaries and seven
+editor entry-release checks pass. Matched support adds finallyEntryMutation,
+with 61 scalar observations per iteration and an independent 3*value+10 oracle.
+Token-based source guards reject removal of deletion, mutation and survivor
+invocation. Registration literal expectations are extended; the initially stale
+60-value assertion and repaired run remain separate evidence. Native/Node untimed
+verification and final formatting are recorded below when complete. No timing,
+full-family acceptance or installed consumer refresh is claimed.
+
+
+Final matched native and Node-after-tsc correctness verification passes for all
+61 observations and all retained input cases. Canonical final record:
+runtime/results/2026-10-09T03-05-12-987Z-verify.json. Whole-project final
+formatting changes zero files and zero fingerprints. Original failed checks,
+repaired checks and both successful untimed records are imported into SQLite
+and read back byte for byte before their loose copies are removed. B5 remains
+open; this is a focused native transport checkpoint, not a family milestone.
