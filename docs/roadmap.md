@@ -800,3 +800,5 @@ installer bodies and relays remain pending for these equal-type instances. The
 matched workload has 31 observations and remains unmeasured.
 
 B7 owner-instance transport now supports effectful callback installers, named relays, returning to a prior factory owner and nested holder captures. Zero-sized native owner markers distinguish equal callback types without changing source ownership. The matched workload observes installer effects as a 32nd result. Timing and family acceptance remain pending; equal-type data captures and closure-caller provenance remain open.
+
+B7 now covers effectful named data-input replacement: nullable/plain mutable arrays, readonly arrays, named relay effects, nested holder captures and mutable records. Singleton callback carriers retain independent native data lifetimes. The matched workload has 33 untimed observations. Closure-caller provenance and broader retained control-flow composition remain open; family acceptance and timing are pending.

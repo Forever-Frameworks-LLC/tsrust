@@ -133,9 +133,8 @@ pub(super) fn lifetime_alternatives(
 ) -> borrowed_payload_emit::Alternatives {
     let mut result = types.clone();
     for (&origin, vectors) in owners {
-        let Some(types) = types.get(&origin) else {
-            continue;
-        };
+        let singleton = vec![Vec::new()];
+        let types = types.get(&origin).unwrap_or(&singleton);
         result.insert(
             origin,
             types
@@ -178,21 +177,21 @@ pub(super) fn marker_plan(program: &CheckedProgram) -> borrowed_owner_provenance
                 })
                 .map(|capture| capture.inner)
                 .collect::<Vec<_>>();
-            !callback_inputs.is_empty()
-                && vectors.iter().enumerate().any(|(index, left)| {
-                    vectors.iter().skip(index + 1).any(|right| {
-                        callback_inputs.iter().all(|inner| {
-                            let ty = |vector: &borrowed_owner_provenance::Vector| {
-                                vector.iter().find(|(capture, _)| capture == inner).map(
-                                    |(_, owner)| {
-                                        program.functions[owner.function].bindings[owner.binding].ty
-                                    },
-                                )
-                            };
-                            ty(left) == ty(right)
-                        })
+            vectors.iter().enumerate().any(|(index, left)| {
+                vectors.iter().skip(index + 1).any(|right| {
+                    callback_inputs.iter().all(|inner| {
+                        let ty = |vector: &borrowed_owner_provenance::Vector| {
+                            vector
+                                .iter()
+                                .find(|(capture, _)| capture == inner)
+                                .map(|(_, owner)| {
+                                    program.functions[owner.function].bindings[owner.binding].ty
+                                })
+                        };
+                        ty(left) == ty(right)
                     })
                 })
+            })
         })
         .collect()
 }

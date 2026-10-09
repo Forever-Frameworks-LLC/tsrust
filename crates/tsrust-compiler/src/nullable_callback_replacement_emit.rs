@@ -56,11 +56,13 @@ impl Emitter<'_> {
                     if !matches!(payload, Type::Closure(_) | Type::BorrowedCallable(_)) {
                         continue;
                     }
-                    let source =
-                        self.record_borrow_replacement_type(function, payload, parameter, &names);
-                    let bound = format!("C{callback}: From<{source}>");
-                    if !bounds.contains(&bound) {
-                        bounds.push(bound);
+                    for source in
+                        self.record_borrow_replacement_types(function, payload, parameter, &names)
+                    {
+                        let bound = format!("C{callback}: From<{source}>");
+                        if !bounds.contains(&bound) {
+                            bounds.push(bound);
+                        }
                     }
                 }
             }

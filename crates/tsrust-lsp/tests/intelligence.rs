@@ -9386,3 +9386,26 @@ fn independent_callback_factory_replacement_preserves_editor_loans() {
     let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&conflict, "file:///factory-instance-replacement.tsr").unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "capture-conflict"), "{diagnostics}");
 }
+
+#[test]
+fn effectful_data_replacement_preserves_editor_owner_conflicts() {
+    let source=tsrust_compiler::format(r#"
+        type Holder = { run: Mutable<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: Mutable<int[]>, calls: Mutable<int[]>): void {
+            calls[0] += 1; holder.run = (): int => { source[0] += 1; return source[0]; };
+        }
+        function main() {
+            const first = [3]; const second = [10]; const calls = [0]; const holder: Holder = { run: undefined };
+            install(holder, first, calls); install(holder, second, calls);
+            first[0] += 1; console.log(holder.run!());
+        }
+    "#).unwrap();
+    assert!(tsrust_lsp::diagnostics(&source,"file:///data-owner-replacement.tsr").unwrap().is_empty());
+    let hover=ask(&source,"textDocument/hover","run!",0);
+    let text=hover["contents"]["value"].as_str().unwrap();
+    assert!(text.contains("Mutable") && text.contains("undefined"),"{hover}");
+    let conflict=source.replace("first[0] += 1;","second[0] += 1;");
+    assert_ne!(source,conflict);
+    let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///data-owner-replacement.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+}

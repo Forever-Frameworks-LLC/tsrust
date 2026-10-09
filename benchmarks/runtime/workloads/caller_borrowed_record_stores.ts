@@ -183,6 +183,7 @@ function workload(n: int, seed: int, input: string): int[][] {
             factoryAfter = replacement() + (holder.run === undefined ? 0 : 100);
         }
 
+        let dataEffects = 0;
         let dataReleased = 0;
         let dataReplacement = 0;
         let dataAfter = 0;
@@ -190,9 +191,11 @@ function workload(n: int, seed: int, input: string): int[][] {
             const original = [value];
             const replacement = [value + 4];
             const holder: NullableHolder = { run: undefined };
-            installNullableData(holder, original);
+            const dataCalls = [0];
+            installNullableData(holder, original, dataCalls);
             holder.run!();
-            installNullableData(holder, replacement);
+            installNullableData(holder, replacement, dataCalls);
+            dataEffects = dataCalls[0];
             original[0] += 1;
             dataReleased = original[0];
             dataReplacement = holder.run!();
@@ -201,7 +204,7 @@ function workload(n: int, seed: int, input: string): int[][] {
             dataAfter = replacement[0] + (holder.run === undefined ? 0 : 100);
         }
 
-        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects]);
+        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects]);
         i += 1;
     }
 
@@ -268,7 +271,8 @@ function counter(start: int): () => int {
     let value = start;
     return (): int => { value += 1; return value; };
 }
-function installNullableData(holder: NullableHolder, source: int[]): void {
+function installNullableData(holder: NullableHolder, source: int[], calls: int[]): void {
+    calls[0] += 1;
     holder.run = (): int => { source[0] += 1; return source[0]; };
 }
 

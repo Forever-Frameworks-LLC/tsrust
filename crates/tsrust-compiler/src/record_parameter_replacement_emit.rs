@@ -240,11 +240,10 @@ impl Emitter<'_> {
             .into_iter()
             .flatten()
             .filter(|(id, selected, _)| *id == parameter && selected == &names)
-            .map(|(_, _, ty)| {
-                format!(
-                    "From<{}>",
-                    self.record_borrow_replacement_type(function, *ty, parameter, &names)
-                )
+            .flat_map(|(_, _, ty)| {
+                self.record_borrow_replacement_types(function, *ty, parameter, &names)
+                    .into_iter()
+                    .map(|ty| format!("From<{ty}>"))
             })
             .collect::<Vec<_>>();
         bounds.sort();

@@ -20308,8 +20308,8 @@
       "measured": false,
       "notes": "Direct readonly and mutable array inputs, stable input aliases and named relays, repeated replacement with distinct inputs, nested multiple captures, readonly callback aliases, independent callback input types and mutable callback state with release before independent invocation. B7 family remains in progress; no timing evidence.",
       "specification": "Eleven independent scalar observations per iteration; arithmetic oracle does not execute callback code.",
-      "sourceSha256": "d391d051527910c6e88edac66e6255a6415ce1cb12469ae8251a7b7c6e758243",
-      "counterpartSha256": "5c5a23a237c894779fc4dcd9c47cfa506b7a5ad6cccb9edf279463e4460d637e"
+      "sourceSha256": "a6d60c5e70c6b9ee068bbdc8b512407bb1a7175389f92679c512f325af11a8a0",
+      "counterpartSha256": "08a62c10d12014bbc871de45b17ec10078438d2a7f8695969bc5ce5ef6dc5bf7"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

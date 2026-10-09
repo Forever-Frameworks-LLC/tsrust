@@ -189,3 +189,65 @@ function main() {
 "#,
     );
 }
+
+#[test]
+fn effectful_data_installer_releases_equal_type_array_owners() {
+    let source = r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: Mutable<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: Mutable<int[]>, calls: Mutable<int[]>): void {
+            calls[0] += 1;
+            holder.run = (): int => { source[0] += 1; return source[0]; };
+        }
+        function main() {
+            const first = [3]; const second = [10]; const calls = [0];
+            const holder: Holder = { run: undefined };
+            install(holder, first, calls); strictEqual(holder.run!(), 4);
+            install(holder, second, calls); first[0] += 1;
+            strictEqual(first[0], 5); strictEqual(holder.run!(), 11); strictEqual(calls[0], 2);
+        }
+    "#;
+    execute(source);
+    let readonly = source
+        .replace("source: Mutable<int[]>", "source: ReadOnly<int[]>")
+        .replace("source[0] += 1; return source[0];", "return source[0];")
+        .replace("holder.run!(), 4", "holder.run!(), 3")
+        .replace("first[0], 5", "first[0], 4")
+        .replace("holder.run!(), 11", "holder.run!(), 10");
+    execute(&readonly);
+    let relay=source.replace("install(holder, first, calls)","relay(holder, first, calls)")
+        .replace("install(holder, second, calls)","relay(holder, second, calls)")
+        .replace("strictEqual(calls[0], 2);","strictEqual(calls[0], 6); const observe = (): int => holder.run!(); strictEqual(observe(), 12);");
+    execute(
+        &(relay
+            + "\nfunction relay(holder: Mutable<Holder>, source: Mutable<int[]>, calls: Mutable<int[]>): void { calls[0] += 2; install(holder, source, calls); }"),
+    );
+    execute(
+        &source
+            .replace(" | undefined", "")
+            .replace("run: undefined", "run: (): int => 0")
+            .replace("run!()", "run()"),
+    );
+}
+
+#[test]
+fn effectful_data_installer_releases_equal_type_record_owners() {
+    execute(
+        r#"
+        import { strictEqual } from "std:testing";
+        type Counter = { value: int; };
+        type Holder = { run: Mutable<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: Mutable<Counter>, calls: Mutable<int[]>): void {
+            calls[0] += 1;
+            holder.run = (): int => { source.value += 1; return source.value; };
+        }
+        function main() {
+            const first: Counter = { value: 3 }; const second: Counter = { value: 10 }; const calls = [0];
+            const holder: Holder = { run: undefined };
+            install(holder, first, calls); strictEqual(holder.run!(), 4);
+            install(holder, second, calls); first.value += 1;
+            strictEqual(first.value, 5); strictEqual(holder.run!(), 11); strictEqual(calls[0], 2);
+        }
+    "#,
+    );
+}

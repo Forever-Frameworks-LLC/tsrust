@@ -43,7 +43,7 @@ fn resolve(
     None
 }
 
-pub(super) fn plan(program: &CheckedProgram) -> Plan {
+fn walk(program: &CheckedProgram, mut pending: Vec<(usize, Vec<Option<Owner>>)>) -> Plan {
     let mut result = Plan::new();
     if program.record_parameter_borrows.is_empty() {
         return result;
@@ -74,13 +74,6 @@ pub(super) fn plan(program: &CheckedProgram) -> Plan {
             }
         });
     }
-    let mut pending = program
-        .functions
-        .iter()
-        .enumerate()
-        .filter(|(_, function)| !function.template)
-        .map(|(id, function)| (id, vec![None; function.parameter_count]))
-        .collect::<Vec<_>>();
     let mut seen = BTreeSet::new();
     while let Some((id, inputs)) = pending.pop() {
         if !seen.insert((id, inputs.clone())) {
@@ -150,6 +143,23 @@ pub(super) fn plan(program: &CheckedProgram) -> Plan {
     }
     result.retain(|origin, _| !incomplete.contains(origin));
     result
+}
+
+pub(super) fn plan(program: &CheckedProgram) -> Plan {
+    let pending = program
+        .functions
+        .iter()
+        .enumerate()
+        .filter(|(_, function)| !function.template)
+        .map(|(id, function)| (id, vec![None; function.parameter_count]))
+        .collect::<Vec<_>>();
+    walk(program, pending)
+}
+pub(super) fn parameter_vectors(program: &CheckedProgram, function: usize) -> Plan {
+    let inputs = (0..program.functions[function].parameter_count)
+        .map(|binding| Some(Owner { function, binding }))
+        .collect();
+    walk(program, vec![(function, inputs)])
 }
 
 #[test]

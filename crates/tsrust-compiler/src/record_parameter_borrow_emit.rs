@@ -52,6 +52,70 @@ impl Emitter<'_> {
         parameter: usize,
         path: &[String],
     ) -> String {
+        self.record_borrow_replacement_type_selected(function, ty, parameter, path, None)
+    }
+    pub(super) fn record_borrow_replacement_types(
+        &self,
+        function: usize,
+        ty: Type,
+        parameter: usize,
+        path: &[String],
+    ) -> Vec<String> {
+        let Some(Type::Closure(origin)) = self.callback_payload(ty).or(Some(ty)) else {
+            return vec![self.record_borrow_replacement_type(function, ty, parameter, path)];
+        };
+        if !self.borrowed_owners.contains_key(&origin) {
+            return vec![self.record_borrow_replacement_type(function, ty, parameter, path)];
+        }
+        let plan = borrowed_owner_provenance::parameter_vectors(self.program, function);
+        let result = plan
+            .get(&origin)
+            .into_iter()
+            .flatten()
+            .filter(|owners| {
+                owners.iter().all(|(inner, owner)| {
+                    owner.function == function
+                        && owner.binding < self.program.functions[function].parameter_count
+                        && self
+                            .program
+                            .record_parameter_borrows
+                            .get(&function)
+                            .into_iter()
+                            .flatten()
+                            .any(|borrow| {
+                                borrow.origin == origin
+                                    && borrow.target.binding == parameter
+                                    && borrow.target.fields == path
+                                    && borrow.source == owner.binding
+                                    && self.program.closures[origin].captures[borrow.capture].inner
+                                        == *inner
+                            })
+                })
+            })
+            .map(|owners| {
+                self.record_borrow_replacement_type_selected(
+                    function,
+                    ty,
+                    parameter,
+                    path,
+                    Some(owners),
+                )
+            })
+            .collect::<Vec<_>>();
+        if result.is_empty() {
+            vec![self.record_borrow_replacement_type(function, ty, parameter, path)]
+        } else {
+            result
+        }
+    }
+    fn record_borrow_replacement_type_selected(
+        &self,
+        function: usize,
+        ty: Type,
+        parameter: usize,
+        path: &[String],
+        owners: Option<&borrowed_owner_provenance::Vector>,
+    ) -> String {
         match ty {
             Type::Closure(origin) => {
                 let closure = &self.program.closures[origin];
@@ -67,6 +131,14 @@ impl Emitter<'_> {
                         borrow.origin == origin
                             && borrow.target.binding == parameter
                             && borrow.target.fields == path
+                            && owners.is_none_or(|owners| {
+                                owners.iter().any(|(inner, owner)| {
+                                    *inner
+                                        == self.program.closures[origin].captures[borrow.capture]
+                                            .inner
+                                        && owner.binding == borrow.source
+                                })
+                            })
                     })
                 {
                     let field = &fields[borrow.capture];
@@ -92,6 +164,14 @@ impl Emitter<'_> {
                         borrow.origin == origin
                             && borrow.target.binding == parameter
                             && borrow.target.fields == path
+                            && owners.is_none_or(|owners| {
+                                owners.iter().any(|(inner, owner)| {
+                                    *inner
+                                        == self.program.closures[origin].captures[borrow.capture]
+                                            .inner
+                                        && owner.binding == borrow.source
+                                })
+                            })
                     })
                 {
                     let capture = &closure.captures[borrow.capture];
@@ -105,27 +185,36 @@ impl Emitter<'_> {
                 }
                 let rendered = callback_capture_emit::substitute_parameters(&rendered, &parameters);
                 if self.borrowed_owners.contains_key(&origin) {
-                    let markers = closure
-                        .captures
-                        .iter()
-                        .filter(|capture| matches!(capture.storage, Mode::Read | Mode::Mutate))
-                        .map(|capture| {
-                            self.program
-                                .record_parameter_borrows
-                                .get(&function)
-                                .into_iter()
-                                .flatten()
-                                .find(|borrow| {
-                                    borrow.origin == origin
-                                        && self.program.closures[origin].captures[borrow.capture]
-                                            .inner
-                                            == capture.inner
-                                })
-                                .map(|borrow| format!("O{}", borrow.source))
-                                .expect("retained capture owner input")
-                        })
-                        .collect::<Vec<_>>()
-                        .join(",");
+                    let markers = if let Some(owners) = owners {
+                        owners
+                            .iter()
+                            .map(|(_, owner)| format!("O{}", owner.binding))
+                            .collect::<Vec<_>>()
+                            .join(",")
+                    } else {
+                        closure
+                            .captures
+                            .iter()
+                            .filter(|capture| matches!(capture.storage, Mode::Read | Mode::Mutate))
+                            .map(|capture| {
+                                self.program
+                                    .record_parameter_borrows
+                                    .get(&function)
+                                    .into_iter()
+                                    .flatten()
+                                    .find(|borrow| {
+                                        borrow.origin == origin
+                                            && self.program.closures[origin].captures
+                                                [borrow.capture]
+                                                .inner
+                                                == capture.inner
+                                    })
+                                    .map(|borrow| format!("O{}", borrow.source))
+                                    .expect("retained capture owner input")
+                            })
+                            .collect::<Vec<_>>()
+                            .join(",")
+                    };
                     format!("TsrOwnedCapture<{rendered},({markers},)>")
                 } else {
                     rendered
