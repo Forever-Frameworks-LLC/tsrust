@@ -216,7 +216,46 @@ function workload(n: int, seed: int, input: string): int[][] {
             nullableReplacementAfter = replacementAction() + (holder.run === undefined ? 0 : 100);
         }
 
-        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter]);
+        let factoryBefore = 0;
+        let factoryReleased = 0;
+        let factoryReplacement = 0;
+        let factoryAfter = 0;
+        {
+            const original = counter(value);
+            const replacement = counter(value + 4);
+            const holder: NullableHolder = {
+                run: undefined
+            };
+            installNullable(holder, original);
+            factoryBefore = holder.run!();
+            installNullable(holder, replacement);
+            factoryReleased = original();
+            factoryReplacement = holder.run!();
+            clearNullable(holder);
+            factoryAfter = replacement() + (holder.run === undefined ? 0 : 100);
+        }
+
+        let dataReleased = 0;
+        let dataReplacement = 0;
+        let dataAfter = 0;
+        {
+            const original = [value];
+            const replacement = [value + 4];
+            const holder: NullableHolder = {
+                run: undefined
+            };
+            installNullableData(holder, original);
+            holder.run!();
+            installNullableData(holder, replacement);
+            original[0] += 1;
+            dataReleased = original[0];
+            dataReplacement = holder.run!();
+            clearNullable(holder);
+            replacement[0] += 1;
+            dataAfter = replacement[0] + (holder.run === undefined ? 0 : 100);
+        }
+
+        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter]);
         i += 1;
     }
 
@@ -296,4 +335,19 @@ function relayClearNullable(holder: Mutable<NullableHolder>, early: boolean): vo
     }
 
     clearNullable(holder);
+}
+
+function counter(start: int): () => int {
+    let value = start;
+    return (): int => {
+        value += 1;
+        return value;
+    };
+}
+
+function installNullableData(holder: Mutable<NullableHolder>, source: Mutable<int[]>): void {
+    holder.run = (): int => {
+        source[0] += 1;
+        return source[0];
+    };
 }

@@ -9363,3 +9363,26 @@ fn nullable_callback_replacement_editor_releases_only_the_old_input() {
     let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&conflict, "file:///nullable-replacement.tsr").unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "capture-conflict"), "{diagnostics}");
 }
+
+#[test]
+fn independent_callback_factory_replacement_preserves_editor_loans() {
+    let source = tsrust_compiler::format(r#"
+        type Holder = { run: Mutable<Function<int>> | undefined; };
+        function counter(start: int): () => int { let value = start; return (): int => { value += 1; return value; }; }
+        function install(holder: Mutable<Holder>, action: Mutable<Function<int>>): void { holder.run = action; }
+        function main() {
+            const first = counter(3); const second = counter(10);
+            const holder: Holder = { run: undefined };
+            install(holder, first); install(holder, second);
+            console.log(first(), holder.run!());
+        }
+    "#).unwrap();
+    assert!(tsrust_lsp::diagnostics(&source, "file:///factory-instance-replacement.tsr").unwrap().is_empty());
+    let hover = ask(&source, "textDocument/hover", "run!", 0);
+    let text = hover["contents"]["value"].as_str().unwrap();
+    assert!(text.contains("Mutable") && text.contains("undefined"), "{hover}");
+    let conflict = source.replace("install(holder, second);", "");
+    assert_ne!(source, conflict);
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&conflict, "file:///factory-instance-replacement.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "capture-conflict"), "{diagnostics}");
+}

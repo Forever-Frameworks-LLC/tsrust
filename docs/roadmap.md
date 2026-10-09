@@ -791,3 +791,10 @@ callback environments, exact old-input release, nested relays and input aliases.
 Borrowed and capture-free branch alternatives both survive native conversion.
 New-input conflicts and skipped-replacement conflicts remain source diagnostics.
 The caller-transport family remains in progress; see [the replacement handoff](handoff-2026-10-09-b7-callback-replacement.md).
+
+
+B7 now includes exact direct installation of equal-type owner instances: independent
+callback factories, arrays and plain records. Source release and editor loans stay
+unchanged; native emission exposes the checked overwrite at the caller. Larger
+installer bodies and relays remain pending for these equal-type instances. The
+matched workload has 31 observations and remains unmeasured.

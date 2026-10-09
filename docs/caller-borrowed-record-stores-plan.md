@@ -155,3 +155,27 @@ completion and nested generic environments remain pending.
 The same checked-environment reconstruction also applies to non-nullable fields.
 Its focused witness previously retained the old mutable input in generated Rust;
 it now releases that input while invoking the distinct replacement environment.
+
+## Equal-type owner instances: direct store checkpoint
+
+The new factory-instance and data-input probes expose native borrow retention even
+when source release is correct. Distinct runtime owners can have the same concrete
+callback or array type, so filtering native alternatives only by that type cannot
+separate their lifetimes.
+
+The isolated direct_record_store_emit module lowers a precisely recognized installer
+at its call site. Its checked body must consist only of one field assignment of a
+closure capturing formal inputs. Arguments must be named storage; defaults, rest,
+hidden captures, fallible installers, restored captures and scoped record views
+remain on the ordinary call path. Consumed non-copy arguments are excluded even
+when unused, because their destruction must not move to a later scope. Recognized
+construction retains the original capture access modes and checked final carrier.
+Rust sees the actual field overwrite and can end the old owner's borrow. No source
+ownership rule changes and no environment is cloned.
+
+Focused native cases cover independent same-origin counter factories in nullable
+and non-nullable fields, direct array inputs and plain record inputs. Controls
+preserve effectful argument evaluation and installer body effects exactly once.
+This is not a complete representation for all equal-type owner instances: aliases,
+relays and larger effectful installers need the next native ownership work. Keep
+that requirement open rather than weakening old-input reuse assertions.

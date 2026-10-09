@@ -520,3 +520,10 @@ disposed. Named relays, nested fields and stable callback aliases preserve this
 rule. A branch that might skip the replacement retains the old borrow. A branch
 that installs either a borrowed callback or a capture-free callback preserves both
 possible behaviors; it does not assume the borrowed alternative was selected.
+
+
+A direct installer containing only capture assignment also preserves independent
+instances returned by the same callback factory. Replacing one counter with another
+releases the first counter's retained borrow and keeps each counter's state separate.
+The same direct form supports array and plain-record inputs of equal type. Broader
+effectful installer and relay forms are still being completed for equal-type owners.

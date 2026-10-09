@@ -1,5 +1,7 @@
 #[path = "record_point_call_emit.rs"]
 mod record_point_call_emit;
+#[path = "direct_record_store_emit.rs"]
+mod direct_record_store_emit;
 #[path = "record_callback_reification_emit.rs"]
 mod record_callback_reification_emit;
 #[path = "nullable_callback_clear_emit.rs"]
@@ -7082,6 +7084,9 @@ impl Emitter<'_> {
         index: usize,
         mode: Mode,
     ) -> String {
+        if let Some(code)=self.direct_record_store_call(fun,index,args) {
+            return match mode {Mode::Read=>format!("&({code})"),Mode::Mutate=>format!("&mut ({code})"),Mode::Consume|Mode::Copy=>code};
+        }
         let result_target=self.result_functions.borrow().get(&index).cloned();
         let native_name=self.native_call_name(index,args);
         let code = {
