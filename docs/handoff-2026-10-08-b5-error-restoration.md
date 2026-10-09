@@ -2448,3 +2448,58 @@ Next: resolve return/break/continue owners by their actual destination, preserve
 cleanup overrides and disposal, then complete the remaining B5 aggregate and
 expression witnesses before the family regression/performance review. Structural
 owned record keys retain the accepted Rust-style value semantics.
+
+
+### Control cleanup planning foundation
+
+The checker already distinguishes Return, Break(target) and Continue(target) in
+its exception snapshots. Cleanup planning previously materialized only Throw.
+It now materializes a separate native cleanup plan for every abrupt Handled
+completion, preserving the complete resolved target in the existing plan key.
+Two focused baseline witnesses fail because those plans are absent. They pass
+after the change: a narrowed return owner seeds cleanup correctly, and two
+separate break destinations plus one continue destination retain their respective
+Map survivors. The destination witnesses deliberately use different surviving
+callback origins, so a merged plan cannot satisfy the assertions.
+
+This is planning infrastructure, not acceptance of precise native control
+transport. Existing emitted return/break/continue carriers still use common
+storage. The next implementation must consume the plans without re-widening
+owners and must preserve pending return values and cleanup overrides.
+
+The remaining transport design is explicit:
+
+1. Generate a control carrier with a separate typed storage payload per resolved
+   completion destination. Use generic payload parameters so local enum
+   declarations do not capture anonymous closure lifetimes.
+2. Attach each checked phase layout to return and control emission, as error
+   emission already does. Preserve source-name availability independently of
+   initialized native owners; never revive a transferred source binding.
+3. Fully consume the carrier before entering cleanup. Select the plan by the
+   exact Return/Break/Continue kind and target, then emit its phase-local body and
+   native metadata. Do not choose a plan only by the general control category.
+4. Project cleaned storage into the actual enclosing destination. Local loop and
+   labeled-block destinations must receive their checked carried layout; an
+   enclosing finally receives control before a local destination is resumed.
+5. Verify returned owned values, both loop control kinds, multiple labels, nested
+   cleanup, overriding return/error/control and exactly-once disposal. Add matched
+   observations and editor diagnostics with each observable behavior change.
+
+Control transport remains open. No new runtime capability or performance result
+is claimed by this planning checkpoint. Its checks are recorded below when closed.
+
+
+Bounded verification passes: 95 affected Map native tests, 23 phase/storage
+proofs, 21 editor entry-release checks and all eight depth canaries. Project
+formatting changes zero files and fingerprints; diff checks pass. Existing
+matched workload support is unchanged at 89 observations per row. A focused
+untimed native/Node-after-tsc verification checks the current compiler; the final
+record is recorded below after the run closes. No new timing is performed.
+
+
+Final matched verification passes all five cases on both engines. Canonical record:
+runtime/results/2026-10-09T06-43-43-721Z-verify.json. Original red witnesses,
+closed checks and the matched record are preserved in SQLite, restored byte for
+byte and removed from loose storage. Source acceptance concerns control cleanup
+planning only; the destination-specific native carrier remains the immediate
+next implementation. B5 and the broader compiler completion plan remain open.

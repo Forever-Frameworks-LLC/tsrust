@@ -31,7 +31,7 @@ impl Analyzer {
     pub(super) fn plan_map_cleanup_phases(&mut self,context:&mut Context,region:&ExceptionRegion,results:&HashMap<usize,Type>,demand:&map_entry_demand::Demand,local:&std::collections::BTreeSet<crate::capture_loan_owners::Place>)->Result<(),Diagnostic> {
         let (Some(cleanup),Some(boundary))=(&region.finally,region.body.first().map(|statement|statement.span.start)) else{return Ok(());};
         let snapshots=context.storage_exits.map_completion_snapshots(boundary);
-        for state in snapshots.into_iter().filter(|state|state.phase==map_completion_payloads::Phase::Handled && state.kind==Some(crate::completion::CompletionKind::Throw)) {
+        for state in snapshots.into_iter().filter(|state|state.phase==map_completion_payloads::Phase::Handled && state.kind.is_some()) {
             let Some(layout)=context.storage_exits.map_completion_layout(boundary,state.phase,state.kind).cloned() else{continue;};
             if layout.is_empty(){continue;}
             let mut phase=context.clone();phase.storage_exits.reset_map_cleanup_native_plans();
