@@ -1,5 +1,29 @@
 # Precise indexed capture release
 
+## Retained comma removal result checkpoint, 2026-10-09
+
+Local declarations whose comma sequence ends in a direct known removal now
+separate discarded prefix lifetimes from the final result owner. The source
+snapshot is taken after all prefix effects, preventing restoration of already
+removed capture owners. Native lowering exports the final declaration together
+with surviving array storage through a synthetic lexical block. This reuses the
+existing array/result epochs without cloning callback environments.
+
+Focused tests cover nested prefixes, an owned string prefix, exact O0/O3 disposal,
+retained captures, direct result replacement and empty final removal. Existing
+comma suites, 31 affected array tests, two editor diagnostics and eight depth
+canaries pass. The matched workload adds an independent `3 * value + 6` formula,
+with 122 observations per iteration. Registration and mutation guards pass.
+All five native/Node-after-tsc cases pass untimed. SQLite preserves
+`runtime/results/2026-10-09T09-29-23-784Z-verify.json` with empty timing arrays.
+Twelve closed diagnostic logs and the verify record were restored byte for byte
+before deleting loose copies. Final project formatting changes zero files and
+fingerprints. No full regression, timing or installed-consumer refresh ran.
+B5 is not complete.
+
+Arbitrary final expressions, direct sequence reassignment, function return
+transport, aggregate result storage and control-flow joins remain open.
+
 ## Discarded comma operand checkpoint, 2026-10-09
 
 A standalone discarded comma sequence can now release a known local array's

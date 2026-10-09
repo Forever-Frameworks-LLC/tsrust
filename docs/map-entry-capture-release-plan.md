@@ -1,5 +1,25 @@
 # Precise Map entry capture release
 
+## Retained comma removal result checkpoint, 2026-10-09
+
+Local declarations can retain the final direct removal after discarded comma
+prefixes. Prefixes release their captures in order; the final snapshot transfers
+only the selected result owner. Native lexical-block transport exports the source
+binding and surviving array carriers without cloning. Focused nested, empty,
+replacement, read-prefix and exact-disposal cases pass, alongside 31 affected
+array tests, existing comma suites, editor diagnostics and eight depth canaries.
+The matched workload has 122 observations and passes five native/Node-after-tsc
+cases untimed. SQLite preserves the byte-verified record
+`runtime/results/2026-10-09T09-29-23-784Z-verify.json` and diagnostic evidence.
+
+B5 remains incomplete. Next cover arbitrary final values and direct comma
+reassignment, then aggregate result storage and control-flow composition.
+Function return transport, nullable/outer storage, structural record keys, family
+regressions, performance review and installed-consumer refresh remain pending.
+See indexed-capture-release-plan.md for current implementation details.
+
+
+
 ## Discarded comma operand checkpoint, 2026-10-09
 
 Standalone discarded comma sequences now release directly removed array captures

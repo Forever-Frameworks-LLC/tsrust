@@ -33,6 +33,7 @@ impl Analyzer {
     fn finish_array_removal(context: &mut Context, value: &Expr, snapshot: Option<Box<crate::capture_loan_owners::Owners>>, destination: Option<Place>) {
         let Some(mut owners) = snapshot else { return; };
         let mut value = value;
+        while let ExprKind::Sequence(values) = &value.kind { let Some(last)=values.last() else{return;};value=last; }
         while let ExprKind::Inject { value: inner, .. } | ExprKind::Unary { op: UnaryOp::RecordCarrier, value: inner, .. } = &value.kind {
             value = inner;
         }

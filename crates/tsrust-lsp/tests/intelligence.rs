@@ -3,6 +3,16 @@ use serde_json::{Value, json};
 use tsrust_lsp::intelligence::SourceIndex;
 
 #[test]
+fn retained_comma_removal_keeps_only_its_final_capture() {
+    let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];{const removed=(handlers.pop(),second[0]=9,handlers.shift());if(removed!==undefined)console.log(removed.run());}first[0]=7;}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&source,"file:///retained-comma.tsr").unwrap().is_empty());
+    let conflict=source.replace("if (removed !== undefined)","first[0]=7;if (removed !== undefined)");
+    assert_ne!(source,conflict);
+    let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///retained-comma.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+}
+
+#[test]
 fn discarded_comma_removal_releases_only_the_removed_capture() {
     let source = tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];(handlers.pop(),second[0]=9);console.log(handlers[0].run());}").unwrap();
     assert!(tsrust_lsp::diagnostics(&source,"file:///comma-removal.tsr").unwrap().is_empty());

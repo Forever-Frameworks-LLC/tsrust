@@ -83,6 +83,10 @@ mod map_entry_tests {
 #[derive(Clone, Debug)]
 struct Unavailable { binding: usize, root: Option<Span>, fields: Vec<(Vec<String>, Span)> }
 impl Exits {
+    pub(super) fn record_bound_sequence(&mut self, span: Span) { self.18.get_or_insert_with(Default::default).bound_sequences.insert((span.start,span.end)); }
+    pub(super) fn bound_sequence(&self, span: Span) -> bool { self.18.as_ref().is_some_and(|sites|sites.bound_sequences.contains(&(span.start,span.end))) }
+    pub(super) fn record_sequence_export(&mut self, start: usize, binding: usize) { self.18.get_or_insert_with(Default::default).exports.insert(start,binding); }
+    pub(super) fn sequence_export(&self, start: usize) -> Option<usize> { self.18.as_ref()?.exports.get(&start).copied() }
     pub(super) fn record_discarded_sequence(&mut self, span: Span) {
         self.18.get_or_insert_with(Default::default).sequences.insert((span.start,span.end));
     }

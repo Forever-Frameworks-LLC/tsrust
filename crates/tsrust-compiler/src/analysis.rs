@@ -5585,8 +5585,13 @@ impl Analyzer {
             .is_some_and(|ty| matches!(ty, Type::BorrowedUnion(_)));
         let place_view = self.borrowed_place_hint(context, value)
             || self.indexed_element_hint(context, value);
-        let removal = Self::array_removal_snapshot(context, value);
-        let mut actual = self.expression(
+        let mut removal = Self::array_removal_snapshot(context, value);
+        let retained_sequence = self.prepare_bound_removal_sequence(context, value);
+        let mut actual = if retained_sequence {
+            let actual = self.sequence_expression_removal_snapshot(context, value, Mode::Consume, &Loans::new(), expected, false, true, Some(&mut removal))?;
+            context.storage_exits.record_bound_sequence(value.span);
+            actual
+        } else { self.expression(
             context,
             value,
             if view || place_view {
@@ -5596,7 +5601,7 @@ impl Analyzer {
             },
             &Loans::new(),
             expected,
-        )?;
+        )? };
         if actual == Type::Void {
             return Err(Diagnostic::new(
                 "type",
@@ -16421,6 +16426,10 @@ impl Analyzer {
     }
     #[inline(never)]
     pub(super) fn sequence_expression_with_removal(&mut self,context:&mut Context,expression:&mut Expr,mode:Mode,loans:&Loans,expected:Option<Type>,discarded:bool,precise:bool)->Result<Type,Diagnostic>{
+        self.sequence_expression_removal_snapshot(context,expression,mode,loans,expected,discarded,precise,None)
+    }
+    #[inline(never)]
+    pub(super) fn sequence_expression_removal_snapshot(&mut self,context:&mut Context,expression:&mut Expr,mode:Mode,loans:&Loans,expected:Option<Type>,discarded:bool,precise:bool,final_snapshot:Option<&mut Option<Box<crate::capture_loan_owners::Owners>>>)->Result<Type,Diagnostic>{
         let ExprKind::Sequence(values)=&mut expression.kind else{unreachable!()};
         let (last,prefixes)=values.split_last_mut().expect("nonempty sequence");
         for prefix in prefixes{
@@ -16442,7 +16451,12 @@ impl Analyzer {
             captures.unwind(&mut context.capture_loans);
             Self::restore_live_capture_loans(context);
             checked?;Type::Void
-        }else{self.expression(context,last,mode,loans,expected)?};
+        }else{
+            // Prefix effects have completed. Snapshot here so a bound final removal
+            // cannot resurrect the capture owners already discarded by its prefixes.
+            if let Some(snapshot)=final_snapshot {*snapshot=Self::array_removal_snapshot(context,last);}
+            self.expression(context,last,mode,loans,expected)?
+        };
         expression.ty=Some(ty);expression.binding=if discarded{None}else{last.binding};expression.callable_origin=if discarded{None}else{last.callable_origin};
         let outcomes=Self::condition_outcomes(context,last);
         context.condition_flows.insert((expression.span.start,expression.span.end),outcomes);

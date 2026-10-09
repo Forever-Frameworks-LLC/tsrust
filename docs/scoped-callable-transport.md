@@ -115,3 +115,17 @@ operations or scalar console output. It does not release a result passed to a
 function before that function's later arguments are evaluated. Returning comma
 results, storing them in aggregates and joining different environments through
 control flow require their own storage planning.
+
+A local declaration may retain the direct final removal in the same sequence:
+
+```tsrust
+const removed = (handlers.pop(), second[0] = 9, handlers.shift());
+```
+
+The discarded pop result releases its captures before the assignment. The shift
+result transfers into `removed`; its captures remain protected until normal
+scope disposal or supported direct replacement. Nested prefixes preserve order,
+and an empty final removal produces `undefined`. Discarded owned string prefixes
+are borrowed and remain available afterward. This does not yet extend to comma
+results stored through aggregate fields, arbitrary final expressions or direct
+sequence reassignment.

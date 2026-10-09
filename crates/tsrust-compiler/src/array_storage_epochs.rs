@@ -37,9 +37,10 @@ impl Analyzer {
             if statement.labels.is_empty() && let StmtKind::Block(inner) = &mut statement.kind
                 && array_normal_block(inner)
             {
-                let incoming_results = results.keys().copied().collect::<Vec<_>>();
+                let mut incoming_results = results.keys().copied().collect::<Vec<_>>();
                 let incoming = storage.keys().cloned().collect::<Vec<_>>();
                 self.plan_array_storage_body(context, inner, storage, results, eligible)?;
+                if let Some(binding)=context.storage_exits.sequence_export(statement.span.start) { incoming_results.push(binding); }
                 let roots = self.array_epoch_root_types(context, storage);
                 let mut epochs = incoming.iter().filter_map(|place| {
                     let state = storage.get(place)?;

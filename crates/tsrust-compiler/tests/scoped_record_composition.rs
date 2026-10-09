@@ -1,6 +1,25 @@
 mod support;
 
 #[test]
+fn retained_comma_removal_releases_only_discarded_prefix_captures() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];{const removed=(handlers.pop(),second[0]=9,handlers.shift());if(removed!==undefined)console.log(removed.run(),second[0]);}first[0]=7;console.log(first[0],second[0],handlers.length);}");
+    support::execute(&source,"3 9\n7 9 0\n",None);
+    verify_disposal(&source,2,"drop 1\n3 9\ndrop 0\n7 9 0\n");
+}
+
+#[test]
+fn retained_comma_removal_preserves_final_owner_and_empty_results() {
+    let prefix="type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];";
+    let source=support::format_round_trip(&format!("{prefix}const note=\"kept\";let removed=(note,(handlers.shift(),first[0]=7),handlers.pop());if(removed!==undefined)console.log(note,removed.run(),first[0]);removed=undefined;second[0]=9;console.log(second[0]);}}"));
+    support::execute(&source,"kept 5 7\n9\n",None);
+    verify_disposal(&source,2,"drop 0\nkept 5 7\ndrop 1\n9\n");
+    let source=support::format_round_trip(&format!("{prefix}const removed=(handlers.pop(),second[0]=9,handlers.shift(),first[0]=7,handlers.pop());console.log(String(removed),first[0],second[0]);}}"));
+    support::execute(&source,"undefined 7 9\n",None);
+    let conflict=format!("{prefix}const removed=(handlers.pop(),second[0]=9,handlers.shift());first[0]=7;if(removed!==undefined)console.log(removed.run());}}");
+    assert_eq!(tsrust_compiler::check(&support::format_round_trip(&conflict)).err().expect("retained final capture remains live").code,"capture-conflict");
+}
+
+#[test]
 fn discarded_comma_removal_releases_before_the_next_operand() {
     let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers:Holder[]=[{run:():int=>first[0]},{run:():int=>second[0]}];(handlers.pop(),second[0]=9);console.log(handlers[0].run(),second[0]);}");
     support::execute(&source, "3 9\n", None);
