@@ -34,8 +34,9 @@ capture can invoke its initial callback even when later stores require a mutable
 carrier; dispatch selects only the origins permitted at that source point. Singleton
 concrete capture environments remain in the payload plan as well as alternatives.
 Focused replacement checks pass twelve tests; this is not family acceptance.
-Remaining acceptance includes
-direct callback assignment without a wrapper, nullable
+Direct readonly and mutable callback assignment now has focused forwarding,
+optional/default, rest and alias-relay witnesses. Consuming direct inputs and
+exceptional completion remain pending. Remaining acceptance includes nullable
 payload stores, mutable data aliases, failure paths, exact replacement and clearing,
 branch/loop stores, early exits and disposal. Recursive relay summaries still need
 finite-path evidence before acceptance. Complete the required family before heavy

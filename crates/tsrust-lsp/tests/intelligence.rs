@@ -3,6 +3,34 @@ use serde_json::{Value, json};
 use tsrust_lsp::intelligence::SourceIndex;
 
 #[test]
+fn direct_callback_store_keeps_declared_signature_and_owner_conflicts() {
+    let source = tsrust_compiler::format(r#"
+        type Holder = { run: Mutable<Function<int, [amount: int]>>; };
+        function install(holder: Mutable<Holder>, action: Mutable<Function<int, [amount: int]>>): void {
+            holder.run = action;
+        }
+        function main() {
+            const values = [3];
+            const action = (amount: int): int => { values[0] += amount; return values[0]; };
+            const holder: Holder = { run: (amount: int): int => amount };
+            install(holder, action);
+            console.log(holder.run(4));
+        }
+    "#).unwrap();
+    let diagnostics = tsrust_lsp::diagnostics(&source, "file:///direct-callback-store.tsr").unwrap();
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    let help = ask(&source, "textDocument/signatureHelp", "4)", 0);
+    assert!(help["signatures"][0]["parameters"][0]["label"].as_str().unwrap_or("").contains("amount"), "{help}");
+    let hover = ask(&source, "textDocument/hover", "run(4)", 0);
+    assert!(!hover.is_null(), "{hover}");
+    let text = hover["contents"]["value"].as_str().unwrap_or("");
+    assert!(!text.contains("#stored-callback") && !text.contains("BorrowedCallable"), "{hover}");
+    let conflict = source.replace("holder.run(4)", "action(1), holder.run(4)");
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&conflict, "file:///direct-callback-store.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"] == "capture-conflict"), "{diagnostics}");
+}
+
+#[test]
 fn captured_mutable_holder_uses_the_installed_contract_in_editor() {
     let source = tsrust_compiler::format(r#"
         type Holder = { run: Mutable<Function<int, [amount: int]>>; };

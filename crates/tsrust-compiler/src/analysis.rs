@@ -62,6 +62,8 @@ mod borrowed_conditional_carriers;
 mod record_call_capture_release;
 #[path = "record_parameter_carriers.rs"]
 mod record_parameter_carriers;
+#[path = "direct_callback_stores.rs"]
+mod direct_callback_stores;
 #[path = "record_parameter_borrows.rs"]
 pub(crate) mod record_parameter_borrows;
 #[path = "nullable_parameter_stores.rs"]
@@ -4997,6 +4999,7 @@ impl Analyzer {
         let contract=if let ExprKind::Index(base, _) = &target.kind && let Some(Type::Array(element)) = base.ty {
             self.scoped_array_element_contract(base, element)
         } else {self.local_record_field_contract(context,target).unwrap_or(ty)};
+        self.prepare_direct_callback_store(context, target, value)?;
         let actual = if let Type::StoredCallable(family) = contract {
             self.stored_callable_value(context, value, family, &active)?
         } else {

@@ -34,9 +34,10 @@ test('Caller-borrowed stores register independent observations and complete exec
    ['holder.run = (): int => left() + right();','holder.run = (): int => left();'],
    ['base[0] += 1;',''],
    ['changedSecond = holder.run();',''],
-   ['installCallback(callbackHolder, constant);',''],
+   ['installDirect(callbackHolder, constant);',''],
    ['installPair(pairHolder, constant, action);',''],
    ['installMutableCallback(holder, secondAction);',''],
+   ['holder.run = action;', 'holder.run = (): int => 0;'],
    ['const readCallback = (): int => callbackHolder.run();','const readCallback = (): int => 0;'],
    ['const invoke = (): int => holder.run();','const invoke = (): int => 0;']
   ]) {

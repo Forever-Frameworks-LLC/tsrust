@@ -4,7 +4,7 @@ This is the next implementation slice of B7/gate 183, following `12ffe9d`.
 It is not accepted. The complete B7 scope in caller-borrowed-record-stores-plan.md
 remains authoritative.
 
-## Current evidence
+## Initial red evidence
 
 Three focused witnesses in direct_borrowed_callback_stores.rs fail with the explicit
 callback-escape diagnostic in record_parameter_carriers.rs: direct readonly input,
@@ -55,3 +55,27 @@ matched workload observations with independent oracle and mutation guards. Run
 bounded affected checks, required depth canaries after shared dispatch changes,
 whole-project formatting and exact SQLite evidence import. No family acceptance,
 complete regressions or timing is justified by these initial red witnesses alone.
+
+## Implemented forwarding slice
+
+`direct_callback_stores.rs` reconstructs the complete checked callback signature
+and creates an ordinary forwarding closure before field assignment analysis. This
+is a real checked capture, not an invented origin in a provenance summary. Argument
+ownership, result types, optional parameters and rest packs use existing annotations
+and adapters. The forwarding closure borrows the callback environment, so existing
+caller-input summaries and native associated-field conversions can transport it.
+No new source callable variant, dynamic dispatch or implicit clone is needed.
+
+Seven direct-store checks pass across the focused batch and supplemental checks:
+readonly input and release, mutable state and release, stable alias relay, required
+arguments, optional/default invocation, rest invocation, and rejection of independent
+mutable input access. Twelve replacement checks and seventeen existing caller-store
+checks pass. Editor signature help retains the declared argument name, hover hides
+internal carrier names, and independent mutable invocation reports capture-conflict.
+All eight depth canaries pass on the analyzer change.
+
+The matched workload replaces its second readonly installation with a direct store.
+Its fourteen observations, denominator and independent result oracle are unchanged.
+A source contract and mutation guard require the direct assignment. Consuming callback
+inputs, exceptional completion and the remaining B7 forms are not accepted by this
+slice. Verify those forms explicitly before family acceptance.

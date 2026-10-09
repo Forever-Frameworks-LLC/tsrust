@@ -53,7 +53,7 @@ function workload(n: int, seed: int, input: string): int[][] {
             };
             installCallback(callbackHolder, action);
             callback = callbackHolder.run();
-            installCallback(callbackHolder, constant);
+            installDirect(callbackHolder, constant);
             const readCallback = (): int => callbackHolder.run();
             callbackReplaced = readCallback();
             const pairHolder: Holder = {
@@ -128,6 +128,10 @@ function installMutable(holder: MutableHolder, source: int[]): void {
 
 function installMutableCallback(holder: MutableHolder, action: () => int): void {
     holder.run = (): int => action();
+}
+
+function installDirect(holder: Holder, action: () => int): void {
+    holder.run = action;
 }
 
 function main() {

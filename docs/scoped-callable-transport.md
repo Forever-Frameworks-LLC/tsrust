@@ -486,5 +486,7 @@ callback; a future mutable callback does not retroactively require mutable acces
 at that earlier call. Nested captures follow the same rule. Returning an owned
 closure cannot hide a borrowed holder or its borrowed callback environment.
 
-Direct callback assignment without a wrapper, nullable stores and exceptional
-completion remain under implementation. The complete B7 family is not accepted yet.
+Direct readonly and mutable callback inputs can also be assigned with
+`holder.run = action`. Argument forwarding, optional/default invocation, rest packs
+and stable aliases preserve the declared callable contract. Consuming direct inputs,
+nullable stores and exceptional completion remain under implementation. The complete B7 family is not accepted yet.
