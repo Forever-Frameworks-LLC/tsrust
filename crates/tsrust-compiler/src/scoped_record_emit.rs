@@ -39,31 +39,78 @@ impl Emitter<'_> {
     fn record_environment_type(&self, ty: Type, lifetimes: &[String], next: &mut usize) -> String {
         match ty {
             Type::Closure(id) => {
-                let count = self.program.closures[id].lifetime_count;
+                let count = self.native_captures.lifetimes[id];
                 let mut arguments = lifetimes[*next..*next + count].to_vec();
                 *next += count;
-                arguments.extend(self.captured_callback_bounds(&self.program.closures[id]).iter().map(|bound| bound.split(':').next().expect("capture generic").trim().to_owned()));
+                arguments.extend(
+                    self.captured_callback_bounds(&self.program.closures[id])
+                        .iter()
+                        .map(|bound| {
+                            bound
+                                .split(':')
+                                .next()
+                                .expect("capture generic")
+                                .trim()
+                                .to_owned()
+                        }),
+                );
                 format!("Closure{id}{}", lifetime_parameters(&arguments))
             }
             Type::BorrowedCallable(id) => {
-                let arguments = self.program.stored_contracts.origins(id).expect("borrowed origins").iter().map(|&origin| self.record_environment_type(Type::Closure(origin), lifetimes, next)).collect::<Vec<_>>();
+                let arguments = self
+                    .borrowed_payloads(id)
+                    .iter()
+                    .map(|payload| {
+                        let origin = payload.origin;
+                        let count = self.native_captures.lifetimes[origin];
+                        let mut arguments = lifetimes[*next..*next + count].to_vec();
+                        *next += count;
+                        for bound in self.captured_callback_bounds(&self.program.closures[origin]) {
+                            let parameter = bound.split(':').next().unwrap();
+                            if let Some((_, input)) = payload
+                                .captures
+                                .iter()
+                                .find(|(inner, _)| parameter == format!("K{inner}"))
+                            {
+                                arguments.push(self.record_environment_type(
+                                    Type::Closure(*input),
+                                    lifetimes,
+                                    next,
+                                ));
+                            } else {
+                                arguments.push(parameter.to_owned());
+                            }
+                        }
+                        format!("Closure{origin}{}", lifetime_parameters(&arguments))
+                    })
+                    .collect::<Vec<_>>();
                 format!("BorrowedCallable{id}<{}>", arguments.join(", "))
             }
             Type::Record(id) => {
-                let arguments = self.program.records[id].fields.iter().filter_map(|field| {
-                    let ty = field.ty.expect("checked record field");
-                    self.scoped_record_native_parameter(ty).then(|| self.record_environment_type(ty, lifetimes, next))
-                }).collect::<Vec<_>>();
-                format!("Record{}{}", self.program.scoped_records.declaration(id), lifetime_parameters(&arguments))
+                let arguments = self.program.records[id]
+                    .fields
+                    .iter()
+                    .filter_map(|field| {
+                        let ty = field.ty.expect("checked record field");
+                        self.scoped_record_native_parameter(ty)
+                            .then(|| self.record_environment_type(ty, lifetimes, next))
+                    })
+                    .collect::<Vec<_>>();
+                format!(
+                    "Record{}{}",
+                    self.program.scoped_records.declaration(id),
+                    lifetime_parameters(&arguments)
+                )
             }
             Type::Union(id) | Type::BorrowedUnion(id) => {
                 if let Some(payload) = self.callback_payload(ty) {
                     let payload = self.record_environment_type(payload, lifetimes, next);
                     format!("Union{}<{payload}>", id.index())
-                } else { self.native_type(ty) }
+                } else {
+                    self.native_type(ty)
+                }
             }
             _ => self.native_type(ty),
         }
     }
-
 }

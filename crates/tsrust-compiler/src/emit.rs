@@ -1,3 +1,7 @@
+#[path = "record_point_call_emit.rs"]
+mod record_point_call_emit;
+#[path = "native_capture_storage.rs"]
+mod native_capture_storage;
 #[path = "borrowed_payload_emit.rs"]
 mod borrowed_payload_emit;
 #[path = "callback_capture_emit.rs"]
@@ -137,8 +141,11 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
             .iter()
             .any(|closure| matches!(closure.forward, Some(ClosureForward::Once(_))));
     let counted_calls = program.closures.iter().any(|closure| matches!(closure.forward, Some(ClosureForward::RestAdapter { counted: true, .. })));
+    let borrowed_capture_alternatives = borrowed_payload_emit::capture_alternatives(program);
+    let native_captures = native_capture_storage::Storage::new(program, &borrowed_capture_alternatives);
     let mut emitter = Emitter {
-        borrowed_capture_alternatives: borrowed_payload_emit::capture_alternatives(program),
+        borrowed_capture_alternatives,
+        native_captures,
         callback_traits,
         counted_calls,
         program,
@@ -207,6 +214,7 @@ pub(crate) fn emit_with_source_segments(program:&CheckedProgram,entry_setup:&str
 }
 
 struct Emitter<'a> {
+    native_captures: native_capture_storage::Storage,
     borrowed_capture_alternatives: borrowed_payload_emit::Alternatives,
     callback_traits: bool,
     counted_calls: bool,
@@ -915,6 +923,8 @@ impl Emitter<'_> {
         let (lifetimes,mut fields)=crate::callable_layout::capture_layout_with_environments(
             self.program, closure, |ty| self.native_type(ty),
             |ty, lifetimes| Some(self.named_record_environment_type(ty, lifetimes)),
+            |binding| self.native_captures.ty(&closure.function, binding),
+            |ty| self.native_captures.type_lifetimes(self.program, &self.borrowed_capture_alternatives, ty),
         );
         for (capture,field) in closure.captures.iter().zip(&mut fields){
             if !matches!(closure.forward, Some(ClosureForward::RestAdapter { .. } | ClosureForward::Abstract(_)))
@@ -929,7 +939,7 @@ impl Emitter<'_> {
             if !self.record_capture_is_view(capture,closure){continue;}
             let lifetime=field.strip_prefix('&').unwrap().split_whitespace().next().unwrap();
             let start=lifetime.strip_prefix("'c").unwrap().parse::<usize>().unwrap()+1;
-            *field=self.record_capture_view_type(closure.function.bindings[capture.inner].ty,capture.storage==Mode::Mutate,lifetime,&lifetimes[start..]);
+            *field=self.record_capture_view_type(self.native_captures.ty(&closure.function,capture.inner),capture.storage==Mode::Mutate,lifetime,&lifetimes[start..]);
         }
         (lifetimes,fields)
     }
@@ -8903,6 +8913,10 @@ impl Emitter<'_> {
                         .map(|index| format!("conditional_argument{index}"))
                         .collect::<Vec<_>>()
                         .join(", ");
+                    if let Some(call) = self.record_point_call(fun, callee, Type::Closure(origin), "conditional_environment", &arguments, expr.supplied_count.unwrap_or(CallArgumentCount::Static(args.len()))) {
+                        code.push_str(&format!("{call} }}"));
+                        return self.registered_closure_call(code,origin,expr.span);
+                    }
                     if invocation == Mode::Consume && closure.invocation != Mode::Consume {
                         let arguments = tuple(
                             (0..args.len()).map(|index| format!("conditional_argument{index}")),
@@ -9004,7 +9018,8 @@ impl Emitter<'_> {
                         .map(|(arg, parameter)| self.expr(fun, arg, parameter.mode))
                         .collect::<Vec<_>>()
                         .join(", ");
-                    let call=self.counted_call(&format!("({receiver})"), &arguments, expr.supplied_count.unwrap_or(CallArgumentCount::Static(args.len())));
+                    let count=expr.supplied_count.unwrap_or(CallArgumentCount::Static(args.len()));
+                    let call=self.record_point_call(fun,callee,Type::BorrowedCallable(family),&format!("({receiver})"),&arguments,count).unwrap_or_else(||self.counted_call(&format!("({receiver})"), &arguments,count));
                     self.registered_storage_call(call,family,expr.span)
                 }
                 CallTarget::Callback(binding) => {

@@ -218,8 +218,24 @@ impl Analyzer {
         Ok(())
     }
 
+    /// A call can install a mutable wrapper even when the initial field was
+    /// capture-free. Preserve all possible origins until exact stores are proved.
+    fn retain_record_invocation_contract(&mut self, context: &mut Context, target: &Place, origin: usize, span: Span) -> Result<(), Diagnostic> {
+        let binding = &context.bindings[target.binding];
+        if binding.parameter || binding.capture_reference { return Ok(()); }
+        let Type::Record(record) = binding.ty else { return Ok(()); };
+        let Some(previous) = self.record_field_type(binding.ty, &target.fields) else { return Ok(()); };
+        let incoming = Type::Closure(origin);
+        if previous == incoming { return Ok(()); }
+        if let Some(family) = self.common_borrowed_conditional_family(previous, incoming, span)?
+            && let Some(record) = self.record_type_with_field(record, &target.fields, Type::BorrowedCallable(family)) {
+            context.bindings[target.binding].ty = Type::Record(record);
+        }
+        Ok(())
+    }
+
     pub(super) fn retain_record_parameter_borrows(
-        &self,
+        &mut self,
         context: &mut Context,
         callee: usize,
         args: &[Expr],
@@ -240,6 +256,7 @@ impl Analyzer {
                 ));
             };
             target.fields.extend(borrow.target.fields);
+            self.retain_record_invocation_contract(context, &target, borrow.origin, source.span)?;
             let loan = (
                 borrowed_owner(&context.bindings, source_place.binding),
                 borrow.mode,

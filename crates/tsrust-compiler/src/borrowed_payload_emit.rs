@@ -125,7 +125,9 @@ pub(super) fn capture_alternatives(program: &CheckedProgram) -> Alternatives {
         }
         calls(function, &inputs, &mut pending);
     }
-    result.retain(|_, alternatives| alternatives.len() > 1);
+    // Even a single concrete environment must remain available when a later
+    // store widens an earlier capture's native record layout. That capture has
+    // no generic callback input of its own to supply the wrapper's parameter.
     for alternatives in result.values_mut() {
         alternatives.sort();
     }
@@ -177,7 +179,7 @@ impl Emitter<'_> {
             lifetimes.push(name.clone());
             name
         };
-        let mut arguments = (0..closure.lifetime_count)
+        let mut arguments = (0..self.native_captures.lifetimes[payload.origin])
             .map(|_| next_lifetime())
             .collect::<Vec<_>>();
         for bound in self.captured_callback_bounds(closure) {
@@ -187,7 +189,7 @@ impl Emitter<'_> {
                 .iter()
                 .find(|(inner, _)| parameter == format!("K{inner}"))
             {
-                let input_lifetimes = (0..self.program.closures[*input].lifetime_count)
+                let input_lifetimes = (0..self.native_captures.lifetimes[*input])
                     .map(|_| next_lifetime())
                     .collect::<Vec<_>>();
                 arguments.push(

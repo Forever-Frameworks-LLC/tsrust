@@ -54,7 +54,8 @@ function workload(n: int, seed: int, input: string): int[][] {
             installCallback(callbackHolder, action);
             callback = callbackHolder.run();
             installCallback(callbackHolder, constant);
-            callbackReplaced = callbackHolder.run();
+            const readCallback = (): int => callbackHolder.run();
+            callbackReplaced = readCallback();
             const pairHolder: Holder = {
                 run: (): int => 0
             };
@@ -83,7 +84,8 @@ function workload(n: int, seed: int, input: string): int[][] {
                 callbackFirst = holder.run();
                 callbackSecond = holder.run();
                 installMutableCallback(holder, secondAction);
-                mutableReplaced = holder.run();
+                const invoke = (): int => holder.run();
+                mutableReplaced = invoke();
             }
             callbackAfter = action();
         }

@@ -6,7 +6,7 @@ impl Emitter<'_> {
         let closure = &self.program.closures[id];
         let bounds = self.captured_callback_bounds(closure);
         if !bounds.is_empty() {
-            let mut parameters = vec!["'_".to_owned(); closure.lifetime_count];
+            let mut parameters = vec!["'_".to_owned(); self.native_captures.lifetimes[id]];
             parameters.extend(bounds.iter().map(|bound| bound.split(':').next().expect("capture generic").trim().to_owned()));
             return format!("Closure{id}<{}>", parameters.join(", "));
         }

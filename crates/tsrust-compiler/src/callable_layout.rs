@@ -8,7 +8,8 @@ pub(crate) fn declared_storage_families(
     program: &CheckedProgram,
 ) -> std::collections::HashSet<usize> {
     let family = |ty| match ty {
-        Type::StoredCallable(id) | Type::BorrowedCallable(id)
+        Type::StoredCallable(id)
+        | Type::BorrowedCallable(id)
         | Type::Array(crate::syntax::ArrayElement::StoredCallable(id, _)) => Some(id),
         _ => None,
     };
@@ -55,7 +56,31 @@ pub(crate) fn capture_layout(
     closure: &CheckedClosure,
     data_type: impl Fn(Type) -> String,
 ) -> (Vec<String>, Vec<String>) {
-    capture_layout_with_environments(program, closure, data_type, |_, _| None)
+    capture_layout_with_environments(
+        program,
+        closure,
+        data_type,
+        |_, _| None,
+        |binding| closure.function.bindings[binding].ty,
+        |ty| {
+            crate::environment_lifetimes::count(
+                ty,
+                &program.records,
+                |id| program.unions[id.index()].members.clone(),
+                |ty| match ty {
+                    Type::Closure(id) => program.closures[id].lifetime_count,
+                    Type::BorrowedCallable(id) => program
+                        .stored_contracts
+                        .origins(id)
+                        .unwrap()
+                        .iter()
+                        .map(|&origin| program.closures[origin].lifetime_count)
+                        .sum(),
+                    _ => 0,
+                },
+            )
+        },
+    )
 }
 
 pub(crate) fn capture_layout_with_environments(
@@ -63,16 +88,24 @@ pub(crate) fn capture_layout_with_environments(
     closure: &CheckedClosure,
     data_type: impl Fn(Type) -> String,
     environment_type: impl Fn(Type, &[String]) -> Option<String>,
+    storage_type: impl Fn(usize) -> Type,
+    lifetime_count: impl Fn(Type) -> usize,
 ) -> (Vec<String>, Vec<String>) {
-    let lifetimes = (0..closure.lifetime_count)
-        .map(|id| format!("'c{id}"))
-        .collect::<Vec<_>>();
+    let total = closure
+        .captures
+        .iter()
+        .map(|capture| {
+            usize::from(matches!(capture.storage, Mode::Read | Mode::Mutate))
+                + lifetime_count(storage_type(capture.inner))
+        })
+        .sum::<usize>();
+    let lifetimes = (0..total).map(|id| format!("'c{id}")).collect::<Vec<_>>();
     let mut next = 0;
     let fields = closure
         .captures
         .iter()
         .map(|capture| {
-            let captured = closure.function.bindings[capture.inner].ty;
+            let captured = storage_type(capture.inner);
             let payload = captured
                 .union()
                 .and_then(|id| {
@@ -113,7 +146,7 @@ pub(crate) fn capture_layout_with_environments(
             };
             let field_type = match payload {
                 Type::Closure(id) => {
-                    let count = program.closures[id].lifetime_count;
+                    let count = lifetime_count(Type::Closure(id));
                     let generics = if count == 0 {
                         String::new()
                     } else {
@@ -123,20 +156,15 @@ pub(crate) fn capture_layout_with_environments(
                     format!("Closure{id}{generics}")
                 }
                 other => {
-                    let count = crate::environment_lifetimes::count(
-                        other, &program.records, |id| program.unions[id.index()].members.clone(),
-                        |ty| match ty {
-                            Type::Closure(id) => program.closures[id].lifetime_count,
-                            Type::BorrowedCallable(id) => program.stored_contracts.origins(id).expect("borrowed origins").iter().map(|&origin| program.closures[origin].lifetime_count).sum(),
-                            _ => 0,
-                        },
-                    );
+                    let count = lifetime_count(other);
                     if count != 0 {
                         let rendered = environment_type(other, &lifetimes[next..next + count]);
                         next += count;
                         rendered.unwrap_or_else(|| data_type(other))
-                    } else { data_type(other) }
-                },
+                    } else {
+                        data_type(other)
+                    }
+                }
             };
             if let Some(id) = captured.union() {
                 if let Some(lifetime) = view_lifetime {
@@ -146,7 +174,10 @@ pub(crate) fn capture_layout_with_environments(
                         if payload == captured
                             || !matches!(
                                 payload,
-                                Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)
+                                Type::Closure(_)
+                                    | Type::Callback(_)
+                                    | Type::StoredCallable(_)
+                                    | Type::BorrowedCallable(_)
                             )
                         {
                             String::new()
@@ -157,7 +188,10 @@ pub(crate) fn capture_layout_with_environments(
                 }
                 if matches!(
                     payload,
-                    Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)
+                    Type::Closure(_)
+                        | Type::Callback(_)
+                        | Type::StoredCallable(_)
+                        | Type::BorrowedCallable(_)
                 ) {
                     return format!("{reference}Union{}<{field_type}>", id.index());
                 }

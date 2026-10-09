@@ -36,7 +36,9 @@ test('Caller-borrowed stores register independent observations and complete exec
    ['changedSecond = holder.run();',''],
    ['installCallback(callbackHolder, constant);',''],
    ['installPair(pairHolder, constant, action);',''],
-   ['installMutableCallback(holder, secondAction);','']
+   ['installMutableCallback(holder, secondAction);',''],
+   ['const readCallback = (): int => callbackHolder.run();','const readCallback = (): int => 0;'],
+   ['const invoke = (): int => holder.run();','const invoke = (): int => 0;']
   ]) {
    const changed=replaceCodeSnippet(source,from,to);
    assert.notEqual(changed,source);

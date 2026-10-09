@@ -27,9 +27,14 @@ This remains progress within B7, not family acceptance or timing evidence.
 Repeated replacement now accepts distinct callback input environments, including
 readonly and mutable relays and multiple independent capture positions. A finite
 native payload plan preserves whole input vectors and gives each environment a
-separate arm without changing source origins. Remaining acceptance first includes
-capturing a replaced holder, whose native capture layout still expects its initial
-field type (a committed red witness). It also includes
+separate arm without changing source origins. Capturing a replaced holder now has
+readonly, mutable and nested native witnesses. Native capture storage preserves
+final carrier layouts separately from checked point types. An early readonly
+capture can invoke its initial callback even when later stores require a mutable
+carrier; dispatch selects only the origins permitted at that source point. Singleton
+concrete capture environments remain in the payload plan as well as alternatives.
+Focused replacement checks pass twelve tests; this is not family acceptance.
+Remaining acceptance includes
 direct callback assignment without a wrapper, nullable
 payload stores, mutable data aliases, failure paths, exact replacement and clearing,
 branch/loop stores, early exits and disposal. Recursive relay summaries still need

@@ -36,7 +36,7 @@ impl Emitter<'_>{
     /// The borrowed family that a called record field holds in its current layout.
     pub(super) fn record_callee_family(&self,fun:&CheckedFunction,callee:&Expr)->Option<usize>{
         let(root,steps)=self.storage_steps(callee);
-        let mut ty=fun.bindings[root.binding?].ty;
+        let mut ty=self.native_captures.ty(fun,root.binding?);
         if steps.is_empty(){return None;}
         for step in &steps{match step{
             StorageStep::Field(field)=>{let Type::Record(record)=ty else{return None;};ty=self.program.records[record].fields[*field].ty?;}

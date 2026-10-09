@@ -3,6 +3,35 @@ use serde_json::{Value, json};
 use tsrust_lsp::intelligence::SourceIndex;
 
 #[test]
+fn captured_mutable_holder_uses_the_installed_contract_in_editor() {
+    let source = tsrust_compiler::format(r#"
+        type Holder = { run: Mutable<Function<int, [amount: int]>>; };
+        function install(holder: Mutable<Holder>, action: Mutable<Function<int, [amount: int]>>): void {
+            holder.run = (amount: int): int => action(amount);
+        }
+        function main() {
+            const values = [1];
+            const action = (amount: int): int => { values[0] += amount; return values[0]; };
+            const holder: Holder = { run: (amount: int): int => amount };
+            install(holder, action);
+            { const call = (amount: int): int => holder.run(amount); console.log(call(4)); }
+        }
+    "#).unwrap();
+    let diagnostics = tsrust_lsp::diagnostics(&source, "file:///captured-mutable-holder.tsr").unwrap();
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    let help = ask(&source, "textDocument/signatureHelp", "4)", 0);
+    assert!(help["signatures"][0]["parameters"][0]["label"].as_str().unwrap_or("").contains("amount"), "{help}");
+    let hover = ask(&source, "textDocument/hover", "call(4)", 0);
+    assert!(!hover.is_null(), "{hover}");
+    let text = hover["contents"]["value"].as_str().unwrap_or("");
+    assert!(!text.contains("BorrowedCallable") && !text.contains("TsrMutateView"), "{hover}");
+    let conflict = source.replace("console.log(call(4));", "console.log(holder.run(1)); console.log(call(4));");
+    assert_ne!(source, conflict);
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&conflict, "file:///captured-mutable-holder.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "capture-conflict"), "{diagnostics}");
+}
+
+#[test]
 fn borrowed_callback_input_stores_keep_declared_editor_signatures() {
     let source = tsrust_compiler::format(r#"
         type Holder = { run: ReadOnly<Function<int, [amount: int]>>; };

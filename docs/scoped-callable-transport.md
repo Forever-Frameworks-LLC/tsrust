@@ -478,5 +478,13 @@ multiple callback inputs keeps their positions distinct, even when their signatu
 match. Mutable callbacks keep their own state across replacement and holder disposal.
 No callback environment is implicitly cloned.
 
+A local closure can capture the holder after installation and invoke its stored
+callback. Mutable callbacks preserve their state through this additional capture.
+The holder remains borrowed until the capturing closure is disposed. A readonly
+closure created and invoked before a later installation still observes the initial
+callback; a future mutable callback does not retroactively require mutable access
+at that earlier call. Nested captures follow the same rule. Returning an owned
+closure cannot hide a borrowed holder or its borrowed callback environment.
+
 Direct callback assignment without a wrapper, nullable stores and exceptional
 completion remain under implementation. The complete B7 family is not accepted yet.

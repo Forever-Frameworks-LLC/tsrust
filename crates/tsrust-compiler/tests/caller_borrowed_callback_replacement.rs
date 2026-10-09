@@ -233,3 +233,125 @@ fn recursive_relay_retains_callback_only_on_its_terminal_branch() {
     let directory = support::TempDirectory::new();
     support::success(&support::run(support::cli().arg("run").arg(directory.source(&source)), 60));
 }
+
+#[test]
+fn capturing_a_mutable_replaced_holder_preserves_state_and_releases_all_borrows() {
+    let source = support::format_round_trip(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: Mutable<Function<int>>; };
+        function install(holder: Mutable<Holder>, action: Mutable<Function<int>>): void {
+            holder.run = (): int => action();
+        }
+        function main() {
+            let count = 1;
+            const first = (): int => { count += 1; return count; };
+            const values = [10];
+            const second = (): int => { values[0] += 2; return values[0]; };
+            {
+                const holder: Holder = { run: (): int => 0 };
+                install(holder, first);
+                strictEqual(holder.run(), 2);
+                install(holder, second);
+                {
+                    const call = (): int => holder.run();
+                    strictEqual(call(), 12);
+                    strictEqual(call(), 14);
+                }
+            }
+            strictEqual(first(), 3);
+            strictEqual(second(), 16);
+        }
+    "#);
+    let directory = support::TempDirectory::new();
+    support::success(&support::run(support::cli().arg("run").arg(directory.source(&source)), 60));
+}
+
+#[test]
+fn holder_capture_before_later_stores_uses_the_initial_point_value() {
+    let source = support::format_round_trip(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function install(holder: Mutable<Holder>, action: ReadOnly<Function<int>>): void {
+            holder.run = (): int => action();
+        }
+        function main() {
+            const values = [3];
+            const first = (): int => values[0];
+            const second = (): int => 9;
+            const holder: Holder = { run: (): int => 0 };
+            { const read = (): int => holder.run(); strictEqual(read(), 0); }
+            install(holder, first);
+            strictEqual(holder.run(), 3);
+            install(holder, second);
+            strictEqual(holder.run(), 9);
+        }
+    "#);
+    let directory = support::TempDirectory::new();
+    support::success(&support::run(support::cli().arg("run").arg(directory.source(&source)), 60));
+}
+
+#[test]
+fn nested_holder_captures_keep_the_final_native_storage_layout() {
+    let source = support::format_round_trip(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function install(holder: Mutable<Holder>, action: ReadOnly<Function<int>>): void {
+            holder.run = (): int => action();
+        }
+        function main() {
+            const values = [3];
+            const first = (): int => values[0];
+            const second = (): int => 9;
+            const holder: Holder = { run: (): int => 0 };
+            install(holder, first);
+            install(holder, second);
+            const outer = (): int => {
+                const inner = (): int => holder.run();
+                return inner();
+            };
+            strictEqual(outer(), 9);
+        }
+    "#);
+    let directory = support::TempDirectory::new();
+    support::success(&support::run(support::cli().arg("run").arg(directory.source(&source)), 60));
+}
+
+#[test]
+fn an_owned_result_cannot_hide_local_borrows_inside_a_captured_holder() {
+    let source = support::format_round_trip(r#"
+        type Holder = { run: ReadOnly<Function<int>>; };
+        function install(holder: Mutable<Holder>, action: ReadOnly<Function<int>>): void {
+            holder.run = (): int => action();
+        }
+        function escape(): Function<int> {
+            const values = [3];
+            const action = (): int => values[0];
+            const holder: Holder = { run: (): int => 0 };
+            install(holder, action);
+            return (): int => holder.run();
+        }
+        function main() {}
+    "#);
+    support::reject(&source, "closure-escape");
+}
+
+#[test]
+fn readonly_point_capture_can_precede_a_later_mutable_store() {
+    let source = support::format_round_trip(r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: Mutable<Function<int>>; };
+        function install(holder: Mutable<Holder>, action: Mutable<Function<int>>): void {
+            holder.run = (): int => action();
+        }
+        function main() {
+            const values = [3];
+            const action = (): int => { values[0] += 1; return values[0]; };
+            const holder: Holder = { run: (): int => 0 };
+            { const read = (): int => holder.run(); strictEqual(read(), 0); }
+            install(holder, action);
+            strictEqual(holder.run(), 4);
+        }
+    "#);
+    let directory = support::TempDirectory::new();
+    support::success(&support::run(support::cli().arg("run").arg(directory.source(&source)), 60));
+}

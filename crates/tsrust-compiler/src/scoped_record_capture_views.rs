@@ -10,7 +10,7 @@ impl Emitter<'_> {
         let mut next=0;let mut args=vec![lifetime.to_owned()];
         for leaf in layout.leaves {
             if !self.scoped_record_native_parameter(leaf.ty){continue;}
-            let count=crate::environment_lifetimes::count(leaf.ty,&self.program.records,|id|self.program.unions[id.index()].members.clone(),|ty|match ty{Type::Closure(id)=>self.program.closures[id].lifetime_count,Type::BorrowedCallable(id)=>self.program.stored_contracts.origins(id).unwrap().iter().map(|&id|self.program.closures[id].lifetime_count).sum(),_=>0});
+            let count=self.native_captures.type_lifetimes(self.program,&self.borrowed_capture_alternatives,leaf.ty);
             args.push(self.named_record_environment_type(leaf.ty,&lifetimes[next..next+count]));next+=count;
         }
         format!("Tsr{}View{}<{}>",if mutable{"Mutate"}else{"Read"},self.program.scoped_records.declaration(record),args.join(","))
