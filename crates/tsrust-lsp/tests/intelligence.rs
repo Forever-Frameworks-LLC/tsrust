@@ -8663,3 +8663,13 @@ fn loop_map_entry_release_retains_zero_iteration_capture_diagnostics() {
     let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///loop-map-release.tsr").unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
 }
+
+#[test]
+fn loop_map_refill_keeps_new_capture_protected_until_clear() {
+ let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function scenario(limit:int):void{const first=[3];const second=[5];const third=[7];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});handlers.delete('first');first[0]=9;let turn=0;while(turn<limit){handlers.set('third',{run:():int=>third[0]});turn++;}handlers.clear();third[0]=11;}function main():void{scenario(2);}").unwrap();
+ assert!(tsrust_lsp::diagnostics(&source,"file:///loop-map-refill.tsr").unwrap().is_empty());
+ let conflict=source.replace("handlers.clear();\n    third[0] = 11;","third[0]=11;handlers.clear();");
+ assert_ne!(conflict,source);
+ let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///loop-map-refill.tsr").unwrap()).unwrap();
+ assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+}

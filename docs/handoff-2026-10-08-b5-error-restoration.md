@@ -1139,3 +1139,48 @@ This is a source checkpoint, not B5 acceptance. Loop-carried refill/widening,
 in-iteration release, array-element release, same-expression release and broader
 composition remain open. Full family regression and timing are deferred. The
 five user-facing consumers remain at gate181; scratch compiler builds are current.
+
+## Loop refill follow-up in progress
+
+The loop completion checkpoint is committed as 2f0dc05. A new native witness
+then exposed a compiler panic when a narrowed Map was refilled in a loop by a
+new callback origin. Loop storage now widens before entry to include both existing
+survivors and checked incoming payloads. Several writes at the same boundary
+preserve the original conversion input while accumulating the output family.
+
+The counted-loop variant exposed duplicate emission because the synthetic Block
+and its Loop share a source span. Pre-conversion now emits at the inner statement
+only, and block return transport includes widened storage. The native witness
+passes zero/repeated while and counted loops, including two incoming origins.
+These follow-up edits are uncommitted. All 68 affected Map checks pass; editor,
+additional loop forms, disposal checks, matched support and final formatting are
+still owed before acceptance. Preserve the original failed and repaired logs.
+
+Owner direction for record Set keys is Rust-style value equality and hashing with
+stable owned keys, rather than JavaScript identity. Eligible fields, float policy,
+mutation restrictions and ownership must receive focused witnesses and explicit
+documentation before implementation acceptance. This remains independent open B5
+work; no record Set support is claimed by these Map changes.
+
+## Loop refill source checkpoint evidence
+
+The follow-up now covers zero/repeated while, counted for, array for-of and
+post-test loops. The multiple-origin variant verifies both inserted callbacks and
+preserved key order. Instrumented O0/O3 native execution verifies replacement
+and final clear disposal. All 68 Map-filtered composition checks pass. Two focused
+editor checks pass, including rejection of mutation of a newly captured value
+before clear. No parser or recursive checker dispatch changed in this follow-up.
+
+Matched support now has 54 observations. The added counted refill observer retains
+the surviving callback and two incoming origins after known-key narrowing. Paired
+TypeScript, independent arithmetic oracle, full observation contract, rehashed
+mutation guards and exact registration expectations are current. Whole-project
+formatting changes one workload and its token-preserving fingerprint; registration
+passes afterward. Native and Node-after-tsc verification passes all five cases,
+untimed. SQLite preserves runtime/results/2026-10-09T00-55-57-942Z-verify.json and
+original failed/repaired evidence, read back byte for byte before loose removal.
+
+This remains focused B5 progress. Release inside an iteration or branch before
+completion, same-expression release, precise array-element release, record Set
+keys and broader error/alias/composition checks remain open. Full family regression
+and timing remain deferred. User-facing consumers are still at gate181.

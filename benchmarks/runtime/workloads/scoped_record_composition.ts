@@ -400,7 +400,7 @@ function workload(n: int, seed: int, input: string): int[][] {
         const forOfMapObserved=forOfMapLoop();
         const countedMapObserved=countedMapLoop();const postMapObserved=postMapLoop();
         const emptyMapObserved=emptyScopedMap();
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped, nestedPairLooped, emptyMapObserved, countedMapObserved, postMapObserved, forOfMapObserved, knownEntryRelease(value), movedFieldEntryRelease(value), replacementEntryOutcome(value,value%2!==0), branchEntryRelease(value, value % 2 === 0), mixedBranchEntryRelease(value, value % 2 === 0), pairedBranchEntryRelease(value, value % 2 === 0), postEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), countedEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), forOfEntryLoopRelease(value, value % 2 === 0 ? 0 : 2)]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped, nestedPairLooped, emptyMapObserved, countedMapObserved, postMapObserved, forOfMapObserved, knownEntryRelease(value), movedFieldEntryRelease(value), replacementEntryOutcome(value,value%2!==0), branchEntryRelease(value, value % 2 === 0), mixedBranchEntryRelease(value, value % 2 === 0), pairedBranchEntryRelease(value, value % 2 === 0), postEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), countedEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), forOfEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), loopEntryRefill(value,value%2===0?0:2)]);
         i += 1;
     }
 
@@ -843,4 +843,22 @@ function forOfEntryLoopRelease(value: number, limit: number): number {
     for (const [key, entry] of forOfEntries) { forOfObserved += entry.run(); }
     forOfEntries.clear(); forOfSecond[0] = value + 3;
     return forOfObserved + forOfSecond[0];
+}
+
+function loopEntryRefill(value: number, limit: number): number {
+ const refillFirst=[value]; const refillSecond=[value+1]; const refillThird=[value+2]; const refillFourth=[value+4];
+ const refillEntries=new Map<string,Holder>();
+ refillEntries.set("first",{run:():number=>refillFirst[0]});
+ refillEntries.set("second",{run:():number=>refillSecond[0]});
+ refillEntries.delete("first"); refillFirst[0]=value+3;
+ let refillTurns=0;
+ for(let step=0;step<limit;step+=1){
+  refillEntries.set("third",{run:():number=>refillThird[0]});
+  refillEntries.set("fourth",{run:():number=>refillFourth[0]});
+  refillTurns+=1;
+ }
+ let refillObserved=refillFirst[0]+refillTurns+refillEntries.size;
+ for(const [key,entry] of refillEntries){refillObserved+=entry.run();}
+ refillEntries.clear(); refillThird[0]=value+5; refillFourth[0]=value+6;
+ return refillObserved+refillThird[0]+refillFourth[0];
 }

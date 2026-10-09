@@ -148,7 +148,10 @@ not retain its entries on the remaining path. Reinsertion retains the newly stor
 capture. Loop completion uses the same rule: all reaching exit states must release
 the entry. Zero-iteration paths and early break or continue paths retain any
 potentially live captures. This covers while, counted for, do-while and for-of
-completion. Release inside an iteration before completion, before a branch join,
+completion. A later loop may refill a narrowed local Map with new callback
+environments while keeping surviving entries. Its storage representation widens
+before entry, including the zero-iteration path. Multiple incoming origins and
+counted-loop block transport are supported. Release inside an iteration before completion, before a branch join,
 or within the same expression remains under development.
 Changing a callback environment representation for later capture access can scan
 surviving entries. Known entry deletion avoids that conversion when the released

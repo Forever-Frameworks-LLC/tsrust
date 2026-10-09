@@ -63,7 +63,9 @@ impl Analyzer {
                 {writes.push((crate::capture_loan_owners::Place{binding,fields},incoming,value.span));}
                 Ok(())
             })?;
-            if !matches!(statement.kind,StmtKind::If{..}|StmtKind::While{..}|StmtKind::Loop{..}|StmtKind::ForOf{..}|StmtKind::Try(_)) {
+            // Loop-carried storage needs one representation containing its incoming
+            // payloads before entry, including the zero-iteration survivor.
+            if !matches!(statement.kind,StmtKind::If{..}|StmtKind::Try(_)) {
                 for (place,incoming,span) in writes {
                     let Some(root)=results.get(&place.binding).copied() else {continue;};
                     let Some(Type::Map(input))=self.scoped_array_field_type(root,&place.fields) else {continue;};
@@ -76,7 +78,11 @@ impl Analyzer {
                     let output=self.scoped_map_value_instance(input,payload);
                     if input!=output {
                         let output=self.scoped_array_replace_field(root,&place.fields,Type::Map(output)).expect("checked Map field");
-                        context.storage_exits.record_map_entry_epoch(statement.span,storage_exit_availability::MapEntryEpoch{place:place.clone(),input:root,output,empty,before:true});
+                        // Several writes share one pre-statement conversion. Its
+                        // source must remain the original storage representation.
+                        let prior=context.storage_exits.map_entry_epochs(statement.span).iter().find(|epoch|epoch.before && epoch.place==place);
+                        let (input,empty)=prior.map(|epoch|(epoch.input,epoch.empty)).unwrap_or((root,empty));
+                        context.storage_exits.record_map_entry_epoch(statement.span,storage_exit_availability::MapEntryEpoch{place:place.clone(),input,output,empty,before:true});
                         results.insert(place.binding,output);
                     }
                 }

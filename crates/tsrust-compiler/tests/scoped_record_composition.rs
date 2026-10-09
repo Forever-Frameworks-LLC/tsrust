@@ -161,6 +161,26 @@ fn pre_test_map_entry_release_preserves_zero_and_repeated_iterations() {
 }
 
 #[test]
+fn narrowed_map_refill_in_loop_keeps_survivors_and_new_origins() {
+ let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(limit:int):void{const first=[3];const second=[5];const third=[7];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});handlers.delete('first');first[0]=9;let turn=0;while(turn<limit){handlers.set('third',{run:():int=>third[0]});turn++;}for(const [key,entry] of handlers){console.log(key,entry.run());}console.log('released',first[0],turn);handlers.clear();third[0]=11;console.log('cleared',third[0]);}function main():void{scenario(0);scenario(2);}");
+ support::execute(&source,"second 5\nreleased 9 0\ncleared 11\nsecond 5\nthird 7\nreleased 9 2\ncleared 11\n",None);
+ verify_disposal(&source,3,"drop 0\nsecond 5\nreleased 9 0\ndrop 1\ncleared 11\ndrop 0\ndrop 2\nsecond 5\nthird 7\nreleased 9 2\ndrop 1\ndrop 2\ncleared 11\n");
+ let counted=source.replace("while (turn < limit)","for (;turn<limit;)");
+ assert_ne!(counted,source);
+ support::execute(&support::format_round_trip(&counted),"second 5\nreleased 9 0\ncleared 11\nsecond 5\nthird 7\nreleased 9 2\ncleared 11\n",None);
+ let for_of=source.replace("let turn = 0;", "let turn=0;const steps:int[]=[];for(let step=0;step<limit;step++){steps.push(step);}").replace("while (turn < limit)","for(const step of steps)");
+ assert_ne!(for_of,source);
+ support::execute(&support::format_round_trip(&for_of),"second 5\nreleased 9 0\ncleared 11\nsecond 5\nthird 7\nreleased 9 2\ncleared 11\n",None);
+ let post=source.replace("while (turn < limit)","do").replace("turn++;\n    }", "turn++;}while(turn<limit);");
+ assert_ne!(post,source);
+ support::execute(&support::format_round_trip(&post),"second 5\nthird 7\nreleased 9 1\ncleared 11\nsecond 5\nthird 7\nreleased 9 2\ncleared 11\n",None);
+ let multiple=source.replace("const third = [7];","const third=[7];const fourth=[8];").replace("turn++;","handlers.set('fourth',{run:():int=>fourth[0]});turn++;");
+ assert_ne!(multiple,source);
+ support::execute(&support::format_round_trip(&multiple),"second 5\nreleased 9 0\ncleared 11\nsecond 5\nthird 7\nfourth 8\nreleased 9 2\ncleared 11\n",None);
+
+}
+
+#[test]
 fn ordinary_loop_deletion_does_not_scan_unused_released_captures() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();let turn=0;while(turn<2){handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});console.log('before',first[0]);handlers.delete('first');turn+=1;}for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();}");
  let analysis=tsrust_compiler::check(&source).unwrap();

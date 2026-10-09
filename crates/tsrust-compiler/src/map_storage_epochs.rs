@@ -97,7 +97,7 @@ impl Emitter<'_> {
         let mut pending = inner.iter().collect::<Vec<_>>();
         while let Some(statement) = pending.pop() {
             if !statement.labels.is_empty() { return Vec::new(); }
-            for epoch in fun.storage_exits.map_entry_epochs(statement.span).iter().filter(|epoch|!epoch.before) {
+            for epoch in fun.storage_exits.map_entry_epochs(statement.span) {
                 if declaring_body.iter().any(|item|matches!(item.kind,StmtKind::Let{binding:Some(binding),..} if binding==epoch.place.binding)) {
                     let place=self.map_entry_epoch_place(fun,epoch);
                     if !places.contains(&place){places.push(place);}
