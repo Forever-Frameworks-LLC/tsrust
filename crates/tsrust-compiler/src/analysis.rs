@@ -9032,6 +9032,10 @@ impl Analyzer {
             )
         }) {
             expected.or(hint)
+        } else if matches!(left.kind, ExprKind::OptionalChain(_)) {
+            // An optional chain yields its own nullable result; the fallback,
+            // not the chain, satisfies the expected type.
+            None
         } else if hint.is_none()
             || number_literal_context(left)
             || matches!(left.kind, ExprKind::Record(_) | ExprKind::Array(_))

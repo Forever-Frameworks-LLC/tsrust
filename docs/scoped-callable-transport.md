@@ -225,8 +225,28 @@ Callbacks that own every capture, for example an arrow that reads only a number
 parameter, cannot yet share one record variable with a different callback. That form
 reports `unsupported`.
 
-Stores through a borrowed record parameter still report source diagnostics. Moving
-the containing record transfers its field owners without cloning.
+Moving the containing record transfers its field owners without cloning.
+
+### Record parameters with nullable callback fields
+
+A function can borrow a record that has a nullable callback-record field and read
+that field, with a guard or an optional call. Both `ReadOnly<...>` and `Mutable<...>`
+parameters can read it; a mutable parameter can still change ordinary sibling fields:
+
+```tsrust
+type Box = { saved: Holder | undefined; };
+function use(box: ReadOnly<Box>): int {
+    return box.saved?.run() ?? -1;
+}
+const box: Box = { saved: undefined };
+console.log(use(box)); // -1
+box.saved = { run: (): int => first[0] };
+console.log(use(box)); // 3
+```
+
+Storing into such a field through a parameter reports `unsupported`; store it in the
+function that owns the record. Two parameters of one function cannot both carry a
+nullable callback record of the same type; that form reports `unsupported` too.
 
 ### Nullable callback records in conditional values, results and array elements
 

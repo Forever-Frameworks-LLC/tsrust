@@ -3135,3 +3135,26 @@ fn nullable_callback_record_fields_of_array_elements_share_the_array_carrier() {
     rejected("function main():void{const a=[3];const boxes:Box[]=[{saved:undefined}];boxes[0].saved={run:():int=>a[0]};boxes[0].saved=undefined;a[0]=9;console.log(a[0],boxes.length);}","capture-conflict");
     rejected("function main():void{const a=[3];const boxes:Box[]=[{saved:undefined}];boxes[0].saved={run:():int=>a[0]};const s=boxes[0].saved;if(s!==undefined)console.log(s.run());}","unsupported");
 }
+
+#[test]
+fn record_parameters_read_nullable_callback_fields() {
+    let holder="type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};";
+    let run=|body:&str,expected:&str|{support::execute(&support::format_round_trip(&format!("{holder}{body}")),expected,None);};
+    run("function use(box:ReadOnly<Box>):int{if(box.saved!==undefined)return box.saved.run();return 0;}function main():void{const a=[3];const box:Box={saved:undefined};console.log(use(box));box.saved={run:():int=>a[0]};console.log(use(box));}","0\n3\n");
+    run("function use(box:ReadOnly<Box>):int{return box.saved?.run()??-1;}function f(flag:boolean):void{const a=[3];const b=[4];const box:Box={saved:undefined};if(flag)box.saved={run:():int=>a[0]};else box.saved={run:():int=>b[0]};console.log(use(box));}function main():void{f(true);f(false);}","3\n4\n");
+    run("type Outer={box:Box;n:int;};function use(o:ReadOnly<Outer>):int{if(o.box.saved!==undefined)return o.box.saved.run()+o.n;return o.n;}function main():void{const a=[3];const o:Outer={box:{saved:{run:():int=>a[0]}},n:10};console.log(use(o));}","13\n");
+    run("type Counter={saved:Holder|undefined;count:int;};function bump(c:Mutable<Counter>):void{if(c.saved!==undefined)c.count+=c.saved.run();}function main():void{const a=[3];const c:Counter={saved:{run:():int=>a[0]},count:1};bump(c);bump(c);console.log(c.count);}","7\n");
+    let rejected=|body:&str,code:&str|{
+        let source=support::format_round_trip(&format!("{holder}{body}"));
+        assert_eq!(tsrust_compiler::check(&source).err().unwrap_or_else(||panic!("must be rejected: {body}")).code,code,"{body}");
+    };
+    rejected("function both(left:ReadOnly<Box>,right:ReadOnly<Box>):int{return 1;}function main():void{const a=[3];const l:Box={saved:{run:():int=>a[0]}};const r:Box={saved:undefined};console.log(both(l,r));}","unsupported");
+    rejected("function fill(box:Mutable<Box>,n:int):void{box.saved={run:():int=>n};}function main():void{const box:Box={saved:undefined};fill(box,4);}","unsupported");
+}
+
+#[test]
+fn nullable_callback_record_unions_share_one_enum_with_text_support() {
+    // Two concrete environments of one nullable record type coexist with array text helpers.
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const left:Holder[]=[{run:():int=>first[0]}];const right:Holder[]=[{run:():int=>second[0]}];const a=left.pop();const b=right.pop();if(a!==undefined&&b!==undefined)console.log(a.run(),b.run());const labels:(string|undefined)[]=[\"x\",undefined];console.log(labels.join(\"-\"),[1,2].join());}");
+    support::execute(&source,"3 5\nx- 1,2\n",None);
+}

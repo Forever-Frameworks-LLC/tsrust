@@ -91,12 +91,63 @@ impl Analyzer {
         false
     }
 
+    /// Callback contracts reachable from a type through records, nullable
+    /// unions and arrays.
+    fn reachable_callbacks(&self, ty: Type, found: &mut HashSet<usize>) {
+        let mut pending = vec![ty];
+        let mut seen = HashSet::new();
+        while let Some(ty) = pending.pop() {
+            if !seen.insert(ty) { continue; }
+            match ty {
+                Type::Callback(id) => { found.insert(id); }
+                Type::Record(id) => pending.extend(self.program.records[id].fields.iter().filter_map(|field| field.ty)),
+                Type::Array(element) => pending.push(element.ty()),
+                Type::Union(id) | Type::BorrowedUnion(id) => pending.extend(self.unions.members(id)),
+                _ => {}
+            }
+        }
+    }
+    /// A nullable callback record whose callbacks all come from the function's
+    /// own parameters has a native layout: the function is generic over them.
+    fn parameter_bound_nullable_record(&self, ty: Type, declared: &HashSet<usize>) -> bool {
+        if !matches!(ty, Type::Union(_) | Type::BorrowedUnion(_)) || self.nullable_scoped_record_declaration(ty).is_none() { return false; }
+        let mut callbacks = HashSet::new();
+        self.reachable_callbacks(ty, &mut callbacks);
+        !callbacks.is_empty() && callbacks.is_subset(declared)
+    }
+
     pub(super) fn scoped_record_containers(&self) -> Result<(), Diagnostic> {
         let mut found: Option<Span> = None;
+        let mut declared = Vec::new();
         for (index, function) in self.checked.iter().enumerate() {
+            let mut callbacks = HashSet::new();
+            if let Some(function) = function.as_ref() {
+                for binding in &function.bindings[..function.parameter_count] { self.reachable_callbacks(binding.ty, &mut callbacks); }
+            }
+            declared.push(callbacks);
             let Some(function) = function.as_ref().filter(|function| !function.template) else { continue };
+            // One generic parameter names each nullable callback environment,
+            // so two parameters cannot bring different environments yet.
+            let mut nested = HashSet::new();
             for binding in &function.bindings[..function.parameter_count] {
-                if self.holds_scoped_record(binding.ty) {
+                let mut callbacks = HashSet::new();
+                let mut pending = vec![binding.ty];
+                let mut seen = HashSet::new();
+                while let Some(ty) = pending.pop() {
+                    if !seen.insert(ty) { continue; }
+                    match ty {
+                        Type::Record(id) => pending.extend(self.program.records[id].fields.iter().filter_map(|field| field.ty)),
+                        Type::Union(_) | Type::BorrowedUnion(_) if self.nullable_scoped_record_declaration(ty).is_some() => self.reachable_callbacks(ty, &mut callbacks),
+                        _ => {}
+                    }
+                }
+                if callbacks.iter().any(|callback| !nested.insert(*callback)) {
+                    let span = binding.declaration_span.unwrap_or(self.program.functions[index].name.span);
+                    return Err(Diagnostic::new("unsupported", "Two parameters of one function cannot both carry a nullable callback record of the same type yet. Pass one record that holds both values.", span));
+                }
+            }
+            for binding in &function.bindings[..function.parameter_count] {
+                if self.holds_scoped_record(binding.ty) && !self.parameter_bound_nullable_record(binding.ty, &declared[index]) {
                     let span = binding.declaration_span.unwrap_or(self.program.functions[index].name.span);
                     if found.is_none_or(|earlier| span.start < earlier.start) {
                         found = Some(span);
@@ -104,11 +155,12 @@ impl Analyzer {
                 }
             }
         }
-        let bodies = self.checked.iter().flatten().filter(|function| !function.template)
-            .chain(self.closures.iter().map(|closure| &closure.function).filter(|function| !function.template));
-        for function in bodies {
+        let none = HashSet::new();
+        let bodies = self.checked.iter().enumerate().filter_map(|(index, function)| Some((function.as_ref()?, &declared[index]))).filter(|(function, _)| !function.template)
+            .chain(self.closures.iter().map(|closure| (&closure.function, &none)).filter(|(function, _)| !function.template));
+        for (function, declared) in bodies {
             crate::fixed_storage::visit_function_expressions(function, &mut |expr| {
-                if expr.ty.is_some_and(|ty| self.holds_scoped_record(ty))
+                if expr.ty.is_some_and(|ty| self.holds_scoped_record(ty) && !self.parameter_bound_nullable_record(ty, declared))
                     && found.is_none_or(|span| expr.span.start < span.start)
                 {
                     found = Some(expr.span);

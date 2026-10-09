@@ -422,6 +422,20 @@ impl Emitter<'_> {
         (tuple(types.into_iter()), lifetimes)
     }
 
+    /// The earlier union whose enum a nullable callback-record union reuses.
+    fn nominal_union_alias(&self, index: usize) -> Option<usize> {
+        let nominal = |members: &[Type]| {
+            let mut scoped = 0;
+            let shape = members.iter().map(|&member| match member {
+                Type::Record(record) if self.scoped_record_native_parameter(member) => { scoped += 1; Type::Record(self.program.scoped_records.declaration(record)) }
+                other => other,
+            }).collect::<Vec<_>>();
+            (scoped == 1 && members.iter().filter(|member| !member.is_copy()).count() == 1).then_some(shape)
+        };
+        let shape = nominal(&self.program.unions[index].members)?;
+        self.program.unions[..index].iter().position(|prior| nominal(&prior.members).as_ref() == Some(&shape))
+    }
+
     fn nullable_callback_bounds(&self, types: impl IntoIterator<Item = Type>) -> Vec<String> {
         self.callback_bounds(types, false)
     }
@@ -438,6 +452,10 @@ impl Emitter<'_> {
                 if records_seen.insert(id) {
                     pending.extend(self.program.records[id].fields.iter().filter_map(|field| field.ty.map(|ty| (ty, true))));
                 }
+            }
+            // A nullable callback record names its callback through the record member.
+            if let Type::Union(id) | Type::BorrowedUnion(id) = ty {
+                pending.extend(self.program.unions[id.index()].members.iter().filter(|member| matches!(member, Type::Record(_))).map(|&member| (member, true)));
             }
             if let Type::Closure(id) = ty {
                 let closure = &self.program.closures[id];
@@ -529,6 +547,12 @@ impl Emitter<'_> {
                     );
                     continue;
                 }
+            }
+            // Every concrete environment of one nullable callback record uses
+            // the enum of the first such union, with its own payload argument.
+            if !callable && let Some(prior) = self.nominal_union_alias(index) {
+                let _ = writeln!(output, "type Union{index}<P> = Union{prior}<P>;\ntype ViewUnion{index}<'a,P> = ViewUnion{prior}<'a,P>;");
+                continue;
             }
             let copy = union.members.iter().all(|member| member.is_copy());
             let id = crate::syntax::UnionId {
@@ -2601,6 +2625,13 @@ impl Emitter<'_> {
                         .chain(std::iter::once(fun.result)),
                 ),
             );
+            // A record parameter names nullable callback-record leaves by their
+            // full type; the callbacks inside them are generic parameters too.
+            let leaves = (0..fun.parameter_count+hidden).filter_map(|id|self.record_parameter_layout(fun,id))
+                .flat_map(|layout|layout.leaves.into_iter().map(|leaf|leaf.ty).filter(|ty|matches!(ty,Type::Union(_)|Type::BorrowedUnion(_))).collect::<Vec<_>>()).collect::<Vec<_>>();
+            for bound in self.nullable_callback_bounds(leaves) {
+                if !generics.contains(&bound) { generics.push(bound); }
+            }
             let generics = if generics.is_empty() {
                 String::new()
             } else {
@@ -2878,6 +2909,7 @@ impl Emitter<'_> {
                 if union.members.iter().any(|member| matches!(member, Type::Callback(_) | Type::Closure(_) | Type::StoredCallable(_) | Type::Callable(_) | Type::Void)) {
                     continue;
                 }
+                if self.nominal_union_alias(index).is_some() { continue; }
                 let payloads = union.members.iter().filter(|member| !member.is_copy()).count();
                 let parameter = |position: usize| if payloads == 1 { "P".to_owned() } else { format!("P{position}") };
                 let (bounds, arguments) = if payloads == 0 {

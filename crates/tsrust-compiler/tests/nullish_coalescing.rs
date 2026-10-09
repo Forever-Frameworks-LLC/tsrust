@@ -357,3 +357,8 @@ fn nullish_parser_type_borrow_and_normal_depth_diagnostics_are_precise() {
     );
     native(&source, "", "", "");
 }
+
+#[test]
+fn optional_call_results_take_a_fallback_under_an_expected_type() {
+    support::execute("type H={run:ReadOnly<Function<int>>;};function pick(h:ReadOnly<H>|undefined):int{return 0;}function main():void{const h:H|undefined={run:():int=>3};const n:int=h?.run()??-1;const m=h?.run()??-1;console.log(n,m);}", "3 3\n", None);
+}

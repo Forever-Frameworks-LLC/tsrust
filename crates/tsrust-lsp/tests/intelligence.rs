@@ -36,6 +36,16 @@ fn nullable_callback_record_values_results_and_elements_have_editor_diagnostics(
 }
 
 #[test]
+fn record_parameters_with_nullable_callback_fields_have_editor_diagnostics() {
+    let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};function reader(box:ReadOnly<Box>):int{return box.saved?.run()??-1;}function main():void{const first=[3];const box:Box={saved:undefined};console.log(reader(box));box.saved={run:():int=>first[0]};console.log(reader(box));}").unwrap();
+    assert!(tsrust_lsp::diagnostics(&source,"file:///nullable-parameter.tsr").unwrap().is_empty());
+    let stored=source.replace("return box.saved?.run() ?? -1;","box.saved=undefined;return 0;").replace("box: ReadOnly<Box>","box: Mutable<Box>");
+    assert_ne!(source,stored);
+    let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&stored,"file:///nullable-parameter.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="unsupported"),"{diagnostics}");
+}
+
+#[test]
 fn populated_nullable_callback_records_report_capture_conflicts() {
     let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};function main():void{const first=[3];const second=[5];let saved:Holder|undefined={run:():int=>first[0]};const box:Box={saved:{run:():int=>second[0]}};saved=undefined;first[0]=7;if(box.saved!==undefined)console.log(box.saved.run());}").unwrap();
     assert!(tsrust_lsp::diagnostics(&source,"file:///populated-nullable.tsr").unwrap().is_empty());
