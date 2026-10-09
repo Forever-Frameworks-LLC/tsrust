@@ -110,8 +110,9 @@ impl Analyzer {
             if array && !binding.parameter && !binding.capture_reference {continue;}
             // Clearing through a borrowed record stores no environment.
             if binding.parameter && !array && matches!(&write.value.kind,ExprKind::Inject{value,..} if matches!(value.kind,ExprKind::Null|ExprKind::Undefined)) {continue;}
-            if self.nullable_scoped_record_declaration(ty).is_some() && binding.parameter {
-                return Err(Diagnostic::new("unsupported","A new callback record cannot be stored into a nullable field through a record parameter yet. Store it in the function that owns the record; a parameter can clear the field with undefined or null.",write.span));
+            if self.nullable_scoped_record_declaration(ty).is_some() && binding.parameter && binding.mode==Mode::Mutate && !array {
+                // Replacement obligations and escape checks are propagated after checking all functions.
+                continue;
             }
             if self.nullable_scoped_record_declaration(ty).is_some()
                 && (binding.capture_reference || !direct.contains(&(write.binding,write.span.start,write.span.end))) {

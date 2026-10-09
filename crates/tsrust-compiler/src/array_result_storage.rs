@@ -39,8 +39,21 @@ impl Analyzer {
     /// Preserve a new nominal record environment inside an optional contract.
     /// This changes its carrier, not nominal compatibility or ownership.
     pub(super) fn scoped_record_injection(&self, actual: Type, expected: UnionId, span: Span) -> Result<Option<Type>, Diagnostic> {
-        let Type::Record(record) = actual else { return Ok(None); };
         let Some(Type::Record(target)) = self.unions.payload(Type::Union(expected)) else { return Ok(None); };
+        // A named nullable value already carries its concrete environment. Keep
+        // that environment when injecting into the same nominal contract.
+        if let Type::Union(source) = actual {
+            if source == expected { return Ok(None); }
+            let Some(Type::Record(record)) = self.unions.payload(actual) else { return Ok(None); };
+            let declaration = self.scoped_records.declaration(record);
+            if declaration == self.scoped_records.declaration(target)
+                && self.aggregate_callable_facts(Type::Record(declaration)).scoped
+                && self.unions.members(source).into_iter().filter(|member| !matches!(member, Type::Record(_)))
+                    .eq(self.unions.members(expected).into_iter().filter(|member| !matches!(member, Type::Record(_))))
+            { return Ok(Some(actual)); }
+            return Ok(None);
+        }
+        let Type::Record(record) = actual else { return Ok(None); };
         if actual == Type::Record(target) || !self.aggregate_callable_facts(Type::Record(self.scoped_records.declaration(record))).scoped
             || self.scoped_records.declaration(record) != self.scoped_records.declaration(target)
         { return Ok(None); }

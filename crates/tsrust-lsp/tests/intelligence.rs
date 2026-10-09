@@ -3,6 +3,17 @@ use serde_json::{Value, json};
 use tsrust_lsp::intelligence::SourceIndex;
 
 #[test]
+fn nullable_record_parameter_stores_report_capture_escape() {
+    let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};function fill(box:Mutable<Box>,seed:int):void{box.saved={run:():int=>seed};}function main():void{const box:Box={saved:undefined};fill(box,4);console.log(box.saved?.run()??-1);}").unwrap();
+    let clean=tsrust_lsp::diagnostics(&source,"file:///nullable-parameter-store.tsr").unwrap();
+    assert!(clean.is_empty(),"{clean:?}");
+    let conflict=source.replace("box.saved = {", "const local=[seed]; box.saved = {").replace("=> seed", "=> local[0]");
+    assert_ne!(source,conflict);
+    let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///nullable-parameter-store.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="callback-escape"),"{diagnostics}");
+}
+
+#[test]
 fn nullable_callback_record_borrowed_views_preserve_caller_values() {
     let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};function use(h:ReadOnly<Holder>|undefined):int{return h?.run()??0;}function main():void{const a=[3];const boxes:Box[]=[{saved:undefined}];boxes[0].saved={run:():int=>a[0]};const saved=boxes[0].saved;console.log(use(saved),use(saved));}").unwrap();
     let clean=tsrust_lsp::diagnostics(&source,"file:///nullable-views.tsr").unwrap();

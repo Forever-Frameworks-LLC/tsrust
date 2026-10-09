@@ -269,10 +269,31 @@ box.saved = { run: (): int => first[0] };
 console.log(use(box)); // 3
 ```
 
-A mutable parameter can clear such a field with `undefined` or `null`; the caller's
-captures stay borrowed. Storing a new callback record into the field through a
-parameter reports `unsupported`; store it in the function that owns the record. Two parameters of one function cannot both carry a
-nullable callback record of the same type; that form reports `unsupported` too.
+A mutable parameter can install a callback record whose captures are owned, replace
+it with another owned environment, or clear the field with `undefined` or `null`.
+The callback can copy scalar arguments when it is created:
+
+```tsrust
+function install(box: Mutable<Box>, seed: int): void {
+    const replacement: Holder | undefined = { run: (): int => seed };
+    box.saved = replacement;
+}
+function main(): void {
+    const box: Box = { saved: undefined };
+    install(box, 4);
+    console.log(box.saved?.run() ?? -1); // 4
+    install(box, 7);
+    console.log(box.saved?.run() ?? -1); // 7
+}
+```
+
+The parameter borrows the caller's storage; no clone occurs. Existing caller capture
+loans remain protected until the storage's scope ends, even after replacement or
+clearing. A stored callback that borrows a local or parameter of the storing
+function reports `callback-escape`, because the record outlives that call. Nested
+record paths and relay calls follow the same rule. Two parameters of one function
+cannot both carry a nullable callback record of the same type; that form reports
+`unsupported`.
 
 ### Nullable callback records in conditional values, results and array elements
 

@@ -14,6 +14,8 @@ mod borrowed_callable_emit;
 mod scoped_record_emit;
 #[path = "record_parameter_replacement_emit.rs"]
 mod record_parameter_replacement_emit;
+#[path = "nullable_parameter_store_emit.rs"]
+mod nullable_parameter_store_emit;
 #[path = "scoped_record_parameter_views.rs"]
 mod scoped_record_parameter_views;
 #[path = "record_join_emit.rs"]
@@ -2665,7 +2667,9 @@ impl Emitter<'_> {
                 format!("<{}>", generics.join(", "))
             };
             let native_result=match &result_target {Some((_,error))=>format!("Result<{},{}>",self.native_type(fun.result),error),None=>self.native_type(fun.result)};
-            let _ = writeln!(output,"fn {name}{generics}({params}) -> {native_result} {{");
+            let replacements=self.nullable_parameter_replacement_bounds(index);
+            let replacement_where=if replacements.is_empty(){String::new()}else{format!(" where {}",replacements.join(", "))};
+            let _ = writeln!(output,"fn {name}{generics}({params}) -> {native_result}{replacement_where} {{");
             if name == "main" {
                 output.push_str(self.entry_setup);
             }

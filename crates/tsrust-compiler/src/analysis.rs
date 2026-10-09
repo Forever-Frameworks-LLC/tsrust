@@ -62,6 +62,8 @@ mod borrowed_conditional_carriers;
 mod record_call_capture_release;
 #[path = "record_parameter_carriers.rs"]
 mod record_parameter_carriers;
+#[path = "nullable_parameter_stores.rs"]
+mod nullable_parameter_stores;
 #[path = "scoped_record_containers.rs"]
 mod scoped_record_containers;
 #[path = "empty_scoped_maps.rs"]
@@ -8549,7 +8551,12 @@ impl Analyzer {
             return Ok(Type::BorrowedUnion(concrete));
         }
         if let Some(concrete) = self.scoped_record_injection(actual, union, expr.span)? {
-            expr.inject(concrete.union().expect("nullable scoped record"));
+            let concrete_union = concrete.union().expect("nullable scoped record");
+            expr.inject(concrete_union);
+            if borrowing_record && actual.union().is_some() {
+                expr.ty = Some(Type::BorrowedUnion(concrete_union));
+                return Ok(Type::BorrowedUnion(concrete_union));
+            }
             return Ok(concrete);
         }
         if let Some(Type::Callback(callback)) = member_hint {

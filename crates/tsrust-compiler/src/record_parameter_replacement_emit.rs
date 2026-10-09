@@ -60,6 +60,11 @@ impl Emitter<'_>{
         let layout=self.record_parameter_layout(fun,id)?;
         let path=steps.iter().map(|step|match step{StorageStep::Field(field)=>Some(*field),_=>None}).collect::<Option<Vec<_>>>()?;
         let leaf=layout.leaves.iter().find(|leaf|leaf.path==path)?;
+        if matches!(leaf.ty,Type::Union(_)) && matches!(value.ty,Some(Type::Union(_))) {
+            let source=value.ty.unwrap();
+            let converted=self.record_carrier_conversion(source,leaf.ty,"nullable_replacement");
+            return Some(format!("{{let nullable_replacement={code};{converted}}}"));
+        }
         if !matches!(leaf.ty,Type::Callback(_)) || !matches!(value.ty,Some(Type::Closure(_) | Type::BorrowedCallable(_))){return None;}
         let field=path.iter().map(|id|format!("Field{id}")).collect::<String>();
         Some(format!("<<R{id} as TsrReadRecord{}>::{field} as From<{}>>::from({code})",layout.record,self.native_type(value.ty.unwrap())))

@@ -22,6 +22,12 @@ impl Analyzer {
             for write in record_storage_writes::collect(&function.body){
                 let binding=&function.bindings[write.binding];
                 if write.binding>=function.parameter_count || !binding.parameter || binding.mode!=Mode::Mutate || write.path.is_empty(){continue;}
+                if let Some(ty) = self.nullable_parameter_store_type(write.value) {
+                    if self.borrows_local_storage(ty) {
+                        return Err(Diagnostic::new("callback-escape","A callback stored through a record parameter cannot borrow a variable of this function. Capture numbers and booleans, or build the record where the variable is declared.",write.value.span));
+                    }
+                    continue;
+                }
                 let origins=match write.value.ty{
                     Some(Type::Closure(id))=>vec![id],
                     Some(Type::BorrowedCallable(family))=>self.callables.storage.origins(family).map(<[usize]>::to_vec).unwrap_or_default(),
@@ -38,7 +44,7 @@ impl Analyzer {
             let Some(function)=function.as_ref().filter(|function|!function.template)else{return Vec::new();};
             record_storage_writes::collect(&function.body).into_iter().filter_map(|write|{
                 let binding=&function.bindings[write.binding];
-                (write.binding<function.parameter_count && binding.parameter && binding.mode==Mode::Mutate && !write.path.is_empty() && matches!(write.value.ty,Some(Type::Closure(_) | Type::BorrowedCallable(_))))
+                (write.binding<function.parameter_count && binding.parameter && binding.mode==Mode::Mutate && !write.path.is_empty() && (matches!(write.value.ty,Some(Type::Closure(_) | Type::BorrowedCallable(_))) || self.nullable_parameter_store_type(write.value).is_some()))
                     .then(||Replacement{parameter:write.binding,path:write.path,ty:write.value.ty.unwrap()})
             }).collect::<Vec<_>>()
         }).collect::<Vec<_>>();
@@ -73,7 +79,16 @@ impl Analyzer {
                 let Type::Record(record)=binding.ty else{continue;};
                 let mut path=prefix.clone();path.extend(replacement.path.iter().cloned());
                 let Some(previous)=self.record_field_type(Type::Record(record),&path)else{continue;};
+                if self.nullable_scoped_record_declaration(previous).is_some() && replacement.ty.union().is_some() {
+                    context.control_stored.insert(*root);
+                }
                 if previous==replacement.ty{continue;}
+                if let Some(joined) = self.join_nullable_record_unions(previous,replacement.ty,call.span)? {
+                    if let Some(record) = self.record_type_with_field(record,&path,joined) {
+                        context.bindings[*root].ty=Type::Record(record);
+                    }
+                    continue;
+                }
                 if let Some(family)=self.common_borrowed_conditional_family(previous,replacement.ty,call.span)?
                     && let Some(record)=self.record_type_with_field(record,&path,Type::BorrowedCallable(family)){
                     context.bindings[*root].ty=Type::Record(record);

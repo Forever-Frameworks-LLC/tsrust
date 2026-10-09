@@ -46,12 +46,12 @@ unless another file is named.
 | Parameter typed `ReadOnly<Record> \| undefined` or `ReadOnly<Record> \| null`, including concrete, absent, owned and conditional values | `nullable_callback_record_readonly_parameter_preserves_caller_storage`, `nullable_callback_record_borrowed_views_cover_absence_null_and_owned_values` |
 | Reading a nullable callback-record field of an array element into a local readonly view, including passing that view to a parameter | `nullable_callback_record_element_field_view_preserves_array_storage`, `nullable_callback_record_views_protect_their_source_storage` |
 | `Set<Record>` for a capturing record | rejected by owner decision (`set-key`) |
+| Store an owned callback record into a nullable field through a `Mutable<Record>` parameter, including named nullable values, replacement, nested relay calls and null clearing | `mutable_record_parameter_stores_owned_nullable_callback_environments`, `nullable_parameter_stores_propagate_and_reject_borrowed_environments` |
 
 ## Diagnosed, not supported
 
 | Form | Current result | Needed |
 | --- | --- | --- |
-| Store a new callback record into a nullable field through a `Mutable<Record>` parameter (clearing is supported) | `unsupported` | Caller-side environment family and nested conversion bounds, with ledger row B7 |
 | Two parameters that both carry a nullable callback record of one type | `unsupported` | A generic parameter per parameter leaf instead of one per callback contract |
 | Union of two record types where one is a capturing record | `type` error | Tagged storage for a capturing member |
 
@@ -85,3 +85,18 @@ untimed with 134 observations. The exact result is stored in SQLite as
 `runtime/results/2026-10-09T14-59-51-827Z-verify.json`; timing arrays are empty.
 Complete compiler/LSP regressions and family timing were not run for this isolated
 checkpoint. Three forms remain diagnosed; mixed-record union scope awaits the owner.
+
+## Mutable parameter store checkpoint, 2026-10-09
+
+Owned nullable callback records can be installed and replaced through mutable
+record parameters. Named nullable values retain concrete environments; readonly
+union injection preserves borrowing. Nested relay calls, null clearing and capture
+escape diagnostics are covered. The initial composition run had 194 passes and
+three failures; the two injection regressions were repaired, all 24 affected
+nullable tests pass, and the subprocess-launch failure passes on retry. The editor
+witness, eight depth canaries, guide native/Node reference and final registration
+checks pass. Five untimed native/Node-after-tsc workload cases pass with 135
+observations. SQLite key:
+`runtime/results/2026-10-09T15-20-51-970Z-verify.json`.
+Two forms remain diagnosed. Full family regressions and timing remain pending.
+See `docs/handoff-2026-10-09-b5-parameter-stores.md`.

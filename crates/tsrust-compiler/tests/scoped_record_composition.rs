@@ -1,6 +1,28 @@
 mod support;
 
 #[test]
+fn nullable_parameter_stores_propagate_and_reject_borrowed_environments() {
+    let types="type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};";
+    let run=|body:&str,expected:&str|support::execute(&support::format_round_trip(&format!("{types}{body}")),expected,None);
+    run("function fill(box:Mutable<Box>,n:int):void{box.saved={run:():int=>n};}function main():void{const a=[3];const box:Box={saved:{run:():int=>a[0]}};console.log(box.saved?.run()??-1);fill(box,4);console.log(box.saved?.run()??-1);}","3\n4\n");
+    run("type Outer={box:Box;};function fill(box:Mutable<Box>,n:int):void{box.saved={run:():int=>n};}function relay(outer:Mutable<Outer>,n:int):void{fill(outer.box,n);}function main():void{const outer:Outer={box:{saved:undefined}};relay(outer,6);console.log(outer.box.saved?.run()??-1);}","6\n");
+    run("function fill(box:Mutable<Box>,n:int):void{if(n>0)box.saved={run:():int=>n};else box.saved={run:():int=>n+1};}function main():void{const box:Box={saved:undefined};fill(box,4);console.log(box.saved?.run()??-1);fill(box,0);console.log(box.saved?.run()??-1);}","4\n1\n");
+    run("type NullBox={saved:Holder|null;};function fill(box:Mutable<NullBox>,n:int):void{const made:Holder|null={run:():int=>n};box.saved=made;}function clear(box:Mutable<NullBox>):void{const empty:Holder|null=null;box.saved=empty;}function main():void{const box:NullBox={saved:null};fill(box,5);console.log(box.saved?.run()??-1);clear(box);console.log(box.saved===null);}","5\ntrue\n");
+    let protected=support::format_round_trip(&format!("{types}function fill(box:Mutable<Box>,n:int):void{{box.saved={{run:():int=>n}};}}function main():void{{const a=[3];const box:Box={{saved:{{run:():int=>a[0]}}}};fill(box,4);a[0]=9;console.log(box.saved?.run()??-1);}}"));
+    assert_eq!(tsrust_compiler::check(&protected).err().expect("borrowed parameter replacement retains caller capture protection").code,"capture-conflict");
+    for body in ["function fill(box:Mutable<Box>,a:ReadOnly<int[]>):void{box.saved={run:():int=>a[0]};}function main():void{const a=[3];const box:Box={saved:undefined};fill(box,a);}","function fill(box:Mutable<Box>):void{const a=[3];box.saved={run:():int=>a[0]};}function main():void{const box:Box={saved:undefined};fill(box);}"] {
+        let source=support::format_round_trip(&format!("{types}{body}"));
+        assert_eq!(tsrust_compiler::check(&source).err().expect("stored environment cannot borrow callee storage").code,"callback-escape");
+    }
+}
+
+#[test]
+fn mutable_record_parameter_stores_owned_nullable_callback_environments() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};function install(box:Mutable<Box>,seed:int):void{box.saved={run:():int=>seed};}function main():void{const box:Box={saved:undefined};install(box,4);console.log(box.saved?.run()??-1);install(box,7);console.log(box.saved?.run()??-1);}");
+    support::execute(&source,"4\n7\n",None);
+}
+
+#[test]
 fn nullable_callback_record_borrowed_view_guide_example() {
     let source=support::format_round_trip(include_str!("fixtures/nullable-record-views/documented.tsr"));
     support::execute(&source,"3 3\n3\n",None);
@@ -3195,7 +3217,7 @@ fn record_parameters_read_nullable_callback_fields() {
         assert_eq!(tsrust_compiler::check(&source).err().unwrap_or_else(||panic!("must be rejected: {body}")).code,code,"{body}");
     };
     rejected("function both(left:ReadOnly<Box>,right:ReadOnly<Box>):int{return 1;}function main():void{const a=[3];const l:Box={saved:{run:():int=>a[0]}};const r:Box={saved:undefined};console.log(both(l,r));}","unsupported");
-    rejected("function fill(box:Mutable<Box>,n:int):void{box.saved={run:():int=>n};}function main():void{const box:Box={saved:undefined};fill(box,4);}","unsupported");
+    run("function fill(box:Mutable<Box>,n:int):void{box.saved={run:():int=>n};}function main():void{const box:Box={saved:undefined};fill(box,4);console.log(box.saved?.run()??-1);}","4\n");
     // A mutable parameter can clear the field; the caller's captures stay borrowed.
     run("function reset(box:Mutable<Box>,limit:int):int{let seen=0;if(box.saved!==undefined){seen=box.saved.run();if(seen>limit)box.saved=undefined;}return seen;}function main():void{const a=[3];const box:Box={saved:{run:():int=>a[0]}};console.log(reset(box,5),box.saved!==undefined);console.log(reset(box,1),box.saved!==undefined);}","3 true\n3 false\n");
     rejected("function clear(box:Mutable<Box>):void{box.saved=undefined;}function main():void{const a=[3];const box:Box={saved:{run:():int=>a[0]}};clear(box);a[0]=9;console.log(a[0],box.saved===undefined);}","capture-conflict");

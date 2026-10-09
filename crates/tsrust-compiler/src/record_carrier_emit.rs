@@ -48,6 +48,9 @@ impl Emitter<'_>{
                 // Name the source type: an absent payload leaves its parameter unconstrained.
                 format!("{{let nullable_carrier: {} = {value}; match nullable_carrier{{{arms}}}}}",self.native_type(Type::Union(source)))
             }
+            (source @ (Type::Closure(_) | Type::BorrowedCallable(_)),Type::Callback(id))=>{
+                format!("<C{id} as From<{}>>::from({value})",self.native_type(source))
+            }
             (Type::Closure(origin),Type::BorrowedCallable(family))=>self.stored_callable_constructor(family,origin,value),
             (Type::BorrowedCallable(source),Type::BorrowedCallable(target))=>{
                 let origins=self.program.stored_contracts.origins(source).unwrap();
