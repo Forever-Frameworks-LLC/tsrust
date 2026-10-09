@@ -193,6 +193,9 @@ impl Analyzer {
                     value.ty
                 } else { None };
                 if let Some(result) = result {
+                    let result = if matches!(context.bindings[*binding].ty, Type::BorrowedUnion(_)) {
+                        result.union().map(Type::BorrowedUnion).unwrap_or(result)
+                    } else { result };
                     value.ty = Some(result);
                     context.bindings[*binding].ty = result;
                     results.insert(*binding, result);

@@ -41,7 +41,7 @@ impl Analyzer {
     }
     pub(super) fn scoped_record_nullable_contract(&self, actual: Type, expected: Type) -> bool {
         let (Some(actual_id), Some(expected_id)) = (actual.union(), expected.union()) else { return false; };
-        let (Some(Type::Record(actual_record)), Some(Type::Record(expected_record))) = (self.unions.payload(actual), self.unions.payload(expected)) else { return false; };
+        let (Some(Type::Record(actual_record)), Some(Type::Record(expected_record))) = (self.unions.payload(actual.owning()), self.unions.payload(expected.owning())) else { return false; };
         if !self.aggregate_callable_facts(Type::Record(self.scoped_records.declaration(actual_record))).scoped
             || self.scoped_records.declaration(actual_record) != self.scoped_records.declaration(expected_record) { return false; }
         let expected_members = self.unions.members(expected_id);

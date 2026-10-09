@@ -313,8 +313,33 @@ console.log(boxes[0].saved?.run() ?? -1); // 3
 
 Every environment stored through an element stays borrowed until the array's scope
 ends; clearing one element field does not release it. Read such a field in place, with
-a guard or an optional call. Moving it out of the element, as in
-`const saved = boxes[0].saved`, reports `unsupported`.
+a guard or an optional call, or bind a readonly view with
+`const saved = boxes[0].saved`. The view does not move the callback record out of the
+array. While the view remains live, mutation of its source array reports
+`view-conflict`.
+
+A readonly nullable parameter also borrows its argument, so repeated calls preserve
+the caller's value. This includes saved views of nullable fields:
+
+```tsrust
+type Holder = { run: ReadOnly<Function<int>>; };
+type Box = { saved: Holder | undefined; };
+function read(holder: ReadOnly<Holder> | undefined): int {
+    return holder?.run() ?? -1;
+}
+function main(): void {
+    const values = [3];
+    const boxes: Box[] = [{ saved: undefined }];
+    boxes[0].saved = { run: (): int => values[0] };
+    const saved = boxes[0].saved;
+    console.log(read(saved), read(saved)); // 3 3
+    console.log(boxes[0].saved?.run() ?? -1); // 3
+}
+```
+
+Use `ReadOnly<Holder> | null` for null-based absence. The parameter may read and call
+the record; it cannot transfer the borrowed record or its captures into an owning
+result. No clone occurs when creating or passing a view.
 
 An array whose element type is itself nullable holds callback records and absence
 side by side:

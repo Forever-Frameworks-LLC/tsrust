@@ -171,7 +171,7 @@ impl Analyzer {
             crate::fixed_storage::visit_function_expressions(function, &mut |expr| {
                 // An argument viewed as a nullable parameter keeps its own concrete environment.
                 let viewed_argument = matches!(&expr.kind, ExprKind::Inject { value, .. } if matches!(expr.ty, Some(Type::BorrowedUnion(_)))
-                    && value.ty.is_some_and(|ty| !self.holds_scoped_record(ty) && self.nullable_scoped_record_declaration(ty).is_some()));
+                    && value.ty.is_some_and(|ty| !self.holds_scoped_record(ty) && self.nullable_scoped_record_declaration(ty.owning()).is_some()));
                 if !viewed_argument && expr.ty.is_some_and(|ty| self.holds_scoped_record(ty) && !self.parameter_bound_nullable_record(ty, declared))
                     && found.is_none_or(|span| expr.span.start < span.start)
                 {

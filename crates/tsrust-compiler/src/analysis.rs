@@ -8055,6 +8055,13 @@ impl Analyzer {
         if let Some(Type::Union(target)) = expected
             && actual != Type::Union(target)
         {
+            if let Some(concrete) = self.scoped_record_injection(actual, target, expr.span)? {
+                let target = concrete.union().expect("projected nullable record");
+                expr.inject(target);
+                let result = if mode == Mode::Read { Type::BorrowedUnion(target) } else { concrete };
+                expr.ty = Some(result);
+                return Ok(result);
+            }
             self.require(actual, expected, expr.span)?;
             expr.inject(target);
             return Ok(Type::Union(target));
@@ -8450,6 +8457,12 @@ impl Analyzer {
                 ));
             }
             let actual = self.expression(context, expr, Mode::Read, loans, None)?;
+            if let Some(concrete) = self.scoped_record_injection(actual, union, expr.span)? {
+                let concrete = concrete.union().expect("nullable record view");
+                expr.inject(concrete);
+                expr.ty = Some(Type::BorrowedUnion(concrete));
+                return Ok(Type::BorrowedUnion(concrete));
+            }
             self.require(actual, Some(expected), expr.span)?;
             if source != union {
                 expr.inject(union);
@@ -8509,6 +8522,8 @@ impl Analyzer {
                 expr.span,
             ));
         }
+        let borrowing_record = mode == Mode::Read
+            && self.nullable_scoped_record_declaration(expected).is_some();
         let borrowing_callback=mode==Mode::Read && self.unions.payload(expected).is_some_and(|ty|matches!(ty,Type::Callback(id) if self.callables.callbacks[id].kind==CallbackKind::Read || hint.is_some_and(|ty|ty.union().is_some())));
         let mut actual = if let Some(Type::StoredCallable(family)) = member_hint {
             self.stored_callable_value(context, expr, family, loans)?
@@ -8516,7 +8531,7 @@ impl Analyzer {
             self.expression(
                 context,
                 expr,
-                if injecting_owned && !borrowing_callback {
+                if injecting_owned && !borrowing_callback && !borrowing_record {
                     Mode::Consume
                 } else {
                     mode
@@ -8525,6 +8540,14 @@ impl Analyzer {
                 member_hint,
             )?
         };
+        if borrowing_record && matches!(actual, Type::Null | Type::Undefined)
+            && let Some(concrete) = self.absent_nullable_record_annotation(context, Some(expected), expr)?
+        {
+            let concrete = concrete.union().expect("absent nullable record view");
+            expr.inject(concrete);
+            expr.ty = Some(Type::BorrowedUnion(concrete));
+            return Ok(Type::BorrowedUnion(concrete));
+        }
         if let Some(concrete) = self.scoped_record_injection(actual, union, expr.span)? {
             expr.inject(concrete.union().expect("nullable scoped record"));
             return Ok(concrete);
@@ -8602,7 +8625,7 @@ impl Analyzer {
             return Ok(concrete);
         }
         expr.inject(union);
-        if borrowing_callback {
+        if borrowing_callback || borrowing_record {
             expr.ty = Some(Type::BorrowedUnion(union));
             return Ok(Type::BorrowedUnion(union));
         }

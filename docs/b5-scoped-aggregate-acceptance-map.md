@@ -43,6 +43,8 @@ unless another file is named.
 | Different callbacks that own every capture joined in one local, field, array element, conditional value or function result; owned and borrowing callbacks mixed | `control_flow_stores_keep_nullable_record_captures_until_scope_end`, `nullable_callback_record_results_keep_one_owned_environment` |
 | Local array of nullable callback records `(Record \| undefined)[]`: literal, indexed store, loop, push, pop, shift, iteration, element view; also as a record field | `arrays_of_nullable_callback_records_share_one_element_environment` |
 | Array, nullable-element array and `Map<K, Record>` of capturing records as `ReadOnly` or `Mutable` parameters; empty arrays; array results with owned captures | `arrays_and_maps_of_capturing_records_cross_function_boundaries` |
+| Parameter typed `ReadOnly<Record> \| undefined` or `ReadOnly<Record> \| null`, including concrete, absent, owned and conditional values | `nullable_callback_record_readonly_parameter_preserves_caller_storage`, `nullable_callback_record_borrowed_views_cover_absence_null_and_owned_values` |
+| Reading a nullable callback-record field of an array element into a local readonly view, including passing that view to a parameter | `nullable_callback_record_element_field_view_preserves_array_storage`, `nullable_callback_record_views_protect_their_source_storage` |
 | `Set<Record>` for a capturing record | rejected by owner decision (`set-key`) |
 
 ## Diagnosed, not supported
@@ -51,9 +53,7 @@ unless another file is named.
 | --- | --- | --- |
 | Store a new callback record into a nullable field through a `Mutable<Record>` parameter (clearing is supported) | `unsupported` | Caller-side environment family and nested conversion bounds, with ledger row B7 |
 | Two parameters that both carry a nullable callback record of one type | `unsupported` | A generic parameter per parameter leaf instead of one per callback contract |
-| Parameter typed `ReadOnly<Record> \| undefined` | `unsupported` | The argument is checked as an owned union and would move the caller's value; it needs a borrowed view of the caller's concrete union. Same root as the element-field move below |
 | Union of two record types where one is a capturing record | `type` error | Tagged storage for a capturing member |
-| Reading a nullable callback record field of an array element into a local (`const saved = boxes[0].saved`) | `unsupported` | A borrowed view of a nullable capturing record, as data records already have |
 
 ## Outside this row
 
@@ -74,3 +74,14 @@ unless another file is named.
 - A precise release rule through control flow would need the Map loop-edge planner
   extended to nullable record places. The current rule accepts a subset of those
   programs, so that extension stays compatible.
+
+## Borrowed-view checkpoint, 2026-10-09
+
+The composition suite passes 195 tests. Eight focused compiler tests, the editor
+witness, the guide example and all eight depth canaries pass. Later direct null and
+undefined argument witnesses also pass. Registration and mutation guards pass before
+and after project formatting. Five native and Node-after-tsc correctness cases pass
+untimed with 134 observations. The exact result is stored in SQLite as
+`runtime/results/2026-10-09T14-59-51-827Z-verify.json`; timing arrays are empty.
+Complete compiler/LSP regressions and family timing were not run for this isolated
+checkpoint. Three forms remain diagnosed; mixed-record union scope awaits the owner.

@@ -1,6 +1,45 @@
 mod support;
 
 #[test]
+fn nullable_callback_record_borrowed_view_guide_example() {
+    let source=support::format_round_trip(include_str!("fixtures/nullable-record-views/documented.tsr"));
+    support::execute(&source,"3 3\n3\n",None);
+}
+
+#[test]
+fn nullable_callback_record_borrowed_views_cover_absence_null_and_owned_values() {
+    let holder="type Holder={run:ReadOnly<Function<int>>;};";
+    let run=|body:&str,expected:&str|support::execute(&support::format_round_trip(&format!("{holder}{body}")),expected,None);
+    run("function use(h:ReadOnly<Holder>|undefined):int{return h?.run()??-1;}function main():void{const a=[3];console.log(use(undefined),use({run:():int=>a[0]}));}","-1 3\n");
+    run("function use(h:ReadOnly<Holder>|null):int{return h?.run()??-1;}function main():void{const a=[3];let h:Holder|null=null;console.log(use(h),use(null));h={run:():int=>a[0]};console.log(use(h),use(h));if(h!==null)console.log(use(h));}","-1 -1\n3 3\n3\n");
+    run("function use(h:ReadOnly<Holder>|undefined):int{return h?.run()??-1;}function make(n:int):Holder|undefined{if(n>0)return {run:():int=>n};return undefined;}function main():void{const h=make(4);console.log(use(h),use(h),use(make(0)));}","4 4 -1\n");
+    run("type Box={saved:Holder|null;};function main():void{const a=[3];const boxes:Box[]=[{saved:null},{saved:{run:():int=>a[0]}}];const empty=boxes[0].saved;const full=boxes[1].saved;console.log(empty?.run()??-1,full?.run()??-1,boxes.length);}","-1 3 2\n");
+    run("function use(h:ReadOnly<Holder>|undefined):int{return h?.run()??-1;}function f(flag:boolean):void{const a=[3];const b=[4];const h:Holder|undefined=flag?{run:():int=>a[0]}:{run:():int=>b[0]};console.log(use(h),use(h));}function main():void{f(true);f(false);}","3 3\n4 4\n");
+}
+
+#[test]
+fn nullable_callback_record_views_protect_their_source_storage() {
+    let holder="type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};";
+    let source=support::format_round_trip(&format!("{holder}function main():void{{const a=[3];const boxes:Box[]=[{{saved:undefined}}];boxes[0].saved={{run:():int=>a[0]}};const saved=boxes[0].saved;boxes[0].saved=undefined;if(saved!==undefined)console.log(saved.run());}}"));
+    assert_eq!(tsrust_compiler::check(&source).err().expect("saved view prevents mutation of its array storage").code,"view-conflict");
+}
+
+#[test]
+fn nullable_callback_record_element_field_view_preserves_array_storage() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};function main():void{const a=[3];const boxes:Box[]=[{saved:undefined}];boxes[0].saved={run:():int=>a[0]};const s=boxes[0].saved;if(s!==undefined)console.log(s.run());console.log(boxes[0].saved?.run()??-1);}");
+    support::execute(&source,"3\n3\n",None);
+    let passed=source.replace("function main()", "function use(h:ReadOnly<Holder>|undefined):int{if(h!==undefined)return h.run();return 0;}function main()").replace("console.log(s.run());", "console.log(use(s));");
+    assert_ne!(passed,source);
+    support::execute(&support::format_round_trip(&passed),"3\n3\n",None);
+}
+
+#[test]
+fn nullable_callback_record_readonly_parameter_preserves_caller_storage() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function use(h:ReadOnly<Holder>|undefined):int{if(h!==undefined)return h.run();return 0;}function main():void{const a=[3];let h:Holder|undefined=undefined;console.log(use(h));h={run:():int=>a[0]};console.log(use(h),use(h));if(h!==undefined)console.log(h.run());}");
+    support::execute(&source,"0\n3 3\n3\n",None);
+}
+
+#[test]
 fn nullable_record_fields_release_independent_capture_owners() {
     let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};type Pair={left:Holder|undefined;right:Holder|undefined;};function main():void{const first=[3];const second=[5];const third=[7];const pair:Pair={left:undefined,right:undefined};pair.left={run:():int=>first[0]};pair.right={run:():int=>second[0]};if(pair.left!==undefined && pair.right!==undefined)console.log(pair.left.run(),pair.right.run());pair.left={run:():int=>third[0]};first[0]=9;if(pair.left!==undefined && pair.right!==undefined)console.log(pair.left.run(),pair.right.run(),first[0]);pair.left=undefined;third[0]=11;pair.right=undefined;second[0]=13;console.log(first[0],second[0],third[0]);}");
     support::execute(&source,"3 5\n7 5 9\n9 13 11\n",None);
@@ -3140,7 +3179,7 @@ fn nullable_callback_record_fields_of_array_elements_share_the_array_carrier() {
     };
     // Clearing one element field does not release captures held through the array.
     rejected("function main():void{const a=[3];const boxes:Box[]=[{saved:undefined}];boxes[0].saved={run:():int=>a[0]};boxes[0].saved=undefined;a[0]=9;console.log(a[0],boxes.length);}","capture-conflict");
-    rejected("function main():void{const a=[3];const boxes:Box[]=[{saved:undefined}];boxes[0].saved={run:():int=>a[0]};const s=boxes[0].saved;if(s!==undefined)console.log(s.run());}","unsupported");
+    run("function main():void{const a=[3];const boxes:Box[]=[{saved:undefined}];boxes[0].saved={run:():int=>a[0]};const s=boxes[0].saved;if(s!==undefined)console.log(s.run());}","3\n");
 }
 
 #[test]

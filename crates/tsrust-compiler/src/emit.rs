@@ -1305,6 +1305,7 @@ impl Emitter<'_> {
                             .iter()
                             .position(|ty| {
                                 ty == member
+                                    || matches!((ty,member),(Type::Record(left),Type::Record(right)) if self.program.scoped_records.declaration(*left)==self.program.scoped_records.declaration(*right))
                                     || matches!(ty, Type::Callback(_))
                                         && matches!(member, Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_))
                             })
@@ -1340,6 +1341,12 @@ impl Emitter<'_> {
                     "ViewUnion{}::<TsrAbsentCallable>::V{to}({source})",
                     union.index()
                 );
+            }
+            if matches!(actual, Type::Null | Type::Undefined)
+                && let Some(payload) = self.program.unions[union.index()].members.iter().copied().find(|ty| matches!(ty, Type::Record(_)))
+                && self.scoped_record_native_parameter(payload)
+            {
+                return format!("ViewUnion{}::<{}>::V{to}({source})", union.index(), self.native_type(payload));
             }
             return format!("ViewUnion{}::V{to}({source})", union.index());
         }
@@ -4233,6 +4240,8 @@ impl Emitter<'_> {
         let selection = self.storage_selection(fun, expr, false);
         let value = if mode == Mode::Mutate {
             selection.exclusive
+        } else if matches!(expr.ty, Some(Type::BorrowedUnion(_))) {
+            format!("({}).tsr_view()", selection.shared)
         } else if expr.ty.is_some_and(Type::is_copy) {
             format!("*({})", selection.shared)
         } else {

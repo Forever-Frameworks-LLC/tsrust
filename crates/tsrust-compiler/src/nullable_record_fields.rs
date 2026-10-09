@@ -66,13 +66,6 @@ impl Analyzer {
             match &statement.kind {
                 StmtKind::Let{binding:Some(binding),value,..}=>{
                     declarations.insert((*binding,value.span.start,value.span.end));
-                    let mut place=value;let mut indexed=false;
-                    // A whole element is read as a view; only a field of an element would move.
-                    if matches!(place.kind,ExprKind::Index(_,_)) {continue;}
-                    loop {match &place.kind {ExprKind::Index(base,_)=>{indexed=true;place=base;}ExprKind::Field(base,_)=>place=base,_=>break,}}
-                    if indexed && matches!(place.kind,ExprKind::Name(_)) && value.ty.is_some_and(|ty|ty.union().is_some() && self.nullable_scoped_record_declaration(ty).is_some()) {
-                        return Err(Diagnostic::new("unsupported","A nullable callback record cannot be moved out of an array element. Read it in place with a guard or an optional call.",value.span));
-                    }
                 }
                 StmtKind::Block(body)|StmtKind::While{body,..}|StmtKind::ForOf{body,..}=>nested.extend(body),
                 StmtKind::If{then_body,else_body,..}=>{nested.extend(then_body);nested.extend(else_body);}
@@ -437,7 +430,7 @@ impl Analyzer {
                     pending.extend(body);
                 }
                 // A view of a planned element reads the carrier union.
-                StmtKind::Let{binding:Some(id),value,..} if matches!(value.kind,ExprKind::Index(_,_)|ExprKind::Call(_,_)) && !plans.contains_key(id)=>{
+                StmtKind::Let{binding:Some(id),value,..} if matches!(value.kind,ExprKind::Index(_,_)|ExprKind::Field(_,_)|ExprKind::Call(_,_)) && !plans.contains_key(id)=>{
                     if let Some(planned)=self.planned_record_array_type(value,&plans) && let Some(union)=planned.union() {
                         let ty=if matches!(context.bindings[*id].ty,Type::BorrowedUnion(_)){Type::BorrowedUnion(union)}else{planned};
                         if context.bindings[*id].ty.union().is_some() {plans.insert(*id,ty);context.bindings[*id].ty=ty;}
