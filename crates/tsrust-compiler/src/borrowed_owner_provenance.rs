@@ -4,13 +4,13 @@ use super::*;
 use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-struct Owner {
-    function: usize,
-    binding: usize,
+pub(super) struct Owner {
+    pub(super) function: usize,
+    pub(super) binding: usize,
 }
 
-type Vector = Vec<(usize, Owner)>;
-type Plan = BTreeMap<usize, BTreeSet<Vector>>;
+pub(super) type Vector = Vec<(usize, Owner)>;
+pub(super) type Plan = BTreeMap<usize, BTreeSet<Vector>>;
 
 fn resolve(
     function: &CheckedFunction,
@@ -43,8 +43,37 @@ fn resolve(
     None
 }
 
-fn plan(program: &CheckedProgram) -> Plan {
+pub(super) fn plan(program: &CheckedProgram) -> Plan {
     let mut result = Plan::new();
+    if program.record_parameter_borrows.is_empty() {
+        return result;
+    }
+    let mut incomplete = BTreeSet::new();
+    // Closure contexts need explicit outer-owner transport before tagging their callees.
+    for closure in &program.closures {
+        if let Some(ClosureForward::Function(callee)) = closure.forward {
+            incomplete.extend(
+                program
+                    .record_parameter_borrows
+                    .get(&callee)
+                    .into_iter()
+                    .flatten()
+                    .map(|borrow| borrow.origin),
+            );
+        }
+        crate::fixed_storage::visit_function_expressions(&closure.function, &mut |expr| {
+            if let Some(CallTarget::Function(callee)) = expr.target {
+                incomplete.extend(
+                    program
+                        .record_parameter_borrows
+                        .get(&callee)
+                        .into_iter()
+                        .flatten()
+                        .map(|borrow| borrow.origin),
+                );
+            }
+        });
+    }
     let mut pending = program
         .functions
         .iter()
@@ -107,6 +136,9 @@ fn plan(program: &CheckedProgram) -> Plan {
                 }
             }
         }
+        if inputs.iter().any(Option::is_some) {
+            incomplete.extend(unresolved.iter().copied());
+        }
         for (origin, mut vector) in vectors {
             if unresolved.contains(&origin) {
                 continue;
@@ -116,6 +148,7 @@ fn plan(program: &CheckedProgram) -> Plan {
             result.entry(origin).or_default().insert(vector);
         }
     }
+    result.retain(|origin, _| !incomplete.contains(origin));
     result
 }
 

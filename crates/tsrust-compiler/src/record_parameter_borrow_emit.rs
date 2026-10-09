@@ -103,7 +103,33 @@ impl Emitter<'_> {
                             .insert(format!("K{}", capture.inner), format!("F{}", borrow.source));
                     }
                 }
-                callback_capture_emit::substitute_parameters(&rendered, &parameters)
+                let rendered = callback_capture_emit::substitute_parameters(&rendered, &parameters);
+                if self.borrowed_owners.contains_key(&origin) {
+                    let markers = closure
+                        .captures
+                        .iter()
+                        .filter(|capture| matches!(capture.storage, Mode::Read | Mode::Mutate))
+                        .map(|capture| {
+                            self.program
+                                .record_parameter_borrows
+                                .get(&function)
+                                .into_iter()
+                                .flatten()
+                                .find(|borrow| {
+                                    borrow.origin == origin
+                                        && self.program.closures[origin].captures[borrow.capture]
+                                            .inner
+                                            == capture.inner
+                                })
+                                .map(|borrow| format!("O{}", borrow.source))
+                                .expect("retained capture owner input")
+                        })
+                        .collect::<Vec<_>>()
+                        .join(",");
+                    format!("TsrOwnedCapture<{rendered},({markers},)>")
+                } else {
+                    rendered
+                }
             }
             Type::BorrowedCallable(family) => {
                 let arguments = self

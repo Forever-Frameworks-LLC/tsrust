@@ -104,6 +104,18 @@ impl Emitter<'_> {
             ));
         }
         let constructor = format!("Closure{origin}{{{}}}", fields.join(","));
+        let constructor = if self.borrowed_owners.contains_key(&origin) {
+            let markers = closure
+                .captures
+                .iter()
+                .filter(|capture| matches!(capture.storage, Mode::Read | Mode::Mutate))
+                .map(|capture| self.owner_binding_marker(caller, arguments[capture.outer].binding?))
+                .collect::<Option<Vec<_>>>()?
+                .join(",");
+            format!("TsrOwnedCapture::<_,({markers},)>({constructor},std::marker::PhantomData)")
+        } else {
+            constructor
+        };
         let mut destination = self.native_captures.ty(caller, id);
         for &index in &path {
             let Type::Record(record) = destination else {

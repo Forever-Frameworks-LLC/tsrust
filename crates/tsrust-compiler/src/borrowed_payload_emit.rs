@@ -9,6 +9,7 @@ pub(super) type Alternatives = BTreeMap<usize, Vec<CaptureVector>>;
 pub(super) struct Payload {
     pub(super) origin: usize,
     pub(super) captures: CaptureVector,
+    pub(super) owners: borrowed_owner_provenance::Vector,
 }
 
 pub(super) fn capture_alternatives(program: &CheckedProgram) -> Alternatives {
@@ -148,14 +149,41 @@ impl Emitter<'_> {
                         .map(|captures| Payload {
                             origin,
                             captures: captures.clone(),
+                            owners: Vec::new(),
                         })
                         .collect(),
                     None => vec![Payload {
                         origin,
                         captures: Vec::new(),
+                        owners: Vec::new(),
                     }],
                 },
             )
+            .flat_map(|payload| {
+                let Some(vectors) = self.borrowed_owners.get(&payload.origin) else {
+                    return vec![payload];
+                };
+                vectors
+                    .iter()
+                    .filter(|owners| {
+                        payload.captures.iter().all(|(inner, actual)| {
+                            owners
+                                .iter()
+                                .find(|(capture, _)| capture == inner)
+                                .is_none_or(|(_, owner)| {
+                                    self.program.functions[owner.function].bindings[owner.binding]
+                                        .ty
+                                        == Type::Closure(*actual)
+                                })
+                        })
+                    })
+                    .map(|owners| Payload {
+                        origin: payload.origin,
+                        captures: payload.captures.clone(),
+                        owners: owners.clone(),
+                    })
+                    .collect::<Vec<_>>()
+            })
             .collect()
     }
 
@@ -203,11 +231,22 @@ impl Emitter<'_> {
                 bounds.push(bound.replacen(parameter, &renamed, 1));
             }
         }
-        format!(
+        let inner = format!(
             "Closure{}{}",
             payload.origin,
             lifetime_parameters(&arguments)
-        )
+        );
+        if payload.owners.is_empty() {
+            inner
+        } else {
+            let markers = payload
+                .owners
+                .iter()
+                .map(|(_, owner)| Self::owner_name(owner))
+                .collect::<Vec<_>>()
+                .join(",");
+            format!("TsrOwnedCapture<{inner},({markers},)>")
+        }
     }
 }
 

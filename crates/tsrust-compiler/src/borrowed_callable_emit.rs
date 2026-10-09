@@ -33,7 +33,8 @@ impl Emitter<'_> {
             for (position,payload) in payloads.iter().enumerate() {
                 let origin=payload.origin;
                 let arm=crate::borrowed_callable_dispatch::variant(position,payload_count);
-                let call=self.stored_origin_result(id,origin,format!("value.{method}({passed})"));
+                let receiver=if payload.owners.is_empty(){"value"}else{"value.0"};
+                let call=self.stored_origin_result(id,origin,format!("{receiver}.{method}({passed})"));
                 let mutable=if invocation==Mode::Consume {"mut "}else{""};
                 let _=writeln!(output,"Self::{arm}({mutable}value)=>{call},");
             }

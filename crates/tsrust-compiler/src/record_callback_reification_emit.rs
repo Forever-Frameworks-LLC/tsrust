@@ -4,6 +4,7 @@ use super::*;
 impl Emitter<'_> {
     pub(super) fn record_callback_reification(
         &self,
+        caller: &CheckedFunction,
         callee: usize,
         parameter: usize,
         names: &[String],
@@ -53,6 +54,23 @@ impl Emitter<'_> {
                     .collect::<Vec<_>>();
                 if sources.is_empty() {
                     return replacements.contains(&payload.origin);
+                }
+                if !payload.owners.iter().all(|(inner, owner)| {
+                    sources
+                        .iter()
+                        .filter(|borrow| {
+                            self.program.closures[borrow.origin].captures[borrow.capture].inner
+                                == *inner
+                        })
+                        .any(|borrow| {
+                            arguments
+                                .get(borrow.source)
+                                .and_then(|argument| argument.binding)
+                                .and_then(|binding| self.owner_binding_marker(caller, binding))
+                                .is_some_and(|marker| marker == Self::owner_name(owner))
+                        })
+                }) {
+                    return false;
                 }
                 payload.captures.iter().all(|(inner, actual)| {
                     let facts = sources

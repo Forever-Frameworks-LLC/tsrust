@@ -102,7 +102,7 @@ impl Emitter<'_> {
                 if !absent_store {
                     if let Some(place) = self.owned_record_leaf_place(fun, id, &path) {
                         if let Some(reification) = self.record_callback_reification(
-                            callee, *parameter, names, args, ty, &place,
+                            fun, callee, *parameter, names, args, ty, &place,
                         ) {
                             result.push_str(&reification);
                         }
@@ -124,9 +124,9 @@ impl Emitter<'_> {
                 })
             {
                 if let Some(place) = self.owned_record_leaf_place(fun, id, &path) {
-                    if let Some(reification) = self
-                        .record_callback_reification(callee, *parameter, names, args, ty, &place)
-                    {
+                    if let Some(reification) = self.record_callback_reification(
+                        fun, callee, *parameter, names, args, ty, &place,
+                    ) {
                         result.push_str(&reification);
                         continue;
                     }
@@ -274,7 +274,9 @@ impl Emitter<'_> {
             .collect::<Option<Vec<_>>>()?;
         let leaf = layout.leaves.iter().find(|leaf| leaf.path == path)?;
         if matches!(leaf.ty, Type::Union(_)) && matches!(value.ty, Some(Type::Union(_))) {
-            if let Some(converted) = self.nullable_callback_parameter_store(leaf.ty, value, code) {
+            if let Some(converted) =
+                self.nullable_callback_parameter_store(fun, leaf.ty, value, code)
+            {
                 return Some(converted);
             }
             let source = value.ty.unwrap();
@@ -311,6 +313,11 @@ impl Emitter<'_> {
             || self.native_type(value.ty.unwrap()),
             |function| self.record_borrow_replacement_type(function, value.ty.unwrap(), id, &names),
         );
+        let code = if let Some(Type::Closure(origin)) = value.ty {
+            self.tag_owner_constructor(fun, origin, code)
+        } else {
+            code.to_owned()
+        };
         Some(format!(
             "<<R{id} as TsrReadRecord{}>::{field} as From<{replacement}>>::from({code})",
             layout.record

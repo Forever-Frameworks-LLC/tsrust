@@ -798,3 +798,5 @@ callback factories, arrays and plain records. Source release and editor loans st
 unchanged; native emission exposes the checked overwrite at the caller. Larger
 installer bodies and relays remain pending for these equal-type instances. The
 matched workload has 31 observations and remains unmeasured.
+
+B7 owner-instance transport now supports effectful callback installers, named relays, returning to a prior factory owner and nested holder captures. Zero-sized native owner markers distinguish equal callback types without changing source ownership. The matched workload observes installer effects as a 32nd result. Timing and family acceptance remain pending; equal-type data captures and closure-caller provenance remain open.

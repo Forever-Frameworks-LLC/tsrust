@@ -143,3 +143,49 @@ fn effectful_installer_releases_an_independent_same_origin_factory() {
     "#,
     );
 }
+
+#[test]
+fn effectful_relay_preserves_independent_factory_owners() {
+    execute(
+        r#"
+        import { strictEqual } from "std:testing";
+        type Holder = { run: Mutable<Function<int>> | undefined; };
+        function counter(start: int): () => int {
+            let value = start; return (): int => { value += 1; return value; };
+        }
+        function install(holder: Mutable<Holder>, action: Mutable<Function<int>>, calls: Mutable<int[]>): void {
+            calls[0] += 1; holder.run = action;
+        }
+        function relay(holder: Mutable<Holder>, action: Mutable<Function<int>>, calls: Mutable<int[]>): void {
+            const alias = action; install(holder, alias, calls);
+        }
+        function main() {
+            const first = counter(3); const second = counter(10); const calls = [0];
+            const holder: Holder = { run: undefined };
+            relay(holder, first, calls); strictEqual(holder.run!(), 4);
+            relay(holder, second, calls); strictEqual(first(), 5); strictEqual(holder.run!(), 11);
+            relay(holder, first, calls); strictEqual(second(), 12); strictEqual(holder.run!(), 6);
+            strictEqual(calls[0], 3);
+            const observe = (): int => holder.run!(); strictEqual(observe(), 7);
+        }
+    "#,
+    );
+}
+
+#[test]
+fn local_forwarding_environment_keeps_its_source_type_before_storage() {
+    execute(
+        r#"import { strictEqual } from "std:testing";
+type Holder = { run: Mutable<Function<int>> | undefined; };
+function counter(start: int): () => int { let value = start; return (): int => { value += 1; return value; }; }
+function install(holder: Mutable<Holder>, action: Mutable<Function<int>>): void {
+    const wrapped = (): int => action();
+    holder.run = wrapped;
+}
+function main() {
+    const first = counter(3); const second = counter(10); const holder: Holder = { run: undefined };
+    install(holder, first); install(holder, second); strictEqual(first(), 4); strictEqual(holder.run!(), 11);
+}
+"#,
+    );
+}

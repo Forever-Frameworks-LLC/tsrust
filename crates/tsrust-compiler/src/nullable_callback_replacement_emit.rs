@@ -70,6 +70,7 @@ impl Emitter<'_> {
 
     pub(super) fn nullable_callback_parameter_store(
         &self,
+        fun: &CheckedFunction,
         target: Type,
         value: &Expr,
         code: &str,
@@ -107,7 +108,12 @@ impl Emitter<'_> {
                 } else if absent {
                     "unreachable!(\"absent callback payload\")".to_owned()
                 } else {
-                    format!("C{callback}::from(payload)")
+                    let payload = if let Some(Type::Closure(origin)) = inner.ty {
+                        self.tag_owner_constructor(fun, origin, "payload")
+                    } else {
+                        "payload".to_owned()
+                    };
+                    format!("C{callback}::from({payload})")
                 };
                 format!(
                     "Union{}::V{index}(payload)=>Union{}::<C{callback}>::V{selected}({payload})",

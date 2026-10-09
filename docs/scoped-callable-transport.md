@@ -527,3 +527,5 @@ instances returned by the same callback factory. Replacing one counter with anot
 releases the first counter's retained borrow and keeps each counter's state separate.
 The same direct form supports array and plain-record inputs of equal type. Broader
 effectful installer and relay forms are still being completed for equal-type owners.
+
+Replacing a retained callback through an effectful installer also releases the previous independent factory instance. Installer body effects execute normally and exactly once. A named relay can forward the callback without changing which caller owns its state. Replacing the callback again can return to a previously released instance; it retains its state. Local forwarding closures keep their ordinary type until stored. This support currently covers named callback inputs; more general retained data and closure-caller composition remain under development.

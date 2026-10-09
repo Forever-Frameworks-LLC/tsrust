@@ -10,7 +10,7 @@ impl Emitter<'_> {
         let mut next=0;let mut args=vec![lifetime.to_owned()];
         for leaf in layout.leaves {
             if !self.scoped_record_native_parameter(leaf.ty){continue;}
-            let count=self.native_captures.type_lifetimes(self.program,&self.borrowed_capture_alternatives,leaf.ty);
+            let count=self.native_captures.type_lifetimes(self.program,&self.borrowed_lifetime_alternatives,leaf.ty);
             args.push(self.named_record_environment_type(leaf.ty,&lifetimes[next..next+count]));next+=count;
         }
         format!("Tsr{}View{}<{}>",if mutable{"Mutate"}else{"Read"},self.program.scoped_records.declaration(record),args.join(","))

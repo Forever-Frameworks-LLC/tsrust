@@ -81,7 +81,18 @@ impl Emitter<'_> {
                                 arguments.push(parameter.to_owned());
                             }
                         }
-                        format!("Closure{origin}{}", lifetime_parameters(&arguments))
+                        let inner = format!("Closure{origin}{}", lifetime_parameters(&arguments));
+                        if payload.owners.is_empty() {
+                            inner
+                        } else {
+                            let markers = payload
+                                .owners
+                                .iter()
+                                .map(|(_, owner)| Self::owner_name(owner))
+                                .collect::<Vec<_>>()
+                                .join(",");
+                            format!("TsrOwnedCapture<{inner},({markers},)>")
+                        }
                     })
                     .collect::<Vec<_>>();
                 format!("BorrowedCallable{id}<{}>", arguments.join(", "))
