@@ -61,6 +61,12 @@ The example collector now uses the body of such a program.
   with seven failures; `tsrust-nullable-fields-whole-compiler-final.log` is the clean
   run. All were read back byte for byte and the loose copies removed.
 
+## Consumers
+
+The five installed consumers were refreshed from commit `53b53e5b` by copy and atomic
+rename, and each `tsrust` binary ran a smoke program that uses a populated nullable
+callback record, a truthiness condition and a unary sign.
+
 ## Not done
 
 - No timing run and no performance review. Those belong to the B5 family milestone.
