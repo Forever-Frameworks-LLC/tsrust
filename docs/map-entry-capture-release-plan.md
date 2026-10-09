@@ -1238,3 +1238,68 @@ carried tuple reassignment. Labelled block exits need their own owner transport;
 do not treat a labelled block as an ordinary lexical block. Keep source ownership
 proofs authoritative, run the eight normal-stack canaries after analyzer changes,
 and preserve the 15 unrelated fixtures with explicit Git paths.
+
+
+### Direct nested nonlocal controls: active red witness
+
+After checkpoint c52310f, `nested_map_direct_outer_controls_preserve_survivors`
+adds the ordinary nested-loop counterpart without any try/finally boundary.
+Source checking and format round trips succeed, but generated Rust fails with
+E0382 (moved Map storage) and E0502 (the deleted capture remains borrowed).
+The focused test is intentionally red and is not accepted or committed yet.
+Its exact diagnostic log is retained in SQLite as
+`tsrust-b5-direct-controls-red.log`, verified by byte-exact readback.
+
+The current iteration shape rejects an ancestor target outside a completion
+region. The planner also does not descend into nested loops when installing
+direct control conversions. Simply removing either restriction is insufficient:
+an ancestor break can bypass the inner carried tuple assignment. Implement
+explicit propagation through each intervening loop owner, preserving the
+source destination and distinguishing normal completion, break and continue.
+Do not route an ancestor control through the inner loop's boolean stop flag,
+which would lose its destination. Keep ordinary differing edge families and
+arbitrary labelled blocks separate until their transport is proved. Extend the
+witness with counted, post-test and for-of loops and survivor disposal before
+acceptance; update editor, matched workload support and bounded evidence.
+
+
+### Direct nested Map loop controls accepted
+
+The direct ancestor-control witness now passes. Iteration shape validation accepts
+resolved loop destinations, while controls to labelled blocks remain excluded.
+Loop planning joins reaching edge families for nested loops and for a loop with
+a direct ancestor control. The body-family walk collects nested control input
+representations. Direct conversion installation descends through nested loops
+but handles only controls whose checked destination names the current loop.
+This prevents an inner plan from replacing an ancestor destination.
+
+The red investigation initially proposed forwarding through each intervening
+loop. Native execution proves a simpler ownership-preserving transport: convert
+the innermost live owner directly into the destination loop's carried body tuple.
+All intervening loop scopes are exited, so their moved storage is never used
+again. The destination loop performs the normal break/backedge conversion.
+Exception boundaries retain their existing completion/finally transport; this
+change does not bypass cleanup or introduce cloning.
+
+The focused witness covers inner while, counted, post-test and for-of loops,
+ancestor break and continue, local inner break, surviving callback invocation,
+format round trips, capture-conflict rejection and exact disposal at both native
+optimization levels. The affected batch passes 79 Map tests, nine phase/storage
+proofs, eight normal-stack depth canaries and 11 editor entry-release checks.
+
+Matched sources add directNestedEntryMutation, an independent arithmetic oracle,
+source guards and mutation rejection. A shared helper guard was scoped to its
+function so the new helper cannot mask a deleted snippet from the earlier one.
+All five native and Node-after-tsc cases agree on 70 scalar observations per row.
+Canonical record: runtime/results/2026-10-09T04-15-23-075Z-verify.json. Sixteen
+closed logs and that record are imported into SQLite, read back byte for byte
+and removed from loose storage. Final project formatting changes zero files and
+zero fingerprints. No timing or whole-family acceptance is claimed.
+
+B5 remains open. Next implement owner transport for arbitrary labelled block
+exits with a focused failing witness; keep source ownership and disposal proofs
+authoritative. Ordinary differing loop edge families, independent native phase
+layouts, broader aggregate/within-expression precision and structural owned
+record keys remain pending. Installed consumers remain at gate 181; scratch debug
+compiler and benchmark-built native compiler are current. Preserve the 15
+unrelated fixture edits and stage only explicit paths.

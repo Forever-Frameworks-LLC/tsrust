@@ -1,6 +1,22 @@
 mod support;
 
 #[test]
+fn nested_map_direct_outer_controls_preserve_survivors() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(stop:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});let turn=0;outer:while(turn<3){inner:while(true){handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;turn++;if(stop)break outer;if(turn<3)continue outer;break inner;}console.log('tail',turn);}console.log('size',handlers.size);for(const [key,entry] of handlers){console.log('kept',key,entry.run());}handlers.clear();console.log('done',first[0]);}function main():void{scenario(false);scenario(true);}");
+    support::execute(&source,"tail 3\nsize 1\nkept second 5\ndone 6\nsize 1\nkept second 5\ndone 4\n",None);
+    verify_disposal(&source,2,"drop 1\ndrop 1\ndrop 1\ntail 3\nsize 1\nkept second 5\ndrop 0\ndone 6\ndrop 1\nsize 1\nkept second 5\ndrop 0\ndone 4\n");
+    for replacement in ["inner:for(let step=0;step<1;step+=1){","inner:do{","inner:for(const step of [0]){"] {
+        let mut variant=source.replace("inner: while (true) {",replacement);
+        assert_ne!(variant,source);
+        if replacement=="inner:do{" {variant=variant.replace("console.log('tail', turn);","while(false);console.log('tail',turn);");}
+        support::execute(&support::format_round_trip(&variant),"tail 3\nsize 1\nkept second 5\ndone 6\nsize 1\nkept second 5\ndone 4\n",None);
+    }
+    let conflict=source.replace("first[0] += 1;","second[0]+=1;");
+    assert_eq!(tsrust_compiler::check(&conflict).err().expect("surviving capture remains borrowed").code,"capture-conflict");
+}
+
+
+#[test]
 fn nested_map_cleanup_loops_run_inner_finally_before_outer_control() {
     let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(stop:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});let turn=0;outer:while(turn<3){try{inner:while(true){try{handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;turn++;if(stop)break outer;if(turn<3)continue outer;break inner;}finally{console.log('inner',turn);}}console.log('tail',turn);}finally{console.log('cleanup',turn,handlers.size);for(const [key,entry] of handlers){console.log('kept',key,entry.run());}}}handlers.clear();console.log('done',first[0]);}function main():void{scenario(false);scenario(true);}");
     support::execute(&source,"inner 1\ncleanup 1 1\nkept second 5\ninner 2\ncleanup 2 1\nkept second 5\ninner 3\ntail 3\ncleanup 3 1\nkept second 5\ndone 6\ninner 1\ncleanup 1 1\nkept second 5\ndone 4\n",None);

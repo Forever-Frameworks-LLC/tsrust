@@ -11,7 +11,7 @@ impl Analyzer {
         };
         // Labels resolve to the same checked loop target as unlabelled control.
         if !map_iteration_shape::supports(body,statement.span.start){return Ok(());}
-        let cleanup_body=body.iter().any(|statement|matches!(statement.kind,StmtKind::Try(_)));
+        let cleanup_body=body.iter().any(|statement|matches!(statement.kind,StmtKind::Try(_)|StmtKind::While{..}|StmtKind::Loop{..}|StmtKind::ForOf{..})) || map_iteration_shape::has_nonlocal_control(body,statement.span.start);
         let mut epochs=Vec::new();
         for place in local {
             if !context.storage_exits.map_completion_survivors(statement.span).iter().any(|state|state.consistent && state.place==*place && !state.released.is_empty()){continue;}
@@ -96,6 +96,8 @@ impl Analyzer {
         while let Some(statement)=pending.pop(){match &statement.kind {
             StmtKind::Block(body)=>pending.extend(body),
             StmtKind::If{then_body,else_body,..}=>{pending.extend(then_body);pending.extend(else_body);},
+            StmtKind::While{body,..}|StmtKind::ForOf{body,..}=>pending.extend(body),
+            StmtKind::Loop{body,update,tail_reachable,..}=>{pending.extend(body);if *tail_reachable{pending.extend(update);}},
             StmtKind::Break|StmtKind::Continue=>controls.push(statement.span),
             _=>{},
         }}
@@ -142,7 +144,9 @@ impl Analyzer {
                         _=>{},
                     }}
                 },
-                StmtKind::Break|StmtKind::Continue=>{
+                StmtKind::While{body,..}|StmtKind::ForOf{body,..}=>pending.extend(body),
+                StmtKind::Loop{body,update,tail_reachable,..}=>{pending.extend(body);if *tail_reachable{pending.extend(update);}},
+                StmtKind::Break|StmtKind::Continue if matches!(control.control_target,Some(crate::syntax::ControlTarget::Loop(id)|crate::syntax::ControlTarget::Tail(id)) if id==statement.span.start)=>{
                     let inputs=context.storage_exits.map_control_inputs(control.span).expect("planned control input");
                     let conversions=epochs.iter().map(|epoch|storage_exit_availability::MapEntryEpoch{place:epoch.entry.place.clone(),input:inputs[&epoch.entry.place.binding],output:epoch.body.output,empty:self.map_iteration_empty_root(inputs[&epoch.entry.place.binding],&epoch.entry.place.fields),before:false}).collect();
                     context.storage_exits.record_map_iteration_control(control.span,statement.span.start,matches!(control.kind,StmtKind::Continue),conversions);

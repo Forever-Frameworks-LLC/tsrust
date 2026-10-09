@@ -400,7 +400,7 @@ function workload(n: int, seed: int, input: string): int[][] {
         const forOfMapObserved=forOfMapLoop();
         const countedMapObserved=countedMapLoop();const postMapObserved=postMapLoop();
         const emptyMapObserved=emptyScopedMap();
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped, nestedPairLooped, emptyMapObserved, countedMapObserved, postMapObserved, forOfMapObserved, knownEntryRelease(value), movedFieldEntryRelease(value), replacementEntryOutcome(value,value%2!==0), branchEntryRelease(value, value % 2 === 0), mixedBranchEntryRelease(value, value % 2 === 0), pairedBranchEntryRelease(value, value % 2 === 0), postEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), countedEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), forOfEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), loopEntryRefill(value,value%2===0?0:2), innerBranchEntryRelease(value,value%2===0), branchEntryRefill(value,value%2===0), iterationEntryMutation(value,value%2===0?0:2), postIterationEntryMutation(value,value%2===0?0:2), abruptIterationEntryMutation(value,value%2===0), countedUpdateEntryMutation(value,value%2===0), finallyEntryMutation(value),cleanupIterationMutation(value,value%2===0), returnCleanupEntryMutation(value, 0), returnCleanupEntryMutation(value, 1), returnCleanupEntryMutation(value, 2), returnCleanupEntryMutation(value, 3), returnCleanupEntryMutation(value, 4), nestedCleanupEntryMutation(value, value % 2 === 0, false), nestedCleanupEntryMutation(value, value % 2 === 0, true)]);
+        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped, nestedPairLooped, emptyMapObserved, countedMapObserved, postMapObserved, forOfMapObserved, knownEntryRelease(value), movedFieldEntryRelease(value), replacementEntryOutcome(value,value%2!==0), branchEntryRelease(value, value % 2 === 0), mixedBranchEntryRelease(value, value % 2 === 0), pairedBranchEntryRelease(value, value % 2 === 0), postEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), countedEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), forOfEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), loopEntryRefill(value,value%2===0?0:2), innerBranchEntryRelease(value,value%2===0), branchEntryRefill(value,value%2===0), iterationEntryMutation(value,value%2===0?0:2), postIterationEntryMutation(value,value%2===0?0:2), abruptIterationEntryMutation(value,value%2===0), countedUpdateEntryMutation(value,value%2===0), finallyEntryMutation(value),cleanupIterationMutation(value,value%2===0), returnCleanupEntryMutation(value, 0), returnCleanupEntryMutation(value, 1), returnCleanupEntryMutation(value, 2), returnCleanupEntryMutation(value, 3), returnCleanupEntryMutation(value, 4), nestedCleanupEntryMutation(value, value % 2 === 0, false), nestedCleanupEntryMutation(value, value % 2 === 0, true),directNestedEntryMutation(value,value%2===0)]);
         i += 1;
     }
 
@@ -1094,4 +1094,19 @@ function nestedCleanupEntryMutation(value: int, stop: boolean, overrideInner: bo
     nestedEntryMap.clear();
     nestedEntrySecond[0] = value + 4;
     return nestedEntryFirst[0] + nestedEntrySecond[0] + nestedEntryTurns + nestedEntryTails + nestedEntryInner * 100 + nestedEntryObserved;
+}
+
+function directNestedEntryMutation(value: int, stop: boolean): int {
+    const directFirst=[value];const directSecond=[value+1];
+    const directMap=new Map<string,Holder>();
+    directMap.set("second",{run:():int=>directSecond[0]});
+    let directTurns=0;let directTails=0;let directObserved=0;
+    outer:while(directTurns<3){inner:while(true){
+        directMap.set("first",{run:():int=>directFirst[0]});
+        directMap.delete("first");directFirst[0]+=1;directTurns+=1;
+        if(stop)break outer;if(directTurns<3)continue outer;break inner;
+    }directTails+=1;}
+    for(const [key,entry] of directMap){directObserved+=entry.run();}
+    directMap.clear();
+    return directFirst[0]+directSecond[0]+directObserved+directTurns+directTails;
 }

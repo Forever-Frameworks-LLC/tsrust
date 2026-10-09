@@ -199,3 +199,12 @@ phase subsequently exits. Catching an inner error also preserves survivor
 storage before outer cleanup. Arbitrary labelled blocks, nonlocal direct
 controls outside completion regions and independently specialized phase storage
 still require acceptance.
+
+
+Nested loop controls also preserve local Map owners without an exception boundary.
+A break or continue to an enclosing loop transfers the current live storage to
+that loop's carried body before leaving the inner scopes. The enclosing loop
+then selects its break or backedge conversion. Deleted callback captures are
+released; surviving entries remain callable and keep their captures borrowed.
+Controls crossing try/finally still run each required cleanup before dispatch.
+Arbitrary labelled block exits remain a separate storage transport requirement.
