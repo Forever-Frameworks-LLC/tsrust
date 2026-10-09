@@ -1,6 +1,53 @@
 mod support;
 
 #[test]
+fn map_cleanup_loop_without_backedge_releases_deleted_capture() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario():int{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});while(true){try{handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;return first[0];}finally{console.log('cleanup',handlers.size);for(const [key,entry] of handlers){console.log('kept',key,entry.run());}}}return 0;}function main():void{console.log('result',scenario());}");
+    support::execute(&source,"cleanup 1\nkept second 5\nresult 4\n",None);
+    verify_disposal(&source,2,"drop 1\ncleanup 1\nkept second 5\ndrop 0\nresult 4\n");
+    for replacement in ["for(let step=0;step<3;step+=1){","do{","for(const step of [0,1,2]){"] {
+        let mut variant=source.replace("while (true) {",replacement);
+        assert_ne!(variant,source);
+        if replacement=="do{" {variant=variant.replace("return 0;","while(false);");}
+        support::execute(&support::format_round_trip(&variant),"cleanup 1\nkept second 5\nresult 4\n",None);
+    }
+    let unsafe_cleanup=source.replace("} finally {","}finally{first[0]+=10;");
+    assert_eq!(tsrust_compiler::check(&unsafe_cleanup).err().expect("pre-deletion failure retains capture").code,"capture-conflict","a failure before deletion can retain the capture entering cleanup");
+    let evaluated=source.replace("} finally {","}finally{handlers.delete('first');first[0]+=10;");
+    assert_ne!(evaluated,source);
+    support::execute(&support::format_round_trip(&evaluated),"cleanup 1\nkept second 5\nresult 4\n",None);
+}
+
+#[test]
+fn map_cleanup_loop_preserves_pending_return_and_error() {
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario():int{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});let turn=0;while(turn<3){try{handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;turn++;if(turn===2)return first[0];}finally{console.log('cleanup',turn,handlers.size);for(const [key,entry] of handlers){console.log('kept',key,entry.run());}}}handlers.clear();return first[0];}function main():void{console.log('result',scenario());}");
+    support::execute(&source,"cleanup 1 1\nkept second 5\ncleanup 2 1\nkept second 5\nresult 5\n",None);
+    verify_disposal(&source,2,"drop 1\ncleanup 1 1\nkept second 5\ndrop 1\ncleanup 2 1\nkept second 5\ndrop 0\nresult 5\n");
+    for replacement in ["for(let step=0;step<3;step+=1){","do{","for(const step of [0,1,2]){"] {
+        let mut variant=source.replace("while (turn < 3) {",replacement);
+        assert_ne!(variant,source);
+        if replacement=="do{" {variant=variant.replace("handlers.clear();","while(turn<3);handlers.clear();");}
+        support::execute(&support::format_round_trip(&variant),"cleanup 1 1\nkept second 5\ncleanup 2 1\nkept second 5\nresult 5\n",None);
+    }
+    let replaced=source.replace("} finally {","}finally{if(turn===2)return 99;");
+    assert_ne!(replaced,source);
+    let replaced=support::format_round_trip(&replaced);
+    support::execute(&replaced,"cleanup 1 1\nkept second 5\nresult 99\n",None);
+    verify_disposal(&replaced,2,"drop 1\ncleanup 1 1\nkept second 5\ndrop 1\ndrop 0\nresult 99\n");
+    let resumed=source.replace("} finally {","}finally{if(turn===2)continue;");
+    assert_ne!(resumed,source);
+    support::execute(&support::format_round_trip(&resumed),"cleanup 1 1\nkept second 5\ncleanup 3 1\nkept second 5\nresult 6\n",None);
+    let failed=source.replacen("return first[0];", "throw first[0];",1).replace("console.log('result', scenario());", "try{console.log('result',scenario());}catch(error){console.log('error',error);}");
+    assert!(failed.contains("throw first[0]"),"formatted return witness must be replaced");
+    support::execute(&support::format_round_trip(&failed),"cleanup 1 1\nkept second 5\ncleanup 2 1\nkept second 5\nerror 5\n",None);
+    let recovered=failed.replace("} finally {","}finally{if(turn===2)return 99;");
+    assert_ne!(recovered,failed);
+    support::execute(&support::format_round_trip(&recovered),"cleanup 1 1\nkept second 5\nresult 99\n",None);
+    let replaced_error=source.replace("} finally {","}finally{if(turn===2)throw 99;").replace("console.log('result', scenario());", "try{console.log('result',scenario());}catch(error){console.log('error',error);}");
+    support::execute(&support::format_round_trip(&replaced_error),"cleanup 1 1\nkept second 5\nerror 99\n",None);
+}
+
+#[test]
 fn cleanup_loop_preserves_populated_entry_before_empty_backedge() {
     let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});let turn=0;while(turn<2){try{console.log('entry',turn,handlers.size);handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;turn++;}finally{handlers.clear();if(turn===1)continue;}}handlers.clear();console.log('done',first[0]);}");
     support::execute(&source,"entry 0 1\nentry 1 0\ndone 5\n",None);

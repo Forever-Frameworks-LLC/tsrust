@@ -5,18 +5,20 @@ impl Analyzer {
     pub(super) fn plan_map_iteration_entry(&mut self,context:&mut Context,statement:&Stmt,results:&mut HashMap<usize,Type>,local:&std::collections::BTreeSet<crate::capture_loan_owners::Place>)->Result<(),Diagnostic> {
         let (body,post_test)=match &statement.kind {
             StmtKind::While{body,..}=>(body,false),
-            StmtKind::Loop{condition:Some(_),body,update,post_test,tail_reachable:true,..} if ordinary_body(update,statement.span.start)=>(body,*post_test),
+            StmtKind::Loop{condition:Some(_),body,update,post_test,tail_reachable} if !tail_reachable || ordinary_body(update,statement.span.start)=>(body,*post_test),
             StmtKind::ForOf{body,..}=>(body,false),
             _=>return Ok(()),
         };
         if !statement.labels.is_empty() || !ordinary_body(body,statement.span.start){return Ok(());}
+        let cleanup_body=body.iter().any(|statement|matches!(statement.kind,StmtKind::Try(_)));
         let mut epochs=Vec::new();
         for place in local {
             if !context.storage_exits.map_completion_survivors(statement.span).iter().any(|state|state.consistent && state.place==*place && !state.released.is_empty()){continue;}
             let entry=context.storage_exits.map_loop_edge(statement.span,storage_exit_availability::MapLoopEdge::Entry,place);
             let back=context.storage_exits.map_loop_edge(statement.span,storage_exit_availability::MapLoopEdge::Back,place);
-            if !context.storage_exits.has_map_loop_edge(statement.span,storage_exit_availability::MapLoopEdge::Back){continue;}
-            let cleanup_body=body.iter().any(|statement|matches!(statement.kind,StmtKind::Try(_)));
+            // A callable exit can leave no backedge at all. Its cleanup still
+            // needs the working storage family for entry deletion and disposal.
+            if !context.storage_exits.has_map_loop_edge(statement.span,storage_exit_availability::MapLoopEdge::Back) && !cleanup_body {continue;}
             if !post_test && entry!=back && !cleanup_body {continue;}
             let broken=context.storage_exits.map_loop_edge(statement.span,storage_exit_availability::MapLoopEdge::Break,place);
             if context.storage_exits.has_map_loop_edge(statement.span,storage_exit_availability::MapLoopEdge::Break)
@@ -72,12 +74,12 @@ impl Analyzer {
         }
         self.scoped_map_entry_epochs_with_demand(context,body,&mut inner,demand,&local)?;
         self.plan_map_iteration_body_family(context,body,&mut inner,&mut epochs)?;
-        if let StmtKind::Loop{update,..}=&mut statement.kind {
+        if let StmtKind::Loop{update,tail_reachable:true,..}=&mut statement.kind {
             self.scoped_map_entry_epochs_with_demand(context,update,&mut inner,demand,&local)?;
         }
         self.plan_map_iteration_controls(context,statement,&epochs)?;
         for epoch in &mut epochs{epoch.back.input=*inner.get(&epoch.entry.place.binding).expect("carried Map root");}
-        if let StmtKind::Loop{condition:Some(condition),post_test:true,..}=&statement.kind {
+        if let StmtKind::Loop{condition:Some(condition),post_test:true,tail_reachable:true,..}=&statement.kind {
             // The condition runs after backedge conversion, not in the last
             // body statement's working storage representation.
             let inputs=results.iter().filter(|(_,ty)|self.contains_scoped_map_storage(**ty)).map(|(binding,ty)|(*binding,*ty)).collect();
@@ -163,7 +165,9 @@ fn ordinary_body(body:&[Stmt],label:usize)->bool {
                 }
             },
             StmtKind::If{then_body,else_body,..}=>{pending.extend(then_body);pending.extend(else_body);},
-            StmtKind::Let{..}|StmtKind::Expr(_)|StmtKind::Assign{..}=>{},
+            // Callable exits are transported by the completion region. They
+            // cannot resume the loop before its owning cleanup has run.
+            StmtKind::Let{..}|StmtKind::Expr(_)|StmtKind::Assign{..}|StmtKind::Return(_)|StmtKind::Throw(_)=>{},
             StmtKind::Break|StmtKind::Continue if matches!(statement.control_target,Some(crate::syntax::ControlTarget::Loop(id)|crate::syntax::ControlTarget::Tail(id)) if id==label)=>{},
             _=>return false,
         }

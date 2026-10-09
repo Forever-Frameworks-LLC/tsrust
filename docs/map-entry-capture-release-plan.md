@@ -1132,3 +1132,50 @@ That key feature is not implemented in this chunk.
 
 
 Final untimed correctness record: runtime/results/2026-10-09T03-29-23-041Z-verify.json. Whole-project checkpoint formatting changes zero files and zero fingerprints. All 27 closed logs, including red proofs, native failures and repaired checks, plus the matched record are imported into SQLite and read back byte for byte before loose removal. No installed consumer refresh, whole-family acceptance or timing is claimed.
+
+
+### Pending callable exits through Map cleanup loops
+
+Return and throw no longer exclude a checked loop from entry storage planning.
+The focused red witness checked successfully but generated Rust retained a
+borrow of the deleted capture. Conditional callable exits now use the existing
+completion transport, preserving finally execution and disposal before return
+or error propagation. Cleanup return, throw and continue retain their ordinary
+replacement precedence. Source callable exits receive no direct loop hook.
+
+A separate native red exposed loops with no backedge. Cleanup still needs
+working storage for deletion and survivor iteration even when every body path
+exits the callable. Planning now retains that entry family. Counted and
+post-test loops also need this plan when their tail is unreachable; unchecked
+updates and post-test conditions must not be analyzed or emitted. The initial
+counted witness failed in generated Rust; the repaired witness executes while,
+counted, post-test and for-of forms. A post-test witness removes its unreachable
+fallback return rather than changing the language's reachability diagnostic.
+
+Native witnesses verify pending integer returns and errors, cleanup return/error
+replacement, cleanup continue cancelling a return, no-backedge exits and a
+return expression evaluated before cleanup mutation. Exact callback disposal
+is checked at both optimization levels. Cleanup mutation must still account for
+failure before deletion: an unconditional mutation there is rejected, while an
+explicit cleanup deletion releases the capture before mutation. The failed
+unsafe-cleanup attempt is retained as evidence, not accepted behavior.
+
+Final bounded checks pass: 76 selected map_ native/ownership tests, eight
+phase/native-boundary proofs, eight normal-stack depth canaries and nine editor
+entry-release checks. No whole compiler/LSP regression or timing is claimed.
+Matched support adds five return/error cleanup observations with independent
+arithmetic oracles, bringing the family to 67 observations per iteration. Its
+wrapper narrows a caught integer and rethrows runtime errors; an initially
+unnarrowed wrapper failed checking, and both runs remain evidence. Token guards,
+mutation rejection and registration pass. Native and Node-after-tsc untimed
+verification passes for all five retained correctness cases. Canonical record:
+runtime/results/2026-10-09T03-47-01-259Z-verify.json.
+
+Whole-project final formatting changes zero files and zero fingerprints. All
+28 closed logs and the matched record are imported into SQLite and read back
+byte for byte before their loose copies are removed. The five installed
+consumers remain at gate 181; scratch compiler binaries are current. B5 is still
+open: labelled/nested-loop compositions, ordinary differing loop edge families,
+phase-specialized native storage, broader aggregate/within-expression precision
+and structural owned record Set/Map keys remain pending. This checkpoint does
+not claim those features or feature-family acceptance.

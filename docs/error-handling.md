@@ -185,5 +185,10 @@ that control with its own break or continue. Surviving entries remain available
 in cleanup; deleted captures are released before later mutation in the body.
 Nested finally blocks run from the inner block outward before the loop resumes.
 A populated first entry remains visible even when cleanup empties later
-iterations. Broader labelled/nested-loop compositions and abrupt return/error
-families still require acceptance.
+iterations. Pending returns and errors also pass through these cleanup loops.
+A return expression is evaluated before cleanup. A return or throw in cleanup
+replaces the pending result; a continue in cleanup can cancel it and resume the
+loop. This includes a loop whose body exits without any backedge. If a failing
+operation before deletion can retain the entry, cleanup must delete that entry
+(or clear the Map) before changing its capture. Broader labelled/nested-loop
+compositions and independently specialized phase storage still require acceptance.

@@ -56,6 +56,23 @@ impl Snapshots {
 mod tests {
     use super::*;
     #[test]
+    fn returning_cleanup_loop_plans_storage_without_a_backedge() {
+        let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function scenario():int{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});while(true){try{handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;return first[0];}finally{for(const [key,entry] of handlers){console.log(entry.run());}}}return 0;}function main():void{console.log(scenario());}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let checked=crate::check(&source).unwrap();
+        let function=checked.program.functions.iter().find(|function|function.name=="scenario").unwrap();
+        let statement=function.body.iter().find(|statement|matches!(statement.kind,crate::syntax::StmtKind::While{..})).unwrap();
+        assert!(!function.storage_exits.has_map_loop_edge(statement.span,super::super::storage_exit_availability::MapLoopEdge::Back));
+        let epochs=function.storage_exits.map_iteration_epochs(statement.span);
+        assert_eq!(epochs.len(),1,"callable exit still needs working Map storage");
+        assert!(!epochs[0].carrier_empty,"populated entry cannot be discarded");
+        let crate::syntax::StmtKind::While{body,..}=&statement.kind else{unreachable!()};
+        let crate::syntax::StmtKind::Try(region)=&body[0].kind else{unreachable!()};
+        let place=epochs[0].entry.place.clone();
+        assert!(function.storage_exits.map_completion_payloads(region.body[0].span.start,Phase::Body,Some(CompletionKind::Return)).unwrap()[&place].len()==1,"return reaches cleanup with the survivor payload");
+    }
+
+    #[test]
     fn loop_cleanup_plans_storage_without_bypassing_inner_finally() {
         let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});let turn=0;while(turn<3){try{handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;turn++;if(turn===2)break;continue;}finally{for(const [key,entry] of handlers){console.log(entry.run());}}}handlers.clear();}").unwrap();
         assert_eq!(crate::format(&source).unwrap(),source);

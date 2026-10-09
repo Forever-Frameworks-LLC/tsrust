@@ -23,6 +23,12 @@ impl Emitter<'_> {
             let _=writeln!(output,"{indent}let (mut map_stop_{label},{pattern},) = {{");
             self.map_iteration_work(output,fun,statement,declarations,depth+1,false);
             let _=writeln!(output,"{indent}    (map_stop_{label},{names},)\n{indent}}};");
+            // A body that cannot reach its tail has no checked condition or
+            // update to emit. Return/error/control already ran its cleanup.
+            if matches!(statement.kind,StmtKind::Loop{tail_reachable:false,..}) {
+                self.map_post_entry_epochs(output,fun,statement.span,depth);
+                return true;
+            }
         }
         if !post_test {let _=writeln!(output,"{indent}let mut map_stop_{label}=false;");}
         let _=writeln!(output,"{indent}'loop_{label}: while !map_stop_{label} && ({}) {{",self.expr(fun,condition,Mode::Copy));
@@ -54,7 +60,7 @@ impl Emitter<'_> {
         }}
         let _=writeln!(output,"{indent}    (false,{names},)\n{indent}}};");
         if !abrupt {
-            if let StmtKind::Loop{update,..}=&statement.kind {
+            if let StmtKind::Loop{update,tail_reachable:true,..}=&statement.kind {
                 self.control_block_epochs(output,fun,update,depth,Some(label),Some(declarations));
             }
             for epoch in epochs {
@@ -62,7 +68,7 @@ impl Emitter<'_> {
             }
             return;
         }
-        if let StmtKind::Loop{update,..}=&statement.kind {
+        if let StmtKind::Loop{update,tail_reachable:true,..}=&statement.kind {
             let _=writeln!(output,"{indent}let ({pattern},) = if !map_stop_{label} {{");
             self.control_block_epochs(output,fun,update,depth+1,Some(statement.span.start),Some(declarations));
             for epoch in epochs {
