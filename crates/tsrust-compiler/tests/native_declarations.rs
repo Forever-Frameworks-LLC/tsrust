@@ -171,3 +171,22 @@ fn record_spread_cannot_forge_an_opaque_native_owner() {
     let error = checked_source("import {Bytes} from 'std:bytes';type Empty={};function take(bytes:Bytes):void{}function main(){const empty:Empty={};const copy={...empty};take(copy);}").err().expect("inferred record cannot become Bytes");
     assert_eq!(error.code, "type");
 }
+
+#[test]
+fn exported_native_aliases_execute_and_preserve_opaque_identity() {
+    let directory = support::TempDirectory::new();
+    let library = support::format_round_trip("import {Bytes as NativeBytes,ByteError as NativeError} from 'std:bytes';export type Buffer=NativeBytes;export type Failure=NativeError;export type Failures=Failure[];export function make():Failure{return {code:'range',message:'bad'};}");
+    std::fs::write(directory.0.join("types.tsr"), library).unwrap();
+    let main = support::format_round_trip("import {Buffer,Failure,Failures,make} from './types.tsr';import {Bytes} from 'std:bytes';import {strictEqual} from 'std:testing';function relay(value:Buffer):Bytes{return value;}function report(value:ReadOnly<Failure>):string{return value.code+':'+value.message;}function main(){const errors:Failures=[make()];strictEqual(report(errors[0]),'range:bad');strictEqual(errors[0].offset,undefined);}");
+    let path = directory.source(&main);
+    support::success(&support::run(support::cli().arg("run").arg(path), 60));
+    for (source, code) in [
+        ("import {Buffer} from './types.tsr';function main(){const forged:Buffer={};}", "native-opaque"),
+        ("import {NativeError} from './types.tsr';function main(){}", "module-private"),
+    ] {
+        let path = directory.source(&support::format_round_trip(source));
+        let output = support::run(support::cli().arg("check").arg(path), 60);
+        assert!(!output.status.success());
+        assert!(String::from_utf8_lossy(&output.stderr).contains(&format!("error[{code}]")), "{}", String::from_utf8_lossy(&output.stderr));
+    }
+}

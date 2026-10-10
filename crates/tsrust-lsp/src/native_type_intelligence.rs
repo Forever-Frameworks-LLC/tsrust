@@ -9,11 +9,17 @@ impl SourceIndex {
             signature.render(|id| Some(tsrust_compiler::native_types::declaration(id).name.into())).expect("registered native field signature").into_owned()
         };
         let fields = declaration.fields.iter().map(|field| format!("{}{}: {}", field.name, if field.optional { "?" } else { "" }, render(&field.signature))).collect::<Vec<_>>();
-        self.symbols.push(Symbol {
+        let symbol = Symbol {
             name: local.into(), kind: 23, span, extent: span, scope: 0, ty: local.into(),
             signature: if fields.is_empty() { format!("type {local}") } else { format!("type {local} = {{ {}; }}", fields.join("; ")) },
             docs: catalog["documentation"].as_str().unwrap_or("").into(), parameters: Vec::new(), owner: None,
-        });
+        };
+        if let Some(existing) = self.symbols.iter_mut().find(|symbol| symbol.name == local && symbol.kind == 26 && symbol.owner.is_none()) {
+            let mut replacement = symbol;
+            replacement.extent = existing.extent;
+            if !existing.docs.is_empty() { replacement.docs = format!("{}\n\n{}", existing.docs, replacement.docs); }
+            *existing = replacement;
+        } else { self.symbols.push(symbol); }
         for field in declaration.fields {
             let mut ty = render(&field.signature);
             if field.optional { ty.push_str(" | undefined"); }
@@ -25,4 +31,18 @@ impl SourceIndex {
             });
         }
     }
+    /// Native aliases retain declaration identity while navigation stays on the
+    /// written alias declaration. Structured aliases are not collapsed to owners.
+    pub(super) fn refresh_native_aliases(&mut self) {
+        let aliases = self.type_aliases.iter().filter_map(|(name, target)| {
+            let target = self.written_type(target);
+            let identity = *self.native_type_aliases.get(&target)?;
+            let symbol = self.symbols.iter().find(|symbol| symbol.name == *name && symbol.kind == 26 && symbol.owner.is_none())?;
+            Some((name.clone(), identity, symbol.span))
+        }).collect::<Vec<_>>();
+        for (name, identity, span) in aliases {
+            self.import_native_type(tsrust_compiler::native_types::declaration(identity), &name, span);
+        }
+    }
+
 }

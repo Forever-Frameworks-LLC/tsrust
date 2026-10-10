@@ -1,7 +1,7 @@
 # B11/S07: resources and bytes
 
 Status: gate 187 is in progress. Native declaration identity, recursive signature
-projection, checked type imports, public error record execution, editor type help and
+projection, checked type imports, public error record execution, editor type help, direct exported aliases and
 opaque capability guards are implemented. The native byte construction witness remains
 red because fromArray and length are not registered. B10/S06 is accepted at gate 186
 (publication 1b631986). Resource close consumes ownership, as chosen by the owner.
@@ -223,8 +223,9 @@ Continue B11/S07 from this plan. Read AGENTS.md and the development workflow fir
 B10 is accepted at gate 186. Gate 187 has checked native type imports, recursive
 signature projection, ByteError native execution, editor type help and capability
 guards. Do not reimplement these increments. std_bytes.rs is intentionally red at
-missing fromArray. Next add native type re-export witnesses, then fromArray/length
-with checked signature resolution and Result storage, complete catalog help and the
+missing fromArray. Direct native re-export witnesses pass. Next implement
+fromArray/length with checked signature resolution and Result storage; include editor
+materialization for structured aliases with hidden native elements, catalog help and the
 minimal matched workload. Finish gate 187 before the wider byte operations of gate
 188. Resource close consumes ownership and rejects later use/double close, including
 after failure. Consumers remain B10 until verified source is published. Routine
@@ -395,3 +396,26 @@ fromArray/length bindings with checked recursive signatures, Result payload stor
 full catalog help and the minimal matched workload. Gate 188 still owns the wider
 byte operation, clone, aggregate-storage and cleanup acceptance matrix. No full
 regression, timing or consumer refresh is due for this isolated increment.
+
+## Gate 187 exported native alias increment
+
+Native identity now survives direct exported aliases in editor declaration indices.
+`refresh_native_aliases` promotes a direct native alias in place, retaining its source
+extent and user documentation, and supplies native fields and catalog help. Imported
+native aliases copy the identity with their local spelling. Navigation stays on the
+written alias declaration in the exporting source module, rather than pretending a
+native declaration has a source file. Ordinary records keep their existing import path.
+
+A focused editor witness first returned null for the exported Buffer alias, then
+passed for checked and declaration-only indices. The native execution witness covers
+renamed native imports, exported direct and array aliases, readonly error access,
+optional offsets and shared Bytes identity across modules. Private native import names
+remain private, and constructing an exported opaque alias with a record literal is
+rejected. Ordinary compiler/editor alias controls and imported Result help also pass.
+Evidence is in SQLite at `runtime/results/native-reexports-2026-10-10-checks.json`.
+
+This increment covers direct native alias editor projection. Structured exported
+aliases that hide a native element still need editor materialization when no direct
+native type is visible; include that case with the first native Result binding help.
+Next implement fromArray/length and their checked recursive binding signatures,
+Result ABI, catalog examples and matched workload. Gate 187 remains open.

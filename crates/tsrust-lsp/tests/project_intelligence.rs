@@ -1493,3 +1493,22 @@ fn native_type_aliases_have_documented_hover_and_public_fields() {
     let completion = ask(&index, importing, "} from", "textDocument/completion");
     assert!(completion.as_array().unwrap().iter().any(|item| item["label"] == "Bytes" && item["kind"] == 22), "{completion}");
 }
+
+#[test]
+fn reexported_native_type_aliases_keep_docs_fields_and_definition() {
+    let entry = tsrust_compiler::format("import { Buffer, Failure } from './dep.tsr';function borrow(value:ReadOnly<Buffer>):void{} function report(error:ReadOnly<Failure>):void{console.log(error.message);}function main(){const error:Failure={code:'range',message:'bad'};report(error);}").unwrap();
+    let dependency = tsrust_compiler::format("import {Bytes, ByteError} from 'std:bytes';export type Buffer=Bytes;export type Failure=ByteError;").unwrap();
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.clone());
+    workspace.open(source_id("file:///tsrust-intelligence/dep.tsr").unwrap(), 1, dependency);
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    for index in [ProjectIndex::checked(&checked), ProjectIndex::new(&checked.graph)] {
+        let hover = ask(&index, &entry, "Buffer>", "textDocument/hover");
+        assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("byte buffer"), "{hover}");
+        let completion = ask(&index, &entry, "message);", "textDocument/completion");
+        assert!(completion.as_array().unwrap().iter().any(|field| field["label"] == "offset"), "{completion}");
+        let definition = ask(&index, &entry, "Failure>", "textDocument/definition");
+        assert_eq!(definition["uri"], "file:///tsrust-intelligence/dep.tsr", "{definition}");
+    }
+}

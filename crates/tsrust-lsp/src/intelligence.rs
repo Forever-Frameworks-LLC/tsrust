@@ -2592,7 +2592,7 @@ impl SourceIndex {
         }
 
         symbol.name = local.into();
-        if symbol.kind == 10 { symbol.ty = local.into(); }
+        if matches!(symbol.kind, 10 | 23) { symbol.ty = local.into(); }
         symbol.scope = 0;
         symbol.span = span;
         symbol.extent = span;
@@ -2605,6 +2605,9 @@ impl SourceIndex {
             id,
             json!({"uri":uri,"range":dependency.range(declaration.span)}),
         );
+        if let Some(identity) = dependency.native_type_aliases.get(exported) {
+            self.native_type_aliases.insert(local.into(), *identity);
+        }
         self.symbols.push(symbol);
         if matches!(declaration.kind, 10 | 23) {
             self.import_record_fields(dependency, exported, local, span, uri, types);
@@ -2817,6 +2820,7 @@ impl SourceIndex {
         self.import_exports.push((names, items));
     }
     pub(crate) fn finish_imports(&mut self) {
+        self.refresh_native_aliases();
         self.materialize_generic_fields();
         self.refresh_checked_initializers();
     }
