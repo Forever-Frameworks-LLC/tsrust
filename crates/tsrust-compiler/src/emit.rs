@@ -2599,19 +2599,35 @@ impl Emitter<'_> {
         if self.program.stored_contracts.families().any(|(_, declaration, _)| self.program.callback_contracts[declaration].kind == crate::syntax::CallbackKind::SharedRead) {
             output.push_str(include_str!("stdlib/testing/shared_callback_runtime.rs"));
         }
+        // A lifetime-free family without environments cannot hold a callback whose
+        // contract mentions a byte view; such callbacks live in scoped families. The
+        // type can still be named by an absent nullable value. It has no variant, so
+        // its call can never run and needs no result lifetime.
+        let mut uninhabited_view_families = HashSet::new();
+        for (id, declaration, origins) in self.program.stored_contracts.families() {
+            let contract = &self.program.callback_contracts[declaration];
+            if !origins.is_empty()
+                || self.program.stored_contracts.is_borrowed(id)
+                || self.program.stored_contracts.scoped_native_family(id).is_some()
+                || !(self.native_views.contains(contract.result) || contract.params.iter().any(|parameter| self.native_views.contains(parameter.ty)))
+            {
+                continue;
+            }
+            let receiver = match contract.invocation(&self.program.callable_shapes) { Mode::Consume => "self", Mode::Read => "&self", _ => "&mut self" };
+            let parameters = contract.params.iter().enumerate().map(|(position, &parameter)| format!(",_argument{position}:{}", self.native_argument_type(parameter, ""))).collect::<String>();
+            let body = if receiver == "self" { "match self {}" } else { "match *self {}" };
+            writeln!(output, "#[allow(dead_code)] enum StoredCallable{id} {{}}\n#[allow(dead_code)] impl StoredCallable{id} {{ fn call<R>({receiver}{parameters})->R {{ {body} }} }}").unwrap();
+            uninhabited_view_families.insert(id);
+        }
         for (id, declaration, origins) in self
             .program
             .stored_contracts
             .families()
             .filter(|(id, _, origins)| !origins.is_empty() || declared_families.contains(id))
+            .filter(|(id, _, _)| !uninhabited_view_families.contains(id))
         {
             let contract = &self.program.callback_contracts[declaration];
             if self.program.stored_contracts.is_borrowed(id) {self.emit_borrowed_family(&mut output,id,declaration,origins);continue;}
-            // A lifetime-free family without environments cannot hold a callback whose
-            // contract mentions a byte view; such callbacks live in scoped families.
-            if origins.is_empty()
-                && self.program.stored_contracts.scoped_native_family(id).is_none()
-                && (self.native_views.contains(contract.result) || contract.params.iter().any(|parameter|self.native_views.contains(parameter.ty))) {continue;}
             if let Some(layout)=self.program.stored_contracts.scoped_native_family(id) {
                 self.emit_native_view_family(&mut output,id,layout,contract).expect("checked scoped owning native callable family");
                 continue;

@@ -28,19 +28,54 @@ impl Analyzer {
     /// redeclared by this replacement. The new value keeps its own concrete family.
     pub(super) fn native_view_field_contract(&self,context:&Context,target:&Expr,current:Type)->Option<Type> {
         if !self.native_borrow_types {return None;}
-        let Type::StoredCallable(family)=current else{return None;};
+        // The field holds a scoped family directly or as a nullable payload.
+        let Type::StoredCallable(family)=self.unions.payload(current).unwrap_or(current) else{return None;};
         self.callables.storage.scoped_native_family(family)?;
-        let holder=Self::native_view_field_redeclared(context,target)?;
+        let holder=Self::native_view_local_field(context,target)?;
         let ExprKind::Field(_,name)=&target.kind else{return None;};
         let Type::Record(record)=context.bindings[holder].ty else{return None;};
         let nominal=self.scoped_records.declaration(record);
-        self.program.records[nominal].fields.iter().find(|field|field.name.text==*name)?.ty.filter(|ty|matches!(ty,Type::StoredCallable(_)))
+        let written=self.program.records[nominal].fields.iter().find(|field|field.name.text==*name)?.ty?;
+        (matches!(written,Type::StoredCallable(_))==matches!(current,Type::StoredCallable(_)) && matches!(self.unions.payload(written).unwrap_or(written),Type::StoredCallable(_))).then_some(written)
     }
     pub(super) fn update_native_view_field_type(&mut self,context:&mut Context,target:&Expr,actual:Type) {
         if !self.native_borrow_types || !self.native_shape_contains_view(actual) {return;}
-        let Some(holder)=Self::native_view_field_redeclared(context,target) else{return;};
+        let Some(holder)=Self::native_view_local_field(context,target) else{return;};
         let ExprKind::Field(_,name)=&target.kind else{return;};
-        if let Some(root)=self.scoped_array_replace_field(context.bindings[holder].ty,std::slice::from_ref(name),actual) {context.bindings[holder].ty=root;}
+        // The field keeps one native variable, whose type joins every value stored in it.
+        let current=self.record_field_type(context.bindings[holder].ty,std::slice::from_ref(name));
+        let stored=current.and_then(|current|self.join_native_view_storage(current,actual,target.span).ok().flatten()).unwrap_or(actual);
+        if let Some(root)=self.scoped_array_replace_field(context.bindings[holder].ty,std::slice::from_ref(name),stored) {context.bindings[holder].ty=root;}
+    }
+    /// A direct field of a local record that owns its storage. Returns the local.
+    pub(super) fn native_view_local_field(context:&Context,target:&Expr)->Option<usize> {
+        let ExprKind::Field(base,_)=&target.kind else{return None;};
+        if !matches!(base.kind,ExprKind::Name(_)) {return None;}
+        let holder=base.binding?;
+        let binding=&context.bindings[holder];
+        (!binding.parameter && !binding.capture_reference && binding.borrowed_place.is_none() && !binding.mutable_place).then_some(holder)
+    }
+    /// Joins two storage types that hold scoped callback families, directly or as
+    /// the payload of the same nullable union.
+    pub(super) fn join_native_view_storage(&mut self,left:Type,right:Type,span:Span)->Result<Option<Type>,Diagnostic> {
+        if !self.native_borrow_types || left==right {return Ok(None);}
+        if let Some(joined)=self.common_native_view_storage(left,right,span)? {return Ok(Some(joined));}
+        match (left,right) {
+            (Type::StoredCallable(a),Type::StoredCallable(b))=>{
+                // A written lifetime-free family gives way to the scoped one.
+                let scoped=|family|self.callables.storage.scoped_native_family(family).is_some();
+                Ok(match (scoped(a),scoped(b)) {(false,true) if self.callables.storage.declaration(a)==self.callables.storage.declaration(b)=>Some(right),(true,false) if self.callables.storage.declaration(a)==self.callables.storage.declaration(b)=>Some(left),_=>None})
+            }
+            (Type::Union(a),Type::Union(b))=>{
+                let (Some(first),Some(second))=(self.unions.payload(left),self.unions.payload(right)) else{return Ok(None);};
+                let absent=|members:Vec<Type>|members.into_iter().filter(|ty|matches!(ty,Type::Null|Type::Undefined)).collect::<Vec<_>>();
+                if absent(self.unions.members(a))!=absent(self.unions.members(b)) {return Ok(None);}
+                let Some(payload)=(if first==second {None} else {self.join_native_view_storage(first,second,span)?}) else{return Ok(None);};
+                let members=self.unions.members(a).into_iter().map(|member|if member==first {payload} else {member}).collect::<Vec<_>>();
+                self.unions.intern(members,span).map(Some)
+            }
+            _=>Ok(None),
+        }
     }
     /// An array of stored callbacks takes the scoped family of the callbacks appended
     /// to it. Different alternatives join in one family; the epoch pass converts the
@@ -90,6 +125,20 @@ impl Analyzer {
                 value.wrap_record_carrier(Type::StoredCallable(family));
             }
         }
+    }
+    /// Joins a view callback with an absent value, or two nullable view callback
+    /// unions, into one nullable storage type.
+    pub(super) fn nullable_native_view_alternatives(&mut self,left:Type,right:Type,span:Span)->Result<Option<Type>,Diagnostic> {
+        if !self.native_borrow_types {return Ok(None);}
+        let absent=|ty|matches!(ty,Type::Null|Type::Undefined);
+        let scoped=|this:&Self,ty|matches!(ty,Type::StoredCallable(family) if this.callables.storage.scoped_native_family(family).is_some());
+        if (absent(left) && scoped(self,right)) || (absent(right) && scoped(self,left)) {
+            return self.unions.intern([left,right],span).map(Some);
+        }
+        if matches!((left,right),(Type::Union(_),Type::Union(_))) && (self.native_shape_contains_view(left) || self.native_shape_contains_view(right)) {
+            return self.join_native_view_storage(left,right,span);
+        }
+        Ok(None)
     }
     pub(super) fn common_native_view_storage(&mut self,left:Type,right:Type,span:Span)->Result<Option<Type>,Diagnostic> {
         if !self.native_borrow_types || left==right {return Ok(None);}

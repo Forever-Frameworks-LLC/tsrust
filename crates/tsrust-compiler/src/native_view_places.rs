@@ -125,20 +125,6 @@ impl Analyzer {
             }
         }
     }
-    /// A direct field of a local record, replaced in the block that declares the
-    /// local, redeclares that field's native storage. Returns the local.
-    pub(super) fn native_view_field_redeclared(context: &Context, target: &Expr) -> Option<usize> {
-        let ExprKind::Field(base, _) = &target.kind else { return None; };
-        if !matches!(base.kind, ExprKind::Name(_)) { return None; }
-        let holder = base.binding?;
-        let binding = &context.bindings[holder];
-        (!binding.parameter
-            && !binding.capture_reference
-            && binding.borrowed_place.is_none()
-            && !binding.mutable_place
-            && context.native_view_declaration_depths.get(&holder) == Some(&context.lexical_scopes.len()))
-        .then_some(holder)
-    }
     /// An appended element joins the array's storage: the array then borrows from
     /// the new origins as well as the ones it already holds.
     pub(super) fn append_native_view_element(context: &mut Context, array: &Expr, value: &Expr) -> Result<(), Diagnostic> {
@@ -195,10 +181,8 @@ impl Analyzer {
             .unwrap_or_default();
         let replaced = retained.iter().filter(|loan| under(loan, &place.fields)).cloned().collect::<Vec<_>>();
         retained.retain(|loan| !under(loan, &place.fields));
-        if Self::native_view_field_redeclared(context, target).is_none() {
-            // The field keeps one native variable: see retain_unified_native_view_loans.
-            Self::extend_dormant(&mut incoming, replaced.iter());
-        }
+        // The field keeps one native variable: see retain_unified_native_view_loans.
+        Self::extend_dormant(&mut incoming, replaced.iter());
         retained.extend(incoming);
         native_view_projections::normalize(&mut retained);
         Self::set_native_view_loans(context, place.root, retained);

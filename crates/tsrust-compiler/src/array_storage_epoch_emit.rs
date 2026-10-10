@@ -26,20 +26,6 @@ impl Emitter<'_> {
             let declaration=self.owned_record_declaration(fun,binding,"native_storage_replacement").expect("checked owning record");
             return Some(format!("let native_storage_replacement={initialized};{drops}{declaration}"));
         }
-        // A direct field keeps its own native variable, so the replacement shadows it.
-        if let ExprKind::Field(base,name)=&target.kind
-            && matches!(base.kind,ExprKind::Name(_))
-            && let Some(binding)=base.binding
-            && let Some(layout)=self.owned_record_layout(fun,binding)
-            && let Some(position)=self.program.records[layout.record].fields.iter().position(|field|field.name.text==*name)
-            && let Some(leaf)=layout.leaves.iter().find(|leaf|leaf.path==[position])
-            && self.native_views.contains(ty) {
-            let initialized=self.expr(fun,value,Mode::Consume);
-            let leaf_name=leaf.native_name(binding);
-            let drop=if fun.storage_exits.transfer_before(statement.span.start,binding,std::slice::from_ref(name)).is_none() {format!("drop({leaf_name});")}else{String::new()};
-            // The annotation gives an absent value its storage type; lifetimes stay inferred.
-            return Some(format!("let native_storage_replacement:{}={initialized};{drop}let mut {leaf_name}=native_storage_replacement;",self.native_type(ty)));
-        }
         let mut root=target;
         let mut names=Vec::new();
         while let ExprKind::Field(base,name)=&root.kind {names.push(name);root=base;}

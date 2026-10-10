@@ -19,6 +19,9 @@ impl Analyzer {
         if context.effects_only {
             return Ok(());
         }
+        if let Some(ty) = value.ty {
+            self.reject_recursive_native_view_storage(ty, value.span)?;
+        }
         // A returned byte view always needs a tracked owner. Without one the native
         // signature could not name its lifetime.
         let direct_view = self.native_borrow_types

@@ -5126,7 +5126,9 @@ impl Analyzer {
         // concrete family they already have.
         let redeclared_native = contract != ty && self.native_view_field_contract(context,target,ty) == Some(contract);
         let actual = if redeclared_native && !matches!(value.kind, ExprKind::Closure { .. } | ExprKind::Conditional { .. }) {
-            self.expression(context, value, Mode::Consume, &active, None)?
+            // An absent value takes the current storage type; a stored value keeps its own.
+            let expected = matches!(self.expression_type_hint(context, value), Some(Type::Null | Type::Undefined)).then_some(ty);
+            self.expression(context, value, Mode::Consume, &active, expected)?
         } else if let Type::StoredCallable(family) = contract {
             self.stored_callable_value(context, value, family, &active)?
         } else {
@@ -5873,6 +5875,7 @@ impl Analyzer {
         let native_loans = Self::native_view_value_loans(context, value)?;
         let id = Self::bind(context, name, actual, false)?;
         if !native_loans.is_empty() || (self.native_borrow_types && self.native_shape_contains_view(actual)) {
+            self.reject_recursive_native_view_storage(actual, name.span)?;
             context.native_view_declaration_depths.insert(id, context.lexical_scopes.len());
         }
         Self::set_native_view_loans(context, id, native_loans);
@@ -9745,6 +9748,14 @@ impl Analyzer {
             && let Some(joined)=self.common_native_view_storage(left,right,consequent.span)? {
             consequent.wrap_record_carrier(joined);
             alternate.wrap_record_carrier(joined);
+            left=joined;right=joined;
+        }
+        if left!=right && !infer_nullable_closure
+            && let Some(joined)=self.nullable_native_view_alternatives(left,right,consequent.span)? {
+            for (value,ty) in [(&mut *consequent,left),(&mut *alternate,right)] {
+                if ty==joined {continue;}
+                if matches!(ty,Type::Union(_)) {value.wrap_record_carrier(joined);} else {value.inject(joined.union().expect("nullable view storage"));}
+            }
             left=joined;right=joined;
         }
         if left!=right && !infer_nullable_closure

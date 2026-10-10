@@ -77,6 +77,9 @@ impl Analyzer {
                     }
                     else if let Some(family)=self.common_borrowed_conditional_family(previous,incoming,write.span)?{
                         self.record_type_with_field(record,&write.path,Type::BorrowedCallable(family)).map(Type::Record)
+                    }
+                    else if let Some(joined)=self.join_native_view_storage(previous,incoming,write.span)?{
+                        self.record_type_with_field(record,&write.path,joined).map(Type::Record)
                     }else{None}
                 };
                 if let Some(joined)=joined && joined!=ty{plans.insert(write.binding,joined);changed=true;}
@@ -126,6 +129,8 @@ impl Analyzer {
                     }
                     value.wrap_record_carrier(destination)
                 }
+                // A view callback, or its nullable union, moves into the joined storage.
+                (Type::StoredCallable(_),Type::StoredCallable(_))|(Type::Union(_),Type::Union(_)) if self.native_borrow_types && self.native_shape_contains_view(destination)=>value.wrap_record_carrier(destination),
                 _=>{}
             }
             Ok(())

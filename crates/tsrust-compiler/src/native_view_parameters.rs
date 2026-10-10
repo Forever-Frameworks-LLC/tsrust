@@ -33,6 +33,22 @@ impl Analyzer {
         false
     }
 
+    /// A storage type that reaches itself and holds a byte view. Its native layout
+    /// would need one lifetime shared by every level, which is not planned yet.
+    pub(super) fn reject_recursive_native_view_storage(&self, ty: Type, span: Span) -> Result<(), Diagnostic> {
+        if !self.native_borrow_types || !self.native_shape_contains_view(ty) {return Ok(());}
+        let mut pending=vec![(ty,Vec::<Type>::new())];
+        while let Some((ty,mut ancestors))=pending.pop() {
+            if !self.native_shape_contains_view(ty) {continue;}
+            if ancestors.contains(&ty) {
+                return Err(Diagnostic::new("native-view-shape","A type that contains itself cannot hold a byte view yet. Keep the views in a separate array or record.",span));
+            }
+            ancestors.push(ty);
+            for (child,_,_) in self.native_shape_children(ty) {pending.push((child,ancestors.clone()));}
+        }
+        Ok(())
+    }
+
     pub(super) fn seed_native_parameters(&self, context: &mut Context) -> Result<(), Diagnostic> {
         if !self.native_borrow_types {return Ok(());}
         for root in 0..context.bindings.len() {

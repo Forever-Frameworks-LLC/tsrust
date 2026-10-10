@@ -46,9 +46,8 @@ impl Analyzer {
         let declared=body.iter().filter_map(|statement|match &statement.kind {StmtKind::Let{binding:Some(binding),..}=>Some(*binding),_=>None}).collect::<Vec<_>>();
         for statement in body {
             let StmtKind::Assign{target,value,operator:None}=&mut statement.kind else{continue;};
-            let field=match &target.kind {ExprKind::Field(base,_) if matches!(base.kind,ExprKind::Name(_))=>base.binding,_=>None};
-            if !matches!(target.kind,ExprKind::Name(_)) && field.is_none() {continue;}
-            let Some(binding)=target.binding.or(field) else{continue;};
+            if !matches!(target.kind,ExprKind::Name(_)) {continue;}
+            let Some(binding)=target.binding else{continue;};
             if !declared.contains(&binding) {continue;}
             let slot=&context.bindings[binding];
             if slot.parameter || slot.capture_reference || slot.borrowed_place.is_some() || slot.mutable_place {continue;}

@@ -68,6 +68,11 @@ impl Emitter<'_> {
                 let arms=layout.alternatives.iter().map(|alternative|format!("NativeViewCallable{source}::V{0}(environment)=>NativeViewCallable{target}::V{0}(environment)",alternative.origin)).collect::<Vec<_>>().join(",");
                 format!("match {value}{{{arms}}}")
             }
+            // The written family of a view callback has no environment, so a value
+            // of it cannot exist and every arm of the conversion is absent.
+            (Type::StoredCallable(source),Type::StoredCallable(target))
+                if self.program.stored_contracts.scoped_native_family(target).is_some()
+                    && self.program.stored_contracts.origins(source).is_some_and(|origins|origins.is_empty())=>format!("match {value}{{}}"),
             (Type::Array(source), Type::Array(target)) => {
                 let converted =
                     self.record_carrier_conversion(source.ty(), target.ty(), "record_array_item");

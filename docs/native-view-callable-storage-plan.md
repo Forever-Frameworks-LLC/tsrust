@@ -406,3 +406,42 @@ Still open, each with a pending row in `zz_matrix_probe`:
 
 The first two need the local's final storage type before its declaration is emitted
 (a flow-insensitive join like the nullable record carriers of gate 182).
+
+## Joined field storage, nullable transitions and whole-crate check
+
+A direct field of a local record keeps one native variable. Its type is the join of
+every value stored in it anywhere in the function. The whole-function carrier planner
+(`record_sequence_carriers`) now joins scoped view families and their nullable unions
+(`join_native_view_storage`) and moves the initializer and every stored value into the
+joined type. The separate field redeclare mechanism of the previous checkpoint is
+removed; only whole-record replacement in the declaring block redeclares storage.
+
+Now supported, for readonly and exclusive views at two optimization levels:
+
+- a new callback alternative stored into a field inside a branch or loop;
+- a nullable callback field that starts absent and becomes present, in the declaring
+  block, a branch or a loop; present, absent, present again; a second alternative in
+  a branch;
+- a conditional that selects a callback or `undefined`.
+
+The written lifetime-free family of a view callback has no environment. It is emitted
+as an uninhabited enum with a generic `call`, so an absent nullable value can name it,
+and a conversion from it has no arms.
+
+A field replacement now makes a later result depend on the earlier and the new input.
+This is more conservative than the previous checkpoint for a replacement in the
+declaring block, and it is sound.
+
+Open forms report a source diagnostic and have a test
+(`native_view_storage_open_forms_are_source_diagnostics`):
+
+- a callback result that borrows an invocation argument (`native-view-source`);
+- a type that contains itself and holds a byte view (`native-view-shape`). The emitter
+  used to overflow its stack on such a local; it needs one lifetime shared by every
+  level of the type.
+
+Whole compiler crate after this checkpoint: 2,921 passed, 0 failed, 3 ignored, no
+aborted target. Whole editor crate: 481 passed, 3 failed. The three failures are in
+`intelligence.rs` and concern the `clone` catalog entry changed at gate 188
+(`3ec1f7ce`); this work does not touch the editor crate. They are repaired in the next
+commit.
