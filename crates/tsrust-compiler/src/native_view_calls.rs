@@ -102,7 +102,7 @@ impl Analyzer {
                     } else {
                         Source::Receiver(capture.inner)
                     }
-                } else {Source::Capture(capture.outer)}
+                } else {Source::Capture(capture.inner)}
             };
             mapped.push(Returned{source,loan:loan.clone()});
         }

@@ -189,6 +189,18 @@ impl Analyzer {
                 continue;
             }
             match &value.kind {
+                ExprKind::Closure {..} => {
+                    if let Some(Type::Closure(origin))=value.ty
+                        && let Some(captures)=context.native_view_environments.as_ref().and_then(|environments|environments.get(&origin)) {
+                        for &(inner,outer) in captures {
+                            for source in context.bindings[outer].native_view_loans.as_deref().into_iter().flatten() {
+                                let mut loan=source.clone();
+                                native_view_projections::wrap(&mut loan,&Segment::Field(format!("capture{inner}")));
+                                result.push(loan);
+                            }
+                        }
+                    }
+                }
                 ExprKind::Name(_) => {
                     if let Some(id) = value.binding
                         && let Some(loans) = &context.bindings[id].native_view_loans
@@ -224,12 +236,17 @@ impl Analyzer {
                                     }
                                     continue;
                                 }
-                                super::native_view_calls::Source::Capture(root)=>{
+                                super::native_view_calls::Source::Capture(capture)=>{
+                                    let root=match value.target {
+                                        Some(CallTarget::Closure(root))=>Some(root),
+                                        Some(CallTarget::ClosureMethod(_))=>match &value.kind {ExprKind::Call(callee,_)=>callee.binding,_=>None},
+                                        _=>None,
+                                    }.ok_or_else(||Diagnostic::new("native-view-call","A carried capture view requires a stable callable binding.",value.span))?;
                                     let binding=context.bindings.get(root).ok_or_else(||Diagnostic::new("native-view-call","Captured view source is outside the current lexical environment.",value.span))?;
                                     let loans=binding.native_view_loans.as_deref().ok_or_else(||Diagnostic::new("native-view-call","Captured view has no tracked source lifetime.",value.span))?;
                                     for loan in loans {
                                         let mut actual=loan.clone();
-                                        if super::native_view_calls::transport(&mut actual,output) {result.push(actual);}
+                                        if native_view_projections::select(&mut actual,&Segment::Field(format!("capture{capture}"))) && super::native_view_calls::transport(&mut actual,output) {result.push(actual);}
                                     }
                                     continue;
                                 }

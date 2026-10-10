@@ -537,7 +537,13 @@ impl Analyzer {
         while let Some(ty)=pending.pop() {
             if !seen.insert(ty){continue;}
             match ty {
-                Type::Closure(id)=>if self.closures[id].borrowed || self.closures[id].lifetime_count>0 {return true;},
+                Type::Closure(id)=>{
+                    let closure=&self.closures[id];
+                    if self.native_borrow_types {
+                        if closure.captures.iter().any(|capture|matches!(capture.storage,Mode::Read|Mode::Mutate)) {return true;}
+                        pending.extend(closure.captures.iter().map(|capture|closure.function.bindings[capture.inner].ty));
+                    } else if closure.borrowed || closure.lifetime_count>0 {return true;}
+                },
                 Type::BorrowedCallable(family)=>match self.callables.storage.origins(family) {
                     Some(origins)=>if origins.iter().any(|&id|self.closures[id].borrowed || self.closures[id].lifetime_count>0) {return true;},
                     None=>return true,

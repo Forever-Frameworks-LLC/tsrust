@@ -1,5 +1,7 @@
 #[path = "native_view_lifetime_emit.rs"]
 mod native_view_lifetime_emit;
+#[path = "native_view_environment_emit.rs"]
+mod native_view_environment_emit;
 #[path = "closure_owner_uses.rs"]
 mod closure_owner_uses;
 #[path = "closure_record_signature_emit.rs"]

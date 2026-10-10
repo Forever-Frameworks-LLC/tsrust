@@ -2,6 +2,8 @@
 mod native_view_scopes;
 #[path = "native_view_calls.rs"]
 mod native_view_calls;
+#[path = "native_view_environments.rs"]
+mod native_view_environments;
 #[path = "native_view_parameters.rs"]
 mod native_view_parameters;
 #[path = "native_view_returns.rs"]
@@ -487,6 +489,7 @@ struct Context {
     /// and their capture loans until the scope ends.
     control_stored: HashSet<usize>,
     native_view_calls: bool,
+    native_view_environments: Option<Box<HashMap<usize,Vec<(usize,usize)>>>>,
     native_shadowed_bindings: Option<Box<Vec<usize>>>,
     native_view_results: Option<Box<HashMap<UnionId,usize>>>,
     native_view_function_returns: Option<Box<HashMap<native_view_calls::Target,Vec<native_view_calls::Returned>>>>,
@@ -549,6 +552,7 @@ impl Context {
         Self {
             control_stored: HashSet::new(),
             native_view_calls: false,
+            native_view_environments: None,
             native_shadowed_bindings: None,
             native_view_results: None,
             native_view_function_returns: None,
@@ -2500,6 +2504,7 @@ impl Analyzer {
                     },
                 );
             }
+            self.remember_native_environment(outer,id);
             return Ok(Type::Closure(id));
         }
         let id = self.closures.len();
@@ -2546,6 +2551,7 @@ impl Analyzer {
             escapes,
             invocation,
         });
+        self.remember_native_environment(outer,id);
         Ok(Type::Closure(id))
     }
 

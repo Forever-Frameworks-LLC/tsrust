@@ -47,7 +47,7 @@ impl Lifetimes {
     pub(super) fn storage(&self,root:usize)->Option<&str> {
         self.inputs.get(&(root,LifetimeSource::Storage)).map(String::as_str)
     }
-    fn slot(&self,input:Option<usize>,path:&[Segment],guards:&[VariantGuard])->&str {
+    pub(super) fn slot(&self,input:Option<usize>,path:&[Segment],guards:&[VariantGuard])->&str {
         match input {
             Some(root)=>self.inputs.get(&(root,LifetimeSource::carried(path.to_vec(),guards.to_vec()))),
             None=>self.outputs.get(&(path.to_vec(),guards.to_vec())),
@@ -119,6 +119,9 @@ impl Emitter<'_> {
         self.native_view_signature_slot(ty,input,plan,&mut Vec::new(),&mut Vec::new())
     }
     fn native_view_signature_slot(&self,ty:Type,input:Option<usize>,plan:&Lifetimes,path:&mut Vec<Segment>,guards:&mut Vec<VariantGuard>)->String {
+        if let Type::Closure(origin)=ty {
+            return self.native_view_environment_type(origin,input,plan,path,guards);
+        }
         if !self.native_views.contains(ty) {return self.native_type(ty);}
         match ty {
             Type::Record(id) if native_view_emit::access(self.program,id).is_some()=>format!("Record{id}<{}>",plan.slot(input,path,guards)),

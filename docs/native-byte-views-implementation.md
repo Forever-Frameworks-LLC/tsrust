@@ -638,3 +638,25 @@ allowing owned native-view captures through the callback guard. Add native named
 lifetime rendering for returned closure layouts and test distinct input lifetimes.
 The red witness must pass with origin rooted in relay's second argument. Its failure
 does not yet prove which later transport branch would execute incorrectly.
+
+### Escaped carried-view transport repair
+
+The red witness now passes with two independent input lifetimes and deliberately
+different capture-declaration and caller slots. A concrete closure construction
+records native capture loans under environment-relative capture fields. Function
+return summaries transport those paths through actual arguments; moving the closure
+preserves the same payload loans. Invocation selects its actual callee environment
+field instead of indexing the caller using the factory's original outer binding.
+
+The local callback-storage predicate follows owned capture types, while retaining
+rejection of actual shared/mutable storage references. Native return provenance
+then rejects an escaping closure carrying a view of local receiver storage.
+Lifetime-bearing closure return types are rendered from their typed capture paths,
+so two input lifetimes cannot fall back to ambiguous native elision.
+
+O0/O3 source-generated execution permits the unused input owner to end first,
+preserves the selected input pointer and rejects selected-owner escape in an
+independent native compilation. Nested owned receiver controls remain green.
+Nested carried environments, sparse projected capture contexts, abstract/stored
+callback families and mixed callback-record composition still need explicit controls.
+The publication guard remains.
