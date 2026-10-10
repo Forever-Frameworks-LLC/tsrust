@@ -6967,5 +6967,31 @@
   ],
   "measured": false,
   "note": "Gate 188 checked access/mutation increment. Strict nonnegative byte indices, structured Result errors, exclusive atomic writes and stored-callable editor help verified. Five native/Node-after-tsc cases verified untimed; full owned-byte gate and cleanup matrix remain in progress."
+},
+"native.bytes.alloc": {
+  "implementation": "native variant",
+  "comparison": "paired group",
+  "evidence": [
+    "./native-bytes.md",
+    "./resources-bytes-plan.md"
+  ],
+  "workloads": [
+    "native_byte_growth"
+  ],
+  "measured": false,
+  "note": "Gate 188 allocation/resize increment. Optional zero fill, strict length-before-fill validation, prefix preservation and failure atomicity verified with native/editor witnesses. Matched workload ready; family acceptance and timing remain pending."
+},
+"native.bytes.resize": {
+  "implementation": "native variant",
+  "comparison": "paired group",
+  "evidence": [
+    "./native-bytes.md",
+    "./resources-bytes-plan.md"
+  ],
+  "workloads": [
+    "native_byte_growth"
+  ],
+  "measured": false,
+  "note": "Gate 188 allocation/resize increment. Optional zero fill, strict length-before-fill validation, prefix preservation and failure atomicity verified with native/editor witnesses. Matched workload ready; family acceptance and timing remain pending."
 }
 }

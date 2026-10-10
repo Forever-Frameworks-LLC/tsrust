@@ -20394,6 +20394,34 @@
       "specification": "Twelve retained scalar observations per iteration: initial/updated byte, successful write, unchanged bytes after bad index/value, index error code length/offset plus one, byte error code length/offset, failed read code length/offset and buffer length. Independent arithmetic oracle; explicit validation before Uint8Array writes.",
       "sourceSha256": "05512ad95faa61430e904111e3fcfc13fca616cd2a07681a91b703e3f4dcddab",
       "counterpartSha256": "87294fd1058a1efc4b02635d157f44e4aa8446e06b2d0cc73eaa15d90e036d84"
+    },
+    {
+      "id": "native_byte_growth",
+      "family": "native-byte-growth",
+      "source": "workloads/native_byte_growth.tsr",
+      "counterpart": "workloads/native_byte_growth.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One checked byte allocation and resize scenario",
+      "inputText": "bytes",
+      "category": "bytes",
+      "implementationGate": 188,
+      "measurementStatus": "pending-resources-bytes-family",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": false,
+      "measured": false,
+      "notes": "Gate 188 allocation/resize increment. Full owned-byte gate remains in progress; no timing yet.",
+      "specification": "Eleven scalar observations per iteration: initial fill, growth success/default zero, rejected fill code length and preserved length, shrink/regrow success, retained prefix, new fill bytes and final length. Independent arithmetic oracle; TypeScript validates before allocating or replacing storage.",
+      "sourceSha256": "91edae4eb8311f8f57ef87b47c99184a8bc826309ce3e0921d76350795e30891",
+      "counterpartSha256": "ae178d03979f0781992026a916d4776d52be36e4209d14f6b99fdd4ebf561368"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

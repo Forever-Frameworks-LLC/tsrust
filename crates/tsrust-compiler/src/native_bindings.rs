@@ -72,6 +72,8 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::bytes::bindings::LENGTH,
     crate::stdlib::bytes::bindings::AT,
     crate::stdlib::bytes::bindings::SET,
+    crate::stdlib::bytes::bindings::ALLOC,
+    crate::stdlib::bytes::bindings::RESIZE,
     crate::stdlib::testing::bindings::CONTAINS_VALUE,
     crate::stdlib::testing::bindings::LENGTH_VALUE,
     crate::stdlib::testing::bindings::HAS_LENGTH,

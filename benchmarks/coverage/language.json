@@ -613,7 +613,9 @@
     "native.bytes.fromArray",
     "native.bytes.length",
       "native.bytes.at",
-      "native.bytes.set"
+      "native.bytes.set",
+      "native.bytes.alloc",
+      "native.bytes.resize"
   ]
 }
 ]

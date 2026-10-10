@@ -81,3 +81,81 @@ mod access_tests {
         assert!(set(&mut [], 0, 0).is_err());
     }
 }
+
+fn allocation_failure() -> ByteFailure {
+    ByteFailure { code: "allocation", message: "Unable to allocate byte buffer.", offset: None }
+}
+fn checked_length(length: i64) -> Result<usize, ByteFailure> {
+    usize::try_from(length).ok().filter(|length| *length <= isize::MAX as usize).ok_or(ByteFailure {
+        code: "length-range", message: "Byte length must be nonnegative and fit native storage.", offset: None,
+    })
+}
+fn checked_fill(fill: Option<i64>) -> Result<u8, ByteFailure> {
+    let fill = fill.unwrap_or(0);
+    if !(0..=255).contains(&fill) {
+        return Err(ByteFailure { code: "byte-range", message: "Byte value must be between 0 and 255.", offset: None });
+    }
+    Ok(fill as u8)
+}
+fn reserve(bytes: &mut Vec<u8>, additional: usize) -> Result<(), ByteFailure> {
+    bytes.try_reserve_exact(additional).map_err(|_| allocation_failure())
+}
+fn resize_with(bytes: &mut Vec<u8>, length: i64, fill: Option<i64>, reserve: impl FnOnce(&mut Vec<u8>, usize) -> Result<(), ByteFailure>) -> Result<(), ByteFailure> {
+    let length = checked_length(length)?;
+    let fill = checked_fill(fill)?;
+    if length > bytes.len() { reserve(bytes, length - bytes.len())?; }
+    bytes.resize(length, fill);
+    Ok(())
+}
+pub fn alloc(length: i64, fill: Option<i64>) -> Result<Vec<u8>, ByteFailure> {
+    let mut bytes = Vec::new();
+    resize_with(&mut bytes, length, fill, reserve)?;
+    Ok(bytes)
+}
+pub fn resize(bytes: &mut Vec<u8>, length: i64, fill: Option<i64>) -> Result<(), ByteFailure> {
+    resize_with(bytes, length, fill, reserve)
+}
+
+#[cfg(test)]
+mod growth_tests {
+    use super::*;
+    #[test]
+    fn allocation_and_resize_validate_defaults_and_preserve_prefixes() {
+        let mut bytes = alloc(3, None).unwrap_or_else(|_| panic!("valid allocation"));
+        assert_eq!(bytes, [0, 0, 0]);
+        bytes[0] = 7;
+        assert!(resize(&mut bytes, 5, Some(255)).is_ok());
+        assert_eq!(bytes, [7, 0, 0, 255, 255]);
+        for (length, fill, code) in [(-1, Some(256), "length-range"), (0, Some(-1), "byte-range"), (5, Some(256), "byte-range")] {
+            let error = resize(&mut bytes, length, fill).err().expect("invalid argument");
+            assert_eq!((error.code, error.offset), (code, None));
+            assert_eq!(bytes, [7, 0, 0, 255, 255]);
+        }
+        assert!(resize(&mut bytes, 1, None).is_ok());
+        assert_eq!(bytes, [7]);
+        assert!(resize(&mut bytes, 3, None).is_ok());
+        assert_eq!(bytes, [7, 0, 0]);
+        assert!(resize(&mut bytes, 0, None).is_ok());
+        assert!(bytes.is_empty());
+        assert!(alloc(0, None).is_ok_and(|bytes| bytes.is_empty()));
+        assert!(alloc(2, Some(255)).is_ok_and(|bytes| bytes == [255, 255]));
+    }
+    #[test]
+    fn failed_reservation_cannot_change_length_contents_pointer_or_capacity() {
+        let mut bytes = vec![7, 65, 255];
+        let pointer = bytes.as_ptr();
+        let capacity = bytes.capacity();
+        let error = resize_with(&mut bytes, 1024, Some(1), |old, additional| {
+            assert_eq!(old.as_slice(), [7, 65, 255]);
+            assert_eq!(additional, 1021);
+            Err(allocation_failure())
+        }).err().expect("forced private reservation failure");
+        assert_eq!((error.code, error.offset), ("allocation", None));
+        assert_eq!(bytes, [7, 65, 255]);
+        assert_eq!(bytes.as_ptr(), pointer);
+        assert_eq!(bytes.capacity(), capacity);
+        for (length, fill) in [(-1, Some(256)), (0, Some(256))] {
+            assert!(resize_with(&mut bytes, length, fill, |_, _| panic!("validation must precede reservation")).is_err());
+        }
+    }
+}

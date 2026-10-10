@@ -1585,3 +1585,21 @@ fn native_byte_access_stored_values_keep_borrow_modes_and_result_help() {
     assert_eq!(help["activeParameter"], 2, "{help}");
     assert!(help.to_string().contains("0..255"), "{help}");
 }
+
+#[test]
+fn native_byte_growth_stored_values_keep_optional_fill_help() {
+    let entry = tsrust_compiler::format("import {alloc,resize} from 'std:bytes';function main(){const create=alloc;match(create(1)){Ok(bytes)=>{const change=resize;match(change(bytes,3,65)){Ok(_)=>{},Err(error)=>{console.log(error.message);}}},Err(error)=>{console.log(error.message);}}}").unwrap();
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.clone());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::checked(&checked);
+    let hover = ask(&index, &entry, "create(1)", "textDocument/hover");
+    assert!(hover.to_string().contains("fill?: int") && hover.to_string().contains("defaults to 0"), "{hover}");
+    let hover = ask(&index, &entry, "change(bytes", "textDocument/hover");
+    assert!(hover.to_string().contains("Mutable<Bytes>") && hover.to_string().contains("Every failure leaves length and contents unchanged"), "{hover}");
+    assert!(!hover.to_string().contains("__tsrust_private_"), "{hover}");
+    let help = ask(&index, &entry, "65)", "textDocument/signatureHelp");
+    assert_eq!(help["activeParameter"], 2, "{help}");
+    assert!(help.to_string().contains("fill?: int") && help.to_string().contains("0..255"), "{help}");
+}

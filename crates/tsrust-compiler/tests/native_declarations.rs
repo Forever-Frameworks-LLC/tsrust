@@ -219,3 +219,22 @@ fn native_byte_writes_require_exclusive_access_and_checked_scalar_arguments() {
         assert_eq!(error.code, code, "{body}: {error:?}");
     }
 }
+
+#[test]
+fn native_byte_growth_enforces_optional_arity_and_exclusive_access() {
+    let prefix = "import {Bytes,alloc,resize} from 'std:bytes';";
+    for (body, code) in [
+        ("function main(){alloc();}", "arity"),
+        ("function main(){alloc(1,0,0);}", "arity"),
+        ("function main(){alloc('1');}", "type"),
+        ("function main(){alloc(1,'0');}", "type"),
+        ("function change(bytes:ReadOnly<Bytes>){resize(bytes,0);}", "parameter-access"),
+        ("function change(bytes:Bytes){resize(bytes);}", "arity"),
+        ("function change(bytes:Bytes){resize(bytes,0,0,0);}", "arity"),
+        ("function change(bytes:Bytes){const moved=bytes;resize(bytes,0);}", "transferred"),
+    ] {
+        let entry = if body.contains("function main()") { "" } else { "function main(){}" };
+        let error = checked_source(&format!("{prefix}{body}{entry}")).err().expect(body);
+        assert_eq!(error.code, code, "{body}: {error:?}");
+    }
+}

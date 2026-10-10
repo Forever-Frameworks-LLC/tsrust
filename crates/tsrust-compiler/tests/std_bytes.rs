@@ -33,3 +33,11 @@ fn native_byte_access_and_mutation_validate_before_writing() {
     let path = directory.source(&source);
     support::success(&support::run(support::cli().arg("run").arg(path), 60));
 }
+
+#[test]
+fn native_byte_allocation_and_resize_preserve_defaults_and_atomic_errors() {
+    let directory = support::TempDirectory::new();
+    let source = support::format_round_trip(include_str!("fixtures/native-owned-bytes/growth.tsr"));
+    let path = directory.source(&source);
+    support::success(&support::run(support::cli().arg("run").arg(path), 60));
+}

@@ -51,5 +51,40 @@ buffer with `[65]`, `set(bytes, 0, 90)` succeeds and `at(bytes, 0)` returns `Ok(
 The complete catalog examples print `255` for reading `[65, 255]` at index one and
 `90` after writing the single-byte buffer. Both execute with the current compiler.
 
-These two operations are the first gate 188 increment. Allocation, resizing,
-append, independent range copies and the exact cleanup matrix remain in progress.
+These operations belong to gate 188. Append, independent range copies and the
+exact cleanup matrix remain in progress.
+
+
+## Allocation and resizing
+
+`alloc(length, fill?)` returns `Result<Bytes, ByteError>` with an independent buffer.
+`resize(bytes, length, fill?)` exclusively borrows a buffer and returns
+`Result<void, ByteError>`. Both default fill to zero. Length must be nonnegative and
+fit native storage; fill must be an integer in 0..255. Length is validated first,
+then fill, including empty, unchanged and shrinking requests. Invalid arguments
+return `length-range` or `byte-range`; their offset is undefined.
+
+Resizing preserves the existing prefix. Growth fills only new bytes; shrinking
+removes the trailing bytes and may retain capacity. Growing again initializes new
+bytes rather than restoring discarded contents. Failed reservation returns
+`allocation` before changing the buffer's length or contents. This does not promise
+recovery from every process-wide memory exhaustion. No arbitrary byte limit is imposed.
+
+```tsrust
+import { alloc, resize, length } from "std:bytes";
+
+function main() {
+    match (alloc(1)) {
+        Ok(bytes) => {
+            match (resize(bytes, 3, 65)) {
+                Ok(_) => { console.log(length(bytes)); },
+                Err(error) => { console.log(error.message); },
+            }
+        },
+        Err(error) => { console.log(error.message); },
+    }
+}
+```
+
+This prints `3`. The original byte stays zero; the two new bytes are 65.
+The owner remains usable after resize; readonly byte parameters cannot be resized.

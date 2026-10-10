@@ -497,3 +497,27 @@ focused repairs are retained separately in SQLite.
 Gate 188 remains in progress. Allocation/growth/copy/clone, broader capability
 acceptance and exact cleanup remain next. Installed consumers still represent gate
 187; this increment is a source checkpoint, not a consumer publication.
+
+
+## Gate 188 allocation and resizing increment
+
+The alloc and resize bindings use optional int fill arguments, defaulting to zero,
+and the shared structured Result bridge. Length validation precedes fill validation,
+even for empty, unchanged or shrinking requests. Resizing preserves prefixes and
+validates before mutation; fallible growth reservation precedes filling. Shrinking
+retains the existing Vec capacity and does not expose it publicly. Errors omit offset
+because length and fill refer to arguments rather than an individual buffer element.
+
+Focused source/native witnesses cover default fill, explicit fill endpoints, empty
+allocation, shrinking/regrowth, stored functions, validation precedence and unchanged
+contents after errors. A private runtime reservation seam verifies failure leaves
+contents, length, pointer and capacity unchanged without attempting huge allocations.
+Static witnesses reject wrong types/arity, readonly resizing and use after transfer.
+Editor help preserves optional fill parameters and exclusive access. Both catalog
+examples execute and print 3. The native_byte_growth matched workload retains eleven
+observations with an independent arithmetic oracle and validated Uint8Array counterpart.
+
+Gate 188 remains open for append, independent half-open copy, explicit clone and
+capability/aggregate/capture/exact cleanup acceptance. Consumers remain at gate 187.
+The consuming close decision remains unchanged: close transfers the resource even on
+Err; later use and double close are static errors, with nonthrowing drop fallback.

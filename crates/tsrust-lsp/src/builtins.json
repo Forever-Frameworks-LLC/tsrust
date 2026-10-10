@@ -5107,6 +5107,52 @@
       "output": "90\n"
     }
   ]
+},
+{
+  "name": "alloc",
+  "signature": "alloc(length: int, fill?: int): Result<Bytes, ByteError>",
+  "parameters": [
+    {
+      "label": "length: int",
+      "documentation": "Nonnegative byte count that fits native storage."
+    },
+    {
+      "label": "fill?: int",
+      "documentation": "Initial byte in 0..255; defaults to 0, including omitted arguments."
+    }
+  ],
+  "documentation": "Creates an independent owned byte buffer of the requested length. Every byte is initialized to fill, which defaults to 0. Returns Ok(buffer), including an empty buffer for length 0. Length must be nonnegative and fit native storage; fill must be an int in 0..255. Length is validated before fill, and fill is validated even for an empty buffer. Invalid arguments return Err with code length-range or byte-range and an undefined offset. Failed storage reservation returns allocation with an undefined offset; no partial buffer escapes. Process-wide memory exhaustion is not guaranteed to be recoverable. Length counts bytes, not Unicode characters.\n\n```tsrust\nimport {alloc,length} from \"std:bytes\"; function main(){match(alloc(3)){Ok(bytes)=>{console.log(length(bytes));},Err(error)=>{console.log(error.message);}}}\n```\n\nExpected output: 3.\n\nOwnership: returns an independent byte owner; no existing buffer is borrowed or consumed.",
+  "examples": [
+    {
+      "source": "import {alloc,length} from \"std:bytes\"; function main(){match(alloc(3)){Ok(bytes)=>{console.log(length(bytes));},Err(error)=>{console.log(error.message);}}}",
+      "output": "3\n"
+    }
+  ]
+},
+{
+  "name": "resize",
+  "signature": "resize(bytes: Mutable<Bytes>, length: int, fill?: int): Result<void, ByteError>",
+  "parameters": [
+    {
+      "label": "bytes: Mutable<Bytes>",
+      "documentation": "Buffer to resize through an exclusive borrow."
+    },
+    {
+      "label": "length: int",
+      "documentation": "New nonnegative byte count that fits native storage."
+    },
+    {
+      "label": "fill?: int",
+      "documentation": "Byte in 0..255 used only for newly added bytes; defaults to 0. Validated even when shrinking."
+    }
+  ],
+  "documentation": "Changes a buffer to the requested byte length while preserving its existing prefix. Growth initializes new bytes to fill, which defaults to 0. Shrinking removes trailing bytes and may retain storage capacity; discarded bytes do not reappear after growth. Returns Ok() on success. Length must be nonnegative and fit native storage; fill must be an int in 0..255. Length is validated before fill, even when the length stays unchanged or becomes 0. Invalid arguments return Err with code length-range or byte-range and an undefined offset. Failed growth reservation returns allocation with an undefined offset. Every failure leaves length and contents unchanged. Process-wide memory exhaustion is not guaranteed to be recoverable. Length counts bytes, not Unicode characters.\n\n```tsrust\nimport {alloc,resize,length} from \"std:bytes\"; function main(){match(alloc(1)){Ok(bytes)=>{match(resize(bytes,3,65)){Ok(_)=>{console.log(length(bytes));},Err(error)=>{console.log(error.message);}}},Err(error)=>{console.log(error.message);}}}\n```\n\nExpected output: 3.\n\nOwnership: borrows the buffer exclusively for the call; it neither consumes nor clones the owner.",
+  "examples": [
+    {
+      "source": "import {alloc,resize,length} from \"std:bytes\"; function main(){match(alloc(1)){Ok(bytes)=>{match(resize(bytes,3,65)){Ok(_)=>{console.log(length(bytes));},Err(error)=>{console.log(error.message);}}},Err(error)=>{console.log(error.message);}}}",
+      "output": "3\n"
+    }
+  ]
 }
 ]
 }
