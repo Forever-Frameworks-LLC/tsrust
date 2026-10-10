@@ -126,6 +126,8 @@ impl Analyzer {
         enum Task<'a> {
             Value(&'a Expr),
             Returned(&'a Expr, &'a Loan),
+            Captured(&'a Expr, Option<usize>, usize, &'a Loan),
+            FinishCapture(usize, usize, &'a Loan, Span),
             FinishReturn(usize, &'a Loan),
             Wrapped(&'a Expr, Segment),
             Wrap(usize, Segment),
@@ -148,6 +150,35 @@ impl Analyzer {
                         index+=1;
                         index<=start || super::native_view_calls::transport(loan,output)
                     });
+                    continue;
+                }
+                Task::Captured(callee,binding,capture,output) => {
+                    pending.push(Task::FinishCapture(result.len(),capture,output,callee.span));
+                    if let Some(root)=binding {
+                        let binding=context.bindings.get(root).ok_or_else(||Diagnostic::new("native-view-call","Captured view source is outside the current lexical environment.",callee.span))?;
+                        result.extend(binding.native_view_loans.as_deref().into_iter().flatten().cloned());
+                    } else {
+                        pending.push(Task::Value(callee));
+                    }
+                    continue;
+                }
+                Task::FinishCapture(start,capture,output,span) => {
+                    if result.len()==start {
+                        return Err(Diagnostic::new("native-view-call","The selected callback has no tracked byte-view source lifetime.",span));
+                    }
+                    let segment=Segment::Field(format!("capture{capture}"));
+                    let mut index=0;
+                    let mut selected=false;
+                    result.retain_mut(|loan| {
+                        index+=1;
+                        if index<=start {return true;}
+                        if !native_view_projections::select(loan,&segment) {return false;}
+                        selected=true;
+                        super::native_view_calls::transport(loan,output)
+                    });
+                    if !selected {
+                        return Err(Diagnostic::new("native-view-call","The selected callback has no tracked lifetime for its returned capture.",span));
+                    }
                     continue;
                 }
                 Task::Value(value) => value,
@@ -208,7 +239,7 @@ impl Analyzer {
                         result.extend(loans.iter().cloned());
                     }
                 }
-                ExprKind::Call(_, args) => {
+                ExprKind::Call(callee, args) => {
                     if let Some(id)=super::native_view_calls::target(value)
                         && let Some(outputs)=context.native_view_function_returns.as_ref().and_then(|summaries|summaries.get(&id)) {
                         for returned in outputs {
@@ -237,17 +268,8 @@ impl Analyzer {
                                     continue;
                                 }
                                 super::native_view_calls::Source::Capture(capture)=>{
-                                    let root=match value.target {
-                                        Some(CallTarget::Closure(root))=>Some(root),
-                                        Some(CallTarget::ClosureMethod(_))=>match &value.kind {ExprKind::Call(callee,_)=>callee.binding,_=>None},
-                                        _=>None,
-                                    }.ok_or_else(||Diagnostic::new("native-view-call","A carried capture view requires a stable callable binding.",value.span))?;
-                                    let binding=context.bindings.get(root).ok_or_else(||Diagnostic::new("native-view-call","Captured view source is outside the current lexical environment.",value.span))?;
-                                    let loans=binding.native_view_loans.as_deref().ok_or_else(||Diagnostic::new("native-view-call","Captured view has no tracked source lifetime.",value.span))?;
-                                    for loan in loans {
-                                        let mut actual=loan.clone();
-                                        if native_view_projections::select(&mut actual,&Segment::Field(format!("capture{capture}"))) && super::native_view_calls::transport(&mut actual,output) {result.push(actual);}
-                                    }
+                                    let binding=match value.target {Some(CallTarget::Closure(root)) if matches!(callee.kind,ExprKind::Name(_))=>Some(root),_=>None};
+                                    pending.push(Task::Captured(callee,binding,capture,output));
                                     continue;
                                 }
                             };

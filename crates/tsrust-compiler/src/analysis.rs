@@ -1,3 +1,8 @@
+#[path = "native_view_expression_calls.rs"]
+mod native_view_expression_calls;
+#[cfg(test)]
+#[path = "native_view_callee_transport_tests.rs"]
+mod native_view_callee_transport_tests;
 #[path = "native_view_scopes.rs"]
 mod native_view_scopes;
 #[path = "native_view_calls.rs"]
@@ -13582,6 +13587,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             hint
         };
         let result=self.checked_callable_expression_call(context,callee,args,loans,span,hint,checked_callee,expected)?;
+        self.remember_native_expression_call(context,result.0,callee,hint,span)?;
         if checked_callee && !self.expression_result_retains_captures(result.1){capture_boundary.unwind(&mut context.capture_loans);}
         Ok(result)
     }

@@ -47,7 +47,8 @@ pub(super) fn target(expression:&Expr)->Option<Target> {
     match expression.target? {
         CallTarget::Function(id)|CallTarget::ForwardFunction(id)=>Some(Target::Function(id)),
         CallTarget::Closure(_)=>expression.closure_origin().map(Target::Closure),
-        CallTarget::ClosureMethod(method)=>expression.closure_origin().map(|origin|Target::Method(origin,method)),
+        CallTarget::ConditionalClosure(origin)=>Some(Target::Closure(origin)),
+        CallTarget::ClosureMethod(method)=>expression.closure_origin().or_else(||match &expression.kind {ExprKind::Call(callee,_)=>callee.closure_origin(),_=>None}).map(|origin|Target::Method(origin,method)),
         _=>None,
     }
 }

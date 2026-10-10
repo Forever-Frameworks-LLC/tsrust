@@ -121,3 +121,23 @@ then reorders alternatives canonically. Ordinary programs allocate no prepared
 arena. This integrates finite layout identity into the registry but does not yet
 create an admitted scoped owning source type. That type, actual-callee provenance
 and lifetime-bearing native emission remain prerequisites of positive acceptance.
+
+## Actual callee transport checkpoint
+
+Concrete expression calls now register native return summaries through an isolated
+native_view_expression_calls helper. ConditionalClosure targets retain their known
+origin, and specialized expression methods retain their resolved method origin.
+The iterative value walker evaluates the actual callee expression before selecting
+its capture field. A record field or conditional callback therefore transports the
+selected environment's loans rather than looking up a factory's foreign binding.
+Named calls retain their binding from the checked call target when the callee name
+itself has no binding annotation. A missing returned capture slot is diagnosed
+instead of silently dropping its source lifetime.
+
+A checked-expression field control verifies source identity and missing-slot
+rejection. A separately parsed source program chooses between two concrete callbacks
+carrying different input views. Normal analysis retains both possible origins;
+complete native emission runs at O0/O3 with both pointer identities and independently
+rejects selected-owner escape. These are transport prerequisites. Prepared owning
+family lookup, family variants, source storage admission and native family emission
+remain pending, and the original stored-callback positive witness remains red.
