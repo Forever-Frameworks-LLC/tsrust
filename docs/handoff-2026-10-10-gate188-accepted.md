@@ -91,3 +91,14 @@ views/provenance and strict UTF-8, then gate 190 consuming resources/file proof.
 compiler/editor/docs and matched benchmark support current, bounded TDD checks,
 project formatting, explicit commits and exact SQLite evidence. S07 family acceptance
 and measurements remain pending; goal stays active. Provide the next physical handoff.
+
+
+## Installed consumer publication
+
+Source acceptance commit: 3ec1f7ce. Five consumers are rebuilt/refreshed atomically
+from this checkpoint, with matching SHA-256 hashes. Debug/editor and release compiler
+ownership fixture executions pass; LSP initialize/shutdown/exit protocol smoke passes.
+Exact publication/build/smoke/cleanup evidence is in SQLite at
+runtime/results/gate188-2026-10-10-publication.json, with byte-for-byte readback.
+Superseded test executable variants and closed generated native outputs are pruned;
+shared libraries, the warm target and all five installed consumers are retained.

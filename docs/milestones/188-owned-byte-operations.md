@@ -72,3 +72,14 @@ Exact SQLite records, verified by byte-for-byte readback:
 Earlier operation increments and their original failed/repair evidence remain referenced
 in docs/resources-bytes-plan.md and their handoffs. No full regression or timing was
 repeated for this individual gate. Installed consumer publication is recorded separately.
+
+
+## Installed consumer publication
+
+Source acceptance commit: 3ec1f7ce. Five consumers are rebuilt/refreshed atomically
+from this checkpoint, with matching SHA-256 hashes. Debug/editor and release compiler
+ownership fixture executions pass; LSP initialize/shutdown/exit protocol smoke passes.
+Exact publication/build/smoke/cleanup evidence is in SQLite at
+runtime/results/gate188-2026-10-10-publication.json, with byte-for-byte readback.
+Superseded test executable variants and closed generated native outputs are pruned;
+shared libraries, the warm target and all five installed consumers are retained.
