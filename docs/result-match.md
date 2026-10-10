@@ -35,6 +35,12 @@ compile errors. Payload bindings exist only inside their arm. Use `Ok(_)` or
 Payload bindings have checked hover types, member completion and navigation to
 their own pattern declaration. The same name in another arm is a separate binding.
 An unused payload binding retains its checked type; `_` is a discard, not a variable.
+Imported Result payloads retain nominal aliases visible in the current module.
+Inferred Result hover uses the public type rather than private storage names.
+Nested matches keep shadowed payload bindings separate. During an unfinished edit,
+a complete pattern header still provides binding completion and navigation inside
+its arm. Payload types remain unknown until checked facts are available; sibling
+arms and code after the match do not acquire that binding.
 
 Owned construction transfers the payload without cloning. Matching transfers the
 owned result into the match scope; an arm can transfer its selected payload onward.
@@ -105,7 +111,7 @@ function doubledQuotient(a: int, b: int): Result<int, string> {
 ## Implementation status
 
 The first construction/matching increment has focused compiler and native evidence.
-B10 is not accepted. Project-wide pattern-binding assistance, cleanup stress and
+B10 is not accepted. Cleanup stress and
 family acceptance remain open. Match expressions, guards, nested destructuring
 patterns, `?` propagation and general discriminated unions are not implemented.
 Nested match statements are supported.

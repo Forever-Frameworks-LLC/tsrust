@@ -26,6 +26,7 @@ pub enum ProjectType {
     Array(Box<ProjectType>),
     Union(Vec<ProjectType>),
     Tuple(Vec<ProjectType>),
+    Variant { name: String, payload: Box<ProjectType> },
     Callable {
         ownership: crate::type_syntax::CallableOwnership,
         parameters: Vec<ProjectParameterInfo>,
@@ -348,6 +349,10 @@ impl ProjectAnalysis {
                 )?)));
             }
             Type::Union(id) | Type::BorrowedUnion(id) => {
+                if let Some(variants) = crate::result_identity::variants(&self.analysis.program.records, &self.analysis.program.unions[id.index()].members) {
+                    let arguments = variants.into_iter().map(|record| self.project_type_inner(crate::result_identity::payload(&self.analysis.program.records[record])?, names, active)).collect::<Option<_>>()?;
+                    return Some(ProjectType::Named { name: "Result".into(), declaration: None, arguments });
+                }
                 return Some(ProjectType::Union(
                     self.analysis.program.unions[id.index()]
                         .members
@@ -366,6 +371,12 @@ impl ProjectAnalysis {
     }
     fn project_record(&self, id: usize, names: &HashMap<&str, usize>) -> Option<ProjectType> {
         let record = &self.analysis.program.records[id];
+        if let Some(application) = &record.application {
+            let variant = match application.declaration.text.as_str() { "Result#Ok" => Some("Ok"), "Result#Err" => Some("Err"), _ => None };
+            if let Some(name) = variant {
+                return Some(ProjectType::Variant { name: name.into(), payload: Box::new(self.project_type(crate::result_identity::payload(record)?, names)?) });
+            }
+        }
         if record.is_tuple() {
             return Some(ProjectType::Tuple(record.fields.iter().map(|field| self.project_type(field.ty?,names)).collect::<Option<_>>()?));
         }

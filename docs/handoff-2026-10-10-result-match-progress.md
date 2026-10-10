@@ -44,6 +44,22 @@ and Node-after-tsc, without timing. Exact records are retained in SQLite under
 the final callable witness and capture-loan correction; the final Result record
 supplements those checks. B10 remains open and installed consumers remain at B9.
 
+The project assistance increment is also complete. ProjectIndex refreshes match
+bindings after checked module facts arrive. Compiler project metadata recognizes
+Result through a shared result_identity helper and presents public Result/variant
+types while retaining each payload's nominal source identity. This fixes inferred
+Result hover and imported aliases such as User imported as Person. Single-file
+presentation and match analysis use the same identity helper.
+
+An unfinished match with a complete pattern header recovers its binding's lexical
+scope and navigation. It does not guess payload types from source spelling or stale
+facts. Nested and sibling arms keep their bindings separate, including completion
+after the match. The affected batch passes sixteen Result tests, two project metadata
+tests, 62 project editor tests and 37 single-file editor tests. An extended completion
+scope witness passes separately. Exact readback of
+`runtime/results/result-match-project-2026-10-10-checks.json` passed in SQLite;
+the loose copy is removed. Project formatting changes zero files/fingerprints.
+
 `Result<T, E>` uses two private nominal wrappers in the existing tagged-union
 arena. Each wrapper stores only its active payload. Both arguments participate
 in identity. A void payload has no field or argument. Constructors use expected
@@ -99,8 +115,8 @@ retained in SQLite. Temporary workload build outputs are removed after import.
 2. Readonly and mutable matching now work with checked scoped borrows. Extend
    replacement and cleanup witnesses, including early return and failures. Preserve
    scalar copying, exclusive owner conflicts and no implicit ownership transfer.
-3. Verify project-aware binding facts and navigation, nested pattern scopes,
-   incomplete editing and callback/drop stress. Single-file assistance now works.
+3. Project-aware binding facts, navigation, nested scopes and incomplete binding
+   assistance now work. Complete callback/drop stress, including failure paths.
 4. Extend the registered matched Result workload for remaining forms as they land.
    Retain its independent oracle, source contracts, hooks and untimed checks.
 5. Finish the family milestone: full compiler/LSP checks with explicit abort
@@ -125,5 +141,4 @@ Continue B10 from this handoff. Owned callable payloads are implemented; finish
 the remaining Result/match family using
 focused TDD and checked ownership identities. Read AGENTS.md and the workflow
 first. Keep single-file editor support and explicit constructor shadowing intact.
-Do not accept B10 until project assistance,
-cleanup witnesses, benchmarks and family evidence are complete.
+Do not accept B10 until cleanup witnesses, benchmarks and family evidence are complete.

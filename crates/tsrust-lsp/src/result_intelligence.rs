@@ -16,9 +16,12 @@ impl SourceIndex {
             if self.text(keyword) != "match" || self.text(keyword + 1) != "(" { continue; }
             let Some(close) = self.pairs.get(keyword + 1).copied().flatten() else { continue; };
             if self.text(close + 1) != "{" { continue; }
-            let Some(end) = self.pairs.get(close + 1).copied().flatten() else { continue; };
             let start = self.tokens[keyword].span.start;
-            let Ok(syntax) = tsrust_compiler::match_syntax::parse(&self.source[start..self.tokens[end].span.end]) else { continue; };
+            let syntax = self.pairs.get(close + 1).copied().flatten().and_then(|end| tsrust_compiler::match_syntax::parse(&self.source[start..self.tokens[end].span.end]).ok());
+            let Some(syntax) = syntax else {
+                self.refresh_unfinished_match_bindings(close + 1);
+                continue;
+            };
             for arm in syntax.arms {
                 let tsrust_compiler::match_syntax::Pattern::Variant { binding: Some(binding), .. } = arm.pattern else { continue; };
                 let span = Span::new(start + binding.start, start + binding.end);
@@ -26,18 +29,39 @@ impl SourceIndex {
                 let Some(scope) = self.scopes.iter().position(|scope| scope.span.start == start + arm.body.start) else { continue; };
                 // Lowered payload extraction shares the exact binding span with
                 // destructuring facts. Never infer a payload from the variant name.
-                let ty = self.checked_method_result(token).unwrap_or("").to_owned();
-                let signature = format!("(match) {}{}", self.text(token), if ty.is_empty() { String::new() } else { format!(": {ty}") });
-                if let Some(id) = self.symbols.iter().position(|symbol| symbol.span == span) {
-                    self.symbols[id].ty = ty;
-                    self.symbols[id].signature = signature;
-                    self.symbols[id].scope = scope;
-                    self.parameter_symbols.remove(&id);
-                    self.parameter_available_from.remove(&id);
-                } else {
-                    self.add(token, 13, ty, signature, span, span.start, scope);
-                }
+                self.install_match_binding(token, scope, true);
             }
+        }
+    }
+
+    fn install_match_binding(&mut self, token: usize, scope: usize, checked: bool) {
+        let span = self.tokens[token].span;
+        let ty = if checked { self.checked_method_result(token).unwrap_or("") } else { "" }.to_owned();
+        let signature = format!("(match) {}{}", self.text(token), if ty.is_empty() { String::new() } else { format!(": {ty}") });
+        if let Some(id) = self.symbols.iter().position(|symbol| symbol.span == span) {
+            self.symbols[id].ty = ty;
+            self.symbols[id].signature = signature;
+            self.symbols[id].scope = scope;
+            self.parameter_symbols.remove(&id);
+            self.parameter_available_from.remove(&id);
+        } else {
+            self.add(token, 13, ty, signature, span, span.start, scope);
+        }
+    }
+
+    fn refresh_unfinished_match_bindings(&mut self, body: usize) {
+        let Some(scope) = self.scopes.iter().position(|scope| scope.span.start == self.tokens[body].span.start) else { return; };
+        let end = self.pairs.get(body).copied().flatten().unwrap_or(self.tokens.len());
+        for pattern in body + 1..end {
+            if self.tokens[pattern].scope != scope || !matches!(self.text(pattern), "Ok" | "Err") { continue; }
+            if pattern != body + 1 && !matches!(self.text(pattern - 1), "," | "}") { continue; }
+            if self.text(pattern + 1) != "(" || self.text(pattern + 3) != ")" || self.text(pattern + 4) != "=>" || self.text(pattern + 5) != "{" { continue; }
+            let binding = pattern + 2;
+            if self.text(binding) == "_" || !name(self.text(binding)) || self.tokens[binding].literal { continue; }
+            let Some(arm_scope) = self.scopes.iter().position(|scope| scope.span.start == self.tokens[pattern + 5].span.start) else { continue; };
+            // Recover only a complete pattern header. The unfinished body has no
+            // checked payload facts; preserve navigation without inventing types.
+            self.install_match_binding(binding, arm_scope, false);
         }
     }
 

@@ -32,15 +32,8 @@ impl Analyzer {
     pub(super) fn result_variant_records(&self, ty: Type) -> Option<(UnionId, [usize; 2])> {
         let union = ty.union()?;
         let members = self.unions.members(union);
-        if members.len() != 2 { return None; }
-        let mut variants = [None, None];
-        for member in members {
-            let Type::Record(id) = member else { return None; };
-            let application = self.program.records[id].application.as_ref()?;
-            let index = match application.declaration.text.as_str() { "Result#Ok" => 0, "Result#Err" => 1, _ => return None };
-            variants[index] = Some(id);
-        }
-        Some((union, [variants[0]?, variants[1]?]))
+        let variants = crate::result_identity::variants(&self.program.records, &members)?;
+        Some((union, variants))
     }
 
     pub(super) fn result_type_name(&self, ty: Type) -> Option<String> {

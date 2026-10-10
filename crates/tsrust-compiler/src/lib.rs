@@ -51,6 +51,7 @@ pub mod project;
 pub mod project_cli;
 mod project_link;
 mod project_facts;
+mod result_identity;
 mod project_runtime;
 mod stdlib;
 mod record_layout;

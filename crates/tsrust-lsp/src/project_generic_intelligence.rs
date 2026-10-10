@@ -97,6 +97,7 @@ impl SourceIndex {
                     .collect::<Option<Vec<_>>>()?
                     .join(" | "),
             ),
+            ProjectType::Variant { name, payload } => Some(format!("{name}({})", self.project_type_spelling(graph, current, payload, dependencies)?)),
             ProjectType::Named {
                 name,
                 declaration,
@@ -264,6 +265,7 @@ impl SourceIndex {
         self.checked_views = finish(views);
         self.checked_optional_receivers = finish(optional);
         self.checked_method_results = finish(results);
+        self.refresh_result_match_bindings();
         self.refresh_checked_initializers();
         self.materialize_generic_fields();
     }

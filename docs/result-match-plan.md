@@ -8,9 +8,21 @@ nested matches and callable payloads. Sixteen Result tests, six syntax tests, te
 depth canaries and 37 affected editor tests pass. Five adjacent capture-context
 tests pass. Six catalog examples execute with exact output after idempotent
 formatting. The matched workload includes record and array mutation and passes
-five untimed cases on native and Node-after-tsc. Project assistance, cleanup stress
+five untimed cases on native and Node-after-tsc. Cleanup stress
 and the family milestone remain open. Historical increments below retain their
 original evidence and are superseded by this current status.
+
+Project assistance now refreshes pattern symbols after authoritative module facts
+arrive. Public Result and variant presentation preserves imported nominal identity,
+including local aliases and nested payloads. A shared identity helper recognizes
+only private compiler alternatives; source names cannot establish that identity.
+Incomplete pattern headers recover lexical binding assistance without guessed
+payload types. Bounded checks pass sixteen Result tests, two project metadata tests,
+62 project editor tests and 37 affected single-file editor tests. An added completion
+scope check passes separately after extending its witness. Exact command evidence
+is stored in SQLite at `runtime/results/result-match-project-2026-10-10-checks.json`.
+Project formatting changes no files or fingerprints. No timing or full regression
+was run for this editor increment.
 
 ## Public contract
 

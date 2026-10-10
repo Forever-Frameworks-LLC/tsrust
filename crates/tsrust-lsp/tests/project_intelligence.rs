@@ -4,7 +4,8 @@ use tsrust_lsp::{
 };
 fn ask(index: &ProjectIndex, source: &str, needle: &str, method: &str) -> Value {
     let offset = source.rfind(needle).unwrap();
-    let position = json!({"line":0,"character":source[..offset].encode_utf16().count()});
+    let prefix = &source[..offset];
+    let position = json!({"line":prefix.bytes().filter(|byte| *byte == b'\n').count(),"character":prefix.rsplit('\n').next().unwrap().encode_utf16().count()});
     index
         .request(
             method,
@@ -13,6 +14,93 @@ fn ask(index: &ProjectIndex, source: &str, needle: &str, method: &str) -> Value 
         )
         .unwrap()
         .unwrap()
+}
+
+#[test]
+fn imported_result_matches_keep_nominal_payload_help_and_pattern_navigation() {
+    let entry = tsrust_compiler::format("import { User as Person, make } from './dep.tsr';function main(){const result=make();match(result){Ok(user)=>{console.log(user.name.toUpperCase());},Err(error)=>{console.log(error.length);}}}").unwrap();
+    let dependency = tsrust_compiler::format("export type User={name:string;};export function make():Result<User,string>{return Ok({name:'Pat'});}").unwrap();
+    for source in [&entry, &dependency] { assert_eq!(tsrust_compiler::format(source).unwrap(), *source); }
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.clone());
+    workspace.open(source_id("file:///tsrust-intelligence/dep.tsr").unwrap(), 1, dependency);
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::checked(&checked);
+    let result_hover = ask(&index, &entry, "result)", "textDocument/hover");
+    let result_docs = result_hover["contents"]["value"].as_str().unwrap_or("");
+    assert!(result_docs.replace(' ', "").contains("Result<Person,string>") && !result_docs.contains(" | "), "{result_hover}");
+    let hover = ask(&index, &entry, "user.name", "textDocument/hover");
+    let docs = hover["contents"]["value"].as_str().unwrap_or("");
+    assert!(docs.contains("user: Person") && !docs.contains("Result#"), "{hover}");
+    let hover = ask(&index, &entry, "error.length", "textDocument/hover");
+    assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("error: string"), "{hover}");
+    let completion = ask(&index, &entry, "name.toUpperCase", "textDocument/completion");
+    assert!(completion.as_array().is_some_and(|items| items.iter().any(|item| item["label"] == "name")), "{completion}");
+    let definition = ask(&index, &entry, "user.name", "textDocument/definition");
+    assert_eq!(definition["uri"], uri, "{definition}");
+    assert_eq!(definition["range"]["start"]["line"], 5, "{definition}");
+}
+
+#[test]
+fn unfinished_project_match_keeps_pattern_scope_without_inventing_payload_types() {
+    let complete = tsrust_compiler::format("import { make } from './dep.tsr';function main(){match(make()){Ok(user)=>{console.log(user.name);},Err(error)=>{console.log(error);}}}").unwrap();
+    let stop = complete.find("user.name").unwrap() + "user.na".len();
+    let entry = &complete[..stop];
+    let dependency = tsrust_compiler::format("export type User={name:string;};export function make():Result<User,string>{return Ok({name:'Pat'});}").unwrap();
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.into());
+    workspace.open(source_id("file:///tsrust-intelligence/dep.tsr").unwrap(), 1, dependency);
+    let input = workspace.snapshot();
+    assert!(input.check(&source_id(uri).unwrap()).is_err());
+    let graph = tsrust_compiler::project::load_project_headers(&input, &source_id(uri).unwrap().0).unwrap();
+    let index = ProjectIndex::new(&graph);
+    let hover = ask(&index, entry, "user.na", "textDocument/hover");
+    let docs = hover["contents"]["value"].as_str().unwrap_or("");
+    assert!(docs.contains("(match) user") && !docs.contains("Function<"), "{hover}");
+    assert!(!docs.contains("user: User"), "unchecked body must not invent a payload type: {hover}");
+    let definition = ask(&index, entry, "user.na", "textDocument/definition");
+    assert_eq!(definition["uri"], uri, "{definition}");
+    let completion = ask(&index, entry, "user.na", "textDocument/completion");
+    assert!(!completion.as_array().is_some_and(|items| items.iter().any(|item| item["label"] == "error")), "{completion}");
+    let editing = complete.replace("user.name", "us");
+    workspace.change(&source_id(uri).unwrap(), 2, editing.clone());
+    let input = workspace.snapshot();
+    assert!(input.check(&source_id(uri).unwrap()).is_err());
+    let graph = tsrust_compiler::project::load_project_headers(&input, &source_id(uri).unwrap().0).unwrap();
+    let index = ProjectIndex::new(&graph);
+    let completion = ask(&index, &editing, "us);", "textDocument/completion");
+    let items = completion.as_array().expect("arm completion");
+    assert!(items.iter().any(|item| item["label"] == "user"), "{completion}");
+    assert!(!items.iter().any(|item| item["label"] == "error"), "{completion}");
+    let outside = format!("{}us;\n}}", complete.trim_end().strip_suffix('}').unwrap());
+    workspace.change(&source_id(uri).unwrap(), 3, outside.clone());
+    let input = workspace.snapshot();
+    let graph = tsrust_compiler::project::load_project_headers(&input, &source_id(uri).unwrap().0).unwrap();
+    let index = ProjectIndex::new(&graph);
+    let completion = ask(&index, &outside, "us;", "textDocument/completion");
+    assert!(!completion.as_array().is_some_and(|items| items.iter().any(|item| item["label"] == "user")), "{completion}");
+}
+
+#[test]
+fn nested_imported_result_matches_keep_shadowed_payloads_separate() {
+    let entry = tsrust_compiler::format("import {User as Person,make} from './dep.tsr';function main(){match(make()){Ok(value)=>{match(value){Ok(value)=>{console.log(value.name);},Err(value)=>{console.log(value.length);}}},Err(value)=>{console.log(value+1);}}}").unwrap();
+    let dependency = tsrust_compiler::format("export type User={name:string;};export function make():Result<Result<User,string>,int>{return Ok(Ok({name:'Pat'}));}").unwrap();
+    for source in [&entry, &dependency] { assert_eq!(tsrust_compiler::format(source).unwrap(), *source); }
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.clone());
+    workspace.open(source_id("file:///tsrust-intelligence/dep.tsr").unwrap(), 1, dependency);
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::checked(&checked);
+    for (needle, ty) in [("value.name", "Person"), ("value.length", "string"), ("value + 1", "int")] {
+        let hover = ask(&index, &entry, needle, "textDocument/hover");
+        let docs = hover["contents"]["value"].as_str().unwrap_or("");
+        assert!(docs.contains(&format!("value: {ty}")) && !docs.contains("Result#"), "{hover}");
+        let definition = ask(&index, &entry, needle, "textDocument/definition");
+        assert_eq!(definition["uri"], uri, "{definition}");
+    }
 }
 
 #[test]
