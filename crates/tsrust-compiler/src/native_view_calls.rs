@@ -5,6 +5,12 @@ use super::native_view_loans::{LifetimeSource,Loan};
 #[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
 pub(super) enum Target {Function(usize),Closure(usize),Method(usize,usize)}
 
+#[derive(Clone,Debug,PartialEq,Eq)]
+pub(super) enum Source { Argument(usize), Capture(usize) }
+
+#[derive(Clone,Debug,PartialEq,Eq)]
+pub(super) struct Returned { pub(super) source:Source, pub(super) loan:Loan }
+
 pub(super) fn target(expression:&Expr)->Option<Target> {
     match expression.target? {
         CallTarget::Function(id)|CallTarget::ForwardFunction(id)=>Some(Target::Function(id)),
@@ -25,8 +31,9 @@ impl Analyzer {
         };
         if let Some(origins)=&function.native_returns {
             let summaries=context.native_view_function_returns.get_or_insert_with(Default::default);
-            if summaries.get(&Target::Function(id)).is_none_or(|previous|previous!=origins.as_ref()) {
-                summaries.insert(Target::Function(id),origins.as_ref().clone());
+            let mapped=origins.iter().map(|loan|Returned{source:Source::Argument(loan.root),loan:loan.clone()}).collect::<Vec<_>>();
+            if summaries.get(&Target::Function(id))!=Some(&mapped) {
+                summaries.insert(Target::Function(id),mapped);
             }
             context.native_view_calls=true;
         } else if let Some(summaries)=context.native_view_function_returns.as_mut() {
@@ -45,9 +52,22 @@ impl Analyzer {
             if let Some(summaries)=context.native_view_function_returns.as_mut() {summaries.remove(&key);}
             return Ok(());
         };
-        let mut mapped=origins.as_ref().clone();
-        for loan in &mut mapped {
-            loan.root=parameters.iter().position(|root|*root==loan.root).ok_or_else(||Diagnostic::new("native-view-call","Returned closure captures require capture lifetime transport.",span))?;
+        let mut mapped=Vec::with_capacity(origins.len());
+        for loan in origins.iter() {
+            let source=if let Some(position)=parameters.iter().position(|root|*root==loan.root) {
+                Source::Argument(position)
+            } else {
+                let position=match method {
+                    Some(method)=>closure.methods[method].captures.iter().position(|root|*root==loan.root),
+                    None=>closure.captures.iter().position(|capture|capture.inner==loan.root),
+                }.ok_or_else(||Diagnostic::new("native-view-call","Returned view has no invocation or capture source.",span))?;
+                let capture=&closure.captures[position];
+                if matches!(loan.source,LifetimeSource::Storage) {
+                    return Err(Diagnostic::new("native-view-call","Returning a view of captured owner storage requires a receiver lifetime contract.",span));
+                }
+                Source::Capture(capture.outer)
+            };
+            mapped.push(Returned{source,loan:loan.clone()});
         }
         let summaries=context.native_view_function_returns.get_or_insert_with(Default::default);
         if summaries.get(&key)!=Some(&mapped) {summaries.insert(key,mapped);}

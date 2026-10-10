@@ -486,7 +486,7 @@ struct Context {
     control_stored: HashSet<usize>,
     native_view_calls: bool,
     native_view_results: Option<Box<HashMap<UnionId,usize>>>,
-    native_view_function_returns: Option<Box<HashMap<native_view_calls::Target,Vec<native_view_loans::Loan>>>>,
+    native_view_function_returns: Option<Box<HashMap<native_view_calls::Target,Vec<native_view_calls::Returned>>>>,
     storage_exits: storage_exit_availability::Exits,
     native_returns: Option<Box<Vec<native_view_loans::Loan>>>,
     capture_restoration:Option<capture_restoration::Tracker>,

@@ -191,8 +191,21 @@ impl Analyzer {
                 ExprKind::Call(_, args) => {
                     if let Some(id)=super::native_view_calls::target(value)
                         && let Some(outputs)=context.native_view_function_returns.as_ref().and_then(|summaries|summaries.get(&id)) {
-                        for output in outputs {
-                            let argument=args.get(output.root).ok_or_else(||Diagnostic::new("native-view-call", "Returned capture lifetime transport is not yet planned.",value.span))?;
+                        for returned in outputs {
+                            let output=&returned.loan;
+                            let position=match returned.source {
+                                super::native_view_calls::Source::Argument(position)=>position,
+                                super::native_view_calls::Source::Capture(root)=>{
+                                    let binding=context.bindings.get(root).ok_or_else(||Diagnostic::new("native-view-call","Captured view source is outside the current lexical environment.",value.span))?;
+                                    let loans=binding.native_view_loans.as_deref().ok_or_else(||Diagnostic::new("native-view-call","Captured view has no tracked source lifetime.",value.span))?;
+                                    for loan in loans {
+                                        let mut actual=loan.clone();
+                                        if super::native_view_calls::transport(&mut actual,output) {result.push(actual);}
+                                    }
+                                    continue;
+                                }
+                            };
+                            let argument=args.get(position).ok_or_else(||Diagnostic::new("native-view-call", "Returned capture lifetime transport is not yet planned.",value.span))?;
                             match &output.source {
                                 LifetimeSource::Carried(_)=>pending.push(Task::Returned(argument,output)),
                                 LifetimeSource::Storage=>{

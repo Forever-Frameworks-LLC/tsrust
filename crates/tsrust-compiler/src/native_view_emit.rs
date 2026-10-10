@@ -255,6 +255,19 @@ fn main() {{
         }
     }
     #[test]
+    fn captured_native_view_return_preserves_outer_origin() {
+        let source = "type Window={};function captured(unused:int,input:Window):Window{const alias=input;const callback=():Window=>alias;return callback();}function main(){}";
+        let formatted = crate::formatting::format(source).unwrap();
+        assert_eq!(crate::formatting::format(&formatted).unwrap(), formatted);
+        let mut parsed = crate::syntax::parse(&formatted).unwrap();
+        parsed.records[0].native_type = Some(crate::native_signatures::NativeTypeId::ByteView);
+        let checked = crate::analysis::analyze(parsed).unwrap();
+        let function = checked.functions.iter().find(|function| function.name == "captured").unwrap();
+        let origins = function.native_returns.as_ref().expect("captured return must retain an input lifetime");
+        assert_eq!(origins.len(), 1);
+        assert_eq!(origins[0].root, 1);
+    }
+    #[test]
     fn returned_native_views_compile_with_distinct_input_lifetimes() {
         let source="type Window={};type WriteWindow={};type Shelf={item:Window;};type Pair={one:Window;two:Window;};type Outcome=Result<Window,int>;function identity(input:Window):Window{return input;}function relay(input:Window):Window{return identity(input);}function arrowChoose(left:Window,right:Window,flag:boolean):Window{const callback=(first:Window,second:Window):Window=>{if(flag){return first;}return second;};return callback(left,right);}function arrowRelay(input:Window):Window{const identity=(value:Window):Window=>value;return identity(input);}function savedRelay(input:Window):Window{const saved=identity;return saved(input);}function outcomeIdentity(input:Outcome):Outcome{return input;}function pairFirst(input:Pair):Window{return input.one;}function unwrap(input:Shelf):Window{return input.item;}function writeIdentity(input:WriteWindow):WriteWindow{return input;}function arrayIdentity(input:Window[]):Window[]{return input;}function first(left:Window,right:Window):Window{return left;}function choose(left:Window,right:Window,flag:boolean):Window{if(flag){return left;}return right;}function main(){}";
         let formatted=crate::formatting::format(source).unwrap();

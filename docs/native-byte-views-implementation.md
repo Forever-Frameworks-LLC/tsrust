@@ -390,3 +390,17 @@ origins with a scalar capture. Generated native tests exercise both at O0 and O3
 checking exact source pointers. Captured native views, arbitrary stored callable
 families, abstract callbacks and receiver lifetime relationships remain pending.
 No source factory or public view API is enabled by this checkpoint.
+
+## Captured input provenance
+
+Returned call summaries now distinguish invocation arguments from lexical captures.
+The captured route selects the original binding's carried view loans and projects
+them through the closure's returned slot. Capture binding IDs are not interpreted
+as argument positions. A private formatted-source witness checks a zero-argument
+closure capturing a local alias of the second enclosing parameter.
+
+This is analyzer groundwork only. Captured owner storage still requires a receiver
+lifetime contract. Native capture layout, generated result lifetime relationships,
+escaped closure environments and arbitrary stored callable families are not yet
+verified. The public borrowed-signature guard remains in force; this increment does
+not accept captured view execution or close gate 189.
