@@ -39,7 +39,7 @@ Full compiler regression and accumulated performance comparisons run at complete
 | Null and undefined | 17 | 17 | 0 | 3 |
 | Numbers | 132 | 129 | 0 | 9 |
 | Objects | 96 | 15 | 0 | 81 |
-| Owned native bytes | 4 | 4 | 0 | 0 |
+| Owned native bytes | 6 | 6 | 0 | 0 |
 | Primitive storage | 13 | 11 | 0 | 2 |
 | Regular expressions | 53 | 0 | 0 | 53 |
 | Resource management | 22 | 0 | 0 | 22 |
@@ -1874,9 +1874,11 @@ Full compiler regression and accumulated performance comparisons run at complete
 
 | Operation | Implementation | Comparison | Scope / evidence |
 | --- | --- | --- | --- |
+| `native.bytes.at` | native variant | paired group | Gate 188 checked access/mutation increment. Strict nonnegative byte indices, structured Result errors, exclusive atomic writes and stored-callable editor help verified. Five native/Node-after-tsc cases verified untimed; full owned-byte gate and cleanup matrix remain in progress.; [evidence](./native-bytes.md) · [evidence](./resources-bytes-plan.md) · [native_byte_access](../benchmarks/runtime/workloads/native_byte_access.tsr) |
 | `native.bytes.error` | native variant | compile-only | Gate 187 typed native declaration/signature foundation and initial owned byte construction/length. Native callable storage, generic/record/array/Result payloads, nominal aliases and editor help verified. Five matched native/Node-after-tsc cases verified untimed. Wider operations, views and resource lifecycle remain gates 188–190.; [evidence](./milestones/187-native-byte-foundation.md) · [evidence](./native-bytes.md) · [native_bytes](../benchmarks/runtime/workloads/native_bytes.tsr) |
 | `native.bytes.fromArray` | native variant | paired group | Gate 187 typed native declaration/signature foundation and initial owned byte construction/length. Native callable storage, generic/record/array/Result payloads, nominal aliases and editor help verified. Five matched native/Node-after-tsc cases verified untimed. Wider operations, views and resource lifecycle remain gates 188–190.; [evidence](./milestones/187-native-byte-foundation.md) · [evidence](./native-bytes.md) · [native_bytes](../benchmarks/runtime/workloads/native_bytes.tsr) |
 | `native.bytes.length` | native variant | paired group | Gate 187 typed native declaration/signature foundation and initial owned byte construction/length. Native callable storage, generic/record/array/Result payloads, nominal aliases and editor help verified. Five matched native/Node-after-tsc cases verified untimed. Wider operations, views and resource lifecycle remain gates 188–190.; [evidence](./milestones/187-native-byte-foundation.md) · [evidence](./native-bytes.md) · [native_bytes](../benchmarks/runtime/workloads/native_bytes.tsr) |
+| `native.bytes.set` | native variant | paired group | Gate 188 checked access/mutation increment. Strict nonnegative byte indices, structured Result errors, exclusive atomic writes and stored-callable editor help verified. Five native/Node-after-tsc cases verified untimed; full owned-byte gate and cleanup matrix remain in progress.; [evidence](./native-bytes.md) · [evidence](./resources-bytes-plan.md) · [native_byte_access](../benchmarks/runtime/workloads/native_byte_access.tsr) |
 | `native.bytes.type` | native variant | compile-only | Gate 187 typed native declaration/signature foundation and initial owned byte construction/length. Native callable storage, generic/record/array/Result payloads, nominal aliases and editor help verified. Five matched native/Node-after-tsc cases verified untimed. Wider operations, views and resource lifecycle remain gates 188–190.; [evidence](./milestones/187-native-byte-foundation.md) · [evidence](./native-bytes.md) · [native_bytes](../benchmarks/runtime/workloads/native_bytes.tsr) |
 
 ## Primitive storage

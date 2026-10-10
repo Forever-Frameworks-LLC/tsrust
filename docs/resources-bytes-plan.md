@@ -221,8 +221,9 @@ matched workload and remaining alias/storage coverage. Installed consumers remai
 Continue B11/S07 from docs/handoff-2026-10-10-gate187-accepted.md. Gate 187 is accepted:
 native identities/imports/aliases, recursive callable signatures, fromArray/length,
 native Result and aggregate storage, editor help and the matched workload all have
-focused evidence. Do not redo them. Implement gate 188 owned byte operations and its
-capability/cleanup matrix, then gates 189 views/UTF-8 and 190 resources. Consuming close
+focused evidence. Do not redo them. Gate 188 at/set access and mutation are implemented with focused evidence. Next
+implement alloc, append, resize, independent copy/clone and the capability/cleanup
+matrix, then gates 189 views/UTF-8 and 190 resources. Consuming close
 rejects later use/double close even after failure. Keep bounded checks and complete
 matched support as operations land. Full regressions and timing belong to the completed
 S07 family milestone. Preserve the existing declaration-only match inference limit.
@@ -465,3 +466,34 @@ iteration. Five native/Node-after-tsc cases pass untimed. The closing focused ba
 has 68 passes, with exact SQLite evidence and byte-for-byte readback. Gate 187 is
 accepted; S07 is not. See docs/milestones/187-native-byte-foundation.md. Next gate is
 188; do not repeat the completed foundation or retime unaffected workloads.
+
+
+## Gate 188 checked access and mutation increment
+
+The at binding borrows Bytes and returns Result<int, ByteError>. Negative, end and
+oversized indices return index-range with the requested index as offset. The set
+binding borrows exclusively and returns Result<void, ByteError>. It checks index
+before value, accepts only 0..255, and changes nothing on either failure. The shared
+native bridge now projects arbitrary checked Result payloads and empty void success
+records; error conversion is shared. The backend remains safe Vec/slice code.
+
+Native witnesses cover endpoints, empty buffers, negative/maximum indices, both
+invalid byte bounds, failure precedence and atomicity, stored native functions,
+readonly/exclusive argument contracts and one evaluation of each index/value argument.
+The callback used to count evaluations lives in a nested scope so its capture loan
+ends before inspecting the counter. Compiler/editor type diagnostics preserve the
+invalid value range; stored function help preserves Mutable/ReadOnly and Result
+signatures. Complete at/set catalog entries and two native output examples pass.
+
+The native_byte_access workload retains twelve observations per iteration and has an
+independent validated Uint8Array counterpart and arithmetic oracle. The negative
+requested index is encoded as offset + 1 for the existing nonnegative observer,
+without changing the observer protocol. Source guards, fingerprints, registration,
+runner/profile/report hooks and five native/Node-after-tsc cases are ready and verified
+untimed. The existing construction workload also passes five cases after the bridge
+refactor. No timing or full regression was performed. Original failed checks and their
+focused repairs are retained separately in SQLite.
+
+Gate 188 remains in progress. Allocation/growth/copy/clone, broader capability
+acceptance and exact cleanup remain next. Installed consumers still represent gate
+187; this increment is a source checkpoint, not a consumer publication.

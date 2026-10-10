@@ -205,3 +205,17 @@ fn native_byte_arguments_enforce_nominal_ownership_types_and_arity() {
         assert_eq!(error.code, code, "{body}: {error:?}");
     }
 }
+
+#[test]
+fn native_byte_writes_require_exclusive_access_and_checked_scalar_arguments() {
+    let prefix = "import {Bytes,at,set} from 'std:bytes';";
+    for (body, code) in [
+        ("function change(bytes:ReadOnly<Bytes>){set(bytes,0,1);}", "parameter-access"),
+        ("function change(bytes:Bytes){set(bytes,0,'x');}", "type"),
+        ("function change(bytes:Bytes){at(bytes);}", "arity"),
+        ("function change(bytes:Bytes){const old=bytes;set(bytes,0,1);}", "transferred"),
+    ] {
+        let error = checked_source(&format!("{prefix}{body}function main(){{}}")).err().expect(body);
+        assert_eq!(error.code, code, "{body}: {error:?}");
+    }
+}

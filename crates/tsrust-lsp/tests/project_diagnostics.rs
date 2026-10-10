@@ -144,3 +144,19 @@ fn opaque_native_capability_errors_keep_the_argument_range() {
     assert_eq!(diagnostic["code"], "native-capability");
     assert!(diagnostic["message"].as_str().unwrap().contains("Bytes"));
 }
+
+#[test]
+fn native_byte_write_type_errors_keep_the_value_range() {
+    let source = tsrust_compiler::format("import {Bytes,set} from 'std:bytes';function change(bytes:Bytes){set(bytes,0,'x');}function main(){}").unwrap();
+    let mut workspace = Workspace::default();
+    workspace.open(id("main"), 1, source.clone());
+    let snapshot = workspace.snapshot();
+    let error = snapshot.check(&id("main")).err().unwrap();
+    assert_eq!(error.code, "type");
+    let start = source.rfind("\"x\"").or_else(|| source.rfind("'x'")).unwrap();
+    assert_eq!(error.location.span, Span::new(start, start + 3));
+    let diagnostics = convert(&snapshot, Some(&error)).unwrap();
+    let diagnostic = serde_json::to_value(&diagnostics[&id("main")][0]).unwrap();
+    assert_eq!(diagnostic["code"], "type");
+    assert!(diagnostic["message"].as_str().unwrap().contains("Expected int"));
+}

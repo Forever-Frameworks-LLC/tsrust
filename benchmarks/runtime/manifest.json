@@ -20366,6 +20366,34 @@
       "specification": "Six retained observations per iteration: two borrowed lengths of an independent byte copy, reused input element, empty buffer length, first invalid element offset and error code length. Alternating negative/above-byte invalid elements. Independent arithmetic oracle.",
       "sourceSha256": "55910a4de8d30e2ab861f36276fdf01932637ccde1c50099e667b32318170ba0",
       "counterpartSha256": "8abd937864bd327631a3e1eef641f76e4d6c763870b582c401c6f7a69fbef334"
+    },
+    {
+      "id": "native_byte_access",
+      "family": "native-byte-access",
+      "source": "workloads/native_byte_access.tsr",
+      "counterpart": "workloads/native_byte_access.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One checked byte access and mutation scenario",
+      "inputText": "bytes",
+      "category": "bytes",
+      "implementationGate": 188,
+      "measurementStatus": "pending-resources-bytes-family",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": false,
+      "measured": false,
+      "notes": "Gate 188 access/mutation increment. Full owned-byte gate remains in progress; no timing yet.",
+      "specification": "Twelve retained scalar observations per iteration: initial/updated byte, successful write, unchanged bytes after bad index/value, index error code length/offset plus one, byte error code length/offset, failed read code length/offset and buffer length. Independent arithmetic oracle; explicit validation before Uint8Array writes.",
+      "sourceSha256": "05512ad95faa61430e904111e3fcfc13fca616cd2a07681a91b703e3f4dcddab",
+      "counterpartSha256": "87294fd1058a1efc4b02635d157f44e4aa8446e06b2d0cc73eaa15d90e036d84"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

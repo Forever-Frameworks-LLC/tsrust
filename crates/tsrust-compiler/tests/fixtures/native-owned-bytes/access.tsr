@@ -1,0 +1,136 @@
+import { Bytes, fromArray, length, at, set } from "std:bytes";
+import { strictEqual } from "std:testing";
+
+function value(bytes: ReadOnly<Bytes>, index: int): int {
+    match (at(bytes, index)) {
+        Ok(found) => {
+            return found;
+        },
+        Err(error) => {
+            throw error.message;
+        },
+    }
+}
+
+function main() {
+    match (fromArray([0, 65, 255])) {
+        Ok(bytes) => {
+            strictEqual(value(bytes, 0), 0);
+            strictEqual(value(bytes, 2), 255);
+            match (set(bytes, 1, 200)) {
+                Ok(_) => {
+                },
+                Err(error) => {
+                    throw error.message;
+                },
+            }
+
+            strictEqual(value(bytes, 1), 200);
+            strictEqual(length(bytes), 3);
+            for (const index of [-1, 3, 9223372036854775807]) {
+                match (at(bytes, index)) {
+                    Ok(found) => {
+                        throw "invalid index accepted";
+                    },
+                    Err(error) => {
+                        strictEqual(error.code, "index-range");
+                        strictEqual(error.offset, index);
+                    },
+                }
+
+                match (set(bytes, index, 256)) {
+                    Ok(_) => {
+                        throw "invalid index accepted";
+                    },
+                    Err(error) => {
+                        strictEqual(error.code, "index-range");
+                        strictEqual(error.offset, index);
+                    },
+                }
+
+                strictEqual(value(bytes, 1), 200);
+            }
+
+            for (const invalid of [-1, 256]) {
+                match (set(bytes, 1, invalid)) {
+                    Ok(_) => {
+                        throw "invalid byte accepted";
+                    },
+                    Err(error) => {
+                        strictEqual(error.code, "byte-range");
+                        strictEqual(error.offset, 1);
+                    },
+                }
+
+                strictEqual(value(bytes, 1), 200);
+            }
+
+            let calls = 0;
+            {
+                const next = (): int => {
+                    calls += 1;
+                    return calls;
+                };
+                match (set(bytes, next(), next())) {
+                    Ok(_) => {
+                    },
+                    Err(error) => {
+                        throw error.message;
+                    },
+                }
+
+            }
+
+            strictEqual(calls, 2);
+            strictEqual(value(bytes, 1), 2);
+            const read = at;
+            const write = set;
+            match (write(bytes, 0, 255)) {
+                Ok(_) => {
+                },
+                Err(error) => {
+                    throw error.message;
+                },
+            }
+
+            match (read(bytes, 0)) {
+                Ok(found) => {
+                    strictEqual(found, 255);
+                },
+                Err(error) => {
+                    throw error.message;
+                },
+            }
+        },
+        Err(error) => {
+            throw error.message;
+        },
+    }
+
+    match (fromArray([])) {
+        Ok(bytes) => {
+            match (at(bytes, 0)) {
+                Ok(found) => {
+                    throw "empty index accepted";
+                },
+                Err(error) => {
+                    strictEqual(error.code, "index-range");
+                },
+            }
+
+            match (set(bytes, 0, 1)) {
+                Ok(_) => {
+                    throw "empty index accepted";
+                },
+                Err(error) => {
+                    strictEqual(error.code, "index-range");
+                },
+            }
+
+            strictEqual(length(bytes), 0);
+        },
+        Err(error) => {
+            throw error.message;
+        },
+    }
+}

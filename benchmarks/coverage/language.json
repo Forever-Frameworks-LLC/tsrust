@@ -611,7 +611,9 @@
     "native.bytes.type",
     "native.bytes.error",
     "native.bytes.fromArray",
-    "native.bytes.length"
+    "native.bytes.length",
+      "native.bytes.at",
+      "native.bytes.set"
   ]
 }
 ]

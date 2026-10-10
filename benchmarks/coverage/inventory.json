@@ -22282,6 +22282,24 @@
       "evidence": []
     },
     {
+      "id": "native.bytes.at",
+      "display": "native.bytes.at",
+      "category": "Owned native bytes",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "paired group",
+      "evidence": [
+        "./native-bytes.md",
+        "./resources-bytes-plan.md"
+      ],
+      "workloads": [
+        "native_byte_access"
+      ],
+      "measured": false,
+      "note": "Gate 188 checked access/mutation increment. Strict nonnegative byte indices, structured Result errors, exclusive atomic writes and stored-callable editor help verified. Five native/Node-after-tsc cases verified untimed; full owned-byte gate and cleanup matrix remain in progress."
+    },
+    {
       "id": "native.bytes.error",
       "display": "native.bytes.error",
       "category": "Owned native bytes",
@@ -22334,6 +22352,24 @@
       ],
       "measured": false,
       "note": "Gate 187 typed native declaration/signature foundation and initial owned byte construction/length. Native callable storage, generic/record/array/Result payloads, nominal aliases and editor help verified. Five matched native/Node-after-tsc cases verified untimed. Wider operations, views and resource lifecycle remain gates 188–190."
+    },
+    {
+      "id": "native.bytes.set",
+      "display": "native.bytes.set",
+      "category": "Owned native bytes",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "paired group",
+      "evidence": [
+        "./native-bytes.md",
+        "./resources-bytes-plan.md"
+      ],
+      "workloads": [
+        "native_byte_access"
+      ],
+      "measured": false,
+      "note": "Gate 188 checked access/mutation increment. Strict nonnegative byte indices, structured Result errors, exclusive atomic writes and stored-callable editor help verified. Five native/Node-after-tsc cases verified untimed; full owned-byte gate and cleanup matrix remain in progress."
     },
     {
       "id": "native.bytes.type",

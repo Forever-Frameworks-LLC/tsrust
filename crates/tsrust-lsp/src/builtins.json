@@ -4997,7 +4997,7 @@
     "name": "Bytes",
     "signature": "type Bytes",
     "parameters": [],
-    "documentation": "An owned contiguous byte buffer. Each element is a byte in 0..255; byte counts differ from Unicode character counts. This is a type declaration, so it takes no arguments and returns no value. Its storage fields are private; record literals cannot construct it. Use fromArray to construct a buffer and length to observe its byte count. Console inspection, string conversion, property reflection, object spread and value comparison are unsupported and report source diagnostics.\n\n```tsrust\nimport { Bytes } from \"std:bytes\";\nfunction accept(value: ReadOnly<Bytes>): void {}\nfunction main() {}\n```\n\nThis declares a borrowing parameter without creating or mutating a buffer. Ownership: passing by value transfers the buffer; ReadOnly borrows it without copying.",
+    "documentation": "An owned contiguous byte buffer. Each element is a byte in 0..255; byte counts differ from Unicode character counts. This is a type declaration, so it takes no arguments and returns no value. Its storage fields are private; record literals cannot construct it. Use fromArray to construct a buffer, length to observe its byte count, and at/set for checked byte access. Console inspection, string conversion, property reflection, object spread and value comparison are unsupported and report source diagnostics.\n\n```tsrust\nimport { Bytes } from \"std:bytes\";\nfunction accept(value: ReadOnly<Bytes>): void {}\nfunction main() {}\n```\n\nThis declares a borrowing parameter without creating or mutating a buffer. Ownership: passing by value transfers the buffer; ReadOnly borrows it without copying.",
     "examples": [
       {
         "source": "import { Bytes } from \"std:bytes\";\nfunction accept(value: ReadOnly<Bytes>): void {}\nfunction main() {}",
@@ -5018,7 +5018,7 @@
         "documentation": "Explains the failure as a string intended for people. This property takes no arguments. Reading it leaves the error and byte buffers unchanged.\n\n```tsrust\nimport { ByteError } from \"std:bytes\";\nfunction main() {\n    const error: ByteError = { code: \"range\", message: \"invalid byte\" };\n    console.log(error.message); // invalid byte\n}\n```\n\nOwnership: Borrow the string for inspection or clone explicitly to retain an independent value."
       },
       "offset": {
-        "documentation": "Locates the offending byte or input element when supplied by an operation. This property takes no arguments and returns int | undefined. An omitted offset reads as undefined. Reading it leaves the error and byte buffers unchanged. An offset counts bytes or array elements, never Unicode characters.\n\n```tsrust\nimport { ByteError } from \"std:bytes\";\nfunction main() {\n    const error: ByteError = { code: \"range\", message: \"invalid byte\" };\n    console.log(error.offset); // undefined\n}\n```\n\nOwnership: The scalar result copies; the error remains reusable."
+        "documentation": "Locates the offending byte or input element when supplied by an operation. An index-range error reports the requested index, which may be negative. This property takes no arguments and returns int | undefined. An omitted offset reads as undefined. Reading it leaves the error and byte buffers unchanged. An offset counts bytes or array elements, never Unicode characters.\n\n```tsrust\nimport { ByteError } from \"std:bytes\";\nfunction main() {\n    const error: ByteError = { code: \"range\", message: \"invalid byte\" };\n    console.log(error.offset); // undefined\n}\n```\n\nOwnership: The scalar result copies; the error remains reusable."
       }
     },
     "examples": [
@@ -5059,6 +5059,52 @@
     {
       "source": "import { fromArray, length } from \"std:bytes\";\nfunction main() { match (fromArray([])) { Ok(bytes) => { console.log(length(bytes)); }, Err(error) => { console.log(error.message); }, } }",
       "output": "0\n"
+    }
+  ]
+},
+{
+  "name": "at",
+  "signature": "at(bytes: ReadOnly<Bytes>, index: int): Result<int, ByteError>",
+  "parameters": [
+    {
+      "label": "bytes: ReadOnly<Bytes>",
+      "documentation": "Byte buffer to read. Borrowed without copying or mutation."
+    },
+    {
+      "label": "index: int",
+      "documentation": "Zero-based byte index, from 0 through length(bytes) - 1. Negative indices never wrap."
+    }
+  ],
+  "documentation": "Reads one byte as an int in 0..255. Takes a byte buffer and a zero-based int index; the index must be nonnegative and smaller than the buffer length. Negative indices do not wrap. Returns Ok(value) without changing the buffer, or Err with code index-range, message \"Byte index must be within the buffer.\", and offset equal to the requested index. Every index fails on an empty buffer. Indices count bytes, not Unicode characters.\n\n```tsrust\nimport { fromArray, at } from \"std:bytes\";\nfunction main() { match (fromArray([65, 255])) { Ok(bytes) => { match (at(bytes, 1)) { Ok(value) => { console.log(value); }, Err(error) => { console.log(error.message); }, } }, Err(error) => { console.log(error.message); }, } }\n```\n\nExpected output: 255.\n\nOwnership: borrows the buffer; the returned scalar copies and the buffer remains reusable.",
+  "examples": [
+    {
+      "source": "import { fromArray, at } from \"std:bytes\";\nfunction main() { match (fromArray([65, 255])) { Ok(bytes) => { match (at(bytes, 1)) { Ok(value) => { console.log(value); }, Err(error) => { console.log(error.message); }, } }, Err(error) => { console.log(error.message); }, } }",
+      "output": "255\n"
+    }
+  ]
+},
+{
+  "name": "set",
+  "signature": "set(bytes: Mutable<Bytes>, index: int, value: int): Result<void, ByteError>",
+  "parameters": [
+    {
+      "label": "bytes: Mutable<Bytes>",
+      "documentation": "Byte buffer to change through an exclusive borrow. The buffer length stays unchanged."
+    },
+    {
+      "label": "index: int",
+      "documentation": "Zero-based byte index, from 0 through length(bytes) - 1. Bounds are checked before the value."
+    },
+    {
+      "label": "value: int",
+      "documentation": "Replacement byte in 0..255. Invalid values return byte-range without modifying the buffer."
+    }
+  ],
+  "documentation": "Replaces one byte without changing the buffer length. Takes an exclusively borrowed byte buffer, a nonnegative int index smaller than its length, and an int value in 0..255. Returns Ok() on success. Bounds are checked first: an invalid index returns Err with code index-range and the requested index as offset. With a valid index, an invalid value returns byte-range and that index as offset. Either failure leaves all bytes unchanged. Empty buffers reject every index; negative indices never wrap. Indices count bytes, not Unicode characters.\n\n```tsrust\nimport { fromArray, at, set } from \"std:bytes\";\nfunction main() { match (fromArray([65])) { Ok(bytes) => { match (set(bytes, 0, 90)) { Ok(_) => { match (at(bytes, 0)) { Ok(value) => { console.log(value); }, Err(error) => { console.log(error.message); }, } }, Err(error) => { console.log(error.message); }, } }, Err(error) => { console.log(error.message); }, } }\n```\n\nExpected output: 90.\n\nOwnership: borrows the buffer exclusively for the call; it neither consumes nor clones the owner. Read access can resume after the call.",
+  "examples": [
+    {
+      "source": "import { fromArray, at, set } from \"std:bytes\";\nfunction main() { match (fromArray([65])) { Ok(bytes) => { match (set(bytes, 0, 90)) { Ok(_) => { match (at(bytes, 0)) { Ok(value) => { console.log(value); }, Err(error) => { console.log(error.message); }, } }, Err(error) => { console.log(error.message); }, } }, Err(error) => { console.log(error.message); }, } }",
+      "output": "90\n"
     }
   ]
 }

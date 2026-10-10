@@ -1566,3 +1566,22 @@ fn structured_exported_aliases_keep_hidden_native_fields_without_name_collisions
         assert_eq!(definition["uri"], "file:///tsrust-intelligence/dep.tsr", "{definition}");
     }
 }
+
+#[test]
+fn native_byte_access_stored_values_keep_borrow_modes_and_result_help() {
+    let entry = tsrust_compiler::format("import {fromArray,at as inspect,set as write} from 'std:bytes';function main(){match(fromArray([65])){Ok(bytes)=>{const read=inspect;const update=write;match(update(bytes,0,90)){Ok(_)=>{match(read(bytes,0)){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.message);}}},Err(error)=>{console.log(error.message);}}},Err(error)=>{console.log(error.message);}}}").unwrap();
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.clone());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::checked(&checked);
+    let hover = ask(&index, &entry, "update(bytes", "textDocument/hover");
+    let docs = hover["contents"]["value"].as_str().unwrap_or("");
+    assert!(docs.contains("Mutable<Bytes>") && docs.contains("Result<void, ByteError>") && docs.contains("leaves all bytes unchanged"), "{hover}");
+    assert!(!docs.contains("__tsrust_private_"), "{hover}");
+    let hover = ask(&index, &entry, "read(bytes", "textDocument/hover");
+    assert!(hover.to_string().contains("ReadOnly<Bytes>") && hover.to_string().contains("Result<int, ByteError>"), "{hover}");
+    let help = ask(&index, &entry, "90)", "textDocument/signatureHelp");
+    assert_eq!(help["activeParameter"], 2, "{help}");
+    assert!(help.to_string().contains("0..255"), "{help}");
+}

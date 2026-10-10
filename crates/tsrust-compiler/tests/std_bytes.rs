@@ -25,3 +25,11 @@ fn exported_result_aliases_keep_builtin_identity_and_native_payloads() {
     let path = directory.source(&main);
     support::success(&support::run(support::cli().arg("run").arg(path), 60));
 }
+
+#[test]
+fn native_byte_access_and_mutation_validate_before_writing() {
+    let directory = support::TempDirectory::new();
+    let source = support::format_round_trip(include_str!("fixtures/native-owned-bytes/access.tsr"));
+    let path = directory.source(&source);
+    support::success(&support::run(support::cli().arg("run").arg(path), 60));
+}

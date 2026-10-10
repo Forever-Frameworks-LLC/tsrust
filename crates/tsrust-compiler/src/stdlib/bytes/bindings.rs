@@ -11,3 +11,22 @@ pub(crate) const LENGTH: NativeBinding = NativeBinding {
     result: NativeType::Int,
     backend: NativeBackend::Bundled { symbol: "tsrust_std_bytes_length" }, features: &["bytes"],
 };
+pub(crate) const AT: NativeBinding = NativeBinding {
+    module: "std:bytes", name: "at",
+    parameters: &[
+        NativeParameter { name: "bytes", ty: NativeType::Structured(&Signature::Named(NativeTypeId::Bytes)), access: Mode::Read, optional: false, rest: false },
+        NativeParameter { name: "index", ty: NativeType::Int, access: Mode::Copy, optional: false, rest: false },
+    ],
+    result: NativeType::Structured(&Signature::Result(&Signature::Int, &Signature::Named(NativeTypeId::ByteError))),
+    backend: NativeBackend::Bundled { symbol: "tsrust_std_bytes_at" }, features: &["bytes"],
+};
+pub(crate) const SET: NativeBinding = NativeBinding {
+    module: "std:bytes", name: "set",
+    parameters: &[
+        NativeParameter { name: "bytes", ty: NativeType::Structured(&Signature::Named(NativeTypeId::Bytes)), access: Mode::Mutate, optional: false, rest: false },
+        NativeParameter { name: "index", ty: NativeType::Int, access: Mode::Copy, optional: false, rest: false },
+        NativeParameter { name: "value", ty: NativeType::Int, access: Mode::Copy, optional: false, rest: false },
+    ],
+    result: NativeType::Structured(&Signature::Result(&Signature::Void, &Signature::Named(NativeTypeId::ByteError))),
+    backend: NativeBackend::Bundled { symbol: "tsrust_std_bytes_set" }, features: &["bytes"],
+};
