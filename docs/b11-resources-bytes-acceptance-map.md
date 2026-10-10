@@ -9,7 +9,7 @@ This is the current implementation map. S07 is not accepted or measured.
 | Independent clone, generic/record/array/Map/nullable/Result storage and callable captures | Gate 188 accepted | ownership.tsr; native_declarations.rs; project_intelligence.rs |
 | Validation/reservation atomicity and one argument evaluation | Gate 188 accepted | bytes/runtime.rs tests; access.tsr; growth.tsr; copy-append.tsr; ownership.tsr |
 | Exact disposal and allocation restoration at O0/O3 | Gate 188 accepted | native_byte_cleanup.rs; cleanup.tsr; exact SQLite gate 188 records |
-| Scoped zero-copy readonly/exclusive views, provenance, conflicts and escape diagnostics | Gate 189 pending | resources-bytes-plan.md |
+| Scoped zero-copy readonly/exclusive views, provenance, conflicts and escape diagnostics | Gate 189 pending; metadata and slice helpers implemented, source integration pending | native-byte-views-implementation.md; resources-bytes-plan.md |
 | Strict UTF-8 encoding/decoding and error offsets | Implemented increment; gate 189 still pending views | native-owned-bytes/utf8.tsr; utf8_runtime.rs; resources-bytes-plan.md |
 | Opaque resource consuming close, drop and failure ownership | Gate 190 pending | owner consuming-close decision; resources-bytes-plan.md |
 | Useful synchronous file proof and private instrumented resource backend | Gate 190 pending | resources-bytes-plan.md |

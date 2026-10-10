@@ -600,3 +600,13 @@ lifetime-bearing record/union ABI, typed readable/mutable byte contracts, safe r
 storage/capture rules, zero-copy controls and matched view workloads. The retained
 native-byte-views/read.tsr CLI probe fails because view is not exported. It is not an
 accepted executable fixture. Gate 189 and S07 remain open; no timing was performed.
+
+### Gate 189 returned-borrow groundwork
+
+NativeBinding now carries a validated returned-borrow source/access/payload contract.
+Projection fails before interning unsupported borrowed results, so adding metadata
+alone cannot publish an unsound owned ABI. Existing native bindings remain owned.
+Safe slice helpers share copy's range validation and support readonly/exclusive
+nested reborrows. They are backend groundwork, not source-language view acceptance.
+See native-byte-views-implementation.md for the remaining provenance, representation,
+loan and editor integration. Gate 189 and the S07 milestone remain open.

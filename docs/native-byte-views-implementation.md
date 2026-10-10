@@ -100,3 +100,29 @@ no reservation or hidden owner copy on successful view creation and exact source
 storage identity. Mutable writes must reach the owner. Preserve O0/O3 cleanup through
 all exits. Add the matched view workload before acceptance, not during the later
 family timing run. Full regressions and measurements remain the S07 family milestone.
+
+## Metadata and slice-helper checkpoint
+
+The returned-borrow contract is now explicit in NativeBinding. It identifies the
+source parameter, readonly or exclusive access, the nominal payload identity, and
+either the direct return or Result Ok slot. Validation rejects absent, optional,
+rest, consuming and copy sources, including sources after optional/rest parameters;
+an exclusive result requires a mutate source.
+The source must describe storage, and the selected result slot must have the exact
+payload identity. Export lookup preserves contract errors rather than reporting a
+missing export. All current public bindings explicitly retain owned results.
+
+Type projection validates the contract before interning anything. Until provenance
+and lifetime emission are connected, it rejects even a structurally valid returned
+borrow. This guard is deliberate intermediate safety, not accepted view support.
+Synthetic metadata tests use Bytes as a payload identity without publishing such a
+binding. Introducing ByteView and ByteViewMut must also validate their borrowed
+representation and access capabilities; an owned Bytes payload must not become an
+accepted borrowed representation merely because the metadata slot matches.
+
+The isolated views_runtime.rs backend helpers return actual &[u8] and &mut [u8].
+They share checked_range with copy, preserving start-before-end diagnostics and
+empty end ranges. Readonly and mutable nested reborrows retain source storage;
+mutable writes reach the source. These helpers are not yet emitted or exported by
+Tsrust. Their Rust tests do not prove Tsrust source provenance or lifetime checking.
+The retained read.tsr probe remains red until that integration is implemented.

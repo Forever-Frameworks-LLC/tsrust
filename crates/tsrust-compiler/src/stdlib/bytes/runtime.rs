@@ -175,14 +175,14 @@ fn append_with(bytes: &mut Vec<u8>, values: &[i64], reserve: impl FnOnce(&mut Ve
 pub fn append(bytes: &mut Vec<u8>, values: &[i64]) -> Result<(), ByteFailure> {
     append_with(bytes, values, reserve)
 }
-fn copy_range(bytes: &[u8], start: i64, end: i64) -> Result<&[u8], ByteFailure> {
+fn checked_range(length: usize, start: i64, end: i64) -> Result<std::ops::Range<usize>, ByteFailure> {
     let invalid = |offset| ByteFailure { code: "range", message: "Byte range must satisfy 0 <= start <= end <= length.", offset: Some(offset) };
-    let start_index = usize::try_from(start).ok().filter(|index| *index <= bytes.len()).ok_or_else(|| invalid(start))?;
-    let end_index = usize::try_from(end).ok().filter(|index| *index >= start_index && *index <= bytes.len()).ok_or_else(|| invalid(end))?;
-    Ok(&bytes[start_index..end_index])
+    let start_index = usize::try_from(start).ok().filter(|index| *index <= length).ok_or_else(|| invalid(start))?;
+    let end_index = usize::try_from(end).ok().filter(|index| *index >= start_index && *index <= length).ok_or_else(|| invalid(end))?;
+    Ok(start_index..end_index)
 }
 fn copy_with(bytes: &[u8], start: i64, end: i64, reserve: impl FnOnce(&mut Vec<u8>, usize) -> Result<(), ByteFailure>) -> Result<Vec<u8>, ByteFailure> {
-    let source = copy_range(bytes, start, end)?;
+    let source = &bytes[checked_range(bytes.len(), start, end)?];
     let mut output = Vec::new();
     if !source.is_empty() { reserve(&mut output, source.len())?; }
     output.extend_from_slice(source);
@@ -230,4 +230,10 @@ mod copy_append_tests {
 mod utf8 {
     use super::*;
     include!("utf8_runtime.rs");
+}
+
+#[cfg(test)]
+mod views {
+    use super::*;
+    include!("views_runtime.rs");
 }

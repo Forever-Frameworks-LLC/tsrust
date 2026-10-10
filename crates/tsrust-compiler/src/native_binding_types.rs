@@ -11,6 +11,14 @@ fn key(signature: &Signature) -> Result<String, Diagnostic> {
 }
 
 pub(crate) fn prepare(records: &mut Vec<Record>, binding: &NativeBinding, span: Span) -> Result<(), Diagnostic> {
+    binding.validate_returned_borrow().map_err(|error| Diagnostic::new(
+        "native-return-borrow-contract", format!("Invalid native returned-borrow contract: {error:?}."), span,
+    ))?;
+    // Fail closed until source provenance and lifetime-bearing emission are integrated.
+    // A valid contract must never be projected as an ordinary owned result.
+    if binding.returned_borrow.is_some() {
+        return Err(Diagnostic::new("native-return-borrow", "Native returned borrows require source provenance and a lifetime-bearing backend representation.", span));
+    }
     for ty in binding.parameters.iter().map(|parameter| parameter.ty).chain(std::iter::once(binding.result)) {
         let NativeType::Structured(signature) = ty else { continue; };
         let name = key(signature)?;
@@ -41,7 +49,7 @@ mod tests {
     #[test]
     fn recursive_native_signatures_share_checked_result_identity() {
         static RESULT: Signature = Signature::Result(&Signature::Named(NativeTypeId::Bytes), &Signature::Named(NativeTypeId::ByteError));
-        let binding = NativeBinding { module: "std:bytes", name: "probe", parameters: &[NativeParameter {
+        let binding = NativeBinding { returned_borrow: None, module: "std:bytes", name: "probe", parameters: &[NativeParameter {
             name: "values", ty: NativeType::Structured(&Signature::Array(&Signature::Int)), access: crate::Mode::Read, optional: false, rest: false,
         }], result: NativeType::Structured(&RESULT), backend: NativeBackend::Bundled { symbol: "unused" }, features: &[] };
         let mut program = crate::syntax::parse("function main(){}").unwrap();

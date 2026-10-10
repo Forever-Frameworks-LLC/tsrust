@@ -40,6 +40,7 @@ mod generic_call_validation;
 mod generic_defaults;
 mod source_walk;
 pub mod native_bindings;
+pub mod native_return_borrows;
 pub mod native_signatures;
 pub mod native_types;
 mod native_binding_types;

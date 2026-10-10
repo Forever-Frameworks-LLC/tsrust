@@ -54,6 +54,8 @@ pub struct NativeBinding {
     pub name: &'static str,
     pub parameters: &'static [NativeParameter],
     pub result: NativeType,
+    /// Source loan carried by a native return payload, when present.
+    pub returned_borrow: Option<crate::native_return_borrows::ReturnedBorrow>,
     pub backend: NativeBackend,
     pub features: &'static [&'static str],
 }
@@ -110,6 +112,10 @@ pub fn lookup(module: &str, name: &str) -> Result<&'static NativeBinding, String
         .iter()
         .find(|binding| binding.module == module && binding.name == name)
         .ok_or_else(|| format!("Standard-library module {module:?} does not export {name:?}."))
+        .and_then(|binding| {
+            binding.validate_returned_borrow().map_err(|error| format!("Invalid native returned-borrow contract for {module}::{name}: {error:?}."))?;
+            Ok(binding)
+        })
 }
 /// Deterministic native feature selection from resolved imports. Unknown exports are errors.
 pub fn selected_features<'a>(
