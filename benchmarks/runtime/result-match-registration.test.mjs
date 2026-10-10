@@ -27,12 +27,12 @@ test('Result match workloads retain independent observations, source guards and 
         assert.throws(() => assertResultMatchSource(source + ' ', row, kind));
         assert.throws(() => assertResultMatchSource(source, {...row, operationsPerIteration: 2}, kind));
         const key = kind === 'native' ? 'sourceSha256' : 'counterpartSha256';
-        for (const from of ['const first = inspect(result);', 'const second = inspect(result);', 'output.push([first, second, owned, callA, callB]);']) {
+        for (const from of ['const first = inspect(result);', 'const second = inspect(result);', 'update(editable);', 'output.push([first, second, owned, callA, callB, mutated]);']) {
             const changed = replaceCodeSnippet(source, from, '');
             assert.throws(() => assertResultMatchSource(changed, {...row, [key]: createHash('sha256').update(changed).digest('hex')}, kind));
         }
     }
-    assert.deepEqual(expectedResultMatchValues(row.id, 3, 0, 'results'), [[2, 2, 8, 2, 3], [4, 4, 9, 3, 4], [24, 24, 19, 4, 5]]);
+    assert.deepEqual(expectedResultMatchValues(row.id, 3, 0, 'results'), [[2, 2, 8, 2, 3, 10], [4, 4, 9, 3, 4, 6], [24, 24, 19, 4, 5, 10]]);
     for (const seed of [0, 7, 1000000]) for (const n of [0, 1, 37, 2048]) {
         const expected = expectedResultMatchObservation(row.id, n, seed, 'results');
         assert.deepEqual(expectedExactResult(row.id, n, seed, 'results'), expected);

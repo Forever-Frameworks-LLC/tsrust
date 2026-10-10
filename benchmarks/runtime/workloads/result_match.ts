@@ -14,6 +14,10 @@ function inspect(result: Result<User, int>): int {
     }
 }
 
+function update(result: Result<User, int[]>): void {
+    switch (result.kind) { case "Ok": result.value.value += 2; break; case "Err": result.error.push(7); break; }
+}
+
 function counter(start: int): Result<() => int, int> {
     if (start % 4 === 0) { return { kind: "Err", error: start }; }
     let value = start;
@@ -33,6 +37,11 @@ function workload(n: int, seed: int, input: string): int[][] {
             case "Ok": owned = result.value.value + 7; break;
             case "Err": owned = result.error + 11; break;
         }
+        const editable: Result<User, int[]> = value % 2 === 0 ? { kind: "Ok", value: { value } } : { kind: "Err", error: [value] };
+        update(editable);
+        update(editable);
+        let mutated = 0;
+        switch (editable.kind) { case "Ok": mutated = editable.value.value; break; case "Err": mutated = editable.error.length + editable.error[2]; break; }
         const callback = counter(value);
         let callA = 0;
         let callB = 0;
@@ -40,7 +49,7 @@ function workload(n: int, seed: int, input: string): int[][] {
             case "Ok": callA = callback.value(); callB = callback.value(); break;
             case "Err": callA = callback.error; callB = callback.error + 1; break;
         }
-        output.push([first, second, owned, callA, callB]);
+        output.push([first, second, owned, callA, callB, mutated]);
         i += 1;
     }
     return output;

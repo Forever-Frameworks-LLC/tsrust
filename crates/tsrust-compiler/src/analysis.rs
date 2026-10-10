@@ -198,8 +198,10 @@ pub struct Binding {
     pub capture_reference: bool,
     /// Shared element storage exists only for the enclosing for-of iteration.
     pub borrowed_element: Option<Span>,
-    /// Scoped readonly result borrowed from assignment storage.
+    /// Scoped storage borrow; mutable_place distinguishes exclusive match access.
     pub borrowed_place: Option<Span>,
+    /// Exclusive scoped match alias; ownership remains with its source.
+    pub mutable_place: bool,
     /// Receiver roots kept alive by a scoped optional-element view.
     pub view_roots: Vec<usize>,
     pub callback_invocation: Option<Mode>,
@@ -506,6 +508,8 @@ struct Context {
     /// Parameters declared ReadOnly. A const taken from one of their
     /// positions borrows it for reading.
     readonly_parameters: HashSet<usize>,
+    mutable_parameters: HashSet<usize>,
+    mutable_match_borrows: Vec<usize>,
 }
 impl Context {
     #[inline]
@@ -557,6 +561,8 @@ impl Context {
             returned_symbolic_call: false,
             function_name,
             readonly_parameters: HashSet::new(),
+            mutable_parameters: HashSet::new(),
+            mutable_match_borrows: Vec::new(),
         }
     }
 }
@@ -2246,6 +2252,9 @@ impl Analyzer {
             if param.access.as_ref().is_some_and(|access|access.text=="read") && !body_ty.is_copy() {
                 context.readonly_parameters.insert(binding);
             }
+            if param.access.as_ref().is_some_and(|access|access.text=="mutate") && !body_ty.is_copy() {
+                context.mutable_parameters.insert(binding);
+            }
             self.initialize_parameter_pattern(&mut context,&param.name,body,param.access.as_ref().is_some_and(|access|access.text=="consume"))?;
         }
         let method_template = parameters.iter().any(|&parameter| matches!(self.unions.payload(context.bindings[parameter].ty).unwrap_or(context.bindings[parameter].ty),Type::Callback(_)));
@@ -2569,6 +2578,7 @@ impl Analyzer {
                     capture_reference: false,
                     borrowed_element: None,
                     borrowed_place: None,
+                    mutable_place: false,
                     callback_invocation: None,
                     callback_reference: false,
                     callback_kind: None,
@@ -2754,6 +2764,7 @@ impl Analyzer {
                     capture_reference: false,
                     borrowed_element: None,
                     borrowed_place: None,
+                    mutable_place: false,
                     view_roots: Vec::new(),
                     callback_invocation: None,
                     callback_reference: false,
@@ -2902,6 +2913,7 @@ impl Analyzer {
             capture_reference: false,
             borrowed_element: None,
             borrowed_place: None,
+            mutable_place: false,
             view_roots: Vec::new(),
             callback_invocation: Some(invocation),
             callback_reference: false,
@@ -2985,6 +2997,7 @@ impl Analyzer {
             capture_reference: false,
             borrowed_element: None,
             borrowed_place: None,
+            mutable_place: false,
             view_roots: Vec::new(),
             callback_invocation: Some(Mode::Consume),
             callback_reference: false,
@@ -3638,6 +3651,7 @@ impl Analyzer {
                 capture_reference: false,
                 borrowed_element: None,
                 borrowed_place: None,
+                mutable_place: false,
                 view_roots: Vec::new(),
                 callback_invocation: None,
                 callback_reference: false,
@@ -4258,6 +4272,7 @@ impl Analyzer {
             if matches!(self.program.functions[index].parameter_access[position],Some((Mode::Read,_))) && !body_ty.is_copy() {
                 context.readonly_parameters.insert(binding);
             }
+            if matches!(self.program.functions[index].parameter_access[position], Some((Mode::Mutate, _))) { context.mutable_parameters.insert(binding); }
             self.initialize_parameter_pattern(&mut context,param,body,matches!(self.program.functions[index].parameter_access[position],Some((Mode::Consume,_))))?;
         }
         Ok(context)
@@ -5632,6 +5647,7 @@ impl Analyzer {
             entry_loans.unwind(&mut context.capture_loans);
             let _ = context.capture_loan_owners.leave_scope(first_local);
             Self::restore_live_capture_loans(context);
+            context.mutable_match_borrows.retain(|id| *id < first_local);
             for binding in &context.bindings[first_local..] {
                 context.names.remove(&binding.name);
             }
@@ -5682,6 +5698,8 @@ impl Analyzer {
             .is_some_and(|ty| matches!(ty, Type::BorrowedUnion(_)));
         let place_view = self.borrowed_place_hint(context, value)
             || self.indexed_element_hint(context, value);
+        let mutable_view = Self::mutable_match_initializer(context, name, value)
+            && !self.expression_type_hint(context, value).is_some_and(Type::is_copy);
         let mut removal = Self::array_removal_snapshot(context, value);
         let retained_sequence = self.prepare_bound_removal_sequence(context, value);
         let mut actual = if retained_sequence {
@@ -5691,7 +5709,9 @@ impl Analyzer {
         } else { self.expression(
             context,
             value,
-            if view || place_view {
+            if mutable_view {
+                Mode::Mutate
+            } else if view || place_view {
                 Mode::Read
             } else {
                 Mode::Consume
@@ -5750,11 +5770,18 @@ impl Analyzer {
         }
         let callback = Self::conditional_callback_metadata(context, value)?;
         // A borrowed owned union is held as its readonly view.
-        if place_view && let Type::Union(union) = actual && !union.copy {
+        if place_view && !mutable_view && let Type::Union(union) = actual && !union.copy {
             actual = Type::BorrowedUnion(union);
         }
         let id = Self::bind(context, name, actual, false)?;
-        self.attach_binding_capture_loans(context, value, id, !(view || place_view));
+        if mutable_view {
+            context.bindings[id].mutable_place = true;
+            context.mutable_match_borrows.push(id);
+            context.bindings[id].borrowed_place = Some(value.span);
+            context.bindings[id].view_roots = Self::view_sources(context, value);
+            context.bindings[id].used = Some(value.span);
+        }
+        self.attach_binding_capture_loans(context, value, id, !(view || place_view || mutable_view));
         Self::finish_bound_array_removal(context, value, removal, id);
         if let Some(kind) = nullable_callback {
             context.bindings[id].callback_kind = Some(kind);
@@ -5762,7 +5789,7 @@ impl Analyzer {
         }
         context.bindings[id].rebindable =
             rebindable && !matches!(actual, Type::BorrowedUnion(_)) && !place_view;
-        if matches!(actual, Type::BorrowedUnion(_)) || (place_view && !actual.is_copy())
+        if !mutable_view && (matches!(actual, Type::BorrowedUnion(_)) || (place_view && !actual.is_copy()))
         {
             if place_view && !matches!(actual, Type::BorrowedUnion(_)) {
                 context.bindings[id].borrowed_place = Some(value.span);
@@ -6630,6 +6657,7 @@ impl Analyzer {
             capture_reference: false,
             borrowed_element: None,
             borrowed_place: None,
+            mutable_place: false,
             view_roots: Vec::new(),
             callback_invocation: None,
             callback_reference: false,
@@ -6708,7 +6736,11 @@ impl Analyzer {
     }
 
     fn check_element_access(binding: &Binding, mode: Mode, span: Span) -> Result<(), Diagnostic> {
+        if binding.mutable_place && mode == Mode::Consume && !binding.ty.is_copy() {
+            return Err(Diagnostic::new("borrowed-place", "A mutable match payload borrows its source and cannot transfer ownership; use clone() for independent ownership.", span));
+        }
         if matches!(mode, Mode::Mutate | Mode::Consume)
+            && !binding.mutable_place
             && let Some(start) = binding.borrowed_place
         {
             return Err(Diagnostic::new("borrowed-place","A scoped assignment result is readonly and cannot transfer or escape; use clone() for independent ownership.",span).related(start,"Assignment storage borrowed here."));
@@ -6729,6 +6761,7 @@ impl Analyzer {
         span: Span,
         loans: &Loans,
     ) -> Result<(), Diagnostic> {
+        Self::check_mutable_match_owner(context, index, span)?;
         if matches!(mode, Mode::Mutate | Mode::Consume) {
             if !context.effects_only {
                 if matches!(context.bindings[index].ty, Type::BorrowedUnion(_)) {

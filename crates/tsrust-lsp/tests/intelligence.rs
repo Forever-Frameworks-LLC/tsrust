@@ -46,6 +46,23 @@ fn result_match_readonly_payloads_keep_hover_and_member_help() {
 }
 
 #[test]
+fn mutable_result_match_payloads_keep_checked_help_and_conflict_diagnostics() {
+    let source = tsrust_compiler::format("type User={name:string;};function update(result:Mutable<Result<User,int[]>>):void{match(result){Ok(user)=>{user.name=\"changed\";},Err(values)=>{values.push(7);}}}function main(){}").unwrap();
+    assert_eq!(tsrust_compiler::format(&source).unwrap(), source);
+    tsrust_compiler::check(&source).unwrap();
+    let hover = ask(&source, "textDocument/hover", "user.name", 0);
+    assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("user: User"), "{hover}");
+    let help = ask(&source, "textDocument/signatureHelp", "7);", 0);
+    assert!(help["signatures"].as_array().is_some_and(|items| !items.is_empty()), "{help}");
+    let definition = ask(&source, "textDocument/definition", "values.push", 0);
+    assert_eq!(definition["range"]["start"], json!(at(&source, "values) =>", 0)), "{definition}");
+    let conflict = source.replace("values.push(7);", "console.log(result); values.push(7);");
+    assert_ne!(source, conflict);
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&conflict, "file:///mutable-result.tsr").unwrap()).unwrap();
+    assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "view-conflict"), "{diagnostics}");
+}
+
+#[test]
 fn result_match_callable_payloads_have_checked_signature_help() {
     let source = tsrust_compiler::format("function main(){const result:Result<Function<int,[amount:int]>,string>=Ok((amount:int):int=>amount+2);match(result){Ok(action)=>{console.log(action(3));},Err(_)=>{}}}").unwrap();
     assert_eq!(tsrust_compiler::format(&source).unwrap(), source);

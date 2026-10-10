@@ -23,6 +23,17 @@ function inspect(result: ReadOnly<Result<User, int>>): int {
     }
 }
 
+function update(result: Mutable<Result<User, int[]>>): void {
+    match (result) {
+        Ok(user) => {
+            user.value += 2;
+        },
+        Err(values) => {
+            values.push(7);
+        }
+    }
+}
+
 function counter(start: int): Result<Function<int>, int> {
     if (start % 4 === 0) {
         return Err(start);
@@ -52,6 +63,21 @@ function workload(n: int, seed: int, input: string): int[][] {
             },
         }
 
+        const editable: Result<User, int[]> = value % 2 === 0 ? Ok({
+            value: value
+        }) : Err([value]);
+        update(editable);
+        update(editable);
+        let mutated = 0;
+        match (editable) {
+            Ok(user) => {
+                mutated = user.value;
+            },
+            Err(values) => {
+                mutated = values.length + values[2];
+            }
+        }
+
         const callback = counter(value);
         let callA = 0;
         let callB = 0;
@@ -66,7 +92,7 @@ function workload(n: int, seed: int, input: string): int[][] {
             },
         }
 
-        output.push([first, second, owned, callA, callB]);
+        output.push([first, second, owned, callA, callB, mutated]);
         i += 1;
     }
 

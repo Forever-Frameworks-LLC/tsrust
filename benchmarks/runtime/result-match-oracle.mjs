@@ -7,7 +7,7 @@ export function expectedResultMatchValues(id, n, seed, input) {
         const inspected = value % 3 === 0 ? (value + 5) * 3 : value * 2;
         const owned = value + (value % 3 === 0 ? 16 : 7);
         const called = value + (value % 4 === 0 ? 0 : 1);
-        return [inspected, inspected, owned, called, called + 1];
+        return [inspected, inspected, owned, called, called + 1, value % 2 === 0 ? value + 4 : 10];
     });
 }
 

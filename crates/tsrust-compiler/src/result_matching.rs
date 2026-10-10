@@ -3,6 +3,32 @@ use super::*;
 use crate::match_coverage::{Coverage, CoverageError};
 
 impl Analyzer {
+    pub(super) fn check_mutable_match_owner(context: &Context, index: usize, span: Span) -> Result<(), Diagnostic> {
+        if !context.effects_only {
+            if let Some(holder) = context.mutable_match_borrows.iter().copied().filter(|id| context.bindings[*id].view_roots.contains(&index) && context.names.get(&context.bindings[*id].name) == Some(id)).min() {
+                let holder = &context.bindings[holder];
+                return Err(Diagnostic::new("view-conflict", "Cannot access the Result or a parent payload while a match borrows it exclusively. Access the selected match payload instead.", span).related(holder.used.unwrap_or(span), "Exclusive match borrow starts here."));
+            }
+        }
+        Ok(())
+    }
+
+    pub(super) fn mutable_match_source(context: &Context, value: &Expr) -> bool {
+        match &value.kind {
+            ExprKind::Name(name) => context.names.get(name).is_some_and(|id| context.mutable_parameters.contains(id) || context.bindings[*id].mutable_place),
+            ExprKind::Field(base, _) | ExprKind::Project { value: base, .. } => Self::mutable_match_source(context, base),
+            ExprKind::Call(callee, arguments) if matches!(&callee.kind, ExprKind::Name(name) if name == "@match:payload") => arguments.first().is_some_and(|value| Self::mutable_match_source(context, value)),
+            _ => false,
+        }
+    }
+
+    pub(super) fn mutable_match_initializer(context: &Context, name: &Token, value: &Expr) -> bool {
+        let generated = name.text.starts_with("match#")
+            || matches!(&value.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Name(name) if name == "@match:payload"))
+            || matches!(&value.kind, ExprKind::Project { .. }) && name.text.starts_with("pattern#")
+            || matches!(&value.kind, ExprKind::Field(base, _) if matches!(&base.kind, ExprKind::Name(name) if name.starts_with("pattern#")));
+        generated && Self::mutable_match_source(context, value)
+    }
     pub(super) fn result_variant_records(&self, ty: Type) -> Option<(UnionId, [usize; 2])> {
         let union = ty.union()?;
         let members = self.unions.members(union);
@@ -63,6 +89,7 @@ impl Analyzer {
         let ExprKind::String(label) = &arguments[1].kind else { unreachable!("lowered pattern tag"); };
         let record = match label.as_str() { "Ok" => variants[0], "Err" => variants[1], _ => unreachable!("coverage validated pattern") };
         let value = arguments[0].clone();
+        let mutable = Self::mutable_match_source(context, &value);
         if kind == "@match:variant" {
             *expression = Expr::new(ExprKind::Unary { op: UnaryOp::VariantIs(Type::Record(record)), operator: expression.span, value: Box::new(value) }, expression.span);
             return self.expression(context, expression, Mode::Read, loans, Some(Type::Boolean)).map(Some);
@@ -71,7 +98,7 @@ impl Analyzer {
             return Err(Diagnostic::new("match-payload", "A void variant has no payload to bind; use _ inside its pattern.", expression.span));
         }
         *expression = Expr::checked(ExprKind::Project { value: Box::new(value), union, narrowed: Type::Record(record) }, expression.span, Some(Type::Record(record)));
-        let access = if matches!(ty, Type::BorrowedUnion(_)) { Mode::Read } else { Mode::Consume };
+        let access = if mutable { Mode::Mutate } else if matches!(ty, Type::BorrowedUnion(_)) { Mode::Read } else { Mode::Consume };
         self.expression(context, expression, access, loans, Some(Type::Record(record))).map(Some)
     }
 }

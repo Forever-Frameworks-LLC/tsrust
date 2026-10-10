@@ -1,6 +1,86 @@
 mod support;
 
 #[test]
+fn mutable_result_matches_update_selected_payload_and_release_the_borrow() {
+    let directory = support::TempDirectory::new();
+    let source = r#"
+import { strictEqual } from "std:testing";
+type User = { name: string; count: int; };
+function update(result: Mutable<Result<User, int[]>>): void {
+    match (result) {
+        Ok(user) => { user.name = "updated"; user.count += 1; },
+        Err(values) => { values.push(7); },
+    }
+}
+function nested(result: Mutable<Result<Result<User, int[]>, string>>): void {
+    match (result) {
+        Ok(inner) => { match (inner) { Ok(user) => { user.count += 2; }, Err(values) => { values.push(9); } } },
+        Err(_) => {},
+    }
+}
+function scalar(result: Mutable<Result<int, string>>): int {
+    match (result) { Ok(value) => { return value + 1; }, Err(error) => { return error.length; } }
+}
+function counterResult(): Result<Function<int>, string> {
+    let value = 10;
+    return Ok((): int => { value += 1; return value; });
+}
+function tick(result: Mutable<Result<Function<int>, string>>): int {
+    match (result) { Ok(action) => { return action(); }, Err(error) => { return error.length; } }
+}
+function main() {
+    const success: Result<User, int[]> = Ok({ name: "Pat", count: 1 });
+    update(success);
+    update(success);
+    match (success) {
+        Ok(user) => { strictEqual(user.name, "updated"); strictEqual(user.count, 3); },
+        Err(_) => { strictEqual(1, 0); },
+    }
+    const failure: Result<User, int[]> = Err([4]);
+    update(failure);
+    update(failure);
+    match (failure) {
+        Ok(_) => { strictEqual(1, 0); },
+        Err(values) => { strictEqual(values.length, 3); strictEqual(values[1], 7); },
+    }
+    const wrapped: Result<Result<User, int[]>, string> = Ok(Ok({ name: "nested", count: 4 }));
+    nested(wrapped);
+    match (wrapped) { Ok(inner) => { match (inner) { Ok(user) => { strictEqual(user.count, 6); }, Err(_) => { strictEqual(1, 0); } } }, Err(_) => { strictEqual(1, 0); } }
+    const integer: Result<int, string> = Ok(4);
+    strictEqual(scalar(integer), 5);
+    strictEqual(scalar(integer), 5);
+    const edit = (result: Mutable<Result<User, int[]>>): void => {
+        match (result) { Ok(user) => { user.count += 3; }, Err(values) => { values.push(8); } }
+    };
+    const viaArrow: Result<User, int[]> = Ok({ name: "arrow", count: 1 });
+    edit(viaArrow);
+    match (viaArrow) { Ok(user) => { strictEqual(user.count, 4); }, Err(_) => { strictEqual(1, 0); } }
+    const counted = counterResult();
+    strictEqual(tick(counted), 11);
+    strictEqual(tick(counted), 12);
+    match (counted) { Ok(action) => { strictEqual(action(), 13); }, Err(_) => { strictEqual(1, 0); } }
+}
+"#;
+    let path = directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path), 60));
+}
+
+#[test]
+fn mutable_result_payload_borrows_cannot_escape_or_overlap_the_owner() {
+    for source in [
+        "function escape(result:Mutable<Result<string,int>>):string{match(result){Ok(value)=>{return value;},Err(_)=>{return \"fallback\";}}}function main(){}",
+        "function escape(result:Mutable<Result<string,int>>):Function<string>{match(result){Ok(value)=>{return ():string=>value;},Err(_)=>{return ():string=>\"fallback\";}}}function main(){}",
+        "function invoke(result:Mutable<Result<Once<Function<int>>,string>>):int{match(result){Ok(action)=>{return action();},Err(_)=>{return 0;}}}function main(){}",
+        "function overlap(result:Mutable<Result<string,int>>):void{match(result){Ok(value)=>{console.log(result);console.log(value);},Err(_)=>{}}}function main(){}",
+        "function clear(result:Mutable<Result<string,int>>):void{}function replace(result:Mutable<Result<string,int>>):void{match(result){Ok(value)=>{clear(result);console.log(value);},Err(_)=>{}}}function main(){}",
+    ] {
+        let formatted = support::format_round_trip(source);
+        let error = tsrust_compiler::check(&formatted).err().expect("exclusive payload borrow must remain scoped");
+        assert!(matches!(error.code, "borrowed-place" | "view-conflict"), "{}: {}", error.code, error.message);
+    }
+}
+
+#[test]
 fn readonly_result_matches_lend_payloads_without_consuming_the_caller() {
     let directory = support::TempDirectory::new();
     let source = r#"

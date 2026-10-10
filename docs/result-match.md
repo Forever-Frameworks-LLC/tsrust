@@ -62,6 +62,35 @@ can produce an independent value when the payload supports cloning. Matching a
 borrowed Result during array iteration also leaves the array elements owned by
 the array. Arm borrows end with their scope.
 
+A `Mutable<Result<T, E>>` parameter lends exclusive access during the match.
+Changes to record fields or array contents update the caller's selected payload:
+
+```ts
+function append(result: Mutable<Result<int[], string>>): void {
+    match (result) {
+        Ok(values) => { values.push(9); },
+        Err(_) => {},
+    }
+}
+
+const editable: Result<int[], string> = Ok([1]);
+append(editable);
+append(editable);
+match (editable) {
+    Ok(values) => { console.log(values.length); },
+    Err(_) => {},
+}
+// 3
+```
+
+The exclusive payload borrow cannot transfer ownership or escape in a closure.
+Access the payload rather than its original Result while the match holds that
+borrow. After the match returns, the caller can borrow or consume the Result again.
+Scalar payloads copy into pattern bindings, following the ordinary scalar rules;
+pattern bindings themselves are not reassignable variables. Nested match statements
+preserve exclusive access to nested owned payloads. Explicit cloning remains
+available for cloneable payloads.
+
 Explicit propagation uses a return in the failure arm:
 
 ```ts
@@ -76,7 +105,7 @@ function doubledQuotient(a: int, b: int): Result<int, string> {
 ## Implementation status
 
 The first construction/matching increment has focused compiler and native evidence.
-B10 is not accepted. Mutable matching, project-wide pattern-binding assistance, cleanup stress and
+B10 is not accepted. Project-wide pattern-binding assistance, cleanup stress and
 family acceptance remain open. Match expressions, guards, nested destructuring
 patterns, `?` propagation and general discriminated unions are not implemented.
 Nested match statements are supported.

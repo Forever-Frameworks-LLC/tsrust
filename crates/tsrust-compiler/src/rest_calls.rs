@@ -126,6 +126,7 @@ impl Analyzer {
                 capture_reference: matches!(storage, Mode::Read | Mode::Mutate),
                 borrowed_element: None,
                 borrowed_place: None,
+                mutable_place: false,
                 view_roots: Vec::new(),
                 callback_invocation: Some(invocation),
                 callback_reference: false,

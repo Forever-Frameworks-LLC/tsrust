@@ -3,6 +3,15 @@
 Status: implementation started. The owner accepted Rust-style `Ok` and `Err`
 constructors and exhaustive `match` on 2026-10-10. B10 is not accepted.
 
+Latest increment: mutable matching lends owned payloads exclusively, including
+nested matches and callable payloads. Sixteen Result tests, six syntax tests, ten
+depth canaries and 37 affected editor tests pass. Five adjacent capture-context
+tests pass. Six catalog examples execute with exact output after idempotent
+formatting. The matched workload includes record and array mutation and passes
+five untimed cases on native and Node-after-tsc. Project assistance, cleanup stress
+and the family milestone remain open. Historical increments below retain their
+original evidence and are superseded by this current status.
+
 ## Public contract
 
 `Result<T, E>` stores exactly one payload. `Ok(value)` constructs success and

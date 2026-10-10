@@ -85,7 +85,8 @@ impl Parser<'_> {
 
     #[inline(never)]
     pub(super) fn lower_match_statement(&mut self) -> Result<Stmt, Diagnostic> {
-        let holder = self.pattern_holder();
+        let mut holder = self.pattern_holder();
+        holder.text = holder.text.replace("pattern#", "match#");
         let ParsedMatch { scrutinee, arms, span } = self.match_statement_syntax()?;
         let statement = |kind, span| Stmt { labels: Vec::new(), control_target: None, kind, span };
         let intrinsic = |name: &str, tag: Option<(&str, Span)>, span: Span| {

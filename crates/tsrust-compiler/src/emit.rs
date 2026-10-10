@@ -2354,7 +2354,7 @@ impl Emitter<'_> {
                 .iter()
                 .map(|&id| {
                     let binding = &closure.function.bindings[id];
-                    let mutable = if binding.mode == Mode::Consume && binding.mutable {
+                    let mutable = if binding.mutable && (binding.mode == Mode::Consume || (binding.mode == Mode::Mutate && (binding.omission.is_omittable() || self.multiple_data_union(binding.ty)))) {
                         "mut "
                     } else {
                         ""
@@ -3427,7 +3427,7 @@ impl Emitter<'_> {
                         continue;
                     }
                     let scoped_alias =
-                        matches!(b.ty, Type::BorrowedUnion(_)) || b.borrowed_place.is_some();
+                        matches!(b.ty, Type::BorrowedUnion(_)) || b.borrowed_place.is_some() || b.mutable_place;
                     // Keep selected fresh owners in the alias binding's scope,
                     // rather than draining them into the initializer block.
                     let expression_depth = self.expression_depth.get();
@@ -3439,7 +3439,9 @@ impl Emitter<'_> {
                             self.expr(
                                 fun,
                                 value,
-                                if scoped_alias {
+                                if b.mutable_place {
+                                    Mode::Mutate
+                                } else if scoped_alias {
                                     Mode::Read
                                 } else {
                                     Mode::Consume
@@ -3458,6 +3460,8 @@ impl Emitter<'_> {
                         {
                             format!("Union{}<TsrAbsentCallable>", b.ty.union().unwrap().index())
                         } else if matches!(b.ty, Type::Callback(_)) {
+                            "_".into()
+                        } else if b.mutable_place {
                             "_".into()
                         } else if b.borrowed_place.is_some() {
                             format!("&{}", self.local_callback_environment_type(b.ty))
@@ -6404,7 +6408,8 @@ impl Emitter<'_> {
                 || (b.callback_reference && b.initializer.is_none()
                     && !(b.parameter && (b.omission.is_omittable() || (b.mode==Mode::Mutate && self.multiple_data_union(b.ty))) && b.ty.union().is_some()))
                 || b.borrowed_element.is_some()
-                || b.borrowed_place.is_some()))
+                || b.borrowed_place.is_some()
+                || b.mutable_place))
             || (b.ty.is_copy() && b.capture_reference)
         {
             "*"

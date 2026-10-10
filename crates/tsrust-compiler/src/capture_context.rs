@@ -42,6 +42,8 @@ pub(super) fn project(outer: &Context, slots: &[usize]) -> Context {
             .insert(binding.name.clone(), context.bindings.len());
         context.bindings.push(binding);
     }
+    context.mutable_parameters = outer.mutable_parameters.iter().filter_map(|id| remap.get(id).copied()).collect();
+    context.mutable_match_borrows = context.bindings.iter().enumerate().filter_map(|(id, binding)| binding.mutable_place.then_some(id)).collect();
     context.source_bindings = outer
         .source_bindings
         .iter()
