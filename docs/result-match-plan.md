@@ -287,3 +287,37 @@ regression rejects wrong parameter and error signatures. Verification is stored 
 `runtime/results/2026-10-10T12-41-18-287Z.json` overlapped the compiler regression
 run and is retained only as contaminated evidence, not acceptance performance.
 Repeat measurement after regressions stop; preserve both records separately.
+
+## Family regression repair in progress
+
+The first complete compiler run stopped at `generic_value_adapters`: 1,533 checks
+passed and one failed, with 102 started suites and 102 result summaries. No suite
+aborted. The original failed record is retained at
+`runtime/results/result-match-family-2026-10-10-regressions.json`. The existing
+optional-call witness exposed a regression: a statically absent nongeneric callable
+accepted explicit type arguments after Result constructor specialization enabled
+the generic preparation pass in programs without generic declarations. Optional
+chains now validate their explicit callable applications before absence lowering.
+All six optional generic-call controls pass. The original witness now includes
+the source in its failure message, and a formatted editor diagnostic witness guards
+the same behavior. Resume begins with the failed suite; preceding passed suites
+remain preserved, and the complete editor suite is still required.
+
+TextMate now classifies `Result` with the other built-in generic types and `Ok`/`Err`
+with built-in functions, including explicit constructor type arguments. A red
+tokenization witness preceded the repair; extension compilation and grammar checks
+pass. Fallible workload ABI evidence is stored at
+`runtime/results/result-match-harness-2026-10-10-checks.json`.
+
+The resumed compiler run passes 1,308 checks; combined with the 1,446 preceding
+checks outside the originally failed suite, complete compiler coverage is 2,754
+passes, zero failures, three intentional ignores and no aborted suite. All ten
+depth canaries and compiler doctests pass after the optional-chain repair. The
+complete editor run found one missing catalog witness registration for the new
+globals. Registering their formatted documented examples repairs it; the entire
+affected intelligence suite passes 311 checks, yielding 472 editor passes, zero
+failures and one intentional ignore across the preserved family run. All 41 editor
+suites produced result summaries. Extension compilation and grammar checks pass.
+Evidence paths are `runtime/results/result-match-family-2026-10-10-resumed.json`,
+`runtime/results/result-match-family-2026-10-10-final-controls.json` and
+`runtime/results/result-match-family-2026-10-10-editor-repair.json`.

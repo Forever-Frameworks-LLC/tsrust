@@ -854,6 +854,16 @@ fn every_catalog_entry_has_a_current_compiler_witness() {
                 continue;
             }
             if family == "globals" {
+                if matches!(method, "Result" | "Ok" | "Err") {
+                    let examples = entry["examples"].as_array().expect("Result examples");
+                    assert!(!examples.is_empty(), "{method} needs a witness example");
+                    for example in examples {
+                        let source = tsrust_compiler::format(&format!("function main(){{{}}}", example["source"].as_str().unwrap())).unwrap();
+                        assert_eq!(tsrust_compiler::format(&source).unwrap(), source);
+                        tsrust_compiler::check(&source).unwrap_or_else(|error| panic!("{method}: {}", error.render("example.tsr", &source)));
+                    }
+                    continue;
+                }
                 // Built-in function and access types are witnessed in type position.
                 let type_witness = match method {
                     "Function" => Some("Function<int, [int]>"),
@@ -9837,4 +9847,14 @@ fn captured_installer_receiver_keeps_hidden_borrow_diagnostic() {
     assert_ne!(conflict, source);
     let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&conflict, uri).unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "capture-conflict"), "{diagnostics}");
+}
+
+#[test]
+fn absent_optional_calls_still_reject_nongeneric_type_arguments() {
+    let source = tsrust_compiler::format("function main(){const candidate=(value:int):int=>value;const action=false?candidate:undefined;action?.<int>(1);}").unwrap();
+    assert_eq!(tsrust_compiler::format(&source).unwrap(), source);
+    let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&source, "file:///optional-types.tsr").unwrap()).unwrap();
+    assert_eq!(diagnostics[0]["code"], "type", "{diagnostics}");
+    assert!(diagnostics[0]["message"].as_str().unwrap().contains("generic function value"), "{diagnostics}");
+    assert_eq!(diagnostics[0]["range"]["start"], json!(at(&source, "action?.", 0)), "{diagnostics}");
 }

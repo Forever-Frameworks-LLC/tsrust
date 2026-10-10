@@ -421,7 +421,7 @@ fn optional_generic_calls_preserve_type_and_receiver_loan_constraints() {
         "function identity<T>(value:T):T{return value;}function main(){const candidate=identity;const action=true?candidate:undefined;action?.<int,string>(1);}",
         "function make(){let calls=0;function select<T>(value:T):T{calls+=1;return value;}return select;}function main(){const action=true?make():undefined;action?.<int>(action?.<int>(1)??0);}",
     ] {
-        let error=tsrust_compiler::check(source).err().expect("optional calls retain type and receiver constraints");
+        let error=tsrust_compiler::check(source).err().unwrap_or_else(|| panic!("optional calls retain type and receiver constraints: {source}"));
         assert!(matches!(error.code,"type"|"arity"|"conflicting-access"|"borrow"|"capture-conflict"),"{}",error.render("input.tsr",source));
     }
 }

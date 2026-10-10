@@ -208,7 +208,7 @@
     },
     {
       "name": "support.type.builtin.tsrust",
-      "match": "\\b(?:Function|Mutable|ReadOnly|Once|Owned|Set|Map)\\b(?=\\s*<)"
+      "match": "\\b(?:Function|Mutable|ReadOnly|Once|Owned|Set|Map|Result)\\b(?=\\s*<)"
     },
     {
       "match": "(:\\s*)(void)\\b(?=\\s*(?:[,;)}]|=>|\\{))",
@@ -243,7 +243,7 @@
     },
     {
       "name": "support.function.tsrust",
-      "match": "\\bclone\\b|(?<![\\w.])(?:parseInt|parseFloat|isNaN|isFinite)(?=\\s*\\()"
+      "match": "\\bclone\\b|(?<![\\w.])(?:Ok|Err)(?=\\s*(?:<|\\())|(?<![\\w.])(?:parseInt|parseFloat|isNaN|isFinite)(?=\\s*\\()"
     },
     {
       "name": "entity.name.function.tsrust",
@@ -275,7 +275,7 @@
         },
         {
           "name": "support.type.builtin.tsrust",
-          "match": "\\b(?:Function|Mutable|ReadOnly|Once|Owned|Set|Map)\\b"
+          "match": "\\b(?:Function|Mutable|ReadOnly|Once|Owned|Set|Map|Result)\\b"
         },
         {
           "include": "#record"

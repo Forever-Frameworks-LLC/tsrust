@@ -330,6 +330,9 @@ impl Analyzer {
         let ExprKind::OptionalChain(mut body) = old.kind else {
             unreachable!()
         };
+        // Validate explicit callable type arguments before an absent receiver
+        // can suppress the runtime call and erase its source application.
+        self.prepare_generic_call(context, &mut body, expected)?;
         self.optional_static(context, &mut body);
         self.optional_present_storage(context, &mut body);
         let result = self.optional_body(context, &mut body, mode, loans, expected)?;

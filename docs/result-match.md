@@ -45,6 +45,10 @@ arms and code after the match do not acquire that binding.
 Owned construction transfers the payload without cloning. Matching transfers the
 owned result into the match scope; an arm can transfer its selected payload onward.
 The inactive payload does not exist. Normal scope cleanup handles retained values.
+Returning, breaking or continuing out of an arm releases its scoped borrow and
+drops any remaining owners. Replacing an owned Result drops its previous payload.
+Callable payloads follow the same cleanup rules when they return or throw; surrounding
+`finally` blocks still run. Tagged `Err` values themselves do not trigger `catch`.
 
 Owned callable payloads retain captured state and invocation rules:
 
@@ -110,8 +114,7 @@ function doubledQuotient(a: int, b: int): Result<int, string> {
 
 ## Implementation status
 
-The first construction/matching increment has focused compiler and native evidence.
-B10 is not accepted. Cleanup stress and
-family acceptance remain open. Match expressions, guards, nested destructuring
+Construction, exhaustive matching, borrowing, editor assistance and cleanup have
+focused compiler and native evidence. B10 family acceptance remains open. Match expressions, guards, nested destructuring
 patterns, `?` propagation and general discriminated unions are not implemented.
 Nested match statements are supported.
