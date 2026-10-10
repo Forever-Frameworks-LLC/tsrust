@@ -55,7 +55,9 @@ ledger rows after B7 are untouched.
 - Workload manifest row is `measured: true`, `implementationAccepted: true`.
 - Coverage row `storage.record` lists the workload; `docs/feature-coverage.md` is
   regenerated.
-- The five installed consumers are refreshed from the acceptance commit.
+- The five installed consumers are refreshed from the acceptance commit `2c232b4e`
+  and smoke-tested: the guide example prints 3 and 10, and mutation of an input
+  borrowed through a `finally` store reports `capture-conflict`.
 
 ## Not done
 
