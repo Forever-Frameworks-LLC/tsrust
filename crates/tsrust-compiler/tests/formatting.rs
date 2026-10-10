@@ -405,3 +405,15 @@ fn optional_chains_stay_attached_to_their_operands() {
     }
     assert_eq!(format(&formatted).unwrap(), formatted);
 }
+
+#[test]
+fn chained_logical_not_stays_attached_without_changing_postfix_spacing() {
+    let source = "import {strictEqual} from 'std:testing';function truth(text:string):boolean{return ! ! text;}function main(){const text='hello';strictEqual(!! text,true);strictEqual(! ! ! text,false);strictEqual(!! (text),true);strictEqual(truth(text),true);const maybe:int|undefined=1;strictEqual(maybe! + 1,2);let index=0;strictEqual(++index + 1,2);}";
+    let formatted = support::format_round_trip(source);
+    for expected in ["strictEqual(!!text, true)", "strictEqual(!!!text, false)", "strictEqual(!!(text), true)", "return !!text;", "strictEqual(maybe! + 1, 2)", "strictEqual(++index + 1, 2)"] {
+        assert!(formatted.contains(expected), "{expected}\n{formatted}");
+    }
+    let directory = support::TempDirectory::new();
+    let path = directory.source(&formatted);
+    support::success(&support::run(support::cli().arg("run").arg(path), 60));
+}

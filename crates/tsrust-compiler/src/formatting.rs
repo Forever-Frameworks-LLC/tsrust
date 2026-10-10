@@ -9,6 +9,22 @@ mod match_layout;
 pub fn format(source: &str) -> Result<String, Diagnostic> {
     let tokens = types::normalized_tokens(source)?;
     let real = &tokens[..tokens.len().saturating_sub(1)];
+    // Prefix chains do not end an operand. Postfix chains inherit the operand
+    // before them. Classify once so arbitrarily long chains stay linear-time.
+    let mut operand_ends = Vec::with_capacity(real.len());
+    for token in real {
+        let ends = match token.kind {
+            TokenKind::Symbol => match token.text.as_str() {
+                ")" | "]" | "}" => true,
+                "!" | "++" | "--" => operand_ends.last().copied().unwrap_or(false),
+                _ => false,
+            },
+            TokenKind::Name => !matches!(token.text.as_str(), "return" | "throw" | "typeof" | "void" | "case" | "of" | "in" | "await"),
+            _ => true,
+        };
+        operand_ends.push(ends);
+    }
+    let ends_operand = |index: usize| operand_ends[index];
     let (match_headers, match_commas) = match_layout::layout(real);
     let generic_spans = types::generic_spans(&tokens);
     let generic = |at: usize| generic_spans.iter().any(|span| span.start <= at && at < span.end);
@@ -294,29 +310,9 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
                 let clauses = switch_depths.iter().filter(|body| depth >= **body).count();
                 output.push_str(&"    ".repeat(depth + clauses.saturating_sub(usize::from(label_start[i]))));
             } else {
-                let postfix_assertion = symbol && current == "!"
-                    && (matches!(previous.kind, TokenKind::Number | TokenKind::String)
-                        || (previous.kind == TokenKind::Name && !matches!(prev, "return" | "throw" | "typeof" | "void"))
-                        || matches!(prev, ")" | "]" | "}" | "!"));
-                // `-a` after an operator, an opening bracket or a keyword is a sign and
-                // binds to its operand. A postfix `++`, `--` or `!` before it ends an
-                // operand instead, so the `-` or `+` that follows is a binary operator.
-                let ends_operand = |index: usize| {
-                    let token = &real[index];
-                    match token.kind {
-                        TokenKind::Symbol => match token.text.as_str() {
-                            ")" | "]" | "}" => true,
-                            "++" | "--" | "!" => index.checked_sub(1).map(|before| &real[before]).is_some_and(|before| {
-                                matches!(before.kind, TokenKind::Number | TokenKind::String)
-                                    || (before.kind == TokenKind::Name && !matches!(before.text.as_str(), "return" | "throw" | "typeof" | "void" | "case" | "of" | "in"))
-                                    || matches!(before.text.as_str(), ")" | "]" | "}" | "!")
-                            }),
-                            _ => false,
-                        },
-                        TokenKind::Name => !matches!(token.text.as_str(), "return" | "throw" | "typeof" | "void" | "case" | "of" | "in" | "await"),
-                        _ => true,
-                    }
-                };
+                let postfix_assertion = symbol && current == "!" && ends_operand(i - 1);
+                // Signs after postfix operators are binary; signs after prefixes
+                // still bind to their operand.
                 let unary_sign = previous_symbol
                     && matches!(prev, "-" | "+")
                     && i.checked_sub(2).is_none_or(|before| !ends_operand(before));

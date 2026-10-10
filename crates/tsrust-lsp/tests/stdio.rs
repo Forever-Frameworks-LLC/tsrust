@@ -319,3 +319,26 @@ fn formatting_assertions_and_generic_calls_returns_a_stable_edit() {
     server.request(4,"shutdown",Value::Null);
     server.response();server.finish(0);
 }
+
+#[test]
+fn formatting_logical_not_chains_returns_a_stable_edit() {
+    let mut server = Server::start();
+    server.request(1, "initialize", json!({"capabilities":{}}));
+    assert!(matches!(server.response(), Message::Response(response) if response.error.is_none()));
+    server.notify("initialized", json!({}));
+    let uri = "file:///format-logical-not.tsr";
+    let source = "function main(){const text='hi';console.log(!! text,! ! ! text);}";
+    server.notify("textDocument/didOpen", json!({"textDocument":{"uri":uri,"languageId":"tsrust","version":1,"text":source}}));
+    server.request(2, "textDocument/formatting", json!({"textDocument":{"uri":uri},"options":{"tabSize":4,"insertSpaces":true}}));
+    let Message::Response(response) = server.response() else { panic!("format response"); };
+    assert!(response.error.is_none());
+    let formatted = response.result.unwrap()[0]["newText"].as_str().unwrap().to_owned();
+    assert!(formatted.contains("console.log(!!text, !!!text);"), "{formatted}");
+    tsrust_compiler::check(&formatted).unwrap();
+    server.notify("textDocument/didChange", json!({"textDocument":{"uri":uri,"version":2},"contentChanges":[{"text":formatted}]}));
+    server.request(3, "textDocument/formatting", json!({"textDocument":{"uri":uri},"options":{"tabSize":4,"insertSpaces":true}}));
+    assert!(matches!(server.response(), Message::Response(response) if response.error.is_none() && response.result == Some(json!([]))));
+    server.request(4, "shutdown", Value::Null);
+    assert!(matches!(server.response(), Message::Response(response) if response.error.is_none()));
+    server.finish(0);
+}

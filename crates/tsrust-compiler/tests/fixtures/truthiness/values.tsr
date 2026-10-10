@@ -26,7 +26,7 @@ function main() {
     strictEqual(counts.calls, 2);
     strictEqual(text, "next");
     strictEqual(!text, false);
-    strictEqual(!! text, true);
+    strictEqual(!!text, true);
     let absent: string | undefined = undefined;
     absent ||= "present";
     if (absent) strictEqual(absent.length, 7);

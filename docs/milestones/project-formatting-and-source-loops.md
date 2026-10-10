@@ -9,3 +9,18 @@ The project-wide proof covers 1,060 existing changed files with identical tokens
 Formatting exposed layout-sensitive benchmark and editor checks. Token-based benchmark checks now tolerate layout while preserving mutation rejection, exact source hashes, independent oracles and operation/sample counts. Three historical manifest prefix checks freeze the protocol projection rather than raw source hashes. All 540 refreshed source fingerprints are layout-only; no timing is claimed.
 
 Focused evidence includes 171 compiler tests, all eight depth canaries within that count, the formatted fixture corpus, 322 editor tests across the preserved original and repaired/resumed runs, 132 benchmark registration/helper tests and seven final affected helper tests. The matched generic adapter family verifies native and Node-after-tsc results untimed. Original failures and repaired checks are retained in SQLite rather than erased.
+
+## Logical negation spacing repair, 2026-10-10
+
+Repeated prefix negation now formats as !!text and !!!text. The previous one-token
+lookbehind mistook the second exclamation mark for a postfix non-null assertion.
+A linear token classification now distinguishes prefix and postfix chains, preserving
+spacing for non-null assertions, updates and binary signs without recursive scanning.
+
+The focused formatter suite passes 28 tests, including native execution of the new
+assertions. Five LSP formatting protocol tests pass, including a stable second edit
+for chained negation. The project truthiness fixture also executes successfully.
+Whole-project formatting changes only that fixture's whitespace, preserves tokens
+and changes no benchmark fingerprint. Original red and green evidence is retained
+in SQLite at runtime/results/logical-not-formatting-2026-10-10-checks.json.
+This repair does not change gate 189 or S07 acceptance status.
