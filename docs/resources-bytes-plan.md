@@ -1,9 +1,9 @@
 # B11/S07: resources and bytes
 
 Status: gate 187 signature metadata increment implemented; native byte source witness remains red. B10/S06 is accepted at gate 186, publication
-commit `1b631986`. This family is not accepted. The owner is being asked to choose
-consuming close versus idempotent close; dependent lifecycle implementation must
-wait for the answer. Type identity, signatures and owned bytes can progress independently.
+commit `1b631986`. This family is not accepted. The owner chose consuming close:
+closing transfers the resource and later use or a second close is a compile error.
+Type identity, signatures and owned bytes are the current implementation work.
 
 ## Audit of the current compiler
 
@@ -75,18 +75,13 @@ document allocation failures that remain process-fatal. Do not promise universal
 OOM recovery from ordinary runtime allocations. Encoding, endian numeric access,
 base64 and streaming extend this foundation in separate coherent increments.
 
-## Lifecycle decision pending
+## Accepted lifecycle decision
 
-Recommended: explicit close consumes an owned resource and returns a Result when
-its backend can report failure. A second close or later use is a source ownership
-error. Normal scope exit drops an unclosed resource once without throwing. Failure
-of explicit close does not resurrect an owner. Ordinary byte buffers need no close;
-their allocations release on scope exit.
-
-Alternative under owner review: close borrows mutably and is idempotent; the value
-remains closed and operations report typed closed-state errors. This requires a
-closed-state representation and flow rules distinct from mere ownership transfer.
-Do not implement either alternative before the answer arrives.
+The owner chose consuming close. Explicit `close(handle): Result<void, Error>`
+consumes an owned resource when its backend can report failure. A second close or
+later use is a source ownership error. Normal scope exit drops an unclosed resource
+once without throwing. Failure of explicit close does not resurrect an owner.
+Ordinary byte buffers need no close; their allocations release on scope exit.
 
 An OS close is not automatically a durability barrier. Backends must document flush,
 sync and close separately. Rust File drop ignores closing errors, so wrapping Drop
@@ -226,9 +221,9 @@ B10 is accepted at gate 186 (`1b631986` publication, `8d431eed` executable sourc
 Gate 187 has one intentional red integration test in std_bytes.rs: unknown std:bytes.
 Implement typed native declaration identity, recursive signatures and distinct native
 type/value imports before the first owned Bytes operation. Preserve Result and editor
-parity, no implicit clone and normal worker stacks. Resource close semantics await
-the owner response; do not choose that behavior silently. Native type/byte work is
-independent and may proceed. Installed consumers remain B10 until verified increments
+parity, no implicit clone and normal worker stacks. The owner chose consuming
+close: reject later use and double close statically, including after close failure.
+Native type/byte work may proceed independently of resource lifecycle implementation. Installed consumers remain B10 until verified increments
 are published. No full regressions or timing are due for this red checkpoint.
 
 ## Gate 187 signature metadata increment
@@ -253,4 +248,21 @@ No full regressions, timing or consumer refresh were performed for this incremen
 Next: register native declarations and separate type/value exports, then resolve
 these descriptions into checked arena types and native storage. Do not mistake
 rendered metadata for checked Bytes support: std_bytes.rs is still intentionally
-red. Resource close semantics still await the owner's answer.
+red. Resource close semantics are decided: consuming close, with static rejection
+of later use and double close.
+
+## Gate 187 declaration metadata increment
+
+`native_types.rs` now owns native declaration lookup by stable identity and exact
+module/export name. Bytes has opaque representation with no public fields and no
+source construction capability. ByteError has public code/message string fields
+and an optional int offset. Explicit independent cloning is declaration metadata;
+it does not authorize implicit copying. The compiler and emitter must enforce these
+capabilities when the declarations are integrated into the checked arena.
+
+Two focused tests failed first because the registry did not exist, then passed.
+They cover declaration identity, module/name isolation, opaque construction metadata
+and the exact error field contract. Project formatting changed zero files. Evidence
+is in SQLite at `runtime/results/native-declarations-2026-10-10-checks.json`.
+This metadata does not yet publish std:bytes imports or implement byte operations.
+Next work remains loader/linker type exports, arena resolution and native storage.
