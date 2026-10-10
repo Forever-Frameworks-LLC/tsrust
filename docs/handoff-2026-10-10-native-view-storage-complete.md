@@ -114,3 +114,19 @@ indentation. Environment: CARGO_TARGET_DIR=/private/tmp/tsrust-gate100-editor-ta
 CARGO_INCREMENTAL=0, cargo --offline --locked, Node 24.11.1 first on PATH,
 /opt/homebrew/bin/python3 for benchmarks/storage/store.py. Consumers remain at
 f569190a.
+
+## Owner-approved continuation and consumer refresh
+
+The owner approved both parts of the recursive storage plan and the proposed
+continuation order. Refresh completed from source checkpoint `4367f4cc`: five
+workspace executable consumers, the global CLI, and the local VS Code extension.
+Debug and release builds succeeded. Three public byte-view fixtures ran through
+the refreshed editor CLI, release CLI, and global CLI; the refreshed LSP passed
+stdio diagnostics and hover checks. Restart/reload existing editor processes to
+load the new binaries and extension contributions. No timing ran. Exact refresh
+evidence is stored in SQLite as `target/editor/consumer-refresh-2026-10-10.json`.
+
+Next: recursive view lifetimes using array recursion, nullable recursive links,
+view-capturing callbacks returning argument views, the owned-value return through
+finally defect, gate 190, and S07 family acceptance. Existing resource close
+semantics remain approved; they do not require closing byte buffers or views.

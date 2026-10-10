@@ -1,6 +1,6 @@
 # Recursive storage that holds byte views
 
-Date: 2026-10-10. Status: plan, not implemented. Owner decision needed on part A.
+Date: 2026-10-10. Status: approved plan, not implemented. The owner approved parts A and B in the continuation chat.
 
 The owner wants types such as:
 
@@ -21,7 +21,7 @@ indirection to break the cycle."). Records are stored inline since milestone 25,
 record that contains itself has no finite size. Recursion works today only through an
 array field (`children: Chunk[]`).
 
-### Part A: proposed rule (needs the owner's decision)
+### Part A: approved rule
 
 Allow a field whose type is a nullable union (`T | undefined`, `T | null`, `name?: T`)
 when `T` reaches the record that declares the field. A direct, non-nullable
@@ -78,5 +78,16 @@ slot; loans truncate their path at the record. Part B is needed for array recurs
 ## Order
 
 1. Part B with array recursion (no language change).
-2. Part A after the owner confirms the rule.
+2. Part A under the owner-approved rule.
 3. `Chunk` with `next?: Chunk` then needs both.
+
+## Approved continuation
+
+The owner approved nullable recursive links with unique ownership and the shared
+lifetime design. This includes nullable links on cycles involving multiple record
+types. Cloning remains available only when all contained types support it; this
+does not make byte views clonable. Test allocation costs and long-chain behavior.
+
+Explicit close remains the separate resource lifecycle contract: it consumes a
+resource even on error, with nonthrowing scope-exit cleanup for unclosed resources.
+Bytes and borrowed byte views do not require explicit close.
