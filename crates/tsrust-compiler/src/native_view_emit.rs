@@ -269,7 +269,7 @@ fn main() {{
     }
     #[test]
     fn returned_native_views_compile_with_distinct_input_lifetimes() {
-        let source="type Window={};type WriteWindow={};type Shelf={item:Window;};type Pair={one:Window;two:Window;};type Outcome=Result<Window,int>;function capturedStatus(input:ReadOnly<Outcome>):boolean{const callback=():boolean=>{match(input){Ok(_) => {return true;},Err(_) => {return false;}}};return callback();}function capturedOutcome(input:Outcome):Outcome{const callback=():Outcome=>input;return callback();}function capturedPair(input:Pair):Window{const callback=():Window=>input.one;return callback();}function capturedWrite(input:WriteWindow):WriteWindow{const callback=():WriteWindow=>input;return callback();}function captured(input:Window):Window{const callback=():Window=>input;return callback();}function identity(input:Window):Window{return input;}function relay(input:Window):Window{return identity(input);}function arrowChoose(left:Window,right:Window,flag:boolean):Window{const callback=(first:Window,second:Window):Window=>{if(flag){return first;}return second;};return callback(left,right);}function arrowRelay(input:Window):Window{const identity=(value:Window):Window=>value;return identity(input);}function savedRelay(input:Window):Window{const saved=identity;return saved(input);}function outcomeIdentity(input:Outcome):Outcome{return input;}function pairFirst(input:Pair):Window{return input.one;}function unwrap(input:Shelf):Window{return input.item;}function writeIdentity(input:WriteWindow):WriteWindow{return input;}function arrayIdentity(input:Window[]):Window[]{return input;}function first(left:Window,right:Window):Window{return left;}function choose(left:Window,right:Window,flag:boolean):Window{if(flag){return left;}return right;}function main(){}";
+        let source="type Window={};type WriteWindow={};type Shelf={item:Window;};type Pair={one:Window;two:Window;};type Outcome=Result<Window,int>;type Double=Result<Window,Window>;function capturedStatus(input:ReadOnly<Outcome>):boolean{const callback=():boolean=>{match(input){Ok(_) => {return true;},Err(_) => {return false;}}};return callback();}function capturedOutcome(input:Outcome):Outcome{const callback=():Outcome=>input;return callback();}function capturedPair(input:Pair):Window{const callback=():Window=>input.one;return callback();}function capturedWrite(input:WriteWindow):WriteWindow{const callback=():WriteWindow=>input;return callback();}function captured(input:Window):Window{const callback=():Window=>input;return callback();}function identity(input:Window):Window{return input;}function relay(input:Window):Window{return identity(input);}function arrowChoose(left:Window,right:Window,flag:boolean):Window{const callback=(first:Window,second:Window):Window=>{if(flag){return first;}return second;};return callback(left,right);}function arrowRelay(input:Window):Window{const identity=(value:Window):Window=>value;return identity(input);}function savedRelay(input:Window):Window{const saved=identity;return saved(input);}function outcomeIdentity(input:Outcome):Outcome{return input;}function capturedDouble(input:Double):Double{const callback=():Double=>input;return callback();}function pairFirst(input:Pair):Window{return input.one;}function unwrap(input:Shelf):Window{return input.item;}function writeIdentity(input:WriteWindow):WriteWindow{return input;}function arrayIdentity(input:Window[]):Window[]{return input;}function first(left:Window,right:Window):Window{return left;}function choose(left:Window,right:Window,flag:boolean):Window{if(flag){return left;}return right;}function main(){}";
         let formatted=crate::formatting::format(source).unwrap();
         assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
         let mut parsed=crate::syntax::parse(&formatted).unwrap();
@@ -285,6 +285,15 @@ fn main() {{
         let arrow_choose=checked.functions.iter().position(|function|function.name=="arrowChoose").unwrap();
         let arrow_relay=checked.functions.iter().position(|function|function.name=="arrowRelay").unwrap();
         let saved_relay=checked.functions.iter().position(|function|function.name=="savedRelay").unwrap();
+        let captured_double=checked.functions.iter().position(|function|function.name=="capturedDouble").unwrap();
+        let double=checked.functions[captured_double].result.union().unwrap();
+        let [double_ok,double_err]=crate::result_identity::variants(&checked.records,&checked.unions[double.index()].members).unwrap();
+        let double_ok_tag=checked.unions[double.index()].members.iter().position(|member|*member==Type::Record(double_ok)).unwrap();
+        let double_id=double.index();
+        let double_err_tag=checked.unions[double_id].members.iter().position(|member|*member==Type::Record(double_err)).unwrap();
+        let double_origins=checked.functions[captured_double].native_returns.as_ref().unwrap();
+        assert_eq!(double_origins.len(),2);
+        assert_ne!(double_origins[0].source,double_origins[1].source);
         let outcome_identity=checked.functions.iter().position(|function|function.name=="outcomeIdentity").unwrap();
         let outcome=checked.functions[outcome_identity].result.union().unwrap();
         let members=&checked.unions[outcome.index()].members;
@@ -301,8 +310,20 @@ fn main() {{
         let mut rust=crate::emit::emit(&checked).replace("fn main()", "fn unused_source_main()");
         let base=rust.clone();
         rust.push_str(&format!(r#"
+fn double_success<'a,'b>(owner:&'a[u8],_other:&'b[u8])->Union{double_id}<Record{double_ok}<Record0<'a>>,Record{double_err}<Record0<'b>>> {{
+    Union{double_id}::V{double_ok_tag}(Record{double_ok}{{field0:Record0{{bytes:owner}}}})
+}}
+fn double_error<'a,'b>(_other:&'a[u8],owner:&'b[u8])->Union{double_id}<Record{double_ok}<Record0<'a>>,Record{double_err}<Record0<'b>>> {{
+    Union{double_id}::V{double_err_tag}(Record{double_err}{{field0:Record0{{bytes:owner}}}})
+}}
 fn main() {{
     let owner=vec![1u8,2,3];
+    let selected_double_error;
+    {{let short=vec![9u8];let result=function{captured_double}(double_error(&short,&owner));selected_double_error=match result {{Union{double_id}::V{double_err_tag}(value)=>value.field0,_=>panic!("unexpected success")}};}}
+    assert_eq!(selected_double_error.bytes.as_ptr(),owner.as_ptr());
+    let selected_double;
+    {{let short=vec![9u8];let result=function{captured_double}(double_success(&owner,&short));selected_double=match result {{Union{double_id}::V{double_ok_tag}(value)=>value.field0,_=>panic!("unexpected error")}};}}
+    assert_eq!(selected_double.bytes.as_ptr(),owner.as_ptr());
     assert_eq!(function{captured}(Record0{{bytes:&owner}}).bytes.as_ptr(),owner.as_ptr());
     assert_eq!(function{relay}(Record0{{bytes:&owner}}).bytes.as_ptr(),owner.as_ptr());
     assert_eq!(function{arrow_relay}(Record0{{bytes:&owner}}).bytes.as_ptr(),owner.as_ptr());
@@ -369,6 +390,19 @@ fn main() {{
         assert!(!captured_rejected.status.success(),"captured view escaped its original owner");
         assert!(String::from_utf8_lossy(&captured_rejected.stderr).contains("does not live long enough"));
 
+        for (tag,record) in [(double_ok_tag,double_ok),(double_err_tag,double_err)] {
+            let rejected=directory.join(format!("variant-escape-{tag}.rs"));
+            std::fs::write(&rejected,crate::emit::emit(&checked).replace("fn main()", "fn unused_source_main()")+&format!(r#"
+fn main() {{
+    let escaped;
+    {{ let short=vec![2u8]; escaped=match function{captured_double}(Union{double_id}::V{tag}(Record{record}{{field0:Record0{{bytes:&short}}}})) {{Union{double_id}::V{tag}(value)=>value.field0,_=>panic!("wrong variant")}}; }}
+    assert_eq!(escaped.bytes[0],2);
+}}
+"#)).unwrap();
+            let failed=std::process::Command::new("rustup").args(["run",crate::RUST_BACKEND_VERSION,"rustc","--edition=2024"]).arg(&rejected).arg("-o").arg(directory.join(format!("variant-escape-{tag}"))).output().unwrap();
+            assert!(!failed.status.success(),"variant {tag} escaped its byte owner");
+            assert!(String::from_utf8_lossy(&failed.stderr).contains("does not live long enough"));
+        }
         for level in [0,3] {
             let output=directory.join(format!("returns-{level}"));
             let compiled=std::process::Command::new("rustup").args(["run",crate::RUST_BACKEND_VERSION,"rustc","--edition=2024",&format!("-Copt-level={level}")]).arg(&input).arg("-o").arg(&output).output().unwrap();

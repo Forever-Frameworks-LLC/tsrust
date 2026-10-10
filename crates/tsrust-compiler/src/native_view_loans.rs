@@ -18,6 +18,7 @@ pub(crate) struct Loan {
 pub(crate) enum LifetimeSource {
     Storage,
     Carried(Vec<Segment>),
+    VariantCarried { path:Vec<Segment>, guards:Vec<VariantGuard> },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -26,10 +27,16 @@ pub(crate) enum Segment {
     Element,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct VariantGuard {
     pub path: Vec<Segment>,
     pub success: usize,
+}
+
+impl LifetimeSource {
+    pub(crate) fn carried(path:Vec<Segment>,guards:Vec<VariantGuard>)->Self {
+        if guards.is_empty() {Self::Carried(path)}else{Self::VariantCarried{path,guards}}
+    }
 }
 
 pub(super) fn join(
@@ -207,7 +214,7 @@ impl Analyzer {
                             };
                             let argument=args.get(position).ok_or_else(||Diagnostic::new("native-view-call", "Returned capture lifetime transport is not yet planned.",value.span))?;
                             match &output.source {
-                                LifetimeSource::Carried(_)=>pending.push(Task::Returned(argument,output)),
+                                LifetimeSource::Carried(_)|LifetimeSource::VariantCarried{..}=>pending.push(Task::Returned(argument,output)),
                                 LifetimeSource::Storage=>{
                                     result.extend(super::native_view_calls::storage(context,argument,output)?);
                                     pending.push(Task::Returned(argument,output));

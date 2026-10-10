@@ -444,3 +444,24 @@ and a string error through a captured match, independently of native view metada
 These checks do not yet establish variant-distinct lifetimes when both Result
 payloads contain views, borrowed receiver returns, or escaped callback environments.
 The full view plan and public signature guard remain in force.
+
+## Variant-distinct carried lifetimes
+
+Guarded input slots now retain their nominal variant identities as part of the
+carried lifetime source, independently of the value's current output guards.
+Unguarded inputs keep the existing compact carried-path form. Native signature and
+capture planning use both storage paths and variant guards; Ok and Err payloads
+with the same field spelling no longer share a lifetime slot. Output lifetime
+grouping also distinguishes guarded variants. Call transport rejects contradictory
+source variants before projecting their payload paths.
+
+The formatted native witness covers a captured `Result<ByteView, ByteView>` with
+independent payload lifetimes. At O0/O3, each selected variant can outlive the unused
+variant's shorter lifetime and retains its original pointer. Checked provenance
+contains exactly two distinct sources rather than cross-joining alternatives.
+Separate rejected compilations verify that neither selected variant can outlive its
+own byte owner.
+
+This increment does not establish every nested union/container or escaped callback
+composition. Receiver return contracts and the remaining gate matrix stay open, and
+the public factory guard remains enabled.

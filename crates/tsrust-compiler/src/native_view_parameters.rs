@@ -41,7 +41,7 @@ impl Analyzer {
                     && let Some(access)=self.program.records[id].native_type.and_then(|id|crate::native_types::declaration(id).borrow_access()) {
                     let owner_fields=path.iter().take_while(|segment|matches!(segment,Segment::Field(_)))
                         .map(|segment|match segment {Segment::Field(name)=>name.clone(),_=>unreachable!()}).collect();
-                    loans.push(Loan{root,owner_fields,source:LifetimeSource::Carried(path.clone()),access,creation,retained:false,path,guards});
+                    loans.push(Loan{root,owner_fields,source:LifetimeSource::carried(path.clone(),guards.clone()),access,creation,retained:false,path,guards});
                     continue;
                 }
                 if !self.native_shape_contains_view(ty) {continue;}

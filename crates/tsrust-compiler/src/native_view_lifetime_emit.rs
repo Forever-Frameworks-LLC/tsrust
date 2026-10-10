@@ -1,12 +1,12 @@
 //! Named native lifetimes preserve independent input origins and returned intersections.
 use super::*;
-use crate::analysis::native_view_loans::{LifetimeSource, Segment};
+use crate::analysis::native_view_loans::{LifetimeSource, Segment, VariantGuard};
 use std::collections::BTreeMap;
 
 #[derive(Default)]
 pub(super) struct Lifetimes {
     inputs: BTreeMap<(usize,LifetimeSource),String>,
-    outputs: BTreeMap<Vec<Segment>,String>,
+    outputs: BTreeMap<(Vec<Segment>,Vec<VariantGuard>),String>,
     pub(super) declarations: Vec<String>,
     pub(super) bounds: Vec<String>,
 }
@@ -15,7 +15,7 @@ impl Lifetimes {
         let mut plan=Self::default();
         for &root in parameters {
             for loan in function.bindings[root].native_view_loans.as_deref().into_iter().flatten() {
-                if matches!(loan.source,LifetimeSource::Carried(_)) {plan.inputs.entry((root,loan.source.clone())).or_default();}
+                if !matches!(loan.source,LifetimeSource::Storage) {plan.inputs.entry((root,loan.source.clone())).or_default();}
             }
         }
         for loan in function.native_returns.as_deref().into_iter().flatten() {
@@ -28,9 +28,9 @@ impl Lifetimes {
             *name=format!("'native_input{root}_{slot}");*slot+=1;
             plan.declarations.push(name.clone());
         }
-        let mut outputs=BTreeMap::<Vec<Segment>,Vec<String>>::new();
+        let mut outputs=BTreeMap::<(Vec<Segment>,Vec<VariantGuard>),Vec<String>>::new();
         for loan in function.native_returns.as_deref().into_iter().flatten() {
-            outputs.entry(loan.path.clone()).or_default().push(plan.inputs[&(loan.root,loan.source.clone())].clone());
+            outputs.entry((loan.path.clone(),loan.guards.clone())).or_default().push(plan.inputs[&(loan.root,loan.source.clone())].clone());
         }
         for (path,mut sources) in outputs {
             sources.sort();sources.dedup();
@@ -47,10 +47,10 @@ impl Lifetimes {
     pub(super) fn storage(&self,root:usize)->Option<&str> {
         self.inputs.get(&(root,LifetimeSource::Storage)).map(String::as_str)
     }
-    fn slot(&self,input:Option<usize>,path:&[Segment])->&str {
+    fn slot(&self,input:Option<usize>,path:&[Segment],guards:&[VariantGuard])->&str {
         match input {
-            Some(root)=>self.inputs.get(&(root,LifetimeSource::Carried(path.to_vec()))),
-            None=>self.outputs.get(path),
+            Some(root)=>self.inputs.get(&(root,LifetimeSource::carried(path.to_vec(),guards.to_vec()))),
+            None=>self.outputs.get(&(path.to_vec(),guards.to_vec())),
         }.map_or("'_",String::as_str)
     }
 }
@@ -64,7 +64,7 @@ impl Emitter<'_> {
             next+=usize::from(matches!(capture.storage,Mode::Read|Mode::Mutate));
             let root=method.map_or(capture.inner,|method|closure.methods[method].captures[position]);
             let ty=self.native_captures.ty(&closure.function,capture.inner);
-            self.native_view_capture_slots(ty,root,&mut Vec::new(),&lifetimes,&mut next,&mut captures);
+            self.native_view_capture_slots(ty,root,&mut Vec::new(),&mut Vec::new(),&lifetimes,&mut next,&mut captures);
         }
         Some(self.native_signature_from_plan(native_function_signature_emit::NativeSignaturePlan {
             native_capture_lifetimes:captures,
@@ -79,47 +79,51 @@ impl Emitter<'_> {
         },&[]))
     }
 
-    fn native_view_capture_slots(&self,ty:Type,root:usize,path:&mut Vec<Segment>,lifetimes:&[String],next:&mut usize,slots:&mut BTreeMap<(usize,LifetimeSource),String>) {
+    fn native_view_capture_slots(&self,ty:Type,root:usize,path:&mut Vec<Segment>,guards:&mut Vec<VariantGuard>,lifetimes:&[String],next:&mut usize,slots:&mut BTreeMap<(usize,LifetimeSource),String>) {
         match ty {
             Type::Record(id) if native_view_emit::access(self.program,id).is_some()=>{
-                slots.insert((root,LifetimeSource::Carried(path.clone())),lifetimes[*next].clone());*next+=1;
+                slots.insert((root,LifetimeSource::carried(path.clone(),guards.clone())),lifetimes[*next].clone());*next+=1;
             }
             Type::Record(id) if self.native_views.contains(ty)=>{
                 for field in &self.program.records[id].fields {
                     path.push(Segment::Field(field.name.text.clone()));
-                    self.native_view_capture_slots(field.ty.expect("checked field"),root,path,lifetimes,next,slots);path.pop();
+                    self.native_view_capture_slots(field.ty.expect("checked field"),root,path,guards,lifetimes,next,slots);path.pop();
                 }
             }
             Type::Array(element) if self.native_views.contains(ty)=>{
-                path.push(Segment::Element);self.native_view_capture_slots(element.ty(),root,path,lifetimes,next,slots);path.pop();
+                path.push(Segment::Element);self.native_view_capture_slots(element.ty(),root,path,guards,lifetimes,next,slots);path.pop();
             }
             Type::Union(id)|Type::BorrowedUnion(id) if self.native_views.contains(ty)=>{
-                for &member in &self.program.unions[id.index()].members {self.native_view_capture_slots(member,root,path,lifetimes,next,slots);}
+                for &member in &self.program.unions[id.index()].members {
+                    let variant=if let Type::Record(record)=member {guards.push(VariantGuard{path:path.clone(),success:record});true}else{false};
+                    self.native_view_capture_slots(member,root,path,guards,lifetimes,next,slots);
+                    if variant {guards.pop();}
+                }
             }
             _=>*next+=self.native_captures.type_lifetimes(self.program,&self.borrowed_lifetime_alternatives,ty),
         }
     }
 
     pub(super) fn native_view_signature_type(&self,ty:Type,input:Option<usize>,plan:&Lifetimes)->String {
-        self.native_view_signature_slot(ty,input,plan,&mut Vec::new())
+        self.native_view_signature_slot(ty,input,plan,&mut Vec::new(),&mut Vec::new())
     }
-    fn native_view_signature_slot(&self,ty:Type,input:Option<usize>,plan:&Lifetimes,path:&mut Vec<Segment>)->String {
+    fn native_view_signature_slot(&self,ty:Type,input:Option<usize>,plan:&Lifetimes,path:&mut Vec<Segment>,guards:&mut Vec<VariantGuard>)->String {
         if !self.native_views.contains(ty) {return self.native_type(ty);}
         match ty {
-            Type::Record(id) if native_view_emit::access(self.program,id).is_some()=>format!("Record{id}<{}>",plan.slot(input,path)),
+            Type::Record(id) if native_view_emit::access(self.program,id).is_some()=>format!("Record{id}<{}>",plan.slot(input,path,guards)),
             Type::Record(id)=>{
                 let base=self.program.scoped_records.declaration(id);
                 let parameters=self.program.records[id].fields.iter().zip(&self.program.records[base].fields).filter_map(|(field,declared)|{
                     let ty=field.ty.expect("checked field");
                     if !(self.scoped_record_native_parameter(ty)||self.scoped_record_native_parameter(declared.ty.expect("checked field"))) {return None;}
                     path.push(Segment::Field(field.name.text.clone()));
-                    let result=self.native_view_signature_slot(ty,input,plan,path);path.pop();Some(result)
+                    let result=self.native_view_signature_slot(ty,input,plan,path,guards);path.pop();Some(result)
                 }).collect::<Vec<_>>();
                 if parameters.is_empty(){self.native_type(ty)}else{format!("Record{base}<{}>",parameters.join(", "))}
             }
             Type::Array(element)=>{
                 path.push(Segment::Element);
-                let payload=self.native_view_signature_slot(element.ty(),input,plan,path);path.pop();
+                let payload=self.native_view_signature_slot(element.ty(),input,plan,path,guards);path.pop();
                 match element {
                     ArrayElement::Record(id,0)=>{
                         if let Some((_,arguments))=payload.split_once('<'){format!("RecordArray{id}<{arguments}")}else{format!("RecordArray{id}")}
@@ -128,7 +132,12 @@ impl Emitter<'_> {
                 }
             }
             Type::Union(id)|Type::BorrowedUnion(id)=>{
-                let arguments=self.program.unions[id.index()].members.iter().filter(|member|!member.is_copy()).map(|&member|self.native_view_signature_slot(member,input,plan,path)).collect::<Vec<_>>().join(", ");
+                let arguments=self.program.unions[id.index()].members.iter().filter(|member|!member.is_copy()).map(|&member|{
+                    let variant=if let Type::Record(record)=member {guards.push(VariantGuard{path:path.clone(),success:record});true}else{false};
+                    let rendered=self.native_view_signature_slot(member,input,plan,path,guards);
+                    if variant {guards.pop();}
+                    rendered
+                }).collect::<Vec<_>>().join(", ");
                 if matches!(ty,Type::BorrowedUnion(_)){format!("ViewUnion{}<'_,{arguments}>",id.index())}else{format!("Union{}<{arguments}>",id.index())}
             }
             _=>self.native_type(ty),

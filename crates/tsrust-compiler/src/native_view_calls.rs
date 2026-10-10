@@ -78,8 +78,12 @@ impl Analyzer {
 }
 
 pub(super) fn transport(actual:&mut Loan,output:&Loan)->bool {
+    if let LifetimeSource::VariantCarried{guards,..}=&output.source
+        && guards.iter().any(|expected|actual.guards.iter().any(|actual|actual.path==expected.path && actual.success!=expected.success)) {
+        return false;
+    }
     match &output.source {
-        LifetimeSource::Carried(path)=>{
+        LifetimeSource::Carried(path)|LifetimeSource::VariantCarried{path,..}=>{
             for segment in path {
                 if !native_view_projections::select(actual,segment) {return false;}
             }
