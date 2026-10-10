@@ -465,3 +465,25 @@ own byte owner.
 This increment does not establish every nested union/container or escaped callback
 composition. Receiver return contracts and the remaining gate matrix stay open, and
 the public factory guard remains enabled.
+
+## Views borrowed through shared captures
+
+A read-only closure capture may return a read-only view of its external owner's
+storage. Its call summary now distinguishes this physical owner dependency from a
+captured value that already carries a view lifetime. The returned loan retains the
+outer owner root and owner-field footprint, including relevant inherited origins.
+It blocks owner mutation and transfer while retained. Native signature planning
+uses the capture's existing shared-reference lifetime for this storage dependency.
+The result need not borrow the shorter-lived local closure value itself.
+
+Private metadata injection verifies analyzer transport and owner conflicts. A
+separate native control uses the compiler's actual planned signature with a safe
+String-to-byte-slice body: at O0/O3 the view retains the owner's pointer after the
+local closure value is dropped, and owner escape is rejected. This is signature and
+provenance acceptance, not an end-to-end source-factory acceptance witness. Source
+factories remain guarded.
+
+Captures that own the storage or hold a mutable reference still require receiver
+lifetime contracts. Returning exclusive access through a shared capture remains
+rejected. Escaped/rebound environments and the full callback/storage matrix remain
+open; gate 189 is not accepted.

@@ -61,8 +61,9 @@ impl Emitter<'_> {
         let mut next=0;
         let mut captures=BTreeMap::new();
         for (position,capture) in closure.captures.iter().enumerate() {
-            next+=usize::from(matches!(capture.storage,Mode::Read|Mode::Mutate));
             let root=method.map_or(capture.inner,|method|closure.methods[method].captures[position]);
+            if capture.storage==Mode::Read {captures.insert((root,LifetimeSource::Storage),lifetimes[next].clone());}
+            next+=usize::from(matches!(capture.storage,Mode::Read|Mode::Mutate));
             let ty=self.native_captures.ty(&closure.function,capture.inner);
             self.native_view_capture_slots(ty,root,&mut Vec::new(),&mut Vec::new(),&lifetimes,&mut next,&mut captures);
         }

@@ -255,6 +255,64 @@ fn main() {{
         }
     }
     #[test]
+    fn native_view_of_borrowed_capture_uses_owner_reference_lifetime() {
+        use crate::analysis::native_view_loans::{Loan,LifetimeSource};
+        let source="type Window={};function sample(owner:ReadOnly<string>):void{const callback=():int=>owner.length;callback();}function main(){}";
+        let formatted=crate::formatting::format(source).unwrap();
+        assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
+        let mut parsed=crate::syntax::parse(&formatted).unwrap();
+        parsed.records[0].native_type=Some(crate::native_signatures::NativeTypeId::ByteView);
+        let mut checked=crate::analysis::analyze(parsed).unwrap();
+        let closure=&mut checked.closures[0];
+        let capture=closure.captures[0].inner;
+        assert_eq!(closure.captures[0].storage,crate::Mode::Read);
+        // Inject the private owner-borrow summary. Source factories are still guarded.
+        closure.function.result=Type::Record(0);
+        closure.function.native_returns=Some(Box::new(vec![Loan{
+            root:capture,owner_fields:vec![],source:LifetimeSource::Storage,access:BorrowAccess::ReadOnly,
+            creation:crate::Span::default(),retained:true,path:vec![],guards:vec![],
+        }]));
+        let generated=crate::emit::emit(&checked);
+        let signature=generated.lines().find(|line|line.trim_start().starts_with("fn call")).unwrap().trim();
+        // Test the actual planned signature against a safe slice-producing body.
+        let definitions=format!("struct Record0<'a>{{bytes:&'a[u8]}} struct Borrowed<'c0>{{capture{capture}:&'c0 String}} impl<'c0> Borrowed<'c0>{{{signature} Record0{{bytes:self.capture{capture}.as_bytes()}} }} }}");
+        let positive=definitions.clone()+&format!(r#"
+fn main() {{
+    let owner=String::from("bytes");let returned;
+    {{let callback=Borrowed{{capture{capture}:&owner}};returned=callback.call();}}
+    assert_eq!(returned.bytes.as_ptr(),owner.as_bytes().as_ptr());
+    assert_eq!(returned.bytes,b"bytes");
+}}
+"#);
+        let negative=definitions+&format!(r#"
+fn main() {{
+    let escaped;
+    {{let owner=String::from("bytes");let callback=Borrowed{{capture{capture}:&owner}};escaped=callback.call();}}
+    assert_eq!(escaped.bytes,b"bytes");
+}}
+"#);
+        let directory=std::env::temp_dir().join(format!("tsrust-borrowed-owner-capture-{}",std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        struct Cleanup(std::path::PathBuf);
+        impl Drop for Cleanup {fn drop(&mut self){let _=std::fs::remove_dir_all(&self.0);}}
+        let _cleanup=Cleanup(directory.clone());
+        for (name,source) in [("positive",positive),("negative",negative)] {
+            let input=directory.join(format!("{name}.rs"));std::fs::write(&input,source).unwrap();
+            for level in [0,3] {
+                let output=directory.join(format!("{name}-{level}"));
+                let built=std::process::Command::new("rustup").args(["run",crate::RUST_BACKEND_VERSION,"rustc","--edition=2024",&format!("-Copt-level={level}")]).arg(&input).arg("-o").arg(&output).output().unwrap();
+                if name=="negative" {
+                    assert!(!built.status.success(),"borrowed capture escaped its byte owner");
+                    assert!(String::from_utf8_lossy(&built.stderr).contains("does not live long enough"));
+                } else {
+                    assert!(built.status.success(),"{}",String::from_utf8_lossy(&built.stderr));
+                    let run=std::process::Command::new(output).output().unwrap();
+                    assert!(run.status.success(),"{}",String::from_utf8_lossy(&run.stderr));
+                }
+            }
+        }
+    }
+    #[test]
     fn captured_native_view_return_preserves_outer_origin() {
         let source = "type Window={};function captured(unused:int,input:Window):Window{const alias=input;const callback=():Window=>alias;return callback();}function main(){}";
         let formatted = crate::formatting::format(source).unwrap();

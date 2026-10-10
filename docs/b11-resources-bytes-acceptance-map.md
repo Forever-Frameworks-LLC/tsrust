@@ -83,7 +83,9 @@ record runtime/results/native-view-owner-fields-2026-10-10-checks.json.
 Private integration now includes owner fields and record lifecycle, returned source
 escape checks, carried input slots, named Rust function lifetimes, direct/saved named
 function calls, ordinary arrow invocation and consuming native view captures.
-Captured Results retain named payload lifetimes, including independent view lifetimes
+Shared owner captures also retain external storage loans and named reference
+lifetimes in private provenance/signature controls; source factory integration for
+that path remains pending. Captured Results retain named payload lifetimes, including independent view lifetimes
 in Ok and Err. Read-only callbacks can inspect captured Result variants, and closure
 projection preserves explicit ReadOnly facts. Generated O0/O3 witnesses preserve
 pointer identity and exclusive write-through. Alternative inputs and independent
@@ -95,5 +97,5 @@ escaped/rebound environments, specialized callbacks, arbitrary stored callable
 families, recursive carriers, collection transport
 and exceptional completion reconciliation remain pending. Factory/editor/benchmark
 acceptance and the S07 family review are still required. See
-handoff-2026-10-10-native-view-variant-lifetimes.md and
+handoff-2026-10-10-native-view-shared-owner-captures.md and
 native-byte-views-implementation.md.

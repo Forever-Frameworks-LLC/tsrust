@@ -202,6 +202,16 @@ impl Analyzer {
                             let output=&returned.loan;
                             let position=match returned.source {
                                 super::native_view_calls::Source::Argument(position)=>position,
+                                super::native_view_calls::Source::BorrowedCapture(root)=>{
+                                    let binding=context.bindings.get(root).ok_or_else(||Diagnostic::new("native-view-call","Captured owner is outside the current lexical environment.",value.span))?;
+                                    let mut loan=output.clone();loan.root=root;loan.retained=true;
+                                    result.push(loan);
+                                    for inherited in binding.native_view_loans.as_deref().into_iter().flatten() {
+                                        let mut actual=inherited.clone();
+                                        if super::native_view_calls::transport(&mut actual,output) {result.push(actual);}
+                                    }
+                                    continue;
+                                }
                                 super::native_view_calls::Source::Capture(root)=>{
                                     let binding=context.bindings.get(root).ok_or_else(||Diagnostic::new("native-view-call","Captured view source is outside the current lexical environment.",value.span))?;
                                     let loans=binding.native_view_loans.as_deref().ok_or_else(||Diagnostic::new("native-view-call","Captured view has no tracked source lifetime.",value.span))?;

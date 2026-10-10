@@ -6,7 +6,7 @@ use super::native_view_loans::{LifetimeSource,Loan};
 pub(super) enum Target {Function(usize),Closure(usize),Method(usize,usize)}
 
 #[derive(Clone,Debug,PartialEq,Eq)]
-pub(super) enum Source { Argument(usize), Capture(usize) }
+pub(super) enum Source { Argument(usize), Capture(usize), BorrowedCapture(usize) }
 
 #[derive(Clone,Debug,PartialEq,Eq)]
 pub(super) struct Returned { pub(super) source:Source, pub(super) loan:Loan }
@@ -63,9 +63,11 @@ impl Analyzer {
                 }.ok_or_else(||Diagnostic::new("native-view-call","Returned view has no invocation or capture source.",span))?;
                 let capture=&closure.captures[position];
                 if matches!(loan.source,LifetimeSource::Storage) {
-                    return Err(Diagnostic::new("native-view-call","Returning a view of captured owner storage requires a receiver lifetime contract.",span));
-                }
-                Source::Capture(capture.outer)
+                    if capture.storage!=Mode::Read || loan.access!=crate::native_return_borrows::BorrowAccess::ReadOnly {
+                        return Err(Diagnostic::new("native-view-call","Returning a view of owned or mutable captured storage requires a receiver lifetime contract.",span));
+                    }
+                    Source::BorrowedCapture(capture.outer)
+                } else {Source::Capture(capture.outer)}
             };
             mapped.push(Returned{source,loan:loan.clone()});
         }
@@ -115,4 +117,47 @@ pub(super) fn storage(context:&Context,argument:&Expr,output:&Loan)->Result<Vec<
         loan.retained=true;
         loan
     }).collect())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn native_view_from_borrowed_capture_keeps_outer_owner_loan() {
+        let source="type Window={};function sample(owner:ReadOnly<string>):void{const callback=():int=>owner.length;callback();}function main(){}";
+        let formatted=crate::formatting::format(source).unwrap();
+        assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
+        let mut parsed=crate::syntax::parse(&formatted).unwrap();
+        parsed.records[0].native_type=Some(crate::native_signatures::NativeTypeId::ByteView);
+        let mut analyzer=Analyzer::new(parsed).unwrap();
+        analyzer.function(0).unwrap();
+        let capture=&analyzer.closures[0].captures[0];
+        assert_eq!(capture.storage,Mode::Read);
+        let outer=capture.outer;
+        let inner=capture.inner;
+        analyzer.closures[0].function.native_returns=Some(Box::new(vec![Loan{
+            root:inner,owner_fields:vec![],source:LifetimeSource::Storage,
+            access:crate::native_return_borrows::BorrowAccess::ReadOnly,creation:Span::default(),
+            retained:true,path:vec![],guards:vec![],
+        }]));
+        let mut context=Context::new("sample".into());
+        context.bindings=analyzer.checked[0].as_ref().unwrap().bindings.clone();
+        context.names=context.bindings.iter().enumerate().map(|(id,binding)|(binding.name.clone(),id)).collect();
+        analyzer.remember_native_closure_returns(&mut context,0,None,Span::default()).unwrap();
+        let callback=context.names["callback"];
+        let mut call=Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name("callback".into()),Span::default())),vec![]),Span::default());
+        call.target=Some(CallTarget::Closure(callback));
+        call.callable_origin=Some(CallableOrigin::Closure(0));
+        call.ty=Some(Type::Record(0));
+        let loans=Analyzer::native_view_value_loans(&context,&call).unwrap();
+        assert_eq!(loans.len(),1);
+        assert_eq!(loans[0].root,outer);
+        assert_eq!(loans[0].source,LifetimeSource::Storage);
+        let token=Token{text:"view".into(),kind:TokenKind::Name,span:Span::default()};
+        let holder=Analyzer::bind(&mut context,&token,Type::Record(0),false).unwrap();
+        Analyzer::set_native_view_loans(&mut context,holder,loans);
+        assert!(Analyzer::check_native_view_access(&context,outer,Mode::Read,Span::default()).is_ok());
+        assert!(Analyzer::check_native_view_access(&context,outer,Mode::Mutate,Span::default()).is_err());
+        assert!(Analyzer::check_native_view_access(&context,outer,Mode::Consume,Span::default()).is_err());
+    }
 }
