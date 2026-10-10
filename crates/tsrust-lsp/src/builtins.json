@@ -4991,5 +4991,42 @@
       }
     ]
   }
+],
+  "std:bytes": [
+  {
+    "name": "Bytes",
+    "signature": "type Bytes",
+    "parameters": [],
+    "documentation": "An owned contiguous byte buffer. Each element is a byte in 0..255; byte counts differ from Unicode character counts. This is a type declaration, so it takes no arguments and returns no value. Its storage fields are private; record literals cannot construct it. Byte construction operations are not available yet.\n\n```tsrust\nimport { Bytes } from \"std:bytes\";\nfunction accept(value: ReadOnly<Bytes>): void {}\nfunction main() {}\n```\n\nThis declares a borrowing parameter without creating or mutating a buffer. Ownership: passing by value transfers the buffer; ReadOnly borrows it without copying.",
+    "examples": [
+      {
+        "source": "import { Bytes } from \"std:bytes\";\nfunction accept(value: ReadOnly<Bytes>): void {}\nfunction main() {}",
+        "output": ""
+      }
+    ]
+  },
+  {
+    "name": "ByteError",
+    "signature": "type ByteError = { code: string; message: string; offset?: int; }",
+    "parameters": [],
+    "documentation": "Describes a byte operation failure. The code identifies the failure category, message explains it, and optional offset locates the offending byte or input element. An omitted offset reads as undefined. This is a record type, so the declaration takes no arguments and returns no value. Creating or reading an error does not change a byte buffer.\n\n```tsrust\nimport { ByteError } from \"std:bytes\";\nfunction main() {\n    const error: ByteError = { code: \"range\", message: \"invalid byte\", offset: 2 };\n    console.log(error.code, error.offset); // range 2\n}\n```\n\nAn offset counts bytes or array elements, never Unicode characters; its meaning depends on the failing operation. Ownership: the error owns its string fields; ReadOnly<ByteError> borrows the error.",
+    "fields": {
+      "code": {
+        "documentation": "Identifies the failure category as a string. This property takes no arguments. Reading it leaves the error and byte buffers unchanged.\n\n```tsrust\nimport { ByteError } from \"std:bytes\";\nfunction main() {\n    const error: ByteError = { code: \"range\", message: \"invalid byte\" };\n    console.log(error.code); // range\n}\n```\n\nOwnership: Borrow the string for inspection or clone explicitly to retain an independent value."
+      },
+      "message": {
+        "documentation": "Explains the failure as a string intended for people. This property takes no arguments. Reading it leaves the error and byte buffers unchanged.\n\n```tsrust\nimport { ByteError } from \"std:bytes\";\nfunction main() {\n    const error: ByteError = { code: \"range\", message: \"invalid byte\" };\n    console.log(error.message); // invalid byte\n}\n```\n\nOwnership: Borrow the string for inspection or clone explicitly to retain an independent value."
+      },
+      "offset": {
+        "documentation": "Locates the offending byte or input element when supplied by an operation. This property takes no arguments and returns int | undefined. An omitted offset reads as undefined. Reading it leaves the error and byte buffers unchanged. An offset counts bytes or array elements, never Unicode characters.\n\n```tsrust\nimport { ByteError } from \"std:bytes\";\nfunction main() {\n    const error: ByteError = { code: \"range\", message: \"invalid byte\" };\n    console.log(error.offset); // undefined\n}\n```\n\nOwnership: The scalar result copies; the error remains reusable."
+      }
+    },
+    "examples": [
+      {
+        "source": "import { ByteError } from \"std:bytes\";\nfunction main() { const error: ByteError = { code: \"range\", message: \"invalid byte\", offset: 2 }; console.log(error.code, error.offset); }",
+        "output": "range 2\n"
+      }
+    ]
+  }
 ]
 }

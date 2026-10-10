@@ -1456,3 +1456,40 @@ function main(){const saved=between;const instances=[wrap(one)];strictEqual(betw
     let changed=ask(&index,entry,"3,9","textDocument/signatureHelp");assert!(changed.to_string().contains("other: int"),"{changed}");
     let hover=ask(&index,entry,"saved(\"reports\"","textDocument/hover");assert!(hover.to_string().contains("path-relative"),"{hover}");
 }
+
+#[test]
+fn native_type_aliases_have_documented_hover_and_public_fields() {
+    let entry = tsrust_compiler::format("import {Bytes as Buffer, ByteError as Failure} from 'std:bytes';function borrow(value:ReadOnly<Buffer>):void{} function report(error:ReadOnly<Failure>):void{console.log(error.message);} function main(){const error:Failure={code:'range',message:'bad'};console.log(error.offset);}").unwrap();
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.clone());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    for (mode, index) in [ProjectIndex::checked(&checked), ProjectIndex::new(&checked.graph)].into_iter().enumerate() {
+        let hover = ask(&index, &entry, "Buffer>", "textDocument/hover");
+        let docs = hover["contents"]["value"].as_str().unwrap_or("");
+        assert!(docs.contains("type Buffer") && docs.contains("byte buffer") && !docs.contains("__tsrust_module_"), "{hover}");
+        let hover = ask(&index, &entry, "Failure>", "textDocument/hover");
+        assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("offset"), "{hover}");
+        let completion = ask(&index, &entry, "message);", "textDocument/completion");
+        let fields = completion.as_array().unwrap();
+        for name in ["code", "message", "offset"] {
+            assert!(fields.iter().any(|field| field["label"] == name), "mode {mode}: {completion}; receiver {}", ask(&index, &entry, "error.message", "textDocument/hover"));
+        }
+    }
+    let stop = entry.find("error.message").unwrap() + "error.me".len();
+    let editing = &entry[..stop];
+    workspace.change(&source_id(uri).unwrap(), 2, editing.into());
+    let input = workspace.snapshot();
+    assert!(input.check(&source_id(uri).unwrap()).is_err());
+    let graph = tsrust_compiler::project::load_project_headers(&input, &source_id(uri).unwrap().0).unwrap();
+    let index = ProjectIndex::new(&graph);
+    let completion = ask(&index, editing, "me", "textDocument/completion");
+    assert!(completion.as_array().unwrap().iter().any(|field| field["label"] == "message"), "{completion}");
+    let importing = "import { ByteError, } from 'std:bytes';function main(){}";
+    workspace.change(&source_id(uri).unwrap(), 3, importing.into());
+    let input = workspace.snapshot();
+    let graph = tsrust_compiler::project::load_project_headers(&input, &source_id(uri).unwrap().0).unwrap();
+    let index = ProjectIndex::new(&graph);
+    let completion = ask(&index, importing, "} from", "textDocument/completion");
+    assert!(completion.as_array().unwrap().iter().any(|item| item["label"] == "Bytes" && item["kind"] == 22), "{completion}");
+}

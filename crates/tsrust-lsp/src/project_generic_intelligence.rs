@@ -13,6 +13,7 @@ impl SourceIndex {
         dependencies: &std::collections::BTreeMap<SourceId, SourceIndex>,
     ) -> Option<String> {
         match ty {
+            ProjectType::Native(identity) => self.native_type_aliases.iter().find(|(_, id)| *id == identity).map(|(name, _)| name.clone()),
             ProjectType::Callable {
                 ownership,
                 parameters,

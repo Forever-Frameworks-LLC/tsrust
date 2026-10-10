@@ -18,6 +18,7 @@ pub struct ProjectLocalFunctionInfo {
 /// Concrete type with nominal declaration identity; no linked display-name parsing.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ProjectType {
+    Native(crate::native_signatures::NativeTypeId),
     Named {
         name: String,
         declaration: Option<SourceLocation>,
@@ -371,6 +372,7 @@ impl ProjectAnalysis {
     }
     fn project_record(&self, id: usize, names: &HashMap<&str, usize>) -> Option<ProjectType> {
         let record = &self.analysis.program.records[id];
+        if let Some(identity) = record.native_type { return Some(ProjectType::Native(identity)); }
         if let Some(application) = &record.application {
             let variant = match application.declaration.text.as_str() { "Result#Ok" => Some("Ok"), "Result#Err" => Some("Err"), _ => None };
             if let Some(name) = variant {

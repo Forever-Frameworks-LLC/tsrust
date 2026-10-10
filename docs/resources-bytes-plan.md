@@ -331,3 +331,29 @@ Gate 187 is still not accepted. Native type hover/completion, re-export witnesse
 opaque observation/capability guards, fromArray/length and their documented matched
 workload remain. Do not publish Bytes construction or claim S07 acceptance from this
 checkpoint. Installed consumers remain the accepted B10 build.
+
+## Gate 187 native type editor increment
+
+Native declarations now supply type hover, alias spelling, public field help and
+import completion. Type completion uses the struct item kind rather than the
+function item kind. `native_type_intelligence.rs` owns metadata-to-symbol projection;
+private storage fields never become editor properties. The catalog documents Bytes,
+ByteError and each public error field, with purpose, examples and ownership notes.
+Bytes documentation explicitly states that construction operations are not available
+at this checkpoint.
+
+Checked project facts now carry `ProjectType::Native(NativeTypeId)` rather than
+misidentifying the first import span as a source declaration. Checked receivers keep
+local native aliases. Tolerant borrowed receivers strip their access wrapper only
+when the inner name resolves to a registered native type alias. Tests cover checked
+and declaration-only help, a truncated body, public field completion and native
+import completion. Existing native function help remains unchanged.
+
+Nine native declaration tests, one existing nominal project fact test and six native
+editor tests pass. All five new catalog code examples format idempotently and execute
+natively with exact expected stdout. Evidence is in SQLite at
+`runtime/results/native-type-editor-2026-10-10-checks.json`; the editor module extraction
+is supplemented at `runtime/results/native-type-editor-module-2026-10-10-checks.json`.
+Project formatting changed zero files. No full regression, timing or consumer refresh
+was performed. Gate 187 remains open: capability guards, re-export coverage, byte
+constructors/length, signature help and the matched workload still need implementation.

@@ -11,6 +11,8 @@ mod project_generic_intelligence;
 mod generic_intelligence;
 #[path = "result_intelligence.rs"]
 mod result_intelligence;
+#[path = "native_type_intelligence.rs"]
+mod native_type_intelligence;
 use crate::LineIndex;
 use lsp_types::{Position, Range};
 use serde_json::{Value, json};
@@ -59,6 +61,7 @@ pub struct SourceIndex {
     foreign_definitions: std::collections::BTreeMap<usize, Value>,
     native_parameter_docs: std::collections::BTreeMap<usize, Vec<String>>,
     native_origins: std::collections::BTreeMap<usize, usize>,
+    native_type_aliases: std::collections::BTreeMap<String, tsrust_compiler::native_signatures::NativeTypeId>,
     entry_help: bool,
     source: String,
     lines: LineIndex,
@@ -104,6 +107,7 @@ impl SourceIndex {
             foreign_definitions: Default::default(),
             native_parameter_docs: Default::default(),
             native_origins: Default::default(),
+            native_type_aliases: Default::default(),
             entry_help,
             source: source.into(),
             lines: LineIndex::new(source),
@@ -2319,7 +2323,14 @@ impl SourceIndex {
         if let Some(ty) = self.checked_view(dot - 1) {
             return ty.into();
         }
-        self.receiver_type_end(dot - 1, 0)
+        let ty = self.receiver_type_end(dot - 1, 0);
+        for wrapper in ["ReadOnly<", "Mutable<", "Owned<"] {
+            if let Some(inner) = ty.strip_prefix(wrapper).and_then(|value| value.strip_suffix('>'))
+                && self.native_type_aliases.contains_key(inner) {
+                return inner.into();
+            }
+        }
+        ty
     }
     fn field_callable_result(&self, receiver: &str, field: &str, token: usize) -> Option<String> {
         let symbol = self
@@ -2475,6 +2486,10 @@ impl SourceIndex {
         )
     }
     pub(crate) fn import_native(&mut self, module: &str, exported: &str, local: &str, span: Span) {
+        if let Some(declaration) = tsrust_compiler::native_types::lookup(module, exported) {
+            self.import_native_type(declaration, local, span);
+            return;
+        }
         let Ok(binding) = tsrust_compiler::native_bindings::lookup(module, exported) else {
             return;
         };
@@ -2794,7 +2809,10 @@ impl SourceIndex {
         let items = builtins_for(module)
             .into_iter()
             .filter(|entry| entry["name"].is_string())
-            .map(|entry| json!({"label":entry["name"],"kind":3,"detail":entry["signature"],"documentation":{"kind":"markdown","value":entry["documentation"]}}))
+            .map(|entry| {
+                let kind = if entry["name"].as_str().is_some_and(|name| tsrust_compiler::native_types::lookup(module, name).is_some()) { 22 } else { 3 };
+                json!({"label":entry["name"],"kind":kind,"detail":entry["signature"],"documentation":{"kind":"markdown","value":entry["documentation"]}})
+            })
             .collect();
         self.import_exports.push((names, items));
     }
