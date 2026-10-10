@@ -24,6 +24,19 @@ function counter(start: int): Result<() => int, int> {
     return { kind: "Ok", value: (): int => { value += 1; return value; } };
 }
 
+function failureScenario(value: int): int {
+    let held: Result<() => int, int> = { kind: "Err", error: value };
+    if (value % 5 !== 0) {
+        const text = "x".repeat(value % 4 + 1);
+        held = { kind: "Ok", value: (): int => { throw text; } };
+    }
+    let observed = 0;
+    try { switch (held.kind) { case "Ok": held.value(); break; case "Err": observed = held.error; break; } }
+    catch (error) { if (typeof error === "string") { observed = error.length; } else { observed = -1000000; } }
+    finally { observed += 1; }
+    return observed;
+}
+
 function workload(n: int, seed: int, input: string): int[][] {
     const output: int[][] = [];
     let i = 0;
@@ -49,7 +62,8 @@ function workload(n: int, seed: int, input: string): int[][] {
             case "Ok": callA = callback.value(); callB = callback.value(); break;
             case "Err": callA = callback.error; callB = callback.error + 1; break;
         }
-        output.push([first, second, owned, callA, callB, mutated]);
+        const failed = failureScenario(value);
+        output.push([first, second, owned, callA, callB, mutated, failed]);
         i += 1;
     }
     return output;

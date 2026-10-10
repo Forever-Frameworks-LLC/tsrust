@@ -1,0 +1,195 @@
+import { strictEqual } from "std:testing";
+
+type State = {
+    finalized: int;
+};
+
+function finish(result: Result<string, string>, state: Mutable<State>): string {
+    try {
+        match (result) {
+            Ok(value) => {
+                return value;
+            },
+            Err(error) => {
+                throw error;
+            }
+        }
+    } finally {
+        state.finalized += 1;
+    }
+}
+
+function failing(): Result<Function<int>, string> {
+    const message = "failure".repeat(2);
+    return Ok((): int => {
+        throw clone(message);
+    });
+}
+
+function message(text: string): Result<Function<string>, int> {
+    return Ok((): string => {
+        return text.trim();
+    });
+}
+
+function onceFailure(text: string): Result<Once<Function<int>>, string> {
+    return Ok((): int => {
+        throw text;
+    });
+}
+
+function invoke(result: Mutable<Result<Function<int>, string>>): int {
+    match (result) {
+        Ok(action) => {
+            return action();
+        },
+        Err(error) => {
+            return error.length;
+        }
+    }
+}
+
+function loop(result: Mutable<Result<int[], string>>): void {
+    for (let index = 0; index < 4; index++) {
+        match (result) {
+            Ok(values) => {
+                values.push(index);
+                if (index < 2) {
+                    continue;
+                }
+
+                break;
+            },
+            Err(_) => {
+                break;
+            },
+        }
+    }
+
+    match (result) {
+        Ok(values) => {
+            values.push(9);
+        },
+        Err(_) => {
+        }
+    }
+}
+
+function recursive(depth: int): Result<int, string> {
+    if (depth === 0) {
+        return Ok(0);
+    }
+
+    match (recursive(depth - 1)) {
+        Ok(value) => {
+            return Ok(value + 1);
+        },
+        Err(error) => {
+            return Err(error);
+        }
+    }
+}
+
+function main() {
+    const state: State = {
+        finalized: 0
+    };
+    strictEqual(finish(Ok("returned"), state), "returned");
+    try {
+        finish(Err("thrown"), state);
+    } catch (error) {
+        strictEqual(error, "thrown");
+    }
+
+    strictEqual(state.finalized, 2);
+    let replaced: Result<string[], string> = Ok(["old".repeat(16)]);
+    replaced = Err("new".repeat(16));
+    match (replaced) {
+        Ok(_) => {
+            strictEqual(1, 0);
+        },
+        Err(error) => {
+            strictEqual(error.length, 48);
+        }
+    }
+
+    const callback = failing();
+    let caught = 0;
+    try {
+        invoke(callback);
+    } catch (error) {
+        strictEqual(error, "failurefailure");
+        caught += 1;
+    }
+
+    try {
+        invoke(callback);
+    } catch (error) {
+        strictEqual(error, "failurefailure");
+        caught += 1;
+    }
+
+    strictEqual(caught, 2);
+    match (callback) {
+        Ok(action) => {
+            try {
+                action();
+            } catch (error) {
+                strictEqual(error, "failurefailure");
+                caught += 1;
+            }
+        },
+        Err(_) => {
+            strictEqual(1, 0);
+        }
+    }
+
+    strictEqual(caught, 3);
+    let replacedCallback = message("first".repeat(16));
+    replacedCallback = message("second".repeat(16));
+    match (replacedCallback) {
+        Ok(action) => {
+            strictEqual(action().length, 96);
+        },
+        Err(_) => {
+            strictEqual(1, 0);
+        }
+    }
+
+    const once = onceFailure("once".repeat(8));
+    match (once) {
+        Ok(action) => {
+            try {
+                action();
+            } catch (error) {
+                strictEqual(error.length, 32);
+            }
+        },
+        Err(_) => {
+            strictEqual(1, 0);
+        }
+    }
+
+    const iterated: Result<int[], string> = Ok([]);
+    loop(iterated);
+    match (iterated) {
+        Ok(values) => {
+            strictEqual(values.length, 4);
+            strictEqual(values[3], 9);
+        },
+        Err(_) => {
+            strictEqual(1, 0);
+        }
+    }
+
+    match (recursive(8)) {
+        Ok(value) => {
+            strictEqual(value, 8);
+        },
+        Err(_) => {
+            strictEqual(1, 0);
+        }
+    }
+
+    const unused = message("unused".repeat(8));
+}

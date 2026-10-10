@@ -8,8 +8,7 @@ nested matches and callable payloads. Sixteen Result tests, six syntax tests, te
 depth canaries and 37 affected editor tests pass. Five adjacent capture-context
 tests pass. Six catalog examples execute with exact output after idempotent
 formatting. The matched workload includes record and array mutation and passes
-five untimed cases on native and Node-after-tsc. Cleanup stress
-and the family milestone remain open. Historical increments below retain their
+five untimed cases on native and Node-after-tsc. Cleanup stress now passes; the family milestone remains open. Historical increments below retain their
 original evidence and are superseded by this current status.
 
 Project assistance now refreshes pattern symbols after authoritative module facts
@@ -263,3 +262,28 @@ timestamp paths. Loose copies are removed. No whole compiler/LSP regression or
 timing run was performed. Mutable matching, project-wide editor assistance, cleanup
 stress and family acceptance remain open. Expand benchmark coverage as those
 remaining forms land.
+
+## Cleanup and failure verification
+
+Eighteen Result integration tests pass. The cleanup fixture exercises early returns,
+throws, finally execution, record and array payloads, replaced callable environments,
+reusable and Once failures, loop break/continue, recursive forwarding and unused
+owned callbacks. Its independent TypeScript reference passes. A counting allocator
+checks exact live-byte restoration over 32 repetitions at optimization levels zero
+and three, after initializing the process entry hook once. Repeated process entry
+setup would chain panic hooks and is not a valid payload-lifetime witness.
+
+Exact evidence is stored in SQLite at
+`runtime/results/result-match-cleanup-2026-10-10-checks.json`. The matched workload
+now retains a seventh observation for callback replacement, thrown payloads and
+finally execution. Its catch handles string errors explicitly and records an impossible negative
+observation for other errors in both implementations, causing oracle verification to fail. Registration guards and the independent oracle
+cover this observation. Family regressions and measurements remain pending.
+
+The seven-observation workload passes five native and five Node-after-tsc cases.
+Its fallible native entry uses the existing checked error ABI; a focused harness
+regression rejects wrong parameter and error signatures. Verification is stored at
+`runtime/results/2026-10-10T12-41-00-897Z-verify.json`. An initial timing record at
+`runtime/results/2026-10-10T12-41-18-287Z.json` overlapped the compiler regression
+run and is retained only as contaminated evidence, not acceptance performance.
+Repeat measurement after regressions stop; preserve both records separately.

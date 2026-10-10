@@ -112,11 +112,11 @@ retained in SQLite. Temporary workload build outputs are removed after import.
    environments. Native witnesses cover captured state, Once, forwarding and both
    variants. Keep context-free inline callback inference as an explicit limitation;
    callers can supply the callable type argument. Continue with the following work.
-2. Readonly and mutable matching now work with checked scoped borrows. Extend
-   replacement and cleanup witnesses, including early return and failures. Preserve
+2. Readonly and mutable matching now work with checked scoped borrows. Replacement and cleanup witnesses now pass, including early return, failures,
+   callback replacement, loop exits and allocation restoration at optimization levels zero and three. Preserve
    scalar copying, exclusive owner conflicts and no implicit ownership transfer.
 3. Project-aware binding facts, navigation, nested scopes and incomplete binding
-   assistance now work. Complete callback/drop stress, including failure paths.
+   assistance now work. Callback/drop stress, including failure paths, now passes.
 4. Extend the registered matched Result workload for remaining forms as they land.
    Retain its independent oracle, source contracts, hooks and untimed checks.
 5. Finish the family milestone: full compiler/LSP checks with explicit abort
@@ -142,3 +142,13 @@ the remaining Result/match family using
 focused TDD and checked ownership identities. Read AGENTS.md and the workflow
 first. Keep single-file editor support and explicit constructor shadowing intact.
 Do not accept B10 until cleanup witnesses, benchmarks and family evidence are complete.
+
+## Latest cleanup increment
+
+All eighteen Result integration tests and the independent Node reference pass.
+The allocator witness repeats the source entry body, after one process setup, and
+proves exact live-byte restoration at optimization levels zero and three. Cleanup
+evidence is stored in SQLite at
+`runtime/results/result-match-cleanup-2026-10-10-checks.json`. No compiler source
+change was required for these cases. The matched workload now includes failure
+and finally behavior; its final verification and family milestone are pending.

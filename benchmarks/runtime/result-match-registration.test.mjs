@@ -27,12 +27,12 @@ test('Result match workloads retain independent observations, source guards and 
         assert.throws(() => assertResultMatchSource(source + ' ', row, kind));
         assert.throws(() => assertResultMatchSource(source, {...row, operationsPerIteration: 2}, kind));
         const key = kind === 'native' ? 'sourceSha256' : 'counterpartSha256';
-        for (const from of ['const first = inspect(result);', 'const second = inspect(result);', 'update(editable);', 'output.push([first, second, owned, callA, callB, mutated]);']) {
+        for (const from of ['const first = inspect(result);', 'const second = inspect(result);', 'update(editable);', 'const failed = failureScenario(value);', 'output.push([first, second, owned, callA, callB, mutated, failed]);']) {
             const changed = replaceCodeSnippet(source, from, '');
             assert.throws(() => assertResultMatchSource(changed, {...row, [key]: createHash('sha256').update(changed).digest('hex')}, kind));
         }
     }
-    assert.deepEqual(expectedResultMatchValues(row.id, 3, 0, 'results'), [[2, 2, 8, 2, 3, 10], [4, 4, 9, 3, 4, 6], [24, 24, 19, 4, 5, 10]]);
+    assert.deepEqual(expectedResultMatchValues(row.id, 3, 0, 'results'), [[2, 2, 8, 2, 3, 10, 3], [4, 4, 9, 3, 4, 6, 4], [24, 24, 19, 4, 5, 10, 5]]);
     for (const seed of [0, 7, 1000000]) for (const n of [0, 1, 37, 2048]) {
         const expected = expectedResultMatchObservation(row.id, n, seed, 'results');
         assert.deepEqual(expectedExactResult(row.id, n, seed, 'results'), expected);
@@ -43,4 +43,11 @@ test('Result match workloads retain independent observations, source guards and 
         assert.ok(source.includes('assertResultMatchSource(source'));
         assert.ok(source.includes("'result-match-oracle.mjs'"));
     }
+});
+
+test('Result workload ABI supports fallible entries without accepting unrelated signatures', () => {
+    const emitted = 'fn tsr_result_function5(value0: i64, value1: i64, value2: &String) -> Result<Array<NumericArray<i64>>,TsrFunctionError5<Record7,String>> { todo!() }\nfn main() {}';
+    assert.equal(assertABI(emitted, row, read('./' + row.source)).fallible, true);
+    assert.throws(() => assertABI(emitted.replace('TsrFunctionError5<Record7,String>', 'String'), row, read('./' + row.source)));
+    assert.throws(() => assertABI(emitted.replace('value1: i64', 'value1: bool'), row, read('./' + row.source)));
 });

@@ -20334,10 +20334,10 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": false,
       "measured": false,
-      "notes": "B10 in progress. Own one tagged record/error Result, inspect it twice through a readonly parameter, consume it in an exhaustive match, mutate a second record/array Result twice through an exclusive parameter and observe it, then invoke a selected owned captured callback twice or observe its error. Untimed native and Node-after-tsc verification required; no timing claimed.",
-      "specification": "Six retained observations per iteration: two readonly inspections, one consumed payload observation, two ordered callback/error observations and one observation after two exclusive record/array mutations. Independent arithmetic oracle; values cover both variants and callable state.",
-      "sourceSha256": "f0ab8646c837790394b9e724bbe2fe41e83b81a62c06cebc2a04c54e7c201249",
-      "counterpartSha256": "da072a77dadb5aaee10bfd5c5eef7cd3d5222dc44d1869a3141e77c38f413140"
+      "notes": "B10 in progress. Own one tagged record/error Result, inspect it twice through a readonly parameter, consume it in an exhaustive match, mutate a second record/array Result twice through an exclusive parameter and observe it, then invoke a selected owned captured callback twice or observe its error, and replace/invoke a fallible callback under catch/finally. Untimed native and Node-after-tsc verification required; no timing claimed.",
+      "specification": "Seven retained observations per iteration: two readonly inspections, one consumed payload observation, two ordered callback/error observations one observation after two exclusive record/array mutations and one caught-failure/finally observation. Independent arithmetic oracle; values cover both variants and callable state.",
+      "sourceSha256": "0ada939da613145ca30c681ab799ae17e7b8159d3bb9586ed2130c68287db5d5",
+      "counterpartSha256": "f438a6603a71d76d03277543e0e07ec3020e34d282a9ef3182a4c798751940bf"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",
