@@ -539,3 +539,16 @@ Dangling outer holders are rejected; dead local holders release access; replacin
 an outer view in finally releases its owner, whereas retaining it through catch
 continues to block mutation. These controls pass without further production edits.
 They cover these concrete paths, not all completion joins or borrowed throw payloads.
+
+Final analysis now validates returned storage-borrow contracts for every checked
+closure and specialized method, including unused closures. The same storage access
+validator is used when mapping call summaries. A consuming invocation cannot return
+a borrow of owned or mutably captured storage that its invocation destroys. Shared
+capture storage may return readonly access, and an exclusive receiver view requires
+mutable invocation. Carried views remain distinct from borrows of physical capture
+storage and are not rejected merely because an invocation consumes its environment.
+
+The private unused-closure witness checks a real parsed consuming closure and then
+injects its returned native storage summary before final analysis. It proves the
+guard runs without a call, with shared-invocation and carried-view positive controls.
+Complete source factory-body acceptance remains pending.

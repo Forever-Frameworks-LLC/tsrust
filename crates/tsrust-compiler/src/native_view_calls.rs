@@ -11,6 +11,38 @@ pub(super) enum Source { Argument(usize), Capture(usize), BorrowedCapture(usize)
 #[derive(Clone,Debug,PartialEq,Eq)]
 pub(super) struct Returned { pub(super) source:Source, pub(super) loan:Loan }
 
+fn validate_storage_capture(storage:Mode,invocation:Mode,loan:&Loan,span:Span)->Result<(),Diagnostic> {
+    use crate::native_return_borrows::BorrowAccess;
+    let message=if storage==Mode::Read && loan.access!=BorrowAccess::ReadOnly {
+        Some("A shared capture cannot return exclusive access to its owner.")
+    } else if storage!=Mode::Read && invocation==Mode::Consume {
+        Some("A consuming invocation cannot retain a borrow of its capture storage; transferred capture borrows require separate planning.")
+    } else if storage!=Mode::Read && loan.access==BorrowAccess::Exclusive && invocation!=Mode::Mutate {
+        Some("Returning exclusive capture access requires a mutable invocation.")
+    } else {None};
+    match message {Some(message)=>Err(Diagnostic::new("native-view-call",message,span)),None=>Ok(())}
+}
+
+pub(super) fn validate_closures(closures:&[CheckedClosure])->Result<(),Diagnostic> {
+    for closure in closures {
+        for method in std::iter::once(None).chain((0..closure.methods.len()).map(Some)) {
+            let (function,parameters,invocation)=match method {
+                Some(id)=>{let method=&closure.methods[id];(&method.function,&method.parameters,method.invocation)},
+                None=>(&closure.function,&closure.parameters,closure.invocation),
+            };
+            for loan in function.native_returns.as_deref().into_iter().flatten() {
+                if !matches!(loan.source,LifetimeSource::Storage) || parameters.contains(&loan.root) {continue;}
+                let position=match method {
+                    Some(id)=>closure.methods[id].captures.iter().position(|root|*root==loan.root),
+                    None=>closure.captures.iter().position(|capture|capture.inner==loan.root),
+                }.ok_or_else(||Diagnostic::new("native-view-call","Returned view has no invocation or capture source.",closure.span))?;
+                validate_storage_capture(closure.captures[position].storage,invocation,loan,closure.span)?;
+            }
+        }
+    }
+    Ok(())
+}
+
 pub(super) fn target(expression:&Expr)->Option<Target> {
     match expression.target? {
         CallTarget::Function(id)|CallTarget::ForwardFunction(id)=>Some(Target::Function(id)),
@@ -63,19 +95,11 @@ impl Analyzer {
                 }.ok_or_else(||Diagnostic::new("native-view-call","Returned view has no invocation or capture source.",span))?;
                 let capture=&closure.captures[position];
                 if matches!(loan.source,LifetimeSource::Storage) {
+                    let invocation=method.map_or(closure.invocation,|method|closure.methods[method].invocation);
+                    validate_storage_capture(capture.storage,invocation,loan,span)?;
                     if capture.storage==Mode::Read {
-                        if loan.access!=crate::native_return_borrows::BorrowAccess::ReadOnly {
-                            return Err(Diagnostic::new("native-view-call","A shared capture cannot return exclusive access to its owner.",span));
-                        }
                         Source::BorrowedCapture(capture.outer)
                     } else {
-                        let invocation=method.map_or(closure.invocation,|method|closure.methods[method].invocation);
-                        if invocation==Mode::Consume {
-                            return Err(Diagnostic::new("native-view-call","A consuming invocation cannot retain a borrow of its capture storage; transferred capture borrows require separate planning.",span));
-                        }
-                        if loan.access==crate::native_return_borrows::BorrowAccess::Exclusive && invocation!=Mode::Mutate {
-                            return Err(Diagnostic::new("native-view-call","Returning exclusive capture access requires a mutable invocation.",span));
-                        }
                         Source::Receiver(capture.inner)
                     }
                 } else {Source::Capture(capture.outer)}
@@ -176,6 +200,29 @@ mod tests {
 #[cfg(test)]
 mod receiver_tests {
     use super::*;
+    #[test]
+    fn native_view_unused_consuming_closure_is_rejected_before_emission() {
+        let source="function factory(owner:string,token:string):Once<Function<int>>{return ():int=>{const moved=token;return owner.length;};}function main(){const unused=factory('bytes','token');}";
+        let formatted=crate::formatting::format(source).unwrap();
+        assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
+        let mut checked=analyze(crate::syntax::parse(&formatted).unwrap()).unwrap();
+        let closure=checked.closures.iter_mut().find(|closure|closure.invocation==Mode::Consume && closure.captures.iter().any(|capture|closure.function.bindings[capture.inner].name=="owner")).unwrap();
+        let capture=closure.captures.iter().find(|capture|closure.function.bindings[capture.inner].name=="owner").unwrap();
+        assert_eq!(capture.storage,Mode::Consume);
+        closure.function.native_returns=Some(Box::new(vec![Loan{
+            root:capture.inner,owner_fields:vec![],source:LifetimeSource::Storage,
+            access:crate::native_return_borrows::BorrowAccess::ReadOnly,creation:closure.span,
+            retained:true,path:vec![],guards:vec![],
+        }]));
+        closure.invocation=Mode::Read;
+        validate_closures(std::slice::from_ref(closure)).unwrap();
+        closure.invocation=Mode::Consume;
+        closure.function.native_returns.as_mut().unwrap()[0].source=LifetimeSource::Carried(vec![]);
+        validate_closures(std::slice::from_ref(closure)).unwrap();
+        closure.function.native_returns.as_mut().unwrap()[0].source=LifetimeSource::Storage;
+        let error=finish_analysis(checked).err().expect("unused invalid closure must fail before emission");
+        assert_eq!(error.code,"native-view-call");
+    }
     #[test]
     fn native_view_from_owned_capture_borrows_receiver_storage() {
         let source="type Window={};function factory(owner:string):Function<int>{return ():int=>owner.length;}function main(){const unrelated=7;const callback=factory('bytes');callback();}";

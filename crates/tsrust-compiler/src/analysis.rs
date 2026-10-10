@@ -621,6 +621,7 @@ pub fn analyze(program: Program) -> Result<CheckedProgram, Diagnostic> {
 
 // Incomplete capture layouts stay private, even after typed flow checking.
 fn finish_analysis(mut checked: CheckedProgram) -> Result<CheckedProgram, Diagnostic> {
+    native_view_calls::validate_closures(&checked.closures)?;
     checked.polymorphic_storage.validate(&checked.closures, Span::default())?;
     checked.polymorphic_invocations.validate(&checked.closures, Span::default())?;
     definitely_assigned(&mut checked)?;
