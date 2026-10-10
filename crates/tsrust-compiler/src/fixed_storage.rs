@@ -1343,6 +1343,16 @@ fn visit_statements(body: &[Stmt], visit: &mut impl FnMut(&Stmt)) {
                 visit_statements(then_body, visit);
                 visit_statements(else_body, visit);
             }
+            // Exception regions hold ordinary statements too.
+            StmtKind::Try(region) => {
+                visit_statements(&region.body, visit);
+                if let Some(catch) = &region.catch {
+                    visit_statements(&catch.body, visit);
+                }
+                if let Some(finally) = &region.finally {
+                    visit_statements(finally, visit);
+                }
+            }
             _ => {}
         }
     }
@@ -1442,7 +1452,7 @@ fn visit_expressions(body: &[Stmt], visit: &mut impl FnMut(&Expr)) {
             visit_expression(target, visit);
             visit_expression(value, visit);
         }
-        StmtKind::Return(Some(value)) => visit_expression(value, visit),
+        StmtKind::Return(Some(value)) | StmtKind::Throw(value) => visit_expression(value, visit),
         StmtKind::While { condition, .. } | StmtKind::If { condition, .. } => {
             visit_expression(condition, visit)
         }

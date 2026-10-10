@@ -20301,15 +20301,15 @@
       "inputText": "borrowed-inputs",
       "category": "callbacks",
       "implementationGate": 183,
-      "measurementStatus": "pending-caller-borrow-family",
+      "measurementStatus": "measured-caller-borrow-family",
       "sourceAccepted": true,
       "nativeSourceAccepted": true,
-      "implementationAccepted": false,
-      "measured": false,
-      "notes": "Direct readonly and mutable array inputs, stable input aliases and named relays, repeated replacement with distinct inputs, nested multiple captures, readonly callback aliases, independent callback input types and mutable callback state with release before independent invocation. B7 family remains in progress; no timing evidence.",
-      "specification": "Seventy-two independent scalar observations per iteration, including scoped mutable reborrows, explicit owned transfer, transitive hidden-source installation and installation through a held installer closure; arithmetic oracle does not execute callback code.",
-      "sourceSha256": "b6b56b83327aadd89bafef109de834cbe86f0a492379d9dc6770ffe1443cda2e",
-      "counterpartSha256": "e005f6cdcc3c19ac8dcfd96f9fa556ba324b057ff385376d207b6840a50a37df"
+      "implementationAccepted": true,
+      "measured": true,
+      "notes": "Direct readonly and mutable array inputs, stable input aliases and named relays, repeated replacement with distinct inputs, nested multiple captures, readonly callback aliases, independent callback input types and mutable callback state with release before independent invocation. B7 accepted at gate 183 with 74 observations per iteration, including installers called through captured closures and stores inside exception regions. Execution-only native/Node-after-tsc measurement recorded; startup, compilation and allocation not measured.",
+      "specification": "Seventy-four independent scalar observations per iteration, including scoped mutable reborrows, explicit owned transfer, transitive hidden-source installation, installation through a held installer closure and installation inside finally and catch regions; arithmetic oracle does not execute callback code.",
+      "sourceSha256": "57161d85ca6bdf6f267b7e6636e458748421010cdf8a03548ea508393a55a4ea",
+      "counterpartSha256": "af96a29e4f51b4075b4abb9db0eae97db8971b354dae89cf81da77c559b3e3a8"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

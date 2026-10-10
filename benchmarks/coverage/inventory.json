@@ -22418,9 +22418,10 @@
       "workloads": [
         "record_mutation",
         "scoped_record_composition",
-        "fallible_record_callbacks"
+        "fallible_record_callbacks",
+        "caller_borrowed_record_stores"
       ],
-      "note": "Normalized allocation probe also exists; heap metrics exclude stack/static storage. Gate 182 accepts scoped callback-record composition through arrays, Maps, nullable carriers and independent readonly/default parameter environments. Whole compiler/editor evidence and 372 matched execution samples are recorded; composition is near parity and fallible callbacks favor native in the captured workloads. Caller-borrowing parameter stores and mixed-record discriminated unions remain separate requirements.",
+      "note": "Normalized allocation probe also exists; heap metrics exclude stack/static storage. Gate 182 accepts scoped callback-record composition through arrays, Maps, nullable carriers and independent readonly/default parameter environments. Whole compiler/editor evidence and 372 matched execution samples are recorded; composition is near parity and fallible callbacks favor native in the captured workloads. Caller-borrowing parameter stores and mixed-record discriminated unions remain separate requirements. Gate 183 accepts callbacks stored through a mutable record parameter that borrow caller-owned inputs: data and callback inputs, relays, replacement and clearing, branch, loop and exception-region stores, and installer closures called directly or through closures that captured them. Whole compiler/editor evidence and 186 matched execution samples are recorded; native is about 18 times faster than Node-after-tsc on the captured workload.",
       "allocationProbes": [
         "record_value"
       ]

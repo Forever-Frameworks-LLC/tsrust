@@ -465,7 +465,9 @@ fn static_installer_function_values_keep_independent_named_owners() {
 
 #[test]
 fn abstract_installer_uses_do_not_invent_concrete_owner_vectors() {
-    let checked = crate::check(r#"
+    // An abstract invocation has no owner interface, and no native record-view
+    // interface either: it is a source error before any owner planning.
+    let error = crate::check(r#"
         type Holder = { run: ReadOnly<Function<int>> | undefined; };
         function install(holder: Mutable<Holder>, source: ReadOnly<int[]>, calls: Mutable<int[]>): void {
             calls[0] += 1; holder.run = (): int => source[0];
@@ -478,21 +480,8 @@ fn abstract_installer_uses_do_not_invent_concrete_owner_vectors() {
             const perform = install;
             invoke(perform, holder, source, calls);
         }
-    "#).unwrap();
-    assert!(
-        plan(&checked.program).is_empty(),
-        "Abstract invocations require their own complete owner interface"
-    );
-    let install = checked
-        .program
-        .functions
-        .iter()
-        .position(|function| function.name == "install")
-        .unwrap();
-    assert!(
-        parameter_vectors(&checked.program, install).is_empty(),
-        "Even grounded symbolic inputs must not bypass an abstract-use guard"
-    );
+    "#).err().expect("Abstract installer invocation is rejected");
+    assert_eq!(error.code, "unsupported");
 }
 
 #[test]
@@ -542,11 +531,8 @@ fn ordinary_closure_installers_keep_named_caller_owner_identity() {
             "const alias = perform; alias(holder, first);",
         )
         .replace("perform(holder, second);", "alias(holder, second);");
-    let checked = crate::check(&abstract_use).unwrap();
-    assert!(
-        plan(&checked.program).is_empty(),
-        "alias contexts must not invent concrete owner vectors"
-    );
+    // An alias has no owner interface; it is a source error before planning.
+    assert_eq!(crate::check(&abstract_use).err().expect("installer closure aliases are rejected").code, "unsupported");
 }
 
 #[test]

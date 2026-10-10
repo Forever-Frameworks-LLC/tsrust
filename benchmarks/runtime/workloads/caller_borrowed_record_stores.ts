@@ -434,7 +434,21 @@ function workload(n: int, seed: int, input: string): int[][] {
             heldEffects = calls[0];
         }
 
-        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects, conditionalFirst, conditionalReleased, conditionalReplacement, conditionalEffects, forwardedFirst, forwardedReleased, forwardedReplacement, forwardedEffects, closureFirst, closureReleased, closureReplacement, closureEffects, capturedFirst, capturedReleased, capturedReplacement, capturedEffects, retainedCapture, clearedCapture, independentFirst, independentReleased, independentReplacement, localOwnerValues[0], localOwnerValues[1], localOwnerValues[2], localOwnerValues[3], scopedFirst, scopedSecond, scopedReleased, scopedEffects, ownedFirst, ownedSecond, nestedFirst, nestedReleased, nestedReplacement, nestedEffects, heldFirst, heldReleased, heldReplacement, heldEffects]);
+        let regionFirst = 0;
+        let regionSecond = 0;
+        {
+            const original = [value + 70];
+            const replacement = [value + 80];
+            const holder: ReadNullableHolder = {
+                run: undefined
+            };
+            installThroughFinally(holder, original, replacement);
+            regionFirst = holder.run!();
+            installThroughCatch(holder, original, replacement, value % 2 === 0);
+            regionSecond = holder.run!();
+        }
+
+        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects, conditionalFirst, conditionalReleased, conditionalReplacement, conditionalEffects, forwardedFirst, forwardedReleased, forwardedReplacement, forwardedEffects, closureFirst, closureReleased, closureReplacement, closureEffects, capturedFirst, capturedReleased, capturedReplacement, capturedEffects, retainedCapture, clearedCapture, independentFirst, independentReleased, independentReplacement, localOwnerValues[0], localOwnerValues[1], localOwnerValues[2], localOwnerValues[3], scopedFirst, scopedSecond, scopedReleased, scopedEffects, ownedFirst, ownedSecond, nestedFirst, nestedReleased, nestedReplacement, nestedEffects, heldFirst, heldReleased, heldReplacement, heldEffects, regionFirst, regionSecond]);
         i += 1;
     }
 
@@ -534,4 +548,21 @@ function installScopedMutation(holder: NullableHolder, source: int[]): void {
 }
 function installOwnedMutation(holder: OwnedNullableHolder, source: int[]): void {
     holder.run = (): int => { source[0] += 1; return source[0]; };
+}
+
+function installThroughFinally(holder: ReadNullableHolder, first: int[], last: int[]): void {
+    try {
+        installCapturedSource(holder, first);
+    } finally {
+        installCapturedSource(holder, last);
+    }
+}
+
+function installThroughCatch(holder: ReadNullableHolder, first: int[], last: int[], fail: boolean): void {
+    try {
+        if (fail) throw "region";
+        installCapturedSource(holder, first);
+    } catch (error) {
+        installCapturedSource(holder, last);
+    }
 }

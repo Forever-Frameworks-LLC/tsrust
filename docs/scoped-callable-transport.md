@@ -597,6 +597,32 @@ created in the function that makes the call. An installer that captures a mutabl
 source keeps the restriction described under "Mutable captured inputs and owned
 transfer".
 
+### Limits of installer closures and saved installers
+
+An installer is a function or closure that stores a borrowing callback through a
+`Mutable` record parameter. Installers work when they are called directly, when a
+named installer is saved with `const perform = install` and called as `perform(...)`,
+and when a closure calls an installer that it captured. They may store inside
+branches, loops and `try`, `catch` or `finally` blocks.
+
+These uses report `unsupported`:
+
+- passing an installer as a callback argument;
+- converting an installer closure to another callable type, or giving it a second
+  name with `const alias = installer`;
+- giving a saved named installer a second alias;
+- storing into a record that the closure captured, by a call or by assignment. Pass
+  the record as a `Mutable` parameter instead;
+- calling a captured installer whose stored callback mutates a variable that the
+  installer captured.
+
+A recursive call cannot wrap its own borrowed callback parameter in a new closure;
+that reports `callback-escape`. Pass the callback itself.
+
+Some correct programs keep an input borrowed longer than necessary: a store that
+might not run, two stores in one relay, and a recursive relay all keep every input
+they may have stored.
+
 ### Owners declared inside closures
 
 Arrays declared inside an ordinary closure keep independent owners when an effectful named installer replaces a stored callback. After replacement, the old array can be mutated while the holder continues borrowing the new array. Readonly callbacks work with nullable and plain fields; mutable callbacks update their retained array while releasing the overwritten array. Nested local installers can capture those arrays without changing their owner scope.

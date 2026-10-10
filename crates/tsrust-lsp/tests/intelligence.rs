@@ -9647,6 +9647,32 @@ fn nested_installer_hidden_sources_keep_editor_owner_conflicts() {
 }
 
 #[test]
+fn installer_boundaries_have_editor_diagnostics() {
+    let source = tsrust_compiler::format(r#"
+        type Holder = { run: ReadOnly<Function<int>> | undefined; };
+        function install(holder: Mutable<Holder>, source: ReadOnly<int[]>): void { holder.run = (): int => source[0]; }
+        function settle(holder: Mutable<Holder>, first: ReadOnly<int[]>, last: ReadOnly<int[]>): void { try { install(holder, first); } finally { install(holder, last); } }
+        function apply(action: Mutable<Function<void, [target: Mutable<Holder>]>>, holder: Mutable<Holder>): void { action(holder); }
+        function main() {
+            const first = [3]; const second = [10]; const holder: Holder = { run: undefined };
+            settle(holder, first, second);
+            console.log(holder.run!());
+        }
+    "#).unwrap();
+    let uri = "file:///installer-boundaries.tsr";
+    assert!(tsrust_lsp::diagnostics(&source, uri).unwrap().is_empty());
+    let codes = |changed: String| {
+        assert_ne!(changed, source);
+        let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(&changed, uri).unwrap()).unwrap();
+        diagnostics.as_array().unwrap().iter().map(|item| item["code"].as_str().unwrap().to_owned()).collect::<Vec<_>>()
+    };
+    // A store inside an exception region keeps its input borrowed.
+    assert!(codes(source.replace("console.log(holder.run!());", "second[0] += 1; console.log(holder.run!());")).contains(&"capture-conflict".to_owned()));
+    // An installer closure passed as a callback is rejected in the editor too.
+    assert!(codes(source.replace("settle(holder, first, second);", "const inner = (target: Mutable<Holder>): void => { install(target, first); }; apply(inner, holder);")).contains(&"unsupported".to_owned()));
+}
+
+#[test]
 fn captured_installer_receivers_release_replaced_hidden_sources_in_the_editor() {
     let source = tsrust_compiler::format(r#"
         type Holder = { run: ReadOnly<Function<int>> | undefined; };

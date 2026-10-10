@@ -1,6 +1,7 @@
 # Caller-borrowing stores through record parameters (B7)
 
-Status: gate 183 started; not accepted. B5/gate 182 is accepted at `00214a1`.
+Status: accepted at gate 183. See `docs/milestones/183-caller-borrowed-record-stores.md`
+and `docs/b7-caller-borrowed-acceptance-map.md`. B5/gate 182 is accepted at `00214a1`.
 Read the completion ledger and B5 acceptance handoff before implementation.
 
 ## Current implementation progress

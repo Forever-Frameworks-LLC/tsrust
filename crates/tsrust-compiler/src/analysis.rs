@@ -1,5 +1,7 @@
 #[path = "retained_capture_projection.rs"]
 mod retained_capture_projection;
+#[path = "installer_value_uses.rs"]
+mod installer_value_uses;
 #[path = "captured_record_borrows.rs"]
 mod captured_record_borrows;
 #[path = "record_callable_identity.rs"]
@@ -3353,7 +3355,7 @@ impl Analyzer {
         let record_call_releases=record_call_capture_release::summaries(&self.unions,&self.checked,&self.program.records,&self.closures);
         let closure_record_call_releases = record_call_capture_release::closure_summaries(&self.unions,&self.checked,&self.program.records,&self.closures);
         let deferred_generic_nominals = self.deferred_generic_nominal_uses();
-        let record_parameter_borrows = (0..self.checked.len()).filter_map(|id| {
+        let record_parameter_borrows: HashMap<usize, Vec<record_parameter_borrows::Borrow>> = (0..self.checked.len()).filter_map(|id| {
             let borrows = record_parameter_borrows::summary(&self.checked, &self.closures, &self.callables.storage, id);
             (!borrows.is_empty()).then_some((id, borrows))
         }).collect();
@@ -3363,6 +3365,9 @@ impl Analyzer {
             let (borrows, captured) = record_parameter_borrows::summary_parts(&self.checked, &self.closures, &self.callables.storage, record_callable_identity::Callable::Closure(id));
             if !borrows.is_empty() { closure_record_parameter_borrows.insert(id, borrows); }
             if !captured.is_empty() { closure_record_capture_borrows.insert(id, captured); }
+        }
+        if !self.effects_only {
+            installer_value_uses::check(&self.checked, &self.closures, &record_parameter_borrows, &closure_record_parameter_borrows, &closure_record_capture_borrows)?;
         }
         let checked = CheckedProgram {
             record_parameter_borrows,
