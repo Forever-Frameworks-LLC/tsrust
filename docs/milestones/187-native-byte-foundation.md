@@ -1,7 +1,7 @@
 # Gate 187: native declaration and byte signature foundation
 
 The typed native foundation and initial std:bytes construction/length slice are
-accepted on 2026-10-10. B11/S07 remains in progress; gates 188–190 own wider operations,
+accepted on 2026-10-10 at source commit 6e565765. B11/S07 remains in progress; gates 188–190 own wider operations,
 views and resource lifecycle. No workload has been timed for this family.
 
 ## Supported behavior
@@ -67,7 +67,13 @@ Exact SQLite records:
 - Earlier native declaration, projection, import, capability and re-export records
   listed in docs/resources-bytes-plan.md.
 
-The matched verification precedes the narrow exported-Result-alias repair; its inputs
-are retained unchanged. The closing compiler/editor witnesses verify that repair on
-the final source. Records are imported with byte-for-byte readback; loose copies are
-removed. Installed consumer refresh is recorded separately after the source checkpoint.
+The first matched verification precedes the narrow exported-Result-alias repair; its
+inputs are retained unchanged. Final source verification after that repair also passes:
+runtime/results/2026-10-10T14-17-12-756Z-verify.json. Records are imported with byte-for-byte
+readback; loose copies are removed.
+
+All five consumers are refreshed from 6e565765 with atomic sibling replacement and
+verified hashes. Installed compiler debug/release storage checks and LSP initialization/
+shutdown pass. Publication evidence is in SQLite at
+runtime/results/gate187-2026-10-10-publication.json. Obsolete test executables and
+generated runtime outputs were pruned; shared libraries and installed consumers remain.

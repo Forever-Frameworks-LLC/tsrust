@@ -26,9 +26,17 @@ runner/profile/report hooks and manifest hashes are ready. No full regression or
 was run; both belong to the completed S07 family milestone. SQLite records and exact
 readback are listed in the acceptance record; loose records were removed.
 
-Source is checkpointed with this handoff. Consumer publication is performed afterward
-and recorded separately. Until that publication record exists, installed consumers
-remain the prior B10 build. Never infer installed binary state from a source commit.
+Source closes at 6e565765. All five consumers are refreshed atomically from that
+commit: target/editor/debug/{tsrust,tsrust-lsp}, target/debug/{tsrust,tsrust-lsp}, and
+target/release/tsrust. Compiler debug/release storage witnesses and installed LSP
+initialization/shutdown pass. Final native/Node matched verification also passes after
+the alias repair. Exact publication hashes/checks and final verification are in SQLite:
+runtime/results/gate187-2026-10-10-publication.json and
+runtime/results/2026-10-10T14-17-12-756Z-verify.json.
+
+Pruned 257 obsolete test executables (7,968,483,416 bytes) and generated runtime outputs.
+Shared libraries and installed consumers remain. The shared target retains warm
+libraries, but pruned test executables will need rebuilding when their suites run.
 
 ## Next: gate 188
 
