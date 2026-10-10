@@ -12,18 +12,46 @@ function measure(result: ReadOnly<Result<User, string>>): int {
         Err(error) => { return error.length; },
     }
 }
+function copied(result: ReadOnly<Result<User, string>>): string {
+    match (result) { Ok(user) => { return clone(user.name); }, Err(error) => { return clone(error); } }
+}
 function main() {
     const user: Result<User, string> = Ok({ name: "Pat" });
     strictEqual(measure(user), 3);
+    strictEqual(copied(user), "Pat");
     strictEqual(measure(user), 3);
     match (user) { Ok(value) => { strictEqual(value.name, "Pat"); }, Err(_) => { strictEqual(1, 0); } }
     const error: Result<User, string> = Err("failed");
     strictEqual(measure(error), 6);
+    strictEqual(copied(error), "failed");
     strictEqual(measure(error), 6);
+    const rows: Result<User, string>[] = [Ok({ name: "Pat" }), Err("failed")];
+    let total = 0;
+    for (const row of rows) {
+        match (row) { Ok(value) => { total += value.name.length; }, Err(error) => { total += error.length; } }
+    }
+    strictEqual(total, 9);
+    strictEqual(rows.length, 2);
+    rows.pop();
+    strictEqual(rows.length, 1);
 }
 "#;
     let path = directory.source(&support::format_round_trip(source));
     support::success(&support::run(support::cli().arg("run").arg(path), 60));
+}
+
+#[test]
+fn readonly_result_match_payloads_cannot_escape_or_mutate_their_owner() {
+    for source in [
+        "function escape(result:ReadOnly<Result<string,int>>):string{match(result){Ok(value)=>{return value;},Err(_)=>{return \"fallback\";}}}function main(){}",
+        "type User={name:string;};function edit(result:ReadOnly<Result<User,string>>):void{match(result){Ok(user)=>{user.name=\"changed\";},Err(_)=>{}}}function main(){}",
+        "function edit(result:ReadOnly<Result<int[],string>>):void{match(result){Ok(values)=>{values.push(4);},Err(_)=>{}}}function main(){}",
+        "function invoke(result:ReadOnly<Result<Once<Function<int>>,string>>):void{match(result){Ok(action)=>{action();},Err(_)=>{}}}function main(){}",
+    ] {
+        let formatted = support::format_round_trip(source);
+        let error = tsrust_compiler::check(&formatted).err().expect("borrowed payload must not become an owned or mutable value");
+        assert!(matches!(error.code, "borrowed-view" | "borrowed-place" | "readonly" | "callback-access"), "{}: {}", error.code, error.message);
+    }
 }
 
 #[test]

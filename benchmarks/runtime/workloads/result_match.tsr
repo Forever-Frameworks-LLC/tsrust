@@ -1,0 +1,78 @@
+type User = {
+    value: int;
+};
+
+function make(value: int): Result<User, int> {
+    if (value % 3 === 0) {
+        return Err(value + 5);
+    }
+
+    return Ok({
+        value: value
+    });
+}
+
+function inspect(result: ReadOnly<Result<User, int>>): int {
+    match (result) {
+        Ok(user) => {
+            return user.value * 2;
+        },
+        Err(error) => {
+            return error * 3;
+        },
+    }
+}
+
+function counter(start: int): Result<Function<int>, int> {
+    if (start % 4 === 0) {
+        return Err(start);
+    }
+
+    let value = start;
+    return Ok((): int => {
+        value += 1; return value;
+    });
+}
+
+function workload(n: int, seed: int, input: string): int[][] {
+    const output: int[][] = [];
+    let i = 0;
+    while (i < n) {
+        const value = i % 17 + seed % 19 + 1;
+        const result = make(value);
+        const first = inspect(result);
+        const second = inspect(result);
+        let owned = 0;
+        match (result) {
+            Ok(user) => {
+                owned = user.value + 7;
+            },
+            Err(error) => {
+                owned = error + 11;
+            },
+        }
+
+        const callback = counter(value);
+        let callA = 0;
+        let callB = 0;
+        match (callback) {
+            Ok(action) => {
+                callA = action();
+                callB = action();
+            },
+            Err(error) => {
+                callA = error;
+                callB = error + 1;
+            },
+        }
+
+        output.push([first, second, owned, callA, callB]);
+        i += 1;
+    }
+
+    return output;
+}
+
+function main() {
+    const result = workload(3, 0, "results");
+}

@@ -4,10 +4,22 @@ use tsrust_compiler::match_syntax::{parse, Pattern};
 fn formatted_match_syntax_remains_parseable_and_idempotent() {
     let source = "match(make()){Ok(value)=>{useValue(value);},Err(_)=>{},_=>{}}";
     let formatted = tsrust_compiler::format(source).unwrap();
+    assert!(formatted.starts_with("match (make()) {"), "{formatted}");
+    assert!(formatted.contains("\n    Err(_) =>"), "{formatted}");
     assert_eq!(tsrust_compiler::format(&formatted).unwrap(), formatted);
     let parsed = parse(&formatted).unwrap();
     assert_eq!(parsed.arms.len(), 3);
     assert_eq!(&formatted[parsed.scrutinee.start..parsed.scrutinee.end], "make()");
+}
+
+#[test]
+fn contextual_match_calls_keep_ordinary_call_spacing() {
+    let source = "function match(value:int):int{return value;}function main(){console.log(match(1));}";
+    let formatted = tsrust_compiler::format(source).unwrap();
+    assert!(formatted.contains("function match(value: int)"), "{formatted}");
+    assert!(formatted.contains("console.log(match(1));"), "{formatted}");
+    assert_eq!(tsrust_compiler::format(&formatted).unwrap(), formatted);
+    tsrust_compiler::check(&formatted).unwrap();
 }
 
 #[test]

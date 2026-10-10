@@ -55,6 +55,13 @@ instead permits one invocation. A borrowed `ReadOnly<Function<...>>` or
 can take explicit callable arguments, such as `wrap<Function<int>>(callback)`;
 an inline callback alone may not supply enough information for generic inference.
 
+A match on a `ReadOnly<Result<T, E>>` parameter lends the selected payload for
+the arm. It does not consume the caller's Result. Record fields, strings and arrays
+remain readonly, and owned payloads cannot escape the borrow. Explicit `clone()`
+can produce an independent value when the payload supports cloning. Matching a
+borrowed Result during array iteration also leaves the array elements owned by
+the array. Arm borrows end with their scope.
+
 Explicit propagation uses a return in the failure arm:
 
 ```ts
@@ -69,7 +76,7 @@ function doubledQuotient(a: int, b: int): Result<int, string> {
 ## Implementation status
 
 The first construction/matching increment has focused compiler and native evidence.
-B10 is not accepted. Borrowed matching, project-wide pattern-binding assistance, matched benchmarks and
+B10 is not accepted. Mutable matching, project-wide pattern-binding assistance, cleanup stress and
 family acceptance remain open. Match expressions, guards, nested destructuring
 patterns, `?` propagation and general discriminated unions are not implemented.
 Nested match statements are supported.

@@ -8,7 +8,9 @@ this tree. No owner changes were present at this checkpoint.
 
 Checkpoint `1abc2696` integrated contextual Result construction and exhaustive
 statement match. Checkpoint `20eac8b8` added explicit constructors and concrete
-signature help. This checkpoint adds single-file pattern-binding assistance.
+signature help. Checkpoint `3ef7515d` added single-file pattern-binding assistance;
+`d5d70c6c` integrated owned callable payloads. This checkpoint adds readonly matching,
+match formatting and the first matched Result workload.
 
 `Result<T, E>` uses two private nominal wrappers in the existing tagged-union
 arena. Each wrapper stores only its active payload. Both arguments participate
@@ -19,8 +21,9 @@ specialization. No unchecked cast or implicit clone was added.
 
 Match syntax lowers to ordinary blocks, a single owned scrutinee temporary and
 branches. Trusted internal operations validate coverage, test a variant and
-project its whole private record. Payload extraction first moves that record
-to a hidden temporary, respecting existing owned-field rules. Coverage proves
+project its whole private record. Owned extraction first moves that record
+to a hidden temporary; readonly extraction lends it and its payload under existing
+borrowed-place rules. Coverage proves
 the final unconditional arm. Owned union reads require ViewUnion in native
 variant tests. Do not replace that with an owned Union test.
 
@@ -31,18 +34,25 @@ payload types. Unknown facts remain unknown. Arm arrows are not function arrows.
 
 ## Evidence
 
-Result integration: twelve passing tests, including formatted native witnesses,
+Result integration: fourteen passing tests, including formatted native witnesses,
 explicit generic constructors, callable storage, shadowing and source diagnostics.
-The final callable compiler batch passes 25 tests, including ten depth canaries.
-Earlier parser increment: five syntax tests passed. Final focused editor batch:
-five tests passed, covering bindings, callable payload help and constructor help.
-Four catalog examples pass idempotent formatting and exact native output. The
+The readonly compiler increment passes ten depth canaries. Formatter checks pass
+six match syntax tests, 27 formatting tests and the lexable fixture corpus.
+Four focused match editor tests pass, including readonly payload assistance.
+Five catalog examples pass idempotent formatting and exact native output. The
 independent Node callable reference passes. Complete command records are in SQLite under result-match-prefixed paths
 documented in the plan. Exact readback passed and loose copies were removed.
 
 No full regression or performance run was performed for B10. Installed consumers
 remain at B9 until family acceptance. Do not call these source checkpoints accepted
 gates or claim workloads were measured.
+
+The new `result_match` workload passes untimed native and Node-after-tsc verification
+on five cases each. Its independent arithmetic oracle, source guards, ABI registration,
+runner/profile hooks and report category are complete. The manifest row is appended;
+it remains unmeasured and not implementation-accepted. Formatter fingerprints are
+updated only after token-preservation proof. Both original verification records are
+retained in SQLite. Temporary workload build outputs are removed after import.
 
 ## Next work
 
@@ -54,13 +64,14 @@ gates or claim workloads were measured.
    environments. Native witnesses cover captured state, Once, forwarding and both
    variants. Keep context-free inline callback inference as an explicit limitation;
    callers can supply the callable type argument. Continue with the following work.
-2. Implement and verify borrowed matching under existing read/mutate rules,
-   including escape rejection, moved Results, replacement, early return and
-   cleanup. Current matching transfers an owned scrutinee.
+2. Readonly matching works for readonly parameters and borrowed array elements,
+   including owned-escape/mutation rejection and explicit cloning. Implement
+   mutable matching with real mutable payload access; do not downgrade it to a
+   readonly view or permit implicit transfer. Add replacement and cleanup witnesses.
 3. Verify project-aware binding facts and navigation, nested pattern scopes,
    incomplete editing and callback/drop stress. Single-file assistance now works.
-4. Add matched TypeScript tagged-union workloads, independent oracles, source
-   contracts, driver hooks, hashes and untimed checks during implementation.
+4. Extend the registered matched Result workload for remaining forms as they land.
+   Retain its independent oracle, source contracts, hooks and untimed checks.
 5. Finish the family milestone: full compiler/LSP checks with explicit abort
    detection, required matched measurements and review, acceptance records,
    roadmap, SQLite import/readback, checkpoint and five-consumer refresh.
@@ -83,5 +94,5 @@ Continue B10 from this handoff. Owned callable payloads are implemented; finish
 the remaining Result/match family using
 focused TDD and checked ownership identities. Read AGENTS.md and the workflow
 first. Keep single-file editor support and explicit constructor shadowing intact.
-Do not accept B10 until borrowed matching, project assistance,
+Do not accept B10 until mutable matching, project assistance,
 cleanup witnesses, benchmarks and family evidence are complete.

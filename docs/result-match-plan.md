@@ -209,3 +209,36 @@ Command records are imported with exact readback into SQLite under
 Borrowed matching, project-wide assistance, cleanup stress, matched workloads and
 family acceptance are still open. Generic inference from a context-free inline
 callback still needs explicit type arguments and is not claimed as completed here.
+
+## Readonly matching and benchmark increment
+
+Matching a readonly Result parameter now lends its selected private variant and
+payload through the existing borrowed-place path. The lowered intrinsic retains
+borrowed ownership before checking; reanalysis of its projection retains the same
+borrow. Scope roots keep the original Result alive. Native witnesses verify repeated
+inspection, explicit cloning and array iteration followed by mutation after the
+borrow ends. Returning, mutating or consuming an owned borrowed payload is rejected.
+Four focused match editor tests pass, including readonly payload hover and members.
+
+The matched `result_match` workload returns five observations per iteration. It
+covers both data variants, two readonly inspections followed by owned extraction,
+and two ordered calls to an owned callback or its error alternative. Its TypeScript
+counterpart uses ordinary tagged unions. The independent oracle uses arithmetic;
+source contracts, ABI checks, registration, execution/profile hooks and report
+classification are wired. Untimed native and Node-after-tsc verification passes
+five input cases each. The manifest row is appended and remains unmeasured with
+implementation acceptance pending B10 completion.
+
+A formatter defect found in that workload is fixed in formatting_match.rs. Match
+statement headers receive control spacing, ordinary functions named match retain
+call spacing, and direct arm commas start new lines. Six syntax tests, 27 formatting
+tests, the lexable fixture corpus and all fourteen Result tests pass. The readonly
+analyzer increment also passes all ten depth canaries. Five catalog examples pass
+idempotent formatting and exact native output with the new layout.
+
+Records are imported with exact readback into SQLite under the readonly, formatting
+and final-docs Result record paths; untimed workload records retain their original
+timestamp paths. Loose copies are removed. No whole compiler/LSP regression or
+timing run was performed. Mutable matching, project-wide editor assistance, cleanup
+stress and family acceptance remain open. Expand benchmark coverage as those
+remaining forms land.

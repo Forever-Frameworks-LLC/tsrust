@@ -6105,7 +6105,10 @@ impl Analyzer {
         }
         match &expr.kind {
             ExprKind::Sequence(values)=>values.last().is_some_and(|last|self.borrowed_place_hint(context,last) || self.indexed_element_hint(context,last)),
-            ExprKind::TypeAssertion { value, .. } => self.borrowed_place_hint(context, value) || self.indexed_element_hint(context, value),
+            ExprKind::TypeAssertion { value, .. } | ExprKind::Project { value, .. } => self.borrowed_place_hint(context, value) || self.indexed_element_hint(context, value),
+            ExprKind::Call(callee, arguments) if matches!(&callee.kind, ExprKind::Name(name) if name == "@match:payload") => {
+                arguments.first().is_some_and(|value| self.expression_type_hint(context, value).is_some_and(|ty| matches!(ty, Type::BorrowedUnion(_))) || self.borrowed_place_hint(context, value))
+            }
             ExprKind::Unary{op:UnaryOp::PatternSelection,value,..}=>self.borrowed_place_hint(context,value) || self.indexed_element_hint(context,value),
             ExprKind::Optional { body, .. } => self.borrowed_place_hint(context, body),
             ExprKind::OptionalChain(value) => self.optional_borrowed_hint(context, value),

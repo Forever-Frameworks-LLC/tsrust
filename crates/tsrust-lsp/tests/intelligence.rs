@@ -21,6 +21,19 @@ fn result_match_bindings_have_payload_help_and_arm_local_navigation() {
 }
 
 #[test]
+fn result_match_readonly_payloads_keep_hover_and_member_help() {
+    let source = tsrust_compiler::format("type User={name:string;};function measure(result:ReadOnly<Result<User,string>>):int{match(result){Ok(user)=>{return user.name.length;},Err(error)=>{return error.length;}}}function main(){}").unwrap();
+    assert_eq!(tsrust_compiler::format(&source).unwrap(), source);
+    tsrust_compiler::check(&source).unwrap();
+    let hover = ask(&source, "textDocument/hover", "user.name", 0);
+    assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("user: User"), "{hover}");
+    let hover = ask(&source, "textDocument/hover", "error.length", 0);
+    assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("error: string"), "{hover}");
+    let completion = ask(&source, "textDocument/completion", "name.length", 0);
+    assert!(completion.as_array().is_some_and(|items| items.iter().any(|item| item["label"] == "name")), "{completion}");
+}
+
+#[test]
 fn result_match_callable_payloads_have_checked_signature_help() {
     let source = tsrust_compiler::format("function main(){const result:Result<Function<int,[amount:int]>,string>=Ok((amount:int):int=>amount+2);match(result){Ok(action)=>{console.log(action(3));},Err(_)=>{}}}").unwrap();
     assert_eq!(tsrust_compiler::format(&source).unwrap(), source);

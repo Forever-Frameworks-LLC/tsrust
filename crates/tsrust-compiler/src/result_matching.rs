@@ -71,6 +71,7 @@ impl Analyzer {
             return Err(Diagnostic::new("match-payload", "A void variant has no payload to bind; use _ inside its pattern.", expression.span));
         }
         *expression = Expr::checked(ExprKind::Project { value: Box::new(value), union, narrowed: Type::Record(record) }, expression.span, Some(Type::Record(record)));
-        self.expression(context, expression, Mode::Consume, loans, Some(Type::Record(record))).map(Some)
+        let access = if matches!(ty, Type::BorrowedUnion(_)) { Mode::Read } else { Mode::Consume };
+        self.expression(context, expression, access, loans, Some(Type::Record(record))).map(Some)
     }
 }

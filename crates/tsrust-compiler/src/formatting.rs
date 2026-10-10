@@ -3,10 +3,13 @@ use crate::syntax::TokenKind;
 use crate::{Diagnostic, Span};
 #[path = "formatting_types.rs"]
 mod types;
+#[path = "formatting_match.rs"]
+mod match_layout;
 
 pub fn format(source: &str) -> Result<String, Diagnostic> {
     let tokens = types::normalized_tokens(source)?;
     let real = &tokens[..tokens.len().saturating_sub(1)];
+    let (match_headers, match_commas) = match_layout::layout(real);
     let generic_spans = types::generic_spans(&tokens);
     let generic = |at: usize| generic_spans.iter().any(|span| span.start <= at && at < span.end);
     if real.is_empty() {
@@ -258,7 +261,7 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
             let type_continuation = previous_symbol && prev == "}" && matches!(current, "as" | "satisfies");
             let newline = if pattern[i - 1] {
                 false
-            } else if label_colon[i - 1] || interface_field_comma[i - 1] {
+            } else if label_colon[i - 1] || interface_field_comma[i - 1] || match_commas[i - 1] {
                 true
             } else if import && prev != ";" {
                 existing_newlines > 0 && (prev == "{" || prev == "," || current == "}")
@@ -330,6 +333,7 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
                         && (matches!(prev, "." | "?." | "(" | "[" | "..." | "~") || (matches!(prev, "!" | "++" | "--") && !ends_operand(i - 1))))
                     || (symbol
                         && current == "("
+                        && !match_headers[i]
                         // A call or grouped callee; an operator or keyword keeps its space.
                         && (!previous_symbol || matches!(prev, ")" | "]" | ">" | "?.") || (prev == "!" && ends_operand(i - 1)) || unary_sign)
                         && !matches!(prev, "if" | "while" | "for" | "switch" | "catch" | "return" | "typeof" | "of" | "in" | "else" | "const" | "let" | "function" | "as" | "satisfies"))
