@@ -54,6 +54,20 @@ impl Lifetimes {
     }
 }
 impl Emitter<'_> {
+    pub(super) fn native_view_closure_signature(&self,function:&CheckedFunction,parameters:&[usize])->Option<native_function_signature_emit::NativeSignature> {
+        if function.native_returns.is_none() && !parameters.iter().any(|&id|self.native_views.contains(function.bindings[id].input_ty.unwrap_or(function.bindings[id].ty))) {return None;}
+        Some(self.native_signature_from_plan(native_function_signature_emit::NativeSignaturePlan {
+            function,
+            parameters:parameters.to_vec(),
+            source_parameters:parameters.to_vec(),
+            borrow_lifetimes:Default::default(),
+            owner_inputs:Vec::new(),
+            owner_parameters:String::new(),
+            record_bounds:Vec::new(),
+            replacement_bounds:Vec::new(),
+        },&[]))
+    }
+
     pub(super) fn native_view_signature_type(&self,ty:Type,input:Option<usize>,plan:&Lifetimes)->String {
         self.native_view_signature_slot(ty,input,plan,&mut Vec::new())
     }

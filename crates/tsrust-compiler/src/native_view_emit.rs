@@ -256,7 +256,7 @@ fn main() {{
     }
     #[test]
     fn returned_native_views_compile_with_distinct_input_lifetimes() {
-        let source="type Window={};type WriteWindow={};type Shelf={item:Window;};type Pair={one:Window;two:Window;};type Outcome=Result<Window,int>;function identity(input:Window):Window{return input;}function relay(input:Window):Window{return identity(input);}function savedRelay(input:Window):Window{const saved=identity;return saved(input);}function outcomeIdentity(input:Outcome):Outcome{return input;}function pairFirst(input:Pair):Window{return input.one;}function unwrap(input:Shelf):Window{return input.item;}function writeIdentity(input:WriteWindow):WriteWindow{return input;}function arrayIdentity(input:Window[]):Window[]{return input;}function first(left:Window,right:Window):Window{return left;}function choose(left:Window,right:Window,flag:boolean):Window{if(flag){return left;}return right;}function main(){}";
+        let source="type Window={};type WriteWindow={};type Shelf={item:Window;};type Pair={one:Window;two:Window;};type Outcome=Result<Window,int>;function identity(input:Window):Window{return input;}function relay(input:Window):Window{return identity(input);}function arrowChoose(left:Window,right:Window,flag:boolean):Window{const callback=(first:Window,second:Window):Window=>{if(flag){return first;}return second;};return callback(left,right);}function arrowRelay(input:Window):Window{const identity=(value:Window):Window=>value;return identity(input);}function savedRelay(input:Window):Window{const saved=identity;return saved(input);}function outcomeIdentity(input:Outcome):Outcome{return input;}function pairFirst(input:Pair):Window{return input.one;}function unwrap(input:Shelf):Window{return input.item;}function writeIdentity(input:WriteWindow):WriteWindow{return input;}function arrayIdentity(input:Window[]):Window[]{return input;}function first(left:Window,right:Window):Window{return left;}function choose(left:Window,right:Window,flag:boolean):Window{if(flag){return left;}return right;}function main(){}";
         let formatted=crate::formatting::format(source).unwrap();
         assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
         let mut parsed=crate::syntax::parse(&formatted).unwrap();
@@ -264,6 +264,8 @@ fn main() {{
         parsed.records[1].native_type=Some(crate::native_signatures::NativeTypeId::ByteViewMut);
         let checked=crate::analysis::analyze(parsed).unwrap();
         let relay=checked.functions.iter().position(|function|function.name=="relay").unwrap();
+        let arrow_choose=checked.functions.iter().position(|function|function.name=="arrowChoose").unwrap();
+        let arrow_relay=checked.functions.iter().position(|function|function.name=="arrowRelay").unwrap();
         let saved_relay=checked.functions.iter().position(|function|function.name=="savedRelay").unwrap();
         let outcome_identity=checked.functions.iter().position(|function|function.name=="outcomeIdentity").unwrap();
         let outcome=checked.functions[outcome_identity].result.union().unwrap();
@@ -283,6 +285,7 @@ fn main() {{
 fn main() {{
     let owner=vec![1u8,2,3];
     assert_eq!(function{relay}(Record0{{bytes:&owner}}).bytes.as_ptr(),owner.as_ptr());
+    assert_eq!(function{arrow_relay}(Record0{{bytes:&owner}}).bytes.as_ptr(),owner.as_ptr());
     assert_eq!(function{saved_relay}(Record0{{bytes:&owner}}).bytes.as_ptr(),owner.as_ptr());
     let returned;
     {{ let short=vec![9u8]; returned=function{first}(Record0{{bytes:&owner}}, &Record0{{bytes:&short}}); }}
@@ -300,6 +303,7 @@ fn main() {{
     {{ let returned=function{write_identity}(Record1{{bytes:&mut writable}});returned.bytes[0]=8; }}
     assert_eq!(writable[0],8);
     let other=vec![7u8];
+    assert_eq!(function{arrow_choose}(Record0{{bytes:&owner}},Record0{{bytes:&other}},false).bytes.as_ptr(),other.as_ptr());
     let selected=function{choose}(Record0{{bytes:&owner}},Record0{{bytes:&other}},false);
     assert_eq!(selected.bytes.as_ptr(),other.as_ptr());
 }}

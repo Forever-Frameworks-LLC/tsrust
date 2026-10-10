@@ -788,9 +788,14 @@ impl Emitter<'_> {
         } else {
             format!("<{}>", generics.join(", "))
         };
+        let view_signature=self.native_view_closure_signature(&checked.function,&checked.parameters);
+        let parameters=view_signature.as_ref().map_or(parameters,|signature|format!(", {}",signature.params));
+        let generics=view_signature.as_ref().map_or(generics,|signature|signature.generics.clone());
+        let native_result=view_signature.as_ref().map_or(native_result,|signature|error_name.as_ref().map_or_else(||signature.result.clone(),|name|format!("Result<{},{}>",signature.result,name)));
+        let view_where=view_signature.as_ref().map_or_else(String::new,|signature|signature.replacement_where.clone());
         let _ = writeln!(
             output,
-            "impl{lifetime} Closure{index}{lifetime} {{\n    fn call{method}{generics}({receiver}{parameters}) -> {} {{",
+            "impl{lifetime} Closure{index}{lifetime} {{\n    fn call{method}{generics}({receiver}{parameters}) -> {}{view_where} {{",
             native_result
         );
         for (capture, &slot) in closure.captures.iter().zip(&checked.captures) {
@@ -829,7 +834,7 @@ impl Emitter<'_> {
         }
         if matches!(closure.forward, Some(ClosureForward::RestAdapter { counted: true, .. })) {
             output.push_str("    }\n");
-            let _ = writeln!(output, "    fn call{method}_with_count{generics}({receiver}, supplied_count: usize{parameters}) -> {native_result} {{");
+            let _ = writeln!(output, "    fn call{method}_with_count{generics}({receiver}, supplied_count: usize{parameters}) -> {native_result}{view_where} {{");
             self.counted_closure_function_body(output, closure, &checked.function);
             output.push_str("    }\n}\n\n");
         } else {
@@ -2403,7 +2408,8 @@ impl Emitter<'_> {
             };
             let forwarded_signature = self.forwarded_record_signature(closure);
             let closure_signature = self.closure_record_signature(index);
-            let signature = forwarded_signature.as_ref().map(|(_, signature)| signature).or_else(|| closure_signature.as_ref().map(|signature| &signature.signature));
+            let native_view_signature=self.native_view_closure_signature(&closure.function,&closure.parameters);
+            let signature = forwarded_signature.as_ref().map(|(_, signature)| signature).or_else(|| closure_signature.as_ref().map(|signature| &signature.signature)).or(native_view_signature.as_ref());
             let receiver = closure_signature.as_ref().and_then(|signature|signature.receiver_lifetime)
                 .map_or_else(||receiver.to_owned(),|lifetime|format!("&{lifetime} mut self"));
             let parameters = signature.map_or(parameters, |signature| format!(", {}", signature.params));

@@ -162,4 +162,22 @@ mod tests {
         assert!(origins.iter().any(|loan|loan.root==1&&loan.path==vec![Segment::Field("two".into())]));
     }
 
+    #[test]
+    fn arrow_call_keeps_returned_input_origin() {
+        let checked=checked("type Window={};function forward(input:Window):Window{const identity=(value:Window):Window=>value;return identity(input);}function main(){}").unwrap();
+        let function=checked.functions.iter().find(|function|function.name=="forward").unwrap();
+        let origins=function.native_returns.as_ref().expect("arrow result needs an input lifetime");
+        assert_eq!(origins.len(),1);
+        assert_eq!(origins[0].source,LifetimeSource::Carried(vec![]));
+    }
+
+    #[test]
+    fn arrow_alternatives_with_scalar_capture_keep_both_inputs() {
+        let checked=checked("type Window={};function choose(left:Window,right:Window,flag:boolean):Window{const callback=(first:Window,second:Window):Window=>{if(flag){return first;}return second;};return callback(left,right);}function main(){}").unwrap();
+        let function=checked.functions.iter().find(|function|function.name=="choose").unwrap();
+        let origins=function.native_returns.as_ref().unwrap();
+        assert_eq!(origins.len(),2);
+        assert_ne!(origins[0].root,origins[1].root);
+    }
+
 }

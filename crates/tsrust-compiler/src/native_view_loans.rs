@@ -189,7 +189,7 @@ impl Analyzer {
                     }
                 }
                 ExprKind::Call(_, args) => {
-                    if let Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id))=value.target
+                    if let Some(id)=super::native_view_calls::target(value)
                         && let Some(outputs)=context.native_view_function_returns.as_ref().and_then(|summaries|summaries.get(&id)) {
                         for output in outputs {
                             let argument=args.get(output.root).ok_or_else(||Diagnostic::new("native-view-call", "Returned capture lifetime transport is not yet planned.",value.span))?;

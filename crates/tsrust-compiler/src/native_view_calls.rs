@@ -2,6 +2,18 @@
 use super::*;
 use super::native_view_loans::{LifetimeSource,Loan};
 
+#[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
+pub(super) enum Target {Function(usize),Closure(usize),Method(usize,usize)}
+
+pub(super) fn target(expression:&Expr)->Option<Target> {
+    match expression.target? {
+        CallTarget::Function(id)|CallTarget::ForwardFunction(id)=>Some(Target::Function(id)),
+        CallTarget::Closure(_)=>expression.closure_origin().map(Target::Closure),
+        CallTarget::ClosureMethod(method)=>expression.closure_origin().map(|origin|Target::Method(origin,method)),
+        _=>None,
+    }
+}
+
 impl Analyzer {
     pub(super) fn remember_native_function_returns(&self,context:&mut Context,id:usize,span:Span)->Result<(),Diagnostic> {
         if !self.native_borrow_types {return Ok(());}
@@ -13,15 +25,36 @@ impl Analyzer {
         };
         if let Some(origins)=&function.native_returns {
             let summaries=context.native_view_function_returns.get_or_insert_with(Default::default);
-            if summaries.get(&id).is_none_or(|previous|previous!=origins.as_ref()) {
-                summaries.insert(id,origins.as_ref().clone());
+            if summaries.get(&Target::Function(id)).is_none_or(|previous|previous!=origins.as_ref()) {
+                summaries.insert(Target::Function(id),origins.as_ref().clone());
             }
             context.native_view_calls=true;
         } else if let Some(summaries)=context.native_view_function_returns.as_mut() {
-            summaries.remove(&id);
+            summaries.remove(&Target::Function(id));
         }
         Ok(())
     }
+    pub(super) fn remember_native_closure_returns(&self,context:&mut Context,origin:usize,method:Option<usize>,span:Span)->Result<(),Diagnostic> {
+        if !self.native_borrow_types {return Ok(());}
+        let closure=&self.closures[origin];
+        let (function,parameters,key)=match method {
+            Some(method)=>{let checked=&closure.methods[method];(&checked.function,&checked.parameters,Target::Method(origin,method))},
+            None=>(&closure.function,&closure.parameters,Target::Closure(origin)),
+        };
+        let Some(origins)=&function.native_returns else {
+            if let Some(summaries)=context.native_view_function_returns.as_mut() {summaries.remove(&key);}
+            return Ok(());
+        };
+        let mut mapped=origins.as_ref().clone();
+        for loan in &mut mapped {
+            loan.root=parameters.iter().position(|root|*root==loan.root).ok_or_else(||Diagnostic::new("native-view-call","Returned closure captures require capture lifetime transport.",span))?;
+        }
+        let summaries=context.native_view_function_returns.get_or_insert_with(Default::default);
+        if summaries.get(&key)!=Some(&mapped) {summaries.insert(key,mapped);}
+        context.native_view_calls=true;
+        Ok(())
+    }
+
 }
 
 pub(super) fn transport(actual:&mut Loan,output:&Loan)->bool {

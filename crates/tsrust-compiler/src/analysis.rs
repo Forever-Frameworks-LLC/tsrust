@@ -486,7 +486,7 @@ struct Context {
     control_stored: HashSet<usize>,
     native_view_calls: bool,
     native_view_results: Option<Box<HashMap<UnionId,usize>>>,
-    native_view_function_returns: Option<Box<HashMap<usize,Vec<native_view_loans::Loan>>>>,
+    native_view_function_returns: Option<Box<HashMap<native_view_calls::Target,Vec<native_view_loans::Loan>>>>,
     storage_exits: storage_exit_availability::Exits,
     native_returns: Option<Box<Vec<native_view_loans::Loan>>>,
     capture_restoration:Option<capture_restoration::Tracker>,
@@ -14363,6 +14363,9 @@ self.names_materialized_type(element.with_depth(0).ty())
             {
                 let (method, result) =
                     self.closure_method_call(context, binding, origin, callee, args, loans, span, expected)?;
+                let native_origin=match self.closures[origin].forward {Some(ClosureForward::Once(inner))=>inner,_=>origin};
+                self.remember_native_closure_returns(context,native_origin,Some(method),span)?;
+                if self.native_borrow_types {expr.callable_origin=Some(CallableOrigin::Closure(native_origin));}
                 expr.target = Some(CallTarget::ClosureMethod(method));
                 expr.ty = Some(result);
                 return Ok(result);
@@ -14454,6 +14457,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             }
             // Preserve origin without treating the callee name as an evaluated value.
             if let Type::Closure(origin)=context.bindings[binding].ty {
+                self.remember_native_closure_returns(context,origin,None,span)?;
                 expr.callable_origin=Some(CallableOrigin::Closure(origin));
             }
             if let Type::StoredCallable(family)|Type::BorrowedCallable(family)=context.bindings[binding].ty {

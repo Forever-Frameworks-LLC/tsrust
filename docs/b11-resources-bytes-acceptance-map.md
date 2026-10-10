@@ -9,7 +9,7 @@ This is the current implementation map. S07 is not accepted or measured.
 | Independent clone, generic/record/array/Map/nullable/Result storage and callable captures | Gate 188 accepted | ownership.tsr; native_declarations.rs; project_intelligence.rs |
 | Validation/reservation atomicity and one argument evaluation | Gate 188 accepted | bytes/runtime.rs tests; access.tsr; growth.tsr; copy-append.tsr; ownership.tsr |
 | Exact disposal and allocation restoration at O0/O3 | Gate 188 accepted | native_byte_cleanup.rs; cleanup.tsr; exact SQLite gate 188 records |
-| Scoped zero-copy readonly/exclusive views, provenance, conflicts and escape diagnostics | Gate 189 pending; private borrowed identities, contracts and slice helpers implemented; source integration pending | native-byte-views-implementation.md; resources-bytes-plan.md |
+| Scoped zero-copy readonly/exclusive views, provenance, conflicts and escape diagnostics | Gate 189 pending; private loans, return lifetimes, function calls and ordinary arrow invocation integrated; factories, capture/callback/storage completion pending | native-byte-views-implementation.md; resources-bytes-plan.md |
 | Strict UTF-8 encoding/decoding and error offsets | Implemented increment; gate 189 still pending views | native-owned-bytes/utf8.tsr; utf8_runtime.rs; resources-bytes-plan.md |
 | Opaque resource consuming close, drop and failure ownership | Gate 190 pending | owner consuming-close decision; resources-bytes-plan.md |
 | Useful synchronous file proof and private instrumented resource backend | Gate 190 pending | resources-bytes-plan.md |
@@ -76,3 +76,19 @@ and 14 native editor checks pass, without failures or aborts. Formatting changes
 files. No timing ran. Return lifetimes, escapes, indexed collection transport and public
 factories remain pending. See handoff-2026-10-10-native-view-owner-places.md and SQLite
 record runtime/results/native-view-owner-fields-2026-10-10-checks.json.
+
+
+### Current gate 189 integration checkpoint
+
+Private integration now includes owner fields and record lifecycle, returned source
+escape checks, carried input slots, named Rust function lifetimes, direct/saved named
+function calls and ordinary arrow invocation. Generated O0/O3 witnesses preserve
+pointer identity and exclusive write-through. Alternative inputs and independent
+record fields retain separate lifetimes. This supersedes the pending lists in older
+checkpoint paragraphs, which retain their original historical scope.
+
+Public views remain guarded. Captured native views, receiver contracts, specialized
+callbacks, arbitrary stored callable families, recursive carriers, collection transport
+and exceptional completion reconciliation remain pending. Factory/editor/benchmark
+acceptance and the S07 family review are still required. See
+handoff-2026-10-10-native-view-closures.md and native-byte-views-implementation.md.

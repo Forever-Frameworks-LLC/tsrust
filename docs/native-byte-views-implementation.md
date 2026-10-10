@@ -372,3 +372,21 @@ This does not establish arbitrary stored callable families, callback parameters,
 closure methods or captured view returns. Storage-return transport still needs native
 factory witnesses, and exceptional completion reconciliation remains open. Public
 view factories stay guarded. Gate 189 and S07 are not accepted or measured.
+
+## Ordinary arrow invocation lifetimes
+
+Call summary keys now distinguish named functions, closure identities and specialized
+closure methods. Closure source binding IDs are mapped through the checked parameter
+list rather than assumed to equal argument positions. Missing summaries remove stale
+cache entries. Returned captures remain explicitly outside argument-only transport.
+
+Ordinary closure methods can use the shared native signature planner for view-bearing
+arguments and results. This prevents Rust receiver elision from tying an input-backed
+result to self. Specialized method dispatch is wired to the same planning route, but
+its broader callback matrix still needs witnesses before acceptance.
+
+Private formatted-source tests verify ordinary arrow forwarding and alternative input
+origins with a scalar capture. Generated native tests exercise both at O0 and O3,
+checking exact source pointers. Captured native views, arbitrary stored callable
+families, abstract callbacks and receiver lifetime relationships remain pending.
+No source factory or public view API is enabled by this checkpoint.
