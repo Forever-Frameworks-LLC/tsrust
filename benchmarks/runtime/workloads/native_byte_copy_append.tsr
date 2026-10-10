@@ -1,0 +1,104 @@
+import { Bytes, fromArray, append, copy, at, set, length } from "std:bytes";
+
+function read(bytes: ReadOnly<Bytes>, index: int): int {
+    match (at(bytes, index)) {
+        Ok(value) => {
+            return value;
+        },
+        Err(error) => {
+            return -1;
+        },
+    }
+}
+
+function write(bytes: Mutable<Bytes>, index: int, value: int): int {
+    match (set(bytes, index, value)) {
+        Ok(_) => {
+            return 1;
+        },
+        Err(error) => {
+            return -1;
+        },
+    }
+}
+
+function workload(n: int, seed: int, input: string): int[][] {
+    const output: int[][] = [];
+    const add = append;
+    const duplicate = copy;
+    let i = 0;
+    while (i < n) {
+        const byte = (i + seed) % 256;
+        match (fromArray([byte, 65])) {
+            Ok(bytes) => {
+                const initial = length(bytes);
+                let success = -1;
+                match (add(bytes, [255, 7])) {
+                    Ok(_) => {
+                        success = 1;
+                    },
+                    Err(error) => {
+                        success = -2;
+                    },
+                }
+
+                let invalid = -1;
+                let offset = -1;
+                match (append(bytes, [8, 256])) {
+                    Ok(_) => {
+                        invalid = -2;
+                    },
+                    Err(error) => {
+                        invalid = error.code.length;
+                        offset = error.offset ?? -3;
+                    },
+                }
+
+                const preserved = read(bytes, 3);
+                match (duplicate(bytes, 0, 2)) {
+                    Ok(part) => {
+                        const ownerWrite = write(bytes, 0, (byte + 1) % 256);
+                        const independent = read(part, 0);
+                        const partWrite = write(part, 1, 9);
+                        const ownerRetained = read(bytes, 1);
+                        let empty = -1;
+                        match (copy(bytes, 4, 4)) {
+                            Ok(value) => {
+                                empty = length(value);
+                            },
+                            Err(error) => {
+                                empty = -2;
+                            },
+                        }
+
+                        let rangeOffset = -1;
+                        match (copy(bytes, 0, 5)) {
+                            Ok(_) => {
+                                rangeOffset = -2;
+                            },
+                            Err(error) => {
+                                rangeOffset = error.offset ?? -3;
+                            },
+                        }
+
+                        output.push([initial, success, invalid, offset, preserved, length(part), ownerWrite, independent, partWrite, ownerRetained, empty, rangeOffset, length(bytes)]);
+                    },
+                    Err(error) => {
+                        output.push([-1000000]);
+                    },
+                }
+            },
+            Err(error) => {
+                output.push([-1000000]);
+            },
+        }
+
+        i += 1;
+    }
+
+    return output;
+}
+
+function main() {
+    workload(1, 0, "bytes");
+}

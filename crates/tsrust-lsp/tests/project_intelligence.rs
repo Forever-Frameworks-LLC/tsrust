@@ -1603,3 +1603,21 @@ fn native_byte_growth_stored_values_keep_optional_fill_help() {
     assert_eq!(help["activeParameter"], 2, "{help}");
     assert!(help.to_string().contains("fill?: int") && help.to_string().contains("0..255"), "{help}");
 }
+
+#[test]
+fn native_byte_append_copy_stored_values_document_independence_and_bounds() {
+    let entry = tsrust_compiler::format("import {fromArray,append,copy} from 'std:bytes';function main(){match(fromArray([65])){Ok(bytes)=>{const add=append;const duplicate=copy;match(add(bytes,[255])){Ok(_)=>{match(duplicate(bytes,0,2)){Ok(part)=>{},Err(error)=>{console.log(error.message);}}},Err(error)=>{console.log(error.message);}}},Err(error)=>{console.log(error.message);}}}").unwrap();
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.clone());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::checked(&checked);
+    let hover = ask(&index, &entry, "add(bytes", "textDocument/hover");
+    assert!(hover.to_string().contains("Mutable<Bytes>") && hover.to_string().contains("ReadOnly<int[]>") && hover.to_string().contains("original length and contents"), "{hover}");
+    let hover = ask(&index, &entry, "duplicate(bytes", "textDocument/hover");
+    assert!(hover.to_string().contains("independent owned buffer") && hover.to_string().contains("ReadOnly<Bytes>"), "{hover}");
+    assert!(!hover.to_string().contains("__tsrust_private_"), "{hover}");
+    let help = ask(&index, &entry, "2))", "textDocument/signatureHelp");
+    assert_eq!(help["activeParameter"], 2, "{help}");
+    assert!(help.to_string().contains("Exclusive ending byte index"), "{help}");
+}

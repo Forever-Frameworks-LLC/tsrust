@@ -615,7 +615,9 @@
       "native.bytes.at",
       "native.bytes.set",
       "native.bytes.alloc",
-      "native.bytes.resize"
+      "native.bytes.resize",
+      "native.bytes.append",
+      "native.bytes.copy"
   ]
 }
 ]

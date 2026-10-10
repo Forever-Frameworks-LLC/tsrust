@@ -5153,6 +5153,52 @@
       "output": "3\n"
     }
   ]
+},
+{
+  "name": "append",
+  "signature": "append(bytes: Mutable<Bytes>, values: ReadOnly<int[]>): Result<void, ByteError>",
+  "parameters": [
+    {
+      "label": "bytes: Mutable<Bytes>",
+      "documentation": "Buffer to extend through an exclusive borrow."
+    },
+    {
+      "label": "values: ReadOnly<int[]>",
+      "documentation": "Integers in 0..255 to append in order. The array is borrowed and unchanged."
+    }
+  ],
+  "documentation": "Adds checked integer values to the end of a byte buffer in array order. Returns Ok() on success; an empty array succeeds without changing the buffer. Each value must be in 0..255. Checks the combined byte length first, then every input value, before reserving storage or changing contents. An invalid value returns byte-range with its index in the input array as offset. A combined length outside native storage returns length-range with an undefined offset. Failed reservation returns allocation with an undefined offset. Every failure preserves the original length and contents. Process-wide memory exhaustion is not guaranteed to be recoverable. Byte values are copied explicitly from the array; no integer wrapping occurs.\n\n```tsrust\nimport {fromArray,append,length} from \"std:bytes\"; function main(){match(fromArray([65])){Ok(bytes)=>{match(append(bytes,[0,255])){Ok(_)=>{console.log(length(bytes));},Err(error)=>{console.log(error.message);}}},Err(error)=>{console.log(error.message);}}}\n```\n\nExpected output: 3.\n\nOwnership: borrows the buffer exclusively and the array readonly for the call. Neither input is consumed or implicitly cloned.",
+  "examples": [
+    {
+      "source": "import {fromArray,append,length} from \"std:bytes\"; function main(){match(fromArray([65])){Ok(bytes)=>{match(append(bytes,[0,255])){Ok(_)=>{console.log(length(bytes));},Err(error)=>{console.log(error.message);}}},Err(error)=>{console.log(error.message);}}}",
+      "output": "3\n"
+    }
+  ]
+},
+{
+  "name": "copy",
+  "signature": "copy(bytes: ReadOnly<Bytes>, start: int, end: int): Result<Bytes, ByteError>",
+  "parameters": [
+    {
+      "label": "bytes: ReadOnly<Bytes>",
+      "documentation": "Source buffer, borrowed without mutation."
+    },
+    {
+      "label": "start: int",
+      "documentation": "Inclusive starting byte index, from 0 through length(bytes). Checked before end."
+    },
+    {
+      "label": "end: int",
+      "documentation": "Exclusive ending byte index, from start through length(bytes)."
+    }
+  ],
+  "documentation": "Creates an independent owned buffer containing bytes in the half-open range [start, end). Returns Ok(buffer); start equal to end produces an empty buffer, including at the source end. Bounds must satisfy 0 <= start <= end <= length(bytes). Negative indices never wrap and bounds are not clamped. Checks start first, then end; an invalid range returns range with the first offending coordinate as offset. A reversed range reports end. Failed reservation returns allocation with an undefined offset. The source remains unchanged on success and failure. Changing either buffer afterward cannot change the other. Coordinates count bytes, not Unicode characters. Process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport {fromArray,copy,length} from \"std:bytes\"; function main(){match(fromArray([0,65,255])){Ok(bytes)=>{match(copy(bytes,1,3)){Ok(part)=>{console.log(length(part));},Err(error)=>{console.log(error.message);}}},Err(error)=>{console.log(error.message);}}}\n```\n\nExpected output: 2.\n\nOwnership: borrows the source readonly and returns a new independent owner. Copying is explicit and does not transfer the source.",
+  "examples": [
+    {
+      "source": "import {fromArray,copy,length} from \"std:bytes\"; function main(){match(fromArray([0,65,255])){Ok(bytes)=>{match(copy(bytes,1,3)){Ok(part)=>{console.log(length(part));},Err(error)=>{console.log(error.message);}}},Err(error)=>{console.log(error.message);}}}",
+      "output": "2\n"
+    }
+  ]
 }
 ]
 }

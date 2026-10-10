@@ -521,3 +521,23 @@ Gate 188 remains open for append, independent half-open copy, explicit clone and
 capability/aggregate/capture/exact cleanup acceptance. Consumers remain at gate 187.
 The consuming close decision remains unchanged: close transfers the resource even on
 Err; later use and double close are static errors, with nonthrowing drop fallback.
+
+
+## Gate 188 append and copy increment
+
+append exclusively borrows the destination and readonly borrows an int array. It
+checks combined length, validates every byte in input order, reserves fallibly and
+only then appends. Empty input requires no reservation. Invalid values report their
+input-array offset. copy readonly borrows Bytes and produces an independent owner
+for a strict half-open range, including empty end ranges. Start is checked before
+end; invalid or reversed end reports end. There is no negative wrapping or clamping.
+
+Native witnesses cover successful/empty/invalid append, unchanged contents after
+failure, aliases stored as callable values, strict ranges and independence after
+mutation of either owner. Private runtime seams force reservation failure and prove
+unchanged destination contents, pointer and capacity without huge allocations.
+Editor/catalog help documents access modes, errors, ranges and ownership. Matched
+native_byte_copy_append support retains thirteen observations with independent
+arithmetic expectations and a validated Uint8Array counterpart. Explicit clone and
+broader capability/aggregate/capture/evaluation/cleanup matrices remain to close gate
+188. Views and UTF-8 remain gate 189; consuming resource lifecycle remains gate 190.

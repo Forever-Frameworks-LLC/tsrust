@@ -731,7 +731,7 @@ fn native_binding_effect(id:usize)->FailureSet {
     match crate::native_bindings::BINDINGS.get(id) {
         // Byte operations carry validation/reservation failures through Result.
         // Length observes a checked owner. These bindings neither throw nor call user code.
-        Some(binding) if binding.module=="std:bytes" && matches!(binding.name,"fromArray"|"length"|"at"|"set"|"alloc"|"resize")=>FailureSet::default(),
+        Some(binding) if binding.module=="std:bytes" && matches!(binding.name,"fromArray"|"length"|"at"|"set"|"alloc"|"resize"|"append"|"copy")=>FailureSet::default(),
         // Sharing does not invoke the environment. Observations read checked values,
         // returning NaN/false for unsupported numeric/length shapes.
         // Allocation failures are outside recoverable checked error transport.
@@ -867,7 +867,7 @@ mod tests {
         assert_eq!(super::native_effect(crate::syntax::CallTarget::NativeBinding(native),&value,&effects),super::FailureSet::default());
         for (id,binding) in crate::native_bindings::BINDINGS.iter().enumerate() {
             // Audited testing-runtime and target identity bindings have explicit contracts; every other binding stays unresolved.
-            let audited=(binding.module=="std:bytes" && matches!(binding.name,"fromArray"|"length"|"at"|"set"|"alloc"|"resize")) || binding.module=="std:path" || (binding.module=="std:os" && matches!(binding.name,"platform"|"arch"|"endianness")) || (binding.module=="std:testing-runtime" && matches!(binding.name,"checkAssertion"|"shareCallback"|"numericValue"|"lengthValue"|"hasLength"|"runTests"|"finishTests"|"registerTest"|"registerHook"|"beginSuite"|"beginFile"|"endSuite"));
+            let audited=(binding.module=="std:bytes" && matches!(binding.name,"fromArray"|"length"|"at"|"set"|"alloc"|"resize"|"append"|"copy")) || binding.module=="std:path" || (binding.module=="std:os" && matches!(binding.name,"platform"|"arch"|"endianness")) || (binding.module=="std:testing-runtime" && matches!(binding.name,"checkAssertion"|"shareCallback"|"numericValue"|"lengthValue"|"hasLength"|"runTests"|"finishTests"|"registerTest"|"registerHook"|"beginSuite"|"beginFile"|"endSuite"));
             if binding.module=="std:os" {assert_eq!(super::native_binding_effect(id),super::FailureSet::default());}
             if !audited {assert!(super::native_binding_effect(id).opaque,"unreviewed binding {} must remain unresolved",binding.name);}
         }

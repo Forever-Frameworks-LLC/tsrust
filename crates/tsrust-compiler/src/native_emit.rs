@@ -16,6 +16,9 @@ pub(crate) fn call(binding: &NativeBinding, arguments: Vec<String>) -> String {
     if binding.module == "std:bytes" && binding.name == "fromArray" {
         return format!("{symbol}(({}).as_slice())", arguments[0]);
     }
+    if binding.module == "std:bytes" && binding.name == "append" {
+        return format!("{symbol}({}, ({}).as_slice())", arguments[0], arguments[1]);
+    }
     let mut arguments = arguments.into_iter();
     let lowered = binding
         .parameters

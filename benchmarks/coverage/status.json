@@ -6993,5 +6993,31 @@
   ],
   "measured": false,
   "note": "Gate 188 allocation/resize increment. Optional zero fill, strict length-before-fill validation, prefix preservation and failure atomicity verified with native/editor witnesses. Matched workload ready; family acceptance and timing remain pending."
+},
+"native.bytes.append": {
+  "implementation": "native variant",
+  "comparison": "paired group",
+  "evidence": [
+    "./native-bytes.md",
+    "./resources-bytes-plan.md"
+  ],
+  "workloads": [
+    "native_byte_copy_append"
+  ],
+  "measured": false,
+  "note": "Gate 188 append/copy increment. Checked int-array append is atomic; strict half-open copies return independent owners. Full owned-byte acceptance and family timing remain pending."
+},
+"native.bytes.copy": {
+  "implementation": "native variant",
+  "comparison": "paired group",
+  "evidence": [
+    "./native-bytes.md",
+    "./resources-bytes-plan.md"
+  ],
+  "workloads": [
+    "native_byte_copy_append"
+  ],
+  "measured": false,
+  "note": "Gate 188 append/copy increment. Checked int-array append is atomic; strict half-open copies return independent owners. Full owned-byte acceptance and family timing remain pending."
 }
 }

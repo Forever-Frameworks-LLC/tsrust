@@ -238,3 +238,19 @@ fn native_byte_growth_enforces_optional_arity_and_exclusive_access() {
         assert_eq!(error.code, code, "{body}: {error:?}");
     }
 }
+
+#[test]
+fn native_byte_append_and_copy_enforce_access_and_scalar_contracts() {
+    let prefix = "import {Bytes,append,copy} from 'std:bytes';";
+    for (body, code) in [
+        ("function change(bytes:ReadOnly<Bytes>){append(bytes,[1]);}", "parameter-access"),
+        ("function change(bytes:Bytes){append(bytes,['a']);}", "type"),
+        ("function change(bytes:Bytes){append(bytes);}", "arity"),
+        ("function change(bytes:Bytes){copy(bytes,0);}", "arity"),
+        ("function change(bytes:Bytes){copy(bytes,0,'1');}", "type"),
+        ("function change(bytes:Bytes){const moved=bytes;copy(bytes,0,0);}", "transferred"),
+    ] {
+        let error = checked_source(&format!("{prefix}{body}function main(){{}}")).err().expect(body);
+        assert_eq!(error.code, code, "{body}: {error:?}");
+    }
+}

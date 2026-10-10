@@ -41,3 +41,11 @@ fn native_byte_allocation_and_resize_preserve_defaults_and_atomic_errors() {
     let path = directory.source(&source);
     support::success(&support::run(support::cli().arg("run").arg(path), 60));
 }
+
+#[test]
+fn native_byte_append_is_atomic_and_range_copies_are_independent() {
+    let directory = support::TempDirectory::new();
+    let source = support::format_round_trip(include_str!("fixtures/native-owned-bytes/copy-append.tsr"));
+    let path = directory.source(&source);
+    support::success(&support::run(support::cli().arg("run").arg(path), 60));
+}

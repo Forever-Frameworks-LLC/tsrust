@@ -49,3 +49,22 @@ pub(crate) const RESIZE: NativeBinding = NativeBinding {
     result: NativeType::Structured(&Signature::Result(&Signature::Void, &Signature::Named(NativeTypeId::ByteError))),
     backend: NativeBackend::Bundled { symbol: "tsrust_std_bytes_resize" }, features: &["bytes"],
 };
+pub(crate) const APPEND: NativeBinding = NativeBinding {
+    module: "std:bytes", name: "append",
+    parameters: &[
+        NativeParameter { name: "bytes", ty: NativeType::Structured(&Signature::Named(NativeTypeId::Bytes)), access: Mode::Mutate, optional: false, rest: false },
+        NativeParameter { name: "values", ty: NativeType::Structured(&Signature::Array(&Signature::Int)), access: Mode::Read, optional: false, rest: false },
+    ],
+    result: NativeType::Structured(&Signature::Result(&Signature::Void, &Signature::Named(NativeTypeId::ByteError))),
+    backend: NativeBackend::Bundled { symbol: "tsrust_std_bytes_append" }, features: &["bytes"],
+};
+pub(crate) const COPY: NativeBinding = NativeBinding {
+    module: "std:bytes", name: "copy",
+    parameters: &[
+        NativeParameter { name: "bytes", ty: NativeType::Structured(&Signature::Named(NativeTypeId::Bytes)), access: Mode::Read, optional: false, rest: false },
+        NativeParameter { name: "start", ty: NativeType::Int, access: Mode::Copy, optional: false, rest: false },
+        NativeParameter { name: "end", ty: NativeType::Int, access: Mode::Copy, optional: false, rest: false },
+    ],
+    result: NativeType::Structured(&Signature::Result(&Signature::Named(NativeTypeId::Bytes), &Signature::Named(NativeTypeId::ByteError))),
+    backend: NativeBackend::Bundled { symbol: "tsrust_std_bytes_copy" }, features: &["bytes"],
+};

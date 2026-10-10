@@ -20422,6 +20422,34 @@
       "specification": "Eleven scalar observations per iteration: initial fill, growth success/default zero, rejected fill code length and preserved length, shrink/regrow success, retained prefix, new fill bytes and final length. Independent arithmetic oracle; TypeScript validates before allocating or replacing storage.",
       "sourceSha256": "91edae4eb8311f8f57ef87b47c99184a8bc826309ce3e0921d76350795e30891",
       "counterpartSha256": "ae178d03979f0781992026a916d4776d52be36e4209d14f6b99fdd4ebf561368"
+    },
+    {
+      "id": "native_byte_copy_append",
+      "family": "native-byte-copy-append",
+      "source": "workloads/native_byte_copy_append.tsr",
+      "counterpart": "workloads/native_byte_copy_append.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One checked byte append and independent copy scenario",
+      "inputText": "bytes",
+      "category": "bytes",
+      "implementationGate": 188,
+      "measurementStatus": "pending-resources-bytes-family",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": false,
+      "measured": false,
+      "notes": "Gate 188 append/copy increment. Full owned-byte gate remains open; no timing.",
+      "specification": "Thirteen retained scalar observations: initial length, append success and invalid-input code/offset, unchanged trailing byte, copied length, successful writes, independent copy and source contents, empty end copy, invalid range offset and final length. Independent arithmetic oracle and validated Uint8Array counterpart.",
+      "sourceSha256": "98f2f59b81ab31d694df4efff6f7d1503c3fdcf5bfa04e3e1d167091d4004d18",
+      "counterpartSha256": "ec3eaa566d0813c094d53b4e61a66d40e1d5b0f268e70991ff2fc186d05c52ca"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

@@ -18,6 +18,8 @@ pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding]) -> 
             "set" => output.push_str(&result_bridge(program, binding, &format!("bytes: &mut Record{bytes}, index: i64, value: i64"), "tsrust_native_bytes::set(&mut bytes.bytes, index, value)", "success")),
             "alloc" => output.push_str(&result_bridge(program, binding, "length: i64, fill: Option<i64>", "tsrust_native_bytes::alloc(length, fill)", &format!("Record{bytes} {{ bytes: success }}"))),
             "resize" => output.push_str(&result_bridge(program, binding, &format!("bytes: &mut Record{bytes}, length: i64, fill: Option<i64>"), "tsrust_native_bytes::resize(&mut bytes.bytes, length, fill)", "success")),
+            "append" => output.push_str(&result_bridge(program, binding, &format!("bytes: &mut Record{bytes}, values: &[i64]"), "tsrust_native_bytes::append(&mut bytes.bytes, values)", "success")),
+            "copy" => output.push_str(&result_bridge(program, binding, &format!("bytes: &Record{bytes}, start: i64, end: i64"), "tsrust_native_bytes::copy(&bytes.bytes, start, end)", &format!("Record{bytes} {{ bytes: success }}"))),
             _ => unreachable!("registered byte bridge"),
         }
     }
