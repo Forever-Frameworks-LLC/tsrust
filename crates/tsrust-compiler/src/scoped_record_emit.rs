@@ -3,6 +3,10 @@ use super::*;
 
 impl Emitter<'_> {
     pub(super) fn scoped_record_native_parameter(&self, ty: Type) -> bool {
+        self.native_views.contains(ty) || self.callback_record_native_parameter(ty)
+    }
+
+    pub(super) fn callback_record_native_parameter(&self, ty: Type) -> bool {
         // Generic field positions belong to the nominal declaration even when
         // this instance's callback environment owns all of its captures.
         let ty = match ty {

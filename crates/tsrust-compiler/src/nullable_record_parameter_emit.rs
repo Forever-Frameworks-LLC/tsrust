@@ -10,7 +10,7 @@ impl Emitter<'_> {
         let members = &self.program.unions[union.index()].members;
         let record = members.iter().find_map(|ty| if let Type::Record(record) = ty { Some(*record) } else { None })?;
         if members.iter().any(|ty| !matches!(ty, Type::Record(_) | Type::Null | Type::Undefined))
-            || !self.scoped_record_native_parameter(Type::Record(record)) { return None; }
+            || !self.callback_record_native_parameter(Type::Record(record)) { return None; }
         Some((union, record))
     }
 

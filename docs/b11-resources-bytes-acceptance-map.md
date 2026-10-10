@@ -20,3 +20,13 @@ ABI support and harness hooks. Untimed verification is distinct from measurement
 Native thread-transfer metadata is backend eligibility, not source threading acceptance.
 The owner chose consuming close even on Err, static rejection of later use/double
 close, and a nonthrowing destructor fallback. Bytes does not require explicit close.
+
+### Gate 189 private storage progress
+
+The private native view storage checkpoint emits real slice lifetimes through
+nonrecursive records, arrays and Result wrappers. Focused storage/native execution,
+scoped-record regression and native editor checks pass (48 tests). Source loans,
+returned lifetime inference, recursive wrappers, source factories and their benchmark
+support remain pending. This is implementation progress, not gate acceptance or
+measurement. See handoff-2026-10-10-native-view-storage.md and the SQLite record
+runtime/results/native-view-storage-2026-10-10-checks.json.

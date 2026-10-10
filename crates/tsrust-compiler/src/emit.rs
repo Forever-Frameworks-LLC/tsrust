@@ -87,6 +87,9 @@ mod logical_values_emit;
 use crate::analysis::{ArgumentContract, CheckedFunction, CheckedProgram, ClosureForward, Mode};
 use crate::storage::{inline_array, numeric_array};
 use crate::syntax::*;
+#[path = "native_view_emit.rs"]
+mod native_view_emit;
+
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::fmt::Write;
@@ -176,6 +179,7 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
         borrowed_owners,
         borrowed_lifetime_alternatives,
         native_captures,
+        native_views: native_view_emit::Shapes::new(program),
         callback_traits,
         counted_calls,
         program,
@@ -247,6 +251,7 @@ struct Emitter<'a> {
     borrowed_lifetime_alternatives: borrowed_payload_emit::Alternatives,
     borrowed_owners: borrowed_owner_provenance::Plan,
     native_captures: native_capture_storage::Storage,
+    native_views: native_view_emit::Shapes,
     borrowed_capture_alternatives: borrowed_payload_emit::Alternatives,
     callback_traits: bool,
     counted_calls: bool,
@@ -365,6 +370,9 @@ impl Emitter<'_> {
     }
 
     fn native_type(&self, value: Type) -> String {
+        if let Type::Record(id) = value && native_view_emit::access(self.program, id).is_some() {
+            return format!("Record{id}<'_>");
+        }
         if let Type::Map(id) = value {
             let payload = self.program.records[id].map_definition.as_ref().unwrap().value;
             if self.scoped_record_native_parameter(payload) { return format!("Map{id}<{}>", self.native_type(payload)); }
@@ -382,8 +390,8 @@ impl Emitter<'_> {
         }
         if let Some(id) = value.union() {
             let payloads = self.program.unions[id.index()].members.iter().copied().filter(|ty| !ty.is_copy()).collect::<Vec<_>>();
-            if payloads.iter().any(|ty| self.scoped_record_native_parameter(*ty)) && payloads.len() == 1 {
-                let payload = self.native_type(payloads[0]);
+            if payloads.iter().any(|ty| self.scoped_record_native_parameter(*ty)) && (payloads.len() == 1 || self.native_views.contains(value)) {
+                let payload = payloads.iter().map(|&ty| self.native_type(ty)).collect::<Vec<_>>().join(", ");
                 return if matches!(value, Type::BorrowedUnion(_)) { format!("ViewUnion{}<'_, {payload}>", id.index()) } else { format!("Union{}<{payload}>", id.index()) };
             }
         }
@@ -446,9 +454,12 @@ impl Emitter<'_> {
             && !id.copy
             && contract.mode == Mode::Read
         {
-            let parameters = self
-                .callback_payload(contract.ty)
-                .map_or_else(String::new, |ty| format!(", {}", self.native_type(ty)));
+            let parameters = if self.native_views.contains(contract.ty) {
+                self.program.unions[id.index()].members.iter().filter(|ty| !ty.is_copy())
+                    .map(|&ty| format!(", {}", self.native_type(ty))).collect::<String>()
+            } else {
+                self.callback_payload(contract.ty).map_or_else(String::new, |ty| format!(", {}", self.native_type(ty)))
+            };
             return format!(
                 "ViewUnion{}<{}{parameters}>",
                 id.index(),
@@ -2278,6 +2289,11 @@ impl Emitter<'_> {
                 let _ = writeln!(output, "#[derive(Clone)] struct Record{index} {{ bytes: Vec<u8> }}");
                 continue;
             }
+            if let Some(access) = native_view_emit::access(self.program, index) {
+                let mutable = if access == crate::native_return_borrows::BorrowAccess::Exclusive { "mut " } else { "" };
+                let _ = writeln!(output, "struct Record{index}<'a> {{ bytes: &'a {mutable}[u8] }}");
+                continue;
+            }
             let mut generic_fields = Vec::new();
             let fields = record
                 .fields
@@ -2679,8 +2695,12 @@ impl Emitter<'_> {
         // arrays. This preserves recursive indirection and bounds inline size.
         for index in 0..self.program.records.len() {
             if !self.record_runtime.recursive(index)
-                && output.contains(&format!("RecordArray{index}"))
+                && (output.contains(&format!("RecordArray{index}")) || native_view_emit::access(self.program, index).is_some())
             {
+                if native_view_emit::access(self.program, index).is_some() {
+                    let _ = writeln!(output, "type RecordArray{index}<'a> = Vec<Record{index}<'a>>;");
+                    continue;
+                }
                 let storage = if self.small_record(index) {
                     "Array"
                 } else {
@@ -2937,6 +2957,7 @@ impl Emitter<'_> {
     }
 
     fn small_record(&self, index: usize) -> bool {
+        if self.native_views.contains(Type::Record(index)) { return false; }
         let mut pending = vec![(Type::Record(index), 0_usize)];
         let mut bytes = 0_usize;
         while let Some((value, depth)) = pending.pop() {

@@ -13,7 +13,7 @@ impl Emitter<'_> {
         let mut family=HashSet::new();
         for id in 0..self.program.records.len() {
             let root=self.program.scoped_records.declaration(id);
-            if family.contains(&root) || !self.scoped_record_native_parameter(Type::Record(root)) {continue;}
+            if family.contains(&root) || !self.callback_record_native_parameter(Type::Record(root)) {continue;}
             if crate::scoped_record_places::Layout::for_record(root,&self.program.records).is_none(){continue;}
             let mut pending=vec![root];
             while let Some(record)=pending.pop() {

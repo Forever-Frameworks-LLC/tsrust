@@ -150,3 +150,26 @@ result is owned and it has no returned-borrow contract. This prevents an observe
 from bypassing the pending ABI guard. Fixed-storage analysis treats borrowed native
 representations as native storage, not as empty source records. Source factories,
 loan propagation and lifetime-bearing emission remain the next required work.
+
+## Private storage ABI checkpoint
+
+The emitter now represents private ByteView and ByteViewMut records as actual
+`&'a [u8]` and `&'a mut [u8]` fields. Nonrecursive record fields and Result payloads
+carry these types through generic storage positions; array aliases retain the slice
+lifetime. Borrowing a Result preserves all its non-copy payload type arguments.
+Native view storage does not use the callback-only nominal record bridge. Inline
+record-array selection does not infer a small value from an opaque view's empty
+source schema.
+
+A cached reverse reachability index identifies data shapes containing borrowed
+native storage, including cycles, nested array ranks and union alternatives. Programs
+without native views allocate no graph. This index describes storage only; it does
+not establish source loans or make a recursive storage layout emit correctly.
+
+The private AST witness checks formatted-source idempotence, then compiles generated
+Rust at O0 and O3. It stores views in a record, an array and a Result inside another
+record, checks exact source pointers, and writes through an exclusive view. A readonly
+Result parameter is also emitted and compiled. These tests prove the isolated
+nonrecursive storage ABI, not source factory calls, returned lifetime inference,
+recursive wrappers, callback capture composition or source ownership diagnostics.
+The native projection guard and missing public view exports remain in place.
