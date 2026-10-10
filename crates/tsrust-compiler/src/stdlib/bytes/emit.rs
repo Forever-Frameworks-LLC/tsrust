@@ -7,6 +7,9 @@ pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding]) -> 
     if bindings.iter().any(|binding| binding.name != "length") {
         output.push_str("mod tsrust_native_bytes {\n");
         output.push_str(include_str!("runtime.rs"));
+        if bindings.iter().any(|binding| binding.returned_borrow.is_some()) {
+            output.push_str(include_str!("views_runtime.rs"));
+        }
         if bindings.iter().any(|binding| matches!(binding.name, "fromUtf8" | "toUtf8")) {
             output.push_str(include_str!("utf8_runtime.rs"));
         }
@@ -15,6 +18,17 @@ pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding]) -> 
     }
     for binding in bindings {
         match binding.name {
+            "view" | "viewMut" => {
+                let contract=binding.returned_borrow.expect("view source contract");
+                let view=program.records.iter().position(|record|record.native_type==Some(contract.payload)).expect("checked view identity");
+                let mutable=binding.name=="viewMut";
+                let access=if mutable {"mut "} else {""};
+                let operation=if mutable {"view_mut"} else {"view"};
+                output.push_str(&result_bridge(program,binding,
+                    &format!("bytes: &'a {access}Record{bytes}, start: i64, end: i64"),
+                    &format!("tsrust_native_bytes::{operation}(&{access}bytes.bytes, start, end)"),
+                    &format!("Record{view} {{ bytes: success }}")));
+            }
             "length" => output.push_str(&format!("fn tsrust_std_bytes_length(bytes: &Record{bytes}) -> i64 {{ i64::try_from(bytes.bytes.len()).expect(\"checked byte length\") }}\n")),
             "fromArray" => output.push_str(&result_bridge(program, binding, "values: &[i64]", "tsrust_native_bytes::from_array(values)", &format!("Record{bytes} {{ bytes: success }}"))),
             "at" => output.push_str(&result_bridge(program, binding, &format!("bytes: &Record{bytes}, index: i64"), "tsrust_native_bytes::at(&bytes.bytes, index)", "success")),
@@ -39,7 +53,13 @@ fn result_bridge(program: &CheckedProgram, binding: &NativeBinding, parameters: 
     let tag = |id| members.iter().position(|ty| *ty == Type::Record(id)).unwrap();
     let fields = if program.records[ok].fields.is_empty() { String::new() } else { format!("field0: {success}") };
     let NativeBackend::Bundled { symbol } = binding.backend;
-    format!("fn {symbol}({parameters}) -> Union{} {{ match {call} {{ Ok(success) => Union{}::V{}(Record{ok} {{ {fields} }}), Err(failure) => Union{}::V{}(Record{err} {{ field0: tsrust_std_bytes_error(failure) }}) }} }}\n", result.index(), result.index(), tag(ok), result.index(), tag(err))
+    let lifetime=if binding.returned_borrow.is_some() {"<'a>"} else {""};
+    let result_type=if let Some(contract)=binding.returned_borrow {
+        let view=program.records.iter().position(|record|record.native_type==Some(contract.payload)).expect("checked view payload");
+        let arguments=members.iter().map(|member|if *member==Type::Record(ok) {format!("Record{ok}<Record{view}<'a>>")} else {format!("Record{err}")}).collect::<Vec<_>>();
+        format!("Union{}<{}>",result.index(),arguments.join(", "))
+    } else {format!("Union{}",result.index())};
+    format!("fn {symbol}{lifetime}({parameters}) -> {result_type} {{ match {call} {{ Ok(success) => Union{}::V{}(Record{ok} {{ {fields} }}), Err(failure) => Union{}::V{}(Record{err} {{ field0: tsrust_std_bytes_error(failure) }}) }} }}\n", result.index(), tag(ok), result.index(), tag(err))
 }
 
 fn error_bridge(program: &CheckedProgram) -> String {
@@ -62,3 +82,7 @@ fn error_bridge(program: &CheckedProgram) -> String {
     }
     format!("fn tsrust_std_bytes_error(failure: tsrust_native_bytes::ByteFailure) -> Record{error} {{ Record{error} {{ {} }} }}\n", initializers.join(", "))
 }
+
+#[cfg(test)]
+#[path = "views_emit_tests.rs"]
+mod view_tests;

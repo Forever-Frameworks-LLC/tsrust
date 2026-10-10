@@ -552,3 +552,28 @@ The private unused-closure witness checks a real parsed consuming closure and th
 injects its returned native storage summary before final analysis. It proves the
 guard runs without a call, with shared-invocation and carried-view positive controls.
 Complete source factory-body acceptance remains pending.
+
+### Guarded factory bridges and forwarding bodies
+
+The native registry now contains readonly view and exclusive viewMut contracts
+with strict ranges and Result success loans rooted in argument zero. Ordinary
+signature preparation still rejects both at the existing publication guard.
+Their presence in the registry does not enable public source imports or accept
+the editor/catalog surface.
+
+The byte bridge includes the actual slice helpers and renders the borrowed
+Result with the backend's generic variant payloads. Its named lifetime joins the
+source buffer reference to the view in the success variant; errors own no view.
+
+Private tests bypass only import preparation and project native identities into
+parsed, formatted readonly/mutable forwarding functions. Normal analysis infers
+their returned source summaries; normal emission generates their complete bodies
+and native bridges. At O0/O3 these functions preserve pointer identity, accept
+empty end ranges, reject reversed ranges and write through mutable views.
+An independent negative native compilation rejects a returned view that outlives
+its owner. The runtime allocation control remains a separate focused test.
+
+This supersedes the earlier lack of complete direct forwarding bodies. Capturing
+factory bodies, escaped environments, mixed callable storage, readable/mutable
+observer contracts and public editor/catalog integration remain pending. Keep the
+publication guard until the required matrix is complete.

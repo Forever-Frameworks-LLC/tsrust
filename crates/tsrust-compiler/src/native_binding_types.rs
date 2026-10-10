@@ -22,6 +22,10 @@ pub(crate) fn prepare(records: &mut Vec<Record>, binding: &NativeBinding, span: 
     if binding.returned_borrow.is_some() || borrowed_shape {
         return Err(Diagnostic::new("native-return-borrow", "Native borrowed values require source provenance and a lifetime-bearing backend representation.", span));
     }
+    project_shapes(records, binding, span)
+}
+
+fn project_shapes(records: &mut Vec<Record>, binding: &NativeBinding, span: Span) -> Result<(), Diagnostic> {
     for ty in binding.parameters.iter().map(|parameter| parameter.ty).chain(std::iter::once(binding.result)) {
         let NativeType::Structured(signature) = ty else { continue; };
         let name = key(signature)?;
@@ -39,6 +43,12 @@ pub(crate) fn prepare(records: &mut Vec<Record>, binding: &NativeBinding, span: 
     Ok(())
 }
 
+#[cfg(test)]
+pub(crate) fn prepare_private_view_test(records: &mut Vec<Record>, binding: &NativeBinding) -> Result<(), Diagnostic> {
+    binding.validate_returned_borrow().unwrap();
+    project_shapes(records, binding, Span::default())
+}
+
 pub(crate) fn resolve(records: &[Record], signature: &Signature) -> Option<Type> {
     let name = key(signature).ok()?;
     records.iter().find(|record| record.name.text == name)?.fields.first()?.ty
@@ -49,6 +59,24 @@ mod tests {
     use super::*;
     use crate::native_bindings::{NativeBackend, NativeParameter};
     use crate::native_signatures::NativeTypeId;
+    #[test]
+    fn native_view_factory_bindings_are_valid_but_publicly_guarded() {
+        for (name,access,payload) in [
+            ("view",crate::native_return_borrows::BorrowAccess::ReadOnly,NativeTypeId::ByteView),
+            ("viewMut",crate::native_return_borrows::BorrowAccess::Exclusive,NativeTypeId::ByteViewMut),
+        ] {
+            let binding=crate::native_bindings::lookup("std:bytes",name).unwrap();
+            binding.validate_returned_borrow().unwrap();
+            let contract=binding.returned_borrow.unwrap();
+            assert_eq!(contract.source_parameter,0);
+            assert_eq!(contract.access,access);
+            assert_eq!(contract.payload,payload);
+            assert_eq!(contract.slot,crate::native_return_borrows::ReturnSlot::ResultOk);
+            let mut records=Vec::new();
+            assert_eq!(prepare(&mut records,binding,Span::default()).unwrap_err().code,"native-return-borrow");
+            assert!(records.is_empty());
+        }
+    }
     #[test]
     fn recursive_native_signatures_share_checked_result_identity() {
         static RESULT: Signature = Signature::Result(&Signature::Named(NativeTypeId::Bytes), &Signature::Named(NativeTypeId::ByteError));

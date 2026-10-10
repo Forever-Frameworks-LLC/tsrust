@@ -373,10 +373,17 @@ mod tests {
     }
 
     #[test]
-    fn owned_registry_contracts_remain_unborrowed() {
+    fn registry_contracts_keep_owned_values_unborrowed_and_views_guarded() {
         for binding in crate::native_bindings::BINDINGS {
-            assert_eq!(binding.returned_borrow, None);
             assert_eq!(binding.validate_returned_borrow(), Ok(()));
+            if binding.contains_borrowed_signatures().unwrap() {
+                assert!(binding.returned_borrow.is_some());
+                let mut records=Vec::new();
+                assert_eq!(crate::native_binding_types::prepare(&mut records,binding,crate::Span::default()).unwrap_err().code,"native-return-borrow");
+                assert!(records.is_empty());
+            } else {
+                assert_eq!(binding.returned_borrow,None);
+            }
         }
     }
 }

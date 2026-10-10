@@ -1,4 +1,24 @@
 use crate::{Mode, native_bindings::{NativeBackend, NativeBinding, NativeParameter, NativeType}, native_signatures::{NativeTypeId, Signature}};
+pub(crate) const VIEW: NativeBinding = view_binding(false);
+pub(crate) const VIEW_MUT: NativeBinding = view_binding(true);
+const fn view_binding(mutable: bool) -> NativeBinding {
+    use crate::native_return_borrows::{BorrowAccess, ReturnSlot, ReturnedBorrow};
+    NativeBinding {
+        module: "std:bytes", name: if mutable {"viewMut"} else {"view"},
+        parameters: if mutable {&[
+            NativeParameter {name:"bytes",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Bytes)),access:Mode::Mutate,optional:false,rest:false},
+            NativeParameter {name:"start",ty:NativeType::Int,access:Mode::Copy,optional:false,rest:false},
+            NativeParameter {name:"end",ty:NativeType::Int,access:Mode::Copy,optional:false,rest:false},
+        ]} else {&[
+            NativeParameter {name:"bytes",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Bytes)),access:Mode::Read,optional:false,rest:false},
+            NativeParameter {name:"start",ty:NativeType::Int,access:Mode::Copy,optional:false,rest:false},
+            NativeParameter {name:"end",ty:NativeType::Int,access:Mode::Copy,optional:false,rest:false},
+        ]},
+        result: if mutable {NativeType::Structured(&Signature::Result(&Signature::Named(NativeTypeId::ByteViewMut),&Signature::Named(NativeTypeId::ByteError)))} else {NativeType::Structured(&Signature::Result(&Signature::Named(NativeTypeId::ByteView),&Signature::Named(NativeTypeId::ByteError)))},
+        returned_borrow:Some(ReturnedBorrow {source_parameter:0,access:if mutable {BorrowAccess::Exclusive} else {BorrowAccess::ReadOnly},payload:if mutable {NativeTypeId::ByteViewMut} else {NativeTypeId::ByteView},slot:ReturnSlot::ResultOk}),
+        backend:NativeBackend::Bundled {symbol:if mutable {"tsrust_std_bytes_view_mut"} else {"tsrust_std_bytes_view"}}, features:&["bytes"],
+    }
+}
 pub(crate) const FROM_ARRAY: NativeBinding = NativeBinding { returned_borrow: None,
     module: "std:bytes", name: "fromArray",
     parameters: &[NativeParameter { name: "values", ty: NativeType::Structured(&Signature::Array(&Signature::Int)), access: Mode::Read, optional: false, rest: false }],
