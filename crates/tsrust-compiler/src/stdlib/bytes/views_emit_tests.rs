@@ -1,5 +1,154 @@
 use super::*;
 #[test]
+fn native_view_escaped_carried_capture_keeps_actual_argument_origin() {
+    let source = "function save(view:int){return ()=>view;}function relay(first:int,second:int){const ignored=0;const callback=save(second);return callback();}function main(){}";
+    let formatted = crate::formatting::format(source).unwrap();
+    assert_eq!(crate::formatting::format(&formatted).unwrap(), formatted);
+    let mut parsed = crate::syntax::parse(&formatted).unwrap();
+    let annotation = crate::native_type_resolution::project(
+        &mut parsed.records,
+        &crate::native_signatures::Signature::Named(NativeTypeId::ByteView),
+        crate::Span::default(),
+    )
+    .unwrap();
+    for function in &mut parsed.functions[..2] {
+        for parameter in &mut function.params {
+            parameter.1 = annotation.clone();
+        }
+    }
+    let checked = crate::analysis::analyze(parsed).unwrap();
+    let origins = checked.functions[1]
+        .native_returns
+        .as_ref()
+        .expect("returned view must keep its input origin");
+    assert_eq!(origins.len(), 1);
+    assert_eq!(
+        origins[0].root, 1,
+        "escaped closure must refer to relay's second argument, not save's binding zero"
+    );
+}
+#[test]
+fn native_view_nested_factory_rebinding_keeps_live_receiver_loans() {
+    for mutable in [false, true] {
+        for (body, expected) in [
+            (
+                "let reader=wrapped(owner);const value=reader();reader=wrapped(other);",
+                Some("native-view-conflict"),
+            ),
+            (
+                "let reader=wrapped(owner);const moved=reader;reader=wrapped(other);const value=moved();",
+                None,
+            ),
+            (
+                "const reader=wrapped(owner);return reader();",
+                Some("native-view-escape"),
+            ),
+        ] {
+            let tail = format!(
+                "function wrapped(owner:int){{const inner=factory(owner);return ()=>inner();}}function caller(owner:int,other:int){{{body}}}"
+            );
+            let mut parsed = capturing_factory_program(mutable, &tail);
+            let owner = parsed.functions[0].params[0].1.clone();
+            parsed.functions[1].params[0].1 = owner.clone();
+            for parameter in &mut parsed.functions[2].params {
+                parameter.1 = owner.clone();
+            }
+            match (crate::analysis::analyze(parsed), expected) {
+                (Err(error), Some(code)) => assert_eq!(error.code, code, "{body}: {error:?}"),
+                (Ok(_), None) => (),
+                (Err(error), None) => panic!("{body}: {error:?}"),
+                (Ok(_), Some(_)) => panic!("{body}: invalid receiver access accepted"),
+            }
+        }
+    }
+}
+#[test]
+fn native_view_nested_factory_preserves_receiver_storage() {
+    for mutable in [false, true] {
+        let mut parsed = capturing_factory_program(
+            mutable,
+            "function wrapped(owner:int){const inner=factory(owner);return ()=>inner();}",
+        );
+        parsed.functions[1].params[0].1 = parsed.functions[0].params[0].1.clone();
+        let checked = crate::analysis::analyze(parsed).unwrap();
+        assert_eq!(checked.closures.len(), 2);
+        assert!(checked.closures[1].function.native_returns.is_some());
+        let binding = if mutable {
+            &super::super::bindings::VIEW_MUT
+        } else {
+            &super::super::bindings::VIEW
+        };
+        let bytes = checked
+            .records
+            .iter()
+            .position(|record| record.native_type == Some(NativeTypeId::Bytes))
+            .unwrap();
+        let NativeType::Structured(signature) = binding.result else {
+            panic!("Result")
+        };
+        let Type::Union(result) =
+            crate::native_binding_types::resolve(&checked.records, signature).unwrap()
+        else {
+            panic!("union")
+        };
+        let members = &checked.unions[result.index()].members;
+        let [ok, _] = crate::result_identity::variants(&checked.records, members).unwrap();
+        let tag = members
+            .iter()
+            .position(|member| *member == Type::Record(ok))
+            .unwrap();
+        let mutation = if mutable {
+            "value.field0.bytes[0]=8;"
+        } else {
+            ""
+        };
+        let expected = if mutable { 8 } else { 4 };
+        let probe = format!(
+            "fn nested_probe(){{let owner=Record{bytes}{{bytes:vec![4,5,6]}};let pointer=owner.bytes.as_ptr();let mut reader=function1(owner);match reader.call(){{Union{result_id}::V{tag}(value)=>{{assert_eq!(value.field0.bytes.as_ptr(),pointer);assert_eq!(value.field0.bytes,&[4,5]);{mutation}}},_=>panic!(\"nested view\")}}match reader.call(){{Union{result_id}::V{tag}(value)=>assert_eq!(value.field0.bytes[0],{expected}),_=>panic!(\"later view\")}}}}",
+            result_id = result.index()
+        );
+        let mut generated = crate::emit::emit(&checked);
+        let main = generated.find("fn main()").unwrap();
+        let opening = main + generated[main..].find('{').unwrap() + 1;
+        generated.insert_str(opening, "nested_probe();");
+        let directory =
+            std::env::temp_dir().join(format!("tsrust-nested-view-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        struct Cleanup(std::path::PathBuf);
+        impl Drop for Cleanup {
+            fn drop(&mut self) {
+                let _ = std::fs::remove_dir_all(&self.0);
+            }
+        }
+        let _cleanup = Cleanup(directory.clone());
+        let input = directory.join("nested.rs");
+        std::fs::write(&input, format!("{generated}\n{probe}")).unwrap();
+        for level in ["0", "3"] {
+            let output = directory.join(format!("nested-{level}"));
+            let compiled = std::process::Command::new("rustc")
+                .arg("--edition=2024")
+                .arg("-C")
+                .arg(format!("opt-level={level}"))
+                .arg(&input)
+                .arg("-o")
+                .arg(&output)
+                .output()
+                .unwrap();
+            assert!(
+                compiled.status.success(),
+                "{}",
+                String::from_utf8_lossy(&compiled.stderr)
+            );
+            assert!(
+                std::process::Command::new(output)
+                    .status()
+                    .unwrap()
+                    .success()
+            );
+        }
+    }
+}
+#[test]
 fn native_view_capturing_factory_moves_preserve_source_loans() {
     for mutable in [false, true] {
         for (body, expected) in [

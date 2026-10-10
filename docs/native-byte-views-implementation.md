@@ -613,3 +613,28 @@ while rejecting receiver escape, and reject readonly owner escape separately.
 These three focused tests need no production repair. Deeper escaped/rebound
 environments, mixed callback records, specialized storage families and public
 observer/editor integration remain open.
+
+### Nested environment work in progress
+
+Two new private controls pass: an owned closure may capture another view-producing
+closure and forward readonly or exclusive views at O0/O3, preserving pointer identity
+and mutable writes across later calls. Source checks reject replacing that outer
+receiver while a view is retained and reject returning its view from a local holder;
+moving before taking a view remains valid.
+
+A separate red witness saves an already-borrowed view in an escaping closure and
+calls it from another function with two distinct view parameters. It currently fails
+at callback-escape before its actual-argument provenance assertion. The existing
+borrowed-storage predicate treats every closure lifetime as local storage, including
+owned native view payloads. Do not simply remove that guard: closure construction
+must carry native capture loans through function returns and moves first.
+
+The repair needs environment-relative capture paths and actual caller transport.
+Source::Capture currently names a declaration's outer slot; that is not sufficient
+evidence of identity in a different invocation's context. Extend construction and
+returned closure summaries to retain capture-field paths, then resolve carried view
+sources from the actual callee environment. Validate local owner escape before
+allowing owned native-view captures through the callback guard. Add native named
+lifetime rendering for returned closure layouts and test distinct input lifetimes.
+The red witness must pass with origin rooted in relay's second argument. Its failure
+does not yet prove which later transport branch would execute incorrectly.
