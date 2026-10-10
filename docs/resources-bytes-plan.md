@@ -1,6 +1,6 @@
 # B11/S07: resources and bytes
 
-Status: planning and first red witness. B10/S06 is accepted at gate 186, publication
+Status: gate 187 signature metadata increment implemented; native byte source witness remains red. B10/S06 is accepted at gate 186, publication
 commit `1b631986`. This family is not accepted. The owner is being asked to choose
 consuming close versus idempotent close; dependent lifecycle implementation must
 wait for the answer. Type identity, signatures and owned bytes can progress independently.
@@ -216,8 +216,8 @@ queues and async cancellation remain downstream families.
 its fixture idempotently and runs it through the project CLI with std:testing.
 It currently fails with `module-native`: unknown std:bytes. This is an intentional
 new-feature witness, not a regression in accepted B10. Exact evidence is retained
-in SQLite at `runtime/results/native-owned-bytes-2026-10-10-red.json`. No compiler
-implementation has changed. Installed consumers remain the accepted B10 build.
+in SQLite at `runtime/results/native-owned-bytes-2026-10-10-red.json`. The signature metadata increment below is implemented; native byte source integration
+remains unimplemented. Installed consumers remain the accepted B10 build.
 
 ## Continuation prompt
 
@@ -230,3 +230,27 @@ parity, no implicit clone and normal worker stacks. Resource close semantics awa
 the owner response; do not choose that behavior silently. Native type/byte work is
 independent and may proceed. Installed consumers remain B10 until verified increments
 are published. No full regressions or timing are due for this red checkpoint.
+
+## Gate 187 signature metadata increment
+
+`native_signatures.rs` defines identity-bearing Named, Array and Result metadata,
+primitive signatures and explicit private intrinsic signatures. Rendering requires
+the caller to supply visible native aliases; an unresolved identity returns an
+error instead of borrowing an unrelated source name. Rendering is iterative and
+bounded to 128 nesting levels, 4,096 nodes and 65,536 output bytes. Primitive and
+existing intrinsic names return borrowed static text, preserving the old editor
+path without extra string allocations. These are compiler metadata identities,
+not newly published source exports.
+
+`NativeType::signature` adapts existing registry types to this shared description.
+Project-native editor imports use it rather than maintaining a separate exhaustive
+type-name switch. Four focused metadata controls and five native project editor
+controls pass, including alias identity, depth/size failures, unchanged scalar and
+callback help, stored/factory native values and optional signatures. Exact evidence
+is stored in SQLite at `runtime/results/native-signatures-2026-10-10-checks.json`.
+No full regressions, timing or consumer refresh were performed for this increment.
+
+Next: register native declarations and separate type/value exports, then resolve
+these descriptions into checked arena types and native storage. Do not mistake
+rendered metadata for checked Bytes support: std_bytes.rs is still intentionally
+red. Resource close semantics still await the owner's answer.

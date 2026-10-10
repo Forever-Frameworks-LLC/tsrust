@@ -2484,15 +2484,8 @@ impl SourceIndex {
         else {
             return;
         };
-        let type_name = |ty| match ty {
-            tsrust_compiler::native_bindings::NativeType::String => "string",
-            tsrust_compiler::native_bindings::NativeType::Boolean => "boolean",
-            tsrust_compiler::native_bindings::NativeType::Int => "int",
-            tsrust_compiler::native_bindings::NativeType::Number => "number",
-            tsrust_compiler::native_bindings::NativeType::Void => "void",
-            tsrust_compiler::native_bindings::NativeType::OwnedVoidCallback => "Owned<Function<void>>",
-            tsrust_compiler::native_bindings::NativeType::SharedCallback => "Function",
-            tsrust_compiler::native_bindings::NativeType::ObservedValue => "unknown",
+        let type_name = |ty: tsrust_compiler::native_bindings::NativeType| {
+            ty.signature().render(|_| None).expect("registered primitive native signature")
         };
         let parameters = binding
             .parameters

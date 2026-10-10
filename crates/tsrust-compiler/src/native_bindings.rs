@@ -16,6 +16,22 @@ pub enum NativeType {
     /// Private read-only value observation, resolved by compiler checking.
     ObservedValue,
 }
+impl NativeType {
+    /// Shared semantic signature projection for native checking and editor help.
+    pub fn signature(self) -> crate::native_signatures::Signature {
+        use crate::native_signatures::{Intrinsic, Signature};
+        match self {
+            Self::String => Signature::String,
+            Self::Boolean => Signature::Boolean,
+            Self::Int => Signature::Int,
+            Self::Number => Signature::Number,
+            Self::Void => Signature::Void,
+            Self::OwnedVoidCallback => Signature::Intrinsic(Intrinsic::OwnedVoidCallback),
+            Self::SharedCallback => Signature::Intrinsic(Intrinsic::SharedCallback),
+            Self::ObservedValue => Signature::Intrinsic(Intrinsic::ObservedValue),
+        }
+    }
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct NativeParameter {
     pub name: &'static str,
