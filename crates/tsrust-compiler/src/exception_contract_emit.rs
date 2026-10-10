@@ -76,6 +76,9 @@ impl Storage {
 struct ControlStorage {target:crate::syntax::ControlTarget,continuing:bool,variant:String,storage:Storage}
 
 struct NativeRegion {
+    /// A return in this region reaches the enclosing region unchanged: it is the
+    /// body or handler of a `try` without `finally`.
+    return_passes_through:bool,
     id:usize,
     locals:Vec<crate::syntax::ControlTarget>,
     storage:Option<Box<Storage>>,
@@ -101,7 +104,7 @@ impl RegionStack {
     pub(crate) fn enter(&self,id:usize,locals:Vec<crate::syntax::ControlTarget>)->RegionScope<'_> {
         let mut regions=self.0.borrow_mut();
         let previous_depth=regions.len();
-        regions.push(NativeRegion{id,locals,storage:None,return_storage:None,control_storage:vec![],transport:None});
+        regions.push(NativeRegion{return_passes_through:false,id,locals,storage:None,return_storage:None,control_storage:vec![],transport:None});
         RegionScope{stack:self,previous_depth,_storage:self.1.scope()}
     }
     pub(crate) fn enter_typed(&self,id:usize,locals:Vec<crate::syntax::ControlTarget>,name:String,contract:crate::error_effects::FailureSet,runtime:Option<crate::syntax::Type>)->RegionScope<'_> {
@@ -125,8 +128,21 @@ impl RegionStack {
     pub(crate) fn carry_storage_on_control_exit(&self) {
         self.0.borrow_mut().last_mut().expect("entered storage region").storage.as_mut().expect("attached storage").carry_control=true;
     }
+    pub(crate) fn mark_return_passes_through(&self) {
+        self.0.borrow_mut().last_mut().expect("entered region").return_passes_through=true;
+    }
     pub(crate) fn return_value(&self,value:&str,span:crate::Span)->String {
-        let regions=self.0.borrow();let region=regions.last().expect("entered return region");
+        let regions=self.0.borrow();
+        // Leave directly through every enclosing region that would only forward the
+        // return. Rust then sees that a value moved by the return is not used later;
+        // a completion value matched afterwards would hide that from its move check.
+        let plain=|region:&NativeRegion|region.storage.is_none() && region.return_storage.is_none() && region.control_storage.is_empty();
+        let mut index=regions.len().checked_sub(1).expect("entered return region");
+        while index>0 && regions[index].return_passes_through && plain(&regions[index]) && plain(&regions[index-1]) {index-=1;}
+        if index+1!=regions.len() {
+            return format!("break 'exception_region{} TsrCompletion::Return({value});",regions[index].id);
+        }
+        let region=regions.last().expect("entered return region");
         let payload=if let Some((name,storage))=region.return_storage.as_deref() {format!("{{let pending_return={value};{name}::Return((pending_return,{}))}}",storage.at(span,&self.1))}else{region.storage.as_ref().filter(|storage|storage.carry_control).map_or_else(||value.to_owned(),|storage|format!("{{let pending_return={value};(TsrStorageExit::Return(pending_return),{})}}",storage.at(span,&self.1)))};
         format!("break 'exception_region{} TsrCompletion::Return({payload});",region.id)
     }

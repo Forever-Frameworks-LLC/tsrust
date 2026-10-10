@@ -205,6 +205,8 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
         exception_regions: exception_contract_emit::RegionStack::default(),
         control_targets: exception_contract_emit::ControlStack::default(),
         completion_next: Cell::new(0),
+        return_passes_through: Cell::new(false),
+        cleanup_replaces_exits: Cell::new(false),
         result_functions: RefCell::new(HashMap::new()),
         result_closures: RefCell::new(HashMap::new()),
         result_methods: RefCell::new(HashMap::new()),
@@ -279,6 +281,10 @@ struct Emitter<'a> {
     exception_regions: exception_contract_emit::RegionStack,
     control_targets: exception_contract_emit::ControlStack,
     completion_next: Cell<usize>,
+    /// Set for the next completion body: its returns reach the enclosing region unchanged.
+    return_passes_through: Cell<bool>,
+    /// Inside a `try` whose abrupt `finally` replaces every pending exit.
+    cleanup_replaces_exits: Cell<bool>,
     result_functions: RefCell<HashMap<usize,(String,String)>>,
     result_closures: RefCell<HashMap<usize,String>>,
     result_methods: RefCell<HashMap<(usize,usize),String>>,
@@ -3258,13 +3264,18 @@ impl Emitter<'_> {
             let mut statements=vec![Stmt{labels:vec![],control_target:None,kind:StmtKind::Try(Box::new(pending_region.clone())),span:crate::Span::default()}];
             let pending_contract=crate::error_effects::annotate_region_body(&mut statements,&self.program.error_effects);
             let (declaration,pending_name)=self.completion_error_layout(&format!("PendingError{}",ids.0),&pending_contract,runtime,crate::Span::default());
+            // The abrupt cleanup replaces every pending exit, so nothing may bypass it.
+            let guarded=self.cleanup_replaces_exits.replace(true);
             let pending=self.completion_handlers(fun,&pending_region,(ids.0,ids.1,ids.2), (names.0,&pending_name),pending_contract,runtime);
+            self.cleanup_replaces_exits.set(guarded);
             let cleanup=self.completion_body(fun,cleanup,ids.2,names.1,outgoing,runtime);
             return format!("{{ {declaration} let pending_completion={pending}; let cleanup_completion={cleanup}; std::mem::drop(pending_completion); cleanup_completion }}");
         }
+        let direct_returns=region.finally.is_none() && !self.cleanup_replaces_exits.get();
         let pending=if let Some(handler)=&region.catch {
-            self.completion_with_catch(fun,&region.body,handler,(ids.0,ids.1),names.0,names.1,outgoing.clone(),runtime)
+            self.completion_with_catch(fun,&region.body,handler,(ids.0,ids.1),names.0,names.1,outgoing.clone(),runtime,direct_returns)
         }else{
+            self.return_passes_through.set(direct_returns);
             self.completion_body(fun,&region.body,ids.0,names.1,outgoing.clone(),runtime)
         };
         if let Some(cleanup)=&region.finally {
@@ -3274,9 +3285,12 @@ impl Emitter<'_> {
     }
 
     #[inline(never)]
-    fn completion_with_catch(&self,fun:&CheckedFunction,body:&[Stmt],handler:&CatchClause,ids:(usize,usize),incoming_name:&str,outgoing_name:&str,outgoing:crate::error_effects::FailureSet,runtime:Option<Type>)->String {
+    #[allow(clippy::too_many_arguments)]
+    fn completion_with_catch(&self,fun:&CheckedFunction,body:&[Stmt],handler:&CatchClause,ids:(usize,usize),incoming_name:&str,outgoing_name:&str,outgoing:crate::error_effects::FailureSet,runtime:Option<Type>,direct_returns:bool)->String {
         let incoming=handler.error_contract.as_deref().expect("checked catch contract");
+        self.return_passes_through.set(direct_returns);
         let pending=self.completion_body(fun,body,ids.0,incoming_name,incoming.clone(),runtime);
+        self.return_passes_through.set(direct_returns);
         let handled=self.completion_body(fun,&handler.body,ids.1,outgoing_name,outgoing,runtime);
         let setup=if let Some(binding)=handler.binding {
             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
@@ -3325,6 +3339,7 @@ impl Emitter<'_> {
         self.completion_next.set(self.completion_next.get().max(id+1));
         let locals=exception_contract_emit::local_control_targets(body);
         let _region=self.exception_regions.enter_typed(id,locals,error_name.into(),contract,runtime);
+        if self.return_passes_through.take() {self.exception_regions.mark_return_passes_through();}
         let mut statements=String::new();
         let prefix=if initialize_parameters {
             self.parameter_initialization(&mut statements,fun,1);
@@ -9866,7 +9881,7 @@ mod exception_region_tests {
         assert_eq!(name,"Incoming<i64>");
         let (empty,empty_name)=emitter.completion_error_layout("Unused",&crate::error_effects::FailureSet::default(),None,throwing[0].span);
         assert!(empty.is_empty());assert_eq!(empty_name,"std::convert::Infallible");
-        let expression=emitter.completion_with_catch(function,&throwing,handler,(20,21),&name,"std::convert::Infallible",crate::error_effects::FailureSet::default(),None);
+        let expression=emitter.completion_with_catch(function,&throwing,handler,(20,21),&name,"std::convert::Infallible",crate::error_effects::FailureSet::default(),None,false);
         region.body=throwing.clone();region.finally=Some(function.body.clone());
         let combined=emitter.completion_handlers(function,region,(22,23,24),(&name,"std::convert::Infallible"),crate::error_effects::FailureSet::default(),Some(runtime));
         let mut rust=program.emit_rust();rust.push_str(crate::runtime::EXCEPTION_COMPLETIONS);rust.push_str(&declaration);
