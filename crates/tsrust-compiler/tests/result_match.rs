@@ -1,6 +1,32 @@
 mod support;
 
 #[test]
+fn readonly_result_matches_lend_payloads_without_consuming_the_caller() {
+    let directory = support::TempDirectory::new();
+    let source = r#"
+import { strictEqual } from "std:testing";
+type User = { name: string; };
+function measure(result: ReadOnly<Result<User, string>>): int {
+    match (result) {
+        Ok(user) => { return user.name.length; },
+        Err(error) => { return error.length; },
+    }
+}
+function main() {
+    const user: Result<User, string> = Ok({ name: "Pat" });
+    strictEqual(measure(user), 3);
+    strictEqual(measure(user), 3);
+    match (user) { Ok(value) => { strictEqual(value.name, "Pat"); }, Err(_) => { strictEqual(1, 0); } }
+    const error: Result<User, string> = Err("failed");
+    strictEqual(measure(error), 6);
+    strictEqual(measure(error), 6);
+}
+"#;
+    let path = directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path), 60));
+}
+
+#[test]
 fn result_callable_payloads_preserve_owned_environments_and_invocation_contracts() {
     let directory = support::TempDirectory::new();
     let source = r#"
