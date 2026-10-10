@@ -165,3 +165,14 @@ compilations reject owner escape, a second consuming call, and conflicting owner
 mutation while an exclusive result remains live. No copy, shared owner or erased
 pointer replaces the slice payload. This proves the initial backend representation,
 not public API or stored-callback acceptance; the original source witness stays red.
+
+## Result payload ABI control
+
+The private consuming-family proof now covers `Result<Window, int>` from both
+alternative factories, for readonly and exclusive views. Success preserves the
+selected buffer pointer and exclusive writes reach that buffer. Error preserves
+its integer payload without requiring a view result. Independent native compilation
+rejects a success payload escaping its owner. All branches execute at O0 and O3.
+Factory and closure identities are taken from the checked program rather than
+assuming source declaration order survives specialization. This extends backend
+evidence only; source storage and the public view factories remain guarded.

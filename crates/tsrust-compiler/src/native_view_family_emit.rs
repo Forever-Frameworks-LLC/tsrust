@@ -115,7 +115,19 @@ mod tests {
             "fn family_probe(){for flag in [true,false]{let mut first=vec![1u8];let mut second=vec![7u8,8];let first_ptr=first.as_ptr();let second_ptr=second.as_ptr();{let selected=if flag{NativeViewCallable7::V0(function0(Record0{bytes:&mut first}))}else{NativeViewCallable7::V1(function1(Record0{bytes:&mut second}))};let result=selected.call();assert_eq!(result.bytes.as_ptr(),if flag{first_ptr}else{second_ptr});result.bytes[0]+=10;}assert_eq!(first[0],if flag{11}else{1});assert_eq!(second[0],if flag{7}else{17});}}"
         } else {"fn family_probe(){let first=vec![1u8];let second=vec![7u8,8];for flag in [true,false]{let selected=if flag{NativeViewCallable7::V0(function0(Record0{bytes:&first}))}else{NativeViewCallable7::V1(function1(Record0{bytes:&second}))};let result=selected.call();assert_eq!(result.bytes.as_ptr(),if flag{first.as_ptr()}else{second.as_ptr()});assert_eq!(result.bytes.len(),if flag{1}else{2});}}"};
 
-        let directory=std::env::temp_dir().join(format!("tsrust-native-view-family-{mutable}-{}",std::process::id()));
+        let owner=if mutable {"let mut owner=vec![1u8];"}else{"let owner=vec![1u8];"};
+        let reference=if mutable {"&mut owner"}else{"&owner"};
+        let negative=format!("fn invalid_escape(){{let result;{{{owner}let selected=NativeViewCallable7::V0(function0(Record0{{bytes:{reference}}}));result=selected.call();}}assert_eq!(result.bytes.len(),1);}}");
+        let repeated=format!("fn invalid_reuse(){{{owner}let selected=NativeViewCallable7::V0(function0(Record0{{bytes:{reference}}}));let first=selected.call();let second=selected.call();assert_eq!(first.bytes.len(),second.bytes.len());}}");
+        let mut rejections=vec![(negative,"does not live long enough"),(repeated,"moved value")];
+        if mutable {
+            rejections.push(("fn invalid_mutation(){let mut owner=vec![1u8];let selected=NativeViewCallable7::V0(function0(Record0{bytes:&mut owner}));let result=selected.call();owner[0]=2;assert_eq!(result.bytes[0],1);}".into(),"cannot borrow"));
+        }
+        compile_family(&generated,&family,probe,rejections,if mutable {"mutable"}else{"readonly"});
+    }
+
+    fn compile_family(generated:&str,family:&str,probe:&str,rejections:Vec<(String,&str)>,label:&str) {
+        let directory=std::env::temp_dir().join(format!("tsrust-native-view-family-{label}-{}",std::process::id()));
         std::fs::create_dir_all(&directory).unwrap();
         struct Cleanup(std::path::PathBuf);
         impl Drop for Cleanup {fn drop(&mut self){let _=std::fs::remove_dir_all(&self.0);}}
@@ -128,14 +140,6 @@ mod tests {
             assert!(compiled.status.success(),"{}",String::from_utf8_lossy(&compiled.stderr));
             assert!(std::process::Command::new(output).status().unwrap().success());
         }
-        let owner=if mutable {"let mut owner=vec![1u8];"}else{"let owner=vec![1u8];"};
-        let reference=if mutable {"&mut owner"}else{"&owner"};
-        let negative=format!("fn invalid_escape(){{let result;{{{owner}let selected=NativeViewCallable7::V0(function0(Record0{{bytes:{reference}}}));result=selected.call();}}assert_eq!(result.bytes.len(),1);}}");
-        let repeated=format!("fn invalid_reuse(){{{owner}let selected=NativeViewCallable7::V0(function0(Record0{{bytes:{reference}}}));let first=selected.call();let second=selected.call();assert_eq!(first.bytes.len(),second.bytes.len());}}");
-        let mut rejections=vec![(negative,"does not live long enough"),(repeated,"moved value")];
-        if mutable {
-            rejections.push(("fn invalid_mutation(){let mut owner=vec![1u8];let selected=NativeViewCallable7::V0(function0(Record0{bytes:&mut owner}));let result=selected.call();owner[0]=2;assert_eq!(result.bytes[0],1);}".into(),"cannot borrow"));
-        }
         for (negative,diagnostic) in rejections {
             std::fs::write(&input,format!("{generated}\n{family}\n{probe}\n{negative}")).unwrap();
             let rejected=std::process::Command::new("rustc").arg("--edition=2024").arg(&input).arg("-o").arg(directory.join("rejected")).output().unwrap();
@@ -143,4 +147,40 @@ mod tests {
             assert!(String::from_utf8_lossy(&rejected.stderr).contains(diagnostic),"{}",String::from_utf8_lossy(&rejected.stderr));
         }
     }
+    #[test]
+    fn native_view_family_result_keeps_success_lifetimes_and_error_branch() {
+        for mutable in [false,true] {assert_result_family(mutable);}
+    }
+
+    fn assert_result_family(mutable:bool) {
+        let source="type Window={};function first(view:Window,success:boolean){return ():Result<Window,int>=>{if(success){return Ok<Window,int>(view);}const discarded=view;return Err<Window,int>(17);};}function second(view:Window,success:boolean){return ():Result<Window,int>=>{if(success){return Ok<Window,int>(view);}const discarded=view;return Err<Window,int>(17);};}function main(){}";
+        let formatted=crate::formatting::format(source).unwrap();
+        assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
+        let mut parsed=crate::syntax::parse(&formatted).unwrap();
+        parsed.records[0].native_type=Some(if mutable {crate::native_signatures::NativeTypeId::ByteViewMut}else{crate::native_signatures::NativeTypeId::ByteView});
+        let mut checked=crate::analysis::analyze(parsed).unwrap();
+        let result=checked.closures[0].function.result;
+        let structural=checked.callable_shapes.intern([],result,Some(crate::syntax::CallbackKind::OwnedOnce));
+        let contract=crate::analysis::CallbackContract{structural,parameter_names:vec![],params:vec![],result,kind:crate::syntax::CallbackKind::OwnedOnce};
+        let layout=crate::native_view_callable_storage::family_slots(&contract,&checked.callable_shapes,[0,1],&checked.closures,crate::Span::default()).unwrap().unwrap();
+        let emitter=emitter_for(&checked,"");
+        let mut family=String::new();emitter.emit_native_view_family(&mut family,7,&layout,&contract).unwrap();
+        let Type::Union(union)=result else {panic!("Result union expected")};
+        let members=&checked.unions[union.index()].members;
+        let ok=members.iter().position(|member|matches!(member,Type::Record(id) if checked.records[*id].fields[0].ty==Some(Type::Record(0)))).unwrap();
+        let err=1-ok;
+        let union=union.index();
+        let first_function=checked.functions.iter().position(|function|function.name=="first" && !function.template).unwrap();
+        let second_function=checked.functions.iter().position(|function|function.name=="second" && !function.template).unwrap();
+        let Type::Closure(first_origin)=checked.functions[first_function].result else {panic!("factory closure expected")};
+        let Type::Closure(second_origin)=checked.functions[second_function].result else {panic!("factory closure expected")};
+        let reference=if mutable {"&mut"}else{"&"};
+        let write=if mutable {"value.field0.bytes[0]+=10;"}else{""};
+        let probe=format!("fn family_probe(){{for flag in [true,false]{{for success in [true,false]{{let mut first=vec![1u8];let mut second=vec![7u8,8];let first_ptr=first.as_ptr();let second_ptr=second.as_ptr();{{let selected=if flag{{NativeViewCallable7::V{first_origin}(function{first_function}(Record0{{bytes:{reference} first}},success))}}else{{NativeViewCallable7::V{second_origin}(function{second_function}(Record0{{bytes:{reference} second}},success))}};match selected.call(){{Union{union}::V{ok}(value)=>{{assert!(success);assert_eq!(value.field0.bytes.as_ptr(),if flag{{first_ptr}}else{{second_ptr}});{write}}},Union{union}::V{err}(value)=>{{assert!(!success);assert_eq!(value.field0,17);}}}}}}assert_eq!(first[0],if {mutable}&&success&&flag{{11}}else{{1}});assert_eq!(second[0],if {mutable}&&success&&!flag{{17}}else{{7}});}}}}}}");
+        let extract=format!("match selected.call(){{Union{union}::V{ok}(value)=>value.field0,_=>panic!(\"expected success\")}}");
+        let negative=format!("fn invalid_escape(){{let result;{{let mut owner=vec![1u8];let selected=NativeViewCallable7::V{first_origin}(function{first_function}(Record0{{bytes:{reference} owner}},true));result={extract};}}assert_eq!(result.bytes.len(),1);}}");
+        let mut generated=crate::emit::emit(&checked);let main=generated.find("fn main()").unwrap();let opening=main+generated[main..].find('{').unwrap()+1;generated.insert_str(opening,"family_probe();");
+        compile_family(&generated,&family,&probe,vec![(negative,"does not live long enough")],if mutable {"result-mut"}else{"result-read"});
+    }
+
 }
