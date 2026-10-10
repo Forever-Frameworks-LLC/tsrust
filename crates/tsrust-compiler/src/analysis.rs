@@ -1,3 +1,5 @@
+#[path = "native_view_calls.rs"]
+mod native_view_calls;
 #[path = "native_view_parameters.rs"]
 mod native_view_parameters;
 #[path = "native_view_returns.rs"]
@@ -484,6 +486,7 @@ struct Context {
     control_stored: HashSet<usize>,
     native_view_calls: bool,
     native_view_results: Option<Box<HashMap<UnionId,usize>>>,
+    native_view_function_returns: Option<Box<HashMap<usize,Vec<native_view_loans::Loan>>>>,
     storage_exits: storage_exit_availability::Exits,
     native_returns: Option<Box<Vec<native_view_loans::Loan>>>,
     capture_restoration:Option<capture_restoration::Tracker>,
@@ -544,6 +547,7 @@ impl Context {
             control_stored: HashSet::new(),
             native_view_calls: false,
             native_view_results: None,
+            native_view_function_returns: None,
             storage_exits: Default::default(), native_returns: None,
             capture_restoration:None,
             region_loop_depth:None,
@@ -14337,6 +14341,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             {
                 let (function, result) =
                     self.forward_call(context, binding, function, callee, args, loans, span)?;
+                self.remember_native_function_returns(context,function,span)?;
                 expr.target = Some(CallTarget::ForwardFunction(function));
                 expr.ty = Some(result);
                 return Ok(result);
@@ -14347,6 +14352,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             {
                 let (function, result) =
                     self.forward_call(context, binding, function, callee, args, loans, span)?;
+                self.remember_native_function_returns(context,function,span)?;
                 expr.target = Some(CallTarget::ForwardFunction(function));
                 expr.ty = Some(result);
                 return Ok(result);
@@ -14687,6 +14693,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         self.release_record_call_captures(context,index,args);
         self.retain_record_parameter_borrows(context,index,args)?;
         self.retain_caller_error_origins(context, index, args);
+        self.remember_native_function_returns(context,index,span)?;
         expr.target = Some(CallTarget::Function(index));
         if !capture_slots.is_empty() {
             expr.capture_slots = Some(capture_slots.iter().map(|&(slot, _)| slot).collect());

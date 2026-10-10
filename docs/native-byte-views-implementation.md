@@ -349,3 +349,26 @@ that a selected result cannot outlive either possible source. These witnesses in
 private native identities and call generated functions from a Rust harness. They do
 not publish source factories or prove source-call lifetime propagation. Keep the
 projection guard until those paths and the remaining gate matrix are complete.
+
+## Source call origin transport
+
+native_view_calls maps checked function return summaries from formal source slots to
+actual arguments. A context stores summaries by checked function identity, not by
+source span. Repeated calls reuse unchanged summaries; re-analysis replaces changed
+ones and removes absent ones. Ordinary programs retain their native-free fast path.
+
+The existing iterative value walker transports carried slots through source calls
+and saved named-function calls. Selected input fields retain only their own origins;
+nested and sibling calls preserve distinct output paths. Storage dependencies retain
+both the actual source place and inherited source loans. Returned capture slots and
+recursive calls without a stabilized lifetime summary receive source diagnostics.
+
+A saved named function's native adapter now uses the target's complete named signature,
+including its result lifetime. Previously its anonymous result lifetime could bind to
+self instead of its input. Private formatted-source native witnesses exercise direct
+forwarding and saved named-function forwarding at O0 and O3 with pointer identity.
+
+This does not establish arbitrary stored callable families, callback parameters,
+closure methods or captured view returns. Storage-return transport still needs native
+factory witnesses, and exceptional completion reconciliation remains open. Public
+view factories stay guarded. Gate 189 and S07 are not accepted or measured.

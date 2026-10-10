@@ -117,6 +117,8 @@ impl Analyzer {
         }
         enum Task<'a> {
             Value(&'a Expr),
+            Returned(&'a Expr, &'a Loan),
+            FinishReturn(usize, &'a Loan),
             Wrapped(&'a Expr, Segment),
             Wrap(usize, Segment),
             Select(usize, Segment),
@@ -127,6 +129,19 @@ impl Analyzer {
         let mut result: Vec<Loan> = Vec::new();
         while let Some(task) = pending.pop() {
             let value = match task {
+                Task::Returned(value, output) => {
+                    pending.push(Task::FinishReturn(result.len(), output));
+                    pending.push(Task::Value(value));
+                    continue;
+                }
+                Task::FinishReturn(start, output) => {
+                    let mut index=0;
+                    result.retain_mut(|loan| {
+                        index+=1;
+                        index<=start || super::native_view_calls::transport(loan,output)
+                    });
+                    continue;
+                }
                 Task::Value(value) => value,
                 Task::Wrapped(value, segment) => {
                     pending.push(Task::Wrap(result.len(), segment));
@@ -174,6 +189,19 @@ impl Analyzer {
                     }
                 }
                 ExprKind::Call(_, args) => {
+                    if let Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id))=value.target
+                        && let Some(outputs)=context.native_view_function_returns.as_ref().and_then(|summaries|summaries.get(&id)) {
+                        for output in outputs {
+                            let argument=args.get(output.root).ok_or_else(||Diagnostic::new("native-view-call", "Returned capture lifetime transport is not yet planned.",value.span))?;
+                            match &output.source {
+                                LifetimeSource::Carried(_)=>pending.push(Task::Returned(argument,output)),
+                                LifetimeSource::Storage=>{
+                                    result.extend(super::native_view_calls::storage(context,argument,output)?);
+                                    pending.push(Task::Returned(argument,output));
+                                }
+                            }
+                        }
+                    }
                     if let Some(CallTarget::NativeBinding(id)) = value.target
                         && let Some(contract) = crate::native_bindings::BINDINGS[id].returned_borrow
                     {

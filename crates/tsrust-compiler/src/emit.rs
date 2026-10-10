@@ -2409,6 +2409,10 @@ impl Emitter<'_> {
             let parameters = signature.map_or(parameters, |signature| format!(", {}", signature.params));
             let call_generics = signature.map_or(call_generics, |signature| signature.generics.clone());
             let replacement_where = signature.map_or_else(String::new, |signature| signature.replacement_where.clone());
+            let native_result = signature.map_or(native_result, |signature| match &result_layout {
+                Some(error)=>format!("Result<{},{}>",signature.result,error),
+                None=>signature.result.clone(),
+            });
             let _ = writeln!(
                 output,
                 "    fn call{call_generics}({receiver}{parameters}) -> {}{replacement_where} {{",

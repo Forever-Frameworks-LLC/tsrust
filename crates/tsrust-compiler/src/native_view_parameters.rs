@@ -14,7 +14,7 @@ impl Analyzer {
         }
     }
 
-    fn native_shape_contains_view(&self, ty: Type) -> bool {
+    pub(super) fn native_shape_contains_view(&self, ty: Type) -> bool {
         let mut pending=vec![ty];
         let mut seen=HashSet::new();
         while let Some(ty)=pending.pop() {
@@ -117,6 +117,49 @@ mod tests {
         let origins=function.native_returns.as_ref().unwrap();
         assert_eq!(origins.len(),2);
         assert_ne!(origins[0].root,origins[1].root);
+    }
+
+    #[test]
+    fn forwarding_call_keeps_returned_input_origin() {
+        let checked=checked("type Window={};function identity(input:Window):Window{return input;}function forward(input:Window):Window{return identity(input);}function main(){}").unwrap();
+        let function=checked.functions.iter().find(|function|function.name=="forward").unwrap();
+        let origins=function.native_returns.as_ref().expect("forwarded view needs its source lifetime");
+        assert_eq!(origins.len(),1);
+        assert_eq!(origins[0].root,0);
+        assert_eq!(origins[0].source,LifetimeSource::Carried(vec![]));
+    }
+
+    #[test]
+    fn nested_forwarding_selects_only_the_returned_field() {
+        let checked=checked("type Window={};type Pair={one:Window;two:Window;};function first(input:Pair):Window{return input.one;}function identity(input:Window):Window{return input;}function forward(input:Pair):Window{return identity(first(input));}function main(){}").unwrap();
+        let function=checked.functions.iter().find(|function|function.name=="forward").unwrap();
+        let origins=function.native_returns.as_ref().unwrap();
+        assert_eq!(origins.len(),1);
+        assert_eq!(origins[0].source,LifetimeSource::Carried(vec![Segment::Field("one".into())]));
+    }
+    #[test]
+    fn forwarding_alternatives_keep_both_actual_sources() {
+        let checked=checked("type Window={};function choose(left:Window,right:Window,flag:boolean):Window{if(flag){return left;}return right;}function forward(first:Window,second:Window,flag:boolean):Window{return choose(first,second,flag);}function main(){}").unwrap();
+        let function=checked.functions.iter().find(|function|function.name=="forward").unwrap();
+        let origins=function.native_returns.as_ref().unwrap();
+        assert_eq!(origins.len(),2);
+        assert_ne!(origins[0].root,origins[1].root);
+    }
+    #[test]
+    fn saved_function_call_keeps_returned_origin() {
+        let checked=checked("type Window={};function identity(input:Window):Window{return input;}function forward(input:Window):Window{const saved=identity;return saved(input);}function main(){}").unwrap();
+        let function=checked.functions.iter().find(|function|function.name=="forward").unwrap();
+        assert_eq!(function.native_returns.as_ref().unwrap().len(),1);
+    }
+
+    #[test]
+    fn sibling_calls_keep_distinct_output_paths() {
+        let checked=checked("type Window={};type Pair={one:Window;two:Window;};function identity(input:Window):Window{return input;}function assemble(first:Window,second:Window):Pair{return{one:identity(first),two:identity(second)};}function main(){}").unwrap();
+        let function=checked.functions.iter().find(|function|function.name=="assemble").unwrap();
+        let origins=function.native_returns.as_ref().unwrap();
+        assert_eq!(origins.len(),2);
+        assert!(origins.iter().any(|loan|loan.root==0&&loan.path==vec![Segment::Field("one".into())]));
+        assert!(origins.iter().any(|loan|loan.root==1&&loan.path==vec![Segment::Field("two".into())]));
     }
 
 }
