@@ -2,6 +2,20 @@
 use super::*;
 
 impl SourceIndex {
+    /// Materialize result payloads even when their type names were not imported.
+    /// Private spelling prevents collisions with user declarations.
+    pub(super) fn native_type_spelling(&mut self, identity: tsrust_compiler::native_signatures::NativeTypeId) -> String {
+        if let Some((name, _)) = self.native_type_aliases.iter().find(|(name, id)| **id == identity && !name.starts_with("__tsrust_private_")) {
+            return name.clone();
+        }
+        let declaration = tsrust_compiler::native_types::declaration(identity);
+        let name = format!("__tsrust_private_native_{}", declaration.name);
+        if !self.native_type_aliases.contains_key(&name) {
+            self.import_native_type(declaration, &name, Span::new(0, 0));
+            self.generic_display_names.insert(name.clone(), declaration.name.into());
+        }
+        name
+    }
     pub(super) fn import_native_type(&mut self, declaration: &tsrust_compiler::native_types::Declaration, local: &str, span: Span) {
         let Some(catalog) = builtins_for(declaration.module).into_iter().find(|entry| entry["name"] == declaration.name) else { return; };
         self.native_type_aliases.insert(local.into(), declaration.id);

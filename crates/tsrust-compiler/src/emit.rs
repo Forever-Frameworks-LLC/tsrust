@@ -2762,6 +2762,9 @@ impl Emitter<'_> {
                 output.push_str(&crate::stdlib::os::bridge(binding.name));
             }
         }
+        let bytes_construction = self.native_bindings.borrow().iter().any(|id| crate::native_bindings::BINDINGS[*id].module == "std:bytes" && crate::native_bindings::BINDINGS[*id].name == "fromArray");
+        let bytes_length = self.native_bindings.borrow().iter().any(|id| crate::native_bindings::BINDINGS[*id].module == "std:bytes" && crate::native_bindings::BINDINGS[*id].name == "length");
+        if bytes_construction || bytes_length { output.push_str(&crate::stdlib::bytes::emit::bridges(self.program, bytes_construction, bytes_length)); }
         let numeric_support = output.contains("NumericArray<") || output.contains("NumericArray::");
         let literal_support = output.contains("LiteralStringArray");
         let split_support = output.contains("tsr_string_split(");

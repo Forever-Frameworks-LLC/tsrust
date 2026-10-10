@@ -1512,3 +1512,28 @@ fn reexported_native_type_aliases_keep_docs_fields_and_definition() {
         assert_eq!(definition["uri"], "file:///tsrust-intelligence/dep.tsr", "{definition}");
     }
 }
+
+#[test]
+fn native_byte_calls_document_recursive_signatures_and_hidden_result_payloads() {
+    let entry = tsrust_compiler::format("import {fromArray as build, length} from 'std:bytes';function main(){match(build([65])){Ok(bytes)=>{console.log(length(bytes));},Err(error)=>{console.log(error.message);}}}").unwrap();
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.clone());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    for (mode, index) in [ProjectIndex::checked(&checked), ProjectIndex::new(&checked.graph)].into_iter().enumerate() {
+        let hover = ask(&index, &entry, "build([", "textDocument/hover");
+        let docs = hover["contents"]["value"].as_str().unwrap_or("");
+        assert!(docs.contains("ReadOnly<int[]>") && docs.contains("Result<Bytes, ByteError>") && docs.contains("byte-range"), "{hover}");
+        assert!(!docs.contains("__tsrust_private_"), "{hover}");
+        let hover = ask(&index, &entry, "length(bytes)", "textDocument/hover");
+        assert!(hover.to_string().contains("number of bytes"), "{hover}");
+        if mode == 0 {
+        let hover = ask(&index, &entry, "message);", "textDocument/hover");
+        assert!(hover.to_string().contains("Explains the failure"), "mode {mode}: {hover}; receiver {}", ask(&index, &entry, "error.message", "textDocument/hover"));
+        let completion = ask(&index, &entry, "message);", "textDocument/completion");
+        assert!(completion.as_array().unwrap().iter().any(|field| field["label"] == "offset"), "{completion}");
+        }
+        let help = ask(&index, &entry, "[65]", "textDocument/signatureHelp");
+        assert!(help.to_string().contains("0..255"), "{help}");
+    }
+}

@@ -337,8 +337,12 @@ impl Types<'_> {
                 .or_else(|| {
                     crate::native_bindings::by_symbol(name).map(|(_, binding)| {
                         let shape = |ty| {
+                            if let crate::native_bindings::NativeType::Structured(signature) = ty {
+                                return annotation(&crate::native_type_resolution::project(&mut Vec::new(), signature, crate::Span::default()).expect("registered native signature"));
+                            }
                             Shape::Named(
                                 match ty {
+                                    crate::native_bindings::NativeType::Structured(_) => unreachable!("structured signature projected above"),
                                     crate::native_bindings::NativeType::String => "string",
                                     crate::native_bindings::NativeType::Boolean => "boolean",
                                     crate::native_bindings::NativeType::Int => "int",
@@ -564,13 +568,16 @@ impl Types<'_> {
                     }
                     if let Some((_, binding)) = crate::native_bindings::by_symbol(name) {
                         use crate::native_bindings::NativeType;
+                        if let NativeType::Structured(signature) = binding.result {
+                            return Some(annotation(&crate::native_type_resolution::project(&mut Vec::new(), signature, crate::Span::default()).expect("registered native signature")));
+                        }
                         return named(match binding.result {
                             NativeType::String => "string",
                             NativeType::Boolean => "boolean",
                             NativeType::Int => "int",
                             NativeType::Number => "number",
                             NativeType::Void => "void",
-                            NativeType::OwnedVoidCallback | NativeType::SharedCallback | NativeType::ObservedValue => return None,
+                            NativeType::Structured(_) | NativeType::OwnedVoidCallback | NativeType::SharedCallback | NativeType::ObservedValue => return None,
                         });
                     }
                     if name == "clone" && !self.functions.contains_key(name.as_str()) {

@@ -4997,7 +4997,7 @@
     "name": "Bytes",
     "signature": "type Bytes",
     "parameters": [],
-    "documentation": "An owned contiguous byte buffer. Each element is a byte in 0..255; byte counts differ from Unicode character counts. This is a type declaration, so it takes no arguments and returns no value. Its storage fields are private; record literals cannot construct it. Byte construction operations are not available yet. Console inspection, string conversion, property reflection, object spread and value comparison are unsupported and report source diagnostics.\n\n```tsrust\nimport { Bytes } from \"std:bytes\";\nfunction accept(value: ReadOnly<Bytes>): void {}\nfunction main() {}\n```\n\nThis declares a borrowing parameter without creating or mutating a buffer. Ownership: passing by value transfers the buffer; ReadOnly borrows it without copying.",
+    "documentation": "An owned contiguous byte buffer. Each element is a byte in 0..255; byte counts differ from Unicode character counts. This is a type declaration, so it takes no arguments and returns no value. Its storage fields are private; record literals cannot construct it. Use fromArray to construct a buffer and length to observe its byte count. Console inspection, string conversion, property reflection, object spread and value comparison are unsupported and report source diagnostics.\n\n```tsrust\nimport { Bytes } from \"std:bytes\";\nfunction accept(value: ReadOnly<Bytes>): void {}\nfunction main() {}\n```\n\nThis declares a borrowing parameter without creating or mutating a buffer. Ownership: passing by value transfers the buffer; ReadOnly borrows it without copying.",
     "examples": [
       {
         "source": "import { Bytes } from \"std:bytes\";\nfunction accept(value: ReadOnly<Bytes>): void {}\nfunction main() {}",
@@ -5027,6 +5027,40 @@
         "output": "range 2\n"
       }
     ]
-  }
+  },
+{
+  "name": "fromArray",
+  "signature": "fromArray(values: ReadOnly<int[]>): Result<Bytes, ByteError>",
+  "parameters": [
+    {
+      "label": "values: ReadOnly<int[]>",
+      "documentation": "Integers to copy, each in 0..255. Borrowed without mutation; an empty array succeeds."
+    }
+  ],
+  "documentation": "Copies an integer array into a new owned byte buffer. Each element must be in 0..255. Returns Ok(buffer) on success, including an empty buffer for an empty array. Returns Err with code byte-range and the first invalid element offset when validation fails; length-range for a byte count outside int range, or allocation when reservation fails. No partial buffer escapes. The input array is unchanged. Reservation errors are recoverable; process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromArray, length } from \"std:bytes\";\nfunction main() { match (fromArray([0, 65, 255])) { Ok(bytes) => { console.log(length(bytes)); }, Err(error) => { console.log(error.message); }, } }\n```\n\nExpected output: 3.\n\nOwnership: borrows the array and returns an independent byte owner; no input elements are transferred.",
+  "examples": [
+    {
+      "source": "import { fromArray, length } from \"std:bytes\";\nfunction main() { match (fromArray([0, 65, 255])) { Ok(bytes) => { console.log(length(bytes)); }, Err(error) => { console.log(error.message); }, } }",
+      "output": "3\n"
+    }
+  ]
+},
+{
+  "name": "length",
+  "signature": "length(bytes: ReadOnly<Bytes>): int",
+  "parameters": [
+    {
+      "label": "bytes: ReadOnly<Bytes>",
+      "documentation": "Byte buffer to observe. Borrowed without copying or mutation."
+    }
+  ],
+  "documentation": "Returns the number of bytes in a buffer as int. Takes one byte buffer and does not change it. An empty buffer has length 0. The count measures bytes, never Unicode characters; for example, UTF-8 text may use several bytes per character. There are no operation errors for a valid buffer.\n\n```tsrust\nimport { fromArray, length } from \"std:bytes\";\nfunction main() { match (fromArray([])) { Ok(bytes) => { console.log(length(bytes)); }, Err(error) => { console.log(error.message); }, } }\n```\n\nExpected output: 0.\n\nOwnership: borrows the buffer; the count copies and the buffer remains reusable.",
+  "examples": [
+    {
+      "source": "import { fromArray, length } from \"std:bytes\";\nfunction main() { match (fromArray([])) { Ok(bytes) => { console.log(length(bytes)); }, Err(error) => { console.log(error.message); }, } }",
+      "output": "0\n"
+    }
+  ]
+}
 ]
 }

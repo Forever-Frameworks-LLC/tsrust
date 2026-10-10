@@ -322,7 +322,12 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId]) -> Result<Projec
                     binding.local.clone(),
                     if let Some(native) = import.native {
                         match crate::native_exports::lookup(native, &binding.exported).expect("validated native export") {
-                            crate::native_exports::Export::Function(_) => format!("@native:{native}#{}", binding.exported),
+                            crate::native_exports::Export::Function(function) => {
+                                let span = Span::new(binding.span.start + segments[module].1, binding.span.end + segments[module].1);
+                                crate::native_binding_types::prepare(&mut linked.records, function, span)
+                                    .map_err(|value| diagnostic(&graph, &segments, value))?;
+                                format!("@native:{native}#{}", binding.exported)
+                            },
                             crate::native_exports::Export::Type(item) => {
                                 let span = Span::new(binding.span.start + segments[module].1, binding.span.end + segments[module].1);
                                 crate::native_type_resolution::intern(&mut linked.records, item.id, span)

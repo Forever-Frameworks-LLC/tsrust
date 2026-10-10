@@ -2499,8 +2499,8 @@ impl SourceIndex {
         else {
             return;
         };
-        let type_name = |ty: tsrust_compiler::native_bindings::NativeType| {
-            ty.signature().render(|_| None).expect("registered primitive native signature")
+        let mut type_name = |ty: tsrust_compiler::native_bindings::NativeType| {
+            ty.signature().render(|identity| Some(self.native_type_spelling(identity).into())).expect("registered native signature").into_owned()
         };
         let parameters = binding
             .parameters
@@ -2511,7 +2511,7 @@ impl SourceIndex {
                     if parameter.rest { "..." } else { "" },
                     parameter.name,
                     if parameter.optional { "?" } else { "" },
-                    type_name(parameter.ty),
+                    if matches!(parameter.ty, tsrust_compiler::native_bindings::NativeType::Structured(_)) { tsrust_compiler::type_syntax::access_type_text(parameter.access, &type_name(parameter.ty)) } else { type_name(parameter.ty) },
                     if parameter.rest { "[]" } else { "" }
                 )
             })
@@ -2525,6 +2525,8 @@ impl SourceIndex {
                     .collect::<Vec<_>>()
             })
             .unwrap_or_default();
+        let result = type_name(binding.result);
+        let signature = self.display_type(&format!("function {local}({}): {result}", parameters.join(", ")));
         self.native_parameter_docs.insert(self.symbols.len(), docs);
         if let Some(id) = tsrust_compiler::native_bindings::BINDINGS
             .iter()
@@ -2538,12 +2540,8 @@ impl SourceIndex {
             span,
             extent: span,
             scope: 0,
-            ty: type_name(binding.result).into(),
-            signature: format!(
-                "function {local}({}): {}",
-                parameters.join(", "),
-                type_name(binding.result)
-            ),
+            ty: result,
+            signature,
             docs: catalog["documentation"].as_str().unwrap_or("").into(),
             parameters,
             owner: None,

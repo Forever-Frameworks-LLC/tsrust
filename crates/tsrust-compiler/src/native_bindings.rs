@@ -4,6 +4,7 @@ use std::collections::BTreeSet;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum NativeType {
+    Structured(&'static crate::native_signatures::Signature),
     String,
     Boolean,
     Int,
@@ -21,6 +22,7 @@ impl NativeType {
     pub fn signature(self) -> crate::native_signatures::Signature {
         use crate::native_signatures::{Intrinsic, Signature};
         match self {
+            Self::Structured(signature) => *signature,
             Self::String => Signature::String,
             Self::Boolean => Signature::Boolean,
             Self::Int => Signature::Int,
@@ -66,6 +68,8 @@ impl NativeBinding {
     }
 }
 pub const BINDINGS: &[NativeBinding] = &[
+    crate::stdlib::bytes::bindings::FROM_ARRAY,
+    crate::stdlib::bytes::bindings::LENGTH,
     crate::stdlib::testing::bindings::CONTAINS_VALUE,
     crate::stdlib::testing::bindings::LENGTH_VALUE,
     crate::stdlib::testing::bindings::HAS_LENGTH,

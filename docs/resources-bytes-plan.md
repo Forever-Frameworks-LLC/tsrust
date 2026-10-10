@@ -2,8 +2,8 @@
 
 Status: gate 187 is in progress. Native declaration identity, recursive signature
 projection, checked type imports, public error record execution, editor type help, direct exported aliases and
-opaque capability guards are implemented. The native byte construction witness remains
-red because fromArray and length are not registered. B10/S06 is accepted at gate 186
+opaque capability guards are implemented. Initial fromArray/length operations now
+execute with checked Result payloads and documented editor signatures. B10/S06 is accepted at gate 186
 (publication 1b631986). Resource close consumes ownership, as chosen by the owner.
 S07 is not accepted; no byte workload is measured.
 
@@ -207,26 +207,26 @@ These are design references, not claims of implemented APIs. No new package inst
 is required for the initial Vec/slice foundation. Tokio, HTTP/TLS, database wrappers,
 queues and async cancellation remain downstream families.
 
-## Current red witness
+## Construction witness
 
 `tests/std_bytes.rs::native_byte_type_imports_and_result_payloads_execute` formats
 its fixture idempotently and runs it through the project CLI with std:testing.
-It currently fails with `module-native`: std:bytes does not export fromArray. The
-original red failed on unknown std:bytes. This is an intentional
-new-feature witness, not a regression in accepted B10. Exact evidence is retained
-in SQLite at `runtime/results/native-owned-bytes-2026-10-10-red.json`. The signature metadata increment below is implemented; native byte source integration
-remains unimplemented. Installed consumers remain the accepted B10 build.
+The original red failed on unknown std:bytes, then on missing fromArray. It now
+passes with empty input, reusable borrowed arrays, both byte bounds and first-invalid
+offset checks. The initial failures were new-feature witnesses, not B10 regressions. Exact evidence is retained
+in SQLite at `runtime/results/native-owned-bytes-2026-10-10-red.json`. Native byte source integration is implemented; gate acceptance still needs its
+matched workload and remaining alias/storage coverage. Installed consumers remain the accepted B10 build.
 
 ## Continuation prompt
 
 Continue B11/S07 from this plan. Read AGENTS.md and the development workflow first.
 B10 is accepted at gate 186. Gate 187 has checked native type imports, recursive
 signature projection, ByteError native execution, editor type help and capability
-guards. Do not reimplement these increments. std_bytes.rs is intentionally red at
-missing fromArray. Direct native re-export witnesses pass. Next implement
-fromArray/length with checked signature resolution and Result storage; include editor
-materialization for structured aliases with hidden native elements, catalog help and the
-minimal matched workload. Finish gate 187 before the wider byte operations of gate
+guards, plus fromArray/length with checked Result storage and full catalog help.
+Do not reimplement these increments. std_bytes.rs passes. Direct native re-export
+witnesses pass. Checked result payloads get editor fields even without explicit native
+type imports. Next cover structured exported aliases with hidden native elements,
+stored native callable/aggregate cases and the minimal matched workload. Finish gate 187 before the wider byte operations of gate
 188. Resource close consumes ownership and rejects later use/double close, including
 after failure. Consumers remain B10 until verified source is published. Routine
 increments use bounded checks; full regressions and timing belong to the completed
@@ -419,3 +419,36 @@ aliases that hide a native element still need editor materialization when no dir
 native type is visible; include that case with the first native Result binding help.
 Next implement fromArray/length and their checked recursive binding signatures,
 Result ABI, catalog examples and matched workload. Gate 187 remains open.
+
+
+## Gate 187 first byte operations increment
+
+Native callable metadata can now reference structured signatures. Private schema
+fields resolve these signatures through ordinary generic specialization, reusing
+checked Result alternatives and nominal native payload identities. No second union
+representation or dynamic native handle was introduced. Direct and forwarded calls
+resolve these prepared types in the program arena.
+
+The std:bytes fromArray binding borrows int[] and validates all elements before
+allocation/copy. It returns a new Vec<u8> owner or a ByteError in Result. The first
+invalid element reports byte-range with its array offset. Length overflow reports
+length-range; failed reservation reports allocation. The implementation does not
+promise recovery from every process-wide memory exhaustion. The length binding
+borrows Bytes and returns its checked int byte count. Both bindings have explicit
+nonthrowing effect contracts; Result failure is distinct from thrown failure.
+
+The native bridge uses the existing checked Result alternatives and ByteError
+optional-offset union. Public source cannot construct the private Vec field. The
+editor renders recursive signatures using visible aliases, materializes hidden
+native payload identities under private collision-free names, and displays public
+names in help. Checked match error fields have catalog documentation and completion.
+Declaration-only match bindings retain the existing lack of payload inference;
+function help remains available without checked facts.
+
+Focused native, ownership/arity/type rejection, runtime independence, editor and ten
+depth controls pass. The two new catalog examples execute with their expected output
+and stable formatting. Exact evidence is retained in SQLite at
+runtime/results/native-byte-construction-2026-10-10-checks.json. Gate 187 remains open:
+matched workload support, structured exported-alias editor coverage and remaining
+storage/callable witnesses are next. No timing, full regression or installed consumer
+refresh was performed for this increment.

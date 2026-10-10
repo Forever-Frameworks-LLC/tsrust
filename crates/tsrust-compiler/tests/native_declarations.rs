@@ -190,3 +190,18 @@ fn exported_native_aliases_execute_and_preserve_opaque_identity() {
         assert!(String::from_utf8_lossy(&output.stderr).contains(&format!("error[{code}]")), "{}", String::from_utf8_lossy(&output.stderr));
     }
 }
+
+#[test]
+fn native_byte_arguments_enforce_nominal_ownership_types_and_arity() {
+    let prefix = "import {Bytes,fromArray,length} from 'std:bytes';";
+    for (body, code) in [
+        ("function main(){fromArray();}", "arity"),
+        ("function main(){fromArray([1], [2]);}", "arity"),
+        ("function main(){fromArray(['a']);}", "type"),
+        ("function main(){length({});}", "native-opaque"),
+        ("function main(){match(fromArray([1])){Ok(bytes)=>{const moved=bytes;length(bytes);},Err(error)=>{}}}", "transferred"),
+    ] {
+        let error = checked_source(&format!("{prefix}{body}")).err().expect(body);
+        assert_eq!(error.code, code, "{body}: {error:?}");
+    }
+}

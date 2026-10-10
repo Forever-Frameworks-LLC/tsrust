@@ -2609,7 +2609,7 @@ impl Analyzer {
                     name: binding.name.into(),
                     bindings,
                     parameter_count: 0,
-                    result: native_type(binding.result),
+                    result: native_type(binding.result, &self.program.records),
                     body: Vec::new(),
                 },
                 captures: Vec::new(),
@@ -10198,7 +10198,7 @@ impl Analyzer {
                 if let ExprKind::Name(name) = &callee.kind {
                     if let Some((_, binding)) = crate::native_bindings::by_symbol(name) {
                         if binding.result == crate::native_bindings::NativeType::SharedCallback { return None; }
-                        return Some(native_type(binding.result));
+                        return Some(native_type(binding.result, &self.program.records));
                     }
                     if !context.names.contains_key(name)
                         && !context.pending_names.contains(name)
@@ -14228,8 +14228,8 @@ self.names_materialized_type(element.with_depth(0).ty())
                     if element != Some(expected) && !scalar_union_search { return Err(Diagnostic::new("unsupported", "Private containment currently requires a string or primitive array with a matching expected type, or a primitive union array and scalar expected value.", span)); }
                 }
                 expr.target = Some(CallTarget::NativeBinding(id));
-                expr.ty = Some(native_type(binding.result));
-                return Ok(native_type(binding.result));
+                expr.ty = Some(native_type(binding.result, &self.program.records));
+                return Ok(native_type(binding.result, &self.program.records));
             }
             if binding.result == crate::native_bindings::NativeType::SharedCallback {
                 return self.shared_callback_call(context, expr, loans);
@@ -14265,7 +14265,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                     mode: parameter.access, omission: crate::ParameterOmission::Required, rest: false })
             }).collect::<Result<Vec<_>, Diagnostic>>()?;
             self.check_call_arguments(context, args, &contracts, loans)?;
-            let result = native_type(binding.result);
+            let result = native_type(binding.result, &self.program.records);
             expr.target = Some(CallTarget::NativeBinding(id));
             expr.ty = Some(result);
             return Ok(result);
@@ -14452,7 +14452,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             let callback = crate::callable_annotations::callback(&annotation).expect("native callback annotation");
             self.resolve_callback(&callback)
         } else {
-            Ok(native_type(ty))
+            Ok(native_type(ty, &self.program.records))
         }
     }
 
@@ -16019,9 +16019,10 @@ self.names_materialized_type(element.with_depth(0).ty())
     }
 }
 
-fn native_type(ty: crate::native_bindings::NativeType) -> Type {
+fn native_type(ty: crate::native_bindings::NativeType, records: &[Record]) -> Type {
     use crate::native_bindings::NativeType;
     match ty {
+        NativeType::Structured(signature) => crate::native_binding_types::resolve(records, signature).expect("prepared checked native signature"),
         NativeType::String => Type::String,
         NativeType::Boolean => Type::Boolean,
         NativeType::Int => Type::Int,

@@ -42,6 +42,7 @@ mod source_walk;
 pub mod native_bindings;
 pub mod native_signatures;
 pub mod native_types;
+mod native_binding_types;
 pub mod native_type_resolution;
 pub mod native_exports;
 pub mod native_cache;

@@ -113,7 +113,7 @@ impl Analyzer {
                             binding
                                 .parameters
                                 .iter()
-                                .map(|p| Arg::typed(native_type(p.ty), p.access))
+                                .map(|p| Arg::typed(native_type(p.ty, &self.program.records), p.access))
                                 .collect(),
                             Mode::Read,
                         )
