@@ -42,6 +42,7 @@ mod source_walk;
 pub mod native_bindings;
 pub mod native_signatures;
 pub mod native_types;
+pub mod native_exports;
 pub mod native_cache;
 mod native_emit;
 pub use stdlib::path::runtime as native_path;

@@ -266,3 +266,23 @@ and the exact error field contract. Project formatting changed zero files. Evide
 is in SQLite at `runtime/results/native-declarations-2026-10-10-checks.json`.
 This metadata does not yet publish std:bytes imports or implement byte operations.
 Next work remains loader/linker type exports, arena resolution and native storage.
+
+## Gate 187 native export resolution increment
+
+`native_exports.rs` distinguishes function exports from native type declarations.
+Strict and tolerant project loading share this lookup and preserve imported aliases
+without loading native modules from disk. Runtime feature selection validates type
+exports without treating them as callable imports or selecting unrelated runtime code.
+Existing scalar function lookup remains available for callable analysis.
+
+Five declaration/export tests pass, including alias preservation, unknown module and
+export errors, and feature selection. The existing project-native import control and
+five editor-native controls are recorded in SQLite at
+`runtime/results/native-export-resolution-2026-10-10-checks.json`. Project formatting
+changed zero files. The integration witness still fails intentionally, now at the
+missing `fromArray` export rather than the Bytes import. No native byte operation,
+checked opaque storage or imported type help is claimed by this increment.
+
+Next: resolve declaration IDs into checked arena types and link native type names
+separately from callable symbols, including type aliases and re-exports. Then connect
+fromArray/length, their catalog help and the matched workload. Consumers remain B10.

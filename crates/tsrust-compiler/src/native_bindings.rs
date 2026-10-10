@@ -105,7 +105,9 @@ pub fn selected_features<'a>(
 ) -> Result<BTreeSet<&'static str>, String> {
     let mut selected = BTreeSet::new();
     for (module, name) in imports {
-        selected.extend(lookup(module, name)?.features.iter().copied());
+        if let crate::native_exports::Export::Function(binding) = crate::native_exports::lookup(module, name)? {
+            selected.extend(binding.features.iter().copied());
+        }
     }
     Ok(selected)
 }

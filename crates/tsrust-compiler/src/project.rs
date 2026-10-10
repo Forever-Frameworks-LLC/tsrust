@@ -506,9 +506,9 @@ fn visit(
         }
         if crate::stdlib::source(&import.path).is_none() && import.path.starts_with("std:") {
             for binding in &import.bindings {
-                let native = crate::native_bindings::lookup(&import.path, &binding.exported)
+                let native = crate::native_exports::lookup(&import.path, &binding.exported)
                     .map_err(|message| error(&id, "module-native", message, binding.span))?;
-                import.native = Some(native.module);
+                import.native = Some(native.module());
             }
             continue;
         }
