@@ -1,3 +1,5 @@
+#[path = "native_view_scopes.rs"]
+mod native_view_scopes;
 #[path = "native_view_calls.rs"]
 mod native_view_calls;
 #[path = "native_view_parameters.rs"]
@@ -485,6 +487,7 @@ struct Context {
     /// and their capture loans until the scope ends.
     control_stored: HashSet<usize>,
     native_view_calls: bool,
+    native_shadowed_bindings: Option<Box<Vec<usize>>>,
     native_view_results: Option<Box<HashMap<UnionId,usize>>>,
     native_view_function_returns: Option<Box<HashMap<native_view_calls::Target,Vec<native_view_calls::Returned>>>>,
     storage_exits: storage_exit_availability::Exits,
@@ -546,6 +549,7 @@ impl Context {
         Self {
             control_stored: HashSet::new(),
             native_view_calls: false,
+            native_shadowed_bindings: None,
             native_view_results: None,
             native_view_function_returns: None,
             storage_exits: Default::default(), native_returns: None,
@@ -5548,6 +5552,11 @@ impl Analyzer {
                 shadowed.push((name.clone(), slot));
             }
         }
+        let native_shadow_boundary = context.native_shadowed_bindings.as_ref().map_or(0, |slots| slots.len());
+        if self.native_borrow_types && !shadowed.is_empty() {
+            context.native_shadowed_bindings.get_or_insert_with(Default::default)
+                .extend(shadowed.iter().map(|(_, slot)| *slot));
+        }
         for (name, _) in &shadowed { context.names.remove(name); }
         self.depth += 1;
         let first_local = context.bindings.len();
@@ -5696,6 +5705,9 @@ impl Analyzer {
         }
         if !keep_names {
             context.names.extend(shadowed);
+        }
+        if let Some(slots) = context.native_shadowed_bindings.as_mut() {
+            slots.truncate(native_shadow_boundary);
         }
         self.depth -= 1;
         Ok(exited)

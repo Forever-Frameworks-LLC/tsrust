@@ -375,6 +375,7 @@ impl Analyzer {
         context: &Context,
         first_local: usize,
     ) -> Result<(), Diagnostic> {
+        native_view_scopes::check(context, first_local)?;
         for binding in 0..first_local {
             let place = Place {
                 binding,

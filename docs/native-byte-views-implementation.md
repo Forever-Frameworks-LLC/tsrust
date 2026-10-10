@@ -514,3 +514,21 @@ These remain private provenance/signature controls, not complete factory-generat
 source acceptance. Source scope-exit/drop enforcement, unused consuming closure
 validation, mixed callback-record contracts and escaped/rebound environments require
 further witnesses before publication. The public borrowed-signature guard remains.
+
+### Lexical holder lifetime checks in progress
+
+The retained-borrow scope hook now checks native holders that survive the current
+block. A holder cannot retain storage declared in that block when the block ends.
+Replacing the view before exit is valid, and a local holder may expire alongside
+its owner. Diagnostics identify the retained view and the source owner location.
+
+Shadowing hides a name without destroying its storage. Native access checks now
+retain the identities of shadowed holders until their lexical scopes end. This
+supersedes the earlier statements that shadowed holders are excluded: only dead
+holders should release their loans. The tracking allocates only for programs with
+native borrowed types and an actual shadowed binding.
+
+The new private witnesses parse and format source blocks and exercise real call,
+assignment and scope analysis against an injected borrowed factory interface.
+They do not provide complete public factory-body acceptance. Exceptional exits,
+loop completions and escaped callback environments still need their own coverage.

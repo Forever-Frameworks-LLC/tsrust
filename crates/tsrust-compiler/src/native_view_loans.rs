@@ -80,7 +80,8 @@ impl Analyzer {
             return Ok(());
         }
         for (holder, binding) in context.bindings.iter().enumerate() {
-            if context.names.get(&binding.name) != Some(&holder) {
+            if context.names.get(&binding.name) != Some(&holder)
+                && !context.native_shadowed_bindings.as_ref().is_some_and(|slots| slots.contains(&holder)) {
                 continue;
             }
             for loan in binding.native_view_loans.as_deref().into_iter().flatten() {
