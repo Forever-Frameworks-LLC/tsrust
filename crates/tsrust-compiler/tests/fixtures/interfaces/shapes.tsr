@@ -39,20 +39,34 @@ function rename(named: Named, name: string): void {
 }
 
 function main() {
-    const lead: Player = { name: "Pat", x: 1, score: 3, tags: ["a"] };
+    const lead: Player = {
+        name: "Pat", x: 1, score: 3, tags: ["a"]
+    };
     strictEqual(describe(lead), "Pat:1:3");
-    const second: Player = { name: "Sam", x: 2, y: 5, score: 4, tags: [] };
+    const second: Player = {
+        name: "Sam", x: 2, y: 5, score: 4, tags: []
+    };
     strictEqual(describe(second), "Sam:7:4");
-    const named: Named = { name: "old" };
+    const named: Named = {
+        name: "old"
+    };
     rename(named, "new");
     strictEqual(named.name, "new");
-    const box: Box<int> = { value: 7 };
+    const box: Box<int> = {
+        value: 7
+    };
     strictEqual(box.value + (box.label ?? "").length, 7);
-    const text: Box<string> = { value: "v", label: "l" };
+    const text: Box<string> = {
+        value: "v", label: "l"
+    };
     strictEqual(text.value + (text.label ?? ""), "vl");
-    const team: Team = { lead: clone(lead), members: [clone(second)] };
+    const team: Team = {
+        lead: clone(lead), members: [clone(second)]
+    };
     strictEqual(team.lead.name + team.members[0].name, "PatSam");
-    const board: Board = { name: "main", scores: new Map<string, int>() };
+    const board: Board = {
+        name: "main", scores: new Map<string, int>()
+    };
     board.scores.set("a", 2);
     strictEqual(board.scores.get("a") === 2, true);
     const { name, score } = second;

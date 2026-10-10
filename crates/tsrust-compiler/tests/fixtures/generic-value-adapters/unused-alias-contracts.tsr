@@ -1,37 +1,60 @@
 import { strictEqual } from 'std:testing';
-function identity<T>(value: T): T { return value; }
-function collect<T>(value: T, offset: int = 4, ...tail: T[]): T { return value; }
-function count<T>(...values: T[]): int { return values.length; }
+
+function identity<T>(value: T): T {
+    return value;
+}
+
+function collect<T>(value: T, offset: int = 4, ...tail: T[]): T {
+    return value;
+}
+
+function count<T>(...values: T[]): int {
+    return values.length;
+}
+
 function aliases<T>(value: T): T {
     const first = identity;
     const second = first;
     return second<T>(value);
 }
+
 function scopes<T>(value: T): T {
     const alias = identity;
-    { const alias = 1; }
+    {
+        const alias = 1;
+    }
+
     return alias<T>(value);
 }
+
 function defaults<T>(value: T): T {
     const alias = collect;
     alias(value);
     return alias(value, undefined, ...[value, value]);
 }
+
 function dynamic<T>(values: T[]): int {
     const alias = count;
     return alias(...values);
 }
+
 function staticSpread<T>(value: T): T {
     const alias = identity;
     return alias(...[value]);
 }
+
 function closureRest<T>(value: T): void {
     const apply = (action: (item: T, ...tail: T[]) => T): T => action(value, ...[value]);
 }
+
 function closureOptional<T>(value: T): void {
     const apply = (action: (item?: T) => T): T => action();
 }
-function replacement<T>(value: T): T { return value; }
+
+function replacement<T>(value: T): T {
+    return value;
+}
+
 function mutableSnapshot<T>(value: T): T {
     let action = identity;
     const saved = action;
@@ -39,10 +62,15 @@ function mutableSnapshot<T>(value: T): T {
     saved<T>(value);
     return action<T>(value);
 }
+
 function sameOriginSnapshot<T>(value: T): T {
     let action = identity;
     action = action;
     const saved = action;
     return saved<T>(value);
 }
-function main() { strictEqual(identity(7), 7); strictEqual(sameOriginSnapshot(9), 9); }
+
+function main() {
+    strictEqual(identity(7), 7);
+    strictEqual(sameOriginSnapshot(9), 9);
+}

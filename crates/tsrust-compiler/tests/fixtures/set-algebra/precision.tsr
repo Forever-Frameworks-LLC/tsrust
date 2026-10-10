@@ -1,9 +1,11 @@
-import {strictEqual} from "std:testing";
-function main(){
- const exact=new Set<int>([9007199254740992,9007199254740993]);
- const rounded=new Set<number>([9007199254740992.0]);
- strictEqual(exact.isSubsetOf(rounded),true);
- const shared=exact.intersection(rounded);
- strictEqual(shared.size,2,"intersection must retain both exact receiver keys");
- strictEqual(shared.has(9007199254740992),true);strictEqual(shared.has(9007199254740993),true);
+import { strictEqual } from "std:testing";
+
+function main() {
+    const exact = new Set<int>([9007199254740992, 9007199254740993]);
+    const rounded = new Set<number>([9007199254740992.0]);
+    strictEqual(exact.isSubsetOf(rounded), true);
+    const shared = exact.intersection(rounded);
+    strictEqual(shared.size, 2, "intersection must retain both exact receiver keys");
+    strictEqual(shared.has(9007199254740992), true);
+    strictEqual(shared.has(9007199254740993), true);
 }

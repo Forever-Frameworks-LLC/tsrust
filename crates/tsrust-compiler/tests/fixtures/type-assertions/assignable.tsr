@@ -1,45 +1,68 @@
-import {strictEqual} from 'std:testing';
-type Row={value:int;};
-type Box<T>={value:T;};
-function asserted<T>(value:T):T{return value as T;}
-function integer(value:int):int{return value;}
-function main(){
- const words=["one"];
- const borrowed=words[0] as string;
- strictEqual(borrowed,"one");
- const widenedBorrow=words[0] as string|null;
- strictEqual(widenedBorrow??"none","one");
- const optionalValues:(string|null)[]=[null,"yes"];
- const optional=optionalValues[0] as string|null;
- strictEqual(optional??"none","none");
- const values=[] as int[];
- const empty=[] satisfies int[];
- empty.push(8);
- strictEqual(empty[0],8);
- values.push(7);
- strictEqual(values[0],7);
- const raised=(2 as int)**3;
- strictEqual(integer(raised),8);
- const numberRaised=(2 as number)**3;
- strictEqual(numberRaised,8.0);
- const input = integer(1);
- const widened=input as number;
- strictEqual(widened + 0.5,1.5);
- const union: number | string = input as number;
- if(typeof union === "number"){strictEqual(union + 0.5,1.5);}
- const checked=3 satisfies number;
- strictEqual(integer(checked),3);
- const text='yes' as string|int;
- if(typeof text==='string'){strictEqual(text,'yes');}
- const row={value:4} satisfies Row;
- const callback=((x:int):int=>x+1) satisfies (value:int)=>int;
- strictEqual(callback(4),5);
- const assertedCallback=((x:int):int=>x+2) as (value:int)=>int;
- strictEqual(assertedCallback(4),6);
- const boxed={value:9} as Box<int>;
- strictEqual(asserted(boxed.value),9);
- strictEqual(row.value,4);
- strictEqual((integer(2) as number) + 0.5,2.5);
- strictEqual(2 + 3 as int,5);
- strictEqual((3 satisfies number) as number,3.0);
+import { strictEqual } from 'std:testing';
+
+type Row = {
+    value: int;
+};
+
+type Box<T> = {
+    value: T;
+};
+
+function asserted<T>(value: T): T {
+    return value as T;
+}
+
+function integer(value: int): int {
+    return value;
+}
+
+function main() {
+    const words = ["one"];
+    const borrowed = words[0] as string;
+    strictEqual(borrowed, "one");
+    const widenedBorrow = words[0] as string | null;
+    strictEqual(widenedBorrow ?? "none", "one");
+    const optionalValues: (string | null)[] = [null, "yes"];
+    const optional = optionalValues[0] as string | null;
+    strictEqual(optional ?? "none", "none");
+    const values = [] as int[];
+    const empty = [] satisfies int[];
+    empty.push(8);
+    strictEqual(empty[0], 8);
+    values.push(7);
+    strictEqual(values[0], 7);
+    const raised = (2 as int) ** 3;
+    strictEqual(integer(raised), 8);
+    const numberRaised = (2 as number) ** 3;
+    strictEqual(numberRaised, 8.0);
+    const input = integer(1);
+    const widened = input as number;
+    strictEqual(widened + 0.5, 1.5);
+    const union: number | string = input as number;
+    if (typeof union === "number") {
+        strictEqual(union + 0.5, 1.5);
+    }
+
+    const checked = 3 satisfies number;
+    strictEqual(integer(checked), 3);
+    const text = 'yes' as string | int;
+    if (typeof text === 'string') {
+        strictEqual(text, 'yes');
+    }
+
+    const row = {
+        value: 4
+    } satisfies Row;
+    const callback = ((x: int): int => x + 1) satisfies (value: int) => int;
+    strictEqual(callback(4), 5);
+    const assertedCallback = ((x: int): int => x + 2) as (value: int) => int;
+    strictEqual(assertedCallback(4), 6);
+    const boxed = {
+        value: 9
+    } as Box<int>;
+    strictEqual(asserted(boxed.value), 9);
+    strictEqual(row.value, 4);
+    strictEqual((integer(2) as number) + 0.5, 2.5);
+    strictEqual(2 + 3 as int, 5);
+    strictEqual((3 satisfies number) as number, 3.0);
 }
