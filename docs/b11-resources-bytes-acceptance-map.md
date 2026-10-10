@@ -134,3 +134,26 @@ matched subarray workloads, and the S07 family run and measurements.
 Checks at `ff481c9c`: whole compiler crate 2,924 passed, 0 failed, 4 ignored, no
 aborted target; whole editor crate 484 passed, 0 failed, 1 ignored. No timing ran.
 Consumers remain at `f569190a`.
+
+### Gate 189 publication status (2026-10-10, later the same day)
+
+Public byte views are published. Gate 189 stays open for recursive view storage
+only; S07 stays open for gate 190 and the family measurements.
+
+| Scope | Status | Evidence |
+| --- | --- | --- |
+| `ByteView`, `ByteViewMut`, `view`, `viewMut` exported from `std:bytes` | published | `tests/std_bytes.rs`, fixtures `native-byte-views/{read,values,callbacks}.tsr` |
+| Shared observers: `length`, `at`, `copy`, `toUtf8`, `view` on `Bytes`, `ByteView`, `ByteViewMut`; `set`, `viewMut` on `Bytes`, `ByteViewMut` | published; typed alternatives in `NativeBinding::argument_alternatives`, shared readable and writable byte traits in the bridges | same fixtures; `stdlib/bytes/emit.rs` |
+| Ownership diagnostics through the CLI: escape, owner write, resize, move, read under an exclusive view, write through a readonly view, clone, construction | nine cases | `byte_view_ownership_rules_are_source_diagnostics` |
+| IntelliSense: catalog entries with executable examples, hover, signature help with alternatives, import completion, conflict diagnostics | complete for the published surface | `project_intelligence.rs`, `project_diagnostics.rs`, `builtins.json` |
+| A callback that returns a view it received as an argument, stored or local | supported when the callback captures no view | fixture `callbacks.tsr`; matrix row `argument-owned-view` |
+| The same, when the callback also captures a view | diagnosed (`native-view-family-emission`) | `native_view_storage_open_forms_are_source_diagnostics` |
+| Matched workload `native_byte_views` (`Uint8Array.subarray`) | registered; native and Node-after-tsc agree untimed; not measured | `native-byte-views-*.mjs`; SQLite `runtime/results/2026-10-10T23-27-13-709Z-verify.json` |
+| A type that contains itself and holds a view (`Chunk { data: ByteView; next?: Chunk }`) | not supported; plan written, one language decision open | `recursive-view-storage-plan.md` |
+
+A stored function value (`const read = length;`) keeps the declared parameter type
+`Bytes`; the alternatives apply to direct calls of the import.
+
+Checks: whole compiler crate 2,926 passed, 0 failed, 4 ignored; whole editor crate 486
+passed, 0 failed, 1 ignored; no aborted target. No timing ran. Consumers remain at
+`f569190a`, so installed tools do not have views yet.

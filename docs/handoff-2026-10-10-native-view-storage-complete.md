@@ -53,24 +53,27 @@ The acceptance map has the row-by-row status.
 - **Written families.** The lifetime-free family of a view callback contract has no
   environment. It is emitted as an uninhabited enum with a generic `call`.
 
+## Done after this handoff was first written
+
+Later commits on the same day: `4d030008` publishes `view`/`viewMut`, the two view
+types and the shared observers with catalog entries and editor help; `1587ca82`
+switches the formatter to two-space indentation (owner request) and reformats the
+project; `5b237a17` adds the matched `native_byte_views` workload; the commit that
+carries this note lets a callback return a view it received as an argument.
+
 ## Remaining work for gate 189
 
-1. **Result that borrows an invocation argument.** Closure parameters are not seeded
-   with view provenance (named functions are, in `seed_native_parameters`). Seed
-   them, give `closure.function.native_returns` argument roots, and name argument
-   lifetimes in the family `call` signature. `validate_abi` already has the guard
-   text for this case.
-2. **Recursive view storage.** Needs one lifetime shared by every level of a type
-   that contains itself. Today `reject_recursive_native_view_storage` diagnoses it.
-   Ask the owner whether the plan requires it before building it.
-3. **Publication.** Lift the guard in `native_binding_types::prepare`; add typed
-   argument alternatives so that `length`, `at`, `copy` and `toUtf8` accept `Bytes`,
-   `ByteView` and `ByteViewMut`, and `set` accepts `Bytes` and `ByteViewMut`; write
-   complete `builtins.json` entries with executable examples; add public fixtures run
-   through the CLI and module path; add matched `subarray` workloads with oracles,
-   contracts, registrations and manifest entries.
-4. **S07 acceptance.** Gate 190 (resources) is also pending. Then the complete
-   compiler and editor regressions, measurements and performance review.
+1. **Recursive view storage.** Plan: `docs/recursive-view-storage-plan.md`. Part B
+   (one shared lifetime for a recursive record) needs no language change. Part A
+   (a nullable field that refers to its own record, stored behind one heap allocation)
+   changes the language and waits for the owner's decision. The owner's target type is
+   `Chunk { data: ByteView; next?: Chunk }`, which needs both parts.
+2. **A callback that captures a view and also returns a view argument.** The scoped
+   family `call` needs a named argument lifetime joined with its capture lifetimes.
+   Today it is diagnosed (`native-view-family-emission`).
+3. **S07 acceptance.** Gate 190 (resources) is pending. Then the complete family
+   regressions, measurements of every byte workload including `native_byte_views`,
+   the performance review and the consumer refresh.
 
 ## Known defect outside this gate
 
@@ -92,23 +95,22 @@ Final runs: compiler 2,924 passed, 0 failed, 4 ignored; editor 484 passed, 0 fai
 
 ## Continuation prompt
 
-Continue Tsrust at /Users/seancotter/Desktop/dev/learning/tsrust from `ff481c9c`
-(tree clean). Read AGENTS.md, docs/development-workflow.md,
+Continue Tsrust at /Users/seancotter/Desktop/dev/learning/tsrust from the commit that
+carries this handoff (tree clean). Read AGENTS.md, docs/development-workflow.md,
 docs/handoff-2026-10-10-native-view-storage-complete.md,
-docs/native-view-callable-storage-plan.md, docs/native-byte-views-implementation.md,
-docs/resources-bytes-plan.md and docs/b11-resources-bytes-acceptance-map.md. The
-private source storage matrix for byte views is complete except two diagnosed forms.
-Do not redo it. First seed closure parameters with view provenance so that a callback
-can return a view it received as an argument. Ask the owner whether recursive
-view-containing storage is required before building it. Then publish std:bytes
-view/viewMut: lift the guard in native_binding_types::prepare, add typed argument
-alternatives for the shared readable and mutable observers, complete IntelliSense
-with executable examples, verify public fixtures through the CLI and module path, and
-add matched subarray workloads with oracles, contracts, registrations and manifest
-entries. Keep real slice lifetimes and exact owner provenance: no implicit clone,
-hidden owner, static lifetime, unsafe erasure or integer handle. Finish gate 190 and
-the S07 family run only after that. After every cargo test run check for failed tests
-and for aborted targets. Environment: CARGO_TARGET_DIR=/private/tmp/tsrust-gate100-editor-target,
+docs/recursive-view-storage-plan.md, docs/b11-resources-bytes-acceptance-map.md and
+docs/resources-bytes-plan.md. Public byte views are published and documented; do not
+redo that work. Implement part B of the recursive view storage plan (one shared
+lifetime for a record on a recursive cycle, proved first with array recursion). Ask
+the owner to confirm part A (a nullable self-referential field stored behind one heap
+allocation) before implementing it; the target is
+`type Chunk = { data: ByteView; next?: Chunk; }`. Then let a view-capturing callback
+return a view argument, finish gate 190, and run the S07 family acceptance: complete
+compiler and editor regressions, measurements, performance review, consumer refresh.
+Keep real slice lifetimes and exact owner provenance: no implicit clone, hidden shared
+owner, static lifetime, unsafe erasure or integer handle. After every cargo test run
+check for failed tests and for aborted targets. The formatter uses two-space
+indentation. Environment: CARGO_TARGET_DIR=/private/tmp/tsrust-gate100-editor-target,
 CARGO_INCREMENTAL=0, cargo --offline --locked, Node 24.11.1 first on PATH,
 /opt/homebrew/bin/python3 for benchmarks/storage/store.py. Consumers remain at
 f569190a.

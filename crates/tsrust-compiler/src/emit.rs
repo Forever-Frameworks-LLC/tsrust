@@ -2555,6 +2555,24 @@ impl Emitter<'_> {
                 .collect::<Vec<_>>();
             let (arguments, mut lifetimes) = self.native_argument_tuple(&params);
             lifetimes.splice(0..0, capture_lifetimes);
+            // A callback without captured views that returns a view it received ties
+            // the result to its view arguments. The trait adapters name one lifetime
+            // for those arguments and the result; the call itself stays more precise.
+            let argument_views = self.native_captures.lifetimes[index] == 0
+                && self.native_views.contains(closure.function.result)
+                && params.iter().any(|parameter| self.native_views.contains(parameter.ty));
+            let (arguments, native_result) = if argument_views {
+                lifetimes.push("'native_arguments".into());
+                let mut result = native_result.replace("'_", "'native_arguments");
+                if let Some(signature) = &native_view_signature {
+                    for name in signature.generics.trim_matches(|c| c == '<' || c == '>').split(',').map(str::trim).filter(|name| name.starts_with('\'')) {
+                        result = result.replace(name, "'native_arguments");
+                    }
+                }
+                (arguments.replace("'_", "'native_arguments"), result)
+            } else {
+                (arguments, native_result)
+            };
             let impl_lifetimes = {
                 let mut declarations = lifetimes.clone();
                 declarations.extend(generic_bounds);
@@ -2646,17 +2664,28 @@ impl Emitter<'_> {
             .expect("checked native callable storage family");
             let result_layout=self.result_storage.borrow().get(&id).cloned();
             let native_result=match &result_layout {Some((name,_))=>format!("Result<{},{}>",self.native_type(contract.result),name),None=>self.native_type(contract.result)};
+            // A lifetime-free family whose result is a byte view can only return a
+            // view that it received: its view arguments and its result share one
+            // named lifetime.
+            let argument_views=self.native_views.contains(contract.result) && contract.params.iter().any(|parameter|self.native_views.contains(parameter.ty));
+            let native_result=if argument_views {native_result.replace("'_","'native_arguments")} else {native_result};
+            let mut family_text=String::new();
             family.emit_counted_mapped(
-                &mut output,
+                &mut family_text,
                 id,
                 self.counted_calls,
-                |parameter| self.native_argument_type(parameter, ""),
+                |parameter| {let ty=self.native_argument_type(parameter, "");if argument_views {ty.replace("'_","'native_arguments")} else {ty}},
                 |_| native_result.clone(),
                 |origin,call| self.stored_origin_result(id,origin,call),
             );
+            if argument_views {
+                family_text=family_text.replace("fn call(","fn call<'native_arguments>(").replace("fn call_with_count(","fn call_with_count<'native_arguments>(");
+            }
+            output.push_str(&family_text);
             if self.callback_traits {
                 let contract = &self.program.callback_contracts[declaration];
-                let (arguments, lifetimes) = self.native_argument_tuple(&contract.params);
+                let (arguments, mut lifetimes) = self.native_argument_tuple(&contract.params);
+                let arguments=if argument_views {lifetimes.push("'native_arguments".into());arguments.replace("'_","'native_arguments")} else {arguments};
                 family.emit_invocation_adapters_counted(
                     &mut output,
                     id,

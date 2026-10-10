@@ -6,7 +6,26 @@ use super::native_view_loans::LifetimeSource;
 impl Analyzer {
     pub(super) fn remember_native_family_returns(&self,context:&mut Context,family:usize,span:Span)->Result<(),Diagnostic> {
         if !self.native_borrow_types {return Ok(());}
-        let Some(layout)=self.callables.storage.scoped_native_family(family) else {return Ok(());};
+        let Some(layout)=self.callables.storage.scoped_native_family(family) else {
+            // A lifetime-free family holds no view. Its result can only be a view
+            // that one of its callbacks received as an argument.
+            let mut returned=Vec::new();
+            for &origin in self.callables.storage.origins(family).unwrap_or_default() {
+                let closure=&self.closures[origin];
+                let closure=match closure.forward {Some(ClosureForward::Once(inner))=>&self.closures[inner],_=>closure};
+                for loan in closure.function.native_returns.as_deref().into_iter().flatten() {
+                    let Some(position)=closure.parameters.iter().position(|root|*root==loan.root) else {
+                        return Err(Diagnostic::new("native-view-call","A returned view of this callback has no checked argument source.",span));
+                    };
+                    returned.push(Returned{source:Source::Argument(position),loan:loan.clone()});
+                }
+            }
+            if !returned.is_empty() {
+                context.native_view_function_returns.get_or_insert_with(Default::default).insert(Target::Family(family),returned);
+                context.native_view_calls=true;
+            }
+            return Ok(());
+        };
         let mut returned=Vec::new();
         for alternative in &layout.alternatives {
             let closure=&self.closures[alternative.origin];

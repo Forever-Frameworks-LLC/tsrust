@@ -71,6 +71,7 @@ fn byte_views_read_and_write_through_public_imports() {
     for fixture in [
         include_str!("fixtures/native-byte-views/read.tsr"),
         include_str!("fixtures/native-byte-views/values.tsr"),
+        include_str!("fixtures/native-byte-views/callbacks.tsr"),
     ] {
         let directory = support::TempDirectory::new();
         let path = directory.source(&support::format_round_trip(fixture));

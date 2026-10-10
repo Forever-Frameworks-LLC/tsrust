@@ -261,6 +261,7 @@ fn native_view_storage_invocation_and_replacement_matrix() {
         ("nullable-absent-then-present","read:Once<Function<Window>>|undefined;marker:int;","return {read:undefined,marker:1};","let holder=save(first);holder.read=()=>second;return (holder.read!)();"),
         ("nullable-conditional","read:Once<Function<Window>>|undefined;marker:int;","return {read:true?()=>view:undefined,marker:1};","const holder=save(second);return (holder.read!)();"),
         ("field-replacement-in-branch",once,plain,"let holder=save(first);if(holder.marker>0){holder.read=()=>second;}return holder.read();"),
+        ("argument-owned-view","read:Once<Function<Window,[Owned<Window>]>>;marker:int;","return {read:(other:Owned<Window>)=>other,marker:1};","const holder=save(first);return holder.read(second);"),
     ];
     for (label,holder,save,relay) in cases {
         for mutable in [false,true] {
@@ -275,8 +276,8 @@ fn native_view_storage_invocation_and_replacement_matrix() {
 #[test]
 fn native_view_storage_open_forms_are_source_diagnostics() {
     let cases:&[(&str,&str,&str,&str,&str)]=&[
+        ("argument-returned-by-view-owning-callback","read:Once<Function<Window,[Owned<Window>]>>;marker:int;","return {read:(other:Owned<Window>)=>{const kept=view;return other;},marker:1};","const holder=save(first);return holder.read(second);","native-view-family-emission"),
         ("recursive-array","view:Window;children:Holder[];","return {view:view,children:[]};","const leaf=save(second);const root:Holder={view:first,children:[leaf]};const child=root.children.pop()!;return child.view;","native-view-shape"),
-        ("argument-owned-view","read:Once<Function<Window,[Owned<Window>]>>;marker:int;","return {read:(other:Owned<Window>)=>other,marker:1};","const holder=save(first);return holder.read(second);","native-view-source"),
     ];
     for (label,holder,save,relay,code) in cases {
         for mutable in [false,true] {
