@@ -6,6 +6,8 @@ impl Analyzer {
     fn native_shape_children(&self, ty: Type) -> Vec<(Type, Option<Segment>, Option<usize>)> {
         match ty {
             Type::Array(element) => vec![(element.ty(), Some(Segment::Element), None)],
+            Type::Closure(id) => self.closures[id].captures.iter().map(|capture|
+                (self.closures[id].function.bindings[capture.inner].ty, Some(Segment::Field(format!("capture{}",capture.inner))), None)).collect(),
             Type::Record(id) => self.program.records[id].fields.iter().map(|field|
                 (field.ty.expect("checked field"), Some(Segment::Field(field.name.text.clone())), None)).collect(),
             Type::Union(id) | Type::BorrowedUnion(id) => self.unions.members(id).into_iter().map(|member|

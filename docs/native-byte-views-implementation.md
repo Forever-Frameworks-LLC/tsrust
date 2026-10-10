@@ -660,3 +660,20 @@ independent native compilation. Nested owned receiver controls remain green.
 Nested carried environments, sparse projected capture contexts, abstract/stored
 callback families and mixed callback-record composition still need explicit controls.
 The publication guard remains.
+
+### Sparse nested carried environments
+
+A new private source witness returns a callback that captures another callback
+carrying an input view. An exited block leaves a gap in the enclosing binding
+list. Input seeding now traverses concrete capture fields, rooting their carried
+loans in the projected environment rather than retaining foreign binding indices.
+The escaping-callable guard uses the existing physical-storage predicate, so an
+owned view payload is distinct from an actual borrowed callback environment.
+
+Native capture lifetime planning traverses those same nested fields. Without this
+mapping, analysis selected the correct input but generated Rust declared an
+unrelated return lifetime. The complete emitted witness runs at O0/O3, preserves
+the selected buffer pointer after an unrelated owner ends, and independently
+rejects escape of the selected owner. Public factories remain guarded. Abstract
+callback storage, mixed records, observer contracts and public editor integration
+remain open; this checkpoint does not accept gate 189 or S07.

@@ -93,7 +93,7 @@ impl Analyzer {
             let storage = if binding.ty.is_copy() {
                 if access == Mode::Mutate && !escapes { Mode::Mutate } else { Mode::Copy }
             } else if escapes { Mode::Consume } else { access };
-            if !self.effects_only && escapes && let Type::Closure(id) = binding.ty && self.closures[id].borrowed {
+            if !self.effects_only && escapes && let Type::Closure(id) = binding.ty && self.closures[id].borrowed && self.borrows_local_storage(binding.ty) {
                 return Err(Diagnostic::new("closure-escape", "An escaping closure cannot retain a borrowed callable environment.", span).related(self.closures[id].span, "Borrowed callable is created here."));
             }
             Self::access(outer, outer_id, storage, span, loans)?;

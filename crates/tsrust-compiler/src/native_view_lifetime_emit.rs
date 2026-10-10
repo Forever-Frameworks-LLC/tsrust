@@ -92,6 +92,16 @@ impl Emitter<'_> {
 
     fn native_view_capture_slots(&self,ty:Type,root:usize,path:&mut Vec<Segment>,guards:&mut Vec<VariantGuard>,lifetimes:&[String],next:&mut usize,slots:&mut BTreeMap<(usize,LifetimeSource),String>) {
         match ty {
+            Type::Closure(id)=>{
+                let closure=&self.program.closures[id];
+                for capture in &closure.captures {
+                    *next+=usize::from(matches!(capture.storage,Mode::Read|Mode::Mutate));
+                    path.push(Segment::Field(format!("capture{}",capture.inner)));
+                    let child=self.native_captures.ty(&closure.function,capture.inner);
+                    self.native_view_capture_slots(child,root,path,guards,lifetimes,next,slots);
+                    path.pop();
+                }
+            }
             Type::Record(id) if native_view_emit::access(self.program,id).is_some()=>{
                 slots.insert((root,LifetimeSource::carried(path.clone(),guards.clone())),lifetimes[*next].clone());*next+=1;
             }

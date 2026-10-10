@@ -2379,6 +2379,7 @@ impl Analyzer {
                     && escapes
                     && let Type::Closure(id) = binding.ty
                     && self.closures[id].borrowed
+                    && self.borrows_local_storage(binding.ty)
                 {
                     return Err(Diagnostic::new(
                         "closure-escape",

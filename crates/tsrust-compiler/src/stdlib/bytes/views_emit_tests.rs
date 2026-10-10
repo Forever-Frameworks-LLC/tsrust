@@ -14,6 +14,90 @@ fn native_view_escaping_environment_rejects_local_storage_source() {
     }
 }
 #[test]
+fn native_view_nested_carried_capture_survives_sparse_projection() {
+    let source = "function save(view:int){return ()=>view;}function wrap(view:int){{const dead=0;}const inner=save(view);return ()=>inner();}function relay(first:int,second:int){const callback=wrap(second);return callback();}function main(){}";
+    let formatted = crate::formatting::format(source).unwrap();
+    assert_eq!(crate::formatting::format(&formatted).unwrap(), formatted);
+    let mut parsed = crate::syntax::parse(&formatted).unwrap();
+    let annotation = crate::native_type_resolution::project(
+        &mut parsed.records,
+        &crate::native_signatures::Signature::Named(NativeTypeId::ByteView),
+        crate::Span::default(),
+    ).unwrap();
+    for function in &mut parsed.functions[..3] {
+        for parameter in &mut function.params { parameter.1 = annotation.clone(); }
+    }
+    let checked = crate::analysis::analyze(parsed).unwrap();
+    let origins = checked.functions[2].native_returns.as_ref().expect("nested environment must retain caller origin");
+    assert_eq!(origins.len(), 1);
+    assert_eq!(origins[0].root, 1);
+    let view = checked
+        .records
+        .iter()
+        .position(|record| record.native_type == Some(NativeTypeId::ByteView))
+        .unwrap();
+    let mut generated = crate::emit::emit(&checked);
+    let main = generated.find("fn main()").unwrap();
+    let opening = main + generated[main..].find('{').unwrap() + 1;
+    generated.insert_str(opening, "carried_probe();");
+    let probe = format!(
+        "fn carried_probe(){{let owner=vec![7u8,8];let returned;{{let short=vec![1u8];returned=function2(&Record{view}{{bytes:&short}},Record{view}{{bytes:&owner}});}}assert_eq!(returned.bytes.as_ptr(),owner.as_ptr());assert_eq!(returned.bytes,&[7,8]);}}"
+    );
+    let directory = std::env::temp_dir().join(format!(
+        "tsrust-nested-carried-view-environment-{}",
+        std::process::id()
+    ));
+    std::fs::create_dir_all(&directory).unwrap();
+    struct Cleanup(std::path::PathBuf);
+    impl Drop for Cleanup {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+    let _cleanup = Cleanup(directory.clone());
+    let input = directory.join("carried.rs");
+    std::fs::write(&input, format!("{generated}\n{probe}")).unwrap();
+    for level in ["0", "3"] {
+        let output = directory.join(format!("carried-{level}"));
+        let compiled = std::process::Command::new("rustc")
+            .arg("--edition=2024")
+            .arg("-C")
+            .arg(format!("opt-level={level}"))
+            .arg(&input)
+            .arg("-o")
+            .arg(&output)
+            .output()
+            .unwrap();
+        assert!(
+            compiled.status.success(),
+            "{}",
+            String::from_utf8_lossy(&compiled.stderr)
+        );
+        assert!(
+            std::process::Command::new(output)
+                .status()
+                .unwrap()
+                .success()
+        );
+    }
+    let negative = format!(
+        "{generated}\n{probe}\nfn invalid_source_escape(){{let first=vec![1u8];let escaped;{{let second=vec![7u8,8];escaped=function2(&Record{view}{{bytes:&first}},Record{view}{{bytes:&second}});}}assert_eq!(escaped.bytes.len(),2);}}"
+    );
+    std::fs::write(&input, negative).unwrap();
+    let rejected = std::process::Command::new("rustc")
+        .arg("--edition=2024")
+        .arg(&input)
+        .arg("-o")
+        .arg(directory.join("rejected"))
+        .output()
+        .unwrap();
+    assert!(
+        !rejected.status.success(),
+        "carried capture escaped its selected input owner"
+    );
+    assert!(String::from_utf8_lossy(&rejected.stderr).contains("does not live long enough"));
+}
+#[test]
 fn native_view_escaped_carried_capture_keeps_actual_argument_origin() {
     let source = "function save(view:int,unused:int){return ()=>view;}function relay(first:int,second:int){const ignored=0;const callback=save(second,first);return callback();}function main(){}";
     let formatted = crate::formatting::format(source).unwrap();
