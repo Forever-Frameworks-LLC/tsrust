@@ -20478,6 +20478,34 @@
       "specification": "Seven retained observations prove direct and array-record clone independence after writes to source and clone, plus buffer lengths. Matched deep Uint8Array copies and an independent arithmetic oracle.",
       "sourceSha256": "816340954949f1c217f771936c1d8bbf5f08018576ee93ec6c4125a20091fa7b",
       "counterpartSha256": "52aed6c957d5108e51a767f0d0b861e38ba28d2ef9cddd220a540cd083965f56"
+    },
+    {
+      "id": "native_byte_utf8",
+      "family": "native-byte-utf8",
+      "source": "workloads/native_byte_utf8.tsr",
+      "counterpart": "workloads/native_byte_utf8.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One UTF-8 round trip and strict validation scenario",
+      "inputText": "bytes",
+      "category": "bytes",
+      "implementationGate": 189,
+      "measurementStatus": "pending-resources-bytes-family",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": false,
+      "measured": false,
+      "notes": "Gate 189 strict UTF-8 increment. Scoped views and family timing remain pending.",
+      "specification": "Seven observations retain Unicode/ASCII/NUL/BOM byte lengths and exact round trips, malformed and truncated sequence error codes/offsets, and unchanged buffer length. Node uses fatal TextDecoder with BOM preservation and an independent offset scanner after errors; this is a mixed strict-validation scenario, not isolated encoding throughput.",
+      "sourceSha256": "17f9c5e8bba33ac658cfb40fc67e2ad2971bd6e106ec14e1b2ec93d336a5cb42",
+      "counterpartSha256": "2065b462625926472f7db56df80ef8f385097a72328afef10b0d483aaf433d9b"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

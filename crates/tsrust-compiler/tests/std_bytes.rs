@@ -57,3 +57,11 @@ fn native_byte_clone_storage_capture_and_evaluation_contracts_execute() {
     let path = directory.source(&source);
     support::success(&support::run(support::cli().arg("run").arg(path), 60));
 }
+
+#[test]
+fn native_byte_utf8_round_trips_and_strict_error_offsets_execute() {
+    let directory = support::TempDirectory::new();
+    let source = support::format_round_trip(include_str!("fixtures/native-owned-bytes/utf8.tsr"));
+    let path = directory.source(&source);
+    support::success(&support::run(support::cli().arg("run").arg(path), 60));
+}

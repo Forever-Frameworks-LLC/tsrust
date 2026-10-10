@@ -1635,3 +1635,20 @@ fn native_byte_clone_help_describes_independent_storage() {
     let help = ask(&index, &entry, "bytes);", "textDocument/signatureHelp");
     assert!(help.to_string().contains("value: T") && help.to_string().contains("without consuming"), "{help}");
 }
+
+#[test]
+fn native_utf8_stored_values_document_strict_offsets_and_byte_counts() {
+    let entry=tsrust_compiler::format("import {fromUtf8,toUtf8} from 'std:bytes';function main(){const encode=fromUtf8;const decode=toUtf8;match(encode('é😀')){Ok(bytes)=>{match(decode(bytes)){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.offset);}}},Err(error)=>{console.log(error.message);}}}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();
+    workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,&entry,"encode(","textDocument/hover");
+    assert!(hover.to_string().contains("Result<Bytes, ByteError>")&&hover.to_string().contains("NUL bytes"),"{hover}");
+    let hover=ask(&index,&entry,"decode(bytes)","textDocument/hover");
+    assert!(hover.to_string().contains("Result<string, ByteError>")&&hover.to_string().contains("first invalid sequence start"),"{hover}");
+    assert!(!hover.to_string().contains("__tsrust_private_"),"{hover}");
+    let help=ask(&index,&entry,"bytes))","textDocument/signatureHelp");
+    assert!(help.to_string().contains("ReadOnly<Bytes>")&&help.to_string().contains("invalid bytes are never replaced"),"{help}");
+}

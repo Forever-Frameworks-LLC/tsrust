@@ -572,3 +572,31 @@ Uint8Array copies, an arithmetic oracle, source contracts and complete harness h
 Global clone documentation is now in the shared catalog with an executable byte
 example. Gate 188 closes with focused evidence; S07 still needs gates 189–190 and the
 family regression/performance review. No byte workload is measured.
+
+
+## Gate 189 strict UTF-8 increment and view architecture
+
+fromUtf8 and toUtf8 are implemented through the accepted owned native Result ABI.
+The separate utf8_runtime.rs backend checks valid text once, reserves fallibly and
+copies into independent output. Encoding preserves exact source bytes; strict decoding
+reports the first invalid sequence start. Empty, ASCII, multibyte, NUL, BOM, overlong,
+surrogate, out-of-range and truncated cases have native/reference coverage. Private
+reservation seams prove errors expose no partial output, and malformed input does
+not reserve. UTF-8 backend source is emitted only for selected UTF-8 operations.
+
+Both operations have complete catalog examples and stored-function editor help.
+The native_byte_utf8 matched scenario retains byte lengths, exact round trips,
+malformed/truncated error codes/offsets and unchanged buffer length. Node uses fatal
+TextDecoder with ignoreBOM true to preserve U+FEFF, and an independent byte scanner
+supplies offsets after decoder errors. This mixed scenario is not an isolated encoding
+throughput claim. The allocation profiler now uses the execution runner's recursive
+compiler-source collector; previous profile metadata omitted nested standard-library
+files. Historical records remain unchanged. Both harnesses fingerprint the collector.
+
+Views remain pending. The current callback-oriented record views and ViewUnion do not
+represent returned native slice lifetimes. docs/native-byte-views-implementation.md
+records the integration route: native return provenance, source loan propagation,
+lifetime-bearing record/union ABI, typed readable/mutable byte contracts, safe return/
+storage/capture rules, zero-copy controls and matched view workloads. The retained
+native-byte-views/read.tsr CLI probe fails because view is not exported. It is not an
+accepted executable fixture. Gate 189 and S07 remain open; no timing was performed.

@@ -7,6 +7,9 @@ pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding]) -> 
     if bindings.iter().any(|binding| binding.name != "length") {
         output.push_str("mod tsrust_native_bytes {\n");
         output.push_str(include_str!("runtime.rs"));
+        if bindings.iter().any(|binding| matches!(binding.name, "fromUtf8" | "toUtf8")) {
+            output.push_str(include_str!("utf8_runtime.rs"));
+        }
         output.push_str("}\n");
         output.push_str(&error_bridge(program));
     }
@@ -20,6 +23,8 @@ pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding]) -> 
             "resize" => output.push_str(&result_bridge(program, binding, &format!("bytes: &mut Record{bytes}, length: i64, fill: Option<i64>"), "tsrust_native_bytes::resize(&mut bytes.bytes, length, fill)", "success")),
             "append" => output.push_str(&result_bridge(program, binding, &format!("bytes: &mut Record{bytes}, values: &[i64]"), "tsrust_native_bytes::append(&mut bytes.bytes, values)", "success")),
             "copy" => output.push_str(&result_bridge(program, binding, &format!("bytes: &Record{bytes}, start: i64, end: i64"), "tsrust_native_bytes::copy(&bytes.bytes, start, end)", &format!("Record{bytes} {{ bytes: success }}"))),
+            "fromUtf8" => output.push_str(&result_bridge(program, binding, "text: &String", "tsrust_native_bytes::from_utf8(text.as_ref())", &format!("Record{bytes} {{ bytes: success }}"))),
+            "toUtf8" => output.push_str(&result_bridge(program, binding, &format!("bytes: &Record{bytes}"), "tsrust_native_bytes::to_utf8(&bytes.bytes)", "String::Owned(success)")),
             _ => unreachable!("registered byte bridge"),
         }
     }

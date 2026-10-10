@@ -7032,5 +7032,31 @@
   ],
   "measured": false,
   "note": "Gate 188 explicit independent clone, aggregate storage/capture and exact O0/O3 cleanup acceptance. Direct and aggregate native/Node copies have an independent retained-result oracle; family timing remains pending."
+},
+"native.bytes.fromUtf8": {
+  "implementation": "native variant",
+  "comparison": "paired group",
+  "evidence": [
+    "./native-bytes.md",
+    "./resources-bytes-plan.md"
+  ],
+  "workloads": [
+    "native_byte_utf8"
+  ],
+  "measured": false,
+  "note": "Gate 189 strict UTF-8 increment. Explicit independent encoding, strict decoding offsets, NUL/BOM preservation and reservation failure controls verified. Scoped views and gate/family acceptance remain pending."
+},
+"native.bytes.toUtf8": {
+  "implementation": "native variant",
+  "comparison": "paired group",
+  "evidence": [
+    "./native-bytes.md",
+    "./resources-bytes-plan.md"
+  ],
+  "workloads": [
+    "native_byte_utf8"
+  ],
+  "measured": false,
+  "note": "Gate 189 strict UTF-8 increment. Explicit independent encoding, strict decoding offsets, NUL/BOM preservation and reservation failure controls verified. Scoped views and gate/family acceptance remain pending."
 }
 }

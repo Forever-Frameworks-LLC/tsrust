@@ -1,0 +1,61 @@
+import { Bytes, fromArray, fromUtf8, toUtf8, length } from "std:bytes";
+import { strictEqual } from "std:testing";
+
+function check(text: string, expected: int): void {
+    const encode = fromUtf8;
+    match (encode(text)) {
+        Ok(bytes) => {
+            strictEqual(length(bytes), expected);
+            const decode = toUtf8;
+            match (decode(bytes)) {
+                Ok(decoded) => {
+                    strictEqual(decoded, text);
+                },
+                Err(error) => {
+                    throw error.message;
+                },
+            }
+
+            strictEqual(length(bytes), expected);
+        },
+        Err(error) => {
+            throw error.message;
+        },
+    }
+}
+
+function invalid(values: ReadOnly<int[]>, expected: int): void {
+    match (fromArray(values)) {
+        Ok(bytes) => {
+            match (toUtf8(bytes)) {
+                Ok(_) => {
+                    throw "invalid UTF-8 accepted";
+                },
+                Err(error) => {
+                    strictEqual(error.code, "utf8");
+                    strictEqual(error.offset, expected);
+                    strictEqual(error.message, "Byte buffer contains invalid UTF-8.");
+                },
+            }
+
+            strictEqual(length(bytes), values.length);
+        },
+        Err(error) => {
+            throw error.message;
+        },
+    }
+}
+
+function main() {
+    check("", 0);
+    check("ASCII", 5);
+    check("\uFEFFz", 4);
+    check("é😀", 6);
+    check("A\u0000B", 3);
+    invalid([65, 195, 40], 1);
+    invalid([65, 226, 130], 1);
+    invalid([192, 175], 0);
+    invalid([237, 160, 128], 0);
+    invalid([244, 144, 128, 128], 0);
+    invalid([128], 0);
+}

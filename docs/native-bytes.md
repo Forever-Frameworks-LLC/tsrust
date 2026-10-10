@@ -152,3 +152,26 @@ objects, compared as values, reflected into properties or spread as records. The
 forms produce source diagnostics. Copy/clone and explicit byte operations are the
 supported ways to observe and transform buffers. Native thread-transfer metadata
 describes backend eligibility only; source thread APIs are not yet implemented.
+
+
+## Explicit UTF-8 encoding and strict decoding
+
+`fromUtf8(text)` borrows a valid UTF-8 string and returns `Result<Bytes, ByteError>`
+with independent encoded bytes. No normalization, BOM stripping or replacement occurs.
+For example, encoding `é😀` produces six bytes, not two. Empty text produces an empty
+buffer. Invalid native length returns `length-range`; failed reservation returns
+`allocation`. Both omit offset, and no partial owner escapes.
+
+`toUtf8(bytes)` readonly borrows Bytes and returns `Result<string, ByteError>` with
+independent owned text. It rejects malformed, overlong, surrogate, out-of-range and
+truncated sequences. The `utf8` error has message `Byte buffer contains invalid UTF-8.`
+and the first invalid sequence's starting byte offset. For `[65, 195, 40]`, offset
+is 1, the start of the malformed sequence. Valid bytes are checked once before
+output reservation and copying. NUL and a leading U+FEFF are preserved. Empty input
+produces an empty string; invalid bytes never turn into replacement characters.
+
+Neither operation consumes or changes its input. Both require exactly one correctly
+typed argument, with no coercion or defaults. Reservation failure returns `allocation`
+without offset; this does not guarantee recovery from every process-wide memory
+exhaustion. Encoding/decoding copies are explicit. Scoped zero-copy views are still
+pending; UTF-8 support does not imply borrowed-view support or gate 189 acceptance.

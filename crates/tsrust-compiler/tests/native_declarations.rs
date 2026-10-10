@@ -274,3 +274,17 @@ fn opaque_byte_keys_and_value_equality_are_source_diagnostics() {
         assert!(checked_source(&source).is_err(), "opaque capability accepted: {body}");
     }
 }
+
+#[test]
+fn native_utf8_requires_exact_typed_arguments() {
+    for (body,code) in [
+        ("fromUtf8();","arity"),
+        ("fromUtf8('a','b');","arity"),
+        ("fromUtf8(65);","type"),
+        ("toUtf8();","arity"),
+        ("toUtf8('text');","type"),
+    ] {
+        let error=checked_source(&format!("import {{fromUtf8,toUtf8}} from 'std:bytes';function main(){{{body}}}")).err().expect(body);
+        assert_eq!(error.code,code,"{error:?}");
+    }
+}

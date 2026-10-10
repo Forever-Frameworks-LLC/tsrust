@@ -68,3 +68,15 @@ pub(crate) const COPY: NativeBinding = NativeBinding {
     result: NativeType::Structured(&Signature::Result(&Signature::Named(NativeTypeId::Bytes), &Signature::Named(NativeTypeId::ByteError))),
     backend: NativeBackend::Bundled { symbol: "tsrust_std_bytes_copy" }, features: &["bytes"],
 };
+pub(crate) const FROM_UTF8: NativeBinding = NativeBinding {
+    module: "std:bytes", name: "fromUtf8",
+    parameters: &[NativeParameter { name: "text", ty: NativeType::String, access: Mode::Read, optional: false, rest: false }],
+    result: NativeType::Structured(&Signature::Result(&Signature::Named(NativeTypeId::Bytes), &Signature::Named(NativeTypeId::ByteError))),
+    backend: NativeBackend::Bundled { symbol: "tsrust_std_bytes_from_utf8" }, features: &["bytes"],
+};
+pub(crate) const TO_UTF8: NativeBinding = NativeBinding {
+    module: "std:bytes", name: "toUtf8",
+    parameters: &[NativeParameter { name: "bytes", ty: NativeType::Structured(&Signature::Named(NativeTypeId::Bytes)), access: Mode::Read, optional: false, rest: false }],
+    result: NativeType::Structured(&Signature::Result(&Signature::String, &Signature::Named(NativeTypeId::ByteError))),
+    backend: NativeBackend::Bundled { symbol: "tsrust_std_bytes_to_utf8" }, features: &["bytes"],
+};

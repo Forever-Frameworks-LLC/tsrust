@@ -5213,6 +5213,40 @@
       "output": "2\n"
     }
   ]
+},
+{
+  "name": "fromUtf8",
+  "signature": "fromUtf8(text: string): Result<Bytes, ByteError>",
+  "parameters": [
+    {
+      "label": "text: string",
+      "documentation": "Valid UTF-8 text to encode. Borrowed unchanged; no implicit conversion from other types."
+    }
+  ],
+  "documentation": "Copies the UTF-8 encoding of a string into an independent owned byte buffer. Takes exactly one string and returns Ok(buffer), including an empty buffer for empty text. Text is already valid UTF-8; no normalization, BOM stripping or replacement occurs. NUL bytes and multibyte Unicode scalars are preserved. Length counts encoded bytes rather than characters. A length outside native storage returns length-range; failed reservation returns allocation. Both errors omit offset. No partial buffer escapes. Process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport {fromUtf8,length} from \"std:bytes\"; function main(){match(fromUtf8(\"\u00e9\ud83d\ude00\")){Ok(bytes)=>{console.log(length(bytes));},Err(error)=>{console.log(error.message);}}}\n```\n\nExpected output: 6.\n\nOwnership: borrows the input and returns independent owned storage; no input is consumed or implicitly cloned.",
+  "examples": [
+    {
+      "source": "import {fromUtf8,length} from \"std:bytes\"; function main(){match(fromUtf8(\"\u00e9\ud83d\ude00\")){Ok(bytes)=>{console.log(length(bytes));},Err(error)=>{console.log(error.message);}}}",
+      "output": "6\n"
+    }
+  ]
+},
+{
+  "name": "toUtf8",
+  "signature": "toUtf8(bytes: ReadOnly<Bytes>): Result<string, ByteError>",
+  "parameters": [
+    {
+      "label": "bytes: ReadOnly<Bytes>",
+      "documentation": "Byte buffer to decode strictly. Borrowed unchanged; invalid bytes are never replaced."
+    }
+  ],
+  "documentation": "Decodes a byte buffer strictly into an independent owned UTF-8 string. Takes exactly one byte buffer and returns Ok(text), including an empty string for an empty buffer. Invalid, overlong, surrogate or truncated sequences return utf8 with message \"Byte buffer contains invalid UTF-8.\" and offset equal to the first invalid sequence start in bytes. No replacement characters are inserted. NUL and a leading U+FEFF are preserved; no normalization or BOM stripping occurs. Valid text is checked once, then copied to reserved output storage. Failed reservation returns allocation with an undefined offset. The buffer is unchanged on success and failure. Process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport {fromArray,toUtf8} from \"std:bytes\"; function main(){match(fromArray([195,169,240,159,152,128])){Ok(bytes)=>{match(toUtf8(bytes)){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.message);}}},Err(error)=>{console.log(error.message);}}}\n```\n\nExpected output: \u00e9\ud83d\ude00.\n\nOwnership: borrows the input and returns independent owned storage; no input is consumed or implicitly cloned.",
+  "examples": [
+    {
+      "source": "import {fromArray,toUtf8} from \"std:bytes\"; function main(){match(fromArray([195,169,240,159,152,128])){Ok(bytes)=>{match(toUtf8(bytes)){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.message);}}},Err(error)=>{console.log(error.message);}}}",
+      "output": "\u00e9\ud83d\ude00\n"
+    }
+  ]
 }
 ]
 }

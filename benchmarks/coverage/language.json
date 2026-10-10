@@ -618,7 +618,9 @@
       "native.bytes.resize",
       "native.bytes.append",
       "native.bytes.copy",
-      "native.bytes.clone"
+      "native.bytes.clone",
+      "native.bytes.fromUtf8",
+      "native.bytes.toUtf8"
   ]
 }
 ]

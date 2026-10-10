@@ -7,7 +7,7 @@ pub(super) fn native_observer(symbol: &str) -> bool {
             || binding.module == "std:os"
                 && matches!(binding.name, "platform" | "arch" | "endianness")
             || binding.module == "std:bytes"
-                && matches!(binding.name, "fromArray" | "length" | "at" | "alloc" | "copy")
+                && matches!(binding.name, "fromArray" | "length" | "at" | "alloc" | "copy" | "fromUtf8" | "toUtf8")
             || binding.module == "std:testing-runtime"
                 && matches!(binding.name, "checkAssertion" | "numericValue" | "lengthValue" | "hasLength" | "containsValue")
     })

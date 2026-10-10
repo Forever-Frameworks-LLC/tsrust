@@ -1,0 +1,74 @@
+import { fromUtf8, toUtf8, fromArray, length } from "std:bytes";
+
+function textFor(index: int): string {
+    if (index === 0) {
+        return "ASCII";
+    }
+
+    if (index === 1) {
+        return "é😀";
+    }
+
+    if (index === 2) {
+        return "A\u0000B";
+    }
+
+    return "\uFEFFz";
+}
+
+function invalid(values: ReadOnly<int[]>): int[] {
+    match (fromArray(values)) {
+        Ok(bytes) => {
+            match (toUtf8(bytes)) {
+                Ok(_) => {
+                    return [-1, -1];
+                },
+                Err(error) => {
+                    return [error.code.length, error.offset ?? -1];
+                },
+            }
+        },
+        Err(error) => {
+            return [-1, -1];
+        },
+    }
+}
+
+function workload(n: int, seed: int, input: string): int[][] {
+    const output: int[][] = [];
+    let i = 0;
+    while (i < n) {
+        const text = textFor((i + seed) % 4);
+        match (fromUtf8(text)) {
+            Ok(bytes) => {
+                const before = length(bytes);
+                match (toUtf8(bytes)) {
+                    Ok(decoded) => {
+                        let equal = 0;
+                        if (decoded === text) {
+                            equal = 1;
+                        }
+
+                        const bad = invalid([65, 195, 40]);
+                        const truncated = invalid([65, 226, 130]);
+                        output.push([before, equal, bad[0], bad[1], truncated[0], truncated[1], length(bytes)]);
+                    },
+                    Err(error) => {
+                        output.push([-1000000]);
+                    },
+                }
+            },
+            Err(error) => {
+                output.push([-1000000]);
+            },
+        }
+
+        i += 1;
+    }
+
+    return output;
+}
+
+function main() {
+    workload(1, 0, "bytes");
+}

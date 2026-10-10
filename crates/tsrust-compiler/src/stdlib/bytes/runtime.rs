@@ -225,3 +225,9 @@ mod copy_append_tests {
         assert_eq!((error.code, error.offset), ("allocation", None)); assert_eq!(bytes, [0, 7, 255]);
     }
 }
+
+#[cfg(test)]
+mod utf8 {
+    use super::*;
+    include!("utf8_runtime.rs");
+}
