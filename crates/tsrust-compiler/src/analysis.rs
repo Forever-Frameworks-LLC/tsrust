@@ -9771,7 +9771,7 @@ impl Analyzer {
             }
             let id = self.program.records.len();
             self.program.records.push(Record {
-            map_definition: None, set_definition: None,                enum_definition: None,
+            native_type: None, map_definition: None, set_definition: None,                enum_definition: None,
                 application: None,
                 name: Token {
                     text: format!("BuiltinObject{id}"),

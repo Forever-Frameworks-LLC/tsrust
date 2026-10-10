@@ -302,7 +302,7 @@ impl Context<'_> {
                         name: Token { kind: TokenKind::Symbol, text: index.to_string(), span: annotation.span },
                         annotation: annotation.clone(), ty: None, callable_declaration: None, optional: false,
                     }).collect();
-                    self.records.push(Record { map_definition: None, set_definition: None, enum_definition: None, application: None, name: Token { kind: TokenKind::Symbol, text:label.clone(), span:value.span }, type_parameters: Vec::new(), fields });
+                    self.records.push(Record { native_type: None, map_definition: None, set_definition: None, enum_definition: None, application: None, name: Token { kind: TokenKind::Symbol, text:label.clone(), span:value.span }, type_parameters: Vec::new(), fields });
                     self.names.insert(label.clone(), id);
                     id
                 };
@@ -391,7 +391,7 @@ impl Context<'_> {
         let label = format!("Set<{}>", self.label(key));
         if let Some(&id) = self.names.get(&label) { return Ok(id); }
         let id = self.records.len();
-        self.records.push(Record { map_definition: None, set_definition: Some(SetDefinition { key }), enum_definition: None,
+        self.records.push(Record { native_type: None, map_definition: None, set_definition: Some(SetDefinition { key }), enum_definition: None,
             name: Token { text: label.clone(), span, kind: TokenKind::Symbol }, type_parameters: Vec::new(), fields: Vec::new(),
             application: Some(Box::new(RecordApplication { declaration: Token { text: "Set".into(), span, kind: TokenKind::Name }, arguments: arguments.to_vec() })) });
         self.names.insert(label, id);
@@ -407,7 +407,7 @@ impl Context<'_> {
         let label = format!("Map<{}, {}>", self.label(key), self.label(value));
         if let Some(&id) = self.names.get(&label) { return Ok(id); }
         let id = self.records.len();
-        self.records.push(Record { map_definition: Some(MapDefinition { key, value, entry: None }), set_definition: None, enum_definition: None,
+        self.records.push(Record { native_type: None, map_definition: Some(MapDefinition { key, value, entry: None }), set_definition: None, enum_definition: None,
             name: Token { text: label.clone(), span, kind: TokenKind::Symbol }, type_parameters: Vec::new(), fields: Vec::new(),
             application: Some(Box::new(RecordApplication { declaration: Token { text: "Map".into(), span, kind: TokenKind::Name }, arguments: arguments.to_vec() })) });
         self.names.insert(label, id); self.unions.register_map_type(id); Ok(id)
@@ -453,7 +453,7 @@ impl Context<'_> {
         self.instances.insert(key, index);
         *self.counts.entry(name.to_owned()).or_default() += 1;
         self.records.push(Record {
-            map_definition: None, set_definition: None,                enum_definition: None,
+            native_type: None, map_definition: None, set_definition: None,                enum_definition: None,
             application: Some(Box::new(RecordApplication { declaration: template.name.clone(), arguments: arguments.to_vec() })),
             name: Token {
                 text: label,

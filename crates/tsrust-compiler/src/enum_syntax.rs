@@ -30,7 +30,7 @@ impl Parser<'_> {
             if !self.accept(",") { self.expect("}")?; break; }
         }
         self.accept(";");
-        Ok(Record { map_definition: None, set_definition: None, enum_definition: Some(EnumDefinition { kind: kind.unwrap_or(EnumKind::Number), members }),
+        Ok(Record { native_type: None, map_definition: None, set_definition: None, enum_definition: Some(EnumDefinition { kind: kind.unwrap_or(EnumKind::Number), members }),
             application: None, name, type_parameters: Vec::new(), fields: Vec::new() })
     }
 }

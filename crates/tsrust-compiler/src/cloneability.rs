@@ -148,7 +148,7 @@ pub(crate) mod tests {
     pub(crate) fn record(types: &[Type]) -> Record {
             let span = Span::new(0, 1);
         Record {
-            map_definition: None, set_definition: None,                enum_definition: None,
+            native_type: None, map_definition: None, set_definition: None,                enum_definition: None,
             name: Token {
                 text: "Schema".into(),
                 span,

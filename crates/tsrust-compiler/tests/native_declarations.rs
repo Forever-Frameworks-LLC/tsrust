@@ -66,3 +66,45 @@ fn native_type_imports_do_not_select_callable_runtime_features() {
     assert_eq!(features.into_iter().collect::<Vec<_>>(), vec!["path"]);
     assert!(tsrust_compiler::native_bindings::selected_features([("std:bytes", "missing")]).is_err());
 }
+
+#[test]
+fn checked_native_arena_records_keep_identity_and_optional_field_types() {
+    use tsrust_compiler::{native_type_resolution::intern, Span};
+    let mut records = Vec::new();
+    let span = Span::new(4, 9);
+    let bytes = intern(&mut records, NativeTypeId::Bytes, span).unwrap();
+    assert_eq!(intern(&mut records, NativeTypeId::Bytes, Span::new(20, 25)).unwrap(), bytes);
+    let error = intern(&mut records, NativeTypeId::ByteError, span).unwrap();
+    assert_ne!(bytes, error);
+    assert_eq!(records.len(), 2);
+    assert_eq!(records[bytes].native_type, Some(NativeTypeId::Bytes));
+    assert!(records[bytes].fields.is_empty());
+    assert!(matches!(&records[error].fields[2].annotation.kind, tsrust_compiler::type_syntax::ValueAnnotationKind::Union(parts) if parts.len() == 2));
+    assert!(records[error].fields[2].optional);
+}
+
+#[test]
+fn recursive_native_projection_keeps_ids_and_rolls_back_failures() {
+    use tsrust_compiler::{native_type_resolution::{intern, project, linked_name}, Span};
+    use tsrust_compiler::native_signatures::Intrinsic;
+    use tsrust_compiler::type_syntax::ValueAnnotationKind as Kind;
+    let span = Span::new(8, 12);
+    let mut records = Vec::new();
+    let signature = Signature::Result(&Signature::Array(&Signature::Named(NativeTypeId::Bytes)), &Signature::Named(NativeTypeId::ByteError));
+    let annotation = project(&mut records, &signature, span).unwrap();
+    let Kind::Applied { name, arguments } = annotation.kind else { panic!("Result annotation"); };
+    assert_eq!(name.text, "Result");
+    let Kind::Array(element) = &arguments[0].kind else { panic!("array payload"); };
+    assert!(matches!(&element.kind, Kind::Named(name) if name.text == linked_name(NativeTypeId::Bytes)));
+    assert_eq!(records.len(), 2);
+    let mut retained = Vec::new();
+    intern(&mut retained, NativeTypeId::ByteError, span).unwrap();
+    let invalid = Signature::Result(&Signature::Named(NativeTypeId::Bytes), &Signature::Intrinsic(Intrinsic::ObservedValue));
+    assert_eq!(project(&mut retained, &invalid, span).unwrap_err().code, "native-type");
+    assert_eq!(retained.len(), 1);
+    assert_eq!(retained[0].native_type, Some(NativeTypeId::ByteError));
+    let mut deep: &'static Signature = &Signature::Int;
+    for _ in 0..129 { deep = Box::leak(Box::new(Signature::Array(deep))); }
+    assert_eq!(project(&mut retained, deep, span).unwrap_err().code, "native-type-limit");
+    assert_eq!(retained.len(), 1);
+}

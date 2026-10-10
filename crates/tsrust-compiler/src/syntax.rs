@@ -1513,6 +1513,8 @@ pub struct MapDefinition { pub key: Type, pub value: Type, pub entry: Option<usi
 
 #[derive(Clone, Debug)]
 pub struct Record {
+    /// Native declaration identity is compiler-owned, never inferred from fields or names.
+    pub native_type: Option<crate::native_signatures::NativeTypeId>,
     pub set_definition: Option<SetDefinition>,
     pub map_definition: Option<MapDefinition>,
     pub enum_definition: Option<EnumDefinition>,
@@ -2062,7 +2064,7 @@ impl Parser<'_> {
         self.accept(";");
         Ok((
             Record {
-                map_definition: None,
+                native_type: None, map_definition: None,
                 set_definition: None,
                 enum_definition: None,
                 name,
@@ -2280,7 +2282,7 @@ impl Parser<'_> {
                 }
                 self.expect(";")?;
                 program.records.push(Record {
-                    map_definition: None, set_definition: None,                    enum_definition: None,
+                    native_type: None, map_definition: None, set_definition: None,                    enum_definition: None,
                     name,
                     type_parameters,
                     fields,

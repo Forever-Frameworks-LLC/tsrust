@@ -45,7 +45,7 @@ impl Context<'_> {
                     }]
                 };
                 self.records.push(Record {
-                    name: Token { text: name.clone(), span: value.span, kind: TokenKind::Symbol },
+                    native_type: None, name: Token { text: name.clone(), span: value.span, kind: TokenKind::Symbol },
                     application: Some(Box::new(RecordApplication {
                         declaration: Token { text: key.0.clone(), span: value.span, kind: TokenKind::Symbol },
                         arguments: arguments.clone(),

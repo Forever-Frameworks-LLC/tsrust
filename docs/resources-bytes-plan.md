@@ -286,3 +286,26 @@ checked opaque storage or imported type help is claimed by this increment.
 Next: resolve declaration IDs into checked arena types and link native type names
 separately from callable symbols, including type aliases and re-exports. Then connect
 fromArray/length, their catalog help and the matched workload. Consumers remain B10.
+
+## Gate 187 arena projection increment
+
+Native arena records now carry an explicit `native_type` declaration ID. Source
+record, interface, tuple, enum, collection and Result constructors set it to None;
+field shape and a source spelling cannot manufacture native identity.
+`native_type_resolution.rs` interns native declarations by ID, projects recursive
+Named/Array/Result signatures into structured annotations and preserves optional
+fields as unions with undefined. Repeated imports share the arena declaration.
+Projection is bounded to depth 128 and 4,096 visited nodes. Failed projection removes
+new declarations and retains previously interned declarations.
+
+This module is isolated from project linking and emission for now. Native Bytes
+must not enter source checking until opaque construction, capability checks and
+native storage emission are connected together. ByteError remains a nominal public
+record; Bytes remains opaque, never an empty source record representation.
+
+Focused evidence is stored in SQLite at
+`runtime/results/native-arena-projection-2026-10-10-checks.json`. Continue by wiring
+native imports into the project linker's early alias visibility and final name map,
+then inject interned declarations into the linked program. Add source witnesses for
+aliases, re-exports, nominal distinctions, opaque construction rejection and native
+storage before claiming checked Bytes support. Gate 187 and S07 remain open.
