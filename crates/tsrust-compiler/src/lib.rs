@@ -9,6 +9,7 @@ pub use parameters::ParameterOmission;
 mod callable_contracts;
 mod callable_storage;
 mod native_view_callable_storage;
+mod native_view_family_registry;
 mod capture_loan_owners;
 mod capture_loan_identity;
 mod callable_layout;

@@ -103,3 +103,21 @@ additional candidate allocation. Candidate native-view families remain rejected
 with the pending lifetime-storage diagnostic. Registry identity integration, actual
 callee loan transport and lifetime-bearing family emission are still required to
 turn the retained positive stored-callback witness green.
+
+## Prepared registry integration checkpoint
+
+callable_storage::Registry now retains candidate native layouts in an optional,
+separate native_view_family_registry arena. Prepared IDs cannot be used as source
+StoredCallable IDs. Preparing a native alternative still returns the unsupported
+storage diagnostic and does not populate the ordinary family's admitted origins.
+The original structural contract and invocation mode remain part of each layout.
+Repeated preparation canonicalizes equal layouts and accumulates distinct candidate
+alternatives without merging their slot identities.
+
+Closure compaction now validates prepared origins even when no ordinary family
+origin was admitted. A failed mapping leaves all metadata unchanged. A successful
+mapping moves each alternative's capture paths and access mode with its origin,
+then reorders alternatives canonically. Ordinary programs allocate no prepared
+arena. This integrates finite layout identity into the registry but does not yet
+create an admitted scoped owning source type. That type, actual-callee provenance
+and lifetime-bearing native emission remain prerequisites of positive acceptance.

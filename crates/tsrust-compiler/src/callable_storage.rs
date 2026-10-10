@@ -180,8 +180,14 @@ pub(crate) struct Registry {
     origins: Vec<Vec<usize>>,
     borrowed: std::collections::HashSet<usize>,
     nested_results: std::collections::HashSet<(usize,usize)>,
+    native_views: Option<Box<crate::native_view_family_registry::Registry>>,
 }
 impl Registry {
+    #[cfg(test)]
+    fn prepared_native_family(&self,family:usize)->Option<&crate::native_view_callable_storage::Family> {
+        self.native_views.as_ref()?.get(family)
+    }
+
     pub(crate) fn note_nested_result(&mut self, actual:usize, expected:usize) {
         self.nested_results.insert((actual.min(expected),actual.max(expected)));
     }
@@ -252,6 +258,19 @@ impl Registry {
             for &other in origins{crate::borrowed_callable_contracts::Family::checked(closures,[origins[0],other],span)?;}
             return Ok(());
         }
+        if closures.get(origin).is_some_and(|closure|closure.borrowed) {
+            let mut candidates=self.origins(family).unwrap_or_default().to_vec();
+            if let Some(prepared)=self.native_views.as_ref().and_then(|registry|registry.get(family)) {
+                candidates.extend(prepared.alternatives.iter().map(|alternative|alternative.origin));
+            }
+            candidates.push(origin);
+            if let Some(layout)=crate::native_view_callable_storage::family_slots(declaration,signatures,candidates,closures,span)? {
+                self.native_views.get_or_insert_with(Default::default).prepare(family,layout);
+                return Err(Diagnostic::new("native-view-callable-storage",
+                    "This callback owns its environment but carries borrowed byte views. Lifetime-bearing callable storage is not implemented yet.",span)
+                    .related(closures[origin].span,"Carried byte-view environment is created here."));
+            }
+        }
         crate::callable_dispatch::Family::checked_results(declaration,signatures,[origin],closures,span,|actual,expected|self.equivalent_result(actual,expected))?;
         let origins = &mut self.origins[family];
         if let Err(index) = origins.binary_search(&origin) {
@@ -285,7 +304,7 @@ impl Registry {
     /// Keep family identities stable when definitive checking compacts closures.
     /// Validate the whole mapping before changing any registered origin set.
     pub(crate) fn remap_origins(&mut self, ids: &[Option<usize>]) -> Result<(), Diagnostic> {
-        if self.origins.iter().all(Vec::is_empty) { return Ok(()); }
+        if self.origins.iter().all(Vec::is_empty) && self.native_views.is_none() { return Ok(()); }
         let count = ids.iter().filter(|id| id.is_some()).count();
         let mut seen = vec![false; count];
         for id in ids.iter().flatten().copied() {
@@ -298,12 +317,14 @@ impl Registry {
                 return Err(Diagnostic::new("callable-layout", "Callable storage retains an unresolved environment origin.", Span::default()));
             }
         }
+        let native_views=self.native_views.as_ref().map(|registry|registry.remapped(ids)).transpose()?;
         let nested_results=self.nested_results.iter().map(|&(a,b)|{
             let a=ids.get(a).copied().flatten().ok_or_else(||Diagnostic::new("callable-layout","Nested result lost its environment origin.",Span::default()))?;
             let b=ids.get(b).copied().flatten().ok_or_else(||Diagnostic::new("callable-layout","Nested result lost its environment origin.",Span::default()))?;
             Ok((a.min(b),a.max(b)))
         }).collect::<Result<std::collections::HashSet<_>,Diagnostic>>()?;
         self.nested_results=nested_results;
+        self.native_views=native_views.map(Box::new);
         self.identities=std::mem::take(&mut self.identities).into_iter().map(|(contract,id)|{
             let contract=if let StorageContract::Borrowed(signature,origins)=contract {
                 let mut origins=origins.into_iter().map(|origin|ids[origin].expect("validated borrowed origin")).collect::<Vec<_>>();origins.sort();
@@ -504,4 +525,36 @@ fn borrowed_family_identity_retains_distinct_origins_after_compaction() {
     assert_eq!(registry.intern_borrowed(signature,2,[2,0]),second);
     assert!(crate::syntax::ArrayElement::from_value_type(crate::syntax::Type::BorrowedCallable(first)).is_none());
     assert!(!crate::syntax::Type::BorrowedCallable(first).is_copy());
+}
+
+#[cfg(test)]
+#[test]
+fn native_view_storage_registry_retains_guarded_candidate_without_admitting_origin() {
+    let source="type Window={};function first(view:Window){return ()=>view;}function second(view:Window){return ()=>view;}function main(){}";
+    let formatted=crate::formatting::format(source).unwrap();
+    assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
+    let mut parsed=crate::syntax::parse(&formatted).unwrap();
+    parsed.records[0].native_type=Some(crate::native_signatures::NativeTypeId::ByteView);
+    let mut checked=crate::analysis::analyze(parsed).unwrap();
+    let result=checked.closures[0].function.result;
+    let structural=checked.callable_shapes.intern([],result,Some(CallbackKind::OwnedOnce));
+    let callback=crate::analysis::CallbackContract{structural,parameter_names:Vec::new(),params:Vec::new(),result,kind:CallbackKind::OwnedOnce};
+    let mut registry=Registry::default();
+    let crate::syntax::Type::StoredCallable(family)=registry.intern(&checked.callable_shapes,&callback,0).unwrap() else {unreachable!()};
+    for origin in [1,0,1] {
+        let error=registry.register_origin(family,origin,std::slice::from_ref(&callback),&checked.callable_shapes,&checked.closures,Span::default()).unwrap_err();
+        assert_eq!(error.code,"native-view-callable-storage");
+    }
+    assert!(registry.origins(family).unwrap().is_empty(),"preparation cannot admit lifetime-free storage");
+    assert!(!registry.is_borrowed(family));
+    let layout=registry.prepared_native_family(family).expect("registry must retain candidate lifetime layout");
+    assert_eq!(layout.invocation,Mode::Consume);
+    assert_eq!(layout.alternatives.iter().map(|alternative|alternative.origin).collect::<Vec<_>>(),vec![0,1]);
+    let before=layout.clone();
+    assert!(registry.remap_origins(&[Some(0),None]).is_err());
+    assert_eq!(registry.prepared_native_family(family),Some(&before));
+    registry.remap_origins(&[Some(1),Some(0)]).unwrap();
+    let remapped=registry.prepared_native_family(family).unwrap();
+    assert_eq!(remapped.alternatives.iter().map(|alternative|alternative.origin).collect::<Vec<_>>(),vec![0,1]);
+    assert_eq!(remapped.invocation,Mode::Consume);
 }
