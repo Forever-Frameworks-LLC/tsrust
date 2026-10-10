@@ -901,6 +901,7 @@ fn every_catalog_entry_has_a_current_compiler_witness() {
                     "Infinity" => "Infinity",
                     "Set" => "new Set<int>([1]).size",
                     "Map" => "new Map<string, int>().size",
+                    "clone" => "clone(\"text\").length",
                     _ => panic!("unverified global {method}"),
                 };
                 assert!(
@@ -1800,7 +1801,7 @@ fn builtin_namespaces_globals_and_types_have_contextual_hover() {
     }
     for (needle, parameter) in [
         ("value);", "Optional primitive"),
-        ("text);", "Required string"),
+        ("text);", "Required cloneable owned value"),
     ] {
         let help = ask(source, "textDocument/signatureHelp", needle, 0);
         assert!(
@@ -3224,7 +3225,7 @@ fn nullable_union_help_and_observations_preserve_whole_value_types() {
         clone_docs["contents"]["value"]
             .as_str()
             .unwrap()
-            .contains("preserving its type and active variant")
+            .contains("preserving its type and active union variant")
     );
     let rejected_copy = "function main(){const value:int|null=1;clone(value);}";
     assert!(tsrust_compiler::check(rejected_copy).is_err());
