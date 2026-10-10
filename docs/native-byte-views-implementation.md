@@ -487,3 +487,30 @@ Captures that own the storage or hold a mutable reference still require receiver
 lifetime contracts. Returning exclusive access through a shared capture remains
 rejected. Escaped/rebound environments and the full callback/storage matrix remain
 open; gate 189 is not accepted.
+
+## Receiver-owned storage contracts
+
+Returned storage borrowed from an owned or mutable capture now identifies the
+caller's stable closure binding as its physical owner, with a capture-field
+footprint. It does not retain the moved-from outer variable. Shared results permit
+read-only invocations while blocking mutation and transfer; exclusive results also
+block reads. Returning a view of a local closure's storage is diagnosed as an escape.
+Consuming invocations remain rejected for these storage-borrow summaries; transferred
+capture borrows still need separate planning.
+
+The shared native signature carries an explicit receiver mode. Ordinary and
+specialized method headers name a receiver lifetime and use it for returned storage
+slots. Other function signatures keep their existing receiver-free form.
+
+Private analyzer controls check receiver identity, owner conflicts, release and
+consuming-invocation rejection. Native controls use the actual planned headers with
+safe Vec-backed bodies for both owned storage and mutable owner references. O0/O3
+checks verify pointer identity, shared concurrent reads,
+exclusive write-through and reacquisition after the view's scope ends. Independent
+negative compilations reject receiver escape, owner mutation/moves and overlapping
+exclusive calls.
+
+These remain private provenance/signature controls, not complete factory-generated
+source acceptance. Source scope-exit/drop enforcement, unused consuming closure
+validation, mixed callback-record contracts and escaped/rebound environments require
+further witnesses before publication. The public borrowed-signature guard remains.

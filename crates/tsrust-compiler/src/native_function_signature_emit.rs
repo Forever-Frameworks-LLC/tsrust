@@ -2,6 +2,7 @@
 use super::*;
 
 pub(super) struct NativeSignature {
+    pub(super) receiver:Option<Mode>,
     pub(super) params: String,
     pub(super) result: String,
     pub(super) generics: String,
@@ -237,6 +238,7 @@ impl Emitter<'_> {
             format!(" where {}", replacements.join(", "))
         };
         NativeSignature {
+            receiver:None,
             result:self.native_view_signature_type(fun.result,None,&native_lifetimes),
             params,
             generics,

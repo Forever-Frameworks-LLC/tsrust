@@ -60,14 +60,18 @@ impl Emitter<'_> {
         let (lifetimes,_)=self.capture_layout(closure);
         let mut next=0;
         let mut captures=BTreeMap::new();
+        let mut receiver=false;
         for (position,capture) in closure.captures.iter().enumerate() {
             let root=method.map_or(capture.inner,|method|closure.methods[method].captures[position]);
             if capture.storage==Mode::Read {captures.insert((root,LifetimeSource::Storage),lifetimes[next].clone());}
+            else if function.native_returns.as_deref().into_iter().flatten().any(|loan|loan.root==root && loan.source==LifetimeSource::Storage) {
+                captures.insert((root,LifetimeSource::Storage),"'native_receiver".into());receiver=true;
+            }
             next+=usize::from(matches!(capture.storage,Mode::Read|Mode::Mutate));
             let ty=self.native_captures.ty(&closure.function,capture.inner);
             self.native_view_capture_slots(ty,root,&mut Vec::new(),&mut Vec::new(),&lifetimes,&mut next,&mut captures);
         }
-        Some(self.native_signature_from_plan(native_function_signature_emit::NativeSignaturePlan {
+        let mut signature=self.native_signature_from_plan(native_function_signature_emit::NativeSignaturePlan {
             native_capture_lifetimes:captures,
             function,
             parameters:parameters.to_vec(),
@@ -77,7 +81,13 @@ impl Emitter<'_> {
             owner_parameters:String::new(),
             record_bounds:Vec::new(),
             replacement_bounds:Vec::new(),
-        },&[]))
+        },&[]);
+        if receiver {
+            let invocation=method.map_or(closure.invocation,|method|closure.methods[method].invocation);
+            signature.receiver=Some(invocation);
+            signature.generics=if signature.generics.is_empty() {"<'native_receiver>".into()}else{format!("<'native_receiver, {}",&signature.generics[1..])};
+        }
+        Some(signature)
     }
 
     fn native_view_capture_slots(&self,ty:Type,root:usize,path:&mut Vec<Segment>,guards:&mut Vec<VariantGuard>,lifetimes:&[String],next:&mut usize,slots:&mut BTreeMap<(usize,LifetimeSource),String>) {

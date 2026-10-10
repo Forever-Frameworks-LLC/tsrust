@@ -255,6 +255,77 @@ fn main() {{
         }
     }
     #[test]
+    fn native_view_receiver_signatures_keep_owned_storage_borrowed() {
+        use crate::analysis::native_view_loans::{Loan,LifetimeSource};
+        let source="type Window={};function factory(owner:string):Function<int>{return ():int=>owner.length;}function main(){const callback=factory('bytes');callback();}";
+        let formatted=crate::formatting::format(source).unwrap();
+        assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
+        let directory=std::env::temp_dir().join(format!("tsrust-native-receiver-{}",std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        struct Cleanup(std::path::PathBuf);
+        impl Drop for Cleanup {fn drop(&mut self){let _=std::fs::remove_dir_all(&self.0);}}
+        let _cleanup=Cleanup(directory.clone());
+        for borrowed in [false,true] {
+        for exclusive in [false,true] {
+            let formatted=if borrowed {
+                crate::formatting::format("type Window={};function main(){let owner='bytes';const callback=():int=>{owner='next';return owner.length;};callback();}").unwrap()
+            } else {formatted.clone()};
+            assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
+            let mut parsed=crate::syntax::parse(&formatted).unwrap();
+            parsed.records[0].native_type=Some(if exclusive {crate::native_signatures::NativeTypeId::ByteViewMut}else{crate::native_signatures::NativeTypeId::ByteView});
+            let mut checked=crate::analysis::analyze(parsed).unwrap();
+            let closure=&mut checked.closures[0];let capture=closure.captures[0].inner;
+            assert_eq!(closure.captures[0].storage,if borrowed {crate::Mode::Mutate}else{crate::Mode::Consume});
+            closure.invocation=if exclusive || borrowed {crate::Mode::Mutate}else{crate::Mode::Read};
+            closure.function.result=Type::Record(0);
+            closure.function.native_returns=Some(Box::new(vec![Loan{
+                root:capture,owner_fields:vec![],source:LifetimeSource::Storage,
+                access:if exclusive {BorrowAccess::Exclusive}else{BorrowAccess::ReadOnly},
+                creation:crate::Span::default(),retained:true,path:vec![],guards:vec![],
+            }]));
+            let generated=crate::emit::emit(&checked);
+            let signature=generated.lines().find(|line|line.trim_start().starts_with("fn call")).unwrap().trim();
+            // Native factory bodies remain guarded; exercise the actual planned header
+            // with a safe Vec-backed owner model, including exclusive reborrowing.
+            let reference=if exclusive {"mut "}else{""};
+            let operation=if exclusive {"as_mut_slice"}else{"as_slice"};
+            let (declaration,implementation,field,backing,initial)=if borrowed {
+                ("Owner<'c0>","impl<'c0> Owner<'c0>","&'c0 mut Vec<u8>","let mut backing=vec![1,2];", "&mut backing")
+            }else{("Owner","impl Owner","Vec<u8>","","vec![1,2]")};
+            let callback=format!("let mut callback=Owner{{capture{capture}:{initial}}};");
+            let definitions=format!("struct Record0<'a>{{bytes:&'a {reference}[u8]}} struct {declaration}{{capture{capture}:{field}}} {implementation}{{{signature} Record0{{bytes:self.capture{capture}.{operation}()}} }} }}");
+            let change=if exclusive {"returned.bytes[0]=9;"}else if borrowed {""}else{"let second=callback.call();assert_eq!(second.bytes.as_ptr(),pointer);"};
+            let expected=if exclusive {9}else{1};
+            let positive=definitions.clone()+&format!(r#"
+fn main() {{
+    {backing}{callback}let pointer=callback.capture{capture}.as_ptr();
+    {{let returned=callback.call();assert_eq!(returned.bytes.as_ptr(),pointer);{change}assert_eq!(returned.bytes[1],2);}}
+    callback.capture{capture}.push(3);assert_eq!(callback.capture{capture}[0],{expected});
+}}
+"#);
+            let input=directory.join(format!("positive-{borrowed}-{exclusive}.rs"));std::fs::write(&input,positive).unwrap();
+            for level in [0,3] {
+                let output=directory.join(format!("positive-{borrowed}-{exclusive}-{level}"));
+                let built=std::process::Command::new("rustup").args(["run",crate::RUST_BACKEND_VERSION,"rustc","--edition=2024",&format!("-Copt-level={level}")]).arg(&input).arg("-o").arg(&output).output().unwrap();
+                assert!(built.status.success(),"{}",String::from_utf8_lossy(&built.stderr));
+                let run=std::process::Command::new(output).output().unwrap();assert!(run.status.success(),"{}",String::from_utf8_lossy(&run.stderr));
+            }
+            let mut failures=vec![
+                (format!("{backing}let escaped;{{{callback}escaped=callback.call();}}assert_eq!(escaped.bytes[0],1);"),"does not live long enough"),
+                (format!("{backing}{callback}let returned=callback.call();drop(callback);assert_eq!(returned.bytes[0],1);"),"cannot move out"),
+                (format!("{backing}{callback}let returned=callback.call();callback.capture{capture}.push(3);assert_eq!(returned.bytes[0],1);"),"cannot borrow"),
+            ];
+            if exclusive || borrowed {failures.push((format!("{backing}{callback}let first=callback.call();let second=callback.call();assert_eq!(first.bytes[0],second.bytes[0]);"),"cannot borrow"));}
+            for (case,(body,expected)) in failures.into_iter().enumerate() {
+                let input=directory.join(format!("negative-{borrowed}-{exclusive}-{case}.rs"));std::fs::write(&input,definitions.clone()+"fn main(){"+&body+"}").unwrap();
+                let failed=std::process::Command::new("rustup").args(["run",crate::RUST_BACKEND_VERSION,"rustc","--edition=2024"]).arg(&input).arg("-o").arg(directory.join(format!("negative-{borrowed}-{exclusive}-{case}"))).output().unwrap();
+                assert!(!failed.status.success(),"receiver borrow conflict {exclusive}/{case} compiled");
+                assert!(String::from_utf8_lossy(&failed.stderr).contains(expected),"{}",String::from_utf8_lossy(&failed.stderr));
+            }
+        }
+        }
+    }
+    #[test]
     fn native_view_of_borrowed_capture_uses_owner_reference_lifetime() {
         use crate::analysis::native_view_loans::{Loan,LifetimeSource};
         let source="type Window={};function sample(owner:ReadOnly<string>):void{const callback=():int=>owner.length;callback();}function main(){}";

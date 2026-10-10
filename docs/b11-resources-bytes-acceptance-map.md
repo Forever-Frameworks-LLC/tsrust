@@ -92,10 +92,14 @@ pointer identity and exclusive write-through. Alternative inputs and independent
 record fields retain separate lifetimes. This supersedes the pending lists in older
 checkpoint paragraphs, which retain their original historical scope.
 
-Public views remain guarded. Borrowing receiver returns, captured owner storage,
+Receiver-owned and mutable capture storage now have private caller-loan and named
+receiver-signature controls, including mutation/move/escape conflicts. Complete
+source scope/drop and factory-body integration for these contracts remain pending.
+
+Public views remain guarded. Receiver scope/drop enforcement and source integration,
 escaped/rebound environments, specialized callbacks, arbitrary stored callable
 families, recursive carriers, collection transport
 and exceptional completion reconciliation remain pending. Factory/editor/benchmark
 acceptance and the S07 family review are still required. See
-handoff-2026-10-10-native-view-shared-owner-captures.md and
+handoff-2026-10-10-native-view-receiver-contracts.md and
 native-byte-views-implementation.md.

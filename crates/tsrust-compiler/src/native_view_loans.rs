@@ -202,6 +202,17 @@ impl Analyzer {
                             let output=&returned.loan;
                             let position=match returned.source {
                                 super::native_view_calls::Source::Argument(position)=>position,
+                                super::native_view_calls::Source::Receiver(capture)=>{
+                                    let root=match value.target {
+                                        Some(CallTarget::Closure(root))=>Some(root),
+                                        Some(CallTarget::ClosureMethod(_))=>match &value.kind {ExprKind::Call(callee,_)=>callee.binding,_=>None},
+                                        _=>None,
+                                    }.ok_or_else(||Diagnostic::new("native-view-call","A returned receiver view requires a stable callable binding.",value.span))?;
+                                    if context.bindings.get(root).is_none() {return Err(Diagnostic::new("native-view-call","Returned receiver storage is outside the current lexical environment.",value.span));}
+                                    let mut loan=output.clone();loan.root=root;loan.retained=true;
+                                    loan.owner_fields.insert(0,format!("capture{capture}"));
+                                    result.push(loan);continue;
+                                }
                                 super::native_view_calls::Source::BorrowedCapture(root)=>{
                                     let binding=context.bindings.get(root).ok_or_else(||Diagnostic::new("native-view-call","Captured owner is outside the current lexical environment.",value.span))?;
                                     let mut loan=output.clone();loan.root=root;loan.retained=true;

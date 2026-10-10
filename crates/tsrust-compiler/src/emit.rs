@@ -789,6 +789,7 @@ impl Emitter<'_> {
             format!("<{}>", generics.join(", "))
         };
         let view_signature=self.native_view_closure_signature(closure,Some(method),&checked.function,&checked.parameters);
+        let receiver=view_signature.as_ref().and_then(|signature|signature.receiver).map_or_else(||receiver.to_owned(),|mode|format!("&'native_receiver {}self",if mode==Mode::Mutate {"mut "}else{""}));
         let parameters=view_signature.as_ref().map_or(parameters,|signature|format!(", {}",signature.params));
         let generics=view_signature.as_ref().map_or(generics,|signature|signature.generics.clone());
         let native_result=view_signature.as_ref().map_or(native_result,|signature|error_name.as_ref().map_or_else(||signature.result.clone(),|name|format!("Result<{},{}>",signature.result,name)));
@@ -2412,6 +2413,7 @@ impl Emitter<'_> {
             let signature = forwarded_signature.as_ref().map(|(_, signature)| signature).or_else(|| closure_signature.as_ref().map(|signature| &signature.signature)).or(native_view_signature.as_ref());
             let receiver = closure_signature.as_ref().and_then(|signature|signature.receiver_lifetime)
                 .map_or_else(||receiver.to_owned(),|lifetime|format!("&{lifetime} mut self"));
+            let receiver=signature.and_then(|signature|signature.receiver).map_or(receiver,|mode|format!("&'native_receiver {}self",if mode==Mode::Mutate {"mut "}else{""}));
             let parameters = signature.map_or(parameters, |signature| format!(", {}", signature.params));
             let call_generics = signature.map_or(call_generics, |signature| signature.generics.clone());
             let replacement_where = signature.map_or_else(String::new, |signature| signature.replacement_where.clone());
@@ -2624,7 +2626,7 @@ impl Emitter<'_> {
             let index = plan.function;
             let fun = &self.program.functions[index];
             self.active_plan.set(Some(plan_id));
-            let native_function_signature_emit::NativeSignature {params,generics,replacement_where,result: view_result} = self.native_function_signature(index,&plan.parameters);
+            let native_function_signature_emit::NativeSignature {params,generics,replacement_where,result: view_result,..} = self.native_function_signature(index,&plan.parameters);
             let result_target=self.result_functions.borrow().get(&index).cloned();
             if result_target.is_some() {
             }
