@@ -1,0 +1,140 @@
+import { ByteView, fromArray, view, viewMut, at, set, copy, length } from "std:bytes";
+
+function first(part: ReadOnly<ByteView>): int {
+  match (at(part, 0)) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      return -1;
+    },
+  }
+}
+
+function workload(n: int, seed: int, input: string): int[][] {
+  const output: int[][] = [];
+  let i = 0;
+  while (i < n) {
+    const byte = (i + seed) % 256;
+    const next = (byte + 1) % 256;
+    const written = (byte + 2) % 256;
+    match (fromArray([0, byte, next, 255, 7])) {
+      Ok(bytes) => {
+        let size = -1;
+        let head = -1;
+        let tail = -1;
+        let inner = -1;
+        let copied = -1;
+        match (view(bytes, 1, 4)) {
+          Ok(part) => {
+            size = length(part);
+            head = first(part);
+            match (at(part, 2)) {
+              Ok(value) => {
+                tail = value;
+              },
+              Err(error) => {
+                tail = -2;
+              },
+            }
+
+            match (view(part, 1, 2)) {
+              Ok(nested) => {
+                inner = first(nested);
+              },
+              Err(error) => {
+                inner = -2;
+              },
+            }
+
+            match (copy(part, 0, 2)) {
+              Ok(owned) => {
+                copied = length(owned);
+              },
+              Err(error) => {
+                copied = -2;
+              },
+            }
+          },
+          Err(error) => {
+            size = -2;
+          },
+        }
+
+        let success = -1;
+        let writeCode = -1;
+        let writeOffset = -9;
+        match (viewMut(bytes, 1, 3)) {
+          Ok(window) => {
+            match (set(window, 1, written)) {
+              Ok(_) => {
+                success = 1;
+              },
+              Err(error) => {
+                success = -2;
+              },
+            }
+
+            match (set(window, 2, written)) {
+              Ok(_) => {
+                writeCode = -2;
+              },
+              Err(error) => {
+                writeCode = error.code.length;
+                writeOffset = error.offset ?? -3;
+              },
+            }
+          },
+          Err(error) => {
+            success = -3;
+          },
+        }
+
+        let through = -1;
+        match (at(bytes, 2)) {
+          Ok(value) => {
+            through = value;
+          },
+          Err(error) => {
+            through = -2;
+          },
+        }
+
+        let rangeCode = -1;
+        let rangeOffset = -9;
+        match (view(bytes, 4, 9)) {
+          Ok(part) => {
+            rangeCode = -2;
+          },
+          Err(error) => {
+            rangeCode = error.code.length;
+            rangeOffset = error.offset ?? -3;
+          },
+        }
+
+        let reversedOffset = -9;
+        match (view(bytes, 3, 1)) {
+          Ok(part) => {
+            reversedOffset = -2;
+          },
+          Err(error) => {
+            reversedOffset = error.offset ?? -3;
+          },
+        }
+
+        output.push([size, head, tail, inner, copied, success, writeCode, writeOffset, through, rangeCode, rangeOffset, reversedOffset]);
+      },
+      Err(error) => {
+        output.push([-1000000]);
+      },
+    }
+
+    i += 1;
+  }
+
+  return output;
+}
+
+function main() {
+  workload(1, 0, "bytes");
+}

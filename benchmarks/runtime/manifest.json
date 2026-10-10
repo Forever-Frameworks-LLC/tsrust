@@ -20506,6 +20506,34 @@
       "specification": "Seven observations retain Unicode/ASCII/NUL/BOM byte lengths and exact round trips, malformed and truncated sequence error codes/offsets, and unchanged buffer length. Node uses fatal TextDecoder with BOM preservation and an independent offset scanner after errors; this is a mixed strict-validation scenario, not isolated encoding throughput.",
       "sourceSha256": "847b4232155b543ed065fd2dab447301623ab347371eb1d52538d12720b78f93",
       "counterpartSha256": "2065b462625926472f7db56df80ef8f385097a72328afef10b0d483aaf433d9b"
+    },
+    {
+      "id": "native_byte_views",
+      "family": "native-byte-views",
+      "source": "workloads/native_byte_views.tsr",
+      "counterpart": "workloads/native_byte_views.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One zero-copy byte view read, nested view, write-through and range validation scenario",
+      "inputText": "bytes",
+      "category": "bytes",
+      "implementationGate": 189,
+      "measurementStatus": "pending-resources-bytes-family",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": false,
+      "measured": false,
+      "notes": "Gate 189 public byte views. Native and Node-after-tsc correctness verified untimed. S07 family measurements remain pending.",
+      "specification": "Twelve retained scalar observations per iteration: readonly view length, first and last byte, first byte of a nested view, length of an independent copy of the view, write success through an exclusive view, index error code length and offset for a write outside the view, the owner byte changed through the view, range error code length and offset for a view beyond the owner, and the offset of a reversed range. Independent arithmetic oracle; Uint8Array.subarray with explicit range validation.",
+      "sourceSha256": "491559d9f3d8be40d08be41e20793d852f7862f7a2df8881d98bf5cd9a6a3684",
+      "counterpartSha256": "718247cc468d50e9e6f41c6ca5db27b2f97edd4859415e8bebf04071460dd5cc"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",
