@@ -7,7 +7,7 @@ use crate::{Diagnostic, Mode, Span};
 /// Owned/shared construction proves structural storage eligibility. Borrowed
 /// identities additionally retain concrete alternatives and never certify ownership.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub(crate) enum StorageContract { Owned(ContractId), SharedRead(ContractId), Borrowed(ContractId, Vec<usize>) }
+pub(crate) enum StorageContract { Owned(ContractId), SharedRead(ContractId), Borrowed(ContractId, Vec<usize>), ScopedOwned(ContractId, Vec<usize>) }
 
 impl StorageContract {
     pub(crate) fn checked(signatures: &Contracts, signature: ContractId) -> Option<Self> {
@@ -41,7 +41,7 @@ impl StorageContract {
             )
             .related(closure.span, "Single-use closure is created here."));
         }
-        if closure.borrowed {
+        if closure.borrowed && !(matches!(self,Self::ScopedOwned(..)) && crate::native_view_callable_storage::carried_slots(closure).is_some()) {
             if let Some(slots)=crate::native_view_callable_storage::carried_slots(closure) {
                 return Err(Diagnostic::new(
                     "native-view-callable-storage",
@@ -64,7 +64,7 @@ impl StorageContract {
     }
 
     pub(crate) fn invocation(&self, signatures: &Contracts) -> Mode {
-        let Self::Owned(signature) = self else { return Mode::Read; };
+        let signature=match self {Self::Owned(signature)|Self::ScopedOwned(signature,_)=>signature,_=>return Mode::Read};
         match signatures.get(*signature).kind {
             Some(CallbackKind::Owned) => Mode::Mutate,
             Some(CallbackKind::OwnedOnce) => Mode::Consume,
@@ -181,7 +181,11 @@ pub(crate) struct Registry {
     borrowed: std::collections::HashSet<usize>,
     nested_results: std::collections::HashSet<(usize,usize)>,
     native_views: Option<Box<crate::native_view_family_registry::Registry>>,
+    scoped_native: std::collections::HashSet<usize>,
 }
+#[path="native_view_storage_registry.rs"]
+mod native_view_storage_registry;
+
 impl Registry {
     #[cfg(test)]
     fn prepared_native_family(&self,family:usize)->Option<&crate::native_view_callable_storage::Family> {
@@ -250,6 +254,12 @@ impl Registry {
             .ok_or_else(|| {
                 Diagnostic::new("callable-layout", "Unknown callable storage family.", span)
             })?;
+        if let Some(layout)=self.scoped_native_family(family) {
+            if !layout.alternatives.iter().any(|alternative|alternative.origin==origin) {
+                return Err(Diagnostic::new("native-view-callable-storage","A scoped owning callback requires its checked finite environment alternatives.",span));
+            }
+            return Ok(());
+        }
         if self.is_borrowed(family) {
             let origins=self.origins(family).expect("known borrowed family");
             if !origins.contains(&origin) || origins.is_empty() {
@@ -326,10 +336,17 @@ impl Registry {
         self.nested_results=nested_results;
         self.native_views=native_views.map(Box::new);
         self.identities=std::mem::take(&mut self.identities).into_iter().map(|(contract,id)|{
-            let contract=if let StorageContract::Borrowed(signature,origins)=contract {
-                let mut origins=origins.into_iter().map(|origin|ids[origin].expect("validated borrowed origin")).collect::<Vec<_>>();origins.sort();
-                StorageContract::Borrowed(signature,origins)
-            }else{contract};(contract,id)
+            let contract=match contract {
+                StorageContract::Borrowed(signature,origins)=>{
+                    let mut origins=origins.into_iter().map(|origin|ids[origin].expect("validated borrowed origin")).collect::<Vec<_>>();origins.sort();
+                    StorageContract::Borrowed(signature,origins)
+                }
+                StorageContract::ScopedOwned(signature,origins)=>{
+                    let mut origins=origins.into_iter().map(|origin|ids[origin].expect("validated scoped owning origin")).collect::<Vec<_>>();origins.sort();
+                    StorageContract::ScopedOwned(signature,origins)
+                }
+                contract=>contract,
+            };(contract,id)
         }).collect();
         for origins in &mut self.origins {
             for origin in origins.iter_mut() {
@@ -557,4 +574,42 @@ fn native_view_storage_registry_retains_guarded_candidate_without_admitting_orig
     let remapped=registry.prepared_native_family(family).unwrap();
     assert_eq!(remapped.alternatives.iter().map(|alternative|alternative.origin).collect::<Vec<_>>(),vec![0,1]);
     assert_eq!(remapped.invocation,Mode::Consume);
+}
+
+#[cfg(test)]
+#[test]
+fn native_view_scoped_owning_identity_is_separate_and_remaps_atomically() {
+    let source="type Window={};function first(view:Window){return ()=>view;}function second(view:Window){return ()=>view;}function main(){}";
+    let formatted=crate::formatting::format(source).unwrap();
+    assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
+    let mut parsed=crate::syntax::parse(&formatted).unwrap();
+    parsed.records[0].native_type=Some(crate::native_signatures::NativeTypeId::ByteView);
+    let mut checked=crate::analysis::analyze(parsed).unwrap();
+    let result=checked.closures[0].function.result;
+    let structural=checked.callable_shapes.intern([],result,Some(CallbackKind::OwnedOnce));
+    let callback=crate::analysis::CallbackContract{structural,parameter_names:vec![],params:vec![],result,kind:CallbackKind::OwnedOnce};
+    let mut registry=Registry::default();
+    let ordinary=registry.intern(&checked.callable_shapes,&callback,0).unwrap();
+    let scoped=registry.intern_scoped_native(&checked.callable_shapes,&callback,0,[1,0,1],&checked.closures,Span::default()).unwrap().unwrap();
+    assert_ne!(ordinary,scoped);
+    assert_eq!(registry.intern_scoped_native(&checked.callable_shapes,&callback,0,[0,1],&checked.closures,Span::default()).unwrap(),Some(scoped));
+    let crate::syntax::Type::StoredCallable(family)=scoped else {panic!("owning family expected")};
+    assert!(!registry.is_borrowed(family));
+    assert_eq!(registry.scoped_native_family(family).unwrap().invocation,Mode::Consume);
+    assert_eq!(registry.origins(family),Some(&[0,1][..]));
+    let singleton=registry.intern_scoped_native(&checked.callable_shapes,&callback,0,[0],&checked.closures,Span::default()).unwrap().unwrap();
+    assert_ne!(singleton,scoped);
+    let before=registry.scoped_native_family(family).unwrap().clone();
+    assert!(registry.remap_origins(&[Some(0),None]).is_err());
+    assert_eq!(registry.scoped_native_family(family),Some(&before));
+    registry.remap_origins(&[Some(1),Some(0)]).unwrap();
+    checked.closures.swap(0,1);
+    assert_eq!(registry.intern_scoped_native(&checked.callable_shapes,&callback,0,[1],&checked.closures,Span::default()).unwrap(),Some(singleton));
+    assert_eq!(registry.intern_scoped_native(&checked.callable_shapes,&callback,0,[0,1],&checked.closures,Span::default()).unwrap(),Some(scoped));
+    checked.closures.swap(0,1);
+    checked.closures[0].captures[0].storage=Mode::Read;
+    assert!(registry.intern_scoped_native(&checked.callable_shapes,&callback,0,[0],&checked.closures,Span::default()).unwrap().is_none());
+    let crate::syntax::Type::StoredCallable(ordinary)=ordinary else {unreachable!()};
+    assert!(registry.origins(ordinary).unwrap().is_empty());
+    assert!(registry.scoped_native_family(ordinary).is_none());
 }

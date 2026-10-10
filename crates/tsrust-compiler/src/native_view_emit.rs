@@ -6,84 +6,71 @@ use crate::{analysis::CheckedProgram, native_return_borrows::BorrowAccess, synta
 pub(super) struct Shapes {
     records: Vec<bool>,
     unions: Vec<bool>,
+    closures: Vec<bool>,
+    families: Vec<bool>,
 }
 
 impl Shapes {
     pub(super) fn new(program: &CheckedProgram) -> Self {
-        let count = program.records.len();
-        let seeds = program
-            .records
-            .iter()
-            .enumerate()
-            .filter_map(|(id, record)| {
-                record
-                    .native_type
-                    .and_then(|native| crate::native_types::declaration(native).borrow_access())
-                    .map(|_| id)
-            })
-            .collect::<Vec<_>>();
-        if seeds.is_empty() {
-            return Self::default();
+        let count=program.records.len();
+        let seeds=program.records.iter().enumerate().filter_map(|(id,record)|
+            record.native_type.and_then(|native|crate::native_types::declaration(native).borrow_access()).map(|_|id)
+        ).collect::<Vec<_>>();
+        if seeds.is_empty() {return Self::default();}
+        let unions=program.unions.len();
+        let closures=program.closures.len();
+        let families=program.stored_contracts.families().count();
+        let mut reverse=vec![Vec::new();count+unions+closures+families];
+        let mut edge=|parent,ty| {
+            if let Some(child)=Self::node(ty,count,unions,closures,families)
+                && let Some(parents)=reverse.get_mut(child) {parents.push(parent);}
+        };
+        for (id,record) in program.records.iter().enumerate() {
+            for field in &record.fields {edge(id,field.ty.expect("checked field"));}
+            if let Some(map)=&record.map_definition {edge(id,map.key);edge(id,map.value);}
+            if let Some(set)=&record.set_definition {edge(id,set.key);}
         }
-        let mut reverse = vec![Vec::new(); count + program.unions.len()];
-        for (id, record) in program.records.iter().enumerate() {
-            let mut edge = |ty| {
-                if let Some(child) = Self::node(ty, count) {
-                    reverse[child].push(id);
-                }
-            };
-            for field in &record.fields {
-                edge(field.ty.expect("checked field"));
-            }
-            if let Some(map) = &record.map_definition {
-                edge(map.key);
-                edge(map.value);
-            }
-            if let Some(set) = &record.set_definition {
-                edge(set.key);
-            }
+        for (id,union) in program.unions.iter().enumerate() {
+            for &member in &union.members {edge(count+id,member);}
         }
-        for (id, union) in program.unions.iter().enumerate() {
-            for &member in &union.members {
-                if let Some(child) = Self::node(member, count) {
-                    reverse[child].push(count + id);
-                }
-            }
+        for (id,closure) in program.closures.iter().enumerate() {
+            for capture in &closure.captures {edge(count+unions+id,closure.function.bindings[capture.inner].ty);}
         }
-        let mut found = vec![false; reverse.len()];
-        let mut pending = seeds;
-        while let Some(id) = pending.pop() {
-            if std::mem::replace(&mut found[id], true) {
-                continue;
-            }
+        for (id,_,origins) in program.stored_contracts.families() {
+            for &origin in origins {edge(count+unions+closures+id,Type::Closure(origin));}
+        }
+        let mut found=vec![false;reverse.len()];
+        let mut pending=seeds;
+        while let Some(id)=pending.pop() {
+            if std::mem::replace(&mut found[id],true) {continue;}
             pending.extend(reverse[id].iter().copied());
         }
         Self {
-            records: found[..count].to_vec(),
-            unions: found[count..].to_vec(),
+            records:found[..count].to_vec(),
+            unions:found[count..count+unions].to_vec(),
+            closures:found[count+unions..count+unions+closures].to_vec(),
+            families:found[count+unions+closures..].to_vec(),
         }
     }
 
-    fn node(ty: Type, count: usize) -> Option<usize> {
+    fn node(ty:Type,count:usize,unions:usize,closures:usize,families:usize)->Option<usize> {
         match ty {
-            Type::Record(id) | Type::Map(id) | Type::Set(id) => Some(id),
-            Type::Union(id) | Type::BorrowedUnion(id) => Some(count + id.index()),
-            Type::Array(element) => Self::node(element.with_depth(0).ty(), count),
-            _ => None,
+            Type::Record(id)|Type::Map(id)|Type::Set(id) if id<count=>Some(id),
+            Type::Union(id)|Type::BorrowedUnion(id) if id.index()<unions=>Some(count+id.index()),
+            Type::Closure(id) if id<closures=>Some(count+unions+id),
+            Type::StoredCallable(id)|Type::BorrowedCallable(id) if id<families=>Some(count+unions+closures+id),
+            Type::Array(element)=>Self::node(element.with_depth(0).ty(),count,unions,closures,families),
+            _=>None,
         }
     }
 
-    pub(super) fn contains(&self, ty: Type) -> bool {
-        Self::node(ty, self.records.len()).is_some_and(|id| {
-            if id < self.records.len() {
-                self.records[id]
-            } else {
-                self.unions
-                    .get(id - self.records.len())
-                    .copied()
-                    .unwrap_or(false)
-            }
-        })
+    pub(super) fn contains(&self,ty:Type)->bool {
+        let count=self.records.len();let unions=self.unions.len();let closures=self.closures.len();
+        let Some(id)=Self::node(ty,count,unions,closures,self.families.len()) else {return false;};
+        if id<count {self.records.get(id)}
+        else if id<count+unions {self.unions.get(id-count)}
+        else if id<count+unions+closures {self.closures.get(id-count-unions)}
+        else {self.families.get(id-count-unions-closures)}.copied().unwrap_or(false)
     }
 }
 
@@ -540,4 +527,33 @@ fn main() {{
         }
     }
 
+}
+
+#[cfg(test)]
+#[test]
+fn native_view_storage_shapes_follow_concrete_and_scoped_family_environments() {
+    let source="type Window={};type Holder={value:int;seed:int;};function save(view:Window){return ()=>view;}function main(){}";
+    let formatted=crate::formatting::format(source).unwrap();
+    assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
+    let mut parsed=crate::syntax::parse(&formatted).unwrap();
+    parsed.records[0].native_type=Some(crate::native_signatures::NativeTypeId::ByteView);
+    let mut checked=crate::analysis::analyze(parsed).unwrap();
+    let result=checked.closures[0].function.result;
+    let structural=checked.callable_shapes.intern([],result,Some(crate::syntax::CallbackKind::OwnedOnce));
+    let callback=crate::analysis::CallbackContract{structural,parameter_names:vec![],params:vec![],result,kind:crate::syntax::CallbackKind::OwnedOnce};
+    let ordinary=checked.stored_contracts.intern(&checked.callable_shapes,&callback,0).unwrap();
+    let scoped=checked.stored_contracts.intern_scoped_native(&checked.callable_shapes,&callback,0,[0],&checked.closures,crate::Span::default()).unwrap().unwrap();
+    checked.records[1].fields[0].ty=Some(scoped);
+    let shapes=Shapes::new(&checked);
+    assert!(shapes.contains(Type::Closure(0)));
+    assert!(shapes.contains(scoped));
+    assert!(shapes.contains(Type::Record(1)));
+    assert!(!shapes.contains(ordinary));
+    let Type::StoredCallable(scoped_id)=scoped else {unreachable!()};
+    assert!(!shapes.contains(Type::Closure(checked.closures.len()+scoped_id)));
+    // A cycle through record storage must terminate and keep its native seed.
+    let capture=checked.closures[0].captures[0].inner;
+    checked.closures[0].function.bindings[capture].ty=Type::Record(1);
+    checked.records[1].fields[1].ty=Some(Type::Record(0));
+    assert!(Shapes::new(&checked).contains(scoped));
 }

@@ -192,3 +192,27 @@ the checked environment before writing declarations, including capture identity,
 payload path, variant guards and access. The failing control and repaired results
 are retained in SQLite. Source storage admission remains the next integration task;
 these private ABI controls do not close gate 189 or S07.
+
+## Scoped owning storage identity
+
+StorageContract now distinguishes ScopedOwned from lifetime-free Owned and borrowed
+invocation families. The isolated native_view_storage_registry helper validates a
+finite candidate before interning an identity containing its structural contract and
+canonical concrete origins. Different alternatives produce different identities;
+repeated alternatives canonicalize. Invocation remains consuming or mutable according
+to the original contract. Physical reference captures are not admitted by this path.
+The registry stores the complete native layout separately from ordinary owning
+origins, and compaction updates identities and layouts atomically after validation.
+
+Native storage reachability now includes closure captures and stored-family
+alternatives in its reverse graph, alongside records and unions. A containing record
+therefore retains the fact that its callback carries views. Cycles terminate without
+recursive traversal, and ordinary empty families do not acquire borrowed lifetimes.
+This is a source representation prerequisite, not source construction acceptance:
+normal construction remains guarded until family provenance and emitted lifetime
+signatures are connected. The retained stored-callback source witness remains red.
+
+Reachability also checks each record, union, closure and family ID against its own
+range before translating it to a graph index. A retained failing control showed
+that an invalid closure ID could otherwise alias a live family node. The repaired
+control preserves typed identity across the combined graph.
