@@ -592,5 +592,17 @@
       "host.console",
       "host.timers"
     ]
+  },
+  {
+    "category": "Typed results",
+    "operations": [
+      "result.type",
+      "result.ok",
+      "result.err",
+      "result.match",
+      "result.readonlyMatch",
+      "result.mutableMatch",
+      "result.propagation"
+    ]
   }
 ]

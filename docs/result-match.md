@@ -115,6 +115,7 @@ function doubledQuotient(a: int, b: int): Result<int, string> {
 ## Implementation status
 
 Construction, exhaustive matching, borrowing, editor assistance and cleanup have
-focused compiler and native evidence. B10 family acceptance remains open. Match expressions, guards, nested destructuring
+compiler, native, editor and matched benchmark evidence. B10/S06 is accepted at
+gate 186; see [the acceptance record](milestones/186-result-match.md). Match expressions, guards, nested destructuring
 patterns, `?` propagation and general discriminated unions are not implemented.
 Nested match statements are supported.

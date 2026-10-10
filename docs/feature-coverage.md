@@ -12,7 +12,7 @@ Full compiler regression and accumulated performance comparisons run at complete
 
 ## Contents
 
-[Arrays](#arrays) · [Async](#async) · [BigInt](#bigint) · [Binary and typed arrays](#binary-and-typed-arrays) · [Booleans](#booleans) · [Collections](#collections) · [Control flow](#control-flow) · [Dates](#dates) · [Declarations and syntax](#declarations-and-syntax) · [Decorators](#decorators) · [Errors](#errors) · [Functions and classes](#functions-and-classes) · [Generators](#generators) · [Globals](#globals) · [Host workstreams](#host-workstreams) · [Integer extension](#integer-extension) · [Internationalization](#internationalization) · [Iterators](#iterators) · [Null and undefined](#null-and-undefined) · [Numbers](#numbers) · [Objects](#objects) · [Primitive storage](#primitive-storage) · [Regular expressions](#regular-expressions) · [Resource management](#resource-management) · [Serialization](#serialization) · [Strings](#strings) · [Symbols](#symbols) · [TypeScript types](#typescript-types)
+[Arrays](#arrays) · [Async](#async) · [BigInt](#bigint) · [Binary and typed arrays](#binary-and-typed-arrays) · [Booleans](#booleans) · [Collections](#collections) · [Control flow](#control-flow) · [Dates](#dates) · [Declarations and syntax](#declarations-and-syntax) · [Decorators](#decorators) · [Errors](#errors) · [Functions and classes](#functions-and-classes) · [Generators](#generators) · [Globals](#globals) · [Host workstreams](#host-workstreams) · [Integer extension](#integer-extension) · [Internationalization](#internationalization) · [Iterators](#iterators) · [Null and undefined](#null-and-undefined) · [Numbers](#numbers) · [Objects](#objects) · [Primitive storage](#primitive-storage) · [Regular expressions](#regular-expressions) · [Resource management](#resource-management) · [Serialization](#serialization) · [Strings](#strings) · [Symbols](#symbols) · [Typed results](#typed-results) · [TypeScript types](#typescript-types)
 
 ## Coverage summary
 
@@ -45,6 +45,7 @@ Full compiler regression and accumulated performance comparisons run at complete
 | Serialization | 3 | 0 | 0 | 3 |
 | Strings | 77 | 68 | 0 | 9 |
 | Symbols | 25 | 0 | 0 | 25 |
+| Typed results | 7 | 7 | 0 | 0 |
 | TypeScript types | 53 | 12 | 2 | 40 |
 
 ## Arrays
@@ -2090,6 +2091,18 @@ Full compiler regression and accumulated performance comparisons run at complete
 | `SymbolConstructor.toPrimitive` | pending | missing |  |
 | `SymbolConstructor.toStringTag` | pending | missing |  |
 | `SymbolConstructor.unscopables` | pending | missing |  |
+
+## Typed results
+
+| Operation | Implementation | Comparison | Scope / evidence |
+| --- | --- | --- | --- |
+| `result.err` | native variant | paired group | Gate 186 accepts tagged Result and exhaustive statement match, explicit typed return propagation, readonly and mutable payload borrowing, ownership and cleanup. The matched seven-observation scenario is measured; no isolated per-operation throughput claim. Match expressions, guards, nested destructuring, ? shorthand and general discriminated unions remain separate.; [evidence](./milestones/186-result-match.md) · [evidence](./result-match.md) · [result_match](../benchmarks/runtime/workloads/result_match.tsr) |
+| `result.match` | native variant | paired group | Gate 186 accepts tagged Result and exhaustive statement match, explicit typed return propagation, readonly and mutable payload borrowing, ownership and cleanup. The matched seven-observation scenario is measured; no isolated per-operation throughput claim. Match expressions, guards, nested destructuring, ? shorthand and general discriminated unions remain separate.; [evidence](./milestones/186-result-match.md) · [evidence](./result-match.md) · [result_match](../benchmarks/runtime/workloads/result_match.tsr) |
+| `result.mutableMatch` | native variant | paired group | Gate 186 accepts tagged Result and exhaustive statement match, explicit typed return propagation, readonly and mutable payload borrowing, ownership and cleanup. The matched seven-observation scenario is measured; no isolated per-operation throughput claim. Match expressions, guards, nested destructuring, ? shorthand and general discriminated unions remain separate.; [evidence](./milestones/186-result-match.md) · [evidence](./result-match.md) · [result_match](../benchmarks/runtime/workloads/result_match.tsr) |
+| `result.ok` | native variant | paired group | Gate 186 accepts tagged Result and exhaustive statement match, explicit typed return propagation, readonly and mutable payload borrowing, ownership and cleanup. The matched seven-observation scenario is measured; no isolated per-operation throughput claim. Match expressions, guards, nested destructuring, ? shorthand and general discriminated unions remain separate.; [evidence](./milestones/186-result-match.md) · [evidence](./result-match.md) · [result_match](../benchmarks/runtime/workloads/result_match.tsr) |
+| `result.propagation` | native variant | paired group | Gate 186 accepts tagged Result and exhaustive statement match, explicit typed return propagation, readonly and mutable payload borrowing, ownership and cleanup. The matched seven-observation scenario is measured; no isolated per-operation throughput claim. Match expressions, guards, nested destructuring, ? shorthand and general discriminated unions remain separate.; [evidence](./milestones/186-result-match.md) · [evidence](./result-match.md) · [result_match](../benchmarks/runtime/workloads/result_match.tsr) |
+| `result.readonlyMatch` | native variant | paired group | Gate 186 accepts tagged Result and exhaustive statement match, explicit typed return propagation, readonly and mutable payload borrowing, ownership and cleanup. The matched seven-observation scenario is measured; no isolated per-operation throughput claim. Match expressions, guards, nested destructuring, ? shorthand and general discriminated unions remain separate.; [evidence](./milestones/186-result-match.md) · [evidence](./result-match.md) · [result_match](../benchmarks/runtime/workloads/result_match.tsr) |
+| `result.type` | native variant | paired group | Gate 186 accepts tagged Result and exhaustive statement match, explicit typed return propagation, readonly and mutable payload borrowing, ownership and cleanup. The matched seven-observation scenario is measured; no isolated per-operation throughput claim. Match expressions, guards, nested destructuring, ? shorthand and general discriminated unions remain separate.; [evidence](./milestones/186-result-match.md) · [evidence](./result-match.md) · [result_match](../benchmarks/runtime/workloads/result_match.tsr) |
 
 ## TypeScript types
 

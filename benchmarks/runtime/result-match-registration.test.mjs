@@ -16,8 +16,9 @@ const row = manifest.workloads.find(value => value.id === 'result_match');
 test('Result match workloads retain independent observations, source guards and execution hooks', () => {
     assert.ok(row, 'Result match workload registered');
     assert.equal(manifest.workloads.filter(value => value.id === row.id).length, 1);
-    assert.equal(row.measured, false);
-    assert.equal(row.measurementStatus, 'pending-result-match-family');
+    assert.equal(row.measured, true);
+    assert.equal(row.implementationAccepted, true);
+    assert.equal(row.measurementStatus, 'measured-result-match-family');
     assert.equal(reportCategory(row.id), 'callbacks');
     const emitted = 'fn function0(value0: i64, value1: i64, value2: &String) -> Array<NumericArray<i64>> { todo!() }\nfn main() {}';
     assert.equal(assertABI(emitted, row, read('./' + row.source)).fallible, false);

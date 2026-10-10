@@ -1,7 +1,7 @@
 # B10 Result and statement-match acceptance map
 
-This map covers S06's tagged Result foundation. Family acceptance is pending the
-final regression, performance and publication checks. Earlier generic and callable
+This map covers S06's tagged Result foundation. B10/S06 is accepted at gate 186 after
+regression, performance and publication checks. Earlier generic and callable
 storage acceptance remains valid; this family does not repeat those implementations.
 
 | Requirement | Implementation and evidence |
@@ -39,6 +39,6 @@ not counted as implemented behavior.
 
 Exact focused records and original benchmark records live in `benchmarks/records.sqlite`;
 `docs/result-match-plan.md` lists their record paths. The initial timing run overlapped
-compiler regressions and is excluded from acceptance performance. Full regression
-counts, uncontended timing review and consumer refresh must be recorded before B10
-is marked accepted.
+compiler regressions and is excluded from acceptance performance. Final evidence is recorded in `milestones/186-result-match.md`: compiler 2,754
+passes, editor 472 passes, all depth canaries, uncontended timing and five-consumer
+refresh.

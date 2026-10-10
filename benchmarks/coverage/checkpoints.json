@@ -1367,5 +1367,20 @@
     "timed": false,
     "priorRuntimeMeasurementsRetained": true,
     "evidence": "../../docs/milestones/resumable-callable-summaries.md"
+  },
+  "resultMatchFamily": {
+    "gate": 186,
+    "status": "accepted",
+    "compilerPassed": 2754,
+    "editorPassed": 472,
+    "failed": 0,
+    "aborted": 0,
+    "depthCanaries": 10,
+    "measuredWorkloads": [
+      "result_match"
+    ],
+    "samplesPerEngine": 93,
+    "measurementRecord": "runtime/results/2026-10-10T12-57-21-848Z.json",
+    "evidence": "../../docs/milestones/186-result-match.md"
   }
 }

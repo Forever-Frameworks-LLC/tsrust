@@ -1,6 +1,6 @@
 # S06: generic value types and typed results
 
-Status: in progress; structured annotations and the concrete generic-record compiler/source-editor increment accepted with focused evidence. Generic function specialization, callable containers, Result and checkpoint measurements remain pending. Depends on the S05 primitive registry/build foundation. This file does not reserve or renumber the other compiler track's gates. Before accepting each increment, use the current development workflow and preserve its checkpoint evidence.
+Status: S06 foundations accepted. Generic and callable work was accepted by the named-declaration and scoped-aggregate families; gate 186 accepts tagged Result, exhaustive statement matching and explicit typed error propagation. See [the acceptance record](186-result-match.md) and [the current map](../b10-result-match-acceptance-map.md). Historical increments below retain their original scope and pending notes; they do not override this status.
 
 ## Intended source behavior
 

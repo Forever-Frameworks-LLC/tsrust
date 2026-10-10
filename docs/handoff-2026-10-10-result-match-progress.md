@@ -1,5 +1,8 @@
 # B10 Result and match continuation
 
+Superseded by `handoff-2026-10-10-result-match-accepted.md`. B10/S06 is accepted at
+gate 186; this document preserves the earlier in-progress checkpoint.
+
 B10 is in progress, not accepted. Read AGENTS.md, development-workflow.md,
 result-match-plan.md and result-match.md before continuing. One agent works in
 this tree. No owner changes were present at this checkpoint.

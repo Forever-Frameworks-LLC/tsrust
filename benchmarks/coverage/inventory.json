@@ -24994,6 +24994,132 @@
       "evidence": []
     },
     {
+      "id": "result.err",
+      "display": "result.err",
+      "category": "Typed results",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/186-result-match.md",
+        "./result-match.md"
+      ],
+      "workloads": [
+        "result_match"
+      ],
+      "measured": true,
+      "note": "Gate 186 accepts tagged Result and exhaustive statement match, explicit typed return propagation, readonly and mutable payload borrowing, ownership and cleanup. The matched seven-observation scenario is measured; no isolated per-operation throughput claim. Match expressions, guards, nested destructuring, ? shorthand and general discriminated unions remain separate."
+    },
+    {
+      "id": "result.match",
+      "display": "result.match",
+      "category": "Typed results",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/186-result-match.md",
+        "./result-match.md"
+      ],
+      "workloads": [
+        "result_match"
+      ],
+      "measured": true,
+      "note": "Gate 186 accepts tagged Result and exhaustive statement match, explicit typed return propagation, readonly and mutable payload borrowing, ownership and cleanup. The matched seven-observation scenario is measured; no isolated per-operation throughput claim. Match expressions, guards, nested destructuring, ? shorthand and general discriminated unions remain separate."
+    },
+    {
+      "id": "result.mutableMatch",
+      "display": "result.mutableMatch",
+      "category": "Typed results",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/186-result-match.md",
+        "./result-match.md"
+      ],
+      "workloads": [
+        "result_match"
+      ],
+      "measured": true,
+      "note": "Gate 186 accepts tagged Result and exhaustive statement match, explicit typed return propagation, readonly and mutable payload borrowing, ownership and cleanup. The matched seven-observation scenario is measured; no isolated per-operation throughput claim. Match expressions, guards, nested destructuring, ? shorthand and general discriminated unions remain separate."
+    },
+    {
+      "id": "result.ok",
+      "display": "result.ok",
+      "category": "Typed results",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/186-result-match.md",
+        "./result-match.md"
+      ],
+      "workloads": [
+        "result_match"
+      ],
+      "measured": true,
+      "note": "Gate 186 accepts tagged Result and exhaustive statement match, explicit typed return propagation, readonly and mutable payload borrowing, ownership and cleanup. The matched seven-observation scenario is measured; no isolated per-operation throughput claim. Match expressions, guards, nested destructuring, ? shorthand and general discriminated unions remain separate."
+    },
+    {
+      "id": "result.propagation",
+      "display": "result.propagation",
+      "category": "Typed results",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/186-result-match.md",
+        "./result-match.md"
+      ],
+      "workloads": [
+        "result_match"
+      ],
+      "measured": true,
+      "note": "Gate 186 accepts tagged Result and exhaustive statement match, explicit typed return propagation, readonly and mutable payload borrowing, ownership and cleanup. The matched seven-observation scenario is measured; no isolated per-operation throughput claim. Match expressions, guards, nested destructuring, ? shorthand and general discriminated unions remain separate."
+    },
+    {
+      "id": "result.readonlyMatch",
+      "display": "result.readonlyMatch",
+      "category": "Typed results",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/186-result-match.md",
+        "./result-match.md"
+      ],
+      "workloads": [
+        "result_match"
+      ],
+      "measured": true,
+      "note": "Gate 186 accepts tagged Result and exhaustive statement match, explicit typed return propagation, readonly and mutable payload borrowing, ownership and cleanup. The matched seven-observation scenario is measured; no isolated per-operation throughput claim. Match expressions, guards, nested destructuring, ? shorthand and general discriminated unions remain separate."
+    },
+    {
+      "id": "result.type",
+      "display": "result.type",
+      "category": "Typed results",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/186-result-match.md",
+        "./result-match.md"
+      ],
+      "workloads": [
+        "result_match"
+      ],
+      "measured": true,
+      "note": "Gate 186 accepts tagged Result and exhaustive statement match, explicit typed return propagation, readonly and mutable payload borrowing, ownership and cleanup. The matched seven-observation scenario is measured; no isolated per-operation throughput claim. Match expressions, guards, nested destructuring, ? shorthand and general discriminated unions remain separate."
+    },
+    {
       "id": "type.alias",
       "display": "type.alias",
       "category": "TypeScript types",
