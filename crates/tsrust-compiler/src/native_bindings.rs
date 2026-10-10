@@ -60,6 +60,21 @@ pub struct NativeBinding {
     pub features: &'static [&'static str],
 }
 impl NativeBinding {
+    /// Further native types that a parameter accepts besides its declared type.
+    /// A byte observer reads any readable byte storage; a byte mutator writes any
+    /// writable one. A stored function value keeps the declared parameter type.
+    pub fn argument_alternatives(&self, position: usize) -> &'static [crate::native_signatures::NativeTypeId] {
+        use crate::native_signatures::NativeTypeId::{ByteView, ByteViewMut};
+        if self.module != "std:bytes" || position != 0 {
+            return &[];
+        }
+        match self.name {
+            // A view of a view borrows the parent view for as long as it lives.
+            "length" | "at" | "copy" | "toUtf8" | "view" => &[ByteView, ByteViewMut],
+            "set" | "viewMut" => &[ByteViewMut],
+            _ => &[],
+        }
+    }
     pub fn accepts_arity(&self, count: usize) -> bool {
         let required = self
             .parameters

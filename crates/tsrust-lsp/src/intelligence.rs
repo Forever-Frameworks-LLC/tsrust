@@ -737,7 +737,18 @@ impl SourceIndex {
                     && matches!(self.text(end), ";" | "," | "}" | "")
                     && let Some(parameter_docs) = self.native_parameter_docs.get(&origin).cloned()
                 {
-                    let native = self.symbols[origin].clone();
+                    let mut native = self.symbols[origin].clone();
+                    // A stored function value keeps only the declared parameter type;
+                    // typed alternatives belong to direct calls of the import.
+                    let binding = &tsrust_compiler::native_bindings::BINDINGS[self.native_origins[&origin]];
+                    for (position, parameter) in native.parameters.iter_mut().enumerate() {
+                        if !binding.argument_alternatives(position).is_empty()
+                            && let Some(cut) = parameter.find(" | ")
+                        {
+                            let closing = if parameter.ends_with('>') { ">" } else { "" };
+                            *parameter = format!("{}{closing}", &parameter[..cut]);
+                        }
+                    }
                     let result = if let Some((_, end)) = callable_annotation(&native.ty) {
                         native.ty[end + 1..]
                             .trim_start()
@@ -2500,19 +2511,26 @@ impl SourceIndex {
         else {
             return;
         };
-        let mut type_name = |ty: tsrust_compiler::native_bindings::NativeType| {
-            ty.signature().render(|identity| Some(self.native_type_spelling(identity).into())).expect("registered native signature").into_owned()
+        let mut signature_name = |signature: tsrust_compiler::native_signatures::Signature| {
+            signature.render(|identity| Some(self.native_type_spelling(identity).into())).expect("registered native signature").into_owned()
         };
         let parameters = binding
             .parameters
             .iter()
-            .map(|parameter| {
+            .enumerate()
+            .map(|(position, parameter)| {
+                // Typed alternatives follow the declared type: `Bytes | ByteView`.
+                let mut accepted = signature_name(parameter.ty.signature());
+                for &alternative in binding.argument_alternatives(position) {
+                    accepted.push_str(" | ");
+                    accepted.push_str(&signature_name(tsrust_compiler::native_signatures::Signature::Named(alternative)));
+                }
                 format!(
                     "{}{}{}: {}{}",
                     if parameter.rest { "..." } else { "" },
                     parameter.name,
                     if parameter.optional { "?" } else { "" },
-                    if matches!(parameter.ty, tsrust_compiler::native_bindings::NativeType::Structured(_)) { tsrust_compiler::type_syntax::access_type_text(parameter.access, &type_name(parameter.ty)) } else { type_name(parameter.ty) },
+                    if matches!(parameter.ty, tsrust_compiler::native_bindings::NativeType::Structured(_)) { tsrust_compiler::type_syntax::access_type_text(parameter.access, &accepted) } else { accepted },
                     if parameter.rest { "[]" } else { "" }
                 )
             })
@@ -2526,7 +2544,7 @@ impl SourceIndex {
                     .collect::<Vec<_>>()
             })
             .unwrap_or_default();
-        let result = type_name(binding.result);
+        let result = signature_name(binding.result.signature());
         let signature = self.display_type(&format!("function {local}({}): {result}", parameters.join(", ")));
         self.native_parameter_docs.insert(self.symbols.len(), docs);
         if let Some(id) = tsrust_compiler::native_bindings::BINDINGS

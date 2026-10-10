@@ -553,8 +553,10 @@ fn native_view_factory_bridges_name_the_source_lifetime() {
             &super::super::bindings::VIEW_MUT,
         ],
     );
-    assert!(emitted.contains("fn tsrust_std_bytes_view<'a>(bytes: &'a Record"));
-    assert!(emitted.contains("fn tsrust_std_bytes_view_mut<'a>(bytes: &'a mut Record"));
+    // The source may be the owner or a view of it; either way the result is tied to
+    // the lifetime of that borrow.
+    assert!(emitted.contains("fn tsrust_std_bytes_view<'a, B: TsrReadableBytes>(bytes: &'a B"));
+    assert!(emitted.contains("fn tsrust_std_bytes_view_mut<'a, B: TsrWritableBytes>(bytes: &'a mut B"));
     assert!(emitted.contains("views_runtime") || emitted.contains("pub fn view_mut("));
     let bytes = checked
         .records

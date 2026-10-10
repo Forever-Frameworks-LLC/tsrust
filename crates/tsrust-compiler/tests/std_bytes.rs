@@ -65,3 +65,40 @@ fn native_byte_utf8_round_trips_and_strict_error_offsets_execute() {
     let path = directory.source(&source);
     support::success(&support::run(support::cli().arg("run").arg(path), 60));
 }
+
+#[test]
+fn byte_views_read_and_write_through_public_imports() {
+    for fixture in [
+        include_str!("fixtures/native-byte-views/read.tsr"),
+        include_str!("fixtures/native-byte-views/values.tsr"),
+    ] {
+        let directory = support::TempDirectory::new();
+        let path = directory.source(&support::format_round_trip(fixture));
+        support::success(&support::run(support::cli().arg("run").arg(path), 120));
+    }
+}
+
+#[test]
+fn byte_view_ownership_rules_are_source_diagnostics() {
+    let imports = "import { Bytes, ByteView, ByteViewMut, alloc, view, viewMut, length, set, resize } from \"std:bytes\";";
+    let inside = |body: &str| format!("function main() {{ match (alloc(2, 1)) {{ Ok(bytes) => {{ {body} }}, Err(error) => {{}}, }} }}");
+    let with_view = |factory: &str, body: &str| inside(&format!("match ({factory}(bytes, 0, 1)) {{ Ok(part) => {{ {body} }}, Err(error) => {{}}, }}"));
+    for (label, source, code, text) in [
+        ("returned view of a local owner", "function leak(): ByteView { match (alloc(2, 1)) { Ok(bytes) => { match (view(bytes, 0, 1)) { Ok(part) => { return part; }, Err(error) => { throw error.message; }, } }, Err(error) => { throw error.message; }, } } function main() { console.log(length(leak())); }".to_owned(), "native-view-escape", "local owner"),
+        ("owner write while a view is live", with_view("view", "match (set(bytes, 0, 9)) { Ok(_) => {}, Err(error) => {}, } console.log(length(part));"), "native-view-conflict", "bytes"),
+        ("owner resize while a view is live", with_view("view", "match (resize(bytes, 9)) { Ok(_) => {}, Err(error) => {}, } console.log(length(part));"), "native-view-conflict", "bytes"),
+        ("owner move while a view is live", with_view("view", "const moved = bytes; console.log(length(part));"), "native-view-conflict", "bytes"),
+        ("owner read while an exclusive view is live", with_view("viewMut", "console.log(length(bytes)); console.log(length(part));"), "native-view-conflict", "bytes"),
+        ("write through a readonly view", with_view("view", "match (set(part, 0, 9)) { Ok(_) => {}, Err(error) => {}, }"), "type", "Expected Bytes, found ByteView"),
+        ("exclusive view of a readonly view", with_view("view", "match (viewMut(part, 0, 1)) { Ok(inner) => {}, Err(error) => {}, }"), "type", "Expected Bytes, found ByteView"),
+        ("clone of a view", with_view("view", "const other = clone(part); console.log(length(other));"), "clone-type", "copy(view, start, end)"),
+        ("constructed view", "function main() { const made: ByteView = { }; }".to_owned(), "native-opaque", "constructors"),
+    ] {
+        let directory = support::TempDirectory::new();
+        let path = directory.source(&format!("{imports}\n{source}"));
+        let output = support::run(support::cli().arg("check").arg(path), 60);
+        assert!(!output.status.success(), "{label}");
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(stderr.contains(&format!("error[{code}]")) && stderr.contains(text), "{label}: {stderr}");
+    }
+}

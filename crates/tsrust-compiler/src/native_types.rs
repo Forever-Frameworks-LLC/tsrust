@@ -112,8 +112,7 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
 /// Exact module/name lookup does not grant aliases a new declaration identity.
 /// This registry alone does not publish types through the source module loader.
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
-    // Borrowed identities stay private until source loans and lifetime emission agree.
-    [&BYTES, &BYTE_ERROR].into_iter().find(|item| item.module == module && item.name == name)
+    [&BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT].into_iter().find(|item| item.module == module && item.name == name)
 }
 
 #[cfg(test)]

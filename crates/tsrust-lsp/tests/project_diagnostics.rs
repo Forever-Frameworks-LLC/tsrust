@@ -160,3 +160,18 @@ fn native_byte_write_type_errors_keep_the_value_range() {
     assert_eq!(diagnostic["code"], "type");
     assert!(diagnostic["message"].as_str().unwrap().contains("Expected int"));
 }
+
+#[test]
+fn byte_view_conflicts_report_the_owner_and_the_view_location() {
+    let source = tsrust_compiler::format("import {alloc,view,set,length} from 'std:bytes';function main(){match(alloc(2,1)){Ok(bytes)=>{match(view(bytes,0,1)){Ok(part)=>{match(set(bytes,0,9)){Ok(_)=>{},Err(error)=>{}}console.log(length(part));},Err(error)=>{}}},Err(error)=>{}}}").unwrap();
+    let mut workspace = Workspace::default();
+    workspace.open(id("main"), 1, source.clone());
+    let snapshot = workspace.snapshot();
+    let error = snapshot.check(&id("main")).err().unwrap();
+    assert_eq!(error.code, "native-view-conflict");
+    let diagnostics = convert(&snapshot, Some(&error)).unwrap();
+    let diagnostic = serde_json::to_value(&diagnostics[&id("main")][0]).unwrap();
+    assert_eq!(diagnostic["code"], "native-view-conflict");
+    assert!(diagnostic["message"].as_str().unwrap().contains("bytes"));
+    assert!(diagnostic["relatedInformation"].as_array().is_some_and(|related| !related.is_empty()), "{diagnostic}");
+}

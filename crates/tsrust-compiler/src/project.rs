@@ -505,6 +505,14 @@ fn visit(
             return Err(error(&id, "module-native", "Testing runtime bindings are private; import from std:testing.", import.span));
         }
         if crate::stdlib::source(&import.path).is_none() && import.path.starts_with("std:") {
+            if !declarations
+                && let Some(module) = crate::native_bindings::BINDINGS.iter().find(|binding| binding.module == import.path).map(|binding| binding.module)
+            {
+                // A native name that is still being typed is left out, as for a
+                // source module; the known module still offers its exports.
+                import.bindings.retain(|binding| crate::native_exports::lookup(module, &binding.exported).is_ok());
+                import.native = Some(module);
+            }
             for binding in &import.bindings {
                 let native = crate::native_exports::lookup(&import.path, &binding.exported)
                     .map_err(|message| error(&id, "module-native", message, binding.span))?;

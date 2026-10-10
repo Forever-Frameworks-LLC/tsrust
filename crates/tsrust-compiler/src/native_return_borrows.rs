@@ -285,7 +285,7 @@ mod tests {
     }
 
     #[test]
-    fn projection_rejects_invalid_or_unimplemented_borrow_contracts_before_interning() {
+    fn projection_rejects_invalid_borrow_contracts_before_interning() {
         let mut probe = binding(Mode::Read, false, false);
         let mut records = Vec::new();
         probe.returned_borrow.as_mut().unwrap().source_parameter = 1;
@@ -294,11 +294,12 @@ mod tests {
                 .unwrap_err();
         assert_eq!(error.code, "native-return-borrow-contract");
         assert!(records.is_empty());
-        probe.returned_borrow.as_mut().unwrap().source_parameter = 0;
+        // A borrowed result without a contract cannot be projected as an owned value.
+        probe.returned_borrow = None;
         let error =
             crate::native_binding_types::prepare(&mut records, &probe, crate::Span::default())
                 .unwrap_err();
-        assert_eq!(error.code, "native-return-borrow");
+        assert_eq!(error.code, "native-return-borrow-contract");
         assert!(records.is_empty());
     }
 
@@ -373,14 +374,14 @@ mod tests {
     }
 
     #[test]
-    fn registry_contracts_keep_owned_values_unborrowed_and_views_guarded() {
+    fn registry_contracts_keep_owned_values_unborrowed_and_publish_contracted_views() {
         for binding in crate::native_bindings::BINDINGS {
             assert_eq!(binding.validate_returned_borrow(), Ok(()));
             if binding.contains_borrowed_signatures().unwrap() {
                 assert!(binding.returned_borrow.is_some());
                 let mut records=Vec::new();
-                assert_eq!(crate::native_binding_types::prepare(&mut records,binding,crate::Span::default()).unwrap_err().code,"native-return-borrow");
-                assert!(records.is_empty());
+                crate::native_binding_types::prepare(&mut records,binding,crate::Span::default()).unwrap();
+                assert!(!records.is_empty());
             } else {
                 assert_eq!(binding.returned_borrow,None);
             }

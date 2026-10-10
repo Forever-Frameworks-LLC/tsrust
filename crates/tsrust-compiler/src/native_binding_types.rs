@@ -14,13 +14,13 @@ pub(crate) fn prepare(records: &mut Vec<Record>, binding: &NativeBinding, span: 
     binding.validate_returned_borrow().map_err(|error| Diagnostic::new(
         "native-return-borrow-contract", format!("Invalid native returned-borrow contract: {error:?}."), span,
     ))?;
-    // Fail closed until source provenance and lifetime-bearing emission are integrated.
-    // A valid contract must never be projected as an ordinary owned result.
+    // A returned borrow is published only with a validated contract: the analyzer
+    // attaches its source loans and the emitter keeps the real slice lifetime.
     let borrowed_shape = binding.contains_borrowed_signatures().map_err(|_| Diagnostic::new(
         "native-type-limit", "Native signature exceeds its borrowed-shape traversal limit.", span,
     ))?;
-    if binding.returned_borrow.is_some() || borrowed_shape {
-        return Err(Diagnostic::new("native-return-borrow", "Native borrowed values require source provenance and a lifetime-bearing backend representation.", span));
+    if borrowed_shape && binding.returned_borrow.is_none() {
+        return Err(Diagnostic::new("native-return-borrow", "A native result that borrows storage requires a returned-borrow contract.", span));
     }
     project_shapes(records, binding, span)
 }
@@ -60,7 +60,7 @@ mod tests {
     use crate::native_bindings::{NativeBackend, NativeParameter};
     use crate::native_signatures::NativeTypeId;
     #[test]
-    fn native_view_factory_bindings_are_valid_but_publicly_guarded() {
+    fn native_view_factory_bindings_are_valid_and_published() {
         for (name,access,payload) in [
             ("view",crate::native_return_borrows::BorrowAccess::ReadOnly,NativeTypeId::ByteView),
             ("viewMut",crate::native_return_borrows::BorrowAccess::Exclusive,NativeTypeId::ByteViewMut),
@@ -73,8 +73,9 @@ mod tests {
             assert_eq!(contract.payload,payload);
             assert_eq!(contract.slot,crate::native_return_borrows::ReturnSlot::ResultOk);
             let mut records=Vec::new();
-            assert_eq!(prepare(&mut records,binding,Span::default()).unwrap_err().code,"native-return-borrow");
-            assert!(records.is_empty());
+            prepare(&mut records,binding,Span::default()).unwrap();
+            assert!(!records.is_empty());
+            assert!(crate::native_types::lookup("std:bytes",crate::native_types::declaration(payload).name).is_some());
         }
     }
     #[test]

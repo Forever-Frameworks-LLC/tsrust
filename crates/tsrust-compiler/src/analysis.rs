@@ -3147,6 +3147,10 @@ impl Analyzer {
             Type::Closure(_) | Type::Callable(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_) => {
                 "closure"
             }
+            // A native type shows the name that its module exports.
+            Type::Record(i) if self.program.records[i].native_type.is_some() => {
+                crate::native_types::declaration(self.program.records[i].native_type.expect("native record")).name
+            }
             Type::Record(i) | Type::Enum(i, _) | Type::Set(i) | Type::Map(i) => &self.program.records[i].name.text,
             Type::Union(id) | Type::BorrowedUnion(id) => {
                 return self
@@ -14416,6 +14420,12 @@ self.names_materialized_type(element.with_depth(0).ty())
             }
             let contracts = (0..args.len()).map(|position| {
                 let parameter = binding.parameters.get(position).or_else(|| binding.parameters.last().filter(|p| p.rest)).expect("checked native arity");
+                // A parameter with typed alternatives takes the argument's own native type.
+                let alternative = self.expression_type_hint(context, &args[position]).filter(|ty| matches!(ty, Type::Record(record)
+                    if self.program.records[*record].native_type.is_some_and(|id| binding.argument_alternatives(position).contains(&id))));
+                if let Some(ty) = alternative {
+                    return Ok(ArgumentContract { ty, mode: parameter.access, omission: crate::ParameterOmission::Required, rest: false });
+                }
                 Ok(ArgumentContract { ty: self.native_parameter_type(parameter.ty)?,
                     mode: parameter.access, omission: crate::ParameterOmission::Required, rest: false })
             }).collect::<Result<Vec<_>, Diagnostic>>()?;
@@ -15656,6 +15666,13 @@ self.names_materialized_type(element.with_depth(0).ty())
             .1
             .allows(ty, |id| self.unions.members(id))
         {
+            if self.native_borrow_types && self.native_shape_contains_view(ty) {
+                return Err(Diagnostic::new(
+                    "clone-type",
+                    "A byte view borrows its bytes and cannot be cloned. Use copy(view, start, end) to make independent Bytes.",
+                    span,
+                ));
+            }
             return Err(Diagnostic::new(
                 "clone-type",
                 "Values containing callable environments cannot be cloned.",

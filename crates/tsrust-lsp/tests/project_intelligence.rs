@@ -1652,3 +1652,35 @@ fn native_utf8_stored_values_document_strict_offsets_and_byte_counts() {
     let help=ask(&index,&entry,"bytes))","textDocument/signatureHelp");
     assert!(help.to_string().contains("ReadOnly<Bytes>")&&help.to_string().contains("invalid bytes are never replaced"),"{help}");
 }
+
+#[test]
+fn byte_view_factories_types_and_shared_observers_have_editor_help() {
+    let entry = tsrust_compiler::format("import {ByteView, fromUtf8, view, viewMut, length, set} from 'std:bytes';function size(part:ReadOnly<ByteView>):int{return length(part);}function main(){match(fromUtf8(\"hello\")){Ok(bytes)=>{match(view(bytes,1,4)){Ok(part)=>{console.log(size(part));},Err(error)=>{console.log(error.message);}}match(viewMut(bytes,0,1)){Ok(edit)=>{match(set(edit,0,72)){Ok(_)=>{},Err(error)=>{console.log(error.message);}}},Err(error)=>{console.log(error.message);}}},Err(error)=>{console.log(error.message);}}}").unwrap();
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.clone());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    for index in [ProjectIndex::checked(&checked), ProjectIndex::new(&checked.graph)] {
+        let hover = ask(&index, &entry, "view(bytes", "textDocument/hover");
+        let docs = hover["contents"]["value"].as_str().unwrap_or("");
+        assert!(docs.contains("Result<ByteView, ByteError>") && docs.contains("without copying") && docs.contains("Bytes | ByteView | ByteViewMut"), "{hover}");
+        assert!(!docs.contains("__tsrust"), "{hover}");
+        let hover = ask(&index, &entry, "viewMut(bytes", "textDocument/hover");
+        assert!(hover.to_string().contains("exclusive") && hover.to_string().contains("Mutable<Bytes | ByteViewMut>"), "{hover}");
+        let hover = ask(&index, &entry, "ByteView>", "textDocument/hover");
+        assert!(hover.to_string().contains("readonly window"), "{hover}");
+        let help = ask(&index, &entry, "1, 4)", "textDocument/signatureHelp");
+        assert!(help.to_string().contains("Inclusive starting byte index"), "{help}");
+        let hover = ask(&index, &entry, "length(part)", "textDocument/hover");
+        assert!(hover.to_string().contains("ByteView"), "{hover}");
+        let hover = ask(&index, &entry, "set(edit", "textDocument/hover");
+        assert!(hover.to_string().contains("ByteViewMut"), "{hover}");
+    }
+    let importing = "import { vi } from 'std:bytes';function main(){}";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, importing.into());
+    let graph = tsrust_compiler::project::load_project_headers(&workspace.snapshot(), &source_id(uri).unwrap().0).unwrap();
+    let completion = ask(&ProjectIndex::new(&graph), importing, " }", "textDocument/completion");
+    let labels = completion.as_array().unwrap().iter().filter_map(|item| item["label"].as_str()).collect::<Vec<_>>();
+    assert_eq!(labels, ["view", "viewMut"], "{completion}");
+}

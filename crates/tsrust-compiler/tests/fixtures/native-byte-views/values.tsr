@@ -1,0 +1,108 @@
+import { Bytes, ByteView, ByteViewMut, fromUtf8, view, viewMut, length, at, set, copy, toUtf8 } from "std:bytes";
+import { strictEqual } from "std:testing";
+
+type Window = {
+    part: ByteView;
+    label: string;
+};
+
+type Reader = {
+    read: Once<Function<ByteView>>;
+    marker: int;
+};
+
+function text(part: ReadOnly<ByteView>): string {
+    match (toUtf8(part)) {
+        Ok(value) => {
+            return value;
+        },
+        Err(error) => {
+            throw error.message;
+        },
+    }
+}
+
+function slice(bytes: ReadOnly<Bytes>, start: int, end: int): ByteView {
+    match (view(bytes, start, end)) {
+        Ok(part) => {
+            return part;
+        },
+        Err(error) => {
+            throw error.message;
+        },
+    }
+}
+
+function upper(window: Mutable<ByteViewMut>, index: int) {
+    match (at(window, index)) {
+        Ok(value) => {
+            match (set(window, index, value - 32)) {
+                Ok(_) => {
+                },
+                Err(error) => {
+                    throw error.message;
+                },
+            }
+        },
+        Err(error) => {
+            throw error.message;
+        },
+    }
+}
+
+function inspect(bytes: ReadOnly<Bytes>) {
+    const first = slice(bytes, 0, 5);
+    strictEqual(text(first), "hello");
+    strictEqual(length(first), 5);
+    const window: Window = {
+        part: slice(bytes, 6, 11), label: "tail"
+    };
+    strictEqual(text(window.part), "world");
+    const parts = [slice(bytes, 0, 1), slice(bytes, 1, 2)];
+    strictEqual(length(parts[0]) + length(parts[1]), 2);
+    const middle = slice(bytes, 2, 4);
+    const reader: Reader = {
+        read: () => middle, marker: 1
+    };
+    strictEqual(text(reader.read()), "ll");
+    match (view(first, 1, 3)) {
+        Ok(nested) => {
+            strictEqual(text(nested), "el");
+        },
+        Err(error) => {
+            throw error.message;
+        },
+    }
+}
+
+function main() {
+    match (fromUtf8("hello world")) {
+        Ok(bytes) => {
+            inspect(bytes);
+            match (viewMut(bytes, 0, 5)) {
+                Ok(edit) => {
+                    upper(edit, 0);
+                    strictEqual(length(edit), 5);
+                },
+                Err(error) => {
+                    throw error.message;
+                },
+            }
+
+            strictEqual(text(slice(bytes, 0, 5)), "Hello");
+            match (copy(slice(bytes, 6, 11), 0, 5)) {
+                Ok(owned) => {
+                    strictEqual(length(owned), 5);
+                },
+                Err(error) => {
+                    throw error.message;
+                },
+            }
+        },
+        Err(error) => {
+            throw error.message;
+        },
+    }
+
+    console.log("views ok");
+}

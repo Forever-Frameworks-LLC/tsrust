@@ -5061,11 +5061,11 @@
 },
 {
   "name": "length",
-  "signature": "length(bytes: ReadOnly<Bytes>): int",
+  "signature": "length(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>): int",
   "parameters": [
     {
-      "label": "bytes: ReadOnly<Bytes>",
-      "documentation": "Byte buffer to observe. Borrowed without copying or mutation."
+      "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+      "documentation": "Byte buffer to observe. Borrowed without copying or mutation. Also accepts a ByteView or ByteViewMut; indices and counts are relative to the view."
     }
   ],
   "documentation": "Returns the number of bytes in a buffer as int. Takes one byte buffer and does not change it. An empty buffer has length 0. The count measures bytes, never Unicode characters; for example, UTF-8 text may use several bytes per character. There are no operation errors for a valid buffer.\n\n```tsrust\nimport { fromArray, length } from \"std:bytes\";\nfunction main() { match (fromArray([])) { Ok(bytes) => { console.log(length(bytes)); }, Err(error) => { console.log(error.message); }, } }\n```\n\nExpected output: 0.\n\nOwnership: borrows the buffer; the count copies and the buffer remains reusable.",
@@ -5078,11 +5078,11 @@
 },
 {
   "name": "at",
-  "signature": "at(bytes: ReadOnly<Bytes>, index: int): Result<int, ByteError>",
+  "signature": "at(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>, index: int): Result<int, ByteError>",
   "parameters": [
     {
-      "label": "bytes: ReadOnly<Bytes>",
-      "documentation": "Byte buffer to read. Borrowed without copying or mutation."
+      "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+      "documentation": "Byte buffer to read. Borrowed without copying or mutation. Also accepts a ByteView or ByteViewMut; indices and counts are relative to the view."
     },
     {
       "label": "index: int",
@@ -5099,11 +5099,11 @@
 },
 {
   "name": "set",
-  "signature": "set(bytes: Mutable<Bytes>, index: int, value: int): Result<void, ByteError>",
+  "signature": "set(bytes: Mutable<Bytes | ByteViewMut>, index: int, value: int): Result<void, ByteError>",
   "parameters": [
     {
-      "label": "bytes: Mutable<Bytes>",
-      "documentation": "Byte buffer to change through an exclusive borrow. The buffer length stays unchanged."
+      "label": "bytes: Mutable<Bytes | ByteViewMut>",
+      "documentation": "Byte buffer to change through an exclusive borrow. The buffer length stays unchanged. Also accepts a ByteViewMut; indices are relative to the view and the write changes the owner."
     },
     {
       "label": "index: int",
@@ -5191,11 +5191,11 @@
 },
 {
   "name": "copy",
-  "signature": "copy(bytes: ReadOnly<Bytes>, start: int, end: int): Result<Bytes, ByteError>",
+  "signature": "copy(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>, start: int, end: int): Result<Bytes, ByteError>",
   "parameters": [
     {
-      "label": "bytes: ReadOnly<Bytes>",
-      "documentation": "Source buffer, borrowed without mutation."
+      "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+      "documentation": "Source buffer, borrowed without mutation. Also accepts a ByteView or ByteViewMut; indices and counts are relative to the view."
     },
     {
       "label": "start: int",
@@ -5233,11 +5233,11 @@
 },
 {
   "name": "toUtf8",
-  "signature": "toUtf8(bytes: ReadOnly<Bytes>): Result<string, ByteError>",
+  "signature": "toUtf8(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>): Result<string, ByteError>",
   "parameters": [
     {
-      "label": "bytes: ReadOnly<Bytes>",
-      "documentation": "Byte buffer to decode strictly. Borrowed unchanged; invalid bytes are never replaced."
+      "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+      "documentation": "Byte buffer to decode strictly. Borrowed unchanged; invalid bytes are never replaced. Also accepts a ByteView or ByteViewMut; indices and counts are relative to the view."
     }
   ],
   "documentation": "Decodes a byte buffer strictly into an independent owned UTF-8 string. Takes exactly one byte buffer and returns Ok(text), including an empty string for an empty buffer. Invalid, overlong, surrogate or truncated sequences return utf8 with message \"Byte buffer contains invalid UTF-8.\" and offset equal to the first invalid sequence start in bytes. No replacement characters are inserted. NUL and a leading U+FEFF are preserved; no normalization or BOM stripping occurs. Valid text is checked once, then copied to reserved output storage. Failed reservation returns allocation with an undefined offset. The buffer is unchanged on success and failure. Process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport {fromArray,toUtf8} from \"std:bytes\"; function main(){match(fromArray([195,169,240,159,152,128])){Ok(bytes)=>{match(toUtf8(bytes)){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.message);}}},Err(error)=>{console.log(error.message);}}}\n```\n\nExpected output: \u00e9\ud83d\ude00.\n\nOwnership: borrows the input and returns independent owned storage; no input is consumed or implicitly cloned.",
@@ -5245,6 +5245,80 @@
     {
       "source": "import {fromArray,toUtf8} from \"std:bytes\"; function main(){match(fromArray([195,169,240,159,152,128])){Ok(bytes)=>{match(toUtf8(bytes)){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.message);}}},Err(error)=>{console.log(error.message);}}}",
       "output": "\u00e9\ud83d\ude00\n"
+    }
+  ]
+},
+{
+  "name": "ByteView",
+  "signature": "type ByteView",
+  "parameters": [],
+  "documentation": "A readonly window onto a range of bytes that another value owns. It holds no bytes of its own: view creates it without copying, and it reads the owner's current bytes. This is a type declaration, so it takes no arguments and returns no value. It cannot be built with a record literal and it cannot be cloned; use copy to make independent Bytes. length, at, copy and toUtf8 read it, and view makes a narrower window of it. While a ByteView is in scope, its owner can be read, and it cannot be written, resized, moved or replaced. A ByteView can be stored in records, arrays and callbacks, passed to functions and returned from a function whose parameter owns the bytes. It cannot outlive its owner.\n\n```tsrust\nimport { ByteView, fromArray, view, length } from \"std:bytes\";\nfunction size(part: ReadOnly<ByteView>): int { return length(part); }\nfunction main() { match (fromArray([1, 2, 3])) { Ok(bytes) => { match (view(bytes, 1, 3)) { Ok(part) => { console.log(size(part)); }, Err(error) => { console.log(error.message); }, } }, Err(error) => { console.log(error.message); }, } }\n```\n\nExpected output: 2.\n\nOwnership: borrows the owner's bytes for as long as the view is in scope. Passing it as ReadOnly<ByteView> lends the window; passing it by value moves the window, never the bytes.",
+  "examples": [
+    {
+      "source": "import { ByteView, fromArray, view, length } from \"std:bytes\";\nfunction size(part: ReadOnly<ByteView>): int { return length(part); }\nfunction main() { match (fromArray([1, 2, 3])) { Ok(bytes) => { match (view(bytes, 1, 3)) { Ok(part) => { console.log(size(part)); }, Err(error) => { console.log(error.message); }, } }, Err(error) => { console.log(error.message); }, } }",
+      "output": "2\n"
+    }
+  ]
+},
+{
+  "name": "ByteViewMut",
+  "signature": "type ByteViewMut",
+  "parameters": [],
+  "documentation": "An exclusive, writable window onto a range of bytes that another value owns. viewMut creates it without copying, and set writes through it into the owner. This is a type declaration, so it takes no arguments and returns no value. It cannot be built with a record literal or cloned. length, at, copy and toUtf8 read it, set writes it, and view or viewMut make a narrower window of it. While a ByteViewMut is in scope, its owner cannot be read, written, resized, moved or replaced, and no other view of the same bytes can exist. The window has a fixed length: it cannot grow or shrink the owner.\n\n```tsrust\nimport { ByteViewMut, fromArray, viewMut, set, at } from \"std:bytes\";\nfunction clear(part: Mutable<ByteViewMut>) { match (set(part, 0, 0)) { Ok(_) => {}, Err(error) => { console.log(error.message); }, } }\nfunction main() { match (fromArray([7, 8])) { Ok(bytes) => { match (viewMut(bytes, 1, 2)) { Ok(part) => { clear(part); }, Err(error) => { console.log(error.message); }, } match (at(bytes, 1)) { Ok(value) => { console.log(value); }, Err(error) => { console.log(error.message); }, } }, Err(error) => { console.log(error.message); }, } }\n```\n\nExpected output: 0.\n\nOwnership: borrows the owner's bytes exclusively for as long as the view is in scope. Passing it as Mutable<ByteViewMut> lends the window for writing. Writes are visible in the owner after the view's scope ends.",
+  "examples": [
+    {
+      "source": "import { ByteViewMut, fromArray, viewMut, set, at } from \"std:bytes\";\nfunction clear(part: Mutable<ByteViewMut>) { match (set(part, 0, 0)) { Ok(_) => {}, Err(error) => { console.log(error.message); }, } }\nfunction main() { match (fromArray([7, 8])) { Ok(bytes) => { match (viewMut(bytes, 1, 2)) { Ok(part) => { clear(part); }, Err(error) => { console.log(error.message); }, } match (at(bytes, 1)) { Ok(value) => { console.log(value); }, Err(error) => { console.log(error.message); }, } }, Err(error) => { console.log(error.message); }, } }",
+      "output": "0\n"
+    }
+  ]
+},
+{
+  "name": "view",
+  "signature": "view(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>, start: int, end: int): Result<ByteView, ByteError>",
+  "parameters": [
+    {
+      "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+      "documentation": "Byte owner or view to look into. Borrowed without copying or mutation for as long as the result is in scope."
+    },
+    {
+      "label": "start: int",
+      "documentation": "Inclusive starting byte index, from 0 through length(bytes). Checked before end."
+    },
+    {
+      "label": "end: int",
+      "documentation": "Exclusive ending byte index, from start through length(bytes)."
+    }
+  ],
+  "documentation": "Returns a readonly window onto the bytes in the half-open range [start, end) without copying them. Returns Ok(view); start equal to end produces an empty view, including at the end of the bytes. Bounds must satisfy 0 <= start <= end <= length(bytes). Negative indices never wrap and bounds are not clamped. Checks start first, then end; an invalid range returns the error code range with the first offending coordinate as offset. A reversed range reports end. There is no allocation, so there is no allocation error. The view reads the owner's bytes: it has the same contents as the owner for as long as it exists. Coordinates count bytes, not Unicode characters; a range that splits a character makes toUtf8 of the view fail. A view of a view is relative to the inner view and borrows it.\n\n```tsrust\nimport { fromUtf8, view, toUtf8 } from \"std:bytes\";\nfunction main() { match (fromUtf8(\"hello\")) { Ok(bytes) => { match (view(bytes, 1, 4)) { Ok(part) => { match (toUtf8(part)) { Ok(text) => { console.log(text); }, Err(error) => { console.log(error.message); }, } }, Err(error) => { console.log(error.message); }, } }, Err(error) => { console.log(error.message); }, } }\n```\n\nExpected output: ell.\n\nOwnership: borrows the bytes readonly. While the view is in scope the owner can be read and cannot be written, resized, moved or replaced. The view cannot be returned from the function that owns the bytes. Use copy for bytes that must outlive their owner.",
+  "examples": [
+    {
+      "source": "import { fromUtf8, view, toUtf8 } from \"std:bytes\";\nfunction main() { match (fromUtf8(\"hello\")) { Ok(bytes) => { match (view(bytes, 1, 4)) { Ok(part) => { match (toUtf8(part)) { Ok(text) => { console.log(text); }, Err(error) => { console.log(error.message); }, } }, Err(error) => { console.log(error.message); }, } }, Err(error) => { console.log(error.message); }, } }",
+      "output": "ell\n"
+    }
+  ]
+},
+{
+  "name": "viewMut",
+  "signature": "viewMut(bytes: Mutable<Bytes | ByteViewMut>, start: int, end: int): Result<ByteViewMut, ByteError>",
+  "parameters": [
+    {
+      "label": "bytes: Mutable<Bytes | ByteViewMut>",
+      "documentation": "Byte owner or exclusive view to write into. Borrowed exclusively, without copying, for as long as the result is in scope."
+    },
+    {
+      "label": "start: int",
+      "documentation": "Inclusive starting byte index, from 0 through length(bytes). Checked before end."
+    },
+    {
+      "label": "end: int",
+      "documentation": "Exclusive ending byte index, from start through length(bytes)."
+    }
+  ],
+  "documentation": "Returns an exclusive, writable window onto the bytes in the half-open range [start, end) without copying them. Returns Ok(view); start equal to end produces an empty view. Bounds must satisfy 0 <= start <= end <= length(bytes). Negative indices never wrap and bounds are not clamped. Checks start first, then end; an invalid range returns the error code range with the first offending coordinate as offset. A reversed range reports end. There is no allocation. set through the view changes the owner's bytes at start plus the view index. The view has a fixed length and cannot resize the owner. A readonly ByteView cannot supply an exclusive view.\n\n```tsrust\nimport { fromUtf8, viewMut, set, toUtf8 } from \"std:bytes\";\nfunction main() { match (fromUtf8(\"hello\")) { Ok(bytes) => { match (viewMut(bytes, 0, 1)) { Ok(part) => { match (set(part, 0, 72)) { Ok(_) => {}, Err(error) => { console.log(error.message); }, } }, Err(error) => { console.log(error.message); }, } match (toUtf8(bytes)) { Ok(text) => { console.log(text); }, Err(error) => { console.log(error.message); }, } }, Err(error) => { console.log(error.message); }, } }\n```\n\nExpected output: Hello.\n\nOwnership: borrows the bytes exclusively. While the view is in scope the owner cannot be read, written, resized, moved or replaced. The owner is usable again, with the written bytes, after the view's scope ends.",
+  "examples": [
+    {
+      "source": "import { fromUtf8, viewMut, set, toUtf8 } from \"std:bytes\";\nfunction main() { match (fromUtf8(\"hello\")) { Ok(bytes) => { match (viewMut(bytes, 0, 1)) { Ok(part) => { match (set(part, 0, 72)) { Ok(_) => {}, Err(error) => { console.log(error.message); }, } }, Err(error) => { console.log(error.message); }, } match (toUtf8(bytes)) { Ok(text) => { console.log(text); }, Err(error) => { console.log(error.message); }, } }, Err(error) => { console.log(error.message); }, } }",
+      "output": "Hello\n"
     }
   ]
 }
