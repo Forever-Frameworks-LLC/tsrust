@@ -2421,9 +2421,10 @@ impl Parser<'_> {
                 self.peek().span,
             ));
         }
-        let (access, annotation, next) =
+        let (access, mut annotation, next) =
             crate::type_syntax::parse_parameter_prefix(&mut self.tokens, self.i, self.depth)?;
         self.i = next;
+        crate::type_aliases::expand(&mut annotation, &self.aliases);
         let access = access.map(|access| Token {
             text: access.mode.as_str().to_owned(),
             span: access.span,

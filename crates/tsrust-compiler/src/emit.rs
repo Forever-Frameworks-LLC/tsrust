@@ -2272,6 +2272,10 @@ impl Emitter<'_> {
                 if !definition.members.is_empty() { output.push_str("#[repr(u32)]\n"); }
                 let _ = writeln!(output, "#[derive(Clone, Copy, Debug)] enum Enum{index} {{ {variants} }} impl Enum{index} {{ fn tsr_value(self) -> {backing} {{ match self {{ {arms} }} }} }} impl PartialEq for Enum{index} {{ fn eq(&self, other: &Self) -> bool {{ self.tsr_value() == other.tsr_value() }} }} impl PartialOrd for Enum{index} {{ fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {{ self.tsr_value().partial_cmp(&other.tsr_value()) }} }}");
             }
+            if record.native_type == Some(crate::native_signatures::NativeTypeId::Bytes) {
+                let _ = writeln!(output, "#[derive(Clone)] struct Record{index} {{ bytes: Vec<u8> }}");
+                continue;
+            }
             let mut generic_fields = Vec::new();
             let fields = record
                 .fields

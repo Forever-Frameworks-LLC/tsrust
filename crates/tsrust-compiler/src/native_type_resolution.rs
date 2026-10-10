@@ -6,7 +6,7 @@ use crate::{Diagnostic, Span, native_signatures::{NativeTypeId, Signature}, nati
 
 pub fn linked_name(id: NativeTypeId) -> String {
     let item = native_types::declaration(id);
-    format!("@native-type:{}#{}", item.module, item.name)
+    format!("{}native#{}#{}", crate::type_aliases::LINKED_PREFIX, item.module, item.name)
 }
 
 /// Repeated imports and aliases share one arena identity. A failed projection

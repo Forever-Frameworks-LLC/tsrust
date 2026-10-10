@@ -309,3 +309,25 @@ native imports into the project linker's early alias visibility and final name m
 then inject interned declarations into the linked program. Add source witnesses for
 aliases, re-exports, nominal distinctions, opaque construction rejection and native
 storage before claiming checked Bytes support. Gate 187 and S07 remain open.
+
+## Gate 187 checked import increment
+
+The project linker now separates native type symbols from callable symbols. It
+interns imported declarations in the linked arena and includes native identities in
+early alias visibility. Stable native names use the existing linked-name namespace
+with unspellable separators, while declaration IDs remain authoritative.
+ByteError aliases now check and execute with required fields and omitted or present
+offsets. Bytes parameters check, native storage emits a Vec<u8> field, and source
+record literals receive a native-opaque diagnostic rather than constructing Bytes.
+
+The native fixture exposed a prior parser defect: wrapped parameters such as
+ReadOnly<Alias> did not expand local aliases. Wrapped parameter parsing now applies
+the same alias expansion as ordinary annotations. Nine focused declaration/import
+checks pass, including the formatted native error fixture. All ten depth canaries,
+the type-alias suite and five existing native editor controls pass. Exact evidence
+is in SQLite at `runtime/results/native-checked-imports-2026-10-10-checks.json`.
+
+Gate 187 is still not accepted. Native type hover/completion, re-export witnesses,
+opaque observation/capability guards, fromArray/length and their documented matched
+workload remain. Do not publish Bytes construction or claim S07 acceptance from this
+checkpoint. Installed consumers remain the accepted B10 build.

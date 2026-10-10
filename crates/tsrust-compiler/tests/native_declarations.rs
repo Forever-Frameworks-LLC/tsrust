@@ -1,3 +1,5 @@
+mod support;
+
 use tsrust_compiler::native_signatures::{NativeTypeId, Signature};
 use tsrust_compiler::native_types::{declaration, lookup, Representation};
 
@@ -107,4 +109,33 @@ fn recursive_native_projection_keeps_ids_and_rolls_back_failures() {
     for _ in 0..129 { deep = Box::leak(Box::new(Signature::Array(deep))); }
     assert_eq!(project(&mut retained, deep, span).unwrap_err().code, "native-type-limit");
     assert_eq!(retained.len(), 1);
+}
+
+fn checked_source(source: &str) -> Result<tsrust_compiler::project::ProjectAnalysis, tsrust_compiler::project::ProjectDiagnostic> {
+    use tsrust_compiler::project::{SourceId, SourceProvider, load_project, check_graph};
+    struct Provider<'a>(&'a str);
+    impl SourceProvider for Provider<'_> {
+        fn resolve(&self, _: Option<&SourceId>, path: &str) -> Result<SourceId, String> { Ok(SourceId(path.into())) }
+        fn read(&self, _: &SourceId) -> Result<String, String> { Ok(self.0.into()) }
+    }
+    let formatted = support::format_round_trip(source);
+    check_graph(load_project(&Provider(&formatted), "main.tsr")?)
+}
+
+#[test]
+fn imported_native_types_check_aliases_and_reject_opaque_construction() {
+    let source = "import {Bytes as Buffer, ByteError as Failure} from 'std:bytes'; type Alias = Failure; function borrow(value: ReadOnly<Buffer>): void {} function main(){const error: Alias = {code:'range',message:'bad'}; console.log(error.code,error.offset);}";
+    let checked = checked_source(source).unwrap();
+    assert!(checked.emit_rust().contains("Vec<u8>"));
+    let error = checked_source("import {Bytes} from 'std:bytes'; function main(){const value: Bytes = {};}").err().unwrap();
+    assert_eq!(error.code, "native-opaque");
+    assert!(error.message.contains("cannot be constructed"));
+}
+
+#[test]
+fn native_public_error_aliases_execute_with_optional_fields() {
+    let directory = support::TempDirectory::new();
+    let source = support::format_round_trip(include_str!("fixtures/native-type-imports/errors.tsr"));
+    let path = directory.source(&source);
+    support::success(&support::run(support::cli().arg("run").arg(path), 60));
 }

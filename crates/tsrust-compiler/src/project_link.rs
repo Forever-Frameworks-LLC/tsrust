@@ -259,6 +259,15 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId]) -> Result<Projec
         }
         let mut visible = names.clone();
         for import in &source.imports {
+            if let Some(native) = import.native {
+                for binding in &import.bindings {
+                    if let Ok(crate::native_exports::Export::Type(item)) = crate::native_exports::lookup(native, &binding.exported) {
+                        visible.insert(binding.local.clone(), crate::native_type_resolution::linked_name(item.id));
+                    }
+                }
+            }
+        }
+        for import in &source.imports {
             let Some(target) = import.target.as_ref().and_then(|target| globals.get(target)) else { continue };
             for binding in &import.bindings {
                 if let Some(linked) = target.get(&binding.exported) {
@@ -312,7 +321,15 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId]) -> Result<Projec
                 names.insert(
                     binding.local.clone(),
                     if let Some(native) = import.native {
-                        format!("@native:{native}#{}", binding.exported)
+                        match crate::native_exports::lookup(native, &binding.exported).expect("validated native export") {
+                            crate::native_exports::Export::Function(_) => format!("@native:{native}#{}", binding.exported),
+                            crate::native_exports::Export::Type(item) => {
+                                let span = Span::new(binding.span.start + segments[module].1, binding.span.end + segments[module].1);
+                                crate::native_type_resolution::intern(&mut linked.records, item.id, span)
+                                    .map_err(|value| diagnostic(&graph, &segments, value))?;
+                                crate::native_type_resolution::linked_name(item.id)
+                            }
+                        }
                     } else {
                         globals[import.target.as_ref().expect("loaded target")][&binding.exported]
                             .clone()

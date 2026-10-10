@@ -1,0 +1,20 @@
+import { ByteError as Failure } from "std:bytes";
+import { strictEqual } from "std:testing";
+
+type ErrorInfo = Failure;
+
+function message(error: ReadOnly<ErrorInfo>): string {
+    return error.code + ":" + error.message;
+}
+
+function main() {
+    const error: ErrorInfo = {
+        code: "range", message: "invalid byte"
+    };
+    strictEqual(message(error), "range:invalid byte");
+    strictEqual(error.offset, undefined);
+    const located: Failure = {
+        code: "range", message: "invalid byte", offset: 2
+    };
+    strictEqual(located.offset, 2);
+}

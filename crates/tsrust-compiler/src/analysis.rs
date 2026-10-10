@@ -9794,6 +9794,10 @@ impl Analyzer {
                 ));
             }
         };
+        if let Some(id) = self.program.records[index].native_type
+            && !crate::native_types::declaration(id).source_constructible() {
+            return Err(Diagnostic::new("native-opaque", "Opaque native values cannot be constructed with record literals; use their module's constructors.", span));
+        }
         self.fill_omitted_optional_fields(index, fields, span);
         let mut seen = HashSet::new();
         let mut concrete = self.program.records[index].fields.iter().map(|field| field.ty.expect("checked field")).collect::<Vec<_>>();
