@@ -22,6 +22,28 @@ impl Emitter<'_> {
                 continue;
             }
             match ty {
+                Type::StoredCallable(family) => {
+                    // The family names one lifetime per slot, in alternative order.
+                    let Some(layout) = self.program.stored_contracts.scoped_native_family(family) else { continue; };
+                    for alternative in &layout.alternatives {
+                        for slot in &alternative.slots {
+                            let mut child = path.clone();
+                            child.push(Segment::CallableAlternative(alternative.origin));
+                            child.push(Segment::Field(format!("capture{}", slot.capture)));
+                            let prefix = child.clone();
+                            child.extend(slot.path.iter().cloned());
+                            let mut slot_guards = guards.clone();
+                            slot_guards.extend(slot.guards.iter().map(|guard| {
+                                let mut guard = guard.clone();
+                                let mut full = prefix.clone();
+                                full.extend(guard.path);
+                                guard.path = full;
+                                guard
+                            }));
+                            names.push(plan.slot(input, &child, &slot_guards).to_owned());
+                        }
+                    }
+                }
                 Type::Record(id) if native_view_emit::access(self.program, id).is_some() => {
                     names.push(plan.slot(input, &path, &guards).to_owned())
                 }

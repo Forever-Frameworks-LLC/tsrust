@@ -118,6 +118,19 @@ impl Emitter<'_> {
             Type::Record(id) if native_view_emit::access(self.program,id).is_some()=>{
                 slots.insert((root,LifetimeSource::carried(path.clone(),guards.clone())),lifetimes[*next].clone());*next+=1;
             }
+            Type::StoredCallable(family) if self.program.stored_contracts.scoped_native_family(family).is_some()=>{
+                // One environment lifetime per carried slot, in alternative order.
+                let layout=self.program.stored_contracts.scoped_native_family(family).expect("scoped family");
+                for alternative in &layout.alternatives {
+                    for slot in &alternative.slots {
+                        let mut prefix=path.clone();prefix.push(Segment::CallableAlternative(alternative.origin));prefix.push(Segment::Field(format!("capture{}",slot.capture)));
+                        let mut slot_path=prefix.clone();slot_path.extend(slot.path.iter().cloned());
+                        let mut slot_guards=guards.clone();
+                        slot_guards.extend(slot.guards.iter().map(|guard|{let mut guard=guard.clone();let mut guarded=prefix.clone();guarded.extend(guard.path);guard.path=guarded;guard}));
+                        slots.insert((root,LifetimeSource::carried(slot_path,slot_guards)),lifetimes[*next].clone());*next+=1;
+                    }
+                }
+            }
             Type::Record(id) if self.native_views.contains(ty)=>{
                 for field in &self.program.records[id].fields {
                     path.push(Segment::Field(field.name.text.clone()));

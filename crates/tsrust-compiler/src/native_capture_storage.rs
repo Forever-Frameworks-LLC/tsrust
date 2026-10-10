@@ -160,6 +160,7 @@ impl Storage {
                         }
                     }
                 }
+                Type::StoredCallable(family) => total += program.stored_contracts.scoped_native_family(family).map_or(0, crate::native_view_callable_storage::Family::lifetimes),
                 Type::Record(record) if program.records[record].native_type.is_some_and(|id|crate::native_types::declaration(id).borrow_access().is_some()) => total += 1,
                 Type::Array(element) if crate::environment_lifetimes::contains_native_view(element.ty(),&program.records,&|id|program.unions[id.index()].members.clone()) => pending.push((element.ty(),false)),
                 Type::Record(record) => pending.extend(

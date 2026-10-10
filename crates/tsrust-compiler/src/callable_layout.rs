@@ -77,6 +77,7 @@ pub(crate) fn capture_layout(
                         .iter()
                         .map(|&origin| program.closures[origin].lifetime_count)
                         .sum(),
+                    Type::StoredCallable(id) => program.stored_contracts.scoped_native_family(id).map_or(0, crate::native_view_callable_storage::Family::lifetimes),
                     _ => 0,
                 },
             )

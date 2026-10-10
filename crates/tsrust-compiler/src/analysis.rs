@@ -2455,6 +2455,8 @@ impl Analyzer {
                 |ty| match ty {
                     Type::Closure(id) => self.closures[id].lifetime_count,
                     Type::BorrowedCallable(id) => self.callables.storage.origins(id).expect("checked borrowed origins").iter().map(|&origin| self.closures[origin].lifetime_count).sum(),
+                    // A captured scoped family keeps one lifetime for each carried view.
+                    Type::StoredCallable(id) => self.callables.storage.scoped_native_family(id).map_or(0, crate::native_view_callable_storage::Family::lifetimes),
                     _ => 0,
                 },
             );
@@ -10614,6 +10616,7 @@ impl Analyzer {
         for value in values.iter_mut() {
             if element.is_none() && let ExprKind::Closure { id, .. } = value.kind { self.escaping.insert(id); }
             let actual = if let Some(ArrayElement::StoredCallable(family, 0)) = element {
+                let family = self.native_view_literal_family(family, value);
                 self.stored_callable_value(context, value, family, loans)?
             } else {
                 self.expression(
@@ -10626,6 +10629,7 @@ impl Analyzer {
             };
             self.finish_array_literal_element(context, value, actual, &mut element)?;
         }
+        self.join_native_view_literal(values, element);
         self.finish_array_literal(values, element, span)
     }
 
@@ -10674,6 +10678,12 @@ impl Analyzer {
         let Type::Array(inferred) = Self::transform_array_type(actual, value.span)? else {
             unreachable!("array element conversion returns an array");
         };
+        if let Some(expected) = element.map(ArrayElement::ty)
+            && let Some(Type::StoredCallable(joined)) = self.common_native_view_storage(expected, actual, value.span)? {
+            // Different callbacks that hold byte views share one joined family.
+            *element = Some(ArrayElement::StoredCallable(joined, 0));
+            return Ok(());
+        }
         self.require(actual, element.map(ArrayElement::ty), value.span)?;
         if let Some(expected) = element.map(ArrayElement::ty)
             && actual != expected && self.scoped_native_storage_contract(actual, expected, value.span)? {
@@ -11575,6 +11585,9 @@ impl Analyzer {
         let active = Self::selection_loans(base, loans);
         let widening = !remove && (Self::indexed_array_root(base).is_some() || Self::direct_fields(base).is_some()) && matches!(element, ArrayElement::Record(id, _) if self.aggregate_callable_facts(Type::Record(self.scoped_records.declaration(id))).scoped);
         let argument_type = if remove { Type::Int } else { self.scoped_array_element_contract(base, element) };
+        // A new callback is checked against the written contract; the array then
+        // takes the family that joins it with the callbacks it already holds.
+        let argument_type = if remove { argument_type } else { self.native_view_element_contract(context, base, argument_type, &args[0]) };
         let actual = if !remove && let Type::StoredCallable(family) = argument_type {
             self.stored_callable_value(context, &mut args[0], family, &active)?
         } else {
@@ -11589,7 +11602,11 @@ impl Analyzer {
         self.require(actual, Some(argument_type), args[0].span)?;
         Self::storage_access(context, base, Mode::Mutate, span, loans)?;
         if widening { self.widen_scoped_array_storage(context, base, actual, span)?; }
-        if !remove { self.append_target_capture_loans(context, base, &args[0]); }
+        if !remove { self.widen_native_view_array_storage(context, base, actual, span)?; }
+        if !remove {
+            self.append_target_capture_loans(context, base, &args[0]);
+            Self::append_native_view_element(context, base, &args[0])?;
+        }
         Ok(if remove { element.ty() } else { Type::Void })
     }
 

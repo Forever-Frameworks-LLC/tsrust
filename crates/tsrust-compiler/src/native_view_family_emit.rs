@@ -64,9 +64,11 @@ impl Emitter<'_> {
         // A family with a throwing alternative uses the error layout planned for its
         // identity; alternatives that cannot throw are adapted to it like ordinary families.
         let result=match self.result_storage.borrow().get(&id) {Some((error,_))=>format!("Result<{result},{error}>"),None=>result};
-        writeln!(generated,"impl{generics} {name}{generics} {{fn call{method_generics}(self{parameters})->{result}{bounds} {{match self {{").unwrap();
+        // A reusable family is called through a borrow of its environment.
+        let (receiver,pattern)=match layout.invocation {Mode::Consume=>("self","mut value"),Mode::Read=>("&self","value"),_=>("&mut self","value")};
+        writeln!(generated,"impl{generics} {name}{generics} {{fn call{method_generics}({receiver}{parameters})->{result}{bounds} {{match self {{").unwrap();
         for alternative in &layout.alternatives {
-            writeln!(generated,"Self::V{}(mut value)=>{},",alternative.origin,self.stored_origin_result(id,alternative.origin,format!("value.call({arguments})"))).unwrap();
+            writeln!(generated,"Self::V{}({pattern})=>{},",alternative.origin,self.stored_origin_result(id,alternative.origin,format!("value.call({arguments})"))).unwrap();
         }
         generated.push_str("}}}\n");
         output.push_str(&generated);

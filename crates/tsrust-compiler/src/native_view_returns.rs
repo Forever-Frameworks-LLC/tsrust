@@ -2,16 +2,34 @@
 use super::native_view_loans::LifetimeSource;
 use super::*;
 
+fn untracked(span: Span) -> Diagnostic {
+    Diagnostic::new(
+        "native-view-source",
+        "This returned byte view has no tracked owner. A callback cannot yet return a byte view that it received as an argument; return a captured view or use a named function.",
+        span,
+    )
+}
+
 impl Analyzer {
     pub(super) fn record_native_return(
         &self,
         context: &mut Context,
         value: &Expr,
     ) -> Result<(), Diagnostic> {
-        if !context.native_view_calls || context.effects_only {
+        if context.effects_only {
             return Ok(());
         }
+        // A returned byte view always needs a tracked owner. Without one the native
+        // signature could not name its lifetime.
+        let direct_view = self.native_borrow_types
+            && matches!(value.ty, Some(Type::Record(record)) if self.program.records[record].native_type.is_some_and(|id| crate::native_types::declaration(id).borrow_access().is_some()));
+        if !context.native_view_calls {
+            return if direct_view { Err(untracked(value.span)) } else { Ok(()) };
+        }
         let loans = Self::native_view_value_loans(context, value)?;
+        if direct_view && loans.is_empty() {
+            return Err(untracked(value.span));
+        }
         let mut sources = Vec::new();
         for output in loans {
             let mut pending = vec![(

@@ -49,6 +49,13 @@ pub(crate) struct Family {
     pub(crate) alternatives: Vec<Alternative>,
 }
 
+impl Family {
+    /// Lifetime parameters of the emitted family: every slot of every alternative.
+    pub(crate) fn lifetimes(&self) -> usize {
+        self.alternatives.iter().map(|alternative| alternative.slots.len()).sum()
+    }
+}
+
 pub(crate) fn family_slots(
     contract: &crate::analysis::CallbackContract,
     signatures: &crate::callable_contracts::Contracts,
@@ -94,11 +101,14 @@ pub(crate) fn validate_abi(
     span: crate::Span,
 ) -> Result<(), crate::Diagnostic> {
     let unsupported = |message: &str| crate::Diagnostic::new("native-view-family-emission", message, span);
-    if layout.invocation != Mode::Consume || layout.alternatives.is_empty() || contract.structural != layout.signature {
-        return Err(unsupported("This native family ABI requires a matching finite one-shot callback contract."));
+    if layout.alternatives.is_empty() || contract.structural != layout.signature {
+        return Err(unsupported("This native family ABI requires a matching finite callback contract."));
     }
     for alternative in &layout.alternatives {
         let closure = closures.get(alternative.origin).ok_or_else(|| unsupported("Unknown native callable family environment."))?;
+        if layout.invocation != Mode::Consume && closure.invocation == Mode::Consume {
+            return Err(unsupported("A reusable native family cannot hold an environment that is consumed by its call."));
+        }
         if carried_slots(closure).unwrap_or_default() != alternative.slots {
             return Err(unsupported("Native callable family capture paths and access must match the checked environment."));
         }

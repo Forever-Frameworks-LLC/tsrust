@@ -241,10 +241,23 @@ fn native_view_storage_invocation_and_replacement_matrix() {
         ("throwing-mixed-alternatives","read:Once<Function<int,[boolean]>>;marker:int;","return {read:marker()>0?(fail:boolean)=>{const kept=view;if(fail){throw 3;}return 1;}:(fail:boolean)=>{const kept=view;return 2;},marker:1};","const holder=save(first);let seen=0;try{seen=holder.read(false);}catch(error){seen=9;}return second;"),
         ("argument-owned-view-ignored","read:Once<Function<Window,[Owned<Window>]>>;marker:int;","return {read:(other:Owned<Window>)=>view,marker:1};","const holder=save(second);return holder.read(first);"),
         ("replacement-in-loop",once,plain,"let holder=save(first);for(let i=0;i<1;i+=1){holder=save(second);break;}return holder.read();"),
+        ("array-push-alternative","read:Once<Function<Window>>[];marker:int;","const list:Once<Function<Window>>[]=[];list.push(()=>view);return {read:list,marker:1};","const holder=save(second);const action=holder.read.pop()!;return action();"),
+        ("stored-family-capture",once,plain,"const holder=save(second);const outer:Once<Function<Window>>=()=>holder.read();return outer();"),
+        ("stored-family-capture-field",once,plain,"const holder=save(second);const action=holder.read;const outer:Once<Function<Window>>=()=>action();return outer();"),
+        ("stored-family-recapture-record",once,plain,"const holder=save(second);const next:Holder={read:()=>holder.read(),marker:2};return next.read();"),
+        ("throwing-view-success","read:Once<Function<Window,[boolean]>>;marker:int;","return {read:(fail:boolean)=>{if(fail){throw 3;}return view;},marker:1};","const holder=save(second);try{return holder.read(false);}catch(error){return first;}"),
+        ("array-push-two-alternatives","read:Once<Function<Window>>;marker:int;","return {read:()=>view,marker:1};","const list:Once<Function<Window>>[]=[];list.push(()=>first);list.push(()=>second);const action=list.pop()!;return action();"),
+        ("array-literal-then-push","read:Once<Function<Window>>;marker:int;","return {read:()=>view,marker:1};","const list:Once<Function<Window>>[]=[()=>first];list.push(()=>second);const action=list.pop()!;return action();"),
+        ("array-two-literal-alternatives","read:Once<Function<Window>>;marker:int;","return {read:()=>view,marker:1};","const list:Once<Function<Window>>[]=[()=>first,()=>second];const action=list.pop()!;return action();"),
+        ("reusable-read","read:Function<int>;marker:int;","return {read:()=>size(view),marker:1};","const holder=save(first);const total=holder.read()+holder.read();return second;"),
+        ("reusable-mutable","read:Function<int>;marker:int;","let calls=0;return {read:()=>{calls+=1;return calls+size(view);},marker:1};","let holder=save(first);const total=holder.read()+holder.read();return second;"),
+        ("reusable-argument","read:Function<int,[ReadOnly<string>]>;marker:int;","return {read:(text:string)=>size(view)+text.length,marker:1};","const holder=save(first);const total=holder.read(\"ab\")+holder.read(\"c\");return second;"),
+        ("reusable-saved","read:Function<int>;marker:int;","return {read:()=>size(view),marker:1};","const holder=save(first);const action=holder.read;const total=action()+action();return second;"),
+        ("array-two-views","read:Once<Function<Window>>[];marker:int;","return {read:[()=>view],marker:1};","const holder=save(second);const other=save(first);holder.read.push(other.read.pop()!);const action=holder.read.shift()!;return action();"),
     ];
     for (label,holder,save,relay) in cases {
         for mutable in [false,true] {
-            let source=format!("type Window={{}};type Holder={{{holder}}};function save(view:Window):Holder{{{save}}}function relay(first:Window,second:Window):Window{{{relay}}}function marker():int{{return 1;}}function main(){{}}");
+            let source=format!("type Window={{}};type Holder={{{holder}}};function save(view:Window):Holder{{{save}}}function relay(first:Window,second:Window):Window{{{relay}}}function marker():int{{return 1;}}function size(view:ReadOnly<Window>):int{{return 2;}}function main(){{}}");
             assert_stored_source_access(&source,label,mutable);
         }
     }
@@ -256,22 +269,16 @@ fn zz_matrix_probe() {
     let once="read:Once<Function<Window>>;marker:int;";
     let plain="return {read:()=>view,marker:1};";
     let cases:&[(&str,&str,&str,&str)]=&[
-        ("array-push-alternative","read:Once<Function<Window>>[];marker:int;","const list:Once<Function<Window>>[]=[];list.push(()=>view);return {read:list,marker:1};","const holder=save(second);const action=holder.read.pop()!;return action();"),
         ("nullable-absent-then-present","read:Once<Function<Window>>|undefined;marker:int;","return {read:undefined,marker:1};","let holder=save(first);holder.read=()=>second;return (holder.read!)();"),
         ("nullable-conditional","read:Once<Function<Window>>|undefined;marker:int;","return {read:true?()=>view:undefined,marker:1};","const holder=save(second);return (holder.read!)();"),
-        ("stored-family-capture",once,plain,"const holder=save(second);const outer:Once<Function<Window>>=()=>holder.read();return outer();"),
-        ("stored-family-capture-field",once,plain,"const holder=save(second);const action=holder.read;const outer:Once<Function<Window>>=()=>action();return outer();"),
-        ("stored-family-recapture-record",once,plain,"const holder=save(second);const next:Holder={read:()=>holder.read(),marker:2};return next.read();"),
         ("field-replacement-in-branch",once,plain,"let holder=save(first);if(holder.marker>0){holder.read=()=>second;}return holder.read();"),
-        ("throwing-view-success","read:Once<Function<Window,[boolean]>>;marker:int;","return {read:(fail:boolean)=>{if(fail){throw 3;}return view;},marker:1};","const holder=save(second);return holder.read(false);"),
         ("argument-owned-view","read:Once<Function<Window,[Owned<Window>]>>;marker:int;","return {read:(other:Owned<Window>)=>other,marker:1};","const holder=save(first);return holder.read(second);"),
-        ("array-two-views","read:Once<Function<Window>>[];marker:int;","return {read:[()=>view],marker:1};","const holder=save(second);const other=save(first);holder.read.push(other.read.pop()!);const action=holder.read.shift()!;return action();"),
     ];
     let filter=std::env::var("PROBE").ok();
     for (label,holder,save,relay) in cases {
         if filter.as_ref().is_some_and(|f|!label.contains(f.as_str())) {continue;}
         for mutable in [false,true] {
-            let source=format!("type Window={{}};type Holder={{{holder}}};function save(view:Window):Holder{{{save}}}function relay(first:Window,second:Window):Window{{{relay}}}function marker():int{{return 1;}}function main(){{}}");
+            let source=format!("type Window={{}};type Holder={{{holder}}};function save(view:Window):Holder{{{save}}}function relay(first:Window,second:Window):Window{{{relay}}}function marker():int{{return 1;}}function size(view:ReadOnly<Window>):int{{return 2;}}function twice(action:ReadOnly<Function<int>>):int{{return action()+action();}}function main(){{}}");
             if std::env::var("DUMP").is_ok() && !mutable {
                 let mut parsed=crate::syntax::parse(&crate::formatting::format(&source).unwrap()).unwrap();
                 parsed.records.iter_mut().find(|record|record.name.text=="Window").unwrap().native_type=Some(NativeTypeId::ByteView);

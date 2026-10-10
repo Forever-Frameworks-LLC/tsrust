@@ -139,6 +139,35 @@ impl Analyzer {
             && context.native_view_declaration_depths.get(&holder) == Some(&context.lexical_scopes.len()))
         .then_some(holder)
     }
+    /// An appended element joins the array's storage: the array then borrows from
+    /// the new origins as well as the ones it already holds.
+    pub(super) fn append_native_view_element(context: &mut Context, array: &Expr, value: &Expr) -> Result<(), Diagnostic> {
+        if !context.native_view_calls {
+            return Ok(());
+        }
+        let mut incoming = Self::native_view_value_loans(context, value)?;
+        if incoming.is_empty() {
+            return Ok(());
+        }
+        let Some(place) = crate::flow::place(array, &context.names) else {
+            return Err(Diagnostic::new(
+                "native-view-source",
+                "A byte view can only be appended to an array held by a named local or its fields.",
+                array.span,
+            ));
+        };
+        for loan in &mut incoming {
+            native_view_projections::wrap(loan, &Segment::Element);
+            for field in place.fields.iter().rev() {
+                native_view_projections::wrap(loan, &Segment::Field(field.clone()));
+            }
+        }
+        let mut retained = context.bindings[place.root].native_view_loans.as_deref().cloned().unwrap_or_default();
+        retained.extend(incoming);
+        native_view_projections::normalize(&mut retained);
+        Self::set_native_view_loans(context, place.root, retained);
+        Ok(())
+    }
     pub(super) fn replace_native_view_field(
         context: &mut Context,
         target: &Expr,

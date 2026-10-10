@@ -2607,6 +2607,11 @@ impl Emitter<'_> {
         {
             let contract = &self.program.callback_contracts[declaration];
             if self.program.stored_contracts.is_borrowed(id) {self.emit_borrowed_family(&mut output,id,declaration,origins);continue;}
+            // A lifetime-free family without environments cannot hold a callback whose
+            // contract mentions a byte view; such callbacks live in scoped families.
+            if origins.is_empty()
+                && self.program.stored_contracts.scoped_native_family(id).is_none()
+                && (self.native_views.contains(contract.result) || contract.params.iter().any(|parameter|self.native_views.contains(parameter.ty))) {continue;}
             if let Some(layout)=self.program.stored_contracts.scoped_native_family(id) {
                 self.emit_native_view_family(&mut output,id,layout,contract).expect("checked scoped owning native callable family");
                 continue;

@@ -105,6 +105,11 @@ impl Emitter<'_> {
                 let lifetime=&lifetimes[*next];*next+=1;
                 format!("Record{id}<{lifetime}>")
             }
+            Type::StoredCallable(id) if self.program.stored_contracts.scoped_native_family(id).is_some() => {
+                let count=self.program.stored_contracts.scoped_native_family(id).expect("scoped family").lifetimes();
+                let arguments=lifetimes[*next..*next+count].to_vec();*next+=count;
+                format!("NativeViewCallable{id}{}",lifetime_parameters(&arguments))
+            }
             Type::Array(element) if self.native_views.contains(ty) => {
                 let payload=self.record_environment_type(element.ty(),lifetimes,next);
                 match element {

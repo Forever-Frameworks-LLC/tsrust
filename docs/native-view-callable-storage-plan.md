@@ -368,3 +368,41 @@ needs a carrier type joined before the declaration), arrays that receive alterna
 by `push`, absent-to-present nullable transitions, captures of stored families, results
 that borrow an invocation argument, and propagation of a thrown error through the
 test harness relay.
+
+## Arrays, captured families and reusable invocation checkpoint
+
+Now supported through normal analysis and native execution, for readonly and
+exclusive views at two optimization levels:
+
+- Arrays of stored view callbacks with different alternatives: a literal with several
+  closures, `push` into an empty or populated array, and elements moved in from
+  another array. The array takes the family that joins every alternative. A post-pass
+  (`native_view_array_carriers`) moves earlier values into that family, and `push`
+  adds the origins of the new element to the array (`append_native_view_element`).
+- A closure that captures an already stored scoped family, directly, through a
+  record, or to build a new stored callback. Lifetime counting, environment type
+  naming and closure signatures now traverse `StoredCallable` scoped families with
+  one lifetime per carried slot in alternative order.
+- Reusable stored callbacks. A family whose contract is not single-use is called
+  through `&self` or `&mut self`; it may read a captured view, keep mutable state and
+  take data arguments. A reusable family cannot hold an environment that its call
+  consumes.
+
+A lifetime-free family without environments whose contract mentions a byte view is no
+longer emitted: it cannot be instantiated, and its `call` could not name a lifetime.
+
+Safety net: a returned direct byte view without a tracked owner is now a source
+diagnostic (`native-view-source`). Before, a callback that returned a view received
+as an argument passed analysis and the generated Rust did not compile.
+
+Still open, each with a pending row in `zz_matrix_probe`:
+
+- absent-to-present transitions of a nullable callback field whose record was built
+  without a view, and a conditional that selects a callback or `undefined`;
+- a new callback alternative stored into a field inside a nested block or branch;
+- a callback result that borrows an invocation argument (closure parameters are not
+  seeded with view provenance);
+- recursive view-containing storage.
+
+The first two need the local's final storage type before its declaration is emitted
+(a flow-insensitive join like the nullable record carriers of gate 182).

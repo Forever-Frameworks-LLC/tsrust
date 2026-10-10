@@ -42,6 +42,55 @@ impl Analyzer {
         let ExprKind::Field(_,name)=&target.kind else{return;};
         if let Some(root)=self.scoped_array_replace_field(context.bindings[holder].ty,std::slice::from_ref(name),actual) {context.bindings[holder].ty=root;}
     }
+    /// An array of stored callbacks takes the scoped family of the callbacks appended
+    /// to it. Different alternatives join in one family; the epoch pass converts the
+    /// earlier values to that family.
+    pub(super) fn widen_native_view_array_storage(&mut self,context:&mut Context,base:&Expr,incoming:Type,span:Span)->Result<(),Diagnostic> {
+        if !self.native_borrow_types {return Ok(());}
+        let Type::StoredCallable(source)=incoming else{return Ok(());};
+        if self.callables.storage.scoped_native_family(source).is_none() {return Ok(());}
+        let Some((binding,path))=Self::scoped_array_storage_path(base) else{return Ok(());};
+        if context.bindings[binding].parameter || context.bindings[binding].capture_reference {return Ok(());}
+        let Some(Type::Array(ArrayElement::StoredCallable(previous,depth)))=self.scoped_array_field_type(context.bindings[binding].ty,&path) else{return Ok(());};
+        if previous==source {return Ok(());}
+        let element=if self.callables.storage.scoped_native_family(previous).is_some() {
+            match self.common_native_view_storage(Type::StoredCallable(previous),incoming,span)? {
+                Some(Type::StoredCallable(joined))=>joined,
+                _=>return Err(Diagnostic::new("type","Array callbacks that hold byte views need the same callback contract.",span)),
+            }
+        } else {source};
+        let ty=Type::Array(ArrayElement::StoredCallable(element,depth));
+        if let Some(root)=self.scoped_array_replace_field(context.bindings[binding].ty,&path,ty) {context.bindings[binding].ty=root;}
+        Ok(())
+    }
+    /// The lifetime-free family written for the same callback declaration.
+    fn written_family(&self,scoped:usize)->Option<usize> {
+        let declaration=self.callables.storage.declaration(scoped)?;
+        self.callables.storage.families().map(|(id,owner,_)|(id,owner)).find(|&(id,owner)|owner==declaration && id!=scoped && !self.callables.storage.is_borrowed(id) && self.callables.storage.scoped_native_family(id).is_none()).map(|(id,_)|id)
+    }
+    pub(super) fn native_view_element_contract(&self,context:&Context,base:&Expr,current:Type,value:&Expr)->Type {
+        if !self.native_borrow_types || !matches!(value.kind,ExprKind::Closure{..}|ExprKind::Conditional{..}) {return current;}
+        let Type::StoredCallable(family)=current else{return current;};
+        if self.callables.storage.scoped_native_family(family).is_none() {return current;}
+        let Some((binding,_))=Self::scoped_array_storage_path(base) else{return current;};
+        if context.bindings[binding].parameter || context.bindings[binding].capture_reference {return current;}
+        self.written_family(family).map_or(current,Type::StoredCallable)
+    }
+    /// A later closure of an array literal is checked against the written contract.
+    pub(super) fn native_view_literal_family(&self,current:usize,value:&Expr)->usize {
+        if !self.native_borrow_types || !matches!(value.kind,ExprKind::Closure{..}) || self.callables.storage.scoped_native_family(current).is_none() {return current;}
+        self.written_family(current).unwrap_or(current)
+    }
+    /// Moves each element of a literal into the family that joins all of them.
+    pub(super) fn join_native_view_literal(&self,values:&mut [Expr],element:Option<ArrayElement>) {
+        let Some(ArrayElement::StoredCallable(family,0))=element else{return;};
+        if !self.native_borrow_types || self.callables.storage.scoped_native_family(family).is_none() {return;}
+        for value in values {
+            if let Some(Type::StoredCallable(source))=value.ty && source!=family && self.callables.storage.scoped_native_family(source).is_some() {
+                value.wrap_record_carrier(Type::StoredCallable(family));
+            }
+        }
+    }
     pub(super) fn common_native_view_storage(&mut self,left:Type,right:Type,span:Span)->Result<Option<Type>,Diagnostic> {
         if !self.native_borrow_types || left==right {return Ok(None);}
         let (Type::StoredCallable(source),Type::StoredCallable(target))=(left,right) else{return Ok(None);};
