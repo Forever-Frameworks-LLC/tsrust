@@ -103,3 +103,34 @@ and exceptional completion reconciliation remain pending. Factory/editor/benchma
 acceptance and the S07 family review are still required. See
 handoff-2026-10-10-native-view-receiver-contracts.md and
 native-byte-views-implementation.md.
+
+### Gate 189 source storage matrix status (2026-10-10, after `ff481c9c`)
+
+Gate 189 and S07 remain open. Public `view`/`viewMut` are still guarded. The private
+source matrix for views in owning callable storage is now complete except for two
+diagnosed forms. Every supported row runs natively at two optimization levels for
+readonly and exclusive views, in
+`stdlib/bytes/views_stored_emit_tests.rs`.
+
+| Form | Status |
+| --- | --- |
+| Field move, saved move, single-element array, present nullable field, nested concrete capture, conditional field, returned-record alternatives | supported (earlier checkpoints) |
+| Arrays with different callback alternatives: literal, `push`, elements moved between arrays | supported |
+| Absent nullable values; absent to present and back; conditional callback or `undefined` | supported |
+| Capture of an already stored scoped family, also into a new stored callback | supported |
+| Whole-record replacement in the declaring block (new lifetime) and in blocks, branches and loops (joined inputs) | supported |
+| Field replacement, including a new alternative in a branch or loop | supported; the result depends on the earlier and the new input |
+| Reusable invocation through `&self` and `&mut self` | supported |
+| Arguments that own or borrow data; optional, default and rest parameters | supported |
+| Results of ordinary types or `void` | supported |
+| Throwing callbacks, caught and propagated; mixed throwing and non-throwing alternatives | supported |
+| A callback result that borrows an invocation argument | diagnosed (`native-view-source`) |
+| A type that contains itself and holds a byte view | diagnosed (`native-view-shape`) |
+
+Not started: public factories, shared readable and mutable observer contracts
+(`length`, `at`, `copy`, `toUtf8`, `set` for views), IntelliSense, public fixtures,
+matched subarray workloads, and the S07 family run and measurements.
+
+Checks at `ff481c9c`: whole compiler crate 2,924 passed, 0 failed, 4 ignored, no
+aborted target; whole editor crate 484 passed, 0 failed, 1 ignored. No timing ran.
+Consumers remain at `f569190a`.
