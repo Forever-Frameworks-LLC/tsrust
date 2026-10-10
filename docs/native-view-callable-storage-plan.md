@@ -86,3 +86,20 @@ rather than claiming the callback fails to own its environment. Existing ownersh
 and invocation guards remain. Focused controls cover readonly/exclusive payloads,
 nested record fields, Result success guards and the retained publication guard.
 The positive stored callback witness remains red and must not be counted as accepted.
+
+## Finite family planning checkpoint
+
+The candidate planner now retains the structural callable signature, the original
+invocation mode and a sorted, deduplicated list of concrete alternatives. Each
+alternative has its own carried slots; capture field numbers are not merged across
+different origins. A reusable contract cannot acquire a consuming environment.
+Unknown origins are diagnosed, and physical references or unresolved layouts fall
+back to the existing storage checks. This is a finite layout description, not yet
+a registered source storage type or an emitted native family.
+
+callable_dispatch.rs consults this planner only for families containing a borrowed
+environment. Wholly owned ordinary families keep their existing path without an
+additional candidate allocation. Candidate native-view families remain rejected
+with the pending lifetime-storage diagnostic. Registry identity integration, actual
+callee loan transport and lifetime-bearing family emission are still required to
+turn the retained positive stored-callback witness green.

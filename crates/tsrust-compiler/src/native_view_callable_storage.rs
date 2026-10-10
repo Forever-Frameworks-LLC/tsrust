@@ -36,6 +36,54 @@ pub(crate) fn carried_slots(closure: &CheckedClosure) -> Option<Vec<Slot>> {
     (!slots.is_empty()).then_some(slots)
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct Alternative {
+    pub(crate) origin: usize,
+    pub(crate) slots: Vec<Slot>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct Family {
+    pub(crate) signature: crate::callable_contracts::ContractId,
+    pub(crate) invocation: Mode,
+    pub(crate) alternatives: Vec<Alternative>,
+}
+
+pub(crate) fn family_slots(
+    contract: &crate::analysis::CallbackContract,
+    signatures: &crate::callable_contracts::Contracts,
+    origins: impl IntoIterator<Item=usize>,
+    closures: &[CheckedClosure],
+    span: crate::Span,
+) -> Result<Option<Family>,crate::Diagnostic> {
+    let Some(storage)=crate::callable_storage::StorageContract::checked(signatures,contract.structural) else {return Ok(None);};
+    let invocation=storage.invocation(signatures);
+    let mut origins=origins.into_iter().collect::<Vec<_>>();
+    origins.sort_unstable();origins.dedup();
+    let mut alternatives=Vec::with_capacity(origins.len());
+    let mut carries_view=false;
+    for origin in origins {
+        let closure=closures.get(origin).ok_or_else(||crate::Diagnostic::new("callable-layout","Unknown callable environment origin.",span))?;
+        if invocation!=Mode::Consume && closure.invocation==Mode::Consume {
+            return Err(crate::Diagnostic::new("callback-once","A reusable callback cannot consume its captures when invoked.",span)
+                .related(closure.span,"Single-use closure is created here."));
+        }
+        if closure.polymorphic || closure.function.template {return Ok(None);}
+        if closure.parameters.len()!=contract.params.len() || closure.function.result!=contract.result {return Ok(None);}
+        for (&binding,expected) in closure.parameters.iter().zip(&contract.params) {
+            let actual=&closure.function.bindings[binding];
+            if actual.input_ty.unwrap_or(actual.ty)!=expected.ty || actual.mode!=expected.mode {return Ok(None);}
+        }
+        let slots=match carried_slots(closure) {
+            Some(slots)=>{carries_view=true;slots},
+            None if !closure.borrowed && closure.lifetime_count==0=>Vec::new(),
+            None=>return Ok(None),
+        };
+        alternatives.push(Alternative{origin,slots});
+    }
+    Ok(carries_view.then_some(Family{signature:contract.structural,invocation,alternatives}))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -122,6 +170,48 @@ mod tests {
         loans[0].root=inner;
         loans[0].source=LifetimeSource::Storage;
         assert!(carried_slots(&checked.closures[0]).is_none());
+    }
+
+    #[test]
+    fn native_view_owning_family_preserves_alternatives_and_once_invocation() {
+        let source="type Window={};function first(view:Window){return ()=>view;}function second(view:Window){return ()=>view;}function main(){}";
+        let formatted=crate::formatting::format(source).unwrap();
+        assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
+        let mut parsed=crate::syntax::parse(&formatted).unwrap();
+        parsed.records[0].native_type=Some(NativeTypeId::ByteView);
+        let mut checked=crate::analysis::analyze(parsed).unwrap();
+        let result=checked.closures[0].function.result;
+        let contract_id=checked.callable_shapes.intern([],result,Some(crate::syntax::CallbackKind::OwnedOnce));
+        let contract=crate::analysis::CallbackContract {
+            structural:contract_id,parameter_names:Vec::new(),params:Vec::new(),result,kind:crate::syntax::CallbackKind::OwnedOnce,
+        };
+        let layout=family_slots(&contract,&checked.callable_shapes,[1,0,1],&checked.closures,crate::Span::default()).unwrap().unwrap();
+        assert_eq!(layout.signature,contract_id);
+        assert_eq!(layout.invocation,Mode::Consume);
+        assert_eq!(layout.alternatives.iter().map(|alternative|alternative.origin).collect::<Vec<_>>(),vec![0,1]);
+        assert!(layout.alternatives.iter().all(|alternative|alternative.slots.len()==1));
+    }
+
+    #[test]
+    fn native_view_owning_family_rejects_reuse_unknown_origins_and_physical_borrows() {
+        let mut checked=checked(false);
+        let result=checked.closures[0].function.result;
+        let once=checked.callable_shapes.intern([],result,Some(crate::syntax::CallbackKind::OwnedOnce));
+        let mut contract=crate::analysis::CallbackContract {
+            structural:once,parameter_names:Vec::new(),params:Vec::new(),result,kind:crate::syntax::CallbackKind::OwnedOnce,
+        };
+        let span=crate::Span::new(4,9);
+        let error=family_slots(&contract,&checked.callable_shapes,[99],&checked.closures,span).unwrap_err();
+        assert_eq!(error.code,"callable-layout");
+        assert_eq!(error.span,span);
+        let reusable=checked.callable_shapes.intern([],result,Some(crate::syntax::CallbackKind::Owned));
+        contract.structural=reusable;contract.kind=crate::syntax::CallbackKind::Owned;
+        let error=family_slots(&contract,&checked.callable_shapes,[0],&checked.closures,span).unwrap_err();
+        assert_eq!(error.code,"callback-once");
+        assert_eq!(error.related[0].0,checked.closures[0].span);
+        contract.structural=once;contract.kind=crate::syntax::CallbackKind::OwnedOnce;
+        checked.closures[0].captures[0].storage=Mode::Read;
+        assert!(family_slots(&contract,&checked.callable_shapes,[0],&checked.closures,span).unwrap().is_none());
     }
 
 }

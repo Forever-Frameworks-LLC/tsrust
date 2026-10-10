@@ -66,6 +66,15 @@ impl<'a> Family<'a> {
         let mut origins = origins.into_iter().collect::<Vec<_>>();
         origins.sort_unstable();
         origins.dedup();
+        if origins.iter().any(|&origin|closures.get(origin).is_some_and(|closure|closure.borrowed))
+            && let Some(layout)=crate::native_view_callable_storage::family_slots(contract,signatures,origins.iter().copied(),closures,span)? {
+            let mut error=Diagnostic::new("native-view-callable-storage",
+                format!("This callback owns its environment, but its family has {} alternative(s) carrying borrowed byte views. Lifetime-bearing callable storage is not implemented yet.",layout.alternatives.len()),span);
+            for alternative in &layout.alternatives {
+                error=error.related(closures[alternative.origin].span,"Carried byte-view environment is created here.");
+            }
+            return Err(error);
+        }
         for &origin in &origins {
             let closure = closures.get(origin).ok_or_else(|| {
                 Diagnostic::new(
