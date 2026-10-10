@@ -1,0 +1,18 @@
+import { strictEqual } from "std:testing";
+import { Bytes, fromArray, length } from "std:bytes";
+
+function size(bytes: ReadOnly<Bytes>): int {
+    return length(bytes);
+}
+
+function main() {
+    match (fromArray([0, 65, 255])) {
+        Ok(bytes) => {
+            strictEqual(size(bytes), 3);
+            strictEqual(size(bytes), 3);
+        },
+        Err(error) => {
+            throw error.message;
+        },
+    }
+}
