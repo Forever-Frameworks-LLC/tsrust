@@ -85,3 +85,18 @@ duplicates, unreachable arms, wildcards and invalid indices. The coverage module
 is currently compiled only in tests until checked match statements consume it;
 it is not evidence of executable language support. No full regression or timing
 run has been performed for this initial chunk.
+
+The isolated `match_syntax` inspection API now parses the scrutinee with the existing
+expression parser and arm blocks with the existing statement parser. It retains
+internal expression/body trees and exposes original-source spans for inspection.
+Five syntax tests pass: variant/discard/wildcard patterns, Unicode coordinates,
+malformed arms, coverage errors deferred to checking, formatter idempotence, and
+normal versus excessive body depth. All eight standing depth canaries plus the
+recovered rest-parameter and exact-math canaries pass with successful process exit
+codes and no aborted target. Evidence is stored in SQLite at
+`runtime/results/result-match-parser-2026-10-10.json`, imported and read back exactly;
+the loose copy was removed.
+
+This API is not yet wired into program statement dispatch. Nested match statements,
+checked Result types, native emission and editor support remain pending. The
+end-to-end witness remains red. This is a source checkpoint, not gate acceptance.

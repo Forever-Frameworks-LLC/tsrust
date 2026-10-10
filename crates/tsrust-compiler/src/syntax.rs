@@ -2,6 +2,8 @@
 mod named_function_syntax;
 #[path="numeric_literals.rs"]
 mod numeric_literals;
+#[path="match_syntax.rs"]
+pub mod match_syntax;
 use crate::diagnostic::{Diagnostic, Span};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -1796,22 +1798,27 @@ fn parse_entry_with(source: &str, test_entry: bool, imported: crate::type_aliase
 }
 
 fn parse_raw(source: &str, test_entry: bool, imported: crate::type_aliases::Aliases, records: crate::type_aliases::ImportedRecords) -> Result<Program, Diagnostic> {
-    Parser {
-        source,
-        tokens: lex(source)?,
-        i: 0,
-        depth: 0,
-        next_closure: 0,
-        unresolved_local_function: None,
-        call_type_arguments: Vec::new(),
-        pending: Vec::new(),
-        next_pattern: 0,
-        parameter_patterns: Vec::new(),
-        aliases: imported,
-        local_aliases: Vec::new(),
-        imported_records: records,
+    Parser::new(source, imported, records)?.program(test_entry)
+}
+
+impl<'a> Parser<'a> {
+    fn new(source: &'a str, imported: crate::type_aliases::Aliases, records: crate::type_aliases::ImportedRecords) -> Result<Self, Diagnostic> {
+        Ok(Self {
+            source,
+            tokens: lex(source)?,
+            i: 0,
+            depth: 0,
+            next_closure: 0,
+            unresolved_local_function: None,
+            call_type_arguments: Vec::new(),
+            pending: Vec::new(),
+            next_pattern: 0,
+            parameter_patterns: Vec::new(),
+            aliases: imported,
+            local_aliases: Vec::new(),
+            imported_records: records,
+        })
     }
-    .program(test_entry)
 }
 
 // Registration statements execute in a synthetic function, but retain source-level
