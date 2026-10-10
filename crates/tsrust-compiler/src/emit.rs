@@ -382,6 +382,12 @@ impl Emitter<'_> {
     }
 
     fn native_type(&self, value: Type) -> String {
+        if let Type::Array(ArrayElement::StoredCallable(family,depth))=value
+            && self.program.stored_contracts.scoped_native_family(family).is_some() {
+            let mut native=self.native_type(Type::StoredCallable(family));
+            for _ in 0..=depth {native=format!("Vec<{native}>");}
+            return native;
+        }
         if let Type::StoredCallable(id)=value
             && let Some(layout)=self.program.stored_contracts.scoped_native_family(id) {
             let slots=layout.alternatives.iter().map(|alternative|alternative.slots.len()).sum::<usize>();

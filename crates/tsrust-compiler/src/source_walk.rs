@@ -57,18 +57,25 @@ pub(crate) fn body(
     annotation_visit: &mut impl FnMut(&mut ValueAnnotation) -> Result<(), Diagnostic>,
     expression_visit: &mut impl FnMut(&mut Expr) -> Result<(), Diagnostic>,
 ) -> Result<(), Diagnostic> {
-    walk(body, &mut [], annotation_visit, expression_visit)
+    walk(body, &mut [], None, annotation_visit, expression_visit)
 }
 pub(crate) fn function_body(
     function: &mut Function,
     annotation_visit: &mut impl FnMut(&mut ValueAnnotation) -> Result<(), Diagnostic>,
     expression_visit: &mut impl FnMut(&mut Expr) -> Result<(), Diagnostic>,
 ) -> Result<(), Diagnostic> {
-    walk(&mut function.body, &mut function.parameter_initializers, annotation_visit, expression_visit)
+    walk(&mut function.body, &mut function.parameter_initializers, None, annotation_visit, expression_visit)
+}
+pub(crate) fn expression(
+    value:&mut Expr,
+    visit:&mut impl FnMut(&mut Expr)->Result<(),Diagnostic>,
+)->Result<(),Diagnostic> {
+    walk(&mut [],&mut [],Some(value),&mut |_|Ok(()),visit)
 }
 fn walk(
     body: &mut [Stmt],
     initializers: &mut [ParameterInitializer],
+    expression: Option<&mut Expr>,
     annotation_visit: &mut impl FnMut(&mut ValueAnnotation) -> Result<(), Diagnostic>,
     expression_visit: &mut impl FnMut(&mut Expr) -> Result<(), Diagnostic>,
 ) -> Result<(), Diagnostic> {
@@ -77,6 +84,7 @@ fn walk(
         Expression(&'a mut Expr),
     }
     let mut work = body.iter_mut().map(Work::Statement).collect::<Vec<_>>();
+    if let Some(value)=expression {work.push(Work::Expression(value));}
     for initializer in initializers {
         if let ParameterInitializer::Default { value, .. } = initializer { work.push(Work::Expression(value)); }
     }

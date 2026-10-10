@@ -11,6 +11,10 @@ mod native_view_scopes;
 mod native_view_calls;
 #[path = "native_view_environments.rs"]
 mod native_view_environments;
+#[path = "native_view_storage_epochs.rs"]
+mod native_view_storage_epochs;
+#[path = "native_view_storage_contracts.rs"]
+mod native_view_storage_contracts;
 #[path = "native_view_parameters.rs"]
 mod native_view_parameters;
 #[path = "native_view_returns.rs"]
@@ -3175,6 +3179,8 @@ impl Analyzer {
     }
 
     fn require(&self, actual: Type, expected: Option<Type>, span: Span) -> Result<(), Diagnostic> {
+        if let Some(expected) = expected
+            && self.scoped_native_storage_contract(actual, expected, span)? { return Ok(()); }
         if expected.is_some_and(|expected| self.scoped_map_contract(actual, expected)) { return Ok(()); }
         if expected.is_some_and(|expected| self.scoped_record_nullable_contract(actual, expected)) { return Ok(()); }
         if let (Type::Array(ArrayElement::Record(actual, depth)), Some(Type::Array(ArrayElement::Record(expected, expected_depth)))) = (actual, expected) {
@@ -8755,6 +8761,10 @@ impl Analyzer {
             expr.ty = Some(Type::BorrowedUnion(concrete));
             return Ok(Type::BorrowedUnion(concrete));
         }
+        if let Some(concrete) = self.native_view_storage_injection(actual, union, expr.span)? {
+            expr.inject(concrete.union().expect("nullable scoped native storage"));
+            return Ok(concrete);
+        }
         if let Some(concrete) = self.scoped_record_injection(actual, union, expr.span)? {
             let concrete_union = concrete.union().expect("nullable scoped record");
             expr.inject(concrete_union);
@@ -9714,6 +9724,12 @@ impl Analyzer {
             }
         }
         if left!=right && !infer_nullable_closure
+            && let Some(joined)=self.common_native_view_storage(left,right,consequent.span)? {
+            consequent.wrap_record_carrier(joined);
+            alternate.wrap_record_carrier(joined);
+            left=joined;right=joined;
+        }
+        if left!=right && !infer_nullable_closure
             && let Some(family)=self.common_owned_conditional_family(left,right,consequent.span)? {
             left=self.checked_stored_callable_value(context,consequent,family,left)?;
             right=self.checked_stored_callable_value(context,alternate,family,right)?;
@@ -9923,7 +9939,7 @@ impl Analyzer {
                 let concrete_expected=self.absent_nullable_record_annotation(context,Some(field_type),value)?.unwrap_or(field_type);
                 self.scoped_record_field_value(context, value, concrete_expected, loans)?
             };
-            let scoped_native = matches!(actual,Type::StoredCallable(family) if self.callables.storage.scoped_native_family(family).is_some());
+            let scoped_native = self.native_borrow_types && actual != field_type && self.native_shape_contains_view(actual);
             let contract_type=if let Type::BorrowedCallable(family)=field_type{Type::Callback(self.callables.storage.declaration(family).expect("borrowed field declaration"))}else if scoped_native && let Type::StoredCallable(family)=field_type {Type::Callback(self.callables.storage.declaration(family).expect("owned field declaration"))}else{field_type};
             self.require(actual, Some(contract_type), value.span)?;
             let nested_instance = matches!((actual, field_type), (Type::Record(actual), Type::Record(expected))
@@ -10643,6 +10659,10 @@ impl Analyzer {
             unreachable!("array element conversion returns an array");
         };
         self.require(actual, element.map(ArrayElement::ty), value.span)?;
+        if let Some(expected) = element.map(ArrayElement::ty)
+            && actual != expected && self.scoped_native_storage_contract(actual, expected, value.span)? {
+            *element = Some(inferred);
+        }
         element.get_or_insert(inferred);
         Ok(())
     }

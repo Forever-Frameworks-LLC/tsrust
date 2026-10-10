@@ -15,9 +15,10 @@ pub(crate) fn declared_storage_families(
         _ => None,
     };
     let mut families=std::collections::HashSet::new();
+    let mut pending=Vec::new();
     for (record,info) in program.records.iter().enumerate() {
         for (position,field) in info.fields.iter().enumerate() {
-            if !generic_field(record,position) && let Some(id)=field.ty.and_then(family) {families.insert(id);}
+            if !generic_field(record,position) && let Some(ty)=field.ty {pending.push(ty);}
         }
     }
     let functions = program
@@ -32,22 +33,21 @@ pub(crate) fn declared_storage_families(
                 .map(|method| &method.function),
         );
     for function in functions.filter(|function| !function.template) {
-        families.extend(
-            function
-                .bindings
-                .iter()
-                .flat_map(|binding| std::iter::once(binding.ty).chain(binding.input_ty))
-                .filter_map(family),
-        );
-        families.extend(family(function.result));
+        pending.extend(function.bindings.iter().flat_map(|binding|std::iter::once(binding.ty).chain(binding.input_ty)));
+        pending.push(function.result);
     }
-    families.extend(
-        program
-            .unions
-            .iter()
-            .flat_map(|union| &union.members)
-            .filter_map(|&ty| family(ty)),
-    );
+    // Symbolic unions at generic record fields do not require a concrete
+    // owning family. Follow only unions reached from concrete storage roots.
+    let mut seen=std::collections::HashSet::new();
+    while let Some(ty)=pending.pop() {
+        if !seen.insert(ty) {continue;}
+        if let Some(id)=family(ty) {families.insert(id);}
+        match ty {
+            Type::Union(id)|Type::BorrowedUnion(id)=>pending.extend(program.unions[id.index()].members.iter().copied()),
+            Type::Array(element)=>pending.push(element.ty()),
+            _=>{},
+        }
+    }
     families
 }
 

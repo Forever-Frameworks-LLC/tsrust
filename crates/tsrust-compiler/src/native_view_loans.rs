@@ -249,6 +249,12 @@ impl Analyzer {
                     }
                 }
                 ExprKind::Call(callee, args) => {
+                    if matches!(value.target,Some(CallTarget::ArrayPop|CallTarget::ArrayShift))
+                        && let ExprKind::Field(base,_) = &callee.kind {
+                        pending.push(Task::Select(result.len(),Segment::Element));
+                        pending.push(Task::Value(base));
+                        continue;
+                    }
                     if let Some(id)=super::native_view_calls::target(value)
                         && let Some(outputs)=context.native_view_function_returns.as_ref().and_then(|summaries|summaries.get(&id)) {
                         for returned in outputs {
@@ -352,7 +358,7 @@ impl Analyzer {
                     }
                 }
                 ExprKind::Unary {
-                    op: UnaryOp::NonNull | UnaryOp::RestPack,
+                    op: UnaryOp::NonNull | UnaryOp::RestPack | UnaryOp::RecordCarrier,
                     value,
                     ..
                 } => pending.push(Task::Value(value)),

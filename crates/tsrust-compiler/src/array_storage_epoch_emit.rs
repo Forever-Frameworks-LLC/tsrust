@@ -5,6 +5,27 @@ impl Emitter<'_> {
     pub(super) fn array_result_write_code(&self, fun: &CheckedFunction, statement: &Stmt) -> Option<String> {
         let ty = fun.storage_exits.array_result_write(statement.span)?;
         let StmtKind::Assign { target, value, operator: None } = &statement.kind else { return None; };
+        if matches!(target.kind,ExprKind::Name(_))
+            && let Some(binding)=target.binding
+            && let Some(layout)=self.owned_record_layout(fun,binding) {
+            let initialized=self.expr(fun,value,Mode::Consume);
+            let mut drops=String::new();
+            for leaf in &layout.leaves {
+                if leaf.ty.is_copy() {continue;}
+                let mut record=layout.record;
+                let mut path=Vec::new();
+                for &position in &leaf.path {
+                    let field=&self.program.records[record].fields[position];
+                    path.push(field.name.text.clone());
+                    if let Some(Type::Record(child))=field.ty {record=child;}
+                }
+                if fun.storage_exits.transfer_before(statement.span.start,binding,&path).is_none() {
+                    write!(drops,"drop({});",leaf.native_name(binding)).unwrap();
+                }
+            }
+            let declaration=self.owned_record_declaration(fun,binding,"native_storage_replacement").expect("checked owning record");
+            return Some(format!("let native_storage_replacement={initialized};{drops}{declaration}"));
+        }
         let mut root=target;
         let mut names=Vec::new();
         while let ExprKind::Field(base,name)=&root.kind {names.push(name);root=base;}

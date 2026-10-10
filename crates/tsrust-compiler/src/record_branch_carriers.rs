@@ -142,6 +142,7 @@ impl Analyzer {
         self.scoped_map_carriers(context,body)?;
         self.record_array_carriers(context,body)?;
         self.scoped_array_storage_epochs(context,body)?;
+        self.native_view_storage_epochs(context,body)?;
         let results=context.bindings.iter().enumerate().map(|(id,binding)|(id,binding.ty)).collect();
         self.scoped_map_entry_epochs(context,body,results)
     }
@@ -209,6 +210,10 @@ impl Analyzer {
             let Some((_,r))=right_fields.iter_mut().find(|(key,_)|key.text==field.name.text) else{continue;};
             let lt=l.ty.unwrap();let rt=r.ty.unwrap();
             if let Some(ty)=self.join_record_values(l,r)?{fields[index]=ty;changed=true;}
+            else if let Some(ty)=self.common_native_view_storage(lt,rt,l.span)? {
+                for value in [&mut *l,&mut *r] {value.wrap_record_carrier(ty);}
+                fields[index]=ty;changed=true;
+            }
             else if lt!=rt && let Some(ty)=self.join_scoped_map_types(lt,rt,l.span)?{
                 for value in [&mut *l,&mut *r]{if value.ty!=Some(ty){value.wrap_record_carrier(ty);}}
                 fields[index]=ty;changed=true;
@@ -228,6 +233,12 @@ impl Analyzer {
     fn carrier_convertible(&self,source:Type,target:Type)->bool{
         if source==target{return true;}
         match(source,target){
+            (Type::StoredCallable(source),Type::StoredCallable(target))=>{
+                match (self.callables.storage.scoped_native_family(source),self.callables.storage.scoped_native_family(target)) {
+                    (Some(source),Some(target))=>source.signature==target.signature && source.alternatives.iter().all(|alternative|target.alternatives.contains(alternative)),
+                    _=>false,
+                }
+            }
             (Type::Array(source),Type::Array(target))=>self.carrier_convertible(source.ty(),target.ty()),
             (Type::Record(source),Type::Record(target))=>self.program.records[source].fields.iter().zip(&self.program.records[target].fields).all(|(source,target)|self.carrier_convertible(source.ty.unwrap(),target.ty.unwrap())),
             (Type::Closure(origin),Type::BorrowedCallable(family))=>self.callables.storage.origins(family).is_some_and(|origins|origins.contains(&origin)),
@@ -321,6 +332,7 @@ impl Analyzer {
             // An absent callback names no environment; the other side is the join.
             let joined=if left==right{left}else if self.absent_callable_type(left) && matches!(right,Type::Closure(_)|Type::BorrowedCallable(_)){right}
             else if self.absent_callable_type(right) && matches!(left,Type::Closure(_)|Type::BorrowedCallable(_)){left}
+            else if let Some(joined)=self.common_native_view_storage(left,right,span)?{joined}
             else if let(Type::Record(a),Type::Record(b))=(left,right){self.join_record_types(a,b,span)?.unwrap_or(left)}else if let(Type::Array(ArrayElement::Record(a, depth)),Type::Array(ArrayElement::Record(b, other_depth)))=(left,right) {
                 if depth != other_depth { return Ok(None); }
                 let Some(Type::Record(record)) = self.join_record_types(a,b,span)? else { return Ok(None); };

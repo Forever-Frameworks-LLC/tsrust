@@ -302,3 +302,33 @@ arrays, nullable fields, nested capture and exclusive views. Preserve the existi
 physical capture guards and extend each diagnosed invocation ABI rather than erasing
 lifetimes to make it fit. Public observer/catalog and matched workload acceptance,
 full S07 regressions and measurements remain pending.
+
+## Source storage matrix checkpoint
+
+Normal source analysis and complete emitted execution now cover readonly and
+exclusive views in moved callback fields, saved owning callbacks, single-element
+callback arrays removed with pop, present nullable callback fields, nested concrete
+captures and direct record replacement. Replacement after moving the previous field
+also works. The old live fields are dropped after evaluating the replacement, and
+new native storage infers independent lifetimes. Already transferred fields are not
+dropped again. Self-dependent replacements retain ordinary assignment behavior.
+
+Finite alternatives now join through a scoped owning family in conditional fields
+and returned records. Source families retain their concrete environments and convert
+to the joined enum by moving the selected alternative, without copying captured
+bytes. Readonly and exclusive returned-record alternatives execute both branches.
+Owner pointer identity, write-through behavior, unrelated-owner release and selected
+owner escape rejection are checked at O0/O3. Consumed callbacks remain unavailable.
+
+Structural storage contracts, nullable injection and direct replacement epochs live
+in dedicated helpers. Array pop/shift transport the element's carried loan paths;
+carrier conversions preserve those paths. Native type rendering includes scoped
+callback arrays. Concrete-family discovery follows reachable union storage roots,
+rather than emitting lifetime-free families referenced only by symbolic generic
+record fields.
+
+This is focused implementation evidence, not public byte-view acceptance. Mixed
+alternative arrays, absent nullable values, stored-family captures, field and
+control-flow replacement joins, and the broader invocation/error ABI still need
+coverage and implementation. Public factories, shared observer contracts, complete
+IntelliSense examples and matched subarray workloads remain gated on the full matrix.

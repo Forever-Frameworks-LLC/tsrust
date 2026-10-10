@@ -61,6 +61,13 @@ impl Emitter<'_> {
             return value.into();
         }
         match (source, target) {
+            (Type::StoredCallable(source),Type::StoredCallable(target))
+                if self.program.stored_contracts.scoped_native_family(source).is_some()
+                    && self.program.stored_contracts.scoped_native_family(target).is_some()=> {
+                let layout=self.program.stored_contracts.scoped_native_family(source).unwrap();
+                let arms=layout.alternatives.iter().map(|alternative|format!("NativeViewCallable{source}::V{0}(environment)=>NativeViewCallable{target}::V{0}(environment)",alternative.origin)).collect::<Vec<_>>().join(",");
+                format!("match {value}{{{arms}}}")
+            }
             (Type::Array(source), Type::Array(target)) => {
                 let converted =
                     self.record_carrier_conversion(source.ty(), target.ty(), "record_array_item");
