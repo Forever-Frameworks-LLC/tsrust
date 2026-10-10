@@ -7,6 +7,7 @@ impl Analyzer {
     )->Result<(),Diagnostic> {
         if !self.native_borrow_types {return Ok(());}
         match target {
+            CallTarget::StoredCallableField(family)=>self.remember_native_family_returns(context,family,span),
             CallTarget::ConditionalClosure(origin)=>self.remember_native_closure_returns(context,origin,None,span),
             CallTarget::ClosureMethod(method)=>{
                 let Type::Closure(origin)=hint else {return Ok(());};

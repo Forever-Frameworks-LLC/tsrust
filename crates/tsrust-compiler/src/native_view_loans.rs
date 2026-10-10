@@ -23,6 +23,7 @@ pub(crate) enum LifetimeSource {
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum Segment {
+    CallableAlternative(usize),
     Field(String),
     Element,
 }
@@ -126,8 +127,8 @@ impl Analyzer {
         enum Task<'a> {
             Value(&'a Expr),
             Returned(&'a Expr, &'a Loan),
-            Captured(&'a Expr, Option<usize>, usize, &'a Loan),
-            FinishCapture(usize, usize, &'a Loan, Span),
+            Captured(&'a Expr, Option<usize>, Option<usize>, usize, &'a Loan),
+            FinishCapture(usize, Option<usize>, usize, &'a Loan, Span),
             FinishReturn(usize, &'a Loan),
             Wrapped(&'a Expr, Segment),
             Wrap(usize, Segment),
@@ -152,8 +153,8 @@ impl Analyzer {
                     });
                     continue;
                 }
-                Task::Captured(callee,binding,capture,output) => {
-                    pending.push(Task::FinishCapture(result.len(),capture,output,callee.span));
+                Task::Captured(callee,binding,alternative,capture,output) => {
+                    pending.push(Task::FinishCapture(result.len(),alternative,capture,output,callee.span));
                     if let Some(root)=binding {
                         let binding=context.bindings.get(root).ok_or_else(||Diagnostic::new("native-view-call","Captured view source is outside the current lexical environment.",callee.span))?;
                         result.extend(binding.native_view_loans.as_deref().into_iter().flatten().cloned());
@@ -162,9 +163,17 @@ impl Analyzer {
                     }
                     continue;
                 }
-                Task::FinishCapture(start,capture,output,span) => {
+                Task::FinishCapture(start,alternative,capture,output,span) => {
                     if result.len()==start {
                         return Err(Diagnostic::new("native-view-call","The selected callback has no tracked byte-view source lifetime.",span));
+                    }
+                    if let Some(alternative)=alternative {
+                        if !result[start..].iter().any(|loan|matches!(loan.path.first(),Some(Segment::CallableAlternative(_)))) {
+                            return Err(Diagnostic::new("native-view-call","The selected callback has no tracked family alternative lifetime.",span));
+                        }
+                        let mut index=0;
+                        result.retain_mut(|loan|{index+=1;index<=start || native_view_projections::select(loan,&Segment::CallableAlternative(alternative))});
+                        if result.len()==start {continue;}
                     }
                     let segment=Segment::Field(format!("capture{capture}"));
                     let mut index=0;
@@ -267,9 +276,14 @@ impl Analyzer {
                                     }
                                     continue;
                                 }
+                                super::native_view_calls::Source::FamilyCapture(alternative,capture)=>{
+                                    let binding=match value.target {Some(CallTarget::StoredCallable(root)) if matches!(callee.kind,ExprKind::Name(_))=>Some(root),_=>None};
+                                    pending.push(Task::Captured(callee,binding,Some(alternative),capture,output));
+                                    continue;
+                                }
                                 super::native_view_calls::Source::Capture(capture)=>{
                                     let binding=match value.target {Some(CallTarget::Closure(root)) if matches!(callee.kind,ExprKind::Name(_))=>Some(root),_=>None};
-                                    pending.push(Task::Captured(callee,binding,capture,output));
+                                    pending.push(Task::Captured(callee,binding,None,capture,output));
                                     continue;
                                 }
                             };
@@ -329,6 +343,13 @@ impl Analyzer {
                 ExprKind::Index(value, _) => {
                     pending.push(Task::Select(result.len(), Segment::Element));
                     pending.push(Task::Value(value));
+                }
+                ExprKind::Unary {op:UnaryOp::CallableStore,value:payload,..}=>{
+                    if let Some(Type::Closure(origin))=payload.ty {
+                        pending.push(Task::Wrapped(payload,Segment::CallableAlternative(origin)));
+                    }else {
+                        pending.push(Task::Value(payload));
+                    }
                 }
                 ExprKind::Unary {
                     op: UnaryOp::NonNull | UnaryOp::RestPack,

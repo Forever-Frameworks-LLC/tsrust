@@ -216,3 +216,27 @@ Reachability also checks each record, union, closure and family ID against its o
 range before translating it to a graph index. A retained failing control showed
 that an invalid closure ID could otherwise alias a live family node. The repaired
 control preserves typed identity across the combined graph.
+
+## Scoped family provenance transport
+
+Scoped owning parameter shapes now traverse each concrete alternative and its capture
+fields. CallableAlternative is a typed lifetime-path segment, separate from user
+record fields and Result record guards. Each view slot retains its own source path,
+access mode and owner identity. Parameter seeding covers multiple fields and both
+readonly and exclusive views.
+
+The isolated native_view_family_provenance helper records family return summaries
+from checked closure bodies. Consumed capture payloads are transported through the
+actual callee's alternative and capture path; invocation arguments retain argument
+provenance. Named and expression field calls consult the same summaries. A borrow of
+receiver-owned storage remains explicitly diagnosed until its receiver ABI is ready.
+Callable construction wraps capture loans with the concrete alternative while keeping
+the original source roots. An inactive alternative does not create loans or reject a
+valid construction. This is tested through checked expression transport; normal source
+owning construction remains guarded until lifetime-bearing emission is connected.
+
+Closure compaction remaps alternative IDs in binding loans, function return summaries,
+prepared slot paths and Result guard paths. native_view_origin_remap keeps record
+variant IDs and owner binding IDs unchanged. A missing alternative mapping leaves an
+individual loan unchanged and fails before a prepared registry clone is published.
+The original stored-callback source witness remains red. Gate 189/S07 are open.

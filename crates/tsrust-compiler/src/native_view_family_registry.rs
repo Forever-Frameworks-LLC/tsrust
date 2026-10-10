@@ -35,6 +35,10 @@ impl Registry {
             for alternative in &mut layout.alternatives {
                 alternative.origin=ids.get(alternative.origin).copied().flatten().ok_or_else(||Diagnostic::new(
                     "callable-layout","A prepared native callable layout lost its environment origin.",Span::default()))?;
+                for slot in &mut alternative.slots {
+                    crate::native_view_origin_remap::path(&mut slot.path,ids)?;
+                    crate::native_view_origin_remap::guards(&mut slot.guards,ids)?;
+                }
             }
             layout.alternatives.sort_by_key(|alternative|alternative.origin);
         }

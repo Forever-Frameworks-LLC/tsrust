@@ -6,6 +6,9 @@ impl Analyzer {
     fn native_shape_children(&self, ty: Type) -> Vec<(Type, Option<Segment>, Option<usize>)> {
         match ty {
             Type::Array(element) => vec![(element.ty(), Some(Segment::Element), None)],
+            Type::StoredCallable(family)=>self.callables.storage.scoped_native_family(family).into_iter().flat_map(|layout|
+                layout.alternatives.iter().map(|alternative|(Type::Closure(alternative.origin),Some(Segment::CallableAlternative(alternative.origin)),None))
+            ).collect(),
             Type::Closure(id) => self.closures[id].captures.iter().map(|capture|
                 (self.closures[id].function.bindings[capture.inner].ty, Some(Segment::Field(format!("capture{}",capture.inner))), None)).collect(),
             Type::Record(id) => self.program.records[id].fields.iter().map(|field|
@@ -182,4 +185,64 @@ mod tests {
         assert_ne!(origins[0].root,origins[1].root);
     }
 
+}
+
+#[cfg(test)]
+#[test]
+fn native_view_scoped_family_parameters_seed_each_environment_slot() {
+    for mutable in [false,true] {
+        let source="type Window={};type Pair={one:Window;two:Window;};function first(pair:Pair){return ()=>pair;}function second(pair:Pair){return ()=>pair;}function main(){}";
+        let formatted=crate::formatting::format(source).unwrap();
+        assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
+        let mut parsed=crate::syntax::parse(&formatted).unwrap();
+        parsed.records[0].native_type=Some(if mutable {crate::native_signatures::NativeTypeId::ByteViewMut}else{crate::native_signatures::NativeTypeId::ByteView});
+        let mut analyzer=Analyzer::new(parsed).unwrap();
+        let factories=analyzer.program.functions.iter().enumerate().filter_map(|(id,function)|matches!(function.name.text.as_str(),"first"|"second").then_some(id)).collect::<Vec<_>>();
+        for factory in factories {analyzer.function(factory).unwrap();}
+        let result=analyzer.closures[0].function.result;
+        let structural=analyzer.callables.shapes.intern([],result,Some(CallbackKind::OwnedOnce));
+        let callback=CallbackContract{structural,parameter_names:vec![],params:vec![],result,kind:CallbackKind::OwnedOnce};
+        let scoped=analyzer.callables.storage.intern_scoped_native(&analyzer.callables.shapes,&callback,0,[0,1],&analyzer.closures,Span::default()).unwrap().unwrap();
+        let mut context=Context::new("seed".into());
+        let token=Token{text:"action".into(),kind:TokenKind::Name,span:Span::default()};
+        let root=Analyzer::bind(&mut context,&token,scoped,false).unwrap();
+        context.bindings[root].parameter=true;
+        analyzer.seed_native_parameters(&mut context).unwrap();
+        let loans=context.bindings[root].native_view_loans.as_ref().expect("scoped family parameters carry their payload lifetimes");
+        assert_eq!(loans.len(),4);
+        for origin in [0,1] {
+            let capture=analyzer.closures[origin].captures[0].inner;
+            for field in ["one","two"] {
+                let path=vec![Segment::CallableAlternative(origin),Segment::Field(format!("capture{capture}")),Segment::Field(field.into())];
+                assert!(loans.iter().any(|loan|loan.root==root && loan.path==path && loan.source==LifetimeSource::Carried(path.clone()) && loan.access==if mutable {crate::native_return_borrows::BorrowAccess::Exclusive}else{crate::native_return_borrows::BorrowAccess::ReadOnly}));
+            }
+        }
+        let Type::StoredCallable(family)=scoped else {unreachable!()};
+        analyzer.remember_native_family_returns(&mut context,family,Span::default()).unwrap();
+        let mut callee=Expr::new(ExprKind::Name("action".into()),Span::default());callee.binding=Some(root);callee.ty=Some(scoped);
+        let mut call=Expr::new(ExprKind::Call(Box::new(callee),vec![]),Span::default());
+        call.target=Some(CallTarget::StoredCallable(root));call.callable_origin=Some(CallableOrigin::Storage(family));call.ty=Some(result);
+        let returned=Analyzer::native_view_value_loans(&context,&call).unwrap();
+        assert_eq!(returned.len(),4);
+        assert!(returned.iter().all(|loan|loan.root==root && loan.path.len()==1 && matches!(loan.source,LifetimeSource::Carried(ref path) if matches!(path.first(),Some(Segment::CallableAlternative(_))))));
+        let mut construction=Context::new("construction".into());
+        let token=Token{text:"pair".into(),kind:TokenKind::Name,span:Span::default()};
+        let pair=Analyzer::bind(&mut construction,&token,result,false).unwrap();construction.bindings[pair].parameter=true;
+        analyzer.seed_native_parameters(&mut construction).unwrap();
+        let capture=analyzer.closures[0].captures[0].inner;
+        construction.native_view_environments.get_or_insert_with(Default::default).insert(0,vec![(capture,pair)]);
+        let mut closure=Expr::new(ExprKind::Closure{id:0,params:vec![],result:ResultAnnotation::Inferred(Span::default()),body:vec![]},Span::default());closure.ty=Some(Type::Closure(0));closure.wrap_storage(family);
+        let stored=Analyzer::native_view_value_loans(&construction,&closure).unwrap();
+        assert_eq!(stored.len(),2);
+        assert!(stored.iter().all(|loan|loan.root==pair && loan.path.first()==Some(&Segment::CallableAlternative(0))));
+        let token=Token{text:"action".into(),kind:TokenKind::Name,span:Span::default()};
+        let action=Analyzer::bind(&mut construction,&token,scoped,false).unwrap();Analyzer::set_native_view_loans(&mut construction,action,stored);
+        analyzer.remember_native_family_returns(&mut construction,family,Span::default()).unwrap();
+        let mut callee=Expr::new(ExprKind::Name("action".into()),Span::default());callee.binding=Some(action);callee.ty=Some(scoped);
+        let mut call=Expr::new(ExprKind::Call(Box::new(callee),vec![]),Span::default());call.target=Some(CallTarget::StoredCallable(action));call.callable_origin=Some(CallableOrigin::Storage(family));call.ty=Some(result);
+        let returned=Analyzer::native_view_value_loans(&construction,&call).unwrap();
+        assert_eq!(returned.len(),2,"inactive alternatives must not invent owners or reject construction");
+        assert!(returned.iter().all(|loan|loan.root==pair && loan.source==LifetimeSource::Carried(loan.path.clone())));
+
+    }
 }

@@ -3,10 +3,10 @@ use super::*;
 use super::native_view_loans::{LifetimeSource,Loan};
 
 #[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
-pub(super) enum Target {Function(usize),Closure(usize),Method(usize,usize)}
+pub(super) enum Target {Function(usize),Closure(usize),Method(usize,usize),Family(usize)}
 
 #[derive(Clone,Debug,PartialEq,Eq)]
-pub(super) enum Source { Argument(usize), Capture(usize), BorrowedCapture(usize), Receiver(usize) }
+pub(super) enum Source { Argument(usize), Capture(usize), BorrowedCapture(usize), Receiver(usize), FamilyCapture(usize,usize) }
 
 #[derive(Clone,Debug,PartialEq,Eq)]
 pub(super) struct Returned { pub(super) source:Source, pub(super) loan:Loan }
@@ -46,6 +46,8 @@ pub(super) fn validate_closures(closures:&[CheckedClosure])->Result<(),Diagnosti
 pub(super) fn target(expression:&Expr)->Option<Target> {
     match expression.target? {
         CallTarget::Function(id)|CallTarget::ForwardFunction(id)=>Some(Target::Function(id)),
+        CallTarget::StoredCallableField(family)=>Some(Target::Family(family)),
+        CallTarget::StoredCallable(_)=>match expression.callable_origin {Some(CallableOrigin::Storage(family))=>Some(Target::Family(family)),_=>None},
         CallTarget::Closure(_)=>expression.closure_origin().map(Target::Closure),
         CallTarget::ConditionalClosure(origin)=>Some(Target::Closure(origin)),
         CallTarget::ClosureMethod(method)=>expression.closure_origin().or_else(||match &expression.kind {ExprKind::Call(callee,_)=>callee.closure_origin(),_=>None}).map(|origin|Target::Method(origin,method)),

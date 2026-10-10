@@ -1,5 +1,7 @@
 #[path = "native_view_expression_calls.rs"]
 mod native_view_expression_calls;
+#[path = "native_view_family_provenance.rs"]
+mod native_view_family_provenance;
 #[cfg(test)]
 #[path = "native_view_callee_transport_tests.rs"]
 mod native_view_callee_transport_tests;
@@ -1400,7 +1402,9 @@ fn remap_function_closures(
 ) -> Result<(), Diagnostic> {
     crate::source_walk::body(&mut function.body,&mut |annotation|polymorphic_argument_hints::remap_annotation(annotation,ids),&mut |_|Ok(()))?;
     remap_closure_type(&mut function.result, ids)?;
+    for loan in function.native_returns.as_deref_mut().into_iter().flatten() {crate::native_view_origin_remap::loan(loan,ids)?;}
     for binding in &mut function.bindings {
+        for loan in binding.native_view_loans.as_deref_mut().into_iter().flatten() {crate::native_view_origin_remap::loan(loan,ids)?;}
         remap_closure_type(&mut binding.ty, ids)?;
         if let Some(ty) = &mut binding.input_ty {
             remap_closure_type(ty, ids)?;
@@ -14487,6 +14491,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 expr.callable_origin=Some(CallableOrigin::Closure(origin));
             }
             if let Type::StoredCallable(family)|Type::BorrowedCallable(family)=context.bindings[binding].ty {
+                self.remember_native_family_returns(context,family,span)?;
                 expr.callable_origin=Some(CallableOrigin::Storage(family));
             }
             if let Type::Callback(contract)=context.bindings[binding].ty {
@@ -14782,6 +14787,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                     }
                 }
             }
+            self.remember_native_family_returns(context,family,span)?;
             expr.target = Some(CallTarget::StoredCallableField(family));
             expr.ty = Some(result);
             return Ok(result);
