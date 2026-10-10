@@ -1,6 +1,6 @@
 # Generic state join efficiency investigation
 
-Status: in progress; no compilation speedup accepted. Last accepted checkpoint is d604c0a. Preserve the fifteen owner fixture edits.
+Status: closed at gate 184 on 2026-10-10. Resumable callable summaries (294af82) repaired the slow check; see [the gate record](184-generic-adapter-compile-time.md). The text below is the investigation history and describes the compiler before that repair. Preserve the fifteen owner fixture edits.
 
 The current release compiler checking generic_value_adapters.tsr reaches a 55-second observation limit. This probe records compiler checking only, not native runtime performance. A fresh live sample again shows generic specialization, guard partitions, state joins and binding metadata cloning. The process is terminated at the limit; it is not left running or restarted from an observation timeout.
 
