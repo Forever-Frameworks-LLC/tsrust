@@ -31,6 +31,10 @@ impl Emitter<'_> {
             if self.native_captures.lifetimes[alternative.origin]!=alternative.slots.len() {
                 return Err(unsupported("Native callable family capture lifetimes do not match its carried-view slots."));
             }
+            let checked_slots=crate::native_view_callable_storage::carried_slots(closure).unwrap_or_default();
+            if checked_slots!=alternative.slots {
+                return Err(unsupported("Native callable family capture paths and access must match the checked environment."));
+            }
             for (slot_index,slot) in alternative.slots.iter().enumerate() {
                 let name=format!("'native_family{arm}_{slot_index}");
                 inputs.insert((arm,captured_source(slot.capture,&slot.path,&slot.guards)),name.clone());
@@ -107,6 +111,10 @@ mod tests {
         invalid=layout.clone();invalid.alternatives[0].slots.clear();
         assert!(emitter.emit_native_view_family(&mut unchanged,8,&invalid,&contract).is_err());
         assert_eq!(unchanged,"sentinel");
+        invalid=layout.clone();
+        invalid.alternatives[0].slots[0].access=if mutable {crate::native_return_borrows::BorrowAccess::ReadOnly}else{crate::native_return_borrows::BorrowAccess::Exclusive};
+        assert!(emitter.emit_native_view_family(&mut unchanged,8,&invalid,&contract).is_err());
+        assert_eq!(unchanged,"sentinel");
         let mut generated=crate::emit::emit(&checked);
         let main=generated.find("fn main()").unwrap();
         let opening=main+generated[main..].find('{').unwrap()+1;
@@ -181,6 +189,38 @@ mod tests {
         let negative=format!("fn invalid_escape(){{let result;{{let mut owner=vec![1u8];let selected=NativeViewCallable7::V{first_origin}(function{first_function}(Record0{{bytes:{reference} owner}},true));result={extract};}}assert_eq!(result.bytes.len(),1);}}");
         let mut generated=crate::emit::emit(&checked);let main=generated.find("fn main()").unwrap();let opening=main+generated[main..].find('{').unwrap()+1;generated.insert_str(opening,"family_probe();");
         compile_family(&generated,&family,&probe,vec![(negative,"does not live long enough")],if mutable {"result-mut"}else{"result-read"});
+    }
+
+    #[test]
+    fn native_view_family_record_keeps_field_lifetimes_independent() {
+        for mutable in [false,true] {assert_record_family(mutable);}
+    }
+
+    fn assert_record_family(mutable:bool) {
+        let source="type Window={};type Pair={one:Window;two:Window;};function first(pair:Pair){return ()=>pair;}function second(pair:Pair){return ()=>pair;}function main(){}";
+        let formatted=crate::formatting::format(source).unwrap();
+        assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
+        let mut parsed=crate::syntax::parse(&formatted).unwrap();
+        parsed.records[0].native_type=Some(if mutable {crate::native_signatures::NativeTypeId::ByteViewMut}else{crate::native_signatures::NativeTypeId::ByteView});
+        let mut checked=crate::analysis::analyze(parsed).unwrap();
+        let first=checked.functions.iter().position(|function|function.name=="first" && !function.template).unwrap();
+        let second=checked.functions.iter().position(|function|function.name=="second" && !function.template).unwrap();
+        let Type::Closure(left)=checked.functions[first].result else {panic!("factory closure expected")};
+        let Type::Closure(right)=checked.functions[second].result else {panic!("factory closure expected")};
+        let result=checked.closures[left].function.result;
+        let structural=checked.callable_shapes.intern([],result,Some(crate::syntax::CallbackKind::OwnedOnce));
+        let contract=crate::analysis::CallbackContract{structural,parameter_names:vec![],params:vec![],result,kind:crate::syntax::CallbackKind::OwnedOnce};
+        let layout=crate::native_view_callable_storage::family_slots(&contract,&checked.callable_shapes,[left,right],&checked.closures,crate::Span::default()).unwrap().unwrap();
+        assert!(layout.alternatives.iter().all(|alternative|alternative.slots.len()==2));
+        let emitter=emitter_for(&checked,"");
+        let mut family=String::new();emitter.emit_native_view_family(&mut family,7,&layout,&contract).unwrap();
+        let reference=if mutable {"&mut"}else{"&"};
+        let write=if mutable {"retained.bytes[0]+=10;"}else{""};
+        // Retain only field one after field two's independent owner ends.
+        let probe=format!("fn family_probe(){{for flag in [true,false]{{let mut owner=vec![1u8];let pointer=owner.as_ptr();{{let retained;{{let mut short=vec![7u8,8];let short_pointer=short.as_ptr();let pair=Record1{{field0:Record0{{bytes:{reference} owner}},field1:Record0{{bytes:{reference} short}}}};let selected=if flag{{NativeViewCallable7::V{left}(function{first}(pair))}}else{{NativeViewCallable7::V{right}(function{second}(pair))}};let result=selected.call();assert_eq!(result.field1.bytes.as_ptr(),short_pointer);retained=result.field0;}}assert_eq!(retained.bytes.as_ptr(),pointer);{write}}}assert_eq!(owner[0],if {mutable}{{11}}else{{1}});}}}}");
+        let negative=format!("fn invalid_escape(){{let mut survivor=vec![1u8];let retained;{{let mut short=vec![7u8];let selected=NativeViewCallable7::V{left}(function{first}(Record1{{field0:Record0{{bytes:{reference} survivor}},field1:Record0{{bytes:{reference} short}}}}));retained=selected.call().field1;}}assert_eq!(retained.bytes.len(),1);}}");
+        let mut generated=crate::emit::emit(&checked);let main=generated.find("fn main()").unwrap();let opening=main+generated[main..].find('{').unwrap()+1;generated.insert_str(opening,"family_probe();");
+        compile_family(&generated,&family,&probe,vec![(negative,"does not live long enough")],if mutable {"record-mut"}else{"record-read"});
     }
 
 }

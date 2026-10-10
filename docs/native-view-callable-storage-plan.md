@@ -176,3 +176,19 @@ rejects a success payload escaping its owner. All branches execute at O0 and O3.
 Factory and closure identities are taken from the checked program rather than
 assuming source declaration order survives specialization. This extends backend
 evidence only; source storage and the public view factories remain guarded.
+
+## Independent record fields and slot validation
+
+The private ABI now executes callbacks returning two view fields with independent
+owners. Either concrete alternative can be selected; the first field remains usable
+after the second field's owner ends. Readonly and exclusive controls preserve both
+pointers at O0/O3, and exclusive writes reach the surviving owner. Returning the
+short-lived second field instead is independently rejected by Rust. This verifies
+that output paths do not collapse distinct field lifetimes into one intersection.
+
+A malformed candidate with the correct slot count but incorrect access previously
+passed emitter validation. The emitter now compares complete capture slots against
+the checked environment before writing declarations, including capture identity,
+payload path, variant guards and access. The failing control and repaired results
+are retained in SQLite. Source storage admission remains the next integration task;
+these private ABI controls do not close gate 189 or S07.
