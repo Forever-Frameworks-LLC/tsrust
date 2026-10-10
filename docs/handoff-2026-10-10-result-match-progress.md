@@ -12,6 +12,13 @@ signature help. Checkpoint `3ef7515d` added single-file pattern-binding assistan
 `d5d70c6c` integrated owned callable payloads. This checkpoint adds readonly matching,
 match formatting and the first matched Result workload.
 
+Checkpoint `9966563a` saves that readonly increment. A subsequent editor repair
+renders inferred and nested Result types through their public names, including
+`Ok(payload)` and `Err(error)` in narrowing notes, instead of private record names.
+The focused `intelligence` filter `result_` passes 36 tests after this repair.
+Project formatting changes no files or fingerprints. This is presentation only;
+mutable matching remains the next implementation task.
+
 `Result<T, E>` uses two private nominal wrappers in the existing tagged-union
 arena. Each wrapper stores only its active payload. Both arguments participate
 in identity. A void payload has no field or argument. Constructors use expected

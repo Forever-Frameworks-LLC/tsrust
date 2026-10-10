@@ -713,6 +713,37 @@ fn type_name(
     if let Some(name) = names.get(&ty) {
         return name.clone();
     }
+    if let Some(union) = ty.union() {
+        let members = &program.unions[union.index()].members;
+        if members.len() == 2 {
+            let mut variants = [None, None];
+            for member in members {
+                if let Type::Record(id) = member {
+                    let record = &program.records[*id];
+                    if let Some(application) = &record.application {
+                        let index = match application.declaration.text.as_str() {
+                            "Result#Ok" => Some(0),
+                            "Result#Err" => Some(1),
+                            _ => None,
+                        };
+                        if let Some(index) = index { variants[index] = Some(*id); }
+                    }
+                }
+            }
+            if let [Some(ok), Some(error)] = variants {
+                // Guard recursive payload presentation just like callable types.
+                names.insert(ty, None);
+                let payload = |id: usize, names: &mut HashMap<Type, Option<String>>| {
+                    let fields = &program.records[id].fields;
+                    type_name(program, fields.first().map(|field| field.ty).unwrap_or(Some(Type::Void))?, names)
+                };
+                let name = payload(ok, names).zip(payload(error, names))
+                    .map(|(ok, error)| format!("Result<{ok}, {error}>"));
+                names.insert(ty, name.clone());
+                return name;
+            }
+        }
+    }
     let name = match ty {
         Type::Int => Some("int".into()),
         Type::Number => Some("number".into()),
@@ -720,6 +751,13 @@ fn type_name(
         Type::String => Some("string".into()),
         Type::Null => Some("null".into()),
         Type::Undefined => Some("undefined".into()),
+        Type::Record(id) if program.records[id].application.as_ref().is_some_and(|application| matches!(application.declaration.text.as_str(), "Result#Ok" | "Result#Err")) => {
+            names.insert(ty, None);
+            let record = &program.records[id];
+            let variant = if record.application.as_ref()?.declaration.text == "Result#Ok" { "Ok" } else { "Err" };
+            type_name(program, record.fields.first().map(|field| field.ty).unwrap_or(Some(Type::Void))?, names)
+                .map(|payload| format!("{variant}({payload})"))
+        }
         Type::Record(id) if program.records[id].name.text.starts_with("rest#record") => {
             program.records[id].fields.iter().map(|field|Some(format!("{}: {};",field.name.text,type_name(program,field.ty?,names)?))).collect::<Option<Vec<_>>>().map(|fields|format!("{{ {} }}",fields.join(" ")))
         }
