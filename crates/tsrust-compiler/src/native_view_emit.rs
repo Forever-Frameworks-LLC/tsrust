@@ -269,13 +269,16 @@ fn main() {{
     }
     #[test]
     fn returned_native_views_compile_with_distinct_input_lifetimes() {
-        let source="type Window={};type WriteWindow={};type Shelf={item:Window;};type Pair={one:Window;two:Window;};type Outcome=Result<Window,int>;function identity(input:Window):Window{return input;}function relay(input:Window):Window{return identity(input);}function arrowChoose(left:Window,right:Window,flag:boolean):Window{const callback=(first:Window,second:Window):Window=>{if(flag){return first;}return second;};return callback(left,right);}function arrowRelay(input:Window):Window{const identity=(value:Window):Window=>value;return identity(input);}function savedRelay(input:Window):Window{const saved=identity;return saved(input);}function outcomeIdentity(input:Outcome):Outcome{return input;}function pairFirst(input:Pair):Window{return input.one;}function unwrap(input:Shelf):Window{return input.item;}function writeIdentity(input:WriteWindow):WriteWindow{return input;}function arrayIdentity(input:Window[]):Window[]{return input;}function first(left:Window,right:Window):Window{return left;}function choose(left:Window,right:Window,flag:boolean):Window{if(flag){return left;}return right;}function main(){}";
+        let source="type Window={};type WriteWindow={};type Shelf={item:Window;};type Pair={one:Window;two:Window;};type Outcome=Result<Window,int>;function capturedPair(input:Pair):Window{const callback=():Window=>input.one;return callback();}function capturedWrite(input:WriteWindow):WriteWindow{const callback=():WriteWindow=>input;return callback();}function captured(input:Window):Window{const callback=():Window=>input;return callback();}function identity(input:Window):Window{return input;}function relay(input:Window):Window{return identity(input);}function arrowChoose(left:Window,right:Window,flag:boolean):Window{const callback=(first:Window,second:Window):Window=>{if(flag){return first;}return second;};return callback(left,right);}function arrowRelay(input:Window):Window{const identity=(value:Window):Window=>value;return identity(input);}function savedRelay(input:Window):Window{const saved=identity;return saved(input);}function outcomeIdentity(input:Outcome):Outcome{return input;}function pairFirst(input:Pair):Window{return input.one;}function unwrap(input:Shelf):Window{return input.item;}function writeIdentity(input:WriteWindow):WriteWindow{return input;}function arrayIdentity(input:Window[]):Window[]{return input;}function first(left:Window,right:Window):Window{return left;}function choose(left:Window,right:Window,flag:boolean):Window{if(flag){return left;}return right;}function main(){}";
         let formatted=crate::formatting::format(source).unwrap();
         assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
         let mut parsed=crate::syntax::parse(&formatted).unwrap();
         parsed.records[0].native_type=Some(crate::native_signatures::NativeTypeId::ByteView);
         parsed.records[1].native_type=Some(crate::native_signatures::NativeTypeId::ByteViewMut);
         let checked=crate::analysis::analyze(parsed).unwrap();
+        let captured_pair=checked.functions.iter().position(|function|function.name=="capturedPair").unwrap();
+        let captured_write=checked.functions.iter().position(|function|function.name=="capturedWrite").unwrap();
+        let captured=checked.functions.iter().position(|function|function.name=="captured").unwrap();
         let relay=checked.functions.iter().position(|function|function.name=="relay").unwrap();
         let arrow_choose=checked.functions.iter().position(|function|function.name=="arrowChoose").unwrap();
         let arrow_relay=checked.functions.iter().position(|function|function.name=="arrowRelay").unwrap();
@@ -297,12 +300,16 @@ fn main() {{
         rust.push_str(&format!(r#"
 fn main() {{
     let owner=vec![1u8,2,3];
+    assert_eq!(function{captured}(Record0{{bytes:&owner}}).bytes.as_ptr(),owner.as_ptr());
     assert_eq!(function{relay}(Record0{{bytes:&owner}}).bytes.as_ptr(),owner.as_ptr());
     assert_eq!(function{arrow_relay}(Record0{{bytes:&owner}}).bytes.as_ptr(),owner.as_ptr());
     assert_eq!(function{saved_relay}(Record0{{bytes:&owner}}).bytes.as_ptr(),owner.as_ptr());
     let returned;
     {{ let short=vec![9u8]; returned=function{first}(Record0{{bytes:&owner}}, &Record0{{bytes:&short}}); }}
     assert_eq!(returned.bytes.as_ptr(),owner.as_ptr());
+    let captured_field;
+    {{ let short=vec![8u8];captured_field=function{captured_pair}(Record3{{field0:Record0{{bytes:&owner}},field1:Record0{{bytes:&short}}}}); }}
+    assert_eq!(captured_field.bytes.as_ptr(),owner.as_ptr());
     let field;
     {{ let short=vec![8u8];field=function{pair_first}(Record3{{field0:Record0{{bytes:&owner}},field1:Record0{{bytes:&short}}}}); }}
     assert_eq!(field.bytes.as_ptr(),owner.as_ptr());
@@ -315,6 +322,8 @@ fn main() {{
     let mut writable=vec![4u8,5];
     {{ let returned=function{write_identity}(Record1{{bytes:&mut writable}});returned.bytes[0]=8; }}
     assert_eq!(writable[0],8);
+    {{ let returned=function{captured_write}(Record1{{bytes:&mut writable}});returned.bytes[1]=6; }}
+    assert_eq!(writable[1],6);
     let other=vec![7u8];
     assert_eq!(function{arrow_choose}(Record0{{bytes:&owner}},Record0{{bytes:&other}},false).bytes.as_ptr(),other.as_ptr());
     let selected=function{choose}(Record0{{bytes:&owner}},Record0{{bytes:&other}},false);
@@ -339,6 +348,17 @@ fn main() {{
         let rejected_output=std::process::Command::new("rustup").args(["run",crate::RUST_BACKEND_VERSION,"rustc","--edition=2024"]).arg(&rejected).arg("-o").arg(directory.join("escape")).output().unwrap();
         assert!(!rejected_output.status.success(),"escaping selected input unexpectedly compiled");
         assert!(String::from_utf8_lossy(&rejected_output.stderr).contains("does not live long enough"));
+        let captured_escape=directory.join("captured-escape.rs");
+        std::fs::write(&captured_escape,crate::emit::emit(&checked).replace("fn main()", "fn unused_source_main()")+&format!(r#"
+fn main() {{
+    let escaped;
+    {{ let short=vec![2u8]; escaped=function{captured}(Record0{{bytes:&short}}); }}
+    assert_eq!(escaped.bytes[0],2);
+}}
+"#)).unwrap();
+        let captured_rejected=std::process::Command::new("rustup").args(["run",crate::RUST_BACKEND_VERSION,"rustc","--edition=2024"]).arg(&captured_escape).arg("-o").arg(directory.join("captured-escape")).output().unwrap();
+        assert!(!captured_rejected.status.success(),"captured view escaped its original owner");
+        assert!(String::from_utf8_lossy(&captured_rejected.stderr).contains("does not live long enough"));
 
         for level in [0,3] {
             let output=directory.join(format!("returns-{level}"));

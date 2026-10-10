@@ -101,6 +101,17 @@ impl Emitter<'_> {
                     .collect::<Vec<_>>();
                 format!("BorrowedCallable{id}<{}>", arguments.join(", "))
             }
+            Type::Record(id) if native_view_emit::access(self.program,id).is_some() => {
+                let lifetime=&lifetimes[*next];*next+=1;
+                format!("Record{id}<{lifetime}>")
+            }
+            Type::Array(element) if self.native_views.contains(ty) => {
+                let payload=self.record_environment_type(element.ty(),lifetimes,next);
+                match element {
+                    crate::syntax::ArrayElement::Record(id,0)=>format!("RecordArray{id}<{}>",payload.split_once('<').expect("native view array argument").1),
+                    _=>format!("Vec<{payload}>"),
+                }
+            }
             Type::Record(id) => {
                 let arguments = self.program.records[id]
                     .fields

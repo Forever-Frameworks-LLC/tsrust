@@ -9,6 +9,7 @@ pub(super) struct NativeSignature {
 }
 
 pub(super) struct NativeSignaturePlan<'a> {
+    pub(super) native_capture_lifetimes: std::collections::BTreeMap<(usize,crate::analysis::native_view_loans::LifetimeSource),String>,
     pub(super) function: &'a CheckedFunction,
     pub(super) parameters: Vec<usize>,
     pub(super) source_parameters: Vec<usize>,
@@ -49,6 +50,7 @@ impl Emitter<'_> {
         replacement_bounds.extend(self.nullable_callback_replacement_bounds(index));
         self.native_signature_from_plan(
             NativeSignaturePlan {
+                native_capture_lifetimes:Default::default(),
                 function: fun,
                 parameters,
                 source_parameters,
@@ -69,7 +71,7 @@ impl Emitter<'_> {
         parameter_shapes: &[Option<crate::fixed_storage::Shape>],
     ) -> NativeSignature {
         let fun = plan.function;
-        let native_lifetimes = native_view_lifetime_emit::Lifetimes::new(fun, &plan.parameters);
+        let native_lifetimes = native_view_lifetime_emit::Lifetimes::with_captures(fun, &plan.parameters, &plan.native_capture_lifetimes);
         let borrow_lifetimes = &plan.borrow_lifetimes;
         let params = plan
             .parameters

@@ -404,3 +404,25 @@ lifetime contract. Native capture layout, generated result lifetime relationship
 escaped closure environments and arbitrary stored callable families are not yet
 verified. The public borrowed-signature guard remains in force; this increment does
 not accept captured view execution or close gate 189.
+
+## Native capture lifetime slots
+
+Native view leaves now contribute inner lifetime slots to capture environments,
+separately from any reference used to borrow the captured value itself. The shared
+signature planner accepts named capture sources and uses those environment names
+for returned carried origins instead of declaring unconstrained method lifetimes.
+Record fields preserve their individual slots. No slice is copied and no owner is
+hidden in the generated environment.
+
+Private formatted-source native witnesses cover consuming closures returning a
+captured read-only view, a selected view field from a captured record, and a
+captured writable view. O0/O3 execution checks pointer identity, independent sibling
+lifetimes and writes reaching the original owner. A separate rejected Rust harness
+checks that a captured result cannot outlive the original owner. Lifetime counting
+also checks native array leaves without changing ordinary recursive array capture
+counts.
+
+Borrowing receiver contracts, captured owner storage, Result capture layouts,
+escaped and rebound closure environments, specialized callbacks and arbitrary
+stored families still require their own matrix. The source factories remain guarded
+and gate 189 remains open.

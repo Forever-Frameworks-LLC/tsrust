@@ -368,6 +368,7 @@ impl Emitter<'_> {
         };
         let mut signature = self.native_signature_from_plan(
             NativeSignaturePlan {
+                native_capture_lifetimes:Default::default(),
                 function: &closure.function,
                 parameters: closure.parameters.clone(),
                 source_parameters: closure.parameters.clone(),

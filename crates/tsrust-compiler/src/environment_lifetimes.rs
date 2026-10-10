@@ -29,6 +29,11 @@ pub(crate) fn count(
                 let Some(record) = records.get(id) else {
                     return 129;
                 };
+                if record.native_type.is_some_and(|id|crate::native_types::declaration(id).borrow_access().is_some()) {
+                    total=total.saturating_add(1);
+                    if total>128 {return 129;}
+                    continue;
+                }
                 for field in &record.fields {
                     let Some(ty) = field.ty else {
                         return 129;
@@ -36,6 +41,7 @@ pub(crate) fn count(
                     pending.push((ty, false));
                 }
             }
+            Type::Array(element) if contains_native_view(element.ty(), records, &members) => pending.push((element.ty(),false)),
             Type::Union(id) | Type::BorrowedUnion(id) => {
                 pending.extend(members(id).into_iter().map(|ty| (ty, false)))
             }
@@ -48,10 +54,40 @@ pub(crate) fn count(
     total
 }
 
+pub(crate) fn contains_native_view(root:Type,records:&[Record],members:&impl Fn(UnionId)->Vec<Type>)->bool {
+    let mut pending=vec![root];
+    let mut seen=std::collections::HashSet::new();
+    while let Some(ty)=pending.pop() {
+        if !seen.insert(ty) {continue;}
+        match ty {
+            Type::Record(id)=>{
+                let Some(record)=records.get(id) else {continue;};
+                if record.native_type.is_some_and(|id|crate::native_types::declaration(id).borrow_access().is_some()) {return true;}
+                pending.extend(record.fields.iter().filter_map(|field|field.ty));
+            }
+            Type::Array(element)=>pending.push(element.ty()),
+            Type::Union(id)|Type::BorrowedUnion(id)=>pending.extend(members(id)),
+            _=>{}
+        }
+    }
+    false
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    #[test]
+    fn native_slice_captures_reserve_inner_lifetime_slots() {
+        let mut window=crate::cloneability::tests::record(&[]);
+        window.native_type=Some(crate::native_signatures::NativeTypeId::ByteView);
+        let pair=crate::cloneability::tests::record(&[Type::Record(0),Type::Record(0)]);
+        assert_eq!(count(Type::Record(0),&[window.clone()],|_|vec![],|_|0),1);
+        assert_eq!(count(Type::Array(crate::syntax::ArrayElement::Record(0,0)),&[window.clone()],|_|vec![],|_|0),1);
+        assert_eq!(count(Type::Record(1),&[window,pair],|_|vec![],|_|0),2);
+        let recursive=crate::cloneability::tests::record(&[Type::Array(crate::syntax::ArrayElement::Record(0,0))]);
+        assert_eq!(count(Type::Record(0),&[recursive],|_|vec![],|_|0),0);
+    }
     #[test]
     fn repeated_fields_have_distinct_slots_and_cycles_remain_bounded() {
         let mut records = vec![

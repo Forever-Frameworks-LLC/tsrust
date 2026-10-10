@@ -11,7 +11,7 @@ pub(super) struct Lifetimes {
     pub(super) bounds: Vec<String>,
 }
 impl Lifetimes {
-    pub(super) fn new(function:&CheckedFunction,parameters:&[usize])->Self {
+    pub(super) fn with_captures(function:&CheckedFunction,parameters:&[usize],captures:&BTreeMap<(usize,LifetimeSource),String>)->Self {
         let mut plan=Self::default();
         for &root in parameters {
             for loan in function.bindings[root].native_view_loans.as_deref().into_iter().flatten() {
@@ -22,7 +22,8 @@ impl Lifetimes {
             plan.inputs.entry((loan.root,loan.source.clone())).or_default();
         }
         let mut slots=BTreeMap::<usize,usize>::new();
-        for ((root,_),name) in &mut plan.inputs {
+        for ((root,source),name) in &mut plan.inputs {
+            if let Some(captured)=captures.get(&(*root,source.clone())) {*name=captured.clone();continue;}
             let slot=slots.entry(*root).or_default();
             *name=format!("'native_input{root}_{slot}");*slot+=1;
             plan.declarations.push(name.clone());
@@ -54,9 +55,19 @@ impl Lifetimes {
     }
 }
 impl Emitter<'_> {
-    pub(super) fn native_view_closure_signature(&self,function:&CheckedFunction,parameters:&[usize])->Option<native_function_signature_emit::NativeSignature> {
+    pub(super) fn native_view_closure_signature(&self,closure:&crate::analysis::CheckedClosure,method:Option<usize>,function:&CheckedFunction,parameters:&[usize])->Option<native_function_signature_emit::NativeSignature> {
         if function.native_returns.is_none() && !parameters.iter().any(|&id|self.native_views.contains(function.bindings[id].input_ty.unwrap_or(function.bindings[id].ty))) {return None;}
+        let (lifetimes,_)=self.capture_layout(closure);
+        let mut next=0;
+        let mut captures=BTreeMap::new();
+        for (position,capture) in closure.captures.iter().enumerate() {
+            next+=usize::from(matches!(capture.storage,Mode::Read|Mode::Mutate));
+            let root=method.map_or(capture.inner,|method|closure.methods[method].captures[position]);
+            let ty=self.native_captures.ty(&closure.function,capture.inner);
+            self.native_view_capture_slots(ty,root,&mut Vec::new(),&lifetimes,&mut next,&mut captures);
+        }
         Some(self.native_signature_from_plan(native_function_signature_emit::NativeSignaturePlan {
+            native_capture_lifetimes:captures,
             function,
             parameters:parameters.to_vec(),
             source_parameters:parameters.to_vec(),
@@ -66,6 +77,27 @@ impl Emitter<'_> {
             record_bounds:Vec::new(),
             replacement_bounds:Vec::new(),
         },&[]))
+    }
+
+    fn native_view_capture_slots(&self,ty:Type,root:usize,path:&mut Vec<Segment>,lifetimes:&[String],next:&mut usize,slots:&mut BTreeMap<(usize,LifetimeSource),String>) {
+        match ty {
+            Type::Record(id) if native_view_emit::access(self.program,id).is_some()=>{
+                slots.insert((root,LifetimeSource::Carried(path.clone())),lifetimes[*next].clone());*next+=1;
+            }
+            Type::Record(id) if self.native_views.contains(ty)=>{
+                for field in &self.program.records[id].fields {
+                    path.push(Segment::Field(field.name.text.clone()));
+                    self.native_view_capture_slots(field.ty.expect("checked field"),root,path,lifetimes,next,slots);path.pop();
+                }
+            }
+            Type::Array(element) if self.native_views.contains(ty)=>{
+                path.push(Segment::Element);self.native_view_capture_slots(element.ty(),root,path,lifetimes,next,slots);path.pop();
+            }
+            Type::Union(id)|Type::BorrowedUnion(id) if self.native_views.contains(ty)=>{
+                for &member in &self.program.unions[id.index()].members {self.native_view_capture_slots(member,root,path,lifetimes,next,slots);}
+            }
+            _=>*next+=self.native_captures.type_lifetimes(self.program,&self.borrowed_lifetime_alternatives,ty),
+        }
     }
 
     pub(super) fn native_view_signature_type(&self,ty:Type,input:Option<usize>,plan:&Lifetimes)->String {
