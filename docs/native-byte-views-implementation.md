@@ -593,3 +593,23 @@ rejected, moving that closure while its view is retained is rejected, and moving
 before creating a view remains valid. These witnesses pass without production edits.
 Shared external captures, mutable reference captures, deeper escaped/rebound
 environments and mixed callback storage still require complete source bodies.
+
+### Complete external borrowed capture bodies
+
+Private parsed source now covers a readonly closure capturing an external borrowed
+Bytes parameter and returning a native Result view. Its enclosing function returns
+that view after the local closure ends. O0/O3 execution preserves the external
+buffer pointer, demonstrating that the readonly view follows the external owner
+rather than the shorter local receiver lifetime.
+
+Mutable reference captures also have complete checked/emitted native factory
+bodies. The source enclosing function invokes the closure without returning its
+view. A native probe calls the emitted closure, writes through the returned view
+and regains owner access after the receiver scope ends. Source analysis rejects
+returning that receiver-bound mutable view from the local closure's enclosing
+function. Independent native rejection controls keep the external owner alive
+while rejecting receiver escape, and reject readonly owner escape separately.
+
+These three focused tests need no production repair. Deeper escaped/rebound
+environments, mixed callback records, specialized storage families and public
+observer/editor integration remain open.
