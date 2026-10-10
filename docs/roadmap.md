@@ -841,3 +841,11 @@ byte workload passes five native/Node-after-tsc cases untimed. Wider owned byte
 operations, borrowed views and resource lifecycle remain gates 188–190; S07 is not
 accepted or measured. See [the record](milestones/187-native-byte-foundation.md) and
 [the guide](native-bytes.md).
+
+
+Gate 188 owned-byte operations are accepted with focused compiler/native/editor and
+matched untimed evidence. Allocation, access/mutation, append/resize, independent
+copy/clone, aggregate/capture behavior and exact O0/O3 cleanup are verified. S07 still
+needs scoped views/UTF-8 and consuming resource lifecycle in gates 189–190, followed
+by the family regression and performance review. See the gate 188 milestone and
+B11 resources/bytes acceptance map. No byte workload is measured.

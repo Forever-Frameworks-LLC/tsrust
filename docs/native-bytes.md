@@ -128,3 +128,27 @@ function main() {
 This prints `2`. The selected buffer contains 65 and 255. No source owner transfers
 or implicit clones occur. As with other byte operations, fallible reservation does
 not guarantee recovery from every process-wide memory exhaustion.
+
+
+## Explicit cloning, storage and cleanup
+
+`clone(bytes)` readonly borrows a buffer and returns an independent Bytes owner.
+It uses the ordinary clone operation rather than a separate byte-only spelling.
+Changing or resizing either buffer does not change the other. Explicit cloning also
+copies owned Bytes descendants in arrays, records, Maps and nullable/Result payloads.
+Null and undefined alternatives remain absent. Clone does not return Result and does
+not promise recoverable allocation failure. Assignment, parameter passing and storage
+transfer owners without implicit cloning.
+
+Bytes can live in generic parameters, records, arrays, Maps with supported scalar
+keys, nullable unions and Result payloads. Borrowing parameters use ReadOnly or Mutable.
+Escaped callable captures transfer owners; reusable callbacks can readonly inspect
+their captured buffers. A Once callback can transfer its captured owner out. Normal
+scope exit, early return, replacement, Result failure, throw, finally and discarded
+closures release byte owners deterministically. Bytes needs no explicit close.
+
+Bytes and records containing Bytes cannot be collection keys, inspected as console
+objects, compared as values, reflected into properties or spread as records. These
+forms produce source diagnostics. Copy/clone and explicit byte operations are the
+supported ways to observe and transform buffers. Native thread-transfer metadata
+describes backend eligibility only; source thread APIs are not yet implemented.

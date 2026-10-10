@@ -7019,5 +7019,18 @@
   ],
   "measured": false,
   "note": "Gate 188 append/copy increment. Checked int-array append is atomic; strict half-open copies return independent owners. Full owned-byte acceptance and family timing remain pending."
+},
+"native.bytes.clone": {
+  "implementation": "native variant",
+  "comparison": "paired group",
+  "evidence": [
+    "./native-bytes.md",
+    "./milestones/188-owned-byte-operations.md"
+  ],
+  "workloads": [
+    "native_byte_clone"
+  ],
+  "measured": false,
+  "note": "Gate 188 explicit independent clone, aggregate storage/capture and exact O0/O3 cleanup acceptance. Direct and aggregate native/Node copies have an independent retained-result oracle; family timing remains pending."
 }
 }

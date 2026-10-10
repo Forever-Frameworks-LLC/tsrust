@@ -49,3 +49,11 @@ fn native_byte_append_is_atomic_and_range_copies_are_independent() {
     let path = directory.source(&source);
     support::success(&support::run(support::cli().arg("run").arg(path), 60));
 }
+
+#[test]
+fn native_byte_clone_storage_capture_and_evaluation_contracts_execute() {
+    let directory = support::TempDirectory::new();
+    let source = support::format_round_trip(include_str!("fixtures/native-owned-bytes/ownership.tsr"));
+    let path = directory.source(&source);
+    support::success(&support::run(support::cli().arg("run").arg(path), 60));
+}

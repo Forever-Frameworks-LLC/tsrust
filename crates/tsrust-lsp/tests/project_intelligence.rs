@@ -1621,3 +1621,17 @@ fn native_byte_append_copy_stored_values_document_independence_and_bounds() {
     assert_eq!(help["activeParameter"], 2, "{help}");
     assert!(help.to_string().contains("Exclusive ending byte index"), "{help}");
 }
+
+#[test]
+fn native_byte_clone_help_describes_independent_storage() {
+    let entry = tsrust_compiler::format("import {alloc,length} from 'std:bytes';function main(){match(alloc(1)){Ok(bytes)=>{const other=clone(bytes);console.log(length(other));},Err(error)=>{console.log(error.message);}}}").unwrap();
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.clone());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::checked(&checked);
+    let hover = ask(&index, &entry, "clone(bytes)", "textDocument/hover");
+    assert!(hover.to_string().contains("independent byte storage") && hover.to_string().contains("allocation failure") && hover.to_string().contains("65"), "{hover}");
+    let help = ask(&index, &entry, "bytes);", "textDocument/signatureHelp");
+    assert!(help.to_string().contains("value: T") && help.to_string().contains("without consuming"), "{help}");
+}

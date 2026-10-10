@@ -617,7 +617,8 @@
       "native.bytes.alloc",
       "native.bytes.resize",
       "native.bytes.append",
-      "native.bytes.copy"
+      "native.bytes.copy",
+      "native.bytes.clone"
   ]
 }
 ]

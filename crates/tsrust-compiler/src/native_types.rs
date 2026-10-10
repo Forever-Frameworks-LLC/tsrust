@@ -26,6 +26,11 @@ pub struct Declaration {
     pub representation: Representation,
     /// Explicit clone produces independent storage. This never permits implicit copies.
     pub independent_clone: bool,
+    /// Eligibility for current scalar/enum collection keys, not object identity.
+    pub collection_key: bool,
+    /// The owned backend representation may cross a native thread boundary.
+    /// This metadata does not itself expose a source thread API.
+    pub thread_transfer: bool,
     pub fields: &'static [Field],
     pub capabilities: &'static [Capability],
 }
@@ -42,6 +47,8 @@ static BYTES: Declaration = Declaration {
     name: "Bytes",
     representation: Representation::Opaque,
     independent_clone: true,
+    collection_key: false,
+    thread_transfer: true,
     fields: &[],
     capabilities: &[],
 };
@@ -51,6 +58,8 @@ static BYTE_ERROR: Declaration = Declaration {
     name: "ByteError",
     representation: Representation::Record,
     independent_clone: true,
+    collection_key: false,
+    thread_transfer: true,
     capabilities: &[Capability::Inspection, Capability::StringConversion, Capability::PropertyReflection, Capability::ObjectSpread, Capability::Equality],
     fields: &[
         Field { name: "code", signature: Signature::String, optional: false },

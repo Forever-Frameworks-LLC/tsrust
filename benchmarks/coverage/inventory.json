@@ -22336,6 +22336,24 @@
       "note": "Gate 188 checked access/mutation increment. Strict nonnegative byte indices, structured Result errors, exclusive atomic writes and stored-callable editor help verified. Five native/Node-after-tsc cases verified untimed; full owned-byte gate and cleanup matrix remain in progress."
     },
     {
+      "id": "native.bytes.clone",
+      "display": "native.bytes.clone",
+      "category": "Owned native bytes",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "paired group",
+      "evidence": [
+        "./native-bytes.md",
+        "./milestones/188-owned-byte-operations.md"
+      ],
+      "workloads": [
+        "native_byte_clone"
+      ],
+      "measured": false,
+      "note": "Gate 188 explicit independent clone, aggregate storage/capture and exact O0/O3 cleanup acceptance. Direct and aggregate native/Node copies have an independent retained-result oracle; family timing remains pending."
+    },
+    {
       "id": "native.bytes.copy",
       "display": "native.bytes.copy",
       "category": "Owned native bytes",

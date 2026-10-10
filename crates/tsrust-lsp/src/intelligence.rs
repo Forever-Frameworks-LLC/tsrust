@@ -2993,7 +2993,7 @@ impl SourceIndex {
             }
             return Some(entry);
         }
-        let (signature, docs, parameters) = match self.text(token) {
+        let (signature, docs, parameters): (&str, &str, Vec<&str>) = match self.text(token) {
             "console" => (
                 "namespace console",
                 "Provides terminal output through log, info and debug (stdout), warn and error (stderr), plus table for structured data. Logging accepts zero or more primitives (including null/undefined), arrays or records. Arguments evaluate left to right and are borrowed; arrays and records have bounded inspection. Nullable values print their present payload, null or undefined; nested nullable fields are inspected recursively. Logging supports format placeholders, quoted inspection of arrays and records, and box-drawn tables. Also provides assertions, groups, counts, timers, dir, clear and native traces; inspector methods are no-ops.\n\n```tsrust\nconsole.log(\"user:\", \"Pat\", 7); // prints user: Pat 7\n```",
@@ -3003,11 +3003,6 @@ impl SourceIndex {
                 "namespace Math",
                 "Provides mathematical number functions and read-only constants. Angles use radians; arguments and results use native f64 number values. Convert int variables explicitly with Number(value). Transcendental results may vary slightly by platform.\n\n```tsrust\nconsole.log(Math.sqrt(9.0)); // prints 3\n```",
                 vec![],
-            ),
-            "clone" => (
-                "clone(value: T): T",
-                "Creates an independent copy of a string, array, record or nullable union with an owned payload, preserving its type and active variant. Null/undefined variants stay null/undefined; an active string, array or record payload and its owned descendants are copied. Copies owned descendants of arrays/records; static string text may remain safely shared. Borrows the source so it stays reusable. Primitive scalars, Copy-only nullable unions and callable values are unsupported.\n\n@param value - Required string, array, record or nullable union with an owned payload to copy without consuming it.\n\n```tsrust\nconst source:int[]=[1,2];\nlet copy=clone(source);\ncopy[0]=9;\nconsole.log(source[0]); // prints 1\nconst nullable:int[]|null=[3];\nconsole.log(String(clone(nullable)),String(nullable)); // prints 3 3\n```",
-                vec!["value: T"],
             ),
             "int" => (
                 "type int",

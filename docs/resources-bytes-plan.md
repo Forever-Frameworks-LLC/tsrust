@@ -1,8 +1,8 @@
 # B11/S07: resources and bytes
 
-Status: gate 187 native declaration/signature foundation and initial fromArray/length
-slice are accepted. B11/S07 remains in progress; gates 188–190 cover wider owned byte
-operations, views and resource lifecycle. No byte workload is measured. B10/S06 is
+Status: gates 187–188 native declarations and owned byte operations are accepted.
+B11/S07 remains in progress; gates 189–190 cover scoped views, UTF-8 and resource
+lifecycle. No byte workload is measured. B10/S06 is
 accepted at gate 186. Resource close consumes ownership by owner decision.
 See the gate 187 record and current continuation handoff.
 
@@ -541,3 +541,34 @@ native_byte_copy_append support retains thirteen observations with independent
 arithmetic expectations and a validated Uint8Array counterpart. Explicit clone and
 broader capability/aggregate/capture/evaluation/cleanup matrices remain to close gate
 188. Views and UTF-8 remain gate 189; consuming resource lifecycle remains gate 190.
+
+
+## Gate 188 ownership and cleanup acceptance
+
+The ordinary clone operation already supports independent Bytes and aggregate copies;
+new acceptance witnesses prove direct, array-record, Map, nullable and Result cloning,
+generic storage, escaped reusable/Once captures, unused captures, callback failure and
+finally behavior. A shared State counter proves allocation, resize, append and copy
+arguments evaluate once. Existing source diagnostics reject opaque collection keys
+and equality rather than emitting invalid backend code.
+
+Native declaration metadata now explicitly records collection-key and owned native
+thread-transfer eligibility. Bytes and ByteError are not supported collection keys;
+their owned safe Rust representations can transfer across a future native thread
+boundary. This metadata does not implement a source thread API. Cloneability honors
+the native independent-clone capability and propagates rejection through aggregates.
+
+A separate cleanup fixture owns exactly sixteen byte records per invocation across
+normal/early return, replacement, Result error, throw, finally, unused/throwing/Once
+callbacks and aggregate disposal. A private generated-code Drop observer checks all
+sixteen releases; a global allocator observer requires live bytes to return exactly
+to baseline after each of thirty-two invocations. O0 and O3 both pass. No public fake
+resource API is used. The first cleanup fixture needed a named record annotation;
+its original failure and affected repair are retained in evidence.
+
+The native_byte_clone matched workload retains seven values proving direct and
+array-record independence after writes to both source and copy. It has explicit deep
+Uint8Array copies, an arithmetic oracle, source contracts and complete harness hooks.
+Global clone documentation is now in the shared catalog with an executable byte
+example. Gate 188 closes with focused evidence; S07 still needs gates 189–190 and the
+family regression/performance review. No byte workload is measured.

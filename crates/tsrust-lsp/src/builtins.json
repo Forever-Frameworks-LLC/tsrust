@@ -3000,6 +3000,20 @@
   ],
   "globals": [
 {
+  "name": "clone",
+  "signature": "clone(value: T): T",
+  "parameters": [
+    "value: T"
+  ],
+  "documentation": "Creates an independent copy of a cloneable owned value, preserving its type and active union variant. Accepts strings, arrays, records, Maps and unions with owned payloads, including Bytes and Result payloads. Owned descendants are copied recursively; static string text may remain safely shared. Null and undefined alternatives stay absent. Takes exactly one argument and returns the same type without mutating or consuming the source. Primitive scalars, Copy-only unions and ordinary callable environments are unsupported. Native types must explicitly permit independent cloning. Bytes clones have independent byte storage: later writes or resizing of either buffer cannot affect the other. This operation does not return Result; allocation failure is not guaranteed to be recoverable.\n\n@param value - Required cloneable owned value, borrowed without consuming it. Preserves its type and active union variant.\n\n```tsrust\nimport {alloc,at,set} from \"std:bytes\"; function main(){match(alloc(1,65)){Ok(bytes)=>{const other=clone(bytes);match(set(bytes,0,90)){Ok(_)=>{match(at(other,0)){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.message);}}},Err(error)=>{console.log(error.message);}}},Err(error)=>{console.log(error.message);}}}\n```\n\nExpected output: 65; writing 90 to the source leaves the clone unchanged.\n\nOwnership: borrows the source and returns a new owner. Assignment and passing by value still transfer ownership without cloning.",
+  "examples": [
+    {
+      "source": "import {alloc,at,set} from \"std:bytes\"; function main(){match(alloc(1,65)){Ok(bytes)=>{const other=clone(bytes);match(set(bytes,0,90)){Ok(_)=>{match(at(other,0)){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.message);}}},Err(error)=>{console.log(error.message);}}},Err(error)=>{console.log(error.message);}}}",
+      "output": "65\n"
+    }
+  ]
+},
+{
   "name": "Result",
   "signature": "type Result<T, E>",
   "parameters": [],
@@ -4997,7 +5011,7 @@
     "name": "Bytes",
     "signature": "type Bytes",
     "parameters": [],
-    "documentation": "An owned contiguous byte buffer. Each element is a byte in 0..255; byte counts differ from Unicode character counts. This is a type declaration, so it takes no arguments and returns no value. Its storage fields are private; record literals cannot construct it. Use fromArray to construct a buffer, length to observe its byte count, and at/set for checked byte access. Console inspection, string conversion, property reflection, object spread and value comparison are unsupported and report source diagnostics.\n\n```tsrust\nimport { Bytes } from \"std:bytes\";\nfunction accept(value: ReadOnly<Bytes>): void {}\nfunction main() {}\n```\n\nThis declares a borrowing parameter without creating or mutating a buffer. Ownership: passing by value transfers the buffer; ReadOnly borrows it without copying.",
+    "documentation": "An owned contiguous byte buffer. Each element is a byte in 0..255; byte counts differ from Unicode character counts. This is a type declaration, so it takes no arguments and returns no value. Its storage fields are private; record literals cannot construct it. Use fromArray or alloc to construct a buffer, length to observe its byte count, at/set for checked access, and append/resize for growth. copy selects a checked independent byte range; clone(bytes) independently copies the whole buffer. Console inspection, string conversion, property reflection, object spread and value comparison are unsupported and report source diagnostics.\n\n```tsrust\nimport { Bytes } from \"std:bytes\";\nfunction accept(value: ReadOnly<Bytes>): void {}\nfunction main() {}\n```\n\nThis declares a borrowing parameter without creating or mutating a buffer. Ownership: passing by value transfers the buffer; ReadOnly borrows it without copying. Explicit clone creates independent storage.",
     "examples": [
       {
         "source": "import { Bytes } from \"std:bytes\";\nfunction accept(value: ReadOnly<Bytes>): void {}\nfunction main() {}",

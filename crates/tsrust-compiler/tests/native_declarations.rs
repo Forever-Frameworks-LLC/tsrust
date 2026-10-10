@@ -11,6 +11,8 @@ fn native_declarations_preserve_identity_and_hide_owned_storage() {
     assert_eq!(bytes.representation, Representation::Opaque);
     assert!(bytes.fields.is_empty());
     assert!(bytes.independent_clone);
+    assert!(!bytes.collection_key);
+    assert!(bytes.thread_transfer);
     assert!(!bytes.source_constructible());
     assert!(lookup("std:path", "Bytes").is_none());
     assert!(lookup("std:bytes", "bytes").is_none());
@@ -252,5 +254,23 @@ fn native_byte_append_and_copy_enforce_access_and_scalar_contracts() {
     ] {
         let error = checked_source(&format!("{prefix}{body}function main(){{}}")).err().expect(body);
         assert_eq!(error.code, code, "{body}: {error:?}");
+    }
+}
+
+#[test]
+fn opaque_byte_keys_and_value_equality_are_source_diagnostics() {
+    for body in [
+        "const keys=new Set<Bytes>();",
+        "const keys=new Map<Bytes,int>();",
+        "const keys=new Set<Row>();",
+        "const keys=new Map<Row,int>();",
+        "function compare(left:ReadOnly<Bytes>,right:ReadOnly<Bytes>):boolean{return left===right;}",
+    ] {
+        let source = if body.starts_with("function") {
+            format!("import {{Bytes}} from 'std:bytes';{body}function main(){{}}")
+        } else {
+            format!("import {{Bytes}} from 'std:bytes';type Row={{bytes:Bytes;}};function main(){{{body}}}")
+        };
+        assert!(checked_source(&source).is_err(), "opaque capability accepted: {body}");
     }
 }

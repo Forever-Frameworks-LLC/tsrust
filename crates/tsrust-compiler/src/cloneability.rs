@@ -43,6 +43,10 @@ impl Cloneability {
         let mut allowed = vec![true; records.len()];
         let mut rejected = Vec::new();
         for (parent, record) in records.iter().enumerate() {
+            if record.native_type.is_some_and(|id| !crate::native_types::declaration(id).independent_clone) {
+                allowed[parent] = false;
+                rejected.push(parent);
+            }
             let mut pending = record
                 .fields
                 .iter()
