@@ -7,8 +7,7 @@ impl Registry {
         self.native_views.as_ref()?.get(family)
     }
 
-    // Source admission follows provenance and normal native emission integration.
-    #[allow(dead_code)]
+    // Source construction retains a distinct lifetime-bearing family identity.
     pub(crate) fn intern_scoped_native(
         &mut self,
         signatures:&Contracts,

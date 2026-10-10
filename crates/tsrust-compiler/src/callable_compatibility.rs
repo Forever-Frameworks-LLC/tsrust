@@ -100,6 +100,10 @@ impl<'a> Contracts<'a> {
                     let closure = if !self.effects_only && contract.kind.is_owned() {
                         if contract.kind == crate::syntax::CallbackKind::SharedRead {
                             crate::callable_storage::StorageContract::checked_shared(self.signatures, contract.structural)
+                        } else if crate::native_view_callable_storage::carried_slots(closure).is_some() {
+                            // Signature compatibility does not certify lifetime-free
+                            // storage. Construction must retain a scoped family.
+                            Some(crate::callable_storage::StorageContract::ScopedOwned(contract.structural, vec![id]))
                         } else {
                             crate::callable_storage::StorageContract::checked(self.signatures, contract.structural)
                         }

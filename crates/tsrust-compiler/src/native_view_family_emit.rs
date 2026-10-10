@@ -14,12 +14,7 @@ fn captured_source(capture:usize,path:&[Segment],guards:&[VariantGuard])->Lifeti
 impl Emitter<'_> {
     pub(super) fn emit_native_view_family(&self,output:&mut String,id:usize,layout:&crate::native_view_callable_storage::Family,contract:&crate::analysis::CallbackContract)->Result<(),crate::Diagnostic> {
         let unsupported=|message:&str|crate::Diagnostic::new("native-view-family-emission",message,crate::Span::default());
-        if layout.invocation!=Mode::Consume || layout.alternatives.is_empty() || contract.structural!=layout.signature {
-            return Err(unsupported("This native family ABI requires a matching finite one-shot callback contract."));
-        }
-        if contract.params.iter().any(|parameter|!parameter.ty.is_copy()) {
-            return Err(unsupported("Native view callable family arguments with owned or borrowed data require additional argument lifetime planning."));
-        }
+        crate::native_view_callable_storage::validate_abi(layout,contract,&self.program.closures,&self.program.error_effects,crate::Span::default())?;
         let mut inputs=BTreeMap::new();
         let mut lifetimes=Vec::new();
         let mut returns=Vec::<Loan>::new();

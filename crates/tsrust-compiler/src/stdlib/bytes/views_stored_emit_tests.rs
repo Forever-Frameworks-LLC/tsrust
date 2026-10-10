@@ -102,14 +102,20 @@ fn native_view_mixed_record_preserves_selected_input() {
 }
 
 #[test]
-fn native_view_stored_callback_reports_missing_lifetime_storage() {
-    let formatted=crate::formatting::format(STORED_SOURCE).unwrap();
-    assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
-    let mut parsed=crate::syntax::parse(&formatted).unwrap();
-    parsed.records.iter_mut().find(|record|record.name.text=="Window").unwrap().native_type=Some(NativeTypeId::ByteView);
-    let error=crate::analysis::analyze(parsed).err().expect("stored payload lifetime planning is still guarded");
-    assert_eq!(error.code,"native-view-callable-storage");
-    assert!(error.message.contains("owns its environment"));
-    assert!(error.message.contains("not implemented"));
-    assert!(!error.related.is_empty());
+fn native_view_stored_callback_rejects_unplanned_abi_at_source() {
+    for (result, parameters, body, expected) in [
+        ("Window", "text:string", "return view;", "arguments"),
+        ("void", "", "const discarded=view;", "returned capture"),
+        ("Window", "", "if(fail){throw 3;}return view;", "Fallible"),
+    ] {
+        let source=format!("type Window={{}};type Holder={{read:Once<Function<{result}{}>>;}};function save(view:Window,fail:boolean):Holder{{return {{read:({parameters}):{result}=>{{{body}}}}};}}function main(){{}}",if parameters.is_empty(){""}else{",[ReadOnly<string>]"});
+        let formatted=crate::formatting::format(&source).unwrap();
+        assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
+        let mut parsed=crate::syntax::parse(&formatted).unwrap();
+        parsed.records.iter_mut().find(|record|record.name.text=="Window").unwrap().native_type=Some(NativeTypeId::ByteView);
+        let error=crate::analysis::analyze(parsed).err().expect("unsupported ABI needs a source diagnostic");
+        assert_eq!(error.code,"native-view-family-emission","{error:?}");
+        assert!(error.message.contains(expected),"{error:?}");
+        assert_ne!(error.span,crate::Span::default());
+    }
 }

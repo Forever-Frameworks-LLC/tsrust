@@ -12,8 +12,8 @@ The private source witness in stdlib/bytes/views_stored_emit_tests.rs constructs
 `Holder { read: Once<Function<Window>>, marker: int }`, where Window is projected
 as the native readonly byte view. Its factory returns a callback consuming the
 captured view. The caller supplies two independent inputs and selects the second.
-Analysis rejects construction with callback-escape in StorageContract::environment.
-This is the retained red witness; it is not an accepted positive feature.
+Analysis originally rejected construction in StorageContract::environment.
+The normal source construction checkpoint below turns that retained witness green.
 
 A separate mixed record containing a direct view and an ordinary callback passes.
 Its complete emitted code runs at O0/O3, preserves the selected input pointer after
@@ -280,3 +280,25 @@ run at O0/O3 for readonly and exclusive views. The initial record control failed
 nominal field type and an unused symbolic family; repaired controls retain pointer,
 write-through, escape, second-call and conflicting-access assertions. Normal source
 construction remains guarded; the original source witness remains the next target.
+
+## Normal source construction checkpoint
+
+The original stored-callback source witness now passes normal analysis and complete
+native emission. A returned Holder carries a distinct scoped owning callback family;
+its nominal field is specialized without turning the ordinary owning family into a
+lifetime-bearing type. Signature compatibility accepts owned carried-view captures,
+while ordinary storage admission still rejects lifetime erasure and physical borrowed
+captures. Construction interns the scoped identity and transports its capture loans.
+
+The original two-input relay preserves the second input's pointer through a stored
+Once callback at O0/O3. The unrelated first owner can end, while generated Rust
+independently rejects escape beyond the selected owner. Backend eligibility is checked
+before code generation: data arguments, missing returned capture lifetimes and throwing
+callbacks still receive source diagnostics. These are intermediate implementation
+limits, not permanent language restrictions. Public factories remain guarded.
+
+Next extend normal source coverage to alternative families, moves, replacement,
+arrays, nullable fields, nested capture and exclusive views. Preserve the existing
+physical capture guards and extend each diagnosed invocation ABI rather than erasing
+lifetimes to make it fit. Public observer/catalog and matched workload acceptance,
+full S07 regressions and measurements remain pending.

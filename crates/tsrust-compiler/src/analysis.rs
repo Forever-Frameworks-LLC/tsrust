@@ -636,6 +636,12 @@ fn finish_analysis(mut checked: CheckedProgram) -> Result<CheckedProgram, Diagno
     checked.polymorphic_storage.validate(&checked.closures, Span::default())?;
     checked.polymorphic_invocations.validate(&checked.closures, Span::default())?;
     definitely_assigned(&mut checked)?;
+    for (family, declaration, _) in checked.stored_contracts.populated() {
+        if let Some(layout) = checked.stored_contracts.scoped_native_family(family) {
+            let span = layout.alternatives.first().map(|alternative| checked.closures[alternative.origin].span).unwrap_or_default();
+            crate::native_view_callable_storage::validate_abi(layout, &checked.callback_contracts[declaration], &checked.closures, &checked.error_effects, span)?;
+        }
+    }
     checked.named_capture_layouts = named_capture_layout::build(&checked)?;
     crate::named_capture_lowering::prepare(&mut checked)?;
     Ok(checked)
@@ -9917,13 +9923,14 @@ impl Analyzer {
                 let concrete_expected=self.absent_nullable_record_annotation(context,Some(field_type),value)?.unwrap_or(field_type);
                 self.scoped_record_field_value(context, value, concrete_expected, loans)?
             };
-            let contract_type=if let Type::BorrowedCallable(family)=field_type{Type::Callback(self.callables.storage.declaration(family).expect("borrowed field declaration"))}else{field_type};
+            let scoped_native = matches!(actual,Type::StoredCallable(family) if self.callables.storage.scoped_native_family(family).is_some());
+            let contract_type=if let Type::BorrowedCallable(family)=field_type{Type::Callback(self.callables.storage.declaration(family).expect("borrowed field declaration"))}else if scoped_native && let Type::StoredCallable(family)=field_type {Type::Callback(self.callables.storage.declaration(family).expect("owned field declaration"))}else{field_type};
             self.require(actual, Some(contract_type), value.span)?;
             let nested_instance = matches!((actual, field_type), (Type::Record(actual), Type::Record(expected))
                 if actual != expected && self.scoped_records.declaration(actual) == expected);
             let nested_array_instance = matches!((actual, field_type), (Type::Array(ArrayElement::Record(actual, depth)), Type::Array(ArrayElement::Record(expected, expected_depth)))
                 if depth == expected_depth && actual != expected && self.scoped_records.declaration(actual) == expected);
-            if nested_instance || nested_array_instance || self.scoped_record_nullable_contract(actual,field_type) || self.scoped_map_contract(actual, field_type) || matches!(self.unions.payload(field_type).unwrap_or(field_type), Type::Callback(_) | Type::BorrowedCallable(_)) {
+            if scoped_native || nested_instance || nested_array_instance || self.scoped_record_nullable_contract(actual,field_type) || self.scoped_map_contract(actual, field_type) || matches!(self.unions.payload(field_type).unwrap_or(field_type), Type::Callback(_) | Type::BorrowedCallable(_)) {
                 let position = self.program.records[index].fields.iter().position(|field| field.name.text == key.text).expect("checked field name");
                 concrete[position] = actual;
                 specialized = true;
