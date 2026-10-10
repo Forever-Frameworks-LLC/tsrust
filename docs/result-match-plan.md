@@ -162,3 +162,21 @@ tests across Result, generic specialization, lexical shadowing and the recovered
 rest/math stack canaries. Both focused editor tests pass after signature-help
 specialization. No full regression or timing run was performed. Callable payloads,
 borrowed matching, pattern-binding editor facts and benchmark support remain open.
+
+## Pattern-binding editor increment
+
+Single-file match bindings now expose their checked payload type, member
+completion and definition navigation. The index uses compiler match syntax spans
+for declarations and existing checked destructuring facts for payload types; it
+does not infer Result types from pattern names. Arm scopes keep repeated names
+separate. Unused bindings retain types, and discard patterns do not declare symbols.
+Match arms are excluded from arrow-parameter indexing.
+
+Two focused binding tests, two constructor tests and adjacent contextual-arrow and
+destructured-name tests pass (six total). Successful editor sources exercise
+idempotent formatting before checking. Exact command outputs are imported and
+read back from SQLite at
+`runtime/results/result-match-bindings-2026-10-10-editor.json`; loose copies are
+removed. No compiler behavior changed in this increment. Project-wide assistance,
+callable payload integration, borrowed matching, cleanup stress and benchmarks
+remain pending. B10 is still open.

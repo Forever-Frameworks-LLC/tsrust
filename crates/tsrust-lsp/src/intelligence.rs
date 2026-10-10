@@ -309,6 +309,7 @@ impl SourceIndex {
         index.declarations();
         index.materialize_generic_fields();
         index.cache_checked_views();
+        index.refresh_result_match_bindings();
         index.refresh_destructured_names();
         index.refresh_checked_initializers();
         // Checked constructor results may reveal concrete generic owners.
@@ -1450,6 +1451,7 @@ impl SourceIndex {
             if self.text(arrow) != "=>" {
                 continue;
             }
+            if self.is_match_arm_arrow(arrow) { continue; }
             let mut header = arrow;
             // A result annotation may intervene between the parameter list and arrow.
             while header > 0

@@ -32,6 +32,10 @@ The scrutinee is evaluated once. A match must handle both variants, or use a fin
 compile errors. Payload bindings exist only inside their arm. Use `Ok(_)` or
 `Err(_)` to ignore a payload. Block arms accept optional separating commas.
 
+Payload bindings have checked hover types, member completion and navigation to
+their own pattern declaration. The same name in another arm is a separate binding.
+An unused payload binding retains its checked type; `_` is a discard, not a variable.
+
 Owned construction transfers the payload without cloning. Matching transfers the
 owned result into the match scope; an arm can transfer its selected payload onward.
 The inactive payload does not exist. Normal scope cleanup handles retained values.
@@ -51,7 +55,7 @@ function doubledQuotient(a: int, b: int): Result<int, string> {
 
 The first construction/matching increment has focused compiler and native evidence.
 B10 is not accepted. Callable payloads,
-borrowed matching, full pattern-binding editor assistance, matched benchmarks and
+borrowed matching, project-wide pattern-binding assistance, matched benchmarks and
 family acceptance remain open. Match expressions, guards, nested destructuring
 patterns, `?` propagation and general discriminated unions are not implemented.
 Nested match statements are supported.

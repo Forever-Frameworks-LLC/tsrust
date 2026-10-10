@@ -3,6 +3,34 @@ use serde_json::{Value, json};
 use tsrust_lsp::intelligence::SourceIndex;
 
 #[test]
+fn result_match_bindings_have_payload_help_and_arm_local_navigation() {
+    let source = tsrust_compiler::format("function main(){const result:Result<string,int>=Ok(\"hello\"); match(result){Ok(payload)=>{console.log(payload.toUpperCase());},Err(payload)=>{console.log(payload+1);}}}").unwrap();
+    assert_eq!(tsrust_compiler::format(&source).unwrap(), source);
+    tsrust_compiler::check(&source).unwrap();
+    let hover = ask(&source, "textDocument/hover", "payload.toUpperCase", 0);
+    assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("payload: string"), "{hover}");
+    let hover = ask(&source, "textDocument/hover", "payload + 1", 0);
+    assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("payload: int"), "{hover}");
+    let definition = ask(&source, "textDocument/definition", "payload.toUpperCase", 0);
+    assert_eq!(definition["range"]["start"], json!(at(&source, "payload) =>", 0)), "{definition}");
+    let completion = ask(&source, "textDocument/completion", "toUpperCase", 0);
+    assert!(completion.as_array().is_some_and(|items| items.iter().any(|item| item["label"] == "toUpperCase")), "{completion}");
+    let outside = "function main(){const result:Result<string,int>=Ok(\"hello\");match(result){Ok(payload)=>{},Err(error)=>{}} pay}";
+    let completion = ask(outside, "textDocument/completion", "pay}", 0);
+    assert!(!completion.as_array().is_some_and(|items| items.iter().any(|item| item["label"] == "payload")), "{completion}");
+}
+
+#[test]
+fn result_match_unused_bindings_and_discard_patterns_keep_distinct_editor_roles() {
+    let source = tsrust_compiler::format("function main(){const result:Result<string,int>=Ok(\"hello\");match(result){Ok(unused)=>{},Err(_)=>{}}}").unwrap();
+    assert_eq!(tsrust_compiler::format(&source).unwrap(), source);
+    tsrust_compiler::check(&source).unwrap();
+    let hover = ask(&source, "textDocument/hover", "unused", 0);
+    assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("unused: string"), "{hover}");
+    assert!(ask(&source, "textDocument/hover", "_)", 0).is_null());
+}
+
+#[test]
 fn explicit_result_constructor_help_keeps_type_arguments_out_of_value_parameters() {
     let source = "function main(){const result=Ok<int,string>(5);}";
     tsrust_compiler::check(source).unwrap();
