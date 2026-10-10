@@ -89,3 +89,7 @@ mod view_tests;
 #[cfg(test)]
 #[path = "views_borrowed_emit_tests.rs"]
 mod borrowed_view_tests;
+
+#[cfg(test)]
+#[path = "views_stored_emit_tests.rs"]
+mod stored_view_tests;

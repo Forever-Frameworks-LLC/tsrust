@@ -677,3 +677,14 @@ the selected buffer pointer after an unrelated owner ends, and independently
 rejects escape of the selected owner. Public factories remain guarded. Abstract
 callback storage, mixed records, observer contracts and public editor integration
 remain open; this checkpoint does not accept gate 189 or S07.
+
+### Owning callable storage dependency
+
+A complete mixed record with a direct native view and an ordinary callback now has
+private O0/O3 execution and independent owner-escape coverage. The separate positive
+witness storing a view-capturing callback in Once<Function<Window>> remains red:
+existing owning callable storage rejects borrowed payload environments. This is a
+representation boundary, not proof that ordinary mixed records fail. The required
+metadata, provenance, native ABI and verification increments are specified in
+native-view-callable-storage-plan.md. Keep the current storage safety guards and
+public byte-view publication guards until that dependency is implemented.
