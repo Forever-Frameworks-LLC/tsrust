@@ -989,12 +989,14 @@ impl Emitter<'_> {
                     let map=self.program.records[id].map_definition.as_ref().unwrap();
                     pending.extend([map.key,map.value]);
                 },
-                Type::Record(id) => pending.extend(
-                    self.program.records[id]
-                        .fields
-                        .iter()
-                        .map(|field| field.ty.expect("checked field")),
-                ),
+                Type::Record(id) => {
+                    let record = &self.program.records[id];
+                    if let Some(id) = record.native_type
+                        && !crate::native_types::declaration(id).capabilities.contains(&crate::native_types::Capability::Inspection) {
+                        return false;
+                    }
+                    pending.extend(record.fields.iter().map(|field| field.ty.expect("checked field")));
+                },
                 _ => {}
             }
         }

@@ -1,9 +1,11 @@
 # B11/S07: resources and bytes
 
-Status: gate 187 signature metadata increment implemented; native byte source witness remains red. B10/S06 is accepted at gate 186, publication
-commit `1b631986`. This family is not accepted. The owner chose consuming close:
-closing transfers the resource and later use or a second close is a compile error.
-Type identity, signatures and owned bytes are the current implementation work.
+Status: gate 187 is in progress. Native declaration identity, recursive signature
+projection, checked type imports, public error record execution, editor type help and
+opaque capability guards are implemented. The native byte construction witness remains
+red because fromArray and length are not registered. B10/S06 is accepted at gate 186
+(publication 1b631986). Resource close consumes ownership, as chosen by the owner.
+S07 is not accepted; no byte workload is measured.
 
 ## Audit of the current compiler
 
@@ -209,7 +211,8 @@ queues and async cancellation remain downstream families.
 
 `tests/std_bytes.rs::native_byte_type_imports_and_result_payloads_execute` formats
 its fixture idempotently and runs it through the project CLI with std:testing.
-It currently fails with `module-native`: unknown std:bytes. This is an intentional
+It currently fails with `module-native`: std:bytes does not export fromArray. The
+original red failed on unknown std:bytes. This is an intentional
 new-feature witness, not a regression in accepted B10. Exact evidence is retained
 in SQLite at `runtime/results/native-owned-bytes-2026-10-10-red.json`. The signature metadata increment below is implemented; native byte source integration
 remains unimplemented. Installed consumers remain the accepted B10 build.
@@ -217,14 +220,16 @@ remains unimplemented. Installed consumers remain the accepted B10 build.
 ## Continuation prompt
 
 Continue B11/S07 from this plan. Read AGENTS.md and the development workflow first.
-B10 is accepted at gate 186 (`1b631986` publication, `8d431eed` executable source).
-Gate 187 has one intentional red integration test in std_bytes.rs: unknown std:bytes.
-Implement typed native declaration identity, recursive signatures and distinct native
-type/value imports before the first owned Bytes operation. Preserve Result and editor
-parity, no implicit clone and normal worker stacks. The owner chose consuming
-close: reject later use and double close statically, including after close failure.
-Native type/byte work may proceed independently of resource lifecycle implementation. Installed consumers remain B10 until verified increments
-are published. No full regressions or timing are due for this red checkpoint.
+B10 is accepted at gate 186. Gate 187 has checked native type imports, recursive
+signature projection, ByteError native execution, editor type help and capability
+guards. Do not reimplement these increments. std_bytes.rs is intentionally red at
+missing fromArray. Next add native type re-export witnesses, then fromArray/length
+with checked signature resolution and Result storage, complete catalog help and the
+minimal matched workload. Finish gate 187 before the wider byte operations of gate
+188. Resource close consumes ownership and rejects later use/double close, including
+after failure. Consumers remain B10 until verified source is published. Routine
+increments use bounded checks; full regressions and timing belong to the completed
+S07 family milestone.
 
 ## Gate 187 signature metadata increment
 
@@ -357,3 +362,36 @@ is supplemented at `runtime/results/native-type-editor-module-2026-10-10-checks.
 Project formatting changed zero files. No full regression, timing or consumer refresh
 was performed. Gate 187 remains open: capability guards, re-export coverage, byte
 constructors/length, signature help and the matched workload still need implementation.
+
+## Gate 187 opaque capability increment
+
+Native declarations now explicitly list inspection, string conversion, property
+reflection, object spread and value comparison capabilities. Bytes currently grants
+none of these; ByteError retains ordinary public-record behavior. The independent
+clone flag remains separate and never permits implicit copying.
+`native_capabilities.rs` checks identities with an iterative walk through nested
+records, arrays, unions and collection payloads. Unsupported operations receive a
+native-capability source diagnostic at the affected argument. Console inspection,
+String, template interpolation, Object keys/values/entries/hasOwn, object spread and
+Object.is use the relevant guard. Emitter inspection support follows the same metadata.
+
+A focused red test demonstrated that Bytes console inspection was previously accepted
+as an empty record. The audit also found that spread shape caching could reuse the
+empty native declaration and manufacture a Bytes owner from ordinary empty records.
+Native declarations are excluded from inferred spread shapes, and opaque expected
+spread targets reject construction. Fixed-storage layout inference no longer derives
+an opaque owner's size from its empty public field list.
+
+Eleven focused native declaration tests and the opaque layout unit pass. Rejection
+witnesses include direct, array, union, Map and nested-record inspection, conversions,
+reflection, spread and comparison. The native ByteError fixture also proves that
+public reflection and explicit spread remain supported. Editor conversion verifies
+the native diagnostic code and exact argument span. Bounded existing-operation and
+depth controls are retained in SQLite at
+`runtime/results/native-capabilities-2026-10-10-checks.json`.
+
+Gate 187 remains in progress. Next work is native type re-export coverage and first
+fromArray/length bindings with checked recursive signatures, Result payload storage,
+full catalog help and the minimal matched workload. Gate 188 still owns the wider
+byte operation, clone, aggregate-storage and cleanup acceptance matrix. No full
+regression, timing or consumer refresh is due for this isolated increment.

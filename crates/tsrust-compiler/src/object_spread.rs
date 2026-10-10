@@ -9,13 +9,17 @@ impl Analyzer {
     }
     #[inline(never)]
     fn spread_record_shape(&mut self,fields:Vec<RecordField>,span:Span)->usize{
-        if let Some(id)=self.program.records.iter().position(|record|!record.is_tuple()&&record.enum_definition.is_none() && record.set_definition.is_none() && record.map_definition.is_none()&&record.fields.len()==fields.len()&&record.fields.iter().zip(&fields).all(|(a,b)|a.name.text==b.name.text&&a.ty==b.ty)){return id;}
+        if let Some(id)=self.program.records.iter().position(|record|record.native_type.is_none()&&!record.is_tuple()&&record.enum_definition.is_none() && record.set_definition.is_none() && record.map_definition.is_none()&&record.fields.len()==fields.len()&&record.fields.iter().zip(&fields).all(|(a,b)|a.name.text==b.name.text&&a.ty==b.ty)){return id;}
         let id=self.program.records.len();
         self.fields.push(fields.iter().map(|field|(field.name.text.clone(),field.ty.expect("checked spread field"))).collect());
         self.program.records.push(Record{native_type:None,map_definition:None,set_definition:None,enum_definition:None,application:None,name:Token{text:format!("rest#record{id}"),span,kind:TokenKind::Name},type_parameters:Vec::new(),fields});id
     }
     #[inline(never)]
     pub(super) fn object_spread(&mut self,context:&mut Context,expr:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Type,Diagnostic>{
+        if let Some(Type::Record(id)) = expected
+            && self.program.records[id].native_type.is_some_and(|id| !crate::native_types::declaration(id).source_constructible()) {
+            return Err(Diagnostic::new("native-opaque", "Opaque native values cannot be constructed with record spread; use their module's constructors.", expr.span));
+        }
         let ExprKind::Record(source)=&mut expr.kind else{unreachable!()};
         let mut parts=std::collections::VecDeque::from(std::mem::take(source));let mut args=Vec::new();let mut fields:Vec<RecordField>=Vec::new();
         while let Some((key,mut value))=parts.pop_front() {
@@ -25,6 +29,7 @@ impl Analyzer {
                 let actual=self.expression(context,&mut value,Mode::Read,loans,None);self.builtin_literals=prior;
                 let Type::Record(id)=actual? else{return Err(Diagnostic::new("type","Object spread requires a fixed record.",value.span));};
                 if self.program.records[id].is_tuple(){return Err(Diagnostic::new("type","Object spread requires a fixed record.",value.span));}
+                self.require_native_capability(Type::Record(id), crate::native_types::Capability::ObjectSpread, value.span, false)?;
                 self.require_cloneable(Type::Record(id),value.span)?;
                 id
             }else{

@@ -139,3 +139,35 @@ fn native_public_error_aliases_execute_with_optional_fields() {
     let path = directory.source(&source);
     support::success(&support::run(support::cli().arg("run").arg(path), 60));
 }
+
+#[test]
+fn opaque_native_values_reject_record_observation_and_spread() {
+    for (parameter, body) in [
+        ("ReadOnly<Bytes>", "console.log(value);"),
+        ("ReadOnly<Bytes[]>", "console.log(value);"),
+        ("ReadOnly<Bytes | null>", "console.log(value);"),
+        ("ReadOnly<Map<string, Bytes>>", "console.log(value);"),
+        ("ReadOnly<Row>", "console.log(value);"),
+        ("ReadOnly<Bytes>", "String(value);"),
+        ("ReadOnly<Bytes>", "const text = `${value}`;"),
+        ("ReadOnly<Bytes>", "Object.keys(value);"),
+        ("ReadOnly<Bytes>", "Object.values(value);"),
+        ("ReadOnly<Bytes>", "Object.entries(value);"),
+        ("ReadOnly<Bytes>", "Object.is(value,value);"),
+        ("ReadOnly<Bytes>", "Object.hasOwn(value, 'bytes');"),
+        ("ReadOnly<Bytes>", "const copy = {...value};"),
+    ] {
+        let source = format!("import {{Bytes}} from 'std:bytes';type Row={{bytes:Bytes;}};function inspect(value:{parameter}):void{{{body}}}function main(){{}}");
+        let error = checked_source(&source).err().unwrap_or_else(|| panic!("accepted {body}"));
+        assert_eq!(error.code, "native-capability", "{body}: {}", error.message);
+        assert!(error.message.contains("Bytes"));
+    }
+}
+
+#[test]
+fn record_spread_cannot_forge_an_opaque_native_owner() {
+    let error = checked_source("import {Bytes} from 'std:bytes';type Empty={};function main(){const empty:Empty={};const bytes:Bytes={...empty};}").err().expect("opaque spread target");
+    assert_eq!(error.code, "native-opaque");
+    let error = checked_source("import {Bytes} from 'std:bytes';type Empty={};function take(bytes:Bytes):void{}function main(){const empty:Empty={};const copy={...empty};take(copy);}").err().expect("inferred record cannot become Bytes");
+    assert_eq!(error.code, "type");
+}

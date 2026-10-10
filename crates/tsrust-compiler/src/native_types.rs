@@ -9,6 +9,9 @@ pub enum Representation {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Capability { Inspection, StringConversion, PropertyReflection, ObjectSpread, Equality }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Field {
     pub name: &'static str,
     pub signature: Signature,
@@ -24,6 +27,7 @@ pub struct Declaration {
     /// Explicit clone produces independent storage. This never permits implicit copies.
     pub independent_clone: bool,
     pub fields: &'static [Field],
+    pub capabilities: &'static [Capability],
 }
 
 impl Declaration {
@@ -39,6 +43,7 @@ static BYTES: Declaration = Declaration {
     representation: Representation::Opaque,
     independent_clone: true,
     fields: &[],
+    capabilities: &[],
 };
 static BYTE_ERROR: Declaration = Declaration {
     id: NativeTypeId::ByteError,
@@ -46,6 +51,7 @@ static BYTE_ERROR: Declaration = Declaration {
     name: "ByteError",
     representation: Representation::Record,
     independent_clone: true,
+    capabilities: &[Capability::Inspection, Capability::StringConversion, Capability::PropertyReflection, Capability::ObjectSpread, Capability::Equality],
     fields: &[
         Field { name: "code", signature: Signature::String, optional: false },
         Field { name: "message", signature: Signature::String, optional: false },

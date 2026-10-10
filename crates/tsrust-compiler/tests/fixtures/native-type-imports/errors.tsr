@@ -13,6 +13,11 @@ function main() {
     };
     strictEqual(message(error), "range:invalid byte");
     strictEqual(error.offset, undefined);
+    strictEqual(Object.hasOwn(error, "code"), true);
+    const copied: Failure = {
+        ...error
+    };
+    strictEqual(copied.message, "invalid byte");
     const located: Failure = {
         code: "range", message: "invalid byte", offset: 2
     };

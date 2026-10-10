@@ -128,3 +128,19 @@ fn dependent_recheck_preserves_source_version_and_bounded_queue_order() {
     assert!(documents.next(now).is_none());
     assert!(!documents.reschedule("closed", now, Duration::ZERO));
 }
+
+#[test]
+fn opaque_native_capability_errors_keep_the_argument_range() {
+    let source = tsrust_compiler::format("import {Bytes} from 'std:bytes';function inspect(value:ReadOnly<Bytes>):void{console.log(value);}function main(){}").unwrap();
+    let mut workspace = Workspace::default();
+    workspace.open(id("main"), 1, source.clone());
+    let snapshot = workspace.snapshot();
+    let error = snapshot.check(&id("main")).err().unwrap();
+    assert_eq!(error.code, "native-capability");
+    let start = source.rfind("value);").unwrap();
+    assert_eq!(error.location.span, Span::new(start, start + 5));
+    let diagnostics = convert(&snapshot, Some(&error)).unwrap();
+    let diagnostic = serde_json::to_value(&diagnostics[&id("main")][0]).unwrap();
+    assert_eq!(diagnostic["code"], "native-capability");
+    assert!(diagnostic["message"].as_str().unwrap().contains("Bytes"));
+}

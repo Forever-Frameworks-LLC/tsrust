@@ -22,7 +22,9 @@ impl Analyzer {
         self.builtin_literals = true;
         let actual = self.expression(context, &mut args[0], Mode::Read, loans, None);
         self.builtin_literals = prior;
-        let element = match actual? {
+        let actual = actual?;
+        self.require_native_capability(actual, crate::native_types::Capability::PropertyReflection, args[0].span, false)?;
+        let element = match actual {
             Type::Record(id) => {
                 let types = self.program.records[id]
                     .fields

@@ -4997,7 +4997,7 @@
     "name": "Bytes",
     "signature": "type Bytes",
     "parameters": [],
-    "documentation": "An owned contiguous byte buffer. Each element is a byte in 0..255; byte counts differ from Unicode character counts. This is a type declaration, so it takes no arguments and returns no value. Its storage fields are private; record literals cannot construct it. Byte construction operations are not available yet.\n\n```tsrust\nimport { Bytes } from \"std:bytes\";\nfunction accept(value: ReadOnly<Bytes>): void {}\nfunction main() {}\n```\n\nThis declares a borrowing parameter without creating or mutating a buffer. Ownership: passing by value transfers the buffer; ReadOnly borrows it without copying.",
+    "documentation": "An owned contiguous byte buffer. Each element is a byte in 0..255; byte counts differ from Unicode character counts. This is a type declaration, so it takes no arguments and returns no value. Its storage fields are private; record literals cannot construct it. Byte construction operations are not available yet. Console inspection, string conversion, property reflection, object spread and value comparison are unsupported and report source diagnostics.\n\n```tsrust\nimport { Bytes } from \"std:bytes\";\nfunction accept(value: ReadOnly<Bytes>): void {}\nfunction main() {}\n```\n\nThis declares a borrowing parameter without creating or mutating a buffer. Ownership: passing by value transfers the buffer; ReadOnly borrows it without copying.",
     "examples": [
       {
         "source": "import { Bytes } from \"std:bytes\";\nfunction accept(value: ReadOnly<Bytes>): void {}\nfunction main() {}",

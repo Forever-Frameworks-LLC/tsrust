@@ -1,3 +1,5 @@
+#[path = "native_capabilities.rs"]
+mod native_capabilities;
 #[path = "retained_capture_projection.rs"]
 mod retained_capture_projection;
 #[path = "result_construction.rs"]
@@ -8763,6 +8765,7 @@ impl Analyzer {
     ) -> Result<Type, Diagnostic> {
         for part in parts {
             let actual = self.expression(context, part, Mode::Read, loans, None)?;
+            self.require_native_capability(actual, crate::native_types::Capability::StringConversion, part.span, true)?;
             if !matches!(
                 actual,
                 Type::String
@@ -13150,6 +13153,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             let ty = self.expression(context, argument, Mode::Read, &active, None);
             self.builtin_literals = previous;
             let ty = ty?;
+            self.require_native_capability(ty, crate::native_types::Capability::Equality, argument.span, true)?;
             let unsupported = |member: Type| matches!(member, Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::Callable(_) | Type::Void);
             if unsupported(ty) || ty.union().is_some_and(|id| self.unions.members(id).into_iter().any(unsupported)) {
                 return Err(Diagnostic::new(
@@ -13674,6 +13678,9 @@ self.names_materialized_type(element.with_depth(0).ty())
             self.observing_values = observing;
             self.builtin_literals = previous;
             let actual = result?;
+            if string_conversion {
+                self.require_native_capability(actual, crate::native_types::Capability::StringConversion, argument.span, true)?;
+            }
             if string_conversion
                 && index == 0
                 && matches!(
@@ -14957,6 +14964,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                             }
                         }
                     }
+                    self.require_native_capability(actual, crate::native_types::Capability::Inspection, argument.span, true)?;
                     if !self.console_inspectable(actual) {
                         return Err(Diagnostic::new(
                             "type",

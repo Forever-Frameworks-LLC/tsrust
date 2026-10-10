@@ -18,6 +18,7 @@ impl Analyzer {
         let prior=self.builtin_literals;self.builtin_literals=true;
         let value=self.expression(context,&mut args[0],Mode::Read,&key_loans,None);
         self.builtin_literals=prior;let value=value?;
+        self.require_native_capability(value, crate::native_types::Capability::PropertyReflection, args[0].span, false)?;
         if in_operator && !matches!(value, Type::Record(_) | Type::Array(_)) {
             return Err(Diagnostic::new("type", "The in value must be a record, tuple or array.", args[0].span));
         }
@@ -53,6 +54,7 @@ impl Analyzer {
         let actual = self.expression(context, &mut args[0], Mode::Read, loans, None);
         self.builtin_literals = prior;
         let actual = actual?;
+        self.require_native_capability(actual, crate::native_types::Capability::PropertyReflection, args[0].span, false)?;
         if !matches!(
             actual,
             Type::Record(_)
