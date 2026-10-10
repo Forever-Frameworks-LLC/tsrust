@@ -128,6 +128,7 @@ impl Analyzer {
                 borrowed_place: None,
                 mutable_place: false,
                 view_roots: Vec::new(),
+                native_view_loans: None,
                 callback_invocation: Some(invocation),
                 callback_reference: false,
                 callback_kind: None,

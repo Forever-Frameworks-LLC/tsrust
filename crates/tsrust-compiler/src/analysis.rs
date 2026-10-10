@@ -1,3 +1,5 @@
+#[path = "native_view_loans.rs"]
+mod native_view_loans;
 #[path = "native_capabilities.rs"]
 mod native_capabilities;
 #[path = "retained_capture_projection.rs"]
@@ -206,6 +208,8 @@ pub struct Binding {
     pub mutable_place: bool,
     /// Receiver roots kept alive by a scoped optional-element view.
     pub view_roots: Vec<usize>,
+    /// Retained native slice loans; a moved view transfers these with its value.
+    pub(crate) native_view_loans: Option<Box<Vec<native_view_loans::Loan>>>,
     pub callback_invocation: Option<Mode>,
     pub callback_reference: bool,
     /// Source callback ownership remains exact after concrete specialization.
@@ -465,6 +469,8 @@ struct Context {
     /// a whole record. Their nullable callback records keep one carrier type
     /// and their capture loans until the scope ends.
     control_stored: HashSet<usize>,
+    native_view_holders: std::collections::BTreeSet<usize>,
+    native_view_calls: bool,
     storage_exits: storage_exit_availability::Exits,
     capture_restoration:Option<capture_restoration::Tracker>,
     region_loop_depth:Option<usize>,
@@ -522,6 +528,8 @@ impl Context {
     fn new(function_name: String) -> Self {
         Self {
             control_stored: HashSet::new(),
+            native_view_holders: Default::default(),
+            native_view_calls: false,
             storage_exits: Default::default(),
             capture_restoration:None,
             region_loop_depth:None,
@@ -2591,6 +2599,7 @@ impl Analyzer {
                     moved_fields: BTreeMap::new(),
                     used: None,
                     view_roots: Vec::new(),
+                    native_view_loans: None,
                  omission: crate::ParameterOmission::Required, })
                 .collect();
             let origin = self.closures.len();
@@ -2768,6 +2777,7 @@ impl Analyzer {
                     borrowed_place: None,
                     mutable_place: false,
                     view_roots: Vec::new(),
+                    native_view_loans: None,
                     callback_invocation: None,
                     callback_reference: false,
                     callback_kind: None,
@@ -2917,6 +2927,7 @@ impl Analyzer {
             borrowed_place: None,
             mutable_place: false,
             view_roots: Vec::new(),
+            native_view_loans: None,
             callback_invocation: Some(invocation),
             callback_reference: false,
             callback_kind: None,
@@ -3001,6 +3012,7 @@ impl Analyzer {
             borrowed_place: None,
             mutable_place: false,
             view_roots: Vec::new(),
+            native_view_loans: None,
             callback_invocation: Some(Mode::Consume),
             callback_reference: false,
             callback_kind: None,
@@ -3655,6 +3667,7 @@ impl Analyzer {
                 borrowed_place: None,
                 mutable_place: false,
                 view_roots: Vec::new(),
+                native_view_loans: None,
                 callback_invocation: None,
                 callback_reference: false,
                 callback_kind: None,
@@ -5775,7 +5788,9 @@ impl Analyzer {
         if place_view && !mutable_view && let Type::Union(union) = actual && !union.copy {
             actual = Type::BorrowedUnion(union);
         }
+        let native_loans = Self::native_view_value_loans(context, value)?;
         let id = Self::bind(context, name, actual, false)?;
+        Self::set_native_view_loans(context, id, native_loans);
         if mutable_view {
             context.bindings[id].mutable_place = true;
             context.mutable_match_borrows.push(id);
@@ -5916,6 +5931,7 @@ impl Analyzer {
                 target.span,
             ));
         }
+        Self::check_native_view_access(context, id, Mode::Mutate, target.span)?;
         // Replacement needs no old value, but cannot invalidate an outstanding loan.
         if !context.effects_only
             && context
@@ -6015,6 +6031,8 @@ impl Analyzer {
         if matches!((actual,ty),(Type::Record(a),Type::Record(b)) if self.scoped_records.declaration(a)==self.scoped_records.declaration(b)){context.bindings[id].ty=actual;}
         if matches!((actual,ty),(Type::Array(ArrayElement::Record(a,0)),Type::Array(ArrayElement::Record(b,0))) if self.scoped_records.declaration(a)==self.scoped_records.declaration(b)){context.bindings[id].ty=actual;}
         if self.scoped_record_nullable_contract(actual, ty) { context.bindings[id].ty = actual; }
+        let native_loans = Self::native_view_value_loans(context, value)?;
+        Self::set_native_view_loans(context, id, native_loans);
         context.bindings[id].transferred = None;
         context.bindings[id].moved_fields.clear();
         context.bindings[id].mutable = true;
@@ -6661,6 +6679,7 @@ impl Analyzer {
             borrowed_place: None,
             mutable_place: false,
             view_roots: Vec::new(),
+            native_view_loans: None,
             callback_invocation: None,
             callback_reference: false,
             callback_kind: None,
@@ -6763,6 +6782,7 @@ impl Analyzer {
         span: Span,
         loans: &Loans,
     ) -> Result<(), Diagnostic> {
+        Self::check_native_view_access(context, index, mode, span)?;
         Self::check_mutable_match_owner(context, index, span)?;
         if matches!(mode, Mode::Mutate | Mode::Consume) {
             if !context.effects_only {
@@ -14265,6 +14285,10 @@ self.names_materialized_type(element.with_depth(0).ty())
                     mode: parameter.access, omission: crate::ParameterOmission::Required, rest: false })
             }).collect::<Result<Vec<_>, Diagnostic>>()?;
             self.check_call_arguments(context, args, &contracts, loans)?;
+            if let Some(contract) = binding.returned_borrow {
+                Self::native_view_source_loans(context, &args[contract.source_parameter], contract)?;
+                context.native_view_calls = true;
+            }
             let result = native_type(binding.result, &self.program.records);
             expr.target = Some(CallTarget::NativeBinding(id));
             expr.ty = Some(result);

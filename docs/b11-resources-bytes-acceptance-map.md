@@ -30,3 +30,14 @@ returned lifetime inference, recursive wrappers, source factories and their benc
 support remain pending. This is implementation progress, not gate acceptance or
 measurement. See handoff-2026-10-10-native-view-storage.md and the SQLite record
 runtime/results/native-view-storage-2026-10-10-checks.json.
+
+### Gate 189 retained loan progress
+
+Native slice loans now integrate with analyzer binding initialization, whole-binding
+replacement and ownership access checks through a dedicated module. Seven private
+loan checks, 89 tests across ten depth-canary suites and 14 native editor checks pass.
+Conditional-source validation also rejects temporary alternatives. No public factory
+is enabled. Branch joins, Result-path release, precise projections, source escapes
+and lifetime inference remain pending. This is not gate acceptance or measurement.
+See handoff-2026-10-10-native-view-loans.md and SQLite record
+runtime/results/native-view-loans-2026-10-10-checks.json.

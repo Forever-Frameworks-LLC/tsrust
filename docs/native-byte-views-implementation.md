@@ -173,3 +173,29 @@ Result parameter is also emitted and compiled. These tests prove the isolated
 nonrecursive storage ABI, not source factory calls, returned lifetime inference,
 recursive wrappers, callback capture composition or source ownership diagnostics.
 The native projection guard and missing public view exports remain in place.
+
+## Retained source-loan integration checkpoint
+
+Native view loans now have dedicated binding-identity storage, separate from
+optional-element views and callback capture markers. Each retained loan records its
+source binding, access and diagnostic location. An ordered holder index avoids
+allocation or scanning unrelated bindings on ordinary ownership accesses. The
+initializer walker is skipped when the function has neither retained views nor a
+checked native borrow-producing call.
+
+Analyzer access and replacement checks now consult these loans. Readonly loans block
+mutation and transfer; exclusive loans also block reads. Moved holders stop enforcing
+the old loan, while the moved value can retain it. Out-of-scope or shadowed holders
+are ignored by current lexical identity. Native factory checking validates stable
+source alternatives. A conditional cannot hide a temporary behind another named
+source. Nested reborrows retain the original owner and the parent view identity.
+Binding initializers and whole-binding replacement propagate native loans through
+supported value wrappers and aggregate literals.
+
+These are private analyzer integration checks, not complete source-view acceptance.
+The tests inject retained loans into real analyzer contexts because public factories
+remain guarded. Branch-state merging, Result success/error projections, precise field
+provenance, captures, all control-flow exits, last-use release and return lifetime
+relationships still need implementation and source-level witnesses. Do not remove
+the projection guard based on these checks. Existing source programs do not acquire
+new borrow-producing bindings at this checkpoint.
