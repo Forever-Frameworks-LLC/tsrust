@@ -258,3 +258,25 @@ owner escape, second invocation and conflicting access controls remain intact.
 This connects emission to checked metadata, not source construction: the frontend
 still guards normal owning construction. Nominal record generic positions, source
 conversion and supported ABI validation must be connected before that guard is lifted.
+
+## Nominal record generic positions
+
+The isolated native_view_record_parameters index now derives generic field positions
+from native-bearing instances and keeps those positions on their nominal declaration.
+Record definitions, ordinary type rendering, named lifetime signatures, record arrays
+and environment rendering consult the same field decision. A scoped owning instance
+can therefore fill its field with a lifetime-bearing family without changing the
+written owning contract or marking ordinary owning families as borrowed.
+
+Declared-family discovery skips generic record fields. Unused symbolic lifetime-free
+families no longer emit invalid native-view result signatures solely because a nominal
+field was written with an owning callable annotation. Populated families and concrete
+function storage remain discoverable. Discovery uses direct iteration without a
+per-record temporary vector.
+
+The normal-emission control now includes a nominal Holder record, a materialized scoped
+owning field and a named native forwarding signature for that record. Both alternatives
+run at O0/O3 for readonly and exclusive views. The initial record control failed on the
+nominal field type and an unused symbolic family; repaired controls retain pointer,
+write-through, escape, second-call and conflicting-access assertions. Normal source
+construction remains guarded; the original source witness remains the next target.

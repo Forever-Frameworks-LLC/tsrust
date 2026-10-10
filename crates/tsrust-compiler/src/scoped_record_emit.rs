@@ -116,9 +116,10 @@ impl Emitter<'_> {
                 let arguments = self.program.records[id]
                     .fields
                     .iter()
-                    .filter_map(|field| {
+                    .enumerate()
+                    .filter_map(|(position,field)| {
                         let ty = field.ty.expect("checked record field");
-                        self.scoped_record_native_parameter(ty)
+                        self.scoped_record_native_field(id,position,ty)
                             .then(|| self.record_environment_type(ty, lifetimes, next))
                     })
                     .collect::<Vec<_>>();

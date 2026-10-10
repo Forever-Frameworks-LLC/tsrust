@@ -164,9 +164,9 @@ impl Emitter<'_> {
             Type::Record(id) if native_view_emit::access(self.program,id).is_some()=>format!("Record{id}<{}>",plan.slot(input,path,guards)),
             Type::Record(id)=>{
                 let base=self.program.scoped_records.declaration(id);
-                let parameters=self.program.records[id].fields.iter().zip(&self.program.records[base].fields).filter_map(|(field,declared)|{
+                let parameters=self.program.records[id].fields.iter().enumerate().filter_map(|(position,field)|{
                     let ty=field.ty.expect("checked field");
-                    if !(self.scoped_record_native_parameter(ty)||self.scoped_record_native_parameter(declared.ty.expect("checked field"))) {return None;}
+                    if !self.scoped_record_native_field(id,position,ty) {return None;}
                     path.push(Segment::Field(field.name.text.clone()));
                     let result=self.native_view_signature_slot(ty,input,plan,path,guards);path.pop();Some(result)
                 }).collect::<Vec<_>>();

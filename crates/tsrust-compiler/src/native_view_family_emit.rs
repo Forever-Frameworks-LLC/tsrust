@@ -90,7 +90,7 @@ mod tests {
     }
 
     fn assert_family(mutable:bool) {
-        let source="type Window={};function first(view:Window){return ()=>view;}function second(view:Window){return ()=>view;}function main(){}";
+        let source="type Window={};type Holder={read:Once<Function<Window>>;marker:int;};function first(view:Window){return ()=>view;}function second(view:Window){return ()=>view;}function main(){}";
         let formatted=crate::formatting::format(source).unwrap();
         assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
         let mut parsed=crate::syntax::parse(&formatted).unwrap();
@@ -118,19 +118,20 @@ mod tests {
         let declaration=checked.callback_contracts.len();checked.callback_contracts.push(crate::analysis::CallbackContract{structural:contract.structural,parameter_names:contract.parameter_names.clone(),params:contract.params.clone(),result:contract.result,kind:contract.kind});
         let scoped=checked.stored_contracts.intern_scoped_native(&checked.callable_shapes,&contract,declaration,[0,1],&checked.closures,crate::Span::default()).unwrap().unwrap();
         let Type::StoredCallable(scoped)=scoped else {unreachable!()};
+        let holder=checked.scoped_records.materialize(1,vec![Type::StoredCallable(scoped),Type::Int],&mut checked.records);
         let emitter=emitter_for(&checked,"");
         let mut inputs=BTreeMap::new();let mut returns=Vec::new();let mut names=Vec::new();
         for alternative in &layout.alternatives {
             for slot in &alternative.slots {
                 let name=format!("'scope{}",names.len());names.push(name.clone());
-                let mut path=vec![Segment::CallableAlternative(alternative.origin),Segment::Field(format!("capture{}",slot.capture))];path.extend(slot.path.iter().cloned());
+                let mut path=vec![Segment::Field("read".into()),Segment::CallableAlternative(alternative.origin),Segment::Field(format!("capture{}",slot.capture))];path.extend(slot.path.iter().cloned());
                 let source=LifetimeSource::carried(path.clone(),vec![]);inputs.insert((0,source.clone()),name);
                 returns.push(Loan{root:0,owner_fields:vec![],source,access:slot.access,creation:crate::Span::default(),retained:true,path,guards:vec![]});
             }
         }
         let plan=native_view_lifetime_emit::Lifetimes::with_named_sources(inputs,&returns).unwrap();
-        let input=emitter.native_view_signature_type(Type::StoredCallable(scoped),Some(0),&plan);
-        let result=emitter.native_view_signature_type(Type::StoredCallable(scoped),None,&plan);
+        let input=emitter.native_view_signature_type(Type::Record(holder),Some(0),&plan);
+        let result=emitter.native_view_signature_type(Type::Record(holder),None,&plan);
         let relay=format!("fn relay_family<{}>(value:{input})->{result}{{value}}",names.join(","));
         let mut generated=crate::emit::emit(&checked);
         generated.push_str(&relay);
@@ -150,8 +151,8 @@ mod tests {
             rejections.push(("fn invalid_mutation(){let mut owner=vec![1u8];let selected=NativeViewCallable7::V0(function0(Record0{bytes:&mut owner}));let result=selected.call();owner[0]=2;assert_eq!(result.bytes[0],1);}".into(),"cannot borrow"));
         }
         let name=format!("NativeViewCallable{scoped}");
-        let probe=probe.replace("NativeViewCallable7",&name).replace("selected.call()","relay_family(selected).call()");
-        let rejections=rejections.into_iter().map(|(source,message)|(source.replace("NativeViewCallable7",&name).replace("selected.call()","relay_family(selected).call()"),message)).collect();
+        let probe=probe.replace("NativeViewCallable7",&name).replace("selected.call()","relay_family(Record1{field0:selected,field1:3}).field0.call()");
+        let rejections=rejections.into_iter().map(|(source,message)|(source.replace("NativeViewCallable7",&name).replace("selected.call()","relay_family(Record1{field0:selected,field1:3}).field0.call()"),message)).collect();
         compile_family(&generated,"",&probe,rejections,if mutable {"mutable"}else{"readonly"});
     }
 

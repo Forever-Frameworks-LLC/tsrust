@@ -6,6 +6,7 @@ use crate::syntax::Type;
 /// Empty storage families still need a native type when concrete declarations use them.
 pub(crate) fn declared_storage_families(
     program: &CheckedProgram,
+    generic_field: impl Fn(usize,usize)->bool,
 ) -> std::collections::HashSet<usize> {
     let family = |ty| match ty {
         Type::StoredCallable(id)
@@ -13,12 +14,12 @@ pub(crate) fn declared_storage_families(
         | Type::Array(crate::syntax::ArrayElement::StoredCallable(id, _)) => Some(id),
         _ => None,
     };
-    let mut families = program
-        .records
-        .iter()
-        .flat_map(|record| &record.fields)
-        .filter_map(|field| field.ty.and_then(family))
-        .collect::<std::collections::HashSet<_>>();
+    let mut families=std::collections::HashSet::new();
+    for (record,info) in program.records.iter().enumerate() {
+        for (position,field) in info.fields.iter().enumerate() {
+            if !generic_field(record,position) && let Some(id)=field.ty.and_then(family) {families.insert(id);}
+        }
+    }
     let functions = program
         .functions
         .iter()

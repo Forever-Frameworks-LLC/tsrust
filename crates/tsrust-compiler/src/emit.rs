@@ -1,3 +1,5 @@
+#[path = "native_view_record_parameters.rs"]
+mod native_view_record_parameters;
 #[path = "native_view_family_emit.rs"]
 mod native_view_family_emit;
 #[path = "native_view_lifetime_emit.rs"]
@@ -180,12 +182,15 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
     let borrowed_capture_alternatives = borrowed_payload_emit::capture_alternatives(program);
     let borrowed_lifetime_alternatives = borrowed_owner_emit::lifetime_alternatives(program,&borrowed_capture_alternatives,&borrowed_owners);
     let native_captures = native_capture_storage::Storage::new(program, &borrowed_lifetime_alternatives);
+    let native_views=native_view_emit::Shapes::new(program);
+    let native_record_fields=native_view_record_parameters::Index::new(program,&native_views);
     let mut emitter = Emitter {
         borrowed_capture_alternatives,
         borrowed_owners,
         borrowed_lifetime_alternatives,
         native_captures,
-        native_views: native_view_emit::Shapes::new(program),
+        native_views,
+        native_record_fields,
         callback_traits,
         counted_calls,
         program,
@@ -258,6 +263,7 @@ struct Emitter<'a> {
     borrowed_owners: borrowed_owner_provenance::Plan,
     native_captures: native_capture_storage::Storage,
     native_views: native_view_emit::Shapes,
+    native_record_fields: native_view_record_parameters::Index,
     borrowed_capture_alternatives: borrowed_payload_emit::Alternatives,
     callback_traits: bool,
     counted_calls: bool,
@@ -418,9 +424,9 @@ impl Emitter<'_> {
             // The declaration decides which fields are generic. An instance
             // whose nullable field owns all captures still fills that position.
             let base = self.program.scoped_records.declaration(id);
-            let parameters = self.program.records[id].fields.iter().zip(&self.program.records[base].fields).filter_map(|(field, declared)| {
+            let parameters = self.program.records[id].fields.iter().enumerate().filter_map(|(position,field)| {
                 let ty = field.ty.expect("checked field");
-                (self.scoped_record_native_parameter(ty) || self.scoped_record_native_parameter(declared.ty.expect("checked field"))).then(|| self.native_type(ty))
+                self.scoped_record_native_field(id,position,ty).then(|| self.native_type(ty))
             }).collect::<Vec<_>>();
             if !parameters.is_empty() { return format!("Record{base}<{}>", parameters.join(", ")); }
         }
@@ -1931,7 +1937,7 @@ impl Emitter<'_> {
                 declarations.push_str(&declaration);closures.insert(index,name);
             }
         }
-        let declared_families=crate::callable_layout::declared_storage_families(self.program);
+        let declared_families=crate::callable_layout::declared_storage_families(self.program,|record,position|self.scoped_record_native_field(record,position,self.program.records[record].fields[position].ty.expect("checked field")));
         for (family,_,origins) in self.program.stored_contracts.families() {
             if origins.is_empty() && !declared_families.contains(&family) {continue;}
             let span=origins.iter().next().map_or(crate::Span::default(),|origin|self.program.closures[*origin].span);
@@ -2316,14 +2322,14 @@ impl Emitter<'_> {
                 .fields
                 .iter()
                 .enumerate()
-                .map(|(index, field)| {
+                .map(|(position, field)| {
                     let ty = field.ty.expect("checked record field");
-                    let native = if self.scoped_record_native_parameter(ty) {
-                        let parameter = format!("P{index}");
+                    let native = if self.scoped_record_native_field(index,position,ty) {
+                        let parameter = format!("P{position}");
                         generic_fields.push(parameter.clone());
                         parameter
                     } else { self.native_type(ty) };
-                    format!("field{index}: {native}")
+                    format!("field{position}: {native}")
                 })
                 .collect::<Vec<_>>()
                 .join(", ");
@@ -2583,7 +2589,7 @@ impl Emitter<'_> {
             }
             self.callback_result_adapters(&mut output,index,&params,&arguments,&forwarded,&impl_lifetimes,&lifetime,&native_result);
         }
-        let declared_families = crate::callable_layout::declared_storage_families(self.program);
+        let declared_families = crate::callable_layout::declared_storage_families(self.program,|record,position|self.scoped_record_native_field(record,position,self.program.records[record].fields[position].ty.expect("checked field")));
         if self.program.stored_contracts.families().any(|(_, declaration, _)| self.program.callback_contracts[declaration].kind == crate::syntax::CallbackKind::SharedRead) {
             output.push_str(include_str!("stdlib/testing/shared_callback_runtime.rs"));
         }
@@ -2735,7 +2741,7 @@ impl Emitter<'_> {
                 };
                 // The declaration decides which fields are generic, as for the record itself.
                 let declaration = self.program.scoped_records.declaration(index);
-                let parameters = self.program.records[index].fields.iter().zip(&self.program.records[declaration].fields).enumerate().filter_map(|(field, (value, declared))| (self.scoped_record_native_parameter(value.ty.expect("checked field")) || self.scoped_record_native_parameter(declared.ty.expect("checked field"))).then(||format!("P{field}"))).collect::<Vec<_>>();
+                let parameters = self.program.records[index].fields.iter().enumerate().filter_map(|(field,value)| self.scoped_record_native_field(index,field,value.ty.expect("checked field")).then(||format!("P{field}"))).collect::<Vec<_>>();
                 let arguments = if parameters.is_empty() {String::new()} else {format!("<{}>",parameters.join(", "))};
                 let _ = writeln!(
                     output,
