@@ -1,4 +1,3 @@
-#[cfg(test)]
 #[path = "native_view_family_emit.rs"]
 mod native_view_family_emit;
 #[path = "native_view_lifetime_emit.rs"]
@@ -377,6 +376,11 @@ impl Emitter<'_> {
     }
 
     fn native_type(&self, value: Type) -> String {
+        if let Type::StoredCallable(id)=value
+            && let Some(layout)=self.program.stored_contracts.scoped_native_family(id) {
+            let slots=layout.alternatives.iter().map(|alternative|alternative.slots.len()).sum::<usize>();
+            return format!("NativeViewCallable{id}<{}>",vec!["'_";slots].join(", "));
+        }
         if let Type::Record(id) = value && native_view_emit::access(self.program, id).is_some() {
             return format!("Record{id}<'_>");
         }
@@ -2591,6 +2595,10 @@ impl Emitter<'_> {
         {
             let contract = &self.program.callback_contracts[declaration];
             if self.program.stored_contracts.is_borrowed(id) {self.emit_borrowed_family(&mut output,id,declaration,origins);continue;}
+            if let Some(layout)=self.program.stored_contracts.scoped_native_family(id) {
+                self.emit_native_view_family(&mut output,id,layout,contract).expect("checked scoped owning native callable family");
+                continue;
+            }
             let family = crate::callable_dispatch::Family::checked_results(
                 contract, &self.program.callable_shapes, origins.iter().copied(),
                 &self.program.closures, crate::Span::default(),
@@ -7793,6 +7801,9 @@ impl Emitter<'_> {
     /// least one is a union read as a copy or a view. Only alternatives of
     /// equal type can match; int and number compare by value.
     fn stored_callable_constructor(&self, family: usize, origin: usize, value: &str) -> String {
+        if self.program.stored_contracts.scoped_native_family(family).is_some() {
+            return format!("NativeViewCallable{family}::V{origin}({value})");
+        }
         if self.program.stored_contracts.is_borrowed(family) {
             if self.borrowed_payloads(family).iter().any(|payload| !payload.captures.is_empty() || !payload.owners.is_empty()) {
                 let name=self.borrowed_family_type(family).replacen("<","::<",1);

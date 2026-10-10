@@ -32,7 +32,6 @@ impl Lifetimes {
         plan
     }
 
-    #[cfg(test)]
     pub(super) fn with_named_sources(inputs:BTreeMap<(usize,LifetimeSource),String>,returns:&[crate::analysis::native_view_loans::Loan])->Result<Self,crate::Diagnostic> {
         if returns.iter().any(|loan|!inputs.contains_key(&(loan.root,loan.source.clone()))) {
             return Err(crate::Diagnostic::new("native-view-family-emission","A returned family view has no named capture source lifetime.",crate::Span::default()));
@@ -145,6 +144,20 @@ impl Emitter<'_> {
     fn native_view_signature_slot(&self,ty:Type,input:Option<usize>,plan:&Lifetimes,path:&mut Vec<Segment>,guards:&mut Vec<VariantGuard>)->String {
         if let Type::Closure(origin)=ty {
             return self.native_view_environment_type(origin,input,plan,path,guards);
+        }
+        if let Type::StoredCallable(family)=ty
+            && let Some(layout)=self.program.stored_contracts.scoped_native_family(family) {
+            let mut names=Vec::new();
+            for alternative in &layout.alternatives {
+                for slot in &alternative.slots {
+                    let mut prefix=path.clone();prefix.push(Segment::CallableAlternative(alternative.origin));prefix.push(Segment::Field(format!("capture{}",slot.capture)));
+                    let mut slot_path=prefix.clone();slot_path.extend(slot.path.iter().cloned());
+                    let mut slot_guards=guards.clone();
+                    slot_guards.extend(slot.guards.iter().map(|guard|{let mut guard=guard.clone();let mut guarded=prefix.clone();guarded.extend(guard.path);guard.path=guarded;guard}));
+                    names.push(plan.slot(input,&slot_path,&slot_guards).to_owned());
+                }
+            }
+            return format!("NativeViewCallable{family}<{}>",names.join(", "));
         }
         if !self.native_views.contains(ty) {return self.native_type(ty);}
         match ty {

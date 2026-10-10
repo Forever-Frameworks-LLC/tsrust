@@ -1,4 +1,4 @@
-//! Private native family ABI proof; owning source storage remains guarded.
+//! Scoped owning native family ABI; source construction remains guarded.
 use super::*;
 
 use crate::analysis::native_view_loans::{LifetimeSource,Loan,Segment,VariantGuard};
@@ -12,7 +12,7 @@ fn captured_source(capture:usize,path:&[Segment],guards:&[VariantGuard])->Lifeti
 }
 
 impl Emitter<'_> {
-    fn emit_native_view_family(&self,output:&mut String,id:usize,layout:&crate::native_view_callable_storage::Family,contract:&crate::analysis::CallbackContract)->Result<(),crate::Diagnostic> {
+    pub(super) fn emit_native_view_family(&self,output:&mut String,id:usize,layout:&crate::native_view_callable_storage::Family,contract:&crate::analysis::CallbackContract)->Result<(),crate::Diagnostic> {
         let unsupported=|message:&str|crate::Diagnostic::new("native-view-family-emission",message,crate::Span::default());
         if layout.invocation!=Mode::Consume || layout.alternatives.is_empty() || contract.structural!=layout.signature {
             return Err(unsupported("This native family ABI requires a matching finite one-shot callback contract."));
@@ -115,7 +115,25 @@ mod tests {
         invalid.alternatives[0].slots[0].access=if mutable {crate::native_return_borrows::BorrowAccess::ReadOnly}else{crate::native_return_borrows::BorrowAccess::Exclusive};
         assert!(emitter.emit_native_view_family(&mut unchanged,8,&invalid,&contract).is_err());
         assert_eq!(unchanged,"sentinel");
+        let declaration=checked.callback_contracts.len();checked.callback_contracts.push(crate::analysis::CallbackContract{structural:contract.structural,parameter_names:contract.parameter_names.clone(),params:contract.params.clone(),result:contract.result,kind:contract.kind});
+        let scoped=checked.stored_contracts.intern_scoped_native(&checked.callable_shapes,&contract,declaration,[0,1],&checked.closures,crate::Span::default()).unwrap().unwrap();
+        let Type::StoredCallable(scoped)=scoped else {unreachable!()};
+        let emitter=emitter_for(&checked,"");
+        let mut inputs=BTreeMap::new();let mut returns=Vec::new();let mut names=Vec::new();
+        for alternative in &layout.alternatives {
+            for slot in &alternative.slots {
+                let name=format!("'scope{}",names.len());names.push(name.clone());
+                let mut path=vec![Segment::CallableAlternative(alternative.origin),Segment::Field(format!("capture{}",slot.capture))];path.extend(slot.path.iter().cloned());
+                let source=LifetimeSource::carried(path.clone(),vec![]);inputs.insert((0,source.clone()),name);
+                returns.push(Loan{root:0,owner_fields:vec![],source,access:slot.access,creation:crate::Span::default(),retained:true,path,guards:vec![]});
+            }
+        }
+        let plan=native_view_lifetime_emit::Lifetimes::with_named_sources(inputs,&returns).unwrap();
+        let input=emitter.native_view_signature_type(Type::StoredCallable(scoped),Some(0),&plan);
+        let result=emitter.native_view_signature_type(Type::StoredCallable(scoped),None,&plan);
+        let relay=format!("fn relay_family<{}>(value:{input})->{result}{{value}}",names.join(","));
         let mut generated=crate::emit::emit(&checked);
+        generated.push_str(&relay);
         let main=generated.find("fn main()").unwrap();
         let opening=main+generated[main..].find('{').unwrap()+1;
         generated.insert_str(opening,"family_probe();");
@@ -131,7 +149,10 @@ mod tests {
         if mutable {
             rejections.push(("fn invalid_mutation(){let mut owner=vec![1u8];let selected=NativeViewCallable7::V0(function0(Record0{bytes:&mut owner}));let result=selected.call();owner[0]=2;assert_eq!(result.bytes[0],1);}".into(),"cannot borrow"));
         }
-        compile_family(&generated,&family,probe,rejections,if mutable {"mutable"}else{"readonly"});
+        let name=format!("NativeViewCallable{scoped}");
+        let probe=probe.replace("NativeViewCallable7",&name).replace("selected.call()","relay_family(selected).call()");
+        let rejections=rejections.into_iter().map(|(source,message)|(source.replace("NativeViewCallable7",&name).replace("selected.call()","relay_family(selected).call()"),message)).collect();
+        compile_family(&generated,"",&probe,rejections,if mutable {"mutable"}else{"readonly"});
     }
 
     fn compile_family(generated:&str,family:&str,probe:&str,rejections:Vec<(String,&str)>,label:&str) {

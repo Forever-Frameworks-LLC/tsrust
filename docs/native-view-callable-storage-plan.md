@@ -240,3 +240,21 @@ prepared slot paths and Result guard paths. native_view_origin_remap keeps recor
 variant IDs and owner binding IDs unchanged. A missing alternative mapping leaves an
 individual loan unchanged and fails before a prepared registry clone is published.
 The original stored-callback source witness remains red. Gate 189/S07 are open.
+
+## Normal native family emission
+
+The lifetime-bearing family backend is now part of the production emitter. Normal
+program emission selects it for the distinct scoped owning registry identity, while
+ordinary owning and borrowed-invocation families retain their existing paths. Native
+construction selects the concrete enum alternative without copying its environment.
+Scoped family types render lifetime arguments in both ordinary type positions and
+named input/return signatures, using the typed alternative/capture source paths.
+
+The readonly and exclusive family controls now install checked scoped metadata and
+use complete normal program emission; they no longer append a separately emitted
+family declaration. Both alternatives run through a native forwarding function with
+explicit named input and output lifetimes at O0/O3. Pointer identity, write-through,
+owner escape, second invocation and conflicting access controls remain intact.
+This connects emission to checked metadata, not source construction: the frontend
+still guards normal owning construction. Nominal record generic positions, source
+conversion and supported ABI validation must be connected before that guard is lifted.
